@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { pushSchema } from 'drizzle-kit/api';
-import { CATALOG } from './index.js';
-import * as s from './db-schema.proposto.js';
+import { CATALOG } from './index';
+import * as s from './db-schema.proposto';
 
 let client: PGlite;
 let db: ReturnType<typeof drizzle>;

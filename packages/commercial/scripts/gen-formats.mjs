@@ -22,7 +22,7 @@ const rows = d.formatos.map((f, i) => {
 if (rows.length !== d.total) throw new Error('total divergente');
 const out = `// GERADO por scripts/gen-formats.mjs — não editar à mão.
 // Fonte: ${d.fonte} (sha256 ${d.fonte_sha256}). Preços são referência comercial, não promessa de audiência ou faturamento.
-import type { FormatSeed } from './types.js';
+import type { FormatSeed } from './types';
 
 export const FORMAT_SEEDS: readonly FormatSeed[] = ${JSON.stringify(rows, null, 2)};
 `;

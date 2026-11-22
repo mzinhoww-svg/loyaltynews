@@ -1,5 +1,5 @@
-import { FORMAT_SEEDS } from './formats.data.js';
-import type { CommercialFormat, FormatSeed, FormatStatus } from './types.js';
+import { FORMAT_SEEDS } from './formats.data';
+import type { CommercialFormat, FormatSeed, FormatStatus } from './types';
 
 /** Capacidade operacional declarada por formato (id -> true). Regra Blueprint: sem capacidade operacional, não fica à venda. */
 export type CapacityDeclaration = Readonly<Record<string, boolean>>;

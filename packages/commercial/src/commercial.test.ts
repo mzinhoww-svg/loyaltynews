@@ -5,7 +5,7 @@ import {
   InventoryBook, InventoryError, POSITIONS, theoreticalGrossCapacity,
   AdServer, CampaignBook, CampaignError, Crm, CrmError,
   MetricStore, displayMetric, unavailable, generateMediaKit, renderMediaKitHtml,
-} from './index.js';
+} from './index';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 

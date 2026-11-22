@@ -2,13 +2,13 @@
 // devolvem resultado. O Backend hidrata este contexto do banco (schema em db-schema.proposto.ts) e persiste o que mudou;
 // enquanto não há repositório, `createCommercialState()` entrega o estado em memória (testes e desenvolvimento).
 import type { FlagState } from '@ln/contracts';
-import { CATALOG } from './catalog.js';
-import { CampaignBook } from './campaigns.js';
-import { Crm } from './crm.js';
-import { InventoryBook } from './inventory.js';
-import { MetricStore } from './metrics.js';
-import { AdServer } from './rotation.js';
-import type { CommercialFormat } from './types.js';
+import { CATALOG } from './catalog';
+import { CampaignBook } from './campaigns';
+import { Crm } from './crm';
+import { InventoryBook } from './inventory';
+import { MetricStore } from './metrics';
+import { AdServer } from './rotation';
+import type { CommercialFormat } from './types';
 
 export interface Actor { id: string; /** Calculado pelo Backend (papel comercial/admin). Handlers de Studio exigem true. */ canManageCommercial: boolean }
 

@@ -1,13 +1,13 @@
 // Consultas que alimentam as telas: mídia kit público (Portal) e Studio comercial. Funções puras sobre o contexto.
 // Nenhuma consulta inventa número: sem dado => null/lista vazia/estado vazio explícito.
 import { isEnabled } from '@ln/contracts';
-import { priceLabel } from './catalog.js';
-import { generateMediaKit, type MediaKit } from './mediakit.js';
-import { POSITIONS } from './inventory.js';
-import type { CommercialCtx } from './state.js';
-import type { FormatStatus } from './types.js';
-import type { OpportunityStage } from './crm.js';
-import type { CampaignStatus } from './campaigns.js';
+import { priceLabel } from './catalog';
+import { generateMediaKit, type MediaKit } from './mediakit';
+import { POSITIONS } from './inventory';
+import type { CommercialCtx } from './state';
+import type { FormatStatus } from './types';
+import type { OpportunityStage } from './crm';
+import type { CampaignStatus } from './campaigns';
 
 // ---------- Portal: página do mídia kit ----------
 export interface MediaKitPage extends MediaKit {

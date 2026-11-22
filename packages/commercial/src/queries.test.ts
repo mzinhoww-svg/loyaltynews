@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createCommercialState, makeCtx } from './state.js';
+import { createCommercialState, makeCtx } from './state';
 import {
   campaignDetail, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
-} from './queries.js';
+} from './queries';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 const mk = (flags = {}) => { const s = createCommercialState(); return { s, c: makeCtx(s, { now: NOW, today: '2026-12-05', flags }) }; };

@@ -1,7 +1,7 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { AD_FORMATS } from '@ln/contracts';
-import { CATALOG } from './index.js';
+import { CATALOG } from './index';
 
 // O catálogo do módulo precisa casar 1:1 com os 47 formatos de packages/contracts (ids, seção, nome, referência, escopo).
 test('catálogo casa com AD_FORMATS de @ln/contracts', () => {

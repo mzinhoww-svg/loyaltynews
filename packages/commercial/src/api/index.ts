@@ -1,10 +1,10 @@
 // Tabela de rotas sugerida para o Backend montar em apps/web/app/api/commercial/**. `auth: 'studio'` => ctx.actor.canManageCommercial.
 // Métodos GET: a entrada vem de query string (convertida pelo Backend em objeto; datas já como string ISO).
-import * as h from './handlers.js';
-import type { Handler } from './http.js';
+import * as h from './handlers';
+import type { Handler } from './http';
 
-export * from './http.js';
-export * from './handlers.js';
+export * from './http';
+export * from './handlers';
 
 export interface Route { method: 'GET' | 'POST'; path: string; auth: 'public' | 'studio'; handler: Handler }
 export const ROUTES: readonly Route[] = [

@@ -1,11 +1,11 @@
 // Tipos e utilitários HTTP-agnósticos dos handlers. O Backend traduz HttpResult para NextResponse; nada aqui importa Next.
 import { z } from 'zod';
 import { apiError, type ApiError } from '@ln/contracts';
-import { CampaignError } from '../campaigns.js';
-import { CrmError } from '../crm.js';
-import { InventoryError } from '../inventory.js';
-import { MetricError } from '../metrics.js';
-import type { CommercialCtx } from '../state.js';
+import { CampaignError } from '../campaigns';
+import { CrmError } from '../crm';
+import { InventoryError } from '../inventory';
+import { MetricError } from '../metrics';
+import type { CommercialCtx } from '../state';
 
 export interface HttpResult<T = unknown> { status: number; body: T | ApiError }
 export type Handler<I = unknown, O = unknown> = (ctx: CommercialCtx, input: I) => HttpResult<O>;

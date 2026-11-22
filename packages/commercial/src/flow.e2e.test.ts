@@ -1,6 +1,6 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { Crm, InventoryBook, CampaignBook, AdServer, MetricStore, generateMediaKit } from './index.js';
+import { Crm, InventoryBook, CampaignBook, AdServer, MetricStore, generateMediaKit } from './index';
 
 // Fluxo comercial ponta a ponta (domínio, sem UI/infra): lead -> CRM -> proposta -> reserva -> campanha -> entrega -> relatório -> mídia kit.
 test('e2e: do lead do mídia kit à entrega, sem audiência fictícia', () => {

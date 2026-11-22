@@ -1,6 +1,6 @@
 // GERADO por scripts/gen-formats.mjs — não editar à mão.
 // Fonte: originals/Loyalty_News_Dossie_Auditoria_Pre_T00.zip :: 02-versao-2.0/Loyalty_News_Blueprint_v2_0.md (§4 Mídia kit, tabelas de Banners a Impulsionamento; pacotes excluídos) (sha256 6048d7d65c6ac949c0b9045dc428ac9c34833d46c903dc7f0c8b2051615e19fe). Preços são referência comercial, não promessa de audiência ou faturamento.
-import type { FormatSeed } from './types.js';
+import type { FormatSeed } from './types';
 
 export const FORMAT_SEEDS: readonly FormatSeed[] = [
   {

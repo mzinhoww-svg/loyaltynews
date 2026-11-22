@@ -5,3 +5,14 @@ __pycache__/
 *.key
 .gnupg/
 .local/
+
+# monorepo (scaffold fast-track)
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+playwright-report/
+test-results/
+.env*
+!.env.example
+apps/web/AGENTS.md

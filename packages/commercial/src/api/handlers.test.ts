@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@ln/contracts';
-import { createCommercialState, makeCtx, type CommercialCtx } from '../state.js';
-import * as h from './index.js';
+import { createCommercialState, makeCtx, type CommercialCtx } from '../state';
+import * as h from './index';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 const studio = { id: 'u1', canManageCommercial: true };
@@ -36,7 +36,7 @@ describe('público', () => {
   it('mídia kit sem analytics: estado vazio honesto, nenhuma audiência', () => {
     const r = h.getMediaKit(ctx({ actor: undefined }), undefined);
     expect(r.status).toBe(200);
-    const kit = r.body as ReturnType<typeof import('../queries.js').mediaKitPage>;
+    const kit = r.body as ReturnType<typeof import('../queries').mediaKitPage>;
     expect(kit.blocks.catalogo.total).toBe(47);
     expect(kit.blocks.audiencia.metrics.every((m) => m.record.value === null)).toBe(true);
     expect(kit.capabilities).toEqual({ adServerVendas: false, instagram: false, theLoyal: false, retargeting: false });
@@ -137,7 +137,7 @@ describe('fluxo Studio ponta a ponta pelos handlers', () => {
     const served = h.serveAd(pub, { positionId: 'TOP', pageViewId: 'pv-1' }).body as { kind: string; impressionId: string };
     expect(served.kind).toBe('creative');
     h.recordAdEvent(pub, { impressionId: served.impressionId, event: 'visible' });
-    const detail = h.getCampaignDetail(c, { campaignId: campId }).body as ReturnType<typeof import('../queries.js').campaignDetail>;
+    const detail = h.getCampaignDetail(c, { campaignId: campId }).body as ReturnType<typeof import('../queries').campaignDetail>;
     expect(detail.report).toMatchObject({ served: 1, visible: 1, clicks: 0, visibleRate: 1, utmVisits: null });
     expect(detail.reservations).toHaveLength(1);
 
@@ -169,7 +169,7 @@ describe('fluxo Studio ponta a ponta pelos handlers', () => {
     expect(code(h.createReservation(c, { positionId: 'AGENDA', accountId: acc.id, startDate: '2026-12-01', endDate: '2026-12-31' }))).toBe('POSITION_NOT_CONFIGURED');
   });
   it('reserva em formato indisponível (The Loyal) é recusada; confirmar com tudo habilitado funciona só para formato disponível', async () => {
-    const { buildCatalog } = await import('../catalog.js');
+    const { buildCatalog } = await import('../catalog');
     const state = { ...createCommercialState(), catalog: buildCatalog({ 'banners--banner-rodape': true }) };
     const c = makeCtx(state, { now: NOW, actor: studio, flags: { adServerVendas: true } });
     const acc = state.crm.createAccount('Acme', NOW);
@@ -189,7 +189,7 @@ describe('métricas', () => {
     expect(h.ingestMetric(c, { source: 'ga4_report', metric: 'sessions_30d', value: 10, period_start: '2026-11-22T00:00:00-03:00', period_end: '2026-10-01T00:00:00-03:00', fetched_at: NOW }).status).toBe(422); // fim < início: erro do domínio
     const ok = h.ingestMetric(c, { source: 'ga4_report', metric: 'sessions_30d', value: 1234, period_start: '2026-10-23T00:00:00-03:00', period_end: '2026-11-21T23:59:59-03:00', fetched_at: NOW });
     expect(ok.status).toBe(201);
-    const kit = h.getMediaKit(makeCtx(state, { now: NOW }), undefined).body as ReturnType<typeof import('../queries.js').mediaKitPage>;
+    const kit = h.getMediaKit(makeCtx(state, { now: NOW }), undefined).body as ReturnType<typeof import('../queries').mediaKitPage>;
     const m = kit.blocks.audiencia.metrics.find((x) => x.record.metric === 'sessions_30d')!;
     expect(m.record).toMatchObject({ source: 'ga4_report', value: 1234, status: 'available', fetched_at: NOW });
   });

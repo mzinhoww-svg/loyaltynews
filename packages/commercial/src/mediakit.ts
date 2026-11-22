@@ -1,8 +1,8 @@
 // Mídia kit gerado por código: 8 blocos (Blueprint v2.0 §4). Métricas só vêm do MetricStore; sem registro => estado vazio honesto.
-import { CATALOG, PACKAGES, priceLabel } from './catalog.js';
-import type { CommercialFormat, MetricRecord } from './types.js';
-import { POSITIONS, theoreticalGrossCapacity } from './inventory.js';
-import { MetricStore, displayMetric } from './metrics.js';
+import { CATALOG, PACKAGES, priceLabel } from './catalog';
+import type { CommercialFormat, MetricRecord } from './types';
+import { POSITIONS, theoreticalGrossCapacity } from './inventory';
+import { MetricStore, displayMetric } from './metrics';
 
 export interface MetricSlot { block: 'cobertura' | 'audiencia'; label: string; source: string; metric: string; klass: 'realtime' | 'historical' }
 export const METRIC_SLOTS: readonly MetricSlot[] = [

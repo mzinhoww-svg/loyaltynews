@@ -2,12 +2,12 @@
 // O Backend monta as rotas (ver ROUTES em index.ts): autentica, calcula ctx.actor, hidrata/persiste o estado e traduz HttpResult.
 import { z } from 'zod';
 import { IsoDate, Id, Lead as LeadContract, isEnabled } from '@ln/contracts';
-import { CATALOG } from '../catalog.js';
-import { define, fail, ok } from './http.js';
+import { CATALOG } from '../catalog';
+import { define, fail, ok } from './http';
 import {
   campaignDetail, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
-} from '../queries.js';
-import type { FormatStatus } from '../types.js';
+} from '../queries';
+import type { FormatStatus } from '../types';
 
 const formatIds = (ids: string[]) => ids.filter((id) => !CATALOG.some((f) => f.id === id));
 const PositionId = z.enum(['TOP', 'SIDEBAR_1', 'SIDEBAR_2', 'SIDEBAR_3', 'FOOTER', 'ARTICLE_INLINE', 'HOME_BETWEEN', 'AGENDA', 'DATA']);
