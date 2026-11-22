@@ -297,7 +297,7 @@ if (new URLSearchParams(location.search).has("axe")) {
       width: innerWidth,
       violations: r.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })) })),
       passes: r.passes.length,
-      incomplete: r.incomplete.map((v) => v.id),
+      incomplete: r.incomplete.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 6) })),
     };
     document.title = `axe: ${r.violations.length} violações`;
   }, 500);

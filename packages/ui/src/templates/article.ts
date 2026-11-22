@@ -34,17 +34,19 @@ export function renderThumbnail(input: ArticleTemplateInput): TemplateAsset {
   const theme = input.theme ?? "primary";
   const mock = Boolean(input.mock);
   const textW = W - SAFE * 2;
-  const { size, lines } = fitHeadline(input.title.trim(), textW, MAX_HEADLINE_LINES, 64, 36);
+  // Texto limitado a ≤ 4 linhas; com corpo ≤ 60px a última linha termina acima do logo (y ≈ 598).
+  const { size, lines } = fitHeadline(input.title.trim(), textW, MAX_HEADLINE_LINES, 60, 36);
   const lead = Math.round(size * 1.12);
   const eyebrowSize = 26;
-  const headTop = 330;
+  const band = 250; // faixa superior (ilustração ou monograma)
+  const headTop = 306;
   const logoW = 230;
   const parts: string[] = [darkBackground("tg", W, H, theme)];
-  // metade superior: ilustração ou marca d'água do monograma
+  parts.push(`<rect x="0" y="0" width="${W}" height="${band}" fill="${C.mint}"/>`);
   if (input.illustration) {
-    parts.push(`<image href="${esc(input.illustration)}" x="0" y="0" width="${W}" height="${headTop - 40}" preserveAspectRatio="xMidYMid slice"/>`);
+    parts.push(`<image href="${esc(input.illustration)}" x="0" y="0" width="${W}" height="${band}" preserveAspectRatio="xMidYMid slice"/>`);
   } else {
-    parts.push(monogramGroup("light", W - 420, -70, 520, 0.12));
+    parts.push(monogramGroup("dark", (W - 150) / 2, (band - 150) / 2, 150));
   }
   parts.push(eyebrow(SAFE, headTop, input.editoria, eyebrowSize));
   lines.forEach((l, i) => parts.push(textEl(SAFE, headTop + 36 + size + i * lead, l, `font-family="${esc(FONT_UI)}" font-size="${size}" font-weight="700" fill="${C.white}"`)));
