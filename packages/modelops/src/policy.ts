@@ -1,6 +1,6 @@
 // Carregador e validador da política de modelos. Falha fechada: política inválida não é usada.
 import { readFileSync } from 'node:fs';
-import type { ModelPolicy, PolicyCheck } from './types.ts';
+import type { ModelPolicy, PolicyCheck } from './types';
 
 const KNOWN_PROVIDERS = ['anthropic', 'openai', 'deepseek'];
 
@@ -89,7 +89,7 @@ export function validatePolicy(raw: unknown): PolicyCheck {
     }
     const numeric = keys.map((k) => Number(k));
     for (let i = 1; i < numeric.length; i++) {
-      if (!(numeric[i] > numeric[i - 1])) errors.push('budget_steps_usd: degraus fora de ordem crescente');
+      if (!((numeric[i] ?? 0) > (numeric[i - 1] ?? 0))) errors.push('budget_steps_usd: degraus fora de ordem crescente');
     }
   }
 

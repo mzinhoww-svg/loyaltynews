@@ -1,9 +1,10 @@
 // MOCK: cliente simulado do OpenRouter. Nenhuma chamada de rede. Usado por padrão e nos testes.
 // Respostas são sintéticas e marcadas com provider_name "SIMULADO": nunca são dado real.
-import type { OpenRouterBody, OpenRouterClient, OpenRouterResponse } from './openrouter.ts';
+import { ProviderRejectedError, type OpenRouterBody, type OpenRouterClient, type OpenRouterResponse } from './openrouter';
 
 export interface SimulatedOptions {
   failFirst?: number; // quantas chamadas falham antes de responder
+  failKind?: 'rejected' | 'uncertain'; // rejeição sem cobrança (429) ou falha incerta depois do envio
   costUsd?: number; // custo informado em cada resposta
   omitGeneration?: boolean; // remove a evidência de geração
   responseModel?: string; // força o modelo que "respondeu" (para testar autor distinto)
@@ -23,7 +24,8 @@ export class SimulatedOpenRouterClient implements OpenRouterClient {
     this.calls.push(body);
     if (this.failuresLeft > 0) {
       this.failuresLeft -= 1;
-      throw new Error('SIMULADO: falha de provedor');
+      if (this.opts.failKind === 'rejected') throw new ProviderRejectedError(429);
+      throw new Error('SIMULADO: timeout depois do envio');
     }
     const model = this.opts.responseModel ?? body.model;
     const cost = this.opts.costUsd ?? 0.5;

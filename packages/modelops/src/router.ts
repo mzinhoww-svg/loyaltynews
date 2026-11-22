@@ -1,8 +1,8 @@
 // Roteador por tarefa e classe de dado. Decide o modelo primário e os fallbacks laterais, ou bloqueia (falha fechada).
 // Não chama nada: só decide. Quem reserva orçamento e chama o provedor é o gateway.
-import type { DataClass, ModelEntry, ModelPolicy, TaskClass } from './types.ts';
-import { DATA_CLASS_ORDER } from './types.ts';
-import type { Lane } from './ledger.ts';
+import type { DataClass, ModelEntry, ModelPolicy, TaskClass } from './types';
+import { DATA_CLASS_ORDER } from './types';
+import type { Lane } from './ledger';
 
 export interface TaskSpec {
   route: string; // rota de routing_by_task, ou 'deterministic'
@@ -90,6 +90,15 @@ function mostRestrictive(classes: readonly string[]): DataClass | null {
   return DATA_CLASS_ORDER[worst] ?? null;
 }
 
+// Verba do provedor, lida de forma tipada (openai, anthropic, deepseek). Provedor desconhecido: sem verba.
+function allocationFor(policy: ModelPolicy, provider: string): number | undefined {
+  const a = policy.rules.budget_allocation_usd;
+  if (provider === 'anthropic') return a.anthropic;
+  if (provider === 'openai') return a.openai;
+  if (provider === 'deepseek') return a.deepseek;
+  return undefined;
+}
+
 export function route(policy: ModelPolicy, req: RouteRequest): RouteDecision {
   // 1. Kill switch global e por rota (emergency_stop).
   if (req.killGlobal) return blocked('kill_global', 'parada global ativa');
@@ -149,7 +158,7 @@ export function route(policy: ModelPolicy, req: RouteRequest): RouteDecision {
 
     if (!req.qualifiedModelIds.includes(id)) why.push('not_qualified');
 
-    const providerAlloc = (policy.rules.budget_allocation_usd as Record<string, number>)[model.provider];
+    const providerAlloc = allocationFor(policy, model.provider);
     if (providerAlloc === undefined || providerAlloc === 0) why.push('zero_allocation');
 
     if (!model.binding) {
@@ -185,7 +194,9 @@ export function route(policy: ModelPolicy, req: RouteRequest): RouteDecision {
   // 8. Limite de tentativas (max_attempts): primário mais fallbacks laterais da mesma classe.
   const chosen = eligible.slice(0, maxAttempts);
   const primary = chosen[0];
-  if (!primary) return blocked('no_eligible_candidate', 'nenhum candidato elegível', reasons);
+  if (!primary) {
+    return { status: 'blocked', reason: 'no_eligible_candidate', detail: 'nenhum candidato elegível', reasons };
+  }
 
   return {
     status: 'eligible',

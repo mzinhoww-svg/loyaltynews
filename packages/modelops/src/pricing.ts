@@ -1,7 +1,7 @@
 // Estimativa do teto de uma chamada (reserva) em micro-USD. Arredonda para cima e escolhe a faixa de preço
 // pelo tamanho do contexto (long_context_overrides). Incerteza = reserva na faixa mais cara.
-import { priceToMicroPerMtok, tokensToMicro } from './money.ts';
-import type { ModelEntry, PriceTier } from './types.ts';
+import { priceToMicroPerMtok, tokensToMicro } from './money';
+import type { ModelEntry, PriceTier } from './types';
 
 export interface TokenEstimate {
   promptTokens: number; // entrada sem cache

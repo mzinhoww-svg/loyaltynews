@@ -75,3 +75,21 @@ export function checkEvidence(r: OpenRouterResponse): string[] {
   }
   return missing;
 }
+
+// Status que garantem que a chamada NÃO foi cobrada. Qualquer outro erro depois do envio é incerto.
+const NO_CHARGE_STATUSES: readonly number[] = [400, 401, 402, 403, 404, 422, 429];
+
+export function isNoChargeStatus(status: number): boolean {
+  return NO_CHARGE_STATUSES.includes(status);
+}
+
+// Rejeição com status sem cobrança: a reserva pode ser liberada e o fallback é seguro.
+export class ProviderRejectedError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`provedor rejeitou com HTTP ${status} (sem cobrança)`);
+    this.name = 'ProviderRejectedError';
+    this.status = status;
+  }
+}

@@ -1,9 +1,9 @@
 // Portão de orçamento: reserva atômica em micro-USD contra o teto agregado de US$ 50 (DP-04, ADR-015).
 // Cada reserva é checada e gravada dentro de um lock; sem isso, chamadas concorrentes poderiam estourar o teto.
-import { usdToMicro, microToUsd } from './money.ts';
-import { monthKey } from './month.ts';
-import { replay, spentMicro, type LedgerStore, type Lane, type ReservationState } from './ledger.ts';
-import type { ModelPolicy, Pool, TaskClass } from './types.ts';
+import { usdToMicro, microToUsd } from './money';
+import { monthKey } from './month';
+import { replay, spentMicro, type LedgerStore, type Lane, type ReservationState } from './ledger';
+import type { ModelPolicy, Pool, TaskClass } from './types';
 
 export interface GateConfig {
   capMicro: number; // teto mensal agregado (50)
@@ -49,6 +49,7 @@ export interface Snapshot {
   providerMicro: Record<string, number>;
   escalationMicro: number;
   openReservations: number;
+  pendingReservations: number;
 }
 
 export interface CommitResult {
@@ -68,14 +69,13 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
     anthropic: usdToMicro(alloc.anthropic),
     deepseek: usdToMicro(alloc.deepseek),
   };
-  const auditTasks = (rules as Record<string, any>).budget_enforcement?.audit_errata_reserve_exclusive_to;
   return {
     capMicro: usdToMicro(rules.hard_monthly_budget_usd),
     providerAllocationMicro,
     imageAllocationMicro: usdToMicro(alloc.images),
     escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
     reserveMicro: usdToMicro(alloc.audit_errata_reserve),
-    reserveTaskIds: Array.isArray(auditTasks) ? auditTasks : [],
+    reserveTaskIds: auditTaskIdsOf(rules),
     ceilingMicro: {
       premium: usdToMicro(Number(findStep(steps, '35'))),
       non_essential: usdToMicro(Number(findStep(steps, '40'))),
@@ -83,6 +83,15 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
       reserve: usdToMicro(Number(findStep(steps, '50'))),
     },
   };
+}
+
+// Tarefas que podem usar a reserva de 8, lidas de rules.budget_enforcement (tipado, sem any).
+function auditTaskIdsOf(rules: ModelPolicy['rules']): readonly string[] {
+  const enforcement: unknown = rules.budget_enforcement;
+  if (typeof enforcement !== 'object' || enforcement === null) return [];
+  const list: unknown = (enforcement as { audit_errata_reserve_exclusive_to?: unknown }).audit_errata_reserve_exclusive_to;
+  if (!Array.isArray(list)) return [];
+  return list.filter((x): x is string => typeof x === 'string');
 }
 
 // Os valores dos degraus são texto ("stop premium/experiments"); o teto de cada degrau vem da chave.
@@ -125,11 +134,13 @@ export class BudgetGate {
       providerMicro: {},
       escalationMicro: 0,
       openReservations: 0,
+      pendingReservations: 0,
     };
     for (const s of states.values()) {
       if (s.monthKey !== month) continue;
       const spent = spentMicro(s);
       if (s.status === 'open') snap.openReservations += 1;
+      if (s.status === 'pending') snap.pendingReservations += 1;
       if (s.pool === 'reserve') {
         snap.reserveMicro += spent;
       } else {
@@ -219,12 +230,37 @@ export class BudgetGate {
     });
   }
 
+  // Estado atual de uma reserva (ou undefined se não existe).
+  async statusOf(reservationId: string): Promise<ReservationState | undefined> {
+    return this.locked(async () => (await this.states()).get(reservationId));
+  }
+
+  // Resultado incerto depois do envio: a reserva continua contando no teto como pendente de conciliação.
+  async markPending(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
+    return this.locked(async () => {
+      const s = (await this.states()).get(reservationId);
+      if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
+      if (s.status !== 'open') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
+      await this.store.append({
+        seq: (await this.store.readAll()).length + 1,
+        at: at.toISOString(),
+        monthKey: s.monthKey,
+        type: 'pending',
+        reservationId,
+        reason,
+      });
+      return { ok: true, overrun: false, actualMicro: 0, detail: 'pendente de conciliação' };
+    });
+  }
+
   async commit(reservationId: string, actualUsd: number, at: Date): Promise<CommitResult> {
     return this.locked(async () => {
       const states = await this.states();
       const s = states.get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
-      if (s.status !== 'open') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
+      if (s.status !== 'open' && s.status !== 'pending') {
+        return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
+      }
       const actualMicro = usdToMicro(actualUsd);
       const overrun = actualMicro > s.reservedMicro;
       await this.store.append({
@@ -245,12 +281,14 @@ export class BudgetGate {
     });
   }
 
+  // Libera só reserva que nunca teve resultado incerto (rejeição com status sem cobrança).
   async release(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
     return this.locked(async () => {
-      const states = await this.states();
-      const s = states.get(reservationId);
+      const s = (await this.states()).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
-      if (s.status !== 'open') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
+      if (s.status !== 'open') {
+        return { ok: false, overrun: false, actualMicro: 0, detail: `reserva ${s.status}: só conciliação libera` };
+      }
       await this.store.append({
         seq: (await this.store.readAll()).length + 1,
         at: at.toISOString(),
@@ -260,6 +298,28 @@ export class BudgetGate {
         reason,
       });
       return { ok: true, overrun: false, actualMicro: 0, detail: 'liberada' };
+    });
+  }
+
+  // Liberação de reserva pendente, só com evidência de não cobrança (ex.: consulta de geração).
+  async releaseConciliated(reservationId: string, evidence: string, at: Date): Promise<CommitResult> {
+    return this.locked(async () => {
+      if (evidence.trim().length === 0) {
+        return { ok: false, overrun: false, actualMicro: 0, detail: 'evidência vazia: liberação recusada' };
+      }
+      const s = (await this.states()).get(reservationId);
+      if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
+      if (s.status !== 'pending') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva ${s.status}: não está pendente` };
+      await this.store.append({
+        seq: (await this.store.readAll()).length + 1,
+        at: at.toISOString(),
+        monthKey: s.monthKey,
+        type: 'release',
+        reservationId,
+        reason: 'conciliada sem cobrança',
+        evidence,
+      });
+      return { ok: true, overrun: false, actualMicro: 0, detail: 'liberada após conciliação' };
     });
   }
 

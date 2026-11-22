@@ -1,11 +1,13 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { validatePolicy, loadPolicyFile } from '../src/policy.ts';
+import { validatePolicy, loadPolicyFile } from './policy';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v4.json', import.meta.url));
 
+// Os testes mutam campos aninhados de propósito (inclusive removendo chaves); por isso o tipo é solto só aqui.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fresh(): Record<string, any> {
   return JSON.parse(readFileSync(FIXTURE, 'utf8'));
 }

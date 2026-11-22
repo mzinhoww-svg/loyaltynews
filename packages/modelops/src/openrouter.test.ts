@@ -1,8 +1,8 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { buildRequestBody, checkEvidence, type OpenRouterResponse } from '../src/openrouter.ts';
-import { SimulatedOpenRouterClient } from '../src/openrouter.mock.ts';
-import { selectClient, createRealOpenRouterClient, OPENROUTER_URL } from '../src/openrouter-client.ts';
+import { buildRequestBody, checkEvidence, isNoChargeStatus, ProviderRejectedError, type OpenRouterResponse } from './openrouter';
+import { SimulatedOpenRouterClient } from './openrouter.mock';
+import { selectClient, createRealOpenRouterClient, createOpenRouterCreditsReader, OPENROUTER_URL } from './openrouter-client';
 
 test('corpo da requisição: coleta negada, parâmetros exigidos, sem lista de modelos nem plugins', () => {
   const body = buildRequestBody({
@@ -43,7 +43,7 @@ test('evidência completa passa; campos faltando ou divergentes são listados', 
   assert.ok(checkEvidence(diverge).includes('generation.model'));
 });
 
-test('cliente padrão é simulado e não faz rede; flag sem chave falha de forma explícita', async () => {
+test('seleção: padrão simulado sem rede; flag desligada ignora a chave; flag ligada sem chave falha', async () => {
   let netCalls = 0;
   const spy = (async () => {
     netCalls += 1;
@@ -55,8 +55,8 @@ test('cliente padrão é simulado e não faz rede; flag sem chave falha de forma
   await simulated.chat(buildRequestBody({ openrouterId: 'x/y', messages: [], maxTokens: 1, zdrRequired: false }));
   assert.equal(netCalls, 0, 'simulado não usa rede');
 
-  assert.ok(selectClient({ OPENROUTER_API_KEY: 'k' }, spy) instanceof SimulatedOpenRouterClient, 'chave sozinha não liga o real');
-  assert.throws(() => selectClient({ LN_MODELOPS_REAL_CALLS: '1' }), /OPENROUTER_API_KEY ausente/);
+  assert.ok(selectClient({ apiKey: 'k' }, spy) instanceof SimulatedOpenRouterClient, 'chave sozinha não liga o real');
+  assert.throws(() => selectClient({ flags: { modelosHabilitados: true } }), /chave do OpenRouter está ausente/);
 });
 
 test('cliente real: chamada HTTP com chave no cabeçalho, sem vazar a chave em erro', async () => {
@@ -67,25 +67,55 @@ test('cliente real: chamada HTTP com chave no cabeçalho, sem vazar a chave em e
     return new Response(JSON.stringify(full), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }) as typeof fetch;
 
-  const client = selectClient({ LN_MODELOPS_REAL_CALLS: '1', OPENROUTER_API_KEY: 'sk-SEGREDO-123' }, fake);
+  const client = selectClient({ apiKey: 'sk-SEGREDO-123', flags: { modelosHabilitados: true } }, fake);
   const body = buildRequestBody({ openrouterId: 'anthropic/claude-haiku-5.5', messages: [], maxTokens: 1, zdrRequired: false });
   const resp = await client.chat(body);
   assert.equal(resp.id, 'g-1');
   assert.equal(seen[0]?.url, OPENROUTER_URL);
   assert.equal(seen[0]?.auth, 'Bearer sk-SEGREDO-123');
   assert.ok(seen[0]?.body.includes('"data_collection":"deny"'));
+});
 
-  const failing = createRealOpenRouterClient('sk-SEGREDO-123', (async () => new Response('x', { status: 500 })) as typeof fetch);
-  await assert.rejects(
-    failing.chat(body),
-    (err: Error) => /HTTP 500/.test(err.message) && !err.message.includes('SEGREDO'),
-  );
+test('classificação de falha: 429 é rejeição sem cobrança; 500, rede e resposta ilegível são incertas', async () => {
+  const body = buildRequestBody({ openrouterId: 'x/y', messages: [], maxTokens: 1, zdrRequired: false });
+  const key = 'sk-SEGREDO-123';
+
+  const rejected = createRealOpenRouterClient(key, (async () => new Response('x', { status: 429 })) as typeof fetch);
+  await assert.rejects(rejected.chat(body), (err: unknown) => err instanceof ProviderRejectedError && err.status === 429);
+
+  const server = createRealOpenRouterClient(key, (async () => new Response('x', { status: 500 })) as typeof fetch);
+  await assert.rejects(server.chat(body), (err: unknown) => {
+    return !(err instanceof ProviderRejectedError) && /incerto/.test((err as Error).message) && !(err as Error).message.includes('SEGREDO');
+  });
+
+  const network = createRealOpenRouterClient(key, (async () => {
+    throw new Error('ECONNRESET');
+  }) as typeof fetch);
+  await assert.rejects(network.chat(body), (err: unknown) => !(err instanceof ProviderRejectedError) && /incerto/.test((err as Error).message));
+
+  const badJson = createRealOpenRouterClient(key, (async () => new Response('não é json', { status: 200 })) as typeof fetch);
+  await assert.rejects(badJson.chat(body), (err: unknown) => !(err instanceof ProviderRejectedError) && /incerto/.test((err as Error).message));
+});
+
+test('códigos sem cobrança são exatamente os da política; os demais são incertos', () => {
+  for (const s of [400, 401, 402, 403, 404, 422, 429]) assert.equal(isNoChargeStatus(s), true, `HTTP ${s}`);
+  for (const s of [408, 500, 502, 503, 504]) assert.equal(isNoChargeStatus(s), false, `HTTP ${s}`);
+});
+
+test('leitor de saldo: total de créditos menos uso; formato inesperado falha fechado', async () => {
+  const okReader = createOpenRouterCreditsReader('k', (async () =>
+    new Response(JSON.stringify({ data: { total_credits: 5, total_usage: 0.77 } }), { status: 200 })) as typeof fetch);
+  assert.equal(await okReader(), 4.23);
+
+  const badReader = createOpenRouterCreditsReader('k', (async () =>
+    new Response(JSON.stringify({ data: {} }), { status: 200 })) as typeof fetch);
+  await assert.rejects(badReader(), /formato inesperado/);
 });
 
 test('cliente simulado: registra chamadas e falha quando pedido', async () => {
-  const sim = new SimulatedOpenRouterClient({ failFirst: 1 });
+  const sim = new SimulatedOpenRouterClient({ failFirst: 1, failKind: 'rejected' });
   const body = buildRequestBody({ openrouterId: 'x/y', messages: [], maxTokens: 1, zdrRequired: false });
-  await assert.rejects(sim.chat(body));
+  await assert.rejects(sim.chat(body), (err: unknown) => err instanceof ProviderRejectedError);
   const ok = await sim.chat(body);
   assert.equal(sim.calls.length, 2);
   assert.equal(ok.generation?.provider_name, 'SIMULADO', 'resposta simulada é marcada');

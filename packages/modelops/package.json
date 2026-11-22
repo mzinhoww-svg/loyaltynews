@@ -1,10 +1,14 @@
 {
-  "name": "@loyalty-news/modelops",
-  "version": "0.1.0",
+  "name": "@ln/modelops",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Gateway de modelos do Loyalty News: política, roteamento, orçamento em micro-USD e ledger (ADR-006, ADR-013, ADR-015). Código determinístico; sem chamadas reais por padrão.",
-  "scripts": {
-    "test": "node --test \"test/**/*.test.ts\""
+  "description": "Gateway de modelos do Loyalty News: política, roteamento, orçamento em micro-USD, ledger e portão de saldo (ADR-006, ADR-013, ADR-015). Dono: Frente 11 — LN Backend Engineer + FinOps.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/contracts": "0.0.0"
   }
 }

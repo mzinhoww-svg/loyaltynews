@@ -1,6 +1,6 @@
-// Ledger append-only do orçamento. O estado (reservas abertas, comprometido, sobrecarga) é reconstruído
+// Ledger append-only do orçamento. O estado (reservas abertas, pendentes, comprometido, sobrecarga) é reconstruído
 // por replay do log. Persistência real (PostgreSQL, R2-08) implementa a mesma interface LedgerStore.
-import type { Pool, TaskClass } from './types.ts';
+import type { Pool, TaskClass } from './types';
 
 export type Lane = 'text' | 'image';
 
@@ -8,7 +8,7 @@ export interface LedgerEvent {
   seq: number;
   at: string;
   monthKey: string;
-  type: 'reserve' | 'commit' | 'release' | 'refill_fee';
+  type: 'reserve' | 'pending' | 'commit' | 'release' | 'refill_fee';
   reservationId: string;
   taskId?: string;
   taskClass?: TaskClass;
@@ -20,7 +20,8 @@ export interface LedgerEvent {
   amountMicro?: number; // reserve: teto reservado; refill_fee: valor pago
   actualMicro?: number; // commit: custo real informado pelo provedor
   overrun?: boolean; // commit: custo real acima da reserva
-  reason?: string; // release: motivo
+  reason?: string; // pending/release: motivo
+  evidence?: string; // release conciliada: evidência de que nada foi cobrado
 }
 
 export interface LedgerStore {
@@ -40,7 +41,8 @@ export class MemoryLedgerStore implements LedgerStore {
   }
 }
 
-export type ReservationStatus = 'open' | 'committed' | 'released';
+// open: reservada, chamada ainda não resolvida. pending: resultado incerto, aguarda conciliação.
+export type ReservationStatus = 'open' | 'pending' | 'committed' | 'released';
 
 export interface ReservationState {
   id: string;
@@ -78,6 +80,9 @@ export function replay(events: readonly LedgerEvent[]): Map<string, ReservationS
         actualMicro: 0,
         overrun: false,
       });
+    } else if (e.type === 'pending') {
+      const s = states.get(e.reservationId);
+      if (s) s.status = 'pending';
     } else if (e.type === 'commit') {
       const s = states.get(e.reservationId);
       if (s) {
@@ -93,9 +98,10 @@ export function replay(events: readonly LedgerEvent[]): Map<string, ReservationS
   return states;
 }
 
-// Quanto uma reserva pesa no orçamento: o reservado enquanto aberta, o real após a conciliação, zero se liberada.
+// Quanto uma reserva pesa no orçamento: o reservado enquanto aberta ou pendente (resultado incerto conta
+// como gasto até conciliação), o real após a conciliação, zero se liberada.
 export function spentMicro(s: ReservationState): number {
   if (s.status === 'committed') return s.actualMicro;
-  if (s.status === 'open') return s.reservedMicro;
+  if (s.status === 'open' || s.status === 'pending') return s.reservedMicro;
   return 0;
 }

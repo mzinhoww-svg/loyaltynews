@@ -1,6 +1,6 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import * as pkg from '../src/index.ts';
+import * as pkg from './index';
 
 test('a entrada pública expõe os pontos principais do gateway', () => {
   for (const name of ['validatePolicy', 'BudgetGate', 'MemoryLedgerStore', 'route', 'callModel', 'selectClient', 'monthKey', 'usdToMicro']) {

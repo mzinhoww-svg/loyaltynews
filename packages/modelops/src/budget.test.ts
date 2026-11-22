@@ -1,9 +1,9 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { loadPolicyFile } from '../src/policy.ts';
-import { BudgetGate, gateConfigFromPolicy, type ReserveInput } from '../src/budget.ts';
-import { MemoryLedgerStore } from '../src/ledger.ts';
+import { loadPolicyFile } from './policy';
+import { BudgetGate, gateConfigFromPolicy, type ReserveInput } from './budget';
+import { MemoryLedgerStore } from './ledger';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v4.json', import.meta.url));
 const policy = loadPolicyFile(FIXTURE).policy;
@@ -220,4 +220,39 @@ test('taxa de compra de crédito fica fora do teto', async () => {
   await gate.recordRefillFee(10, NOW);
   assert.equal((await gate.snapshot(NOW)).totalMicro, 0);
   assert.equal((await gate.reserve(req({ amountUsd: 22 }))).ok, true);
+});
+
+test('pendente: só reserva aberta vira pendente; liberação simples não sai de pendente', async () => {
+  const { gate } = newGate();
+  const r = await gate.reserve(req({ amountUsd: 2 }));
+  if (!r.ok) throw new Error('reserva inesperadamente recusada');
+  assert.equal((await gate.markPending(r.reservationId, 'timeout', NOW)).ok, true);
+  assert.equal((await gate.markPending(r.reservationId, 'de novo', NOW)).ok, false, 'já pendente');
+  const plain = await gate.release(r.reservationId, 'tentativa', NOW);
+  assert.equal(plain.ok, false, 'release simples não libera pendente');
+  assert.equal((await gate.snapshot(NOW)).totalMicro, 2_000_000, 'pendente continua contando');
+  assert.equal((await gate.snapshot(NOW)).pendingReservations, 1);
+});
+
+test('pendente: conciliação por custo real fecha; liberação conciliada exige pendente e evidência', async () => {
+  const { gate } = newGate();
+  const r = await gate.reserve(req({ amountUsd: 2 }));
+  if (!r.ok) throw new Error('reserva inesperadamente recusada');
+  await gate.markPending(r.reservationId, 'timeout', NOW);
+  assert.equal((await gate.releaseConciliated(r.reservationId, 'evidência', NOW)).ok, true);
+  assert.equal((await gate.snapshot(NOW)).totalMicro, 0);
+  assert.equal((await gate.releaseConciliated(r.reservationId, 'de novo', NOW)).ok, false);
+
+  const r2 = await gate.reserve(req({ amountUsd: 1 }));
+  if (!r2.ok) throw new Error('reserva inesperadamente recusada');
+  await gate.markPending(r2.reservationId, 'timeout', NOW);
+  assert.equal((await gate.commit(r2.reservationId, 0.4, NOW)).ok, true, 'commit aceita pendente');
+  assert.equal((await gate.snapshot(NOW)).totalMicro, 400_000);
+});
+
+test('pendente: a liberação conciliada não aceita reserva aberta', async () => {
+  const { gate } = newGate();
+  const r = await gate.reserve(req({ amountUsd: 1 }));
+  if (!r.ok) throw new Error('reserva inesperadamente recusada');
+  assert.equal((await gate.releaseConciliated(r.reservationId, 'evidência', NOW)).ok, false);
 });

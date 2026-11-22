@@ -1,7 +1,7 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { usdToMicro, priceToMicroPerMtok, tokensToMicro } from '../src/money.ts';
-import { monthKey } from '../src/month.ts';
+import { usdToMicro, priceToMicroPerMtok, tokensToMicro } from './money';
+import { monthKey } from './month';
 
 test('conversão USD para micro é exata nos valores de tabela', () => {
   assert.equal(usdToMicro(50), 50_000_000);

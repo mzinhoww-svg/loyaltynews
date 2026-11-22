@@ -1,9 +1,9 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { loadPolicyFile } from '../src/policy.ts';
-import { route, type RouteRequest } from '../src/router.ts';
-import type { ModelPolicy } from '../src/types.ts';
+import { loadPolicyFile } from './policy';
+import { route, type RouteRequest } from './router';
+import type { ModelPolicy } from './types';
 
 const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v4.json', import.meta.url));
 const base = loadPolicyFile(FIXTURE).policy as ModelPolicy;
@@ -119,7 +119,7 @@ test('fact-check quando só há o mesmo autor qualificado: bloqueia, sem fallbac
 
 test('DeepSeek com verba zero nunca é escolhido, mesmo qualificado e na rota', () => {
   const p = clone();
-  p.routes.economy.unshift('deepseek-v4-pro');
+  p.routes.economy?.unshift('deepseek-v4-pro');
   const d = route(p, req({ qualifiedModelIds: ['deepseek-v4-pro', 'claude-haiku-5-5'] }));
   assert.equal(d.status, 'eligible');
   if (d.status === 'eligible') {
