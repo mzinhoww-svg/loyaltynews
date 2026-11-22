@@ -1,7 +1,7 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { jobIdFor, parsePayload, type JobPayload, type QueueName } from './queues.ts';
-import { processJob, reconcileOutbox, type EffectStore, type OutboxRow, type OutboxStore, type QueueSink } from './reconciler.ts';
+import { test } from 'vitest';
+import { strict as assert } from 'node:assert';
+import { jobIdFor, parsePayload, type JobPayload, type QueueName } from './queues';
+import { processJob, reconcileOutbox, type EffectStore, type OutboxRow, type OutboxStore, type QueueSink } from './reconciler';
 
 // Fakes em memória (só testes; o teste com PGlite + ioredis-mock vem após o scaffold).
 class FakeOutbox implements OutboxStore {

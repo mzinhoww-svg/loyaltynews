@@ -1,4 +1,4 @@
-import { type JobPayload, type QueueName, jobIdFor, parsePayload } from './queues.ts';
+import { type JobPayload, type QueueName, jobIdFor, parsePayload } from './queues';
 
 /** Linha do outbox (PostgreSQL). status: pending → enqueued → done. */
 export interface OutboxRow {

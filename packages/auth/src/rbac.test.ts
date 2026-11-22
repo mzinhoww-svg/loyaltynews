@@ -1,6 +1,6 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { ACTIONS, RESOURCES, ROLES, can, isRole, matrix } from './rbac.ts';
+import { test } from 'vitest';
+import { strict as assert } from 'node:assert';
+import { ACTIONS, RESOURCES, ROLES, can, isRole, matrix } from './rbac';
 
 test('papel desconhecido, vazio ou nulo é negado em tudo', () => {
   for (const role of [undefined, null, '', 'root', 'ADMIN']) {
