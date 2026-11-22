@@ -14,8 +14,11 @@ export interface HttpResult {
 
 export interface PureRoute<H = unknown> {
   method: 'GET' | 'POST';
+  /** Caminho com segmentos `:nome` opcionais; os valores entram na entrada do handler (e vencem o que o cliente enviar). */
   path: string;
   auth: 'public' | 'studio';
+  /** Permissão desta rota (substitui `studioPerm`). */
+  perm?: readonly [Resource, Action];
   handler: H;
 }
 
@@ -33,13 +36,36 @@ export interface DispatcherOptions<H> {
 
 const norm = (p: string) => (p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p);
 
+/** Casa `/a/:id/b` com `/a/123/b` e devolve os parâmetros (decodificados), ou null. */
+export function matchPath(template: string, path: string): Record<string, string> | null {
+  const t = template.split('/');
+  const p = path.split('/');
+  if (t.length !== p.length) return null;
+  const params: Record<string, string> = {};
+  for (let i = 0; i < t.length; i++) {
+    const seg = t[i]!;
+    if (seg.startsWith(':')) {
+      let v: string;
+      try { v = decodeURIComponent(p[i]!); } catch { return null; }
+      if (!v) return null;
+      params[seg.slice(1)] = v;
+    } else if (seg !== p[i]) return null;
+  }
+  return params;
+}
+
 export function createDispatcher<H>(opts: DispatcherOptions<H>) {
   return async function dispatch(req: Request): Promise<Response> {
     const path = norm(new URL(req.url).pathname);
     const method = req.method.toUpperCase();
-    const route = opts.routes.find((r) => r.method === method && r.path === path);
+    let params: Record<string, string> = {};
+    const route = opts.routes.find((r) => {
+      const m = r.method === method ? matchPath(r.path, path) : null;
+      if (m) params = m;
+      return m !== null;
+    });
     if (!route) {
-      const known = opts.routes.some((r) => r.path === path);
+      const known = opts.routes.some((r) => matchPath(r.path, path) !== null);
       return execute(req, 'public', async () => {
         throw known ? new HttpError(405, 'METHOD_NOT_ALLOWED', 'Método não permitido.') : new HttpError(404, 'NOT_FOUND', 'Rota inexistente.');
       });
@@ -49,12 +75,13 @@ export function createDispatcher<H>(opts: DispatcherOptions<H>) {
         const gate = await acquireAttempt(c.deps.db, 'form', `${opts.auditResource}:${c.ip}`, c.deps.now());
         if (!gate.allowed) throw new HttpError(429, 'TOO_MANY_REQUESTS', 'Muitas requisições. Tente novamente mais tarde.');
       }
-      const input = method === 'GET' ? queryObject(c.url) : await readBody(r, z.unknown());
-      const result = await opts.call(route, input ?? {}, c);
+      const raw = method === 'GET' ? queryObject(c.url) : await readBody(r, z.unknown());
+      const base = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+      const result = await opts.call(route, { ...base, ...params }, c);
       return json(result.body, result.status);
     };
-    return execute(req, route.auth === 'public' ? 'public' : opts.studioPerm, fn, {}, route.auth === 'studio' && method === 'POST'
-      ? { audit: { action: `${opts.auditResource}.${route.path.split('/').slice(-2).join('.')}`, resource: opts.auditResource } }
+    return execute(req, route.auth === 'public' ? 'public' : (route.perm ?? opts.studioPerm), fn, {}, route.auth === 'studio' && method === 'POST'
+      ? { audit: { action: `${opts.auditResource}.${route.path.split('/').filter((x) => x && !x.startsWith(':')).slice(-2).join('.')}`, resource: opts.auditResource } }
       : {});
   };
 }
