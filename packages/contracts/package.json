@@ -6,7 +6,8 @@
   "description": "Schemas zod e tipos compartilhados. Dono: Frente 02 — LN Chief Architect.",
   "exports": {
     ".": "./src/index.ts",
-    "./flags": "./src/flags.ts"
+    "./flags": "./src/flags.ts",
+    "./editoria": "./src/editorias.data.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {

@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 3100;
+// Porta configurável: várias frentes rodam e2e ao mesmo tempo em worktrees diferentes.
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: './e2e',

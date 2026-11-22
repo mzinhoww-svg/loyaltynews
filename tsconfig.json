@@ -1,8 +1,20 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "jsx": "react-jsx"
   },
-  "include": ["packages/*/src/**/*.ts", "packages/*/*.ts", "vitest.config.ts"],
-  "exclude": ["node_modules", "**/dist", "apps"]
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    "packages/*/*.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/dist",
+    "apps"
+  ]
 }
