@@ -42,3 +42,11 @@ describe('migrações em PGlite', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('matéria: resumo e tipo de conteúdo (0007)', () => {
+  it('publicada sem resumo é recusada; tipo patrocinado exige patrocinado', async () => {
+    await expect(t.db.insert(s.articles).values({ id: 'p1', slug: 'p1', titulo: 'T', editoria: 'pontos', corpo: 'C', status: 'publicado' })).rejects.toThrow();
+    await t.db.insert(s.articles).values({ id: 'p2', slug: 'p2', titulo: 'T', editoria: 'pontos', corpo: 'C', status: 'publicado', resumo: 'R' });
+    await expect(t.db.insert(s.articles).values({ id: 'p3', slug: 'p3', titulo: 'T', editoria: 'pontos', corpo: 'C', tipoConteudo: 'patrocinado' })).rejects.toThrow();
+  });
+});

@@ -25,6 +25,7 @@ export const articleStatus = pgEnum('article_status', [
   'despublicado',
   'corrigido',
 ]);
+export const contentType = pgEnum('content_type', ['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento']);
 export const linkOrigin = pgEnum('link_origin', ['declarado', 'inferido']);
 // Enum compartilhado com o módulo comercial; definido em arquivo próprio para evitar ciclo de carga.
 export { disponibilidade } from './schema/enums';
@@ -57,6 +58,8 @@ export const articles = pgTable('articles', {
   slug: text('slug').notNull(),
   titulo: text('titulo').notNull(),
   subtitulo: text('subtitulo'),
+  resumo: text('resumo'),
+  tipoConteudo: contentType('tipo_conteudo').notNull().default('noticia'),
   editoria: text('editoria').notNull().references(() => editorias.slug),
   status: articleStatus('status').notNull().default('rascunho'),
   assinatura: text('assinatura').notNull().default('Redação Loyalty News'),
@@ -73,6 +76,8 @@ export const articles = pgTable('articles', {
   index('articles_editoria_status_idx').on(t.editoria, t.status),
   check('articles_assinatura', sql`${t.assinatura} = 'Redação Loyalty News'`),
   check('articles_publieditorial_rotulado', sql`NOT ${t.patrocinado} OR ${t.rotuloPublieditorial} IS NOT NULL`),
+  check('articles_tipo_patrocinado', sql`${t.tipoConteudo} <> 'patrocinado' OR ${t.patrocinado}`),
+  check('articles_publicada_com_resumo', sql`${t.status} <> 'publicado' OR (${t.resumo} IS NOT NULL AND length(${t.resumo}) BETWEEN 1 AND 300)`),
 ]);
 
 export const articleSources = pgTable('article_sources', {
