@@ -1,7 +1,8 @@
+import type { IntelligenceHandoff } from '../intelligence/types';
 import type { Draft, Evidence, Finding } from '../types';
 import type { Editoria } from '../types';
 
-export const STAGES = ['triage', 'context', 'draft', 'factcheck', 'review', 'social_pack'] as const;
+export const STAGES = ['triage', 'context', 'draft', 'factcheck', 'review', 'social_pack', 'roles'] as const;
 export type Stage = (typeof STAGES)[number];
 export const queueName = (s: Stage): string => `editorial-${s}`;
 
@@ -28,14 +29,15 @@ export interface JobSpec { stage: Stage; jobId: string; data: ArticleJob }
 export type BlockerCode =
   | 'duplicate' | 'rights_unknown' | 'suspicious_evidence' | 'not_relevant'
   | 'unsupported_claim' | 'copy_literal' | 'cross_provider_check_failed' | 'approval_missing'
-  | 'rights_basis_unresolved' | 'budget_blocked' | 'invalid_model_output' | 'max_attempts' | 'no_image';
+  | 'rights_basis_unresolved' | 'budget_blocked' | 'invalid_model_output' | 'max_attempts' | 'no_image'
+  | 'not_published' | 'stale_approval';
 
 export interface Blocked { articleId: string; stage: Stage; blockers: BlockerCode[]; findings: Finding[] }
 
 export type StageOutcome =
   | { kind: 'next'; next: JobSpec }
   | { kind: 'blocked'; blocked: Blocked }
-  | { kind: 'done'; event: 'article.approved' | 'social.pack_ready'; data: ArticleJob; pack?: SocialPack };
+  | { kind: 'done'; event: 'article.approved' | 'social.pack_ready' | 'roles.extracted'; data: ArticleJob; pack?: SocialPack; handoff?: IntelligenceHandoff };
 
 export interface SocialPack {
   articleId: string;
