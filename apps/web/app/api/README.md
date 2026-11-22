@@ -1,0 +1,38 @@
+# API do LN (Frente 02 Backend)
+
+Rotas em `apps/web/app/api`; lógica em `_lib/` (handlers puros `(Request, ctx) => Response`, testáveis sem Next).
+Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` (`ApiError` de `@ln/contracts`).
+
+## Autenticação (ADR-011, Better Auth)
+- `POST /api/auth/sign-in/email` `{email,password}` → senha ok com TOTP ativo devolve `{twoFactorRedirect:true}` + cookie pendente (sem acesso).
+- `POST /api/auth/two-factor/verify-totp` `{code}` → cria a sessão (cookie `better-auth.session_token`).
+- `POST /api/auth/two-factor/enable` `{password}` → `{totpURI, backupCodes}`; ativar exige depois `verify-totp`.
+- `POST /api/auth/sign-out`, `GET /api/auth/get-session`, `GET /api/auth/list-sessions`, `POST /api/auth/revoke-session|revoke-sessions|revoke-other-sessions`, `POST /api/auth/change-password`.
+- Qualquer outra rota de `/api/auth/*` (cadastro, reset, social…) responde **404**. 5 falhas em 15 min bloqueiam conta e IP por 15 min (**429** + `Retry-After`).
+- Sem 2º fator ativo toda rota protegida responde 403 `MFA_REQUIRED`. Sem sessão: 401 `UNAUTHENTICATED`. Sem permissão: 403 `FORBIDDEN`.
+- No código (Server Components/rotas): `getSession()` e `requireRole(['admin'])` de `@ln/auth` (nega por padrão).
+- Papéis (proposta, matriz em `packages/auth/src/rbac.ts`): admin, editor_chefe, editor, revisor, comercial, leitor.
+
+## Studio (sessão + MFA + papel)
+| Método e rota | Permissão | Notas |
+|---|---|---|
+| `GET/POST /api/editorias`, `GET/PATCH/DELETE /api/editorias/{slug}` | editorias:read/create/update/delete | slug é um dos 10 oficiais; excluir só sem matérias |
+| `GET /api/materias?editoria&status&q&limit&offset` | materias:read | lista sem corpo |
+| `POST /api/materias` | materias:create | `{slug,titulo,editoria,corpo,evidenceIds[],imagem?,classeDeDado?,patrocinado?,rotuloPublieditorial?}`; assinatura é sempre "Redação Loyalty News" |
+| `GET /api/materias/{id}` | materias:read | + fontes, recibo da versão atual, histórico de transições |
+| `PATCH /api/materias/{id}` | materias:update | exige `versaoEsperada`; só `rascunho`/`bloqueado`; cada mudança soma 1 à versão |
+| `PUT /api/materias/{id}/fontes` | materias:update | `{versaoEsperada, evidenceIds[]}` |
+| `DELETE /api/materias/{id}` | materias:delete | só rascunho |
+| `POST /api/materias/{id}/recibos` | materias:transition | só em `em_checagem`; `{versao, checagens[], identidadePublicacao?}`; 422 `GATES_FAILED` se falhar regra determinística; reenvio idêntico devolve 200 |
+| `POST /api/materias/{id}/transicao` | materias:transition (+`publish` p/ publicado, corrigido, despublicado) | `{para, nota?, versaoEsperada?}`; aprovar/publicar/corrigir exigem recibo válido (versão e hash do conteúdo); publicar só pela `identidadePublicacao` do recibo |
+
+## Público (Portal, sem login)
+`GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`.
+
+## Operação
+`GET /api/health` (processo vivo), `GET /api/ready` (banco e Redis respondem; 503 se não). `APP_MODE=nodb`: sobe sem banco; rotas de dados respondem 503 `NOT_CONFIGURED` e `/api/ready` diz `mode: nodb`.
+Variáveis: `DATABASE_URL`, `BETTER_AUTH_SECRET` (≥32 caracteres), `BETTER_AUTH_URL`, `REDIS_URL`. Nenhum segredo no repositório.
+
+## Decisões abertas (peço ao Chief Architect / Editorial)
+- Política de checagens do recibo (hoje: ≥1 checagem `aprovado` + regras determinísticas); `corrigido` = errata sobre a versão publicada (sem editar o texto).
+- Papéis do RBAC e matriz (proposta minha).
