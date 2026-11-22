@@ -16,3 +16,8 @@ export class EvidenceRequiredError extends Error {
     super(`evidence_required: ${what}`);
   }
 }
+export class PersonSuppressedError extends Error {
+  constructor() {
+    super('person_suppressed');
+  }
+}

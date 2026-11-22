@@ -1,6 +1,6 @@
 import type { Db } from './db.ts';
 import { one } from './db.ts';
-import { DEFAULT_CONFIG, type IntelligenceConfig } from './config.ts';
+import { DEFAULT_CONFIG, PersonSuppressedError, type IntelligenceConfig } from './config.ts';
 import { normalizeTitle } from './normalize.ts';
 import { addRole, closeRole, resolveOrCreatePerson, revalidateRole, upsertOrganization } from './repo.ts';
 import type { MoveKind, MoveRow, RoleObservation, Uuid } from './types.ts';
@@ -13,7 +13,7 @@ export type ObservationResult =
   | { outcome: 'baseline'; personId: Uuid; roleId: Uuid }
   | { outcome: 'unchanged'; personId: Uuid; roleId: Uuid }
   | { outcome: 'move'; personId: Uuid; move: MoveRow }
-  | { outcome: 'ignored'; reason: 'stale_observation' | 'no_open_role_to_close' };
+  | { outcome: 'ignored'; reason: 'stale_observation' | 'no_open_role_to_close' | 'subject_suppressed' };
 
 /**
  * Loyalty Moves — detecção de mudança de cargo a partir de uma observação de fonte pública.
@@ -29,11 +29,17 @@ export async function processObservation(
 ): Promise<ObservationResult> {
   const observedOn = obs.observedAt.slice(0, 10);
   const orgId = await upsertOrganization(db, { legalName: obs.orgName, evidenceId: obs.evidenceId, observedAt: obs.observedAt });
-  const person = await resolveOrCreatePerson(
-    db,
-    { fullName: obs.personName, publicProfileUrl: obs.publicProfileUrl, organizationId: orgId, evidenceId: obs.evidenceId, observedAt: obs.observedAt, extra: obs.extra },
-    cfg,
-  );
+  let person: { id: Uuid; created: boolean };
+  try {
+    person = await resolveOrCreatePerson(
+      db,
+      { fullName: obs.personName, publicProfileUrl: obs.publicProfileUrl, organizationId: orgId, evidenceId: obs.evidenceId, observedAt: obs.observedAt, extra: obs.extra },
+      cfg,
+    );
+  } catch (e) {
+    if (e instanceof PersonSuppressedError) return { outcome: 'ignored', reason: 'subject_suppressed' };
+    throw e;
+  }
   const open = (
     await db.query<OpenRole>(
       `SELECT id, organization_id, normalized_title, valid_from::text FROM ${S}.role_assignment

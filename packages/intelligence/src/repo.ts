@@ -1,5 +1,5 @@
 import { type Db, one } from './db.ts';
-import { DEFAULT_CONFIG, EvidenceRequiredError, ExtendedPersonalDataDisabledError, type IntelligenceConfig } from './config.ts';
+import { DEFAULT_CONFIG, EvidenceRequiredError, ExtendedPersonalDataDisabledError, PersonSuppressedError, type IntelligenceConfig } from './config.ts';
 import { normalizeName, normalizeOrgName, normalizeTitle } from './normalize.ts';
 import type { Certainty, EvidenceInput, Uuid } from './types.ts';
 
@@ -54,15 +54,21 @@ export async function resolveOrCreatePerson(
 
   const norm = normalizeName(p.fullName);
   if (p.publicProfileUrl) {
-    const byUrl = await db.query<{ id: Uuid }>(`SELECT id FROM ${S}.person WHERE public_profile_url = $1`, [p.publicProfileUrl]);
-    if (byUrl.rows[0]) return { id: byUrl.rows[0].id, created: false };
+    const byUrl = await db.query<{ id: Uuid; suppressed_at: string | null }>(
+      `SELECT id, suppressed_at FROM ${S}.person WHERE public_profile_url = $1`, [p.publicProfileUrl]);
+    if (byUrl.rows[0]) {
+      if (byUrl.rows[0].suppressed_at) throw new PersonSuppressedError();
+      return { id: byUrl.rows[0].id, created: false };
+    }
   }
   if (p.organizationId) {
-    const byOrg = await db.query<{ id: Uuid }>(
-      `SELECT DISTINCT p.id FROM ${S}.person p JOIN ${S}.role_assignment r ON r.person_id = p.id
-        WHERE p.normalized_name = $1 AND r.organization_id = $2 AND p.suppressed_at IS NULL`,
+    // Inclui suprimidos: supressão a pedido do titular impede recriar a pessoa por reingestão (WF19).
+    const byOrg = await db.query<{ id: Uuid; suppressed_at: string | null }>(
+      `SELECT DISTINCT p.id, p.suppressed_at FROM ${S}.person p JOIN ${S}.role_assignment r ON r.person_id = p.id
+        WHERE p.normalized_name = $1 AND r.organization_id = $2`,
       [norm, p.organizationId],
     );
+    if (byOrg.rows.some((r) => r.suppressed_at)) throw new PersonSuppressedError();
     if (byOrg.rows.length === 1) return { id: byOrg.rows[0]!.id, created: false };
   }
   const r = await one<{ id: Uuid }>(
