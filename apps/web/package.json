@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start --port 3000",
     "typecheck": "tsc --noEmit",
-    "e2e": "playwright test"
+    "e2e": "node scripts/e2e.mjs",
+    "verify:no-mock": "node scripts/verify-no-mock.mjs"
   },
   "dependencies": {
     "@ln/auth": "0.0.0",

@@ -9,6 +9,7 @@ __pycache__/
 # monorepo (scaffold fast-track)
 node_modules/
 .next/
+.next-e2e/
 next-env.d.ts
 *.tsbuildinfo
 playwright-report/
