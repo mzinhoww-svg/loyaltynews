@@ -52,6 +52,7 @@ Rotas do Studio editorial sobre `PgEditorialStore` (handlers de `@ln/editorial/a
 ## Operação
 `GET /api/health` (processo vivo), `GET /api/ready` (banco e Redis respondem; 503 se não). `APP_MODE=nodb`: sobe sem banco; rotas de dados respondem 503 `NOT_CONFIGURED` e `/api/ready` diz `mode: nodb`.
 Variáveis: `DATABASE_URL`, `BETTER_AUTH_SECRET` (≥32 caracteres), `BETTER_AUTH_URL`, `REDIS_URL`. Nenhum segredo no repositório.
+- **Diagnóstico temporário `DIAG_XFF`** (para medir `TRUSTED_PROXY_HOPS` no staging): com `DIAG_XFF=1` e `APP_ENV` diferente de production/producao, `GET /api/health` acrescenta o cabeçalho `x-ln-xff-count` (número de entradas não vazias de `X-Forwarded-For`; hops = contagem − 1 quando você injeta uma entrada falsa). Só a contagem sai: nenhum IP é devolvido, logado ou gravado. Desligado por padrão; em produção é ignorado. Remover a variável depois da medição.
 
 ## Decisões abertas (peço ao Chief Architect / Editorial)
 - Política de checagens do recibo (hoje: ≥1 checagem `aprovado` + regras determinísticas); `corrigido` = errata sobre a versão publicada (sem editar o texto).
