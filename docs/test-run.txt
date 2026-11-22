@@ -1,0 +1,32 @@
+gpg: checking the trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: depth: 0  valid:   1  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 1u
+gpg: checking the trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: depth: 0  valid:   2  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 2u
+gpg: checking the trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: depth: 0  valid:   3  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 3u
+gpg: checking the trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: depth: 0  valid:   4  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 4u
+test_01_missing_artifact (__main__.TestGov.test_01_missing_artifact) ... ok
+test_02_tamper (__main__.TestGov.test_02_tamper) ... ok
+test_03_dependency (__main__.TestGov.test_03_dependency) ... ok
+test_04_forged_acceptance (__main__.TestGov.test_04_forged_acceptance) ... ok
+test_05_extra_argument (__main__.TestGov.test_05_extra_argument) ... ok
+test_06_concurrent_claim (__main__.TestGov.test_06_concurrent_claim) ... ok
+test_07_idempotent (__main__.TestGov.test_07_idempotent) ... ok
+test_08_protected (__main__.TestGov.test_08_protected) ... ok
+test_09_deterministic (__main__.TestGov.test_09_deterministic) ... ok
+test_10_p0 (__main__.TestGov.test_10_p0) ... ok
+test_11_fail_test (__main__.TestGov.test_11_fail_test) ... ok
+test_12_independent (__main__.TestGov.test_12_independent) ... ok
+test_13_verifier_protected (__main__.TestGov.test_13_verifier_protected) ... ok
+test_14_positive (__main__.TestGov.test_14_positive) ... ok
+test_15_mcp (__main__.TestGov.test_15_mcp) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 8.511s
+
+OK

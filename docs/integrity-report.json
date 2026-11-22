@@ -1,0 +1,24 @@
+{
+  "audit_manifest": {
+    "00_EXECUTIVE_SUMMARY.md": true,
+    "01_COVERAGE.md": true,
+    "02_FINDINGS.csv": true,
+    "03_ARCHITECTURE_OPTIONS.md": true,
+    "04_FINOPS_MODELOPS.md": true,
+    "04_cost_model.csv": true,
+    "05_ROADMAP_REVISADO.md": true,
+    "05_backlog_proposto.csv": true,
+    "06_MCP_SPEC.md": true,
+    "07_DECISIONS_REQUIRED.md": true,
+    "08_CHANGE_PROPOSALS.md": true,
+    "09_SOURCES.md": true,
+    "11_CONCILIACAO.md": true,
+    "12_RESPOSTA_OFICIAL.md": true
+  },
+  "dossier_sha256": "938c9e13601ba435dfb873963e9ac45016009fd867e5e4a163d18b2d95ec9ddd",
+  "tasks": 88,
+  "agents": 64,
+  "workflows": 19,
+  "meetings": 28,
+  "runtime_verified": false
+}

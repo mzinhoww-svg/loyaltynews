@@ -1,0 +1,11 @@
+{
+  "status": "configured",
+  "root_fingerprint": null,
+  "baseline_commit": null,
+  "executor": {"fingerprint": null, "provider": null},
+  "reviewer": {"fingerprint": null, "provider": null},
+  "verifier": {"fingerprint": null},
+  "runner_policy_sha256": null,
+  "protected": [],
+  "acceptance_dir": null
+}

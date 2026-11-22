@@ -1,0 +1,80 @@
+[
+  {
+    "id": "D01",
+    "status": "registrada",
+    "escolha": "Aceite autônomo, independente; sem aprovação humana de rotina",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D02",
+    "status": "registrada",
+    "escolha": "Tags assinadas pelo verificador",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D03",
+    "status": "registrada",
+    "escolha": "OpenBot runtime definido",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D04",
+    "status": "registrada",
+    "escolha": "Escopo integral, 64 agentes, 28 rituais, Redis/BullMQ, Intelligence e ad server",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D05",
+    "status": "registrada",
+    "escolha": "The Loyal e Instagram construídos, desativados; LinkedIn pelo mLabs",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D06",
+    "status": "registrada",
+    "escolha": "Publicação autônoma após gates de lançamento",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D07",
+    "status": "registrada",
+    "escolha": "Parecer favorável do Intelligence declarado, não inspecionado",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D08",
+    "status": "registrada",
+    "escolha": "Imagem da fonte, crédito, edição mínima; uso condicionado a base jurídica demonstrável",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D09",
+    "status": "registrada",
+    "escolha": "Assinatura Redação Loyalty News; sem autoria humana fictícia; transparência quando exigida",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D10",
+    "status": "registrada",
+    "escolha": "Fontes públicas, sem contornar paywall; originalidade e crédito",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D11",
+    "status": "registrada",
+    "escolha": "Teto agregado API USD 50/mês; recarga só dentro de teto autorizado",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D12",
+    "status": "registrada",
+    "escolha": "Mídia kit e preços de referência; métricas reais com período",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "D13",
+    "status": "registrada",
+    "escolha": "Dez editorias preservadas",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  }
+]

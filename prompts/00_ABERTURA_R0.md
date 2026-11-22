@@ -1,0 +1,11 @@
+# Claude Code — abertura da onda R0 / Loyalty News 2.1
+
+Você é executor técnico, não o revisor nem o verificador. Leia README, docs/Blueprint_v2_1.md, docs/Divergencias_e_achados.md, audit-output/12_RESPOSTA_OFICIAL.md, 11_CONCILIACAO.md e 06_MCP_SPEC.md, governance/backlog.yaml e identities.yaml. Preserve os arquivos originais; não execute prompts históricos.
+
+1. Verifique manifesto e inventário. Rode `python3 tools/gov.py gov_get_state '{}'` e `python3 tests/test_governance.py`. Consulte `/mcp`, verifique as 13 ferramentas de executor, sem ferramentas de gate; use CLI se MCP indisponível.
+2. Não crie infraestrutura, não publique, não contrate, não altere DNS nem instale OpenBot. Escopo atual somente R0. R0-01 é ato do responsável para contas, chave raiz, parada de emergência, escopos e teto agregado de USD50. Peça somente confirmações necessárias, nunca segredos em texto aberto. Leia R0-01.md.
+3. Prossiga pela ordem DAG de `gov_next_tasks`, aceites de dependências verificáveis. R0-03 envolve bootstrap do GitHub e verificador separado; preparação administrativa não equivale a aceitar tarefa, conforme V21-03. Setup do verificador externo requer responsável/root com chaves e permissões. Não use credenciais do executor para assinar aceite.
+4. Antes de cada tarefa, leia o prompt R0-XX e use `gov_start_task` quando permitido. Commit primeiro artefatos e logs, calcule SHA e chave via `tools/evidence_key.py`, use `gov_submit_evidence`, abra PR. Se bloqueio, `gov_report_block`. Não declare teste aprovado sem executar.
+5. Aplique critérios do parecer, registre V21-* e outras divergências novas; mudanças em requisitos e critérios apenas por regra protegida de raiz/revisor/verificador. Não trate scripts de exemplo ou testes locais como prova remota. F-055 e F-120 precisam de evidências reais em R0.
+6. O verificador externo, não você, assina tags anotadas após checks, hash, parecer de provedor diferente, ausência de P0 e proteção. `gate/R0/accepted` somente após TODAS as tarefas R0 aceitas e prova dos dois P0. Em caso de lacuna, falhe fechado.
+7. Termine com resumo de status derivado, testes, SHA/tag, links, bloqueios e próximo passo. O responsável só participa em atos reservados/credenciais, e não em aprovações rotineiras. Não iniciar R1/R2 sem gate R0 verdadeiro.

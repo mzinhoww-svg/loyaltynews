@@ -1,0 +1,443 @@
+{
+  "auditoria": "Loyalty News 2.0 — auditoria independente pré-T00",
+  "data": "2026-11-21",
+  "atualizado_em": "2026-11-21T22:57-03:00",
+  "leitura": "Os campos de topo descrevem o estado depois das decisões do responsável das 19:20 e das 22:56 (11_CONCILIACAO.md) e do pedido da resposta oficial às 22:57 (12_RESPOSTA_OFICIAL.md). O bloco auditoria_original guarda o parecer e os números entregues antes delas.",
+  "parecer": "GO CONDICIONAL",
+  "escopo_do_parecer": "T00 nos termos da conciliação. A auditoria não autoriza implantação; a liberação é ato do responsável.",
+  "liberacao": {
+    "pedida_pelo_responsavel_em": "2026-11-21T22:57-03:00",
+    "pedido": "Gere a resposta oficial para o gpt disponibilizar o mcp pra enfim abrirmos os projetos no Claude Code, github e demais lugares necessários",
+    "resposta": "12_RESPOSTA_OFICIAL.md",
+    "escopo_liberavel": "T00 (onda R0 do backlog conciliado)",
+    "da_parte_da_auditoria": "sem impedimento, dentro dos limites da seção 3 da resposta oficial",
+    "por_que_o_campo_continua_false": "o mandato define que o parecer da auditoria não equivale a autorização de implantação"
+  },
+  "implementation_authorized": false,
+  "mcp_build_authorized": false,
+  "condicoes_do_go_condicional": [
+    "Configuração inicial feita pelo responsável, uma única vez: contas, chaves com escopo mínimo, teto de US$ 50 por mês, chave raiz e parada de emergência (F-131, F-132)",
+    "Inventário da hospedagem com chave só de leitura (F-055)",
+    "Verificador com identidade, chave e definição fora do alcance do executor, antes da primeira tag de aceite (F-120)",
+    "Antes do lançamento, não do T00: gates automáticos de publicação e auditoria com despublicação funcionando (F-130)"
+  ],
+  "achados": {
+    "total": 79,
+    "por_severidade": {
+      "P0": 3,
+      "P1": 30,
+      "P2": 42,
+      "P3": 4
+    },
+    "por_situacao": {
+      "aberto": 45,
+      "aberto (decisão)": 1,
+      "aberto (redesenhado)": 8,
+      "decidido pelo dono": 10,
+      "fechado por declaração do dono": 2,
+      "informativo": 1,
+      "risco aceito pelo dono": 8,
+      "superado": 4
+    },
+    "p0_abertos": [
+      {
+        "id": "F-055",
+        "dominio": "E Infraestrutura",
+        "gate": "antes de T00-03"
+      },
+      {
+        "id": "F-120",
+        "dominio": "L Governança/MCP",
+        "gate": "antes do aceite de T00"
+      }
+    ],
+    "p0_fechados_por_declaracao_do_responsavel": [
+      "F-090"
+    ],
+    "novos_na_conciliacao": [
+      "F-130",
+      "F-131",
+      "F-132"
+    ],
+    "da_auditoria": {
+      "total": 76,
+      "por_severidade": {
+        "P0": 3,
+        "P1": 27,
+        "P2": 42,
+        "P3": 4
+      },
+      "por_dominio": {
+        "X Documentação": {
+          "P0": 0,
+          "P1": 0,
+          "P2": 4,
+          "P3": 2
+        },
+        "A Produto": {
+          "P0": 0,
+          "P1": 3,
+          "P2": 2,
+          "P3": 0
+        },
+        "B Organização": {
+          "P0": 0,
+          "P1": 2,
+          "P2": 3,
+          "P3": 0
+        },
+        "C Reuniões": {
+          "P0": 0,
+          "P1": 2,
+          "P2": 5,
+          "P3": 0
+        },
+        "D OpenBot": {
+          "P0": 0,
+          "P1": 3,
+          "P2": 1,
+          "P3": 0
+        },
+        "E Infraestrutura": {
+          "P0": 1,
+          "P1": 1,
+          "P2": 5,
+          "P3": 0
+        },
+        "F ModelOps/FinOps": {
+          "P0": 0,
+          "P1": 2,
+          "P2": 6,
+          "P3": 1
+        },
+        "G Editorial/Trust": {
+          "P0": 0,
+          "P1": 4,
+          "P2": 3,
+          "P3": 0
+        },
+        "H Social/Growth": {
+          "P0": 0,
+          "P1": 1,
+          "P2": 4,
+          "P3": 0
+        },
+        "I Entity Intelligence": {
+          "P0": 1,
+          "P1": 1,
+          "P2": 3,
+          "P3": 1
+        },
+        "J Comercial": {
+          "P0": 0,
+          "P1": 3,
+          "P2": 2,
+          "P3": 0
+        },
+        "K Implantação": {
+          "P0": 0,
+          "P1": 4,
+          "P2": 4,
+          "P3": 0
+        },
+        "L Governança/MCP": {
+          "P0": 1,
+          "P1": 1,
+          "P2": 0,
+          "P3": 0
+        }
+      }
+    }
+  },
+  "cobertura": {
+    "dossie_sha256": "938c9e13601ba435dfb873963e9ac45016009fd867e5e4a163d18b2d95ec9ddd",
+    "arquivos_no_dossie": 39,
+    "lidos_na_integra": 24,
+    "lidos_por_equivalencia": 3,
+    "lidos_em_parte": 2,
+    "imagens_inspecionadas": 5,
+    "pdfs_inspecionados_em_miniatura": 3,
+    "pdf_coberto_por_equivalencia": 1,
+    "pacote_verificado_por_hash": 1,
+    "arquivos_de_entrada_alterados": 0,
+    "prompts_historicos_executados": 0,
+    "nao_inspecionado": [
+      "variante mobile do protótipo HTML da baseline (exigiria executar o script do arquivo)"
+    ],
+    "escopos_do_mandato": {
+      "A produto": "coberto",
+      "B organização": "coberto",
+      "C reuniões": "coberto",
+      "D OpenBot": "coberto",
+      "E infraestrutura": "coberto",
+      "F ModelOps/FinOps": "coberto",
+      "G editorial e trust": "coberto",
+      "H social e growth": "coberto",
+      "I entity intelligence": "coberto",
+      "J comercial": "coberto",
+      "K implantação": "coberto",
+      "L MCP de governança": "coberto"
+    },
+    "contagens_conferidas": {
+      "funcoes": 64,
+      "workflows": 17,
+      "rituais": 28,
+      "tranches": 12,
+      "tarefas": 58,
+      "formatos_comerciais": 47
+    }
+  },
+  "fontes_externas": {
+    "consultadas_em": "2026-11-21",
+    "identificadas": 35,
+    "acesso_privado_usado": false,
+    "conector_vertra_da_sessao_usado": false,
+    "conector_mlabs_da_sessao_usado": false,
+    "lidas_em_parte": [
+      "openbot.run/changelog",
+      "github.com/vertracloud/mcp",
+      "conar.org.br/codigos"
+    ],
+    "novas_na_conciliacao": [
+      "S33",
+      "S34",
+      "S35"
+    ],
+    "nao_verificado_na_conciliacao": [
+      "mLabs: menção, edição, exclusão e uso por serviço sem interface de chat",
+      "preço de escrita em cache e taxa de acerto de cache",
+      "mecanismo do provedor do repositório para proteger a definição do verificador"
+    ]
+  },
+  "numeros_chave": {
+    "api_usd_mes": {
+      "min": 46.79,
+      "max": 226.87,
+      "teto_usd_mes": 50,
+      "pct_do_teto_min": 93.6,
+      "pct_do_teto_max": 453.7,
+      "base": "sem cache de prompt",
+      "o_que_cabe_no_teto": "Contra o teto de US$ 50 por mês: com o contexto dos agentes lido de cache, cabem os cenários enxuto e base (US$ 15–37) e o alto não cabe (US$ 69–86). Sem cache, nenhum cenário cabe inteiro, e só o enxuto chega perto (US$ 47–66).",
+      "piso_com_cache": {
+        "min": 14.57,
+        "max": 86.28,
+        "por_cenario": {
+          "enxuto": [
+            14.57,
+            19.34
+          ],
+          "base": [
+            28.65,
+            36.89
+          ],
+          "alto": [
+            68.99,
+            86.28
+          ]
+        },
+        "ressalva": "preço de leitura de cache verificado; escrita em cache e taxa de acerto não verificadas"
+      },
+      "por_cenario": {
+        "enxuto": [
+          46.79,
+          65.52
+        ],
+        "base": [
+          77.17,
+          109.08
+        ],
+        "alto": [
+          154.94,
+          226.87
+        ]
+      },
+      "golden_set_usd_uma_vez": 8.92
+    },
+    "vertra_brl_mes_preco_de_tabela": {
+      "enxuto": 47.9,
+      "base": 80.8,
+      "alto": 187.8
+    },
+    "revisao_humana_na_rotina_minutos": 0,
+    "backlog": {
+      "itens": 88,
+      "itens_ate_o_lancamento": 85,
+      "esforco_dias_uteis": 169.5,
+      "esforco_por_onda": {
+        "R0 Preparação": 13.5,
+        "R1 Presença": 7.5,
+        "R2 Fundação técnica e runtime": 32.5,
+        "R3 Portal, CMS e LN Studio": 30.5,
+        "R4 Redações autônomas": 36.5,
+        "R5 Distribuição, Intelligence e receita": 42.5,
+        "R6 Homologação e lançamento": 6.5
+      },
+      "esforco_por_identidade": {
+        "Dono (configuração inicial, uma vez)": 2.0,
+        "Executor (agente de código)": 157.5,
+        "Verificador autônomo (identidade separada)": 10.0
+      },
+      "caminho_critico_dias_uteis": 49.5,
+      "caminho_critico": [
+        "R0-01",
+        "R0-03",
+        "R0-05",
+        "R0-06",
+        "R0-12",
+        "R2-01",
+        "R2-02",
+        "R2-04",
+        "R2-06",
+        "R4-02",
+        "R4-03",
+        "R4-04",
+        "R4-06",
+        "R4-09",
+        "R5-05",
+        "R5-06",
+        "R5-07",
+        "R5-08",
+        "R5-14",
+        "R5-15",
+        "R5-17",
+        "R6-01",
+        "R6-04"
+      ],
+      "maior_tarefa_dias_uteis": 3.0,
+      "adiados": [
+        "Ligar a The Loyal (P-01)",
+        "Instagram (P-02)"
+      ]
+    },
+    "plano_original": {
+      "lancamento_semana_declarada": 9,
+      "lancamento_semana_recalculada_dependencias_rigidas": 13,
+      "lancamento_semana_recalculada_parciais_como_rigidas": 19
+    }
+  },
+  "bloqueios": [
+    "Liberação do MCP e abertura dos projetos pelo arquiteto, a pedido do responsável (12_RESPOSTA_OFICIAL.md)",
+    "Configuração inicial única ainda não feita: contas, chaves com escopo mínimo, teto de US$ 50 por mês, chave raiz e parada de emergência (R0-01)",
+    "P0 F-055 aberto: o inventário da hospedagem só pode usar chave de leitura (fecha em R0-07)",
+    "P0 F-120 aberto: verificador com identidade, chave e definição separadas do executor (fecha em R0-03, R0-05 e R0-06)",
+    "Pessoa jurídica e responsável legal não informados (R1-01); não bloqueia o T00",
+    "Região, retenção de backup, recuperação a um ponto no tempo e rede privada da hospedagem sem evidência (respondido em R0-07)"
+  ],
+  "decisoes_humanas": {
+    "levantadas_na_auditoria": 19,
+    "nova_na_conciliacao": "DH-20",
+    "situacao": "11_CONCILIACAO.md, seção 5",
+    "entradas_pendentes": [
+      "Pessoa jurídica e responsável legal (DH-11)"
+    ]
+  },
+  "conciliacao": {
+    "rodadas": [
+      "2026-11-21T19:20-03:00",
+      "2026-11-21T22:56-03:00"
+    ],
+    "documento": "11_CONCILIACAO.md",
+    "decisoes_do_responsavel": [
+      "Nenhuma aprovação humana; bots aprovam e operam de forma autônoma",
+      "Aceite por tag, autônomo",
+      "OpenBot como runtime",
+      "Sem simplificações: tamanho completo desde o início",
+      "Adiados só a The Loyal (pronta e desligada) e o Instagram; LinkedIn pelo mLabs",
+      "Autonomia de publicação desde o início",
+      "Parecer favorável declarado sobre a base legal de F-090",
+      "Imagens: a da fonte, com edição mínima",
+      "Transparência: só a assinatura institucional, sem menção ao uso de IA",
+      "Fontes: informação pública, sem permissão por fonte",
+      "Teto de API de US$ 50 por mês, com recarga pelo responsável",
+      "Mídia kit como está: tabela de referência e tempo real sempre exibido",
+      "Editorias como estão: as dez do blueprint"
+    ],
+    "regra_mantida_pela_auditoria": "Quem executa não aceita: o aceite é emitido por verificador autônomo com identidade, chave e definição fora do alcance do executor",
+    "parecer": "GO CONDICIONAL para o T00, nos termos da conciliação",
+    "padroes_assumidos_pela_auditoria": [],
+    "limites_mantidos_pela_auditoria": [
+      "Quem executa não aceita (F-120)",
+      "Inventário da hospedagem só com chave de leitura (F-055)",
+      "Nenhuma publicação sem os gates automáticos (F-130)",
+      "Publicação só pela identidade de publicação (F-044)",
+      "Imagens: crédito e link, edição só de enquadramento, tamanho e compressão, sem remover marca d'água, retirada por notificação (F-071)",
+      "Nenhum jornalista, fala ou entrevista inventados; nenhuma afirmação de autoria humana (F-073)",
+      "Só página de acesso público; cópia literal bloqueia (F-070)",
+      "Intelligence sem rastreamento privado de pessoas",
+      "Conteúdo pago sempre rotulado (F-074)",
+      "Métricas reais, sem audiência fabricada (F-085)",
+      "Resposta, retificação e pedido do titular com prazo e registro (F-072, F-095)",
+      "Teto rígido (F-132)",
+      "Parada de emergência do responsável (F-131)",
+      "Nenhum segredo em repositório, prompt, evidência ou relatório"
+    ],
+    "riscos_aceitos_pelo_responsavel": [
+      "F-010",
+      "F-030",
+      "F-042",
+      "F-064",
+      "F-070",
+      "F-071",
+      "F-091",
+      "F-130"
+    ],
+    "atos_do_responsavel": [
+      "Contas e chaves com escopo mínimo (R0-01)",
+      "Teto de US$ 50 por mês em cada provedor (R0-01)",
+      "Chave raiz e parada de emergência (R0-01)",
+      "Registro do domínio (R0-09)",
+      "Pessoa jurídica e responsável legal (R1-01)",
+      "Conexão da página do LinkedIn ao mLabs (R1-05)",
+      "Acesso à máquina do OpenBot (R2-09)",
+      "Meio de pagamento para os planos pagos (antes de R5-14)",
+      "Recarga do saldo de API quando o teto for atingido"
+    ],
+    "custos_das_decisoes": [
+      "Sem revisão humana, erro publicado é erro do veículo; os freios automáticos reduzem a frequência, não a responsabilidade",
+      "Medida de qualidade mais fraca: golden set rotulado por modelos",
+      "Mais construção antes da primeira publicação",
+      "Imagens e fontes: a auditoria não atesta a licitude; o risco de notificação, retirada e cobrança é do responsável",
+      "Custo de API maior, contra um teto de US$ 50: sem cache de prompt nenhum cenário cabe inteiro"
+    ]
+  },
+  "auditoria_original": {
+    "entregue_em": "2026-11-21T18:00-03:00",
+    "parecer": "GO CONDICIONAL para um T00 restrito; NO-GO para T01 em diante",
+    "registro": "00_EXECUTIVE_SUMMARY.md, seção Registro: sumário original",
+    "api_usd_mes": {
+      "min": 9.13,
+      "max": 72.72
+    },
+    "revisao_humana_minutos_por_dia_util": {
+      "enxuto": 58.7,
+      "base": 94.0,
+      "alto": 171.6
+    },
+    "backlog": {
+      "itens": 80,
+      "esforco_dias_uteis": 131.5
+    }
+  },
+  "proximos_passos": [
+    "O responsável entrega 12_RESPOSTA_OFICIAL.md e o pacote audit-output ao arquiteto do projeto",
+    "O arquiteto devolve a v2.1, o MCP de governança conforme 06_MCP_SPEC.md e os prompts da onda R0",
+    "O responsável faz a configuração inicial única (R0-01) e os projetos são abertos na ordem da seção 6 da resposta oficial"
+  ],
+  "anexo": "audit-output/tools/: scripts reexecutáveis usados nos cálculos e conferências",
+  "entregaveis": {
+    "00_EXECUTIVE_SUMMARY.md": "0e6337e65c37b96e7dd37f0da8bde43f4c78929d691aa1d0744246ff9f7d3c2a",
+    "01_COVERAGE.md": "d6256747d11d8234ed8a326e865b44dc8041e51b9f2ed528a35699d3541503dc",
+    "02_FINDINGS.csv": "eb1b70edbfeaf89c062590a2240a0782b1c9de45da7f2e9ce3590868b946873a",
+    "03_ARCHITECTURE_OPTIONS.md": "85c4276e009f45752e594f2f6703f080375182662eb7eb42a14bb46b82013b91",
+    "04_FINOPS_MODELOPS.md": "d34756f691ec6ab74780479a9579c1d848b923ec49febc41adae6b09dd7c8d81",
+    "04_cost_model.csv": "99e6171834e08fdaa8ca9e9bd3c9a5b3f4817e07ef9a030dd6cdf23b72f332c3",
+    "05_ROADMAP_REVISADO.md": "08184076fd19b64cc5b38ca4c929c16578984589583020ce8ae130201753e200",
+    "05_backlog_proposto.csv": "0ba5d830f2a123eece37d21760cad03b6717a0431dfeae333a2196fc3c975a2d",
+    "06_MCP_SPEC.md": "144e97cf0bc7aef49ef820c67fb68be761dd4bc6603546b5863231c7ddd60674",
+    "07_DECISIONS_REQUIRED.md": "765484b01c0d01c415dcc0ceb4f0938c12cd2e4c550a6b31bfbdaf3ea33bd071",
+    "08_CHANGE_PROPOSALS.md": "88c8dae47d9c4da41e4f3acf05d07d0bfbd52cc6ad99f709e58316b4180a8e17",
+    "09_SOURCES.md": "ca02c2bd7fbf48e90fa510e1d028f2ef07555dc9d2e734484eba0df479a8884a",
+    "11_CONCILIACAO.md": "5b3b925c45b57d0e03b6452abdab8b64955e7aeccc95644d224710dc031a538b",
+    "12_RESPOSTA_OFICIAL.md": "bb1fe003ce490cf7b1811592e31e2ccdf341249112e91edf10796b6ea2288197"
+  }
+}

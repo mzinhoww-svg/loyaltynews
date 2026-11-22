@@ -1,0 +1,16 @@
+{
+  "status": "UNCONFIGURED",
+  "root_fingerprint": null,
+  "executor": {
+    "fingerprint": null,
+    "provider": null
+  },
+  "reviewer": {
+    "fingerprint": null,
+    "provider": null
+  },
+  "verifier": {
+    "fingerprint": null
+  },
+  "note": "Preencher por bootstrap raiz em R0-01/03; fora do alcance executor; chaves públicas apenas."
+}

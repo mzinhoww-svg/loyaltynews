@@ -3,7 +3,10 @@
     "loyalty-governance": {
       "type": "stdio",
       "command": "python3",
-      "args": ["tools/gov.py", "mcp"]
+      "args": [
+        "tools/gov.py",
+        "mcp"
+      ]
     }
   }
 }

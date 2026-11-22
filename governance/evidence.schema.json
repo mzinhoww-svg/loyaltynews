@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tarefa",
+    "gate",
+    "commit_sha",
+    "ambiente",
+    "testes",
+    "artefatos",
+    "produzido_por",
+    "criado_em",
+    "chave_idempotencia"
+  ],
+  "properties": {
+    "tarefa": {
+      "type": "string"
+    },
+    "gate": {
+      "type": "string"
+    },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "ambiente": {
+      "enum": [
+        "local",
+        "homologacao",
+        "producao"
+      ]
+    },
+    "testes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "nome",
+          "resultado",
+          "registro_sha256"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "resultado": {
+            "enum": [
+              "passou",
+              "falhou",
+              "bloqueado"
+            ]
+          },
+          "registro_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "artefatos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "caminho",
+          "sha256",
+          "bytes"
+        ],
+        "properties": {
+          "caminho": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "produzido_por": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessao",
+        "ferramenta",
+        "modelo"
+      ],
+      "properties": {
+        "sessao": {
+          "type": "string"
+        },
+        "ferramenta": {
+          "type": "string"
+        },
+        "modelo": {
+          "type": "string"
+        }
+      }
+    },
+    "criado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "chave_idempotencia": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "substitui": {
+      "type": "string"
+    }
+  }
+}

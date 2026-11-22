@@ -1,0 +1,52 @@
+item,referencia,local,status,observacao
+D1 autonomia,12 §2 D1,contracts/workflows.registry.json; Blueprint §2,proposta conciliada,Gate automático sem aprovações humanas de rotina
+D2 aceite por tag,12 §2 D2,verifier-kit/verifier.py; tools/gov.py,local testado,Enforcement GitHub pendente
+D3 OpenBot,12 §2 D3,Blueprint §4; R2-09/10,especificado,Não instalado
+D4 escopo integral,12 §2 D4,contracts; Blueprint §1–4,especificado,64/28/19; não implantação
+D5 mLabs/LinkedIn e canais adiados,12 §2 D5,WF04/WF05; R1-05 P-01/P-02,especificado,APIs pendentes
+D6 publicação autônoma,12 §2 D6,WF02/03; R4-13/14,especificado,Pré e pós gates; lançamento condicionado
+D7 parecer Intelligence,12 §2 D7,Blueprint §1/6; R0-10,declaração preservada,Não examinado
+D8 imagens,12 §2 D8; §3.5,Blueprint §6; V21-08,divergência jurídica,Crédito não equivale a direito de reprodução
+D9 assinatura,12 §2 D9; §3.6,Blueprint §6,conciliado com ressalva,Sem fingir autoria humana; divulgação quando exigida
+D10 fonte pública,12 §2 D10; §3.7,Blueprint §6,conciliado com ressalva,Não contornar paywall; não copiar expressão protegida
+D11 teto,12 §2 D11; §8,contracts/model.policy.json; V21-09,especificado,USD50 agregado e limites por provedor
+D12 mídia kit,12 §2 D12,Blueprint §1; R5-10/11,especificado,47 formatos e dados reais
+D13 editorias,12 §2 D13,Blueprint §1; agents.registry,especificado,Dez editorias mantidas
+L1 separação,12 §3.1,verifier-kit; V21-07,local testado,Identidades reais pendentes
+L2 read-only,12 §3.2,R0-01/07,pendente,F-055 aberto
+L3 publicação gates,12 §3.3,WF02/03/08/18; R4-13/14,especificado,Sem publicação real
+L4 identidade de publicação,12 §3.4,agents.registry; WF04; R5-02,especificado,Token real segregado pendente
+L5 imagem,12 §3.5,Blueprint §6; V21-08,divergência jurídica,Não retirar marca d'água
+L6 assinatura,12 §3.6,Blueprint §6,especificado,Sem jornalista fictício
+L7 fontes,12 §3.7,Blueprint §6; R4-01/02/06,especificado,Sem paywall ou cópia literal
+L8 Intelligence,12 §3.8,WF06/07; R5-05..09,especificado,Sem rastreamento privado
+L9 paid label,12 §3.9,Blueprint §1; R5-12,especificado,Rotulagem obrigatória
+L10 métricas,12 §3.10,WF09; R1-07/R5-10,especificado,Sem números simulados em produção
+L11 retificação/titular,12 §3.11,WF18/19; R4-10,especificado,Tests e prazos reais pendentes
+L12 cap,12 §3.12,model.policy; R2-08/11/14,especificado,Reserva e hard stop ainda não implantados
+L13 kill switch,12 §3.13,R0-01/R2-14,pendente,Não configurado no runtime
+L14 segredos,12 §3.14,.gitignore; verificador README,parcial,Secret scan enforcement pendente
+M1 stdio + CLI,12 §4.1,tools/gov.py; .mcp.json,local testado,Sem porta ou segredo; cliente real pendente
+M2 Git estado,12 §4.2,tools/gov.py,local testado,Tags reais; sem project_state autoritativo
+M3 identidades,12 §4.3,identities.yaml; trust.example.json,pendente,Sem chave real; bootstrap raiz
+M4 ferramentas,12 §4.4,tools/gov.py; verifier-kit/mcp_verifier.py,parcial,13 executor testadas; 2 verifier isoladas não exercidas em cliente real
+M5 esquema fechado,12 §4.5,test_05; schema,local testado,Argumento extra bloqueado
+M6 5 condições,12 §4.6,verifier.py; tests 02/04/08/11/12/14,local testado,Proofs locais; gate remoto pendente; V21-06
+M7 proteção externa,12 §4.7,verifier-kit/README; tests 08/13,parcial,GitHub real indispensável
+M8 evidência,12 §4.8,gov.py; test 01/02/07,local testado,Hashes/vínculo commit; autoria declarada precisa attestation
+M9 next tasks,12 §4.9,gov.py; tests 03/06/10,local testado,Exceções bootstrap V21-02
+M10 88 itens,12 §4.10,backlog.yaml; docs/Tracker_v2_1.csv,carregado,Original preservado e map ids_anteriores
+M11 13 testes,12 §4.11,tests/test_governance.py; docs/Testes_locais.md,local testado,13 normativos + 2 extras; R0-05 ainda não aceita
+CP organização,12 §5,contracts/agents.registry.json,proposta,64 perfis; 7 ids renomeados; schemas lógicos
+CP rituais,12 §5,meetings.registry.json,proposta,28 quórum feriados silêncio; ativação após gate
+CP stack/runtime,12 §5,Blueprint §4,especificado,OpenBot obrigatório; Vertra PostgreSQL Redis BullMQ blob
+CP modelos,12 §5,model.policy.json,especificado,Roteamento lateral e cache; disponibilidade real não testada
+CP coleta,12 §5,Blueprint §6; contracts,especificado,Coletor determinístico sem rede LLM
+CP social/newsletter,12 §5,WF04/05,especificado,mLabs LinkedIn; flags off
+CP comercial,12 §5,Blueprint §1; R5,especificado,47 produtos estado real
+CP implantação,12 §5,backlog.yaml; Tracker_v2_1,carregado,7 ondas 88 itens; V21-01/04/05
+CP documentação,12 §5,docs/Blueprint_v2_1.md; originals; R3-01,parcial,Wireframes mobile e inconsistências ainda em R3-01
+R0 prompts,12 §6, prompts/00_ABERTURA_R0.md; R0-01..12,entregue,Não executar legado
+Testes não verificados,12 §7,docs/Divergencias_e_achados.md; backlog,pendente,Não inventar integração
+Custo,12 §8,model.policy; audit-output/04_FINOPS_MODELOPS.md,especificado,USD15–86 com cache no modelo de auditoria
+Achados novos,12 §9.4,docs/Divergencias_e_achados.md,entregue,15 achados novos; nenhum fechamento fictício

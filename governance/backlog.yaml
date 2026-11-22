@@ -1,0 +1,2594 @@
+[
+  {
+    "id_novo": "R0-01",
+    "onda": "R0 Preparação",
+    "tarefa": "Configuração inicial única: contas, chaves com escopo mínimo, teto de gasto de US$ 50 por mês, chave raiz e parada de emergência",
+    "ids_anteriores": "T00-04; T00-06",
+    "depende_de": "",
+    "responsavel": "Dono (configuração inicial, uma vez)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Cada chave falha fora do seu escopo",
+    "evidencia": "Inventário de credenciais, sem valores",
+    "criterio_de_aceite": "Nenhuma chave de escrita onde leitura basta; teto de US$ 50 por mês registrado em cada provedor",
+    "rollback": "Revogar as chaves",
+    "bloqueio_externo": "Ato do responsável",
+    "achados_relacionados": "F-131; F-132; F-055",
+    "id": "R0-01",
+    "gate": "R0",
+    "dependencies": [],
+    "required_tests": [
+      "R0-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-01"
+    ]
+  },
+  {
+    "id_novo": "R0-02",
+    "onda": "R0 Preparação",
+    "tarefa": "Registrar as decisões do responsável de 21/11/2026 (19:20 e 22:56)",
+    "ids_anteriores": "T00-06",
+    "depende_de": "R0-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "—",
+    "evidencia": "governance/decisions.yaml",
+    "criterio_de_aceite": "Cada decisão de 12_RESPOSTA_OFICIAL.md e de 11_CONCILIACAO.md registrada",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-010; F-030; F-073; F-071",
+    "id": "R0-02",
+    "gate": "R0",
+    "dependencies": [
+      "R0-03"
+    ],
+    "required_tests": [
+      "R0-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-02"
+    ]
+  },
+  {
+    "id_novo": "R0-03",
+    "onda": "R0 Preparação",
+    "tarefa": "Repositório privado, branch protegida com checks obrigatórios e merge automático; identidades separadas de executor, revisor e verificador",
+    "ids_anteriores": "T00-02",
+    "depende_de": "R0-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "O executor não cria tag de aceite válida, não altera regra de proteção e não altera a definição do verificador",
+    "evidencia": "Registro das tentativas recusadas",
+    "criterio_de_aceite": "Merge só com checks verdes; chave e definição do verificador fora do alcance do executor",
+    "rollback": "Apagar o repositório vazio",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-120; F-112",
+    "id": "R0-03",
+    "gate": "R0",
+    "dependencies": [
+      "R0-01"
+    ],
+    "required_tests": [
+      "R0-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-03"
+    ]
+  },
+  {
+    "id_novo": "R0-04",
+    "onda": "R0 Preparação",
+    "tarefa": "Importar o dossiê, conferir hashes e etiquetar v1.0 (baseline) e v2.0 (especificação)",
+    "ids_anteriores": "T00-01",
+    "depende_de": "R0-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "Script reproduz 38/38, 7/7 e 10/11 com a exceção anotada",
+    "evidencia": "Saída do script e duas tags",
+    "criterio_de_aceite": "Contagens 64/17/28/12/58/47 conferidas",
+    "rollback": "Apagar as tags",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-001; F-002",
+    "id": "R0-04",
+    "gate": "R0",
+    "dependencies": [
+      "R0-03"
+    ],
+    "required_tests": [
+      "R0-04-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-04"
+    ]
+  },
+  {
+    "id_novo": "R0-05",
+    "onda": "R0 Preparação",
+    "tarefa": "Governança: arquivos de estado, MCP completo (leitura, propostas e papel de verificador), validação de evidência, relatório de gate",
+    "ids_anteriores": "—",
+    "depende_de": "R0-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Casos 1 a 13 de 06_MCP_SPEC §9",
+    "evidencia": "Relatório de testes",
+    "criterio_de_aceite": "Executor não consegue registrar aceite; relatório de gate determinístico",
+    "rollback": "Remover a pasta governance",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-120; F-121; F-119",
+    "id": "R0-05",
+    "gate": "R0",
+    "dependencies": [
+      "R0-03"
+    ],
+    "required_tests": [
+      "R0-05-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-05"
+    ]
+  },
+  {
+    "id_novo": "R0-06",
+    "onda": "R0 Preparação",
+    "tarefa": "Verificador autônomo: roda os testes em ambiente limpo, confere hashes, colhe o parecer do revisor e assina a tag de aceite",
+    "ids_anteriores": "—",
+    "depende_de": "R0-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Tag criada pelo executor é inválida; gate com teste falho não recebe tag; mudança do executor no verificador é barrada",
+    "evidencia": "Registro dos três casos",
+    "criterio_de_aceite": "Nenhum aceite sem todos os critérios automáticos",
+    "rollback": "Desativar o pipeline",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-120; F-114",
+    "id": "R0-06",
+    "gate": "R0",
+    "dependencies": [
+      "R0-05"
+    ],
+    "required_tests": [
+      "R0-06-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-06"
+    ]
+  },
+  {
+    "id_novo": "R0-07",
+    "onda": "R0 Preparação",
+    "tarefa": "Inventário Vertra somente leitura, com chave de escopo de leitura",
+    "ids_anteriores": "T00-03",
+    "depende_de": "R0-01; R0-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Chamada de escrita com a chave é negada",
+    "evidencia": "Inventário saneado e respostas às 12 perguntas",
+    "criterio_de_aceite": "Nenhuma mutação no histórico da plataforma",
+    "rollback": "Revogar a chave",
+    "bloqueio_externo": "Respostas do suporte",
+    "achados_relacionados": "F-055; F-050",
+    "id": "R0-07",
+    "gate": "R0",
+    "dependencies": [
+      "R0-01",
+      "R0-03"
+    ],
+    "required_tests": [
+      "R0-07-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-07"
+    ]
+  },
+  {
+    "id_novo": "R0-08",
+    "onda": "R0 Preparação",
+    "tarefa": "ADRs 001 a 012, revistas pela conciliação, mais as decisões sobre cache de prompt, horário dos rituais e ordem do que para primeiro quando o saldo aperta",
+    "ids_anteriores": "T00-03",
+    "depende_de": "R0-02; R0-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Cada ADR tem critério verificável",
+    "evidencia": "docs/adr/*.md",
+    "criterio_de_aceite": "Aceitas pelo verificador contra os critérios",
+    "rollback": "ADR substituta",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-003; F-052; F-058; F-033; F-132",
+    "id": "R0-08",
+    "gate": "R0",
+    "dependencies": [
+      "R0-02",
+      "R0-07"
+    ],
+    "required_tests": [
+      "R0-08-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-08"
+    ]
+  },
+  {
+    "id_novo": "R0-09",
+    "onda": "R0 Preparação",
+    "tarefa": "Busca de marca e de domínio, com relatório",
+    "ids_anteriores": "T00-04",
+    "depende_de": "R0-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "—",
+    "evidencia": "Relatório da busca",
+    "criterio_de_aceite": "Conflito de marca registrado ou ausente",
+    "rollback": "—",
+    "bloqueio_externo": "Registro do domínio é ato do responsável",
+    "achados_relacionados": "F-116",
+    "id": "R0-09",
+    "gate": "R0",
+    "dependencies": [
+      "R0-01"
+    ],
+    "required_tests": [
+      "R0-09-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-09"
+    ]
+  },
+  {
+    "id_novo": "R0-10",
+    "onda": "R0 Preparação",
+    "tarefa": "Registrar a referência do parecer jurídico existente e a lista de pontos jurídicos ainda sem parecer",
+    "ids_anteriores": "T00-06",
+    "depende_de": "R0-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "—",
+    "evidencia": "governance/legal.yaml, sem conteúdo sigiloso",
+    "criterio_de_aceite": "Cada ponto jurídico com situação: coberto por parecer, decidido pelo responsável sem parecer, ou em aberto",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-090; F-070; F-072; F-062",
+    "id": "R0-10",
+    "gate": "R0",
+    "dependencies": [
+      "R0-02"
+    ],
+    "required_tests": [
+      "R0-10-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-10"
+    ]
+  },
+  {
+    "id_novo": "R0-11",
+    "onda": "R0 Preparação",
+    "tarefa": "Replanejar: backlog conciliado, dependências e datas relativas",
+    "ids_anteriores": "—",
+    "depende_de": "R0-08",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Script confere dependências e ausência de ciclos",
+    "evidencia": "Backlog versionado",
+    "criterio_de_aceite": "Nenhuma tarefa começa antes do aceite da dependência",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-110; F-113",
+    "id": "R0-11",
+    "gate": "R0",
+    "dependencies": [
+      "R0-08"
+    ],
+    "required_tests": [
+      "R0-11-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-11"
+    ]
+  },
+  {
+    "id_novo": "R0-12",
+    "onda": "R0 Preparação",
+    "tarefa": "Gate R0",
+    "ids_anteriores": "gate T00",
+    "depende_de": "R0-04; R0-06; R0-08; R0-09; R0-10; R0-11",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "Revisão do verificador em ambiente limpo",
+    "evidencia": "Relatório de gate com hashes",
+    "criterio_de_aceite": "F-055 e F-120 fechados; Tag de aceite assinada pelo verificador",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-055; F-120",
+    "id": "R0-12",
+    "gate": "R0",
+    "dependencies": [
+      "R0-04",
+      "R0-06",
+      "R0-08",
+      "R0-09",
+      "R0-10",
+      "R0-11"
+    ],
+    "required_tests": [
+      "R0-12-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R0-12"
+    ]
+  },
+  {
+    "id_novo": "R1-01",
+    "onda": "R1 Presença",
+    "tarefa": "Informar a pessoa jurídica e o responsável legal",
+    "ids_anteriores": "T00-04; T10-01",
+    "depende_de": "R0-02",
+    "responsavel": "Dono (configuração inicial, uma vez)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "—",
+    "evidencia": "Registro de decisões",
+    "criterio_de_aceite": "CNPJ e responsável informados",
+    "rollback": "—",
+    "bloqueio_externo": "Ato do responsável",
+    "achados_relacionados": "F-103",
+    "id": "R1-01",
+    "gate": "R1",
+    "dependencies": [
+      "R0-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-01"
+    ]
+  },
+  {
+    "id_novo": "R1-02",
+    "onda": "R1 Presença",
+    "tarefa": "Política de privacidade e termos, a partir do parecer existente",
+    "ids_anteriores": "T00-06",
+    "depende_de": "R0-10",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Verificação de itens obrigatórios",
+    "evidencia": "Texto em homologação",
+    "criterio_de_aceite": "Identifica controlador, finalidades e canal do titular",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-095",
+    "id": "R1-02",
+    "gate": "R1",
+    "dependencies": [
+      "R0-10",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-02"
+    ]
+  },
+  {
+    "id_novo": "R1-03",
+    "onda": "R1 Presença",
+    "tarefa": "Página de pré-lançamento com inscrição na The Loyal e confirmação dupla; envio desligado",
+    "ids_anteriores": "T04-04; T06-05",
+    "depende_de": "R0-09; R1-02; R2-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Inscrição, confirmação e descadastro ponta a ponta",
+    "evidencia": "Registros de teste",
+    "criterio_de_aceite": "Quem não confirmou não entra na lista",
+    "rollback": "Página estática",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-011",
+    "id": "R1-03",
+    "gate": "R1",
+    "dependencies": [
+      "R0-09",
+      "R1-02",
+      "R2-01",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-03"
+    ]
+  },
+  {
+    "id_novo": "R1-04",
+    "onda": "R1 Presença",
+    "tarefa": "Provedor de e-mail: conta, remetente e domínio autenticado, pronto e sem envio",
+    "ids_anteriores": "T06-05",
+    "depende_de": "R0-09",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Envio de teste com SPF, DKIM e DMARC alinhados",
+    "evidencia": "Cabeçalhos do teste",
+    "criterio_de_aceite": "Três autenticações válidas",
+    "rollback": "Remover registros DNS",
+    "bloqueio_externo": "Verificação do provedor",
+    "achados_relacionados": "",
+    "id": "R1-04",
+    "gate": "R1",
+    "dependencies": [
+      "R0-09",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-04-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-04"
+    ]
+  },
+  {
+    "id_novo": "R1-05",
+    "onda": "R1 Presença",
+    "tarefa": "Página do LinkedIn conectada ao mLabs, com identidade de publicação própria e autorização que não depende de sessão de chat",
+    "ids_anteriores": "T00-05; T06-03",
+    "depende_de": "R0-01",
+    "responsavel": "Dono (configuração inicial, uma vez)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "Leitura do perfil conectado",
+    "evidencia": "Registro da conexão",
+    "criterio_de_aceite": "Conexão ativa, com escopo só de publicação",
+    "rollback": "Desconectar",
+    "bloqueio_externo": "Conexão da conta pelo responsável",
+    "achados_relacionados": "F-080",
+    "id": "R1-05",
+    "gate": "R1",
+    "dependencies": [
+      "R0-01",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-05-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-05"
+    ]
+  },
+  {
+    "id_novo": "R1-06",
+    "onda": "R1 Presença",
+    "tarefa": "Varredura de dez veículos concorrentes, feita por agente",
+    "ids_anteriores": "—",
+    "depende_de": "R0-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "—",
+    "evidencia": "Planilha comparativa com fontes",
+    "criterio_de_aceite": "Cada linha com fonte e data",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-012",
+    "id": "R1-06",
+    "gate": "R1",
+    "dependencies": [
+      "R0-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-06-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-06"
+    ]
+  },
+  {
+    "id_novo": "R1-07",
+    "onda": "R1 Presença",
+    "tarefa": "GA4, consentimento de cookies e eventos mínimos",
+    "ids_anteriores": "T06-06",
+    "depende_de": "R1-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Evento chega sem dado pessoal",
+    "evidencia": "Captura do depurador",
+    "criterio_de_aceite": "Nenhum e-mail, nome ou token enviado",
+    "rollback": "Remover a etiqueta",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-085",
+    "id": "R1-07",
+    "gate": "R1",
+    "dependencies": [
+      "R1-03",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-07-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-07"
+    ]
+  },
+  {
+    "id_novo": "R1-08",
+    "onda": "R1 Presença",
+    "tarefa": "Gate R1",
+    "ids_anteriores": "—",
+    "depende_de": "R1-03; R1-04; R1-05; R1-06; R1-07",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "0.5",
+    "teste": "Revisão do verificador em ambiente limpo",
+    "evidencia": "Relatório de gate com hashes",
+    "criterio_de_aceite": "Tag de aceite assinada pelo verificador",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R1-08",
+    "gate": "R1",
+    "dependencies": [
+      "R1-03",
+      "R1-04",
+      "R1-05",
+      "R1-06",
+      "R1-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R1-08-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R1-08"
+    ]
+  },
+  {
+    "id_novo": "R2-01",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Homologação na Vertra: app, PostgreSQL, Redis, blob, TLS e domínio de homologação",
+    "ids_anteriores": "T01-01; T01-02",
+    "depende_de": "R0-12",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Credencial de homologação não lê produção",
+    "evidencia": "URL e registro do teste negativo",
+    "criterio_de_aceite": "Ambiente isolado, sem admin público",
+    "rollback": "Remover só os recursos criados aqui",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-050",
+    "id": "R2-01",
+    "gate": "R2",
+    "dependencies": [
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-01"
+    ]
+  },
+  {
+    "id_novo": "R2-02",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Monorepo e CI: lint, tipos, testes, varredura de segredos, deploy automático em homologação",
+    "ids_anteriores": "T02-01",
+    "depende_de": "R2-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "CI falha com segredo de teste no código",
+    "evidencia": "Execução do CI",
+    "criterio_de_aceite": "Merge só com CI verde",
+    "rollback": "Reverter o commit",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R2-02",
+    "gate": "R2",
+    "dependencies": [
+      "R2-01",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-02"
+    ]
+  },
+  {
+    "id_novo": "R2-03",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Backup externo cifrado e ensaio de restauração medido",
+    "ids_anteriores": "T01-05",
+    "depende_de": "R2-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Restaurar em instância separada e conferir somas",
+    "evidencia": "Relatório com tempos",
+    "criterio_de_aceite": "RPO e RTO medidos",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-056",
+    "id": "R2-03",
+    "gate": "R2",
+    "dependencies": [
+      "R2-01",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-03"
+    ]
+  },
+  {
+    "id_novo": "R2-04",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Esquema e migrações reversíveis: conteúdo, entidades, mídia, anúncios, governança",
+    "ids_anteriores": "T02-03",
+    "depende_de": "R2-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Subir e descer cada migração",
+    "evidencia": "Registro das migrações",
+    "criterio_de_aceite": "Restrições presentes; backup antes de aplicar",
+    "rollback": "Migração de descida",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R2-04",
+    "gate": "R2",
+    "dependencies": [
+      "R2-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-04-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-04"
+    ]
+  },
+  {
+    "id_novo": "R2-05",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Autenticação com MFA, sessões, RBAC e identidades de serviço",
+    "ids_anteriores": "T02-02",
+    "depende_de": "R2-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Matriz de acesso negativo",
+    "evidencia": "Relatório da matriz",
+    "criterio_de_aceite": "Nenhum caso negativo passa",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-058",
+    "id": "R2-05",
+    "gate": "R2",
+    "dependencies": [
+      "R2-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-05-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-05"
+    ]
+  },
+  {
+    "id_novo": "R2-06",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Filas com Redis e BullMQ, outbox transacional, lease, DLQ e idempotência",
+    "ids_anteriores": "T02-04",
+    "depende_de": "R2-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Matar o worker e reiniciar o Redis no meio de 100 jobs",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Zero job perdido e zero efeito duplicado",
+    "rollback": "Pausar a fila",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-052",
+    "id": "R2-06",
+    "gate": "R2",
+    "dependencies": [
+      "R2-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-06-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-06"
+    ]
+  },
+  {
+    "id_novo": "R2-07",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Gateway de modelos completo: catálogo versionado, rotas, classes de dado e provedores permitidos",
+    "ids_anteriores": "T03-04",
+    "depende_de": "R2-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Testes 1, 2, 6 e 7 de 04_FINOPS_MODELOPS §8",
+    "evidencia": "Relatório",
+    "criterio_de_aceite": "Só modelos testados ficam habilitados; custo por chamada medido com e sem cache de prompt",
+    "rollback": "Versão anterior da política",
+    "bloqueio_externo": "Chaves dos provedores",
+    "achados_relacionados": "F-062; F-063; F-061",
+    "id": "R2-07",
+    "gate": "R2",
+    "dependencies": [
+      "R2-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-07-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-07"
+    ]
+  },
+  {
+    "id_novo": "R2-08",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "FinOps completo: reserva atômica, teto rígido de US$ 50 por mês, ledger, reconciliação, kill switch, aviso antecipado e retomada depois da recarga",
+    "ids_anteriores": "T03-05",
+    "depende_de": "R2-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Testes 3, 4 e 5 de 04_FINOPS_MODELOPS §8",
+    "evidencia": "Relatório",
+    "criterio_de_aceite": "Nenhuma chamada além do teto; o aviso sai antes do bloqueio; a operação volta sozinha quando o saldo é recarregado",
+    "rollback": "Kill switch global",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-132; F-064",
+    "id": "R2-08",
+    "gate": "R2",
+    "dependencies": [
+      "R2-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-08-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-08"
+    ]
+  },
+  {
+    "id_novo": "R2-09",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "OpenBot na máquina do responsável: instalação isolada, persistência e reinício",
+    "ids_anteriores": "T01-03",
+    "depende_de": "R0-12",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Testes de prontidão 4, 5 e 8 de 03_ARCHITECTURE_OPTIONS §3",
+    "evidencia": "Registros",
+    "criterio_de_aceite": "Dados íntegros após reinício; sem credencial de produção na máquina",
+    "rollback": "Restaurar o backup do volume",
+    "bloqueio_externo": "Acesso à máquina",
+    "achados_relacionados": "F-041; F-042",
+    "id": "R2-09",
+    "gate": "R2",
+    "dependencies": [
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-09-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-09"
+    ]
+  },
+  {
+    "id_novo": "R2-10",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Adaptador OpenBot: disparo por webhook assinado, retorno estruturado, idempotência e modelo por tarefa",
+    "ids_anteriores": "T01-04",
+    "depende_de": "R2-09; R2-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Testes de prontidão 2, 3, 6 e 7",
+    "evidencia": "Registros",
+    "criterio_de_aceite": "Estado e orçamento ficam no banco do projeto",
+    "rollback": "Workers próprios assumem a fila",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-042",
+    "id": "R2-10",
+    "gate": "R2",
+    "dependencies": [
+      "R2-09",
+      "R2-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-10-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-10"
+    ]
+  },
+  {
+    "id_novo": "R2-11",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Teste de carga e dimensionamento",
+    "ids_anteriores": "T01-06",
+    "depende_de": "R2-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Dez vezes o volume do cenário alto",
+    "evidencia": "Gráficos",
+    "criterio_de_aceite": "Dimensionamento registrado, com Redis e os serviços completos",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-132",
+    "id": "R2-11",
+    "gate": "R2",
+    "dependencies": [
+      "R2-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-11-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-11"
+    ]
+  },
+  {
+    "id_novo": "R2-12",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Renderizador de artes: PoC com e sem navegador",
+    "ids_anteriores": "T01-06; T06-01",
+    "depende_de": "R2-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "20 artes em 4:5 e 1:1 dentro do limite de memória",
+    "evidencia": "Artes e medições",
+    "criterio_de_aceite": "Opção escolhida registrada",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-054",
+    "id": "R2-12",
+    "gate": "R2",
+    "dependencies": [
+      "R2-01",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-12-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-12"
+    ]
+  },
+  {
+    "id_novo": "R2-13",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Segredos, trilha de auditoria e URLs assinadas",
+    "ids_anteriores": "T02-05",
+    "depende_de": "R2-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1.5",
+    "teste": "Segredo de teste não aparece em log nem em resposta",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Auditoria registra autor, ação e alvo",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R2-13",
+    "gate": "R2",
+    "dependencies": [
+      "R2-05",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-13-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-13"
+    ]
+  },
+  {
+    "id_novo": "R2-14",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Parada de emergência e teto de gasto, ponta a ponta",
+    "ids_anteriores": "—",
+    "depende_de": "R2-08; R2-10",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Acionar a parada: filas e agentes param em até um minuto",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Parada acionável pelo responsável sem passar por agente",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-131; F-132",
+    "id": "R2-14",
+    "gate": "R2",
+    "dependencies": [
+      "R2-08",
+      "R2-10",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-14-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-14"
+    ]
+  },
+  {
+    "id_novo": "R2-15",
+    "onda": "R2 Fundação técnica e runtime",
+    "tarefa": "Gate R2",
+    "ids_anteriores": "gates T01 e T02",
+    "depende_de": "R2-03; R2-05; R2-11; R2-12; R2-13; R2-14",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Revisão do verificador em ambiente limpo",
+    "evidencia": "Relatório de gate com hashes",
+    "criterio_de_aceite": "Tag de aceite assinada pelo verificador",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R2-15",
+    "gate": "R2",
+    "dependencies": [
+      "R2-03",
+      "R2-05",
+      "R2-11",
+      "R2-12",
+      "R2-13",
+      "R2-14",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R2-15-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R2-15"
+    ]
+  },
+  {
+    "id_novo": "R3-01",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Wireframes completos em desktop e mobile, com estados vazio e de erro",
+    "ids_anteriores": "T04-01",
+    "depende_de": "R0-12",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Toda rota tem as quatro variantes",
+    "evidencia": "Telas",
+    "criterio_de_aceite": "Nenhuma rota do blueprint sem tela",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-006; F-005",
+    "id": "R3-01",
+    "gate": "R3",
+    "dependencies": [
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-01"
+    ]
+  },
+  {
+    "id_novo": "R3-02",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Home, Em alta, Últimas, menu e rodapé",
+    "ids_anteriores": "T04-01",
+    "depende_de": "R3-01; R2-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Comparação visual em dois tamanhos",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Blocos na ordem do blueprint",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-02",
+    "gate": "R3",
+    "dependencies": [
+      "R3-01",
+      "R2-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-02"
+    ]
+  },
+  {
+    "id_novo": "R3-03",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Editoria, matéria, tags e busca",
+    "ids_anteriores": "T04-02",
+    "depende_de": "R3-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Rascunho não aparece em API pública, busca ou sitemap",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Dez editorias; URL canônica única",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-03",
+    "gate": "R3",
+    "dependencies": [
+      "R3-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-03"
+    ]
+  },
+  {
+    "id_novo": "R3-04",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Agenda: calendário, evento, arquivo de calendário e submissão moderada",
+    "ids_anteriores": "T04-02",
+    "depende_de": "R3-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Evento passado sai da lista",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Evento só com fonte oficial",
+    "rollback": "Ocultar a seção",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-04",
+    "gate": "R3",
+    "dependencies": [
+      "R3-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-04-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-04"
+    ]
+  },
+  {
+    "id_novo": "R3-05",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "SEO técnico: canônica, sitemap, RSS, dados estruturados, redirecionamentos",
+    "ids_anteriores": "T04-02",
+    "depende_de": "R3-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1.5",
+    "teste": "Validador de dados estruturados; Lighthouse de pelo menos 90",
+    "evidencia": "Relatórios",
+    "criterio_de_aceite": "Sem erro no validador",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-014",
+    "id": "R3-05",
+    "gate": "R3",
+    "dependencies": [
+      "R3-03",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-05-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-05"
+    ]
+  },
+  {
+    "id_novo": "R3-06",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "CMS: editor estruturado e versões",
+    "ids_anteriores": "T04-03",
+    "depende_de": "R2-05; R3-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Editar gera nova versão",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Nenhuma edição sobrescreve versão",
+    "rollback": "Restaurar a versão",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-06",
+    "gate": "R3",
+    "dependencies": [
+      "R2-05",
+      "R3-03",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-06-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-06"
+    ]
+  },
+  {
+    "id_novo": "R3-07",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "CMS: estados, aprovação automática ligada à versão e correções",
+    "ids_anteriores": "T04-03",
+    "depende_de": "R3-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Publicar com aprovação de versão antiga falha",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Toda publicação tem versão e identidade aprovadora",
+    "rollback": "Despublicar",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-07",
+    "gate": "R3",
+    "dependencies": [
+      "R3-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-07-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-07"
+    ]
+  },
+  {
+    "id_novo": "R3-08",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Gestão da home, menus e espaços publicitários",
+    "ids_anteriores": "T04-05",
+    "depende_de": "R3-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Espaço vazio não desloca o layout",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Posições com dimensão reservada",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-08",
+    "gate": "R3",
+    "dependencies": [
+      "R3-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-08-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-08"
+    ]
+  },
+  {
+    "id_novo": "R3-09",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Acessibilidade: zero violação crítica e navegação por teclado",
+    "ids_anteriores": "gate T04",
+    "depende_de": "R3-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Verificador automático e roteiro de teclado",
+    "evidencia": "Relatório",
+    "criterio_de_aceite": "Zero violação crítica",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-014",
+    "id": "R3-09",
+    "gate": "R3",
+    "dependencies": [
+      "R3-03",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-09-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-09"
+    ]
+  },
+  {
+    "id_novo": "R3-10",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Páginas institucionais: sobre, contato, políticas, correções; assinatura institucional em todo o conteúdo",
+    "ids_anteriores": "T04-04",
+    "depende_de": "R3-02; R1-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Varredura das páginas públicas, dos posts e dos e-mails de teste",
+    "evidencia": "Páginas em homologação",
+    "criterio_de_aceite": "Assinatura 'Redação Loyalty News'; nenhuma página, assinatura ou metadado descreve o processo de produção; nenhum autor individual",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-073",
+    "id": "R3-10",
+    "gate": "R3",
+    "dependencies": [
+      "R3-02",
+      "R1-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-10-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-10"
+    ]
+  },
+  {
+    "id_novo": "R3-11",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "LN Studio: command center, organização, agentes, departamentos e redações",
+    "ids_anteriores": "BP §9",
+    "depende_de": "R3-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Rotas protegidas por papel",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Dados reais ou 'não disponível'",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-11",
+    "gate": "R3",
+    "dependencies": [
+      "R3-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-11-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-11"
+    ]
+  },
+  {
+    "id_novo": "R3-12",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "LN Studio: reuniões, ações, workflows, trust e integrações",
+    "ids_anteriores": "BP §9",
+    "depende_de": "R3-11",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Rotas protegidas por papel",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Idem",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-12",
+    "gate": "R3",
+    "dependencies": [
+      "R3-11",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-12-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-12"
+    ]
+  },
+  {
+    "id_novo": "R3-13",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "LN Studio: ModelOps, roteamento, evals e FinOps",
+    "ids_anteriores": "BP §9",
+    "depende_de": "R3-11; R2-08",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Simulação de rota não gasta",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Idem",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-13",
+    "gate": "R3",
+    "dependencies": [
+      "R3-11",
+      "R2-08",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-13-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-13"
+    ]
+  },
+  {
+    "id_novo": "R3-14",
+    "onda": "R3 Portal, CMS e LN Studio",
+    "tarefa": "Gate R3",
+    "ids_anteriores": "gate T04",
+    "depende_de": "R2-15; R3-05; R3-08; R3-09; R3-10; R3-12; R3-13",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Revisão do verificador em ambiente limpo",
+    "evidencia": "Relatório de gate com hashes",
+    "criterio_de_aceite": "Tag de aceite assinada pelo verificador",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R3-14",
+    "gate": "R3",
+    "dependencies": [
+      "R2-15",
+      "R3-05",
+      "R3-08",
+      "R3-09",
+      "R3-10",
+      "R3-12",
+      "R3-13",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R3-14-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R3-14"
+    ]
+  },
+  {
+    "id_novo": "R4-01",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Banco de fontes públicas: cadastro com endereço, tipo e data, sem exigência de permissão por fonte",
+    "ids_anteriores": "T05-01",
+    "depende_de": "R0-10; R3-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Fonte sem cadastro não é coletada; página atrás de login ou paywall não é coletada",
+    "evidencia": "Cadastro de fontes",
+    "criterio_de_aceite": "Toda fonte ativa tem cadastro; nenhuma coleta contorna restrição de acesso",
+    "rollback": "Desativar a fonte",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-070",
+    "id": "R4-01",
+    "gate": "R4",
+    "dependencies": [
+      "R0-10",
+      "R3-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-01"
+    ]
+  },
+  {
+    "id_novo": "R4-02",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Coletor determinístico: RSS, API e página permitida; lista de domínios; anti-SSRF",
+    "ids_anteriores": "T05-02",
+    "depende_de": "R2-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Domínio fora da lista e IP privado recusados; instrução embutida não muda nada",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Nenhum modelo tem ferramenta de rede",
+    "rollback": "Pausar a coleta",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-078",
+    "id": "R4-02",
+    "gate": "R4",
+    "dependencies": [
+      "R2-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-02"
+    ]
+  },
+  {
+    "id_novo": "R4-03",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Deduplicação e agrupamento",
+    "ids_anteriores": "T05-02",
+    "depende_de": "R4-02",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Reprocessar o mesmo lote não cria item",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Zero duplicata no lote de teste",
+    "rollback": "Reprocessar",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-051",
+    "id": "R4-03",
+    "gate": "R4",
+    "dependencies": [
+      "R4-02",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-03"
+    ]
+  },
+  {
+    "id_novo": "R4-04",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Perfis editoriais (24) no runtime, com contratos diferenciados e prompts versionados",
+    "ids_anteriores": "T03-01",
+    "depende_de": "R2-10; R2-07; R4-03",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Saída fora do esquema é rejeitada",
+    "evidencia": "Validação do registro",
+    "criterio_de_aceite": "Cada perfil com ferramentas, esquema e KPI próprios",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-020; F-023",
+    "id": "R4-04",
+    "gate": "R4",
+    "dependencies": [
+      "R2-10",
+      "R2-07",
+      "R4-03",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-04-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-04"
+    ]
+  },
+  {
+    "id_novo": "R4-05",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Demais perfis (40): criação, growth, intelligence, comercial, tecnologia, trust e publisher",
+    "ids_anteriores": "T03-01",
+    "depende_de": "R4-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Idem",
+    "evidencia": "Validação do registro",
+    "criterio_de_aceite": "64 perfis ativos; nenhum com ferramenta além do contrato",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-020; F-021",
+    "id": "R4-05",
+    "gate": "R4",
+    "dependencies": [
+      "R4-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-05-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-05"
+    ]
+  },
+  {
+    "id_novo": "R4-06",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Checagem por provedor diferente e checagem determinística de números, datas, citações e cópia literal da fonte",
+    "ids_anteriores": "T05-03",
+    "depende_de": "R4-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Dez casos com número trocado e citação inexistente são bloqueados; texto com trecho longo copiado da fonte é bloqueado",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Fato material sem evidência bloqueia",
+    "rollback": "Bloquear a rota",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-066; F-070",
+    "id": "R4-06",
+    "gate": "R4",
+    "dependencies": [
+      "R4-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-06-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-06"
+    ]
+  },
+  {
+    "id_novo": "R4-07",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Biblioteca de mídia: imagem da fonte com crédito e link, edição mínima, registro de origem e retirada automática por notificação",
+    "ids_anteriores": "T05-03",
+    "depende_de": "R4-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Imagem sem origem e crédito registrados bloqueia; marca d'água e crédito embutido não são removidos; notificação de teste tira a imagem do ar",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Toda imagem publicada tem origem, crédito e link; sem imagem que cumpra a regra, a matéria sai sem foto",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-071",
+    "id": "R4-07",
+    "gate": "R4",
+    "dependencies": [
+      "R4-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-07-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-07"
+    ]
+  },
+  {
+    "id_novo": "R4-08",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Golden set rotulado por modelo de classe superior, com concordância entre provedores; eval cego",
+    "ids_anteriores": "T05-03",
+    "depende_de": "R4-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Critérios de 04_FINOPS_MODELOPS §7",
+    "evidencia": "Planilha do eval",
+    "criterio_de_aceite": "Roteamento escolhido registrado",
+    "rollback": "Roteamento anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-067; F-061",
+    "id": "R4-08",
+    "gate": "R4",
+    "dependencies": [
+      "R4-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-08-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-08"
+    ]
+  },
+  {
+    "id_novo": "R4-09",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Publicação transacional, correção propagada com errata e página de correções",
+    "ids_anteriores": "T05-04",
+    "depende_de": "R3-07; R4-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2.5",
+    "teste": "Publicar duas vezes não duplica",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Histórico de correções público",
+    "rollback": "Despublicar",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-077",
+    "id": "R4-09",
+    "gate": "R4",
+    "dependencies": [
+      "R3-07",
+      "R4-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-09-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-09"
+    ]
+  },
+  {
+    "id_novo": "R4-10",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Direito de resposta e pedido do titular: triagem, prazo, ação automática e aviso ao responsável legal",
+    "ids_anteriores": "—",
+    "depende_de": "R3-10; R0-10",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Pedido de teste cumpre o prazo interno",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Nenhum pedido sem registro e sem prazo",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-072; F-095",
+    "id": "R4-10",
+    "gate": "R4",
+    "dependencies": [
+      "R3-10",
+      "R0-10",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-10-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-10"
+    ]
+  },
+  {
+    "id_novo": "R4-11",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Agendador e os 28 rituais: fuso, feriados, quórum numérico e regra de silêncio",
+    "ids_anteriores": "T03-02",
+    "depende_de": "R4-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Dia sem pauta não gera chamada; feriado não agenda",
+    "evidencia": "Atas de simulação",
+    "criterio_de_aceite": "28 rituais ativos",
+    "rollback": "Desativar o ritual",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-030; F-032; F-036; F-033",
+    "id": "R4-11",
+    "gate": "R4",
+    "dependencies": [
+      "R4-05",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-11-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-11"
+    ]
+  },
+  {
+    "id_novo": "R4-12",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Reuniões: snapshot, contribuições, síntese, ata, decisões, tarefas e alçadas automáticas",
+    "ids_anteriores": "T03-03; T03-06",
+    "depende_de": "R4-11",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Decisão fora da alçada é recusada; itens abertos têm limite",
+    "evidencia": "Atas e registro",
+    "criterio_de_aceite": "Toda decisão tem identidade responsável",
+    "rollback": "Pausar o workflow",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-025; F-038",
+    "id": "R4-12",
+    "gate": "R4",
+    "dependencies": [
+      "R4-11",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-12-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-12"
+    ]
+  },
+  {
+    "id_novo": "R4-13",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Autonomia de publicação: classes de risco, 'na dúvida, não publica', auditoria depois da publicação com despublicação automática",
+    "ids_anteriores": "T11-02",
+    "depende_de": "R4-09; R4-08",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Dez casos de risco alto ficam bloqueados; erro plantado é despublicado",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Nenhuma publicação sem os gates automáticos",
+    "rollback": "Chave de autonomia desligada",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-130; F-044",
+    "id": "R4-13",
+    "gate": "R4",
+    "dependencies": [
+      "R4-09",
+      "R4-08",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-13-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-13"
+    ]
+  },
+  {
+    "id_novo": "R4-14",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Piloto em homologação: 50 peças das dez redações, avaliadas pelo verificador",
+    "ids_anteriores": "T05-05",
+    "depende_de": "R4-07; R4-13",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Avaliação cega por provedor diferente",
+    "evidencia": "50 peças com avaliação e gasto real por peça",
+    "criterio_de_aceite": "Zero fato material sem evidência; gasto por peça comparado ao modelo de custo",
+    "rollback": "Voltar ao piloto",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-130; F-132",
+    "id": "R4-14",
+    "gate": "R4",
+    "dependencies": [
+      "R4-07",
+      "R4-13",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-14-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-14"
+    ]
+  },
+  {
+    "id_novo": "R4-15",
+    "onda": "R4 Redações autônomas",
+    "tarefa": "Gate R4",
+    "ids_anteriores": "gates T03 e T05",
+    "depende_de": "R3-14; R4-10; R4-12; R4-14",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Revisão do verificador em ambiente limpo",
+    "evidencia": "Relatório de gate com hashes",
+    "criterio_de_aceite": "Tag de aceite assinada pelo verificador",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R4-15",
+    "gate": "R4",
+    "dependencies": [
+      "R3-14",
+      "R4-10",
+      "R4-12",
+      "R4-14",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R4-15-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R4-15"
+    ]
+  },
+  {
+    "id_novo": "R5-01",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Modelos de arte versionados e renderizador determinístico: JPEG, texto alternativo e crédito",
+    "ids_anteriores": "T06-01",
+    "depende_de": "R2-12; R4-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Texto longo não estoura a área segura",
+    "evidencia": "Artes de teste",
+    "criterio_de_aceite": "Toda arte tem crédito e texto alternativo",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-082",
+    "id": "R5-01",
+    "gate": "R5",
+    "dependencies": [
+      "R2-12",
+      "R4-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-01"
+    ]
+  },
+  {
+    "id_novo": "R5-02",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Pacote social e publicação autônoma no LinkedIn pelo mLabs, com recibo",
+    "ids_anteriores": "T06-03; T06-04",
+    "depende_de": "R5-01; R4-13; R1-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Reenvio não duplica; sem imagem aprovada, bloqueia; recibo conferido; ciclo de agendar, editar, excluir e mencionar em página de teste; sete dias de publicação sem sessão interativa",
+    "evidencia": "Recibos de teste",
+    "criterio_de_aceite": "Post só consta publicado com recibo",
+    "rollback": "Pausar o canal",
+    "bloqueio_externo": "mLabs: menção, edição, exclusão e uso por serviço não constam das páginas consultadas (S33, S34)",
+    "achados_relacionados": "F-080; F-044; F-081",
+    "id": "R5-02",
+    "gate": "R5",
+    "dependencies": [
+      "R5-01",
+      "R4-13",
+      "R1-05",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-02"
+    ]
+  },
+  {
+    "id_novo": "R5-03",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Entidades e menções para o social",
+    "ids_anteriores": "T06-02",
+    "depende_de": "R5-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Perfil válido, ambíguo e falha de API",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Menção não resolvida vira texto simples",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-081",
+    "id": "R5-03",
+    "gate": "R5",
+    "dependencies": [
+      "R5-05",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-03"
+    ]
+  },
+  {
+    "id_novo": "R5-04",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "The Loyal completa: montagem, checagem, envio e arquivo, com a chave desligada",
+    "ids_anteriores": "T06-05",
+    "depende_de": "R1-04; R4-09",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2.5",
+    "teste": "Envio de teste; reenvio não duplica",
+    "evidencia": "Registros",
+    "criterio_de_aceite": "Pronta para ligar sem novo desenvolvimento",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-035",
+    "id": "R5-04",
+    "gate": "R5",
+    "dependencies": [
+      "R1-04",
+      "R4-09",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-04-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-04"
+    ]
+  },
+  {
+    "id_novo": "R5-05",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Entidades: resolução, evidências e relações com vigência, para organizações e pessoas",
+    "ids_anteriores": "T07-01",
+    "depende_de": "R4-09",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "30 pares de homônimos",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Cada vínculo com fonte e data",
+    "rollback": "Desligar a extração",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-093; F-096",
+    "id": "R5-05",
+    "gate": "R5",
+    "dependencies": [
+      "R4-09",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-05-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-05"
+    ]
+  },
+  {
+    "id_novo": "R5-06",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Extração e enriquecimento de entidades a partir das matérias publicadas",
+    "ids_anteriores": "T07-02",
+    "depende_de": "R5-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Reprocessar não duplica",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Proveniência em cada campo",
+    "rollback": "Desligar a extração",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-096",
+    "id": "R5-06",
+    "gate": "R5",
+    "dependencies": [
+      "R5-05",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-06-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-06"
+    ]
+  },
+  {
+    "id_novo": "R5-07",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Perfis de empresa e de pessoa, organogramas e Moves",
+    "ids_anteriores": "T07-03",
+    "depende_de": "R5-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "20 relações; desconhecido não vira fato",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Hipótese nunca aparece como fato",
+    "rollback": "Ocultar as páginas",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-091",
+    "id": "R5-07",
+    "gate": "R5",
+    "dependencies": [
+      "R5-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-07-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-07"
+    ]
+  },
+  {
+    "id_novo": "R5-08",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Watchlists, preferências, alertas e retenção",
+    "ids_anteriores": "T07-04",
+    "depende_de": "R5-07",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2.5",
+    "teste": "Consentimento, dedupe e descadastro",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Sem alerta para hipótese",
+    "rollback": "Pausar os alertas",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-095",
+    "id": "R5-08",
+    "gate": "R5",
+    "dependencies": [
+      "R5-07",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-08-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-08"
+    ]
+  },
+  {
+    "id_novo": "R5-09",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Semear 100 organizações com validação por lote",
+    "ids_anteriores": "T07-05",
+    "depende_de": "R5-06",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Amostra de 20 conferida por provedor diferente",
+    "evidencia": "Inventário com fonte e situação",
+    "criterio_de_aceite": "Nenhum cargo preenchido por suposição",
+    "rollback": "Remover o lote",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R5-09",
+    "gate": "R5",
+    "dependencies": [
+      "R5-06",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-09-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-09"
+    ]
+  },
+  {
+    "id_novo": "R5-10",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Métricas: GA4 padrão e tempo real, e-mail, social e CMS, com período e estado",
+    "ids_anteriores": "T08-03; T06-06",
+    "depende_de": "R3-05",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2.5",
+    "teste": "Conector fora do ar mostra 'não disponível'",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Cada número com fonte, período e data",
+    "rollback": "Ocultar o bloco",
+    "bloqueio_externo": "Contas de GA4 e do provedor",
+    "achados_relacionados": "F-085",
+    "id": "R5-10",
+    "gate": "R5",
+    "dependencies": [
+      "R3-05",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-10-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-10"
+    ]
+  },
+  {
+    "id_novo": "R5-11",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Mídia kit e catálogo dos 47 formatos, com estado por formato",
+    "ids_anteriores": "T08-01; T04-04",
+    "depende_de": "R5-10",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Formato sem operação não aparece como vendável",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "47 formatos cadastrados",
+    "rollback": "Versão anterior",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-100; F-101",
+    "id": "R5-11",
+    "gate": "R5",
+    "dependencies": [
+      "R5-10",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-11-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-11"
+    ]
+  },
+  {
+    "id_novo": "R5-12",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Servidor de anúncios completo: reserva, rotação ponderada, viewability, pacing e filtro de bots",
+    "ids_anteriores": "T08-02; T08-04",
+    "depende_de": "R3-08",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Duas reservas concorrentes na última cota: só uma entra",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Conteúdo pago não publica sem rótulo",
+    "rollback": "Pausar a campanha",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-102; F-074",
+    "id": "R5-12",
+    "gate": "R5",
+    "dependencies": [
+      "R3-08",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-12-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-12"
+    ]
+  },
+  {
+    "id_novo": "R5-13",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "CRM, propostas, contratos-modelo e relatórios de campanha",
+    "ids_anteriores": "T08-02; T08-04",
+    "depende_de": "R5-11; R5-12",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Formulário cria um lead e nenhuma inscrição automática",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Relatório reconcilia com os eventos",
+    "rollback": "—",
+    "bloqueio_externo": "Contrato é ato do responsável",
+    "achados_relacionados": "F-103",
+    "id": "R5-13",
+    "gate": "R5",
+    "dependencies": [
+      "R5-11",
+      "R5-12",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-13-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-13"
+    ]
+  },
+  {
+    "id_novo": "R5-14",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Planos pagos: cobrança, entitlement e cancelamento",
+    "ids_anteriores": "T10-01",
+    "depende_de": "R5-08; R1-01",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Webhook idempotente; acesso revogado ao cancelar",
+    "evidencia": "Registro dos testes",
+    "criterio_de_aceite": "Nenhum cartão armazenado",
+    "rollback": "Desligar o checkout",
+    "bloqueio_externo": "Meio de pagamento e pessoa jurídica",
+    "achados_relacionados": "F-104; F-103",
+    "id": "R5-14",
+    "gate": "R5",
+    "dependencies": [
+      "R5-08",
+      "R1-01",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-14-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-14"
+    ]
+  },
+  {
+    "id_novo": "R5-15",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Relatórios premium e exportações autorizadas",
+    "ids_anteriores": "T10-02",
+    "depende_de": "R5-14",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Exportação respeita o plano",
+    "evidencia": "Registro do teste",
+    "criterio_de_aceite": "Sem dado além do autorizado",
+    "rollback": "Desligar a exportação",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R5-15",
+    "gate": "R5",
+    "dependencies": [
+      "R5-14",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-15-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-15"
+    ]
+  },
+  {
+    "id_novo": "R5-16",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Talks, Jobs, eventos e Market Data: estrutura pronta; formato só fica disponível com operação real",
+    "ids_anteriores": "T10-03",
+    "depende_de": "R3-08",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "3",
+    "teste": "Formato sem operação fica indisponível",
+    "evidencia": "Capturas",
+    "criterio_de_aceite": "Nenhuma oferta fictícia",
+    "rollback": "Ocultar",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-101",
+    "id": "R5-16",
+    "gate": "R5",
+    "dependencies": [
+      "R3-08",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-16-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-16"
+    ]
+  },
+  {
+    "id_novo": "R5-17",
+    "onda": "R5 Distribuição, Intelligence e receita",
+    "tarefa": "Gate R5",
+    "ids_anteriores": "gates T06, T07, T08 e T10",
+    "depende_de": "R4-15; R5-02; R5-03; R5-04; R5-09; R5-13; R5-15; R5-16",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Revisão do verificador em ambiente limpo",
+    "evidencia": "Relatório de gate com hashes",
+    "criterio_de_aceite": "Tag de aceite assinada pelo verificador",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R5-17",
+    "gate": "R5",
+    "dependencies": [
+      "R4-15",
+      "R5-02",
+      "R5-03",
+      "R5-04",
+      "R5-09",
+      "R5-13",
+      "R5-15",
+      "R5-16",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R5-17-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R5-17"
+    ]
+  },
+  {
+    "id_novo": "R6-01",
+    "onda": "R6 Homologação e lançamento",
+    "tarefa": "Revisão de segurança, desempenho e SEO por verificador que não implementou",
+    "ids_anteriores": "T09-01",
+    "depende_de": "R5-17",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Roteiro de segurança e medições",
+    "evidencia": "Relatório",
+    "criterio_de_aceite": "Nenhum P0 ou P1 aberto",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-114",
+    "id": "R6-01",
+    "gate": "R6",
+    "dependencies": [
+      "R5-17",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R6-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R6-01"
+    ]
+  },
+  {
+    "id_novo": "R6-02",
+    "onda": "R6 Homologação e lançamento",
+    "tarefa": "Ensaio de incidente: pausar, drenar, restaurar e voltar versão",
+    "ids_anteriores": "T09-02",
+    "depende_de": "R2-03; R5-17",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "1.5",
+    "teste": "Restauração completa em homologação",
+    "evidencia": "Relatório com tempos",
+    "criterio_de_aceite": "RPO e RTO dentro do medido",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-056",
+    "id": "R6-02",
+    "gate": "R6",
+    "dependencies": [
+      "R2-03",
+      "R5-17",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R6-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R6-02"
+    ]
+  },
+  {
+    "id_novo": "R6-03",
+    "onda": "R6 Homologação e lançamento",
+    "tarefa": "Homologação ponta a ponta por canal",
+    "ids_anteriores": "T09-03",
+    "depende_de": "R5-17",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "2",
+    "teste": "Matriz de aceite por canal",
+    "evidencia": "Matriz preenchida",
+    "criterio_de_aceite": "Cada canal com tag própria",
+    "rollback": "Chave do canal desligada",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "R6-03",
+    "gate": "R6",
+    "dependencies": [
+      "R5-17",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R6-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-R6-03"
+    ]
+  },
+  {
+    "id_novo": "R6-04",
+    "onda": "R6 Homologação e lançamento",
+    "tarefa": "Lançamento automático quando o gate R6 recebe a tag: DNS e chaves por canal",
+    "ids_anteriores": "T09-04",
+    "depende_de": "R6-01; R6-02; R6-03; R1-08",
+    "responsavel": "Verificador autônomo (identidade separada)",
+    "estimativa_dias_uteis": "1",
+    "teste": "Teste de fumaça em produção",
+    "evidencia": "Tag e identificador do deploy",
+    "criterio_de_aceite": "Um canal por vez; The Loyal e Instagram permanecem desligados",
+    "rollback": "Voltar o DNS e desligar as chaves",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-130",
+    "id": "R6-04",
+    "gate": "R6",
+    "dependencies": [
+      "R6-01",
+      "R6-02",
+      "R6-03",
+      "R1-08",
+      "R0-12"
+    ],
+    "required_tests": [
+      "R6-04-TEST"
+    ],
+    "kind": "gate",
+    "deferred": false,
+    "requirements": [
+      "REQ-R6-04"
+    ]
+  },
+  {
+    "id_novo": "P-01",
+    "onda": "P Adiado por decisão do dono",
+    "tarefa": "Ligar a The Loyal, já construída",
+    "ids_anteriores": "T06-05",
+    "depende_de": "R6-04",
+    "responsavel": "Dono (configuração inicial, uma vez)",
+    "estimativa_dias_uteis": "",
+    "teste": "—",
+    "evidencia": "—",
+    "criterio_de_aceite": "Decisão do responsável",
+    "rollback": "Desligar a chave",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-035",
+    "id": "P-01",
+    "gate": "P",
+    "dependencies": [
+      "R6-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "P-01-TEST"
+    ],
+    "kind": "task",
+    "deferred": true,
+    "requirements": [
+      "REQ-P-01"
+    ]
+  },
+  {
+    "id_novo": "P-02",
+    "onda": "P Adiado por decisão do dono",
+    "tarefa": "Instagram",
+    "ids_anteriores": "T06-04",
+    "depende_de": "R6-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "",
+    "teste": "—",
+    "evidencia": "—",
+    "criterio_de_aceite": "Decisão do responsável",
+    "rollback": "Desligar o canal",
+    "bloqueio_externo": "",
+    "achados_relacionados": "F-082",
+    "id": "P-02",
+    "gate": "P",
+    "dependencies": [
+      "R6-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "P-02-TEST"
+    ],
+    "kind": "task",
+    "deferred": true,
+    "requirements": [
+      "REQ-P-02"
+    ]
+  },
+  {
+    "id_novo": "P-03",
+    "onda": "P Adiado por decisão do dono",
+    "tarefa": "Linha de base de 30 dias, runbook e relatório de operação (medição, não adiamento)",
+    "ids_anteriores": "T11-01; T11-03",
+    "depende_de": "R6-04",
+    "responsavel": "Executor (agente de código)",
+    "estimativa_dias_uteis": "",
+    "teste": "—",
+    "evidencia": "—",
+    "criterio_de_aceite": "KPIs reais registrados",
+    "rollback": "—",
+    "bloqueio_externo": "",
+    "achados_relacionados": "",
+    "id": "P-03",
+    "gate": "P",
+    "dependencies": [
+      "R6-04",
+      "R0-12"
+    ],
+    "required_tests": [
+      "P-03-TEST"
+    ],
+    "kind": "task",
+    "deferred": false,
+    "requirements": [
+      "REQ-P-03"
+    ]
+  }
+]

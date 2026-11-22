@@ -1,0 +1,885 @@
+[
+  {
+    "id": "REQ-R0-01",
+    "texto": "Configuração inicial única: contas, chaves com escopo mínimo, teto de gasto de US$ 50 por mês, chave raiz e parada de emergência",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-01"
+    ]
+  },
+  {
+    "id": "REQ-R0-02",
+    "texto": "Registrar as decisões do responsável de 21/11/2026 (19:20 e 22:56)",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-02"
+    ]
+  },
+  {
+    "id": "REQ-R0-03",
+    "texto": "Repositório privado, branch protegida com checks obrigatórios e merge automático; identidades separadas de executor, revisor e verificador",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-03"
+    ]
+  },
+  {
+    "id": "REQ-R0-04",
+    "texto": "Importar o dossiê, conferir hashes e etiquetar v1.0 (baseline) e v2.0 (especificação)",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-04"
+    ]
+  },
+  {
+    "id": "REQ-R0-05",
+    "texto": "Governança: arquivos de estado, MCP completo (leitura, propostas e papel de verificador), validação de evidência, relatório de gate",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-05",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-05"
+    ]
+  },
+  {
+    "id": "REQ-R0-06",
+    "texto": "Verificador autônomo: roda os testes em ambiente limpo, confere hashes, colhe o parecer do revisor e assina a tag de aceite",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-06",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-06"
+    ]
+  },
+  {
+    "id": "REQ-R0-07",
+    "texto": "Inventário Vertra somente leitura, com chave de escopo de leitura",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-07",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-07"
+    ]
+  },
+  {
+    "id": "REQ-R0-08",
+    "texto": "ADRs 001 a 012, revistas pela conciliação, mais as decisões sobre cache de prompt, horário dos rituais e ordem do que para primeiro quando o saldo aperta",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-08",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-08"
+    ]
+  },
+  {
+    "id": "REQ-R0-09",
+    "texto": "Busca de marca e de domínio, com relatório",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-09",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-09"
+    ]
+  },
+  {
+    "id": "REQ-R0-10",
+    "texto": "Registrar a referência do parecer jurídico existente e a lista de pontos jurídicos ainda sem parecer",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-10",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-10"
+    ]
+  },
+  {
+    "id": "REQ-R0-11",
+    "texto": "Replanejar: backlog conciliado, dependências e datas relativas",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-11",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-11"
+    ]
+  },
+  {
+    "id": "REQ-R0-12",
+    "texto": "Gate R0",
+    "origem": "audit-output/05_backlog_proposto.csv#R0-12",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R0-12"
+    ]
+  },
+  {
+    "id": "REQ-R1-01",
+    "texto": "Informar a pessoa jurídica e o responsável legal",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-01"
+    ]
+  },
+  {
+    "id": "REQ-R1-02",
+    "texto": "Política de privacidade e termos, a partir do parecer existente",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-02"
+    ]
+  },
+  {
+    "id": "REQ-R1-03",
+    "texto": "Página de pré-lançamento com inscrição na The Loyal e confirmação dupla; envio desligado",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-03"
+    ]
+  },
+  {
+    "id": "REQ-R1-04",
+    "texto": "Provedor de e-mail: conta, remetente e domínio autenticado, pronto e sem envio",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-04"
+    ]
+  },
+  {
+    "id": "REQ-R1-05",
+    "texto": "Página do LinkedIn conectada ao mLabs, com identidade de publicação própria e autorização que não depende de sessão de chat",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-05",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-05"
+    ]
+  },
+  {
+    "id": "REQ-R1-06",
+    "texto": "Varredura de dez veículos concorrentes, feita por agente",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-06",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-06"
+    ]
+  },
+  {
+    "id": "REQ-R1-07",
+    "texto": "GA4, consentimento de cookies e eventos mínimos",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-07",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-07"
+    ]
+  },
+  {
+    "id": "REQ-R1-08",
+    "texto": "Gate R1",
+    "origem": "audit-output/05_backlog_proposto.csv#R1-08",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R1-08"
+    ]
+  },
+  {
+    "id": "REQ-R2-01",
+    "texto": "Homologação na Vertra: app, PostgreSQL, Redis, blob, TLS e domínio de homologação",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-01"
+    ]
+  },
+  {
+    "id": "REQ-R2-02",
+    "texto": "Monorepo e CI: lint, tipos, testes, varredura de segredos, deploy automático em homologação",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-02"
+    ]
+  },
+  {
+    "id": "REQ-R2-03",
+    "texto": "Backup externo cifrado e ensaio de restauração medido",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-03"
+    ]
+  },
+  {
+    "id": "REQ-R2-04",
+    "texto": "Esquema e migrações reversíveis: conteúdo, entidades, mídia, anúncios, governança",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-04"
+    ]
+  },
+  {
+    "id": "REQ-R2-05",
+    "texto": "Autenticação com MFA, sessões, RBAC e identidades de serviço",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-05",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-05"
+    ]
+  },
+  {
+    "id": "REQ-R2-06",
+    "texto": "Filas com Redis e BullMQ, outbox transacional, lease, DLQ e idempotência",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-06",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-06"
+    ]
+  },
+  {
+    "id": "REQ-R2-07",
+    "texto": "Gateway de modelos completo: catálogo versionado, rotas, classes de dado e provedores permitidos",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-07",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-07"
+    ]
+  },
+  {
+    "id": "REQ-R2-08",
+    "texto": "FinOps completo: reserva atômica, teto rígido de US$ 50 por mês, ledger, reconciliação, kill switch, aviso antecipado e retomada depois da recarga",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-08",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-08"
+    ]
+  },
+  {
+    "id": "REQ-R2-09",
+    "texto": "OpenBot na máquina do responsável: instalação isolada, persistência e reinício",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-09",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-09"
+    ]
+  },
+  {
+    "id": "REQ-R2-10",
+    "texto": "Adaptador OpenBot: disparo por webhook assinado, retorno estruturado, idempotência e modelo por tarefa",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-10",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-10"
+    ]
+  },
+  {
+    "id": "REQ-R2-11",
+    "texto": "Teste de carga e dimensionamento",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-11",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-11"
+    ]
+  },
+  {
+    "id": "REQ-R2-12",
+    "texto": "Renderizador de artes: PoC com e sem navegador",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-12",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-12"
+    ]
+  },
+  {
+    "id": "REQ-R2-13",
+    "texto": "Segredos, trilha de auditoria e URLs assinadas",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-13",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-13"
+    ]
+  },
+  {
+    "id": "REQ-R2-14",
+    "texto": "Parada de emergência e teto de gasto, ponta a ponta",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-14",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-14"
+    ]
+  },
+  {
+    "id": "REQ-R2-15",
+    "texto": "Gate R2",
+    "origem": "audit-output/05_backlog_proposto.csv#R2-15",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R2-15"
+    ]
+  },
+  {
+    "id": "REQ-R3-01",
+    "texto": "Wireframes completos em desktop e mobile, com estados vazio e de erro",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-01"
+    ]
+  },
+  {
+    "id": "REQ-R3-02",
+    "texto": "Home, Em alta, Últimas, menu e rodapé",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-02"
+    ]
+  },
+  {
+    "id": "REQ-R3-03",
+    "texto": "Editoria, matéria, tags e busca",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-03"
+    ]
+  },
+  {
+    "id": "REQ-R3-04",
+    "texto": "Agenda: calendário, evento, arquivo de calendário e submissão moderada",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-04"
+    ]
+  },
+  {
+    "id": "REQ-R3-05",
+    "texto": "SEO técnico: canônica, sitemap, RSS, dados estruturados, redirecionamentos",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-05",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-05"
+    ]
+  },
+  {
+    "id": "REQ-R3-06",
+    "texto": "CMS: editor estruturado e versões",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-06",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-06"
+    ]
+  },
+  {
+    "id": "REQ-R3-07",
+    "texto": "CMS: estados, aprovação automática ligada à versão e correções",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-07",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-07"
+    ]
+  },
+  {
+    "id": "REQ-R3-08",
+    "texto": "Gestão da home, menus e espaços publicitários",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-08",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-08"
+    ]
+  },
+  {
+    "id": "REQ-R3-09",
+    "texto": "Acessibilidade: zero violação crítica e navegação por teclado",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-09",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-09"
+    ]
+  },
+  {
+    "id": "REQ-R3-10",
+    "texto": "Páginas institucionais: sobre, contato, políticas, correções; assinatura institucional em todo o conteúdo",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-10",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-10"
+    ]
+  },
+  {
+    "id": "REQ-R3-11",
+    "texto": "LN Studio: command center, organização, agentes, departamentos e redações",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-11",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-11"
+    ]
+  },
+  {
+    "id": "REQ-R3-12",
+    "texto": "LN Studio: reuniões, ações, workflows, trust e integrações",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-12",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-12"
+    ]
+  },
+  {
+    "id": "REQ-R3-13",
+    "texto": "LN Studio: ModelOps, roteamento, evals e FinOps",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-13",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-13"
+    ]
+  },
+  {
+    "id": "REQ-R3-14",
+    "texto": "Gate R3",
+    "origem": "audit-output/05_backlog_proposto.csv#R3-14",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R3-14"
+    ]
+  },
+  {
+    "id": "REQ-R4-01",
+    "texto": "Banco de fontes públicas: cadastro com endereço, tipo e data, sem exigência de permissão por fonte",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-01"
+    ]
+  },
+  {
+    "id": "REQ-R4-02",
+    "texto": "Coletor determinístico: RSS, API e página permitida; lista de domínios; anti-SSRF",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-02"
+    ]
+  },
+  {
+    "id": "REQ-R4-03",
+    "texto": "Deduplicação e agrupamento",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-03"
+    ]
+  },
+  {
+    "id": "REQ-R4-04",
+    "texto": "Perfis editoriais (24) no runtime, com contratos diferenciados e prompts versionados",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-04"
+    ]
+  },
+  {
+    "id": "REQ-R4-05",
+    "texto": "Demais perfis (40): criação, growth, intelligence, comercial, tecnologia, trust e publisher",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-05",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-05"
+    ]
+  },
+  {
+    "id": "REQ-R4-06",
+    "texto": "Checagem por provedor diferente e checagem determinística de números, datas, citações e cópia literal da fonte",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-06",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-06"
+    ]
+  },
+  {
+    "id": "REQ-R4-07",
+    "texto": "Biblioteca de mídia: imagem da fonte com crédito e link, edição mínima, registro de origem e retirada automática por notificação",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-07",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-07"
+    ]
+  },
+  {
+    "id": "REQ-R4-08",
+    "texto": "Golden set rotulado por modelo de classe superior, com concordância entre provedores; eval cego",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-08",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-08"
+    ]
+  },
+  {
+    "id": "REQ-R4-09",
+    "texto": "Publicação transacional, correção propagada com errata e página de correções",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-09",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-09"
+    ]
+  },
+  {
+    "id": "REQ-R4-10",
+    "texto": "Direito de resposta e pedido do titular: triagem, prazo, ação automática e aviso ao responsável legal",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-10",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-10"
+    ]
+  },
+  {
+    "id": "REQ-R4-11",
+    "texto": "Agendador e os 28 rituais: fuso, feriados, quórum numérico e regra de silêncio",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-11",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-11"
+    ]
+  },
+  {
+    "id": "REQ-R4-12",
+    "texto": "Reuniões: snapshot, contribuições, síntese, ata, decisões, tarefas e alçadas automáticas",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-12",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-12"
+    ]
+  },
+  {
+    "id": "REQ-R4-13",
+    "texto": "Autonomia de publicação: classes de risco, 'na dúvida, não publica', auditoria depois da publicação com despublicação automática",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-13",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-13"
+    ]
+  },
+  {
+    "id": "REQ-R4-14",
+    "texto": "Piloto em homologação: 50 peças das dez redações, avaliadas pelo verificador",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-14",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-14"
+    ]
+  },
+  {
+    "id": "REQ-R4-15",
+    "texto": "Gate R4",
+    "origem": "audit-output/05_backlog_proposto.csv#R4-15",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R4-15"
+    ]
+  },
+  {
+    "id": "REQ-R5-01",
+    "texto": "Modelos de arte versionados e renderizador determinístico: JPEG, texto alternativo e crédito",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-01"
+    ]
+  },
+  {
+    "id": "REQ-R5-02",
+    "texto": "Pacote social e publicação autônoma no LinkedIn pelo mLabs, com recibo",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-02"
+    ]
+  },
+  {
+    "id": "REQ-R5-03",
+    "texto": "Entidades e menções para o social",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-03"
+    ]
+  },
+  {
+    "id": "REQ-R5-04",
+    "texto": "The Loyal completa: montagem, checagem, envio e arquivo, com a chave desligada",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-04"
+    ]
+  },
+  {
+    "id": "REQ-R5-05",
+    "texto": "Entidades: resolução, evidências e relações com vigência, para organizações e pessoas",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-05",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-05"
+    ]
+  },
+  {
+    "id": "REQ-R5-06",
+    "texto": "Extração e enriquecimento de entidades a partir das matérias publicadas",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-06",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-06"
+    ]
+  },
+  {
+    "id": "REQ-R5-07",
+    "texto": "Perfis de empresa e de pessoa, organogramas e Moves",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-07",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-07"
+    ]
+  },
+  {
+    "id": "REQ-R5-08",
+    "texto": "Watchlists, preferências, alertas e retenção",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-08",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-08"
+    ]
+  },
+  {
+    "id": "REQ-R5-09",
+    "texto": "Semear 100 organizações com validação por lote",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-09",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-09"
+    ]
+  },
+  {
+    "id": "REQ-R5-10",
+    "texto": "Métricas: GA4 padrão e tempo real, e-mail, social e CMS, com período e estado",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-10",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-10"
+    ]
+  },
+  {
+    "id": "REQ-R5-11",
+    "texto": "Mídia kit e catálogo dos 47 formatos, com estado por formato",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-11",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-11"
+    ]
+  },
+  {
+    "id": "REQ-R5-12",
+    "texto": "Servidor de anúncios completo: reserva, rotação ponderada, viewability, pacing e filtro de bots",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-12",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-12"
+    ]
+  },
+  {
+    "id": "REQ-R5-13",
+    "texto": "CRM, propostas, contratos-modelo e relatórios de campanha",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-13",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-13"
+    ]
+  },
+  {
+    "id": "REQ-R5-14",
+    "texto": "Planos pagos: cobrança, entitlement e cancelamento",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-14",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-14"
+    ]
+  },
+  {
+    "id": "REQ-R5-15",
+    "texto": "Relatórios premium e exportações autorizadas",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-15",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-15"
+    ]
+  },
+  {
+    "id": "REQ-R5-16",
+    "texto": "Talks, Jobs, eventos e Market Data: estrutura pronta; formato só fica disponível com operação real",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-16",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-16"
+    ]
+  },
+  {
+    "id": "REQ-R5-17",
+    "texto": "Gate R5",
+    "origem": "audit-output/05_backlog_proposto.csv#R5-17",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R5-17"
+    ]
+  },
+  {
+    "id": "REQ-R6-01",
+    "texto": "Revisão de segurança, desempenho e SEO por verificador que não implementou",
+    "origem": "audit-output/05_backlog_proposto.csv#R6-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R6-01"
+    ]
+  },
+  {
+    "id": "REQ-R6-02",
+    "texto": "Ensaio de incidente: pausar, drenar, restaurar e voltar versão",
+    "origem": "audit-output/05_backlog_proposto.csv#R6-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R6-02"
+    ]
+  },
+  {
+    "id": "REQ-R6-03",
+    "texto": "Homologação ponta a ponta por canal",
+    "origem": "audit-output/05_backlog_proposto.csv#R6-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R6-03"
+    ]
+  },
+  {
+    "id": "REQ-R6-04",
+    "texto": "Lançamento automático quando o gate R6 recebe a tag: DNS e chaves por canal",
+    "origem": "audit-output/05_backlog_proposto.csv#R6-04",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "R6-04"
+    ]
+  },
+  {
+    "id": "REQ-P-01",
+    "texto": "Ligar a The Loyal, já construída",
+    "origem": "audit-output/05_backlog_proposto.csv#P-01",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "P-01"
+    ]
+  },
+  {
+    "id": "REQ-P-02",
+    "texto": "Instagram",
+    "origem": "audit-output/05_backlog_proposto.csv#P-02",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "P-02"
+    ]
+  },
+  {
+    "id": "REQ-P-03",
+    "texto": "Linha de base de 30 dias, runbook e relatório de operação (medição, não adiamento)",
+    "origem": "audit-output/05_backlog_proposto.csv#P-03",
+    "classe": "backlog conciliado",
+    "tarefas": [
+      "P-03"
+    ]
+  },
+  {
+    "id": "D01",
+    "texto": "Aceite autônomo, independente; sem aprovação humana de rotina",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D02",
+    "texto": "Tags assinadas pelo verificador",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D03",
+    "texto": "OpenBot runtime definido",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D04",
+    "texto": "Escopo integral, 64 agentes, 28 rituais, Redis/BullMQ, Intelligence e ad server",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D05",
+    "texto": "The Loyal e Instagram construídos, desativados; LinkedIn pelo mLabs",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D06",
+    "texto": "Publicação autônoma após gates de lançamento",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D07",
+    "texto": "Parecer favorável do Intelligence declarado, não inspecionado",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D08",
+    "texto": "Imagem da fonte, crédito, edição mínima; uso condicionado a base jurídica demonstrável",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D09",
+    "texto": "Assinatura Redação Loyalty News; sem autoria humana fictícia; transparência quando exigida",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D10",
+    "texto": "Fontes públicas, sem contornar paywall; originalidade e crédito",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D11",
+    "texto": "Teto agregado API USD 50/mês; recarga só dentro de teto autorizado",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D12",
+    "texto": "Mídia kit e preços de referência; métricas reais com período",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  },
+  {
+    "id": "D13",
+    "texto": "Dez editorias preservadas",
+    "origem": "audit-output/12_RESPOSTA_OFICIAL.md §2",
+    "classe": "decisão registrada",
+    "tarefas": []
+  }
+]

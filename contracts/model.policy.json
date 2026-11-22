@@ -1,0 +1,181 @@
+{
+  "version": "2.1",
+  "rate_card_as_of": "2026-11-21",
+  "currency": "USD",
+  "models": [
+    {
+      "id": "deepseek-flash",
+      "provider": "deepseek",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 0.3,
+      "output_peak": 1.2,
+      "input_offpeak": 0.15,
+      "output_offpeak": 0.6,
+      "cache_hit_peak": 0.006,
+      "cache_hit_offpeak": 0.003
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "input_peak": 1.32,
+      "output_peak": 3.96,
+      "input_offpeak": 0.66,
+      "output_offpeak": 1.98,
+      "cache_hit_peak": 0.044,
+      "cache_hit_offpeak": 0.022
+    },
+    {
+      "id": "claude-opus-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 4,
+      "output_peak": 20
+    },
+    {
+      "id": "claude-fable-5-2",
+      "provider": "anthropic",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 8,
+      "output_peak": 40
+    },
+    {
+      "id": "gpt-image-2.6-flare",
+      "provider": "openai",
+      "capabilities": [
+        "image_generation"
+      ],
+      "input_peak": null,
+      "output_peak": null
+    },
+    {
+      "id": "gpt-image-2.6-sunburst",
+      "provider": "openai",
+      "capabilities": [
+        "image_generation"
+      ],
+      "input_peak": null,
+      "output_peak": null
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text"
+      ],
+      "input_peak": 0.1,
+      "output_peak": 0.5,
+      "candidate_only": true,
+      "qualification": "ID and exact pricing/caps verify R2-07; audit F-061"
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text"
+      ],
+      "input_peak": 2,
+      "output_peak": 10,
+      "candidate_only": true,
+      "qualification": "ID and exact pricing/caps verify R2-07"
+    }
+  ],
+  "routes": {
+    "deterministic": [],
+    "economy": [
+      "deepseek-flash",
+      "claude-haiku-5-5"
+    ],
+    "review": [
+      "deepseek-v4-pro",
+      "claude-sonnet-5-5"
+    ],
+    "premium": [
+      "claude-opus-5-5"
+    ],
+    "strategic": [
+      "claude-fable-5-2",
+      "claude-opus-5-5"
+    ],
+    "image_fast": [
+      "gpt-image-2.6-flare"
+    ],
+    "image_premium": [
+      "gpt-image-2.6-sunburst"
+    ]
+  },
+  "rules": {
+    "production_enabled": false,
+    "block_unknown_cost": true,
+    "no_cross_provider_for_restricted_data": true,
+    "max_attempts": 3,
+    "max_escalations": 2,
+    "soft_budget_fraction": 0.8,
+    "price_expiry_days": 7,
+    "hard_monthly_budget_usd": 50,
+    "hard_monthly_budget_scope": "aggregate providers, atomic USD micro-unit reservations",
+    "prompt_cache_required": true,
+    "lateral_fallback": true,
+    "cross_provider_independent_review": true,
+    "fallback_only_same_class": true,
+    "escalation_requires_separate_budget_and_reason": true,
+    "cache_failure": "measure/stop if cost cannot fit",
+    "emergency_stop": true,
+    "monthly_cap_immutable_by_agents": true,
+    "refill_does_not_increment_monthly_cap": true
+  },
+  "sources": [
+    "https://api-docs.deepseek.com/quick_start/pricing/",
+    "https://platform.claude.com/docs/en/models/overview",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://developers.openai.com/api/reference/resources/images/methods/generate"
+  ],
+  "qualification": {
+    "status": "unverified; no model enabled until R2-07/08",
+    "require_provider_discovery": true,
+    "require_exact_model_id_and_capabilities": true,
+    "require_price_for_image_units": true,
+    "routing_notes": "Model identifiers are candidate aliases; bind to verified API identifiers before activation. Do not route private data without approved processor. Budget includes no images until price verified."
+  },
+  "data_classes": {
+    "public": [
+      "deepseek",
+      "anthropic",
+      "openai"
+    ],
+    "internal_pending_processor_approval": [],
+    "personal_pending_processor_approval": [],
+    "commercial_confidential_pending_processor_approval": [],
+    "restricted": [],
+    "secret": []
+  },
+  "budget_order": "stop premium/experiments first; then noncritical enrichment/meetings; essential audit reserve; hard stop before >50; no auto increase",
+  "routing_by_task": {
+    "classification": "economy",
+    "source_ingestion": "deterministic",
+    "editorial_draft": "economy",
+    "fact_check": "review; provider must differ from draft",
+    "daily": "economy",
+    "monthly_board": "strategic",
+    "entity_resolution": "economy; personal data only approved processor",
+    "complex_analysis": "premium",
+    "creative_composition": "deterministic",
+    "concept_image": "image_fast",
+    "social_publish": "deterministic"
+  }
+}

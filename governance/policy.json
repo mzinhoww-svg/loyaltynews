@@ -1,0 +1,57 @@
+{
+  "version": "2.1",
+  "gate_tasks": {
+    "R0": "R0-12",
+    "R1": "R1-08",
+    "R2": "R2-15",
+    "R3": "R3-14",
+    "R4": "R4-15",
+    "R5": "R5-17",
+    "R6": "R6-04"
+  },
+  "p0_remediation": {
+    "F-055": [
+      "R0-01",
+      "R0-07"
+    ],
+    "F-120": [
+      "R0-03",
+      "R0-05",
+      "R0-06"
+    ]
+  },
+  "p0_bootstrap_allowed": [
+    "R0-01",
+    "R0-02",
+    "R0-03",
+    "R0-04",
+    "R0-05",
+    "R0-06",
+    "R0-07"
+  ],
+  "protected": [
+    "governance/requirements.yaml",
+    "governance/decisions.yaml",
+    "governance/backlog.yaml",
+    "governance/identities.yaml",
+    "governance/findings.csv",
+    "governance/policy.json",
+    "governance/acceptance/",
+    ".mcp.json",
+    ".claude/",
+    ".github/",
+    "tools/",
+    "verifier-kit/",
+    "contracts/",
+    "audit-output/",
+    "originals/",
+    "docs/",
+    "prompts/",
+    "tests/",
+    "governance/evidence.schema.json"
+  ],
+  "disabled_until_owner_action": [
+    "P-01",
+    "P-02"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "checks": {
+    "R0-05": [{"id":"R0-05-TEST","argv":["python3","tests/test_governance.py"],"timeout_sec":120}]
+  },
+  "note": "Root-approved policy. Add exact independent executable checks for each of the 88 backlog items, including real GitHub tests. Missing task fails closed. Do not treat this example as production policy."
+}
