@@ -1,0 +1,14 @@
+{
+  "name": "@loyaltynews/growth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Frente 09 — Growth e mLabs: adaptador mLabs (simulado por padrão), copy social, criativo de contexto, pacote LinkedIn e Instagram (flag desligada). Sem dependências de runtime.",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "node --test --test-reporter=spec \"test/*.test.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "sample": "node scripts/render-sample.ts"
+  },
+  "engines": { "node": ">=24" }
+}
