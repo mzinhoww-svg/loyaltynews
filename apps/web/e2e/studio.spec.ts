@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
-const BASE = 'http://127.0.0.1:3100';
+const BASE = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
 
 async function entrar(context: BrowserContext, userId: string, roles: string, mfa = true) {
   await context.clearCookies();

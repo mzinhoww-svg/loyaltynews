@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { Session } from '@ln/auth';
 import { FLAG_DEFAULTS } from '@ln/contracts';
 import { MODULES, checkAccess, findModule, visibleModules } from './modules';
-import { TEST_COOKIE, parseTestSession, resolveStudioSession, testSessionEnabled } from './session';
+import { readFileSync } from 'node:fs';
+import { resolveStudioSession } from './session';
+import { testSeam as seamProd } from './test-seam.prod';
+import { TEST_COOKIE, parseTestSession, testSeam as seamE2e } from './test-seam.e2e.mock';
 import { CmsService, MemoryArticleRepository, checkVersion, currentVersion, hasBlockers, slugify, type VersionInput } from './cms/articles';
 
 const sess = (roles: Session['roles'], mfa = true): Session => ({ userId: 'u', roles, mfa });
@@ -49,14 +52,22 @@ describe('módulos do Studio', () => {
 });
 
 describe('sessão do Studio', () => {
-  it('o stub de auth nega: sem exceção de teste, não há sessão', async () => {
-    const r = await resolveStudioSession(new Headers({ cookie: `${TEST_COOKIE}=u1:admin` }), {});
+  it('produção: seam nulo, mesmo com a variável e o cookie presentes não há sessão', async () => {
+    expect(seamProd).toBeNull();
+    const r = await resolveStudioSession(new Headers({ cookie: `${TEST_COOKIE}=u1:admin` }), seamProd, { LN_STUDIO_TEST_SESSION: '1' });
     expect(r).toEqual({ session: null, simulada: false });
   });
-  it('exceção de teste só vale com LN_STUDIO_TEST_SESSION=1', async () => {
-    expect(testSessionEnabled({})).toBe(false);
-    expect(testSessionEnabled({ LN_STUDIO_TEST_SESSION: 'true' })).toBe(false);
-    const r = await resolveStudioSession(new Headers({ cookie: `a=b; ${TEST_COOKIE}=u1:admin+editor` }), { LN_STUDIO_TEST_SESSION: '1' });
+  it('session.ts não contém nenhum código de sessão simulada', () => {
+    const src = readFileSync(new URL('./session.ts', import.meta.url), 'utf8');
+    for (const marcador of ['parseTestSession', 'LN_STUDIO_TEST_SESSION=', 'cookie', 'ROLES']) expect(src.includes(marcador), marcador).toBe(false);
+    const guard = readFileSync(new URL('../../app/studio/_lib/guard.ts', import.meta.url), 'utf8');
+    expect(guard.includes('test-seam.e2e')).toBe(false);
+  });
+  it('seam de e2e só vale com LN_STUDIO_TEST_SESSION=1', async () => {
+    const h = new Headers({ cookie: `a=b; ${TEST_COOKIE}=u1:admin+editor` });
+    expect(await resolveStudioSession(h, seamE2e, {})).toEqual({ session: null, simulada: false });
+    expect((await resolveStudioSession(h, seamE2e, { LN_STUDIO_TEST_SESSION: 'true' })).session).toBeNull();
+    const r = await resolveStudioSession(h, seamE2e, { LN_STUDIO_TEST_SESSION: '1' });
     expect(r.simulada).toBe(true);
     expect(r.session).toEqual({ userId: 'u1', roles: ['admin', 'editor'], mfa: true });
   });

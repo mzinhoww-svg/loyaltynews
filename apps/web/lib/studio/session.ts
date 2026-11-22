@@ -1,45 +1,24 @@
-// Sessão do LN Studio. Usa @ln/auth (o stub do scaffold nega sempre; o Backend entrega a real).
-// Exceção controlada de teste: sessão simulada SOMENTE se LN_STUDIO_TEST_SESSION=1 no ambiente do processo.
-// O playwright.config a define; nenhum deploy pode defini-la (ponto para Security/QA verificarem). Quando ativa, a UI mostra o aviso MOCK.
-import { ROLES, getSession, type Role, type Session } from '@ln/auth';
+// Sessão do LN Studio. Usa @ln/auth (stub do scaffold nega; o Backend entrega a real).
+// Este arquivo NÃO contém sessão simulada. O único gancho de teste é o "seam" injetado pelo chamador:
+// no build de produção o seam é `null` (test-seam.prod.ts); o código simulado vive em test-seam.e2e.mock.ts
+// e só entra no build de e2e por alias em next.config.ts (LN_E2E_BUILD=1). Ver scripts/verify-no-mock.mjs.
+import { getSession, type Session } from '@ln/auth';
 
-export const TEST_COOKIE = 'ln-test-session';
-
-export function testSessionEnabled(env: Record<string, string | undefined>): boolean {
-  return env.LN_STUDIO_TEST_SESSION === '1';
-}
-
-function readCookie(header: string | null, name: string): string | undefined {
-  if (!header) return undefined;
-  for (const part of header.split(';')) {
-    const [k, ...v] = part.trim().split('=');
-    if (k === name) return decodeURIComponent(v.join('='));
-  }
-  return undefined;
-}
-
-/** Cookie `ln-test-session=<userId>:<papel>[+papel][:nomfa]`. Papel desconhecido: sem sessão. */
-export function parseTestSession(cookieValue: string | undefined): Session | null {
-  if (!cookieValue) return null;
-  const [userId, rolesRaw, flag] = cookieValue.split(':');
-  if (!userId || !rolesRaw) return null;
-  const roles = rolesRaw.split('+');
-  if (!roles.every((r): r is Role => (ROLES as readonly string[]).includes(r))) return null;
-  return { userId, roles, mfa: flag !== 'nomfa' };
-}
+export type TestSeam = (headers: Headers, env: Record<string, string | undefined>) => Session | null;
 
 export interface ResolvedSession {
   session: Session | null;
-  /** true quando a sessão veio da exceção de teste (a UI deve exibir MOCK). */
+  /** true quando a sessão veio do seam de teste (a UI deve exibir MOCK). */
   simulada: boolean;
 }
 
 export async function resolveStudioSession(
   headers: Headers,
+  seam: TestSeam | null = null,
   env: Record<string, string | undefined> = process.env,
 ): Promise<ResolvedSession> {
-  if (testSessionEnabled(env)) {
-    const sim = parseTestSession(readCookie(headers.get('cookie'), TEST_COOKIE));
+  if (seam) {
+    const sim = seam(headers, env);
     if (sim) return { session: sim, simulada: true };
   }
   const session = await getSession(new Request('http://studio.local/', { headers }));
