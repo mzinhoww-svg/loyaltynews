@@ -1,0 +1,10 @@
+{
+  "name": "@loyalty-news/modelops",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gateway de modelos do Loyalty News: política, roteamento, orçamento em micro-USD e ledger (ADR-006, ADR-013, ADR-015). Código determinístico; sem chamadas reais por padrão.",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}
