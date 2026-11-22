@@ -1,0 +1,15 @@
+{
+  "name": "@loyaltynews/editorial",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fábrica editorial do Loyalty News 2.1 (Frente 06): fontes, coleta determinística, dedupe, pipeline, regras, correções.",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "test": "node --test --experimental-test-isolation=none \"test/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": { "bullmq": ">=5" },
+  "peerDependenciesMeta": { "bullmq": { "optional": true } },
+  "devDependencies": { "typescript": "^5.6.0", "@types/node": "^22.0.0" }
+}

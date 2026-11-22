@@ -1,0 +1,146 @@
+import type { Evidence, Source } from '../types.ts';
+import { eligibility } from '../sources/registry.ts';
+import { canonicalUrl, sha256 } from '../dedupe/dedupe.ts';
+import { assertAllowedUrl, UrlRejected } from './ssrf.ts';
+import { isAllowedByRobots, parseRobots } from './robots.ts';
+import { detectGate } from './paywall.ts';
+import { parseFeed, parseHtml } from './parse.ts';
+import { sanitize } from './sanitize.ts';
+
+/** Porta de rede. A implementação real faz GET sem seguir redirecionamentos (redirect: 'manual') e sem credenciais. */
+export interface HttpResponse { status: number; headers: Record<string, string>; body: string }
+export interface Fetcher { get(url: string, opts: { userAgent: string }): Promise<HttpResponse> }
+
+export const USER_AGENT = 'LoyaltyNewsBot/0.1 (+coletor determinístico; respeita robots.txt)';
+const MAX_REDIRECTS = 3;
+const MAX_BODY_CHARS = 2_000_000;
+
+export type SkipCode =
+  | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large';
+
+export interface Skip { url: string; code: SkipCode; detail: string }
+export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
+
+export interface CollectorOptions { now?: () => Date; userAgent?: string }
+
+/** Coletor determinístico: sem LLM, sem decisão editorial. Só rede + parse + saneamento + hash. */
+export class Collector {
+  private readonly fetcher: Fetcher;
+  private readonly now: () => Date;
+  private readonly ua: string;
+  private readonly robotsCache = new Map<string, ReturnType<typeof parseRobots> | null>();
+  constructor(fetcher: Fetcher, opts: CollectorOptions = {}) {
+    this.fetcher = fetcher;
+    this.now = opts.now ?? (() => new Date());
+    this.ua = opts.userAgent ?? USER_AGENT;
+  }
+
+  /** Busca com validação anti-SSRF em CADA salto de redirecionamento. */
+  private async safeGet(url: string, source: Source): Promise<HttpResponse> {
+    let cur = url;
+    for (let i = 0; i <= MAX_REDIRECTS; i++) {
+      assertAllowedUrl(cur, [source.host]);
+      const r = await this.fetcher.get(cur, { userAgent: this.ua });
+      if (r.status >= 300 && r.status < 400 && r.headers['location']) {
+        cur = new URL(r.headers['location'], cur).toString();
+        continue;
+      }
+      return r;
+    }
+    throw new UrlRejected('too_many_redirects', `mais de ${MAX_REDIRECTS} redirecionamentos`);
+  }
+
+  private async robotsFor(source: Source): Promise<ReturnType<typeof parseRobots> | null> {
+    if (this.robotsCache.has(source.host)) return this.robotsCache.get(source.host)!;
+    let rules: ReturnType<typeof parseRobots> | null = null;
+    try {
+      const r = await this.safeGet(`https://${source.host}/robots.txt`, source);
+      if (r.status === 200) rules = parseRobots(r.body, this.ua);
+      else if (r.status === 404) rules = { allow: [], disallow: [], crawlDelaySec: null }; // sem robots = sem restrição
+      else rules = null; // 401/403/5xx: tratar como indisponível => não coletar (fail closed)
+    } catch { rules = null; }
+    this.robotsCache.set(source.host, rules);
+    return rules;
+  }
+
+  /** Coleta uma URL de uma fonte elegível. */
+  async collectUrl(source: Source, url: string, hint?: { title?: string; publishedAt?: string | null }): Promise<{ evidence?: Evidence; skip?: Skip }> {
+    const el = eligibility(source);
+    if (!el.ok) return { skip: { url, code: 'source_not_eligible', detail: el.reasons.join(',') } };
+    let u: URL;
+    try { u = assertAllowedUrl(url, [source.host]); } catch (e) {
+      return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
+    }
+    const rules = await this.robotsFor(source);
+    if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
+    if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
+    let r: HttpResponse;
+    try { r = await this.safeGet(u.toString(), source); } catch (e) {
+      const code = e instanceof UrlRejected ? (e.code === 'too_many_redirects' ? 'too_many_redirects' : 'url_rejected') : 'http_error';
+      return { skip: { url, code, detail: e instanceof Error ? e.message : 'erro' } };
+    }
+    const gate = detectGate(r);
+    if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
+    if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+    if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
+    const meta = parseHtml(r.body);
+    const san = sanitize(meta.bodyHtml);
+    if (!san.text) return { skip: { url, code: 'empty_content', detail: '' } };
+    let canon: string;
+    try { canon = canonicalUrl(meta.canonical ? new URL(meta.canonical, u).toString() : u.toString()); } catch { canon = canonicalUrl(u.toString()); }
+    const hash = sha256(r.body);
+    const fetchedAt = this.now().toISOString();
+    const evidence: Evidence = {
+      id: `ev_${hash.slice(0, 16)}`, sourceId: source.id, url: u.toString(), canonicalUrl: canon, fetchedAt,
+      contentSha256: hash, title: meta.title || hint?.title || '', text: san.text,
+      publishedAt: meta.publishedAt ?? hint?.publishedAt ?? null,
+      suspicious: san.suspicious, suspiciousReasons: san.reasons,
+    };
+    return { evidence };
+  }
+
+  /** Coleta o feed da fonte e cada item (limite configurável). */
+  async collectFeed(source: Source, limit = 20): Promise<CollectResult> {
+    const out: CollectResult = { evidences: [], skipped: [] };
+    const el = eligibility(source);
+    if (!el.ok) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    if (!source.feedUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem feedUrl cadastrado' }); return out; }
+    const f = await this.collectRaw(source, source.feedUrl);
+    if (f.skip) { out.skipped.push(f.skip); return out; }
+    for (const it of parseFeed(f.body!).slice(0, limit)) {
+      const r = await this.collectUrl(source, it.link, { title: it.title, publishedAt: it.publishedAt });
+      if (r.evidence) out.evidences.push(r.evidence); else if (r.skip) out.skipped.push(r.skip);
+    }
+    return out;
+  }
+
+  private async collectRaw(source: Source, url: string): Promise<{ body?: string; skip?: Skip }> {
+    let u: URL;
+    try { u = assertAllowedUrl(url, [source.host]); } catch (e) {
+      return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
+    }
+    const rules = await this.robotsFor(source);
+    if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };
+    if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
+    try {
+      const r = await this.safeGet(u.toString(), source);
+      const gate = detectGate(r);
+      if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
+      if (r.status !== 200) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+      return { body: r.body };
+    } catch (e) {
+      return { skip: { url, code: e instanceof UrlRejected ? 'url_rejected' : 'http_error', detail: e instanceof Error ? e.message : 'erro' } };
+    }
+  }
+}
+
+/** Evidência sem URL, data ou hash é rejeitada (ADR-007). */
+export function validateEvidence(e: Partial<Evidence>): string[] {
+  const errs: string[] = [];
+  if (!e.url) errs.push('missing_url');
+  if (!e.fetchedAt || Number.isNaN(Date.parse(e.fetchedAt))) errs.push('missing_date');
+  if (!e.contentSha256 || !/^[0-9a-f]{64}$/.test(e.contentSha256)) errs.push('missing_hash');
+  if (!e.sourceId) errs.push('missing_source');
+  return errs;
+}
