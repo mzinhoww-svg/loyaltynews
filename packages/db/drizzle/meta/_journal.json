@@ -26,8 +26,22 @@
     {
       "idx": 3,
       "version": "7",
-      "when": 1795384344067,
-      "tag": "0003_backend_links",
+      "when": 1795384188797,
+      "tag": "0003_commercial",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795384672230,
+      "tag": "0004_agentic_org",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795384837803,
+      "tag": "0005_backend_links",
       "breakpoints": true
     }
   ]

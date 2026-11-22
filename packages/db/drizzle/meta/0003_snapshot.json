@@ -1,109 +1,9 @@
 {
-  "id": "ab1f68f5-1b43-4c27-b135-c381fbc7d6da",
+  "id": "9ccc7c08-caa5-4818-9ef0-33146dfa57aa",
   "prevId": "69e0f183-313d-4184-903b-534e521757b5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.ad_formats": {
-      "name": "ad_formats",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "secao": {
-          "name": "secao",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nome": {
-          "name": "nome",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "referencia_brl": {
-          "name": "referencia_brl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "escopo": {
-          "name": "escopo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "disponibilidade": {
-          "name": "disponibilidade",
-          "type": "disponibilidade",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'indisponivel'"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.ad_slots": {
-      "name": "ad_slots",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "posicao": {
-          "name": "posicao",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "dimensao_desktop": {
-          "name": "dimensao_desktop",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "limite_cotas": {
-          "name": "limite_cotas",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "peso_max_kb": {
-          "name": "peso_max_kb",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "contrato_minimo": {
-          "name": "contrato_minimo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.article_sources": {
       "name": "article_sources",
       "schema": "",
@@ -225,7 +125,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'Redação Loyalty News'"
+          "default": "'Reda\u00e7\u00e3o Loyalty News'"
         },
         "corpo": {
           "name": "corpo",
@@ -339,77 +239,11 @@
       "checkConstraints": {
         "articles_assinatura": {
           "name": "articles_assinatura",
-          "value": "\"articles\".\"assinatura\" = 'Redação Loyalty News'"
+          "value": "\"articles\".\"assinatura\" = 'Reda\u00e7\u00e3o Loyalty News'"
         },
         "articles_publieditorial_rotulado": {
           "name": "articles_publieditorial_rotulado",
           "value": "NOT \"articles\".\"patrocinado\" OR \"articles\".\"rotulo_publieditorial\" IS NOT NULL"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.campaigns": {
-      "name": "campaigns",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "anunciante": {
-          "name": "anunciante",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "formato_ids": {
-          "name": "formato_ids",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "inicio": {
-          "name": "inicio",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fim": {
-          "name": "fim",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'rascunho'"
-        },
-        "rotulada": {
-          "name": "rotulada",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "campaigns_periodo": {
-          "name": "campaigns_periodo",
-          "value": "\"campaigns\".\"fim\" >= \"campaigns\".\"inicio\""
-        },
-        "campaigns_rotulada": {
-          "name": "campaigns_rotulada",
-          "value": "\"campaigns\".\"rotulada\""
         }
       },
       "isRLSEnabled": false
@@ -2121,80 +1955,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.company_evidences": {
-      "name": "company_evidences",
-      "schema": "",
-      "columns": {
-        "company_id": {
-          "name": "company_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence_id": {
-          "name": "evidence_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "company_evidences_pk": {
-          "name": "company_evidences_pk",
-          "columns": [
-            {
-              "expression": "company_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "evidence_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "company_evidences_company_id_companies_id_fk": {
-          "name": "company_evidences_company_id_companies_id_fk",
-          "tableFrom": "company_evidences",
-          "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "company_evidences_evidence_id_evidences_id_fk": {
-          "name": "company_evidences_evidence_id_evidences_id_fk",
-          "tableFrom": "company_evidences",
-          "tableTo": "evidences",
-          "columnsFrom": [
-            "evidence_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.media": {
       "name": "media",
       "schema": "",
@@ -2351,35 +2111,221 @@
       },
       "isRLSEnabled": false
     },
-    "public.source_editorias": {
-      "name": "source_editorias",
+    "public.ad_creatives": {
+      "name": "ad_creatives",
       "schema": "",
       "columns": {
-        "source_id": {
-          "name": "source_id",
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "campanha_id": {
+          "name": "campanha_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "editoria": {
-          "name": "editoria",
+        "slot_id": {
+          "name": "slot_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "peso": {
+          "name": "peso",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "inicio": {
+          "name": "inicio",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fim": {
+          "name": "fim",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aprovado": {
+          "name": "aprovado",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "arquivo_ref": {
+          "name": "arquivo_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "destino_url": {
+          "name": "destino_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "source_editorias_pk": {
-          "name": "source_editorias_pk",
+        "ad_creatives_slot_idx": {
+          "name": "ad_creatives_slot_idx",
           "columns": [
             {
-              "expression": "source_id",
+              "expression": "slot_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "editoria",
+              "expression": "aprovado",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ad_creatives_campanha_id_campaigns_id_fk": {
+          "name": "ad_creatives_campanha_id_campaigns_id_fk",
+          "tableFrom": "ad_creatives",
+          "tableTo": "campaigns",
+          "columnsFrom": [
+            "campanha_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ad_creatives_slot_id_ad_slots_id_fk": {
+          "name": "ad_creatives_slot_id_ad_slots_id_fk",
+          "tableFrom": "ad_creatives",
+          "tableTo": "ad_slots",
+          "columnsFrom": [
+            "slot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_creatives_peso": {
+          "name": "ad_creatives_peso",
+          "value": "\"ad_creatives\".\"peso\" > 0"
+        },
+        "ad_creatives_periodo": {
+          "name": "ad_creatives_periodo",
+          "value": "\"ad_creatives\".\"fim\" >= \"ad_creatives\".\"inicio\""
+        },
+        "ad_creatives_destino_https": {
+          "name": "ad_creatives_destino_https",
+          "value": "\"ad_creatives\".\"destino_url\" IS NULL OR \"ad_creatives\".\"destino_url\" ~ '^https://'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ad_delivery_daily": {
+      "name": "ad_delivery_daily",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "criativo_id": {
+          "name": "criativo_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dia": {
+          "name": "dia",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "servidas": {
+          "name": "servidas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "visiveis": {
+          "name": "visiveis",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cliques": {
+          "name": "cliques",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ignoradas_bot_interno": {
+          "name": "ignoradas_bot_interno",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "refresh_suprimido": {
+          "name": "refresh_suprimido",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ad_delivery_daily_uq": {
+          "name": "ad_delivery_daily_uq",
+          "columns": [
+            {
+              "expression": "criativo_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "dia",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2392,28 +2338,1154 @@
         }
       },
       "foreignKeys": {
-        "source_editorias_source_id_sources_id_fk": {
-          "name": "source_editorias_source_id_sources_id_fk",
-          "tableFrom": "source_editorias",
-          "tableTo": "sources",
+        "ad_delivery_daily_criativo_id_ad_creatives_id_fk": {
+          "name": "ad_delivery_daily_criativo_id_ad_creatives_id_fk",
+          "tableFrom": "ad_delivery_daily",
+          "tableTo": "ad_creatives",
           "columnsFrom": [
-            "source_id"
+            "criativo_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_delivery_nao_negativo": {
+          "name": "ad_delivery_nao_negativo",
+          "value": "\"ad_delivery_daily\".\"servidas\" >= 0 AND \"ad_delivery_daily\".\"visiveis\" >= 0 AND \"ad_delivery_daily\".\"cliques\" >= 0 AND \"ad_delivery_daily\".\"ignoradas_bot_interno\" >= 0 AND \"ad_delivery_daily\".\"refresh_suprimido\" >= 0"
         },
-        "source_editorias_editoria_editorias_slug_fk": {
-          "name": "source_editorias_editoria_editorias_slug_fk",
-          "tableFrom": "source_editorias",
-          "tableTo": "editorias",
+        "ad_delivery_visivel_le_servida": {
+          "name": "ad_delivery_visivel_le_servida",
+          "value": "\"ad_delivery_daily\".\"visiveis\" <= \"ad_delivery_daily\".\"servidas\" AND \"ad_delivery_daily\".\"cliques\" <= \"ad_delivery_daily\".\"servidas\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ad_formats": {
+      "name": "ad_formats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "secao": {
+          "name": "secao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "referencia_brl": {
+          "name": "referencia_brl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "escopo": {
+          "name": "escopo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disponibilidade": {
+          "name": "disponibilidade",
+          "type": "disponibilidade",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'indisponivel'"
+        },
+        "preco_tipo": {
+          "name": "preco_tipo",
+          "type": "preco_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preco_valor_brl": {
+          "name": "preco_valor_brl",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unidade": {
+          "name": "unidade",
+          "type": "preco_unidade",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taxa_pct": {
+          "name": "taxa_pct",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motivo_disponibilidade": {
+          "name": "motivo_disponibilidade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Sem capacidade operacional declarada.'"
+        },
+        "fonte_linha": {
+          "name": "fonte_linha",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ad_formats_secao_idx": {
+          "name": "ad_formats_secao_idx",
+          "columns": [
+            {
+              "expression": "secao",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_formats_preco_coerente": {
+          "name": "ad_formats_preco_coerente",
+          "value": "(\"ad_formats\".\"preco_tipo\" = 'verba_mais_taxa' AND \"ad_formats\".\"preco_valor_brl\" IS NULL AND \"ad_formats\".\"taxa_pct\" IS NOT NULL) OR (\"ad_formats\".\"preco_tipo\" <> 'verba_mais_taxa' AND \"ad_formats\".\"preco_valor_brl\" IS NOT NULL AND \"ad_formats\".\"preco_valor_brl\" >= 0)"
+        },
+        "ad_formats_motivo_se_nao_disponivel": {
+          "name": "ad_formats_motivo_se_nao_disponivel",
+          "value": "\"ad_formats\".\"disponibilidade\" = 'disponivel' OR length(\"ad_formats\".\"motivo_disponibilidade\") > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ad_reservations": {
+      "name": "ad_reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conta_id": {
+          "name": "conta_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "campanha_id": {
+          "name": "campanha_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inicio": {
+          "name": "inicio",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fim": {
+          "name": "fim",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "reserva_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'held'"
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ad_reservations_slot_periodo_idx": {
+          "name": "ad_reservations_slot_periodo_idx",
+          "columns": [
+            {
+              "expression": "slot_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "inicio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fim",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ad_reservations_slot_id_ad_slots_id_fk": {
+          "name": "ad_reservations_slot_id_ad_slots_id_fk",
+          "tableFrom": "ad_reservations",
+          "tableTo": "ad_slots",
           "columnsFrom": [
-            "editoria"
+            "slot_id"
           ],
           "columnsTo": [
-            "slug"
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ad_reservations_conta_id_crm_accounts_id_fk": {
+          "name": "ad_reservations_conta_id_crm_accounts_id_fk",
+          "tableFrom": "ad_reservations",
+          "tableTo": "crm_accounts",
+          "columnsFrom": [
+            "conta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ad_reservations_campanha_id_campaigns_id_fk": {
+          "name": "ad_reservations_campanha_id_campaigns_id_fk",
+          "tableFrom": "ad_reservations",
+          "tableTo": "campaigns",
+          "columnsFrom": [
+            "campanha_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_reservations_periodo": {
+          "name": "ad_reservations_periodo",
+          "value": "\"ad_reservations\".\"fim\" >= \"ad_reservations\".\"inicio\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ad_slots": {
+      "name": "ad_slots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "posicao": {
+          "name": "posicao",
+          "type": "slot_posicao",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "formato_id": {
+          "name": "formato_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dimensao_desktop": {
+          "name": "dimensao_desktop",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variantes_mobile": {
+          "name": "variantes_mobile",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "limite_cotas": {
+          "name": "limite_cotas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "peso_max_kb": {
+          "name": "peso_max_kb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contrato_minimo_dias": {
+          "name": "contrato_minimo_dias",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tipos_permitidos": {
+          "name": "tipos_permitidos",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[\"JPG\",\"PNG\",\"GIF\",\"HTML5-sandbox\"]'::jsonb"
+        }
+      },
+      "indexes": {
+        "ad_slots_posicao_uq": {
+          "name": "ad_slots_posicao_uq",
+          "columns": [
+            {
+              "expression": "posicao",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ad_slots_formato_id_ad_formats_id_fk": {
+          "name": "ad_slots_formato_id_ad_formats_id_fk",
+          "tableFrom": "ad_slots",
+          "tableTo": "ad_formats",
+          "columnsFrom": [
+            "formato_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_slots_limite_positivo": {
+          "name": "ad_slots_limite_positivo",
+          "value": "\"ad_slots\".\"limite_cotas\" IS NULL OR \"ad_slots\".\"limite_cotas\" > 0"
+        },
+        "ad_slots_reservavel_completo": {
+          "name": "ad_slots_reservavel_completo",
+          "value": "\"ad_slots\".\"limite_cotas\" IS NULL OR \"ad_slots\".\"contrato_minimo_dias\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ad_takeovers": {
+      "name": "ad_takeovers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "dia": {
+          "name": "dia",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conta_id": {
+          "name": "conta_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "campanhas_acordadas": {
+          "name": "campanhas_acordadas",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ad_takeovers_dia_uq": {
+          "name": "ad_takeovers_dia_uq",
+          "columns": [
+            {
+              "expression": "dia",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ad_takeovers_conta_id_crm_accounts_id_fk": {
+          "name": "ad_takeovers_conta_id_crm_accounts_id_fk",
+          "tableFrom": "ad_takeovers",
+          "tableTo": "crm_accounts",
+          "columnsFrom": [
+            "conta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.campaigns": {
+      "name": "campaigns",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conta_id": {
+          "name": "conta_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "oportunidade_id": {
+          "name": "oportunidade_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "formato_id": {
+          "name": "formato_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inicio": {
+          "name": "inicio",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fim": {
+          "name": "fim",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "campanha_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "rotulada": {
+          "name": "rotulada",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "historico": {
+          "name": "historico",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "campaigns_status_idx": {
+          "name": "campaigns_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "campaigns_conta_id_crm_accounts_id_fk": {
+          "name": "campaigns_conta_id_crm_accounts_id_fk",
+          "tableFrom": "campaigns",
+          "tableTo": "crm_accounts",
+          "columnsFrom": [
+            "conta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "campaigns_oportunidade_id_crm_opportunities_id_fk": {
+          "name": "campaigns_oportunidade_id_crm_opportunities_id_fk",
+          "tableFrom": "campaigns",
+          "tableTo": "crm_opportunities",
+          "columnsFrom": [
+            "oportunidade_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "campaigns_formato_id_ad_formats_id_fk": {
+          "name": "campaigns_formato_id_ad_formats_id_fk",
+          "tableFrom": "campaigns",
+          "tableTo": "ad_formats",
+          "columnsFrom": [
+            "formato_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "campaigns_slot_id_ad_slots_id_fk": {
+          "name": "campaigns_slot_id_ad_slots_id_fk",
+          "tableFrom": "campaigns",
+          "tableTo": "ad_slots",
+          "columnsFrom": [
+            "slot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "campaigns_periodo": {
+          "name": "campaigns_periodo",
+          "value": "\"campaigns\".\"fim\" >= \"campaigns\".\"inicio\""
+        },
+        "campaigns_rotulada": {
+          "name": "campaigns_rotulada",
+          "value": "\"campaigns\".\"rotulada\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.commercial_metrics": {
+      "name": "commercial_metrics",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "origem": {
+          "name": "origem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metrica": {
+          "name": "metrica",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "numeric(20, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodo_inicio": {
+          "name": "periodo_inicio",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "periodo_fim": {
+          "name": "periodo_fim",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "coletado_em": {
+          "name": "coletado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "metrica_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "versao_metodologia": {
+          "name": "versao_metodologia",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "commercial_metrics_uq": {
+          "name": "commercial_metrics_uq",
+          "columns": [
+            {
+              "expression": "origem",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metrica",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "commercial_metrics_disponivel_completa": {
+          "name": "commercial_metrics_disponivel_completa",
+          "value": "\"commercial_metrics\".\"status\" = 'unavailable' OR (\"commercial_metrics\".\"valor\" IS NOT NULL AND \"commercial_metrics\".\"periodo_inicio\" IS NOT NULL AND \"commercial_metrics\".\"periodo_fim\" IS NOT NULL AND \"commercial_metrics\".\"coletado_em\" IS NOT NULL AND \"commercial_metrics\".\"periodo_fim\" >= \"commercial_metrics\".\"periodo_inicio\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.crm_accounts": {
+      "name": "crm_accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "crm_accounts_nome_uq": {
+          "name": "crm_accounts_nome_uq",
+          "columns": [
+            {
+              "expression": "lower(\"nome\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.crm_leads": {
+      "name": "crm_leads",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empresa": {
+          "name": "empresa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "whatsapp": {
+          "name": "whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "formato_ids": {
+          "name": "formato_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "objetivo": {
+          "name": "objetivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mensagem": {
+          "name": "mensagem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opt_in_newsletter": {
+          "name": "opt_in_newsletter",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "consentimento_em": {
+          "name": "consentimento_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classe_de_dado": {
+          "name": "classe_de_dado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'personal'"
+        },
+        "status": {
+          "name": "status",
+          "type": "lead_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'novo'"
+        },
+        "conta_id": {
+          "name": "conta_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "crm_leads_status_idx": {
+          "name": "crm_leads_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "criado_em",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "crm_leads_email_idx": {
+          "name": "crm_leads_email_idx",
+          "columns": [
+            {
+              "expression": "lower(\"email\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "crm_leads_conta_id_crm_accounts_id_fk": {
+          "name": "crm_leads_conta_id_crm_accounts_id_fk",
+          "tableFrom": "crm_leads",
+          "tableTo": "crm_accounts",
+          "columnsFrom": [
+            "conta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "crm_leads_classe": {
+          "name": "crm_leads_classe",
+          "value": "\"crm_leads\".\"classe_de_dado\" = 'personal'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.crm_opportunities": {
+      "name": "crm_opportunities",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "conta_id": {
+          "name": "conta_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "formato_ids": {
+          "name": "formato_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "estagio": {
+          "name": "estagio",
+          "type": "oportunidade_estagio",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'novo'"
+        },
+        "motivo_perda": {
+          "name": "motivo_perda",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proxima_acao": {
+          "name": "proxima_acao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proxima_acao_prazo": {
+          "name": "proxima_acao_prazo",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valor_brl": {
+          "name": "valor_brl",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "versoes_proposta": {
+          "name": "versoes_proposta",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "crm_opp_estagio_idx": {
+          "name": "crm_opp_estagio_idx",
+          "columns": [
+            {
+              "expression": "estagio",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "crm_opportunities_conta_id_crm_accounts_id_fk": {
+          "name": "crm_opportunities_conta_id_crm_accounts_id_fk",
+          "tableFrom": "crm_opportunities",
+          "tableTo": "crm_accounts",
+          "columnsFrom": [
+            "conta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "crm_opportunities_lead_id_crm_leads_id_fk": {
+          "name": "crm_opportunities_lead_id_crm_leads_id_fk",
+          "tableFrom": "crm_opportunities",
+          "tableTo": "crm_leads",
+          "columnsFrom": [
+            "lead_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "crm_opp_perda_exige_motivo": {
+          "name": "crm_opp_perda_exige_motivo",
+          "value": "\"crm_opportunities\".\"estagio\" <> 'perdido' OR (\"crm_opportunities\".\"motivo_perda\" IS NOT NULL AND length(trim(\"crm_opportunities\".\"motivo_perda\")) > 0)"
+        },
+        "crm_opp_valor_nao_negativo": {
+          "name": "crm_opp_valor_nao_negativo",
+          "value": "\"crm_opportunities\".\"valor_brl\" IS NULL OR \"crm_opportunities\".\"valor_brl\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.crm_opportunity_history": {
+      "name": "crm_opportunity_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "oportunidade_id": {
+          "name": "oportunidade_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "de": {
+          "name": "de",
+          "type": "oportunidade_estagio",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "para": {
+          "name": "para",
+          "type": "oportunidade_estagio",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "em": {
+          "name": "em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "crm_opp_hist_idx": {
+          "name": "crm_opp_hist_idx",
+          "columns": [
+            {
+              "expression": "oportunidade_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "em",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "crm_opportunity_history_oportunidade_id_crm_opportunities_id_fk": {
+          "name": "crm_opportunity_history_oportunidade_id_crm_opportunities_id_fk",
+          "tableFrom": "crm_opportunity_history",
+          "tableTo": "crm_opportunities",
+          "columnsFrom": [
+            "oportunidade_id"
+          ],
+          "columnsTo": [
+            "id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -2484,6 +3556,93 @@
         "conciliada",
         "liberada",
         "recusada"
+      ]
+    },
+    "public.campanha_status": {
+      "name": "campanha_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "reserved",
+        "approved",
+        "active",
+        "paused",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "public.lead_status": {
+      "name": "lead_status",
+      "schema": "public",
+      "values": [
+        "novo",
+        "qualificado",
+        "descartado",
+        "convertido"
+      ]
+    },
+    "public.metrica_status": {
+      "name": "metrica_status",
+      "schema": "public",
+      "values": [
+        "available",
+        "unavailable",
+        "stale"
+      ]
+    },
+    "public.oportunidade_estagio": {
+      "name": "oportunidade_estagio",
+      "schema": "public",
+      "values": [
+        "novo",
+        "qualificado",
+        "proposta",
+        "negociacao",
+        "ganho",
+        "perdido"
+      ]
+    },
+    "public.preco_tipo": {
+      "name": "preco_tipo",
+      "schema": "public",
+      "values": [
+        "fixo",
+        "a_partir_de",
+        "verba_mais_taxa"
+      ]
+    },
+    "public.preco_unidade": {
+      "name": "preco_unidade",
+      "schema": "public",
+      "values": [
+        "mes",
+        "dia",
+        "unidade",
+        "verba"
+      ]
+    },
+    "public.reserva_status": {
+      "name": "reserva_status",
+      "schema": "public",
+      "values": [
+        "held",
+        "confirmed",
+        "cancelled"
+      ]
+    },
+    "public.slot_posicao": {
+      "name": "slot_posicao",
+      "schema": "public",
+      "values": [
+        "TOP",
+        "SIDEBAR_1",
+        "SIDEBAR_2",
+        "SIDEBAR_3",
+        "FOOTER",
+        "ARTICLE_INLINE",
+        "HOME_BETWEEN",
+        "AGENDA",
+        "DATA"
       ]
     }
   },
