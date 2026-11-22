@@ -1,6 +1,6 @@
-import type { Editoria, Source } from '../types.ts';
-import { EDITORIAS } from '../types.ts';
-import { normalizePrefix } from '../collector/ssrf.ts';
+import type { Editoria, Source } from '../types';
+import { EDITORIAS } from '../types';
+import { normalizePrefix } from '../collector/ssrf';
 
 /** Hosts compartilhados por vários órgãos: exigem pathPrefix. */
 export const SHARED_HOSTS: readonly string[] = ['www.gov.br'];

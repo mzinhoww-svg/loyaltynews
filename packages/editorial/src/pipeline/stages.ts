@@ -1,15 +1,15 @@
-import type { Claim, Draft, Evidence, Finding } from '../types.ts';
-import { EDITORIAS, SIGNATURE } from '../types.ts';
-import type { EditorialFlags } from '../flags.ts';
-import { requireFlag } from '../flags.ts';
-import type { GatewayRequest, GatewayResponse, ModelGateway, RouteClass, TaskClass, WorkflowId } from '../gateway.ts';
-import type { SourceRegistry } from '../sources/registry.ts';
-import { eligibility } from '../sources/registry.ts';
+import type { Claim, Draft, Evidence, Finding } from '../types';
+import { EDITORIAS, SIGNATURE } from '../types';
+import type { EditorialFlags } from '../flags';
+import { requireFlag } from '../flags';
+import type { GatewayRequest, GatewayResponse, ModelGateway, RouteClass, TaskClass, WorkflowId } from '../gateway';
+import type { SourceRegistry } from '../sources/registry';
+import { eligibility } from '../sources/registry';
 import {
   buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
-} from '../rules/rules.ts';
-import { normalizeText } from '../dedupe/dedupe.ts';
-import type { ArticleJob, BlockerCode, FactVerdict, JobSpec, SocialPack, StageOutcome } from './jobs.ts';
+} from '../rules/rules';
+import { normalizeText } from '../dedupe/dedupe';
+import type { ArticleJob, BlockerCode, FactVerdict, JobSpec, SocialPack, StageOutcome } from './jobs';
 
 export const MAX_ATTEMPTS = 3; // model.policy.json rules.max_attempts
 

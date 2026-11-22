@@ -1,15 +1,21 @@
-import type { Evidence, Source } from '../types.ts';
-import { eligibility } from '../sources/registry.ts';
-import { canonicalUrl, sha256 } from '../dedupe/dedupe.ts';
-import { assertAllowedUrl, UrlRejected } from './ssrf.ts';
-import { isAllowedByRobots, parseRobots } from './robots.ts';
-import { detectGate } from './paywall.ts';
-import { parseFeed, parseHtml } from './parse.ts';
-import { sanitize } from './sanitize.ts';
+import type { Evidence, Source } from '../types';
+import { eligibility } from '../sources/registry';
+import { canonicalUrl, sha256 } from '../dedupe/dedupe';
+import { assertAllowedUrl, UrlRejected } from './ssrf';
+import { isAllowedByRobots, parseRobots } from './robots';
+import { detectGate } from './paywall';
+import { parseFeed, parseHtml } from './parse';
+import { sanitize } from './sanitize';
+import type { Family, Resolver } from './net';
+import { resolvePublic, systemResolver } from './net';
 
-/** Porta de rede. A implementação real faz GET sem seguir redirecionamentos (redirect: 'manual') e sem credenciais. */
+/**
+ * Porta de rede. O Fetcher DEVE conectar em `address` (IP já validado como público pelo coletor), sem resolver DNS de novo,
+ * sem seguir redirecionamentos e sem credenciais (ver http-fetcher.ts). Isso fecha o DNS rebinding.
+ */
 export interface HttpResponse { status: number; headers: Record<string, string>; body: string }
-export interface Fetcher { get(url: string, opts: { userAgent: string }): Promise<HttpResponse> }
+export interface FetchOptions { userAgent: string; address: string; family: Family }
+export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpResponse> }
 
 export const USER_AGENT = 'LoyaltyNewsBot/0.1 (+coletor determinístico; respeita robots.txt)';
 const MAX_REDIRECTS = 3;
@@ -22,26 +28,32 @@ export type SkipCode =
 export interface Skip { url: string; code: SkipCode; detail: string }
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
 
-export interface CollectorOptions { now?: () => Date; userAgent?: string }
+export interface CollectorOptions { now?: () => Date; userAgent?: string; resolver?: Resolver }
 
 /** Coletor determinístico: sem LLM, sem decisão editorial. Só rede + parse + saneamento + hash. */
 export class Collector {
   private readonly fetcher: Fetcher;
   private readonly now: () => Date;
   private readonly ua: string;
+  private readonly resolver: Resolver;
   private readonly robotsCache = new Map<string, ReturnType<typeof parseRobots> | null>();
   constructor(fetcher: Fetcher, opts: CollectorOptions = {}) {
     this.fetcher = fetcher;
     this.now = opts.now ?? (() => new Date());
     this.ua = opts.userAgent ?? USER_AGENT;
+    this.resolver = opts.resolver ?? systemResolver;
   }
 
-  /** Busca com validação anti-SSRF em CADA salto de redirecionamento. */
+  /**
+   * Busca com validação anti-SSRF em CADA salto: URL literal (host/prefixo) + resolução DNS com TODOS os IPs públicos;
+   * a conexão é fixada no IP validado (sem nova resolução entre validar e conectar).
+   */
   private async safeGet(url: string, source: Source): Promise<HttpResponse> {
     let cur = url;
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
       assertAllowedUrl(cur, [source.host], source.pathPrefix, { allowRobots: new URL(cur).pathname === '/robots.txt' });
-      const r = await this.fetcher.get(cur, { userAgent: this.ua });
+      const { pinned } = await resolvePublic(new URL(cur).hostname, this.resolver);
+      const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
         cur = new URL(r.headers['location'], cur).toString();
         continue;
@@ -53,7 +65,7 @@ export class Collector {
 
   private async robotsFor(source: Source): Promise<ReturnType<typeof parseRobots> | null> {
     if (this.robotsCache.has(source.host)) return this.robotsCache.get(source.host)!;
-    let rules: ReturnType<typeof parseRobots> | null = null;
+    let rules: ReturnType<typeof parseRobots> | null;
     try {
       const r = await this.safeGet(`https://${source.host}/robots.txt`, source);
       if (r.status === 200) rules = parseRobots(r.body, this.ua);

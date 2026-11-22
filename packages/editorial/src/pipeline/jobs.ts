@@ -1,5 +1,5 @@
-import type { Draft, Evidence, Finding } from '../types.ts';
-import type { Editoria } from '../types.ts';
+import type { Draft, Evidence, Finding } from '../types';
+import type { Editoria } from '../types';
 
 export const STAGES = ['triage', 'context', 'draft', 'factcheck', 'review', 'social_pack'] as const;
 export type Stage = (typeof STAGES)[number];

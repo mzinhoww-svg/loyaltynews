@@ -1,6 +1,6 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { Deduper, canonicalUrl, clusterItems, jaccard, shingles } from '../src/dedupe/dedupe.ts';
+import { Deduper, canonicalUrl, clusterItems, jaccard, shingles } from '../dedupe/dedupe';
 
 const A = 'O Programa Alfa (MOCK) anunciou parceria com a Varejista Beta para acúmulo de 2 pontos por real gasto a partir de dezembro de 2026.';
 const A2 = 'Programa Alfa (MOCK) anunciou uma parceria com a Varejista Beta para acúmulo de 2 pontos por real gasto, a partir de dezembro de 2026.';

@@ -1,4 +1,4 @@
-import { stripHtml } from './sanitize.ts';
+import { stripHtml } from './sanitize';
 
 export interface FeedItem { title: string; link: string; publishedAt: string | null; summary: string }
 

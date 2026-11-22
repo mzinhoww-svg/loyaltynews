@@ -1,5 +1,9 @@
 /** Saneamento de conteúdo externo (ADR-007): remove HTML ativo e marca instruções embutidas como suspeitas. */
 
+// Caracteres invisíveis/bidi (U+200B–U+200F, U+202A–U+202E, U+2060, U+FEFF), montados por code point para não haver whitespace irregular no fonte.
+const cp = (n: number) => String.fromCodePoint(n);
+const INVISIBLE = new RegExp(`[${cp(0x200b)}-${cp(0x200f)}${cp(0x202a)}-${cp(0x202e)}${cp(0x2060)}${cp(0xfeff)}]`, 'g');
+
 const INJECTION_PATTERNS: Array<[string, RegExp]> = [
   ['ignore_instructions', /(ignore|desconsidere|esque[çc]a)\s+(todas?\s+)?(as\s+)?(regras|instru[çc][õo]es|instructions|rules|previous)/i],
   ['ignore_instructions_en', /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions|rules)/i],
@@ -19,7 +23,7 @@ export function stripHtml(html: string): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
-    .replace(/[​-‏‪-‮⁠﻿]/g, '') // caracteres invisíveis/bidi
+    .replace(INVISIBLE, '') // caracteres invisíveis/bidi
     .replace(/[ \t\f\v]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
 }
 

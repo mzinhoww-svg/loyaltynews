@@ -1,30 +1,30 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { Collector } from '../src/collector/collector.ts';
-import { MOCK_SOURCE, mockWeb } from '../fixtures/mock-web.mock.ts';
-import { goodDraftOutput, MockGateway, mockOk } from '../fixtures/mock-gateway.mock.ts';
-import { SourceRegistry } from '../src/sources/registry.ts';
-import { InMemoryAuditLog, MAX_ATTEMPTS, socialPack } from '../src/pipeline/stages.ts';
-import type { StageDeps } from '../src/pipeline/stages.ts';
-import { InMemoryQueue, createBullmqPipeline, jobOptions, makeProcessor } from '../src/pipeline/queue.ts';
-import type { BullmqLike } from '../src/pipeline/queue.ts';
-import type { ArticleJob, JobSpec, StageOutcome } from '../src/pipeline/jobs.ts';
-import { queueName, STAGES } from '../src/pipeline/jobs.ts';
-import { RefusingGateway } from '../src/gateway.ts';
-import { FlagDisabled } from '../src/flags.ts';
-import { SIGNATURE } from '../src/types.ts';
+import { Collector } from '../collector/collector';
+import { MOCK_SOURCE, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
+import { goodDraftOutput, MockGateway, mockOk } from '../../fixtures/mock-gateway.mock';
+import { SourceRegistry } from '../sources/registry';
+import { InMemoryAuditLog, MAX_ATTEMPTS, socialPack } from '../pipeline/stages';
+import type { StageDeps } from '../pipeline/stages';
+import { InMemoryQueue, createBullmqPipeline, jobOptions, makeProcessor } from '../pipeline/queue';
+import type { BullmqLike } from '../pipeline/queue';
+import type { ArticleJob, JobSpec, StageOutcome } from '../pipeline/jobs';
+import { queueName, STAGES } from '../pipeline/jobs';
+import { RefusingGateway } from '../gateway';
+import { FlagDisabled } from '../flags';
+import { SIGNATURE } from '../types';
 
 // Garantia de "sem chamada real": qualquer fetch durante os testes derruba o teste.
 const realFetch = globalThis.fetch;
 globalThis.fetch = (() => { throw new Error('fetch real proibido nos testes do pipeline'); }) as typeof fetch;
 process.on('exit', () => { globalThis.fetch = realFetch; });
 
-const ev = (await new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z') })
+const ev = (await new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver() })
   .collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 
 const registry = new SourceRegistry([MOCK_SOURCE]);
 const FLAGS = { 'editorial.pipeline.enabled': true };
-const baseJob = (over: Partial<ArticleJob> = {}): ArticleJob => ({ articleId: 'a1', editoria: 'pontos-milhas', evidences: [ev], attempt: 0, ...over });
+const baseJob = (over: Partial<ArticleJob> = {}): ArticleJob => ({ articleId: 'a1', editoria: 'pontos', evidences: [ev], attempt: 0, ...over });
 const deps = (gateway: StageDeps['gateway'], flags: StageDeps['flags'] = FLAGS) =>
   ({ gateway, registry, audit: new InMemoryAuditLog(), flags, now: () => new Date('2026-11-23T12:00:00Z') }) satisfies StageDeps;
 

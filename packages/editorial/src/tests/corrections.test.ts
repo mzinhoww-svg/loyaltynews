@@ -1,13 +1,13 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import {
   buildErratumNotice, buildReplyNotice, closeCase, isOverdue, markEntitiesRebuilt, openCase, ownerAck, preserveEvidence,
   publishNotice, reconcileSocial, triage, verifyCorrectionClaims,
-} from '../src/corrections/corrections.ts';
-import type { CorrectionCase, Step } from '../src/corrections/corrections.ts';
-import { Collector } from '../src/collector/collector.ts';
-import { MOCK_SOURCE, mockWeb } from '../fixtures/mock-web.mock.ts';
-import { SIGNATURE } from '../src/types.ts';
+} from '../corrections/corrections';
+import type { CorrectionCase, Step } from '../corrections/corrections';
+import { Collector } from '../collector/collector';
+import { MOCK_SOURCE, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
+import { SIGNATURE } from '../types';
 
 const T = (n: number) => `2026-11-2${n}T12:00:00.000Z`;
 const must = (s: Step): CorrectionCase => { assert.ok(s.ok, s.ok ? '' : `${s.blocker}: ${s.message}`); return s.case; };
@@ -40,7 +40,7 @@ test('errata: fluxo completo com preservação, aviso público datado, reconcili
 });
 
 test('errata aceita sem evidência de suporte é bloqueada (missing_evidence)', () => {
-  let c = must(preserveEvidence(base({ supportingEvidenceIds: [] }), { url: 'u', body: 'b', capturedAt: T(3) }));
+  const c = must(preserveEvidence(base({ supportingEvidenceIds: [] }), { url: 'u', body: 'b', capturedAt: T(3) }));
   const r = triage(c, { accepted: true, reason: 'x', at: T(3) });
   assert.ok(!r.ok && r.blocker === 'missing_evidence');
 });
@@ -97,7 +97,7 @@ test('pedido rejeitado (não jurídico) fecha com motivo registrado', () => {
 });
 
 test('a correção também é verificada: claim da errata precisa constar na evidência', async () => {
-  const ev = (await new Collector(mockWeb(), { now: () => new Date(T(3)) }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  const ev = (await new Collector(mockWeb(), { now: () => new Date(T(3)), resolver: mockResolver() }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
   assert.deepEqual(verifyCorrectionClaims([{ id: 'k', kind: 'number', text: '2 pontos por real', evidenceIds: [ev.id] }], [ev]), []);
   const f = verifyCorrectionClaims([{ id: 'k', kind: 'number', text: '9 pontos por real', evidenceIds: [ev.id] }], [ev]);
   assert.equal(f[0]?.code, 'unsupported_metric');

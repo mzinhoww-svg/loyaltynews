@@ -1,5 +1,5 @@
 // MOCK — gateway de modelos sintético. Nenhuma chamada real a API tarifada; saídas são roteirizadas.
-import type { GatewayRequest, GatewayResponse, ModelGateway, TaskClass } from '../src/gateway.ts';
+import type { GatewayRequest, GatewayResponse, ModelGateway, TaskClass } from '../src/gateway';
 
 export const MOCK_EVIDENCE_QUOTE = 'a parceria amplia as opções de acúmulo para os participantes';
 
@@ -30,7 +30,7 @@ export class MockGateway implements ModelGateway {
   script: Script;
   constructor(evidenceId: string, script: Script = {}) {
     this.script = {
-      triage: () => ok('deepseek', { relevant: true, editoria: 'pontos-milhas' }),
+      triage: () => ok('deepseek', { relevant: true, editoria: 'pontos' }),
       context: () => ok('deepseek', { notes: [{ text: 'Contexto MOCK sobre programas de acúmulo.', evidenceIds: [evidenceId] }] }),
       draft: () => ok('deepseek', goodDraftOutput(evidenceId)),
       factcheck: (r) => ok(r.excludeProviders.includes('anthropic') ? 'deepseek' : 'anthropic', {

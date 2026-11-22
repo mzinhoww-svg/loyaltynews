@@ -1,7 +1,7 @@
-import type { JobSpec, Stage, StageOutcome } from './jobs.ts';
-import { STAGES, queueName } from './jobs.ts';
-import type { PublishedInfo, StageDeps } from './stages.ts';
-import { runStage } from './stages.ts';
+import type { JobSpec, Stage, StageOutcome } from './jobs';
+import { STAGES, queueName } from './jobs';
+import type { PublishedInfo, StageDeps } from './stages';
+import { runStage } from './stages';
 
 /** Porta de fila. Duas implementações: em memória (testes/dev) e BullMQ (produção, Redis na Vertra). */
 export interface JobQueue {

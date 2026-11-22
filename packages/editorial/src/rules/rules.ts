@@ -1,6 +1,6 @@
-import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types.ts';
-import { SIGNATURE } from '../types.ts';
-import { normalizeText } from '../dedupe/dedupe.ts';
+import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
+import { SIGNATURE } from '../types';
+import { normalizeText } from '../dedupe/dedupe';
 
 /**
  * Regras editoriais determinísticas (sem LLM). O modelo propõe; estas regras decidem. Fail closed.

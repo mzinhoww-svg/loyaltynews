@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import type { Claim, Draft, Evidence, Finding } from '../types.ts';
-import { SIGNATURE } from '../types.ts';
-import { checkClaims } from '../rules/rules.ts';
+import type { Claim, Draft, Evidence, Finding } from '../types';
+import { SIGNATURE } from '../types';
+import { checkClaims } from '../rules/rules';
 
 /**
  * Correções (WF08) e resposta/retificação (WF18). Máquina de estados determinística e fail closed:
@@ -111,7 +111,7 @@ export function buildReplyNotice(c: CorrectionCase, replyText: string, at: strin
 /** A correção em si é checada como qualquer afirmação: cada claim precisa constar nas evidências. */
 export function verifyCorrectionClaims(claims: Claim[], evidences: Evidence[]): Finding[] {
   const pseudo: Draft = {
-    id: 'correction', editoria: 'regulacao-dados', headline: '', body: '', claims, evidenceIds: [...new Set(claims.flatMap((c) => c.evidenceIds))],
+    id: 'correction', editoria: 'regulacao', headline: '', body: '', claims, evidenceIds: [...new Set(claims.flatMap((c) => c.evidenceIds))],
     signature: SIGNATURE, image: { mode: 'none', reason: 'n/a' }, modelProvider: 'n/a', promptVersion: 'n/a',
   };
   return checkClaims(pseudo, evidences).findings;

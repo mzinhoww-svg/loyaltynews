@@ -1,13 +1,15 @@
 // Tipos do domínio editorial. Contratos compartilhados definitivos ficam em packages/contracts (Chief Architect);
 // estes tipos são locais à Frente 06 e devem ser migrados quando o contrato existir.
 
-export const EDITORIAS = [
-  'mercado-negocios', 'programas-fidelidade', 'pontos-milhas', 'bancos-cartoes', 'varejo-cashback',
-  'travel-hospitality', 'loyaltytech-ia', 'crm-cx', 'global-loyalty', 'regulacao-dados',
-] as const;
-export type Editoria = (typeof EDITORIAS)[number];
+import { ASSINATURA, EDITORIAS as EDITORIAS_CONTRATO } from '@ln/contracts';
+import type { EditoriaSlug } from '@ln/contracts';
 
-export const SIGNATURE = 'Redação Loyalty News';
+/** Slugs das dez editorias: fonte única em @ln/contracts (D13). */
+export const EDITORIAS: readonly EditoriaSlug[] = EDITORIAS_CONTRATO.map((e) => e.slug);
+export type Editoria = EditoriaSlug;
+
+/** Assinatura institucional única (D09), definida em @ln/contracts. */
+export const SIGNATURE = ASSINATURA;
 
 export type SourceKind = 'investor_relations' | 'regulator' | 'press_room' | 'association' | 'government';
 /** Estado da revisão dos termos de uso (J-14 do Blueprint: termos de cada fonte não verificados). */
