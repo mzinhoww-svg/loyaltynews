@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { vi } from 'vitest';
-import { applyMigrations } from '../migrate';
+import { createTestDb } from '@ln/db/testing';
 import { addEvidence } from '../repo';
 import type { Db } from '../db';
 import type { IntelligenceConfig } from '../config';
@@ -12,13 +12,13 @@ import { mockEvidence } from '../../fixtures/mock-entities';
 // Máquinas ocupadas (CI/outros agentes) estouram o limite padrão de 30 s/10 s: PGlite sobe um PostgreSQL por teste.
 vi.setConfig({ testTimeout: 180_000, hookTimeout: 180_000 });
 
+// As migrações OFICIAIS são as do @ln/db (0006_intelligence); aqui só se aplica via createTestDb (nunca packages/intelligence/migrations).
 // Migra uma vez por arquivo de teste e reaproveita o banco pronto (dump) em cada teste: bem mais rápido que migrar de novo.
 let template: Blob | File | undefined;
 export async function newDb(): Promise<{ db: Db; pg: PGlite }> {
   if (!template) {
-    const base = new PGlite(); // PostgreSQL real em memória (WASM); sem rede, sem serviço externo
-    await applyMigrations((sql) => base.exec(sql));
-    template = await base.dumpDataDir('none');
+    const base = await createTestDb(); // PostgreSQL real em memória (WASM); sem rede, sem serviço externo
+    template = await base.client.dumpDataDir('none');
     await base.close();
   }
   const pg = new PGlite({ loadDataDir: template });

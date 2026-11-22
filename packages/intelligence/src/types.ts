@@ -1,4 +1,5 @@
-export type Certainty = 'declared' | 'inferred';
+import type { Certainty } from '@ln/contracts';
+export type { Certainty };
 export type Uuid = string;
 
 export interface EvidenceInput {

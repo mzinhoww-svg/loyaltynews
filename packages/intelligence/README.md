@@ -6,7 +6,7 @@ Estado: implementado em fast-track; **não homologado** (QA) nem operacional (De
 ## Mapa
 | Parte | Onde |
 |---|---|
-| Migrações SQL (schema `intelligence`) | `migrations/001_intelligence.sql` (modelo), `002_suppression_tombstone.sql` (bloqueio de reingestão), `003_graph_indexes.sql` |
+| Migrações SQL (schema `intelligence`) | **Oficial: `packages/db/drizzle/0006_intelligence.sql`** (Chief Architect; aplicada por `@ln/db`). `migrations/001–003` são a fonte/histórico; mudança futura = proposta de nova migração customizada ao Chief Architect. Os testes usam `createTestDb` de `@ln/db/testing`. |
 | Escrita/leitura básicas (evidência, empresa, pessoa, cargo, relação, organograma) | `src/repo.ts`, `src/queries.ts` |
 | Loyalty Moves (`processObservation`) | `src/moves.ts` |
 | Watchlists e alertas | `src/watchlists.ts` |
@@ -32,11 +32,10 @@ Estado: implementado em fast-track; **não homologado** (QA) nem operacional (De
 Em produção, passe um cliente com `query(sql, params) -> {rows}` (interface `Db`) e aplique `migrationFiles()` com o executor de migrações do `@ln/db`.
 
 ## Desempenho (ADR-009: p95 ≤ 300 ms com 100 mil arestas) — NÃO VERIFICADO na Vertra
-`bench/results/latest.json`: 114.990 arestas sintéticas, 3 saltos, PGlite (WASM, em memória) nesta máquina: p95 ≈ 425 ms (neighbors de organização), 385 ms (de pessoa), 355 ms (caminho) — **acima** do critério proposto. Antes dos índices: p95 ≈ 444 ms (`bench/results/v1-sem-indices.json`). **Isto não vale como medição do PostgreSQL da Vertra** (WASM, single-thread, sem disco/rede); o critério só se confirma em R5-05 no PostgreSQL 18, com `EXPLAIN (ANALYZE, BUFFERS)`. Se estourar lá, caminhos: materializar vizinhança por entidade, limitar grau por salto, ou migrar para grafo (critérios de 03 §7).
+`bench/results/latest.json`: 114.990 arestas sintéticas, 3 saltos, PGlite (WASM, em memória) nesta máquina: p95 de ≈ 355–425 ms entre as três consultas (última execução: pior p95 394 ms) — **acima** do critério proposto de 300 ms; varia de uma execução para outra com a carga da máquina. Antes dos índices: p95 ≈ 444 ms (`bench/results/v1-sem-indices.json`). **Isto não vale como medição do PostgreSQL da Vertra** (WASM, single-thread, sem disco/rede); o critério só se confirma em R5-05 no PostgreSQL 18, com `EXPLAIN (ANALYZE, BUFFERS)`. Se estourar lá, caminhos: materializar vizinhança por entidade, limitar grau por salto, ou migrar para grafo (critérios de 03 §7).
 
 ## Não verificado / pendências
 - PostgreSQL 18 da Vertra; volume e latência reais; concorrência.
-- Integração com `@ln/db` (Drizzle): as migrações do Intelligence ainda são SQL próprio; o Chief Architect decide se entram em `packages/db`.
-- Contratos compartilhados: `@ln/contracts/intelligence` (Company/Person/Role/Move, em português) ainda não é produzido pelos handlers, que devolvem formas em inglês com evidência e `validated_at`. Proposta ao Chief Architect: um adaptador no Backend, ou alinhar os schemas (incluir `validated_at`, `certainty`, `status` do Move).
+- Contratos: as saídas dos handlers/views são validadas com os schemas oficiais de `@ln/contracts` (`OrganizationView`, `PersonView` estrito, `PersonRoleView`, `RelationView`, `MoveView`, `RoleObservation`) em `src/tests/contracts-conformance.test.ts`. Handlers de associação (watchlists, alertas, organograma, grafo) ainda não têm schema no contrato.
 - Base legal LGPD/controlador (J-01/R1-01): as duas chaves de dado pessoal permanecem desligadas.
 - Sem coleta real: nenhuma fonte, nenhum crawler.

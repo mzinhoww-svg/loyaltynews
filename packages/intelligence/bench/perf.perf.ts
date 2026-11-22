@@ -10,13 +10,12 @@
  * Como rodar (na raiz do monorepo): npm run perf -w @ln/intelligence
  * Resultado gravado em bench/results/latest.json.
  */
-import { PGlite } from '@electric-sql/pglite';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { cpus, platform, release, totalmem } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
-import { applyMigrations } from '../src/migrate';
+import { createTestDb } from '@ln/db/testing';
 import { neighbors, shortestPath } from '../src/graph';
 import type { Db } from '../src/db';
 
@@ -44,9 +43,9 @@ const stats = (xs: number[]) => ({
 
 describe('perf: grafo com ~100 mil arestas (PGlite — não vale como medição da Vertra)', () => {
   it('mede neighbors e shortestPath (até 3 saltos)', async () => {
-    const pg = new PGlite();
+    const t = await createTestDb(); // migrações oficiais do @ln/db (0006_intelligence)
+    const pg = t.client;
     const db = pg as unknown as Db;
-    await applyMigrations((sql) => pg.exec(sql));
 
     const t0 = performance.now();
     await pg.exec(`
@@ -135,6 +134,6 @@ describe('perf: grafo com ~100 mil arestas (PGlite — não vale como medição 
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, JSON.stringify(result, null, 2) + '\n');
     console.log(JSON.stringify(result, null, 2));
-    await pg.close();
+    await t.close();
   });
 });
