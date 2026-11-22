@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Fontes, coleta determinística, dedupe, redação e checagem. Dono: Frente 06 — LN Editorial Engineer.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/api/store-contract.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
