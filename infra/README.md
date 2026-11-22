@@ -13,4 +13,5 @@ Preparado em 22/11/2026 no fast-track. **Nada foi aplicado na Vertra nem no GitH
 | `tests/` | testes `node:test` dos scripts |
 | `../.github/workflows/` | `ci.yml` e `backup.yml` (preparados, **inativos**; ações fixadas por SHA) |
 
-Testes: `node --test infra/tests/` (10 testes; usam chave GPG descartável e dump simulado; **não** há PostgreSQL real). Verificações de CI: `node infra/scripts/ci-checks.mjs` (ADR-001: zero supabase/vercel/pgvector em dependências e IaC; extensões `CREATE EXTENSION` só da lista *trusted*; guarda básica de segredos).
+Testes: `node --test infra/tests/` (11 testes; usam chave GPG descartável e dump simulado; **não** há PostgreSQL real). Tudo junto: `node infra/scripts/test.mjs` (ci-checks + testes de infra + `npm test`). Verificações de CI: `node infra/scripts/ci-checks.mjs` (ADR-001: zero supabase/vercel/pgvector em dependências instaladas e IaC; `CREATE EXTENSION` só da lista *trusted*; guarda básica de segredos).
+Ensaio local no scaffold (`ft/scaffold` 78a271c): `npm install`, `npm run lint`, `typecheck`, `test`, `npm run build -w apps/web` e `npx next start apps/web` + `healthcheck.mjs` passaram. **Nada rodou na Vertra.**

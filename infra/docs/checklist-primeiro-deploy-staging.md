@@ -4,8 +4,8 @@ Regras: R0 não vale mais para escrita do DevOps **somente** depois do gate e co
 
 ## A. Pré-condições (todas verdadeiras, senão parar)
 - [ ] Bootstrap R0-03 executado pelo PM; repositório com branches `main` e `staging`; Actions do produto conforme decisão do PM.
-- [ ] Código do `apps/web` **homologado pelo QA** (status.json `homologado=true`) e `staging` apontando para esse commit; `npm run build -w apps/web` passa localmente (`node infra/scripts/build.mjs --only web`).
-- [ ] `/api/health` e `/api/ready` (modo `nodb`) implementados pelo Backend; `ci-checks` e testes verdes.
+- [ ] Código do `apps/web` **homologado pelo QA** (status.json `homologado=true`) e `staging` apontando para esse commit; `node infra/scripts/build.mjs` passa localmente (lint, typecheck, `npm run build -w apps/web`).
+- [ ] `/api/health` (já existe) com `version`/`env`, e `/api/ready` + modo `nodb` implementados; `node infra/scripts/test.mjs` verde.
 - [ ] Proprietário aprovou a capacidade e criou a chave `ln-deploy-staging` com os escopos de `deploy-vertra.md` §5 (valor no cofre). Conexão GitHub da Vertra com acesso ao repositório (a conta já tem conexão GitHub: confirmar acesso ao repositório do produto).
 - [ ] Reconfirmado agora: `get_profile` mostra plano `pro-8`, **livre ≥ 512 MB** para o staging-min (≥ 2304 MB para o staging completo), e os 6 recursos de outros projetos (3072 MB) com os mesmos ID/RAM/estado de R0-07 v2 (anotar o instante).
 - [ ] Subdomínio: tentar `loyaltynews-staging` (variante se ocupado) e registrar o escolhido em `APP_URL`.
@@ -16,7 +16,7 @@ Regras: R0 não vale mais para escrita do DevOps **somente** depois do gate e co
 2. **Criar a app** `ln-staging-web` (Website, 512 MB, `typescript` 26.13.1) ligada a `mzinhoww-svg/loyaltynews`, branch `staging`. Se o MCP não aceitar repositório GitHub na criação, usar o painel (integração GitHub) e confirmar a conexão. Conferir o esquema da ferramenta no momento (não assumir argumentos).
 3. **Configurar**: `build_command = npm run build -w apps/web`; `start_command = npx next start apps/web -p 80 -H 0.0.0.0`; `health_check_path = /api/health`; `zero_downtime = auto`; `auto_rollback = true`. Variáveis (valores pelo cofre, `infra/vertra/env-contract.json`): `APP_ENV=staging`, `NODE_ENV=production`, `APP_MODE=nodb`, `APP_COMMIT=<sha do commit homologado>`.
 4. **Construir e subir**; acompanhar `wait_for_app` e o log de build. `BUILD_FAILED`/`BUILD_TIMEOUT` (10 min) ou app `down` → **parar**, ler o log, corrigir no código (não repetir em loop; limite 60 deploys/h).
-5. **Verificar saúde**: `node infra/scripts/healthcheck.mjs --url https://<subdomínio>.vertraweb.app --expect-commit <sha>` → `ok`. `--ready` → `degraded`/`db: not_configured` esperado.
+5. **Verificar saúde**: `node infra/scripts/healthcheck.mjs --url https://<subdomínio>.vertraweb.app` → `ok`. Quando o `/api/health` devolver `version`, acrescentar `--expect-commit <sha>` (hoje o scaffold devolve só `status`, `service`, `flagsLigadas`; ver `observabilidade.md`). `--ready` só passa quando o Backend criar `/api/ready` (hoje 404; esperado depois: `degraded`/`db: not_configured`).
 6. **Verificar o produto**: abrir a home e as telas homologadas; conferir que dado de fixture mostra **MOCK** e que métricas/audiência comerciais estão em estado vazio (nunca fictícias). Guardar prints/URL como evidência.
 7. **Ensaio de zero downtime** (decide o modo da produção): rodar a sonda a cada 2 s (`healthcheck.mjs` em laço, 5 min) enquanto se faz um deploy trivial (novo commit em `staging`); registrar contagem de respostas não-2xx. Zero erros → liberar `auto` em produção; senão manter `off`.
 8. **Não-impacto**: `get_profile` e `list_apps`: os 6 recursos de outros projetos iguais ao passo A; memória alocada = anterior + 512.

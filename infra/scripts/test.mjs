@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Testes do monorepo + verificações de CI. Uso: node infra/scripts/test.mjs [--skip-ci-checks]
-// Os testes unitários e e2e de cada frente rodam por `npm test --workspaces --if-present` (regra 4 do fast-track).
+// Ordem: ci-checks (ADR-001 e segredos) → testes de infra (node:test) → `npm test` da raiz (Vitest: pacotes e apps/web/lib).
+// O e2e (Playwright, apps/web/e2e) é separado: `npm run e2e` exige build e `npx playwright install chromium` (regra 4 do fast-track).
 import { parseArgs, npm, fail, run } from './lib/util.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -10,6 +11,6 @@ if (!args['skip-ci-checks']) {
 }
 const t = run(process.execPath, ['--test', 'infra/tests/']);
 if (t.status !== 0) fail('testes de infra falharam', 1);
-const code = npm(['test', '--workspaces', '--if-present']);
-if (code !== 0) fail(`testes dos workspaces falharam (código ${code})`, code);
+const code = npm(['test']);
+if (code !== 0) fail(`npm test falhou (código ${code})`, code);
 console.log('\ntestes OK');

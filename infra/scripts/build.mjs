@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Build reprodutível do monorepo (npm workspaces). Falha no primeiro passo que falhar.
 // Uso: node infra/scripts/build.mjs [--skip-install] [--only web|workers]
-// Pressupõe os scripts raiz do scaffold (Chief Architect): lint, typecheck e build nos workspaces (usa --if-present).
+// Usa os scripts de RAIZ do scaffold (Chief Architect, DEVELOPMENT.md): `lint`, `typecheck` e `build` (= build do @ln/web).
+// `--only workers` roda o build de apps/workers (quando a frente 02 criar o workspace).
 // Na Vertra o build roda com o `build_command` da app (infra/vertra/environments.json); este script serve a CI e ao dev local.
 import { existsSync, writeFileSync } from 'node:fs';
 import { parseArgs, npm, fail } from './lib/util.mjs';
@@ -13,10 +14,14 @@ if (!existsSync('package.json')) fail('package.json ausente: rode na raiz do rep
 
 const steps = [];
 if (!args['skip-install']) steps.push(['instalar dependências', existsSync('package-lock.json') ? ['ci'] : ['install']]);
-steps.push(['lint', ['run', 'lint', '--workspaces', '--if-present']]);
-steps.push(['typecheck', ['run', 'typecheck', '--workspaces', '--if-present']]);
-const only = args.only === 'web' ? ['-w', 'apps/web'] : args.only === 'workers' ? ['-w', 'apps/workers'] : ['--workspaces'];
-steps.push(['build', ['run', 'build', ...only, '--if-present']]);
+steps.push(['lint', ['run', 'lint']]);
+steps.push(['typecheck', ['run', 'typecheck']]);
+if (args.only === 'workers') {
+  if (!existsSync('apps/workers/package.json')) fail('apps/workers ainda não existe (frente 02 Backend)');
+  steps.push(['build workers', ['run', 'build', '-w', 'apps/workers']]);
+} else {
+  steps.push(['build web', ['run', 'build', '-w', 'apps/web']]);
+}
 
 for (const [nome, a] of steps) {
   console.log(`\n== ${nome}: npm ${a.join(' ')}`);

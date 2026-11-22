@@ -26,14 +26,28 @@ const all = walk(root);
 const problems = [];
 
 // 1. pilha proibida (ADR-001): só dependências e IaC; documentação pode citar os nomes para proibi-los
-const FORBIDDEN = /\b(supabase|vercel|pgvector)\b/i;
+const FORBIDDEN = /(^|[^a-z0-9])(supabase|vercel|pgvector)([^a-z0-9]|$)/i;
 for (const f of all) {
   const r = rel(f);
-  const isDep = /(^|\/)package\.json$/.test(r) || /(^|\/)package-lock\.json$/.test(r);
+  const isLock = /(^|\/)package-lock\.json$/.test(r);
+  const isDep = /(^|\/)package\.json$/.test(r);
   const isIac = r.startsWith('infra/vertra/') || r.startsWith('.github/workflows/');
-  if (!isDep && !isIac) continue;
-  const m = readFileSync(f, 'utf8').match(FORBIDDEN);
-  if (m) problems.push(`ADR-001: "${m[0]}" em ${r}`);
+  if (!isDep && !isIac && !isLock) continue;
+  const txt = readFileSync(f, 'utf8');
+  if (isLock) {
+    // Lockfile: só pacotes INSTALADOS contam. Peers opcionais (ex.: drizzle-orm lista "@vercel/postgres" como
+    // peerDependenciesMeta optional) são texto, não dependência: não instalam nada.
+    let lock;
+    try { lock = JSON.parse(txt); } catch { problems.push(`ADR-001: ${r} ilegível (JSON inválido)`); continue; }
+    for (const key of Object.keys(lock.packages || {})) {
+      const name = key.split('node_modules/').pop();
+      const m = name && name.match(FORBIDDEN);
+      if (m) problems.push(`ADR-001: pacote instalado "${name}" em ${r}`);
+    }
+    continue;
+  }
+  const m = txt.match(FORBIDDEN);
+  if (m) problems.push(`ADR-001: "${m[2]}" em ${r}`);
 }
 
 // 2. extensões do PostgreSQL (lista da documentação da Vertra: trusted + plpgsql)

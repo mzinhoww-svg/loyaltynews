@@ -44,6 +44,20 @@ test('ci-checks: .env.example é permitido e vercel só importa em dependências
   rmSync(r, { recursive: true, force: true });
 });
 
+test('ci-checks: lockfile só reprova pacote INSTALADO; peer opcional não conta', () => {
+  const ok = tmp();
+  put(ok, 'package-lock.json', JSON.stringify({ packages: { '': {}, 'node_modules/drizzle-orm': { peerDependencies: { '@vercel/postgres': '>=0.8.0' }, peerDependenciesMeta: { '@vercel/postgres': { optional: true } } } } }));
+  assert.equal(node('ci-checks.mjs', ['--root', ok]).status, 0);
+  rmSync(ok, { recursive: true, force: true });
+  const bad = tmp();
+  put(bad, 'package-lock.json', JSON.stringify({ packages: { '': {}, 'node_modules/@supabase/supabase-js': { version: '1.0.0' }, 'node_modules/foo/node_modules/@vercel/og': { version: '1.0.0' } } }));
+  const x = node('ci-checks.mjs', ['--root', bad]);
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /pacote instalado "@supabase\/supabase-js"/);
+  assert.match(x.stderr, /pacote instalado "@vercel\/og"/);
+  rmSync(bad, { recursive: true, force: true });
+});
+
 test('compareStats detecta divergência, ausência e tabela inesperada', () => {
   const a = { 'public.a': { rows: 2, md5: 'aaaaaaaa11' }, 'public.b': { rows: 1, md5: 'bbbbbbbb22' } };
   assert.deepEqual(compareStats(a, a), []);

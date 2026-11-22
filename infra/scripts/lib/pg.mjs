@@ -3,7 +3,7 @@
 // temporários 0600, apagados ao final. Nada de segredo em argv.
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { run, must } from './util.mjs';
+import { must } from './util.mjs';
 
 /** prefix: 'DB' (origem) ou 'RESTORE_DB' (destino do ensaio). */
 export function pgEnv(prefix, tmpDir) {

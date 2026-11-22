@@ -5,7 +5,7 @@
 //   BACKUP_ENV=staging|production, BACKUP_DEST, BACKUP_GPG_PUBKEY_PEM (ou BACKUP_GPG_RECIPIENT já no chaveiro),
 //   DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD DB_CA_PEM DB_CLIENT_CERT_PEM DB_CLIENT_KEY_PEM
 // Saída: <dest>/ln-<env>-<UTC>.dump.gpg, .manifest.json e latest-<env>.json. Código != 0 em qualquer falha.
-import { mkdirSync, readFileSync, statSync, copyFileSync } from 'node:fs';
+import { mkdirSync, statSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs, fail, requireEnv, sha256File, withTempDir, must, run } from './lib/util.mjs';
 import { importPublicKey, encryptFile } from './lib/gpg.mjs';

@@ -5,7 +5,6 @@
 // Ambiente: BACKUP_DEST (+ AWS_* se s3://); RESTORE_DB_HOST/PORT/NAME/USER/PASSWORD/CA_PEM/CLIENT_CERT_PEM/CLIENT_KEY_PEM
 //           (instância descartável e VAZIA); GNUPGHOME com a chave PRIVADA de backup (só quem restaura a tem).
 import { join } from 'node:path';
-import { writeFileSync } from 'node:fs';
 import { parseArgs, fail, requireEnv, sha256File, withTempDir, must } from './lib/util.mjs';
 import { decryptFile } from './lib/gpg.mjs';
 import { getFile, readText } from './lib/dest.mjs';

@@ -11,7 +11,7 @@ A Vertra baixa o repositório como arquivo (**sem `.git`**), instala dependênci
 
 Branches: **staging** faz deploy da branch `staging`; **produção** da `main` (que só recebe merge commit por PR, ruleset `main-protection`). Auto-deploy por push existe em todos os planos; **não verifiquei** se dá para desligá-lo por app — se não der, a proteção da produção é o próprio ruleset de `main`. Um push acima de 60 deploys/hora é ignorado (não entra em fila).
 A versão do commit não chega ao app: quem faz o deploy atualiza `APP_COMMIT` (o `/api/health` devolve como `version` e a sonda confere).
-A confirmar no primeiro build (dependem do scaffold): `next` resolvido a partir da raiz (hoisting dos workspaces) e o script `build` de cada workspace.
+**Ensaiado localmente no scaffold `ft/scaffold` 78a271c** (Node 26.13.1, Next 16.4.6, 22/11/2026): `npm install` na raiz (29 s), `npm run build -w apps/web` (13 s, exit 0) e `npx next start apps/web -p <porta> -H 127.0.0.1` sobem o app (home 200, `/api/health` 200): o `next` é resolvido pela raiz (hoisting dos workspaces) e os dois comandos da tabela funcionam. **Ainda não rodou na Vertra** (build real e tempo em nuvem não verificados). `apps/workers` ainda não existe (frente 02).
 
 ## 2. Health check e zero downtime
 - **Health check** da Vertra: chama `deploy.health_check_path` na versão nova (5 s por tentativa, duas respostas boas seguidas, qualquer HTTP conta como saudável **exceto 5xx**, recusa e timeout). `/api/health` precisa ser **raso**: responde 200 sem tocar banco nem Redis. Se checasse dependência, uma queda do banco derrubaria o deploy e o rollback.
