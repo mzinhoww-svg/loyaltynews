@@ -1,7 +1,7 @@
 import { test, beforeAll } from 'vitest';
 import assert from 'node:assert/strict';
 import { Collector } from '../collector/collector';
-import { MOCK_SOURCE, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
+import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { MockGateway } from '../../fixtures/mock-gateway.mock';
 import { SourceRegistry } from '../sources/registry';
 import { InMemoryAuditLog } from '../pipeline/stages';
@@ -26,13 +26,13 @@ const mkctx = (actor: Actor | null, store: InMemoryEditorialStore, queue?: InMem
 
 let ev: Evidence;
 beforeAll(async () => {
-  ev = (await new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver() }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  ev = (await new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 });
 
 /** Roda o pipeline (MOCK) e grava o resultado no store, como o worker do Backend faria. */
 async function approvedStore(articleId = 'a1'): Promise<InMemoryEditorialStore> {
   const store = new InMemoryEditorialStore();
-  const deps: StageDeps = { gateway: new MockGateway(ev.id), registry: new SourceRegistry([MOCK_SOURCE]), audit: new InMemoryAuditLog(), flags: { 'editorial.pipeline.enabled': true }, now: () => NOW };
+  const deps: StageDeps = { gateway: new MockGateway(ev.id), registry: new SourceRegistry([MOCK_SOURCE]), audit: new InMemoryAuditLog(), flags: { 'editorialPipeline': true }, now: () => NOW };
   const q = new InMemoryQueue();
   await q.enqueue({ stage: 'triage', jobId: `${articleId}:triage:0`, data: { articleId, editoria: 'pontos', evidences: [ev], attempt: 0 } });
   await q.drain(makeProcessor(deps, q));

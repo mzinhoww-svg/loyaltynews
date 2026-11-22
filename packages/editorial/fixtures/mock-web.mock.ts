@@ -89,3 +89,6 @@ export class FakeResolver implements Resolver {
 
 export const mockResolver = (): FakeResolver =>
   new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]], 'www.gov.mock': [[MOCK_PUBLIC_IP]] });
+
+/** Liga SOMENTE a flag do coletor nos testes (padrão do contrato: desligada). */
+export const COLLECT_ON = { editorialCollector: true } as const;

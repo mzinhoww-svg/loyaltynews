@@ -1,6 +1,6 @@
 import type { Claim, Draft, Evidence, Finding } from '../types';
 import { EDITORIAS, SIGNATURE } from '../types';
-import type { EditorialFlags } from '../flags';
+import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
 import type { GatewayRequest, GatewayResponse, ModelGateway, RouteClass, TaskClass, WorkflowId } from '../gateway';
 import type { SourceRegistry } from '../sources/registry';
@@ -28,7 +28,7 @@ export interface StageDeps {
   gateway: ModelGateway;
   registry: SourceRegistry;
   audit: AuditLog;
-  flags?: Partial<EditorialFlags>;
+  flags?: EditorialFlagOverrides;
   now?: () => Date;
   siteBaseUrl?: string;
 }
@@ -67,7 +67,7 @@ const untrusted = (evs: Evidence[]) => evs.map((e) => ({ id: e.id, sourceId: e.s
 
 // ---------------- 1. triagem (WF01) ----------------
 export async function triage(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
-  requireFlag(deps.flags, 'editorial.pipeline.enabled');
+  requireFlag(deps.flags, 'editorialPipeline');
   if (job.duplicateOf) return blocked(job, 'triage', ['duplicate'], [{ code: 'duplicate', message: `duplicata de ${job.duplicateOf}` }]);
   if (!job.evidences.length) return blocked(job, 'triage', ['rights_unknown'], [{ code: 'no_evidence', message: 'sem evidência coletada' }]);
   const findings: Finding[] = [];
@@ -92,7 +92,7 @@ export async function triage(deps: StageDeps, job: ArticleJob): Promise<StageOut
 
 // ---------------- 2. contexto ----------------
 export async function context(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
-  requireFlag(deps.flags, 'editorial.pipeline.enabled');
+  requireFlag(deps.flags, 'editorialPipeline');
   const r = await call(deps, job, 'context', 'context', 'economy', 'WF02', { editoria: job.editoria, evidences: untrusted(job.evidences) });
   if (!r.ok) return refused(job, 'context', r);
   if (!isObj(r.output) || !Array.isArray(r.output['notes'])) return bad(job, 'context', 'context: esperado {notes:[]}');
@@ -128,7 +128,7 @@ const FINDING_TO_BLOCKER: Record<string, BlockerCode> = {
 const toBlockers = (fs: Finding[]): BlockerCode[] => [...new Set(fs.map((x) => FINDING_TO_BLOCKER[x.code] ?? 'unsupported_claim'))];
 
 export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
-  requireFlag(deps.flags, 'editorial.pipeline.enabled');
+  requireFlag(deps.flags, 'editorialPipeline');
   const r = await call(deps, job, 'draft', 'draft', 'review', 'WF02', {
     editoria: job.editoria, evidences: untrusted(job.evidences), context: job.context ?? [], feedback: job.feedback ?? [],
     rules: ['usar somente fatos das evidências', 'não inventar falas, fontes, entrevistas ou métricas', 'não copiar trechos da fonte', `não assinar com nome de pessoa; assinatura é ${SIGNATURE}`],
@@ -163,7 +163,7 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
 
 // ---------------- 4. checagem em provedor distinto ----------------
 export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
-  requireFlag(deps.flags, 'editorial.pipeline.enabled');
+  requireFlag(deps.flags, 'editorialPipeline');
   const d = job.draft;
   if (!d) return blocked(job, 'factcheck', ['approval_missing'], [{ code: 'no_draft', message: 'sem rascunho' }]);
   const used = job.evidences.filter((e) => d.evidenceIds.includes(e.id));
@@ -192,7 +192,7 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
 
 // ---------------- 5. revisão (auto_gate_editor) ----------------
 export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
-  requireFlag(deps.flags, 'editorial.pipeline.enabled');
+  requireFlag(deps.flags, 'editorialPipeline');
   const d = job.draft; const fc = job.factcheck;
   if (!d || !fc) return blocked(job, 'review', ['approval_missing'], [{ code: 'missing_prior_stage', message: 'rascunho/checagem ausentes' }]);
   // O gate NÃO confia no estágio anterior: refaz as verificações determinísticas e a independência do provedor.
@@ -217,11 +217,11 @@ export interface PublishedInfo { url: string }
 export function utm(articleId: string, channel: string) { return { source: channel, medium: 'social', campaign: `materia-${articleId}` }; }
 
 export async function socialPack(deps: StageDeps, job: ArticleJob, published: PublishedInfo): Promise<StageOutcome> {
-  requireFlag(deps.flags, 'editorial.pipeline.enabled');
+  requireFlag(deps.flags, 'editorialPipeline');
   const d = job.draft;
   if (!job.approved || !d) return blocked(job, 'social_pack', ['approval_missing'], [{ code: 'not_approved', message: 'matéria não aprovada' }]);
   if (!published.url) return blocked(job, 'social_pack', ['approval_missing'], [{ code: 'not_published', message: 'sem URL publicada' }]);
-  const wantIg = deps.flags?.['editorial.social.instagram'] === true;
+  const wantIg = deps.flags?.instagram === true;
   const r = await call(deps, job, 'social_pack', 'social_pack', 'economy', 'WF04', { headline: d.headline, body: mainBody(d.body), wantInstagram: wantIg });
   if (!r.ok) return refused(job, 'social_pack', r);
   if (!isObj(r.output) || typeof r.output['linkedin'] !== 'string') return bad(job, 'social_pack', 'social: esperado {linkedin:string}');

@@ -6,7 +6,7 @@ import {
 } from '../corrections/corrections';
 import type { CorrectionCase, Step } from '../corrections/corrections';
 import { Collector } from '../collector/collector';
-import { MOCK_SOURCE, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
+import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { SIGNATURE } from '../types';
 
 const T = (n: number) => `2026-11-2${n}T12:00:00.000Z`;
@@ -97,7 +97,7 @@ test('pedido rejeitado (não jurídico) fecha com motivo registrado', () => {
 });
 
 test('a correção também é verificada: claim da errata precisa constar na evidência', async () => {
-  const ev = (await new Collector(mockWeb(), { now: () => new Date(T(3)), resolver: mockResolver() }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  const ev = (await new Collector(mockWeb(), { now: () => new Date(T(3)), resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
   assert.deepEqual(verifyCorrectionClaims([{ id: 'k', kind: 'number', text: '2 pontos por real', evidenceIds: [ev.id] }], [ev]), []);
   const f = verifyCorrectionClaims([{ id: 'k', kind: 'number', text: '9 pontos por real', evidenceIds: [ev.id] }], [ev]);
   assert.equal(f[0]?.code, 'unsupported_metric');

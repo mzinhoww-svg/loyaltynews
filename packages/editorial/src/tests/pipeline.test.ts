@@ -1,7 +1,7 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { Collector } from '../collector/collector';
-import { MOCK_SOURCE, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
+import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { goodDraftOutput, MockGateway, mockOk } from '../../fixtures/mock-gateway.mock';
 import { SourceRegistry } from '../sources/registry';
 import { InMemoryAuditLog, MAX_ATTEMPTS, socialPack } from '../pipeline/stages';
@@ -19,11 +19,11 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = (() => { throw new Error('fetch real proibido nos testes do pipeline'); }) as typeof fetch;
 process.on('exit', () => { globalThis.fetch = realFetch; });
 
-const ev = (await new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver() })
+const ev = (await new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver(), flags: COLLECT_ON })
   .collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 
 const registry = new SourceRegistry([MOCK_SOURCE]);
-const FLAGS = { 'editorial.pipeline.enabled': true };
+const FLAGS = { 'editorialPipeline': true };
 const baseJob = (over: Partial<ArticleJob> = {}): ArticleJob => ({ articleId: 'a1', editoria: 'pontos', evidences: [ev], attempt: 0, ...over });
 const deps = (gateway: StageDeps['gateway'], flags: StageDeps['flags'] = FLAGS) =>
   ({ gateway, registry, audit: new InMemoryAuditLog(), flags, now: () => new Date('2026-11-23T12:00:00Z') }) satisfies StageDeps;
@@ -151,7 +151,7 @@ test('pacote social: só após publicação; sem menções; UTM; sem foto => blo
   assert.equal(pack.instagram, undefined);
   assert.deepEqual(pack.blockers, ['no_image']);
   // Instagram só com flag explícita
-  const ig = await socialPack({ ...d, flags: { ...FLAGS, 'editorial.social.instagram': true } }, approved, { url: 'https://loyaltynews.example/materia/a1' });
+  const ig = await socialPack({ ...d, flags: { ...FLAGS, 'instagram': true } }, approved, { url: 'https://loyaltynews.example/materia/a1' });
   assert.ok(ig.kind === 'done' && ig.pack?.instagram);
 });
 

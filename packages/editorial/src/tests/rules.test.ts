@@ -1,7 +1,7 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { Collector } from '../collector/collector';
-import { MOCK_SOURCE, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
+import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { goodDraftOutput, MOCK_EVIDENCE_QUOTE } from '../../fixtures/mock-gateway.mock';
 import {
   buildAttribution, checkClaims, checkImage, checkNoFabricatedReporting, checkOriginality, checkSignature,
@@ -10,7 +10,7 @@ import {
 import { SIGNATURE } from '../types';
 import type { Draft, Evidence } from '../types';
 
-const col = new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver() });
+const col = new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver(), flags: COLLECT_ON });
 const ev: Evidence = (await col.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 
 function mk(over: Partial<Draft> & { body?: string } = {}): Draft {

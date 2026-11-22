@@ -6,6 +6,8 @@ import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
 import { parseFeed, parseHtml } from './parse';
 import { sanitize } from './sanitize';
+import type { EditorialFlagOverrides } from '../flags';
+import { requireFlag } from '../flags';
 import type { Family, Resolver } from './net';
 import { resolvePublic, systemResolver } from './net';
 
@@ -28,7 +30,7 @@ export type SkipCode =
 export interface Skip { url: string; code: SkipCode; detail: string }
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
 
-export interface CollectorOptions { now?: () => Date; userAgent?: string; resolver?: Resolver }
+export interface CollectorOptions { now?: () => Date; userAgent?: string; resolver?: Resolver; flags?: EditorialFlagOverrides }
 
 /** Coletor determinístico: sem LLM, sem decisão editorial. Só rede + parse + saneamento + hash. */
 export class Collector {
@@ -36,12 +38,14 @@ export class Collector {
   private readonly now: () => Date;
   private readonly ua: string;
   private readonly resolver: Resolver;
+  private readonly flags: EditorialFlagOverrides | undefined;
   private readonly robotsCache = new Map<string, ReturnType<typeof parseRobots> | null>();
   constructor(fetcher: Fetcher, opts: CollectorOptions = {}) {
     this.fetcher = fetcher;
     this.now = opts.now ?? (() => new Date());
     this.ua = opts.userAgent ?? USER_AGENT;
     this.resolver = opts.resolver ?? systemResolver;
+    this.flags = opts.flags;
   }
 
   /**
@@ -78,6 +82,7 @@ export class Collector {
 
   /** Coleta uma URL de uma fonte elegível. */
   async collectUrl(source: Source, url: string, hint?: { title?: string; publishedAt?: string | null }): Promise<{ evidence?: Evidence; skip?: Skip }> {
+    requireFlag(this.flags, 'editorialCollector'); // desligada por padrão (contratos)
     const el = eligibility(source);
     if (!el.ok) return { skip: { url, code: 'source_not_eligible', detail: el.reasons.join(',') } };
     let u: URL;
@@ -114,6 +119,7 @@ export class Collector {
 
   /** Coleta o feed da fonte e cada item (limite configurável). */
   async collectFeed(source: Source, limit = 20): Promise<CollectResult> {
+    requireFlag(this.flags, 'editorialCollector');
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }

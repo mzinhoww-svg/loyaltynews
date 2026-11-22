@@ -33,7 +33,7 @@ test('ADR-007: perfis de modelo sem ferramenta de rede', () => {
 });
 
 test('flags padrão desligadas e API pública exportada', () => {
-  assert.ok(Object.values(pkg.DEFAULT_FLAGS).every((v) => v === false));
+  assert.ok(Object.values(pkg.FLAG_DEFAULTS).every((v) => v === false));
   assert.equal(pkg.SIGNATURE, 'Redação Loyalty News');
   assert.equal(typeof pkg.Collector, 'function');
 });

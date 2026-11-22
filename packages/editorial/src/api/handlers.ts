@@ -8,7 +8,7 @@ import {
   buildErratumNotice, buildReplyNotice, closeCase, markEntitiesRebuilt, openCase, ownerAck, preserveEvidence, publishNotice,
   reconcileSocial, triage, verifyCorrectionClaims,
 } from '../corrections/corrections';
-import type { CorrectionCase, Step } from '../corrections/corrections';
+import type { Step } from '../corrections/corrections';
 import type { ArticleRecord, CorrectionRecord, EditorialStore } from './store';
 
 /**
@@ -387,4 +387,3 @@ export async function closeCorrection(ctx: HandlerCtx, input: unknown): Promise<
   return stepResult(ctx, rec, closeCase(rec.case, ctx.now().toISOString()), 'correction.close', a.userId);
 }
 
-export type { CorrectionCase };

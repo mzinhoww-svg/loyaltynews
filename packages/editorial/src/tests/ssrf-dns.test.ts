@@ -6,7 +6,7 @@ import { Collector } from '../collector/collector';
 import { isPublicIp, resolvePublic } from '../collector/net';
 import { createNodeFetcher, pinnedLookup } from '../collector/http-fetcher';
 import { UrlRejected } from '../collector/ssrf';
-import { FakeResolver, MOCK_PUBLIC_IP, MOCK_SOURCE, MockFetcher } from '../../fixtures/mock-web.mock';
+import { FakeResolver, MOCK_PUBLIC_IP, MOCK_SOURCE, MockFetcher, COLLECT_ON } from '../../fixtures/mock-web.mock';
 
 const fixedNow = () => new Date('2026-11-23T12:00:00Z');
 const HOST = 'ri.mock.example';
@@ -42,7 +42,7 @@ test('DNS rebinding: público na 1ª consulta, privado na 2ª => a 2ª requisiç
     [`https://${HOST}/robots.txt`]: ROBOTS,
     [`https://${HOST}/noticias/a`]: PAGE,
   });
-  const r = await new Collector(f, { now: fixedNow, resolver }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/a`);
+  const r = await new Collector(f, { now: fixedNow, resolver, flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/a`);
   assert.equal(r.skip?.code, 'url_rejected');
   assert.match(r.skip!.detail, /não público|169\.254\.169\.254/);
   assert.deepEqual(f.calls, [`https://${HOST}/robots.txt`], 'a página nunca foi requisitada');
@@ -53,7 +53,7 @@ test('pinning: cada requisição conecta no IP validado e há exatamente uma res
   // Se o Fetcher re-resolvesse, receberia outro conjunto. O coletor entrega o IP já validado e não resolve de novo.
   const resolver = new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] });
   const f = new MockFetcher({ [`https://${HOST}/robots.txt`]: ROBOTS, [`https://${HOST}/noticias/a`]: PAGE });
-  const r = await new Collector(f, { now: fixedNow, resolver }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/a`);
+  const r = await new Collector(f, { now: fixedNow, resolver, flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/a`);
   assert.ok(r.evidence);
   assert.equal(f.connects.length, 2);
   assert.ok(f.connects.every((c) => c.address === MOCK_PUBLIC_IP));
@@ -67,7 +67,7 @@ test('redirecionamento revalida o destino: salto que passa a resolver para IP pr
     [`https://${HOST}/noticias/r`]: { status: 302, headers: { location: '/noticias/destino' }, body: '' },
     [`https://${HOST}/noticias/destino`]: PAGE,
   });
-  const r = await new Collector(f, { now: fixedNow, resolver }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/r`);
+  const r = await new Collector(f, { now: fixedNow, resolver, flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/r`);
   assert.equal(r.skip?.code, 'url_rejected');
   assert.ok(!f.calls.includes(`https://${HOST}/noticias/destino`), 'destino do redirecionamento não foi requisitado');
 });
@@ -75,7 +75,7 @@ test('redirecionamento revalida o destino: salto que passa a resolver para IP pr
 test('resolvedor devolvendo IPv6 equivalentes a privado/loopback/metadata é recusado', async () => {
   for (const ip of ['::1', '::ffff:127.0.0.1', '::ffff:a9fe:a9fe', 'fd00::1', 'fe80::1']) {
     const f = new MockFetcher({ [`https://${HOST}/robots.txt`]: ROBOTS, [`https://${HOST}/noticias/a`]: PAGE });
-    const r = await new Collector(f, { resolver: new FakeResolver({ [HOST]: [[ip]] }) }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/a`);
+    const r = await new Collector(f, { flags: COLLECT_ON, resolver: new FakeResolver({ [HOST]: [[ip]] }) }).collectUrl(MOCK_SOURCE, `https://${HOST}/noticias/a`);
     assert.ok(r.skip, ip);
     assert.equal(f.calls.length, 0, `${ip}: nenhuma requisição enviada`);
   }
