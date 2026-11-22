@@ -7,10 +7,14 @@ import { defineConfig, devices } from '@playwright/test';
  * Screenshots: apps/web/e2e/screenshots/<modo>/<projeto>-<página>.png
  */
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock';
-const port = mode === 'mock' ? 3102 : 3101;
+// APP_ENV do servidor sob teste: production (padrão) ou staging. Portas distintas evitam reaproveitar servidor com outro ambiente.
+const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
+const port = mode === 'mock' ? 3102 : appEnv === 'production' ? 3101 : 3103;
 
 export default defineConfig({
   testDir: './portal',
+  // Em staging só a suíte de ambiente (as demais assumem indexação de produção).
+  testMatch: appEnv === 'production' ? /.*\.spec\.ts/ : /env\.spec\.ts/,
   outputDir: '../.test-results/portal',
   fullyParallel: true,
   retries: 0,
@@ -28,6 +32,6 @@ export default defineConfig({
         url: `http://localhost:${port}`,
         reuseExistingServer: true,
         timeout: 120_000,
-        env: { PORTAL_SOURCE: mode, NEXT_TELEMETRY_DISABLED: '1' },
+        env: { PORTAL_SOURCE: mode, APP_ENV: appEnv, NEXT_PUBLIC_SITE_URL: 'https://portal.example.test', NEXT_TELEMETRY_DISABLED: '1' },
       },
 });

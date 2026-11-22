@@ -1,16 +1,18 @@
 import type { MetadataRoute } from 'next';
 import { EDITORIAS } from './_lib/editorias';
 import { flags } from './_lib/flags';
+import { indexingBlocked } from './_lib/indexing';
 import { INFO_SLUGS } from './_lib/institutional';
 import { SITE_URL } from './_lib/site';
 import { getSource } from './_lib/source';
 
-export const revalidate = 3600;
+// Decidido em tempo de execução (APP_ENV): fora de produção o sitemap é vazio.
+export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const src = getSource();
-  // Portal MOCK: sitemap vazio (nem a home, que também tem conteúdo sintético).
-  if (src.kind === 'mock') return [];
+  // Fora de produção (staging, homologação, dev) ou com fonte MOCK: sitemap vazio, nem a home.
+  if (indexingBlocked() || src.kind === 'mock') return [];
 
   const abs = (p: string) => `${SITE_URL}${p}`;
   const staticPaths = [
