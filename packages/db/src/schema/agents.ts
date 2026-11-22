@@ -31,8 +31,14 @@ export const meetingRuns = pgTable(
   {
     id: uuid('id').primaryKey(),
     meetingId: text('meeting_id').notNull(),
+    /** Data ORIGINAL da ocorrência (parte da chave de idempotência P5 v2), antes de qualquer deslocamento por feriado. */
     localDate: date('local_date').notNull(),
     instance: text('instance').notNull().default(''),
+    /** Data em que a ocorrência efetivamente vencia/rodou, se foi movida (feriado); nula se não houve deslocamento. */
+    rescheduledDate: date('rescheduled_date'),
+    rescheduleReason: text('reschedule_reason'),
+    /** Todas as chaves de idempotência cobertas pela execução (a primária e, em colisão, as demais): `meeting_id+data_original`. */
+    idempotencyKeys: jsonb('idempotency_keys').notNull().default(sql`'[]'::jsonb`),
     scheduledFor: timestamp('scheduled_for', { withTimezone: true }).notNull(),
     executedAt: timestamp('executed_at', { withTimezone: true }).notNull(),
     status: text('status').notNull(),
@@ -47,12 +53,14 @@ export const meetingRuns = pgTable(
     quorumMinimum: integer('quorum_minimum').notNull(),
   },
   (t) => [
-    // idempotência: recovery_policy.idempotency_key = meeting_id + local_date (+ instance p/ eventos)
+    // idempotência (P5 v2): meeting_id + data ORIGINAL da ocorrência (+ instance p/ eventos); local_date É a data original
+    // (Frente 07, rodada 3: antes de P5 v2 era a data efetiva).
     unique('meeting_runs_idem_uq').on(t.meetingId, t.localDate, t.instance),
     check('meeting_runs_status_ck', sql`${t.status} IN ('completed','status_only','waiting')`),
     check('meeting_runs_reason_ck', sql`${t.reason} IS NULL OR ${t.reason} IN ('no_inputs_or_decisions','quorum_not_met','recovery_window_expired','host_off_previous_day')`),
     check('meeting_runs_delay_ck', sql`${t.delayMinutes} >= 0`),
     check('meeting_runs_model_calls_ck', sql`${t.modelCalls} >= 0`),
+    check('meeting_runs_reschedule_ck', sql`(${t.rescheduledDate} IS NULL AND ${t.rescheduleReason} IS NULL) OR (${t.rescheduledDate} IS NOT NULL AND ${t.rescheduledDate} > ${t.localDate} AND ${t.rescheduleReason} IS NOT NULL AND ${t.rescheduleReason} = 'holiday_move')`),
     check('meeting_runs_reason_status_ck', sql`(${t.status} = 'status_only' AND ${t.reason} IS NOT NULL) OR (${t.status} <> 'status_only' AND ${t.reason} IS NULL)`),
   ],
 );
@@ -80,7 +88,7 @@ export const meetingDecisions = pgTable(
   },
   (t) => [
     index('meeting_decisions_run_idx').on(t.runId),
-    check('meeting_decisions_status_ck', sql`${t.status} IN ('approved','pending_human','rejected_invalid_authority')`),
+    check('meeting_decisions_status_ck', sql`${t.status} IN ('approved','pending_human','pending_verifier','rejected_invalid_authority')`),
   ],
 );
 

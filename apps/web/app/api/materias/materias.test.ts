@@ -33,6 +33,7 @@ const draft = (over: Record<string, unknown> = {}) => ({
   slug: `materia-${++n}`,
   titulo: 'Programa muda regra de pontos',
   editoria: 'pontos',
+  resumo: 'Resumo curto da matéria.',
   corpo: 'Texto da matéria com fatos verificáveis.',
   evidenceIds: [ev[0]],
   ...over,
@@ -233,6 +234,22 @@ describe('publicação só com recibo (ADR-008)', () => {
     const t = await go(c.id, 'em_checagem');
     expect(t.status).toBe(422);
     expect(t.body.error.code).toBe('GATES_FAILED');
+  });
+
+  it('resumo é obrigatório para aprovar; tipo patrocinado exige rótulo; tempo de leitura derivado', async () => {
+    const a = await create({ resumo: undefined });
+    await go(a.id, 'em_checagem');
+    const r = await receipt(a.id, a.versao);
+    expect(r.status).toBe(422);
+    expect(r.body.error.details.join(' ')).toMatch(/resumo obrigatório/);
+    expect((await call(materias.POST, 'POST', { body: draft({ resumo: 'x'.repeat(301) }), as: editor })).status).toBe(400);
+    expect((await call(materias.POST, 'POST', { body: draft({ tipoConteudo: 'patrocinado' }), as: editor })).status).toBe(400);
+    expect((await call(materias.POST, 'POST', { body: draft({ tipoConteudo: 'patrocinado', patrocinado: true, rotuloPublieditorial: 'Publieditorial' }), as: editor })).status).toBe(201);
+    expect((await call(materias.POST, 'POST', { body: draft({ tipoConteudo: 'inventado' }), as: editor })).status).toBe(400);
+    const u = await call(materia.PATCH, 'PATCH', { params: { id: a.id }, body: { versaoEsperada: 1, tipoConteudo: 'patrocinado' }, as: editor });
+    expect(u.status).toBe(409); // em checagem não edita
+    const g = await call(materia.GET, 'GET', { params: { id: a.id }, as: leitor });
+    expect(g.body.data).toMatchObject({ tipoConteudo: 'noticia', tempoLeituraMin: 1 });
   });
 
   it('transições inválidas, notas obrigatórias e não publicar a partir de rascunho', async () => {

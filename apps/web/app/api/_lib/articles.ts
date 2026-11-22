@@ -4,7 +4,7 @@
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
-import { ASSINATURA, canTransition, isImagePublishable, ImageRights, type ArticleStatus } from '@ln/contracts';
+import { ASSINATURA, canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
 import { contentSha256 } from './content-hash';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
@@ -57,6 +57,7 @@ export function gateFailures(a: ArticleRow, evidenceCount: number): string[] {
   const f: string[] = [];
   if (evidenceCount < 1) f.push('fontes: ao menos uma evidência');
   if (a.assinatura !== ASSINATURA) f.push('assinatura institucional');
+  if (!a.resumo) f.push('resumo obrigatório (até 300 caracteres)');
   if (a.patrocinado && !a.rotuloPublieditorial) f.push('conteúdo pago sem rótulo');
   if (a.classeDeDado !== 'public') f.push(`classe de dado ${a.classeDeDado} não é publicável`);
   if (a.imagem != null) {
@@ -73,6 +74,9 @@ function serialize(a: ArticleRow, withBody = true) {
     slug: a.slug,
     titulo: a.titulo,
     subtitulo: a.subtitulo,
+    resumo: a.resumo,
+    tipoConteudo: a.tipoConteudo,
+    tempoLeituraMin: readingTimeMinutes(a.corpo),
     editoria: a.editoria,
     status: a.status,
     assinatura: a.assinatura,
@@ -159,6 +163,8 @@ export const createArticle: RouteFn = async (req, c) => {
       slug: b.slug,
       titulo: b.titulo,
       subtitulo: b.subtitulo ?? null,
+      resumo: b.resumo ?? null,
+      tipoConteudo: b.tipoConteudo,
       editoria: b.editoria,
       corpo: b.corpo,
       imagem: b.imagem ?? null,
@@ -182,6 +188,10 @@ export const updateArticle: RouteFn = async (req, c) => {
   const patrocinado = b.patrocinado ?? a.patrocinado;
   const rotulo = b.rotuloPublieditorial === undefined ? a.rotuloPublieditorial : b.rotuloPublieditorial;
   if (patrocinado && !rotulo) throw new HttpError(422, 'VALIDATION_ERROR', 'Conteúdo pago sempre rotulado (F-074).', [{ path: 'rotuloPublieditorial', message: 'obrigatório' }]);
+  const tipo = b.tipoConteudo ?? a.tipoConteudo;
+  if (tipo === 'patrocinado' && !patrocinado) {
+    throw new HttpError(422, 'VALIDATION_ERROR', 'Tipo patrocinado exige patrocinado=true (rótulo).', [{ path: 'patrocinado', message: 'obrigatório' }]);
+  }
   const { versaoEsperada, ...fields } = b;
   const updated = await c.deps.db
     .update(schema.articles)
@@ -335,6 +345,9 @@ export const publicListArticles: RouteFn = async (_req, c) => {
         slug: r.slug,
         titulo: r.titulo,
         subtitulo: r.subtitulo,
+        resumo: r.resumo,
+        tipoConteudo: r.tipoConteudo,
+        tempoLeituraMin: readingTimeMinutes(r.corpo),
         editoria: r.editoria,
         assinatura: r.assinatura,
         patrocinado: r.patrocinado,
@@ -370,6 +383,9 @@ export const publicGetArticle: RouteFn = async (_req, c) => {
     slug: a.slug,
     titulo: a.titulo,
     subtitulo: a.subtitulo,
+    resumo: a.resumo,
+    tipoConteudo: a.tipoConteudo,
+    tempoLeituraMin: readingTimeMinutes(a.corpo),
     editoria: a.editoria,
     assinatura: a.assinatura,
     corpo: a.corpo,

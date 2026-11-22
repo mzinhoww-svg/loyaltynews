@@ -1,5 +1,5 @@
 {
-  "id": "0b428a0d-794d-48e4-ab23-2c1e8c799e78",
+  "id": "a08f8080-d2ad-41cb-a1d9-fb58114bead9",
   "prevId": "8ebf78bc-4766-419b-9828-75273538fd55",
   "version": "7",
   "dialect": "postgresql",
@@ -1955,80 +1955,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.company_evidences": {
-      "name": "company_evidences",
-      "schema": "",
-      "columns": {
-        "company_id": {
-          "name": "company_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "evidence_id": {
-          "name": "evidence_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "company_evidences_pk": {
-          "name": "company_evidences_pk",
-          "columns": [
-            {
-              "expression": "company_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "evidence_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "company_evidences_company_id_companies_id_fk": {
-          "name": "company_evidences_company_id_companies_id_fk",
-          "tableFrom": "company_evidences",
-          "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "company_evidences_evidence_id_evidences_id_fk": {
-          "name": "company_evidences_evidence_id_evidences_id_fk",
-          "tableFrom": "company_evidences",
-          "tableTo": "evidences",
-          "columnsFrom": [
-            "evidence_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.media": {
       "name": "media",
       "schema": "",
@@ -2183,80 +2109,6 @@
           "value": "\"publication_receipts\".\"conteudo_sha256\" ~ '^[0-9a-f]{64}$'"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.source_editorias": {
-      "name": "source_editorias",
-      "schema": "",
-      "columns": {
-        "source_id": {
-          "name": "source_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "editoria": {
-          "name": "editoria",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "source_editorias_pk": {
-          "name": "source_editorias_pk",
-          "columns": [
-            {
-              "expression": "source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "editoria",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "source_editorias_source_id_sources_id_fk": {
-          "name": "source_editorias_source_id_sources_id_fk",
-          "tableFrom": "source_editorias",
-          "tableTo": "sources",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "source_editorias_editoria_editorias_slug_fk": {
-          "name": "source_editorias_editoria_editorias_slug_fk",
-          "tableFrom": "source_editorias",
-          "tableTo": "editorias",
-          "columnsFrom": [
-            "editoria"
-          ],
-          "columnsTo": [
-            "slug"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.ad_creatives": {
@@ -3885,7 +3737,7 @@
       "checkConstraints": {
         "meeting_decisions_status_ck": {
           "name": "meeting_decisions_status_ck",
-          "value": "\"meeting_decisions\".\"status\" IN ('approved','pending_human','rejected_invalid_authority')"
+          "value": "\"meeting_decisions\".\"status\" IN ('approved','pending_human','pending_verifier','rejected_invalid_authority')"
         }
       },
       "isRLSEnabled": false
@@ -4040,6 +3892,25 @@
           "notNull": true,
           "default": "''"
         },
+        "rescheduled_date": {
+          "name": "rescheduled_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reschedule_reason": {
+          "name": "reschedule_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idempotency_keys": {
+          "name": "idempotency_keys",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "scheduled_for": {
           "name": "scheduled_for",
           "type": "timestamp with time zone",
@@ -4149,6 +4020,10 @@
         "meeting_runs_model_calls_ck": {
           "name": "meeting_runs_model_calls_ck",
           "value": "\"meeting_runs\".\"model_calls\" >= 0"
+        },
+        "meeting_runs_reschedule_ck": {
+          "name": "meeting_runs_reschedule_ck",
+          "value": "(\"meeting_runs\".\"rescheduled_date\" IS NULL AND \"meeting_runs\".\"reschedule_reason\" IS NULL) OR (\"meeting_runs\".\"rescheduled_date\" IS NOT NULL AND \"meeting_runs\".\"rescheduled_date\" > \"meeting_runs\".\"local_date\" AND \"meeting_runs\".\"reschedule_reason\" IS NOT NULL AND \"meeting_runs\".\"reschedule_reason\" = 'holiday_move')"
         },
         "meeting_runs_reason_status_ck": {
           "name": "meeting_runs_reason_status_ck",

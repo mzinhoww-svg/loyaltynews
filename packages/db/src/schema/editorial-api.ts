@@ -4,7 +4,7 @@
 // Architect pode substituir. Sem dado pessoal; sem métrica fictícia.
 import { sql } from 'drizzle-orm';
 import { boolean, check, date, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { articles, companies, editorias, evidences, sources } from '../schema';
+import { articles, editorias, sources } from '../schema';
 
 /** Recibo de publicação (ADR-008): liga a versão e o hash do corpo às checagens que a aprovaram. */
 export const publicationReceipts = pgTable(
@@ -80,14 +80,4 @@ export const sourceEditorias = pgTable(
     editoria: text('editoria').notNull().references(() => editorias.slug),
   },
   (t) => [uniqueIndex('source_editorias_pk').on(t.sourceId, t.editoria)],
-);
-
-/** Contrato Company.fontes (min 1): evidências que sustentam a empresa. */
-export const companyEvidences = pgTable(
-  'company_evidences',
-  {
-    companyId: text('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
-    evidenceId: text('evidence_id').notNull().references(() => evidences.id),
-  },
-  (t) => [uniqueIndex('company_evidences_pk').on(t.companyId, t.evidenceId)],
 );

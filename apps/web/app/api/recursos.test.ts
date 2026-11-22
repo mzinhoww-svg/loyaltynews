@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { schema } from '@ln/db';
-import { call, makeApp, seedEvidence } from './_lib/testkit';
+import { call, makeApp } from './_lib/testkit';
 import * as fontes from './fontes/route';
 import * as fonte from './fontes/[id]/route';
 import * as evidencias from './fontes/[id]/evidencias/route';
@@ -9,9 +8,6 @@ import * as midiaUma from './midia/[id]/route';
 import * as agenda from './agenda/route';
 import * as agendaUma from './agenda/[id]/route';
 import * as pubAgenda from './publico/agenda/route';
-import * as empresas from './entidades/empresas/route';
-import * as empresa from './entidades/empresas/[id]/route';
-import * as pessoas from './entidades/pessoas/route';
 import * as materias from './materias/route';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -113,53 +109,9 @@ describe('agenda', () => {
   });
 });
 
-describe('entidades', () => {
-  it('empresa exige evidência existente; CRUD; exclusão barrada se houver pessoa', async () => {
-    const [e1, e2] = await seedEvidence(app.db, 2);
-    const body = { id: 'emp-1', nome: 'Programa Alfa', site: 'https://alfa.example', setor: 'varejo', evidenceIds: [e1] };
-    expect((await call(empresas.POST, 'POST', { body: { ...body, evidenceIds: [] }, as: editor })).status).toBe(400);
-    expect((await call(empresas.POST, 'POST', { body: { ...body, evidenceIds: ['nada'] }, as: editor })).body.error.code).toBe('UNKNOWN_EVIDENCE');
-    expect((await call(empresas.POST, 'POST', { body: { ...body, site: 'javascript:1' }, as: editor })).status).toBe(400);
-    const c = await call(empresas.POST, 'POST', { body, as: editor });
-    expect(c.status).toBe(201);
-    expect(c.body.data.evidenceIds).toEqual([e1]);
-    const p = await call(empresa.PATCH, 'PATCH', { params: { id: 'emp-1' }, body: { setor: null, evidenceIds: [e1, e2] }, as: editor });
-    expect(p.body.data).toMatchObject({ setor: null });
-    expect(p.body.data.evidenceIds).toHaveLength(2);
-    expect((await call(empresa.GET, 'GET', { params: { id: 'emp-1' }, as: leitor })).status).toBe(200);
-    expect((await call(empresas.GET, 'GET', { as: leitor })).body.data).toHaveLength(1);
-    expect((await call(empresas.POST, 'POST', { body, as: editor })).status).toBe(409);
-    expect((await call(empresa.DELETE, 'DELETE', { params: { id: 'emp-1' }, as: leitor })).status).toBe(403);
-    await app.db.insert(schema.people).values({ id: 'p1', nome: 'N', cargo: 'C', empresaId: 'emp-1', evidenceId: e1! });
-    expect((await call(empresa.DELETE, 'DELETE', { params: { id: 'emp-1' }, as: chefe })).status).toBe(409);
-    await app.db.delete(schema.people);
-    expect((await call(empresa.DELETE, 'DELETE', { params: { id: 'emp-1' }, as: chefe })).status).toBe(204);
-  });
-
-  it('pessoas: ingestão desligada por flag (padrão); ligada, aceita só nome, cargo, empresa e evidência', async () => {
-    const [e1] = await seedEvidence(app.db, 1);
-    await call(empresas.POST, 'POST', { body: { id: 'emp-2', nome: 'Beta', evidenceIds: [e1] }, as: editor });
-    const person = { id: 'pe-1', nome: 'Fulana', cargo: 'Diretora', empresaId: 'emp-2', evidenceId: e1 };
-    const off = await call(pessoas.POST, 'POST', { body: person, as: editor });
-    expect(off.status).toBe(403);
-    expect(off.body.error.code).toBe('FEATURE_DISABLED');
-    expect((await call(pessoas.GET, 'GET', { as: leitor })).body.data).toHaveLength(0);
-
-    app.deps.flags.intelligencePessoas = true;
-    try {
-      expect((await call(pessoas.POST, 'POST', { body: { ...person, email: 'x@y.z' }, as: editor })).status).toBe(400); // dado pessoal além do P4
-      expect((await call(pessoas.POST, 'POST', { body: { ...person, telefone: '1' }, as: editor })).status).toBe(400);
-      expect((await call(pessoas.POST, 'POST', { body: person, as: editor })).status).toBe(201);
-      expect((await call(pessoas.POST, 'POST', { body: { ...person, id: 'pe-2', empresaId: 'inexistente' }, as: editor })).status).toBe(409);
-    } finally {
-      app.deps.flags.intelligencePessoas = false;
-    }
-  });
-});
-
 describe('sessão e papel valem em todas as rotas novas', () => {
   it('sem login 401; comercial não escreve em matérias/fontes', async () => {
-    for (const h of [fontes.GET, midia.GET, agenda.GET, empresas.GET, pessoas.GET]) expect((await call(h, 'GET', {})).status).toBe(401);
+    for (const h of [fontes.GET, midia.GET, agenda.GET]) expect((await call(h, 'GET', {})).status).toBe(401);
     expect((await call(fontes.POST, 'POST', { body: {}, as: comercial })).status).toBe(403);
     expect((await call(materias.POST, 'POST', { body: {}, as: comercial })).status).toBe(403);
   });

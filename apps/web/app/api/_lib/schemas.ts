@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import {
   ArticleStatus,
+  ContentType,
   DataClass,
   EditoriaSlug,
   EvidenceRef,
@@ -29,6 +30,8 @@ const ArticleBase = {
   titulo: z.string().min(1).max(200),
   subtitulo: z.string().max(300).optional(),
   editoria: EditoriaSlug,
+  resumo: z.string().min(1).max(300).optional(),
+  tipoConteudo: ContentType.default('noticia'),
   corpo: z.string().min(1),
   imagem: SafeImage.optional(),
   classeDeDado: DataClass.default('public'),
@@ -41,6 +44,10 @@ export const ArticleCreate = z
   .refine((a) => !a.patrocinado || Boolean(a.rotuloPublieditorial), {
     message: 'conteúdo pago sempre rotulado (F-074)',
     path: ['rotuloPublieditorial'],
+  })
+  .refine((a) => a.tipoConteudo !== 'patrocinado' || a.patrocinado, {
+    message: 'tipo patrocinado exige patrocinado=true (rótulo)',
+    path: ['patrocinado'],
   });
 
 export const ArticleUpdate = z
@@ -49,6 +56,8 @@ export const ArticleUpdate = z
     titulo: ArticleBase.titulo.optional(),
     subtitulo: z.string().max(300).nullable().optional(),
     editoria: EditoriaSlug.optional(),
+    resumo: z.string().min(1).max(300).nullable().optional(),
+    tipoConteudo: ContentType.optional(),
     corpo: ArticleBase.corpo.optional(),
     imagem: SafeImage.nullable().optional(),
     classeDeDado: DataClass.optional(),
@@ -116,32 +125,6 @@ export const MediaCreate = z.strictObject({
 
 export const MediaQuery = z.object({ tipo: z.enum(['imagem', 'video', 'documento']).optional() });
 export const AgendaQuery = z.object({ from: IsoDate.optional(), to: IsoDate.optional() });
-
-export const CompanyCreate = z.strictObject({
-  id: Id,
-  nome: z.string().min(1),
-  nomeLegal: z.string().min(1).optional(),
-  site: HttpUrl.optional(),
-  setor: z.string().min(1).optional(),
-  evidenceIds: z.array(Id).min(1).max(50),
-});
-export const CompanyPatch = z
-  .strictObject({
-    nome: z.string().min(1).optional(),
-    nomeLegal: z.string().min(1).nullable().optional(),
-    site: HttpUrl.nullable().optional(),
-    setor: z.string().min(1).nullable().optional(),
-    evidenceIds: z.array(Id).min(1).max(50).optional(),
-  })
-  .refine((u) => Object.keys(u).length > 0, { message: 'nenhum campo para alterar' });
-/** Pessoa (DP-11/P4): só nome, cargo, empresa e a evidência pública. Qualquer outro campo é recusado. */
-export const PersonCreate = z.strictObject({
-  id: Id,
-  nome: z.string().min(1),
-  cargo: z.string().min(1),
-  empresaId: Id,
-  evidenceId: Id,
-});
 
 export const AgendaCreate = z
   .strictObject({
