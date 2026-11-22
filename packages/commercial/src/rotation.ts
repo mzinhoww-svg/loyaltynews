@@ -1,5 +1,8 @@
 // Rotação ponderada de anúncios com contagem de impressões servidas/visíveis e cliques válidos.
 // Regras (Blueprint v2.0 §4): sem inflar impressões por auto-refresh; excluir bots e tráfego interno; fallback house ad.
+import { ImpressionLedger, viewKey, type LedgerSnapshot } from './ledger';
+import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone } from './snapshot';
+
 export interface Creative {
   id: string; campaignId: string; positionId: string;
   /** Peso relativo (>0). Pesos iguais => share of voice igual (ex.: 25% no TOP com 4 anunciantes). */
@@ -16,16 +19,40 @@ export interface ServeRequest {
 export interface ServeResult { kind: 'creative' | 'house' | 'ignored'; creativeId: string | null; impressionId: string | null; counted: boolean; reason?: string }
 
 export interface DeliveryCounters { served: number; visible: number; clicks: number; ignoredBotOrInternal: number; refreshSuppressed: number }
+const ZERO = (): DeliveryCounters => ({ served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 });
+
+export interface AdServerSnapshot {
+  version: typeof SNAPSHOT_VERSION;
+  creatives: Creative[];
+  counters: Record<string, DeliveryCounters>;
+  /** Estado da rotação ponderada (crédito por `posição|criativo`). Aproximação por instância é aceitável. */
+  credit: Record<string, number>;
+  /** Livro de impressões (dedupe). Em produção vem do armazenamento compartilhado, não do snapshot do ad server. */
+  ledger: LedgerSnapshot;
+}
+
+/** Diferença `after - before` por criativo; só devolve criativos com alguma variação. Base do UPSERT em ad_delivery_daily. */
+export function diffCounters(before: Readonly<Record<string, DeliveryCounters>>, after: Readonly<Record<string, DeliveryCounters>>): Record<string, DeliveryCounters> {
+  const out: Record<string, DeliveryCounters> = {};
+  for (const [id, a] of Object.entries(after)) {
+    const b = before[id] ?? ZERO();
+    const d: DeliveryCounters = {
+      served: a.served - b.served, visible: a.visible - b.visible, clicks: a.clicks - b.clicks,
+      ignoredBotOrInternal: a.ignoredBotOrInternal - b.ignoredBotOrInternal, refreshSuppressed: a.refreshSuppressed - b.refreshSuppressed,
+    };
+    if (Object.values(d).some((v) => v !== 0)) out[id] = d;
+  }
+  return out;
+}
 
 export class AdServer {
   private creatives: Creative[] = [];
   private credit = new Map<string, number>(); // smooth weighted round-robin por posição
-  private views = new Map<string, string>();   // `${pageViewId}|${positionId}` -> impressionId
-  private impressionCreative = new Map<string, string>();
-  private visibleSet = new Set<string>();
-  private clickedSet = new Set<string>();
   private counters = new Map<string, DeliveryCounters>();
-  private seq = 0;
+  /** Dedupe de impressões. Injetável: instâncias compartilham a verdade via armazenamento externo (ver ledger.ts). */
+  readonly ledger: ImpressionLedger;
+
+  constructor(ledger: ImpressionLedger = new ImpressionLedger()) { this.ledger = ledger; }
 
   addCreative(c: Creative): void {
     if (!(c.weight > 0)) throw new Error('weight deve ser > 0');
@@ -37,7 +64,7 @@ export class AdServer {
   }
   private counter(creativeId: string): DeliveryCounters {
     let c = this.counters.get(creativeId);
-    if (!c) { c = { served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 }; this.counters.set(creativeId, c); }
+    if (!c) { c = ZERO(); this.counters.set(creativeId, c); }
     return c;
   }
   creativesOf(campaignId: string): readonly Creative[] { return this.creatives.filter((c) => c.campaignId === campaignId); }
@@ -54,20 +81,17 @@ export class AdServer {
       if (pick) this.counter(pick.id).ignoredBotOrInternal++;
       return { kind: 'ignored', creativeId: pick?.id ?? null, impressionId: null, counted: false, reason: req.isBot ? 'bot' : 'interno' };
     }
-    const key = `${req.pageViewId}|${req.positionId}`;
-    const existing = this.views.get(key);
+    const key = viewKey(req.pageViewId, req.positionId);
+    const existing = this.ledger.byViewKey(key);
     if (existing) { // auto-refresh/reuso da mesma visualização de página: não infla
-      const cid = this.impressionCreative.get(existing)!;
-      this.counter(cid).refreshSuppressed++;
-      return { kind: 'creative', creativeId: cid, impressionId: existing, counted: false, reason: 'refresh' };
+      this.counter(existing.creativeId).refreshSuppressed++;
+      return { kind: 'creative', creativeId: existing.creativeId, impressionId: existing.impressionId, counted: false, reason: 'refresh' };
     }
     const pick = this.pick(elig, req.positionId, true);
     if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo elegível; house ad' };
-    const imp = `imp-${++this.seq}`;
-    this.views.set(key, imp);
-    this.impressionCreative.set(imp, pick.id);
+    const e = this.ledger.register(key, pick.id);
     this.counter(pick.id).served++;
-    return { kind: 'creative', creativeId: pick.id, impressionId: imp, counted: true };
+    return { kind: 'creative', creativeId: pick.id, impressionId: e.impressionId, counted: true };
   }
 
   /** Smooth weighted round-robin (determinístico). */
@@ -89,26 +113,51 @@ export class AdServer {
 
   /** Impressão visível: reportada pelo cliente, só vale uma vez por impressão servida. */
   recordVisible(impressionId: string): boolean {
-    const cid = this.impressionCreative.get(impressionId);
-    if (!cid || this.visibleSet.has(impressionId)) return false;
-    this.visibleSet.add(impressionId); this.counter(cid).visible++; return true;
+    const e = this.ledger.byImpressionId(impressionId);
+    if (!e || !this.ledger.markVisible(impressionId)) return false;
+    this.counter(e.creativeId).visible++; return true;
   }
   /** Clique válido: precisa de impressão servida real e é contado uma vez por impressão. */
   recordClick(impressionId: string): boolean {
-    const cid = this.impressionCreative.get(impressionId);
-    if (!cid || this.clickedSet.has(impressionId)) return false;
-    this.clickedSet.add(impressionId); this.counter(cid).clicks++; return true;
+    const e = this.ledger.byImpressionId(impressionId);
+    if (!e || !this.ledger.markClicked(impressionId)) return false;
+    this.counter(e.creativeId).clicks++; return true;
   }
   delivery(creativeId: string): DeliveryCounters & { ctr: number | null } {
     const c = { ...this.counter(creativeId) };
     return { ...c, ctr: c.served > 0 ? c.clicks / c.served : null }; // null = sem entrega, nunca 0% falso
   }
   campaignDelivery(campaignId: string): DeliveryCounters & { ctr: number | null } {
-    const sum: DeliveryCounters = { served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 };
+    const sum = ZERO();
     for (const cr of this.creatives.filter((x) => x.campaignId === campaignId)) {
       const c = this.counter(cr.id);
       for (const k of Object.keys(sum) as (keyof DeliveryCounters)[]) sum[k] += c[k];
     }
     return { ...sum, ctr: sum.served > 0 ? sum.clicks / sum.served : null };
+  }
+
+  // ---------- hidratação e persistência ----------
+  /** Contadores acumulados de todos os criativos (cópia). Compare com `loadCounters` para obter o delta do ciclo. */
+  countersSnapshot(): Record<string, DeliveryCounters> { return clone(Object.fromEntries(this.counters)); }
+  /** Substitui os criativos (ex.: lidos de ad_creatives). Peso inválido ou ids repetidos são recusados. */
+  loadCreatives(creatives: readonly Creative[]): void {
+    assertUnique(creatives.map((c) => c.id), 'AdServer.creatives');
+    for (const c of creatives) if (!(c.weight > 0)) throw new Error(`Criativo ${c.id}: weight deve ser > 0`);
+    this.creatives = clone([...creatives]);
+  }
+  /** Substitui os contadores (ex.: somatório de ad_delivery_daily). */
+  loadCounters(counters: Readonly<Record<string, DeliveryCounters>>): void {
+    this.counters = new Map(Object.entries(clone(counters)));
+  }
+  snapshot(): AdServerSnapshot {
+    return { version: SNAPSHOT_VERSION, creatives: clone(this.creatives), counters: this.countersSnapshot(), credit: Object.fromEntries(this.credit), ledger: this.ledger.snapshot() };
+  }
+  /** Restaura tudo, inclusive o livro de impressões do próprio snapshot. */
+  load(s: AdServerSnapshot): void {
+    assertSnapshot(s, 'AdServer', ['creatives']);
+    this.loadCreatives(s.creatives);
+    this.loadCounters(s.counters ?? {});
+    this.credit = new Map(Object.entries(s.credit ?? {}));
+    if (s.ledger) this.ledger.load(s.ledger);
   }
 }

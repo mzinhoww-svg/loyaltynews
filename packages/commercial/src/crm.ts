@@ -1,3 +1,5 @@
+import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone, maxSeq } from './snapshot';
+
 // CRM comercial: leads (do mídia kit), contas, oportunidades.
 // Fluxo: lead -> qualificação -> oportunidade (novo, qualificado, proposta, negociação, ganho/perdido, motivo, próxima ação).
 export type OpportunityStage = 'novo' | 'qualificado' | 'proposta' | 'negociacao' | 'ganho' | 'perdido';
@@ -20,6 +22,7 @@ export interface Opportunity {
   amountBRL: number | null; proposalVersions: number;
   history: { from: OpportunityStage | null; to: OpportunityStage; at: string }[];
 }
+export interface CrmSnapshot { version: typeof SNAPSHOT_VERSION; seq: number; leads: Lead[]; accounts: Account[]; opportunities: Opportunity[] }
 export class CrmError extends Error {
   code: 'INVALID_LEAD' | 'NOT_FOUND' | 'BAD_STAGE' | 'LOST_REASON_REQUIRED';
   constructor(code: CrmError['code'], msg: string) { super(msg); this.code = code; }
@@ -38,6 +41,19 @@ export class Crm {
   accounts = new Map<string, Account>();
   opportunities = new Map<string, Opportunity>();
   private seq = 0;
+
+  // ---------- hidratação e persistência ----------
+  snapshot(): CrmSnapshot {
+    return { version: SNAPSHOT_VERSION, seq: this.seq, leads: clone([...this.leads.values()]), accounts: clone([...this.accounts.values()]), opportunities: clone([...this.opportunities.values()]) };
+  }
+  /** Substitui todo o estado. Recalcula o contador de ids a partir dos ids carregados (nunca reutiliza um id existente). */
+  load(s: CrmSnapshot): void {
+    assertSnapshot(s, 'Crm', ['leads', 'accounts', 'opportunities']);
+    assertUnique(s.leads.map((x) => x.id), 'Crm.leads'); assertUnique(s.accounts.map((x) => x.id), 'Crm.accounts'); assertUnique(s.opportunities.map((x) => x.id), 'Crm.opportunities');
+    const c = clone(s);
+    this.leads = new Map(c.leads.map((x) => [x.id, x])); this.accounts = new Map(c.accounts.map((x) => [x.id, x])); this.opportunities = new Map(c.opportunities.map((x) => [x.id, x]));
+    this.seq = Math.max(s.seq ?? 0, maxSeq([...this.leads.keys(), ...this.accounts.keys(), ...this.opportunities.keys()]));
+  }
 
   /** Captura do formulário do mídia kit. Não cria reserva de inventário. */
   captureLead(input: { name: string; company: string; email: string; whatsapp?: string; formatIds?: string[]; objective?: string; message?: string; newsletterOptIn?: boolean }, now: string): Lead {
