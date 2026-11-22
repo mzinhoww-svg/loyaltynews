@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AD_FORMATS, EDITORIAS } from '@ln/contracts';
+import { EDITORIAS } from '@ln/contracts';
 import { createTestDb } from './testing';
 import * as s from './schema';
 
@@ -13,11 +13,10 @@ afterAll(async () => {
 });
 
 describe('migrações em PGlite', () => {
-  it('carregam as 10 editorias e os 47 formatos', async () => {
+  // A carga dos 47 formatos (com preço) é testada pela Frente 10 a partir do catálogo de @ln/commercial.
+  it('carregam as 10 editorias', async () => {
     await t.db.insert(s.editorias).values(EDITORIAS.map((e) => ({ slug: e.slug, nome: e.nome })));
-    await t.db.insert(s.adFormats).values(AD_FORMATS.map((f) => ({ ...f })));
     expect(await t.db.$count(s.editorias)).toBe(10);
-    expect(await t.db.$count(s.adFormats)).toBe(47);
   });
 
   it('matéria com a assinatura institucional é gravada; outra assinatura é recusada pelo banco', async () => {
