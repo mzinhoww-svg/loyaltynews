@@ -162,3 +162,88 @@ export const RoleObservation = z.object({
   extra: z.record(z.string(), z.unknown()).optional(),
 });
 export type RoleObservation = z.infer<typeof RoleObservation>;
+
+/* --- Watchlists, alertas, organograma e grafo (ft/intelligence 6280255: src/api.ts, views.ts, queries.ts, graph.ts).
+ *     Validam o JSON trocado pela API (datas como string ISO). Entradas em camelCase, respostas em snake_case,
+ *     como nos handlers. Alertas e watchlists são só do Studio; o portal não os expõe. --- */
+const Ts = z.iso.datetime({ offset: true });
+
+export const WatchlistSummary = z.object({
+  id: z.uuid(),
+  name: z.string().min(1).max(120),
+  owner_ref: z.string().min(1),
+  items: z.number().int().min(0),
+  pending_alerts: z.number().int().min(0),
+});
+export type WatchlistSummary = z.infer<typeof WatchlistSummary>;
+
+export const WatchlistItemView = z.object({
+  entity_type: z.enum(['organization', 'person']),
+  entity_id: z.uuid(),
+  name: z.string().nullable(),
+});
+export type WatchlistItemView = z.infer<typeof WatchlistItemView>;
+
+export const CreateWatchlistInput = z.object({ name: z.string().trim().min(1).max(120) });
+export const AddWatchlistItemInput = z.object({ watchlistId: z.uuid(), entityType: z.enum(['organization', 'person']), entityId: z.uuid() });
+
+export const AlertStatus = z.enum(['pending_review', 'approved', 'rejected']);
+/** Alerta nasce pending_review; só vira approved/rejected por revisão registrada. */
+export const AlertView = z.object({
+  id: z.uuid(),
+  watchlist_id: z.uuid(),
+  status: AlertStatus,
+  kind: z.enum(['appointment', 'departure', 'title_change', 'org_change']),
+  person_name: z.string().min(1),
+  basis: z.enum(['announcement', 'observed_diff']),
+  evidence_id: z.uuid(),
+  observed_on: z.iso.date(),
+  reviewed_by: z.string().nullable(),
+});
+export type AlertView = z.infer<typeof AlertView>;
+export const ListAlertsQuery = z.object({ status: AlertStatus.optional(), watchlistId: z.uuid().optional() });
+export const ReviewAlertInput = z.object({ id: z.uuid(), status: z.enum(['approved', 'rejected']) });
+/** Revisão de Move: só a partir de `detected` (409 already_reviewed caso contrário). */
+export const ReviewMoveInput = z.object({ id: z.uuid(), status: z.enum(['confirmed', 'rejected']) });
+
+/** Aresta do organograma: inferida nunca como fato (display_label 'inferido — não confirmado'). */
+export const OrgChartEdgeView = z
+  .object({
+    superior_name: z.string().min(1),
+    superior_title: z.string().min(1),
+    subordinate_name: z.string().min(1),
+    subordinate_title: z.string().min(1),
+    certainty: Certainty,
+    display_label: z.string().min(1),
+    evidence_id: z.uuid(),
+    observed_at: Ts,
+    validated_at: Ts,
+  })
+  .refine((e) => e.certainty === 'declared' || !e.display_label.startsWith('fato'), {
+    message: 'aresta inferida não pode ser rotulada como fato',
+    path: ['display_label'],
+  });
+export type OrgChartEdgeView = z.infer<typeof OrgChartEdgeView>;
+export const OrgChartQuery = z.object({ organizationId: z.uuid(), asOf: z.iso.date().optional(), includeInferred: z.boolean().optional() });
+export const OrgChartResponse = z.object({ organization_id: z.uuid(), as_of: z.iso.date(), edges: z.array(OrgChartEdgeView) });
+export type OrgChartResponse = z.infer<typeof OrgChartResponse>;
+
+export const GraphNodeType = z.enum(['person', 'organization']);
+export const GraphNodeRef = z.object({ type: GraphNodeType, id: z.uuid() });
+/** Nó alcançado: `all_declared=false` se alguma aresta do caminho é inferida (não exibir como fato). */
+export const GraphReached = z
+  .object({
+    node_type: GraphNodeType,
+    node_id: z.uuid(),
+    depth: z.number().int().min(0).max(3),
+    path: z.array(z.string().regex(/^(person|organization):[0-9a-f-]{36}$/)),
+    edge_ids: z.array(z.uuid()),
+    all_declared: z.boolean(),
+  })
+  .refine((r) => r.path.length === r.depth + 1 && r.edge_ids.length === r.depth, { message: 'caminho incoerente com a profundidade', path: ['path'] });
+export type GraphReached = z.infer<typeof GraphReached>;
+/** Consulta de vizinhança: no máximo 3 saltos (ADR-009). Inferidas só no Studio, e sempre sinalizadas. */
+export const GraphNeighborsQuery = GraphNodeRef.extend({ asOf: z.iso.date().optional(), maxHops: z.number().int().min(1).max(3).default(3), includeInferred: z.boolean().optional() });
+export const GraphNeighborsResponse = z.object({ items: z.array(GraphReached), max_hops: z.literal(3) });
+export const GraphPathQuery = z.object({ from: GraphNodeRef, to: GraphNodeRef, asOf: z.iso.date().optional(), includeInferred: z.boolean().optional() });
+export const GraphPathResponse = z.object({ path: GraphReached.nullable(), max_hops: z.literal(3) });
