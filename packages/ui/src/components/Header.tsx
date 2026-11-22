@@ -1,12 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cx, type LinkAs } from "../utils";
-import { EDITORIAS, defaultEditoriaHref, type Editoria } from "../editorias";
+import { EDITORIAS, defaultEditoriaHref, type EditoriaLike } from "../editorias";
 import { Logo } from "./Logo";
 import { Container } from "./Layout";
 
 export interface HeaderProps {
   /** Padrão: as 10 editorias oficiais. */
-  editorias?: readonly Editoria[];
+  editorias?: readonly EditoriaLike[];
   /** Slug da editoria atual (marca `aria-current="page"`). */
   currentSlug?: string;
   hrefFor?: (slug: string) => string;

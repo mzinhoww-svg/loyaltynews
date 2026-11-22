@@ -5,6 +5,6 @@ import { resolve } from "node:path";
 export default defineConfig({
   root: resolve(__dirname),
   plugins: [react()],
-  build: { outDir: resolve(__dirname, "../showcase-dist"), emptyOutDir: true },
+  build: { outDir: resolve(__dirname, "../node_modules/.cache/showcase-dist"), emptyOutDir: true },
   server: { port: 5175, host: "127.0.0.1" },
 });

@@ -30,7 +30,16 @@ export const colors = {
   "warning-bg": "#FFF4CC",
   "warning-fg": "#5C4400",
   "danger": "#A12A2A",
-  "focus": "#0B5FD3"
+  "focus": "#0B5FD3",
+  "surface-subtle": "#F4F8F6",
+  "success-bg": "#E1F3E7",
+  "success-fg": "#14532D",
+  "info-bg": "#E0ECFB",
+  "info-fg": "#12407F",
+  "danger-bg": "#FBE3E3",
+  "danger-fg": "#7A1D1D",
+  "neutral-bg": "#EEF1F1",
+  "neutral-fg": "#2F4141"
 } as const;
 
 export const typography = {

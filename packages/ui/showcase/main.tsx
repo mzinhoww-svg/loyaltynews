@@ -159,8 +159,8 @@ function App() {
 
         <Container as="section" aria-labelledby="s-ads" style={{ paddingBlock: 16 }}>
           <SectionHeading id="s-ads" title="AdSlot (placeholder rotulado)" />
-          <AdSlot format="leaderboard" />
-          <Grid cols={{ base: 1, md: 2 }}><AdSlot format="mrec" /><AdSlot format="mobile-banner" /></Grid>
+          <AdSlot position="TOP" />
+          <Grid cols={{ base: 1, md: 2 }}><AdSlot position="SIDEBAR_1" /><AdSlot position="ARTICLE_INLINE" /></Grid>
         </Container>
       </main>
       <Footer year={2026} groups={[{ title: "Exemplo", links: [{ label: "Link de exemplo", href: "#exemplo" }] }]} note="Vitrine interna — não é página pública." />

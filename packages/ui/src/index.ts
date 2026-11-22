@@ -15,3 +15,4 @@ export * from "./components/EmptyState";
 export * from "./components/AdSlot";
 export * from "./components/Breadcrumb";
 export * from "./components/SectionHeading";
+export const PACKAGE_NAME = '@ln/ui' as const;

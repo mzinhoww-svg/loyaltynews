@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colors } from "../src/tokens/tokens";
+import { colors } from "../tokens/tokens";
 
 /** Contraste WCAG 2.x (luminância relativa sRGB). */
 function lum(hex: string): number {

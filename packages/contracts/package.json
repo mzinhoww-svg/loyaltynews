@@ -1,0 +1,15 @@
+{
+  "name": "@ln/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Schemas zod e tipos compartilhados. Dono: Frente 02 — LN Chief Architect.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./flags": "./src/flags.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}
