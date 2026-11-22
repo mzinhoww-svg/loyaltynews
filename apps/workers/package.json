@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./editorial-store": "./src/editorial-store.ts",
-    "./ad-redis": "./src/ad-redis.ts"
+    "./ad-redis": "./src/ad-redis.ts",
+    "./outbox": "./src/pg-stores.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
