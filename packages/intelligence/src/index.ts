@@ -12,3 +12,5 @@ export * from './queries';
 export * from './api';
 export * from './views';
 export * from './ingest';
+export * from './org-layout';
+export * from './editorial-consumer';
