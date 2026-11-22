@@ -1,6 +1,7 @@
 import { channelFlag, DEFAULT_FLAGS, type GrowthFlags } from '../flags';
 import { toPlainText, validateCopy, type MentionPlan } from '../copy/engine';
 import type { MlabsAdapter, PostPayload, PublishReceipt } from '../mlabs/port';
+import { mintWriteCapability, type WriteCapability } from '../mlabs/write-gate';
 import type { Actor, Article, Channel } from '../types';
 
 export interface AuditEntry {
@@ -50,14 +51,18 @@ export interface PublisherOptions {
  * Toda recusa é registrada na auditoria. Com o adaptador simulado (padrão), nada vai ao mLabs.
  */
 export class SocialPublisher {
-  private readonly adapter: MlabsAdapter;
+  readonly #adapter: MlabsAdapter;
+  /** Capability de escrita: só esta instância a possui; o adaptador só aceita escrita com ela. */
+  readonly #cap: WriteCapability;
   private readonly flags: GrowthFlags;
   private readonly now: () => string;
   private readonly receipts = new Map<string, PublishReceipt>();
   readonly audit: AuditEntry[] = [];
 
   constructor(opts: PublisherOptions) {
-    this.adapter = opts.adapter;
+    this.#adapter = opts.adapter;
+    this.#cap = mintWriteCapability();
+    opts.adapter.bindWriteAuthority(this.#cap); // lança WriteRefused se o adaptador já tem outro publicador
     this.flags = opts.flags ?? { ...DEFAULT_FLAGS };
     this.now = opts.now ?? (() => new Date().toISOString());
   }
@@ -91,7 +96,7 @@ export class SocialPublisher {
       this.refuse(actor, action, channel, `canal_desligado:${channel}`, articleId);
     }
     // Adaptador real só com a flag de publicação ligada.
-    if (this.adapter.mode === 'live' && !this.flags.growth_linkedin_live) {
+    if (this.#adapter.mode === 'live' && !this.flags.growth_linkedin_live) {
       this.refuse(actor, action, channel, 'publicacao_real_desligada', articleId);
     }
   }
@@ -123,7 +128,7 @@ export class SocialPublisher {
       mentions: useMentions ? mentions.map((m) => ({ name: m.name, ref: m.ref })) : [],
       scheduleAt: req.scheduleAt,
     };
-    const receipt = await this.adapter.createPost(payload, req.idempotencyKey);
+    const receipt = await this.#adapter.createPost(this.#cap, payload, req.idempotencyKey);
     this.receipts.set(req.idempotencyKey, receipt);
     this.audit.push({
       ts: this.now(),
@@ -140,14 +145,14 @@ export class SocialPublisher {
 
   async edit(actor: Actor, channel: Channel, receiptId: string, text: string): Promise<PublishReceipt> {
     this.guard(actor, 'edit', channel);
-    const r = await this.adapter.updatePost(receiptId, { text });
+    const r = await this.#adapter.updatePost(this.#cap, receiptId, { text });
     this.audit.push({ ts: this.now(), actorId: actor.id, actorRole: actor.role, action: 'edit', channel, outcome: 'accepted', receiptId });
     return r;
   }
 
   async remove(actor: Actor, channel: Channel, receiptId: string): Promise<PublishReceipt> {
     this.guard(actor, 'delete', channel);
-    const r = await this.adapter.deletePost(receiptId);
+    const r = await this.#adapter.deletePost(this.#cap, receiptId);
     this.audit.push({ ts: this.now(), actorId: actor.id, actorRole: actor.role, action: 'delete', channel, outcome: 'accepted', receiptId });
     return r;
   }

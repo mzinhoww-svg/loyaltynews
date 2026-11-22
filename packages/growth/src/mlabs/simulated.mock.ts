@@ -7,6 +7,7 @@ import type {
   PostPayload,
   PublishReceipt,
 } from './port';
+import { WriteGate, type WriteCapability } from './write-gate';
 
 export class SimulatedMlabsAdapter implements MlabsAdapter {
   readonly mode = 'simulated' as const;
@@ -14,9 +15,14 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
   private seq = 0;
   private readonly posts = new Map<string, { payload: PostPayload; receipt: PublishReceipt }>();
   private readonly now: () => string;
+  readonly #gate = new WriteGate();
 
   constructor(now: () => string = () => new Date().toISOString()) {
     this.now = now;
+  }
+
+  bindWriteAuthority(cap: WriteCapability): void {
+    this.#gate.bind(cap);
   }
 
   async listChannels(): Promise<MlabsChannel[]> {
@@ -31,7 +37,8 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
     return [];
   }
 
-  async createPost(payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt> {
+  async createPost(cap: WriteCapability, payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt> {
+    this.#gate.assert(cap);
     this.seq += 1;
     const receipt: PublishReceipt = {
       id: `SIM-${String(this.seq).padStart(6, '0')}`,
@@ -47,9 +54,11 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
   }
 
   async updatePost(
+    cap: WriteCapability,
     receiptId: string,
     patch: Partial<Pick<PostPayload, 'text' | 'scheduleAt'>>,
   ): Promise<PublishReceipt> {
+    this.#gate.assert(cap);
     const entry = this.posts.get(receiptId);
     if (!entry) throw new Error(`post simulado inexistente: ${receiptId}`);
     entry.payload = { ...entry.payload, ...patch };
@@ -57,7 +66,8 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
     return entry.receipt;
   }
 
-  async deletePost(receiptId: string): Promise<PublishReceipt> {
+  async deletePost(cap: WriteCapability, receiptId: string): Promise<PublishReceipt> {
+    this.#gate.assert(cap);
     const entry = this.posts.get(receiptId);
     if (!entry) throw new Error(`post simulado inexistente: ${receiptId}`);
     entry.receipt = { ...entry.receipt, status: 'deleted' };

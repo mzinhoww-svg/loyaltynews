@@ -1,4 +1,5 @@
 import type { Channel } from '../types';
+import type { WriteCapability } from './write-gate';
 
 /** Ferramentas do MCP do mLabs consideradas SOMENTE LEITURA. A validação de capacidades usa só estas. */
 export const READ_ONLY_TOOLS = Object.freeze([
@@ -89,11 +90,16 @@ export interface PublishReceipt {
   idempotencyKey: string;
 }
 
-/** Escritas: só alcançáveis pelo SocialPublisher, após a identidade e as flags. */
+/**
+ * Escritas: toda operação exige a capability que só o SocialPublisher possui (vinculada com `bindWriteAuthority`).
+ * Chamar direto, sem a capability, é recusado com `WriteRefused` antes de qualquer efeito.
+ */
 export interface MlabsWritePort {
-  createPost(payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt>;
-  updatePost(receiptId: string, patch: Partial<Pick<PostPayload, 'text' | 'scheduleAt'>>): Promise<PublishReceipt>;
-  deletePost(receiptId: string): Promise<PublishReceipt>;
+  /** Vincula a capability do publicador. Uma única vez por adaptador. */
+  bindWriteAuthority(cap: WriteCapability): void;
+  createPost(cap: WriteCapability, payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt>;
+  updatePost(cap: WriteCapability, receiptId: string, patch: Partial<Pick<PostPayload, 'text' | 'scheduleAt'>>): Promise<PublishReceipt>;
+  deletePost(cap: WriteCapability, receiptId: string): Promise<PublishReceipt>;
 }
 
 export type MlabsAdapter = MlabsReadPort & MlabsWritePort;

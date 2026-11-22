@@ -8,6 +8,7 @@ import {
   type PostPayload,
   type PublishReceipt,
 } from './port';
+import { WriteGate, type WriteCapability } from './write-gate';
 
 /** Cliente MCP mínimo, injetado por quem tem a credencial (nunca criado aqui; sem segredo no código). */
 export interface McpTransport {
@@ -80,6 +81,7 @@ class LiveMlabsAdapter implements MlabsAdapter {
   readonly #actor: Actor;
   readonly #flags: () => GrowthFlags;
   readonly #mapper: LiveOptions['payloadMapper'];
+  readonly #gate = new WriteGate();
 
   private constructor(token: symbol, opts: LiveOptions) {
     if (token !== FACTORY_TOKEN) {
@@ -101,6 +103,10 @@ class LiveMlabsAdapter implements MlabsAdapter {
     if (this.#flags().growth_linkedin_live !== true) throw new LiveAdapterRefused('flag_desligada');
   }
 
+  bindWriteAuthority(cap: WriteCapability): void {
+    this.#gate.bind(cap);
+  }
+
   async listChannels(): Promise<MlabsChannel[]> {
     this.#guard();
     const raw = await readOnlyTransport(this.#transport).call('list_channels', {});
@@ -119,7 +125,8 @@ class LiveMlabsAdapter implements MlabsAdapter {
     return Array.isArray(raw) ? raw : [];
   }
 
-  async createPost(payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt> {
+  async createPost(cap: WriteCapability, payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt> {
+    this.#gate.assert(cap); // 1º: só o SocialPublisher vinculado escreve
     this.#guard();
     const mapper = this.#mapper;
     if (!mapper) {
@@ -130,12 +137,14 @@ class LiveMlabsAdapter implements MlabsAdapter {
     return mapper.toReceipt(raw, payload, idempotencyKey);
   }
 
-  async updatePost(): Promise<PublishReceipt> {
+  async updatePost(cap: WriteCapability): Promise<PublishReceipt> {
+    this.#gate.assert(cap);
     this.#guard();
     throw new LiveAdapterRefused('capacidade_nao_confirmada', 'updatePost real não implementado: capacidade de edição não confirmada (R5-02)');
   }
 
-  async deletePost(): Promise<PublishReceipt> {
+  async deletePost(cap: WriteCapability): Promise<PublishReceipt> {
+    this.#gate.assert(cap);
     this.#guard();
     throw new LiveAdapterRefused('capacidade_nao_confirmada', 'deletePost real não implementado: capacidade de exclusão não confirmada (R5-02)');
   }

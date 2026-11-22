@@ -2,6 +2,7 @@ export * from './types';
 export * from './flags';
 export * from './mlabs/port';
 export * from './mlabs/live';
+export * from './mlabs/write-gate';
 export * from './copy/engine';
 export * from './creative/post';
 export * from './publisher/publisher';
