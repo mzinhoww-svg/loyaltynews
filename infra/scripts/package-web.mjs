@@ -47,7 +47,9 @@ if (!web) fail(`perfil "${profile}" sem recurso web em environments.json`);
 // NEXT_PUBLIC_SITE_URL é lida no BUILD (o portal embute no sitemap e no canonical; padrão localhost). A Vertra constrói na criação, antes de
 // qualquer variável, e mudar variável depois não reconstrói: por isso a URL do ambiente entra no próprio build_command.
 const siteUrl = web.subdominio ? `https://${web.subdominio}.vertraweb.app` : null;
-const buildCmd = siteUrl ? web.build_command.replace('npm run build', `NEXT_PUBLIC_SITE_URL=${siteUrl} npm run build`) : web.build_command;
+// O portal também decide noindex NO BUILD (meta robots das páginas estáticas): o build precisa ver APP_ENV, não só o runtime.
+const appEnvBuild = web.env?.APP_ENV ?? (profile === 'production' ? 'production' : 'staging');
+const buildCmd = siteUrl ? web.build_command.replace('npm run build', `APP_ENV=${appEnvBuild} NEXT_PUBLIC_SITE_URL=${siteUrl} npm run build`) : web.build_command;
 
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
@@ -125,7 +127,7 @@ try {
       { nome: 'TRUSTED_PROXY_HOPS', como: 'contar as entradas de X-Forwarded-For que o app recebe de uma requisição de teste com UMA entrada falsa injetada (TEST-NET 203.0.113.9); hops = total de entradas menos 1; exige o diagnóstico DIAG_XFF=1 do Backend (só contagem, nunca IPs); sem medição o limite por IP fica inativo e vale só o limite por conta (padrão seguro)' },
     ],
     sondas: ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock /'],
-    garantias: ['NEXT_PUBLIC_SITE_URL embutida no build_command (build-time)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
+    garantias: ['APP_ENV e NEXT_PUBLIC_SITE_URL embutidas no build_command (o portal decide noindex e URLs no build)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(JSON.stringify({ ok: true, commit: sha12, perfil: profile, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length, manifesto: manifestPath }, null, 2));
