@@ -8,3 +8,7 @@ export * from './moves.ts';
 export * from './watchlists.ts';
 export * from './graph.ts';
 export * from './subject-requests.ts';
+export * from './queries.ts';
+export * from './api.ts';
+export * from './views.ts';
+export * from './ingest.ts';
