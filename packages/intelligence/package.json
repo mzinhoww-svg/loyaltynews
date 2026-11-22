@@ -1,14 +1,18 @@
 {
-  "name": "@ln/intelligence",
-  "version": "0.0.0",
+  "name": "@loyaltynews/intelligence",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Entity Intelligence (empresas, pessoas P4, cargos, Moves). Dono: Frente 08 — LN Data Engineer.",
-  "exports": {
-    ".": "./src/index.ts"
+  "description": "Entity Intelligence (Frente 08): modelo relacional temporal, Moves, watchlists, alertas e consultas de grafo em SQL. ADR-009 (proposta).",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
-  "types": "./src/index.ts",
-  "dependencies": {
-    "@ln/contracts": "0.0.0"
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.17",
+    "typescript": "7.0.2",
+    "vitest": "5.1.1",
+    "@types/node": "*"
   }
 }

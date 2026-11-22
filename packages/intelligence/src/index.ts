@@ -1,3 +1,10 @@
-// @ln/intelligence — Entity Intelligence (empresas, pessoas P4, cargos, Moves).
-// Dono: Frente 08 — LN Data Engineer. Scaffold mínimo (fast-track); implementação pela frente dona.
-export const PACKAGE_NAME = '@ln/intelligence' as const;
+export * from './db.ts';
+export * from './config.ts';
+export * from './normalize.ts';
+export * from './types.ts';
+export * from './migrate.ts';
+export * from './repo.ts';
+export * from './moves.ts';
+export * from './watchlists.ts';
+export * from './graph.ts';
+export * from './subject-requests.ts';
