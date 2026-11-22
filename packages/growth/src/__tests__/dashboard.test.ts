@@ -6,9 +6,8 @@ import {
   type ArticleSource, type Caller, type DashboardDeps, type GenerateResult, type QueueResult, type SocialPackageRecord,
 } from '../dashboard';
 import { DEFAULT_FLAGS } from '../flags';
-import { createLiveMlabsAdapter, LIVE_ACK } from '../mlabs/live';
-import { SimulatedMlabsAdapter } from '../mlabs/simulated.mock';
-import { PUBLISHER_SOCIAL, SocialPublisher } from '../publisher/publisher';
+import { LIVE_ACK } from '../mlabs/live';
+import { createSocialPublisher, PUBLISHER_SOCIAL } from '../publisher/publisher';
 import type { Article } from '../types';
 import { MOCK_ARTICLE } from '../../fixtures/article.mock';
 import type { ApiError } from '@ln/contracts';
@@ -29,14 +28,14 @@ class MapSource implements ArticleSource {
 }
 
 function make(flags = DEFAULT_FLAGS) {
-  const adapter = new SimulatedMlabsAdapter(now);
+  const publisher = createSocialPublisher({ mode: 'simulated', flags, now });
+  const adapter = publisher.simulated!;
   const articles = new MapSource();
   articles.items.set(MOCK_ARTICLE.id, MOCK_ARTICLE);
   const deps: DashboardDeps = {
     store: new InMemoryPackageStore(),
     articles,
-    adapter,
-    publisher: new SocialPublisher({ adapter, flags, now }),
+    publisher,
     flags,
     now,
   };
@@ -228,13 +227,14 @@ describe('Social Dashboard: handlers puros', () => {
   });
 
   test('com adaptador REAL o dashboard recusa pedir publicação (só simulada)', async () => {
-    const live = createLiveMlabsAdapter({
+    const livePublisher = createSocialPublisher({
+      mode: 'live',
       transport: { call: async () => { throw new Error('não deve ser chamado'); } },
       liveAck: LIVE_ACK,
       actor: PUBLISHER_SOCIAL,
       flags: () => ({ ...DEFAULT_FLAGS, growth_linkedin_live: true }),
     });
-    const deps: DashboardDeps = { ...ctx.deps, adapter: live };
+    const deps: DashboardDeps = { ...ctx.deps, publisher: livePublisher };
     await generatePackages(deps, ALL, { articleId: MOCK_ARTICLE.id });
     const r = await requestSimulatedPublish(deps, ALL, 'MOCK-2026-0001:linkedin:v1');
     assert.equal(r.status, 409);

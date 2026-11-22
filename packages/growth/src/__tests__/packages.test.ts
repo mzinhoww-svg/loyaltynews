@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import { buildInstagramPackage, generateInstagramCaption } from '../package/instagram';
 import { buildLinkedInPackage } from '../package/linkedin';
 import { DEFAULT_FLAGS } from '../flags';
-import { SimulatedMlabsAdapter } from '../mlabs/simulated.mock';
-import { PUBLISHER_SOCIAL, PublishRefused, SocialPublisher } from '../publisher/publisher';
+import { createSocialPublisher, PUBLISHER_SOCIAL, PublishRefused } from '../publisher/publisher';
 import { CopyRefusal } from '../copy/engine';
 import { MOCK_ARTICLE } from '../../fixtures/article.mock';
 
@@ -36,12 +35,11 @@ test('pacote LinkedIn: hash do criativo é estável', () => {
 });
 
 test('pacote LinkedIn → publisher (simulado): fluxo completo sem enviar nada ao mLabs', async () => {
-  const adapter = new SimulatedMlabsAdapter(() => '2026-11-22T12:00:00.000Z');
-  const publisher = new SocialPublisher({ adapter });
+  const publisher = createSocialPublisher({ mode: 'simulated', now: () => '2026-11-22T12:00:00.000Z' });
   const p = buildLinkedInPackage(MOCK_ARTICLE);
   const r = await publisher.publish(PUBLISHER_SOCIAL, p.publishRequest);
   assert.equal(r.simulated, true);
-  assert.equal(adapter.count, 1);
+  assert.equal(publisher.simulated!.count, 1);
 });
 
 test('Instagram: construído, flag desligada; envio recusado e registrado', async () => {
@@ -52,11 +50,10 @@ test('Instagram: construído, flag desligada; envio recusado e registrado', asyn
   assert.equal(ig.story.width, 1080); assert.equal(ig.story.height, 1920);
   assert.ok(!/https?:\/\//.test(ig.caption), 'legenda sem link');
   assert.ok(!ig.caption.includes('@['), 'sem marcação');
-  const adapter = new SimulatedMlabsAdapter();
-  const publisher = new SocialPublisher({ adapter });
+  const publisher = createSocialPublisher({ mode: 'simulated' });
   await assert.rejects(() => publisher.publish(PUBLISHER_SOCIAL, ig.publishRequest),
     (e: unknown) => e instanceof PublishRefused && e.reason === 'canal_desligado:instagram');
-  assert.equal(adapter.count, 0);
+  assert.equal(publisher.simulated!.count, 0);
   assert.equal(publisher.audit.at(-1)?.reason, 'canal_desligado:instagram');
 });
 
@@ -65,8 +62,7 @@ test('Instagram: com a chave ligada (só em teste), o publisher aceita pela iden
   const ig = buildInstagramPackage(MOCK_ARTICLE, flags);
   assert.equal(ig.enabled, true);
   assert.ok(!ig.blockers.includes('canal_desligado:instagram'));
-  const adapter = new SimulatedMlabsAdapter();
-  const publisher = new SocialPublisher({ adapter, flags });
+  const publisher = createSocialPublisher({ mode: 'simulated', flags });
   const r = await publisher.publish(PUBLISHER_SOCIAL, ig.publishRequest);
   assert.equal(r.channel, 'instagram');
   assert.equal(r.simulated, true);

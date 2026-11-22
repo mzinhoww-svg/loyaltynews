@@ -2,11 +2,12 @@ export * from './types';
 export * from './flags';
 export * from './mlabs/port';
 export * from './mlabs/live';
-export * from './mlabs/write-gate';
+export * from './mlabs/errors';
 export * from './copy/engine';
 export * from './creative/post';
 export * from './publisher/publisher';
 export * from './package/linkedin';
 export * from './package/instagram';
-// SimulatedMlabsAdapter (MOCK) fica fora do índice de propósito: importe de './mlabs/simulated.mock.ts' só em testes/dev.
+// Adaptadores (simulado e real), a capability de escrita e `bindWriteAuthority` são INTERNOS: só `createSocialPublisher`
+// os cria e os mantém. Não reexporte nada de mlabs/*.internal nem de mlabs/simulated.mock (teste public-surface.test.ts).
 export * from './mlabs/validate';
