@@ -62,9 +62,12 @@ describe('consultas do Studio comercial', () => {
   });
   it('painel: contagens reais, alertas de campanha ativa sem criativo aprovado e de posições não configuradas, métricas vazias', () => {
     const { s, c } = mk({ adServerVendas: true });
-    const camp = s.campaigns.create({ name: 'X', accountId: 'acc-1', formatId: 'banners--banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2026-12-31' }, NOW);
-    s.campaigns.transition(camp.id, 'reserved', NOW, { reservationIds: ['r'] }); s.campaigns.transition(camp.id, 'approved', NOW);
-    s.campaigns.transition(camp.id, 'active', NOW, { hasApprovedCreative: true });
+    const camp = s.campaigns.create({ name: 'X', accountId: 'acc-1', formatId: 'banners--banner-rodape', positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2026-12-31' }, NOW);
+    const res = s.inventory.reserve({ positionId: 'FOOTER', advertiserId: 'acc-1', campaignId: camp.id, startDate: '2026-12-01', endDate: '2026-12-31', status: 'confirmed' });
+    s.campaigns.transition(camp.id, 'reserved', NOW, { reservations: [res] }); s.campaigns.transition(camp.id, 'approved', NOW);
+    s.ads.addCreative({ id: 'cr1', campaignId: camp.id, positionId: 'FOOTER', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+    s.campaigns.transition(camp.id, 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [res], approvedCreativeCount: 1 } });
+    s.ads.setCreative('cr1', { approved: false }); // criativo desaprovado depois da ativação => alerta
     const d = studioDashboard(c, '2026-12-01', '2026-12-31');
     expect(d.formatsByStatus.disponivel + d.formatsByStatus.sob_consulta + d.formatsByStatus.indisponivel).toBe(47);
     expect(d.campaignsByStatus.active).toBe(1);

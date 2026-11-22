@@ -83,11 +83,20 @@ export const createReservation = define({
 });
 export const cancelReservation = define({ auth: 'studio', schema: z.object({ reservationId: Id }) }, (ctx, i) => {
   if (!ctx.inventory.list().some((r) => r.id === i.reservationId)) return fail(404, 'NOT_FOUND', 'Reserva não existe.');
+  const res = ctx.inventory.list().find((r) => r.id === i.reservationId)!;
+  const camp = res.campaignId ? ctx.campaigns.list().find((c) => c.id === res.campaignId) : undefined;
+  if (camp && camp.status === 'active') return fail(409, 'RESERVATION_IN_USE', 'Reserva de campanha ativa: pause ou encerre a campanha antes de cancelar.');
   ctx.inventory.cancel(i.reservationId);
   return ok({ id: i.reservationId, status: 'cancelled' as const });
 });
-export const reserveTakeover = define({ auth: 'studio', schema: z.object({ date: IsoDate, accountId: Id, agreedCampaignIds: z.array(Id).default([]) }) },
-  (ctx, i) => ok(ctx.inventory.reserveTakeover({ date: i.date, advertiserId: i.accountId, agreedCampaignIds: i.agreedCampaignIds }), 201));
+/** Takeover bloqueia o portal para os demais no dia: é compromisso comercial, não preparação. Exige flag ligada e formato 'disponivel'. */
+export const reserveTakeover = define({ auth: 'studio', schema: z.object({ date: IsoDate, accountId: Id, agreedCampaignIds: z.array(Id).default([]) }) }, (ctx, i) => {
+  if (!isEnabled('adServerVendas', ctx.flags)) return fail(409, 'SALE_NOT_ENABLED', 'Takeover exige a flag adServerVendas ligada.');
+  const fmt = ctx.catalog.find((f) => f.id === 'banners--takeover-do-portal');
+  if (!fmt || fmt.status !== 'disponivel') return fail(409, 'FORMAT_NOT_AVAILABLE', `Takeover do portal está '${fmt?.status ?? 'desconhecido'}', não 'disponivel'.`);
+  if (!ctx.crm.accounts.has(i.accountId)) return fail(422, 'UNKNOWN_ACCOUNT', 'Conta inexistente.');
+  return ok(ctx.inventory.reserveTakeover({ date: i.date, advertiserId: i.accountId, agreedCampaignIds: i.agreedCampaignIds }), 201);
+});
 
 export const createCampaign = define({
   auth: 'studio',
@@ -117,13 +126,30 @@ export const approveCreative = define({ auth: 'studio', schema: z.object({ creat
 });
 
 const ACTIVE_LIKE = new Set(['active']);
+/**
+ * Transição de campanha. Para 'reserved' as reservas informadas são resolvidas no inventário (devem existir, não canceladas e ser desta campanha).
+ * Para 'active' (inclusive retomar de 'paused') a evidência é montada do estado real: flag adServerVendas, estado do formato no catálogo,
+ * reservas da campanha e criativos aprovados; o domínio recusa se qualquer condição faltar.
+ */
 export const transitionCampaign = define({
   auth: 'studio',
   schema: z.object({ campaignId: Id, to: z.enum(['reserved', 'approved', 'active', 'paused', 'completed', 'cancelled']), reservationIds: z.array(Id).optional(), note: z.string().optional() }),
 }, (ctx, i) => {
-  if (i.to === 'active' && !isEnabled('adServerVendas', ctx.flags)) return fail(409, 'SALE_NOT_ENABLED', 'Ativar campanha exige a flag adServerVendas ligada.');
-  const hasApproved = ctx.ads.creativesOf(i.campaignId).some((c) => c.approved);
-  const c = ctx.campaigns.transition(i.campaignId, i.to, ctx.now, { reservationIds: i.reservationIds, hasApprovedCreative: hasApproved, note: i.note });
+  const camp = ctx.campaigns.get(i.campaignId);
+  const all = ctx.inventory.list();
+  let reservations;
+  if (i.to === 'reserved') {
+    const missing = (i.reservationIds ?? []).filter((id) => !all.some((r) => r.id === id));
+    if (missing.length) return fail(422, 'INVALID_RESERVATION', 'Reserva inexistente.', { reservationIds: missing });
+    reservations = all.filter((r) => i.reservationIds?.includes(r.id));
+  }
+  const activation = i.to === 'active' ? {
+    saleEnabled: isEnabled('adServerVendas', ctx.flags),
+    formatStatus: ctx.catalog.find((f) => f.id === camp.formatId)?.status ?? 'indisponivel',
+    reservations: all.filter((r) => r.campaignId === camp.id),
+    approvedCreativeCount: ctx.ads.creativesOf(camp.id).filter((c) => c.approved).length,
+  } : undefined;
+  const c = ctx.campaigns.transition(i.campaignId, i.to, ctx.now, { reservations, activation, note: i.note });
   for (const cr of ctx.ads.creativesOf(c.id)) ctx.ads.setCreative(cr.id, { campaignActive: ACTIVE_LIKE.has(c.status) });
   return ok(c);
 });

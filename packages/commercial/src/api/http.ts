@@ -17,7 +17,10 @@ export const isError = (r: HttpResult): boolean => r.status >= 400;
 const INVENTORY_STATUS: Record<InventoryError['code'], number> = {
   POSITION_UNKNOWN: 404, POSITION_NOT_CONFIGURED: 409, INVALID_PERIOD: 422, MIN_CONTRACT: 422, NO_SLOT: 409, TAKEOVER_BLOCK: 409, TAKEOVER_CONFLICT: 409,
 };
-const CAMPAIGN_STATUS: Record<CampaignError['code'], number> = { BAD_TRANSITION: 409, NO_RESERVATION: 422, NOT_FOUND: 404, NO_APPROVED_CREATIVE: 422 };
+const CAMPAIGN_STATUS: Record<CampaignError['code'], number> = {
+  BAD_TRANSITION: 409, NO_RESERVATION: 422, INVALID_RESERVATION: 422, NOT_FOUND: 404, NO_APPROVED_CREATIVE: 422,
+  SALE_NOT_ENABLED: 409, FORMAT_NOT_AVAILABLE: 409, NO_CONFIRMED_RESERVATION: 409,
+};
 const CRM_STATUS: Record<CrmError['code'], number> = { INVALID_LEAD: 422, NOT_FOUND: 404, BAD_STAGE: 409, LOST_REASON_REQUIRED: 422 };
 
 /** Valida a entrada com zod e executa; erros de domínio viram o envelope ApiError. Nenhuma exceção escapa. */

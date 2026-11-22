@@ -14,10 +14,10 @@ test('e2e: do lead do mídia kit à entrega, sem audiência fictícia', () => {
 
   const camp = cb.create({ name: 'Acme topo', accountId: account.id, opportunityId: opportunity.id, formatId: 'banners--banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }, now);
   const res = inv.reserve({ positionId: 'TOP', advertiserId: account.id, campaignId: camp.id, startDate: camp.startDate, endDate: camp.endDate, status: 'confirmed' });
-  cb.transition(camp.id, 'reserved', now, { reservationIds: [res.id] }); cb.transition(camp.id, 'approved', now);
-  cb.transition(camp.id, 'active', now, { hasApprovedCreative: true });
+  cb.transition(camp.id, 'reserved', now, { reservations: [res] }); cb.transition(camp.id, 'approved', now);
 
   ads.addCreative({ id: 'cr1', campaignId: camp.id, positionId: 'TOP', weight: 1, startDate: camp.startDate, endDate: camp.endDate, approved: true, campaignActive: true });
+  cb.transition(camp.id, 'active', now, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: inv.list().filter((r) => r.campaignId === camp.id), approvedCreativeCount: ads.creativesOf(camp.id).filter((c) => c.approved).length } });
   const s = ads.serve({ positionId: 'TOP', today: '2026-12-02', pageViewId: 'pv1' });
   ads.recordVisible(s.impressionId!); ads.recordClick(s.impressionId!);
   const rep = ads.campaignDelivery(camp.id);

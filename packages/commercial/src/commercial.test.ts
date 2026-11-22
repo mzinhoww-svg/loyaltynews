@@ -5,6 +5,7 @@ import {
   InventoryBook, InventoryError, POSITIONS, theoreticalGrossCapacity,
   AdServer, CampaignBook, CampaignError, Crm, CrmError,
   MetricStore, displayMetric, unavailable, generateMediaKit, renderMediaKitHtml,
+  evaluateActivation, confirmedCoverage, type Reservation, type ActivationEvidence,
 } from './index';
 
 const NOW = '2026-11-22T12:00:00-03:00';
@@ -128,20 +129,86 @@ test('relatório por campanha soma criativos da campanha', () => {
 });
 
 // ---------- campanhas ----------
-test('campanha: fluxo válido draft→reserved→approved→active→completed e transições inválidas', () => {
+const R = (over: Partial<Reservation> = {}): Reservation => ({ id: 'res-1', positionId: 'TOP', advertiserId: 'a', campaignId: 'cmp-1', startDate: '2026-12-01', endDate: '2027-02-28', status: 'confirmed', ...over });
+const EV = (over: Partial<ActivationEvidence> = {}): ActivationEvidence => ({ saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, ...over });
+/** Campanha cmp-1 em 'approved', pronta para tentar ativar. */
+function approvedCampaign() {
+  const cb = new CampaignBook();
+  const c = cb.create({ name: 'X', accountId: 'acc-1', formatId: 'banners--banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }, NOW);
+  cb.transition(c.id, 'reserved', NOW, { reservations: [R()] });
+  cb.transition(c.id, 'approved', NOW);
+  return { cb, c };
+}
+const refuses = (cb: CampaignBook, id: string, ev: ActivationEvidence | undefined, code: string) => {
+  const before = cb.get(id).status;
+  assert.throws(() => cb.transition(id, 'active', NOW, { activation: ev }), (e: CampaignError) => e.code === code, 'esperava ' + code);
+  assert.equal(cb.get(id).status, before, 'estado não pode mudar após recusa');
+};
+
+test('campanha: fluxo válido draft→reserved→approved→active→paused→active→completed e transições inválidas', () => {
   const cb = new CampaignBook();
   const c = cb.create({ name: 'X', accountId: 'acc-1', formatId: 'banners--banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }, NOW);
   assert.throws(() => cb.transition(c.id, 'active', NOW), (e: CampaignError) => e.code === 'BAD_TRANSITION');
   assert.throws(() => cb.transition(c.id, 'reserved', NOW), (e: CampaignError) => e.code === 'NO_RESERVATION');
-  cb.transition(c.id, 'reserved', NOW, { reservationIds: ['res-1'] });
+  cb.transition(c.id, 'reserved', NOW, { reservations: [R()] });
   cb.transition(c.id, 'approved', NOW);
-  assert.throws(() => cb.transition(c.id, 'active', NOW), (e: CampaignError) => e.code === 'NO_APPROVED_CREATIVE');
-  cb.transition(c.id, 'active', NOW, { hasApprovedCreative: true });
-  cb.transition(c.id, 'paused', NOW); cb.transition(c.id, 'active', NOW);
+  cb.transition(c.id, 'active', NOW, { activation: EV() });
+  cb.transition(c.id, 'paused', NOW); cb.transition(c.id, 'active', NOW, { activation: EV() });
   cb.transition(c.id, 'completed', NOW);
-  assert.throws(() => cb.transition(c.id, 'active', NOW), (e: CampaignError) => e.code === 'BAD_TRANSITION');
+  assert.throws(() => cb.transition(c.id, 'active', NOW, { activation: EV() }), (e: CampaignError) => e.code === 'BAD_TRANSITION');
   assert.equal(c.history.length, 7);
   assert.throws(() => cb.get('nope'), (e: CampaignError) => e.code === 'NOT_FOUND');
+});
+test('ativação: sem evidência é recusada; cada condição faltando recusa com o código próprio', () => {
+  const { cb, c } = approvedCampaign();
+  refuses(cb, c.id, undefined, 'SALE_NOT_ENABLED');
+  refuses(cb, c.id, EV({ saleEnabled: false }), 'SALE_NOT_ENABLED');                                   // flag desligada
+  refuses(cb, c.id, EV({ formatStatus: 'sob_consulta' }), 'FORMAT_NOT_AVAILABLE');                      // formato sob consulta
+  refuses(cb, c.id, EV({ formatStatus: 'indisponivel' }), 'FORMAT_NOT_AVAILABLE');                      // formato indisponível
+  refuses(cb, c.id, EV({ approvedCreativeCount: 0 }), 'NO_APPROVED_CREATIVE');                          // sem criativo aprovado
+  refuses(cb, c.id, EV({ reservations: [] }), 'NO_CONFIRMED_RESERVATION');                              // sem reserva
+  refuses(cb, c.id, EV({ reservations: [R({ status: 'held' })] }), 'NO_CONFIRMED_RESERVATION');         // só pré-reserva
+  refuses(cb, c.id, EV({ reservations: [R({ status: 'cancelled' })] }), 'NO_CONFIRMED_RESERVATION');    // cancelada
+  refuses(cb, c.id, EV({ reservations: [R({ campaignId: 'cmp-9' })] }), 'NO_CONFIRMED_RESERVATION');    // de outra campanha
+  refuses(cb, c.id, EV({ reservations: [R({ campaignId: null })] }), 'NO_CONFIRMED_RESERVATION');       // sem vínculo
+  refuses(cb, c.id, EV({ reservations: [R({ positionId: 'FOOTER' })] }), 'NO_CONFIRMED_RESERVATION');   // outra posição
+  assert.equal(cb.get(c.id).history.length, 3); // nenhuma recusa gravou histórico
+});
+test('ativação: reserva confirmada precisa cobrir o período inteiro (início, meio e fim)', () => {
+  const { cb, c } = approvedCampaign();
+  refuses(cb, c.id, EV({ reservations: [R({ startDate: '2026-12-02' })] }), 'NO_CONFIRMED_RESERVATION');   // começa tarde
+  refuses(cb, c.id, EV({ reservations: [R({ endDate: '2027-02-27' })] }), 'NO_CONFIRMED_RESERVATION');     // termina cedo
+  refuses(cb, c.id, EV({ reservations: [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-02' })] }), 'NO_CONFIRMED_RESERVATION'); // buraco em 01/01
+  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })]), true);  // adjacentes cobrem
+  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2027-01-15' }), R({ id: 'b', startDate: '2027-01-10' })]), true);  // sobrepostas cobrem
+  cb.transition(c.id, 'active', NOW, { activation: EV({ reservations: [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })] }) });
+  assert.equal(cb.get(c.id).status, 'active');
+});
+test('ativação: mensagem lista todas as condições que faltam; retomar de pausada reconfere tudo', () => {
+  const { cb, c } = approvedCampaign();
+  try {
+    cb.transition(c.id, 'active', NOW, { activation: EV({ saleEnabled: false, formatStatus: 'sob_consulta', reservations: [], approvedCreativeCount: 0 }) });
+    assert.fail('deveria recusar');
+  } catch (e) {
+    const m = (e as CampaignError).message;
+    for (const k of ['adServerVendas', 'sob_consulta', 'reserva confirmada', 'criativo aprovado']) assert.ok(m.includes(k), k);
+  }
+  cb.transition(c.id, 'active', NOW, { activation: EV() });
+  cb.transition(c.id, 'paused', NOW);
+  refuses(cb, c.id, EV({ saleEnabled: false }), 'SALE_NOT_ENABLED'); // flag desligada enquanto pausada: não retoma
+  refuses(cb, c.id, EV({ reservations: [R({ status: 'cancelled' })] }), 'NO_CONFIRMED_RESERVATION');
+  assert.equal(evaluateActivation(cb.get(c.id), EV()).length, 0);
+});
+test('reservar campanha: só aceita reservas não canceladas, desta campanha e desta posição', () => {
+  const mk = () => { const cb = new CampaignBook(); return { cb, c: cb.create({ name: 'X', accountId: 'a', formatId: 'banners--banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }, NOW) }; };
+  for (const bad of [R({ status: 'cancelled' }), R({ campaignId: 'cmp-9' }), R({ campaignId: null }), R({ positionId: 'FOOTER' })]) {
+    const { cb, c } = mk();
+    assert.throws(() => cb.transition(c.id, 'reserved', NOW, { reservations: [bad] }), (e: CampaignError) => e.code === 'INVALID_RESERVATION');
+    assert.equal(c.status, 'draft'); assert.deepEqual(c.reservationIds, []);
+  }
+  const { cb, c } = mk();
+  cb.transition(c.id, 'reserved', NOW, { reservations: [R({ status: 'held' })] }); // pré-reserva basta para 'reserved'
+  assert.deepEqual(c.reservationIds, ['res-1']);
 });
 
 // ---------- CRM ----------
