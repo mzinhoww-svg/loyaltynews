@@ -22,7 +22,8 @@ export function parseTestSession(cookieValue: string | undefined): Session | nul
   if (!userId || !rolesRaw) return null;
   const roles = rolesRaw.split('+');
   if (!roles.every((r): r is Role => (ROLES as readonly string[]).includes(r))) return null;
-  return { userId, roles, mfa: flag !== 'nomfa' };
+  // Campos da Session real (@ln/auth, Better Auth): papel principal = primeiro da lista; e-mail e id fictícios (MOCK).
+  return { userId, email: `${userId}@mock.invalid`, role: roles[0]!, roles, mfa: flag !== 'nomfa', sessionId: `mock-${userId}` };
 }
 
 export const testSeam: TestSeam | null = (headers, env) => {

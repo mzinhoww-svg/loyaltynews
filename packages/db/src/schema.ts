@@ -136,3 +136,5 @@ export * from './schema/commercial';
 
 // Frente 07 AgentOps: memória setorial e rituais (./schema/agents.ts).
 export * from './schema/agents';
+
+export * from './schema/editorial-store';

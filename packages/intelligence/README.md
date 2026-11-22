@@ -36,6 +36,6 @@ Em produção, passe um cliente com `query(sql, params) -> {rows}` (interface `D
 
 ## Não verificado / pendências
 - PostgreSQL 18 da Vertra; volume e latência reais; concorrência.
-- Contratos: as saídas dos handlers/views são validadas com os schemas oficiais de `@ln/contracts` (`OrganizationView`, `PersonView` estrito, `PersonRoleView`, `RelationView`, `MoveView`, `RoleObservation`) em `src/tests/contracts-conformance.test.ts`. Handlers de associação (watchlists, alertas, organograma, grafo) ainda não têm schema no contrato.
+- Contratos: as saídas dos handlers/views são validadas com os schemas oficiais de `@ln/contracts` (`OrganizationView`, `PersonView` estrito, `PersonRoleView`, `RelationView`, `MoveView`, `RoleObservation`) em `src/tests/contracts-conformance.test.ts`. Watchlists, alertas, revisão de Move, organograma e grafo conformam com os schemas correspondentes em `src/tests/contracts-conformance-2.test.ts` (sem divergências).
 - Base legal LGPD/controlador (J-01/R1-01): as duas chaves de dado pessoal permanecem desligadas.
 - Sem coleta real: nenhuma fonte, nenhum crawler.
