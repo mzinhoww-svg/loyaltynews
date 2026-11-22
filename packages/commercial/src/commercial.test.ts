@@ -1,11 +1,11 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import {
   CATALOG, buildCatalog, getFormat, priceLabel, PACKAGES,
   InventoryBook, InventoryError, POSITIONS, theoreticalGrossCapacity,
   AdServer, CampaignBook, CampaignError, Crm, CrmError,
   MetricStore, displayMetric, unavailable, generateMediaKit, renderMediaKitHtml,
-} from '../src/index.ts';
+} from './index.js';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 
@@ -17,20 +17,20 @@ test('catálogo tem 47 formatos únicos em 9 famílias, com 8 pacotes fora da co
   assert.equal(PACKAGES.length, 8);
 });
 test('preços de referência batem com o Blueprint', () => {
-  assert.equal(getFormat('banners.banner-topo')!.fromBRL, 3000);
-  assert.equal(priceLabel(getFormat('banners.banner-topo')!), 'R$ 3.000/mês');
-  assert.equal(priceLabel(getFormat('banners.takeover-do-portal')!), 'R$ 5.000/dia');
-  assert.equal(priceLabel(getFormat('eventos.cota-master')!), 'a partir de R$ 30.000');
-  assert.match(priceLabel(getFormat('impulsionamento.linkedin')!), /verba \+ 20%/);
-  assert.equal(getFormat('conteudo-patrocinado.materia-publicitaria')!.fromBRL, 3500);
+  assert.equal(getFormat('banners--banner-topo')!.fromBRL, 3000);
+  assert.equal(priceLabel(getFormat('banners--banner-topo')!), 'R$ 3.000/mês');
+  assert.equal(priceLabel(getFormat('banners--takeover-do-portal')!), 'R$ 5.000/dia');
+  assert.equal(priceLabel(getFormat('eventos--cota-master')!), 'a partir de R$ 30.000');
+  assert.match(priceLabel(getFormat('impulsionamento--linkedin')!), /verba \+ 20%/);
+  assert.equal(getFormat('conteudo-patrocinado--materia-publicitaria')!.fromBRL, 3500);
 });
-test('nenhum formato nasce ativo sem capacidade declarada; indisponíveis nunca são promovidos', () => {
-  assert.equal(CATALOG.filter((f) => f.status === 'ativo').length, 0);
+test('nenhum formato nasce disponivel sem capacidade declarada; indisponíveis nunca são promovidos', () => {
+  assert.equal(CATALOG.filter((f) => f.status === 'disponivel').length, 0);
   assert.ok(CATALOG.every((f) => f.statusReason.length > 0));
-  const c = buildCatalog({ 'banners.banner-topo': true, 'the-loyal.banner-meio': true });
-  assert.equal(getFormat('banners.banner-topo', c)!.status, 'ativo');
-  assert.equal(getFormat('the-loyal.banner-meio', c)!.status, 'indisponivel');
-  assert.equal(CATALOG.find((f) => f.id === 'banners.banner-topo')!.status, 'sob_consulta');
+  const c = buildCatalog({ 'banners--banner-topo': true, 'the-loyal--banner-meio': true });
+  assert.equal(getFormat('banners--banner-topo', c)!.status, 'disponivel');
+  assert.equal(getFormat('the-loyal--banner-meio', c)!.status, 'indisponivel');
+  assert.equal(CATALOG.find((f) => f.id === 'banners--banner-topo')!.status, 'sob_consulta');
 });
 
 // ---------- inventário ----------
@@ -130,7 +130,7 @@ test('relatório por campanha soma criativos da campanha', () => {
 // ---------- campanhas ----------
 test('campanha: fluxo válido draft→reserved→approved→active→completed e transições inválidas', () => {
   const cb = new CampaignBook();
-  const c = cb.create({ name: 'X', accountId: 'acc-1', formatId: 'banners.banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }, NOW);
+  const c = cb.create({ name: 'X', accountId: 'acc-1', formatId: 'banners--banner-topo', positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }, NOW);
   assert.throws(() => cb.transition(c.id, 'active', NOW), (e: CampaignError) => e.code === 'BAD_TRANSITION');
   assert.throws(() => cb.transition(c.id, 'reserved', NOW), (e: CampaignError) => e.code === 'NO_RESERVATION');
   cb.transition(c.id, 'reserved', NOW, { reservationIds: ['res-1'] });
@@ -149,7 +149,7 @@ test('lead válido não cria reserva; lead inválido é recusado; opt-in nunca v
   const crm = new Crm();
   assert.throws(() => crm.captureLead({ name: 'A', company: 'B', email: 'x' }, NOW), (e: CrmError) => e.code === 'INVALID_LEAD');
   assert.throws(() => crm.captureLead({ name: '', company: 'B', email: 'a@b.com' }, NOW));
-  const l = crm.captureLead({ name: 'Ana', company: 'Acme', email: 'ANA@Acme.com', formatIds: ['banners.banner-topo'] }, NOW);
+  const l = crm.captureLead({ name: 'Ana', company: 'Acme', email: 'ANA@Acme.com', formatIds: ['banners--banner-topo'] }, NOW);
   assert.equal(l.email, 'ana@acme.com'); assert.equal(l.newsletterOptIn, false); assert.equal(l.status, 'novo');
 });
 test('converter lead cria conta (reaproveita por empresa) e oportunidade; funil e motivo de perda', () => {
@@ -198,7 +198,7 @@ test('mídia kit sem analytics: estado vazio honesto, nenhum número de audiênc
   assert.ok(kit.blocks.audiencia.metrics.every((m) => m.display === '— / não disponível' && m.record.value === null));
   assert.ok(kit.blocks.cobertura.emptyState);
   assert.equal(kit.blocks.decisores.available, false);
-  assert.equal(kit.blocks.catalogo.byStatus.ativo, 0);
+  assert.equal(kit.blocks.catalogo.byStatus.disponivel, 0);
   const html = renderMediaKitHtml(kit);
   assert.match(html, /não disponível/); assert.doesNotMatch(html, /<script/i); assert.equal((html.match(/data-status=/g) ?? []).length, 47);
 });

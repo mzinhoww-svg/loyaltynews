@@ -1,10 +1,10 @@
 // GERADO por scripts/gen-formats.mjs — não editar à mão.
 // Fonte: originals/Loyalty_News_Dossie_Auditoria_Pre_T00.zip :: 02-versao-2.0/Loyalty_News_Blueprint_v2_0.md (§4 Mídia kit, tabelas de Banners a Impulsionamento; pacotes excluídos) (sha256 6048d7d65c6ac949c0b9045dc428ac9c34833d46c903dc7f0c8b2051615e19fe). Preços são referência comercial, não promessa de audiência ou faturamento.
-import type { FormatSeed } from './types.ts';
+import type { FormatSeed } from './types.js';
 
 export const FORMAT_SEEDS: readonly FormatSeed[] = [
   {
-    "id": "banners.banner-topo",
+    "id": "banners--banner-topo",
     "n": 1,
     "section": "Banners",
     "name": "Banner topo",
@@ -17,7 +17,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 311
   },
   {
-    "id": "banners.retangulo-sidebar",
+    "id": "banners--retangulo-sidebar",
     "n": 2,
     "section": "Banners",
     "name": "Retângulo sidebar",
@@ -30,7 +30,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 312
   },
   {
-    "id": "banners.banner-rodape",
+    "id": "banners--banner-rodape",
     "n": 3,
     "section": "Banners",
     "name": "Banner rodapé",
@@ -43,7 +43,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 313
   },
   {
-    "id": "banners.banner-dentro-do-artigo",
+    "id": "banners--banner-dentro-do-artigo",
     "n": 4,
     "section": "Banners",
     "name": "Banner dentro do artigo",
@@ -56,7 +56,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 314
   },
   {
-    "id": "banners.banner-entre-secoes-da-home",
+    "id": "banners--banner-entre-secoes-da-home",
     "n": 5,
     "section": "Banners",
     "name": "Banner entre seções da home",
@@ -69,7 +69,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 315
   },
   {
-    "id": "banners.patrocinio-loyalty-market-data",
+    "id": "banners--patrocinio-loyalty-market-data",
     "n": 6,
     "section": "Banners",
     "name": "Patrocínio Loyalty Market Data",
@@ -82,7 +82,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 316
   },
   {
-    "id": "banners.banner-na-agenda",
+    "id": "banners--banner-na-agenda",
     "n": 7,
     "section": "Banners",
     "name": "Banner na agenda",
@@ -95,7 +95,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 317
   },
   {
-    "id": "banners.takeover-do-portal",
+    "id": "banners--takeover-do-portal",
     "n": 8,
     "section": "Banners",
     "name": "Takeover do portal",
@@ -108,7 +108,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 318
   },
   {
-    "id": "the-loyal.banner-topo-da-newsletter",
+    "id": "the-loyal--banner-topo-da-newsletter",
     "n": 9,
     "section": "The Loyal",
     "name": "Banner topo da newsletter",
@@ -121,7 +121,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 323
   },
   {
-    "id": "the-loyal.banner-meio",
+    "id": "the-loyal--banner-meio",
     "n": 10,
     "section": "The Loyal",
     "name": "Banner meio",
@@ -134,7 +134,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 324
   },
   {
-    "id": "the-loyal.banner-rodape",
+    "id": "the-loyal--banner-rodape",
     "n": 11,
     "section": "The Loyal",
     "name": "Banner rodapé",
@@ -147,7 +147,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 325
   },
   {
-    "id": "the-loyal.bloco-patrocinado",
+    "id": "the-loyal--bloco-patrocinado",
     "n": 12,
     "section": "The Loyal",
     "name": "Bloco patrocinado",
@@ -160,7 +160,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 326
   },
   {
-    "id": "the-loyal.edicao-dedicada",
+    "id": "the-loyal--edicao-dedicada",
     "n": 13,
     "section": "The Loyal",
     "name": "Edição dedicada",
@@ -173,7 +173,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 327
   },
   {
-    "id": "the-loyal.patrocinio-boletim-de-indicadores",
+    "id": "the-loyal--patrocinio-boletim-de-indicadores",
     "n": 14,
     "section": "The Loyal",
     "name": "Patrocínio boletim de indicadores",
@@ -186,7 +186,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 328
   },
   {
-    "id": "conteudo-patrocinado.materia-publicitaria",
+    "id": "conteudo-patrocinado--materia-publicitaria",
     "n": 15,
     "section": "Conteúdo patrocinado",
     "name": "Matéria publicitária",
@@ -199,7 +199,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 333
   },
   {
-    "id": "conteudo-patrocinado.serie-de-materias",
+    "id": "conteudo-patrocinado--serie-de-materias",
     "n": 16,
     "section": "Conteúdo patrocinado",
     "name": "Série de matérias",
@@ -212,7 +212,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 334
   },
   {
-    "id": "conteudo-patrocinado.materia-com-retargeting",
+    "id": "conteudo-patrocinado--materia-com-retargeting",
     "n": 17,
     "section": "Conteúdo patrocinado",
     "name": "Matéria com retargeting",
@@ -225,7 +225,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 335
   },
   {
-    "id": "conteudo-patrocinado.artigo-de-opiniao-assinado",
+    "id": "conteudo-patrocinado--artigo-de-opiniao-assinado",
     "n": 18,
     "section": "Conteúdo patrocinado",
     "name": "Artigo de opinião assinado",
@@ -238,7 +238,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 336
   },
   {
-    "id": "conteudo-patrocinado.pagina-especial-patrocinada",
+    "id": "conteudo-patrocinado--pagina-especial-patrocinada",
     "n": 19,
     "section": "Conteúdo patrocinado",
     "name": "Página especial patrocinada",
@@ -251,7 +251,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 337
   },
   {
-    "id": "conteudo-patrocinado.estudo-ou-e-book",
+    "id": "conteudo-patrocinado--estudo-ou-e-book",
     "n": 20,
     "section": "Conteúdo patrocinado",
     "name": "Estudo ou e-book",
@@ -264,7 +264,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 338
   },
   {
-    "id": "redes-e-canais.post-linkedin",
+    "id": "redes-e-canais--post-linkedin",
     "n": 21,
     "section": "Redes e canais",
     "name": "Post LinkedIn",
@@ -277,7 +277,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 343
   },
   {
-    "id": "redes-e-canais.carrossel-instagram",
+    "id": "redes-e-canais--carrossel-instagram",
     "n": 22,
     "section": "Redes e canais",
     "name": "Carrossel Instagram",
@@ -290,7 +290,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 344
   },
   {
-    "id": "redes-e-canais.envio-whatsapp",
+    "id": "redes-e-canais--envio-whatsapp",
     "n": 23,
     "section": "Redes e canais",
     "name": "Envio WhatsApp",
@@ -303,7 +303,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 345
   },
   {
-    "id": "redes-e-canais.nota-na-newsletter",
+    "id": "redes-e-canais--nota-na-newsletter",
     "n": 24,
     "section": "Redes e canais",
     "name": "Nota na newsletter",
@@ -316,7 +316,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 346
   },
   {
-    "id": "entrevistas.entrevista-escrita",
+    "id": "entrevistas--entrevista-escrita",
     "n": 25,
     "section": "Entrevistas",
     "name": "Entrevista escrita",
@@ -329,7 +329,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 351
   },
   {
-    "id": "entrevistas.entrevista-em-video",
+    "id": "entrevistas--entrevista-em-video",
     "n": 26,
     "section": "Entrevistas",
     "name": "Entrevista em vídeo",
@@ -342,7 +342,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 352
   },
   {
-    "id": "entrevistas.perfil-de-empresa",
+    "id": "entrevistas--perfil-de-empresa",
     "n": 27,
     "section": "Entrevistas",
     "name": "Perfil de empresa",
@@ -355,7 +355,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 353
   },
   {
-    "id": "entrevistas.serie-trimestral",
+    "id": "entrevistas--serie-trimestral",
     "n": 28,
     "section": "Entrevistas",
     "name": "Série trimestral",
@@ -368,7 +368,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 354
   },
   {
-    "id": "loyalty-talks.patrocinio-de-episodio",
+    "id": "loyalty-talks--patrocinio-de-episodio",
     "n": 29,
     "section": "Loyalty Talks",
     "name": "Patrocínio de episódio",
@@ -381,7 +381,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 359
   },
   {
-    "id": "loyalty-talks.convidado-no-podcast",
+    "id": "loyalty-talks--convidado-no-podcast",
     "n": 30,
     "section": "Loyalty Talks",
     "name": "Convidado no podcast",
@@ -394,7 +394,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 360
   },
   {
-    "id": "loyalty-talks.temporada-patrocinada",
+    "id": "loyalty-talks--temporada-patrocinada",
     "n": 31,
     "section": "Loyalty Talks",
     "name": "Temporada patrocinada",
@@ -407,7 +407,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 361
   },
   {
-    "id": "loyalty-talks.cortes-de-podcast",
+    "id": "loyalty-talks--cortes-de-podcast",
     "n": 32,
     "section": "Loyalty Talks",
     "name": "Cortes de podcast",
@@ -420,7 +420,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 362
   },
   {
-    "id": "eventos.divulgacao-na-agenda",
+    "id": "eventos--divulgacao-na-agenda",
     "n": 33,
     "section": "Eventos",
     "name": "Divulgação na agenda",
@@ -433,7 +433,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 367
   },
   {
-    "id": "eventos.destaque-agenda-home",
+    "id": "eventos--destaque-agenda-home",
     "n": 34,
     "section": "Eventos",
     "name": "Destaque agenda home",
@@ -446,7 +446,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 368
   },
   {
-    "id": "eventos.cota-master",
+    "id": "eventos--cota-master",
     "n": 35,
     "section": "Eventos",
     "name": "Cota master",
@@ -459,7 +459,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 369
   },
   {
-    "id": "eventos.cota-ouro",
+    "id": "eventos--cota-ouro",
     "n": 36,
     "section": "Eventos",
     "name": "Cota ouro",
@@ -472,7 +472,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 370
   },
   {
-    "id": "eventos.cota-prata",
+    "id": "eventos--cota-prata",
     "n": 37,
     "section": "Eventos",
     "name": "Cota prata",
@@ -485,7 +485,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 371
   },
   {
-    "id": "eventos.webinar-ou-live",
+    "id": "eventos--webinar-ou-live",
     "n": 38,
     "section": "Eventos",
     "name": "Webinar ou live",
@@ -498,7 +498,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 372
   },
   {
-    "id": "eventos.cafe-ou-mesa-redonda",
+    "id": "eventos--cafe-ou-mesa-redonda",
     "n": 39,
     "section": "Eventos",
     "name": "Café ou mesa-redonda",
@@ -511,7 +511,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 373
   },
   {
-    "id": "cobertura-de-eventos.materia-de-cobertura",
+    "id": "cobertura-de-eventos--materia-de-cobertura",
     "n": 40,
     "section": "Cobertura de eventos",
     "name": "Matéria de cobertura",
@@ -524,7 +524,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 378
   },
   {
-    "id": "cobertura-de-eventos.cobertura-completa",
+    "id": "cobertura-de-eventos--cobertura-completa",
     "n": 41,
     "section": "Cobertura de eventos",
     "name": "Cobertura completa",
@@ -537,7 +537,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 379
   },
   {
-    "id": "cobertura-de-eventos.cobertura-ao-vivo",
+    "id": "cobertura-de-eventos--cobertura-ao-vivo",
     "n": 42,
     "section": "Cobertura de eventos",
     "name": "Cobertura ao vivo",
@@ -550,7 +550,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 380
   },
   {
-    "id": "cobertura-de-eventos.mediacao",
+    "id": "cobertura-de-eventos--mediacao",
     "n": 43,
     "section": "Cobertura de eventos",
     "name": "Mediação",
@@ -563,7 +563,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 381
   },
   {
-    "id": "impulsionamento.linkedin",
+    "id": "impulsionamento--linkedin",
     "n": 44,
     "section": "Impulsionamento",
     "name": "LinkedIn",
@@ -576,7 +576,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 386
   },
   {
-    "id": "impulsionamento.instagram",
+    "id": "impulsionamento--instagram",
     "n": 45,
     "section": "Impulsionamento",
     "name": "Instagram",
@@ -589,7 +589,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 387
   },
   {
-    "id": "impulsionamento.retargeting",
+    "id": "impulsionamento--retargeting",
     "n": 46,
     "section": "Impulsionamento",
     "name": "Retargeting",
@@ -602,7 +602,7 @@ export const FORMAT_SEEDS: readonly FormatSeed[] = [
     "sourceLine": 388
   },
   {
-    "id": "impulsionamento.e-mail-marketing-dedicado",
+    "id": "impulsionamento--e-mail-marketing-dedicado",
     "n": 47,
     "section": "Impulsionamento",
     "name": "E-mail marketing dedicado",

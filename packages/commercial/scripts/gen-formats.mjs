@@ -14,7 +14,7 @@ function parse(ref) {
 }
 const seen = new Set();
 const rows = d.formatos.map((f, i) => {
-  let id = `${slug(f.secao)}.${slug(f.produto)}`;
+  let id = `${slug(f.secao)}--${slug(f.produto)}`;
   if (seen.has(id)) throw new Error('id duplicado ' + id);
   seen.add(id);
   return { id, n: i + 1, section: f.secao, name: f.produto, referenceText: f.referencia_brl, scope: f.escopo, ...parse(f.referencia_brl), sourceLine: f.linha };
@@ -22,7 +22,7 @@ const rows = d.formatos.map((f, i) => {
 if (rows.length !== d.total) throw new Error('total divergente');
 const out = `// GERADO por scripts/gen-formats.mjs — não editar à mão.
 // Fonte: ${d.fonte} (sha256 ${d.fonte_sha256}). Preços são referência comercial, não promessa de audiência ou faturamento.
-import type { FormatSeed } from './types.ts';
+import type { FormatSeed } from './types.js';
 
 export const FORMAT_SEEDS: readonly FormatSeed[] = ${JSON.stringify(rows, null, 2)};
 `;

@@ -12,15 +12,15 @@ export interface BannerPosition {
 const TYPES = ['JPG', 'PNG', 'GIF', 'HTML5-sandbox'];
 const MOB = ['320x100', '300x250'];
 export const POSITIONS: readonly BannerPosition[] = [
-  { id: 'TOP', name: 'Banner topo', formatId: 'banners.banner-topo', desktop: '1280x150', mobile: MOB, slotLimit: 4, maxWeightKB: 200, minContractDays: 90, allowedTypes: TYPES },
-  { id: 'SIDEBAR_1', name: 'Sidebar 1', formatId: 'banners.retangulo-sidebar', desktop: '336x280', mobile: MOB, slotLimit: 10, maxWeightKB: 150, minContractDays: 30, allowedTypes: TYPES },
-  { id: 'SIDEBAR_2', name: 'Sidebar 2', formatId: 'banners.retangulo-sidebar', desktop: '336x280', mobile: MOB, slotLimit: 10, maxWeightKB: 150, minContractDays: 30, allowedTypes: TYPES },
-  { id: 'SIDEBAR_3', name: 'Sidebar 3', formatId: 'banners.retangulo-sidebar', desktop: '336x280', mobile: MOB, slotLimit: 10, maxWeightKB: 150, minContractDays: 30, allowedTypes: TYPES },
-  { id: 'FOOTER', name: 'Banner rodapé', formatId: 'banners.banner-rodape', desktop: '1280x200', mobile: MOB, slotLimit: 6, maxWeightKB: 200, minContractDays: 30, allowedTypes: TYPES },
-  { id: 'ARTICLE_INLINE', name: 'Banner dentro do artigo', formatId: 'banners.banner-dentro-do-artigo', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
-  { id: 'HOME_BETWEEN', name: 'Banner entre seções da home', formatId: 'banners.banner-entre-secoes-da-home', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
-  { id: 'AGENDA', name: 'Banner na agenda', formatId: 'banners.banner-na-agenda', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
-  { id: 'DATA', name: 'Patrocínio Loyalty Market Data', formatId: 'banners.patrocinio-loyalty-market-data', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
+  { id: 'TOP', name: 'Banner topo', formatId: 'banners--banner-topo', desktop: '1280x150', mobile: MOB, slotLimit: 4, maxWeightKB: 200, minContractDays: 90, allowedTypes: TYPES },
+  { id: 'SIDEBAR_1', name: 'Sidebar 1', formatId: 'banners--retangulo-sidebar', desktop: '336x280', mobile: MOB, slotLimit: 10, maxWeightKB: 150, minContractDays: 30, allowedTypes: TYPES },
+  { id: 'SIDEBAR_2', name: 'Sidebar 2', formatId: 'banners--retangulo-sidebar', desktop: '336x280', mobile: MOB, slotLimit: 10, maxWeightKB: 150, minContractDays: 30, allowedTypes: TYPES },
+  { id: 'SIDEBAR_3', name: 'Sidebar 3', formatId: 'banners--retangulo-sidebar', desktop: '336x280', mobile: MOB, slotLimit: 10, maxWeightKB: 150, minContractDays: 30, allowedTypes: TYPES },
+  { id: 'FOOTER', name: 'Banner rodapé', formatId: 'banners--banner-rodape', desktop: '1280x200', mobile: MOB, slotLimit: 6, maxWeightKB: 200, minContractDays: 30, allowedTypes: TYPES },
+  { id: 'ARTICLE_INLINE', name: 'Banner dentro do artigo', formatId: 'banners--banner-dentro-do-artigo', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
+  { id: 'HOME_BETWEEN', name: 'Banner entre seções da home', formatId: 'banners--banner-entre-secoes-da-home', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
+  { id: 'AGENDA', name: 'Banner na agenda', formatId: 'banners--banner-na-agenda', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
+  { id: 'DATA', name: 'Patrocínio Loyalty Market Data', formatId: 'banners--patrocinio-loyalty-market-data', desktop: null, mobile: [], slotLimit: null, maxWeightKB: null, minContractDays: null, allowedTypes: TYPES },
 ];
 
 export type ReservationStatus = 'held' | 'confirmed' | 'cancelled';

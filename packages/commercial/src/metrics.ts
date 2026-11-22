@@ -1,5 +1,5 @@
 // Métricas do mídia kit: sempre com origem, período e horário. Sem conector => "— / não disponível", nunca zero falso.
-import type { MetricRecord, MetricStatus } from './types.ts';
+import type { MetricRecord, MetricStatus } from './types.js';
 
 export const METHODOLOGY_VERSION = 'mk-1';
 /** Idade máxima (ms) por classe antes de marcar 'stale'. Realtime GA4 ~ minutos; histórico ~ dia. */

@@ -1,4 +1,4 @@
-export type FormatStatus = 'ativo' | 'sob_consulta' | 'indisponivel';
+export type FormatStatus = 'disponivel' | 'sob_consulta' | 'indisponivel';
 export type PriceType = 'fixo' | 'a_partir_de' | 'verba_mais_taxa';
 export type PriceUnit = 'mes' | 'dia' | 'unidade' | 'verba';
 
@@ -10,7 +10,7 @@ export interface FormatSeed {
 }
 export interface CommercialFormat extends FormatSeed {
   status: FormatStatus;
-  /** Motivo do estado; obrigatório quando não é 'ativo'. */
+  /** Motivo do estado; obrigatório quando não é 'disponivel'. */
   statusReason: string;
   /** Preço é referência comercial, ajustável no admin; não é promessa de audiência. */
   isReferencePrice: true;

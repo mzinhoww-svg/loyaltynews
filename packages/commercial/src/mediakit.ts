@@ -1,8 +1,8 @@
 // Mídia kit gerado por código: 8 blocos (Blueprint v2.0 §4). Métricas só vêm do MetricStore; sem registro => estado vazio honesto.
-import { CATALOG, PACKAGES, priceLabel } from './catalog.ts';
-import type { CommercialFormat, MetricRecord } from './types.ts';
-import { POSITIONS, theoreticalGrossCapacity } from './inventory.ts';
-import { MetricStore, displayMetric } from './metrics.ts';
+import { CATALOG, PACKAGES, priceLabel } from './catalog.js';
+import type { CommercialFormat, MetricRecord } from './types.js';
+import { POSITIONS, theoreticalGrossCapacity } from './inventory.js';
+import { MetricStore, displayMetric } from './metrics.js';
 
 export interface MetricSlot { block: 'cobertura' | 'audiencia'; label: string; source: string; metric: string; klass: 'realtime' | 'historical' }
 export const METRIC_SLOTS: readonly MetricSlot[] = [
@@ -45,7 +45,7 @@ export function generateMediaKit(opts: { store: MetricStore; now: string; catalo
   const catalog = opts.catalog ?? CATALOG;
   const cob = build(METRIC_SLOTS.filter((s) => s.block === 'cobertura'), opts.store, opts.now);
   const aud = build(METRIC_SLOTS.filter((s) => s.block === 'audiencia'), opts.store, opts.now);
-  const byStatus: Record<string, number> = { ativo: 0, sob_consulta: 0, indisponivel: 0 };
+  const byStatus: Record<string, number> = { disponivel: 0, sob_consulta: 0, indisponivel: 0 };
   for (const f of catalog) byStatus[f.status] = (byStatus[f.status] ?? 0) + 1;
   return {
     generatedAt: opts.now,
