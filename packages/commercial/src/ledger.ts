@@ -36,6 +36,8 @@ export class ImpressionLedger {
     this.clock = opts.now ?? (() => Date.now());
   }
 
+  /** Relógio do livro (epoch ms); o AdServer o usa quando a requisição não traz o instante. */
+  now(): number { return this.clock(); }
   get size(): number { return this.byId.size; }
   byViewKey(key: string): LedgerEntry | undefined { return this.byKey.get(key); }
   byImpressionId(id: string): LedgerEntry | undefined { return this.byId.get(id); }
