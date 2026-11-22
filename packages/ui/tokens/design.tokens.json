@@ -1,0 +1,44 @@
+{
+  "brand_version": "2.0-draft.1",
+  "colors": {
+    "primary": "#153C3C",
+    "secondary": "#34877A",
+    "mint": "#DDEFE8",
+    "black": "#101C1C",
+    "white": "#FFFFFF",
+    "signal": "#A7DDC9"
+  },
+  "typography": {
+    "ui": "Inter, Arial, sans-serif",
+    "editorial": "Georgia, Noto Serif, serif",
+    "logo": "outlined Noto Serif Bold"
+  },
+  "social": {
+    "vertical": [
+      1080,
+      1350
+    ],
+    "square": [
+      1080,
+      1080
+    ],
+    "story": [
+      1080,
+      1920
+    ],
+    "open_graph": [
+      1200,
+      627
+    ],
+    "safe_area": 72,
+    "headline_max_lines": 4
+  },
+  "motion": {
+    "intro_s": 3.2,
+    "lower_third_in_s": 0.4,
+    "lower_third_out_s": 0.4,
+    "outro_s": 3.5,
+    "easing": "cubic-bezier(.22,.7,.2,1)"
+  },
+  "status": "proposal_not_approved"
+}

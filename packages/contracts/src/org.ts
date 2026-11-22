@@ -91,9 +91,15 @@ export const MeetingRun = z
   .object({
     id: z.uuid(),
     meetingId: z.string().min(1),
+    /** Data ORIGINAL da ocorrência (chave de idempotência P5 v2: meeting_id + data original). */
     localDate: IsoDate,
     /** '' = ocorrência agendada; id do evento para X-incident. */
     instance: z.string().default(''),
+    /** Data em que rodou/venceu, se a ocorrência foi movida por feriado; senão nulo. */
+    rescheduledDate: IsoDate.nullable().default(null),
+    rescheduleReason: z.literal('holiday_move').nullable().default(null),
+    /** Chaves de idempotência cobertas (a primária e, em colisão, as demais). */
+    idempotencyKeys: z.array(z.string()).default([]),
     scheduledFor: z.iso.datetime({ offset: true }),
     executedAt: z.iso.datetime({ offset: true }),
     status: MeetingRunStatus,
@@ -110,6 +116,10 @@ export const MeetingRun = z
   .refine((r) => (r.status === 'status_only') === (r.reason !== null), {
     message: 'status_only exige motivo; demais estados não têm motivo',
     path: ['reason'],
+  })
+  .refine((r) => (r.rescheduledDate === null) === (r.rescheduleReason === null) && (r.rescheduledDate === null || r.rescheduledDate > r.localDate), {
+    message: 'reagendamento exige motivo e data posterior à original',
+    path: ['rescheduledDate'],
   });
 export type MeetingRun = z.infer<typeof MeetingRun>;
 
@@ -119,7 +129,8 @@ export const MeetingDecision = z.object({
   text: z.string().min(1),
   proposedBy: z.string().min(1),
   authority: z.string().min(1),
-  status: z.enum(['approved', 'pending_human', 'rejected_invalid_authority']),
+  /** pending_human: só atos reservados ao responsável (legais/contratuais). pending_verifier: decisão protegida de governança, vai ao verificador (D01). */
+  status: z.enum(['approved', 'pending_human', 'pending_verifier', 'rejected_invalid_authority']),
   needsHumanApproval: z.boolean(),
   evidenceRefs: z.array(z.string()),
 });
