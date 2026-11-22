@@ -1,5 +1,7 @@
 // Gateway: roteia, retém saldo, reserva, chama o cliente, checa a evidência e concilia. Não guarda estado próprio:
 // todo estado de orçamento fica no BudgetGate (ledger) e no BalanceGuard (saldo do provedor).
+import { isEnabled, type FlagState } from '@ln/contracts';
+import { realCallsAllowed } from './policy';
 import { route, TASK_CATALOG, isEscalation, type RouteRequest } from './router';
 import type { BudgetGate } from './budget';
 import type { BalanceGuard } from './balance';
@@ -25,6 +27,7 @@ export interface GatewayDeps {
   gate: BudgetGate;
   client: OpenRouterClient;
   balance?: BalanceGuard; // saldo do provedor; obrigatório em chamadas reais
+  flags?: Partial<FlagState>; // overrides de flags (padrão: todas desligadas)
 }
 
 export type GatewayOutcome =
@@ -52,6 +55,15 @@ function errorLabel(err: unknown): string {
 }
 
 export async function callModel(deps: GatewayDeps, call: GatewayCall): Promise<GatewayOutcome> {
+  // Gate de chamada real: production_enabled E a flag modelosHabilitados. Qualquer um desligado bloqueia.
+  if (call.mode === 'production' && !realCallsAllowed(deps.policy, isEnabled('modelosHabilitados', deps.flags))) {
+    return {
+      status: 'blocked',
+      reason: 'model_calls_disabled',
+      detail: 'chamada real exige production_enabled = true e a flag modelosHabilitados ligada',
+    };
+  }
+
   const decision = route(deps.policy, call);
   if (decision.status === 'deterministic') return { status: 'deterministic' };
   if (decision.status === 'blocked') return { status: 'blocked', reason: decision.reason, detail: decision.detail };

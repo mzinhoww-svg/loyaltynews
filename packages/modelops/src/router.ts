@@ -13,7 +13,7 @@ export interface TaskSpec {
 }
 
 // Catálogo de tarefas. Rotas vêm da política; classes e exceções de ritual vêm de ADR-015.
-// WF08/WF18/auditoria não estão mapeadas na política v4: mapeadas para 'review' com classe reserva. A confirmar pelo Chief Architect.
+// Nomes de tarefa conforme routing_by_task da política v5 (DP-02 v5, aprovada pelo QA).
 export const TASK_CATALOG: Record<string, TaskSpec> = {
   editorial_draft: { route: 'economy', taskClass: 'essential', lane: 'text', requiresDistinctAuthor: false },
   fact_check: { route: 'review', taskClass: 'essential', lane: 'text', requiresDistinctAuthor: true },
@@ -26,9 +26,13 @@ export const TASK_CATALOG: Record<string, TaskSpec> = {
   source_ingestion: { route: 'deterministic', taskClass: 'non_essential', lane: 'text', requiresDistinctAuthor: false },
   creative_composition: { route: 'deterministic', taskClass: 'non_essential', lane: 'text', requiresDistinctAuthor: false },
   social_publish: { route: 'deterministic', taskClass: 'essential', lane: 'text', requiresDistinctAuthor: false },
-  'WF08 correction': { route: 'review', taskClass: 'reserve', lane: 'text', requiresDistinctAuthor: true },
-  'WF18 response/retraction': { route: 'review', taskClass: 'reserve', lane: 'text', requiresDistinctAuthor: true },
-  'postpublication audit/unpublish': { route: 'review', taskClass: 'reserve', lane: 'text', requiresDistinctAuthor: true },
+  // Auditoria (DP-02 v5): autor diferente do conteúdo revisado; reserva só acima de 42.
+  // A despublicação em si é determinística e não passa por aqui.
+  wf08_correction: { route: 'review', taskClass: 'reserve', lane: 'text', requiresDistinctAuthor: true },
+  wf18_response_retraction: { route: 'review', taskClass: 'reserve', lane: 'text', requiresDistinctAuthor: true },
+  postpublication_audit: { route: 'review', taskClass: 'reserve', lane: 'text', requiresDistinctAuthor: true },
+  // Revisão de rascunho no gate WF02: autor distinto do rascunho (exige draftModelId).
+  editorial_review: { route: 'review', taskClass: 'essential', lane: 'text', requiresDistinctAuthor: true },
 };
 
 // Rituais que continuam até o degrau 42 (ADR-015). Os demais são não essenciais.

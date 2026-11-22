@@ -5,13 +5,13 @@ import { loadPolicyFile } from './policy';
 import { BudgetGate, gateConfigFromPolicy, type ReserveInput } from './budget';
 import { MemoryLedgerStore } from './ledger';
 
-const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v4.json', import.meta.url));
+const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v5.json', import.meta.url));
 const policy = loadPolicyFile(FIXTURE).policy;
 if (!policy) throw new Error('fixture inválido');
 const cfg = gateConfigFromPolicy(policy);
 
 const NOW = new Date('2026-11-23T12:00:00-03:00');
-const AUDIT = 'WF08 correction';
+const AUDIT = 'wf08_correction';
 
 function newGate(): { gate: BudgetGate; store: MemoryLedgerStore } {
   const store = new MemoryLedgerStore();
@@ -255,4 +255,33 @@ test('pendente: a liberação conciliada não aceita reserva aberta', async () =
   const r = await gate.reserve(req({ amountUsd: 1 }));
   if (!r.ok) throw new Error('reserva inesperadamente recusada');
   assert.equal((await gate.releaseConciliated(r.reservationId, 'evidência', NOW)).ok, false);
+});
+
+// DP-02 v5: auditoria usa a verba do provedor até 42; só acima de 42 cai na reserva de 8.
+test('auditoria abaixo de 42 usa a verba do provedor; acima de 42 usa a reserva', async () => {
+  const { gate } = newGate();
+  const low = await gate.reserve(req({ taskId: 'wf08_correction', taskClass: 'reserve', amountUsd: 3 }));
+  assert.equal(low.ok, true);
+  let snap = await gate.snapshot(NOW);
+  assert.equal(snap.allocationMicro, 3_000_000, 'abaixo de 42 é verba do provedor');
+  assert.equal(snap.reserveMicro, 0);
+
+  await gate.reserve(req({ provider: 'openai', model: 'openai/gpt-6.1-terra', amountUsd: 20 }));
+  await gate.reserve(req({ amountUsd: 19 })); // total de verba chega a 42
+  const high = await gate.reserve(req({ taskId: 'wf08_correction', taskClass: 'reserve', amountUsd: 1 }));
+  assert.equal(high.ok, true);
+  snap = await gate.snapshot(NOW);
+  assert.equal(snap.reserveMicro, 1_000_000, 'acima de 42 entra na reserva');
+  assert.equal(snap.totalMicro, 43_000_000);
+});
+
+test('tarefa de auditoria nunca passa de 50 nem da reserva de 8', async () => {
+  const { gate } = newGate();
+  await gate.reserve(req({ provider: 'openai', model: 'openai/gpt-6.1-terra', amountUsd: 20 }));
+  await gate.reserve(req({ amountUsd: 22 }));
+  const results = await Promise.all(
+    Array.from({ length: 10 }, () => gate.reserve(req({ taskId: 'postpublication_audit', taskClass: 'reserve', amountUsd: 1 }))),
+  );
+  assert.equal(results.filter((r) => r.ok).length, 8);
+  assert.equal((await gate.snapshot(NOW)).totalMicro, 50_000_000);
 });

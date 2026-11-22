@@ -5,7 +5,7 @@ import { loadPolicyFile } from './policy';
 import { route, type RouteRequest } from './router';
 import type { ModelPolicy } from './types';
 
-const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v4.json', import.meta.url));
+const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v5.json', import.meta.url));
 const base = loadPolicyFile(FIXTURE).policy as ModelPolicy;
 const NOW = new Date('2026-11-23T12:00:00-03:00');
 const ALL_MODELS = base.models.map((m) => m.id);
@@ -229,24 +229,23 @@ test('tentativas: no máximo max_attempts (3) candidatos, primário mais dois fa
 });
 
 // Achado: pela v4, os modelos OpenAI de revisão só valem para fact_check e editorial_review.
-// Com redator Anthropic, a correção WF08 não tem revisor elegível: bloqueia (falha fechada).
-test('WF08 com redator Anthropic bloqueia: OpenAI não é permitida nessa tarefa e Sonnet é do mesmo autor', () => {
+// DP-02 v5: a OpenAI passa a ser permitida na correção WF08. Com redator Anthropic, o revisor é OpenAI.
+test('WF08 com redator Anthropic: OpenAI é a revisora (v5); Sonnet fica fora pelo mesmo autor', () => {
   const d = route(
     base,
-    req({ task: 'WF08 correction', draftModelId: 'anthropic/claude-haiku-5.5', qualifiedModelIds: ALL_MODELS }),
+    req({ task: 'wf08_correction', draftModelId: 'anthropic/claude-haiku-5.5', qualifiedModelIds: ALL_MODELS }),
   );
-  assert.equal(d.status, 'blocked');
-  if (d.status === 'blocked') {
-    assert.equal(d.reason, 'no_eligible_candidate');
-    assert.ok(d.reasons?.['openai-text-review']?.includes('task_not_allowed'));
-    assert.ok(d.reasons?.['claude-sonnet-5-5']?.includes('same_author_as_draft'));
+  assert.equal(d.status, 'eligible');
+  if (d.status === 'eligible') {
+    assert.equal(d.primary, 'openai-text-review');
+    assert.ok(d.reasons['claude-sonnet-5-5']?.includes('same_author_as_draft'));
   }
 });
 
 test('WF08 com redator OpenAI usa Sonnet como revisor, na classe reserva', () => {
   const d = route(
     base,
-    req({ task: 'WF08 correction', draftModelId: 'openai/gpt-6.1-terra', qualifiedModelIds: ALL_MODELS }),
+    req({ task: 'wf08_correction', draftModelId: 'openai/gpt-6.1-terra', qualifiedModelIds: ALL_MODELS }),
   );
   assert.equal(d.status, 'eligible');
   if (d.status === 'eligible') {

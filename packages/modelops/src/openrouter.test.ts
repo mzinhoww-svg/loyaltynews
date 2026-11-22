@@ -4,6 +4,9 @@ import { buildRequestBody, checkEvidence, isNoChargeStatus, ProviderRejectedErro
 import { SimulatedOpenRouterClient } from './openrouter.mock';
 import { selectClient, createRealOpenRouterClient, createOpenRouterCreditsReader, OPENROUTER_URL } from './openrouter-client';
 
+const POLICY_ON = { rules: { production_enabled: true } };
+const POLICY_OFF = { rules: { production_enabled: false } };
+
 test('corpo da requisição: coleta negada, parâmetros exigidos, sem lista de modelos nem plugins', () => {
   const body = buildRequestBody({
     openrouterId: 'anthropic/claude-haiku-5.5',
@@ -50,13 +53,25 @@ test('seleção: padrão simulado sem rede; flag desligada ignora a chave; flag 
     return new Response('{}');
   }) as typeof fetch;
 
-  const simulated = selectClient({});
+  const simulated = selectClient({ policy: POLICY_OFF });
   assert.ok(simulated instanceof SimulatedOpenRouterClient);
   await simulated.chat(buildRequestBody({ openrouterId: 'x/y', messages: [], maxTokens: 1, zdrRequired: false }));
   assert.equal(netCalls, 0, 'simulado não usa rede');
 
-  assert.ok(selectClient({ apiKey: 'k' }, spy) instanceof SimulatedOpenRouterClient, 'chave sozinha não liga o real');
-  assert.throws(() => selectClient({ flags: { modelosHabilitados: true } }), /chave do OpenRouter está ausente/);
+  assert.ok(selectClient({ policy: POLICY_ON, apiKey: 'k' }, spy) instanceof SimulatedOpenRouterClient, 'chave sozinha não liga o real');
+  assert.throws(
+    () => selectClient({ policy: POLICY_ON, flags: { modelosHabilitados: true } }),
+    /chave do OpenRouter está ausente/,
+  );
+  // Política habilitada com flag desligada: continua simulado (gate formal: production_enabled E flag).
+  assert.ok(
+    selectClient({ policy: POLICY_ON, apiKey: 'k', flags: { modelosHabilitados: false } }, spy) instanceof SimulatedOpenRouterClient,
+  );
+  assert.ok(
+    selectClient({ policy: POLICY_OFF, apiKey: 'k', flags: { modelosHabilitados: true } }, spy) instanceof SimulatedOpenRouterClient,
+    'política desligada bloqueia mesmo com flag ligada',
+  );
+  assert.equal(netCalls, 0, 'nenhuma seleção acima usa a rede');
 });
 
 test('cliente real: chamada HTTP com chave no cabeçalho, sem vazar a chave em erro', async () => {
@@ -67,7 +82,7 @@ test('cliente real: chamada HTTP com chave no cabeçalho, sem vazar a chave em e
     return new Response(JSON.stringify(full), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }) as typeof fetch;
 
-  const client = selectClient({ apiKey: 'sk-SEGREDO-123', flags: { modelosHabilitados: true } }, fake);
+  const client = selectClient({ policy: POLICY_ON, apiKey: 'sk-SEGREDO-123', flags: { modelosHabilitados: true } }, fake);
   const body = buildRequestBody({ openrouterId: 'anthropic/claude-haiku-5.5', messages: [], maxTokens: 1, zdrRequired: false });
   const resp = await client.chat(body);
   assert.equal(resp.id, 'g-1');

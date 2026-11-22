@@ -1,8 +1,18 @@
 // Carregador e validador da política de modelos. Falha fechada: política inválida não é usada.
 import { readFileSync } from 'node:fs';
+import { ModelPolicy as ContractModelPolicy, modelCallsAllowed } from '@ln/contracts';
 import type { ModelPolicy, PolicyCheck } from './types';
 
+// Gate de chamada real do contrato (production_enabled E flag). O contrato só lê rules.production_enabled;
+// o cast cobre apenas a forma do objeto (a política local tem esse campo com o mesmo tipo).
+export function realCallsAllowed(policy: { rules: { production_enabled: boolean } }, flagModelosHabilitados: boolean): boolean {
+  return modelCallsAllowed(policy as unknown as Pick<ContractModelPolicy, 'rules'>, flagModelosHabilitados);
+}
+
 const KNOWN_PROVIDERS = ['anthropic', 'openai', 'deepseek'];
+
+// Tarefas que precisam de rota em routing_by_task (DP-02 v5). A política v4 não as tinha.
+const REQUIRED_ROUTING_KEYS = ['wf08_correction', 'wf18_response_retraction', 'postpublication_audit', 'editorial_review'];
 
 // Invariantes de segurança: se qualquer um mudar, a política é rejeitada.
 const MUST_BE_TRUE = [
@@ -30,6 +40,15 @@ const isNonNeg = (v: unknown): v is number => typeof v === 'number' && Number.is
 export function validatePolicy(raw: unknown): PolicyCheck {
   const errors: string[] = [];
   if (!isObj(raw)) return { ok: false, errors: ['policy: documento não é objeto'] };
+
+  // Estrutura pelo schema do contrato (@ln/contracts). Depois, as invariantes semânticas abaixo.
+  const schema = ContractModelPolicy.safeParse(raw);
+  if (!schema.success) {
+    return {
+      ok: false,
+      errors: schema.error.issues.map((i) => `${i.path.join('.') || '(raiz)'}: ${i.message}`),
+    };
+  }
 
   const rules = isObj(raw.rules) ? raw.rules : undefined;
   if (!rules) errors.push('rules: ausente');
@@ -148,7 +167,12 @@ export function validatePolicy(raw: unknown): PolicyCheck {
   const byTask = isObj(raw.routing_by_task) ? raw.routing_by_task : undefined;
   if (!byTask) {
     errors.push('routing_by_task: ausente');
-  } else if (routes) {
+  } else {
+    for (const key of REQUIRED_ROUTING_KEYS) {
+      if (!(key in byTask)) errors.push(`routing_by_task: falta a tarefa ${key} (DP-02 v5)`);
+    }
+  }
+  if (byTask && routes) {
     for (const [task, value] of Object.entries(byTask)) {
       const routeName = typeof value === 'string' ? (value.split(';')[0] ?? '').trim() : '';
       if (routeName !== 'deterministic' && !(routeName in routes)) {

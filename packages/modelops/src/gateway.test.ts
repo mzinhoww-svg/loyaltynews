@@ -9,7 +9,7 @@ import { SimulatedOpenRouterClient, type SimulatedOptions } from './openrouter.m
 import { BalanceGuard } from './balance';
 import type { ModelPolicy } from './types';
 
-const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v4.json', import.meta.url));
+const FIXTURE = fileURLToPath(new URL('../fixtures/model.policy.proposto-DP02-v5.json', import.meta.url));
 const base = loadPolicyFile(FIXTURE).policy as ModelPolicy;
 const NOW = new Date('2026-11-23T12:00:00-03:00');
 const QUALIFIED = ['claude-haiku-5-5', 'claude-sonnet-5-5', 'openai-text-review', 'openai-text-review-alt'];
@@ -61,7 +61,7 @@ test('produção desligada: nenhuma chamada sai e nada é reservado', async () =
   const { deps, client, store } = setup();
   const out = await callModel(deps, call({ mode: 'production' }));
   assert.equal(out.status, 'blocked');
-  if (out.status === 'blocked') assert.equal(out.reason, 'production_disabled');
+  if (out.status === 'blocked') assert.equal(out.reason, 'model_calls_disabled');
   assert.equal(client.calls.length, 0);
   assert.equal((await store.readAll()).length, 0);
 });
@@ -210,8 +210,23 @@ test('política com produção ligada e qualificação: a chamada passa; sem qua
   assert.equal(off.client.calls.length, 0);
 
   const on = setup(p);
-  const yes = await callModel(on.deps, call({ mode: 'production', qualifiedModelIds: ['claude-haiku-5-5'] }));
+  const yes = await callModel(
+    { ...on.deps, flags: { modelosHabilitados: true } },
+    call({ mode: 'production', qualifiedModelIds: ['claude-haiku-5-5'] }),
+  );
   assert.equal(yes.status, 'ok');
+});
+
+// Gate de chamada real: política habilitada não basta; a flag modelosHabilitados também precisa estar ligada.
+test('produção com política habilitada mas flag desligada: nenhuma chamada sai', async () => {
+  const p = policyClone();
+  p.rules.production_enabled = true;
+  const { deps, client, store } = setup(p);
+  const out = await callModel(deps, call({ mode: 'production', qualifiedModelIds: ['claude-haiku-5-5'] }));
+  assert.equal(out.status, 'blocked');
+  if (out.status === 'blocked') assert.equal(out.reason, 'model_calls_disabled');
+  assert.equal(client.calls.length, 0);
+  assert.equal((await store.readAll()).length, 0);
 });
 
 // Portão de saldo (DP-14): saldo real é limite além do teto de US$ 50.

@@ -3,8 +3,10 @@
 import { isEnabled, type FlagState } from '@ln/contracts';
 import { isNoChargeStatus, ProviderRejectedError, type OpenRouterBody, type OpenRouterClient, type OpenRouterResponse } from './openrouter';
 import { SimulatedOpenRouterClient } from './openrouter.mock';
+import { realCallsAllowed } from './policy';
 
 export interface ClientConfig {
+  policy: { rules: { production_enabled: boolean } }; // production_enabled da política
   apiKey?: string;
   flags?: Partial<FlagState>;
 }
@@ -66,7 +68,7 @@ export function createOpenRouterCreditsReader(key: string, fetchImpl: typeof fet
 
 // Padrão: simulado. Flag desligada nunca usa a rede. Flag ligada sem chave é erro explícito.
 export function selectClient(config: ClientConfig, fetchImpl: typeof fetch = fetch): OpenRouterClient {
-  if (!isEnabled('modelosHabilitados', config.flags)) return new SimulatedOpenRouterClient();
-  if (!config.apiKey) throw new Error('modelosHabilitados ligada, mas a chave do OpenRouter está ausente');
+  if (!realCallsAllowed(config.policy, isEnabled('modelosHabilitados', config.flags))) return new SimulatedOpenRouterClient();
+  if (!config.apiKey) throw new Error('chamadas de modelo habilitadas, mas a chave do OpenRouter está ausente');
   return createRealOpenRouterClient(config.apiKey, fetchImpl);
 }

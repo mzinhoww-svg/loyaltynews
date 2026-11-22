@@ -3,7 +3,7 @@
 import { usdToMicro, microToUsd } from './money';
 import { monthKey } from './month';
 import { replay, spentMicro, type LedgerStore, type Lane, type ReservationState } from './ledger';
-import type { ModelPolicy, Pool, TaskClass } from './types';
+import { AUDIT_RESERVE_TASK_KEYS, type ModelPolicy, type Pool, type TaskClass } from './types';
 
 export interface GateConfig {
   capMicro: number; // teto mensal agregado (50)
@@ -75,7 +75,7 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
     imageAllocationMicro: usdToMicro(alloc.images),
     escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
     reserveMicro: usdToMicro(alloc.audit_errata_reserve),
-    reserveTaskIds: auditTaskIdsOf(rules),
+    reserveTaskIds: AUDIT_RESERVE_TASK_KEYS,
     ceilingMicro: {
       premium: usdToMicro(Number(findStep(steps, '35'))),
       non_essential: usdToMicro(Number(findStep(steps, '40'))),
@@ -83,15 +83,6 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
       reserve: usdToMicro(Number(findStep(steps, '50'))),
     },
   };
-}
-
-// Tarefas que podem usar a reserva de 8, lidas de rules.budget_enforcement (tipado, sem any).
-function auditTaskIdsOf(rules: ModelPolicy['rules']): readonly string[] {
-  const enforcement: unknown = rules.budget_enforcement;
-  if (typeof enforcement !== 'object' || enforcement === null) return [];
-  const list: unknown = (enforcement as { audit_errata_reserve_exclusive_to?: unknown }).audit_errata_reserve_exclusive_to;
-  if (!Array.isArray(list)) return [];
-  return list.filter((x): x is string => typeof x === 'string');
 }
 
 // Os valores dos degraus são texto ("stop premium/experiments"); o teto de cada degrau vem da chave.
@@ -164,8 +155,13 @@ export class BudgetGate {
       }
       const amountMicro = usdToMicro(input.amountUsd);
 
-      // 2. Verba zero vale para qualquer bolsa: provedor sem verba (DeepSeek) não recebe chamada.
-      const pool: Pool = input.taskClass === 'reserve' ? 'reserve' : 'allocation';
+      // 2. Reserva exclusiva: só tarefas de auditoria podem tocar a reserva de 8.
+      const isAudit = this.config.reserveTaskIds.includes(input.taskId);
+      if (input.taskClass === 'reserve' && !isAudit) {
+        return refuse('reserve_task_not_eligible', `tarefa ${input.taskId} não pode usar a reserva`);
+      }
+
+      // 3. Verba zero vale para qualquer bolsa: provedor sem verba (DeepSeek) não recebe chamada.
       const providerCap = this.config.providerAllocationMicro[input.provider];
       if (providerCap === undefined || providerCap === 0) {
         return refuse('zero_allocation', `verba zero ou inexistente para ${input.provider}`);
@@ -174,12 +170,12 @@ export class BudgetGate {
         return refuse('image_allocation_zero', 'verba de imagens é zero até o preço ser verificado');
       }
 
-      // 3. Reserva exclusiva: só WF08, WF18 e auditoria/despublicação podem usá-la.
-      if (pool === 'reserve' && !this.config.reserveTaskIds.includes(input.taskId)) {
-        return refuse('reserve_task_not_eligible', `tarefa ${input.taskId} não pode usar a reserva`);
-      }
-
       const snap = this.computeSnapshot(await this.states(), month);
+
+      // 4. Bolsa. Auditoria usa a verba do provedor até 42 e a reserva de 8 acima de 42 (DP-02 v5).
+      //    Demais tarefas nunca tocam a reserva.
+      const pool: Pool = isAudit && snap.totalMicro + amountMicro > this.config.ceilingMicro.essential ? 'reserve' : 'allocation';
+      const stepClass: TaskClass = pool === 'reserve' ? 'reserve' : input.taskClass === 'reserve' ? 'essential' : input.taskClass;
 
       if (pool === 'reserve') {
         if (snap.reserveMicro + amountMicro > this.config.reserveMicro) {
@@ -198,7 +194,7 @@ export class BudgetGate {
       }
 
       // 4. Degrau da classe: o gasto total projetado não pode passar do teto da classe.
-      const ceiling = this.config.ceilingMicro[input.taskClass];
+      const ceiling = this.config.ceilingMicro[stepClass];
       if (snap.totalMicro + amountMicro > ceiling) {
         return refuse('step_ceiling', `degrau ${microToUsd(ceiling)} para classe ${input.taskClass}`);
       }

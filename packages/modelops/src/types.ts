@@ -18,6 +18,14 @@ export type DataClass =
   | 'restricted'
   | 'secret';
 
+// Tarefas de auditoria que podem usar a reserva de 8 (DP-02 v5): correção, resposta/retratação e
+// auditoria pós-publicação. Nomes = chaves de routing_by_task da política v5.
+export const AUDIT_RESERVE_TASK_KEYS: readonly string[] = [
+  'wf08_correction',
+  'wf18_response_retraction',
+  'postpublication_audit',
+];
+
 // Ordem do mais permissivo para o mais restrito. Classe de saída = a mais restrita das entradas.
 export const DATA_CLASS_ORDER: readonly DataClass[] = [
   'public',

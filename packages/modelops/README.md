@@ -2,7 +2,7 @@
 
 Gateway de modelos do Loyalty News (frente 11, ModelOps/FinOps). Código determinístico. **Sem chamadas reais por padrão.**
 
-Base: `model.policy` v4 (`r0-preparacao/arquitetura/model.policy.proposto-DP02-v4.json`, cópia em `fixtures/`), ADR-006, ADR-013 e ADR-015.
+Base: `model.policy` v5 (`r0-preparacao/arquitetura/model.policy.proposto-DP02-v5.json`, aprovada pelo QA; cópia em `fixtures/`), ADR-006, ADR-013 e ADR-015. Schema da política em `@ln/contracts` (`ModelPolicy`); validador local acrescenta as invariantes de segurança.
 
 ## O que tem
 
@@ -39,13 +39,13 @@ Testes do pacote: `packages/modelops/src/*.test.ts`. Cobrem a regressão de falh
 
 ## Não feito neste pacote (fica para R2-07/08 ou para o verificador)
 
-- **Saldo do OpenRouter:** o endpoint `GET /api/v1/credits` exige **chave de gestão** (Management key), não a chave comum de API. Com a chave LN atual o leitor falha e o portão fecha (`balance_unknown`), o que é seguro mas inoperante. Falta o dono decidir: criar uma chave de gestão separada, guardada fora do código, ou informar o saldo manualmente.
+- **Saldo do OpenRouter:** `GET /api/v1/credits` responde à chave comum de API (confirmado pelo PM em 22/11, DP-05 e DP-14). O leitor (`createOpenRouterCreditsReader`) usa essa chave. Pendente: quem constrói o `BalanceGuard` na composição do produto precisa injetar esse leitor; o pacote não faz isso sozinho.
 - Persistência em PostgreSQL: a interface `LedgerStore` existe; a transação com bloqueio de linha ainda não. A exclusão mútua atual vale só dentro de um processo.
 - Consulta de conciliação real: `reconcilePending` recebe uma sonda. Não há sonda implementada contra `/generation`; para falha incerta sem identificador de geração, a prova de não cobrança ainda não existe.
 - Conciliação mensal com as gerações do OpenRouter (limite proposto de 1%).
 - Evidência completa de geração: o endpoint de chat não traz `generation`; é preciso consultar `/generation`. Sem isso, a saída é bloqueada (falha fechada).
 - Qualificação de modelos: nenhum modelo está qualificado por padrão. ZDR por modelo não verificado.
-- Mapeamento provisório de WF08, WF18 e auditoria para a rota `review` (confirmar com o Chief Architect). Pela v4, a correção WF08 com redator Anthropic não tem revisor elegível e bloqueia.
+- Auditoria (`wf08_correction`, `wf18_response_retraction`, `postpublication_audit`) e `editorial_review` seguem a v5: rota `review`, autor diferente do conteúdo, reserva de 8 só acima de 42. Com redator Anthropic, a revisora é OpenAI. A despublicação é determinística e não passa pelo gateway.
 - Kill switch persistido no banco e acionável sem agente (R2-14).
-- Tipos da política (`ModelPolicy`) e o schema zod ainda são locais; pedido ao Chief Architect para mover para `@ln/contracts`.
+- Tipos da política: a estrutura é validada pelo schema de `@ln/contracts` (`ModelPolicy`). Os tipos de trabalho (`types.ts`) continuam locais porque o contrato não modela campos como verbas e degraus como objeto tipado. Pedir ao Chief Architect para ampliar o schema, se quiser eliminar a duplicação.
 - A chamada real ao OpenRouter não foi exercitada: os testes usam fetch injetado.
