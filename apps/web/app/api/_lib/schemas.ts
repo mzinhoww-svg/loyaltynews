@@ -14,6 +14,15 @@ import {
   Source,
 } from '@ln/contracts';
 
+const isHttp = (u: string) => /^https?:\/\//i.test(u);
+/** URL http(s): recusa javascript:, data: e afins. */
+export const HttpUrl = z.url().refine(isHttp, { message: 'apenas http ou https' });
+/** ImageRights do contrato + só URLs http(s) (url e link). */
+export const SafeImage = ImageRights.refine((i) => isHttp(i.url) && (!i.link || isHttp(i.link)), {
+  message: 'url e link da imagem: apenas http ou https',
+  path: ['url'],
+});
+
 export const Slug = z.string().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
 const ArticleBase = {
@@ -21,7 +30,7 @@ const ArticleBase = {
   subtitulo: z.string().max(300).optional(),
   editoria: EditoriaSlug,
   corpo: z.string().min(1),
-  imagem: ImageRights.optional(),
+  imagem: SafeImage.optional(),
   classeDeDado: DataClass.default('public'),
   patrocinado: z.boolean().default(false),
   rotuloPublieditorial: z.string().min(1).optional(),
@@ -41,7 +50,7 @@ export const ArticleUpdate = z
     subtitulo: z.string().max(300).nullable().optional(),
     editoria: EditoriaSlug.optional(),
     corpo: ArticleBase.corpo.optional(),
-    imagem: ImageRights.nullable().optional(),
+    imagem: SafeImage.nullable().optional(),
     classeDeDado: DataClass.optional(),
     patrocinado: z.boolean().optional(),
     rotuloPublieditorial: z.string().min(1).nullable().optional(),
@@ -77,7 +86,7 @@ export const EditoriaCreate = z.strictObject({ slug: EditoriaSlug });
 export const SourceCreate = z.strictObject({
   id: Id,
   nome: Source.shape.nome,
-  url: Source.shape.url,
+  url: HttpUrl,
   tipo: Source.shape.tipo,
   editorias: Source.shape.editorias,
   acesso: Source.shape.acesso.default('publico'),
@@ -86,7 +95,7 @@ export const SourceCreate = z.strictObject({
 export const SourcePatch = z
   .strictObject({
     nome: Source.shape.nome.optional(),
-    url: Source.shape.url.optional(),
+    url: HttpUrl.optional(),
     tipo: Source.shape.tipo.optional(),
     editorias: Source.shape.editorias.optional(),
     termosRevisados: z.boolean().optional(),
@@ -94,14 +103,14 @@ export const SourcePatch = z
   })
   .refine((u) => Object.keys(u).length > 0, { message: 'nenhum campo para alterar' });
 export const EvidenceCreate = z.strictObject({
-  url: EvidenceRef.shape.url,
+  url: HttpUrl,
   capturadoEm: EvidenceRef.shape.capturadoEm,
   sha256: EvidenceRef.shape.sha256,
 });
 
 export const MediaCreate = z.strictObject({
   tipo: z.enum(['imagem', 'video', 'documento']),
-  direitos: ImageRights,
+  direitos: SafeImage,
   sha256: Sha256,
 });
 
@@ -111,10 +120,10 @@ export const AgendaCreate = z
     inicio: IsoDate,
     fim: IsoDate,
     local: z.string().min(1),
-    url: z.url().optional(),
+    url: HttpUrl.optional(),
     editorias: z.array(EditoriaSlug).default([]),
     patrocinado: z.boolean().default(false),
-    fonteUrl: z.url(),
+    fonteUrl: HttpUrl,
   })
   .refine((e) => e.fim >= e.inicio, { message: 'fim anterior ao início', path: ['fim'] });
 export const AgendaPatch = z
@@ -123,9 +132,9 @@ export const AgendaPatch = z
     inicio: IsoDate.optional(),
     fim: IsoDate.optional(),
     local: z.string().min(1).optional(),
-    url: z.url().nullable().optional(),
+    url: HttpUrl.nullable().optional(),
     editorias: z.array(EditoriaSlug).optional(),
     patrocinado: z.boolean().optional(),
-    fonteUrl: z.url().optional(),
+    fonteUrl: HttpUrl.optional(),
   })
   .refine((u) => Object.keys(u).length > 0, { message: 'nenhum campo para alterar' });
