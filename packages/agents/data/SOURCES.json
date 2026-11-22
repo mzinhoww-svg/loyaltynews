@@ -1,5 +1,5 @@
 {
-  "nota": "Cópias byte a byte dos contratos de origem. meetings.registry.json = PROPOSTA P5 (com recovery_policy), ainda não ratificada nem revisada pelo QA; as 28 entradas são iguais às do contrato v2.1. Não editar: regenerar copiando da origem.",
+  "nota": "Cópias byte a byte dos contratos de origem. meetings.registry.json = PROPOSTA P5 v2 (com recovery_policy; chave de idempotência = data original; aprovada pelo QA, ainda não ratificada), ainda não ratificada nem revisada pelo QA; as 28 entradas são iguais às do contrato v2.1. Não editar: regenerar copiando da origem.",
   "arquivos": {
     "agents.registry.json": {
       "origem": "pacote-v2.1-completo/Loyalty_News_2.1/contracts/agents.registry.json",
@@ -10,8 +10,8 @@
       "sha256": "4d0d7624e6be342fb07525157da19f434c529f136a9a8087866393088ab9765a"
     },
     "meetings.registry.json": {
-      "origem": "r0-preparacao/arquitetura/meetings.registry.proposto-P5.json",
-      "sha256": "fe7101e5abeba97bb6ae9ced40dd6746be151c3b49ddeeb22f16daf46d64a817"
+      "origem": "r0-preparacao/arquitetura/meetings.registry.proposto-P5-v2.json",
+      "sha256": "a18e0a7150db095bf411a0f3ddd1123e15cf25ddd94f9656ddef3eaae2824264"
     }
   }
 }

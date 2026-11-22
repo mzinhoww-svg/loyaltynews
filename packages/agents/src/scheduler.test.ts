@@ -24,13 +24,13 @@ const input = (agent: string, extra: Partial<ParticipantInput> = {}): Participan
   agent_id: agent, summary: `resumo ${agent}`, blockers: [], evidence_refs: [], decisions: [], ...extra,
 });
 /** envia insumos de todos os participantes do ritual; o presidente traz uma decisão com tarefa */
-async function feedFull(id: string, date: string, opts: { humanGate?: boolean; skip?: string[] } = {}) {
+async function feedFull(id: string, date: string, opts: { cls?: 'automatic' | 'protected' | 'owner_reserved'; skip?: string[] } = {}) {
   const m = meeting(id);
   for (const p of m.participants) {
     if (opts.skip?.includes(p)) continue;
     await store.putInput(id, date, input(p, p === m.chair ? {
       evidence_refs: ['ev-1'],
-      decisions: [{ text: `Decisão de ${id}`, proposed_by: p, needs_human_approval: opts.humanGate ?? false, evidence_refs: ['ev-1'], actions: [{ title: 'Executar pauta', owner: m.participants[1] ?? p, due_in_business_days: 2 }] }],
+      decisions: [{ text: `Decisão de ${id}`, proposed_by: p, authority_class: opts.cls ?? 'automatic', evidence_refs: ['ev-1'], actions: [{ title: 'Executar pauta', owner: m.participants[1] ?? p, due_in_business_days: 2 }] }],
     } : {}));
   }
 }
@@ -73,20 +73,84 @@ describe('janela de recuperação P5 (fronteiras)', () => {
 
   it('host desligado a noite toda: rituais do dia anterior viram status_only', async () => {
     await sched.tick(at('2026-11-24', '05:00')); // lookback 1: pega 23/11 inteiro
-    const runs = await store.listRuns({ localDate: '2026-11-23' });
+    // inclui as ocorrências movidas de 20/11 (feriado) para 23/11: a chave é a data original, a efetiva é rescheduled_date
+    const runs = (await store.listRuns()).filter((r) => (r.rescheduled_date ?? r.local_date) === '2026-11-23');
     expect(runs.length).toBe(occurrencesOn(reg.meetings, '2026-11-23', cal).length);
     expect(runs.every((r) => r.status === 'status_only' && r.reason === 'host_off_previous_day')).toBe(true);
   });
 
-  it('segunda feriado: semanal roda na terça (idempotente em reinícios)', async () => {
+  it('segunda feriado: semanal roda na terça com a chave da data ORIGINAL; reinício não duplica (P5 v2)', async () => {
     const sched2 = new RitualScheduler({ registries: reg, calendar: cal, store, flags: ON, collector: new StoreInputCollector(store), lookbackDays: 0 });
-    await feedFull('W-cross', '2027-11-16');
+    await feedFull('W-cross', '2027-11-15'); // insumos pela identidade da ocorrência = data original
     await sched2.tick(at('2027-11-15', '09:00')); // feriado: nada
     expect(await store.listRuns()).toEqual([]);
-    await sched2.tick(at('2027-11-16', '09:00'));
-    const r = await store.getRun('W-cross', '2027-11-16');
-    expect(r?.status).toBe('completed');
-    expect(await store.getRun('W-cross', '2027-11-15')).toBeNull();
+    const t1 = await sched2.tick(at('2027-11-16', '09:00'));
+    const t2 = await sched2.tick(at('2027-11-16', '09:40')); // segundo reinício na terça
+    const runs = await store.listRuns({ meetingId: 'W-cross' });
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      status: 'completed', local_date: '2027-11-15', rescheduled_date: '2027-11-16', reschedule_reason: 'holiday_move',
+      idempotency_keys: ['W-cross+2027-11-15'],
+    });
+    // registro explícito: log do tick, ata e consulta pela chave
+    expect(t1.processed.find((p) => p.meeting_id === 'W-cross')).toMatchObject({ local_date: '2027-11-15', rescheduled_date: '2027-11-16', keys: ['W-cross+2027-11-15'], collided_keys: [] });
+    expect(t2.processed.find((p) => p.meeting_id === 'W-cross')).toBeUndefined();
+    const minutes = (await store.getMinutes(runs[0]!.id))!;
+    expect(minutes.notes.join(' ')).toMatch(/reagendado por feriado.*original 2027-11-15.*movida para 2027-11-16.*W-cross\+2027-11-15.*rescheduled_date=2027-11-16/);
+    expect(minutes.summary).toMatch(/reagendado de 2027-11-15/);
+    expect(await store.getRun('W-cross', '2027-11-15')).not.toBeNull();
+    expect(await store.getRun('W-cross', '2027-11-16')).toBeNull(); // a data efetiva NÃO é chave
+  });
+
+  it('ocorrência movida que perde a janela vira status_only com a mesma chave e o reagendamento registrado', async () => {
+    const sched2 = new RitualScheduler({ registries: reg, calendar: cal, store, flags: ON, collector: new StoreInputCollector(store), lookbackDays: 0 });
+    await sched2.tick(at('2027-11-16', '09:00', 125)); // W-cross 09:00 + 125 min
+    const r = (await store.getRun('W-cross', '2027-11-15'))!;
+    expect(r).toMatchObject({ status: 'status_only', reason: 'recovery_window_expired', rescheduled_date: '2027-11-16' });
+    expect((await store.getMinutes(r.id))!.notes.join(' ')).toMatch(/reagendado por feriado/);
+    // novo reinício dentro do mesmo dia não cria outra execução
+    await sched2.tick(at('2027-11-16', '12:00'));
+    expect(await store.listRuns({ meetingId: 'W-cross' })).toHaveLength(1);
+  });
+
+  it('chave original também após virar o dia: a data efetiva passada não gera chave nova', async () => {
+    const sched2 = new RitualScheduler({ registries: reg, calendar: cal, store, flags: ON, collector: new StoreInputCollector(store), lookbackDays: 2 });
+    await sched2.tick(at('2027-11-16', '09:00', 125));
+    await sched2.tick(at('2027-11-17', '06:00')); // dia seguinte, lookback cobre 16/11
+    expect(await store.listRuns({ meetingId: 'W-cross' })).toHaveLength(1);
+  });
+
+  it('colisão: duas ocorrências originais na mesma data efetiva rodam uma vez, com as duas chaves registradas', async () => {
+    // sexta 27/11 e sexta 04/12 de 2026 feriadas, e toda a semana entre elas também: ambas movem para segunda 07/12
+    const calx = createBrCalendar(['2026-11-27', '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04']);
+    const occ = occurrencesOn(reg.meetings, '2026-12-07', calx).find((o) => o.meeting.id === 'W-performance')!;
+    expect(occ).toMatchObject({ originalDate: '2026-11-27', collidedOriginalDates: ['2026-12-04'], localDate: '2026-12-07' });
+    expect(occurrencesOn(reg.meetings, '2026-12-04', calx).some((o) => o.meeting.id === 'W-performance')).toBe(false);
+
+    await feedFull('W-performance', '2026-11-27');
+    const sched2 = new RitualScheduler({ registries: reg, calendar: calx, store, flags: ON, collector: new StoreInputCollector(store), lookbackDays: 0 });
+    const t1 = await sched2.tick(at('2026-12-07', '15:00'));
+    await sched2.tick(at('2026-12-07', '15:20'));
+    const runs = await store.listRuns({ meetingId: 'W-performance' });
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      status: 'completed', local_date: '2026-11-27', rescheduled_date: '2026-12-07',
+      idempotency_keys: ['W-performance+2026-11-27', 'W-performance+2026-12-04'],
+    });
+    expect(t1.processed.find((p) => p.meeting_id === 'W-performance')).toMatchObject({ collided_keys: ['W-performance+2026-12-04'] });
+    const notes = (await store.getMinutes(runs[0]!.id))!.notes.join(' ');
+    expect(notes).toMatch(/colisão: ocorrências originais 2026-11-27, 2026-12-04 coincidem em 2026-12-07; execução única; chaves registradas: W-performance\+2026-11-27, W-performance\+2026-12-04/);
+    expect(notes).toMatch(/reagendado por feriado/);
+    // as duas chaves encontram a mesma execução
+    expect((await store.getRun('W-performance', '2026-12-04'))!.id).toBe(runs[0]!.id);
+  });
+
+  it('dia sem deslocamento: sem rescheduled_date, chave = data do dia e nenhuma nota de reagendamento', async () => {
+    await feedFull('D-mercado', '2026-11-23');
+    await sched.tick(at('2026-11-23', '06:00'));
+    const r = (await store.getRun('D-mercado', '2026-11-23'))!;
+    expect(r).toMatchObject({ local_date: '2026-11-23', rescheduled_date: null, reschedule_reason: null, idempotency_keys: ['D-mercado+2026-11-23'] });
+    expect((await store.getMinutes(r.id))!.notes.join(' ')).not.toMatch(/reagendado|colisão/);
   });
 });
 
@@ -138,9 +202,9 @@ describe('execução, ata, decisões e tarefas', () => {
     await store.putInput('D-mercado', '2026-11-23', input('editor_mercado', {
       evidence_refs: ['e'],
       decisions: [
-        { text: 'dono fantasma', proposed_by: 'editor_mercado', needs_human_approval: false, evidence_refs: [], actions: [{ title: 'x', owner: 'fantasma', due_in_business_days: 1 }] },
-        { text: 'em nome de outro', proposed_by: 'publisher', needs_human_approval: false, evidence_refs: [], actions: [{ title: 'y', owner: 'writer_mercado', due_in_business_days: 1 }] },
-        { text: 'válida', proposed_by: 'editor_mercado', needs_human_approval: false, evidence_refs: [], actions: [{ title: 'z', owner: 'writer_mercado', due_in_business_days: 1 }] },
+        { text: 'dono fantasma', proposed_by: 'editor_mercado', authority_class: 'automatic', evidence_refs: [], actions: [{ title: 'x', owner: 'fantasma', due_in_business_days: 1 }] },
+        { text: 'em nome de outro', proposed_by: 'publisher', authority_class: 'automatic', evidence_refs: [], actions: [{ title: 'y', owner: 'writer_mercado', due_in_business_days: 1 }] },
+        { text: 'válida', proposed_by: 'editor_mercado', authority_class: 'automatic', evidence_refs: [], actions: [{ title: 'z', owner: 'writer_mercado', due_in_business_days: 1 }] },
       ],
     }));
     await store.putInput('D-mercado', '2026-11-23', input('writer_mercado'));
@@ -152,15 +216,29 @@ describe('execução, ata, decisões e tarefas', () => {
     expect((await store.getMinutes(run.id))!.notes.join(' ')).toMatch(/invalid_authority/);
   });
 
-  it('M-board: decisões nascem pending_human e as ações propostas não são criadas', async () => {
-    await feedFull('M-board', '2026-12-01', { humanGate: false });
+  it('alçada (D01): automática aprova; protegida vai ao verificador; só ato reservado ao responsável espera humano', async () => {
+    const m = meeting('M-board');
+    const mk = (cls: 'automatic' | 'protected' | 'owner_reserved') => ({ text: `d-${cls}`, proposed_by: m.chair, authority_class: cls, evidence_refs: [], actions: [{ title: `t-${cls}`, owner: 'director_technology', due_in_business_days: 1 }] });
+    for (const p of m.participants) await store.putInput('M-board', '2026-12-01', input(p, p === m.chair ? { evidence_refs: ['e'], decisions: [mk('automatic'), mk('protected'), mk('owner_reserved')] } : {}));
     await sched.tick(at('2026-12-01', '10:00'));
     const run = (await store.getRun('M-board', '2026-12-01'))!;
     expect(run.status).toBe('completed');
-    const [d] = await store.listDecisions(run.id);
-    expect(d).toMatchObject({ status: 'pending_human', needs_human_approval: true });
-    expect(await store.listActions({ runId: run.id })).toEqual([]);
-    expect((await store.getMinutes(run.id))!.notes.join(' ')).toMatch(/aprovação humana/);
+    const ds = Object.fromEntries((await store.listDecisions(run.id)).map((d) => [d.text, d]));
+    expect(ds['d-automatic']).toMatchObject({ status: 'approved', needs_human_approval: false });
+    expect(ds['d-protected']).toMatchObject({ status: 'pending_verifier', needs_human_approval: false });
+    expect(ds['d-owner_reserved']).toMatchObject({ status: 'pending_human', needs_human_approval: true });
+    // só a aprovada gera tarefa; as outras ficam registradas na ata
+    expect((await store.listActions({ runId: run.id })).map((a) => a.title)).toEqual(['t-automatic']);
+    const notes = (await store.getMinutes(run.id))!.notes.join(' ');
+    expect(notes).toMatch(/verificador independente/);
+    expect(notes).toMatch(/responsável \(ato reservado\)/);
+  });
+
+  it('M-board sem alçada declarada não pede aprovação humana de rotina', async () => {
+    await feedFull('M-board', '2026-12-01');
+    await sched.tick(at('2026-12-01', '10:00'));
+    const run = (await store.getRun('M-board', '2026-12-01'))!;
+    expect((await store.listDecisions(run.id))[0]).toMatchObject({ status: 'approved', needs_human_approval: false });
   });
 
   it('insumo de quem não participa ou fora do schema é descartado e registrado', async () => {

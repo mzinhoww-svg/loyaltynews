@@ -22,9 +22,15 @@ export interface SectorMemoryEntry {
 export interface MeetingRun {
   id: string;
   meeting_id: string;
+  /** Data ORIGINAL da ocorrência (chave de idempotência P5 v2), antes de qualquer deslocamento por feriado. */
   local_date: string; // YYYY-MM-DD
   /** '' para rituais agendados; id do evento para rituais por evento (X-incident) */
   instance: string;
+  /** Data em que a ocorrência venceu/rodou, se foi movida por feriado (P5 v2); nula se não houve deslocamento. `local_date` é sempre a data ORIGINAL. */
+  rescheduled_date: string | null;
+  reschedule_reason: 'holiday_move' | null;
+  /** Chaves de idempotência cobertas (`meeting_id+data_original`): a primária e, em colisão, as demais. */
+  idempotency_keys: string[];
   scheduled_for: string; // ISO UTC
   executed_at: string; // ISO UTC
   status: RunStatus;
@@ -52,7 +58,8 @@ export interface Minutes {
   notes: string[];
 }
 
-export type DecisionStatus = 'approved' | 'pending_human' | 'rejected_invalid_authority';
+/** pending_human: ato reservado ao responsável; pending_verifier: decisão protegida, vai ao verificador. */
+export type DecisionStatus = 'approved' | 'pending_human' | 'pending_verifier' | 'rejected_invalid_authority';
 
 export interface Decision {
   id: string;
@@ -80,6 +87,16 @@ export interface ActionItem {
   evidence_ref: string | null;
 }
 
+/** Chave de idempotência P5 v2: `meeting_id+data_original` (+ `#instance` para eventos). */
+export function idempotencyKey(meetingId: string, originalDate: string, instance = ''): string {
+  return `${meetingId}+${originalDate}${instance ? `#${instance}` : ''}`;
+}
+export function keyDate(key: string): string {
+  const m = /\+(\d{4}-\d{2}-\d{2})(#.*)?$/.exec(key);
+  if (!m) throw new Error(`chave de idempotência inválida: ${key}`);
+  return m[1]!;
+}
+
 export interface MeetingOutcomeRecord {
   run: MeetingRun;
   minutes: Minutes;
@@ -88,7 +105,8 @@ export interface MeetingOutcomeRecord {
 }
 
 export interface Store {
-  getRun(meetingId: string, localDate: string, instance?: string): Promise<MeetingRun | null>;
+  /** Acha a execução da ocorrência pela data ORIGINAL (chave primária ou qualquer chave registrada em colisão). */
+  getRun(meetingId: string, originalDate: string, instance?: string): Promise<MeetingRun | null>;
   listRuns(filter?: { localDate?: string; meetingId?: string }): Promise<MeetingRun[]>;
   /**
    * Grava run + ata + decisões + tarefas atomicamente. Idempotente em (meeting_id, local_date, instance):
@@ -119,16 +137,21 @@ export class InMemoryStore implements Store {
 
   private rk = (m: string, d: string, i = '') => `${m}|${d}|${i}`;
 
-  async getRun(meetingId: string, localDate: string, instance = '') {
-    return this.runs.get(this.rk(meetingId, localDate, instance)) ?? null;
+  async getRun(meetingId: string, originalDate: string, instance = '') {
+    const direct = this.runs.get(this.rk(meetingId, originalDate, instance));
+    if (direct) return direct;
+    const key = idempotencyKey(meetingId, originalDate, instance);
+    return [...this.runs.values()].find((r) => r.meeting_id === meetingId && r.instance === instance && r.idempotency_keys.includes(key)) ?? null;
   }
   async listRuns(f?: { localDate?: string; meetingId?: string }) {
     return [...this.runs.values()].filter((r) => (!f?.localDate || r.local_date === f.localDate) && (!f?.meetingId || r.meeting_id === f.meetingId));
   }
   async saveOutcome(rec: MeetingOutcomeRecord) {
     const k = this.rk(rec.run.meeting_id, rec.run.local_date, rec.run.instance);
-    const existing = this.runs.get(k);
-    if (existing) return { created: false, run: existing };
+    for (const date of [rec.run.local_date, ...rec.run.idempotency_keys.map(keyDate)]) {
+      const existing = await this.getRun(rec.run.meeting_id, date, rec.run.instance);
+      if (existing) return { created: false, run: existing };
+    }
     this.runs.set(k, structuredClone(rec.run));
     this.minutes.set(rec.run.id, structuredClone(rec.minutes));
     for (const d of rec.decisions) this.decisions.set(d.id, structuredClone(d));

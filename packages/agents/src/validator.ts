@@ -209,6 +209,19 @@ export function validateOrganization(org: Organization): ValidationReport {
   const policyDeps = [...recoveryPolicy.dependencies['D-sync']].sort().join(',');
   const syncDeps = [...(sync?.depends_on ?? [])].sort().join(',');
   if (policyDeps !== syncDeps) err('RECOVERY_DEPENDS', `recovery_policy.dependencies[D-sync] (${policyDeps}) != depends_on do D-sync (${syncDeps})`);
+  // P5 v2: chave de idempotência pela data ORIGINAL; reagendamento e colisão previstos
+  if (!/original_occurrence_date/.test(recoveryPolicy.idempotency_key)) err('RECOVERY_KEY', `recovery_policy.idempotency_key deve usar a data original da ocorrência (P5 v2): "${recoveryPolicy.idempotency_key}"`);
+  // D-sync consolida exatamente os dailies listados: presidentes das dependências = participantes (menos o publisher)
+  if (sync) {
+    const depChairs = (sync.depends_on ?? []).map((d) => meetings.find((x) => x.id === d)?.chair).filter((c): c is string => !!c).sort().join(',');
+    const syncDirectors = sync.participants.filter((p) => p !== sync.chair).sort().join(',');
+    if (depChairs !== syncDirectors) err('SYNC_CONSISTENCY', `participantes do D-sync (${syncDirectors}) não batem com os presidentes dos dailies que consolida (${depChairs})`);
+    // todo daily consolidado termina a janela antes do D-sync
+    for (const d of sync.depends_on ?? []) {
+      const dep = meetings.find((x) => x.id === d);
+      if (dep && dep.schedule_local >= sync.schedule_local) err('SYNC_DEADLINE', `${d} (${dep.schedule_local}) não termina a janela antes do D-sync (${sync.schedule_local})`);
+    }
+  }
   if (recoveryPolicy.window_minutes !== 120 || !recoveryPolicy.window_inclusive) err('RECOVERY_WINDOW', 'janela de recuperação deve ser 120 min inclusive (DP-11/P5)');
   // todo perfil é participante de algum ritual (ninguém fica sem ritual) — aviso
   const inMeeting = new Set(meetings.flatMap((m) => m.participants));

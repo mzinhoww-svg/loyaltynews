@@ -177,8 +177,11 @@ export const RecoveryPolicySchema = z
     late_outcome: z.string(),
     idempotency_key: z.string(),
     holiday: z.string(),
-    dependencies: z.object({ 'D-sync': z.array(z.string()), rule: z.string() }).passthrough(),
+    dependencies: z.object({ 'D-sync': z.array(z.string()), rule: z.string(), consistency: z.string().optional() }).passthrough(),
     boundary_tests: z.array(z.string()),
+    rescheduling: z
+      .object({ holiday_move: z.string(), collision: z.string(), supersession: z.string() })
+      .strict(),
   })
   .strict();
 export type RecoveryPolicy = z.infer<typeof RecoveryPolicySchema>;
@@ -255,8 +258,12 @@ export const DecisionInputSchema = z
   .object({
     text: z.string().min(1),
     proposed_by: IdSchema,
-    /** exige aprovação humana (ex.: M-board). A decisão nasce `pending_human`. */
-    needs_human_approval: z.boolean().default(false),
+    /**
+     * Alçada da decisão (D01): `automatic` (aprovada dentro da política e do orçamento), `protected`
+     * (decisão protegida de governança: vai ao verificador, sem aprovação humana de rotina) e
+     * `owner_reserved` (ato reservado ao responsável: legal ou contratual; aguarda o humano).
+     */
+    authority_class: z.enum(['automatic', 'protected', 'owner_reserved']).default('automatic'),
     evidence_refs: z.array(z.string()).default([]),
     actions: z
       .array(

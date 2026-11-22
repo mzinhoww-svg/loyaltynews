@@ -140,6 +140,17 @@ describe('validador falha fechado com dados adulterados', () => {
     expect(codes(rep)).toContain('RECOVERY_DEPENDS');
   });
 
+  it('P5 v2: chave de idempotência pela data original e consistência do D-sync', () => {
+    expect(codes(run((r) => { r.meetings.recovery_policy.idempotency_key = 'meeting_id + local_date'; }))).toContain('RECOVERY_KEY');
+    // D-sync sem um dos diretores consolidados
+    const rep = run((r) => {
+      const m = r.meetings.meetings.find((x) => x.id === 'D-sync')!;
+      m.participants = m.participants.filter((p) => p !== 'director_growth');
+      m.quorum.minimum = 4;
+    });
+    expect(codes(rep)).toContain('SYNC_CONSISTENCY');
+  });
+
   it('redação: redator reportando a outro editor', () => {
     const rep = run((r) => { r.agents.agents.find((a) => a.id === 'writer_crm')!.reports_to = 'editor_tech'; });
     expect(codes(rep)).toContain('NEWSROOM_WRITER');

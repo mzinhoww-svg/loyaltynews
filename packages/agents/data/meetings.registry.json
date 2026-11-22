@@ -1,5 +1,5 @@
 {
-  "version": "2.1-p5-proposta",
+  "version": "2.1-p5-v2-proposta",
   "format": "logical contracts, not native scheduler import",
   "meetings": [
     {
@@ -981,7 +981,7 @@
     "timezone": "America/Sao_Paulo",
     "same_business_day": true,
     "late_outcome": "status_only record, no model call; agenda carried to the next occurrence",
-    "idempotency_key": "meeting_id + local_date",
+    "idempotency_key": "meeting_id + original_occurrence_date (the scheduled date before any holiday move)",
     "holiday": "not due on national holidays; a weekly meeting that falls on a holiday moves to the next business day",
     "dependencies": {
       "D-sync": [
@@ -991,14 +991,23 @@
         "D-growth",
         "D-trust"
       ],
-      "rule": "D-sync runs only after each listed daily ran or became status_only for the same local date"
+      "rule": "D-sync waits until each listed daily ran or became status_only for the same local date; its own window still ends at 07:25+120 min (09:25). Every dependency window ends earlier (latest: D-trust 07:15+120 = 09:15), so dependencies are always resolved before the D-sync deadline. If the D-sync deadline passes, D-sync becomes status_only.",
+      "consistency": "D-sync participants (publisher + directors editorial, creative, growth, intelligence, trust) match the listed dailies"
     },
     "boundary_tests": [
       "restart at +120 min -> runs",
       "restart at +121 min -> status_only",
       "host off overnight -> previous day meetings become status_only",
       "Monday holiday -> weekly on Tuesday",
-      "two restarts inside the window -> one execution"
-    ]
+      "two restarts inside the window -> one execution",
+      "D-sync with a dependency still pending at 08:00 -> waits; dependency becomes status_only at its deadline -> D-sync runs before 09:25",
+      "host back at 09:30 -> D-sync status_only",
+      "Monday holiday: W-pautas moves to Tuesday 08:00 with key W-pautas+<Monday date>; a second restart on Tuesday does not duplicate"
+    ],
+    "rescheduling": {
+      "holiday_move": "weekly or monthly meeting due on a holiday moves to the next business day, same local time, keeping the original idempotency key and recording rescheduled_date",
+      "collision": "a meeting runs at most once per original occurrence; a moved occurrence that lands on a day where the next regular occurrence of the same meeting is also due runs once, with both keys recorded",
+      "supersession": "no monthly-replaces-weekly rule is adopted (pending a separate decision)"
+    }
   }
 }

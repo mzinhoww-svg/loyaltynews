@@ -14,6 +14,7 @@ import type {
   SectorMemoryEntry,
   Store,
 } from './store';
+import { idempotencyKey, keyDate } from './store';
 
 export interface PgQueryable {
   query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
@@ -33,6 +34,9 @@ function toRun(r: Record<string, unknown>): MeetingRun {
     meeting_id: String(r.meeting_id),
     local_date: dateStr(r.local_date),
     instance: String(r.instance ?? ''),
+    rescheduled_date: r.rescheduled_date ? dateStr(r.rescheduled_date) : null,
+    reschedule_reason: (r.reschedule_reason as MeetingRun['reschedule_reason']) ?? null,
+    idempotency_keys: arr(r.idempotency_keys),
     scheduled_for: iso(r.scheduled_for),
     executed_at: iso(r.executed_at),
     status: r.status as MeetingRun['status'],
@@ -76,12 +80,20 @@ function toMemory(r: Record<string, unknown>): SectorMemoryEntry {
 }
 const j = (v: unknown) => JSON.stringify(v);
 
+async function findRun(q: PgQueryable, meetingId: string, originalDate: string, instance: string): Promise<MeetingRun | null> {
+  const { rows } = await q.query(
+    'SELECT * FROM meeting_runs WHERE meeting_id = $1 AND instance = $3 AND (local_date = $2 OR idempotency_keys ? $4)',
+    [meetingId, originalDate, instance, idempotencyKey(meetingId, originalDate, instance)],
+  );
+  return rows[0] ? toRun(rows[0]) : null;
+}
+
 export class PgStore implements Store {
   constructor(private readonly db: PgDb) {}
 
-  async getRun(meetingId: string, localDate: string, instance = '') {
-    const { rows } = await this.db.query('SELECT * FROM meeting_runs WHERE meeting_id = $1 AND local_date = $2 AND instance = $3', [meetingId, localDate, instance]);
-    return rows[0] ? toRun(rows[0]) : null;
+  /** Acha pela data ORIGINAL: chave primária (`local_date`) ou qualquer chave registrada em colisão. */
+  async getRun(meetingId: string, originalDate: string, instance = '') {
+    return findRun(this.db, meetingId, originalDate, instance);
   }
 
   async listRuns(f?: { localDate?: string; meetingId?: string }) {
@@ -91,13 +103,15 @@ export class PgStore implements Store {
 
   async saveOutcome(rec: MeetingOutcomeRecord) {
     return this.db.transaction(async (q) => {
-      const existing = await q.query('SELECT * FROM meeting_runs WHERE meeting_id = $1 AND local_date = $2 AND instance = $3', [rec.run.meeting_id, rec.run.local_date, rec.run.instance]);
-      if (existing.rows[0]) return { created: false, run: toRun(existing.rows[0]) };
+      for (const date of [rec.run.local_date, ...rec.run.idempotency_keys.map(keyDate)]) {
+        const existing = await findRun(q, rec.run.meeting_id, date, rec.run.instance);
+        if (existing) return { created: false, run: existing };
+      }
       const r = rec.run;
       await q.query(
-        `INSERT INTO meeting_runs (id, meeting_id, local_date, instance, scheduled_for, executed_at, status, reason, route, delay_minutes, model_calls, recovered, chair, participants_present, participants_absent, quorum_minimum)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
-        [r.id, r.meeting_id, r.local_date, r.instance, r.scheduled_for, r.executed_at, r.status, r.reason, r.route, r.delay_minutes, r.model_calls, r.recovered, r.chair, j(r.participants_present), j(r.participants_absent), r.quorum_minimum],
+        `INSERT INTO meeting_runs (id, meeting_id, local_date, instance, rescheduled_date, reschedule_reason, idempotency_keys, scheduled_for, executed_at, status, reason, route, delay_minutes, model_calls, recovered, chair, participants_present, participants_absent, quorum_minimum)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+        [r.id, r.meeting_id, r.local_date, r.instance, r.rescheduled_date, r.reschedule_reason, j(r.idempotency_keys), r.scheduled_for, r.executed_at, r.status, r.reason, r.route, r.delay_minutes, r.model_calls, r.recovered, r.chair, j(r.participants_present), j(r.participants_absent), r.quorum_minimum],
       );
       const m = rec.minutes;
       await q.query('INSERT INTO meeting_minutes (run_id, summary, blockers, evidence_refs, outputs, notes) VALUES ($1,$2,$3,$4,$5,$6)', [m.run_id, m.summary, j(m.blockers), j(m.evidence_refs), j(m.outputs), j(m.notes)]);

@@ -11,14 +11,28 @@ import { isEnabled, type FlagState } from '@ln/contracts';
 import { addBusinessDays, addDays, firstBusinessDayOfMonth, isBusinessDay, localPartsOf, localToUtc, nextBusinessDay, weekdayOf, WEEKDAY_CODES, type HolidayCalendar } from './calendar';
 import type { LoadedRegistries } from './config';
 import { ParticipantInputSchema, type Meeting, type ParticipantInput, type RecoveryPolicy, type StatusReason } from './schemas';
-import type { ActionItem, Decision, MeetingOutcomeRecord, MeetingRun, Minutes, Store } from './store';
+import { idempotencyKey, type ActionItem, type Decision, type DecisionStatus, type MeetingOutcomeRecord, type MeetingRun, type Minutes, type Store } from './store';
 
 export interface Occurrence {
   meeting: Meeting;
+  /** Data em que a ocorrência VENCE (efetiva, já deslocada por feriado). A janela e o horário usam esta data. */
   localDate: string;
+  /**
+   * Data ORIGINAL da ocorrência, antes de qualquer deslocamento por feriado. A chave de idempotência
+   * (P5 v2) é `meeting_id + originalDate` (+ `#instance` em eventos) e nunca muda se a ocorrência é movida.
+   */
+  originalDate: string;
+  /** Outras datas originais que caíram na mesma data efetiva (colisão): rodam uma única vez, com as duas chaves. */
+  collidedOriginalDates: string[];
   instance: string;
   scheduledFor: Date;
 }
+
+/** Todas as chaves de idempotência cobertas por uma ocorrência (primária primeiro). */
+export function occurrenceKeys(occ: Occurrence): string[] {
+  return [occ.originalDate, ...occ.collidedOriginalDates].map((d) => idempotencyKey(occ.meeting.id, d, occ.instance));
+}
+export const isRescheduled = (occ: Occurrence): boolean => occ.originalDate !== occ.localDate;
 
 export type Classification =
   | { kind: 'not_due' }
@@ -37,21 +51,27 @@ function weeklyEffectiveDate(nominal: string, cal: HolidayCalendar): string {
 export function occurrencesOn(meetings: readonly Meeting[], date: string, cal: HolidayCalendar): Occurrence[] {
   const out: Occurrence[] = [];
   for (const m of meetings) {
-    let due = false;
+    let originals: string[] = [];
     if (m.cycle === 'weekday') {
-      due = isBusinessDay(date, cal);
+      if (isBusinessDay(date, cal)) originals = [date];
     } else if (m.cycle === 'weekly') {
       const target = WEEKDAY_CODES.indexOf(m.schedule_local.slice(0, 3) as (typeof WEEKDAY_CODES)[number]);
-      // nominal em [date-4, date]: se o nominal é feriado, o semanal move p/ o próximo dia útil (P5)
-      for (let back = 0; back <= 4 && !due; back++) {
+      // datas nominais (dia da semana do ritual) cuja data efetiva é `date`: se o nominal é feriado, o
+      // semanal move p/ o próximo dia útil (P5 v2) mantendo a data original como chave. Varre 14 dias
+      // para cobrir feriados encadeados (a colisão de duas ocorrências na mesma data efetiva).
+      for (let back = 14; back >= 0; back--) {
         const nominal = addDays(date, -back);
-        if (weekdayOf(nominal) === target && weeklyEffectiveDate(nominal, cal) === date) due = true;
+        if (weekdayOf(nominal) === target && weeklyEffectiveDate(nominal, cal) === date) originals.push(nominal);
       }
     } else if (m.cycle === 'monthly') {
+      // o ritual mensal já é definido como "primeiro dia útil": a data original é a própria data (sem deslocamento)
       const [y, mo] = date.split('-').map(Number) as [number, number];
-      due = firstBusinessDayOfMonth(y, mo, cal) === date;
+      if (firstBusinessDayOfMonth(y, mo, cal) === date) originals = [date];
     }
-    if (due) out.push({ meeting: m, localDate: date, instance: '', scheduledFor: localToUtc(date, hhmmOf(m), tzOf(m)) });
+    if (originals.length) {
+      const [primary, ...collided] = originals as [string, ...string[]];
+      out.push({ meeting: m, localDate: date, originalDate: primary, collidedOriginalDates: collided, instance: '', scheduledFor: localToUtc(date, hhmmOf(m), tzOf(m)) });
+    }
   }
   return out.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime() || a.meeting.id.localeCompare(b.meeting.id));
 }
@@ -77,13 +97,14 @@ export interface CollectResult {
   model_calls?: number;
 }
 export interface InputCollector {
-  collect(ctx: { meeting: Meeting; localDate: string; instance: string }): Promise<CollectResult>;
+  /** `localDate` = data ORIGINAL da ocorrência (identidade dela); `runDate` = data efetiva, se movida por feriado. */
+  collect(ctx: { meeting: Meeting; localDate: string; runDate: string; instance: string }): Promise<CollectResult>;
 }
 
 /** Lê insumos já gravados no banco pelos participantes (sem modelo). */
 export class StoreInputCollector implements InputCollector {
   constructor(private readonly store: Store) {}
-  async collect(ctx: { meeting: Meeting; localDate: string; instance: string }): Promise<CollectResult> {
+  async collect(ctx: { meeting: Meeting; localDate: string; runDate: string; instance: string }): Promise<CollectResult> {
     return { inputs: await this.store.getInputs(ctx.meeting.id, ctx.localDate, ctx.instance), model_calls: 0 };
   }
 }
@@ -108,7 +129,8 @@ export interface SchedulerOptions {
 export interface TickResult {
   /** preenchido quando a flag `rituais` está desligada */
   skipped?: 'flag_rituais_off';
-  processed: { meeting_id: string; local_date: string; status: string; reason: StatusReason | null }[];
+  /** `local_date` = data original (chave); `rescheduled_date` preenchida se movida por feriado; `collided_keys` se houve colisão. */
+  processed: { meeting_id: string; local_date: string; rescheduled_date: string | null; keys: string[]; collided_keys: string[]; status: string; reason: StatusReason | null }[];
   waiting: { meeting_id: string; local_date: string; waiting_for: string[] }[];
   errors: { meeting_id: string; local_date: string; error: string }[];
 }
@@ -138,24 +160,24 @@ export class RitualScheduler {
     for (const occ of occs) {
       const cls = classify(occ, now, this.o.registries.recoveryPolicy);
       if (cls.kind === 'not_due') continue;
-      if (await this.o.store.getRun(occ.meeting.id, occ.localDate, occ.instance)) continue; // idempotência
+      if (await this.findExisting(occ)) continue; // idempotência: chave = meeting_id + data ORIGINAL (P5 v2)
       if (cls.kind === 'status_only') {
-        await this.persistStatusOnly(occ, now, cls.reason, cls.delayMinutes);
-        result.processed.push({ meeting_id: occ.meeting.id, local_date: occ.localDate, status: 'status_only', reason: cls.reason });
+        const rec = await this.persistStatusOnly(occ, now, cls.reason, cls.delayMinutes);
+        result.processed.push(this.logEntry(occ, rec.run));
         continue;
       }
       // D-sync (e qualquer ritual com depends_on) espera os dailies que consolida
       const pending = await this.pendingDependencies(occ);
       if (pending.length) {
-        result.waiting.push({ meeting_id: occ.meeting.id, local_date: occ.localDate, waiting_for: pending });
+        result.waiting.push({ meeting_id: occ.meeting.id, local_date: occ.originalDate, waiting_for: pending });
         continue;
       }
       try {
         const rec = await this.execute(occ, now, cls.delayMinutes);
-        result.processed.push({ meeting_id: occ.meeting.id, local_date: occ.localDate, status: rec.run.status, reason: rec.run.reason });
+        result.processed.push(this.logEntry(occ, rec.run));
       } catch (e) {
         // falha do coletor/banco: nada é persistido; tenta de novo no próximo tick enquanto durar a janela
-        result.errors.push({ meeting_id: occ.meeting.id, local_date: occ.localDate, error: e instanceof Error ? e.message : String(e) });
+        result.errors.push({ meeting_id: occ.meeting.id, local_date: occ.originalDate, error: e instanceof Error ? e.message : String(e) });
       }
     }
     return result;
@@ -170,7 +192,7 @@ export class RitualScheduler {
     const localDate = localPartsOf(now, meeting.timezone).date;
     const existing = await this.o.store.getRun(meetingId, localDate, instance);
     if (existing) return existing;
-    const occ: Occurrence = { meeting, localDate, instance, scheduledFor: now };
+    const occ: Occurrence = { meeting, localDate, originalDate: localDate, collidedOriginalDates: [], instance, scheduledFor: now };
     return (await this.execute(occ, now, 0)).run;
   }
 
@@ -186,13 +208,51 @@ export class RitualScheduler {
     return pending;
   }
 
+  /** Execução já registrada para qualquer das chaves (data ORIGINAL) da ocorrência. */
+  private async findExisting(occ: Occurrence): Promise<MeetingRun | null> {
+    for (const d of [occ.originalDate, ...occ.collidedOriginalDates]) {
+      const r = await this.o.store.getRun(occ.meeting.id, d, occ.instance);
+      if (r) return r;
+    }
+    return null;
+  }
+
+  private logEntry(occ: Occurrence, run: MeetingRun): TickResult['processed'][number] {
+    return {
+      meeting_id: occ.meeting.id,
+      local_date: occ.originalDate,
+      rescheduled_date: run.rescheduled_date,
+      keys: run.idempotency_keys,
+      collided_keys: run.idempotency_keys.slice(1),
+      status: run.status,
+      reason: run.reason,
+    };
+  }
+
+  /** Registro explícito, para a ata, do reagendamento por feriado e da colisão de ocorrências. */
+  private scheduleNotes(occ: Occurrence): string[] {
+    const notes: string[] = [];
+    const keys = occurrenceKeys(occ);
+    if (isRescheduled(occ)) {
+      notes.push(`reagendado por feriado/dia não útil: ocorrência original ${occ.originalDate} movida para ${occ.localDate} (mesmo horário local); chave de idempotência mantida: ${keys[0]}; rescheduled_date=${occ.localDate}`);
+    }
+    if (occ.collidedOriginalDates.length) {
+      notes.push(`colisão: ocorrências originais ${[occ.originalDate, ...occ.collidedOriginalDates].join(', ')} coincidem em ${occ.localDate}; execução única; chaves registradas: ${keys.join(', ')}`);
+    }
+    return notes;
+  }
+
   private base(occ: Occurrence, now: Date, delayMinutes: number): Omit<MeetingRun, 'status' | 'reason' | 'participants_present' | 'participants_absent' | 'model_calls'> {
     const m = occ.meeting;
+    const moved = isRescheduled(occ);
     return {
       id: this.o.newId(),
       meeting_id: m.id,
-      local_date: occ.localDate,
+      local_date: occ.originalDate, // chave: data ORIGINAL (P5 v2)
       instance: occ.instance,
+      rescheduled_date: moved ? occ.localDate : null,
+      reschedule_reason: moved ? 'holiday_move' : null,
+      idempotency_keys: occurrenceKeys(occ),
       scheduled_for: occ.scheduledFor.toISOString(),
       executed_at: now.toISOString(),
       route: m.route,
@@ -217,11 +277,11 @@ export class RitualScheduler {
     };
     const minutes: Minutes = {
       run_id: run.id,
-      summary: `Registro de status (${reason}): ritual ${m.id} de ${occ.localDate} não foi executado; pauta adiada para a próxima ocorrência. Nenhuma chamada de modelo.`,
+      summary: `Registro de status (${reason}): ritual ${m.id} de ${occ.localDate}${isRescheduled(occ) ? ` (original ${occ.originalDate})` : ''} não foi executado; pauta adiada para a próxima ocorrência. Nenhuma chamada de modelo.`,
       blockers: [],
       evidence_refs: [],
       outputs: [],
-      notes: extra?.notes ?? [],
+      notes: [...this.scheduleNotes(occ), ...(extra?.notes ?? [])],
     };
     const rec: MeetingOutcomeRecord = { run, minutes, decisions: [], actions: [] };
     const saved = await this.o.store.saveOutcome(rec);
@@ -231,7 +291,7 @@ export class RitualScheduler {
   private async execute(occ: Occurrence, now: Date, delayMinutes: number): Promise<MeetingOutcomeRecord> {
     const m = occ.meeting;
     const notes: string[] = [];
-    const collected = await this.o.collector.collect({ meeting: m, localDate: occ.localDate, instance: occ.instance });
+    const collected = await this.o.collector.collect({ meeting: m, localDate: occ.originalDate, runDate: occ.localDate, instance: occ.instance });
     const modelCalls = collected.model_calls ?? 0;
 
     // insumos estruturados: só de participantes, 1 por agente (o último vence), schema estrito
@@ -261,21 +321,23 @@ export class RitualScheduler {
     const runId = this.o.newId();
     const decisions: Decision[] = [];
     const actions: ActionItem[] = [];
-    const humanGate = m.outputs.some((o) => /aprova[cç][aã]o humana/i.test(o));
     for (const input of inputs) {
       for (const d of input.decisions) {
         const invalidOwner = d.actions.find((a) => !this.agentIds.has(a.owner));
         const wrongProposer = d.proposed_by !== input.agent_id;
-        const needsHuman = d.needs_human_approval || humanGate;
+        // D01: só ato reservado ao responsável (legal/contratual) espera o humano; decisão protegida de
+        // governança vai ao verificador, sem aprovação humana de rotina; o resto é aprovado pela política.
+        const status: DecisionStatus = d.authority_class === 'owner_reserved' ? 'pending_human' : d.authority_class === 'protected' ? 'pending_verifier' : 'approved';
+        const needsHuman = d.authority_class === 'owner_reserved';
         const decisionId = this.o.newId();
         if (invalidOwner || wrongProposer) {
           notes.push(`decisão rejeitada (invalid_authority): ${wrongProposer ? `proposta por ${d.proposed_by} no insumo de ${input.agent_id}` : `responsável ${invalidOwner?.owner} inexistente`}`);
           decisions.push({ id: decisionId, run_id: runId, text: d.text, proposed_by: d.proposed_by, authority: m.authority, status: 'rejected_invalid_authority', needs_human_approval: needsHuman, evidence_refs: d.evidence_refs });
           continue;
         }
-        decisions.push({ id: decisionId, run_id: runId, text: d.text, proposed_by: d.proposed_by, authority: m.authority, status: needsHuman ? 'pending_human' : 'approved', needs_human_approval: needsHuman, evidence_refs: d.evidence_refs });
-        if (needsHuman) {
-          if (d.actions.length) notes.push(`decisão "${d.text}" aguarda aprovação humana; ações propostas não criadas: ${d.actions.map((a) => `${a.title} (${a.owner})`).join('; ')}`);
+        decisions.push({ id: decisionId, run_id: runId, text: d.text, proposed_by: d.proposed_by, authority: m.authority, status, needs_human_approval: needsHuman, evidence_refs: d.evidence_refs });
+        if (status !== 'approved') {
+          if (d.actions.length) notes.push(`decisão "${d.text}" aguarda ${status === 'pending_human' ? 'o responsável (ato reservado)' : 'o verificador independente (decisão protegida)'}; ações propostas não criadas: ${d.actions.map((a) => `${a.title} (${a.owner})`).join('; ')}`);
           continue;
         }
         for (const a of d.actions) {
@@ -307,13 +369,13 @@ export class RitualScheduler {
     const minutes: Minutes = {
       run_id: runId,
       summary: [
-        `${m.title} — ${occ.localDate}${run.recovered ? ` (recuperado, +${delayMinutes} min)` : ''}: ${present.length}/${m.participants.length} presentes (quórum ${m.quorum.minimum}); ${decisions.length} decisões; ${actions.length} tarefas.`,
+        `${m.title} — ${occ.localDate}${isRescheduled(occ) ? ` (reagendado de ${occ.originalDate})` : ''}${run.recovered ? ` (recuperado, +${delayMinutes} min)` : ''}: ${present.length}/${m.participants.length} presentes (quórum ${m.quorum.minimum}); ${decisions.length} decisões; ${actions.length} tarefas.`,
         ...inputs.filter((i) => i.summary).map((i) => `${i.agent_id}: ${i.summary}`),
       ].join('\n'),
       blockers: [...new Set(inputs.flatMap((i) => i.blockers))],
       evidence_refs: [...new Set(inputs.flatMap((i) => i.evidence_refs))],
       outputs: [...m.outputs],
-      notes,
+      notes: [...this.scheduleNotes(occ), ...notes],
     };
     const rec: MeetingOutcomeRecord = { run, minutes, decisions, actions };
     const saved = await this.o.store.saveOutcome(rec);
