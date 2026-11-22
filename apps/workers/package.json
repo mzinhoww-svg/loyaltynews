@@ -10,11 +10,20 @@
   "types": "./src/index.ts",
   "dependencies": {
     "@ln/contracts": "0.0.0",
-    "@ln/db": "0.0.0",
     "bullmq": "6.7.8",
-    "ioredis": "5.11.1"
+    "ioredis": "5.11.1",
+    "pg": "8.23.1",
+    "drizzle-orm": "0.45.4",
+    "@ln/auth": "0.0.0",
+    "@ln/db": "0.0.0"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "ioredis-mock": "8.13.1"
+  },
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:bullmq --external:ioredis --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit"
   }
 }

@@ -16,3 +16,4 @@ test-results/
 .env*
 !.env.example
 apps/web/AGENTS.md
+apps/workers/dist/

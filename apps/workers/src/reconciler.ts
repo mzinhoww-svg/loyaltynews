@@ -1,21 +1,25 @@
-import { type JobPayload, type QueueName, jobIdFor, parsePayload } from './queues';
+import { type JobPayload, type QueueName, isQueueName, jobIdFor, parsePayload } from './queues';
 
-/** Linha do outbox (PostgreSQL). status: pending → enqueued → done. */
+/** Linha do outbox (PostgreSQL). status: pending → enqueued → done (ou failed). */
 export interface OutboxRow {
   id: string;
-  queue: QueueName;
+  /** Texto do banco; o reconciliador valida contra as filas conhecidas. */
+  queue: string;
   refId: string;
   idempotencyKey: string;
 }
 
 /**
- * Porta para o PostgreSQL. A implementação real (packages/db) faz claim com
- * `FOR UPDATE SKIP LOCKED` e lease; aqui só o contrato.
+ * Porta para o PostgreSQL. A implementação real (pg-stores.ts) faz o claim com `FOR UPDATE SKIP LOCKED`
+ * e marca um lease (enqueued_at = agora) na mesma transação, para dois reconciliadores não pegarem a mesma linha.
  */
 export interface OutboxStore {
-  /** Linhas pending, mais as enqueued há mais de staleMs (Redis pode ter perdido o job). */
+  /** Linhas devidas: pending, ou enqueued há mais de staleMs (o Redis pode ter perdido o job). Já reserva o lease. */
   claimDue(limit: number, now: Date, staleMs: number): Promise<OutboxRow[]>;
   markEnqueued(id: string, now: Date): Promise<void>;
+  /** Falha transitória (ex.: Redis fora): mantém a linha devida para a próxima rodada; só vira failed após muitas tentativas. */
+  markRetry(id: string, error: string, now: Date): Promise<void>;
+  /** Falha permanente (payload ou fila inválidos): failed, sem nova tentativa. */
   markFailed(id: string, error: string, now: Date): Promise<void>;
 }
 
@@ -26,6 +30,7 @@ export interface QueueSink {
 
 export interface ReconcileResult {
   enqueued: number;
+  retry: number;
   failed: number;
 }
 
@@ -36,34 +41,42 @@ export async function reconcileOutbox(
 ): Promise<ReconcileResult> {
   const now = opts.now ?? new Date();
   const rows = await store.claimDue(opts.limit ?? 100, now, opts.staleMs ?? 60_000);
-  let enqueued = 0;
-  let failed = 0;
+  const out: ReconcileResult = { enqueued: 0, retry: 0, failed: 0 };
   for (const row of rows) {
+    let payload: JobPayload;
     try {
-      const payload = parsePayload({ refId: row.refId, idempotencyKey: row.idempotencyKey });
-      await sink.add(row.queue, jobIdFor(row.queue, row.idempotencyKey), payload);
-      await store.markEnqueued(row.id, now);
-      enqueued++;
+      if (!isQueueName(row.queue)) throw new Error(`fila desconhecida: ${row.queue}`);
+      payload = parsePayload({ refId: row.refId, idempotencyKey: row.idempotencyKey });
     } catch (e) {
-      failed++;
+      out.failed++;
       await store.markFailed(row.id, e instanceof Error ? e.message : String(e), now);
+      continue;
+    }
+    try {
+      await sink.add(row.queue as QueueName, jobIdFor(row.queue as QueueName, row.idempotencyKey), payload);
+      await store.markEnqueued(row.id, now);
+      out.enqueued++;
+    } catch (e) {
+      out.retry++;
+      await store.markRetry(row.id, e instanceof Error ? e.message : String(e), now);
     }
   }
-  return { enqueued, failed };
+  return out;
 }
 
 /** Efeito exatamente-uma-vez: a chave e o efeito entram na MESMA transação (UNIQUE em idempotency_key). */
-export interface EffectStore {
-  /** Retorna true se executou o efeito, false se a chave já tinha efeito (duplicata). */
-  runOnce(idempotencyKey: string, effect: () => Promise<void>): Promise<boolean>;
+export interface EffectStore<Tx = unknown> {
+  /** Executa o efeito se a chave é nova; false se já havia efeito (duplicata). O efeito recebe a transação. */
+  runOnce(idempotencyKey: string, meta: { effect: string; refId: string }, effect: (tx: Tx) => Promise<void>): Promise<boolean>;
 }
 
-export async function processJob(
-  effects: EffectStore,
+export async function processJob<Tx>(
+  effects: EffectStore<Tx>,
+  queue: QueueName,
   raw: unknown,
-  effect: (payload: JobPayload) => Promise<void>,
+  effect: (payload: JobPayload, tx: Tx) => Promise<void>,
 ): Promise<'executed' | 'duplicate'> {
   const payload = parsePayload(raw);
-  const ran = await effects.runOnce(payload.idempotencyKey, () => effect(payload));
+  const ran = await effects.runOnce(payload.idempotencyKey, { effect: queue, refId: payload.refId }, (tx) => effect(payload, tx));
   return ran ? 'executed' : 'duplicate';
 }
