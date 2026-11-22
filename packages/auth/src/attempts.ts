@@ -12,7 +12,7 @@ export const MAX_FAILURES = 5;
 export const WINDOW_MS = 15 * 60_000;
 export const LOCK_MS = 15 * 60_000;
 
-export type AttemptKind = 'conta' | 'ip';
+export type AttemptKind = 'conta' | 'ip' | 'form';
 export type Acquire = { allowed: true } | { allowed: false; until: Date };
 
 const where = (kind: AttemptKind, subject: string) =>

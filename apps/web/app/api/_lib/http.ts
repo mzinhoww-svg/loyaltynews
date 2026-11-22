@@ -98,35 +98,43 @@ export function toResponse(e: unknown, requestId: string): Response {
   return env(500, 'INTERNAL_ERROR', 'Erro interno.');
 }
 
+/** Executa um handler com sessão/RBAC, contexto, auditoria opcional e tradução de erros. */
+export async function execute(
+  req: Request,
+  perm: Perm,
+  fn: RouteFn,
+  params: Record<string, string> = {},
+  opts: { audit?: { action: string; resource: string } } = {},
+): Promise<Response> {
+  const requestId = req.headers.get('x-request-id') ?? randomUUID();
+  try {
+    const deps = getDeps();
+    if (!deps) throw new HttpError(503, 'NOT_CONFIGURED', 'Banco não configurado neste ambiente.');
+    const session = perm === 'public' ? null : await authorize(deps.auth, req.headers, perm[0], perm[1]);
+    const ctx: RouteCtx = { deps, params, url: new URL(req.url), session, ip: clientIp(req.headers), requestId };
+    const res = await fn(req, ctx);
+    if (opts.audit && res.status < 400) {
+      await audit(deps.db, {
+        actorId: session?.userId,
+        actorRole: session?.role,
+        action: opts.audit.action,
+        resource: opts.audit.resource,
+        resourceId: params.id ?? params.slug ?? null,
+        ip: ctx.ip,
+        detalhe: { requestId, status: res.status },
+        at: deps.now(),
+      });
+    }
+    res.headers.set('x-request-id', requestId);
+    return res;
+  } catch (e) {
+    return toResponse(e, requestId);
+  }
+}
+
 /** Monta a função de rota do Next a partir de um handler e da permissão exigida. */
 export function route(perm: Perm, fn: RouteFn, opts: { audit?: { action: string; resource: string } } = {}) {
-  return async (req: Request, next?: NextParams): Promise<Response> => {
-    const requestId = req.headers.get('x-request-id') ?? randomUUID();
-    try {
-      const deps = getDeps();
-      if (!deps) throw new HttpError(503, 'NOT_CONFIGURED', 'Banco não configurado neste ambiente.');
-      const session = perm === 'public' ? null : await authorize(deps.auth, req.headers, perm[0], perm[1]);
-      const params = (await next?.params) ?? {};
-      const ctx: RouteCtx = { deps, params, url: new URL(req.url), session, ip: clientIp(req.headers), requestId };
-      const res = await fn(req, ctx);
-      if (opts.audit && res.status < 400) {
-        await audit(deps.db, {
-          actorId: session?.userId,
-          actorRole: session?.role,
-          action: opts.audit.action,
-          resource: opts.audit.resource,
-          resourceId: params.id ?? params.slug ?? null,
-          ip: ctx.ip,
-          detalhe: { requestId, status: res.status },
-          at: deps.now(),
-        });
-      }
-      res.headers.set('x-request-id', requestId);
-      return res;
-    } catch (e) {
-      return toResponse(e, requestId);
-    }
-  };
+  return async (req: Request, next?: NextParams): Promise<Response> => execute(req, perm, fn, (await next?.params) ?? {}, opts);
 }
 
 export const newId = () => randomUUID();
