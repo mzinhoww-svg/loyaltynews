@@ -16,6 +16,15 @@
   --ln-color-warning-fg: #5C4400;
   --ln-color-danger: #A12A2A;
   --ln-color-focus: #0B5FD3;
+  --ln-color-surface-subtle: #F4F8F6;
+  --ln-color-success-bg: #E1F3E7;
+  --ln-color-success-fg: #14532D;
+  --ln-color-info-bg: #E0ECFB;
+  --ln-color-info-fg: #12407F;
+  --ln-color-danger-bg: #FBE3E3;
+  --ln-color-danger-fg: #7A1D1D;
+  --ln-color-neutral-bg: #EEF1F1;
+  --ln-color-neutral-fg: #2F4141;
   --ln-font-ui: Inter, Arial, sans-serif;
   --ln-font-editorial: Georgia, Noto Serif, serif;
   --ln-text-xs: 0.75rem;

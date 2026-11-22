@@ -1,0 +1,5283 @@
+{
+  "schema_version": "2.1",
+  "format": "Loyalty News logical registry; not native OpenBot import",
+  "agents": [
+    {
+      "id": "publisher",
+      "name": "Publisher / CEO",
+      "department": "executivo",
+      "reports_to": null,
+      "mission": "Estratégia, arbitragem, limites de orçamento e escalonamento por alçada automática e exceções reservadas ao responsável",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy"
+      ],
+      "kpi": "receita, qualidade, orçamento",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "publisher"
+          },
+          "artifact_type": {
+            "const": "publisher.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "strategic",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_editorial",
+      "name": "Editor-chefe",
+      "department": "editorial",
+      "reports_to": "publisher",
+      "mission": "Política editorial, pauta transversal, exceções e qualidade",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " correções, qualidade e SLA",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_editorial"
+          },
+          "artifact_type": {
+            "const": "director_editorial.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_creative",
+      "name": "Diretor criativo",
+      "department": "creative",
+      "reports_to": "publisher",
+      "mission": "Brand system, padrões, auditoria de arte",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " aprovação visual e custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_creative"
+          },
+          "artifact_type": {
+            "const": "director_creative.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_growth",
+      "name": "Diretor de Growth",
+      "department": "growth",
+      "reports_to": "publisher",
+      "mission": "Aquisição, retenção, distribuição e experimentos",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " tráfego qualificado e opt-ins",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_growth"
+          },
+          "artifact_type": {
+            "const": "director_growth.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_intelligence",
+      "name": "Diretor de Intelligence",
+      "department": "intelligence",
+      "reports_to": "publisher",
+      "mission": "Grafo, organogramas, dados e produto B2B",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " cobertura e precisão",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_intelligence"
+          },
+          "artifact_type": {
+            "const": "director_intelligence.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_commercial",
+      "name": "Diretor comercial",
+      "department": "commercial",
+      "reports_to": "publisher",
+      "mission": "Inventário, propostas e receita; sem ingerência editorial",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " MRR, ocupação, renovação",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_commercial"
+          },
+          "artifact_type": {
+            "const": "director_commercial.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_technology",
+      "name": "Diretor de tecnologia",
+      "department": "technology",
+      "reports_to": "publisher",
+      "mission": "Plataforma, segurança, confiabilidade e FinOps",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " SLO e orçamento",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_technology"
+          },
+          "artifact_type": {
+            "const": "director_technology.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_trust",
+      "name": "Diretor de Trust & Quality",
+      "department": "trust",
+      "reports_to": "publisher",
+      "mission": "Políticas, privacidade, direitos e controles independentes",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " incidentes e gates",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "director_trust"
+          },
+          "artifact_type": {
+            "const": "director_trust.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "priorities",
+              "decisions",
+              "delegations",
+              "budget_usage",
+              "risks"
+            ],
+            "properties": {
+              "priorities": {},
+              "decisions": {},
+              "delegations": {},
+              "budget_usage": {},
+              "risks": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "editor_mercado",
+      "name": "Editor de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Resultados, M&A, breakage, novos negócios",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "mercado",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_mercado"
+          },
+          "artifact_type": {
+            "const": "editor_mercado.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_mercado",
+      "name": "Redator de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "editor_mercado",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, ABEMF, CVM, comunicados",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "mercado",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_mercado"
+          },
+          "artifact_type": {
+            "const": "writer_mercado.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_programas",
+      "name": "Editor de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Tiers, clubes, parcerias, liability",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "programas",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_programas"
+          },
+          "artifact_type": {
+            "const": "editor_programas.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_programas",
+      "name": "Redator de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "editor_programas",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: LATAM Pass, Smiles, Azul, Livelo, Esfera",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "programas",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_programas"
+          },
+          "artifact_type": {
+            "const": "writer_programas.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_pontos",
+      "name": "Editor de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Acúmulo, resgate, preço efetivo, validade",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "pontos",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_pontos"
+          },
+          "artifact_type": {
+            "const": "editor_pontos.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_pontos",
+      "name": "Redator de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "editor_pontos",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Regulamentos oficiais, tabelas e ofertas públicas",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "pontos",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_pontos"
+          },
+          "artifact_type": {
+            "const": "writer_pontos.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_bancos",
+      "name": "Editor de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Rewards, co-branded, pagamentos, interchange",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "bancos",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_bancos"
+          },
+          "artifact_type": {
+            "const": "editor_bancos.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_bancos",
+      "name": "Redator de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "editor_bancos",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI e imprensa oficial, BCB, bandeiras",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "bancos",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_bancos"
+          },
+          "artifact_type": {
+            "const": "writer_bancos.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_varejo",
+      "name": "Editor de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Incentivos, recorrência, marketplaces",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "varejo",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_varejo"
+          },
+          "artifact_type": {
+            "const": "editor_varejo.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_varejo",
+      "name": "Redator de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "editor_varejo",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, newsletters oficiais e releases",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "varejo",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_varejo"
+          },
+          "artifact_type": {
+            "const": "writer_varejo.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_travel",
+      "name": "Editor de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Aéreo, hotéis, OTAs, experiências",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "travel",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_travel"
+          },
+          "artifact_type": {
+            "const": "editor_travel.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_travel",
+      "name": "Redator de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "editor_travel",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, PANROTAS, programas hoteleiros",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "travel",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_travel"
+          },
+          "artifact_type": {
+            "const": "writer_travel.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_tech",
+      "name": "Editor de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. CDP, antifraude, APIs, IA e infraestrutura",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "tech",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_tech"
+          },
+          "artifact_type": {
+            "const": "editor_tech.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_tech",
+      "name": "Redator de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "editor_tech",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Documentação técnica e fornecedores",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "tech",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_tech"
+          },
+          "artifact_type": {
+            "const": "writer_tech.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_crm",
+      "name": "Editor de CRM & CX",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. CLV, retenção, personalização, omnichannel",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "crm",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_crm"
+          },
+          "artifact_type": {
+            "const": "editor_crm.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_crm",
+      "name": "Redator de CRM & CX",
+      "department": "editorial",
+      "reports_to": "editor_crm",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Estudos e publicações de primeira parte",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "crm",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_crm"
+          },
+          "artifact_type": {
+            "const": "writer_crm.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_global",
+      "name": "Editor de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Benchmarks e aplicabilidade ao Brasil",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "global",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_global"
+          },
+          "artifact_type": {
+            "const": "editor_global.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_global",
+      "name": "Redator de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "editor_global",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: The Wise Marketer, RI global, programas",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "global",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_global"
+          },
+          "artifact_type": {
+            "const": "writer_global.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_regulacao",
+      "name": "Editor de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. LGPD, consumidor, dados e normas",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "scope": "regulacao",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "editor_regulacao"
+          },
+          "artifact_type": {
+            "const": "editor_regulacao.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision",
+              "corrections",
+              "priority",
+              "assignment",
+              "reason"
+            ],
+            "properties": {
+              "decision": {},
+              "corrections": {},
+              "priority": {},
+              "assignment": {},
+              "reason": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_regulacao",
+      "name": "Redator de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "editor_regulacao",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: ANPD, Senacon, BCB, CVM, Cade",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "scope": "regulacao",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "writer_regulacao"
+          },
+          "artifact_type": {
+            "const": "writer_regulacao.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "headline",
+              "lead",
+              "article",
+              "claims",
+              "source_refs",
+              "editorial_context"
+            ],
+            "properties": {
+              "headline": {},
+              "lead": {},
+              "article": {},
+              "claims": {},
+              "source_refs": {},
+              "editorial_context": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "newsdesk",
+      "name": "Newsdesk / Radar",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Desduplicar, atribuir editoria e formar clusters",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "newsdesk"
+          },
+          "artifact_type": {
+            "const": "newsdesk.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "topic",
+              "sources",
+              "priority"
+            ],
+            "properties": {
+              "topic": {},
+              "sources": {},
+              "priority": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "topic",
+        "sources",
+        "priority"
+      ]
+    },
+    {
+      "id": "agenda",
+      "name": "Editor de Agenda",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Eventos confirmados e cobertura",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "agenda"
+          },
+          "artifact_type": {
+            "const": "agenda.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event",
+              "date",
+              "organizer",
+              "source"
+            ],
+            "properties": {
+              "event": {},
+              "date": {},
+              "organizer": {},
+              "source": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "event",
+        "date",
+        "organizer",
+        "source"
+      ]
+    },
+    {
+      "id": "talks",
+      "name": "Editor de Entrevistas e Talks",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "mission": "Organizar entrevistas reais; nunca inventar respostas",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "talks"
+          },
+          "artifact_type": {
+            "const": "talks.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "interview_brief",
+              "consent",
+              "evidence"
+            ],
+            "properties": {
+              "interview_brief": {},
+              "consent": {},
+              "evidence": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "interview_brief",
+        "consent",
+        "evidence"
+      ]
+    },
+    {
+      "id": "art",
+      "name": "Diretor de arte",
+      "department": "creative",
+      "reports_to": "director_creative",
+      "mission": "Templates, conceito de campanha e revisão visual",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "art"
+          },
+          "artifact_type": {
+            "const": "art.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "template",
+              "brief",
+              "media_requirements"
+            ],
+            "properties": {
+              "template": {},
+              "brief": {},
+              "media_requirements": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "template",
+        "brief",
+        "media_requirements"
+      ]
+    },
+    {
+      "id": "designer",
+      "name": "Designer editorial",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Composição determinística de imagens e carrosséis",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "designer"
+          },
+          "artifact_type": {
+            "const": "designer.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "template_id",
+              "assets",
+              "dimensions"
+            ],
+            "properties": {
+              "template_id": {},
+              "assets": {},
+              "dimensions": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "deterministic",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "template_id",
+        "assets",
+        "dimensions"
+      ]
+    },
+    {
+      "id": "media",
+      "name": "Pesquisador de mídia",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Seleção licenciada; direitos e créditos",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "media"
+          },
+          "artifact_type": {
+            "const": "media.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "credit",
+              "source",
+              "rights_basis"
+            ],
+            "properties": {
+              "asset_id": {},
+              "credit": {},
+              "source": {},
+              "rights_basis": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "asset_id",
+        "credit",
+        "source",
+        "rights_basis"
+      ]
+    },
+    {
+      "id": "image",
+      "name": "Criador de ilustrações",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Ilustrações conceituais autorizadas, sem falsa fotografia",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "image"
+          },
+          "artifact_type": {
+            "const": "image.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "generation_context",
+              "label"
+            ],
+            "properties": {
+              "asset_id": {},
+              "generation_context": {},
+              "label": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "image_fast",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "asset_id",
+        "generation_context",
+        "label"
+      ]
+    },
+    {
+      "id": "visualqa",
+      "name": "QA visual",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Conferir legibilidade, fatos, dimensão e licença",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "visualqa"
+          },
+          "artifact_type": {
+            "const": "visualqa.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "contrast",
+              "credits",
+              "decision"
+            ],
+            "properties": {
+              "asset_id": {},
+              "contrast": {},
+              "credits": {},
+              "decision": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "asset_id",
+        "contrast",
+        "credits",
+        "decision"
+      ]
+    },
+    {
+      "id": "social",
+      "name": "Editor de social",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "mission": "Estratégia e calendário de canal",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "social"
+          },
+          "artifact_type": {
+            "const": "social.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "channel_plan",
+              "calendar",
+              "copy_brief"
+            ],
+            "properties": {
+              "channel_plan": {},
+              "calendar": {},
+              "copy_brief": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "channel_plan",
+        "calendar",
+        "copy_brief"
+      ]
+    },
+    {
+      "id": "linkedin",
+      "name": "Redator LinkedIn",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Copy B2B, menções verificadas e link com UTM",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "linkedin"
+          },
+          "artifact_type": {
+            "const": "linkedin.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "copy",
+              "mentions",
+              "asset_id",
+              "utm"
+            ],
+            "properties": {
+              "copy": {},
+              "mentions": {},
+              "asset_id": {},
+              "utm": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "copy",
+        "mentions",
+        "asset_id",
+        "utm"
+      ]
+    },
+    {
+      "id": "instagram",
+      "name": "Redator Instagram",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Copy, stories, carrosséis e link na bio",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "instagram"
+          },
+          "artifact_type": {
+            "const": "instagram.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "copy",
+              "mentions",
+              "asset_id",
+              "caption"
+            ],
+            "properties": {
+              "copy": {},
+              "mentions": {},
+              "asset_id": {},
+              "caption": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "copy",
+        "mentions",
+        "asset_id",
+        "caption"
+      ]
+    },
+    {
+      "id": "seo",
+      "name": "Especialista SEO",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "mission": "Metadados, sitemap, links e qualidade de indexação",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "seo"
+          },
+          "artifact_type": {
+            "const": "seo.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "meta",
+              "canonical",
+              "structured_data"
+            ],
+            "properties": {
+              "meta": {},
+              "canonical": {},
+              "structured_data": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "meta",
+        "canonical",
+        "structured_data"
+      ]
+    },
+    {
+      "id": "newsletter",
+      "name": "Editor The Loyal",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "mission": "Curadoria e montagem das edições",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "newsletter"
+          },
+          "artifact_type": {
+            "const": "newsletter.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edition",
+              "segments",
+              "content"
+            ],
+            "properties": {
+              "edition": {},
+              "segments": {},
+              "content": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "edition",
+        "segments",
+        "content"
+      ]
+    },
+    {
+      "id": "publisher_social",
+      "name": "Operador de distribuição",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Agendar e reconciliar recibos aprovados",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "publisher_social"
+          },
+          "artifact_type": {
+            "const": "publisher_social.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "channel",
+              "remote_id",
+              "receipt",
+              "status"
+            ],
+            "properties": {
+              "channel": {},
+              "remote_id": {},
+              "receipt": {},
+              "status": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "deterministic",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "channel",
+        "remote_id",
+        "receipt",
+        "status"
+      ]
+    },
+    {
+      "id": "growth_analytics",
+      "name": "Analista Growth",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "mission": "Métricas e experimentos, sem inferir alcance ausente",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "growth_analytics"
+          },
+          "artifact_type": {
+            "const": "growth_analytics.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metrics",
+              "period",
+              "experiment"
+            ],
+            "properties": {
+              "metrics": {},
+              "period": {},
+              "experiment": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "metrics",
+        "period",
+        "experiment"
+      ]
+    },
+    {
+      "id": "community",
+      "name": "Community manager",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Triar comentários, rascunhar respostas, escalonar",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "community"
+          },
+          "artifact_type": {
+            "const": "community.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "comment_id",
+              "response_draft",
+              "risk"
+            ],
+            "properties": {
+              "comment_id": {},
+              "response_draft": {},
+              "risk": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "comment_id",
+        "response_draft",
+        "risk"
+      ]
+    },
+    {
+      "id": "discovery",
+      "name": "Entity Discovery",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Identificar pessoas, empresas e marcas",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "discovery"
+          },
+          "artifact_type": {
+            "const": "discovery.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entities",
+              "identities",
+              "sources"
+            ],
+            "properties": {
+              "entities": {},
+              "identities": {},
+              "sources": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "entities",
+        "identities",
+        "sources"
+      ]
+    },
+    {
+      "id": "people",
+      "name": "People Intelligence",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Vínculos profissionais públicos e datados",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "people"
+          },
+          "artifact_type": {
+            "const": "people.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "person_id",
+              "professional_facts",
+              "evidence"
+            ],
+            "properties": {
+              "person_id": {},
+              "professional_facts": {},
+              "evidence": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "person_id",
+        "professional_facts",
+        "evidence"
+      ]
+    },
+    {
+      "id": "company",
+      "name": "Company Intelligence",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Grupos, marcas, produtos e parceiros",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "company"
+          },
+          "artifact_type": {
+            "const": "company.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "company_id",
+              "corporate_facts",
+              "evidence"
+            ],
+            "properties": {
+              "company_id": {},
+              "corporate_facts": {},
+              "evidence": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "company_id",
+        "corporate_facts",
+        "evidence"
+      ]
+    },
+    {
+      "id": "orgchart",
+      "name": "Org Chart Builder",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Consolidar hierarquia apenas sustentada por evidência",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "orgchart"
+          },
+          "artifact_type": {
+            "const": "orgchart.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "company_id",
+              "nodes",
+              "verified_edges",
+              "unknown_edges"
+            ],
+            "properties": {
+              "company_id": {},
+              "nodes": {},
+              "verified_edges": {},
+              "unknown_edges": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "company_id",
+        "nodes",
+        "verified_edges",
+        "unknown_edges"
+      ]
+    },
+    {
+      "id": "moves",
+      "name": "Loyalty Moves",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Identificar e validar mudanças profissionais",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "moves"
+          },
+          "artifact_type": {
+            "const": "moves.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entity_id",
+              "event",
+              "evidence",
+              "effective_date"
+            ],
+            "properties": {
+              "entity_id": {},
+              "event": {},
+              "evidence": {},
+              "effective_date": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "entity_id",
+        "event",
+        "evidence",
+        "effective_date"
+      ]
+    },
+    {
+      "id": "graph",
+      "name": "Relationship Mapper",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Relações tipadas e resolução de conflitos",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "graph"
+          },
+          "artifact_type": {
+            "const": "graph.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edges",
+              "temporal_intervals",
+              "evidence"
+            ],
+            "properties": {
+              "edges": {},
+              "temporal_intervals": {},
+              "evidence": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "edges",
+        "temporal_intervals",
+        "evidence"
+      ]
+    },
+    {
+      "id": "marketdata",
+      "name": "Analista Market Data",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Indicadores com unidade, período e metodologia",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "marketdata"
+          },
+          "artifact_type": {
+            "const": "marketdata.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metric",
+              "value",
+              "period",
+              "source"
+            ],
+            "properties": {
+              "metric": {},
+              "value": {},
+              "period": {},
+              "source": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "metric",
+        "value",
+        "period",
+        "source"
+      ]
+    },
+    {
+      "id": "dataqa",
+      "name": "Data Quality Auditor",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "mission": "Auditar identidade, proveniência e atualidade",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "dataqa"
+          },
+          "artifact_type": {
+            "const": "dataqa.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entity_id",
+              "conflicts",
+              "decision"
+            ],
+            "properties": {
+              "entity_id": {},
+              "conflicts": {},
+              "decision": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "entity_id",
+        "conflicts",
+        "decision"
+      ]
+    },
+    {
+      "id": "adops",
+      "name": "Ad Operations",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "mission": "Reservas, conflitos, pacing, criativos, entregas",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "adops"
+          },
+          "artifact_type": {
+            "const": "adops.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "campaign_id",
+              "inventory",
+              "delivery_status"
+            ],
+            "properties": {
+              "campaign_id": {},
+              "inventory": {},
+              "delivery_status": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "deterministic",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "campaign_id",
+        "inventory",
+        "delivery_status"
+      ]
+    },
+    {
+      "id": "sales",
+      "name": "Executivo comercial",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "mission": "Qualificar leads e elaborar proposta; envio aprovado",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "sales"
+          },
+          "artifact_type": {
+            "const": "sales.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "lead_id",
+              "proposal",
+              "status"
+            ],
+            "properties": {
+              "lead_id": {},
+              "proposal": {},
+              "status": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "lead_id",
+        "proposal",
+        "status"
+      ]
+    },
+    {
+      "id": "pricing",
+      "name": "Analista Pricing",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "mission": "Catálogo, pacotes e receita, sem falsa audiência",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "pricing"
+          },
+          "artifact_type": {
+            "const": "pricing.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "format_id",
+              "price",
+              "availability"
+            ],
+            "properties": {
+              "format_id": {},
+              "price": {},
+              "availability": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "format_id",
+        "price",
+        "availability"
+      ]
+    },
+    {
+      "id": "account",
+      "name": "Customer Success",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "mission": "Relatórios e renovações, rascunhos",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "account"
+          },
+          "artifact_type": {
+            "const": "account.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "account_id",
+              "campaign_metrics",
+              "service_status"
+            ],
+            "properties": {
+              "account_id": {},
+              "campaign_metrics": {},
+              "service_status": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "account_id",
+        "campaign_metrics",
+        "service_status"
+      ]
+    },
+    {
+      "id": "sre",
+      "name": "SRE / Observabilidade",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "mission": "Alertas, capacidade, recuperação e backups",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "sre"
+          },
+          "artifact_type": {
+            "const": "sre.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "incident",
+              "recovery",
+              "health"
+            ],
+            "properties": {
+              "incident": {},
+              "recovery": {},
+              "health": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "deterministic",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "incident",
+        "recovery",
+        "health"
+      ]
+    },
+    {
+      "id": "finops",
+      "name": "FinOps AI",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "mission": "Rate cards, budgets, custo por unidade e alertas",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "finops"
+          },
+          "artifact_type": {
+            "const": "finops.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reservation",
+              "actual_usage",
+              "budget_remaining"
+            ],
+            "properties": {
+              "reservation": {},
+              "actual_usage": {},
+              "budget_remaining": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "deterministic",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "reservation",
+        "actual_usage",
+        "budget_remaining"
+      ]
+    },
+    {
+      "id": "platform",
+      "name": "Engenheiro de plataforma",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "mission": "Mudanças técnicas em branch e testes; deploy humano",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "platform"
+          },
+          "artifact_type": {
+            "const": "platform.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "service",
+              "health",
+              "action_proposal"
+            ],
+            "properties": {
+              "service": {},
+              "health": {},
+              "action_proposal": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "service",
+        "health",
+        "action_proposal"
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security Engineer",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "mission": "Auditar privilégios, riscos e segredos",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "security"
+          },
+          "artifact_type": {
+            "const": "security.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "finding",
+              "severity",
+              "mitigation"
+            ],
+            "properties": {
+              "finding": {},
+              "severity": {},
+              "mitigation": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "finding",
+        "severity",
+        "mitigation"
+      ]
+    },
+    {
+      "id": "factcheck",
+      "name": "Fact Checker",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "mission": "Claims, fonte primária e contradições independentes",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "factcheck"
+          },
+          "artifact_type": {
+            "const": "factcheck.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claims",
+              "verification",
+              "contradictions",
+              "decision"
+            ],
+            "properties": {
+              "claims": {},
+              "verification": {},
+              "contradictions": {},
+              "decision": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "claims",
+        "verification",
+        "contradictions",
+        "decision"
+      ]
+    },
+    {
+      "id": "rights",
+      "name": "Direitos de conteúdo",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "mission": "Licenças, autorização, créditos e expiração",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "rights"
+          },
+          "artifact_type": {
+            "const": "rights.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "asset_id",
+              "rights_basis",
+              "credit",
+              "decision"
+            ],
+            "properties": {
+              "asset_id": {},
+              "rights_basis": {},
+              "credit": {},
+              "decision": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "economy",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "asset_id",
+        "rights_basis",
+        "credit",
+        "decision"
+      ]
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy / LGPD",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "mission": "Minimização, solicitações de titular e retenção",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "privacy"
+          },
+          "artifact_type": {
+            "const": "privacy.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "request_id",
+              "identity_check",
+              "action",
+              "deadline"
+            ],
+            "properties": {
+              "request_id": {},
+              "identity_check": {},
+              "action": {},
+              "deadline": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "premium",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "request_id",
+        "identity_check",
+        "action",
+        "deadline"
+      ]
+    },
+    {
+      "id": "audit",
+      "name": "Auditor editorial",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "mission": "Amostragem e avaliação cega; não aprova o próprio texto",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false,
+      "tools_policy": "allowlist; no direct internet for LLM; only deterministic collector; no publication credential except scoped publisher service",
+      "output_contract": {
+        "type": "object",
+        "required": [
+          "agent_id",
+          "artifact_type",
+          "result",
+          "evidence_refs",
+          "confidence",
+          "blockers",
+          "kpi_observations"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "const": "audit"
+          },
+          "artifact_type": {
+            "const": "audit.result"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "findings",
+              "severity",
+              "evidence",
+              "decision"
+            ],
+            "properties": {
+              "findings": {},
+              "severity": {},
+              "evidence": {},
+              "decision": {}
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kpi_observations": {
+            "type": "object"
+          }
+        }
+      },
+      "activation": "R4 gate; channel flags apply",
+      "default_route_hint": "review",
+      "routing": "task policy overrides role hint; no provider credentials or unrestricted network",
+      "required_result_fields": [
+        "findings",
+        "severity",
+        "evidence",
+        "decision"
+      ]
+    }
+  ]
+}

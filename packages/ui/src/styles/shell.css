@@ -45,6 +45,17 @@
   .ln-header__link[aria-current="page"] { border-bottom-color: var(--ln-color-signal); }
 }
 
+/* Atalhos do portal (utilityLinks) */
+.ln-header__utility { display: none; background: var(--ln-color-mint); border-top: 1px solid var(--ln-color-border); }
+.ln-header__utility[data-open="true"] { display: block; }
+.ln-header__utility-list { list-style: none; margin: 0; padding: var(--ln-space-2) 0; display: flex; flex-wrap: wrap; gap: 0 var(--ln-space-4); }
+.ln-root .ln-header__utility a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); color: var(--ln-color-primary); font-weight: var(--ln-weight-medium); font-size: var(--ln-text-sm); }
+.ln-root .ln-header__utility a[aria-current="page"] { font-weight: var(--ln-weight-bold); text-decoration: none; border-bottom: 3px solid var(--ln-color-primary); }
+@media (min-width: 1024px) {
+  .ln-header__utility, .ln-header__utility[data-open="false"] { display: block; }
+  .ln-root .ln-header__utility a { min-height: 36px; }
+}
+
 /* ---------- Footer ---------- */
 .ln-footer { padding-block: var(--ln-space-7) var(--ln-space-5); margin-top: var(--ln-space-8); }
 .ln-footer a { color: var(--ln-color-white); text-underline-offset: 3px; }

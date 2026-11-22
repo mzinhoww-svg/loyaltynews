@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cx, type LinkAs } from "../utils";
-import { defaultEditoriaHref, type Editoria } from "../editorias";
+import { defaultEditoriaHref, type EditoriaLike } from "../editorias";
 
 interface TagProps {
   children: ReactNode;
@@ -22,7 +22,7 @@ export function Tag({ children, href, linkAs, className }: TagProps) {
 }
 
 interface EditoriaBadgeProps {
-  editoria: Pick<Editoria, "slug" | "nome">;
+  editoria: EditoriaLike;
   /** Renderiza como link para a editoria (padrão: false, texto simples). */
   asLink?: boolean;
   hrefFor?: (slug: string) => string;
