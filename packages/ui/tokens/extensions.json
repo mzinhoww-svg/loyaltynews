@@ -8,7 +8,16 @@
     "warning-bg": { "value": "#FFF4CC", "why": "Fundo do MockBadge (alerta visível de dado simulado)." },
     "warning-fg": { "value": "#5C4400", "why": "Texto do MockBadge sobre warning-bg." },
     "danger": { "value": "#A12A2A", "why": "Erros de formulário; >= 4,5:1 sobre branco." },
-    "focus": { "value": "#0B5FD3", "why": "Anel de foco; >= 3:1 sobre branco, mint e primary-claro." }
+    "focus": { "value": "#0B5FD3", "why": "Anel de foco; >= 3:1 sobre branco, mint e primary-claro." },
+    "surface-subtle": { "value": "#F4F8F6", "why": "Fundo de áreas do Studio (cards, cabeçalho de tabela); texto black/primary/text-muted >= 4,5:1." },
+    "success-bg": { "value": "#E1F3E7", "why": "StatusPill sucesso (publicado/ok)." },
+    "success-fg": { "value": "#14532D", "why": "Texto de StatusPill sucesso; >= 4,5:1 sobre success-bg." },
+    "info-bg": { "value": "#E0ECFB", "why": "StatusPill informativo (em revisão/agendado)." },
+    "info-fg": { "value": "#12407F", "why": "Texto de StatusPill info; >= 4,5:1 sobre info-bg." },
+    "danger-bg": { "value": "#FBE3E3", "why": "StatusPill de erro/bloqueio." },
+    "danger-fg": { "value": "#7A1D1D", "why": "Texto de StatusPill danger; >= 4,5:1 sobre danger-bg." },
+    "neutral-bg": { "value": "#EEF1F1", "why": "StatusPill neutro (rascunho/novo)." },
+    "neutral-fg": { "value": "#2F4141", "why": "Texto de StatusPill neutro; >= 4,5:1 sobre neutral-bg." }
   },
   "spacing": { "0": "0", "1": "4px", "2": "8px", "3": "12px", "4": "16px", "5": "24px", "6": "32px", "7": "48px", "8": "64px", "9": "96px" },
   "radius": { "none": "0", "sm": "4px", "md": "8px", "lg": "12px", "xl": "16px", "pill": "999px" },

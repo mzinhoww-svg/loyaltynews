@@ -1,8 +1,13 @@
+// @vitest-environment jsdom
+import "./setup";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { axe } from "vitest-axe";
+import { expectNoViolations } from "./a11y";
 import { describe, expect, it, vi } from "vitest";
+import { SlotPosition } from "@ln/contracts";
 import {
+  AD_POSITIONS,
+  type AdPosition,
   AdSlot,
   Breadcrumb,
   Button,
@@ -16,9 +21,8 @@ import {
   EditoriaBadge,
   EDITORIAS,
   pageRange,
-} from "../src";
+} from "../index";
 
-const axeOpts = { rules: { "color-contrast": { enabled: false } } };
 
 describe("Button", () => {
   it("renderiza <button type=button> por padrão e dispara onClick", async () => {
@@ -41,7 +45,7 @@ describe("Button", () => {
   });
   it.each(["primary", "secondary", "ghost"] as const)("variante %s sem violações axe", async (v) => {
     const { container } = render(<Button variant={v}>Ação</Button>);
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
 });
 
@@ -53,7 +57,7 @@ describe("Input / SearchInput", () => {
     const desc = input.getAttribute("aria-describedby")!.split(" ");
     expect(desc).toHaveLength(2);
     expect(screen.getByText("Formato inválido")).toBeInTheDocument();
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
   it("SearchInput: landmark search, onSearch com termo aparado, ignora vazio", async () => {
     const onSearch = vi.fn();
@@ -64,7 +68,7 @@ describe("Input / SearchInput", () => {
     expect(onSearch).not.toHaveBeenCalled();
     await userEvent.type(input, "  milhas  {Enter}");
     expect(onSearch).toHaveBeenCalledWith("milhas");
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
 });
 
@@ -81,7 +85,7 @@ describe("Pagination", () => {
     expect(within(nav).getByRole("link", { name: "Página 1" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "Página 2" })).toHaveAttribute("href", "/p/2");
     expect(nav.querySelector("[aria-disabled='true']")).not.toBeNull();
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
   it("modo callback", async () => {
     const fn = vi.fn();
@@ -101,17 +105,25 @@ describe("EmptyState", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Nenhuma matéria publicada ainda");
     rerender(<EmptyState kind="error" title="Falha ao carregar" action={<Button href="/">Voltar</Button>} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
 });
 
 describe("AdSlot", () => {
-  it.each(["leaderboard", "billboard", "mrec", "mobile-banner"] as const)("%s: rotulado 'Publicidade' e marcado como placeholder", async (f) => {
-    const { container } = render(<AdSlot format={f} />);
-    const aside = screen.getByRole("group", { name: "Publicidade" });
-    expect(within(aside).getByText("Publicidade")).toBeVisible();
+  it.each(Object.keys(AD_POSITIONS) as AdPosition[])("%s: rotulado 'Publicidade' e marcado como placeholder", async (pos) => {
+    const { container } = render(<AdSlot position={pos} />);
+    const group = screen.getByRole("group", { name: "Publicidade" });
+    expect(within(group).getByText("Publicidade")).toBeVisible();
     expect(container.querySelector("[data-placeholder='true']")).not.toBeNull();
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
+  });
+  it("tamanhos do contrato/wireframe: topo 1280×150, sidebar 336×280, rodapé 1280×200", () => {
+    expect(AD_POSITIONS.TOP.size).toEqual([1280, 150]);
+    expect(AD_POSITIONS.SIDEBAR_1.size).toEqual([336, 280]);
+    expect(AD_POSITIONS.FOOTER.size).toEqual([1280, 200]);
+  });
+  it("paridade com SlotPosition de @ln/contracts", () => {
+    expect(Object.keys(AD_POSITIONS).sort()).toEqual([...SlotPosition.options].sort());
   });
   it("com filhos deixa de ser placeholder e mantém o rótulo", () => {
     const { container } = render(<AdSlot>conteúdo do anunciante</AdSlot>);
@@ -126,13 +138,13 @@ describe("Breadcrumb / SectionHeading / Tag / Mock", () => {
     const nav = screen.getByRole("navigation", { name: "Você está aqui" });
     expect(within(nav).getAllByRole("link")).toHaveLength(2);
     expect(within(nav).getByText("Matéria")).toHaveAttribute("aria-current", "page");
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
   it("SectionHeading respeita o nível e mostra ação", async () => {
     const { container } = render(<SectionHeading title="Em Alta" eyebrow="Destaques" level={2} action={{ label: "Ver todas", href: "/alta" }} />);
     expect(screen.getByRole("heading", { level: 2, name: "Em Alta" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute("href", "/alta");
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
   it("Tag e EditoriaBadge como link/texto", () => {
     render(
@@ -143,7 +155,7 @@ describe("Breadcrumb / SectionHeading / Tag / Mock", () => {
       </>,
     );
     expect(screen.getByRole("link", { name: "x" })).toHaveAttribute("href", "/t/x");
-    expect(screen.getByRole("link", { name: "Mercado & Negócios" })).toHaveAttribute("href", "/editorias/mercado-e-negocios");
+    expect(screen.getByRole("link", { name: "Mercado & Negócios" })).toHaveAttribute("href", "/editorias/mercado");
   });
   it("MockFrame sempre exibe MOCK", () => {
     render(<MockFrame>conteúdo</MockFrame>);

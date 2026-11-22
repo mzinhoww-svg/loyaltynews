@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { brandColors, colors, typography, social, motion, meta, spacing, radius, breakpoints } from "../src/tokens/tokens";
-import { EDITORIAS } from "../src/editorias";
+import { brandColors, colors, typography, social, motion, meta, spacing, radius, breakpoints } from "../tokens/tokens";
+import { EDITORIAS } from "../editorias";
 
-const root = resolve(__dirname, "..");
+const root = resolve(__dirname, "../..");
 const brand = JSON.parse(readFileSync(resolve(root, "tokens/design.tokens.json"), "utf8"));
 const css = readFileSync(resolve(root, "src/tokens/tokens.css"), "utf8");
 

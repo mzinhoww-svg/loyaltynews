@@ -1,21 +1,36 @@
+// @vitest-environment jsdom
+import "./setup";
+import type { AnchorHTMLAttributes } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { axe } from "vitest-axe";
+import { expectNoViolations } from "./a11y";
 import { describe, expect, it } from "vitest";
-import { ArticleCard, EDITORIAS, Footer, Header, Logo, MockBadge, Monogram } from "../src";
+import { ArticleCard, EDITORIAS, Footer, Header, Logo, MockBadge, Monogram } from "../index";
 
-// jsdom não calcula estilos: a regra color-contrast é coberta por test/contrast.test.ts
-// (pares de tokens) e pela execução do axe no navegador real na vitrine.
-const axeOpts = { rules: { "color-contrast": { enabled: false } } };
 
 describe("Header", () => {
   it("lista as 10 editorias em <nav aria-label='Editorias'> e marca a atual", () => {
-    render(<Header currentSlug="pontos-e-milhas" />);
+    render(<Header currentSlug="pontos" />);
     const nav = screen.getByRole("navigation", { name: "Editorias" });
     const links = within(nav).getAllByRole("link");
     expect(links).toHaveLength(10);
     expect(within(nav).getByRole("link", { name: "Pontos & Milhas" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "CRM & CX" })).not.toHaveAttribute("aria-current");
+  });
+  it("utilityLinks: segundo landmark nomeado, com aria-current, sem misturar com as editorias", async () => {
+    const { container } = render(
+      <Header
+        utilityLinks={[
+          { label: "Em alta", href: "/em-alta", current: true },
+          { label: "Agenda", href: "/agenda" },
+        ]}
+      />,
+    );
+    const util = screen.getByRole("navigation", { name: "Atalhos do portal" });
+    expect(within(util).getAllByRole("link")).toHaveLength(2);
+    expect(within(util).getByRole("link", { name: "Em alta" })).toHaveAttribute("aria-current", "page");
+    expect(within(screen.getByRole("navigation", { name: "Editorias" })).getAllByRole("link")).toHaveLength(10);
+    await expectNoViolations(container);
   });
   it("tem link 'Pular para o conteúdo' apontando para o main", () => {
     render(<Header mainId="principal" />);
@@ -33,7 +48,7 @@ describe("Header", () => {
     expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
   });
   it("usa o linkAs injetado", () => {
-    const Custom = ({ href, children, ...rest }: any) => (
+    const Custom = ({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
       <a href={href} data-custom="1" {...rest}>
         {children}
       </a>
@@ -44,10 +59,10 @@ describe("Header", () => {
   it("sem violações axe", async () => {
     const { container } = render(
       <main id="conteudo">
-        <Header currentSlug="crm-e-cx" />
+        <Header currentSlug="crm" />
       </main>,
     );
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
 });
 
@@ -64,7 +79,7 @@ describe("Footer", () => {
   });
   it("sem violações axe", async () => {
     const { container } = render(<Footer year={2026} />);
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
 });
 
@@ -81,7 +96,7 @@ describe("ArticleCard", () => {
       <ArticleCard {...base} size={size} excerpt="Resumo." publishedAt="2026-11-22T12:00:00-03:00" author="Redação" />,
     );
     expect(container.querySelector(`.ln-card--${size}`)).not.toBeNull();
-    expect(await axe(container, axeOpts)).toHaveNoViolations();
+    await expectNoViolations(container);
   });
   it("sem imagem usa placeholder decorativo (aria-hidden), nunca imagem inventada", () => {
     const { container } = render(<ArticleCard {...base} />);

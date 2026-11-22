@@ -8,7 +8,7 @@ export default defineConfig({
         test: {
           name: 'node',
           include: ['packages/*/src/**/*.test.{ts,tsx}', 'apps/web/lib/**/*.test.ts'],
-          exclude: ['**/node_modules/**', 'apps/web/e2e/**'],
+          exclude: ['**/node_modules/**', 'apps/web/e2e/**', 'packages/ui/**'],
           environment: 'node',
           testTimeout: 30_000,
         },

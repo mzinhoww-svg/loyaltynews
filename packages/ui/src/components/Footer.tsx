@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cx, type LinkAs } from "../utils";
-import { EDITORIAS, defaultEditoriaHref, type Editoria } from "../editorias";
+import { EDITORIAS, defaultEditoriaHref, type EditoriaLike } from "../editorias";
 import { Logo } from "./Logo";
 import { Container } from "./Layout";
 
@@ -10,7 +10,7 @@ export interface FooterLinkGroup {
 }
 
 export interface FooterProps {
-  editorias?: readonly Editoria[];
+  editorias?: readonly EditoriaLike[];
   hrefFor?: (slug: string) => string;
   /** Grupos extras (institucional, legal). Sem padrão: o conteúdo real vem do portal. */
   groups?: readonly FooterLinkGroup[];
