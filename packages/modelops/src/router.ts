@@ -37,6 +37,10 @@ export const ESSENTIAL_RITUALS: readonly string[] = ['D-editorial', 'D-trust', '
 // Modelos que contam como escalonamento (Opus/Fable): exigem motivo e sublimite.
 const ESCALATION_MODELS: readonly string[] = ['claude-opus-5-5', 'claude-fable-5-2'];
 
+export function isEscalation(modelId: string, taskClass: TaskClass): boolean {
+  return ESCALATION_MODELS.includes(modelId) && taskClass !== 'reserve';
+}
+
 export interface RouteRequest {
   task: string;
   dataClasses: readonly string[]; // classe de cada entrada; a mais restrita vale
@@ -164,7 +168,7 @@ export function route(policy: ModelPolicy, req: RouteRequest): RouteDecision {
       why.push('same_author_as_draft');
     }
 
-    const escalation = ESCALATION_MODELS.includes(id) && taskClass !== 'reserve';
+    const escalation = isEscalation(id, taskClass);
     if (escalation) {
       if (!req.escalationReason) why.push('escalation_reason_missing');
       if ((req.escalationsSoFar ?? 0) >= policy.rules.max_escalations) why.push('max_escalations');
