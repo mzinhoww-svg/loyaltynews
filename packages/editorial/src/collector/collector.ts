@@ -25,12 +25,24 @@ const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
-  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large';
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive';
 
 export interface Skip { url: string; code: SkipCode; detail: string }
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
 
-export interface CollectorOptions { now?: () => Date; userAgent?: string; resolver?: Resolver; flags?: EditorialFlagOverrides }
+export interface CollectorOptions {
+  now?: () => Date; userAgent?: string; resolver?: Resolver; flags?: EditorialFlagOverrides;
+  /** Espera entre requisições (injetável para teste). Padrão: setTimeout. */
+  sleep?: (ms: number) => Promise<void>;
+  /** Crawl-delay acima disto (segundos) não é esperado: a coleta da fonte é pulada ('crawl_delay_excessive'). Padrão 120. */
+  maxCrawlDelaySec?: number;
+}
+
+const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
+const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive'] as const;
+const skipCodeOf = (e: unknown): SkipCode =>
+  e instanceof UrlRejected ? ((OWN_SKIP_CODES as readonly string[]).includes(e.code) ? (e.code as SkipCode) : 'url_rejected') : 'http_error';
 
 /** Coletor determinístico: sem LLM, sem decisão editorial. Só rede + parse + saneamento + hash. */
 export class Collector {
@@ -39,6 +51,11 @@ export class Collector {
   private readonly ua: string;
   private readonly resolver: Resolver;
   private readonly flags: EditorialFlagOverrides | undefined;
+  private readonly sleep: (ms: number) => Promise<void>;
+  private readonly maxCrawlDelaySec: number;
+  /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
+  private readonly lastRequestAt = new Map<string, number>();
+  private readonly hourWindow = new Map<string, number[]>();
   private readonly robotsCache = new Map<string, ReturnType<typeof parseRobots> | null>();
   constructor(fetcher: Fetcher, opts: CollectorOptions = {}) {
     this.fetcher = fetcher;
@@ -46,6 +63,40 @@ export class Collector {
     this.ua = opts.userAgent ?? USER_AGENT;
     this.resolver = opts.resolver ?? systemResolver;
     this.flags = opts.flags;
+    this.sleep = opts.sleep ?? realSleep;
+    this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
+  }
+
+  /**
+   * Cortesia com a fonte, antes de cada requisição que não seja o robots.txt:
+   * (a) limite por hora da fonte (maxRequestsPerHour) — acima dele, 'rate_limited' (não espera horas);
+   * (b) Crawl-delay do robots.txt — espera o intervalo desde a última requisição ao host; se o delay exceder
+   *     maxCrawlDelaySec, a fonte é pulada ('crawl_delay_excessive') em vez de travar o worker.
+   */
+  private async throttle(source: Source): Promise<void> {
+    const host = source.host;
+    const nowMs = () => this.now().getTime();
+    const win = (this.hourWindow.get(host) ?? []).filter((t) => nowMs() - t < 3_600_000);
+    if (win.length >= source.maxRequestsPerHour) {
+      this.hourWindow.set(host, win);
+      throw new UrlRejected('rate_limited', `limite de ${source.maxRequestsPerHour} requisições/hora atingido para ${host}`);
+    }
+    const delaySec = this.robotsCache.get(host)?.crawlDelaySec ?? 0;
+    if (delaySec > this.maxCrawlDelaySec) throw new UrlRejected('crawl_delay_excessive', `Crawl-delay de ${delaySec}s excede o máximo de ${this.maxCrawlDelaySec}s`);
+    const last = this.lastRequestAt.get(host);
+    if (delaySec > 0 && last !== undefined) {
+      const wait = last + delaySec * 1000 - nowMs();
+      if (wait > 0) await this.sleep(wait);
+    }
+    this.hourWindow.set(host, win);
+  }
+
+  private record(host: string): void {
+    const t = this.now().getTime();
+    this.lastRequestAt.set(host, t);
+    const w = this.hourWindow.get(host) ?? [];
+    w.push(t);
+    this.hourWindow.set(host, w);
   }
 
   /**
@@ -55,9 +106,12 @@ export class Collector {
   private async safeGet(url: string, source: Source): Promise<HttpResponse> {
     let cur = url;
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
-      assertAllowedUrl(cur, [source.host], source.pathPrefix, { allowRobots: new URL(cur).pathname === '/robots.txt' });
+      const isRobots = new URL(cur).pathname === '/robots.txt';
+      assertAllowedUrl(cur, [source.host], source.pathPrefix, { allowRobots: isRobots });
+      if (!isRobots) await this.throttle(source);
       const { pinned } = await resolvePublic(new URL(cur).hostname, this.resolver);
       const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
+      this.record(source.host);
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
         cur = new URL(r.headers['location'], cur).toString();
         continue;
@@ -94,8 +148,7 @@ export class Collector {
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     let r: HttpResponse;
     try { r = await this.safeGet(u.toString(), source); } catch (e) {
-      const code = e instanceof UrlRejected ? (e.code === 'too_many_redirects' ? 'too_many_redirects' : 'url_rejected') : 'http_error';
-      return { skip: { url, code, detail: e instanceof Error ? e.message : 'erro' } };
+      return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
     const gate = detectGate(r);
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
@@ -128,7 +181,12 @@ export class Collector {
     if (f.skip) { out.skipped.push(f.skip); return out; }
     for (const it of parseFeed(f.body!).slice(0, limit)) {
       const r = await this.collectUrl(source, it.link, { title: it.title, publishedAt: it.publishedAt });
-      if (r.evidence) out.evidences.push(r.evidence); else if (r.skip) out.skipped.push(r.skip);
+      if (r.evidence) out.evidences.push(r.evidence);
+      else if (r.skip) {
+        out.skipped.push(r.skip);
+        // sem insistir quando a fonte pede pausa: limite por hora ou Crawl-delay excessivo
+        if (r.skip.code === 'rate_limited' || r.skip.code === 'crawl_delay_excessive') break;
+      }
     }
     return out;
   }
@@ -148,7 +206,7 @@ export class Collector {
       if (r.status !== 200) return { skip: { url, code: 'http_error', detail: String(r.status) } };
       return { body: r.body };
     } catch (e) {
-      return { skip: { url, code: e instanceof UrlRejected ? 'url_rejected' : 'http_error', detail: e instanceof Error ? e.message : 'erro' } };
+      return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
   }
 }
