@@ -4,8 +4,7 @@ import { beforeAll, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 import { generatePackages, getDashboardSummary, getPackage, InMemoryPackageStore, listQueue, PERMISSIONS, requestSimulatedPublish, type DashboardDeps, type DashboardSummary, type QueueResult, type SocialPackageRecord } from '../dashboard';
 import { DEFAULT_FLAGS } from '../flags';
-import { SimulatedMlabsAdapter } from '../mlabs/simulated.mock';
-import { SocialPublisher } from '../publisher/publisher';
+import { createSocialPublisher } from '../publisher/publisher';
 import { renderPost } from '../creative/post';
 import {
   BlockersList, CopyPreview, CreativePreview, DashboardSummaryCards, MockBadge, PackageCard, PackageQueue, ReceiptList, StatusBadge,
@@ -117,12 +116,10 @@ describe('Social Dashboard: telas com dados dos handlers', () => {
   let simulated: SocialPackageRecord;
 
   beforeAll(async () => {
-    const adapter = new SimulatedMlabsAdapter(now);
     deps = {
       store: new InMemoryPackageStore(),
       articles: { get: async (id) => (id === MOCK_ARTICLE.id ? structuredClone(MOCK_ARTICLE) : null) },
-      adapter,
-      publisher: new SocialPublisher({ adapter, now }),
+      publisher: createSocialPublisher({ mode: 'simulated', now }),
       flags: DEFAULT_FLAGS,
       now,
     };

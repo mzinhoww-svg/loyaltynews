@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { CopyRefusal } from '../copy/engine';
 import { CreativeRefusal, TOKENS } from '../creative/post';
 import type { GrowthFlags } from '../flags';
-import type { MlabsAdapter, PublishReceipt } from '../mlabs/port';
+import type { PublishReceipt } from '../mlabs/port';
 import { buildInstagramPackage, type InstagramPackage } from '../package/instagram';
 import { buildLinkedInPackage, type LinkedInPackage } from '../package/linkedin';
 import { PUBLISHER_SOCIAL, PublishRefused, type SocialPublisher } from '../publisher/publisher';
@@ -27,8 +27,6 @@ export interface DashboardDeps {
   store: PackageStore;
   articles: ArticleSource;
   publisher: SocialPublisher;
-  /** Adaptador usado pelo publisher; só `simulated` aceita pedido de publicação por este dashboard. */
-  adapter: MlabsAdapter;
   flags: GrowthFlags;
   now: () => string;
 }
@@ -153,7 +151,7 @@ export async function getDashboardSummary(deps: DashboardDeps, caller: Caller): 
     .map(([blocker, count]) => ({ blocker, count }))
     .sort((a, b) => b.count - a.count || a.blocker.localeCompare(b.blocker))
     .slice(0, 8);
-  const live = deps.adapter.mode === 'live';
+  const live = deps.publisher.mode === 'live';
   const mode = live ? 'real' : 'simulado';
   return ok<DashboardSummary>({
     totals: { packages: all.length, byStatus, byChannel },
@@ -287,7 +285,7 @@ export async function requestSimulatedPublish(
 ): Promise<HandlerResult<SimulatedPublishResult>> {
   if (!can(caller, PERMISSIONS.requestPublish)) return fail(403, 'FORBIDDEN', 'sem permissão social:request_publish');
   if (!PackageIdSchema.safeParse(id).success) return fail(400, 'VALIDATION_ERROR', 'id de pacote inválido');
-  if (deps.adapter.mode !== 'simulated') {
+  if (deps.publisher.mode !== 'simulated') {
     return fail(409, 'LIVE_ADAPTER_NOT_ALLOWED', 'este dashboard só pede publicação simulada');
   }
   const record = await deps.store.get(id);

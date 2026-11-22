@@ -42,11 +42,11 @@ const ServeInput = z.object({ positionId: PositionId, pageViewId: z.string().min
 /** Serve o anúncio da posição. Com a flag `adServerVendas` desligada nada é servido (house) e nada é contado. */
 export const serveAd = define({ auth: 'public', schema: ServeInput }, (ctx, i) => {
   if (!isEnabled('adServerVendas', ctx.flags)) return ok({ kind: 'house' as const, creativeId: null, impressionId: null, counted: false, reason: 'ad server desligado (flag adServerVendas)' });
-  return ok(ctx.ads.serve({ positionId: i.positionId, today: ctx.today, pageViewId: i.pageViewId, isBot: i.isBot, isInternal: i.isInternal }));
+  return ok(ctx.ads.serve({ positionId: i.positionId, today: ctx.today, pageViewId: i.pageViewId, isBot: i.isBot, isInternal: i.isInternal, nowMs: Date.parse(ctx.now) }));
 });
 export const recordAdEvent = define({ auth: 'public', schema: z.object({ impressionId: z.string().min(1), event: z.enum(['visible', 'click']) }) }, (ctx, i) => {
   if (!isEnabled('adServerVendas', ctx.flags)) return ok({ counted: false });
-  return ok({ counted: i.event === 'visible' ? ctx.ads.recordVisible(i.impressionId) : ctx.ads.recordClick(i.impressionId) });
+  return ok({ counted: i.event === 'visible' ? ctx.ads.recordVisible(i.impressionId, Date.parse(ctx.now)) : ctx.ads.recordClick(i.impressionId, Date.parse(ctx.now)) });
 });
 
 // ---------- Studio (exige ctx.actor.canManageCommercial) ----------

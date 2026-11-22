@@ -8,8 +8,7 @@ import {
   SOCIAL_JOB_OPTIONS, SOCIAL_PACKAGE_JOB, SOCIAL_QUEUE, socialJobId, socialPackageKey,
   type BullmqLike, type SocialJobDeps,
 } from '../jobs';
-import { SimulatedMlabsAdapter } from '../mlabs/simulated.mock';
-import { SocialPublisher } from '../publisher/publisher';
+import { createSocialPublisher } from '../publisher/publisher';
 import type { Article } from '../types';
 import { MOCK_ARTICLE } from '../../fixtures/article.mock';
 
@@ -24,13 +23,13 @@ class MapSource implements ArticleSource {
 }
 
 function make() {
-  const adapter = new SimulatedMlabsAdapter(now);
+  const publisher = createSocialPublisher({ mode: 'simulated', now });
+  const adapter = publisher.simulated!;
   const gateway = new SimulatedGateway();
   const dashboard: DashboardDeps = {
     store: new InMemoryPackageStore(),
     articles: new MapSource(),
-    adapter,
-    publisher: new SocialPublisher({ adapter, now }),
+    publisher,
     flags: DEFAULT_FLAGS,
     now,
   };

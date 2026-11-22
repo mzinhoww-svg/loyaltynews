@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "@ln/web",
   "version": "0.0.0",
@@ -36,3 +37,42 @@
     "@types/react-dom": "19.3.0"
   }
 }
+=======
+{
+  "name": "@ln/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Portal, LN Studio e API (Next.js App Router).",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "e2e": "node scripts/e2e.mjs",
+    "verify:no-mock": "node scripts/verify-no-mock.mjs"
+  },
+  "dependencies": {
+    "@ln/auth": "0.0.0",
+    "@ln/commercial": "0.0.0",
+    "@ln/contracts": "0.0.0",
+    "@ln/db": "0.0.0",
+    "@ln/editorial": "0.0.0",
+    "@ln/growth": "0.1.0",
+    "@ln/intelligence": "0.0.0",
+    "@ln/ui": "0.0.0",
+    "@ln/workers": "0.0.0",
+    "ioredis": "5.11.1",
+    "next": "16.4.6",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}
+>>>>>>> ft/backend

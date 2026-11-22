@@ -2,17 +2,16 @@ import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { generateLinkedInCopy } from '../copy/engine';
 import { DEFAULT_FLAGS } from '../flags';
-import { createLiveMlabsAdapter, LIVE_ACK, readOnlyTransport } from '../mlabs/live';
+import { LIVE_ACK, readOnlyTransport } from '../mlabs/live';
 import { READ_ONLY_TOOLS, WRITE_TOOLS } from '../mlabs/port';
-import { SimulatedMlabsAdapter } from '../mlabs/simulated.mock';
-import { PUBLISHER_SOCIAL, PublishRefused, SocialPublisher } from '../publisher/publisher';
+import { createSocialPublisher, PUBLISHER_SOCIAL, PublishRefused } from '../publisher/publisher';
 import { MOCK_ARTICLE } from '../../fixtures/article.mock';
 import type { Actor } from '../types';
 
 const clock = () => '2026-11-22T12:00:00.000Z';
 function setup(flags = { ...DEFAULT_FLAGS }) {
-  const adapter = new SimulatedMlabsAdapter(clock);
-  const publisher = new SocialPublisher({ adapter, flags, now: clock });
+  const publisher = createSocialPublisher({ mode: 'simulated', flags, now: clock });
+  const adapter = publisher.simulated!;
   const copy = generateLinkedInCopy(MOCK_ARTICLE);
   const base = {
     article: MOCK_ARTICLE,
@@ -129,14 +128,18 @@ test('editar e excluir (simulado) exigem a identidade de publicação', async ()
   assert.equal((await publisher.remove(PUBLISHER_SOCIAL, 'linkedin', r.id)).status, 'deleted');
 });
 
-test('adaptador real via publisher: sem a flag no publisher, recusa (defesa em profundidade)', async () => {
-  const live = createLiveMlabsAdapter({
-    transport: { call: async () => { throw new Error('não deve ser chamado'); } },
+test('modo real: flag desligada depois da criação recusa a publicação e não toca o transporte', async () => {
+  let on = true;
+  const calls: string[] = [];
+  const publisher = createSocialPublisher({
+    mode: 'live',
+    transport: { call: async (tool) => { calls.push(tool); return {}; } },
     liveAck: LIVE_ACK,
     actor: PUBLISHER_SOCIAL,
-    flags: () => ({ ...DEFAULT_FLAGS, growth_linkedin_live: true }),
+    flags: () => ({ ...DEFAULT_FLAGS, growth_linkedin_live: on }),
+    now: clock,
   });
-  const publisher = new SocialPublisher({ adapter: live, now: clock }); // flags padrão: desligadas
+  on = false;
   const copy = generateLinkedInCopy(MOCK_ARTICLE);
   await assert.rejects(
     () => publisher.publish(PUBLISHER_SOCIAL, {
@@ -145,6 +148,7 @@ test('adaptador real via publisher: sem a flag no publisher, recusa (defesa em p
     }),
     (e: unknown) => e instanceof PublishRefused && e.reason === 'publicacao_real_desligada',
   );
+  assert.deepEqual(calls, []);
 });
 
 test('transporte somente-leitura rejeita qualquer ferramenta de escrita', async () => {
