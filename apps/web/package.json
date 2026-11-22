@@ -17,6 +17,8 @@
     "@ln/commercial": "0.0.0",
     "@ln/contracts": "0.0.0",
     "@ln/db": "0.0.0",
+    "@ln/editorial": "0.0.0",
+    "@ln/growth": "0.1.0",
     "@ln/intelligence": "0.0.0",
     "@ln/ui": "0.0.0",
     "@ln/workers": "0.0.0",
