@@ -64,7 +64,8 @@ for (const f of all.filter((x) => rel(x).startsWith('packages/db/') && x.endsWit
 
 // 3. segredos
 const SECRET_PATTERNS = [
-  ['chave privada', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
+  // exige corpo longo: um PEM de teste com 4 caracteres (fixture) não é chave; chave real tem centenas de caracteres
+  ['chave privada', /-----BEGIN [A-Z ]*PRIVATE KEY-----\s*[A-Za-z0-9+/=\s]{64,}/],
   ['AWS access key', /\bAKIA[0-9A-Z]{16}\b/],
   ['token GitHub', /\b(?:ghp|gho|ghs|ghu|github_pat)_[A-Za-z0-9_]{20,}/],
   ['chave sk-', /\bsk-[A-Za-z0-9_-]{24,}/],
@@ -101,7 +102,8 @@ for (const f of all) {
   }
   if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
   if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE/PORTAL_MODE=mock atribuído em ${r}`);
-  if (/next\.config/.test(r) && /LN_STUDIO_TEST_SESSION|PORTAL_(?:SOURCE|MODE)/.test(txt)) problems.push(`next.config referencia variável só de teste (risco de embutir no build): ${r}`);
+  // next.config pode LER a variável para RECUSAR o build (padrão do Studio); o que reprova é injetá-la no build via `env:`/define
+  if (/next\.config/.test(r) && /\b(?:env|define)\s*:\s*\{[^}]*(?:LN_STUDIO_TEST_SESSION|PORTAL_(?:SOURCE|MODE))/s.test(txt)) problems.push(`next.config injeta variável só de teste no build: ${r}`);
 }
 
 if (problems.length) {

@@ -28,7 +28,8 @@ test('ci-checks: reprova pilha proibida, extensão fora da lista e segredos', ()
   put(r, 'package.json', '{"dependencies":{"@supabase/supabase-js":"1"}}');
   put(r, 'packages/db/migrations/001.sql', 'CREATE EXTENSION vector;\nCREATE EXTENSION pgvector;');
   put(r, '.env', 'X=1');
-  put(r, 'apps/x.txt', '-----BEGIN ' + 'PRIVATE KEY-----');
+  put(r, 'apps/x.txt', '-----BEGIN ' + 'PRIVATE KEY-----' + String.fromCharCode(10) + 'A'.repeat(120) + String.fromCharCode(10) + '-----END PRIVATE KEY-----');
+  put(r, 'apps/fixture.test.ts', "const KEY = '-----BEGIN PRIVATE KEY-----\nMIIB\n-----END PRIVATE KEY-----';"); // fixture curta: não é chave
   put(r, 'apps/y.txt', 'postgres://user:' + 'senha123@host/db');
   const x = node('ci-checks.mjs', ['--root', r]);
   assert.equal(x.status, 1);
@@ -104,8 +105,15 @@ test('ci-checks: atribuição em deploy/IaC/scripts de produção reprova; citar
   put(bad, 'apps/web/next.config.ts', 'export default { env: { LN_STUDIO_TEST_SESSION: process.env.LN_STUDIO_TEST_SESSION } };');
   const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
   assert.equal(x.status, 1);
-  for (const s of ['script "start"', 'script "build"', 'LN_STUDIO_TEST_SESSION atribuída em infra/vertra/environments.json', 'deploy.yml', 'next.config referencia']) assert.match(x.stderr, new RegExp(s));
+  for (const s of ['script "start"', 'script "build"', 'LN_STUDIO_TEST_SESSION atribuída em infra/vertra/environments.json', 'deploy.yml', 'next.config injeta']) assert.match(x.stderr, new RegExp(s));
   rmSync(bad, { recursive: true, force: true });
+});
+
+test('ci-checks: next.config que só LÊ a variável para recusar o build passa; injetar via env reprova', () => {
+  const ok = tmp();
+  put(ok, 'apps/web/next.config.ts', "if (process.env.LN_STUDIO_TEST_SESSION) { throw new Error('recusado'); } export default {};");
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0);
+  rmSync(ok, { recursive: true, force: true });
 });
 
 test('healthcheck --denied e --no-mock: prova de runtime de que a sessão simulada e o MOCK estão desligados', async () => {
