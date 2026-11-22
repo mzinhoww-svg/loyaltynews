@@ -60,5 +60,8 @@ Por ora, subdomínios da Vertra: `loyaltynews-staging.vertraweb.app` (staging) e
 ## 6. Ações fixadas e versões
 `actions/checkout` v7.0.1 `3d3c42e5…90b1`; `actions/setup-node` v7.1.0 `949feb24…15c1` (consultado 22/11/2026, `get_tag`); demais em `r0-preparacao/R0-03/bootstrap/pins.md`. Imagem `postgres:18` do job de migrações **sem digest** (pendência).
 
+## 6b. Deploy sem GitHub
+Enquanto o push depende do bootstrap R0-03, o staging sobe de um **pacote gerado de um commit local** (`infra/scripts/package-web.mjs`). Passo a passo, ferramentas Vertra e a divergência sobre qual servidor MCP tem `create_app`: `deploy-por-zip.md`. Montagem do branch de integração: `integracao.md`.
+
 ## 7. Não verificado
 Região do banco (host `usa1`) e rede privada; auto-deploy desligável por app; hoisting do `next`; nomes exatos das credenciais S3 do Blob; quanto tempo leva build real na Vertra; se workspace soma memória do dono; disponibilidade dos subdomínios; a leitura do `owner_plan` por recurso (ainda `pro-4`) após o upgrade. Nenhum recurso foi criado, alterado ou apagado; só leituras (R0-07 e `get_profile` de 22/11).

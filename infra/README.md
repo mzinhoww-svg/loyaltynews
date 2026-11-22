@@ -9,7 +9,10 @@ Preparado em 22/11/2026 no fast-track. **Nada foi aplicado na Vertra nem no GitH
 | `docs/backup-restore.md` | ADR-012: backup externo cifrado, alerta, ensaio de restauração |
 | `docs/observabilidade.md` | logs, métricas, health; contrato de `/api/health` e `/api/ready`; pedidos a outros donos |
 | `docs/checklist-primeiro-deploy-staging.md` | roteiro para o PM executar o primeiro deploy |
-| `scripts/` | `build.mjs`, `test.mjs`, `migrate.mjs`, `ci-checks.mjs`, `backup-pg.mjs`, `restore-check.mjs`, `backup-freshness.mjs`, `healthcheck.mjs` (Node ≥ 24, sem dependências) |
+| `docs/deploy-por-zip.md` | deploy de staging sem GitHub: pacote de um commit local + ferramentas Vertra |
+| `docs/integracao.md` | como o branch `ft/integracao` é montado, verificado e empacotado; resultados |
+| `vertra/bindings.json` | vínculo ambiente -> banco (host/nome, não secretos): migração e backup recusam sem ele |
+| `scripts/` | `build.mjs`, `test.mjs`, `migrate.mjs`, `ci-checks.mjs`, `backup-pg.mjs`, `restore-check.mjs`, `backup-freshness.mjs`, `healthcheck.mjs`, `guard-env.mjs`, `verify-migrations.mjs`, `package-web.mjs`, `integracao.mjs` (Node ≥ 24, sem dependências) |
 | `tests/` | testes `node:test` dos scripts |
 | `../.github/workflows/` | `ci.yml` e `backup.yml` (preparados, **inativos**; ações fixadas por SHA) |
 

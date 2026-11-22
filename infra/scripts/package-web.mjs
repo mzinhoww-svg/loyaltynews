@@ -106,12 +106,21 @@ try {
     { nome: 'APP_COMMIT', valor: sha },
     ...(web.env?.APP_MODE ? [{ nome: 'APP_MODE', valor: web.env.APP_MODE }] : []),
     { nome: 'APP_URL', valor: web.subdominio ? `https://${web.subdominio}.vertraweb.app` : '(definir)' },
+    { nome: 'BETTER_AUTH_URL', valor: web.subdominio ? `https://${web.subdominio}.vertraweb.app` : '(definir)' },
   ];
   const manifest = {
     schema: 1, perfil: profile, app: web.nome, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: web.build_command, start: web.start_command, subdomain: web.subdominio, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
-    sondas: ['node infra/scripts/healthcheck.mjs --url <URL> --denied /studio --no-mock /'],
+    segredos_pelo_cofre_nunca_em_arquivo: [
+      { nome: 'BETTER_AUTH_SECRET', quando: 'staging COM banco (ft/backend); aleatório, ao menos 32 caracteres, distinto por ambiente; o proprietário define pelo painel para não passar pelo chat' },
+      { nome: 'DATABASE_URL', quando: 'quando existir o banco do ambiente (host e nome devem coincidir com infra/vertra/bindings.json)' },
+      { nome: 'DB_SSL_CA_PEM / DB_SSL_CERT_PEM / DB_SSL_KEY_PEM', quando: 'com o banco' },
+    ],
+    medir_apos_o_deploy: [
+      { nome: 'TRUSTED_PROXY_HOPS', como: 'contar as entradas de X-Forwarded-For que o app recebe de uma requisição de teste com UMA entrada falsa injetada (TEST-NET 203.0.113.9); hops = total de entradas menos 1; exige o diagnóstico DIAG_XFF=1 do Backend (só contagem, nunca IPs); sem medição o limite por IP fica inativo e vale só o limite por conta (padrão seguro)' },
+    ],
+    sondas: ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock /'],
     garantias: ['pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');

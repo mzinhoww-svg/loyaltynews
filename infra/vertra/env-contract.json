@@ -45,6 +45,45 @@
       "nota": "URL pública do ambiente (https://loyaltynews-staging.vertraweb.app ou o domínio próprio); usada em links canônicos e callbacks de autenticação"
     },
     {
+      "nome": "BETTER_AUTH_URL",
+      "secreto": false,
+      "apps": [
+        "web"
+      ],
+      "dono_do_codigo": "packages/auth (Backend)",
+      "nota": "mesma URL pública do ambiente (APP_URL)"
+    },
+    {
+      "nome": "BETTER_AUTH_SECRET",
+      "secreto": true,
+      "apps": [
+        "web"
+      ],
+      "dono_do_codigo": "packages/auth (Backend)",
+      "nota": "aleatório, ao menos 32 caracteres (o app recusa menos); valor DISTINTO em staging e produção; gerado pelo proprietário/DevOps direto no painel ou no cofre, nunca em arquivo, chat ou commit. Só necessário quando houver banco (ft/backend)."
+    },
+    {
+      "nome": "TRUSTED_PROXY_HOPS",
+      "secreto": false,
+      "apps": [
+        "web"
+      ],
+      "dono_do_codigo": "packages/auth (Backend)",
+      "nota": "inteiro de 1 a 10 = quantos proxies confiáveis há na frente do app; vale a N-ésima entrada de X-Forwarded-For contada da direita. Sem definir (ou inválido) o limite por IP fica INATIVO e vale só o limite por conta. Medir no primeiro staging com o diagnóstico DIAG_XFF; não chutar."
+    },
+    {
+      "nome": "DIAG_XFF",
+      "secreto": false,
+      "apps": [
+        "web"
+      ],
+      "provisorio": true,
+      "valores": [
+        "1"
+      ],
+      "nota": "só staging e só durante a medição: pedido ao Backend de um diagnóstico que devolve apenas a CONTAGEM de entradas de X-Forwarded-For (cabeçalho x-ln-xff-count), nunca os IPs. guard-env reprova em produção."
+    },
+    {
       "nome": "DATABASE_URL",
       "secreto": true,
       "apps": [
@@ -165,15 +204,6 @@
         "workers"
       ],
       "provisorio": true
-    },
-    {
-      "nome": "AUTH_SECRET",
-      "secreto": true,
-      "apps": [
-        "web"
-      ],
-      "dono_do_codigo": "packages/auth (Backend)",
-      "nota": "valor distinto por ambiente; gerar aleatório, nunca reutilizar entre staging e produção"
     }
   ],
   "so_para_ci_nao_vai_para_a_vertra": [
@@ -251,11 +281,11 @@
     },
     {
       "nome": "PORTAL_SOURCE",
-      "regra": "nunca com valor 'mock'; em staging/produção fica não definida (fonte vazia, estados vazios honestos)"
+      "regra": "em staging/produção fica VAZIA ou não definida (só 'empty' explícito é aceito): nem 'mock' nem 'intelligence'. O guard recusa qualquer outro valor."
     },
     {
       "nome": "PORTAL_MODE",
-      "regra": "nunca com valor 'mock' (só em teste)"
+      "regra": "em staging/produção vazia ou 'empty'; 'mock' só em teste"
     }
   ],
   "vocabulario_app_env": "Canônico na Vertra: staging | production. O scaffold cita homologacao/producao; guard-env, migrate e as sondas aceitam os dois e normalizam. Quem lê APP_ENV no código só ecoa o valor."

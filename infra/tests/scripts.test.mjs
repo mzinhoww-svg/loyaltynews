@@ -74,6 +74,10 @@ test('guard-env: reprova LN_STUDIO_TEST_SESSION (qualquer valor) e mock em deplo
   assert.equal(g({ PORTAL_SOURCE: 'mock' }).status, 0, 'em dev/teste o mock é permitido');
   assert.equal(g({ PORTAL_SOURCE: 'mock' }, ['--deploy']).status, 1, '--deploy força o modo estrito');
   assert.equal(g({ APP_ENV: 'staging', PORTAL_SOURCE: 'empty' }).status, 0);
+  assert.equal(g({ APP_ENV: 'staging', PORTAL_SOURCE: 'intelligence' }).status, 1, 'staging: PORTAL_SOURCE vazio, nem mock nem intelligence');
+  assert.equal(g({ APP_ENV: 'production', PORTAL_MODE: 'qualquer' }).status, 1, 'só vazio ou empty é aceito em deploy');
+  assert.equal(g({ APP_ENV: 'staging', DIAG_XFF: '1' }).status, 0, 'o diagnóstico de proxies é permitido no staging');
+  assert.equal(g({ APP_ENV: 'production', DIAG_XFF: '1' }).status, 1, 'e proibido em produção');
   assert.equal(g({ APP_ENV: 'homologacao', PORTAL_MODE: 'mock' }).status, 1, 'vocabulário do scaffold também é estrito');
   assert.equal(g({ APP_ENV: 'producao', LN_STUDIO_TEST_SESSION: '1' }).status, 1);
   assert.equal(g({ APP_ENV: 'staging', DB_SSL_MODE: 'disable' }).status, 1, 'DB_SSL_MODE=disable é só do CI');

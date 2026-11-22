@@ -20,10 +20,11 @@ Conclusão: a Vertra mostra, mas não alerta nem guarda tempo suficiente. Alerta
 5. **Deploy**: após cada deploy, `healthcheck.mjs --expect-commit <sha>` precisa passar; senão rollback (a Vertra faz o automático em 60 s no Pro).
 6. **Contador de erros no ensaio de zero downtime**: sonda a cada 2 s durante o deploy de staging; critério para ligar `auto` em produção = zero respostas não-2xx e nenhum erro de arquivo ausente.
 
-## Situação real no scaffold (medida em 22/11/2026 sobre `ft/scaffold` 78a271c)
-- `/api/health` **existe** e devolve `{"status":"ok","service":"loyaltynews-web","flagsLigadas":[]}` (HTTP 200; sonda `healthcheck.mjs` ok em 58 ms). **Falta** `version` (commit) e `env`, então `--expect-commit` ainda não funciona; sem isso a conferência de "o commit certo subiu" não é possível. Pedido ao Chief Architect (dono de `apps/web/lib/health`): acrescentar `version` = `APP_COMMIT` e `env` = `APP_ENV`.
-- `/api/ready` **não existe** (404). Pedido ao Backend.
-- Observação de segurança para Chief Architect/Security: `flagsLigadas` expõe publicamente quais funcionalidades estão ligadas; considerar remover da resposta pública (ou só em `/api/ready` autenticado).
+## Situação real no scaffold (ensaio do pacote sobre o commit de integração, 22/11/2026)
+- `/api/health` devolve `{"status":"ok","service":"loyaltynews-web","version":"<APP_COMMIT>","env":"<APP_ENV>"}` (scaffold 67d7422: com `version`/`env` e **sem** as flags). No ensaio a partir do pacote: 200 em 58 ms, `version` igual ao commit do pacote. `healthcheck.mjs --expect-commit` funciona.
+- `/api/ready` e o modo `APP_MODE=nodb` estão no `ft/backend` (README da API: `/api/ready` devolve 503 sem banco/Redis; `nodb` sobe sem banco). **Não integrados** ao staging mínimo (decisão do PM: backend fora do primeiro staging).
+- Diagnóstico de proxies para `TRUSTED_PROXY_HOPS` (contagem de `X-Forwarded-For`, `DIAG_XFF=1`): **pedido ao Backend**, inexistente hoje; ver `checklist-primeiro-deploy-staging.md` 6b.
+- Sondas de segurança em runtime (`healthcheck.mjs --denied /studio --no-mock /`): provam que o Studio nega sem login (307 para `/studio/entrar`) e que não há texto `MOCK` no portal. Aprovadas no ensaio.
 
 ## Contrato dos endpoints (dono do código: Backend, `apps/web/app/api`)
 - `GET /api/health` → 200 `{"status":"ok","version":"<APP_COMMIT>","env":"staging|production","time":"<ISO>"}`. **Sem dependências** (é o `health_check_path`: 5xx reprova o deploy).
