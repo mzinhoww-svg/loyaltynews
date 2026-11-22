@@ -45,6 +45,80 @@
       "nota": "URL pública do ambiente (https://loyaltynews-staging.vertraweb.app ou o domínio próprio); usada em links canônicos e callbacks de autenticação"
     },
     {
+      "nome": "DATABASE_URL",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "dono_do_codigo": "packages/db",
+      "nota": "URL postgres:// do banco do ambiente (contém usuário e senha). Convenção do scaffold (packages/db/src/migrate.ts). O host/banco devem coincidir com infra/vertra/bindings.json."
+    },
+    {
+      "nome": "DB_SSL_CA_PEM",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "CA do banco em texto PEM; a Vertra exige TLS verify-full + certificado de cliente (valor < 3.072 caracteres)"
+    },
+    {
+      "nome": "DB_SSL_CERT_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "certificado de cliente PEM"
+    },
+    {
+      "nome": "DB_SSL_KEY_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "chave privada do certificado de cliente PEM"
+    },
+    {
+      "nome": "REDIS_URL",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true,
+      "nota": "rediss://usuario:senha@host:porta (TLS + certificado de cliente na Vertra); nomes REDIS_SSL_*_PEM por analogia com o banco, a confirmar com o Backend"
+    },
+    {
+      "nome": "REDIS_SSL_CA_PEM",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true
+    },
+    {
+      "nome": "REDIS_SSL_CERT_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true
+    },
+    {
+      "nome": "REDIS_SSL_KEY_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true
+    },
+    {
       "nome": "APP_MODE",
       "secreto": false,
       "apps": [
@@ -54,130 +128,6 @@
         "nodb"
       ],
       "nota": "só no staging-min: sobe sem banco/Redis; /api/ready devolve degraded"
-    },
-    {
-      "nome": "DB_HOST",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ],
-      "dono_do_codigo": "packages/db"
-    },
-    {
-      "nome": "DB_PORT",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ],
-      "nota": "porta própria por banco (não é 5432)"
-    },
-    {
-      "nome": "DB_NAME",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ],
-      "nota": "'vertracloud' em bancos novos"
-    },
-    {
-      "nome": "DB_USER",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "DB_PASSWORD",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "DB_CA_PEM",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ],
-      "nota": "certificado da CA do banco, em texto PEM (a Vertra exige TLS verify-full + certificado de cliente)"
-    },
-    {
-      "nome": "DB_CLIENT_CERT_PEM",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "DB_CLIENT_KEY_PEM",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_HOST",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_PORT",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_USER",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_PASSWORD",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_CA_PEM",
-      "secreto": false,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_CLIENT_CERT_PEM",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
-    },
-    {
-      "nome": "REDIS_CLIENT_KEY_PEM",
-      "secreto": true,
-      "apps": [
-        "web",
-        "workers"
-      ]
     },
     {
       "nome": "BLOB_S3_ENDPOINT",
@@ -228,12 +178,20 @@
   ],
   "so_para_ci_nao_vai_para_a_vertra": [
     {
+      "nome": "CI",
+      "secreto": false,
+      "valores": [
+        "true"
+      ],
+      "nota": "só nos jobs de CI. O scaffold só aceita DB_SSL_MODE=disable com CI=true; em staging/produção CI não pode existir (guard-env reprova)."
+    },
+    {
       "nome": "DB_SSL_MODE",
       "secreto": false,
       "valores": [
         "disable"
       ],
-      "nota": "só no job de migrações do CI (PostgreSQL descartável sem TLS). Na Vertra o TLS com certificado de cliente é obrigatório; o código NÃO pode aceitar 'disable' em staging/produção (APP_ENV). Pedido ao dono de packages/db."
+      "nota": "só no job de migrações do CI (PostgreSQL descartável sem TLS). Na Vertra o TLS com certificado de cliente é obrigatório; guard-env reprova DB_SSL_MODE=disable em deploy."
     }
   ],
   "so_para_backup_nao_vao_para_apps_da_vertra": [
@@ -264,14 +222,41 @@
       "secreto": true
     },
     {
-      "nome": "RESTORE_DB_HOST/PORT/NAME/USER/PASSWORD/CA_PEM/CLIENT_CERT_PEM/CLIENT_KEY_PEM",
+      "nome": "RESTORE_DATABASE_URL",
       "secreto": true,
-      "nota": "instância DESCARTÁVEL do ensaio de restauração; nunca produção"
+      "nota": "instância DESCARTÁVEL do ensaio de restauração; nunca o banco de um ambiente (restore-check recusa hosts de bindings.json)"
+    },
+    {
+      "nome": "RESTORE_DB_SSL_CA_PEM",
+      "secreto": false
+    },
+    {
+      "nome": "RESTORE_DB_SSL_CERT_PEM",
+      "secreto": true
+    },
+    {
+      "nome": "RESTORE_DB_SSL_KEY_PEM",
+      "secreto": true
     }
   ],
   "reservado_para_outras_frentes": [
     "frente 11 ModelOps: chaves de provedores de modelo (OpenRouter etc.)",
     "frente 09 Growth: credenciais mLabs (flag desligada)",
     "frente 04/Studio: nada além de AUTH_SECRET por enquanto"
-  ]
+  ],
+  "proibidas_em_staging_e_producao": [
+    {
+      "nome": "LN_STUDIO_TEST_SESSION",
+      "regra": "NUNCA definir, com qualquer valor, no ambiente da Vertra nem no build. Habilita sessão simulada do Studio (só e2e)."
+    },
+    {
+      "nome": "PORTAL_SOURCE",
+      "regra": "nunca com valor 'mock'; em staging/produção fica não definida (fonte vazia, estados vazios honestos)"
+    },
+    {
+      "nome": "PORTAL_MODE",
+      "regra": "nunca com valor 'mock' (só em teste)"
+    }
+  ],
+  "vocabulario_app_env": "Canônico na Vertra: staging | production. O scaffold cita homologacao/producao; guard-env, migrate e as sondas aceitam os dois e normalizam. Quem lê APP_ENV no código só ecoa o valor."
 }

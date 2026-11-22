@@ -58,6 +58,79 @@ test('ci-checks: lockfile só reprova pacote INSTALADO; peer opcional não conta
   rmSync(bad, { recursive: true, force: true });
 });
 
+// --- variáveis só de teste (alerta do PM, 22/11/2026) ---
+const cleanEnv = () => { const e = { ...process.env }; for (const k of ['LN_STUDIO_TEST_SESSION', 'PORTAL_SOURCE', 'PORTAL_MODE', 'APP_ENV']) delete e[k]; return e; };
+
+test('guard-env: reprova LN_STUDIO_TEST_SESSION (qualquer valor) e mock em deploy; aceita ambiente limpo', () => {
+  const g = (env, args = []) => spawnSync(process.execPath, [join(S, 'guard-env.mjs'), ...args], { encoding: 'utf8', env: { ...cleanEnv(), ...env } });
+  assert.equal(g({}).status, 0);
+  assert.equal(g({ APP_ENV: 'staging' }).status, 0);
+  assert.equal(g({ LN_STUDIO_TEST_SESSION: '1' }).status, 1);
+  assert.equal(g({ LN_STUDIO_TEST_SESSION: '0', APP_ENV: 'production' }).status, 1, 'definida com qualquer valor reprova');
+  assert.equal(g({ LN_STUDIO_TEST_SESSION: '' }).status, 0, 'vazia equivale a não definida');
+  assert.equal(g({ APP_ENV: 'staging', PORTAL_MODE: 'mock' }).status, 1);
+  assert.equal(g({ APP_ENV: 'production', PORTAL_SOURCE: 'MOCK' }).status, 1);
+  assert.equal(g({ PORTAL_SOURCE: 'mock' }).status, 0, 'em dev/teste o mock é permitido');
+  assert.equal(g({ PORTAL_SOURCE: 'mock' }, ['--deploy']).status, 1, '--deploy força o modo estrito');
+  assert.equal(g({ APP_ENV: 'staging', PORTAL_SOURCE: 'empty' }).status, 0);
+  assert.equal(g({ APP_ENV: 'homologacao', PORTAL_MODE: 'mock' }).status, 1, 'vocabulário do scaffold também é estrito');
+  assert.equal(g({ APP_ENV: 'producao', LN_STUDIO_TEST_SESSION: '1' }).status, 1);
+  assert.equal(g({ APP_ENV: 'staging', DB_SSL_MODE: 'disable' }).status, 1, 'DB_SSL_MODE=disable é só do CI');
+  assert.equal(g({ APP_ENV: 'production', CI: 'true' }).status, 1, 'CI=true libera disable: proibido em deploy');
+  assert.equal(g({ CI: 'true', DB_SSL_MODE: 'disable' }).status, 0, 'no CI (sem APP_ENV de deploy) é permitido');
+  assert.equal(g({ CI: 'true', DB_SSL_MODE: 'disable' }, ['--deploy']).status, 1);
+});
+
+test('ci-checks: ambiente com LN_STUDIO_TEST_SESSION reprova mesmo em árvore limpa', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const x = node('ci-checks.mjs', ['--root', r], { env: { ...cleanEnv(), LN_STUDIO_TEST_SESSION: '1' } });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /LN_STUDIO_TEST_SESSION está definida/);
+  assert.equal(node('ci-checks.mjs', ['--root', r], { env: cleanEnv() }).status, 0);
+  rmSync(r, { recursive: true, force: true });
+});
+
+test('ci-checks: atribuição em deploy/IaC/scripts de produção reprova; citar o nome ou usar em script de teste não', () => {
+  const r = tmp();
+  put(r, 'infra/vertra/env-contract.json', '{"proibidas":[{"nome":"LN_STUDIO_TEST_SESSION","regra":"nunca"}]}'); // só cita
+  put(r, 'apps/web/package.json', JSON.stringify({ scripts: { e2e: 'LN_STUDIO_TEST_SESSION=1 playwright test', 'test:portal': 'PORTAL_MODE=mock vitest' } }));
+  assert.equal(node('ci-checks.mjs', ['--root', r], { env: cleanEnv() }).status, 0);
+  rmSync(r, { recursive: true, force: true });
+  const bad = tmp();
+  put(bad, 'apps/web/package.json', JSON.stringify({ scripts: { start: 'LN_STUDIO_TEST_SESSION=1 next start', build: 'PORTAL_SOURCE=mock next build' } }));
+  put(bad, 'infra/vertra/environments.json', '{"env":{"LN_STUDIO_TEST_SESSION":"1"}}');
+  put(bad, '.github/workflows/deploy.yml', 'env:\n  PORTAL_MODE: mock\n  LN_STUDIO_TEST_SESSION: 1\n');
+  put(bad, 'apps/web/next.config.ts', 'export default { env: { LN_STUDIO_TEST_SESSION: process.env.LN_STUDIO_TEST_SESSION } };');
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  for (const s of ['script "start"', 'script "build"', 'LN_STUDIO_TEST_SESSION atribuída em infra/vertra/environments.json', 'deploy.yml', 'next.config referencia']) assert.match(x.stderr, new RegExp(s));
+  rmSync(bad, { recursive: true, force: true });
+});
+
+test('healthcheck --denied e --no-mock: prova de runtime de que a sessão simulada e o MOCK estão desligados', async () => {
+  let studio = 302; let home = '<h1>Loyalty News</h1>';
+  const s = await server((req, res) => {
+    if (req.url === '/api/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"status":"ok"}'); }
+    if (req.url === '/studio') { res.writeHead(studio, studio === 302 ? { location: '/studio/entrar' } : {}); return res.end('painel do studio'); }
+    if (req.url === '/') { res.writeHead(200); return res.end(home); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  try {
+    assert.equal((await hc(port, ['--denied', '/studio', '--no-mock', '/'])).status, 0);
+    studio = 200; // sessão simulada ativa: /studio abre sem login
+    const a = await hc(port, ['--denied', '/studio']);
+    assert.equal(a.status, 1);
+    assert.match(a.stdout, /sessão simulada pode estar ativa/);
+    studio = 401; assert.equal((await hc(port, ['--denied', '/studio'])).status, 0);
+    home = '<div class="faixa">MOCK</div>'; // fixtures ativas
+    const b = await hc(port, ['--no-mock', '/']);
+    assert.equal(b.status, 1);
+    assert.match(b.stdout, /contém \\"MOCK\\"/);
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
 test('compareStats detecta divergência, ausência e tabela inesperada', () => {
   const a = { 'public.a': { rows: 2, md5: 'aaaaaaaa11' }, 'public.b': { rows: 1, md5: 'bbbbbbbb22' } };
   assert.deepEqual(compareStats(a, a), []);
@@ -97,24 +170,28 @@ test('healthcheck: ok, 5xx, commit errado, corpo inválido e timeout', async () 
   } finally { s.closeAllConnections?.(); s.close(); }
 });
 
-test('migrate: recusa sem packages/db, sem script migrate e produção sem confirmação', () => {
+test('verify-migrations: journal vs aplicadas (CI não pode ficar verde sem migrar)', async () => {
+  const { journalCount, verify } = await import('../scripts/verify-migrations.mjs');
   const r = tmp();
-  const m = (args, env = {}) => spawnSync(process.execPath, [join(S, 'migrate.mjs'), ...args], { cwd: r, encoding: 'utf8', env: { ...process.env, ...env } });
-  assert.equal(m(['--env', 'staging']).status, 2); // sem packages/db
-  put(r, 'packages/db/package.json', '{"scripts":{}}');
-  assert.match(m(['--env', 'staging']).stderr, /sem script "migrate"/);
-  put(r, 'packages/db/package.json', '{"scripts":{"migrate":"echo ok"}}');
-  const envs = Object.fromEntries(['HOST', 'PORT', 'NAME', 'USER', 'PASSWORD', 'CA_PEM', 'CLIENT_CERT_PEM', 'CLIENT_KEY_PEM'].map((k) => [`DB_${k}`, 'x']));
-  // ci-checks roda com o cwd do repo de teste: precisa existir o script
-  mkdirSync(join(r, 'infra/scripts'), { recursive: true });
-  for (const f of ['ci-checks.mjs', 'backup-freshness.mjs']) writeFileSync(join(r, 'infra/scripts', f), `import(${JSON.stringify('file:///' + join(S, f).replace(/\\/g, '/'))});`);
-  const p = m(['--env', 'production'], envs);
-  assert.equal(p.status, 2);
-  assert.match(p.stderr, /--confirm-production/);
-  const q = m(['--env', 'production', '--confirm-production'], { ...envs, BACKUP_DEST: join(r, 'vazio') });
-  assert.equal(q.status, 1);
-  assert.match(q.stderr, /sem backup fresco/);
-  const d = m(['--env', 'staging', '--dry-run'], envs);
-  assert.equal(d.status, 0);
+  assert.throws(() => journalCount(r), /ausente/);
+  put(r, 'packages/db/drizzle/meta/_journal.json', JSON.stringify({ entries: [] }));
+  assert.throws(() => journalCount(r), /vazio/);
+  put(r, 'packages/db/drizzle/meta/_journal.json', JSON.stringify({ entries: [{ idx: 0 }, { idx: 1 }, { idx: 2 }] }));
+  assert.equal(journalCount(r), 3);
+  assert.deepEqual(await verify({ root: r, query: async () => 3 }), { expected: 3, applied: 3, ok: true });
+  assert.equal((await verify({ root: r, query: async () => 0 })).ok, false, 'nenhuma migração aplicada (migrate pulado) reprova');
+  assert.equal((await verify({ root: r, query: async () => 2 })).ok, false, 'faltou migração');
+  assert.equal((await verify({ root: r, query: async () => 4 })).ok, false, 'migração a mais');
   rmSync(r, { recursive: true, force: true });
+});
+
+test('ci.yml: migrations sem --if-present, com verify-migrations e travado por LN_ACTIONS_ENABLED', async () => {
+  const { readFileSync } = await import('node:fs');
+  const y = readFileSync(join(S, '..', '..', '.github', 'workflows', 'ci.yml'), 'utf8');
+  assert.match(y, /npm run migrate -w @ln\/db\s*$/m);
+  assert.doesNotMatch(y, /run:.*--if-present/);
+  assert.match(y, /verify-migrations\.mjs/);
+  assert.equal((y.match(/vars\.LN_ACTIONS_ENABLED == 'true'/g) || []).length, 2, 'os dois jobs precisam da trava');
+  const b = readFileSync(join(S, '..', '..', '.github', 'workflows', 'backup.yml'), 'utf8');
+  assert.match(b, /vars\.LN_ACTIONS_ENABLED == 'true'/);
 });

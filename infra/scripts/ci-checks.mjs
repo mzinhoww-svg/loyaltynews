@@ -3,10 +3,13 @@
 //   1. ADR-001: zero ocorrências de supabase|vercel|pgvector em package.json, package-lock.json e IaC (infra/vertra, .github/workflows).
 //   2. ADR-001: CREATE EXTENSION só com extensões *trusted* da lista permitida (migrações em packages/db).
 //   3. Segredos: nada que pareça chave privada, token ou string de conexão com senha; nenhum .env versionado (exceto *.example).
-// Uso: node infra/scripts/ci-checks.mjs [--root <pasta>]   (código 1 = reprovado)
+//   4. Variáveis só de teste: LN_STUDIO_TEST_SESSION não pode existir no ambiente nem no build nem em arquivos de deploy;
+//      PORTAL_SOURCE/PORTAL_MODE=mock só em teste (modo estrito com --deploy ou APP_ENV=staging|production).
+// Uso: node infra/scripts/ci-checks.mjs [--root <pasta>] [--deploy]   (código 1 = reprovado)
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
+import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage']);
@@ -75,6 +78,30 @@ for (const f of all) {
   if (r === 'infra/scripts/ci-checks.mjs' || r.startsWith('infra/tests/')) continue; // padrões e fixtures de teste
   const txt = readFileSync(f, 'utf8');
   for (const [nome, re] of SECRET_PATTERNS) if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
+}
+
+// 4. variáveis só de teste (alerta do PM): nunca no ambiente, no build nem em arquivos de deploy
+const argv = parseArgs(process.argv.slice(2));
+for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy) })) problems.push(`ambiente: ${msg}`);
+for (const f of all) {
+  const r = rel(f);
+  if (r.startsWith('infra/tests/') || r === 'infra/scripts/lib/guards.mjs') continue; // fixtures e definições dos próprios padrões
+  const isDeployCfg = r.startsWith('infra/vertra/') || r.startsWith('.github/workflows/') || /(^|\/)next\.config\.[cm]?[jt]s$/.test(r) || /(^|\/)Dockerfile/.test(r);
+  const isPkg = /(^|\/)package\.json$/.test(r);
+  if (!isDeployCfg && !isPkg) continue;
+  const txt = readFileSync(f, 'utf8');
+  if (isPkg) {
+    let scripts = {};
+    try { scripts = JSON.parse(txt).scripts || {}; } catch { /* já reportado em outra checagem */ }
+    for (const [nome, cmd] of Object.entries(scripts)) {
+      if (/e2e|test/i.test(nome)) continue; // scripts de teste podem usar as variáveis
+      if (ASSIGN_STUDIO.test(String(cmd)) || ASSIGN_PORTAL_MOCK.test(String(cmd))) problems.push(`variável só de teste no script "${nome}" de ${r}`);
+    }
+    continue;
+  }
+  if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
+  if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE/PORTAL_MODE=mock atribuído em ${r}`);
+  if (/next\.config/.test(r) && /LN_STUDIO_TEST_SESSION|PORTAL_(?:SOURCE|MODE)/.test(txt)) problems.push(`next.config referencia variável só de teste (risco de embutir no build): ${r}`);
 }
 
 if (problems.length) {

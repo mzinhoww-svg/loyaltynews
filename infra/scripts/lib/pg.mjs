@@ -1,23 +1,34 @@
-// Acesso ao PostgreSQL da Vertra: TLS obrigatório com certificado de cliente (a senha sozinha nunca conecta).
-// Os PEM vêm de variáveis de ambiente (limite da Vertra: 3.072 caracteres por valor) e são gravados em arquivos
-// temporários 0600, apagados ao final. Nada de segredo em argv.
+// Acesso ao PostgreSQL da Vertra. Convenção do scaffold (packages/db/src/migrate.ts): DATABASE_URL + TLS com certificado de
+// cliente por variável PEM (DB_SSL_CA_PEM, DB_SSL_CERT_PEM, DB_SSL_KEY_PEM). A Vertra exige TLS verify-full; senha sozinha nunca conecta.
+// Os PEM vão para arquivos temporários 0600, apagados ao final. Nada de segredo em argv.
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { must } from './util.mjs';
 
-/** prefix: 'DB' (origem) ou 'RESTORE_DB' (destino do ensaio). */
-export function pgEnv(prefix, tmpDir) {
-  const g = (k) => process.env[`${prefix}_${k}`];
-  const need = ['HOST', 'PORT', 'NAME', 'USER', 'PASSWORD', 'CA_PEM', 'CLIENT_CERT_PEM', 'CLIENT_KEY_PEM'].filter((k) => !g(k));
-  if (need.length) throw new Error(`variáveis ausentes: ${need.map((k) => `${prefix}_${k}`).join(', ')}`);
-  const ca = join(tmpDir, `${prefix}.ca.pem`);
-  const crt = join(tmpDir, `${prefix}.crt`);
-  const key = join(tmpDir, `${prefix}.key`);
-  writeFileSync(ca, g('CA_PEM'), { mode: 0o600 });
-  writeFileSync(crt, g('CLIENT_CERT_PEM'), { mode: 0o600 });
-  writeFileSync(key, g('CLIENT_KEY_PEM'), { mode: 0o600 });
+/** Identidade NÃO secreta do banco a partir da URL (host e nome do banco; o host da Vertra contém o ID do banco). */
+export function parseDbUrl(url) {
+  let u;
+  try { u = new URL(url); } catch { throw new Error('DATABASE_URL inválida'); }
+  if (!/^postgres(ql)?:$/.test(u.protocol)) throw new Error('DATABASE_URL precisa ser postgres://');
   return {
-    PGHOST: g('HOST'), PGPORT: g('PORT'), PGDATABASE: g('NAME'), PGUSER: g('USER'), PGPASSWORD: g('PASSWORD'),
+    host: u.hostname.toLowerCase(), port: u.port || '5432', database: decodeURIComponent(u.pathname.replace(/^\//, '')),
+    user: decodeURIComponent(u.username), password: decodeURIComponent(u.password),
+  };
+}
+
+/** origem: { urlVar:'DATABASE_URL', pemPrefix:'DB_SSL' } · ensaio de restauração: { urlVar:'RESTORE_DATABASE_URL', pemPrefix:'RESTORE_DB_SSL' } */
+export function pgEnv({ urlVar, pemPrefix }, tmpDir, env = process.env) {
+  const need = [urlVar, `${pemPrefix}_CA_PEM`, `${pemPrefix}_CERT_PEM`, `${pemPrefix}_KEY_PEM`].filter((k) => !env[k]);
+  if (need.length) throw new Error(`variáveis ausentes: ${need.join(', ')}`);
+  const id = parseDbUrl(env[urlVar]);
+  const ca = join(tmpDir, `${pemPrefix}.ca.pem`);
+  const crt = join(tmpDir, `${pemPrefix}.crt`);
+  const key = join(tmpDir, `${pemPrefix}.key`);
+  writeFileSync(ca, env[`${pemPrefix}_CA_PEM`], { mode: 0o600 });
+  writeFileSync(crt, env[`${pemPrefix}_CERT_PEM`], { mode: 0o600 });
+  writeFileSync(key, env[`${pemPrefix}_KEY_PEM`], { mode: 0o600 });
+  return {
+    PGHOST: id.host, PGPORT: id.port, PGDATABASE: id.database, PGUSER: id.user, PGPASSWORD: id.password,
     PGSSLMODE: 'verify-full', PGSSLROOTCERT: ca, PGSSLCERT: crt, PGSSLKEY: key,
   };
 }
