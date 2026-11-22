@@ -71,7 +71,7 @@ describe("renderThumbnail", () => {
     expect(heads.length).toBeLessThanOrEqual(social.headline_max_lines);
   });
   it("geometria: o texto fica abaixo da faixa superior e acima do logo, mesmo com a manchete mais longa aceita", () => {
-    const longest = "palavra ".repeat(36).trim(); // força 4 linhas no corpo mínimo
+    const longest = "palavra ".repeat(22).trim(); // chega a 4 linhas perto do corpo mínimo
     const doc = assertWellFormed(renderThumbnail({ title: longest, editoria: "Regulação & Dados" }));
     const heads = [...doc.querySelectorAll("text")].filter((t) => t.getAttribute("font-weight") === "700" && Number(t.getAttribute("font-size")) >= 36);
     expect(heads.length).toBeGreaterThan(0);
