@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import axe from "axe-core";
 import "../src/styles/index.css";
@@ -8,21 +8,39 @@ import {
   Breadcrumb,
   Button,
   Container,
+  DataTable,
+  type DataTableColumn,
+  Drawer,
   EDITORIAS,
   EditoriaBadge,
   EmptyState,
   Footer,
+  Form,
+  FormField,
   Grid,
   Header,
   Input,
+  KpiCard,
   Logo,
+  Modal,
   MockBadge,
   MockFrame,
   Monogram,
   Pagination,
   SearchInput,
   SectionHeading,
+  Sidebar,
+  StatusPill,
+  Tabs,
   Tag,
+  TemplateImage,
+  ToastProvider,
+  renderCover,
+  renderLowerThird,
+  renderThumbnail,
+  renderVignette,
+  rules,
+  useToast,
   brandColors,
   colors,
   spacing,
@@ -49,6 +67,99 @@ const Swatch = ({ name, value }: { name: string; value: string }) => (
     </span>
   </li>
 );
+
+
+interface Fila { id: string; titulo: string; editoria: string; estado: string; palavras: number | null }
+const FILA: Fila[] = Array.from({ length: 14 }, (_, i) => ({
+  id: String(i), titulo: `Pauta simulada ${String(i + 1).padStart(2, "0")}`, editoria: EDITORIAS[i % 10]!.nome,
+  estado: ["Novo", "Revisão", "Agendado", "Bloqueado"][i % 4]!, palavras: i % 5 === 0 ? null : 300 + i * 37,
+}));
+const TONE: Record<string, "neutral" | "info" | "success" | "danger"> = { Novo: "neutral", Revisão: "info", Agendado: "success", Bloqueado: "danger" };
+const COLS: DataTableColumn<Fila>[] = [
+  { id: "titulo", header: "Título", value: (r) => r.titulo, sortable: true },
+  { id: "editoria", header: "Editoria", value: (r) => r.editoria, filterable: true },
+  { id: "estado", header: "Estado", value: (r) => r.estado, filterable: true, cell: (r) => <StatusPill label={r.estado} tone={TONE[r.estado]} /> },
+  { id: "palavras", header: "Palavras", value: (r) => r.palavras, sortable: true, align: "end" },
+];
+
+function ToastDemo() {
+  const { push } = useToast();
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <Button variant="secondary" onClick={() => push({ title: "Rascunho salvo", description: "Exemplo de toast informativo.", tone: "success" })}>Toast sucesso</Button>
+      <Button variant="secondary" onClick={() => push({ title: "Falha ao salvar", description: "Exemplo de erro (não fecha sozinho).", tone: "danger" })}>Toast erro</Button>
+    </div>
+  );
+}
+
+function StudioDemo() {
+  const [modal, setModal] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  return (
+    <Container as="section" aria-labelledby="s-studio" style={{ paddingBlock: 16 }}>
+      <SectionHeading id="s-studio" title="LN Studio" eyebrow="MOCK" />
+      <p><MockBadge label="indicadores e linhas abaixo são simulados" /></p>
+      <Grid cols={{ base: 1, md: 2, lg: 4 }} gap="md">
+        <KpiCard label="Matérias na fila" value={14} source="fixture (simulado)" period="demonstração" isMock />
+        <KpiCard label="Audiência" value={null} source="GA4 (não conectado)" period="30 dias" />
+        <KpiCard label="Itens bloqueados" value={4} source="fixture (simulado)" period="demonstração" isMock delta={{ text: "+1", direction: "up" }} />
+        <KpiCard label="Sem origem" value={99} source="" period="7 dias" />
+      </Grid>
+      <div style={{ height: 24 }} />
+      <Tabs label="Exemplos do Studio" tabs={[
+        { id: "t", label: "Tabela", content: <DataTable caption="Fila editorial (simulada)" columns={COLS} rows={FILA} rowKey={(r) => r.id} pageSize={5} isMock /> },
+        { id: "f", label: "Formulário", content: (
+          <div style={{ maxWidth: 520 }}>
+            <Form initialValues={{ nome: "", url: "", tipo: "web", nota: "" }} onSubmit={() => undefined} submitLabel="Salvar fonte">
+              <FormField name="nome" label="Nome da fonte" required rules={[rules.minLength(3)]} hint="Como aparece na lista" />
+              <FormField name="url" label="URL" type="url" rules={[rules.url()]} />
+              <FormField name="tipo" label="Tipo" as="select" options={[{ value: "web", label: "Site" }, { value: "rss", label: "RSS" }]} />
+              <FormField name="nota" label="Observação" as="textarea" />
+            </Form>
+          </div>
+        ) },
+        { id: "o", label: "Sobreposições", content: (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button onClick={() => setModal(true)}>Abrir modal</Button>
+            <Button variant="secondary" onClick={() => setDrawer(true)}>Abrir drawer</Button>
+            <ToastDemo />
+          </div>
+        ) },
+      ]} />
+      <Modal open={modal} onClose={() => setModal(false)} title="Confirmar ação" footer={<Button onClick={() => setModal(false)}>Entendi</Button>}>
+        <p>Exemplo de modal acessível: foco preso, Esc fecha e o foco volta ao botão.</p>
+      </Modal>
+      <Drawer open={drawer} onClose={() => setDrawer(false)} title="Detalhes do item" footer={<Button variant="secondary" onClick={() => setDrawer(false)}>Fechar</Button>}>
+        <p>Painel lateral de exemplo.</p>
+      </Drawer>
+      <div style={{ height: 24 }} />
+      <h3>Sidebar (demonstração)</h3>
+      <div style={{ maxWidth: 320, border: "1px solid var(--ln-color-border)" }}>
+        <Sidebar brand="LN Studio" label="Navegação do Studio (exemplo)" footer="Ambiente de demonstração" groups={[
+          { title: "Redação", items: [{ label: "Visão geral", href: "#v", current: true }, { label: "Fila editorial", href: "#f", badge: 14 }] },
+          { title: "Negócios", items: [{ label: "Campanhas", href: "#c" }] },
+        ]} />
+      </div>
+    </Container>
+  );
+}
+
+const ART = { title: "Título de exemplo para validar o template visual", editoria: "Pontos & Milhas", mock: true as const };
+function TemplatesDemo() {
+  const checker = { background: "repeating-conic-gradient(#d9e2df 0% 25%, #fff 0% 50%) 50% / 24px 24px", padding: 12 };
+  return (
+    <Container as="section" aria-labelledby="s-tpl" style={{ paddingBlock: 16 }}>
+      <SectionHeading id="s-tpl" title="Templates visuais" eyebrow="MOCK" description="Gerados por código a partir do brandkit; formatos sociais pertencem ao packages/growth." />
+      <Grid cols={{ base: 1, md: 2 }} gap="lg">
+        <div><h3>Thumbnail 1280×720</h3><TemplateImage asset={renderThumbnail({ ...ART, theme: "primary" })} /></div>
+        <div><h3>Capa 1920×1080</h3><TemplateImage asset={renderCover({ ...ART, deck: "Texto de apoio simulado para a capa.", dateLabel: "22 de novembro de 2026" })} /></div>
+        <div><h3>Lower third (fundo transparente)</h3><div style={checker}><TemplateImage asset={renderLowerThird({ name: "Nome do executivo", role: "Cargo · Empresa", mock: true })} /></div></div>
+        <div><h3>Vinheta de abertura</h3><TemplateImage asset={renderVignette({ kind: "intro", mock: true })} /></div>
+        <div><h3>Vinheta de encerramento</h3><TemplateImage asset={renderVignette({ kind: "outro", caption: "Programa de exemplo", footer: "Rodapé de exemplo", mock: true })} /></div>
+      </Grid>
+    </Container>
+  );
+}
 
 function App() {
   return (
@@ -162,6 +273,8 @@ function App() {
           <AdSlot position="TOP" />
           <Grid cols={{ base: 1, md: 2 }}><AdSlot position="SIDEBAR_1" /><AdSlot position="ARTICLE_INLINE" /></Grid>
         </Container>
+        <StudioDemo />
+        <TemplatesDemo />
       </main>
       <Footer year={2026} groups={[{ title: "Exemplo", links: [{ label: "Link de exemplo", href: "#exemplo" }] }]} note="Vitrine interna — não é página pública." />
     </div>
@@ -170,7 +283,9 @@ function App() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </StrictMode>,
 );
 

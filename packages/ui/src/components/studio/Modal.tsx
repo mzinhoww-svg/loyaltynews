@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "../../utils";
@@ -77,16 +79,16 @@ export function Modal({ open, onClose, title, children, footer, size = "md", pla
           className={cx("ln-modal", `ln-modal--${size}`, placement === "right" && "ln-modal--drawer", className)}
           onKeyDown={onKeyDown}
         >
-          <header className="ln-modal__header">
+          <div className="ln-modal__header">
             <h2 id={titleId} className="ln-modal__title">
               {title}
             </h2>
             <button type="button" className="ln-modal__close" onClick={onClose} aria-label="Fechar">
               <span aria-hidden="true">×</span>
             </button>
-          </header>
+          </div>
           <div className="ln-modal__body">{children}</div>
-          {footer ? <footer className="ln-modal__footer">{footer}</footer> : null}
+          {footer ? <div className="ln-modal__footer">{footer}</div> : null}
         </div>
       </div>
     </div>,

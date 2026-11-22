@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cx, type LinkAs } from "../utils";
 import { EDITORIAS, defaultEditoriaHref, type EditoriaLike } from "../editorias";
@@ -17,6 +19,8 @@ export interface HeaderProps {
   searchSlot?: ReactNode;
   /** Ações à direita (login, etc.). */
   actions?: ReactNode;
+  /** Atalhos do portal além das editorias (ex.: Em alta, Agenda, Contato). Landmark próprio. */
+  utilityLinks?: ReadonlyArray<{ label: string; href: string; current?: boolean }>;
   /** id do <main> para o link "Pular para o conteúdo". */
   mainId?: string;
   className?: string;
@@ -30,6 +34,7 @@ export function Header({
   linkAs,
   searchSlot,
   actions,
+  utilityLinks,
   mainId = "conteudo",
   className,
 }: HeaderProps) {
@@ -93,6 +98,21 @@ export function Header({
           </ul>
         </Container>
       </nav>
+      {utilityLinks && utilityLinks.length > 0 ? (
+        <nav aria-label="Atalhos do portal" className="ln-header__utility" data-open={open ? "true" : "false"}>
+          <Container>
+            <ul className="ln-header__utility-list">
+              {utilityLinks.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} aria-current={l.current ? "page" : undefined} onClick={() => setOpen(false)}>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Container>
+        </nav>
+      ) : null}
     </header>
   );
 }

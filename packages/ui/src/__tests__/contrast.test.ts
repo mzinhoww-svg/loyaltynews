@@ -36,6 +36,17 @@ const TEXT_PAIRS: Array<[string, C, C]> = [
   ["header/footer: signal sobre primary", "signal", "primary"],
   ["MockBadge: warning-fg sobre warning-bg", "warning-fg", "warning-bg"],
   ["erro de formulário: danger sobre white", "danger", "white"],
+  ["StatusPill/Toast neutro", "neutral-fg", "neutral-bg"],
+  ["StatusPill/Toast info", "info-fg", "info-bg"],
+  ["StatusPill/Toast sucesso", "success-fg", "success-bg"],
+  ["StatusPill/Toast alerta", "warning-fg", "warning-bg"],
+  ["StatusPill/Toast erro", "danger-fg", "danger-bg"],
+  ["KPI variação positiva sobre white", "success-fg", "white"],
+  ["KPI variação negativa sobre white", "danger-fg", "white"],
+  ["cabeçalho de tabela: primary sobre surface-subtle", "primary", "surface-subtle"],
+  ["texto secundário sobre surface-subtle", "text-muted", "surface-subtle"],
+  ["corpo sobre surface-subtle", "black", "surface-subtle"],
+  ["contador da sidebar: primary sobre signal", "primary", "signal"],
 ];
 
 // Elementos gráficos/bordas de componentes (WCAG 1.4.11 = 3:1).

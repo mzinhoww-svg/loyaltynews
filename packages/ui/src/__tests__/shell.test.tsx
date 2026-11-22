@@ -17,6 +17,21 @@ describe("Header", () => {
     expect(within(nav).getByRole("link", { name: "Pontos & Milhas" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "CRM & CX" })).not.toHaveAttribute("aria-current");
   });
+  it("utilityLinks: segundo landmark nomeado, com aria-current, sem misturar com as editorias", async () => {
+    const { container } = render(
+      <Header
+        utilityLinks={[
+          { label: "Em alta", href: "/em-alta", current: true },
+          { label: "Agenda", href: "/agenda" },
+        ]}
+      />,
+    );
+    const util = screen.getByRole("navigation", { name: "Atalhos do portal" });
+    expect(within(util).getAllByRole("link")).toHaveLength(2);
+    expect(within(util).getByRole("link", { name: "Em alta" })).toHaveAttribute("aria-current", "page");
+    expect(within(screen.getByRole("navigation", { name: "Editorias" })).getAllByRole("link")).toHaveLength(10);
+    await expectNoViolations(container);
+  });
   it("tem link 'Pular para o conteúdo' apontando para o main", () => {
     render(<Header mainId="principal" />);
     expect(screen.getByRole("link", { name: "Pular para o conteúdo" })).toHaveAttribute("href", "#principal");
