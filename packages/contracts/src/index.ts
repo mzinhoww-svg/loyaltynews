@@ -10,3 +10,4 @@ export * from './org';
 export * from './budget';
 export * from './flags';
 export * from './api';
+export * from './workflow-editorial';

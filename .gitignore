@@ -15,3 +15,4 @@ playwright-report/
 test-results/
 .env*
 !.env.example
+apps/web/AGENTS.md
