@@ -45,6 +45,8 @@ export interface Source {
 
 /** Resultado da pesquisa somente-leitura da fonte (não aprova uso; a aprovação é do QA/responsável). */
 export interface SourceVerification {
+  /** Identidade de quem pesquisou; o revisor que habilita a fonte NÃO pode ser a mesma. */
+  researchedBy?: string;
   level: 'lido' | 'parcial' | 'inacessivel';
   robots: 'permitido' | 'bloqueado' | 'indisponivel';
   robotsNote: string;

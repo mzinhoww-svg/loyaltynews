@@ -47,6 +47,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: grupo único (User-agent * + Googlebot/GoogleOther/Bingbot) com 'Allow: /'; Disallow apenas /wp-admin/, /wp-includes/, /wp-content/ (exceto tema e imagens jpg/jpeg/png/gif em uploads). Páginas de notícias/comunicados permitidas. Sitemap: https://ri.voeazul.com.br/sitemap_index.xml
 - Termos: https://ri.voeazul.com.br/termos-condicoes-de-uso/; trecho: “sendo vedada sua reprodução, sem prévia autorização da Azul.”
 - Paywall/login: none; imagens: Termos citam 'gráficos e desenhos' sob a vedação de reprodução sem autorização prévia da Azul e 'Todos os direitos reservados'; não há política de imagens separada nem liberação de material de imprensa. Termos datados de 2017/2019. Não há menção a raspagem/automação.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado (apenas a data da consulta). Páginas /noticias/ ('Nenhum arquivo para o ano selecionado', última atualização 13/05/2025) e a de Fatos Relevantes/Comunicados/Avisos (atualizada 21/05/2025) renderizam sem itens no HTML lido (lista provavelmente carregada via JS/API). Nenhum link RSS encontrado. Outras URLs vistas: /informacoes-e-relatorios/resultados-trimestrais/, /noticias-e-apresentacoes/eventos/. Política de privacidade: https://www.voeazul.com.br/politica-privacidade-cookie / Home confirma RI bilingue (B3/NYSE). https://ri.voeazul.com.br/noticias/ retornou 'Nenhum arquivo para o ano selecionado' (ultima atualizacao 13/05/2025) e a pagina de avisos/comunicados/fatos relevantes nao mostrou itens (dinamico; ultima atualizacao 21/05/2025). Sem RSS linkado. Termos nao mencionam raspagem/automacao. Politica de privacidade: https://www.voeazul.com.br/politica-privacidade-cookie.
 - **Status: enabled=false — aguardando revisão QA**
@@ -60,6 +61,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido (resumo): 'Allow: /' para todos os agentes; Disallow /wp-admin/, /wp-includes/, /wp-content/ (exceção para o tema mziq_gol_ri e imagens jpg/jpeg/png/gif em uploads). Páginas de notícias/comunicados permitidas. Sitemap: https://ri.voegol.com.br/sitemap_index.xml
 - Termos: https://ri.voegol.com.br/termos-e-condicoes/; trecho: “sendo vedada sua reprodução, sem prévia autorização da GOL”
 - Paywall/login: none; imagens: Termos citam 'informações, materiais, instrumentos, organização da página, gráficos e desenhos' como protegidos, reprodução vedada sem autorização prévia; rodapé '© 2021 / Todos Direitos Reservados'. Sem política de imagens separada. Sem menção a raspagem/automação.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado. A home do RI anuncia o feed https://ri.voegol.com.br/arquivos/rss/gol2014_pt_rss.xml, mas ao abrir a URL retornou HTTP 404, portanto feedUrl=null. /noticias/ mostra 'No files for the selected year' (lista vazia/JS); a página de Comunicados e Fatos Relevantes não foi aberta (apenas linkada na home). Smiles (programa de fidelidade) pertence à GOL, logo comunicados da GOL cobrem fidelidade/milhas. Política de privacidade: https://www.voegol.com.br/informacoes-legais/politica-de-privacidade-e-protecao-de-dados / A pagina de noticias linka https://ri.voegol.com.br/arquivos/rss/gol2014_pt_rss.xml, mas ao abrir a URL retornou HTTP 404: feed NAO confirmado (feedUrl=null). Pagina /noticias/ mostrou 'No files for the selected year'. Outra pagina: https://ri.voegol.com.br/publicacoes-cvm-e-sec/comunicados-e-fatos-relevantes/ (nao aberta individualmente). Termos nao proibem expressamente raspagem/automacao (nao mencionada). Rodape: '© 2021 / Todos Direitos Reservados'.
 - **Status: enabled=false — aguardando revisão QA**
@@ -73,6 +75,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt de https://ir.latam.com/robots.txt lido: User-agent * 'Crawl-delay: 10' e 'Allow: /'; nenhum Disallow. Respeitar crawl-delay de 10 s. Host do seed (ir.latamairlines.com) NAO resolve (ENOTFOUND): o host oficial atual e ir.latam.com.
 - Termos: https://www.latamairlines.com/us/en/legal/terms-of-use; trecho: “não encontrado (pagina de termos retornou HTTP 403 ao fetch automatizado; nao contornado). Rodape do IR: "© 2026 LATAM Airlines Group S.A. - All rights reserved"”
 - Paywall/login: none; imagens: não informado (termos inacessiveis ao fetch). Feed declara 'Copyright Q4 Inc. All rights reserved.'
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:46:50-03:00 (termos: 2026-11-22T18:46:55-03:00); nível: **lido**
 - Notas: Feed confirmado como XML RSS 2.0 (<rss version=2.0>, titulo 'LATAM Airlines Group S.A. Press Releases', gerado por Q4, lastBuildDate 22 Nov 2026; primeiro item 'LATAM Reports US$441 Million in Net Income for the Third Quarter of 2026', 03 Nov 2026). A listagem HTML carrega itens via JS ('Loading...'), entao usar o feed. Comunicados em ingles. Corrigir host no seed: ir.latamairlines.com -> ir.latam.com. / Horário exato não registrado. Feed RSS 2.0 aberto e confirmado (itens mais recentes: 'LATAM Reports US$441 Million in Net Income for the Third Quarter of 2026', 03/11/2026, e 'Scheduled Third Quarter 2026 Publication Date', 02/10/2026). A listagem HTML mostra 'Loading...' (JS). Links do rodapé do RI: Privacy https://www.latamairlines.com/us/en/legal/privacy-policy ; Cookies .../legal/cookies-policy ; Terms .../legal/terms-of-use (domínio latamairlines.com, 403 ao fetch). Busca também mostra espelho antigo em latamairlines.gcs-web.com e PDFs em s205.q4cdn.com. LATAM Pass é coberto pelas divulgações do grupo.
 - **Status: enabled=false — aguardando revisão QA**
@@ -86,6 +89,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://ri.magazineluiza.com.br/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado (site inacessível ao fetch automatizado).
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **inacessivel**
 - Notas: robots.txt e home do RI retornaram HTTP 403 (provável WAF). Nenhuma outra URL tentada. Requer verificação manual por humano antes de ativar coleta; até lá, o CVM (fatos relevantes) é fonte primária equivalente. / Host do seed confirmado apenas via busca (comunicados ao mercado de MGLU3 citam o site de RI), mas pagina de comunicados nao foi aberta. Comunicados tambem existem na CVM/Empresas.NET (fonte alternativa a ser avaliada por outro lote/regulador).
 - **Status: enabled=false — aguardando revisão QA**
@@ -99,6 +103,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.gov.br/cvm/robots.txt lido (resumo): 'User-agent: *' com 'Disallow:' vazio (nada bloqueado); regras específicas só para Googlebot (/*sendto_form$, /*folder_factories$). Caminho de notícias e feed permitidos.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada.”
 - Paywall/login: none; imagens: Licença CC BY-ND 3.0 aplicada ao conteúdo do site (atribuição, sem obras derivadas); sem regra específica de imagens. Sem menção a raspagem/automação.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **lido**
 - Notas: Horário exato não registrado. Feed é RSS 1.0 (rdf:RDF), confirmado; itens vistos no feed: 21/10/2026 e 03/07/2026 (o feed parece defasado frente à listagem HTML, que tinha itens de 18-19/11/2026: verificar). O rodapé da listagem aponta 'Termos de Uso' para o href relativo /pt-br/termos-de-uso (resolve para www.gov.br/pt-br/termos-de-uso; gov.br/cvm/pt-br/termos-de-uso dá 404); essa página só repetiu a linha da licença CC. Política de privacidade CVM: https://www.gov.br/cvm/pt-br/acesso-a-informacao-cvm/acoes-e-programas/politica-de-privacidade . CC BY-ND implica não adaptar o texto (citar e linkar). / Feed confirmado como XML RSS 2.0 (Plone). O feed raiz mistura pastas de ano (itens '2021', '2026'...) com noticias; o feed util por ano e https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/rss.xml (confirmado: itens reais com titulo, descricao, pubDate, guid; ex.: 06/11/2026). Tambem existe RSS 1.0 em .../noticias/RSS (200, XML rdf). Pagina HTML anuncia link rel=alternate RSS. Manchetes lidas em 19/11/2026 (ex.: acordo com Ibracon). Links de termos no rodape: /pt-br/termos-de-uso e politica de privacidade https://www.gov.br/cvm/pt-br/acesso-a-informacao-cvm/acoes-e-programas/politica-de-privacidade.
 - **Status: enabled=false — aguardando revisão QA**
@@ -112,6 +117,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.bcb.gov.br/robots.txt (200): User-agent * com Allow: / e Disallow apenas para */_catalogs, */Lists/, */Forms/, */_layouts/. /noticias e /api/feed/... nao bloqueados.
 - Termos: https://www.bcb.gov.br/acessoinformacao/politicaprivacidade; trecho: “"É permitida a reprodução total ou parcial do conteúdo do site e dos serviços digitais do BC, preservada a integridade das informações e citada a fonte."”
 - Paywall/login: none; imagens: Reproducao de conteudo permitida com integridade e fonte; logomarcas do BC sao propriedade da instituicao e so podem ser usadas com autorizacao. Fotos/imagens nao tratadas separadamente: tratar como não informado (usar so com credito; evitar logomarca).
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:45:00-03:00 (termos: 2026-11-22T18:45:40-03:00); nível: **lido**
 - Notas: Site e SPA Angular (WebFetch sem JS devolve so o titulo; leitura feita via navegador). Pagina /noticias lida: itens de 16/11/2026 (Pix 6 anos), 10/11/2026 (novas regras Open Finance PJ), 05/11/2026 (protecao ao consumidor). Pagina oficial de feeds: https://www.bcb.gov.br/acessoinformacao/rss (lista Noticias, Nota a imprensa, Comunicados Copom, Normativos, Notas tecnicas, Blog do BC etc.). Feeds confirmados como Atom XML (200, application/atom+xml): .../sitefeeds/noticias?ano=2026 (tambem sem parametro), .../sitefeeds/notasImprensa?ano=2026, e normativos: https://www.bcb.gov.br/api/feed/app/normativos/normativos?ano=2026 (ex.: IN BCB 789 de 19/11/2026). Pagina /acessoinformacao/direitosautorais remete a politica de privacidade e termos de uso (texto acima). Pix/Open Finance cobertos por noticias e normativos. / Horário exato não registrado. Feed Atom confirmado (<feed> Atom, título 'RSS - Feeds do BC'); itens: 16/11/2026 'Pix celebra 6 anos...' (https://www.bcb.gov.br/detalhenoticia/21320/noticia) e 10/11/2026 (https://www.bcb.gov.br/detalhenoticia/21313/noticia). As páginas HTML do site retornam ao fetch só o título 'Banco Central do Brasil' (renderização JS), então listagem HTML, rodapé e página de 'direitos reservados' não puderam ser lidos; listingUrl é a home. O feed sitefeeds/pressreleases em PT retornou HTTP 400. Relevância: arranjos de pagamento, cartões, Pix, Open Finance. / Feed confirmado como XML Atom (<feed xmlns=http://www.w3.org/2005/Atom>, titulo 'RSS - Feeds do BC', updated 2026-11-22; item mais recente 2026-11-16 'Pix celebra 6 anos...', link https://www.bcb.gov.br/detalhenoticia/21320/noticia). Feed em ingles: https://www.bcb.gov.br/api/feed/sitebcb/sitefeedsen/pressreleases (Atom valido, mas ultimo item de 2024-06-05, parece inativo). Paginas HTML do bcb.gov.br sao SPA (fetch retorna so o titulo); usar o feed. Sem login/paywall observado. Nao se verificou proibicao de raspagem automatizada nos termos.
 - **Status: enabled=false — aguardando revisão QA**
@@ -125,6 +131,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: 'User-agent: *' com 'Disallow:' vazio, 'Disallow: /?products/' e 'Disallow: /products/'. /imprensa e /release permitidos. Links internos do site também usam o host abecs.org.br (sem www).
 - Termos: https://www.abecs.org.br/termos-de-uso; trecho: “sem autorização prévia e expressa de seus respectivos titulares”
 - Paywall/login: none; imagens: Termos (seção 2.1) reservam direitos de propriedade intelectual incluindo imagens, fotografias, vídeos e bases de dados; seção 2.2 veda reproduzir/distribuir/armazenar conteúdo sem autorização prévia e expressa dos titulares. Não menciona raspagem/automação. Material de imprensa não é liberado expressamente.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **lido**
 - Notas: Horário exato não registrado. /imprensa (https://www.abecs.org.br/imprensa) tem 'Balanço do setor' (https://abecs.org.br/balanco-do-setor-de-meios-de-pagamento) e 'Releases' (https://abecs.org.br/release). Listagem de releases (filtro por ano 2023-2026): 'Balanço do setor 3º trimestre de 2026 (11.2026)', 'Abecs anuncia Rogério Lucca como presidente executivo', 'Balanço do setor 2º trimestre de 2026 (08.2026)' (sem datas completas). /feed retornou 404; nenhum RSS encontrado. Contatos de imprensa constam em /imprensa. Privacidade: https://abecs.org.br/politica-de-privacidade / Pagina de imprensa: https://abecs.org.br/imprensa (secoes 'Balanço do setor' e 'Releases'). https://abecs.org.br/release lista releases como PDFs (ex.: 'Balanço do setor 3º trimestre de 2026 (11.2026)', 'Abecs anuncia Rogério Lucca como presidente executivo.'), sem datas explicitas e sem login. Sem RSS visivel. Termos nao mencionam raspagem/automacao de forma explicita, mas vedam reproduzir/armazenar/utilizar conteudo sem autorizacao: usar apenas como sinal/link e dados factuais, nao copiar texto/imagem.
 - **Status: enabled=false — aguardando revisão QA**
@@ -138,6 +145,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.gov.br/mj/robots.txt lido (resumo): 'User-agent: *' com 'Disallow:' vazio (nada bloqueado); Googlebot tem grupo separado. Caminho /mj/pt-br/assuntos/... permitido.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada.”
 - Paywall/login: none; imagens: Rodapé do portal MJ declara licença CC BY-ND 3.0 para o conteúdo do site (link: https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR); sem regra específica de imagens.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **lido**
 - Notas: Horário exato não registrado. Listagem Notícias Senacon lida: 18/11/2026 (Senacon notifica Amazon, Mercado Livre, TikTok Shop, Shopee, Temu e IDV antes da Black Friday), 11/11/2026 (oficina reforma tributária), 10/11/2026 (Semarc 2026). Home https://www.gov.br/senacon também linka as notícias gerais do MJSP: https://www.gov.br/mj/pt-br/assuntos/noticias (392 páginas; última 22/11/2026; sem RSS visível). gov.br/senacon/pt-br/assuntos/noticias retorna 404; usar a URL de listagem acima. O sufixo /RSS (que funciona na CVM) retornou 404 em gov.br/mj/pt-br/assuntos/noticias/RSS, gov.br/senacon/pt-br/assuntos/noticias/RSS e na listagem Senacon, logo feedUrl=null. / O seed citava www.gov.br/senacon, mas https://www.gov.br/senacon/pt-br/assuntos/noticias retorna 404; a Senacon fica sob /mj. Listagem de noticias do MJSP e geral (mistura seguranca publica e consumidor); pagina da Senacon: https://www.gov.br/mj/pt-br/assuntos/secretaria-nacional-do-consumidor-senacon (200, titulo 'Senacon - Ministerio da Justica...'). Exemplo de noticia Senacon lida na listagem: 18/11/2026 'Senacon notifica plataformas e varejistas para prevenir problemas durante a Black Friday'. Necessario filtrar por Senacon/consumidor/dados no ingestor. Sem feed: /mj/pt-br/assuntos/noticias/rss.xml, /RSS, /search_rss e /senacon/.../rss.xml retornam 404; sem link rel=alternate no HTML. Licenca CC BY-ND 3.0 vista no HTML da pagina do MJ e da Senacon. / Pagina de noticias do MJSP aberta: lista 'Últimas Notícias' com ~392 paginas (itens recentes de 20-22/11/2026, temas de seguranca publica). https://www.gov.br/senacon/pt-br e /senacon/pt-br/assuntos/noticias retornaram 404, e /mj/pt-br/assuntos/noticias/RSS retornou 404: feedUrl=null. Conteudo de Senacon/consumidor deve ser filtrado dentro das noticias do MJSP (nao verificado como filtrar). Texto lido do MJ com ultimos 15k caracteres nao lidos.
 - **Status: enabled=false — aguardando revisão QA**
@@ -151,6 +159,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.gov.br/anac/robots.txt lido (resumo): 'User-agent: *' bloqueia apenas /search e /login; sitemap https://www.gov.br/anac/sitemap-index.xml. Caminho de notícias permitido.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada”
 - Paywall/login: none; imagens: Rodapé da página de notícias da ANAC declara licença CC BY-ND 3.0 para todo o conteúdo; sem regra específica de imagens.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado. Fonte adicional (não estava na lista obrigatória): regulador de aviação civil, relevante para direitos do passageiro, bagagem e bilhetes/milhas. A listagem de notícias vem sem itens no HTML lido ('Carregando', JS); página modificada em 19/11/2026. /RSS retornou 404 -> feedUrl=null. Verificar manualmente endpoint de listagem ou newsletter 'ANAC Informa'. / A pagina /anac/pt-br/noticias abriu, mas a lista de noticias nao veio no fetch (so cabecalho, banner da newsletter 'ANAC Informa'). Tentativa /anac/pt-br/assuntos/noticias tambem sem itens. Sem RSS visivel. Item util para regulacao de aviacao (direitos do passageiro, bagagem).
 - **Status: enabled=false — aguardando revisão QA**
@@ -164,6 +173,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido (resumo): 'User-agent: *' bloqueia /en/search/, /episerver/, /utils/, FAQ de taxas (/en/customers-tax-faq/ e /customers-tax-faq/) e /en/store/trainings/. /en/pressroom/ e /api/rss/pressrelease não estão bloqueados. Sitemap: https://www.iata.org/sitemap.xml
 - Termos: https://www.iata.org/en/terms/; trecho: “IATA authorizes you to download or reproduce selected materials from this Website only for your personal, non-commercial use.”
 - Paywall/login: none; imagens: Seção 5: conteúdo ('text, data, graphics, and icons') é material protegido por copyright da IATA; sem política de imagens separada. Seção 3 não permite 'unlimited or wholesale reproduction, copying' (comercial ou não) e republicação em outros sites sem consentimento escrito prévio; restringe uso de IA generativa para derivados de informações. Não menciona raspagem/robots.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **lido**
 - Notas: Horário exato não registrado. Feed RSS 2.0 confirmado; itens: 20/11/2026 'Governments Back Global Agenda for More Competitive and Sustainable Air Transport Industry' e 17/11/2026 'US Fish and Wildlife Service Becomes the First Government Agency to Use IATA's LAR Verify'. Pressroom também lista 30/10/2026 'Air Passenger Demand Falls 0.5% in September'. Termos restringem reprodução integral; uso editorial deve ser por resumo + link/citação curta (consultar jurídico). Privacidade: https://www.iata.org/en/privacy/ / Feed confirmado como XML RSS 2.0 (<rss version=2.0><channel xml:base=https://www.iata.org/>; primeiro item 'Governments Back Global Agenda for More Competitive and Sustainable Air Transport Industry', 20 Nov 2026). Pagina /en/pressroom/ lista releases datados (20.11.2026, 17.11.2026, 30.10.2026). Termos nao mencionam raspagem/automacao. Cuidado: termos limitam uso a pessoal/nao comercial e vedam analise por ferramentas de IA - usar apenas titulo, fatos e link; nao reproduzir texto/imagens.
 - **Status: enabled=false — aguardando revisão QA**
@@ -177,6 +187,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: 'Disallow: /wp-admin/' (com Allow /wp-admin/admin-ajax.php) para User-agent *. /noticias/ e /feed/ permitidos.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: none; imagens: não informado. Rodapé: '© 2026 ABEMF - Associação Brasileira das Empresas do Mercado de Fidelização' / 'Todos os direitos reservados'. Não há link para termos de uso ou política de privacidade no rodapé lido.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado. www.abemf.org.br não existe (ENOTFOUND); site oficial encontrado via busca: web.abemf.com.br (há também blog.abemf.com.br). Feed RSS 2.0 confirmado; itens: 22/10/2026 'Programas de fidelidade alcançam menor patamar histórico em número de pontos ou milhas expirados' e 20/08/2026 'O futuro da fidelização passa por IA, dados, parcerias...'. Divulga dados trimestrais do setor (faturamento, cadastros, breakage) e o Fórum Brasileiro de Fidelização. Fonte-chave para programas-fidelidade.
 - **Status: enabled=false — aguardando revisão QA**
@@ -190,6 +201,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: 'Disallow: /wp-admin/' (exceto admin-ajax.php) e 'Disallow: /wp-content/uploads/wpo/wpo-plugins-tables-list.json'. /news/ e /feed/ permitidos. Sitemap: https://www.airlines.org/sitemaps.xml
 - Termos: https://www.airlines.org/privacy/; trecho: “© 2026 Airlines for America (A4A). All rights reserved.”
 - Paywall/login: none; imagens: não informado. Não há página de termos de uso linkada no rodapé (só Privacy Statement e linha de copyright); /terms-of-use/ retorna 404. Sem menção a raspagem/automação.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado. Feed RSS 2.0 confirmado (itens: 23/10/2026 'A4A Announces Nominations are Open for the 2027 Nuts & Bolts Awards'; 14/10/2026 'A4A Continues CARB Partnership...'). Listagem /news/ mostra 11/11/2026 e 10/11/2026. /news-updates/ retorna 404. Foco em aviação dos EUA; relevância para global-loyalty é moderada.
 - **Status: enabled=false — aguardando revisão QA**
@@ -203,6 +215,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: 'User-agent: *' bloqueia apenas /bin/ e /App_Data/. /news permitido. Sitemap: https://www.oneworld.com/sitemap_index.xml
 - Termos: https://www.oneworld.com/privacy-policy; trecho: não encontrado
 - Paywall/login: none; imagens: não informado. Rodapé: '©2026 oneworld Management Company, Inc. All rights reserved.' Não há página de Terms of Use; o link 'Terms and Conditions' do formulário de newsletter aponta para a política de privacidade (não lida).
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado. /news carregou sem itens ('There were no results for your query'), lista dinâmica/vazia no HTML lido. Nenhum RSS listado. Aliança da qual a LATAM faz parte. Confiança baixa para coleta automatizada; revisar manualmente.
 - **Status: enabled=false — aguardando revisão QA**
@@ -216,6 +229,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://www.staralliance.com/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado (inacessível).
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **inacessivel**
 - Notas: Host da aliança, mas bloqueia o fetch automatizado (403). URL de sala de imprensa não confirmada; listingUrl é apenas a raiz. Não coletar até verificação manual.
 - **Status: enabled=false — aguardando revisão QA**
@@ -229,6 +243,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido (resumo): 'User-agent: *' com Allow: / e Disallow /wp-admin/, /wp-includes/, /wp-content/ (exceção para tema mziq_banco_do_brasil_ri e imagens jpg/jpeg/png/gif em uploads). Caminho de comunicados permitido. (O robots do portal www.bb.com.br é outro e bloqueia /docs/pub/, /docs/portal/, /portalbb/.)
 - Termos: https://www.bb.com.br/pbb/pagina-inicial/voce/politicas-de-uso-e-privacidade#/; trecho: “© Todos os direitos reservados”
 - Paywall/login: none; imagens: não informado; rodapé do RI só traz '© Todos os direitos reservados'. A página de políticas de uso/privacidade do portal bb.com.br foi apenas linkada, não lida.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **parcial**
 - Notas: Horário exato não registrado. Página de Fatos Relevantes/Comunicados/Avisos mostra categorias (Fato Relevante, Comunicado ao mercado, Aviso aos Acionistas, Transações com Partes Relacionadas) sem entradas no HTML lido (JS). Nenhum RSS encontrado. BB é acionista da Livelo (pontos); itens de fidelidade podem aparecer em comunicados/resultados. Fonte adicional. / Pagina de listagem mostrou as secoes (Fatos Relevantes, Comunicados ao mercado, Avisos aos Acionistas, Transações com Partes Relacionadas) mas sem itens no fetch (carregamento dinamico). Sem RSS visivel. Outras URLs: https://ri.bb.com.br/publicacoes-e-comunicados/ e https://ri.bb.com.br/servicos-para-investidores/calendario-de-eventos-de-ri/. Link de politica de privacidade esta em bb.com.br (outro host).
 - **Status: enabled=false — aguardando revisão QA**
@@ -242,6 +257,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://www.livelo.com.br/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado (inacessível).
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22 (termos: 2026-11-22); nível: **inacessivel**
 - Notas: URL https://www.livelo.com.br/imprensa veio de resultado de busca (sala de imprensa da Livelo); robots.txt e /imprensa retornaram 403 ao fetch automatizado. Releases também são distribuídos via PR Newswire Brasil (https://www.prnewswire.com/br/comunicados-para-a-imprensa/), distribuição terceirizada não verificada aqui. Não coletar até verificação manual.
 - **Status: enabled=false — aguardando revisão QA**
@@ -255,6 +271,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: User-agent * bloqueia parametros de tracking (utm_, gclid, etc.), /Busca/, /Noticias/GestaoNewsLetter, /DetalheMeuBolso, /DetalheTech, /404/, /302/, /en/ e /en-us/. /noticias/ nao esta bloqueado. Sitemap: https://portal.febraban.org.br/sitemap.xml.
 - Termos: https://portal.febraban.org.br/; trecho: “"© 2026 FEBRABAN Todos os direitos reservados."”
 - Paywall/login: unknown; imagens: não informado (somente rodape de direitos reservados; nenhuma pagina de termos de uso encontrada). Pagina de cookies aponta para placeholder.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:47:40-03:00 (termos: 2026-11-22T18:48:50-03:00); nível: **parcial**
 - Notas: A pagina /noticias/ no fetch mostrou so filtro por ano (2019-2026) e contato de imprensa, sem itens listados (provavel carregamento dinamico). Sem RSS visivel. Ha area de associados em subdominio separado (restrita a login) - conteudo publico de noticias parece aberto, mas nao confirmado. Termos de uso: não encontrado.
 - **Status: enabled=false — aguardando revisão QA**
@@ -268,6 +285,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: User-agent * 'Allow: /'; Disallow /wp-admin/, /wp-includes/, /wp-content/ (excecoes: tema mziq_bradesco_ri_redesign e uploads de imagens). Sitemap: /sitemap_index.xml.
 - Termos: https://banco.bradesco/seguranca/seguranca-da-informacao/privacidade.shtm; trecho: “não encontrado (rodape: "© 2026 Bradesco RI."; sem pagina de termos de uso/copyright linkada)”
 - Paywall/login: none; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:47:35-03:00 (termos: 2026-11-22T18:47:55-03:00); nível: **parcial**
 - Notas: Site se apresenta como RI do Banco Bradesco S.A. (CNPJ e logos B3/NYSE no rodape; propriedade do dominio nao verificada alem da pagina). Listagem sem itens no fetch (dinamico). Outras paginas: https://www.bradescori.com.br/o-bradesco/midia/ (midia/imprensa). Sem RSS visivel. A pagina de privacidade (banco.bradesco) nao foi aberta.
 - **Status: enabled=false — aguardando revisão QA**
@@ -281,6 +299,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt de https://nu.com/robots.txt lido: User-agent * 'Allow: /' com Disallow apenas em paginas especificas (/us/..., /global/unsubscribe, /global/invite, /preview etc.); /en/newsroom nao bloqueado. Sitemap: https://nu.com/sitemap.xml. international.nubank.com.br redireciona (308) para nu.com.
 - Termos: não encontrado; trecho: “não encontrado (rodape: "© 2026 Nu Holdings Ltd."; unico link legal visivel e o Global Privacy Notice)”
 - Paywall/login: none; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:10-03:00 (termos: 2026-11-22T18:48:20-03:00); nível: **parcial**
 - Notas: Resultados trimestrais sao divulgados no newsroom e no site de RI www.investors.nu (indicado por busca; nao aberto aqui). Hosts www.investidores.nu.com.br nao resolve (ENOTFOUND). Pagina /en/newsroom lista poucos itens (videocast, newsletter NuHeadlines) e nao mostrou 'Recent news'. Sem RSS visivel. Recomenda-se revisar o host investors.nu separadamente antes do cadastro.
 - **Status: enabled=false — aguardando revisão QA**
@@ -294,6 +313,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://www.itau.com.br/robots.txt retornou HTTP 403 ao fetch automatizado. Nao contornado.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:47:15-03:00 (termos: 2026-11-22T18:47:15-03:00); nível: **inacessivel**
 - Notas: Somente robots.txt tentado (403). URL do RI nao confirmada, portanto listingUrl=null. Nao cadastrar sem verificacao manual.
 - **Status: enabled=false — aguardando revisão QA**
@@ -307,6 +327,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://ri.santander.com.br/robots.txt retornou HTTP 403 ao fetch automatizado. Nao contornado.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:47:20-03:00 (termos: 2026-11-22T18:47:20-03:00); nível: **inacessivel**
 - Notas: Somente robots.txt tentado (403). Nenhuma pagina de noticias confirmada.
 - **Status: enabled=false — aguardando revisão QA**
@@ -320,6 +341,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: User-agent * 'Disallow: /wp-admin/' com excecao /wp-admin/admin-ajax.php; sem bloqueio de noticias. Sitemap: https://www.idv.org.br/sitemap_index.xml.
 - Termos: https://www.idv.org.br/politica-de-privacidade; trecho: “"© 2004 – 2026 IDV Instituto para Desenvolvimento do Varejo. Todos os direitos reservados."”
 - Paywall/login: none; imagens: não informado (apenas direitos reservados no rodape; nenhum termo de uso encontrado)
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:30-03:00 (termos: 2026-11-22T18:48:40-03:00); nível: **lido**
 - Notas: Listagem 'Notícias selecionadas do setor varejista' (itens de 13-18/11/2026) - parece curadoria que linka materias de terceiros; priorizar itens autorais do IDV. WordPress (sitemap_index.xml); feed WP padrao nao testado. Termos de uso: não encontrado.
 - **Status: enabled=false — aguardando revisão QA**
@@ -333,6 +355,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://www.abras.com.br/robots.txt retornou HTTP 404 (sem arquivo robots; sem restricoes formais declaradas, mas tratado como indisponivel).
 - Termos: https://www.abras.com.br/abras/politica-de-privacidade; trecho: “não encontrado (rodape: "© 2021 Pot&Pracy. Todos os direitos reservados." - credito do desenvolvedor)”
 - Paywall/login: none; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:55-03:00 (termos: 2026-11-22T18:48:55-03:00); nível: **parcial**
 - Notas: Itens recentes (ex.: 'Consumo nos Lares acumula alta de 2,70% até setembro, aponta ABRAS', 30/10/2026). Pagina de imprensa: https://www.abras.com.br/abras/imprensa (nao aberta). Politica de privacidade linkada nao foi aberta; termos de uso: não encontrado. Tema supermercado: relevancia para varejo/cashback moderada.
 - **Status: enabled=false — aguardando revisão QA**
@@ -346,6 +369,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: User-agent * bloqueia */404, */error, ?filter=, ?page=, /accessibility, /search?prod_search_index e /contact-us?profile. /en/news-media nao bloqueado (nao usar paginacao ?page=). Sitemap: https://group.accor.com/api/sitemap.
 - Termos: https://group.accor.com/en/legal-terms; trecho: “"No material from the www.group.accor.com site may be copied, reproduced, modified, republished"”
 - Paywall/login: none; imagens: Termos: uso limitado a fins pessoais/nao comerciais; copias autorizadas devem trazer '©Copyright Accor SA'; fotografias sob a mesma protecao. Termos tambem dizem: 'The extraction and/or repeated re-use of the content, even non substantial, of this site is also prohibited' - raspagem nao permitida. Material de imprensa nao tratado separadamente: não informado como liberado.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:30-03:00 (termos: 2026-11-22T18:48:45-03:00); nível: **lido**
 - Notas: Listagem mostrou press releases datados (ex.: 'Accor to Increase Its Stake in Ennismore', 11.17.2026; 'Accor Group & Hard Rock International Sign Global Strategic Partnership', 11.09.2026). Sem RSS visivel. Dada a clausula contra extracao repetida, recomenda-se NAO coletar automaticamente; usar apenas curadoria manual com link.
 - **Status: enabled=false — aguardando revisão QA**
@@ -359,6 +383,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido: User-agent * bloqueia apenas /static-assets/ e URLs terminadas em .pdf. Home nao bloqueada.
 - Termos: não encontrado; trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:00-03:00 (termos: 2026-11-22T18:48:05-03:00); nível: **parcial**
 - Notas: Fetch da home retornou apenas o titulo 'Marriott News Center' (conteudo carregado por JS): nao foi possivel listar itens, feed ou termos. Exige verificacao manual antes do cadastro.
 - **Status: enabled=false — aguardando revisão QA**
@@ -372,6 +397,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — robots.txt lido em www.abav.com.br: User-agent * 'Allow: /' e bloqueios de /cgi-bin/, /wusage, /wp-admin/, /wp-includes/ e assets do tema. Cabecalho declara content signals 'search=yes, ai-train=no, use=reference'. /blog/ nao bloqueado.
 - Termos: https://abav.com.br/politica-de-privacidade/; trecho: “"Todo o conteúdo deste site é de uso exclusivo da ABAV."”
 - Paywall/login: none; imagens: não informado (rodape reserva conteudo ao uso exclusivo da ABAV; sem termos de uso). Politica de privacidade linkada nao foi aberta.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:55-03:00 (termos: 2026-11-22T18:49:00-03:00); nível: **parcial**
 - Notas: Blog lista posts como 'Posicionamento ABAV Nacional – 27/03/2025', '#GiroABAV: ...' (conteudo pouco frequente/ultimo post visivel de 2025). Ha Area Restrita (login) para associados, nao acessada. Sem RSS visivel. Sinal 'ai-train=no' no robots: nao usar para treinamento de IA. www.abav.com.br/noticias retornou 404.
 - **Status: enabled=false — aguardando revisão QA**
@@ -385,6 +411,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — Mesmo robots.txt de www.gov.br: nenhuma regra afeta /turismo/.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “"Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada"”
 - Paywall/login: none; imagens: Mesmo texto de licenca CC BY-ND 3.0 lido no rodape da pagina de noticias do MTur; sem tratamento especifico de imagens.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:46-03:00 (termos: 2026-11-22T18:46:30-03:00); nível: **parcial**
 - Notas: A pagina abriu mas nao exibiu lista de noticias no fetch (so datas de publicacao/modificacao). Outra URL tentada (/turismo/pt-br/centrais-de-conteudo-1/noticias) retornou 404. Sem RSS visivel.
 - **Status: enabled=false — aguardando revisão QA**
@@ -398,6 +425,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.gov.br/robots.txt (200): grupo User-agent * so tem Disallow para /economia/pt-br/internet/*, sufixos sendto_form/folder_factories e regras restritas a /ebserh e /mre. /anpd/... nao e bloqueado. Sitemap: https://www.gov.br/sitemap.xml.gz.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “"Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada"”
 - Paywall/login: none; imagens: não informado: a licenca CC BY-ND 3.0 e declarada para 'todo o conteudo do site', mas a pagina de termos nao detalha imagens nem midia de terceiros. SemDerivacoes: nao adaptar/alterar o conteudo; citar fonte.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:43:50-03:00 (termos: 2026-11-22T18:44:20-03:00); nível: **parcial**
 - Notas: Pagina de noticias confirmada (rodape com licenca CC BY-ND 3.0 em https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR; aviso de privacidade em /anpd/pt-br/acesso-a-informacao/aviso-de-privacidade). A lista de noticias e carregada via JS ('Carregando'), entao manchetes nao foram lidas. Testados e 404 (nao sao feed): /anpd/pt-br/assuntos/noticias/RSS, /rss.xml, /search_rss, /anpd/pt-br/RSS, /anpd/pt-br/rss.xml. Sem feed confirmado. Termos gerais do gov.br nao mencionam bots/raspagem; login (conta unica gov.br) so para servicos, nao para noticias.
 - **Status: enabled=false — aguardando revisão QA**
@@ -411,6 +439,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.gov.br/robots.txt (200): /mcti/... nao bloqueado para User-agent *.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “"Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada"”
 - Paywall/login: none; imagens: não informado: CC BY-ND 3.0 declarada para o conteudo; imagens nao detalhadas.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:46:10-03:00 (termos: 2026-11-22T18:44:20-03:00); nível: **lido**
 - Notas: Pagina 'Ultimas Noticias - MCTI' lida (manchetes de 19-21/11/2026, sobre SNCT e popularizacao da ciencia). Licenca CC BY-ND 3.0 vista no HTML. Sem feed: /noticias/rss.xml, /noticias/RSS e /mcti/pt-br/rss.xml retornam 404. Relevancia para IA: Estrategia Brasileira de IA e politicas de ciencia/tecnologia; exige filtro por tema no ingestor (noticias gerais de ciencia). Nao foi aberta pagina especifica da estrategia de IA.
 - **Status: enabled=false — aguardando revisão QA**
@@ -424,6 +453,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.gov.br/robots.txt (200): /anatel/... nao bloqueado para User-agent *.
 - Termos: https://www.gov.br/pt-br/termos-de-uso; trecho: “"Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada"”
 - Paywall/login: none; imagens: não informado: CC BY-ND 3.0 declarada para o conteudo; imagens nao detalhadas.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:46:10-03:00 (termos: 2026-11-22T18:44:20-03:00); nível: **parcial**
 - Notas: Pagina 'Noticias' (Anatel) confirmada com rodape CC BY-ND 3.0, mas a lista e carregada via JS ('Carregando'); manchetes nao lidas. /anatel/pt-br/assuntos/noticias/rss.xml retorna 404. Relevancia limitada ao lote (telecom, dados, spam/telemarketing); prioridade baixa.
 - **Status: enabled=false — aguardando revisão QA**
@@ -437,6 +467,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.edpb.europa.eu/robots.txt (200): User-agent * bloqueia /core/, /profiles/, /admin/, /search/, /user/*, /media/oembed etc.; /news_en e /feed/ nao constam como Disallow.
 - Termos: https://www.edpb.europa.eu/copyright_en; trecho: “"The reuse of any information of this website is authorized for commercial and non-commercial purposes"”
 - Paywall/login: none; imagens: Frase de reuso nao cita imagens explicitamente (diz 'any information'); a pagina define reuso como incluindo 'multimedia items' e lista imagens/fotografias entre itens protegidos: tratar imagens como não informado/cautela; nao contornar medidas tecnicas.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:46:44-03:00 (termos: 2026-11-22T18:46:30-03:00); nível: **parcial**
 - Notas: Listagem https://www.edpb.europa.eu/news_en (apos redirect de /news/news_en) confirmada, titulo 'News / European Data Protection Board'. O HTML anuncia link de feed href='/feed/news_en', mas https://www.edpb.europa.eu/feed/news_en respondeu HTTP 503 em duas tentativas, entao NAO confirmado como XML (feedUrl=null; reavaliar depois). /news/rss.xml devolve HTML. Trecho dos termos veio via extracao do WebFetch; a pagina nao menciona bots/raspagem, apenas proibe contornar restricoes tecnicas de impressao/download. Referencia global (GDPR) para a editoria.
 - **Status: enabled=false — aguardando revisão QA**
@@ -450,6 +481,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www12.senado.leg.br/robots.txt (200): 'User-agent: *' com 'Disallow:' vazio (tudo permitido); regras de Googlebot restritas a sendto_form/folder_factories.
 - Termos: https://www12.senado.leg.br/noticias/politica-de-uso; trecho: “"A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo"”
 - Paywall/login: none; imagens: Politica de uso: reproducao de materias E fotografias livre, mediante citacao da Agencia Senado e do autor, sem descaracterizacao do conteudo.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:47:13-03:00 (termos: 2026-11-22T18:47:00-03:00); nível: **lido**
 - Notas: Feed RSS 2.0 confirmado (XML, Plone; itens com pubDate de 19/11/2026). O HTML anuncia tambem RSS 1.0 (/noticias/RSS) e Atom (/noticias/atom.xml, nao testado). Politica de uso nao menciona robos/coleta automatizada ('nao encontrado'). Uso previsto: acompanhar tramitacao de projetos de IA (PL 2338/2023) e dados - so noticias institucionais; filtrar por tema.
 - **Status: enabled=false — aguardando revisão QA**
@@ -463,6 +495,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.camara.leg.br/robots.txt (200): /noticias nao esta em Disallow para User-agent *. Atencao: o arquivo tem comentario declarando bloqueio de bots de IA (GPTBot, anthropic-ai, Claude-Web, CCBot, PerplexityBot etc.) 'para evitar treinamento de IAs' e bloqueia /*.pdf, /*.gif, /deputados/*/*, listas de proposicoes (sileg/prop_lista*). Usar User-agent proprio identificado e so RSS/listagem.
 - Termos: https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade; trecho: “"Você pode reproduzir gratuitamente dados, imagens e infografias publicados no portal da Câmara"”
 - Paywall/login: none; imagens: Termo (item 7) permite reproduzir gratuitamente dados, imagens e infografias do portal, citando 'Câmara dos Deputados' e autoria quando houver; trechos de texto entre aspas com a fonte.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:49:56-03:00 (termos: 2026-11-22T18:47:30-03:00); nível: **lido**
 - Notas: Feed RSS 2.0 XML confirmado (200, text/xml; item de 19/11/2026). Tambem confirmados feeds por tema: /noticias/rss/dinamico/CIENCIA-E-TECNOLOGIA e /ECONOMIA (lista de temas na pagina https://www.camara.leg.br/noticias/rss). Termo item 22 'Podemos coibir ... sistemas automatizados ou robos ... que tentem imitar pessoas' - nao proibe leitura de RSS. Trechos dos termos vieram via extracao do WebFetch. Duvida: comentario de robots sobre IA - recomenda-se nao usar o conteudo para treinamento, apenas indexar manchete/link.
 - **Status: enabled=false — aguardando revisão QA**
@@ -476,6 +509,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://brasscom.org.br/robots.txt (200; www.brasscom.org.br redireciona para o host sem www): 'User-agent: *' com 'Disallow:' vazio (tudo permitido).
 - Termos: https://brasscom.org.br/; trecho: não encontrado
 - Paywall/login: none; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:47:39-03:00 (termos: 2026-11-22T18:47:55-03:00); nível: **parcial**
 - Notas: Feed RSS 2.0 confirmado (WordPress; itens de 28/10 e 04/11/2026, ex.: aviso de pauta sobre IA no TecForum). Pagina 'Noticias Brasscom' confirmada. Rodape so tem 'Todos os direitos reservados ©2025 BRASSCOM', Estatuto e Normas e Canal de Etica; sem termos de uso/politica de privacidade localizados (termsUrl aponta para a home, sem pagina de termos). Como direitos reservados e sem termos de reuso, usar so manchete+link. Associacao do setor de TIC, util para IA/dados/reforma regulatoria.
 - **Status: enabled=false — aguardando revisão QA**
@@ -489,6 +523,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.salesforce.com/robots.txt (200): User-agent * tem Disallow em caminhos especificos (/products/home-perf/, /form/conf/, */conf/, pdfs em /content/dam/..., filtros de customer-success-stories); /news/ e /news/feed/ nao constam. Robots antigos 'MS Search' bloqueados por completo (irrelevante).
 - Termos: https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/; trecho: “"You may not use content from our Sites unless you obtain permission from us or its owner"”
 - Paywall/login: none; imagens: não informado para imagens da newsroom (diretrizes de midia nao encontradas); termos gerais exigem permissao para usar conteudo do site. Tratar imagens como proibidas sem permissao.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:08-03:00 (termos: 2026-11-22T18:48:20-03:00); nível: **lido**
 - Notas: Feed RSS 2.0 confirmado (WordPress; itens de 17-19/11/2026). Termos do site: trecho da secao G; menciona nao encontrar clausula especifica sobre robos/raspagem. Outros links legais: https://www.salesforce.com/company/legal/ e https://www.salesforce.com/company/legal/intellectual/ (copyright). Uso conservador: manchete, resumo curto e link.
 - **Status: enabled=false — aguardando revisão QA**
@@ -502,6 +537,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.hubspot.com/robots.txt (200): User-agent * com varios Disallow de assets estaticos/_hcms/meetings; /company-news nao consta como bloqueado.
 - Termos: https://legal.hubspot.com/website-terms-of-use; trecho: “"the Content may not be copied, reproduced, modified, published, uploaded, posted, transmitted, performed, or distributed"”
 - Paywall/login: none; imagens: não informado para imagens; termos gerais proibem copiar/reproduzir o Conteudo. A newsroom oferece downloads de midia e contato media@hubspot.com (sem termos de reuso lidos): pedir autorizacao antes de reutilizar imagens.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:08-03:00 (termos: 2026-11-22T18:48:25-03:00); nível: **lido**
 - Notas: Feed RSS 2.0 confirmado (XML, itens de 13-18/11/2026). Termos de uso (secao 2(v)) proibem 'use or launch any automated system, including ... robots, spiders, or offline readers' - portanto NAO fazer raspagem de paginas; consumir somente o RSS publico e usar manchete+link. Trechos vieram via extracao do WebFetch. ir.hubspot.com devolveu 403 (Cloudflare) - nao acessado.
 - **Status: enabled=false — aguardando revisão QA**
@@ -515,6 +551,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.zendesk.com/robots.txt e https://www.zendesk.com.br/robots.txt (200): User-agent * com Allow: / e Disallows pontuais (/thank-you/, /brand, /blog/tags/..., etc.); /newsroom nao bloqueado. Host redireciona (302) para www.zendesk.com.br por geolocalizacao.
 - Termos: https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/; trecho: “"você não pode copiar, distribuir, reproduzir, espelhar, enquadrar, exibir publicamente"”
 - Paywall/login: none; imagens: não informado; termos proibem copia/reproducao (secao 6) sem autorizacao. A newsroom lista links de 'media resources' nao avaliados.
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:48:53-03:00 (termos: 2026-11-22T18:49:20-03:00); nível: **parcial**
 - Notas: Newsroom lida (titulo 'Zendesk Newsroom'; sem datas visiveis). Testados /newsroom/feed/ e /blog/feed/ nos dois hosts: 404; sem link RSS no HTML. Termos de uso, secao 4.5, restringem sistemas automatizados (trecho: 'Você concorda em não usar nenhum serviço, tecnologia ou sistema automatizado para aumentar artificialmente...' - parcial, nao confirma clausula especifica de raspagem). Sem feed, a coleta automatizada nao e recomendada; usar com cautela / curadoria manual. Trechos via extracao do WebFetch.
 - **Status: enabled=false — aguardando revisão QA**
@@ -528,6 +565,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://abrarec.com.br/robots.txt (200): User-agent * apenas Disallow /wp-admin/ (Allow admin-ajax). /blog/ e /feed/ permitidos.
 - Termos: https://abrarec.com.br/politica-de-privacidade/; trecho: não encontrado
 - Paywall/login: none; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:49:15-03:00 (termos: 2026-11-22T18:49:15-03:00); nível: **parcial**
 - Notas: Associacao de CX/SAC/ouvidoria (parceira da Senacon no consumidor.gov.br). Feed RSS 2.0 confirmado (WordPress; itens de 17-19/11/2026, ex.: webinar do novo Decreto do SAC). Rodape: '© ABRAREC Todos os direitos reservados 2026'; so politica de privacidade localizada, sem termos de uso (termsUrl e a politica de privacidade, nao termos de reuso). Usar manchete+link.
 - **Status: enabled=false — aguardando revisão QA**
@@ -541,6 +579,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **permitido** — https://www.procon.sp.gov.br/robots.txt (200): User-agent * apenas Disallow /wp-admin/ (Allow admin-ajax) e /wp-content/uploads/wpo/wpo-plugins-tables-list.json. /feed/ e listagem permitidos.
 - Termos: https://www.procon.sp.gov.br/privacidade-e-protecao-de-dados-lgpd/; trecho: não encontrado
 - Paywall/login: none; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:49:15-03:00 (termos: 2026-11-22T18:49:15-03:00); nível: **parcial**
 - Notas: Feed RSS 2.0 confirmado (WordPress; itens de 19/11/2026, ex.: dicas de Black Friday). Existe tambem https://www.procon.sp.gov.br/category/noticias/feed/ (200, application/rss+xml, nao inspecionado em detalhe). Listagem 'Releases & Noticias' esta em /procon-na-midia/ (secao #namidia_noticias, sem datas explicitas na leitura). Termos de uso/copyright nao localizados (rodape truncado na leitura); link de privacidade LGPD citado em termsUrl nao e termos de reuso.
 - **Status: enabled=false — aguardando revisão QA**
@@ -554,6 +593,7 @@ Total: 40 fontes distintas (34 utilizáveis). Observação: **varejo-cashback** 
 - robots.txt: **indisponivel** — https://ico.org.uk/robots.txt retornou HTTP 403 com desafio Cloudflare ('Just a moment...'); nao foi contornado.
 - Termos: — (não encontrados); trecho: não encontrado
 - Paywall/login: unknown; imagens: não informado
+- Pesquisado por: ln-editorial-engineer (o revisor que habilitar a fonte deve ser outra identidade)
 - Consulta: 2026-11-22T18:49:56-03:00 (termos: 2026-11-22T18:49:56-03:00); nível: **inacessivel**
 - Notas: Acesso automatizado bloqueado (403) tanto em robots.txt quanto na pagina de noticias testada (https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/ -> 403). Nenhuma URL de listagem/feed foi confirmada; nao cadastrar como fonte automatizada. Reavaliar manualmente ou substituir por EDPB.
 - **Status: enabled=false — aguardando revisão QA**

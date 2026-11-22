@@ -24,3 +24,5 @@ export * from './corrections/corrections';
 export const PACKAGE_NAME = '@ln/editorial' as const;
 export * from './api/handlers';
 export * from './api/store';
+export * from './api/source-handlers';
+export { sourceFingerprint, effectiveSource, resolveEffectiveSources } from './sources/state';

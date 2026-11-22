@@ -1,15 +1,14 @@
 import { z } from 'zod';
 import { apiError, canTransition } from '@ln/contracts';
-import type { ApiError, ArticleStatus } from '@ln/contracts';
+import type { ArticleStatus } from '@ln/contracts';
 import { EDITORIAS } from '../types';
 import { runDeterministicChecks } from '../rules/rules';
-import type { JobQueue } from '../pipeline/queue';
 import {
   buildErratumNotice, buildReplyNotice, closeCase, markEntitiesRebuilt, openCase, ownerAck, preserveEvidence, publishNotice,
   reconcileSocial, triage, verifyCorrectionClaims,
 } from '../corrections/corrections';
 import type { Step } from '../corrections/corrections';
-import type { ArticleRecord, CorrectionRecord, EditorialStore } from './store';
+import type { ArticleRecord, CorrectionRecord } from './store';
 
 /**
  * Handlers de API do CMS (LN Studio) como FUNÇÕES PURAS: (contexto, entrada) -> { status, body }.
@@ -18,55 +17,10 @@ import type { ArticleRecord, CorrectionRecord, EditorialStore } from './store';
  * Nenhum handler publica, despublica ou fala com mLabs: isso é do WF03/WF04 (identidade de publicação).
  */
 
-export interface Actor { userId: string; roles: readonly string[]; mfa: boolean }
-export interface HandlerCtx {
-  actor: Actor | null;
-  store: EditorialStore;
-  now: () => Date;
-  newId: () => string;
-  /** Opcional: só `requestRecheck` usa. A fila apenas enfileira; o gateway de modelos fica no worker. */
-  queue?: JobQueue;
-}
-export interface ApiResponse<T> { status: number; body: T | ApiError }
-
-// ---------- autorização (RBAC) ----------
-export type Action =
-  | 'queue.list' | 'article.read' | 'article.review' | 'factcheck.read' | 'factcheck.recheck'
-  | 'correction.list' | 'correction.manage' | 'correction.verify_requester' | 'correction.ack_legal';
-
-/** Papéis de @ln/auth (stub do scaffold): admin, editor_chefe, editor, revisor, comercial, leitor. `comercial`/`leitor` não têm acesso editorial. */
-export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
-  'queue.list': ['admin', 'editor_chefe', 'editor', 'revisor'],
-  'article.read': ['admin', 'editor_chefe', 'editor', 'revisor'],
-  'article.review': ['admin', 'editor_chefe', 'revisor'],
-  'factcheck.read': ['admin', 'editor_chefe', 'editor', 'revisor'],
-  'factcheck.recheck': ['admin', 'editor_chefe', 'revisor'],
-  'correction.list': ['admin', 'editor_chefe', 'editor', 'revisor'],
-  'correction.manage': ['admin', 'editor_chefe'],
-  'correction.verify_requester': ['admin', 'editor_chefe'],
-  // Ciência do caso jurídico = ato do responsável (nível admin); agente/editor não decide caso jurídico.
-  'correction.ack_legal': ['admin'],
-};
-
-function authorize(ctx: HandlerCtx, action: Action): ApiError | Actor {
-  const a = ctx.actor;
-  if (!a) return apiError('UNAUTHENTICATED', 'sessão ausente');
-  if (!a.mfa) return apiError('MFA_REQUIRED', 'MFA obrigatório');
-  if (!a.roles.some((r) => ACTION_ROLES[action].includes(r))) return apiError('FORBIDDEN', `papel sem permissão para ${action}`);
-  return a;
-}
-const isErr = (x: ApiError | Actor): x is ApiError => 'error' in x;
-const STATUS: Record<string, number> = { UNAUTHENTICATED: 401, MFA_REQUIRED: 401, FORBIDDEN: 403, INVALID_INPUT: 400, NOT_FOUND: 404, CONFLICT: 409, BLOCKED: 409, UNAVAILABLE: 503 };
-const fail = (e: ApiError): ApiResponse<never> => ({ status: STATUS[e.error.code] ?? 400, body: e });
-const ok = <T>(body: T, status = 200): ApiResponse<T> => ({ status, body });
-
-function parse<S extends z.ZodType>(schema: S, input: unknown): { data: z.infer<S> } | ApiError {
-  const r = schema.safeParse(input);
-  return r.success ? { data: r.data } : apiError('INVALID_INPUT', 'entrada inválida', r.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
-}
-const bad = <T>(e: { data: T } | ApiError): e is ApiError => 'error' in e;
-const audit = (ctx: HandlerCtx, userId: string | null, action: string, target: string, detail?: string) =>
-  ctx.store.appendAudit({ at: ctx.now().toISOString(), userId, action, target, ...(detail ? { detail } : {}) });
+import { audit, authorize, bad, fail, isErr, ok, parse } from './common';
+import type { ApiResponse, HandlerCtx } from './common';
+export { ACTION_ROLES } from './common';
+export type { Action, Actor, ApiResponse, HandlerCtx } from './common';
 
 // ---------- 1. fila editorial ----------
 const EditoriaIn = z.enum(EDITORIAS as unknown as [string, ...string[]]);
@@ -79,7 +33,7 @@ export async function listQueue(ctx: HandlerCtx, input: unknown): Promise<ApiRes
   const a = authorize(ctx, 'queue.list'); if (isErr(a)) return fail(a);
   const p = parse(ListIn, input); if (bad(p)) return fail(p);
   const f = p.data;
-  const all = ctx.store.listArticles()
+  const all = (await ctx.store.listArticles())
     .filter((r) => (!f.status || r.status === f.status) && (!f.editoria || r.editoria === f.editoria))
     // bloqueadas primeiro (precisam de atenção), depois mais recentes
     .sort((x, y) => Number(y.status === 'bloqueado') - Number(x.status === 'bloqueado') || y.updatedAt.localeCompare(x.updatedAt));
@@ -109,7 +63,7 @@ export interface ReviewView {
 export async function getArticleReview(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<ReviewView>> {
   const a = authorize(ctx, 'article.read'); if (isErr(a)) return fail(a);
   const p = parse(IdIn, input); if (bad(p)) return fail(p);
-  const r = ctx.store.getArticle(p.data.articleId);
+  const r = await ctx.store.getArticle(p.data.articleId);
   if (!r) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
   const d = r.draft;
   const chk = d ? runDeterministicChecks(d, r.evidences) : null;
@@ -138,7 +92,7 @@ const ReviewIn = z.object({ articleId: z.string().min(1).max(128), decision: z.e
 export async function submitReview(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<{ articleId: string; status: ArticleStatus }>> {
   const a = authorize(ctx, 'article.review'); if (isErr(a)) return fail(a);
   const p = parse(ReviewIn, input); if (bad(p)) return fail(p);
-  const r = ctx.store.getArticle(p.data.articleId);
+  const r = await ctx.store.getArticle(p.data.articleId);
   if (!r) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
   const at = ctx.now().toISOString();
   let next: ArticleStatus = r.status;
@@ -150,8 +104,8 @@ export async function submitReview(ctx: HandlerCtx, input: unknown): Promise<Api
     next = p.data.decision === 'block' ? 'bloqueado' : 'rascunho';
     if (!canTransition(r.status, next)) return fail(apiError('CONFLICT', `transição ${r.status} -> ${next} não permitida`));
   }
-  ctx.store.putArticle({ ...r, status: next, updatedAt: at, reviews: [...r.reviews, { at, userId: a.userId, decision: p.data.decision, note: p.data.note }] });
-  audit(ctx, a.userId, `review.${p.data.decision}`, r.articleId, p.data.note);
+  await ctx.store.putArticle({ ...r, status: next, updatedAt: at, reviews: [...r.reviews, { at, userId: a.userId, decision: p.data.decision, note: p.data.note }] });
+  await audit(ctx, a.userId, `review.${p.data.decision}`, r.articleId, p.data.note);
   return ok({ articleId: r.articleId, status: next });
 }
 
@@ -165,7 +119,7 @@ export interface FactcheckView {
 export async function getFactcheck(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<FactcheckView>> {
   const a = authorize(ctx, 'factcheck.read'); if (isErr(a)) return fail(a);
   const p = parse(IdIn, input); if (bad(p)) return fail(p);
-  const r = ctx.store.getArticle(p.data.articleId);
+  const r = await ctx.store.getArticle(p.data.articleId);
   if (!r?.draft) return fail(apiError('NOT_FOUND', 'matéria ou rascunho não encontrado'));
   const claims = r.draft.claims.map((c) => ({ id: c.id, text: c.text, kind: c.kind, verdict: r.factcheck?.verdicts.find((v) => v.claimId === c.id)?.verdict ?? null }));
   const count = (v: string | null) => claims.filter((c) => c.verdict === v).length;
@@ -176,7 +130,7 @@ export async function getFactcheck(ctx: HandlerCtx, input: unknown): Promise<Api
 export async function requestRecheck(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<{ articleId: string; jobId: string }>> {
   const a = authorize(ctx, 'factcheck.recheck'); if (isErr(a)) return fail(a);
   const p = parse(IdIn, input); if (bad(p)) return fail(p);
-  const r = ctx.store.getArticle(p.data.articleId);
+  const r = await ctx.store.getArticle(p.data.articleId);
   if (!r?.draft) return fail(apiError('NOT_FOUND', 'matéria ou rascunho não encontrado'));
   if (!ctx.queue) return fail(apiError('UNAVAILABLE', 'fila indisponível'));
   if (r.status === 'publicado' || r.status === 'despublicado') return fail(apiError('CONFLICT', `matéria ${r.status}: use o fluxo de correção`));
@@ -186,8 +140,8 @@ export async function requestRecheck(ctx: HandlerCtx, input: unknown): Promise<A
     stage: 'factcheck', jobId,
     data: { articleId: r.articleId, editoria: r.editoria, evidences: r.evidences, ...(r.draft ? { draft: r.draft } : {}), attempt: n },
   });
-  ctx.store.putArticle({ ...r, recheckCount: n, status: canTransition(r.status, 'em_checagem') ? 'em_checagem' : r.status, updatedAt: ctx.now().toISOString() });
-  audit(ctx, a.userId, 'factcheck.recheck', r.articleId, jobId);
+  await ctx.store.putArticle({ ...r, recheckCount: n, status: canTransition(r.status, 'em_checagem') ? 'em_checagem' : r.status, updatedAt: ctx.now().toISOString() });
+  await audit(ctx, a.userId, 'factcheck.recheck', r.articleId, jobId);
   return ok({ articleId: r.articleId, jobId }, 202);
 }
 
@@ -202,17 +156,17 @@ const CaseView = (rec: CorrectionRecord) => ({
 });
 export type CorrectionView = ReturnType<typeof CaseView>;
 
-function stepResult(ctx: HandlerCtx, rec: CorrectionRecord, step: Step, action: string, userId: string | null): ApiResponse<CorrectionView> {
+async function stepResult(ctx: HandlerCtx, rec: CorrectionRecord, step: Step, action: string, userId: string | null): Promise<ApiResponse<CorrectionView>> {
   if (!step.ok) return fail(apiError('BLOCKED', step.message, { blocker: step.blocker, state: rec.case.state }));
-  ctx.store.putCorrection({ ...rec, case: step.case });
-  audit(ctx, userId, action, rec.case.id, step.case.state);
+  await ctx.store.putCorrection({ ...rec, case: step.case });
+  await audit(ctx, userId, action, rec.case.id, step.case.state);
   return ok(CaseView({ ...rec, case: step.case }));
 }
 
 export async function listCorrections(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<{ items: CorrectionView[] }>> {
   const a = authorize(ctx, 'correction.list'); if (isErr(a)) return fail(a);
   const p = parse(z.object({ state: z.string().optional(), kind: z.enum(['erratum', 'right_of_reply']).optional() }), input); if (bad(p)) return fail(p);
-  const items = ctx.store.listCorrections().filter((r) => (!p.data.state || r.case.state === p.data.state) && (!p.data.kind || r.case.kind === p.data.kind))
+  const items = (await ctx.store.listCorrections()).filter((r) => (!p.data.state || r.case.state === p.data.state) && (!p.data.kind || r.case.kind === p.data.kind))
     .sort((x, y) => y.case.receivedAt.localeCompare(x.case.receivedAt)).map(CaseView);
   return ok({ items });
 }
@@ -220,7 +174,7 @@ export async function listCorrections(ctx: HandlerCtx, input: unknown): Promise<
 export async function getCorrection(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView & { replyText: string | null }>> {
   const a = authorize(ctx, 'correction.list'); if (isErr(a)) return fail(a);
   const p = parse(CorrIdIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   // contato (dado pessoal) NUNCA sai nesta visão
   return ok({ ...CaseView(rec), replyText: rec.replyText ?? null });
@@ -260,7 +214,7 @@ export async function intakeRightOfReply(ctx: HandlerCtx, input: unknown): Promi
 
 async function doOpen(ctx: HandlerCtx, input: unknown, userId: string | null, by: string): Promise<ApiResponse<CorrectionView>> {
   const p = parse(OpenIn, input); if (bad(p)) return fail(p);
-  const art = ctx.store.getArticle(p.data.articleId);
+  const art = await ctx.store.getArticle(p.data.articleId);
   if (!art) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
   const id = ctx.newId(); const at = ctx.now().toISOString();
   const c = openCase({
@@ -269,8 +223,8 @@ async function doOpen(ctx: HandlerCtx, input: unknown, userId: string | null, by
     supportingEvidenceIds: p.data.supportingEvidenceIds, socialPosts: [],
   });
   const rec: CorrectionRecord = { case: c, ...(p.data.replyText ? { replyText: p.data.replyText } : {}), ...(p.data.contact ? { contact: p.data.contact } : {}) };
-  ctx.store.putCorrection(rec);
-  audit(ctx, userId, 'correction.open', id, `${p.data.kind} por ${by}`);
+  await ctx.store.putCorrection(rec);
+  await audit(ctx, userId, 'correction.open', id, `${p.data.kind} por ${by}`);
   return ok(CaseView(rec), 201);
 }
 
@@ -279,12 +233,12 @@ const VerifyIn = z.object({ correctionId: z.string().min(1), method: z.string().
 export async function verifyRequester(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.verify_requester'); if (isErr(a)) return fail(a);
   const p = parse(VerifyIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   const at = ctx.now().toISOString();
   const next: CorrectionRecord = { ...rec, case: { ...rec.case, requester: { ...rec.case.requester, identityVerified: true } }, verification: { by: a.userId, at, method: p.data.method } };
-  ctx.store.putCorrection(next);
-  audit(ctx, a.userId, 'correction.verify_requester', rec.case.id, p.data.method);
+  await ctx.store.putCorrection(next);
+  await audit(ctx, a.userId, 'correction.verify_requester', rec.case.id, p.data.method);
   return ok(CaseView(next));
 }
 
@@ -292,9 +246,9 @@ const PreserveIn = z.object({ correctionId: z.string().min(1), url: z.url(), bod
 export async function preserveCorrectionEvidence(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(PreserveIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
-  return stepResult(ctx, rec, preserveEvidence(rec.case, { url: p.data.url, body: p.data.body, capturedAt: ctx.now().toISOString() }), 'correction.preserve_evidence', a.userId);
+  return await stepResult(ctx, rec, preserveEvidence(rec.case, { url: p.data.url, body: p.data.body, capturedAt: ctx.now().toISOString() }), 'correction.preserve_evidence', a.userId);
 }
 
 const TriageIn = z.object({
@@ -310,9 +264,9 @@ const TriageIn = z.object({
 export async function triageCorrection(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(TriageIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
-  const art = ctx.store.getArticle(rec.case.articleId);
+  const art = await ctx.store.getArticle(rec.case.articleId);
   let working = rec;
   if (p.data.legal !== undefined) working = { ...rec, case: { ...rec.case, legal: p.data.legal || rec.case.legal } };
   if (p.data.accepted && rec.case.kind === 'erratum') {
@@ -321,19 +275,19 @@ export async function triageCorrection(ctx: HandlerCtx, input: unknown): Promise
     if (findings.length) return fail(apiError('BLOCKED', 'correção não sustentada pelas evidências', findings));
     working = { ...working, corrected: p.data.corrected, claims: p.data.claims, case: { ...working.case, supportingEvidenceIds: [...new Set(p.data.claims.flatMap((c) => c.evidenceIds))] } };
   }
-  return stepResult(ctx, working, triage(working.case, { accepted: p.data.accepted, reason: p.data.reason, at: ctx.now().toISOString() }), 'correction.triage', a.userId);
+  return await stepResult(ctx, working, triage(working.case, { accepted: p.data.accepted, reason: p.data.reason, at: ctx.now().toISOString() }), 'correction.triage', a.userId);
 }
 
 /** Ciência do responsável sobre caso jurídico. Somente papel admin. Não aprova nada: apenas libera o fluxo. */
 export async function acknowledgeLegalCase(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.ack_legal'); if (isErr(a)) return fail(a);
   const p = parse(CorrIdIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   if (rec.case.state !== 'escalated_legal') return fail(apiError('CONFLICT', `caso em ${rec.case.state}; não há ciência pendente`));
   const next = { ...rec, case: ownerAck(rec.case, ctx.now().toISOString()) };
-  ctx.store.putCorrection(next);
-  audit(ctx, a.userId, 'correction.ack_legal', rec.case.id);
+  await ctx.store.putCorrection(next);
+  await audit(ctx, a.userId, 'correction.ack_legal', rec.case.id);
   return ok(CaseView(next));
 }
 
@@ -342,7 +296,7 @@ export async function publishCorrectionNotice(ctx: HandlerCtx, input: unknown): 
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(CorrIdIn.extend({ socialPosts: z.array(z.object({ postId: z.string().min(1), channel: z.string().min(1) })).max(50).default([]) }), input);
   if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   const at = ctx.now().toISOString();
   let notice: { text: string; replySha256?: string };
@@ -354,36 +308,36 @@ export async function publishCorrectionNotice(ctx: HandlerCtx, input: unknown): 
     notice = buildReplyNotice(rec.case, rec.replyText, at);
   }
   const withPosts: CorrectionRecord = { ...rec, case: { ...rec.case, socialPosts: p.data.socialPosts.map((s) => ({ postId: s.postId, channel: s.channel, reconciled: false })) } };
-  return stepResult(ctx, withPosts, publishNotice(withPosts.case, notice, at), 'correction.publish_notice', a.userId);
+  return await stepResult(ctx, withPosts, publishNotice(withPosts.case, notice, at), 'correction.publish_notice', a.userId);
 }
 
 export async function reconcileCorrectionSocial(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(CorrIdIn.extend({ receipts: z.array(z.object({ postId: z.string().min(1) })).max(100) }), input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   const step = reconcileSocial(rec.case, p.data.receipts, ctx.now().toISOString());
   // mesmo bloqueado, preserva os recibos já aceitos (step.case traz os posts atualizados)
-  if (!step.ok) ctx.store.putCorrection({ ...rec, case: step.case });
-  return stepResult(ctx, rec, step, 'correction.reconcile_social', a.userId);
+  if (!step.ok) await ctx.store.putCorrection({ ...rec, case: step.case });
+  return await stepResult(ctx, rec, step, 'correction.reconcile_social', a.userId);
 }
 
 export async function markCorrectionEntitiesRebuilt(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(CorrIdIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   const next = { ...rec, case: markEntitiesRebuilt(rec.case) };
-  ctx.store.putCorrection(next);
-  audit(ctx, a.userId, 'correction.entities_rebuilt', rec.case.id);
+  await ctx.store.putCorrection(next);
+  await audit(ctx, a.userId, 'correction.entities_rebuilt', rec.case.id);
   return ok(CaseView(next));
 }
 
 export async function closeCorrection(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(CorrIdIn, input); if (bad(p)) return fail(p);
-  const rec = ctx.store.getCorrection(p.data.correctionId);
+  const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
-  return stepResult(ctx, rec, closeCase(rec.case, ctx.now().toISOString()), 'correction.close', a.userId);
+  return await stepResult(ctx, rec, closeCase(rec.case, ctx.now().toISOString()), 'correction.close', a.userId);
 }
 

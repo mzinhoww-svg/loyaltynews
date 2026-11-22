@@ -30,6 +30,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: grupo único (User-agent * + Googlebot/GoogleOther/Bingbot) com 'Allow: /'; Disallow apenas /wp-admin/, /wp-includes/, /wp-content/ (exceto tema e imagens jpg/jpeg/png/gif em uploads). Páginas de notícias/comunicados permitidas. Sitemap: https://ri.voeazul.com.br/sitemap_index.xml",
@@ -63,6 +64,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido (resumo): 'Allow: /' para todos os agentes; Disallow /wp-admin/, /wp-includes/, /wp-content/ (exceção para o tema mziq_gol_ri e imagens jpg/jpeg/png/gif em uploads). Páginas de notícias/comunicados permitidas. Sitemap: https://ri.voegol.com.br/sitemap_index.xml",
@@ -97,6 +99,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "robots.txt de https://ir.latam.com/robots.txt lido: User-agent * 'Crawl-delay: 10' e 'Allow: /'; nenhum Disallow. Respeitar crawl-delay de 10 s. Host do seed (ir.latamairlines.com) NAO resolve (ENOTFOUND): o host oficial atual e ir.latam.com.",
@@ -128,6 +131,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
       "robotsNote": "https://ri.magazineluiza.com.br/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.",
@@ -159,6 +163,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.gov.br/cvm/robots.txt lido (resumo): 'User-agent: *' com 'Disallow:' vazio (nada bloqueado); regras específicas só para Googlebot (/*sendto_form$, /*folder_factories$). Caminho de notícias e feed permitidos.",
@@ -193,6 +198,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.bcb.gov.br/robots.txt (200): User-agent * com Allow: / e Disallow apenas para */_catalogs, */Lists/, */Forms/, */_layouts/. /noticias e /api/feed/... nao bloqueados.",
@@ -225,6 +231,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: 'User-agent: *' com 'Disallow:' vazio, 'Disallow: /?products/' e 'Disallow: /products/'. /imprensa e /release permitidos. Links internos do site também usam o host abecs.org.br (sem www).",
@@ -260,6 +267,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.gov.br/mj/robots.txt lido (resumo): 'User-agent: *' com 'Disallow:' vazio (nada bloqueado); Googlebot tem grupo separado. Caminho /mj/pt-br/assuntos/... permitido.",
@@ -292,6 +300,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://www.gov.br/anac/robots.txt lido (resumo): 'User-agent: *' bloqueia apenas /search e /login; sitemap https://www.gov.br/anac/sitemap-index.xml. Caminho de notícias permitido.",
@@ -325,6 +334,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "robots.txt lido (resumo): 'User-agent: *' bloqueia /en/search/, /episerver/, /utils/, FAQ de taxas (/en/customers-tax-faq/ e /customers-tax-faq/) e /en/store/trainings/. /en/pressroom/ e /api/rss/pressrelease não estão bloqueados. Sitemap: https://www.iata.org/sitemap.xml",
@@ -357,6 +367,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: 'Disallow: /wp-admin/' (com Allow /wp-admin/admin-ajax.php) para User-agent *. /noticias/ e /feed/ permitidos.",
@@ -388,6 +399,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: 'Disallow: /wp-admin/' (exceto admin-ajax.php) e 'Disallow: /wp-content/uploads/wpo/wpo-plugins-tables-list.json'. /news/ e /feed/ permitidos. Sitemap: https://www.airlines.org/sitemaps.xml",
@@ -418,6 +430,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: 'User-agent: *' bloqueia apenas /bin/ e /App_Data/. /news permitido. Sitemap: https://www.oneworld.com/sitemap_index.xml",
@@ -448,6 +461,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
       "robotsNote": "https://www.staralliance.com/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.",
@@ -480,6 +494,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido (resumo): 'User-agent: *' com Allow: / e Disallow /wp-admin/, /wp-includes/, /wp-content/ (exceção para tema mziq_banco_do_brasil_ri e imagens jpg/jpeg/png/gif em uploads). Caminho de comunicados permitido. (O robots do portal www.bb.com.br é outro e bloqueia /docs/pub/, /docs/portal/, /portalbb/.)",
@@ -511,6 +526,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
       "robotsNote": "https://www.livelo.com.br/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.",
@@ -541,6 +557,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: User-agent * bloqueia parametros de tracking (utm_, gclid, etc.), /Busca/, /Noticias/GestaoNewsLetter, /DetalheMeuBolso, /DetalheTech, /404/, /302/, /en/ e /en-us/. /noticias/ nao esta bloqueado. Sitemap: https://portal.febraban.org.br/sitemap.xml.",
@@ -571,6 +588,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: User-agent * 'Allow: /'; Disallow /wp-admin/, /wp-includes/, /wp-content/ (excecoes: tema mziq_bradesco_ri_redesign e uploads de imagens). Sitemap: /sitemap_index.xml.",
@@ -603,6 +621,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt de https://nu.com/robots.txt lido: User-agent * 'Allow: /' com Disallow apenas em paginas especificas (/us/..., /global/unsubscribe, /global/invite, /preview etc.); /en/newsroom nao bloqueado. Sitemap: https://nu.com/sitemap.xml. international.nubank.com.br redireciona (308) para nu.com.",
@@ -633,6 +652,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
       "robotsNote": "https://www.itau.com.br/robots.txt retornou HTTP 403 ao fetch automatizado. Nao contornado.",
@@ -663,6 +683,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
       "robotsNote": "https://ri.santander.com.br/robots.txt retornou HTTP 403 ao fetch automatizado. Nao contornado.",
@@ -693,6 +714,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: User-agent * 'Disallow: /wp-admin/' com excecao /wp-admin/admin-ajax.php; sem bloqueio de noticias. Sitemap: https://www.idv.org.br/sitemap_index.xml.",
@@ -723,6 +745,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "indisponivel",
       "robotsNote": "https://www.abras.com.br/robots.txt retornou HTTP 404 (sem arquivo robots; sem restricoes formais declaradas, mas tratado como indisponivel).",
@@ -753,6 +776,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: User-agent * bloqueia */404, */error, ?filter=, ?page=, /accessibility, /search?prod_search_index e /contact-us?profile. /en/news-media nao bloqueado (nao usar paginacao ?page=). Sitemap: https://group.accor.com/api/sitemap.",
@@ -783,6 +807,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido: User-agent * bloqueia apenas /static-assets/ e URLs terminadas em .pdf. Home nao bloqueada.",
@@ -813,6 +838,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "robots.txt lido em www.abav.com.br: User-agent * 'Allow: /' e bloqueios de /cgi-bin/, /wusage, /wp-admin/, /wp-includes/ e assets do tema. Cabecalho declara content signals 'search=yes, ai-train=no, use=reference'. /blog/ nao bloqueado.",
@@ -843,6 +869,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "Mesmo robots.txt de www.gov.br: nenhuma regra afeta /turismo/.",
@@ -875,6 +902,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://www.gov.br/robots.txt (200): grupo User-agent * so tem Disallow para /economia/pt-br/internet/*, sufixos sendto_form/folder_factories e regras restritas a /ebserh e /mre. /anpd/... nao e bloqueado. Sitemap: https://www.gov.br/sitemap.xml.gz.",
@@ -906,6 +934,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.gov.br/robots.txt (200): /mcti/... nao bloqueado para User-agent *.",
@@ -936,6 +965,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://www.gov.br/robots.txt (200): /anatel/... nao bloqueado para User-agent *.",
@@ -967,6 +997,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://www.edpb.europa.eu/robots.txt (200): User-agent * bloqueia /core/, /profiles/, /admin/, /search/, /user/*, /media/oembed etc.; /news_en e /feed/ nao constam como Disallow.",
@@ -998,6 +1029,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www12.senado.leg.br/robots.txt (200): 'User-agent: *' com 'Disallow:' vazio (tudo permitido); regras de Googlebot restritas a sendto_form/folder_factories.",
@@ -1029,6 +1061,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.camara.leg.br/robots.txt (200): /noticias nao esta em Disallow para User-agent *. Atencao: o arquivo tem comentario declarando bloqueio de bots de IA (GPTBot, anthropic-ai, Claude-Web, CCBot, PerplexityBot etc.) 'para evitar treinamento de IAs' e bloqueia /*.pdf, /*.gif, /deputados/*/*, listas de proposicoes (sileg/prop_lista*). Usar User-agent proprio identificado e so RSS/listagem.",
@@ -1060,6 +1093,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://brasscom.org.br/robots.txt (200; www.brasscom.org.br redireciona para o host sem www): 'User-agent: *' com 'Disallow:' vazio (tudo permitido).",
@@ -1091,6 +1125,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.salesforce.com/robots.txt (200): User-agent * tem Disallow em caminhos especificos (/products/home-perf/, /form/conf/, */conf/, pdfs em /content/dam/..., filtros de customer-success-stories); /news/ e /news/feed/ nao constam. Robots antigos 'MS Search' bloqueados por completo (irrelevante).",
@@ -1122,6 +1157,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "lido",
       "robots": "permitido",
       "robotsNote": "https://www.hubspot.com/robots.txt (200): User-agent * com varios Disallow de assets estaticos/_hcms/meetings; /company-news nao consta como bloqueado.",
@@ -1153,6 +1189,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://www.zendesk.com/robots.txt e https://www.zendesk.com.br/robots.txt (200): User-agent * com Allow: / e Disallows pontuais (/thank-you/, /brand, /blog/tags/..., etc.); /newsroom nao bloqueado. Host redireciona (302) para www.zendesk.com.br por geolocalizacao.",
@@ -1183,6 +1220,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://abrarec.com.br/robots.txt (200): User-agent * apenas Disallow /wp-admin/ (Allow admin-ajax). /blog/ e /feed/ permitidos.",
@@ -1214,6 +1252,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
       "robots": "permitido",
       "robotsNote": "https://www.procon.sp.gov.br/robots.txt (200): User-agent * apenas Disallow /wp-admin/ (Allow admin-ajax) e /wp-content/uploads/wpo/wpo-plugins-tables-list.json. /feed/ e listagem permitidos.",
@@ -1244,6 +1283,7 @@ export const SEED_SOURCES: Source[] = [
     "imageRights": null,
     "maxRequestsPerHour": 6,
     "verification": {
+      "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
       "robotsNote": "https://ico.org.uk/robots.txt retornou HTTP 403 com desafio Cloudflare ('Just a moment...'); nao foi contornado.",

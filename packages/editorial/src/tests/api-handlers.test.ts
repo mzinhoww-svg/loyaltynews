@@ -36,7 +36,7 @@ async function approvedStore(articleId = 'a1'): Promise<InMemoryEditorialStore> 
   const q = new InMemoryQueue();
   await q.enqueue({ stage: 'triage', jobId: `${articleId}:triage:0`, data: { articleId, editoria: 'pontos', evidences: [ev], attempt: 0 } });
   await q.drain(makeProcessor(deps, q));
-  for (const { spec, outcome } of q.processed) applyOutcome(store, spec.data, outcome, NOW.toISOString());
+  for (const { spec, outcome } of q.processed) await applyOutcome(store, spec.data, outcome, NOW.toISOString());
   return store;
 }
 
@@ -54,7 +54,7 @@ test('RBAC: sem sessão 401, sem MFA 401, papéis sem acesso 403; nenhum handler
 
 test('applyOutcome grava o resultado do pipeline: aprovada, com rascunho e checagem de provedor distinto', async () => {
   const store = await approvedStore();
-  const r = store.getArticle('a1')!;
+  const r = (await store.getArticle('a1'))!;
   assert.equal(r.status, 'aprovado');
   assert.equal(r.draft?.signature, 'Redação Loyalty News');
   assert.notEqual(r.draft?.modelProvider, r.factcheck?.provider);
@@ -63,7 +63,7 @@ test('applyOutcome grava o resultado do pipeline: aprovada, com rascunho e checa
 test('fila: filtros, paginação, bloqueadas primeiro, entrada inválida => 400', async () => {
   const store = await approvedStore('a1');
   const blocked: ArticleRecord = { articleId: 'b1', editoria: 'regulacao', status: 'bloqueado', evidences: [], blockers: ['duplicate'], findings: [], reviews: [], recheckCount: 0, updatedAt: '2026-11-24T11:00:00.000Z' };
-  store.putArticle(blocked);
+  await store.putArticle(blocked);
   const c = mkctx(editor, store);
   const all = await listQueue(c, {});
   assert.equal(all.status, 200);
@@ -88,8 +88,8 @@ test('visão de revisão: gate recalculado; adulterar o rascunho derruba o gate 
   assert.equal(v.rascunho?.assinatura, 'Redação Loyalty News');
   assert.ok(v.evidencias[0]?.sha256.match(/^[0-9a-f]{64}$/));
   // adulteração: número inventado no corpo
-  const rec = store.getArticle('a1')!;
-  store.putArticle({ ...rec, draft: { ...rec.draft!, body: rec.draft!.body.replace('\n\nFontes:\n', '\nA alta foi de 87% no trimestre.\n\nFontes:\n') } });
+  const rec = (await store.getArticle('a1'))!;
+  await store.putArticle({ ...rec, draft: { ...rec.draft!, body: rec.draft!.body.replace('\n\nFontes:\n', '\nA alta foi de 87% no trimestre.\n\nFontes:\n') } });
   const t =(await getArticleReview(mkctx(revisor, store), { articleId: 'a1' })).body as import('../api/handlers').ReviewView;
   assert.equal(t.gate.passou, false);
   assert.ok(t.gate.achados.some((x) => x.code === 'unsupported_metric'));
@@ -102,19 +102,19 @@ test('revisão humana: confirm só com gate passando; humano não força aprova�
   assert.equal((await submitReview(c, { articleId: 'a1', decision: 'confirm', note: 'x' })).status, 400); // nota mínima
   const ok = await submitReview(c, { articleId: 'a1', decision: 'confirm', note: 'conferido pela revisão' });
   assert.equal(ok.status, 200);
-  assert.equal(store.getArticle('a1')?.status, 'aprovado');
-  assert.equal(store.getArticle('a1')?.reviews.length, 1);
+  assert.equal((await store.getArticle('a1'))?.status, 'aprovado');
+  assert.equal((await store.getArticle('a1'))?.reviews.length, 1);
   // block a partir de aprovado não é transição permitida
   assert.equal((await submitReview(c, { articleId: 'a1', decision: 'block', note: 'bloquear' })).status, 409);
   // adulterado => confirm recusado
-  const rec = store.getArticle('a1')!;
-  store.putArticle({ ...rec, draft: { ...rec.draft!, body: `${rec.draft!.body}\nCresceu 55%.` } });
+  const rec = (await store.getArticle('a1'))!;
+  await store.putArticle({ ...rec, draft: { ...rec.draft!, body: `${rec.draft!.body}\nCresceu 55%.` } });
   assert.equal((await submitReview(c, { articleId: 'a1', decision: 'confirm', note: 'tentando confirmar' })).status, 409);
   // send_back devolve a rascunho
   const back = await submitReview(c, { articleId: 'a1', decision: 'send_back', note: 'refazer a redação' });
   assert.equal(back.status, 200);
-  assert.equal(store.getArticle('a1')?.status, 'rascunho');
-  assert.equal(store.audit.filter((a) => a.action.startsWith('review.')).length, 2);
+  assert.equal((await store.getArticle('a1'))?.status, 'rascunho');
+  assert.equal((await store.listAudit()).filter((a) => a.action.startsWith('review.')).length, 2);
   // de rascunho não se pode bloquear
   assert.equal((await submitReview(c, { articleId: 'a1', decision: 'block', note: 'bloquear' })).status, 409);
 });
@@ -132,10 +132,10 @@ test('checagem: visão por claim, independência; recheck apenas enfileira (idem
   assert.ok(q.seen.has('a1:factcheck:r1'));
   const r2 = await requestRecheck(mkctx(revisor, store, q), { articleId: 'a1' });
   assert.equal((r2.body as { jobId: string }).jobId, 'a1:factcheck:r2');
-  assert.equal(store.getArticle('a1')?.recheckCount, 2);
+  assert.equal((await store.getArticle('a1'))?.recheckCount, 2);
   assert.equal((await requestRecheck(mkctx(revisor, store), { articleId: 'a1' })).status, 503);
   assert.equal((await requestRecheck(mkctx(editor, store, q), { articleId: 'a1' })).status, 403);
-  const pub = store.getArticle('a1')!; store.putArticle({ ...pub, status: 'publicado' });
+  const pub = (await store.getArticle('a1'))!; await store.putArticle({ ...pub, status: 'publicado' });
   assert.equal((await requestRecheck(mkctx(revisor, store, q), { articleId: 'a1' })).status, 409);
 });
 
@@ -166,7 +166,7 @@ test('errata completa pelos handlers: abrir → preservar → triar com claims v
   const closed = await closeCorrection(c, { correctionId: id });
   assert.equal(closed.status, 200);
   assert.equal((closed.body as { state: string }).state, 'closed');
-  assert.ok(store.audit.some((a) => a.action === 'correction.close'));
+  assert.ok((await store.listAudit()).some((a) => a.action === 'correction.close'));
   assert.equal(((await listCorrections(mkctx(editor, store), { state: 'closed' })).body as { items: unknown[] }).items.length, 1);
 });
 
@@ -176,7 +176,7 @@ test('direito de resposta: intake público, identidade, escalonamento ao respons
   const intake = await intakeRightOfReply(mkctx(null, store), { articleId: 'a1', contested: 'afirmação sobre a empresa', requester: { name: 'MOCK Empresa S.A.' }, contact: 'contato@mock.example', replyText: reply });
   assert.equal(intake.status, 201);
   const id = (intake.body as { correctionId: string }).correctionId;
-  assert.equal(store.audit.find((a) => a.action === 'correction.open')?.userId, null);
+  assert.equal((await store.listAudit()).find((a) => a.action === 'correction.open')?.userId, null);
   assert.equal((await intakeRightOfReply(mkctx(null, store), { articleId: 'nao-existe', contested: 'xxx', requester: { name: 'MOCK' }, replyText: reply })).status, 404);
   assert.equal((await intakeRightOfReply(mkctx(null, store), { articleId: 'a1', contested: 'xxx', requester: { name: 'MOCK' }, replyText: 'curto' })).status, 400);
 
