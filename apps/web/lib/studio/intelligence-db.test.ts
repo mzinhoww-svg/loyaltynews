@@ -1,19 +1,28 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { BancoIndisponivel, bancoIntelligence, bancoOuNulo } from './intelligence-db';
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { BancoIndisponivel, criarBanco, type FabricaDev } from './intelligence-db-core';
+import { devDb as fabricaProd } from './dev-db.prod';
 
-const antes = { url: process.env.DATABASE_URL, dev: process.env.LN_STUDIO_DEV_DB };
-afterEach(() => {
-  if (antes.url === undefined) delete process.env.DATABASE_URL;
-  else process.env.DATABASE_URL = antes.url;
-  if (antes.dev === undefined) delete process.env.LN_STUDIO_DEV_DB;
-  else process.env.LN_STUDIO_DEV_DB = antes.dev;
-});
+const fabricaFalsa: FabricaDev = async () => ({ db: { query: async () => ({ rows: [] }) }, origem: 'pglite-memoria' });
 
 describe('banco do Entity Intelligence', () => {
-  it('sem DATABASE_URL e sem opt-in de dev: indisponível, nunca inventa dados nem sobe banco em memória', async () => {
-    delete process.env.DATABASE_URL;
-    delete process.env.LN_STUDIO_DEV_DB;
-    await expect(bancoIntelligence()).rejects.toBeInstanceOf(BancoIndisponivel);
-    expect(await bancoOuNulo()).toBeNull();
+  it('sem DATABASE_URL e sem opt-in de dev: indisponível, nunca inventa dados', async () => {
+    await expect(criarBanco({}, fabricaFalsa)).rejects.toBeInstanceOf(BancoIndisponivel);
+    await expect(criarBanco({}, null)).rejects.toBeInstanceOf(BancoIndisponivel);
+  });
+  it('PRODUÇÃO: a fábrica de dev é nula, então LN_STUDIO_DEV_DB=pglite é ignorada', async () => {
+    expect(fabricaProd).toBeNull();
+    await expect(criarBanco({ LN_STUDIO_DEV_DB: 'pglite' }, fabricaProd)).rejects.toBeInstanceOf(BancoIndisponivel);
+  });
+  it('dev/e2e: com a fábrica e o opt-in exato, sobe o banco temporário; valor diferente não vale', async () => {
+    expect((await criarBanco({ LN_STUDIO_DEV_DB: 'pglite' }, fabricaFalsa)).origem).toBe('pglite-memoria');
+    await expect(criarBanco({ LN_STUDIO_DEV_DB: '1' }, fabricaFalsa)).rejects.toBeInstanceOf(BancoIndisponivel);
+  });
+  it('núcleo e wrapper de produção não contêm código de banco em memória', () => {
+    for (const f of ['./intelligence-db-core.ts', './intelligence-db.ts', './dev-db.prod.ts']) {
+      const src = readFileSync(new URL(f, import.meta.url), 'utf8').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      expect(src.includes('electric-sql'), f).toBe(false);
+      expect(src.includes('new PGlite'), f).toBe(false);
+    }
   });
 });
