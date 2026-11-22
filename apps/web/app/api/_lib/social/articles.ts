@@ -1,7 +1,7 @@
 // ArticleSource do Social Dashboard: lê a matéria do PostgreSQL e projeta para o Growth (toSocialArticle).
 // Fatos vêm SÓ da checagem editorial (claims `fact` com veredito `pass` no registro do CMS), nunca do corpo;
 // sem fato com fonte não há post (o motor de copy recusa). `gatesPassed` exige estado aprovado/publicado/corrigido
-// E recibo da versão atual. A URL canônica usa PORTAL_BASE_URL (padrão: localhost) + /materias/{slug}: ajustar quando o Portal fixar a rota.
+// E recibo da versão atual. A URL canônica é NEXT_PUBLIC_SITE_URL (mesma variável do portal; padrão: localhost) + /noticia/{slug}, a rota pública do portal.
 import { and, eq } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Article as ContractArticle } from '@ln/contracts';
@@ -10,10 +10,15 @@ import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { toSocialArticle, type ArticleSource } from '@ln/growth/dashboard';
 import type { Article, Fact } from '@ln/growth';
 
+/** URL pública da matéria no portal: `${NEXT_PUBLIC_SITE_URL}/noticia/${slug}` (sem barra dupla). */
+export function portalArticleUrl(siteUrl: string, slug: string): string {
+  return `${siteUrl.trim().replace(/\/+$/, '')}/noticia/${encodeURIComponent(slug)}`;
+}
+
 export class PgArticleSource implements ArticleSource {
   constructor(
     private readonly db: Db,
-    private readonly portalBaseUrl: string,
+    private readonly siteUrl: string,
   ) {}
 
   async get(id: string): Promise<Article | null> {
@@ -30,7 +35,7 @@ export class PgArticleSource implements ArticleSource {
       classeDeDado: a.classeDeDado, patrocinado: a.patrocinado, rotuloPublieditorial: a.rotuloPublieditorial ?? undefined, versao: a.versao,
     } as unknown as ContractArticle;
     return toSocialArticle(contract, {
-      url: `${this.portalBaseUrl.replace(/\/$/, '')}/materias/${a.slug}`,
+      url: portalArticleUrl(this.siteUrl, a.slug),
       facts: await this.approvedFacts(a.id),
       gatesPassed: approved && Boolean(receipt),
       mock: false,

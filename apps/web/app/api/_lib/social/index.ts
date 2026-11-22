@@ -54,7 +54,7 @@ export const dispatchSocial = createDispatcher<H>({
     ];
     const deps: DashboardDeps = {
       store: new PgPackageStore(c.deps.db),
-      articles: new PgArticleSource(c.deps.db, process.env.PORTAL_BASE_URL || 'http://localhost:3000'),
+      articles: new PgArticleSource(c.deps.db, process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
       publisher: getPublisher(),
       flags: growthFlagsFrom(c.deps.flags),
       now: () => c.deps.now().toISOString(),

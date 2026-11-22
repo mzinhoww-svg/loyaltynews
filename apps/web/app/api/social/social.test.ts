@@ -5,6 +5,7 @@ import { sampleArticle } from '@ln/editorial/testing';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { call, makeApp } from '../_lib/testkit';
+import { portalArticleUrl } from '../_lib/social/articles';
 import { dispatchSocial as d, getPublisher, resetPublisherForTest, SOCIAL_ROUTES } from '../_lib/social';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -145,5 +146,31 @@ describe('geração e publicação simulada de pacotes', () => {
   it('não existe rota de publicação real', () => {
     expect(SOCIAL_ROUTES.filter((r) => /live|real/i.test(r.path))).toHaveLength(0);
     expect(SOCIAL_ROUTES.filter((r) => r.method === 'POST').map((r) => r.path.replace('/api/studio/social', '')).sort()).toEqual(['/packages', '/packages/:id/publish-simulated']);
+  });
+});
+
+describe('URL canônica da matéria nos posts', () => {
+  it('portalArticleUrl: base NEXT_PUBLIC_SITE_URL + /noticia/{slug}, sem barra dupla e com slug escapado', () => {
+    expect(portalArticleUrl('https://loyalty.example', 'a-b')).toBe('https://loyalty.example/noticia/a-b');
+    expect(portalArticleUrl('https://loyalty.example///', 'a-b')).toBe('https://loyalty.example/noticia/a-b');
+    expect(portalArticleUrl(' http://localhost:3000/ ', 'x y')).toBe('http://localhost:3000/noticia/x%20y');
+  });
+
+  it('o pacote gerado aponta para /noticia/{slug} na base do portal (e não usa PORTAL_BASE_URL nem /materias)', async () => {
+    const old = { site: process.env.NEXT_PUBLIC_SITE_URL, portal: process.env.PORTAL_BASE_URL };
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://loyalty.example';
+    process.env.PORTAL_BASE_URL = 'https://errado.example';
+    try {
+      const g = await call(d, 'POST', { path: S('/packages'), body: { articleId: 'art-s1', version: 7 }, as: editor });
+      expect(g.status).toBe(201);
+      const one = await call(d, 'GET', { path: S('/packages/art-s1:linkedin:v7'), as: revisor });
+      const text = one.body.summary.copyText as string;
+      expect(text).toContain('https://loyalty.example/noticia/programa-muda-regra');
+      expect(text).not.toContain('errado.example');
+      expect(text).not.toContain('/materias/');
+    } finally {
+      if (old.site === undefined) delete process.env.NEXT_PUBLIC_SITE_URL; else process.env.NEXT_PUBLIC_SITE_URL = old.site;
+      if (old.portal === undefined) delete process.env.PORTAL_BASE_URL; else process.env.PORTAL_BASE_URL = old.portal;
+    }
   });
 });
