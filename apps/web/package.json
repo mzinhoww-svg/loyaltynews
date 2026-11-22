@@ -13,8 +13,13 @@
     "verify:no-mock": "node scripts/verify-no-mock.mjs"
   },
   "dependencies": {
+    "@ln/agents": "0.0.0",
     "@ln/auth": "0.0.0",
+    "@ln/commercial": "0.0.0",
     "@ln/contracts": "0.0.0",
+    "@ln/growth": "0.1.0",
+    "@ln/intelligence": "0.0.0",
+    "@ln/modelops": "0.0.0",
     "@ln/ui": "0.0.0",
     "next": "16.4.6",
     "react": "19.3.1",
