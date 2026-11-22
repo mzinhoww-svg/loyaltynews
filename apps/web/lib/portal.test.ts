@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { EDITORIAS, getEditoria } from './editorias';
-import { emptySource } from './empty-source';
-import { mockSource } from './fixtures/portal.mock';
-import { formatDate, normalize } from './format';
-import { INFO_DOCS, INFO_SLUGS } from './institutional';
+import { EDITORIAS, getEditoria } from '../app/(portal)/_lib/editorias';
+import { emptySource } from '../app/(portal)/_lib/empty-source';
+import { mockSource } from '../app/(portal)/_lib/fixtures/portal.mock';
+import { formatDate, normalize } from '../app/(portal)/_lib/format';
+import { INFO_DOCS, INFO_SLUGS } from '../app/(portal)/_lib/institutional';
 
 describe('editorias', () => {
   it('são exatamente dez, com slugs únicos e descrição', () => {
@@ -46,7 +46,7 @@ describe('fonte MOCK', () => {
     expect([...a.realtime, ...a.historical].every((m) => m.value === null)).toBe(true);
   });
   it('filtra por editoria e tipo e pagina', async () => {
-    const ed = await mockSource.getLatest({ editoriaSlug: 'bancos-e-cartoes' });
+    const ed = await mockSource.getLatest({ editoriaSlug: 'bancos' });
     expect(ed.items).toHaveLength(2);
     const p1 = await mockSource.getLatest({ page: 1, pageSize: 12 });
     const p2 = await mockSource.getLatest({ page: 2, pageSize: 12 });
@@ -59,7 +59,7 @@ describe('fonte MOCK', () => {
     expect((await mockSource.search('zzzz-nada')).total).toBe(0);
   });
   it('relacionadas não incluem a própria matéria', async () => {
-    const a = (await mockSource.getArticle('mock-bancos-e-cartoes-1'))!;
+    const a = (await mockSource.getArticle('mock-bancos-1'))!;
     const rel = await mockSource.getRelated(a, 3);
     expect(rel).toHaveLength(3);
     expect(rel.some((r) => r.slug === a.slug)).toBe(false);

@@ -1,19 +1,19 @@
-/**
- * Flags do portal, desligadas por padrão (regra 3 do fast-track).
- * TODO(contracts): migrar para `packages/contracts/flags.ts` (Chief Architect) quando existir.
- * Ligar só via variável de ambiente explícita.
- */
-const on = (v: string | undefined) => v === '1' || v === 'true';
+import { isEnabled } from '@ln/contracts';
 
+/**
+ * Flags do portal. As que existem em `@ln/contracts` (todas desligadas por padrão) vêm de lá.
+ * As três últimas ainda não existem no contrato: ficam desligadas aqui até o Chief Architect
+ * incluí-las em `packages/contracts/src/flags.ts` (pedido enviado ao PM/Arquiteto).
+ */
 export const flags = {
-  /** The Loyal (newsletter): construída, entrega desligada até P-01/P-02. */
-  theLoyal: on(process.env.NEXT_PUBLIC_FLAG_THE_LOYAL),
-  /** Instagram: construído, desligado. */
-  instagram: on(process.env.NEXT_PUBLIC_FLAG_INSTAGRAM),
-  /** Formulários que dependem de API (contato, proposta). */
-  forms: on(process.env.NEXT_PUBLIC_FLAG_FORMS),
-  /** Market Data (fase 2). */
-  marketData: on(process.env.NEXT_PUBLIC_FLAG_MARKET_DATA),
-  /** Podcast / Loyalty Talks. */
-  podcast: on(process.env.NEXT_PUBLIC_FLAG_PODCAST),
+  /** The Loyal (newsletter): construída, entrega desligada até P-01. */
+  theLoyal: isEnabled('theLoyal'),
+  /** Instagram: construído, desligado (P-02). */
+  instagram: isEnabled('instagram'),
+  /** TODO(contracts): `portalMarketData` — Market Data é fase 2. */
+  marketData: false,
+  /** TODO(contracts): `portalPodcast` — Loyalty Talks sem episódios reais. */
+  podcast: false,
+  /** TODO(contracts): `portalFormularios` — formulários dependem de API (contato, proposta). */
+  forms: false,
 } as const;

@@ -85,7 +85,7 @@ test.describe('SEO básico', () => {
       expect(smBody).not.toContain('/noticia/');
     } else {
       expect(rbBody).toContain('Sitemap:');
-      expect(smBody).toContain('/editoria/bancos-e-cartoes');
+      expect(smBody).toContain('/editoria/bancos');
     }
     const feed = await request.get('/feed.xml');
     expect(feed.status()).toBe(200);
@@ -159,7 +159,7 @@ test.describe('conteúdo MOCK', () => {
   });
 
   test('página de matéria: assinatura institucional, fontes, correções, crédito e noindex', async ({ page }, info) => {
-    await page.goto('/noticia/mock-bancos-e-cartoes-1');
+    await page.goto('/noticia/mock-bancos-1');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('[MOCK]');
     await expect(page.getByText('Redação Loyalty News').first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Fontes e referências' })).toBeVisible();
@@ -193,7 +193,7 @@ test.describe('conteúdo MOCK', () => {
   });
 
   test('editoria mostra somente matérias da editoria', async ({ page }) => {
-    await page.goto('/editoria/bancos-e-cartoes');
+    await page.goto('/editoria/bancos');
     const cards = page.locator('article.ln-card');
     await expect(cards).toHaveCount(2);
     for (const k of await page.locator('article.ln-card .ln-kicker').allTextContents()) expect(k).toContain('Bancos & Cartões');

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { EDITORIAS } from '../_lib/editorias';
+import type { Editoria } from '../_lib/types';
 
 export interface NavFlags {
   theLoyal: boolean;
@@ -11,7 +11,7 @@ export interface NavFlags {
   podcast: boolean;
 }
 
-export function SiteHeader({ flags }: { flags: NavFlags }) {
+export function SiteHeader({ flags, editorias, techSlug }: { flags: NavFlags; editorias: readonly Pick<Editoria, 'slug' | 'name'>[]; techSlug: string }) {
   const pathname = usePathname() ?? '/';
   const [menuOpen, setMenuOpen] = useState(false);
   const [ddOpen, setDdOpen] = useState(false);
@@ -69,6 +69,7 @@ export function SiteHeader({ flags }: { flags: NavFlags }) {
             type="button"
             className="ln-iconbtn"
             aria-expanded={menuOpen}
+            aria-label="Menu"
             aria-controls="ln-nav"
             onClick={() => setMenuOpen((v) => !v)}
           >
@@ -89,7 +90,7 @@ export function SiteHeader({ flags }: { flags: NavFlags }) {
                   <li><Link href="/flash">Loyalty Flash</Link></li>
                   <li><Link href="/analises">Análises</Link></li>
                   <li><hr /></li>
-                  {EDITORIAS.map((e) => (
+                  {editorias.map((e) => (
                     <li key={e.slug}>
                       <Link href={`/editoria/${e.slug}`}>{e.name}</Link>
                     </li>
@@ -101,7 +102,7 @@ export function SiteHeader({ flags }: { flags: NavFlags }) {
             {flags.marketData && <li><Link href="/indicadores" aria-current={cur('/indicadores')}>Market Data</Link></li>}
             {flags.podcast && <li><Link href="/podcast" aria-current={cur('/podcast')}>Podcast</Link></li>}
             <li><Link href="/agenda" aria-current={cur('/agenda')}>Agenda</Link></li>
-            <li><Link href="/editoria/loyaltytech-e-ia" aria-current={cur('/editoria/loyaltytech-e-ia')}>Tecnologia</Link></li>
+            <li><Link href={`/editoria/${techSlug}`} aria-current={cur(`/editoria/${techSlug}`)}>Tecnologia</Link></li>
             <li><Link href="/entrevistas" aria-current={cur('/entrevistas')}>Entrevistas</Link></li>
             <li><Link href="/moves" aria-current={cur('/moves')}>Moves</Link></li>
             <li><Link href="/intelligence" aria-current={cur('/intelligence')}>Intelligence</Link></li>

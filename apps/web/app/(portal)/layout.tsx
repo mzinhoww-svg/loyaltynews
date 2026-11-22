@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import './portal.css';
 import { SiteFooter } from './_components/SiteFooter';
 import { SiteHeader } from './_components/SiteHeader';
+import { EDITORIAS, TECH_EDITORIA_SLUG } from './_lib/editorias';
 import { flags } from './_lib/flags';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { isMockSource } from './_lib/source';
@@ -30,7 +31,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
       <a href="#conteudo" className="ln-skip">
         Ir para o conteúdo
       </a>
-      <SiteHeader flags={{ theLoyal: flags.theLoyal, marketData: flags.marketData, podcast: flags.podcast }} />
+      <SiteHeader flags={{ theLoyal: flags.theLoyal, marketData: flags.marketData, podcast: flags.podcast }} editorias={EDITORIAS} techSlug={TECH_EDITORIA_SLUG} />
       <main id="conteudo" className="ln-main">
         <div className="ln-wrap">{children}</div>
       </main>

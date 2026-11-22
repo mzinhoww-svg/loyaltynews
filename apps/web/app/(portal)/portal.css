@@ -176,3 +176,8 @@
   .ln-card-img img { transition: transform 0.4s var(--ln-ease); }
   .ln-card:hover .ln-card-img img { transform: scale(1.03); }
 }
+
+/* destaques: cards secundários compactos (imagem à esquerda) */
+.ln-hero-side .ln-card { display: grid; grid-template-columns: 120px 1fr; column-gap: 12px; row-gap: 4px; align-items: start; }
+.ln-hero-side .ln-card-img { grid-row: 1 / span 3; aspect-ratio: 4 / 3; }
+@media (max-width: 720px) { .ln-hero-side .ln-card { grid-template-columns: 96px 1fr; } }

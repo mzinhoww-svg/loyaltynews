@@ -40,8 +40,8 @@ const PAGES: PageSpec[] = [
 ];
 
 const EDITORIAS = [
-  'mercado-e-negocios', 'programas-de-fidelidade', 'pontos-e-milhas', 'bancos-e-cartoes', 'varejo-e-cashback',
-  'travel-e-hospitality', 'loyaltytech-e-ia', 'crm-e-cx', 'global-loyalty', 'regulacao-e-dados',
+  'mercado', 'programas', 'pontos', 'bancos', 'varejo',
+  'travel', 'tech', 'crm', 'global', 'regulacao',
 ].map((slug) => ({ name: `editoria-${slug}`, path: `/editoria/${slug}`, empty: /Em breve: primeiras matérias/ }) as PageSpec);
 
 for (const p of [...PAGES, ...EDITORIAS]) {
