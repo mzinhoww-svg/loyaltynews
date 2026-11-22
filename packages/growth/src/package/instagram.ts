@@ -39,6 +39,7 @@ export function generateInstagramCaption(article: Article): string {
   const lines = [article.title.trim(), ''];
   if (article.deck?.trim()) lines.push(article.deck.trim(), '');
   lines.push(...article.facts.slice(0, MAX_FACT_BULLETS).map((f) => `• ${f.text.trim()}`), '');
+  if (article.sponsored?.label.trim()) lines.push(`Conteúdo patrocinado: ${article.sponsored.label.trim()}`, '');
   lines.push('Matéria completa no portal Loyalty News (link na bio).');
   if (article.approvedImage?.credit) lines.push(`Imagem: ${article.approvedImage.credit}`);
   lines.push('', `${SIGNATURE} · ${tags.join(' ')}`);

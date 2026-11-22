@@ -254,7 +254,7 @@ describe('Social Dashboard: handlers puros', () => {
 
 describe('toSocialArticle: projeção do contrato Article', () => {
   const base = {
-    id: 'a1', slug: 'a-1', titulo: 'Título', subtitulo: 'Sub', editoria: 'pontos' as const, status: 'aprovado' as const,
+    id: 'a1', slug: 'a-1', titulo: 'Título', subtitulo: 'Sub', tipoConteudo: 'noticia' as const, editoria: 'pontos' as const, status: 'aprovado' as const,
     assinatura: 'Redação Loyalty News' as const, corpo: 'corpo', fontes: [{ sourceId: 's', url: 'https://x.invalid/', capturadoEm: '2026-11-22T00:00:00Z', sha256: 'a'.repeat(64) }],
     classeDeDado: 'public' as const, patrocinado: false, versao: 1,
   };

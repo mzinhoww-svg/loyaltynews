@@ -86,13 +86,13 @@ function numbersIn(s: string): string[] {
 }
 
 /** Texto autoral do post sem URL, hashtags nem assinatura/crédito, para checar números. */
-function stripNonClaims(text: string, credit?: string): string {
+function stripNonClaims(text: string, ...metadata: (string | undefined)[]): string {
   let out = text
     .replace(/https?:\/\/\S+/g, ' ')
     .replace(/#[\p{L}\p{N}_]+/gu, ' ')
     .replace(new RegExp(SIGNATURE, 'g'), ' ');
-  // O crédito da imagem é metadado de direito, não afirmação do texto: não entra na checagem de números.
-  if (credit) out = out.split(credit).join(' ');
+  // Crédito da imagem e rótulo de patrocínio são metadados (direito/transparência), não afirmações: fora da checagem de números.
+  for (const m of metadata) if (m?.trim()) out = out.split(m.trim()).join(' ');
   return out;
 }
 
@@ -126,7 +126,7 @@ export function validateCopy(
   const evidenced = new Set<string>(
     numbersIn(article.facts.filter((f) => f.source.trim()).map((f) => f.text).join(' ')),
   );
-  for (const n of numbersIn(stripNonClaims(text, article.approvedImage?.credit))) {
+  for (const n of numbersIn(stripNonClaims(text, article.approvedImage?.credit, article.sponsored?.label))) {
     if (!evidenced.has(n)) {
       v.push({ rule: 'numero_sem_evidencia', detail: `número "${n}" não está vinculado a nenhum fato com fonte` });
     }
@@ -165,6 +165,13 @@ export function validateCopy(
   if (tags.length > MAX_HASHTAGS) v.push({ rule: 'hashtags_demais', detail: `${tags.length} > ${MAX_HASHTAGS}` });
 
   // 7. Imagem com crédito (se houver imagem de fonte, o crédito precisa constar).
+  // 8. Conteúdo patrocinado sempre rotulado no texto do post.
+  if (article.sponsored) {
+    const label = article.sponsored.label.trim();
+    if (!label || !text.includes(label)) {
+      v.push({ rule: 'publieditorial_sem_rotulo', detail: 'conteúdo patrocinado exige o rótulo no texto do post' });
+    }
+  }
   if (article.approvedImage?.credit && !text.includes(article.approvedImage.credit)) {
     v.push({ rule: 'sem_credito_imagem', detail: 'crédito da imagem ausente no texto' });
   }
@@ -200,6 +207,7 @@ export function generateLinkedInCopy(article: Article): LinkedInCopy {
   if (verified.length) {
     lines.push(`Citados: ${verified.map((m) => `@[${m.name}]`).join(', ')}`, '');
   }
+  if (article.sponsored?.label.trim()) lines.push(`Conteúdo patrocinado: ${article.sponsored.label.trim()}`, '');
   lines.push(`Leia a matéria completa: ${link}`);
   if (article.approvedImage?.credit) lines.push(`Imagem: ${article.approvedImage.credit}`);
   lines.push('', `${SIGNATURE} · ${tags.join(' ')}`);

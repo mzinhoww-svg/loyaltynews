@@ -49,6 +49,8 @@ export interface Article {
   gatesPassed: boolean;
   /** Marca fixture/demonstração: o criativo exibe MOCK. */
   mock?: boolean;
+  /** Conteúdo pago/patrocinado: o rótulo vai SEMPRE no texto do post (F-074). Ausente = matéria editorial comum. */
+  sponsored?: { label: string };
 }
 
 export interface Violation {
