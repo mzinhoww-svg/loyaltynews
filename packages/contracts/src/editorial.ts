@@ -49,6 +49,17 @@ export const ArticleStatus = z.enum([
 ]);
 export type ArticleStatus = z.infer<typeof ArticleStatus>;
 
+/** Tipo de conteúdo (campo transversal `content_type` do Blueprint v2.0; não é editoria). */
+export const ContentType = z.enum(['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento']);
+export type ContentType = z.infer<typeof ContentType>;
+
+/** Tempo de leitura DERIVADO do corpo (não é armazenado): ~200 palavras/min, mínimo 1 min; ignora marcação HTML/Markdown. */
+export function readingTimeMinutes(corpo: string, wordsPerMinute = 200): number {
+  const texto = corpo.replace(/<[^>]*>/g, ' ').replace(/[#*_>`~[\]()!-]/g, ' ');
+  const palavras = texto.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(palavras / wordsPerMinute));
+}
+
 /** Assinatura institucional única (D09): sem autor humano inventado. */
 export const ASSINATURA = 'Redação Loyalty News' as const;
 
@@ -58,11 +69,15 @@ export const Article = z
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     titulo: z.string().min(1).max(200),
     subtitulo: z.string().max(300).optional(),
+    /** Resumo para cards e SEO; obrigatório para publicar. */
+    resumo: z.string().min(1).max(300).optional(),
+    tipoConteudo: ContentType.default('noticia'),
     editoria: EditoriaSlug,
     status: ArticleStatus,
     assinatura: z.literal(ASSINATURA),
     corpo: z.string().min(1),
     fontes: z.array(EvidenceRef).min(1),
+    /** Imagem de capa, com crédito e base de direito (ImageRights). */
     imagem: ImageRights.optional(),
     classeDeDado: DataClass.default('public'),
     patrocinado: z.boolean().default(false),
@@ -70,6 +85,8 @@ export const Article = z
     versao: z.number().int().positive(),
     publicadoEm: IsoDateTime.optional(),
   })
+  .refine((a) => a.status !== 'publicado' || Boolean(a.resumo), { message: 'matéria publicada exige resumo', path: ['resumo'] })
+  .refine((a) => a.tipoConteudo !== 'patrocinado' || a.patrocinado, { message: 'tipo patrocinado exige patrocinado=true (rótulo)', path: ['patrocinado'] })
   .refine((a) => !a.patrocinado || Boolean(a.rotuloPublieditorial), {
     message: 'conteúdo pago sempre rotulado (F-074)',
     path: ['rotuloPublieditorial'],
