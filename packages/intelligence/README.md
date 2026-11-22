@@ -1,35 +1,42 @@
-# @loyaltynews/intelligence (Frente 08) — Entity Intelligence
+# @ln/intelligence (Frente 08) — Entity Intelligence
 
-Modelo relacional temporal em PostgreSQL (ADR-009, **proposta**, não aceita). Sem pgvector, sem extensão de grafo.
-Implementado em fast-track; **não homologado** (QA) nem operacional (DevOps).
+Modelo relacional temporal em PostgreSQL (ADR-009, **proposta**, não aceita), sem pgvector e sem extensão de grafo.
+Estado: implementado em fast-track; **não homologado** (QA) nem operacional (DevOps). Dados de teste: só MOCK.
 
-## O que há
-- `migrations/001_intelligence.sql`: schema `intelligence` — evidência, organizações, pessoas, cargos com vigência, relações corporativas, organograma (linha de reporte), Moves, watchlists, alertas, pedidos de titular, views `graph_edge` e `org_chart_view`.
-- `src/repo.ts`: escrita/leitura (evidência, organização, pessoa, cargo, relação, organograma).
-- `src/moves.ts`: Loyalty Moves — `processObservation` (baseline, unchanged, appointment, departure, title_change, org_change).
-- `src/watchlists.ts`: watchlists, alertas `pending_review`, revisão com revisor registrado.
-- `src/graph.ts`: consultas de grafo em SQL (CTE recursiva, ≤ 3 saltos, temporal por data): `neighbors`, `shortestPath`, `currentPeopleAt`, `sharedHistory`.
-- `src/subject-requests.ts`: acesso, retificação e supressão a pedido do titular (WF19).
-- `fixtures/mock-entities.ts`: dados **MOCK** (fictícios, domínio `.invalid`).
+## Mapa
+| Parte | Onde |
+|---|---|
+| Migrações SQL (schema `intelligence`) | `migrations/001_intelligence.sql` (modelo), `002_suppression_tombstone.sql` (bloqueio de reingestão), `003_graph_indexes.sql` |
+| Escrita/leitura básicas (evidência, empresa, pessoa, cargo, relação, organograma) | `src/repo.ts`, `src/queries.ts` |
+| Loyalty Moves (`processObservation`) | `src/moves.ts` |
+| Watchlists e alertas | `src/watchlists.ts` |
+| Grafo em SQL, ≤ 3 saltos, temporal | `src/graph.ts` (`neighbors`, `shortestPath`, `currentPeopleAt`, `sharedHistory`) |
+| Pedido do titular (acesso, retificação, supressão) | `src/subject-requests.ts` |
+| **Handlers de API** (funções puras para o Backend montar em `apps/web/app/api`) | `src/api.ts` — rotas sugeridas no cabeçalho do arquivo |
+| **Dados das telas** — Portal (público) e Studio | `src/views.ts` (`portal*`, `studio*`) |
+| **Contrato de ingestão** Editorial → Intelligence | `src/ingest.ts` + `INGESTION_CONTRACT.md` (`role-observation/1`) |
+| Benchmark de 100 mil arestas | `bench/perf.perf.ts` → `bench/results/latest.json` |
+| Fixtures MOCK | `fixtures/mock-entities.ts` |
 
 ## Regras codificadas (e testadas)
-1. Todo cargo, relação, aresta de organograma, pessoa e organização tem `evidence_id` e `observed_at` NOT NULL; cargos/relações/arestas também `validated_at`.
-2. Evidência só de fonte pública (`source_class='public'`), trecho ≤ 500 caracteres.
-3. Vínculo `inferred` exige `inference_basis`, fica fora das consultas por padrão e, quando incluído, o caminho vem com `all_declared=false`; o organograma rotula "inferido — não confirmado". Nunca como fato.
-4. Pessoa = nome (+ URL pública de perfil) + cargos/empresa (DP-11 P4). Qualquer outro campo é recusado com `extendedPersonalData=false` (aplicação) e por gatilho no banco (`intel_settings.extended_personal_data=false`). Ligar a flag exige mudança de migração/ADR, fora desta entrega (J-01 aberto).
-5. Primeira observação de uma pessoa é linha de base, não Move. Move nasce `detected`; alerta nasce `pending_review`; nada é publicado sem revisão.
-6. Homônimos não são fundidos só pelo nome. Pessoa suprimida some do grafo/Moves/alertas e não é recriada por reingestão.
+1. Todo cargo, relação, aresta de organograma, pessoa e organização tem `evidence_id` e `observed_at` NOT NULL; cargos/relações/arestas também `validated_at`. Evidência só de fonte pública, trecho ≤ 500 caracteres.
+2. Vínculo `inferred` exige `inference_basis`. Fica fora de consultas por padrão; no Studio, quando pedido, vem rotulado ("inferido — não confirmado"); em caminhos do grafo, `all_declared=false`. O portal **nunca** recebe inferido.
+3. **Flags desligadas por padrão** (`DEFAULT_CONFIG`): `personIngestion` (espelha `intelligencePessoas` de `@ln/contracts`; use `configFromFlags()`) e `extendedPersonalData` (trava também por gatilho no banco). Sem `personIngestion`, nenhuma pessoa é criada: `resolveOrCreatePerson`, `processObservation` e `ingestBatch` recusam.
+4. Pessoa = nome (+ URL pública de perfil opcional) + cargos/empresa (DP-11 P4). Qualquer outro campo é recusado.
+5. Primeira observação de uma pessoa é linha de base, não Move. Move nasce `detected`; alerta nasce `pending_review`; o portal só mostra Move `confirmed`.
+6. Homônimos não são fundidos só pelo nome; só por URL de perfil ou nome + mesma empresa.
+7. **Supressão (WF19)**: a pessoa some de exportação, consultas, grafo, organograma, Moves, alertas, watchlists, portal e Studio. A reingestão é bloqueada por **tombstones de hash** (sha256, sem nome em claro) de: URL de perfil; nome+empresa de cada cargo (qualquer fonte); nome+domínio de cada fonte (qualquer empresa). Limite conhecido: um homônimo sem URL, em outra empresa e outra fonte não é distinguível e entra como pessoa nova.
 
 ## Uso
-```ts
-import { PGlite } from '@electric-sql/pglite'; // testes; em produção, um cliente `pg` com a mesma interface Db
-import { applyMigrations, processObservation } from '@loyaltynews/intelligence';
-```
-`npm test` (vitest + PGlite = PostgreSQL real em memória), `npm run typecheck`.
+`npm test` na raiz (Vitest + PGlite = PostgreSQL real em memória), `npm run typecheck`, `npm run lint`; benchmark: `npm run perf -w @ln/intelligence`.
+Em produção, passe um cliente com `query(sql, params) -> {rows}` (interface `Db`) e aplique `migrationFiles()` com o executor de migrações do `@ln/db`.
+
+## Desempenho (ADR-009: p95 ≤ 300 ms com 100 mil arestas) — NÃO VERIFICADO na Vertra
+`bench/results/latest.json`: 114.990 arestas sintéticas, 3 saltos, PGlite (WASM, em memória) nesta máquina: p95 ≈ 425 ms (neighbors de organização), 385 ms (de pessoa), 355 ms (caminho) — **acima** do critério proposto. Antes dos índices: p95 ≈ 444 ms (`bench/results/v1-sem-indices.json`). **Isto não vale como medição do PostgreSQL da Vertra** (WASM, single-thread, sem disco/rede); o critério só se confirma em R5-05 no PostgreSQL 18, com `EXPLAIN (ANALYZE, BUFFERS)`. Se estourar lá, caminhos: materializar vizinhança por entidade, limitar grau por salto, ou migrar para grafo (critérios de 03 §7).
 
 ## Não verificado / pendências
-- Desempenho com 100 mil arestas (critério ADR-009: p95 ≤ 300 ms, a fixar em R5-05): só smoke com ~5 mil arestas em PGlite/WASM.
-- Testado em PGlite (PostgreSQL 17 WASM), não em PostgreSQL 18 da Vertra.
-- Sem coleta real: nenhuma fonte, nenhum crawler. A ingestão virá de `packages/editorial` via `RoleObservation`.
-- Flag oficial em `packages/contracts/flags.ts` (Chief Architect) ainda não existe; aqui há `IntelligenceConfig`. Integração com `packages/db` (executor de migrações) e API pelo Backend.
-- Base legal LGPD/controlador (J-01/R1-01) não resolvida: a flag ampliada continua desligada.
+- PostgreSQL 18 da Vertra; volume e latência reais; concorrência.
+- Integração com `@ln/db` (Drizzle): as migrações do Intelligence ainda são SQL próprio; o Chief Architect decide se entram em `packages/db`.
+- Contratos compartilhados: `@ln/contracts/intelligence` (Company/Person/Role/Move, em português) ainda não é produzido pelos handlers, que devolvem formas em inglês com evidência e `validated_at`. Proposta ao Chief Architect: um adaptador no Backend, ou alinhar os schemas (incluir `validated_at`, `certainty`, `status` do Move).
+- Base legal LGPD/controlador (J-01/R1-01): as duas chaves de dado pessoal permanecem desligadas.
+- Sem coleta real: nenhuma fonte, nenhum crawler.

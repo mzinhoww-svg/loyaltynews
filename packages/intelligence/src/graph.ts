@@ -27,7 +27,7 @@ export interface Reached {
 
 // Arestas vigentes na data, tornadas não direcionadas para a travessia.
 const EDGES_CTE = `
-  edges AS (
+  edges AS NOT MATERIALIZED (
     SELECT src_type AS a_type, src_id AS a_id, dst_type AS b_type, dst_id AS b_id, edge_id, certainty
       FROM ${S}.graph_edge
      WHERE valid_from <= $3::date AND (valid_to IS NULL OR valid_to > $3::date) AND ($4::boolean OR certainty = 'declared')

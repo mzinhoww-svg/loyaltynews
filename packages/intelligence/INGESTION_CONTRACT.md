@@ -47,6 +47,9 @@ Um lote por **fonte coletada** (uma página/comunicado), com a evidência uma ve
 Escopo de dado de pessoa (DP-11 P4): nome, cargo e empresa de fonte pública. Nada além: sem e-mail, telefone, endereço, documento, idade, família, redes pessoais.
 Chaves desconhecidas são recusadas (não há campo "livre").
 
+## Pré-condição: flag `intelligencePessoas`
+Enquanto a flag `intelligencePessoas` (`@ln/contracts`) estiver desligada (default, J-01), `ingestBatch` recusa o lote inteiro com `person_ingestion_disabled` e **não grava nada**. O Editorial deve tratar isso como "Intelligence indisponível", não como erro de dado.
+
 ## O que o Intelligence faz
 1. Valida o lote (cabeçalho inválido ⇒ lote recusado, nada gravado).
 2. Grava a evidência e processa cada observação, em ordem, via `processObservation`.
@@ -56,7 +59,7 @@ Resultados de `processed`:
 - `baseline`: primeira vez que vemos a pessoa; **não** gera Move.
 - `unchanged`: mesmo cargo/empresa; só revalida (`validated_at`).
 - `move`: `appointment | departure | title_change | org_change`; nasce `detected`, entra na fila de revisão.
-- `ignored`: `stale_observation` (mais antiga que o cargo aberto), `no_open_role_to_close`, `subject_suppressed` (titular pediu supressão).
+- `ignored`: `stale_observation` (mais antiga que o cargo aberto), `no_open_role_to_close`, `subject_suppressed` (titular pediu supressão; o bloqueio vale por URL de perfil, nome+empresa e nome+domínio da fonte — o Editorial não deve tentar contornar).
 
 ## Garantias para o Editorial
 - **Idempotência:** reenviar o mesmo lote não duplica cargos nem Moves (a evidência é regravada; o resultado vira `unchanged`).
