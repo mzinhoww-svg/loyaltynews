@@ -11,8 +11,12 @@ test('studio responde', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'LN Studio' })).toBeVisible();
 });
 
-test('api/health responde ok sem flags ligadas', async ({ request }) => {
+test('api/health responde ok com version e env, sem expor flags', async ({ request }) => {
   const r = await request.get('/api/health');
   expect(r.ok()).toBe(true);
-  expect(await r.json()).toMatchObject({ status: 'ok', flagsLigadas: [] });
+  const body = await r.json();
+  expect(body).toMatchObject({ status: 'ok', service: 'loyaltynews-web' });
+  expect(typeof body.version).toBe('string');
+  expect(typeof body.env).toBe('string');
+  expect(body).not.toHaveProperty('flagsLigadas');
 });
