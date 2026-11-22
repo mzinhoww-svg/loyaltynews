@@ -6,9 +6,10 @@ test('home responde e lista as 10 editorias', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Editorias' }).getByRole('listitem')).toHaveCount(10);
 });
 
-test('studio responde', async ({ page }) => {
+test('studio nega por padrão sem sessão', async ({ page }) => {
   await page.goto('/studio');
-  await expect(page.getByRole('heading', { level: 1, name: 'LN Studio' })).toBeVisible();
+  await expect(page).toHaveURL(/\/studio\/entrar/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Acesso restrito' })).toBeVisible();
 });
 
 test('api/health responde ok com version e env, sem expor flags', async ({ request }) => {
