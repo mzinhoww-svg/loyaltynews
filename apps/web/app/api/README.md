@@ -40,8 +40,14 @@ Matéria: `resumo` (até 300, obrigatório para aprovar/publicar), `tipoConteudo
 ## Workers (apps/workers)
 `npm run build -w @ln/workers` gera `apps/workers/dist/index.js`; `node dist/index.js` exige `DATABASE_URL` e `REDIS_URL`. BullMQ nas 7 filas do ADR-002; Redis só com IDs; outbox no PostgreSQL com lease e `SKIP LOCKED`; reconciliador recria jobs perdidos; efeito exatamente-uma-vez por `effect_ledger`. Fila sem handler registrado em `src/handlers.ts` não tem worker (os jobs esperam). Produtores gravam com `enqueueOutbox(tx, ...)` na mesma transação do efeito.
 
-## Pendente de integração
-Comercial (handlers `ROUTES`), Intelligence (entidades temporais, substitui `companies/people`), Editorial (`EditorialStore` em PostgreSQL) e inventário/campanhas: dependem de merge das branches `ft/commercial`, `ft/intelligence`, `ft/editorial`. Rotas de entidades foram removidas por obsolescência (decisão do Arquiteto).
+## Módulos plugados por adaptador (handlers puros → rotas)
+- **Comercial** `/api/commercial/**` (tabela `ROUTES` de `@ln/commercial/api`): públicas (mídia kit, formatos, disponibilidade, lead com limite por IP, ad server) e Studio. `ctx.actor.canManageCommercial` vem do RBAC (`campanhas:update` e `inventario:update`: admin e comercial). O estado do domínio é hidratado do PostgreSQL por requisição e só a diferença é gravada; escritas rodam numa transação com `pg_advisory_xact_lock`. Estado de disponibilidade do formato vem de `ad_formats` (ajustável). Limitações: deduplicação de impressão/refresh do ad server vive na memória do processo (o banco guarda só agregado diário), e `rotulada` é sempre verdadeiro (regra F-074 do banco). O acesso aos campos privados das classes do domínio está isolado em `_lib/commercial/internals.ts` (pedido à Frente 10: `load()`/`snapshot()` oficiais).
+- **Intelligence** `/api/intelligence/**` (Portal) e `/api/studio/intelligence/**`: Portal só lê pessoas com a flag `intelligencePessoas` (senão 403 `FEATURE_DISABLED`); nunca recebe inferidos. Revisão de move/alerta exige `materias:transition`; pedidos do titular (LGPD) só admin.
+- **Editorial**: `PgEditorialStore` (em `@ln/workers/editorial-store`) implementa a porta `EditorialStore` e passa `runEditorialStoreContract` (14 casos). Tabelas `editorial_*`; `record` em `json` (preserva ordem de chaves); auditoria somente-acréscimo. As rotas do Studio editorial ainda não estão montadas.
+- Adaptador genérico: `_lib/handler-adapter.ts` (`createDispatcher`: caminhos com `:param`, permissão por rota, limite de POST público, auditoria).
+
+## Pendente
+Rotas do Studio editorial sobre `PgEditorialStore` (handlers de `@ln/editorial/api`); Growth (mLabs).
 
 ## Operação
 `GET /api/health` (processo vivo), `GET /api/ready` (banco e Redis respondem; 503 se não). `APP_MODE=nodb`: sobe sem banco; rotas de dados respondem 503 `NOT_CONFIGURED` e `/api/ready` diz `mode: nodb`.
