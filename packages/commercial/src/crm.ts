@@ -9,6 +9,8 @@ export interface Lead {
   /** Opt-in da newsletter é separado do contato comercial; nunca pré-marcado. */
   newsletterOptIn: boolean;
   status: LeadStatus; createdAt: string; accountId: string | null;
+  /** Momento do consentimento (contracts/Lead.consentimentoEm). */
+  consentAt: string;
 }
 export interface Account { id: string; name: string; leadIds: string[]; createdAt: string }
 export interface Opportunity {
@@ -44,7 +46,7 @@ export class Crm {
     const l: Lead = {
       id: `lead-${++this.seq}`, name: input.name.trim(), company: input.company.trim(), email: input.email.trim().toLowerCase(),
       whatsapp: input.whatsapp?.trim() || null, formatIds: input.formatIds ?? [], objective: input.objective ?? '', message: input.message ?? '',
-      newsletterOptIn: input.newsletterOptIn === true, status: 'novo', createdAt: now, accountId: null,
+      newsletterOptIn: input.newsletterOptIn === true, status: 'novo', createdAt: now, accountId: null, consentAt: now,
     };
     this.leads.set(l.id, l);
     return l;

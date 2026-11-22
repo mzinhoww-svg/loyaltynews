@@ -5,6 +5,8 @@ export const METHODOLOGY_VERSION = 'mk-1';
 /** Idade máxima (ms) por classe antes de marcar 'stale'. Realtime GA4 ~ minutos; histórico ~ dia. */
 export const STALE_AFTER_MS = { realtime: 10 * 60_000, historical: 36 * 3_600_000 } as const;
 
+export class MetricError extends Error { code = 'INVALID_METRIC' as const; }
+
 export interface MetricKey { source: string; metric: string }
 
 export function unavailable(key: MetricKey): MetricRecord {
@@ -18,13 +20,13 @@ export class MetricStore {
   /** Registra uma coleta real. Exige origem, período e horário; recusa valor sem esses campos. */
   ingest(r: { source: string; metric: string; value: number; period_start: string; period_end: string; fetched_at: string; methodology_version?: string }): MetricRecord {
     for (const f of ['source', 'metric', 'period_start', 'period_end', 'fetched_at'] as const) {
-      if (!r[f]) throw new Error(`Métrica sem ${f}: recusada.`);
+      if (!r[f]) throw new MetricError(`Métrica sem ${f}: recusada.`);
     }
     for (const f of ['period_start', 'period_end', 'fetched_at'] as const) {
-      if (Number.isNaN(Date.parse(r[f]))) throw new Error(`Métrica com ${f} inválido: recusada.`);
+      if (Number.isNaN(Date.parse(r[f]))) throw new MetricError(`Métrica com ${f} inválido: recusada.`);
     }
-    if (!Number.isFinite(r.value)) throw new Error('Métrica com valor não numérico: recusada.');
-    if (Date.parse(r.period_end) < Date.parse(r.period_start)) throw new Error('period_end anterior a period_start.');
+    if (!Number.isFinite(r.value)) throw new MetricError('Métrica com valor não numérico: recusada.');
+    if (Date.parse(r.period_end) < Date.parse(r.period_start)) throw new MetricError('period_end anterior a period_start.');
     const rec: MetricRecord = { ...r, status: 'available', methodology_version: r.methodology_version ?? METHODOLOGY_VERSION };
     this.last.set(this.k(r), rec);
     return rec;

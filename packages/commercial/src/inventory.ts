@@ -87,6 +87,19 @@ export class InventoryBook {
     };
   }
 
+  /** Uso por dia (cotas ocupadas) em [startDate, endDate], até 366 dias; marca dias com takeover. */
+  dailyUsage(positionId: string, startDate: string, endDate: string) {
+    const p = this.position(positionId);
+    const days = daysInclusive(startDate, endDate);
+    if (days > 366) throw new InventoryError('INVALID_PERIOD', 'Janela máxima de 366 dias.');
+    const rs = this.active(positionId);
+    return Array.from({ length: days }, (_, i) => {
+      const date = new Date(parse(startDate) + i * DAY).toISOString().slice(0, 10);
+      const used = rs.filter((r) => overlaps(r.startDate, r.endDate, date, date)).length;
+      return { date, used, free: p.slotLimit === null ? null : Math.max(0, p.slotLimit - used), takeover: this.takeovers.some((t) => t.date === date) };
+    });
+  }
+
   /** Transação síncrona: valida período, contrato mínimo, cotas e takeover antes de gravar. */
   reserve(input: { positionId: string; advertiserId: string; campaignId?: string | null; startDate: string; endDate: string; status?: ReservationStatus }): Reservation {
     const p = this.position(input.positionId);

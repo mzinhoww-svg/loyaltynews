@@ -40,6 +40,8 @@ export class AdServer {
     if (!c) { c = { served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 }; this.counters.set(creativeId, c); }
     return c;
   }
+  creativesOf(campaignId: string): readonly Creative[] { return this.creatives.filter((c) => c.campaignId === campaignId); }
+  listCreatives(): readonly Creative[] { return this.creatives; }
   eligible(positionId: string, today: string): Creative[] {
     return this.creatives.filter((c) => c.positionId === positionId && c.approved && c.campaignActive && c.startDate <= today && today <= c.endDate);
   }
