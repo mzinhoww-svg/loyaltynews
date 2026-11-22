@@ -29,7 +29,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
             Sessão: <strong>{session!.userId}</strong> · papéis: {session!.roles.join(', ')}
           </p>
           {simulada ? (
-            <span className="st-mock" role="status">
+            <span className="st-mock">
               MOCK · sessão de teste simulada (não é login real)
             </span>
           ) : null}

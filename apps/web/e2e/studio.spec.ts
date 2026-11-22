@@ -35,6 +35,9 @@ const MODULOS: Array<[string, string]> = [
   ['permissoes', 'Permissões'],
 ];
 
+// Módulos com tela própria (os demais mostram o estado vazio genérico).
+const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia'];
+
 test.describe('proteção de rota (negar por padrão)', () => {
   for (const rota of ['/studio', '/studio/cms', '/studio/cms/nova', '/studio/cms/checagem', '/studio/fontes', '/studio/finops', '/studio/nao-existe']) {
     test(`sem sessão ${rota} vai para acesso restrito`, async ({ page }) => {
@@ -79,7 +82,7 @@ test.describe('shell e navegação', () => {
     for (const [slug, nome] of MODULOS) {
       await page.goto(`/studio/${slug}`);
       await expect(page.getByRole('heading', { level: 1, name: nome })).toBeVisible();
-      if (slug !== 'cms') {
+      if (!IMPLEMENTADOS.includes(slug)) {
         await expect(page.getByRole('heading', { name: 'Nenhum dado disponível' })).toBeVisible();
         await expect(nav.getByRole('link', { name: nome })).toHaveAttribute('aria-current', 'page');
       }
