@@ -6,5 +6,6 @@ export default defineConfig({
     exclude: ['**/node_modules/**', 'apps/web/e2e/**'],
     environment: 'node',
     testTimeout: 30_000,
+    hookTimeout: 120_000, // beforeAll migra PGlite; máquina carregada passa de 10 s
   },
 });

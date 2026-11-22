@@ -64,6 +64,20 @@
       "when": 1795385878438,
       "tag": "0008_backend_source_editorias",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795386668932,
+      "tag": "0009_editorial_store",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795386671157,
+      "tag": "0010_editorial_audit_append_only",
+      "breakpoints": true
     }
   ]
 }

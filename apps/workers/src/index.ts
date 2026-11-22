@@ -3,3 +3,4 @@ export * from './queues';
 export * from './reconciler';
 export * from './pg-stores';
 export * from './runtime';
+export * from './editorial-store';
