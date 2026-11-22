@@ -96,3 +96,56 @@ test('registro: seed honesto — nenhuma fonte coletável, todas as editorias se
   assert.ok(reg.byEditoria('regulacao-dados').length >= 1);
   assert.throws(() => reg.add(SEED_SOURCES[0]!), /duplicate/);
 });
+
+// ---------- prefixo de caminho (hosts compartilhados, ex.: www.gov.br/<órgão>) ----------
+import { normalizePrefix, pathInPrefix } from '../src/collector/ssrf.ts';
+
+const GOV: typeof MOCK_SOURCE = { ...MOCK_SOURCE, id: 'mock-gov', host: 'www.gov.mock', pathPrefix: '/orgao', feedUrl: null };
+const govWeb = () => new MockFetcher({
+  'https://www.gov.mock/robots.txt': 'User-agent: *\nDisallow: /orgao/interno/',
+  'https://www.gov.mock/orgao/noticias/a': '<html><body><article><h1>MOCK Nota</h1><p>Texto fictício do órgão de teste.</p></article></body></html>',
+  'https://www.gov.mock/outro-orgao/noticias/b': '<html><body><article><h1>MOCK B</h1><p>Outro órgão.</p></article></body></html>',
+  'https://www.gov.mock/orgao/redir': { status: 302, headers: { location: '/outro-orgao/noticias/b' }, body: '' },
+});
+
+test('prefixo: normalização e fronteira de segmento', () => {
+  assert.equal(normalizePrefix('anpd/'), '/anpd');
+  assert.equal(normalizePrefix('/'), null);
+  assert.equal(normalizePrefix(null), null);
+  assert.equal(pathInPrefix('/anpd', '/anpd'), true);
+  assert.equal(pathInPrefix('/anpd/x', '/anpd'), true);
+  assert.equal(pathInPrefix('/anpdx/x', '/anpd'), false);
+  assert.equal(pathInPrefix('/outro', '/anpd'), false);
+});
+
+test('prefixo: URL fora do prefixo, com .. ou %2e%2e é recusada; dentro é aceita', () => {
+  const ok = (u: string) => assertAllowedUrl(u, ['www.gov.mock'], '/orgao');
+  assert.doesNotThrow(() => ok('https://www.gov.mock/orgao/noticias/a'));
+  for (const u of ['https://www.gov.mock/outro-orgao/x', 'https://www.gov.mock/orgaox/x', 'https://www.gov.mock/orgao/../outro-orgao/x', 'https://www.gov.mock/orgao/%2e%2e/outro-orgao/x', 'https://www.gov.mock/']) {
+    assert.throws(() => ok(u), (e: unknown) => e instanceof UrlRejected && e.code === 'path_outside_prefix', u);
+  }
+});
+
+test('prefixo: coletor coleta dentro, recusa fora, aplica robots e não segue redirect para outro órgão', async () => {
+  const f = govWeb();
+  const c = new Collector(f, { now: fixedNow });
+  const inside = await c.collectUrl(GOV, 'https://www.gov.mock/orgao/noticias/a');
+  assert.ok(inside.evidence);
+  assert.equal((await c.collectUrl(GOV, 'https://www.gov.mock/outro-orgao/noticias/b')).skip?.code, 'url_rejected');
+  assert.equal((await c.collectUrl(GOV, 'https://www.gov.mock/orgao/interno/x')).skip?.code, 'robots_disallow');
+  const redir = await c.collectUrl(GOV, 'https://www.gov.mock/orgao/redir');
+  assert.equal(redir.skip?.code, 'url_rejected');
+  assert.ok(!f.calls.includes('https://www.gov.mock/outro-orgao/noticias/b'), 'rede nunca consultou o outro órgão');
+  // robots.txt (na raiz do host) é consultado apesar do prefixo
+  assert.ok(f.calls.includes('https://www.gov.mock/robots.txt'));
+});
+
+test('registro: host compartilhado sem pathPrefix é inelegível; com prefixo válido passa a depender só dos demais critérios', () => {
+  const shared = { ...MOCK_SOURCE, id: 'sh', host: 'www.gov.br', pathPrefix: null };
+  assert.deepEqual((eligibility(shared) as { reasons: string[] }).reasons, ['shared_host_needs_path_prefix']);
+  assert.equal(eligibility({ ...shared, pathPrefix: '/anpd' }).ok, true);
+  assert.throws(() => new SourceRegistry([{ ...shared, pathPrefix: 'anpd com espaço' }]), /invalid pathPrefix/);
+  const seed = new SourceRegistry(SEED_SOURCES);
+  assert.equal(seed.get('anpd')?.pathPrefix, '/anpd');
+  assert.equal(seed.get('cvm')?.pathPrefix, '/cvm');
+});

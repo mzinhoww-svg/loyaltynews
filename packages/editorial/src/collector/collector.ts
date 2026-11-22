@@ -40,7 +40,7 @@ export class Collector {
   private async safeGet(url: string, source: Source): Promise<HttpResponse> {
     let cur = url;
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
-      assertAllowedUrl(cur, [source.host]);
+      assertAllowedUrl(cur, [source.host], source.pathPrefix, { allowRobots: new URL(cur).pathname === '/robots.txt' });
       const r = await this.fetcher.get(cur, { userAgent: this.ua });
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
         cur = new URL(r.headers['location'], cur).toString();
@@ -69,7 +69,7 @@ export class Collector {
     const el = eligibility(source);
     if (!el.ok) return { skip: { url, code: 'source_not_eligible', detail: el.reasons.join(',') } };
     let u: URL;
-    try { u = assertAllowedUrl(url, [source.host]); } catch (e) {
+    try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
     const rules = await this.robotsFor(source);
@@ -117,7 +117,7 @@ export class Collector {
 
   private async collectRaw(source: Source, url: string): Promise<{ body?: string; skip?: Skip }> {
     let u: URL;
-    try { u = assertAllowedUrl(url, [source.host]); } catch (e) {
+    try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
     const rules = await this.robotsFor(source);

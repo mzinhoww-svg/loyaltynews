@@ -20,6 +20,8 @@ export interface Source {
   editorias: Editoria[];
   /** Host exato permitido para coleta (sem curinga). */
   host: string;
+  /** Para hosts compartilhados (ex.: www.gov.br): prefixo de caminho do órgão, ex.: '/anpd'. null = host inteiro. */
+  pathPrefix?: string | null;
   /** URL de listagem pública (página de notícias/comunicados). null = não identificada. */
   listingUrl: string | null;
   /** URL de feed RSS/Atom. null = não identificado (nunca inventar). */

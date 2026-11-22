@@ -1,5 +1,9 @@
 import type { Editoria, Source } from '../types.ts';
 import { EDITORIAS } from '../types.ts';
+import { normalizePrefix } from '../collector/ssrf.ts';
+
+/** Hosts compartilhados por vários órgãos: exigem pathPrefix. */
+export const SHARED_HOSTS: readonly string[] = ['www.gov.br'];
 
 export type Eligibility = { ok: true } | { ok: false; reasons: string[] };
 
@@ -11,6 +15,7 @@ export function eligibility(s: Source): Eligibility {
   if (!s.urlVerified) reasons.push('url_unverified');
   if (s.paywall === 'login' || s.paywall === 'metered') reasons.push(`paywall_${s.paywall}`);
   if (s.paywall === 'unknown') reasons.push('paywall_unknown');
+  if (SHARED_HOSTS.includes(s.host.toLowerCase()) && !normalizePrefix(s.pathPrefix)) reasons.push('shared_host_needs_path_prefix');
   if (!s.robotsRespected) reasons.push('robots_not_respected');
   return reasons.length ? { ok: false, reasons } : { ok: true };
 }
@@ -23,6 +28,7 @@ export class SourceRegistry {
   add(s: Source): void {
     if (this.byId.has(s.id)) throw new Error(`duplicate source id: ${s.id}`);
     if (!s.host || /[\s*/]/.test(s.host)) throw new Error(`invalid host for ${s.id}`);
+    if (s.pathPrefix && !/^\/[A-Za-z0-9._~\-/]+$/.test(s.pathPrefix)) throw new Error(`invalid pathPrefix for ${s.id}`);
     for (const e of s.editorias) if (!EDITORIAS.includes(e)) throw new Error(`unknown editoria ${e} in ${s.id}`);
     this.byId.set(s.id, s);
   }

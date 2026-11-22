@@ -28,8 +28,23 @@ export function isPrivateHost(hostname: string): boolean {
   return false;
 }
 
-/** Valida URL de coleta: http(s), sem credenciais, sem host privado, host dentro da allowlist. */
-export function assertAllowedUrl(raw: string, allowedHosts: readonly string[]): URL {
+/** Normaliza prefixo: começa com '/', sem barra final; '/' ou vazio = sem restrição. */
+export function normalizePrefix(p: string | null | undefined): string | null {
+  if (!p) return null;
+  const t = '/' + p.trim().replace(/^\/+|\/+$/g, '');
+  return t === '/' ? null : t;
+}
+
+export function pathInPrefix(pathname: string, prefix: string | null): boolean {
+  if (!prefix) return true;
+  return pathname === prefix || pathname.startsWith(prefix + '/');
+}
+
+/**
+ * Valida URL de coleta: http(s), sem credenciais, sem host privado, host na allowlist e, se houver, caminho dentro do prefixo.
+ * O parser WHATWG já resolve '..' e '%2e%2e' antes da checagem. '/robots.txt' é isento do prefixo (vive na raiz do host).
+ */
+export function assertAllowedUrl(raw: string, allowedHosts: readonly string[], pathPrefix?: string | null, opts: { allowRobots?: boolean } = {}): URL {
   let u: URL;
   try { u = new URL(raw); } catch { throw new UrlRejected('invalid_url', `URL inválida: ${raw}`); }
   if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new UrlRejected('bad_scheme', `esquema ${u.protocol}`);
@@ -37,6 +52,10 @@ export function assertAllowedUrl(raw: string, allowedHosts: readonly string[]): 
   if (isPrivateHost(u.hostname)) throw new UrlRejected('private_host', `host privado: ${u.hostname}`);
   if (!allowedHosts.map((h) => h.toLowerCase()).includes(u.hostname.toLowerCase())) {
     throw new UrlRejected('host_not_allowed', `host fora da lista permitida: ${u.hostname}`);
+  }
+  const prefix = normalizePrefix(pathPrefix);
+  if (prefix && !pathInPrefix(u.pathname, prefix) && !(opts.allowRobots && u.pathname === '/robots.txt')) {
+    throw new UrlRejected('path_outside_prefix', `caminho fora do prefixo ${prefix}: ${u.pathname}`);
   }
   return u;
 }
