@@ -1,17 +1,17 @@
 // Repositório do módulo comercial: hidrata o contexto do domínio (@ln/commercial) a partir do PostgreSQL
-// (schema em @ln/db/schema/commercial.ts) e persiste só o que o handler mudou (diferença linha a linha).
-// Leituras: sem lock. Escritas: uma transação com lock consultivo (pg_advisory_xact_lock), então reservas e
-// transições se serializam. Hoje carrega as tabelas inteiras por requisição (volume pequeno; otimizar depois).
+// (schema em @ln/db/schema/commercial.ts) pela API oficial `load()`/`snapshot()` e persiste só o que o handler
+// mudou (diferença linha a linha). Leituras: sem lock. Escritas: uma transação com lock consultivo
+// (pg_advisory_xact_lock), então reservas e transições se serializam. Carrega as tabelas inteiras por requisição
+// (volume pequeno; otimizar depois). O ad server público NÃO passa por aqui: ver ads.ts (Redis).
 import { getTableColumns, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
-  AdServer, CampaignBook, CATALOG, Crm, InventoryBook, MetricStore, POSITIONS,
-  type BannerPosition, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
-  type Lead, type Opportunity, type Reservation, type Takeover,
+  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION,
+  type Account, type BannerPosition, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
+  type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
 } from '@ln/commercial';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
-import { ads, camp, crmSeq, inv, maxSeq } from './internals';
 
 export const COMMERCIAL_LOCK = 7_010_001;
 
@@ -23,18 +23,7 @@ export interface Rows {
 export interface Hydrated {
   state: CommercialState;
   before: Rows;
-  /** Contadores de entrega ao hidratar (para gravar só o delta do dia). */
-  deliveryBase: Map<string, DeliveryCounters>;
 }
-
-// ---------- memória de impressões (processo) ----------
-// O banco guarda só agregado diário (sem dado de leitor). A deduplicação de impressão/refresh/clique vive aqui,
-// por processo: com mais de uma instância servindo anúncios ela deixa de ser estrita. Limitação registrada.
-const mem = {
-  credit: new Map<string, number>(), views: new Map<string, string>(), impressionCreative: new Map<string, string>(),
-  visibleSet: new Set<string>(), clickedSet: new Set<string>(), seq: 0,
-};
-const MEM_CAP = 100_000;
 
 const seeded = new WeakSet<object>();
 export async function seedCommercial(db: Db): Promise<void> {
@@ -57,44 +46,52 @@ export async function seedCommercial(db: Db): Promise<void> {
 
 const num = (v: string | null): number | null => (v === null ? null : Number(v));
 const iso = (d: Date): string => d.toISOString();
+const ZERO = (): DeliveryCounters => ({ served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 });
 
-export async function hydrate(db: Db): Promise<Hydrated> {
-  const [fmts, slots, accs, leads, opps, hist, camps, ress, tkos, crs, deliv, mets] = await Promise.all([
-    db.select().from(schema.adFormats), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
-    db.select().from(schema.crmLeads), db.select().from(schema.crmOpportunities),
-    db.select().from(schema.crmOpportunityHistory).orderBy(schema.crmOpportunityHistory.em, schema.crmOpportunityHistory.id),
-    db.select().from(schema.campaigns), db.select().from(schema.adReservations), db.select().from(schema.adTakeovers),
-    db.select().from(schema.adCreatives), db.select().from(schema.adDeliveryDaily), db.select().from(schema.commercialMetrics),
-  ]);
-
-  // catálogo: o código define o formato; o banco (ajustável no admin) manda no estado de disponibilidade
-  const byFmt = new Map(fmts.map((f) => [f.id, f]));
-  const catalog: CommercialFormat[] = CATALOG.map((f) => {
+/** Catálogo: o código define o formato; o banco (ajustável no admin) manda no estado de disponibilidade. */
+async function loadCatalog(db: Db): Promise<CommercialFormat[]> {
+  const byFmt = new Map((await db.select().from(schema.adFormats)).map((f) => [f.id, f]));
+  return CATALOG.map((f) => {
     const r = byFmt.get(f.id);
     return r ? { ...f, status: r.disponibilidade, statusReason: r.motivoDisponibilidade } : f;
   });
+}
 
+/** Criativos do ad server com `campaignActive` derivado do status da campanha. */
+export async function loadCreatives(db: Db): Promise<Creative[]> {
+  const [crs, camps] = await Promise.all([db.select().from(schema.adCreatives), db.select({ id: schema.campaigns.id, status: schema.campaigns.status }).from(schema.campaigns)]);
+  const active = new Set(camps.filter((c) => c.status === 'active').map((c) => c.id));
+  return crs.map((c): Creative => ({
+    id: c.id, campaignId: c.campanhaId, positionId: c.slotId, weight: c.peso, startDate: c.inicio, endDate: c.fim,
+    approved: c.aprovado, campaignActive: active.has(c.campanhaId), label: 'publicidade',
+  }));
+}
+
+export async function hydrate(db: Db): Promise<Hydrated> {
+  const [catalog, slots, accs, leads, opps, hist, camps, ress, tkos, creatives, deliv, mets] = await Promise.all([
+    loadCatalog(db), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
+    db.select().from(schema.crmLeads), db.select().from(schema.crmOpportunities),
+    db.select().from(schema.crmOpportunityHistory).orderBy(schema.crmOpportunityHistory.em, schema.crmOpportunityHistory.id),
+    db.select().from(schema.campaigns), db.select().from(schema.adReservations), db.select().from(schema.adTakeovers),
+    loadCreatives(db), db.select().from(schema.adDeliveryDaily), db.select().from(schema.commercialMetrics),
+  ]);
+
+  const leadList: Lead[] = leads.map((l) => ({
+    id: l.id, name: l.nome, company: l.empresa, email: l.email, whatsapp: l.whatsapp, formatIds: l.formatoIds as string[],
+    objective: l.objetivo, message: l.mensagem ?? '', newsletterOptIn: l.optInNewsletter, status: l.status,
+    createdAt: iso(l.criadoEm), accountId: l.contaId, consentAt: iso(l.consentimentoEm),
+  }));
+  const accountList: Account[] = accs.map((a) => ({
+    id: a.id, name: a.nome, leadIds: leadList.filter((l) => l.accountId === a.id).map((l) => l.id), createdAt: iso(a.criadoEm),
+  }));
+  const oppList: Opportunity[] = opps.map((o) => ({
+    id: o.id, accountId: o.contaId, leadId: o.leadId, title: o.titulo, formatIds: o.formatoIds as string[], stage: o.estagio,
+    lostReason: o.motivoPerda, nextAction: o.proximaAcao, nextActionDue: o.proximaAcaoPrazo, amountBRL: num(o.valorBrl),
+    proposalVersions: o.versoesProposta,
+    history: hist.filter((h) => h.oportunidadeId === o.id).map((h) => ({ from: h.de, to: h.para, at: iso(h.em) })),
+  }));
   const crm = new Crm();
-  for (const a of accs) crm.accounts.set(a.id, { id: a.id, name: a.nome, leadIds: [], createdAt: iso(a.criadoEm) });
-  for (const l of leads) {
-    const lead: Lead = {
-      id: l.id, name: l.nome, company: l.empresa, email: l.email, whatsapp: l.whatsapp, formatIds: l.formatoIds as string[],
-      objective: l.objetivo, message: l.mensagem ?? '', newsletterOptIn: l.optInNewsletter, status: l.status,
-      createdAt: iso(l.criadoEm), accountId: l.contaId, consentAt: iso(l.consentimentoEm),
-    };
-    crm.leads.set(lead.id, lead);
-    if (lead.accountId) crm.accounts.get(lead.accountId)?.leadIds.push(lead.id);
-  }
-  for (const o of opps) {
-    const opp: Opportunity = {
-      id: o.id, accountId: o.contaId, leadId: o.leadId, title: o.titulo, formatIds: o.formatoIds as string[], stage: o.estagio,
-      lostReason: o.motivoPerda, nextAction: o.proximaAcao, nextActionDue: o.proximaAcaoPrazo, amountBRL: num(o.valorBrl),
-      proposalVersions: o.versoesProposta,
-      history: hist.filter((h) => h.oportunidadeId === o.id).map((h) => ({ from: h.de, to: h.para, at: iso(h.em) })),
-    };
-    crm.opportunities.set(opp.id, opp);
-  }
-  crmSeq(crm).seq = maxSeq([...crm.leads.keys(), ...crm.accounts.keys(), ...crm.opportunities.keys()]);
+  crm.load({ version: SNAPSHOT_VERSION, seq: 0, leads: leadList, accounts: accountList, opportunities: oppList });
 
   const positions: BannerPosition[] = slots.length
     ? slots.map((s) => {
@@ -107,83 +104,77 @@ export async function hydrate(db: Db): Promise<Hydrated> {
       })
     : [...POSITIONS];
   const inventory = new InventoryBook(positions);
-  const iv = inv(inventory);
-  iv.reservations = ress.map((r): Reservation => ({
-    id: r.id, positionId: r.slotId, advertiserId: r.contaId, campaignId: r.campanhaId, startDate: r.inicio, endDate: r.fim, status: r.status,
-  }));
-  iv.takeovers = tkos.map((t): Takeover => ({ id: t.id, date: t.dia, advertiserId: t.contaId, agreedCampaignIds: t.campanhasAcordadas as string[] }));
-  iv.seq = maxSeq([...iv.reservations.map((r) => r.id), ...iv.takeovers.map((t) => t.id)]);
+  inventory.load({
+    version: SNAPSHOT_VERSION, seq: 0,
+    reservations: ress.map((r): Reservation => ({
+      id: r.id, positionId: r.slotId, advertiserId: r.contaId, campaignId: r.campanhaId, startDate: r.inicio, endDate: r.fim, status: r.status,
+    })),
+    takeovers: tkos.map((t): Takeover => ({ id: t.id, date: t.dia, advertiserId: t.contaId, agreedCampaignIds: t.campanhasAcordadas as string[] })),
+  });
 
   const campaigns = new CampaignBook();
-  const cb = camp(campaigns);
-  for (const c of camps) {
-    cb.items.set(c.id, {
+  campaigns.load({
+    version: SNAPSHOT_VERSION, seq: 0,
+    campaigns: camps.map((c): Campaign => ({
       id: c.id, name: c.nome, accountId: c.contaId, opportunityId: c.oportunidadeId, formatId: c.formatoId, positionId: c.slotId,
       startDate: c.inicio, endDate: c.fim, status: c.status, sponsoredLabel: true, // F-074: o banco só aceita campanha rotulada
-      reservationIds: iv.reservations.filter((r) => r.campaignId === c.id && r.status !== 'cancelled').map((r) => r.id),
+      reservationIds: inventory.list().filter((r) => r.campaignId === c.id && r.status !== 'cancelled').map((r) => r.id),
       history: c.historico as Campaign['history'],
-    });
-  }
-  cb.seq = maxSeq(cb.items.keys());
+    })),
+  });
 
-  const server = new AdServer();
-  const av = ads(server);
-  const activeCampaigns = new Set(camps.filter((c) => c.status === 'active').map((c) => c.id));
-  av.creatives = crs.map((c): Creative => ({
-    id: c.id, campaignId: c.campanhaId, positionId: c.slotId, weight: c.peso, startDate: c.inicio, endDate: c.fim,
-    approved: c.aprovado, campaignActive: activeCampaigns.has(c.campanhaId), label: 'publicidade',
-  }));
-  const deliveryBase = new Map<string, DeliveryCounters>();
+  // anúncios: o Studio só lê contadores (entrega diária do banco); servir é no ads.ts, com Redis
+  const server = new AdServer(new ImpressionLedger({ newId: () => crypto.randomUUID() }));
+  server.loadCreatives(creatives);
+  const counters: Record<string, DeliveryCounters> = {};
   for (const d of deliv) {
-    const c = deliveryBase.get(d.criativoId) ?? { served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 };
+    const c = (counters[d.criativoId] ??= ZERO());
     c.served += d.servidas; c.visible += d.visiveis; c.clicks += d.cliques;
     c.ignoredBotOrInternal += d.ignoradasBotInterno; c.refreshSuppressed += d.refreshSuprimido;
-    deliveryBase.set(d.criativoId, c);
   }
-  for (const [id, c] of deliveryBase) av.counters.set(id, { ...c });
-  if (mem.views.size > MEM_CAP) { mem.views.clear(); mem.impressionCreative.clear(); mem.visibleSet.clear(); mem.clickedSet.clear(); }
-  Object.assign(av, mem); // compartilha os mapas de impressão do processo
+  server.loadCounters(counters);
 
   const metrics = new MetricStore();
-  for (const m of mets) {
-    if (m.status === 'unavailable' || m.valor === null || !m.periodoInicio || !m.periodoFim || !m.coletadoEm) continue;
-    metrics.ingest({
-      source: m.origem, metric: m.metrica, value: Number(m.valor), period_start: iso(m.periodoInicio), period_end: iso(m.periodoFim),
-      fetched_at: iso(m.coletadoEm), methodology_version: m.versaoMetodologia,
-    });
-    if (m.status === 'stale') metrics.markFailure({ source: m.origem, metric: m.metrica });
-  }
+  metrics.load({
+    version: SNAPSHOT_VERSION,
+    records: mets
+      .filter((m) => m.status !== 'unavailable' && m.valor !== null && m.periodoInicio && m.periodoFim && m.coletadoEm)
+      .map((m): MetricRecord => ({
+        source: m.origem, metric: m.metrica, value: Number(m.valor), period_start: iso(m.periodoInicio!), period_end: iso(m.periodoFim!),
+        fetched_at: iso(m.coletadoEm!), status: m.status, methodology_version: m.versaoMetodologia,
+      })),
+  });
 
   const state: CommercialState = { catalog, crm, inventory, campaigns, ads: server, metrics };
-  return { state, before: rowsOf(state), deliveryBase };
+  return { state, before: rowsOf(state) };
 }
 
 /** Linhas do banco equivalentes ao estado do domínio (usadas para a diferença antes/depois). */
 export function rowsOf(s: CommercialState): Rows {
-  const crm = s.crm;
-  const opps = [...crm.opportunities.values()];
-  const camps = camp(s.campaigns).items;
+  const crm = s.crm.snapshot();
+  const inv = s.inventory.snapshot();
+  const camps = s.campaigns.snapshot().campaigns;
   return {
-    accounts: [...crm.accounts.values()].map((a) => ({ id: a.id, nome: a.name, criadoEm: new Date(a.createdAt) })),
-    leads: [...crm.leads.values()].map((l) => ({
+    accounts: crm.accounts.map((a) => ({ id: a.id, nome: a.name, criadoEm: new Date(a.createdAt) })),
+    leads: crm.leads.map((l) => ({
       id: l.id, nome: l.name, empresa: l.company, email: l.email, whatsapp: l.whatsapp, formatoIds: l.formatIds, objetivo: l.objective,
       mensagem: l.message || null, optInNewsletter: l.newsletterOptIn, consentimentoEm: new Date(l.consentAt), classeDeDado: 'personal',
       status: l.status, contaId: l.accountId, criadoEm: new Date(l.createdAt),
     })),
-    opportunities: opps.map((o) => ({
+    opportunities: crm.opportunities.map((o) => ({
       id: o.id, contaId: o.accountId, leadId: o.leadId, titulo: o.title, formatoIds: o.formatIds, estagio: o.stage, motivoPerda: o.lostReason,
       proximaAcao: o.nextAction, proximaAcaoPrazo: o.nextActionDue, valorBrl: o.amountBRL === null ? null : String(o.amountBRL),
       versoesProposta: o.proposalVersions,
     })),
-    history: opps.flatMap((o) => o.history.map((h, i) => ({ id: `${o.id}#${i}`, oportunidadeId: o.id, de: h.from, para: h.to, em: new Date(h.at) }))),
-    campaigns: [...camps.values()].map((c) => ({
+    history: crm.opportunities.flatMap((o) => o.history.map((h, i) => ({ id: `${o.id}#${i}`, oportunidadeId: o.id, de: h.from, para: h.to, em: new Date(h.at) }))),
+    campaigns: camps.map((c) => ({
       id: c.id, nome: c.name, contaId: c.accountId, oportunidadeId: c.opportunityId, formatoId: c.formatId, slotId: c.positionId,
       inicio: c.startDate, fim: c.endDate, status: c.status, rotulada: true, historico: c.history,
     })),
-    reservations: inv(s.inventory).reservations.map((r) => ({
+    reservations: inv.reservations.map((r) => ({
       id: r.id, slotId: r.positionId, contaId: r.advertiserId, campanhaId: r.campaignId, inicio: r.startDate, fim: r.endDate, status: r.status,
     })),
-    takeovers: inv(s.inventory).takeovers.map((t) => ({ id: t.id, dia: t.date, contaId: t.advertiserId, campanhasAcordadas: t.agreedCampaignIds })),
+    takeovers: inv.takeovers.map((t) => ({ id: t.id, dia: t.date, contaId: t.advertiserId, campanhasAcordadas: t.agreedCampaignIds })),
     creatives: s.ads.listCreatives().map((c) => ({
       id: c.id, campanhaId: c.campaignId, slotId: c.positionId, peso: Math.max(1, Math.round(c.weight)), inicio: c.startDate, fim: c.endDate,
       aprovado: c.approved,
@@ -214,7 +205,8 @@ async function upsert(db: Db, table: PgTable, rows: Row[], target: AnyPgColumn[]
   await db.insert(table).values(rows as never).onConflictDoUpdate({ target, set });
 }
 
-export async function persist(db: Db, h: Hydrated, after: CommercialState, today: string): Promise<void> {
+/** Grava só o que mudou, em ordem de dependência (FKs). A entrega de anúncios NÃO é gravada aqui (ads.ts + worker). */
+export async function persist(db: Db, h: Hydrated, after: CommercialState): Promise<void> {
   const a = rowsOf(after);
   const b = h.before;
   await upsert(db, schema.crmAccounts, changed(a.accounts, b.accounts), [schema.crmAccounts.id]);
@@ -226,29 +218,4 @@ export async function persist(db: Db, h: Hydrated, after: CommercialState, today
   await upsert(db, schema.adTakeovers, changed(a.takeovers, b.takeovers), [schema.adTakeovers.id]);
   await upsert(db, schema.adCreatives, changed(a.creatives, b.creatives), [schema.adCreatives.id]);
   await upsert(db, schema.commercialMetrics, changed(a.metrics, b.metrics), [schema.commercialMetrics.origem, schema.commercialMetrics.metrica]);
-
-  // entrega: só o delta do dia, somado à linha (criativo, dia)
-  const counters = ads(after.ads).counters;
-  for (const [creativeId, c] of counters) {
-    const base = h.deliveryBase.get(creativeId) ?? { served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 };
-    const d = {
-      servidas: c.served - base.served, visiveis: c.visible - base.visible, cliques: c.clicks - base.clicks,
-      ignoradasBotInterno: c.ignoredBotOrInternal - base.ignoredBotOrInternal, refreshSuprimido: c.refreshSuppressed - base.refreshSuppressed,
-    };
-    if (!Object.values(d).some((v) => v !== 0)) continue;
-    const t = schema.adDeliveryDaily;
-    await db
-      .insert(t)
-      .values({ id: `${creativeId}@${today}`, criativoId: creativeId, dia: today, ...d })
-      .onConflictDoUpdate({
-        target: [t.criativoId, t.dia],
-        set: {
-          servidas: sql`${t.servidas} + ${d.servidas}`, visiveis: sql`${t.visiveis} + ${d.visiveis}`, cliques: sql`${t.cliques} + ${d.cliques}`,
-          ignoradasBotInterno: sql`${t.ignoradasBotInterno} + ${d.ignoradasBotInterno}`,
-          refreshSuprimido: sql`${t.refreshSuprimido} + ${d.refreshSuprimido}`, atualizadoEm: new Date(),
-        },
-      });
-  }
-  Object.assign(mem, { seq: ads(after.ads).seq }); // mantém o contador de impressões do processo
 }
-

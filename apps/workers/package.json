@@ -6,11 +6,13 @@
   "description": "Workers Node/TS com BullMQ (ADR-002). Dono: Frente 02 — LN Backend Engineer.",
   "exports": {
     ".": "./src/index.ts",
-    "./editorial-store": "./src/editorial-store.ts"
+    "./editorial-store": "./src/editorial-store.ts",
+    "./ad-redis": "./src/ad-redis.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
     "@ln/auth": "0.0.0",
+    "@ln/commercial": "0.0.0",
     "@ln/contracts": "0.0.0",
     "@ln/db": "0.0.0",
     "@ln/editorial": "0.0.0",
