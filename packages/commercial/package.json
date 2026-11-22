@@ -1,0 +1,12 @@
+{
+  "name": "@loyaltynews/commercial",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Módulo comercial do Loyalty News 2.1: catálogo de 47 formatos, inventário, rotação, campanhas, CRM e mídia kit. Sem audiência fictícia.",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "node --test test/",
+    "gen:formats": "node scripts/gen-formats.mjs ../../../../r0-preparacao/arquitetura/formatos-comerciais-47.json"
+  }
+}
