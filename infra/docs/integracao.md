@@ -20,7 +20,7 @@ Relatórios em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\integracao\`
 | Base | `ft/scaffold` 8d5a4dd (o Studio foi rebaseado sobre o scaffold 519d80c; integrá-lo traz esses commits do scaffold junto) |
 | Merges | `ft/portal` (SHA do PM), `ft/studio` ac5438b, `ft/infra` |
 | Fora (por decisão do PM) | `ft/backend` (auth em correção; staging mínimo usa `APP_MODE=nodb`), demais frentes |
-| Resultado | ver a seção 4 (preenchida com a execução final) |
+| Resultado | etapa a etapa nos relatórios JSON (seção 4) |
 
 ## 3. Pontos de atenção
 - **Alvos que se movem.** Durante a montagem os SHAs mudaram várias vezes (Studio `c865d84` → `74c2148` → rebase → `ac5438b`; portal `4fcc01a` → `cd6a0f5` → `288a0cd`; scaffold `b940cfd` → `8d5a4dd` → `519d80c`). `74c2148` virou órfão por rebase: o commit equivalente rastreável é `ac5438b` (mesma mensagem, mesmo conteúdo; diferem só pelos arquivos do scaffold da nova base). Sempre fixar SHA e conferir `merge-base --is-ancestor`.
@@ -29,5 +29,9 @@ Relatórios em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\integracao\`
 - `ci-checks --deploy` sobre o conjunto passou depois de refinar duas regras (PEM de fixture de 4 caracteres em `packages/db`; `next.config.ts` do Studio que só **lê** `LN_STUDIO_TEST_SESSION` para recusar o build).
 - Ruído esperado nos testes: o jsdom avisa "HTMLCanvasElement getContext not implemented" (falta `@napi-rs/canvas`); não falha nada.
 
-## 4. Execução final e ensaio do pacote
-(preenchida abaixo no fim da rodada)
+## 4. Resultados e ensaio do pacote (ficam FORA do repositório)
+Para o commit integrado não carregar resultados que mudam a cada rodada, cada execução grava em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\`:
+- `integracao\integracao-<data>.json`: base, merges com SHA, SHA do commit integrado e o resultado e a cauda de cada etapa de `--verify`;
+- `staging\ln-web-staging-min-<sha12>\` (pasta), `.zip` e `.manifest.json`: o pacote, com o SHA-256 do ZIP e os comandos exatos;
+- `staging\ensaio-<sha12>.txt`: saída de `node infra/scripts/ensaio-pacote.mjs --manifest <manifesto>`, que instala a partir da pasta do pacote, prova que o guard recusa build e start com `LN_STUDIO_TEST_SESSION` ou `PORTAL_SOURCE=mock`, compila e sobe com os comandos do manifesto, e roda as sondas (commit certo, Studio negando sem login, nenhum "MOCK" no portal);
+- `staging\LEIA-ME.md`: SHAs e hashes da última versão pronta para o PM.
