@@ -11,7 +11,7 @@ export interface JobPayload {
   idempotencyKey: string;
 }
 
-const ID_RE = /^[A-Za-z0-9_.\-]{1,128}$/;
+const ID_RE = /^[A-Za-z0-9_.-]{1,128}$/;
 
 export function isQueueName(v: unknown): v is QueueName {
   return typeof v === 'string' && (QUEUE_NAMES as readonly string[]).includes(v);
