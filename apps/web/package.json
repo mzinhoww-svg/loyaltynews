@@ -1,0 +1,27 @@
+{
+  "name": "@ln/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Portal, LN Studio e API (Next.js App Router).",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@ln/auth": "0.0.0",
+    "@ln/contracts": "0.0.0",
+    "@ln/ui": "0.0.0",
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}

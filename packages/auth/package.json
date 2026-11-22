@@ -1,0 +1,14 @@
+{
+  "name": "@ln/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Autenticação do LN Studio (ADR-011). Dono: Frente 02 — LN Backend Engineer.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/contracts": "0.0.0"
+  }
+}

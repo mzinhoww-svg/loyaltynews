@@ -1,0 +1,24 @@
+{
+  "name": "@ln/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Schema Drizzle e migrações (PostgreSQL 18). Testes com PGlite. Dono: Frente 02 — LN Chief Architect.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@ln/contracts": "0.0.0",
+    "drizzle-orm": "0.45.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.17",
+    "drizzle-kit": "0.31.11"
+  }
+}
