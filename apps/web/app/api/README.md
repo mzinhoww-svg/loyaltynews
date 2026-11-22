@@ -27,8 +27,21 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 | `POST /api/materias/{id}/recibos` | materias:transition | só em `em_checagem`; `{versao, checagens[], identidadePublicacao?}`; 422 `GATES_FAILED` se falhar regra determinística; reenvio idêntico devolve 200 |
 | `POST /api/materias/{id}/transicao` | materias:transition (+`publish` p/ publicado, corrigido, despublicado) | `{para, nota?, versaoEsperada?}`; aprovar/publicar/corrigir exigem recibo válido (versão e hash do conteúdo); publicar só pela `identidadePublicacao` do recibo |
 
+| `GET/POST /api/fontes`, `GET/PATCH/DELETE /api/fontes/{id}` | fontes:* | fonte nasce inativa; ativar exige `termosRevisados`; só `acesso: publico`; URL só http(s) |
+| `GET/POST /api/fontes/{id}/evidencias` | fontes:read/create | evidência só de fonte ativa |
+| `GET/POST /api/midia`, `GET/DELETE /api/midia/{id}` | midia:* | só metadados e base de direito (`publicavel`); upload ao Blob ainda não ligado |
+| `GET/POST /api/agenda`, `GET/PATCH/DELETE /api/agenda/{id}` | agenda:* | `?from&to` (YYYY-MM-DD) |
+
+Matéria: `resumo` (até 300, obrigatório para aprovar/publicar), `tipoConteudo` (padrão `noticia`; `patrocinado` exige `patrocinado=true` + rótulo) e `tempoLeituraMin` derivado do corpo.
+
 ## Público (Portal, sem login)
-`GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`.
+`GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`, `GET /api/publico/agenda` (eventos que ainda não terminaram).
+
+## Workers (apps/workers)
+`npm run build -w @ln/workers` gera `apps/workers/dist/index.js`; `node dist/index.js` exige `DATABASE_URL` e `REDIS_URL`. BullMQ nas 7 filas do ADR-002; Redis só com IDs; outbox no PostgreSQL com lease e `SKIP LOCKED`; reconciliador recria jobs perdidos; efeito exatamente-uma-vez por `effect_ledger`. Fila sem handler registrado em `src/handlers.ts` não tem worker (os jobs esperam). Produtores gravam com `enqueueOutbox(tx, ...)` na mesma transação do efeito.
+
+## Pendente de integração
+Comercial (handlers `ROUTES`), Intelligence (entidades temporais, substitui `companies/people`), Editorial (`EditorialStore` em PostgreSQL) e inventário/campanhas: dependem de merge das branches `ft/commercial`, `ft/intelligence`, `ft/editorial`. Rotas de entidades foram removidas por obsolescência (decisão do Arquiteto).
 
 ## Operação
 `GET /api/health` (processo vivo), `GET /api/ready` (banco e Redis respondem; 503 se não). `APP_MODE=nodb`: sobe sem banco; rotas de dados respondem 503 `NOT_CONFIGURED` e `/api/ready` diz `mode: nodb`.
