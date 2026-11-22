@@ -1,0 +1,59 @@
+{
+  "disclaimer": "NÃO VALE COMO MEDIÇÃO DO POSTGRESQL DA VERTRA. PGlite = PostgreSQL em WASM, single-thread, em memória. Critério oficial (ADR-009, p95 <= 300 ms com 100 mil arestas) só se confirma no PG 18 da Vertra em R5-05.",
+  "generated_at": "2026-11-22T21:56:14.134Z",
+  "environment": {
+    "node": "v26.13.1",
+    "os": "win32 10.0.26200",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "cpu_count": 20,
+    "ram_gb": 15.7,
+    "engine": "PGlite (PostgreSQL WASM)"
+  },
+  "dataset": {
+    "synthetic": true,
+    "orgs": 20000,
+    "people": 15000,
+    "graph_edges": 114990,
+    "load_seconds": 10.2,
+    "as_of": "2026-11-22"
+  },
+  "queries": {
+    "per_series": 60,
+    "warmup_discarded": 5,
+    "max_hops": 3
+  },
+  "results": {
+    "neighbors_from_organization": {
+      "n": 60,
+      "p50_ms": 293.1,
+      "p95_ms": 443.9,
+      "p99_ms": 469.2,
+      "max_ms": 469.2,
+      "mean_ms": 313.4,
+      "entities_reached_median": 655,
+      "entities_reached_max": 1401
+    },
+    "neighbors_from_person": {
+      "n": 60,
+      "p50_ms": 274.2,
+      "p95_ms": 444.7,
+      "p99_ms": 570.3,
+      "max_ms": 570.3,
+      "mean_ms": 300.8
+    },
+    "shortest_path_org_to_org": {
+      "n": 60,
+      "p50_ms": 280.7,
+      "p95_ms": 418.1,
+      "p99_ms": 784.4,
+      "max_ms": 784.4,
+      "mean_ms": 307.4
+    }
+  },
+  "proposed_criterion": {
+    "p95_ms": 300,
+    "edges": 100000
+  },
+  "worst_p95_ms": 444.7,
+  "p95_within_proposed_criterion_on_this_machine": false
+}

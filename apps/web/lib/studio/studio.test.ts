@@ -8,7 +8,7 @@ import { testSeam as seamProd } from './test-seam.prod';
 import { TEST_COOKIE, parseTestSession, testSeam as seamE2e } from './test-seam.e2e.mock';
 import { CmsService, MemoryArticleRepository, checkVersion, currentVersion, hasBlockers, slugify, type VersionInput } from './cms/articles';
 
-const sess = (roles: Session['roles'], mfa = true): Session => ({ userId: 'u', roles, mfa });
+const sess = (roles: Session['roles'], mfa = true): Session => ({ userId: 'u', email: 'u@mock.invalid', role: roles[0]!, roles, mfa, sessionId: 's' });
 
 const valid: VersionInput = {
   titulo: 'Programa X muda regra de pontos',
@@ -69,7 +69,7 @@ describe('sessão do Studio', () => {
     expect((await resolveStudioSession(h, seamE2e, { LN_STUDIO_TEST_SESSION: 'true' })).session).toBeNull();
     const r = await resolveStudioSession(h, seamE2e, { LN_STUDIO_TEST_SESSION: '1' });
     expect(r.simulada).toBe(true);
-    expect(r.session).toEqual({ userId: 'u1', roles: ['admin', 'editor'], mfa: true });
+    expect(r.session).toMatchObject({ userId: 'u1', role: 'admin', roles: ['admin', 'editor'], mfa: true });
   });
   it('cookie inválido ou papel desconhecido não gera sessão', () => {
     expect(parseTestSession(undefined)).toBeNull();

@@ -4,7 +4,7 @@
 // Architect pode substituir. Sem dado pessoal; sem métrica fictícia.
 import { sql } from 'drizzle-orm';
 import { boolean, check, date, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { articles } from '../schema';
+import { articles, editorias, sources } from '../schema';
 
 /** Recibo de publicação (ADR-008): liga a versão e o hash do corpo às checagens que a aprovaram. */
 export const publicationReceipts = pgTable(
@@ -70,4 +70,14 @@ export const agendaEvents = pgTable(
     fonteUrl: text('fonte_url').notNull(),
   },
   (t) => [check('agenda_periodo', sql`${t.fim} >= ${t.inicio}`)],
+);
+
+/** Contrato Source.editorias (min 1): as editorias que a fonte cobre. */
+export const sourceEditorias = pgTable(
+  'source_editorias',
+  {
+    sourceId: text('source_id').notNull().references(() => sources.id, { onDelete: 'cascade' }),
+    editoria: text('editoria').notNull().references(() => editorias.slug),
+  },
+  (t) => [uniqueIndex('source_editorias_pk').on(t.sourceId, t.editoria)],
 );
