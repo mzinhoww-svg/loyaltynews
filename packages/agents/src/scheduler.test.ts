@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createBrCalendar } from '../src/calendar';
-import { loadRegistries } from '../src/config';
-import { completeAction, escalateOverdue, RitualScheduler, StoreInputCollector, classify, occurrencesOn } from '../src/scheduler';
-import { InMemoryStore } from '../src/store';
-import type { ParticipantInput } from '../src/schemas';
+import { createBrCalendar } from './calendar';
+import { loadRegistries } from './config';
+import { completeAction, escalateOverdue, RitualScheduler, StoreInputCollector, classify, occurrencesOn } from './scheduler';
+import { InMemoryStore } from './store';
+import type { ParticipantInput } from './schemas';
 
 const reg = loadRegistries();
+const ON = { rituais: true } as const;
 const cal = createBrCalendar();
 const meeting = (id: string) => reg.meetings.find((m) => m.id === id)!;
 const at = (date: string, hhmm: string, plusMin = 0) => new Date(new Date(`${date}T${hhmm}:00-03:00`).getTime() + plusMin * 60000);
@@ -16,7 +17,7 @@ let n = 0;
 beforeEach(() => {
   store = new InMemoryStore();
   n = 0;
-  sched = new RitualScheduler({ registries: reg, calendar: cal, store, collector: new StoreInputCollector(store), newId: () => `id-${++n}` });
+  sched = new RitualScheduler({ registries: reg, calendar: cal, store, collector: new StoreInputCollector(store), flags: ON, newId: () => `id-${++n}` });
 });
 
 const input = (agent: string, extra: Partial<ParticipantInput> = {}): ParticipantInput => ({
@@ -78,7 +79,7 @@ describe('janela de recuperação P5 (fronteiras)', () => {
   });
 
   it('segunda feriado: semanal roda na terça (idempotente em reinícios)', async () => {
-    const sched2 = new RitualScheduler({ registries: reg, calendar: cal, store, collector: new StoreInputCollector(store), lookbackDays: 0 });
+    const sched2 = new RitualScheduler({ registries: reg, calendar: cal, store, flags: ON, collector: new StoreInputCollector(store), lookbackDays: 0 });
     await feedFull('W-cross', '2027-11-16');
     await sched2.tick(at('2027-11-15', '09:00')); // feriado: nada
     expect(await store.listRuns()).toEqual([]);
@@ -201,7 +202,7 @@ describe('D-sync espera os dailies que consolida', () => {
         return inner.collect(ctx);
       },
     };
-    const s = new RitualScheduler({ registries: reg, calendar: cal, store, collector: flaky, lookbackDays: 0 });
+    const s = new RitualScheduler({ registries: reg, calendar: cal, store, collector: flaky, flags: ON, lookbackDays: 0 });
     const t1 = await s.tick(at(date, '07:26'));
     expect(t1.errors.map((e) => e.meeting_id)).toEqual(['D-trust']);
     expect(t1.waiting).toEqual([{ meeting_id: 'D-sync', local_date: date, waiting_for: ['D-trust'] }]);
@@ -222,6 +223,17 @@ describe('D-sync espera os dailies que consolida', () => {
     expect(w.waiting).toHaveLength(1);
     await s.tick(at(d2, '07:25', 121));
     expect(await store.getRun('D-sync', d2)).toMatchObject({ status: 'status_only', reason: 'recovery_window_expired' });
+  });
+});
+
+describe('flag rituais (desligada por padrão)', () => {
+  it('sem a flag, tick não executa nada e raiseEvent recusa', async () => {
+    const off = new RitualScheduler({ registries: reg, calendar: cal, store, collector: new StoreInputCollector(store) });
+    await feedFull('D-mercado', '2026-11-23');
+    const r = await off.tick(at('2026-11-23', '06:00'));
+    expect(r).toMatchObject({ skipped: 'flag_rituais_off', processed: [] });
+    expect(await store.listRuns()).toEqual([]);
+    await expect(off.raiseEvent('X-incident', 'i1', at('2026-11-23', '06:00'))).rejects.toThrow(/flag rituais desligada/);
   });
 });
 

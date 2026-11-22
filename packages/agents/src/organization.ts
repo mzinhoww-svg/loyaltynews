@@ -2,6 +2,7 @@
  * Organização derivada dos registros: 7 diretorias, 10 redações (editor + redator + memória
  * setorial + interações com diretorias) e análise dos passos dos workflows.
  */
+import { EDITORIAS as CONTRACT_EDITORIAS } from '@ln/contracts';
 import type { LoadedRegistries } from './config';
 import {
   DIRECTORATES,
@@ -114,10 +115,9 @@ export function buildNewsrooms(reg: Pick<LoadedRegistries, 'agents' | 'meetings'
   return EDITORIAS.map((ed: Editoria) => {
     // Não lança: ids esperados por convenção; o validador reporta o que faltar (falha fechada).
     const editor = byId.get(`editor_${ed}`);
-    const daily = reg.meetings.find((m) => m.id === `D-${ed}`);
     return {
       editoria: ed,
-      name: (daily?.title ?? ed).replace(/^Daily:\s*/, ''),
+      name: CONTRACT_EDITORIAS.find((e) => e.slug === ed)?.nome ?? ed,
       editor: `editor_${ed}`,
       writer: `writer_${ed}`,
       director: editor?.reports_to ?? 'director_editorial',

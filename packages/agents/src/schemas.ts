@@ -1,12 +1,13 @@
 /**
  * Schemas (zod) da organização agêntica.
  *
- * NOTA DE OWNERSHIP: contratos compartilhados pertencem a `packages/contracts` (Chief Architect),
- * que ainda não existe no ft/scaffold. Estes schemas espelham 1:1 os contratos v2.1
- * (`agents.registry.json`, `workflows.registry.json`, `meetings.registry.json` P5).
- * Quando `packages/contracts` publicar os equivalentes, trocar o conteúdo deste arquivo por
- * re-exports (`export { AgentProfileSchema, ... } from '@ln/contracts'`) sem mudar os consumidores.
+ * OWNERSHIP: contratos compartilhados pertencem a `@ln/contracts` (Chief Architect): `AgentProfile`,
+ * `Workflow`, `Ritual`, `EDITORIAS` e as flags vêm de lá e são aplicados em `config.ts`
+ * (`parseRegistries`). Os schemas deste arquivo são MAIS ESTRITOS (strict, enums de ferramentas,
+ * formato de horário) e cobrem campos que o contrato frouxo (`looseObject`) não cobre; não
+ * duplicam nem substituem os do arquiteto. Persistência e insumos de ritual são específicos desta frente.
  */
+import { EDITORIAS as CONTRACT_EDITORIAS, EditoriaSlug } from '@ln/contracts';
 import { z } from 'zod';
 
 export const IdSchema = z.string().regex(/^[a-z][a-z0-9_]*$/, 'id deve ser snake_case minúsculo');
@@ -23,19 +24,12 @@ export const ROUTES = [
 export const RouteSchema = z.enum(ROUTES);
 export type Route = z.infer<typeof RouteSchema>;
 
-export const EDITORIAS = [
-  'mercado',
-  'programas',
-  'pontos',
-  'bancos',
-  'varejo',
-  'travel',
-  'tech',
-  'crm',
-  'global',
-  'regulacao',
-] as const;
-export const EditoriaSchema = z.enum(EDITORIAS);
+/** As 10 editorias vêm de `@ln/contracts` (fonte única; Chief Architect). */
+export const EDITORIAS = CONTRACT_EDITORIAS.map((e) => e.slug) as unknown as readonly [
+  (typeof CONTRACT_EDITORIAS)[number]['slug'],
+  ...(typeof CONTRACT_EDITORIAS)[number]['slug'][],
+];
+export const EditoriaSchema = EditoriaSlug;
 export type Editoria = z.infer<typeof EditoriaSchema>;
 
 export const DEPARTMENTS = [

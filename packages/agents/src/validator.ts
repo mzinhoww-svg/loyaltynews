@@ -138,6 +138,7 @@ export function validateOrganization(org: Organization): ValidationReport {
     if (writer && writer.reports_to !== n.editor) err('NEWSROOM_WRITER', `${ed}: redator não reporta ao editor da redação`);
     if (editor && editor.reports_to !== n.director) err('NEWSROOM_EDITOR', `${ed}: editor não reporta a ${n.director}`);
     const daily = meetings.find((m) => m.id === n.daily_meeting);
+    if (daily && !daily.title.includes(n.name)) warn('NEWSROOM_NAME', `${ed}: título do daily "${daily.title}" não contém o nome da editoria "${n.name}" (@ln/contracts)`);
     if (!daily || daily.chair !== n.editor || !daily.participants.includes(n.writer)) err('NEWSROOM_DAILY', `${ed}: daily ${n.daily_meeting} deve ser presidido pelo editor e incluir o redator`);
     for (const i of n.interactions) {
       if (!(DIRECTORATES as readonly string[]).includes(i.directorate)) err('INTERACTION', `${ed}: diretoria ${i.directorate} inexistente`);

@@ -5,17 +5,17 @@
   "type": "module",
   "description": "64 perfis, 7 diretorias, 10 redações, 19 workflows e 28 rituais como configuração tipada; agendador de rituais; validador. Dono: Frente 07 — LN AgentOps Engineer.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./db-schema": "./src/db-schema.ts"
   },
   "types": "./src/index.ts",
-  "scripts": {
-    "validate": "node --experimental-strip-types src/cli-validate.ts"
-  },
   "dependencies": {
     "@ln/contracts": "0.0.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "drizzle-orm": "0.45.4"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.17"
+    "@electric-sql/pglite": "0.5.17",
+    "drizzle-kit": "0.31.11"
   }
 }

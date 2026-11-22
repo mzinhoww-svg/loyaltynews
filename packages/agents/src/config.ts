@@ -3,6 +3,7 @@
  * (ver `data/SOURCES.json`, com sha256 de origem). Qualquer divergência de formato falha aqui,
  * na validação zod, antes de qualquer uso.
  */
+import { AgentProfile as ContractAgentProfile, Ritual as ContractRitual, Workflow as ContractWorkflow } from '@ln/contracts';
 import agentsRaw from '../data/agents.registry.json';
 import workflowsRaw from '../data/workflows.registry.json';
 import meetingsRaw from '../data/meetings.registry.json';
@@ -36,6 +37,11 @@ export function parseRegistries(raw: RawRegistries): LoadedRegistries {
   const agents = AgentsRegistrySchema.parse(raw.agents);
   const workflows = WorkflowsRegistrySchema.parse(raw.workflows);
   const meetings = MeetingsRegistrySchema.parse(raw.meetings);
+  // Contratos compartilhados (@ln/contracts): o registro precisa satisfazer também o schema do arquiteto
+  // (inclui quórum = máx(2, ⌈2n/3⌉), chair entre os participantes, max_rounds = 2).
+  agents.agents.forEach((a) => ContractAgentProfile.parse(a));
+  workflows.workflows.forEach((w) => ContractWorkflow.parse(w));
+  meetings.meetings.forEach((m) => ContractRitual.parse(m));
   return {
     agents: agents.agents,
     workflows: workflows.workflows,

@@ -7,6 +7,7 @@
  * Os insumos estruturados dos participantes vêm de um `InputCollector` (adaptador OpenBot, R4);
  * o `StoreInputCollector` lê insumos já gravados no banco. Nenhuma rotina real é criada aqui.
  */
+import { isEnabled, type FlagState } from '@ln/contracts';
 import { addBusinessDays, addDays, firstBusinessDayOfMonth, isBusinessDay, localPartsOf, localToUtc, nextBusinessDay, weekdayOf, WEEKDAY_CODES, type HolidayCalendar } from './calendar';
 import type { LoadedRegistries } from './config';
 import { ParticipantInputSchema, type Meeting, type ParticipantInput, type RecoveryPolicy, type StatusReason } from './schemas';
@@ -97,9 +98,16 @@ export interface SchedulerOptions {
   /** atraso até o qual a execução é considerada "no horário" (padrão 5 min) */
   onTimeToleranceMinutes?: number;
   newId?: () => string;
+  /**
+   * Flags do produto (@ln/contracts). Sem `rituais: true` o agendador não executa nada (padrão:
+   * desligado até o gate R4). Nenhuma rotina real é criada por este pacote.
+   */
+  flags?: Partial<FlagState>;
 }
 
 export interface TickResult {
+  /** preenchido quando a flag `rituais` está desligada */
+  skipped?: 'flag_rituais_off';
   processed: { meeting_id: string; local_date: string; status: string; reason: StatusReason | null }[];
   waiting: { meeting_id: string; local_date: string; waiting_for: string[] }[];
   errors: { meeting_id: string; local_date: string; error: string }[];
@@ -110,7 +118,7 @@ export class RitualScheduler {
   private readonly agentIds: Set<string>;
 
   constructor(opts: SchedulerOptions) {
-    this.o = { lookbackDays: 1, onTimeToleranceMinutes: 5, newId: () => crypto.randomUUID(), ...opts };
+    this.o = { lookbackDays: 1, onTimeToleranceMinutes: 5, newId: () => crypto.randomUUID(), flags: {}, ...opts };
     this.agentIds = new Set(opts.registries.agents.map((a) => a.id));
   }
 
@@ -122,6 +130,7 @@ export class RitualScheduler {
   async tick(now: Date): Promise<TickResult> {
     const today = localPartsOf(now, 'America/Sao_Paulo').date;
     const result: TickResult = { processed: [], waiting: [], errors: [] };
+    if (!isEnabled('rituais', this.o.flags)) return { ...result, skipped: 'flag_rituais_off' };
     const occs: Occurrence[] = [];
     for (let back = this.o.lookbackDays; back >= 0; back--) occs.push(...occurrencesOn(this.meetings, addDays(today, -back), this.o.calendar));
     occs.sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
@@ -157,6 +166,7 @@ export class RitualScheduler {
     const meeting = this.meetings.find((m) => m.id === meetingId && m.cycle === 'event');
     if (!meeting) throw new Error(`ritual por evento inexistente: ${meetingId}`);
     if (!instance) throw new Error('instance (id do evento) é obrigatório');
+    if (!isEnabled('rituais', this.o.flags)) throw new Error('flag rituais desligada: ritual por evento não executado');
     const localDate = localPartsOf(now, meeting.timezone).date;
     const existing = await this.o.store.getRun(meetingId, localDate, instance);
     if (existing) return existing;

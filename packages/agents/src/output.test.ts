@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { loadRegistries } from '../src/config';
-import { emptyOutputFor, validateAgentOutput } from '../src/output';
+import { loadRegistries } from './config';
+import { emptyOutputFor, validateAgentOutput } from './output';
 
 const { agents } = loadRegistries();
 

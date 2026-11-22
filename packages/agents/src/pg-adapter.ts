@@ -37,3 +37,15 @@ export function pgDbFromPool(pool: PoolLike): PgDb {
     },
   };
 }
+
+export interface PGliteLike extends PgQueryable {
+  transaction<T>(fn: (tx: PgQueryable) => Promise<T>): Promise<T>;
+}
+
+/** Adaptador para PGlite (PostgreSQL em WASM, usado nos testes do monorepo). */
+export function pgDbFromPGlite(client: PGliteLike): PgDb {
+  return {
+    query: (sql, params) => client.query(sql, params),
+    transaction: (fn) => client.transaction(fn),
+  };
+}
