@@ -1,4 +1,4 @@
-import { readOnlyTransport, type McpTransport } from './live.ts';
+import { readOnlyTransport, type McpTransport } from './live';
 
 // Validação de capacidades do mLabs SOMENTE por ferramentas de leitura (R1-05). Registra a FORMA das respostas
 // (tipo, tamanho, nomes de campos), nunca valores: a saída pode ir para o repositório sem dados da conta.

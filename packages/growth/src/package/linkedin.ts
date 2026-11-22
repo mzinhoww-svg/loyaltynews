@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { generateLinkedInCopy, type LinkedInCopy } from '../copy/engine.ts';
-import { CreativeRefusal, renderPost, type Format } from '../creative/post.ts';
-import type { PublishRequest } from '../publisher/publisher.ts';
-import type { Article, CreativeAsset } from '../types.ts';
+import { generateLinkedInCopy, type LinkedInCopy } from '../copy/engine';
+import { CreativeRefusal, renderPost, type Format } from '../creative/post';
+import type { PublishRequest } from '../publisher/publisher';
+import type { Article, CreativeAsset } from '../types';
 
 export interface CarouselSlide {
   index: number;

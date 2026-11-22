@@ -1,5 +1,5 @@
 // MOCK — matéria de demonstração para testes e amostras. NÃO é matéria real nem dado de mercado.
-import type { Article } from '../src/types.ts';
+import type { Article } from '../src/types';
 
 export const MOCK_ARTICLE: Article = {
   id: 'MOCK-2026-0001',

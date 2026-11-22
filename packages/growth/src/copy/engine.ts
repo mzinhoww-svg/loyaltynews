@@ -1,4 +1,4 @@
-import type { Article, Channel, Entity, Violation } from '../types.ts';
+import type { Article, Channel, Entity, Violation } from '../types';
 
 export const SIGNATURE = 'Redação Loyalty News';
 export const LINKEDIN_MAX_CHARS = 3000;
@@ -86,11 +86,14 @@ function numbersIn(s: string): string[] {
 }
 
 /** Texto autoral do post sem URL, hashtags nem assinatura/crédito, para checar números. */
-function stripNonClaims(text: string): string {
-  return text
+function stripNonClaims(text: string, credit?: string): string {
+  let out = text
     .replace(/https?:\/\/\S+/g, ' ')
     .replace(/#[\p{L}\p{N}_]+/gu, ' ')
     .replace(new RegExp(SIGNATURE, 'g'), ' ');
+  // O crédito da imagem é metadado de direito, não afirmação do texto: não entra na checagem de números.
+  if (credit) out = out.split(credit).join(' ');
+  return out;
 }
 
 /**
@@ -118,12 +121,15 @@ export function validateCopy(
     if (!f.source.trim()) v.push({ rule: 'fato_sem_fonte', detail: f.text.slice(0, 60) });
   }
 
-  // 1. Nenhum número que não esteja nas fontes aprovadas (título, deck, fatos).
-  const allowed = new Set<string>(
-    numbersIn([article.title, article.deck ?? '', ...article.facts.map((f) => f.text)].join(' ')),
+  // 1. Todo número do texto final (inclusive o do título e do deck) precisa estar vinculado a um FATO COM FONTE.
+  // Título e deck não são evidência: só valem números que constem em algum fato com `source` não vazia.
+  const evidenced = new Set<string>(
+    numbersIn(article.facts.filter((f) => f.source.trim()).map((f) => f.text).join(' ')),
   );
-  for (const n of numbersIn(stripNonClaims(text))) {
-    if (!allowed.has(n)) v.push({ rule: 'numero_inventado', detail: `número "${n}" não consta nos fatos da matéria` });
+  for (const n of numbersIn(stripNonClaims(text, article.approvedImage?.credit))) {
+    if (!evidenced.has(n)) {
+      v.push({ rule: 'numero_sem_evidencia', detail: `número "${n}" não está vinculado a nenhum fato com fonte` });
+    }
   }
 
   // 2. Marcação (@) só para entidade com identidade verificada.

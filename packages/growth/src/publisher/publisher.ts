@@ -1,7 +1,7 @@
-import { channelFlag, DEFAULT_FLAGS, type GrowthFlags } from '../flags.ts';
-import { toPlainText, validateCopy, type MentionPlan } from '../copy/engine.ts';
-import type { MlabsAdapter, PostPayload, PublishReceipt } from '../mlabs/port.ts';
-import type { Actor, Article, Channel } from '../types.ts';
+import { channelFlag, DEFAULT_FLAGS, type GrowthFlags } from '../flags';
+import { toPlainText, validateCopy, type MentionPlan } from '../copy/engine';
+import type { MlabsAdapter, PostPayload, PublishReceipt } from '../mlabs/port';
+import type { Actor, Article, Channel } from '../types';
 
 export interface AuditEntry {
   ts: string;

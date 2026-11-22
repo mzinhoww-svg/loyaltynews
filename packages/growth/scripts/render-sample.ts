@@ -1,8 +1,8 @@
 // Gera amostras (SVG + HTML) a partir da matéria MOCK em out/samples/. Não publica nada.
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { renderPost, type Format } from '../src/creative/post.ts';
-import { buildLinkedInPackage } from '../src/package/linkedin.ts';
-import { MOCK_ARTICLE } from '../fixtures/article.mock.ts';
+import { renderPost, type Format } from '../src/creative/post';
+import { buildLinkedInPackage } from '../src/package/linkedin';
+import { MOCK_ARTICLE } from '../fixtures/article.mock';
 
 const out = new URL('../out/samples/', import.meta.url);
 mkdirSync(out, { recursive: true });

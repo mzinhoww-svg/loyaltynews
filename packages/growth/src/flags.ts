@@ -1,21 +1,32 @@
-import type { Channel } from './types.ts';
+import { FLAG_DEFAULTS, isEnabled, type FlagState } from '@ln/contracts';
+import type { Channel } from './types';
 
-// Flags do Growth. A fonte oficial é packages/contracts/flags.ts (Chief Architect); até existir,
-// este módulo define os mesmos nomes. TODAS desligadas por padrão (fast-track regra 3 e 5).
+// Flags do Growth derivadas de packages/contracts/flags.ts (fonte oficial, Chief Architect).
+// Todas desligadas por padrão (fast-track regras 3 e 5). Ligar = decisão registrada, nunca default de código.
 export interface GrowthFlags {
-  /** Publicação real no LinkedIn via mLabs. Desligada: o adaptador só simula. */
+  /** Publicação real no LinkedIn via mLabs (contrato: linkedinPublicacao). Desligada: o adaptador só simula. */
   growth_linkedin_live: boolean;
-  /** Instagram construído, flag desligada até P-01/DV-01. */
+  /** Instagram construído, desligado (contrato: instagram). */
   growth_instagram_enabled: boolean;
-  /** The Loyal construído, flag desligada até P-02. */
+  /** The Loyal construído, desligado (contrato: theLoyal). */
   growth_the_loyal_enabled: boolean;
 }
 
-export const DEFAULT_FLAGS: Readonly<GrowthFlags> = Object.freeze({
-  growth_linkedin_live: false,
-  growth_instagram_enabled: false,
-  growth_the_loyal_enabled: false,
-});
+/** Converte o estado de flags do produto (com overrides) para as flags do Growth. */
+export function growthFlagsFrom(overrides: Partial<FlagState> = {}): GrowthFlags {
+  return {
+    growth_linkedin_live: isEnabled('linkedinPublicacao', overrides),
+    growth_instagram_enabled: isEnabled('instagram', overrides),
+    growth_the_loyal_enabled: isEnabled('theLoyal', overrides),
+  };
+}
+
+export const DEFAULT_FLAGS: Readonly<GrowthFlags> = Object.freeze(growthFlagsFrom({}));
+
+// Garante em tempo de execução que o default do contrato continua "desligado".
+if (Object.values(FLAG_DEFAULTS).some((v) => v !== false)) {
+  throw new Error('FLAG_DEFAULTS do contrato deve ser todo false');
+}
 
 export function channelFlag(channel: Channel): keyof GrowthFlags {
   switch (channel) {

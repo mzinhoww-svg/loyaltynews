@@ -1,4 +1,4 @@
-import type { Channel } from '../types.ts';
+import type { Channel } from '../types';
 
 /** Ferramentas do MCP do mLabs consideradas SOMENTE LEITURA. A validação de capacidades usa só estas. */
 export const READ_ONLY_TOOLS = Object.freeze([

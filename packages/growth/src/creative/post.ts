@@ -1,12 +1,9 @@
-import { readFileSync } from 'node:fs';
-import type { Article, CreativeAsset } from '../types.ts';
+import type { Article, CreativeAsset } from '../types';
+import { CONTEXT_SVG, LOGO_WHITE_SVG, TOKENS_JSON } from './assets.data';
 
 // Gerador de criativo de contexto, por código, a partir do brandkit (originals/Loyalty_News_Brandkit_Assets.zip:
 // templates/post_template.html, design.tokens.json, logo e ilustrações de contexto). Determinístico: mesma entrada,
 // mesmo SVG. O brandkit é "proposal_not_approved" (design.tokens.json): o status acompanha cada criativo.
-
-const ASSETS = new URL('../../assets/', import.meta.url);
-const read = (name: string): string => readFileSync(new URL(name, ASSETS), 'utf8');
 
 interface Tokens {
   brand_version: string;
@@ -23,7 +20,7 @@ interface Tokens {
   };
 }
 
-export const TOKENS: Tokens = JSON.parse(read('design.tokens.json'));
+export const TOKENS = TOKENS_JSON as unknown as Tokens;
 
 export type Format = CreativeAsset['format'];
 export type Theme = 'primary' | 'dark';
@@ -54,7 +51,8 @@ export function contextKeyFor(editoria: string): 'travel' | 'retail' | 'payments
   return CONTEXT_BY_EDITORIA[editoria] ?? 'payments';
 }
 
-const b64 = (svg: string): string => `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
+// btoa existe no Node ≥ 16 e no navegador; o SVG é UTF-8, então passa por encodeURIComponent antes.
+const b64 = (svg: string): string => `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -141,8 +139,8 @@ export function renderPost(article: Article, opts: RenderOptions = {}): Creative
   const L = layoutFor(format);
   const key = contextKeyFor(article.editoria);
   // O SVG de contexto é embutido com `slice` para preencher a área da imagem (sem faixas laterais).
-  const context = b64(read(`${key}_context.svg`).replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" '));
-  const logo = b64(read('logo_white.svg'));
+  const context = b64(CONTEXT_SVG[key].replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" '));
+  const logo = b64(LOGO_WHITE_SVG);
   const headlineText = (opts.headline ?? article.title).trim();
   if (!headlineText) throw new CreativeRefusal('sem_manchete', 'título vazio');
 

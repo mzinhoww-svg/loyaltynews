@@ -6,7 +6,7 @@ import type {
   PostLimits,
   PostPayload,
   PublishReceipt,
-} from './port.ts';
+} from './port';
 
 export class SimulatedMlabsAdapter implements MlabsAdapter {
   readonly mode = 'simulated' as const;

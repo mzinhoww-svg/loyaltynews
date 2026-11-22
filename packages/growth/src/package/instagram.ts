@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { CopyRefusal, MAX_FACT_BULLETS, SIGNATURE, validateCopy } from '../copy/engine.ts';
-import { renderPost } from '../creative/post.ts';
-import { DEFAULT_FLAGS, type GrowthFlags } from '../flags.ts';
-import type { PublishRequest } from '../publisher/publisher.ts';
-import type { Article, CreativeAsset } from '../types.ts';
+import { CopyRefusal, MAX_FACT_BULLETS, SIGNATURE, validateCopy } from '../copy/engine';
+import { renderPost } from '../creative/post';
+import { DEFAULT_FLAGS, type GrowthFlags } from '../flags';
+import type { PublishRequest } from '../publisher/publisher';
+import type { Article, CreativeAsset } from '../types';
 
 // Instagram: CONSTRUÍDO, flag `growth_instagram_enabled` DESLIGADA (fast-track regra 5; ADR-008; depende de DV-01/P-01).
 // A legenda não leva link clicável (usa "link na matéria/bio") e não marca ninguém: marcação exige handle

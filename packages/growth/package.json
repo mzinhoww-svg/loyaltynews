@@ -1,14 +1,25 @@
 {
-  "name": "@loyaltynews/growth",
+  "name": "@ln/growth",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Frente 09 — Growth e mLabs: adaptador mLabs (simulado por padrão), copy social, criativo de contexto, pacote LinkedIn e Instagram (flag desligada). Sem dependências de runtime.",
-  "main": "src/index.ts",
+  "description": "Distribuição social (mLabs), templates. Dono: Frente 09 — LN Integration Engineer. Adaptador mLabs (simulado por padrão), copy social, criativo de contexto, pacote LinkedIn, Instagram (flag desligada), handlers do Social Dashboard, job BullMQ e componentes de prévia.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ui": "./src/ui/index.ts",
+    "./dashboard": "./src/dashboard/index.ts",
+    "./jobs": "./src/jobs/index.ts"
+  },
+  "types": "./src/index.ts",
   "scripts": {
-    "test": "node --test --test-reporter=spec \"test/*.test.ts\"",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "assets": "node scripts/embed-assets.mjs",
     "sample": "node scripts/render-sample.ts"
   },
-  "engines": { "node": ">=24" }
+  "dependencies": {
+    "@ln/contracts": "0.0.0",
+    "zod": "4.6.7"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
 }
