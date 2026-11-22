@@ -94,3 +94,14 @@ test('imagem (D08): sem base de direito registrada => sem foto; com base + créd
   assert.equal(checkImage({ mode: 'conceptual', label: 'imagem', generatedBy: 'x' }).findings[0]?.code, 'conceptual_unlabeled');
   assert.equal(checkImage({ mode: 'conceptual', label: 'Ilustração conceitual gerada por IA', generatedBy: 'x' }).verdict, 'pass');
 });
+
+test('bloco "Fontes:" não aceita texto livre: número/citação anexados depois dele não escapam do gate', () => {
+  const d = mk();
+  d.body = `${d.body}\nA alta foi de 87% no trimestre.`;
+  const codes = runDeterministicChecks(d, [ev]).findings.map((x) => x.code);
+  assert.ok(codes.includes('tampered_attribution'), codes.join(','));
+  const two = mk(); two.body = `${two.body}\n\nFontes:\n- Falsa: https://x.example/y (acessado em 2026-11-23)`;
+  assert.ok(runDeterministicChecks(two, [ev]).findings.some((x) => x.code === 'attribution_block'));
+  const none = mk(); none.body = none.body.split('\n\nFontes:\n')[0]!;
+  assert.ok(runDeterministicChecks(none, [ev]).findings.some((x) => x.code === 'attribution_block'));
+});

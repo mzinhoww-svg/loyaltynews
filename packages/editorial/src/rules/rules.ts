@@ -152,8 +152,20 @@ export function checkAttribution(d: Draft, evidences: Evidence[]): CheckResult {
   for (const e of evidences.filter((x) => d.evidenceIds.includes(x.id))) {
     if (!d.body.includes(e.canonicalUrl)) out.push(f('missing_attribution', `link da fonte ausente: ${e.canonicalUrl}`));
   }
+  // O bloco "Fontes:" é gerado pelo sistema e as demais checagens o ignoram: ele não pode carregar texto livre
+  // (senão número/citação anexados depois dele escapariam do gate). Só linhas no formato exato e um único bloco.
+  const parts = d.body.split(/\n\nFontes:\n/);
+  if (parts.length !== 2) out.push(f('attribution_block', 'esperado exatamente um bloco "Fontes:" gerado pelo sistema'));
+  else {
+    for (const line of parts[1]!.split('\n')) {
+      if (line.trim() === '') continue;
+      if (!ATTRIBUTION_LINE.test(line)) out.push(f('tampered_attribution', 'bloco "Fontes:" contém texto fora do formato gerado'));
+    }
+  }
   return result(out);
 }
+
+const ATTRIBUTION_LINE = /^- .{1,300}: https?:\/\/\S+ \(acessado em \d{4}-\d{2}-\d{2}\)$/;
 
 /** Evidência suspeita (instrução embutida) nunca sustenta matéria. */
 export function checkEvidenceTrust(d: Draft, evidences: Evidence[]): CheckResult {
