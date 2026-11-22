@@ -130,7 +130,7 @@ describe('entidades', () => {
     expect((await call(empresas.GET, 'GET', { as: leitor })).body.data).toHaveLength(1);
     expect((await call(empresas.POST, 'POST', { body, as: editor })).status).toBe(409);
     expect((await call(empresa.DELETE, 'DELETE', { params: { id: 'emp-1' }, as: leitor })).status).toBe(403);
-    await app.db.insert(schema.people).values({ id: 'p1', nome: 'N', cargo: 'C', empresaId: 'emp-1', evidenceId: e1 });
+    await app.db.insert(schema.people).values({ id: 'p1', nome: 'N', cargo: 'C', empresaId: 'emp-1', evidenceId: e1! });
     expect((await call(empresa.DELETE, 'DELETE', { params: { id: 'emp-1' }, as: chefe })).status).toBe(409);
     await app.db.delete(schema.people);
     expect((await call(empresa.DELETE, 'DELETE', { params: { id: 'emp-1' }, as: chefe })).status).toBe(204);
