@@ -28,6 +28,8 @@ const config = (phase: string): NextConfig => {
       '@ln/db',
     ],
     poweredByHeader: false,
+    // Bancos nativos/WASM ficam fora do bundle (pg em produção; PGlite só em dev/e2e).
+    serverExternalPackages: ['pg', '@electric-sql/pglite'],
     // e2e usa diretório de build próprio para não contaminar o artefato de produção.
     distDir: e2eBuild ? '.next-e2e' : '.next',
     turbopack: {
