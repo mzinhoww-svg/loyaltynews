@@ -6,15 +6,15 @@ def fail(code): raise Denied(code)
 def canon(x): return json.dumps(x,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()
 def digest(x): return hashlib.sha256(x).hexdigest()
 def now(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
-def load(p): return json.loads(p.read_text())
+def load(p): return json.loads(p.read_text(encoding='utf-8'))
 def save(p,x,exclusive=False):
  p.parent.mkdir(parents=True,exist_ok=True)
  if exclusive:
   try:
-   with p.open('x') as f: f.write(canon(x).decode()+'\n')
+   with p.open('x',encoding='utf-8',newline='\n') as f: f.write(canon(x).decode()+'\n')
   except FileExistsError: fail('LOCKED_BY_OTHER')
  else:
-  with tempfile.NamedTemporaryFile(mode='w',dir=p.parent,delete=False) as f: f.write(canon(x).decode()+'\n'); n=f.name
+  with tempfile.NamedTemporaryFile(mode='w',encoding='utf-8',newline='\n',dir=p.parent,delete=False) as f: f.write(canon(x).decode()+'\n'); n=f.name
   os.replace(n,p)
 def closed(x,required,optional=()):
  if not isinstance(x,dict) or set(x)-set(required)-set(optional) or set(required)-set(x): fail('NOT_ALLOWED')
@@ -77,7 +77,7 @@ class Gov:
    index=p['evidence_index'];
    if not index or digest(canon(index))!=p['index_sha256']:return False
    for taskid,h in index.items():
-    path=str(self.evpath(taskid).relative_to(self.root)); raw=self.file_at(p['commit_sha'],path)
+    path=self.evpath(taskid).relative_to(self.root).as_posix(); raw=self.file_at(p['commit_sha'],path)
     if digest(raw)!=h or digest(self.file_at(self.head(),path))!=h or self.validate(json.loads(raw),p['commit_sha']):return False
     if not self.evpath(taskid).exists() or digest(self.evpath(taskid).read_bytes())!=h:return False
     if self.validate(json.loads(raw)):return False
