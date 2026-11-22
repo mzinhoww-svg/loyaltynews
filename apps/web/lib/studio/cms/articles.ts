@@ -1,7 +1,7 @@
 // Núcleo do CMS editorial do LN Studio (R3-06/R3-07): matéria com versões imutáveis, checagem automática,
 // aprovação ligada à versão e histórico. Sem backend: repositório em memória (interface ArticleRepository),
 // a ser substituído por @ln/db pelo Backend. Dado começa VAZIO (sem matéria fictícia).
-import { ASSINATURA, EDITORIAS, ImageRights, isImagePublishable, type ArticleStatus, type EditoriaSlug } from '@ln/contracts';
+import { ASSINATURA, EDITORIAS, ImageRights, canTransition, isImagePublishable, type ArticleStatus, type EditoriaSlug } from '@ln/contracts';
 
 export interface SourceInput {
   nome: string;
@@ -212,7 +212,7 @@ export class CmsService {
   edit(actor: string, id: string, input: VersionInput, nota?: string): ServiceResult {
     const rec = this.repo.get(id);
     if (!rec) return { ok: false, code: 'NAO_ENCONTRADA', mensagem: 'Matéria não encontrada.' };
-    if (rec.status === 'publicado') return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Matéria publicada só muda por correção versionada (fora deste bloco).' };
+    if (rec.status !== 'rascunho' && !canTransition(rec.status, 'rascunho')) return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Nesse estado a matéria não volta a rascunho (correção versionada fica fora deste bloco).' };
     const issues = validateDraft(input).filter((i) => i.severidade === 'bloqueio');
     if (issues.length) return { ok: false, code: 'VALIDACAO', issues, mensagem: 'Corrija os campos destacados.' };
     const now = this.clock.now();
@@ -230,7 +230,7 @@ export class CmsService {
   submitForReview(actor: string, id: string): ServiceResult<{ record: ArticleRecord; issues: CheckIssue[] }> {
     const rec = this.repo.get(id);
     if (!rec) return { ok: false, code: 'NAO_ENCONTRADA', mensagem: 'Matéria não encontrada.' };
-    if (rec.status !== 'rascunho') return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só rascunho vai para checagem.' };
+    if (rec.status !== 'rascunho' || !canTransition(rec.status, 'em_checagem')) return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só rascunho vai para checagem.' };
     const v = currentVersion(rec);
     const issues = checkVersion(v);
     if (hasBlockers(issues)) return { ok: false, code: 'VALIDACAO', issues, mensagem: 'A checagem automática encontrou bloqueios.' };
@@ -246,7 +246,7 @@ export class CmsService {
   approve(actor: string, id: string, versaoAprovada: number): ServiceResult {
     const rec = this.repo.get(id);
     if (!rec) return { ok: false, code: 'NAO_ENCONTRADA', mensagem: 'Matéria não encontrada.' };
-    if (rec.status !== 'em_checagem') return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só matéria em checagem pode ser aprovada.' };
+    if (!canTransition(rec.status, 'aprovado')) return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só matéria em checagem pode ser aprovada.' };
     const v = currentVersion(rec);
     if (v.numero !== versaoAprovada) return { ok: false, code: 'ESTADO_INVALIDO', mensagem: `Aprovação de versão antiga (v${versaoAprovada}); a vigente é v${v.numero}.` };
     if (v.autor === actor) return { ok: false, code: 'QUATRO_OLHOS', mensagem: 'O autor da versão não pode aprová-la.' };
@@ -263,7 +263,7 @@ export class CmsService {
   block(actor: string, id: string, motivo: string): ServiceResult {
     const rec = this.repo.get(id);
     if (!rec) return { ok: false, code: 'NAO_ENCONTRADA', mensagem: 'Matéria não encontrada.' };
-    if (rec.status !== 'em_checagem') return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só matéria em checagem pode ser bloqueada.' };
+    if (!canTransition(rec.status, 'bloqueado')) return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só matéria em checagem pode ser bloqueada.' };
     if (!motivo.trim()) return { ok: false, code: 'MOTIVO_OBRIGATORIO', mensagem: 'Informe o motivo do bloqueio.' };
     const now = this.clock.now();
     rec.status = 'bloqueado';
@@ -280,7 +280,16 @@ export class CmsService {
     if (!rec) return { ok: false, code: 'NAO_ENCONTRADA', mensagem: 'Matéria não encontrada.' };
     if (rec.status !== 'bloqueado' && rec.status !== 'aprovado') return { ok: false, code: 'ESTADO_INVALIDO', mensagem: 'Só matéria bloqueada ou aprovada pode ser reaberta.' };
     const cur = currentVersion(rec);
-    const { numero: _n, autor: _a, criadaEm: _c, nota: _nota, ...input } = cur;
+    const input: VersionInput = {
+      titulo: cur.titulo,
+      corpo: cur.corpo,
+      editoria: cur.editoria,
+      fontes: cur.fontes,
+      patrocinado: cur.patrocinado,
+      ...(cur.subtitulo ? { subtitulo: cur.subtitulo } : {}),
+      ...(cur.imagem ? { imagem: cur.imagem } : {}),
+      ...(cur.rotuloPublieditorial ? { rotuloPublieditorial: cur.rotuloPublieditorial } : {}),
+    };
     return this.edit(actor, id, input, `reaberta de v${cur.numero}`);
   }
 }
