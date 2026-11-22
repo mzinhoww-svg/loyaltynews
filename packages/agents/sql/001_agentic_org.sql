@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS meeting_runs (
   scheduled_for        timestamptz NOT NULL,
   executed_at          timestamptz NOT NULL,
   status               text        NOT NULL CHECK (status IN ('completed','status_only','waiting')),
-  reason               text        CHECK (reason IN ('no_inputs_or_decisions','quorum_not_met','recovery_window_expired','host_off_previous_day')),
+  reason               text        CHECK (reason IS NULL OR reason IN ('no_inputs_or_decisions','quorum_not_met','recovery_window_expired','host_off_previous_day')),
   route                text        NOT NULL,
   delay_minutes        integer     NOT NULL DEFAULT 0 CHECK (delay_minutes >= 0),
   model_calls          integer     NOT NULL DEFAULT 0 CHECK (model_calls >= 0),
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS meeting_runs (
   -- idempotência (recovery_policy.idempotency_key = meeting_id + local_date; + instance p/ eventos)
   UNIQUE (meeting_id, local_date, instance),
   -- ritual com status_only precisa de motivo; ritual concluído não tem motivo
-  CHECK ((status = 'status_only') = (reason IS NOT NULL))
+  CHECK ((status = 'status_only' AND reason IS NOT NULL) OR (status <> 'status_only' AND reason IS NULL))
 );
 
 CREATE TABLE IF NOT EXISTS meeting_minutes (

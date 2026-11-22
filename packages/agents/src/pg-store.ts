@@ -68,7 +68,7 @@ function toMemory(r: Record<string, unknown>): SectorMemoryEntry {
     kind: r.kind as MemoryKind,
     key: String(r.key),
     version: Number(r.version),
-    content: typeof r.content === 'string' ? JSON.parse(r.content) : r.content,
+    content: r.content, // jsonb já vem parseado pelo driver (inclui strings JSON)
     source_refs: arr(r.source_refs),
     author_agent_id: String(r.author_agent_id),
     created_at: iso(r.created_at),
