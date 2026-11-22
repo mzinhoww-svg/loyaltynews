@@ -8,7 +8,7 @@
 // --verify roda, nesta ordem: npm install, lint, typecheck, test, build do apps/web, verify:no-mock do Studio e ci-checks --deploy.
 // Conflito de merge: aborta o merge, lista os arquivos e sai com código 2 (resolver na origem, com o dono da pasta).
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -68,6 +68,13 @@ try {
     report.merges.push({ ref: s.ref, sha: s.sha, ok: true });
   }
   report.head = gOut(worktree, ['rev-parse', 'HEAD']);
+  // Artefatos de build são ignorados pelo git e sobrevivem ao reset: tipos antigos em .next/types (e *.tsbuildinfo) fazem o typecheck
+  // ler páginas que não existem mais. Limpa antes de verificar (node_modules fica, para não reinstalar tudo).
+  for (const d of ['apps/web/.next', 'apps/web/.next-e2e']) rmSync(join(worktree, d), { recursive: true, force: true });
+  for (const base of [worktree, join(worktree, 'apps/web')]) {
+    if (!existsSync(base)) continue;
+    for (const n of readdirSync(base)) if (n.endsWith('.tsbuildinfo')) rmSync(join(base, n), { force: true });
+  }
 
   if (verify) {
     const win = process.platform === 'win32';

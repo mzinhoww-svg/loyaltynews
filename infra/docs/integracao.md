@@ -27,6 +27,8 @@ Relatórios em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\integracao\`
 - O worktree do Studio tinha alteração **não commitada** (`Sidebar.tsx`) quando consultei: não entra em nenhuma integração (só commits).
 - As duas correções mínimas que apliquei numa versão anterior (tsconfig/eslint na raiz) **deixaram de ser necessárias**: o Chief Architect corrigiu na origem. A versão antiga está em `ft/integracao-anterior`.
 - `ci-checks --deploy` sobre o conjunto passou depois de refinar duas regras (PEM de fixture de 4 caracteres em `packages/db`; `next.config.ts` do Studio que só **lê** `LN_STUDIO_TEST_SESSION` para recusar o build).
+- **Artefatos de build obsoletos.** `.next` e `*.tsbuildinfo` são ignorados pelo git e sobrevivem ao refazer o branch; o `typecheck` do `apps/web` lê `.next/types` e falhava com páginas de um Studio mais novo (`midia`, `seo`). O script agora limpa esses artefatos antes de verificar (`node_modules` fica).
+- **Commit homologado órfão.** O QA 2 homologou o Studio em `c865d84`, que depois deixou de pertencer a `ft/studio` (rebase). Para não perder o objeto e poder integrá-lo com a trava de contenção, existe o branch de proteção `homologado/studio-c865d84` (não altera nenhum branch de dono). O mesmo vale para qualquer outro commit homologado que o dono reescreva depois.
 - Ruído esperado nos testes: o jsdom avisa "HTMLCanvasElement getContext not implemented" (falta `@napi-rs/canvas`); não falha nada.
 
 ## 4. Resultados e ensaio do pacote (ficam FORA do repositório)
