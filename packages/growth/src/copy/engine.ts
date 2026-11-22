@@ -97,7 +97,17 @@ function stripNonClaims(text: string): string {
  * Regras do motor social. Determinísticas, sem modelo: servem de gate para qualquer texto (gerado
  * por este motor ou vindo de um agente).
  */
-export function validateCopy(text: string, article: Article, mentions: MentionPlan[] = []): Violation[] {
+export interface ValidateOptions {
+  /** Instagram não tem link clicável na legenda: `false` dispensa o link com UTM. Padrão: exige. */
+  requireLink?: boolean;
+}
+
+export function validateCopy(
+  text: string,
+  article: Article,
+  mentions: MentionPlan[] = [],
+  opts: ValidateOptions = {},
+): Violation[] {
   const v: Violation[] = [];
   const firstLine = text.split('\n')[0] ?? '';
 
@@ -134,7 +144,9 @@ export function validateCopy(text: string, article: Article, mentions: MentionPl
   if (firstLine.length > HOOK_MAX_CHARS) v.push({ rule: 'gancho_longo', detail: `${firstLine.length} > ${HOOK_MAX_CHARS}` });
 
   // 4. Link rastreado e assinatura institucional.
-  if (!/utm_source=/.test(text) || !/utm_campaign=/.test(text)) v.push({ rule: 'link_sem_utm', detail: 'link da matéria sem UTM' });
+  if (opts.requireLink !== false && (!/utm_source=/.test(text) || !/utm_campaign=/.test(text))) {
+    v.push({ rule: 'link_sem_utm', detail: 'link da matéria sem UTM' });
+  }
   if (!text.includes(SIGNATURE)) v.push({ rule: 'sem_assinatura', detail: `falta a assinatura "${SIGNATURE}"` });
 
   // 5. Sem apuração/autoria humana inventada.

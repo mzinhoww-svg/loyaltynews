@@ -109,7 +109,7 @@ export class SocialPublisher {
     }
 
     const mentions = req.mentions ?? [];
-    const violations = validateCopy(req.text, article, mentions);
+    const violations = validateCopy(req.text, article, mentions, { requireLink: channel !== 'instagram' });
     if (violations.length) {
       this.refuse(actor, 'publish', channel, `copy_invalida:${violations.map((v) => v.rule).join('+')}`, article.id);
     }
