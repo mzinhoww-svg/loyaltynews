@@ -149,3 +149,9 @@ export const campaigns = pgTable('campaigns', {
   check('campaigns_periodo', sql`${t.fim} >= ${t.inicio}`),
   check('campaigns_rotulada', sql`${t.rotulada}`),
 ]);
+
+// Frente 02 Backend: auth, outbox, orçamento, recibos/mídia/agenda (arquivos em ./schema/).
+export * from './schema/auth';
+export * from './schema/outbox';
+export * from './schema/budget';
+export * from './schema/editorial-api';
