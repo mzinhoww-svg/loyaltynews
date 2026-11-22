@@ -1,0 +1,280 @@
+{
+  "format": "logical workflow contracts; build adapter after OpenBot PoC",
+  "workflows": [
+    {
+      "id": "WF01",
+      "name": "Radar e pauta",
+      "trigger": "source.item",
+      "owner": "newsdesk",
+      "steps": "writer_{editoria}>editor_{editoria}",
+      "output": "triaged",
+      "blockers": [
+        "duplicate",
+        "rights_unknown"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF02",
+      "name": "Redação especializada",
+      "trigger": "topic.assigned",
+      "owner": "director_editorial",
+      "steps": "writer_{editoria}>factcheck+rights>editor_{editoria}>auto_gate_editor",
+      "output": "article.approved",
+      "blockers": [
+        "unsupported_claim",
+        "rights_unknown",
+        "approval_missing",
+        "rights_basis_unresolved",
+        "copy_literal",
+        "cross_provider_check_failed"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF03",
+      "name": "Publicar matéria",
+      "trigger": "article.approved",
+      "owner": "director_editorial",
+      "steps": "validate_revision>transactional_publish>outbox>postpublication_audit>unpublish_if_failed",
+      "output": "article.published",
+      "blockers": [
+        "stale_approval",
+        "embargo"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF04",
+      "name": "Pacote social",
+      "trigger": "article.published",
+      "owner": "director_growth",
+      "steps": "discovery+media>art>designer+linkedin+instagram_if_enabled>visualqa>auto_gate_social>publisher_social",
+      "output": "social.receipt",
+      "blockers": [
+        "no_image",
+        "mention_unverified",
+        "no_receipt"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model",
+      "provider": "mLabs",
+      "instagram_enabled": false
+    },
+    {
+      "id": "WF05",
+      "name": "The Loyal",
+      "trigger": "schedule.weekdays",
+      "owner": "director_growth",
+      "steps": "newsletter>factcheck>auto_gate_editor>esp_send",
+      "output": "newsletter.sent",
+      "blockers": [
+        "consent_missing",
+        "stale_revision"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model",
+      "channel_enabled": false
+    },
+    {
+      "id": "WF06",
+      "name": "Entity Intelligence",
+      "trigger": "article.approved / source.evidence",
+      "owner": "director_intelligence",
+      "steps": "discovery>people+company>graph>dataqa>auto_gate_data",
+      "output": "entity.revision",
+      "blockers": [
+        "ambiguous_identity",
+        "conflicting_evidence"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF07",
+      "name": "Organograma e Moves",
+      "trigger": "entity.revision",
+      "owner": "director_intelligence",
+      "steps": "orgchart+moves>dataqa>auto_gate_data",
+      "output": "org.snapshot",
+      "blockers": [
+        "unverified_reporting",
+        "sensitive_change"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF08",
+      "name": "Correção editorial",
+      "trigger": "correction.requested",
+      "owner": "director_trust",
+      "steps": "editor_{editoria}>factcheck>auto_gate_editor>republish>social_reconcile>entity_rebuild",
+      "output": "correction.closed",
+      "blockers": [
+        "missing_evidence",
+        "remote_unresolved"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF09",
+      "name": "Mídia kit e métricas",
+      "trigger": "schedule.metrics",
+      "owner": "director_growth",
+      "steps": "collect_providers>validate_periods>aggregate>publish_snapshot",
+      "output": "metrics.snapshot",
+      "blockers": [
+        "stale_data",
+        "provider_unavailable"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF10",
+      "name": "Comercial e mídia",
+      "trigger": "lead.created / campaign.approved",
+      "owner": "director_commercial",
+      "steps": "sales>pricing>auto_gate_sales>adops>account",
+      "output": "campaign.report",
+      "blockers": [
+        "inventory_conflict",
+        "approval_missing"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF11",
+      "name": "FinOps e modelos",
+      "trigger": "usage.recorded / schedule.daily",
+      "owner": "director_technology",
+      "steps": "finops>reconcile>budget_alert>auto_gate_admin",
+      "output": "budget.snapshot",
+      "blockers": [
+        "unknown_rate",
+        "budget_exhausted"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF12",
+      "name": "Conselho de pauta",
+      "trigger": "schedule.weekly",
+      "owner": "publisher",
+      "steps": "director_editorial+director_creative+director_growth+director_intelligence+director_commercial+director_technology+director_trust>publisher>auto_gate_owner",
+      "output": "plan.approved",
+      "blockers": [
+        "policy_conflict",
+        "budget_exceeded"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF13",
+      "name": "Incidente e restauração",
+      "trigger": "incident.raised",
+      "owner": "director_technology",
+      "steps": "sre>security>auto_gate_ops>recover>audit",
+      "output": "incident.closed",
+      "blockers": [
+        "unsafe_replay",
+        "missing_approval"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF14",
+      "name": "Watchlist",
+      "trigger": "entity.revision / article.published",
+      "owner": "director_intelligence",
+      "steps": "match_active_subscriptions>dedupe>consent_check>notify",
+      "output": "alert.receipt",
+      "blockers": [
+        "unverified_event",
+        "optout"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF15",
+      "name": "Reuniões e rituais",
+      "trigger": "schedule.meeting / meeting.requested",
+      "owner": "publisher",
+      "steps": "snapshot>structured_inputs>chair_synthesis>challenge_if_needed>validate_decisions>auto_gate_gate_if_needed>transactional_actions",
+      "output": "meeting.closed",
+      "blockers": [
+        "missing_inputs",
+        "invalid_authority",
+        "budget_exhausted"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF16",
+      "name": "Acompanhamento de decisões",
+      "trigger": "schedule.actions / decision.approved",
+      "owner": "publisher",
+      "steps": "validate_authority>assign>track_due_date>verify_evidence>escalate_overdue",
+      "output": "action.updated",
+      "blockers": [
+        "missing_owner",
+        "overdue",
+        "unverified_completion"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF17",
+      "name": "Governança de modelos",
+      "trigger": "model.change_requested",
+      "owner": "director_technology",
+      "steps": "refresh_catalog>offline_eval>cost_review>security_review>auto_gate_approval>canary>monitor_or_rollback",
+      "output": "model.policy_version",
+      "blockers": [
+        "unknown_model",
+        "unknown_price",
+        "regression",
+        "approval_missing"
+      ],
+      "enabled": false,
+      "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+    },
+    {
+      "id": "WF18",
+      "name": "Resposta e retificação",
+      "trigger": "legal.response_requested",
+      "owner": "director_trust",
+      "steps": "intake>preserve_evidence>triage>auto_gate_response>errata>social_reconcile>notify_owner_if_legal",
+      "output": "response.receipt",
+      "blockers": [
+        "unverified_request"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF19",
+      "name": "Pedido do titular",
+      "trigger": "privacy.requested",
+      "owner": "director_trust",
+      "steps": "intake>verify_identity>restrict_processing>auto_gate_privacy>rectify_or_remove>audit",
+      "output": "privacy.receipt",
+      "blockers": [
+        "identity_unverified",
+        "legal_conflict"
+      ],
+      "enabled": false
+    }
+  ]
+}
