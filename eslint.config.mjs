@@ -35,4 +35,13 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
+  {
+    // Tipagens de matchers de teste (augmentation) e testes do UI: tipos amplos são aceitáveis aqui.
+    files: ['**/*.d.ts', 'packages/ui/test/**'],
+    rules: {
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 );
