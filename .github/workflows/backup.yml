@@ -1,0 +1,58 @@
+# Backup externo do PostgreSQL (ADR-012): pg_dump cifrado a cada 6 h para destino FORA da Vertra. PREPARADO, NÃO ATIVO.
+# Pré-requisitos (decisão do proprietário, ADR-012): destino e custo; chave PÚBLICA de cifra; segredos no environment do GitHub.
+# Atenção: o GitHub desativa agendamentos de repositório público após 60 dias sem atividade, e um agendamento pode atrasar;
+# por isso existe a sonda INDEPENDENTE infra/scripts/backup-freshness.mjs (rotina externa a cada 15 min) que alerta se faltar backup.
+name: backup-pg
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Ambiente"
+        type: choice
+        options: [staging, production]
+        default: production
+permissions:
+  contents: read
+concurrency:
+  group: backup-${{ inputs.env || 'production' }}
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.env || 'production' }}
+    env:
+      BACKUP_ENV: ${{ inputs.env || 'production' }}
+      BACKUP_DEST: ${{ vars.BACKUP_DEST }}
+      BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+      BACKUP_GPG_PUBKEY_PEM: ${{ secrets.BACKUP_GPG_PUBKEY_PEM }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_CA_PEM: ${{ secrets.DB_CA_PEM }}
+      DB_CLIENT_CERT_PEM: ${{ secrets.DB_CLIENT_CERT_PEM }}
+      DB_CLIENT_KEY_PEM: ${{ secrets.DB_CLIENT_KEY_PEM }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: "26.13.1"}
+      - name: Cliente PostgreSQL 18 (repositório oficial PGDG)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-18
+          pg_dump --version
+      - name: Backup cifrado
+        run: |
+          if [ "$BACKUP_ENV" = "staging" ]; then node infra/scripts/backup-pg.mjs --stats; else node infra/scripts/backup-pg.mjs; fi
+      - name: Conferir frescor
+        run: node infra/scripts/backup-freshness.mjs --env "$BACKUP_ENV"

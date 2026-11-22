@@ -1,0 +1,60 @@
+# CI do produto (frente 01). PREPARADO, NÃO ATIVO: o bootstrap R0-03 deixa as Actions do produto desligadas até decisão do PM.
+# Ações fixadas por SHA completo (versões e fonte em r0-preparacao/R0-03/bootstrap/pins.md e infra/docs/deploy-vertra.md).
+# Falha fechada: qualquer verificação reprovada => nenhum merge (junto com o ruleset main-protection).
+name: ci
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [staging]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: "26.13.1", cache: npm}
+      - name: ADR-001 e segredos
+        run: node infra/scripts/ci-checks.mjs
+      - name: Build
+        run: node infra/scripts/build.mjs
+      - name: Testes (infra e workspaces)
+        run: node infra/scripts/test.mjs --skip-ci-checks
+
+  migrations:
+    # Critério da ADR-001: migrações aplicadas em PostgreSQL 18 LIMPO. Depende de packages/db (Chief Architect) ter o script `migrate`.
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18   # TODO(DevOps): fixar por digest antes de ativar (imagem base sem digest = pendência registrada)
+        env: {POSTGRES_PASSWORD: ci-descartavel, POSTGRES_DB: ln_ci}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: "26.13.1", cache: npm}
+      - run: npm ci
+      - name: Migrar banco limpo (só se packages/db tiver o script)
+        env:
+          APP_ENV: ci
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: ln_ci
+          DB_USER: postgres
+          DB_PASSWORD: ci-descartavel
+          DB_SSL_MODE: disable   # só em CI (banco descartável); na Vertra o TLS é obrigatório
+        run: npm run migrate -w packages/db --if-present

@@ -1,0 +1,277 @@
+{
+  "$comment": "Contrato de variáveis de ambiente: SÓ NOMES. Valores nunca vão para repositório, chat, arquivo ou commit. Quem define na Vertra: DevOps/proprietário com chave de escrita própria (set_env), lendo do cofre do OpenBot. Outras frentes pedem novas variáveis por PR neste arquivo. Limites da Vertra: 256 variáveis por app, 3.072 caracteres por valor (PEM em variáveis separadas).",
+  "schema": 1,
+  "variaveis": [
+    {
+      "nome": "APP_ENV",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "valores": [
+        "staging",
+        "production"
+      ],
+      "dono_do_codigo": "todas as frentes"
+    },
+    {
+      "nome": "NODE_ENV",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "valores": [
+        "production"
+      ]
+    },
+    {
+      "nome": "APP_COMMIT",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "SHA do commit em deploy; a Vertra baixa o código sem .git, então quem faz o deploy atualiza esta variável. /api/health devolve como version."
+    },
+    {
+      "nome": "APP_URL",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "URL pública do ambiente (https://loyaltynews-staging.vertraweb.app ou o domínio próprio); usada em links canônicos e callbacks de autenticação"
+    },
+    {
+      "nome": "APP_MODE",
+      "secreto": false,
+      "apps": [
+        "web"
+      ],
+      "valores": [
+        "nodb"
+      ],
+      "nota": "só no staging-min: sobe sem banco/Redis; /api/ready devolve degraded"
+    },
+    {
+      "nome": "DB_HOST",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "dono_do_codigo": "packages/db"
+    },
+    {
+      "nome": "DB_PORT",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "porta própria por banco (não é 5432)"
+    },
+    {
+      "nome": "DB_NAME",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "'vertracloud' em bancos novos"
+    },
+    {
+      "nome": "DB_USER",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "DB_PASSWORD",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "DB_CA_PEM",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "nota": "certificado da CA do banco, em texto PEM (a Vertra exige TLS verify-full + certificado de cliente)"
+    },
+    {
+      "nome": "DB_CLIENT_CERT_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "DB_CLIENT_KEY_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_HOST",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_PORT",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_USER",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_PASSWORD",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_CA_PEM",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_CLIENT_CERT_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "REDIS_CLIENT_KEY_PEM",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ]
+    },
+    {
+      "nome": "BLOB_S3_ENDPOINT",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true,
+      "nota": "nomes provisórios: a doc diz 'cliente compatível com S3' com credenciais derivadas de chave restrita à pasta; endpoint e formato exatos a confirmar na página da pasta Blob"
+    },
+    {
+      "nome": "BLOB_S3_BUCKET",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true
+    },
+    {
+      "nome": "BLOB_S3_ACCESS_KEY_ID",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true
+    },
+    {
+      "nome": "BLOB_S3_SECRET_ACCESS_KEY",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "provisorio": true
+    },
+    {
+      "nome": "AUTH_SECRET",
+      "secreto": true,
+      "apps": [
+        "web"
+      ],
+      "dono_do_codigo": "packages/auth (Backend)",
+      "nota": "valor distinto por ambiente; gerar aleatório, nunca reutilizar entre staging e produção"
+    }
+  ],
+  "so_para_ci_nao_vai_para_a_vertra": [
+    {
+      "nome": "DB_SSL_MODE",
+      "secreto": false,
+      "valores": [
+        "disable"
+      ],
+      "nota": "só no job de migrações do CI (PostgreSQL descartável sem TLS). Na Vertra o TLS com certificado de cliente é obrigatório; o código NÃO pode aceitar 'disable' em staging/produção (APP_ENV). Pedido ao dono de packages/db."
+    }
+  ],
+  "so_para_backup_nao_vao_para_apps_da_vertra": [
+    {
+      "nome": "BACKUP_ENV",
+      "secreto": false
+    },
+    {
+      "nome": "BACKUP_DEST",
+      "secreto": false,
+      "nota": "pasta ou s3://bucket/prefixo FORA da Vertra (ADR-012; escolha e custo do proprietário)"
+    },
+    {
+      "nome": "BACKUP_GPG_PUBKEY_PEM",
+      "secreto": false,
+      "nota": "chave PÚBLICA. A privada fica só com quem restaura, fora do repositório e do executor do backup."
+    },
+    {
+      "nome": "BACKUP_S3_ENDPOINT",
+      "secreto": false
+    },
+    {
+      "nome": "AWS_ACCESS_KEY_ID",
+      "secreto": true
+    },
+    {
+      "nome": "AWS_SECRET_ACCESS_KEY",
+      "secreto": true
+    },
+    {
+      "nome": "RESTORE_DB_HOST/PORT/NAME/USER/PASSWORD/CA_PEM/CLIENT_CERT_PEM/CLIENT_KEY_PEM",
+      "secreto": true,
+      "nota": "instância DESCARTÁVEL do ensaio de restauração; nunca produção"
+    }
+  ],
+  "reservado_para_outras_frentes": [
+    "frente 11 ModelOps: chaves de provedores de modelo (OpenRouter etc.)",
+    "frente 09 Growth: credenciais mLabs (flag desligada)",
+    "frente 04/Studio: nada além de AUTH_SECRET por enquanto"
+  ]
+}
