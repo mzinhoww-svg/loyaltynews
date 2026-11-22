@@ -17,17 +17,17 @@
  *   POST /api/studio/intelligence/subject-requests -> openSubjectRequestHandler     [studio, papel DPO/privacidade]
  *   POST /api/studio/intelligence/subject-requests/:id/{export|suppress|rectify}
  */
-import type { Db } from './db.ts';
-import { normalizeName } from './normalize.ts';
+import type { Db } from './db';
+import { normalizeName } from './normalize';
 import {
   getOrganization, getOrgRelations, getPerson, getPersonRoles, listMoveViews, listWatchlistItems, listWatchlists, searchOrganizations,
   searchPeople, type MoveView,
-} from './queries.ts';
-import { currentPeopleAt, neighbors, shortestPath, type NodeRef } from './graph.ts';
-import { getOrgChart } from './repo.ts';
-import { reviewMove } from './moves.ts';
-import { createWatchlist, listAlerts, reviewAlert, watch } from './watchlists.ts';
-import { exportPersonData, openSubjectRequest, rectifyPersonName, suppressPerson } from './subject-requests.ts';
+} from './queries';
+import { currentPeopleAt, neighbors, shortestPath, type NodeRef } from './graph';
+import { getOrgChart } from './repo';
+import { reviewMove } from './moves';
+import { createWatchlist, listAlerts, reviewAlert, watch } from './watchlists';
+import { exportPersonData, openSubjectRequest, rectifyPersonName, suppressPerson } from './subject-requests';
 
 export type Audience = 'public' | 'studio';
 export interface ApiResult<T = unknown> { status: number; body: T | { error: { code: string; message: string } } }

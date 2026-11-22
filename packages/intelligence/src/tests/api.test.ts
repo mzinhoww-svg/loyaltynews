@@ -1,15 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- linhas de resultado do SQL e corpos JSON de resposta são tipados na borda */
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Db } from '../src/db.ts';
-import {
-  addOrgChartEdge, addOrgRelation, addRole, addWatchlistItemHandler, createWatchlistHandler, exportSubjectDataHandler, generateAlerts,
-  getCompanyHandler, getExecutiveHandler, getOrgChartHandler, getWatchlistHandler, graphNeighborsHandler, graphPathHandler, ingestBatch,
-  INGEST_SCHEMA_VERSION, listAlertsHandler, listMovesHandler, listWatchlistsHandler, openSubjectRequestHandler, portalCompanyPage,
-  portalExecutivePage, portalMovesFeed, rectifySubjectHandler, resolveOrCreatePerson, reviewAlertHandler, reviewMoveHandler,
-  searchCompaniesHandler, searchExecutivesHandler, studioAlertQueue, studioEntityOverview, studioMoveQueue, studioOrgChart,
-  studioWatchlistBoard, suppressSubjectHandler, upsertOrganization, type ApiResult,
-} from '../src/index.ts';
-import { MOCK_ORGS, MOCK_PEOPLE } from '../fixtures/mock-entities.ts';
-import { ev, newDb } from './helpers.ts';
+import type { Db } from '../db';
+import { addOrgChartEdge, addOrgRelation, addRole, addWatchlistItemHandler, createWatchlistHandler, exportSubjectDataHandler, generateAlerts, getCompanyHandler, getExecutiveHandler, getOrgChartHandler, getWatchlistHandler, graphNeighborsHandler, graphPathHandler, INGEST_SCHEMA_VERSION, listAlertsHandler, listMovesHandler, listWatchlistsHandler, openSubjectRequestHandler, portalCompanyPage, portalExecutivePage, portalMovesFeed, rectifySubjectHandler, reviewAlertHandler, reviewMoveHandler, searchCompaniesHandler, searchExecutivesHandler, studioAlertQueue, studioEntityOverview, studioMoveQueue, studioOrgChart, studioWatchlistBoard, suppressSubjectHandler, upsertOrganization, type ApiResult } from '../index';
+import { MOCK_ORGS, MOCK_PEOPLE } from '../../fixtures/mock-entities';
+import { ev, newDb, rp, ib } from './helpers';
 
 let db: Db;
 beforeEach(async () => { ({ db } = await newDb()); });
@@ -21,7 +15,7 @@ async function seed() {
   const e = await ev(db, 'api');
   const alfa = await upsertOrganization(db, { legalName: MOCK_ORGS.alfa, evidenceId: e, observedAt: T });
   const beta = await upsertOrganization(db, { legalName: MOCK_ORGS.beta, evidenceId: e, observedAt: T });
-  const mk = async (n: string, o: string) => (await resolveOrCreatePerson(db, { fullName: n, organizationId: o, evidenceId: e, observedAt: T })).id;
+  const mk = async (n: string, o: string) => (await rp(db, { fullName: n, organizationId: o, evidenceId: e, observedAt: T })).id;
   const ana = await mk(MOCK_PEOPLE.ana.name, alfa), bruno = await mk(MOCK_PEOPLE.bruno.name, alfa);
   const rAna = await addRole(db, { personId: ana, organizationId: alfa, title: 'CEO', validFrom: '2024-01-01', evidenceId: e, observedAt: T });
   const rBruno = await addRole(db, { personId: bruno, organizationId: alfa, title: 'Diretor', validFrom: '2025-01-01', evidenceId: e, observedAt: T });
@@ -36,8 +30,8 @@ const moveOf = async (title2: string) => {
     evidence: { sourceUrl: `https://mock.invalid/${at}`, sourceName: 'MOCK', retrievedAt: at, isMock: true },
     observations: [{ personName: MOCK_PEOPLE.carla.name, publicProfileUrl: MOCK_PEOPLE.carla.profile, orgName: MOCK_ORGS.alfa, title, kind: 'present' as const, observedAt: at }],
   });
-  await ingestBatch(db, mk('Gerente', '2026-10-01T00:00:00Z'));
-  await ingestBatch(db, mk(title2, '2026-11-10T00:00:00Z'));
+  await ib(db, mk('Gerente', '2026-10-01T00:00:00Z'));
+  await ib(db, mk(title2, '2026-11-10T00:00:00Z'));
 };
 
 describe('handlers: consultas', () => {
@@ -76,7 +70,7 @@ describe('handlers: consultas', () => {
   it('organograma com grau de certeza e rótulo', async () => {
     const s = await seed();
     const e2 = await ev(db, 'inf');
-    const p = await resolveOrCreatePerson(db, { fullName: MOCK_PEOPLE.diego.name, organizationId: s.alfa, evidenceId: e2, observedAt: T });
+    const p = await rp(db, { fullName: MOCK_PEOPLE.diego.name, organizationId: s.alfa, evidenceId: e2, observedAt: T });
     const rD = await addRole(db, { personId: p.id, organizationId: s.alfa, title: 'Gerente', validFrom: '2025-06-01', evidenceId: e2, observedAt: T });
     await addOrgChartEdge(db, { organizationId: s.alfa, superiorRoleId: s.rBruno, subordinateRoleId: rD, validFrom: '2025-06-01', certainty: 'inferred', inferenceBasis: 'MOCK base', evidenceId: e2, observedAt: T });
     const pub = body(await getOrgChartHandler(db, 'public', { organizationId: s.alfa, asOf: '2026-11-22', includeInferred: true }));

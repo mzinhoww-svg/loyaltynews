@@ -1,7 +1,8 @@
-import { type Db, one } from './db.ts';
-import { DEFAULT_CONFIG, EvidenceRequiredError, ExtendedPersonalDataDisabledError, PersonSuppressedError, type IntelligenceConfig } from './config.ts';
-import { normalizeName, normalizeOrgName, normalizeTitle } from './normalize.ts';
-import type { Certainty, EvidenceInput, Uuid } from './types.ts';
+import { type Db, one } from './db';
+import { DEFAULT_CONFIG, EvidenceRequiredError, ExtendedPersonalDataDisabledError, PersonIngestionDisabledError, PersonSuppressedError, type IntelligenceConfig } from './config';
+import { normalizeName, normalizeOrgName, normalizeTitle } from './normalize';
+import { isSuppressedIdentity } from './subject-requests';
+import type { Certainty, EvidenceInput, Uuid } from './types';
 
 const S = 'intelligence';
 
@@ -48,11 +49,19 @@ export async function resolveOrCreatePerson(
   },
   cfg: IntelligenceConfig = DEFAULT_CONFIG,
 ): Promise<{ id: Uuid; created: boolean }> {
+  if (!cfg.personIngestion) throw new PersonIngestionDisabledError();
   if (!p.evidenceId) throw new EvidenceRequiredError('person');
   const extraKeys = Object.keys(p.extra ?? {});
   if (extraKeys.length && !cfg.extendedPersonalData) throw new ExtendedPersonalDataDisabledError(extraKeys);
 
   const norm = normalizeName(p.fullName);
+  // Supressão a pedido do titular: bloqueio por identificador estável (URL, nome+empresa, nome+fonte), não só pelo ID interno.
+  const orgNorm = p.organizationId
+    ? ((await db.query<{ normalized_name: string }>(`SELECT normalized_name FROM ${S}.organization WHERE id = $1`, [p.organizationId])).rows[0]?.normalized_name ?? null)
+    : null;
+  if (await isSuppressedIdentity(db, { normalizedName: norm, publicProfileUrl: p.publicProfileUrl, organizationNormalizedName: orgNorm, evidenceId: p.evidenceId })) {
+    throw new PersonSuppressedError();
+  }
   if (p.publicProfileUrl) {
     const byUrl = await db.query<{ id: Uuid; suppressed_at: string | null }>(
       `SELECT id, suppressed_at FROM ${S}.person WHERE public_profile_url = $1`, [p.publicProfileUrl]);

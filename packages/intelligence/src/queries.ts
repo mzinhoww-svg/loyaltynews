@@ -1,5 +1,6 @@
-import type { Db } from './db.ts';
-import type { Certainty, Uuid } from './types.ts';
+/* eslint-disable @typescript-eslint/no-explicit-any -- linhas de resultado do SQL e corpos JSON de resposta são tipados na borda */
+import type { Db } from './db';
+import type { Certainty, Uuid } from './types';
 
 const S = 'intelligence';
 

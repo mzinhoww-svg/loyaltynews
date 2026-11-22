@@ -1,11 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Db } from '../src/db.ts';
-import {
-  createWatchlist, generateAlerts, getRoleHistory, listAlerts, listMoves, processObservation, reviewAlert, reviewMove,
-  upsertOrganization, watch, ExtendedPersonalDataDisabledError, type RoleObservation,
-} from '../src/index.ts';
-import { MOCK_ORGS, MOCK_PEOPLE } from '../fixtures/mock-entities.ts';
-import { ev, newDb } from './helpers.ts';
+import type { Db } from '../db';
+import { createWatchlist, generateAlerts, getRoleHistory, listAlerts, listMoves, reviewAlert, reviewMove, upsertOrganization, watch, ExtendedPersonalDataDisabledError, type RoleObservation } from '../index';
+import { MOCK_ORGS, MOCK_PEOPLE } from '../../fixtures/mock-entities';
+import { ev, newDb, po } from './helpers';
 
 let db: Db;
 beforeEach(async () => { ({ db } = await newDb()); });
@@ -20,14 +17,14 @@ async function obs(over: Partial<RoleObservation> & { slug: string; at: string }
 
 describe('Loyalty Moves — detecção de mudança de cargo', () => {
   it('primeira observação é linha de base, não Move', async () => {
-    const r = await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
     expect(r.outcome).toBe('baseline');
     expect(await listMoves(db)).toHaveLength(0);
   });
 
   it('mesma pessoa, mesmo cargo: só revalida (sem Move)', async () => {
-    await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
-    const r = await processObservation(db, await obs({ slug: 's2', at: '2026-11-01T00:00:00Z' }));
+    await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's2', at: '2026-11-01T00:00:00Z' }));
     expect(r.outcome).toBe('unchanged');
     const h = await getRoleHistory(db, r.outcome === 'unchanged' ? r.personId : '');
     expect(h).toHaveLength(1);
@@ -35,8 +32,8 @@ describe('Loyalty Moves — detecção de mudança de cargo', () => {
   });
 
   it('cargo diferente na mesma empresa: title_change, fecha o antigo e abre o novo', async () => {
-    await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
-    const r = await processObservation(db, await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', title: 'Diretora de CRM' }));
+    await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', title: 'Diretora de CRM' }));
     expect(r.outcome).toBe('move');
     if (r.outcome !== 'move') return;
     expect(r.move.kind).toBe('title_change');
@@ -48,8 +45,8 @@ describe('Loyalty Moves — detecção de mudança de cargo', () => {
   });
 
   it('empresa diferente: org_change com evidência', async () => {
-    await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
-    const r = await processObservation(db, await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', orgName: MOCK_ORGS.beta, title: 'CMO', announcement: { effectiveDate: '2026-11-03' } }));
+    await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', orgName: MOCK_ORGS.beta, title: 'CMO', announcement: { effectiveDate: '2026-11-03' } }));
     if (r.outcome !== 'move') throw new Error('esperado move');
     expect(r.move.kind).toBe('org_change');
     expect(r.move.basis).toBe('announcement');
@@ -60,8 +57,8 @@ describe('Loyalty Moves — detecção de mudança de cargo', () => {
   });
 
   it('saída explícita: departure', async () => {
-    await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
-    const r = await processObservation(db, await obs({ slug: 's2', at: '2026-11-10T00:00:00Z', kind: 'left', announcement: { effectiveDate: '2026-11-09' } }));
+    await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's2', at: '2026-11-10T00:00:00Z', kind: 'left', announcement: { effectiveDate: '2026-11-09' } }));
     if (r.outcome !== 'move') throw new Error('esperado move');
     expect(r.move.kind).toBe('departure');
     const h = await getRoleHistory(db, r.personId);
@@ -69,33 +66,33 @@ describe('Loyalty Moves — detecção de mudança de cargo', () => {
   });
 
   it('anúncio de nomeação de pessoa nova gera appointment; saída sem cargo aberto é ignorada', async () => {
-    const r = await processObservation(db, await obs({
+    const r = await po(db, await obs({
       slug: 's1', at: '2026-11-02T00:00:00Z', personName: MOCK_PEOPLE.diego.name, publicProfileUrl: MOCK_PEOPLE.diego.profile,
       title: 'VP', announcement: { effectiveDate: '2026-11-01' },
     }));
     if (r.outcome !== 'move') throw new Error('esperado move');
     expect(r.move.kind).toBe('appointment');
-    const g = await processObservation(db, await obs({ slug: 's2', at: '2026-11-03T00:00:00Z', personName: MOCK_PEOPLE.carla.name, publicProfileUrl: MOCK_PEOPLE.carla.profile, kind: 'left' }));
+    const g = await po(db, await obs({ slug: 's2', at: '2026-11-03T00:00:00Z', personName: MOCK_PEOPLE.carla.name, publicProfileUrl: MOCK_PEOPLE.carla.profile, kind: 'left' }));
     expect(g).toEqual({ outcome: 'ignored', reason: 'no_open_role_to_close' });
   });
 
   it('observação mais antiga que o cargo aberto é ignorada', async () => {
-    await processObservation(db, await obs({ slug: 's1', at: '2026-11-01T00:00:00Z' }));
-    const r = await processObservation(db, await obs({ slug: 's0', at: '2026-09-01T00:00:00Z', title: 'Analista' }));
+    await po(db, await obs({ slug: 's1', at: '2026-11-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's0', at: '2026-09-01T00:00:00Z', title: 'Analista' }));
     expect(r).toEqual({ outcome: 'ignored', reason: 'stale_observation' });
   });
 
   it('observação com campo além de nome/cargo/empresa é recusada (flag desligada)', async () => {
-    await expect(processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z', extra: { telefone: '000' } }))).rejects.toBeInstanceOf(
+    await expect(po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z', extra: { telefone: '000' } }))).rejects.toBeInstanceOf(
       ExtendedPersonalDataDisabledError,
     );
   });
 
   it('reprocessar a mesma observação não duplica Move', async () => {
-    await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
     const o2 = await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', title: 'Diretora de CRM' });
-    await processObservation(db, o2);
-    const again = await processObservation(db, o2);
+    await po(db, o2);
+    const again = await po(db, o2);
     expect(again.outcome).toBe('unchanged');
     expect(await listMoves(db)).toHaveLength(1);
   });
@@ -106,8 +103,8 @@ describe('watchlists e alertas', () => {
     const e = await ev(db, 'wl');
     const alfa = await upsertOrganization(db, { legalName: MOCK_ORGS.alfa, evidenceId: e, observedAt: '2026-10-01T00:00:00Z' });
     const gama = await upsertOrganization(db, { legalName: MOCK_ORGS.gama, evidenceId: e, observedAt: '2026-10-01T00:00:00Z' });
-    await processObservation(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
-    const r = await processObservation(db, await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', orgName: MOCK_ORGS.beta, title: 'CMO' }));
+    await po(db, await obs({ slug: 's1', at: '2026-10-01T00:00:00Z' }));
+    const r = await po(db, await obs({ slug: 's2', at: '2026-11-05T00:00:00Z', orgName: MOCK_ORGS.beta, title: 'CMO' }));
     if (r.outcome !== 'move') throw new Error('esperado move');
     return { alfa, gama, move: r.move, personId: r.personId };
   }

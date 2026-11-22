@@ -1,9 +1,9 @@
-import type { Db } from './db.ts';
-import { one } from './db.ts';
-import { DEFAULT_CONFIG, PersonSuppressedError, type IntelligenceConfig } from './config.ts';
-import { normalizeTitle } from './normalize.ts';
-import { addRole, closeRole, resolveOrCreatePerson, revalidateRole, upsertOrganization } from './repo.ts';
-import type { MoveKind, MoveRow, RoleObservation, Uuid } from './types.ts';
+import type { Db } from './db';
+import { one } from './db';
+import { DEFAULT_CONFIG, PersonSuppressedError, type IntelligenceConfig } from './config';
+import { normalizeTitle } from './normalize';
+import { addRole, closeRole, resolveOrCreatePerson, revalidateRole, upsertOrganization } from './repo';
+import type { MoveKind, MoveRow, RoleObservation, Uuid } from './types';
 
 const S = 'intelligence';
 

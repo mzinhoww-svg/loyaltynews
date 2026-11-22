@@ -9,11 +9,11 @@
  *  - Idempotência: reenviar o mesmo lote não cria Move nem cargo duplicados.
  *  - Dado pessoal: só nome, cargo e empresa (DP-11 P4). `extra` é recusado com a flag desligada.
  */
-import type { Db } from './db.ts';
-import { DEFAULT_CONFIG, ExtendedPersonalDataDisabledError, type IntelligenceConfig } from './config.ts';
-import { processObservation, type ObservationResult } from './moves.ts';
-import { addEvidence } from './repo.ts';
-import type { RoleObservation, Uuid } from './types.ts';
+import type { Db } from './db';
+import { DEFAULT_CONFIG, ExtendedPersonalDataDisabledError, type IntelligenceConfig } from './config';
+import { processObservation, type ObservationResult } from './moves';
+import { addEvidence } from './repo';
+import type { RoleObservation, Uuid } from './types';
 
 export const INGEST_SCHEMA_VERSION = 'role-observation/1';
 
@@ -129,6 +129,10 @@ export async function ingestBatch(db: Db, batch: unknown, cfg: IntelligenceConfi
   const empty = (): IngestReport => ({
     schemaVersion: INGEST_SCHEMA_VERSION, evidenceId: null, accepted: false, batchIssues, items: [], counts: { processed: 0, rejected: 0, moves: 0 },
   });
+  if (!cfg.personIngestion) {
+    // Flag `intelligencePessoas` desligada (J-01): nenhuma pessoa entra; recusa antes de gravar qualquer evidência.
+    batchIssues.push({ path: '$', message: 'person_ingestion_disabled: flag intelligencePessoas desligada (J-01)' });
+  }
   if (batchIssues.length) return empty();
   const b = batch as RoleObservationBatch;
 

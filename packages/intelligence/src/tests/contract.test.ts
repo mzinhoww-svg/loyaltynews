@@ -1,11 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- linhas de resultado do SQL e corpos JSON de resposta são tipados na borda */
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Db } from '../src/db.ts';
-import {
-  INGEST_SCHEMA_VERSION, ROLE_OBSERVATION_BATCH_JSON_SCHEMA, ingestBatch, listMoves, validateBatch, validateObservation,
-  type RoleObservationBatch,
-} from '../src/index.ts';
-import { MOCK_ORGS, MOCK_PEOPLE } from '../fixtures/mock-entities.ts';
-import { newDb } from './helpers.ts';
+import type { Db } from '../db';
+import { INGEST_SCHEMA_VERSION, ROLE_OBSERVATION_BATCH_JSON_SCHEMA, listMoves, validateBatch, validateObservation, type RoleObservationBatch } from '../index';
+import { MOCK_ORGS, MOCK_PEOPLE } from '../../fixtures/mock-entities';
+import { newDb, ib } from './helpers';
 
 let db: Db;
 beforeEach(async () => { ({ db } = await newDb()); });
@@ -67,7 +65,7 @@ describe('contrato role-observation/1 — validação', () => {
 
 describe('contrato role-observation/1 — ingestão', () => {
   it('lote inválido é recusado inteiro e não grava nada', async () => {
-    const rep = await ingestBatch(db, { ...batch(), schemaVersion: 'x' });
+    const rep = await ib(db, { ...batch(), schemaVersion: 'x' });
     expect(rep.accepted).toBe(false);
     expect(rep.evidenceId).toBeNull();
     const n = await db.query<{ c: string }>(`SELECT count(*)::text c FROM intelligence.evidence`);
@@ -75,7 +73,7 @@ describe('contrato role-observation/1 — ingestão', () => {
   });
 
   it('item inválido não bloqueia os demais; relatório por índice', async () => {
-    const rep = await ingestBatch(db, batch({}, [
+    const rep = await ib(db, batch({}, [
       {}, { personName: '' }, { personName: MOCK_PEOPLE.bruno.name, publicProfileUrl: MOCK_PEOPLE.bruno.profile }, { extra: { telefone: '0' } as any },
     ]));
     expect(rep.accepted).toBe(true);
@@ -86,12 +84,12 @@ describe('contrato role-observation/1 — ingestão', () => {
   });
 
   it('primeira ingestão = baseline; mudança num segundo lote = Move com evidência; reenvio é idempotente', async () => {
-    const r1 = await ingestBatch(db, batch());
+    const r1 = await ib(db, batch());
     expect(r1.items[0]).toMatchObject({ status: 'processed', result: { outcome: 'baseline' } });
 
     const second = batch({ evidence: { sourceUrl: 'https://mock.invalid/novo', sourceName: 'MOCK fonte 2', retrievedAt: '2026-12-01T10:00:00Z', isMock: true } },
       [{ title: 'Diretora de CRM', observedAt: '2026-12-01T10:00:00Z' }]);
-    const r2 = await ingestBatch(db, second);
+    const r2 = await ib(db, second);
     expect(r2.counts.moves).toBe(1);
     const moves = await listMoves(db);
     expect(moves).toHaveLength(1);
@@ -99,7 +97,7 @@ describe('contrato role-observation/1 — ingestão', () => {
     expect(moves[0]!.evidence_id).toBe(r2.evidenceId);
     expect(moves[0]!.effective_date).toBeNull();
 
-    const r3 = await ingestBatch(db, second); // reenvio
+    const r3 = await ib(db, second); // reenvio
     expect(r3.counts.moves).toBe(0);
     expect(r3.items[0]).toMatchObject({ status: 'processed', result: { outcome: 'unchanged' } });
     expect(await listMoves(db)).toHaveLength(1);
@@ -108,25 +106,25 @@ describe('contrato role-observation/1 — ingestão', () => {
   });
 
   it('anúncio com data efetiva vira Move declarado; sem anúncio não há data efetiva', async () => {
-    await ingestBatch(db, batch());
-    const r = await ingestBatch(db, batch({}, [{ orgName: MOCK_ORGS.beta, title: 'CMO', observedAt: '2026-12-02T09:00:00Z', announcement: { effectiveDate: '2026-12-01' } }]));
+    await ib(db, batch());
+    const r = await ib(db, batch({}, [{ orgName: MOCK_ORGS.beta, title: 'CMO', observedAt: '2026-12-02T09:00:00Z', announcement: { effectiveDate: '2026-12-01' } }]));
     const m = await listMoves(db);
     expect(r.counts.moves).toBe(1);
     expect(m[0]).toMatchObject({ kind: 'org_change', basis: 'announcement', effective_date: '2026-12-01' });
   });
 
   it('pessoa suprimida: observação é ignorada, sem recriar o registro', async () => {
-    const first = await ingestBatch(db, batch());
+    const first = await ib(db, batch());
     const pid = (first.items[0] as any).result.personId as string;
     await db.query(`UPDATE intelligence.person SET suppressed_at = now() WHERE id = $1`, [pid]);
-    const r = await ingestBatch(db, batch({}, [{ observedAt: '2026-12-05T10:00:00Z' }]));
+    const r = await ib(db, batch({}, [{ observedAt: '2026-12-05T10:00:00Z' }]));
     expect(r.items[0]).toMatchObject({ status: 'processed', result: { outcome: 'ignored', reason: 'subject_suppressed' } });
     const n = await db.query<{ c: string }>(`SELECT count(*)::text c FROM intelligence.person`);
     expect(n.rows[0]!.c).toBe('1');
   });
 
   it('com a flag ligada o campo extra passa pela validação (mas a flag nasce desligada)', async () => {
-    const rep = await ingestBatch(db, batch({}, [{ extra: { nota: 'x' } as any }]), { extendedPersonalData: true });
+    const rep = await ib(db, batch({}, [{ extra: { nota: 'x' } as any }]), { personIngestion: true, extendedPersonalData: true });
     expect(rep.items[0]!.status).toBe('processed');
   });
 });

@@ -1,5 +1,5 @@
-import type { Db } from './db.ts';
-import type { Certainty, Uuid } from './types.ts';
+import type { Db } from './db';
+import type { Certainty, Uuid } from './types';
 
 const S = 'intelligence';
 export const MAX_HOPS = 3; // ADR-009: consultas de caminho limitadas a 3 saltos

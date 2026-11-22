@@ -1,6 +1,6 @@
-import type { Db } from './db.ts';
-import { one } from './db.ts';
-import type { Uuid } from './types.ts';
+import type { Db } from './db';
+import { one } from './db';
+import type { Uuid } from './types';
 
 const S = 'intelligence';
 

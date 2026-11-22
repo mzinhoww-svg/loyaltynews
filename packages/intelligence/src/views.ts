@@ -5,15 +5,15 @@
  * Cada item carrega `evidence` (fonte, data de coleta, is_mock) e `validated_at`: a UI exibe fonte e data de validação
  * e escreve o texto MOCK quando `is_mock` é verdadeiro. `empty` é verdadeiro quando não há registro (estado vazio honesto).
  */
-import type { Db } from './db.ts';
-import { currentPeopleAt } from './graph.ts';
-import { getOrgChart } from './repo.ts';
+import type { Db } from './db';
+import { currentPeopleAt } from './graph';
+import { getOrgChart } from './repo';
 import {
   getOrganization, getOrgRelations, getPerson, getPersonRoles, listMoveViews, listWatchlistItems, listWatchlists, searchOrganizations,
   type MoveView,
-} from './queries.ts';
-import { listAlerts } from './watchlists.ts';
-import type { Uuid } from './types.ts';
+} from './queries';
+import { listAlerts } from './watchlists';
+import type { Uuid } from './types';
 
 const today = () => new Date().toISOString().slice(0, 10);
 

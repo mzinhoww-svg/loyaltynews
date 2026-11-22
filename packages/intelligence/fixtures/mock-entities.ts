@@ -1,6 +1,6 @@
 // MOCK — dados fictícios apenas para teste. Nunca apresentar como dado real nem homologado.
 // Nomes e URLs são inventados (domínio .invalid); nenhuma pessoa real.
-import type { EvidenceInput } from '../src/types.ts';
+import type { EvidenceInput } from '../src/types';
 
 export const MOCK_LABEL = 'MOCK';
 
