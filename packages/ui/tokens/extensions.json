@@ -1,0 +1,32 @@
+{
+  "_nota": "Tokens DERIVADOS pela frente 05 (UI/UX) a partir do brandkit. design.tokens.json (cópia literal do brandkit 2.0-draft.1) NÃO define espaçamento, raio, escala tipográfica, breakpoints nem cores semânticas; estes valores são proposta de implementação, sujeitos a aprovação de marca.",
+  "colors": {
+    "secondary-strong": { "value": "#2A6F65", "why": "secondary (#34877A) tem contraste 4,29:1 sobre branco, abaixo de AA 4,5:1 para texto normal. secondary-strong dá >= 4,5:1 sobre branco e sobre mint." },
+    "border": { "value": "#B9D3CA", "why": "Divisor decorativo sobre branco (não é a única indicação de estado)." },
+    "border-strong": { "value": "#5F7D78", "why": "Borda de campos de formulário; >= 3:1 sobre branco (WCAG 1.4.11)." },
+    "text-muted": { "value": "#4A5F5F", "why": "Texto secundário; >= 4,5:1 sobre branco e sobre mint." },
+    "warning-bg": { "value": "#FFF4CC", "why": "Fundo do MockBadge (alerta visível de dado simulado)." },
+    "warning-fg": { "value": "#5C4400", "why": "Texto do MockBadge sobre warning-bg." },
+    "danger": { "value": "#A12A2A", "why": "Erros de formulário; >= 4,5:1 sobre branco." },
+    "focus": { "value": "#0B5FD3", "why": "Anel de foco; >= 3:1 sobre branco, mint e primary-claro." }
+  },
+  "spacing": { "0": "0", "1": "4px", "2": "8px", "3": "12px", "4": "16px", "5": "24px", "6": "32px", "7": "48px", "8": "64px", "9": "96px" },
+  "radius": { "none": "0", "sm": "4px", "md": "8px", "lg": "12px", "xl": "16px", "pill": "999px" },
+  "fontSize": {
+    "xs": ["0.75rem", "1rem"],
+    "sm": ["0.875rem", "1.25rem"],
+    "md": ["1rem", "1.5rem"],
+    "lg": ["1.125rem", "1.75rem"],
+    "xl": ["1.375rem", "1.75rem"],
+    "2xl": ["1.75rem", "2.125rem"],
+    "3xl": ["2.25rem", "2.625rem"],
+    "4xl": ["3rem", "3.25rem"]
+  },
+  "fontWeight": { "regular": "400", "medium": "500", "bold": "700" },
+  "breakpoints": { "sm": "640px", "md": "768px", "lg": "1024px", "xl": "1280px" },
+  "layout": { "container": "1200px", "gutter": "16px", "gutter-lg": "24px", "reading": "68ch" },
+  "shadow": { "sm": "0 1px 2px rgba(16,28,28,.08)", "md": "0 4px 12px rgba(16,28,28,.12)" },
+  "focus": { "width": "3px", "offset": "2px" },
+  "motion": { "fast": "120ms" },
+  "touchTarget": "44px"
+}
