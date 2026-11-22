@@ -27,6 +27,16 @@ export const FLAG_DEFAULTS = {
   rituais: false,
   /** Coleta de analytics (J-15: política publicada e consentimento por finalidade). */
   analytics: false,
+  /** Portal: Market Data (estado de disponibilidade, Blueprint §1). */
+  portalMarketData: false,
+  /** Portal: Podcast / Loyalty Talks. */
+  portalPodcast: false,
+  /** Portal: formulários públicos (contato, mídia kit, newsletter). */
+  portalFormularios: false,
+  /** Fábrica editorial: coletor determinístico de fontes (ADR-007). */
+  editorialCollector: false,
+  /** Fábrica editorial: pipeline de redação e checagem (WF01/WF02). */
+  editorialPipeline: false,
 } as const satisfies Record<string, false>;
 
 export type FlagName = keyof typeof FLAG_DEFAULTS;

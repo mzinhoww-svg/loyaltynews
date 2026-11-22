@@ -1,3 +1,5 @@
+"use client";
+
 import { useId, type FormEvent, type InputHTMLAttributes } from "react";
 import { cx } from "../utils";
 import { Button } from "./Button";

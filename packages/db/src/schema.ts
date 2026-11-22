@@ -128,3 +128,6 @@ export * from './schema/editorial-api';
 
 // Frente 10 Comercial: catálogo, inventário, CRM, campanhas e métricas (./schema/commercial.ts).
 export * from './schema/commercial';
+
+// Frente 07 AgentOps: memória setorial e rituais (./schema/agents.ts).
+export * from './schema/agents';

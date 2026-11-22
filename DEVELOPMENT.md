@@ -11,19 +11,20 @@ Regras comuns: `fast-track/README.md` e `implementation-office.md` (pasta compar
 | Comando | O que faz |
 |---|---|
 | `npm install` | Instala todos os workspaces |
-| `npm run dev` | Next.js em http://localhost:3000 (portal `/`, `/studio`, `/api/health`) |
+| `npm run dev` | Next.js em http://localhost:3000 (portal `/`, `/studio`, `/api/health` com `version`=APP_COMMIT e `env`=APP_ENV) |
 | `npm test` | Vitest (pacotes + `apps/web/lib`) |
 | `npm run typecheck` | `tsc` estrito na raiz e no app |
 | `npm run lint` | ESLint (flat config, typescript-eslint) |
 | `npm run build` | Build de produção do `apps/web` |
-| `npm run e2e` | Playwright (sobe `next start` na porta 3100; requer `npm run build` antes e `npx playwright install chromium` uma vez) |
+| `npm run e2e` | Playwright (sobe `next start` na porta `E2E_PORT`, padrão 3100 — use uma porta própria por worktree; requer `npm run build` antes e `npx playwright install chromium` uma vez) |
+| `npm run migrate -w @ln/db` | Aplica as migrações num PostgreSQL real: `DATABASE_URL` + TLS com `DB_SSL_CA_PEM`, `DB_SSL_CERT_PEM`, `DB_SSL_KEY_PEM` (conteúdo PEM em variável); `DB_SSL_MODE=disable` só com `CI=true` |
 | `npm run db:generate` | Gera migração SQL a partir de `packages/db/src/schema.ts` (drizzle-kit) |
 | `npm run check` | lint + typecheck + test + build |
 
 ## Layout
 - `apps/web`: Next.js App Router. `app/(portal)` (Frente 03), `app/studio` (Frente 04), `app/api` (Frente 02 Backend).
-- `packages/contracts`: schemas zod e tipos compartilhados, **e `flags.ts` com todas as flags desligadas**. Dono: Chief Architect.
-- `packages/db`: Drizzle (PostgreSQL 18), migrações em `packages/db/drizzle/`, helper de teste `@ln/db/testing` (PGlite). Dono: Chief Architect.
+- `packages/contracts`: schemas zod e tipos compartilhados, **e `flags.ts` com todas as flags desligadas**; política de modelos (`ModelPolicy`, `modelCallsAllowed`); subpath sem zod `@ln/contracts/editoria` para o cliente. Dono: Chief Architect.
+- `packages/db`: Drizzle (PostgreSQL 18), migrações em `packages/db/drizzle/` (uma por rodada de integração), helper de teste `@ln/db/testing` (PGlite), `@ln/db/migrate`. Schemas das frentes em `src/schema/<frente>.ts`, incorporados pelo Chief Architect. Dono: Chief Architect.
 - `packages/{ui,editorial,agents,intelligence,growth,commercial,modelops,auth}`: um pacote por frente (ver a tabela de ownership no README do fast-track).
 
 ## Convenções
