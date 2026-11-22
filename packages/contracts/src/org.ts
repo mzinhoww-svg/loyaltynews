@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id, IsoDate, TIMEZONE } from './common';
+import { IsoDate, TIMEZONE } from './common';
 
 /**
  * Contratos lógicos da organização agêntica. Os campos seguem os registros oficiais
@@ -71,28 +71,90 @@ export const Ritual = z
   .refine((r) => r.participants.includes(r.chair), { message: 'chair fora dos participantes', path: ['chair'] });
 export type Ritual = z.infer<typeof Ritual>;
 
-/** Decisão de ata: gera tarefa idempotente com responsável, prazo, evidência, risco e alçada. */
-export const Decision = z.object({
-  id: Id,
-  meetingId: Id,
-  texto: z.string().min(1),
-  responsavel: z.string().min(1),
-  prazo: IsoDate,
-  evidenciaExigida: z.string().min(1),
-  risco: z.enum(['baixo', 'medio', 'alto']),
-  /** Decisão protegida vai ao verificador; nunca é aprovada pelo próprio ritual. */
-  alcada: z.enum(['automatica', 'protegida']),
-  idempotencyKey: z.string().min(8),
-});
-export type Decision = z.infer<typeof Decision>;
+/*
+ * Persistência dos rituais (Frente 07, packages/db/src/schema/agents.ts). Decisão do Chief Architect
+ * (rodada de integração 2): o modelo do banco prevalece; os contratos espelham as tabelas.
+ * Mapeamento dos tipos antigos do scaffold (sem uso por nenhuma frente):
+ *   Meeting.status agendada     -> sem linha (ainda não executado) | realizada -> completed
+ *                  somente_status -> status_only (com reason)       | cancelada -> não existe; usar status_only
+ *                  (novo) waiting -> aguardando dependência (D-sync, P5)
+ *   Meeting.decisoes            -> meeting_decisions (run_id)
+ *   Decision.responsavel/prazo/evidenciaExigida -> action_items (owner_agent_id, due_date, evidence_ref)
+ *   Decision.alcada automatica  -> meeting_decisions.status approved
+ *                  protegida    -> pending_human (atos reservados ao responsável; o verificador cuida de aceites)
+ *   Decision.idempotencyKey     -> unique (meeting_id, local_date, instance) em meeting_runs
+ */
+export const MeetingRunStatus = z.enum(['completed', 'status_only', 'waiting']);
+export const MeetingRunReason = z.enum(['no_inputs_or_decisions', 'quorum_not_met', 'recovery_window_expired', 'host_off_previous_day']);
 
-export const Meeting = z.object({
-  id: Id,
-  ritualId: z.string().min(1),
-  data: IsoDate,
-  status: z.enum(['agendada', 'realizada', 'somente_status', 'cancelada']),
-  quorumAtingido: z.boolean(),
-  rodadas: z.number().int().min(0).max(2),
-  decisoes: z.array(Decision).default([]),
+export const MeetingRun = z
+  .object({
+    id: z.uuid(),
+    meetingId: z.string().min(1),
+    localDate: IsoDate,
+    /** '' = ocorrência agendada; id do evento para X-incident. */
+    instance: z.string().default(''),
+    scheduledFor: z.iso.datetime({ offset: true }),
+    executedAt: z.iso.datetime({ offset: true }),
+    status: MeetingRunStatus,
+    reason: MeetingRunReason.nullable(),
+    route: RouteHint,
+    delayMinutes: z.number().int().min(0),
+    modelCalls: z.number().int().min(0),
+    recovered: z.boolean(),
+    chair: z.string().min(1),
+    participantsPresent: z.array(z.string()),
+    participantsAbsent: z.array(z.string()),
+    quorumMinimum: z.number().int().min(2),
+  })
+  .refine((r) => (r.status === 'status_only') === (r.reason !== null), {
+    message: 'status_only exige motivo; demais estados não têm motivo',
+    path: ['reason'],
+  });
+export type MeetingRun = z.infer<typeof MeetingRun>;
+
+export const MeetingDecision = z.object({
+  id: z.uuid(),
+  runId: z.uuid(),
+  text: z.string().min(1),
+  proposedBy: z.string().min(1),
+  authority: z.string().min(1),
+  status: z.enum(['approved', 'pending_human', 'rejected_invalid_authority']),
+  needsHumanApproval: z.boolean(),
+  evidenceRefs: z.array(z.string()),
 });
-export type Meeting = z.infer<typeof Meeting>;
+export type MeetingDecision = z.infer<typeof MeetingDecision>;
+
+/** Tarefa gerada por decisão (WF16): conclusão exige data e evidência verificável. */
+export const ActionItem = z
+  .object({
+    id: z.uuid(),
+    decisionId: z.uuid(),
+    runId: z.uuid(),
+    title: z.string().min(1),
+    ownerAgentId: z.string().min(1),
+    dueDate: IsoDate,
+    status: z.enum(['open', 'done', 'escalated']),
+    createdAt: z.iso.datetime({ offset: true }),
+    closedAt: z.iso.datetime({ offset: true }).nullable(),
+    evidenceRef: z.string().min(1).nullable(),
+  })
+  .refine((a) => a.status !== 'done' || (a.closedAt !== null && a.evidenceRef !== null), {
+    message: 'conclusão exige closedAt e evidência',
+    path: ['evidenceRef'],
+  });
+export type ActionItem = z.infer<typeof ActionItem>;
+
+/** Memória setorial versionada por editoria (append-only). */
+export const SectorMemoryEntry = z.object({
+  id: z.uuid(),
+  editoria: z.enum(['mercado', 'programas', 'pontos', 'bancos', 'varejo', 'travel', 'tech', 'crm', 'global', 'regulacao']),
+  kind: z.enum(['sources', 'glossary', 'style', 'lessons', 'open_threads', 'decision']),
+  key: z.string().min(1),
+  version: z.number().int().min(1),
+  content: z.unknown(),
+  sourceRefs: z.array(z.string()),
+  authorAgentId: z.string().min(1),
+  createdAt: z.iso.datetime({ offset: true }),
+});
+export type SectorMemoryEntry = z.infer<typeof SectorMemoryEntry>;
