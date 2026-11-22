@@ -10,6 +10,8 @@ export interface PaginationProps {
   linkAs?: LinkAs;
   /** Páginas vizinhas exibidas de cada lado da atual. */
   siblings?: number;
+  /** Nome do landmark; deve ser único na página (ex.: "Paginação: Fila editorial"). */
+  label?: string;
   className?: string;
 }
 
@@ -26,7 +28,7 @@ export function pageRange(page: number, total: number, siblings = 1): Array<numb
   return out;
 }
 
-export function Pagination({ page, totalPages, hrefFor, onPageChange, linkAs, siblings = 1, className }: PaginationProps) {
+export function Pagination({ page, totalPages, hrefFor, onPageChange, linkAs, siblings = 1, label = "Paginação", className }: PaginationProps) {
   if (totalPages <= 1) return null;
   const Link = linkAs ?? "a";
   const item = (target: number, label: string, content: React.ReactNode, current = false) => {
@@ -53,7 +55,7 @@ export function Pagination({ page, totalPages, hrefFor, onPageChange, linkAs, si
     );
   };
   return (
-    <nav aria-label="Paginação" className={cx("ln-pagination", className)}>
+    <nav aria-label={label} className={cx("ln-pagination", className)}>
       <ul className="ln-pagination__list">
         <li>{item(page - 1, "Página anterior", <span aria-hidden="true">‹ Anterior</span>)}</li>
         {pageRange(page, totalPages, siblings).map((p, i) =>

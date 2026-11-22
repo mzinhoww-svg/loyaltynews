@@ -15,7 +15,7 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/health`,
     // E2E do Studio roda no build de e2e (.next-e2e, LN_E2E_BUILD=1), o único que contém a sessão simulada (MOCK).
     // O build de produção não a contém nem aceita esta variável (scripts/verify-no-mock.mjs).
-    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1' },
+    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1', LN_STUDIO_DEV_DB: 'pglite' },
     reuseExistingServer: false,
     timeout: 120_000,
   },

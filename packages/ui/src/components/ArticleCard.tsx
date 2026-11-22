@@ -1,5 +1,5 @@
 import { cx, formatDatePtBR, type LinkAs } from "../utils";
-import type { Editoria } from "../editorias";
+import type { EditoriaLike } from "../editorias";
 import { EditoriaBadge } from "./Tag";
 import { MockBadge } from "./MockBadge";
 import { Monogram } from "./Logo";
@@ -10,7 +10,7 @@ export interface ArticleCardProps {
   title: string;
   href: string;
   size?: ArticleCardSize;
-  editoria?: Pick<Editoria, "slug" | "nome">;
+  editoria?: EditoriaLike;
   excerpt?: string;
   /** ISO 8601. */
   publishedAt?: string;

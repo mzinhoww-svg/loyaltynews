@@ -1,0 +1,12 @@
+{
+  "source": "contracts/model.policy.json (v2.1), somente nomes de rotas",
+  "routes": [
+    "deterministic",
+    "economy",
+    "review",
+    "premium",
+    "strategic",
+    "image_fast",
+    "image_premium"
+  ]
+}

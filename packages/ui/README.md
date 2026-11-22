@@ -1,11 +1,11 @@
-# @loyaltynews/ui — Design System (Frente 05)
+# @ln/ui — Design System (Frente 05)
 
 Tokens do brandkit 2.0-draft.1 (status do brandkit: **proposta não aprovada**) + componentes React acessíveis, mobile-first.
 
 ## Uso
 ```tsx
-import "@loyaltynews/ui/styles.css";           // uma vez (tokens + estilos)
-import { Header, Footer, ArticleCard } from "@loyaltynews/ui";
+import "@ln/ui/styles.css";           // uma vez (tokens + estilos)
+import { Header, Footer, ArticleCard } from "@ln/ui";
 
 <div className="ln-root"> ... </div>            // escopo de base/foco
 ```
@@ -24,4 +24,10 @@ import { Header, Footer, ArticleCard } from "@loyaltynews/ui";
 Logo/Monogram (4+2 variações oficiais), Header (skip link, 10 editorias, menu mobile com Esc), Footer, Container, Grid, VisuallyHidden, ArticleCard (`lg|md|sm|compact`, título é o único link), Tag, EditoriaBadge, Button, Input, SearchInput, Pagination (links reais), Breadcrumb, SectionHeading, EmptyState (`empty|error|unavailable`), AdSlot (rotulado "Publicidade", placeholder honesto), MockBadge, MockFrame.
 
 ## Comandos
-`npm test` (vitest + vitest-axe + contraste WCAG) · `npm run typecheck` · `npm run showcase` (vitrine em http://127.0.0.1:5175; `?axe` roda axe-core no navegador e expõe `window.__axe`) · `npm run showcase:build`.
+`npm test` (vitest + axe + contraste WCAG; na raiz ou `-w @ln/ui`) · `npm run typecheck -w @ln/ui` · `npm run showcase -w @ln/ui` (vitrine em http://127.0.0.1:5175; `?axe` roda axe-core no navegador e expõe `window.__axe`) · `npm run showcase:build`.
+
+## Studio e templates (fase 3)
+- **Studio:** `StudioLayout`, `Sidebar`, `DataTable` (busca, filtro, ordenação, paginação, aria-sort), `Form`/`FormField`/`rules` (resumo de erros com foco), `Modal`/`Drawer`, `Tabs`, `StatusPill`, `ToastProvider`/`useToast`, `KpiCard` (origem e período obrigatórios: sem eles o número não aparece).
+- **Templates por código** (`renderThumbnail`, `renderCover`, `renderLowerThird`, `renderVignette`, `TemplateImage`): funções puras que geram SVG a partir do brandkit; recusam texto que não cabe (nunca cortam manchete); `mock` desenha o selo MOCK. Formatos sociais (feed, story, OG, LinkedIn) são do `packages/growth`; `wrapText`/`fitHeadline` exportados aqui podem ser reutilizados lá.
+- **Next 16 / RSC:** módulos com hooks levam `"use client"` (Header, Input/SearchInput, Tabs, Modal, Toast, Sidebar, DataTable, Form); os demais funcionam em Server Components. Um teste impede regressão. Não passe funções (ex.: `hrefFor` customizado) de um Server Component para um componente de cliente.
+- Fidelidade aos wireframes e lacunas: `docs/fidelidade-wireframes.md`.

@@ -5,10 +5,19 @@
   "type": "module",
   "description": "Autenticação do LN Studio (ADR-011). Dono: Frente 02 — LN Backend Engineer.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
-    "@ln/contracts": "0.0.0"
+    "@ln/contracts": "0.0.0",
+    "@ln/db": "0.0.0",
+    "better-auth": "1.7.27",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@better-auth/utils": "0.5.1",
+    "@types/pg": "8.23.1"
   }
 }
