@@ -36,6 +36,13 @@
       "when": 1795384672230,
       "tag": "0004_agentic_org",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795385212193,
+      "tag": "0005_agents_reschedule",
+      "breakpoints": true
     }
   ]
 }
