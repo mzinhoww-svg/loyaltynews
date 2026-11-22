@@ -29,16 +29,16 @@ export default async function EmAltaPage({ searchParams }: { searchParams: Promi
         lead="Mais lidas, por leituras qualificadas e deduplicadas. Quando o histórico é insuficiente, não simulamos popularidade."
         crumbs={[{ label: 'Em alta' }]}
       />
-      <ul className="ln-chips" aria-label="Janela de tempo">
+      <ul className="pt-chips" aria-label="Janela de tempo">
         {WINDOWS.map((w) => (
           <li key={w.id}>
-            <Link className="ln-chip" href={w.id === '24h' ? '/em-alta' : `/em-alta?janela=${w.id}`} aria-current={w.id === win ? 'true' : undefined}>
+            <Link className="pt-chip" href={w.id === '24h' ? '/em-alta' : `/em-alta?janela=${w.id}`} aria-current={w.id === win ? 'true' : undefined}>
               {w.label}
             </Link>
           </li>
         ))}
       </ul>
-      <div className="ln-layout">
+      <div className="pt-layout">
         <div>
           {items.length ? (
             <RankedList items={items} />

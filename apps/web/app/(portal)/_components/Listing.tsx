@@ -37,17 +37,17 @@ export async function Listing(p: ListingProps) {
       <AdSlot slot="topo" />
       <PageHead title={p.title} lead={p.lead} crumbs={p.crumbs ?? [{ label: p.title }]} />
       {p.showEditoriaChips && (
-        <ul className="ln-chips" aria-label="Editorias">
+        <ul className="pt-chips" aria-label="Editorias">
           {EDITORIAS.map((e) => (
             <li key={e.slug}>
-              <Link className="ln-chip" href={`/editoria/${e.slug}`}>
+              <Link className="pt-chip" href={`/editoria/${e.slug}`}>
                 {e.name}
               </Link>
             </li>
           ))}
         </ul>
       )}
-      <div className="ln-layout">
+      <div className="pt-layout">
         <div>
           {data.items.length ? (
             <>

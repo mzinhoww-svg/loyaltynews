@@ -1,21 +1,25 @@
+import {
+  AdSlot as DsAdSlot,
+  ArticleCard as DsArticleCard,
+  Breadcrumb,
+  EmptyState as DsEmptyState,
+  MockBadge,
+  Pagination,
+  type AdPosition,
+} from '@ln/ui';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { CONTENT_TYPE_LABEL, editoriaName } from '../_lib/editorias';
-import { formatDate } from '../_lib/format';
-import type { AdSlotId, Article, Page } from '../_lib/types';
+import { editoriaName } from '../_lib/editorias';
 import { getSource } from '../_lib/source';
+import type { AdSlotId, Article, Page } from '../_lib/types';
 
 export function MockTag() {
-  return <span className="ln-mocktag">MOCK</span>;
+  return <MockBadge label="" />;
 }
 
+/** Estado vazio honesto (DS `EmptyState`). */
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
-  return (
-    <div className="ln-empty" role="status">
-      <strong>{title}</strong>
-      {children ? <p>{children}</p> : null}
-    </div>
-  );
+  return <DsEmptyState title={title} description={children} />;
 }
 
 export function PageHead({
@@ -28,20 +32,10 @@ export function PageHead({
   crumbs?: { label: string; href?: string }[];
 }) {
   return (
-    <div className="ln-pagehead">
-      {crumbs && (
-        <nav className="ln-crumbs" aria-label="Trilha">
-          <Link href="/">Início</Link>
-          {crumbs.map((c) => (
-            <span key={c.label}>
-              {' / '}
-              {c.href ? <Link href={c.href}>{c.label}</Link> : c.label}
-            </span>
-          ))}
-        </nav>
-      )}
+    <div className="pt-pagehead">
+      {crumbs && <Breadcrumb linkAs={Link} items={[{ label: 'Início', href: '/' }, ...crumbs]} />}
       <h1>{title}</h1>
-      {lead && <p className="ln-lead">{lead}</p>}
+      {lead && <p className="pt-lead">{lead}</p>}
     </div>
   );
 }
@@ -60,11 +54,11 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="ln-section" aria-labelledby={id ? `${id}-t` : undefined} id={id}>
-      <div className="ln-section-head">
+    <section className="pt-section" aria-labelledby={id ? `${id}-t` : undefined} id={id}>
+      <div className="pt-section-head">
         <h2 id={id ? `${id}-t` : undefined}>{title}</h2>
         {href && (
-          <Link href={href} className="ln-more">
+          <Link href={href} className="pt-more">
             {moreLabel}
           </Link>
         )}
@@ -74,35 +68,44 @@ export function Section({
   );
 }
 
-export function ArticleCard({ article, withSummary = true }: { article: Article; withSummary?: boolean }) {
+type CardSize = 'lg' | 'md' | 'sm' | 'compact';
+
+/** Adapta o `Article` do portal ao `ArticleCard` do design system. */
+export function ArticleCard({
+  article,
+  size = 'md',
+  rank,
+  headingLevel = 3,
+}: {
+  article: Article;
+  size?: CardSize;
+  rank?: number;
+  headingLevel?: 2 | 3 | 4;
+}) {
+  const nome = editoriaName(article.editoriaSlug);
   return (
-    <article className="ln-card">
-      <Link href={`/noticia/${article.slug}`} className="ln-card-img" aria-hidden="true" tabIndex={-1}>
-        {article.image ? <img src={article.image.src} alt="" loading="lazy" /> : <span>{editoriaName(article.editoriaSlug)}</span>}
-      </Link>
-      <div className="ln-kicker">
-        {editoriaName(article.editoriaSlug)} · {CONTENT_TYPE_LABEL[article.contentType]}
-        {article.sponsored && (
-          <>
-            {' '}
-            <span className="ln-sponsored">Patrocinado</span>
-          </>
-        )}
-      </div>
-      <h3>
-        <Link href={`/noticia/${article.slug}`}>{article.title}</Link>
-      </h3>
-      {withSummary && <p>{article.summary}</p>}
-      <div className="ln-meta">
-        {article.authorLabel} · <time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
-      </div>
-    </article>
+    <DsArticleCard
+      title={article.title}
+      href={`/noticia/${article.slug}`}
+      size={size}
+      editoria={{ slug: article.editoriaSlug, nome }}
+      excerpt={article.summary}
+      publishedAt={article.publishedAt}
+      readingMinutes={article.readingMinutes}
+      author={article.authorLabel}
+      imageSrc={article.image?.src}
+      imageAlt={article.image?.alt}
+      headingLevel={headingLevel}
+      rank={rank}
+      isMock={article.mock}
+      linkAs={Link}
+    />
   );
 }
 
 export function ArticleGrid({ items, cols = 4 }: { items: Article[]; cols?: 3 | 4 }) {
   return (
-    <div className={cols === 3 ? 'ln-grid ln-grid-3' : 'ln-grid'}>
+    <div className={cols === 3 ? 'pt-grid pt-grid-3' : 'pt-grid'}>
       {items.map((a) => (
         <ArticleCard key={a.slug} article={a} />
       ))}
@@ -112,78 +115,50 @@ export function ArticleGrid({ items, cols = 4 }: { items: Article[]; cols?: 3 | 
 
 export function RankedList({ items }: { items: Article[] }) {
   return (
-    <ol className="ln-list" style={{ listStyle: 'none', padding: 0 }}>
+    <ol className="pt-list">
       {items.map((a, i) => (
-        <li key={a.slug} className="ln-rank">
-          <span className="ln-rank-n" aria-hidden="true">
-            {String(i + 1).padStart(2, '0')}
-          </span>
-          <div>
-            <div className="ln-kicker">{editoriaName(a.editoriaSlug)}</div>
-            <Link href={`/noticia/${a.slug}`} style={{ fontFamily: 'var(--ln-editorial)', fontWeight: 700 }}>
-              {a.title}
-            </Link>
-          </div>
+        <li key={a.slug}>
+          <ArticleCard article={a} size="compact" rank={i + 1} />
         </li>
       ))}
     </ol>
   );
 }
 
-/** Pager simples por querystring; o caminho base já pode conter outros parâmetros. */
+/** Paginação por querystring com links reais (DS `Pagination`). */
 export function Pager({ page, basePath, query }: { page: Page<unknown>; basePath: string; query?: Record<string, string> }) {
   const pages = Math.max(1, Math.ceil(page.total / page.pageSize));
-  if (pages <= 1) return null;
   const href = (n: number) => {
     const p = new URLSearchParams(query);
     if (n > 1) p.set('page', String(n));
     const qs = p.toString();
     return qs ? `${basePath}?${qs}` : basePath;
   };
-  return (
-    <nav className="ln-pager" aria-label="Paginação">
-      {page.page > 1 && (
-        <Link className="ln-chip" href={href(page.page - 1)} rel="prev">
-          ← Anterior
-        </Link>
-      )}
-      <span className="ln-chip" aria-current="page">
-        Página {page.page} de {pages}
-      </span>
-      {page.page < pages && (
-        <Link className="ln-chip" href={href(page.page + 1)} rel="next">
-          Próxima →
-        </Link>
-      )}
-    </nav>
-  );
+  return <Pagination page={page.page} totalPages={pages} hrefFor={href} linkAs={Link} />;
 }
 
-export const AD_SIZES: Record<AdSlotId, { w: number; h: number; label: string }> = {
-  topo: { w: 1280, h: 150, label: 'Banner topo' },
-  'entre-secoes': { w: 1280, h: 150, label: 'Entre seções' },
-  'sidebar-1': { w: 336, h: 280, label: 'Sidebar 1' },
-  'sidebar-2': { w: 336, h: 280, label: 'Sidebar 2' },
-  'sidebar-3': { w: 336, h: 280, label: 'Sidebar 3' },
-  'in-article': { w: 728, h: 90, label: 'In-article' },
-  rodape: { w: 1280, h: 200, label: 'Banner rodapé' },
+const AD_POSITION: Record<AdSlotId, AdPosition> = {
+  topo: 'TOP',
+  'entre-secoes': 'HOME_BETWEEN',
+  'sidebar-1': 'SIDEBAR_1',
+  'sidebar-2': 'SIDEBAR_2',
+  'sidebar-3': 'SIDEBAR_3',
+  'in-article': 'ARTICLE_INLINE',
+  rodape: 'FOOTER',
 };
 
 /**
- * Espaço publicitário. Sem criativo vendido/aprovado no inventário, não renderiza nada
- * (nenhum "posição reservada" em produção). Com criativo, reserva a dimensão para evitar CLS
- * e rotula como publicidade.
+ * Espaço publicitário. Sem criativo no inventário não renderiza nada (o placeholder do DS não é
+ * usado em produção). Com criativo, usa o `AdSlot` do DS (rotulado "Publicidade", dimensão reservada).
  */
 export async function AdSlot({ slot }: { slot: AdSlotId }) {
   const ad = await getSource().getAd(slot);
   if (!ad) return null;
-  const size = AD_SIZES[slot];
   return (
-    <aside aria-label="Publicidade" style={{ margin: '16px 0' }}>
-      <div className="ln-meta" style={{ textAlign: 'center' }}>Publicidade · {ad.advertiser}</div>
-      <a href={ad.href} rel="sponsored noopener" style={{ display: 'block', maxWidth: size.w, aspectRatio: `${size.w} / ${size.h}`, margin: '0 auto' }}>
-        <img src={ad.imageSrc} alt={ad.alt} width={size.w} height={size.h} />
+    <DsAdSlot position={AD_POSITION[slot]}>
+      <a href={ad.href} rel="sponsored noopener">
+        <img src={ad.imageSrc} alt={ad.alt} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </a>
-    </aside>
+    </DsAdSlot>
   );
 }

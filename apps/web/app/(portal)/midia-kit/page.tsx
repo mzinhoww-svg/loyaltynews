@@ -16,7 +16,7 @@ const STATE_LABEL = { ok: 'Atualizado', unavailable: 'Indisponível', stale: 'De
 
 function Metric({ m }: { m: MetricValue }) {
   return (
-    <div className="ln-metric">
+    <div className="pt-metric">
       <small>{m.label}</small>
       <strong>{m.value ?? '—'}</strong>
       <small>
@@ -24,7 +24,7 @@ function Metric({ m }: { m: MetricValue }) {
         {m.window ? ` · ${m.window}` : ''}
         {m.collectedAt ? ` · coletado em ${formatDateTime(m.collectedAt)}` : ''}
       </small>
-      {m.state !== 'ok' && <span className="ln-state">{STATE_LABEL[m.state]}</span>}
+      {m.state !== 'ok' && <span className="pt-state">{STATE_LABEL[m.state]}</span>}
     </div>
   );
 }
@@ -48,33 +48,33 @@ export default async function MidiaKitPage() {
 
   return (
     <>
-      <section className="ln-hero-band" aria-labelledby="mk-h">
-        <p className="ln-kicker" style={{ color: 'var(--ln-signal)' }}>Mídia kit · Proposta comercial</p>
+      <section className="pt-hero-band" aria-labelledby="mk-h">
+        <p className="pt-kicker" style={{ color: 'var(--pt-signal)' }}>Mídia kit · Proposta comercial</p>
         <h1 id="mk-h">Quem decide o futuro da fidelidade precisa estar bem informado.</h1>
         <p>Conecte sua marca ao público que acompanha programas de fidelidade, bancos, varejo, companhias aéreas e tecnologia.</p>
         <p>
-          <Link href="/contato" className="ln-btn">Solicitar proposta</Link>{' '}
-          <a href="#audiencia" className="ln-btn ln-btn-ghost">Ver audiência ↓</a>
+          <Link href="/contato" className="ln-btn ln-btn--primary">Solicitar proposta</Link>{' '}
+          <a href="#audiencia" className="ln-btn ln-btn--ghost">Ver audiência ↓</a>
         </p>
         <p style={{ fontSize: 13 }}>Dados de audiência só aparecem quando medidos, com origem, período e data de coleta. Sem métricas inventadas.</p>
       </section>
 
-      <nav aria-label="Seções do mídia kit" className="ln-chips">
-        <a className="ln-chip" href="#cobertura">Sobre</a>
-        <a className="ln-chip" href="#audiencia">Audiência</a>
-        <a className="ln-chip" href="#formatos">Formatos</a>
-        <a className="ln-chip" href="#precos">Preços</a>
+      <nav aria-label="Seções do mídia kit" className="pt-chips">
+        <a className="pt-chip" href="#cobertura">Sobre</a>
+        <a className="pt-chip" href="#audiencia">Audiência</a>
+        <a className="pt-chip" href="#formatos">Formatos</a>
+        <a className="pt-chip" href="#precos">Preços</a>
       </nav>
 
-      <section id="cobertura" className="ln-section" aria-labelledby="mk-cob">
+      <section id="cobertura" className="pt-section" aria-labelledby="mk-cob">
         <h2 id="mk-cob">01 · Cobertura</h2>
-        <div className="ln-metrics">
-          <div className="ln-metric"><small>Matérias publicadas (acervo)</small><strong>{latest.total || '—'}</strong><small>CMS</small></div>
-          <div className="ln-metric"><small>Eventos futuros verificados</small><strong>{upcoming || '—'}</strong><small>Agenda</small></div>
-          <div className="ln-metric"><small>Editorias</small><strong>{EDITORIAS.length}</strong><small>Taxonomia do portal</small></div>
+        <div className="pt-metrics">
+          <div className="pt-metric"><small>Matérias publicadas (acervo)</small><strong>{latest.total || '—'}</strong><small>CMS</small></div>
+          <div className="pt-metric"><small>Eventos futuros verificados</small><strong>{upcoming || '—'}</strong><small>Agenda</small></div>
+          <div className="pt-metric"><small>Editorias</small><strong>{EDITORIAS.length}</strong><small>Taxonomia do portal</small></div>
         </div>
-        <div className="ln-scroll">
-          <table className="ln-table">
+        <div className="pt-scroll">
+          <table className="pt-table">
             <thead><tr><th>Editoria</th><th>Escopo</th></tr></thead>
             <tbody>
               {EDITORIAS.map((e) => (
@@ -85,41 +85,41 @@ export default async function MidiaKitPage() {
         </div>
       </section>
 
-      <section id="audiencia" className="ln-section" aria-labelledby="mk-aud">
+      <section id="audiencia" className="pt-section" aria-labelledby="mk-aud">
         <h2 id="mk-aud">02 · Audiência</h2>
         <h3>Tempo real</h3>
-        <div className="ln-metrics">{audience.realtime.map((m) => <Metric key={m.label} m={m} />)}</div>
+        <div className="pt-metrics">{audience.realtime.map((m) => <Metric key={m.label} m={m} />)}</div>
         <h3>Histórico</h3>
-        <div className="ln-metrics">{audience.historical.map((m) => <Metric key={m.label} m={m} />)}</div>
-        <p className="ln-meta" data-testid="audience-stamp">
+        <div className="pt-metrics">{audience.historical.map((m) => <Metric key={m.label} m={m} />)}</div>
+        <p className="pt-meta" data-testid="audience-stamp">
           {last ? `Última coleta: ${formatDateTime(last)}.` : 'Atualizado: — · Aguardando integração de medição (GA4). Nenhuma métrica é exibida antes disso.'}
         </p>
       </section>
 
-      <section className="ln-section" aria-labelledby="mk-dec">
+      <section className="pt-section" aria-labelledby="mk-dec">
         <h2 id="mk-dec">03 · Públicos de interesse</h2>
-        <p className="ln-meta">Perfis que o portal pretende alcançar. O perfil real da audiência será comprovado com dados medidos antes de ser afirmado.</p>
-        <ul className="ln-grid" style={{ listStyle: 'none', padding: 0 }}>
+        <p className="pt-meta">Perfis que o portal pretende alcançar. O perfil real da audiência será comprovado com dados medidos antes de ser afirmado.</p>
+        <ul className="pt-grid" style={{ listStyle: 'none', padding: 0 }}>
           {['Líderes de loyalty — estratégia e P&L', 'Bancos e fintechs — cartões, pagamentos e benefícios', 'Varejo e travel — retenção e relacionamento', 'Tecnologia e CRM — dados, plataformas e inovação'].map((t) => (
-            <li key={t} className="ln-panel">{t}</li>
+            <li key={t} className="pt-panel">{t}</li>
           ))}
         </ul>
       </section>
 
-      <section id="formatos" className="ln-section" aria-labelledby="mk-for">
+      <section id="formatos" className="pt-section" aria-labelledby="mk-for">
         <h2 id="mk-for">04 · Formatos e posições</h2>
-        <div className="ln-scroll">
-          <table className="ln-table">
+        <div className="pt-scroll">
+          <table className="pt-table">
             <thead><tr><th>Formato</th><th>Dimensão</th><th>Onde aparece</th></tr></thead>
             <tbody>
               {FORMATS.map((f) => <tr key={f.name}><td>{f.name}</td><td>{f.size}</td><td>{f.where}</td></tr>)}
             </tbody>
           </table>
         </div>
-        <p className="ln-meta">Conteúdo publicitário é sempre rotulado. Posições de ranking editorial não são vendidas.</p>
+        <p className="pt-meta">Conteúdo publicitário é sempre rotulado. Posições de ranking editorial não são vendidas.</p>
       </section>
 
-      <section id="precos" className="ln-section" aria-labelledby="mk-pre">
+      <section id="precos" className="pt-section" aria-labelledby="mk-pre">
         <h2 id="mk-pre">05 · Preços e disponibilidade</h2>
         <p>
           Preços de referência e disponibilidade de inventário são informados na proposta. Um formato só é vendido quando há capacidade operacional para entregá-lo.{' '}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SearchInput } from '../_components/ds-client';
 import { PageHead } from '../_components/ui';
 import { getSource } from '../_lib/source';
 
@@ -25,23 +26,19 @@ export default async function IntelligenceHub() {
         lead="Portal público de inteligência do setor. Cada perfil mostra de onde vem a informação e quando foi revisada; hipóteses não confirmadas não são publicadas."
         crumbs={[{ label: 'Intelligence' }]}
       />
-      <form role="search" action="/intelligence/empresas" method="get" className="ln-searchbar" aria-label="Buscar no diretório">
-        <label htmlFor="iq" className="ln-skip" style={{ position: 'absolute' }}>Buscar empresa, programa ou segmento</label>
-        <input id="iq" name="q" type="search" placeholder="Buscar empresa, programa ou segmento" autoComplete="off" />
-        <button type="submit" className="ln-btn">Buscar</button>
-      </form>
-      <ul className="ln-grid ln-grid-3" style={{ listStyle: 'none', padding: 0 }}>
+      <SearchInput action="/intelligence/empresas" label="Buscar no diretório" placeholder="Buscar empresa, programa ou segmento" />
+      <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }}>
         {tiles.map((t) => (
-          <li key={t.href} className="ln-panel">
+          <li key={t.href} className="pt-panel">
             <h2 style={{ fontSize: 22 }}><Link href={t.href}>{t.title}</Link></h2>
             <p>{t.text}</p>
-            <p className="ln-meta" data-testid={`count-${t.title.toLowerCase()}`}>
+            <p className="pt-meta" data-testid={`count-${t.title.toLowerCase()}`}>
               {t.n > 0 ? `${t.n} cadastrado(s) e verificado(s)` : 'Cadastros verificados: em breve'}
             </p>
           </li>
         ))}
       </ul>
-      <section className="ln-panel" aria-labelledby="intel-rules">
+      <section className="pt-panel" aria-labelledby="intel-rules">
         <h2 id="intel-rules" style={{ fontSize: 20 }}>Como tratamos os dados</h2>
         <ul>
           <li>Cada perfil traz fonte, data da última revisão e canal de correção.</li>

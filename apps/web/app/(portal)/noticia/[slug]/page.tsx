@@ -1,3 +1,4 @@
+import { Breadcrumb } from '@ln/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -62,24 +63,22 @@ export default async function ArticlePage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <AdSlot slot="topo" />
-      <div className="ln-layout" style={{ marginTop: 24 }}>
-        <article className="ln-article">
-          <nav className="ln-crumbs" aria-label="Trilha">
-            <Link href="/">Início</Link> / <Link href={`/editoria/${a.editoriaSlug}`}>{editoriaName(a.editoriaSlug)}</Link>
-          </nav>
-          <div className="ln-kicker">
+      <div className="pt-layout" style={{ marginTop: 24 }}>
+        <article className="pt-article">
+          <Breadcrumb linkAs={Link} items={[{ label: 'Início', href: '/' }, { label: editoriaName(a.editoriaSlug), href: `/editoria/${a.editoriaSlug}` }, { label: a.title }]} />
+          <div className="pt-kicker">
             {a.mock && <MockTag />}
             {CONTENT_TYPE_LABEL[a.contentType]}
             {a.sponsored && (
               <>
                 {' '}
-                <span className="ln-sponsored">Conteúdo patrocinado</span>
+                <span className="pt-sponsored">Conteúdo patrocinado</span>
               </>
             )}
           </div>
           <h1>{a.title}</h1>
-          {a.subtitle && <p className="ln-article-sub">{a.subtitle}</p>}
-          <div className="ln-byline">
+          {a.subtitle && <p className="pt-article-sub">{a.subtitle}</p>}
+          <div className="pt-byline">
             <span>{a.authorLabel}</span>
             <span>
               Publicado em <time dateTime={a.publishedAt}>{formatDate(a.publishedAt)}</time>
@@ -92,19 +91,19 @@ export default async function ArticlePage({ params }: Props) {
             <span>{a.readingMinutes} min de leitura</span>
           </div>
           {a.image && (
-            <figure className="ln-figure">
+            <figure className="pt-figure">
               <img src={a.image.src} alt={a.image.alt} />
               <figcaption>Crédito: {a.image.credit}</figcaption>
             </figure>
           )}
-          <div className="ln-body">
+          <div className="pt-body">
             {a.body.map((b, i) =>
               b.type === 'heading' ? (
                 <h2 key={i}>{b.text}</h2>
               ) : b.type === 'quote' ? (
                 <blockquote key={i}>
                   {b.text}
-                  {b.attribution && <footer className="ln-meta">— {b.attribution}</footer>}
+                  {b.attribution && <footer className="pt-meta">— {b.attribution}</footer>}
                 </blockquote>
               ) : (
                 <p key={i}>{b.text}</p>
@@ -112,19 +111,19 @@ export default async function ArticlePage({ params }: Props) {
             )}
           </div>
           <AdSlot slot="in-article" />
-          <section className="ln-sources" aria-labelledby="fontes">
+          <section className="pt-sources" aria-labelledby="fontes">
             <h2 id="fontes" style={{ fontSize: 20 }}>Fontes e referências</h2>
             {a.sources.length ? (
               <ul>
                 {a.sources.map((s) => (
                   <li key={s.url}>
                     <a href={s.url} rel="noopener noreferrer" target="_blank">{s.label}</a>
-                    {s.publishedAt && <span className="ln-meta"> · {formatDate(s.publishedAt)}</span>}
+                    {s.publishedAt && <span className="pt-meta"> · {formatDate(s.publishedAt)}</span>}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="ln-meta">Fontes não informadas.</p>
+              <p className="pt-meta">Fontes não informadas.</p>
             )}
             <h3 style={{ marginTop: 16 }}>Histórico de correções</h3>
             {a.corrections.length ? (
@@ -136,12 +135,12 @@ export default async function ArticlePage({ params }: Props) {
                 ))}
               </ul>
             ) : (
-              <p className="ln-meta">Nenhuma correção registrada. Veja a <Link href="/correcoes" style={{ textDecoration: 'underline' }}>política de correções</Link>.</p>
+              <p className="pt-meta">Nenhuma correção registrada. Veja a <Link href="/correcoes" style={{ textDecoration: 'underline' }}>política de correções</Link>.</p>
             )}
           </section>
           {flags.theLoyal && (
             <p>
-              <Link className="ln-btn" href="/the-loyal">Receber notícias no The Loyal</Link>
+              <Link className="ln-btn ln-btn--primary" href="/the-loyal">Receber notícias no The Loyal</Link>
             </p>
           )}
           {related.length > 0 && (

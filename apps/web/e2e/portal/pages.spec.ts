@@ -58,7 +58,7 @@ for (const p of [...PAGES, ...EDITORIAS]) {
     await expect(page).toHaveTitle(/Loyalty News/);
     await expect(page.locator('header')).toBeVisible();
     await expect(page.locator('footer')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Ir para o conteúdo' })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: 'Pular para o conteúdo' })).toHaveCount(1);
 
     if (mode === 'empty' && p.empty) await expect(page.getByText(p.empty).first()).toBeVisible();
     if (mode === 'mock') await expect(page.getByText(/MOCK — conteúdo sintético/)).toBeVisible();

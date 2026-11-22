@@ -19,12 +19,12 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
     <>
       <PageHead title="Empresas" lead="Companhias, programas e parceiros do setor." crumbs={[{ label: 'Intelligence', href: '/intelligence' }, { label: 'Empresas' }]} />
       {items.length ? (
-        <ul className="ln-grid ln-grid-3" style={{ listStyle: 'none', padding: 0 }}>
+        <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }}>
           {items.map((c) => (
-            <li key={c.slug} className="ln-panel">
+            <li key={c.slug} className="pt-panel">
               <h2 style={{ fontSize: 20 }}>{c.mock && <MockTag />}{c.name}</h2>
-              {c.segment && <p className="ln-meta">{c.segment}</p>}
-              <p className="ln-meta">{c.lastReviewedAt ? `Revisado em ${formatDate(c.lastReviewedAt)}` : 'Revisão pendente'}</p>
+              {c.segment && <p className="pt-meta">{c.segment}</p>}
+              <p className="pt-meta">{c.lastReviewedAt ? `Revisado em ${formatDate(c.lastReviewedAt)}` : 'Revisão pendente'}</p>
             </li>
           ))}
         </ul>

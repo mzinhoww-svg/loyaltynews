@@ -23,15 +23,15 @@ export default async function InfoPage({ params }: Props) {
   const d = INFO_DOCS[doc];
   if (!d) notFound();
   return (
-    <article className="ln-article">
+    <article className="pt-article">
       <PageHead title={d.title} lead={d.lead} crumbs={[{ label: d.title }]} />
       {d.draftNotice && (
-        <p className="ln-panel" role="note" data-testid="draft-notice">
+        <p className="pt-panel" role="note" data-testid="draft-notice">
           <strong>Minuta.</strong> {d.draftNotice}
         </p>
       )}
       {d.sections.map((s) => (
-        <section key={s.heading} className="ln-section" style={{ margin: '24px 0' }}>
+        <section key={s.heading} className="pt-section" style={{ margin: '24px 0' }}>
           <h2>{s.heading}</h2>
           {s.paragraphs?.map((p) => <p key={p}>{p}</p>)}
           {s.items && (
@@ -43,13 +43,13 @@ export default async function InfoPage({ params }: Props) {
       ))}
       {d.slug === 'sobre' && (
         <p>
-          <Link href="/metodologia" className="ln-more">Metodologia →</Link>{' '}
-          <Link href="/politica-editorial" className="ln-more">Política editorial →</Link>{' '}
-          <Link href="/correcoes" className="ln-more">Correções →</Link>
+          <Link href="/metodologia" className="pt-more">Metodologia →</Link>{' '}
+          <Link href="/politica-editorial" className="pt-more">Política editorial →</Link>{' '}
+          <Link href="/correcoes" className="pt-more">Correções →</Link>
         </p>
       )}
       {d.slug === 'publicidade' && (
-        <p><Link href="/midia-kit" className="ln-btn">Ver mídia kit</Link></p>
+        <p><Link href="/midia-kit" className="ln-btn ln-btn--primary">Ver mídia kit</Link></p>
       )}
     </article>
   );

@@ -41,11 +41,11 @@ export default async function EventPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <PageHead title={ev.title} crumbs={[{ label: 'Agenda', href: '/agenda' }, { label: ev.title }]} />
-      <div className="ln-layout">
+      <div className="pt-layout">
         <div>
           {ev.mock && <p><MockTag /> Evento sintético de teste.</p>}
-          {ev.status === 'cancelado' && <p className="ln-state">Evento cancelado</p>}
-          <dl className="ln-panel" style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '8px 18px' }}>
+          {ev.status === 'cancelado' && <p className="pt-state">Evento cancelado</p>}
+          <dl className="pt-panel" style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '8px 18px' }}>
             <dt>Quando</dt>
             <dd style={{ margin: 0 }}><time dateTime={ev.startsAt}>{formatDateTime(ev.startsAt)}</time> ({ev.timezone})</dd>
             <dt>Onde</dt>
@@ -58,10 +58,10 @@ export default async function EventPage({ params }: Props) {
             <dd style={{ margin: 0 }}><a href={ev.sourceUrl} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>Fonte da informação</a></dd>
           </dl>
           <p style={{ marginTop: 16 }}>
-            <a className="ln-btn" href={ev.officialUrl} rel="noopener noreferrer" target="_blank">Página oficial do evento</a>{' '}
-            <a className="ln-btn ln-btn-ghost" href={`/agenda/${ev.slug}/ics`}>Adicionar ao calendário (.ics)</a>
+            <a className="ln-btn ln-btn--primary" href={ev.officialUrl} rel="noopener noreferrer" target="_blank">Página oficial do evento</a>{' '}
+            <a className="ln-btn ln-btn--ghost" href={`/agenda/${ev.slug}/ics`}>Adicionar ao calendário (.ics)</a>
           </p>
-          <p><Link href="/agenda" className="ln-more">← Voltar à agenda</Link></p>
+          <p><Link href="/agenda" className="pt-more">← Voltar à agenda</Link></p>
         </div>
         <Sidebar />
       </div>

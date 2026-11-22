@@ -21,8 +21,8 @@ const FILTERS = [
 
 function EventRow({ ev }: { ev: EventItem }) {
   return (
-    <li className="ln-event">
-      <div className="ln-date" aria-hidden="true">
+    <li className="pt-event">
+      <div className="pt-date" aria-hidden="true">
         <b>{dayOf(ev.startsAt)}</b>
         <span>{monthAbbrev(ev.startsAt)}</span>
       </div>
@@ -31,7 +31,7 @@ function EventRow({ ev }: { ev: EventItem }) {
           {ev.mock && <MockTag />}
           <Link href={`/agenda/${ev.slug}`}>{ev.title}</Link>
         </h3>
-        <div className="ln-meta">
+        <div className="pt-meta">
           <time dateTime={ev.startsAt}>{formatDateTime(ev.startsAt)}</time> · {ev.online ? 'Online' : ev.city ?? 'Local a confirmar'} · {ev.organizer}
         </div>
       </div>
@@ -58,21 +58,21 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         lead="Eventos do mercado. Só listamos eventos com organizador, data e link oficial verificados."
         crumbs={[{ label: 'Agenda' }]}
       />
-      <ul className="ln-chips" aria-label="Filtros">
+      <ul className="pt-chips" aria-label="Filtros">
         {FILTERS.map((f) => (
           <li key={f.id}>
-            <Link className="ln-chip" href={f.id === 'todos' ? '/agenda' : `/agenda?filtro=${f.id}`} aria-current={f.id === filtro ? 'true' : undefined}>
+            <Link className="pt-chip" href={f.id === 'todos' ? '/agenda' : `/agenda?filtro=${f.id}`} aria-current={f.id === filtro ? 'true' : undefined}>
               {f.label}
             </Link>
           </li>
         ))}
       </ul>
-      <div className="ln-layout">
+      <div className="pt-layout">
         <div>
           <section aria-labelledby="proximos">
             <h2 id="proximos">Próximos eventos</h2>
             {upcoming.length ? (
-              <ul className="ln-list" style={{ gap: 0 }}>
+              <ul className="pt-list" style={{ gap: 0 }}>
                 {upcoming.map((e) => <EventRow key={e.slug} ev={e} />)}
               </ul>
             ) : (
@@ -84,10 +84,10 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           {past.length > 0 && (
             <section aria-labelledby="passados" style={{ marginTop: 32 }}>
               <h2 id="passados">Eventos passados</h2>
-              <ul className="ln-list" style={{ gap: 0 }}>
+              <ul className="pt-list" style={{ gap: 0 }}>
                 {past.map((e) => <EventRow key={e.slug} ev={e} />)}
               </ul>
-              <p className="ln-meta">Arquivo até {formatDate(now.toISOString())}.</p>
+              <p className="pt-meta">Arquivo até {formatDate(now.toISOString())}.</p>
             </section>
           )}
         </div>

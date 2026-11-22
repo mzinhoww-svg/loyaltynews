@@ -13,37 +13,41 @@ async function expand(button: import('@playwright/test').Locator) {
 }
 
 test.describe('navegação e menu', () => {
-  test('desktop: dropdown de Notícias lista as 10 editorias e fecha com ESC', async ({ page }, info) => {
+  test('desktop: Header do DS lista as 10 editorias e a navegação de utilidade os formatos', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');
-    const nav = page.getByRole('navigation', { name: 'Navegação principal' });
-    await expand(nav.getByRole('button', { name: /Notícias/ }));
-    const dd = nav.locator('.ln-dropdown');
-    await expect(dd.getByRole('link')).toHaveCount(13); // 3 formatos + 10 editorias
-    await expect(dd.getByRole('link', { name: 'Bancos & Cartões' })).toBeVisible();
-    await page.screenshot({ path: path.join(SHOTS, 'desktop-menu-dropdown.png') });
-    await page.keyboard.press('Escape');
-    await expect(dd).toHaveCount(0);
+    const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
+    await expect(nav.getByRole('link')).toHaveCount(10);
+    await expect(nav.getByRole('link', { name: 'Bancos & Cartões' })).toBeVisible();
+    const util = page.getByRole('navigation', { name: 'Seções do portal' });
+    for (const l of ['Todas as notícias', 'Loyalty Flash', 'Análises', 'Em alta', 'Agenda', 'Entrevistas', 'Moves', 'Intelligence', 'Contato']) {
+      await expect(util.getByRole('link', { name: l, exact: true })).toBeVisible();
+    }
+    await page.screenshot({ path: path.join(SHOTS, 'desktop-menu.png') });
+    await nav.getByRole('link', { name: 'Bancos & Cartões' }).click();
+    await expect(page).toHaveURL(/\/editoria\/bancos$/);
+    await expect(page.getByRole('link', { name: 'Bancos & Cartões' }).first()).toHaveAttribute('aria-current', 'page');
   });
 
   test('mobile: menu colapsável abre, navega e fecha com ESC', async ({ page }, info) => {
     test.skip(info.project.name !== 'mobile');
     await page.goto('/');
-    const toggle = page.getByRole('button', { name: 'Menu' });
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeHidden();
+    const toggle = page.locator('.ln-header__toggle');
+    const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
+    await expect(nav).toBeHidden();
     await expand(toggle);
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
+    await expect(nav).toBeVisible();
     await page.screenshot({ path: path.join(SHOTS, 'mobile-menu-aberto.png') });
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeHidden();
+    await expect(nav).toBeHidden();
     await expand(toggle);
-    await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Agenda' }).click();
-    await expect(page).toHaveURL(/\/agenda$/);
+    await nav.getByRole('link', { name: 'Pontos & Milhas' }).click();
+    await expect(page).toHaveURL(/\/editoria\/pontos$/);
   });
 
   test('itens de módulos desligados (The Loyal, Podcast, Market Data) não aparecem no menu', async ({ page }) => {
     await page.goto('/');
-    const header = page.locator('header');
+    const header = page.locator('header, .pt-subnav');
     await expect(header.getByRole('link', { name: 'The Loyal' })).toHaveCount(0);
     await expect(header.getByRole('link', { name: 'Podcast' })).toHaveCount(0);
     await expect(header.getByRole('link', { name: 'Market Data' })).toHaveCount(0);
@@ -82,7 +86,8 @@ test.describe('SEO básico', () => {
     const rbBody = await rb.text();
     if (mode === 'mock') {
       expect(rbBody).toContain('Disallow: /');
-      expect(smBody).not.toContain('/noticia/');
+      expect(smBody).not.toContain('<loc>');
+      await expect(await (await request.get('/')).text()).toMatch(/<meta name="robots" content="noindex/);
     } else {
       expect(rbBody).toContain('Sitemap:');
       expect(smBody).toContain('/editoria/bancos');
@@ -104,7 +109,7 @@ test.describe('honestidade de dados', () => {
     const aud = page.locator('#audiencia');
     await expect(aud.getByText('Indisponível').first()).toBeVisible();
     await expect(page.getByTestId('audience-stamp')).toContainText('Aguardando integração');
-    const values = await aud.locator('.ln-metric strong').allTextContents();
+    const values = await aud.locator('.pt-metric strong').allTextContents();
     expect(values.every((v) => v.trim() === '—')).toBe(true);
   });
 
@@ -152,10 +157,10 @@ test.describe('conteúdo MOCK', () => {
     await expect(page.getByTestId('result-count')).toContainText('resultado');
     await expect(page.locator('article.ln-card').first()).toBeVisible();
     await page.goto('/noticias');
-    await expect(page.getByText('Página 1 de 2')).toBeVisible();
-    await page.getByRole('link', { name: /Próxima/ }).click();
+    await expect(page.getByRole('link', { name: 'Página 1' })).toHaveAttribute('aria-current', 'page');
+    await page.getByRole('link', { name: 'Próxima página' }).click();
     await expect(page).toHaveURL(/page=2/);
-    await expect(page.getByText('Página 2 de 2')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Página 2' })).toHaveAttribute('aria-current', 'page');
   });
 
   test('página de matéria: assinatura institucional, fontes, correções, crédito e noindex', async ({ page }, info) => {
@@ -187,15 +192,15 @@ test.describe('conteúdo MOCK', () => {
   test('Moves e Intelligence mostram itens marcados MOCK', async ({ page }) => {
     await page.goto('/moves');
     await expect(page.getByRole('table')).toBeVisible();
-    await expect(page.locator('.ln-mocktag').first()).toBeVisible();
+    await expect(page.locator('[data-testid="mock-badge"]').first()).toBeVisible();
     await page.goto('/intelligence/empresas');
     await expect(page.getByText('Empresa de Teste (MOCK)')).toBeVisible();
   });
 
   test('editoria mostra somente matérias da editoria', async ({ page }) => {
     await page.goto('/editoria/bancos');
-    const cards = page.locator('article.ln-card');
+    const cards = page.locator('#conteudo .pt-grid article.ln-card');
     await expect(cards).toHaveCount(2);
-    for (const k of await page.locator('article.ln-card .ln-kicker').allTextContents()) expect(k).toContain('Bancos & Cartões');
+    for (const k of await page.locator('#conteudo .pt-grid article.ln-card .ln-badge').allTextContents()) expect(k).toContain('Bancos & Cartões');
   });
 });

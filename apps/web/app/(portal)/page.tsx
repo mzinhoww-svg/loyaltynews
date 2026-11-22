@@ -41,18 +41,18 @@ export default async function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <h1 className="ln-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
+      <h1 className="pt-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
       <AdSlot slot="topo" />
 
       <Section title="Destaques" id="destaques">
         {main ? (
-          <div className="ln-hero">
-            <div className="ln-hero-main">
-              <ArticleCard article={main} />
+          <div className="pt-hero">
+            <div className="pt-hero-main">
+              <ArticleCard article={main} size="lg" />
             </div>
-            <div className="ln-hero-side">
+            <div className="pt-hero-side">
               {secondary.slice(0, 5).map((a) => (
-                <ArticleCard key={a.slug} article={a} withSummary={false} />
+                <ArticleCard key={a.slug} article={a} size="sm" />
               ))}
             </div>
           </div>
@@ -64,7 +64,7 @@ export default async function HomePage() {
         )}
       </Section>
 
-      <div className="ln-layout">
+      <div className="pt-layout">
         <div>
           <Section title="Em alta" id="em-alta" href="/em-alta">
             {trending.length ? (
@@ -101,13 +101,13 @@ export default async function HomePage() {
           ))}
 
           <Section title="Editorias" id="editorias">
-            <ul className="ln-grid ln-grid-3" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {EDITORIAS.map((e) => (
-                <li key={e.slug} className="ln-panel">
+                <li key={e.slug} className="pt-panel">
                   <h3 style={{ marginBottom: 6 }}>
                     <Link href={`/editoria/${e.slug}`}>{e.name}</Link>
                   </h3>
-                  <p className="ln-meta" style={{ margin: 0 }}>{e.description}</p>
+                  <p className="pt-meta" style={{ margin: 0 }}>{e.description}</p>
                 </li>
               ))}
             </ul>
@@ -116,36 +116,36 @@ export default async function HomePage() {
 
         <div>
           <Sidebar />
-          <section className="ln-panel" style={{ marginTop: 24 }} aria-labelledby="home-agenda">
+          <section className="pt-panel" style={{ marginTop: 24 }} aria-labelledby="home-agenda">
             <h2 id="home-agenda" style={{ fontSize: 20 }}>Agenda</h2>
             {upcoming.length ? (
-              <ul className="ln-list">
+              <ul className="pt-list">
                 {upcoming.map((ev) => (
-                  <li key={ev.slug} className="ln-event" style={{ borderBottom: 0, padding: 0 }}>
-                    <div className="ln-date">
+                  <li key={ev.slug} className="pt-event" style={{ borderBottom: 0, padding: 0 }}>
+                    <div className="pt-date">
                       <b>{dayOf(ev.startsAt)}</b>
                       <span>{monthAbbrev(ev.startsAt)}</span>
                     </div>
                     <div>
                       <Link href={`/agenda/${ev.slug}`} style={{ fontWeight: 700 }}>{ev.title}</Link>
-                      <div className="ln-meta">{ev.online ? 'Online' : ev.city}</div>
+                      <div className="pt-meta">{ev.online ? 'Online' : ev.city}</div>
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="ln-meta">Nenhum evento verificado por enquanto. Eventos só entram após validação de fonte.</p>
+              <p className="pt-meta">Nenhum evento verificado por enquanto. Eventos só entram após validação de fonte.</p>
             )}
-            <Link href="/agenda" className="ln-more">Ver agenda completa →</Link>
+            <Link href="/agenda" className="pt-more">Ver agenda completa →</Link>
           </section>
         </div>
       </div>
 
       {flags.theLoyal && (
-        <section className="ln-hero-band" aria-labelledby="home-loyal">
+        <section className="pt-hero-band" aria-labelledby="home-loyal">
           <h2 id="home-loyal" style={{ color: '#fff' }}>The Loyal</h2>
           <p>O que move a fidelidade, no seu e-mail.</p>
-          <Link href="/the-loyal" className="ln-btn">Quero receber</Link>
+          <Link href="/the-loyal" className="ln-btn ln-btn--primary">Quero receber</Link>
         </section>
       )}
       <AdSlot slot="rodape" />

@@ -9,8 +9,8 @@ export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const src = getSource();
-  // Conteúdo MOCK nunca entra no sitemap.
-  if (src.kind === 'mock') return [{ url: `${SITE_URL}/` }];
+  // Portal MOCK: sitemap vazio (nem a home, que também tem conteúdo sintético).
+  if (src.kind === 'mock') return [];
 
   const abs = (p: string) => `${SITE_URL}${p}`;
   const staticPaths = [

@@ -20,11 +20,11 @@ export default async function PessoasPage() {
         crumbs={[{ label: 'Intelligence', href: '/intelligence' }, { label: 'Pessoas' }]}
       />
       {items.length ? (
-        <ul className="ln-grid ln-grid-3" style={{ listStyle: 'none', padding: 0 }}>
+        <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }}>
           {items.map((p) => (
-            <li key={p.slug} className="ln-panel">
+            <li key={p.slug} className="pt-panel">
               <h2 style={{ fontSize: 20 }}>{p.mock && <MockTag />}{p.name}</h2>
-              <p className="ln-meta">{p.lastReviewedAt ? `Revisado em ${formatDate(p.lastReviewedAt)}` : 'Revisão pendente'}</p>
+              <p className="pt-meta">{p.lastReviewedAt ? `Revisado em ${formatDate(p.lastReviewedAt)}` : 'Revisão pendente'}</p>
             </li>
           ))}
         </ul>
