@@ -40,7 +40,7 @@ class Verifier:
   items=[x['id'] for x in g.tasks.values() if x['gate']==wave and x['kind']!='gate'] if isgate else [i]
   for j in items:
    if isgate and not g.accepted(j):errors.append('TASK_NOT_ACCEPTED:'+j)
-   path=str(g.evpath(j).relative_to(g.root))
+   path=g.evpath(j).relative_to(g.root).as_posix()
    try:
     raw=g.file_at(self.head,path); errors+=g.validate(json.loads(raw),self.head);index[j]=digest(raw)
     if not git(g.root,'merge-base','--is-ancestor',json.loads(raw)['commit_sha'],self.head,check=False).returncode==0:errors.append('EVIDENCE_COMMIT_NOT_ANCESTOR:'+j)
