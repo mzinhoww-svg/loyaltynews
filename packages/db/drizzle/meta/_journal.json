@@ -29,6 +29,13 @@
       "when": 1795384188797,
       "tag": "0003_commercial",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795384672230,
+      "tag": "0004_agentic_org",
+      "breakpoints": true
     }
   ]
 }
