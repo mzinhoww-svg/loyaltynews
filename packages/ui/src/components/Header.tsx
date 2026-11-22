@@ -13,7 +13,7 @@ export interface HeaderProps {
   homeHref?: string;
   /** `next/link` ou similar. */
   linkAs?: LinkAs;
-  /** Ex.: <SearchInput />. Renderizado na barra superior (desktop) e abaixo do logo (mobile). */
+  /** Ex.: <SearchInput />. Renderizado uma vez: inline no desktop, em linha própria no mobile. */
   searchSlot?: ReactNode;
   /** Ações à direita (login, etc.). */
   actions?: ReactNode;
@@ -60,7 +60,7 @@ export function Header({
           <Link href={homeHref} className="ln-header__brand" aria-label="Loyalty News — página inicial">
             <Logo variant="primary" height={36} decorative />
           </Link>
-          {searchSlot ? <div className="ln-header__search ln-header__search--desktop">{searchSlot}</div> : null}
+          {searchSlot ? <div className="ln-header__search">{searchSlot}</div> : null}
           {actions ? <div className="ln-header__actions">{actions}</div> : null}
           <button
             ref={buttonRef}
@@ -74,9 +74,6 @@ export function Header({
             <span>{open ? "Fechar menu" : "Menu"}</span>
           </button>
         </Container>
-        {searchSlot ? (
-          <Container className="ln-header__search ln-header__search--mobile">{searchSlot}</Container>
-        ) : null}
       </div>
       <nav id={navId} aria-label="Editorias" className="ln-header__nav" data-open={open ? "true" : "false"}>
         <Container>

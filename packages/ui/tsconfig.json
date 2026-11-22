@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
+    "types": ["vite/client", "node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src", "test", "showcase", "scripts/*.d.ts"]
 }

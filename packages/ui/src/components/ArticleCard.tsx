@@ -71,7 +71,7 @@ export function ArticleCard({
       ) : null}
       <div className="ln-card__body">
         <div className="ln-card__meta">
-          {rank ? <span className="ln-card__rank" aria-label={`Posição ${rank}`}>{rank}</span> : null}
+          {rank ? <span className="ln-card__rank"><span className="ln-sr-only">Posição </span>{rank}</span> : null}
           {editoria ? <EditoriaBadge editoria={editoria} /> : null}
           {isMock ? <MockBadge /> : null}
         </div>

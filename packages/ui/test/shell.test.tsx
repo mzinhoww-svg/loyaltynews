@@ -100,7 +100,7 @@ describe("ArticleCard", () => {
   });
   it("rank aparece com rótulo acessível", () => {
     render(<ArticleCard {...base} size="compact" rank={3} />);
-    expect(screen.getByLabelText("Posição 3")).toBeInTheDocument();
+    expect(document.querySelector(".ln-card__rank")).toHaveTextContent("Posição 3");
   });
 });
 
