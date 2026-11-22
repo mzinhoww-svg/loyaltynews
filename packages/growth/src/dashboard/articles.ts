@@ -24,7 +24,8 @@ export function toSocialArticle(a: ContractArticle, extras: ContractArticleExtra
   return {
     id: a.id,
     title: a.titulo,
-    deck: a.subtitulo,
+    // Subtítulo; sem ele, o resumo (cards/SEO). Números do deck ainda exigem fato com fonte (regra do copy).
+    deck: a.subtitulo ?? a.resumo,
     editoria,
     url: extras.url,
     facts: extras.facts,
@@ -32,5 +33,7 @@ export function toSocialArticle(a: ContractArticle, extras: ContractArticleExtra
     approvedImage: img ? { ref: img.url, credit: img.credito, creditUrl: img.link } : undefined,
     gatesPassed: extras.gatesPassed ?? false,
     mock: extras.mock,
+    // Tipo `patrocinado` ou flag `patrocinado`: rótulo obrigatório no post; sem rótulo, a regra do copy recusa.
+    sponsored: a.patrocinado || a.tipoConteudo === 'patrocinado' ? { label: a.rotuloPublieditorial ?? '' } : undefined,
   };
 }
