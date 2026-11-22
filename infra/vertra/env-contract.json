@@ -45,6 +45,16 @@
       "nota": "URL pública do ambiente (https://loyaltynews-staging.vertraweb.app ou o domínio próprio); usada em links canônicos e callbacks de autenticação"
     },
     {
+      "nome": "NEXT_PUBLIC_SITE_URL",
+      "secreto": false,
+      "apps": [
+        "web"
+      ],
+      "dono_do_codigo": "apps/web/app/(portal)/_lib/site.ts",
+      "build_time": true,
+      "nota": "Lida no BUILD (Next embute NEXT_PUBLIC_*): define a URL de sitemap e canonical (padrão http://localhost:3000). A Vertra constrói na criação e mudar a variável depois NÃO reconstrói; por isso o pacote a embute no build_command (NEXT_PUBLIC_SITE_URL=<URL> npm run build ...). Mudou a URL, refaz o pacote."
+    },
+    {
       "nome": "BETTER_AUTH_URL",
       "secreto": false,
       "apps": [

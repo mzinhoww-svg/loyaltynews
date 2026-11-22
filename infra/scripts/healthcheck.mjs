@@ -7,8 +7,10 @@
 // Sondas de SEGURANÇA de runtime (alerta do PM): provam que variáveis só de teste não estão ativas no ambiente implantado.
 //   --denied <caminho>   o caminho (ex.: /studio) NÃO pode abrir sem login: exige 301/302/303/307/308/401/403, nunca 200
 //   --no-mock <caminho>  o caminho (ex.: / ou /noticias) deve responder 200 e NÃO conter a faixa/texto "MOCK"
+//   --noindex <caminho>  staging NÃO pode ser indexado: robots.txt com Disallow: / (e sem Allow: /), sitemap sem URLs e o caminho com
+//                        X-Robots-Tag ou meta robots contendo noindex
 // Uso: node infra/scripts/healthcheck.mjs --url https://host [--ready] [--expect-commit <sha>] [--timeout 5000] [--retries 2]
-//        [--denied /studio] [--no-mock /]
+//        [--denied /studio] [--no-mock /] [--noindex /]
 import { parseArgs, fail } from './lib/util.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -25,7 +27,7 @@ async function get(p, { json = false } = {}) {
   const ms = Math.round(performance.now() - t0);
   let body = null;
   if (json) { try { body = await res.json(); } catch { /* corpo não-JSON */ } } else { body = await res.text(); }
-  return { status: res.status, ms, body, location: res.headers.get('location') };
+  return { status: res.status, ms, body, location: res.headers.get('location'), xrobots: res.headers.get('x-robots-tag') };
 }
 
 let last;
@@ -67,6 +69,24 @@ if (args['no-mock']) {
     if (r.status !== 200) failures.push(`${p} respondeu ${r.status} (esperado 200)`);
     else if (/\bMOCK\b/.test(r.body ?? '')) failures.push(`${p} contém "MOCK": fixtures ativas em ambiente implantado (PORTAL_SOURCE/PORTAL_MODE=mock só em teste)`);
   } catch (e) { failures.push(`${p}: ${e.message}`); }
+}
+if (args.noindex) {
+  const p = String(args.noindex);
+  try {
+    const rb = await get('/robots.txt');
+    const lines = String(rb.body ?? '').split(/\r?\n/).map((l) => l.trim());
+    const star = lines.some((l) => /^user-agent:\s*\*$/i.test(l));
+    const disallowAll = lines.some((l) => /^disallow:\s*\/$/i.test(l));
+    const allowAll = lines.some((l) => /^allow:\s*\/$/i.test(l));
+    if (rb.status !== 200 || !star || !disallowAll || allowAll) failures.push(`robots.txt não bloqueia tudo (HTTP ${rb.status}; precisa de User-agent: * e Disallow: / sem Allow: /): o staging seria indexável`);
+    const sm = await get('/sitemap.xml');
+    if (sm.status === 200 && /<loc>/i.test(String(sm.body ?? ''))) failures.push('sitemap.xml publica URLs: o staging não pode ter sitemap');
+    const pg = await get(p);
+    const meta = /<meta[^>]+name=["']robots["'][^>]*content=["'][^"']*noindex/i.test(String(pg.body ?? '')) || /<meta[^>]+content=["'][^"']*noindex[^"']*["'][^>]*name=["']robots["']/i.test(String(pg.body ?? ''));
+    const header = /noindex/i.test(pg.xrobots ?? '');
+    out.noindex = { robotsTxt: !(rb.status !== 200 || !star || !disallowAll || allowAll), sitemapVazio: !(sm.status === 200 && /<loc>/i.test(String(sm.body ?? ''))), metaRobots: meta, xRobotsTag: header };
+    if (!meta && !header) failures.push(`${p} sem noindex (nem meta robots nem X-Robots-Tag): o staging seria indexável`);
+  } catch (e) { failures.push(`noindex: ${e.message}`); }
 }
 if (failures.length) {
   console.log(JSON.stringify({ ...out, ok: false, failures }));

@@ -143,6 +143,27 @@ test('healthcheck --denied e --no-mock: prova de runtime de que a sessão simula
   } finally { s.closeAllConnections?.(); s.close(); }
 });
 
+test('healthcheck --noindex: reprova staging indexável; aprova robots fechado + sitemap vazio + noindex (meta ou cabeçalho)', async () => {
+  let mode = 'aberto';
+  const s = await server((req, res) => {
+    if (req.url === '/api/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"status":"ok"}'); }
+    if (req.url === '/robots.txt') { res.writeHead(200); return res.end(mode === 'aberto' ? 'User-Agent: *\nAllow: /\nSitemap: http://x/sitemap.xml\n' : 'User-Agent: *\nDisallow: /\n'); }
+    if (req.url === '/sitemap.xml') { res.writeHead(200); return res.end(mode === 'aberto' ? '<urlset><url><loc>http://x/</loc></url></urlset>' : '<urlset></urlset>'); }
+    if (req.url === '/') {
+      res.writeHead(200, mode === 'header' ? { 'x-robots-tag': 'noindex, nofollow' } : {});
+      return res.end(mode === 'meta' ? '<html><head><meta name="robots" content="noindex, nofollow"></head></html>' : '<html><head></head></html>');
+    }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  try {
+    let r = await hc(port, ['--noindex', '/']); assert.equal(r.status, 1); assert.match(r.stdout, /seria indexável|publica URLs/); // robots Allow + sitemap com URL + sem noindex
+    mode = 'semNoindex'; r = await hc(port, ['--noindex', '/']); assert.equal(r.status, 1); assert.match(r.stdout, /sem noindex/);
+    mode = 'meta'; assert.equal((await hc(port, ['--noindex', '/'])).status, 0);
+    mode = 'header'; assert.equal((await hc(port, ['--noindex', '/'])).status, 0);
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
 test('compareStats detecta divergência, ausência e tabela inesperada', () => {
   const a = { 'public.a': { rows: 2, md5: 'aaaaaaaa11' }, 'public.b': { rows: 1, md5: 'bbbbbbbb22' } };
   assert.deepEqual(compareStats(a, a), []);
