@@ -1,0 +1,93 @@
+/* GERADO por scripts/build-tokens.mjs — não editar.
+ * Fonte: tokens/design.tokens.json (brandkit 2.0-draft.1, status "proposal_not_approved")
+ * + tokens/extensions.json (derivados da frente 05; ver _nota). */
+:root {
+  --ln-color-primary: #153C3C;
+  --ln-color-secondary: #34877A;
+  --ln-color-mint: #DDEFE8;
+  --ln-color-black: #101C1C;
+  --ln-color-white: #FFFFFF;
+  --ln-color-signal: #A7DDC9;
+  --ln-color-secondary-strong: #2A6F65;
+  --ln-color-border: #B9D3CA;
+  --ln-color-border-strong: #5F7D78;
+  --ln-color-text-muted: #4A5F5F;
+  --ln-color-warning-bg: #FFF4CC;
+  --ln-color-warning-fg: #5C4400;
+  --ln-color-danger: #A12A2A;
+  --ln-color-focus: #0B5FD3;
+  --ln-color-surface-subtle: #F4F8F6;
+  --ln-color-success-bg: #E1F3E7;
+  --ln-color-success-fg: #14532D;
+  --ln-color-info-bg: #E0ECFB;
+  --ln-color-info-fg: #12407F;
+  --ln-color-danger-bg: #FBE3E3;
+  --ln-color-danger-fg: #7A1D1D;
+  --ln-color-neutral-bg: #EEF1F1;
+  --ln-color-neutral-fg: #2F4141;
+  --ln-font-ui: Inter, Arial, sans-serif;
+  --ln-font-editorial: Georgia, Noto Serif, serif;
+  --ln-text-xs: 0.75rem;
+  --ln-leading-xs: 1rem;
+  --ln-text-sm: 0.875rem;
+  --ln-leading-sm: 1.25rem;
+  --ln-text-md: 1rem;
+  --ln-leading-md: 1.5rem;
+  --ln-text-lg: 1.125rem;
+  --ln-leading-lg: 1.75rem;
+  --ln-text-xl: 1.375rem;
+  --ln-leading-xl: 1.75rem;
+  --ln-text-2xl: 1.75rem;
+  --ln-leading-2xl: 2.125rem;
+  --ln-text-3xl: 2.25rem;
+  --ln-leading-3xl: 2.625rem;
+  --ln-text-4xl: 3rem;
+  --ln-leading-4xl: 3.25rem;
+  --ln-weight-regular: 400;
+  --ln-weight-medium: 500;
+  --ln-weight-bold: 700;
+  --ln-space-0: 0;
+  --ln-space-1: 4px;
+  --ln-space-2: 8px;
+  --ln-space-3: 12px;
+  --ln-space-4: 16px;
+  --ln-space-5: 24px;
+  --ln-space-6: 32px;
+  --ln-space-7: 48px;
+  --ln-space-8: 64px;
+  --ln-space-9: 96px;
+  --ln-radius-none: 0;
+  --ln-radius-sm: 4px;
+  --ln-radius-md: 8px;
+  --ln-radius-lg: 12px;
+  --ln-radius-xl: 16px;
+  --ln-radius-pill: 999px;
+  --ln-shadow-sm: 0 1px 2px rgba(16,28,28,.08);
+  --ln-shadow-md: 0 4px 12px rgba(16,28,28,.12);
+  --ln-layout-container: 1200px;
+  --ln-layout-gutter: 16px;
+  --ln-layout-gutter-lg: 24px;
+  --ln-layout-reading: 68ch;
+  --ln-focus-width: 3px;
+  --ln-focus-offset: 2px;
+  --ln-motion-fast: 120ms;
+  --ln-motion-easing: cubic-bezier(.22,.7,.2,1);
+  --ln-touch-target: 44px;
+  --ln-role-bg: var(--ln-color-white);
+  --ln-role-bg-subtle: var(--ln-color-mint);
+  --ln-role-bg-inverse: var(--ln-color-primary);
+  --ln-role-fg: var(--ln-color-black);
+  --ln-role-fg-muted: var(--ln-color-text-muted);
+  --ln-role-fg-inverse: var(--ln-color-white);
+  --ln-role-fg-accent-inverse: var(--ln-color-signal);
+  --ln-role-link: var(--ln-color-primary);
+  --ln-role-accent: var(--ln-color-secondary-strong);
+  --ln-role-accent-decor: var(--ln-color-secondary);
+}
+
+/* Breakpoints (media queries não aceitam var(); valores em tokens.ts):
+ *   sm = 640px
+ *   md = 768px
+ *   lg = 1024px
+ *   xl = 1280px
+ */
