@@ -5,10 +5,17 @@
   "type": "module",
   "description": "Inventário, mídia kit, CRM, campanhas. Dono: Frente 10 — LN Commercial Engineer.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./api": "./src/api/index.ts",
+    "./queries": "./src/queries.ts"
   },
   "types": "./src/index.ts",
+  "scripts": {
+    "gen:formats": "node scripts/gen-formats.mjs ../../r0-preparacao/arquitetura/formatos-comerciais-47.json"
+  },
   "dependencies": {
-    "@ln/contracts": "0.0.0"
+    "@ln/contracts": "0.0.0",
+    "zod": "4.6.7",
+    "@ln/db": "0.0.0"
   }
 }
