@@ -1,0 +1,14 @@
+{
+  "name": "@ln/intelligence",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Entity Intelligence (empresas, pessoas P4, cargos, Moves). Dono: Frente 08 — LN Data Engineer.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/contracts": "0.0.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@ln/commercial",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Inventário, mídia kit, CRM, campanhas. Dono: Frente 10 — LN Commercial Engineer.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/contracts": "0.0.0"
+  }
+}
