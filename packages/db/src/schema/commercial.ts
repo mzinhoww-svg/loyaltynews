@@ -1,28 +1,14 @@
-// PROPOSTA de schema do módulo comercial (Frente 10) para o Chief Architect incorporar em packages/db/src/schema.ts
-// (ou src/schema/commercial.ts). Convenções do scaffold: PostgreSQL 18, Drizzle, ids `text`, colunas pt-BR, timestamps com fuso.
-//
-// RELAÇÃO COM O QUE JÁ EXISTE NO SCAFFOLD (packages/db/src/schema.ts):
-//  - `ad_formats`  : EXISTE. Proposta ADICIONA precoTipo, precoValorBrl, unidade, taxaPct, motivoDisponibilidade, fonteLinha.
-//                    `referencia_brl` (texto original do Blueprint) é mantido como está.
-//  - `ad_slots`    : EXISTE. Proposta ADICIONA formatoId e variantesMobile/tiposPermitidos; `contrato_minimo` (texto) vira
-//                    `contrato_minimo_dias` (inteiro) porque a validação de reserva precisa de número.
-//  - `campaigns`   : EXISTE com status pt-BR de 5 valores (contracts/ad.ts). O Blueprint §4 define 7 estados
-//                    (draft/reserved/approved/active/paused/completed/cancelled). Proposta usa os 7 do Blueprint; PEDIDO ao Architect:
-//                    alinhar `Campaign.status` em packages/contracts/src/ad.ts.
-//  - NOVAS: ad_reservations, ad_takeovers, ad_creatives, ad_delivery_daily, crm_accounts, crm_leads, crm_opportunities,
-//           crm_opportunity_history, commercial_metrics.
-//
-// REGRAS QUE O BANCO FAZ CUMPRIR: período coerente; peso > 0; contadores >= 0; lead sem opt-in implícito; oportunidade perdida
-// exige motivo; métrica disponível exige origem, período e horário. Limite de cotas por posição NÃO cabe em CHECK:
-// reservar = transação com `SELECT ... FOR UPDATE` na linha de ad_slots + contagem do pico diário (ver InventoryBook.reserve).
-//
-// IMPRESSÕES/CLIQUES: somente agregado diário por criativo (ad_delivery_daily). Nenhum dado de leitor é guardado aqui.
+// Módulo comercial (Frente 10): catálogo e inventário, CRM, campanhas, reservas, criativos, entrega diária e métricas do mídia kit.
+// Incorporado pelo Chief Architect a partir de ft/commercial 0330bdf (packages/commercial/src/db-schema.proposto.ts).
+// Substitui as versões do scaffold de ad_formats, ad_slots e campaigns. Regras e comentários da proposta preservados.
+// Limite de cotas por posição NÃO cabe em CHECK: reservar = transação com SELECT ... FOR UPDATE em ad_slots (InventoryBook.reserve).
+// Impressões/cliques: só agregado diário por criativo. Nenhum dado de leitor.
 import { sql } from 'drizzle-orm';
 import {
   boolean, check, date, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { disponibilidade } from './enums';
 
-export const disponibilidade = pgEnum('disponibilidade', ['disponivel', 'sob_consulta', 'indisponivel']); // já existe
 export const precoTipo = pgEnum('preco_tipo', ['fixo', 'a_partir_de', 'verba_mais_taxa']);
 export const precoUnidade = pgEnum('preco_unidade', ['mes', 'dia', 'unidade', 'verba']);
 export const slotPosicao = pgEnum('slot_posicao', ['TOP', 'SIDEBAR_1', 'SIDEBAR_2', 'SIDEBAR_3', 'FOOTER', 'ARTICLE_INLINE', 'HOME_BETWEEN', 'AGENDA', 'DATA']);

@@ -1,5 +1,5 @@
 // Contexto de execução dos handlers e das consultas. Os handlers são puros em relação a I/O: recebem o estado do domínio e
-// devolvem resultado. O Backend hidrata este contexto do banco (schema em db-schema.proposto.ts) e persiste o que mudou;
+// devolvem resultado. O Backend hidrata este contexto do banco (schema em @ln/db: packages/db/src/schema/commercial.ts) e persiste o que mudou;
 // enquanto não há repositório, `createCommercialState()` entrega o estado em memória (testes e desenvolvimento).
 import type { FlagState } from '@ln/contracts';
 import { CATALOG } from './catalog';

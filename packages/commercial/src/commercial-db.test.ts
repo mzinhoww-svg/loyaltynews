@@ -1,18 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { pushSchema } from 'drizzle-kit/api';
+import { createTestDb } from '@ln/db/testing';
+import * as s from '@ln/db/schema';
 import { CATALOG } from './index';
-import * as s from './db-schema.proposto';
 
-let client: PGlite;
-let db: ReturnType<typeof drizzle>;
+let t: Awaited<ReturnType<typeof createTestDb>>;
+let db: typeof t.db;
+let client: typeof t.client;
 
 beforeAll(async () => {
-  client = new PGlite();
-  db = drizzle(client);
-  const { apply } = await pushSchema(s as unknown as Record<string, unknown>, db as never);
-  await apply();
+  t = await createTestDb(); // migrações reais de @ln/db (inclui 0003_commercial)
+  db = t.db; client = t.client;
   await db.insert(s.adFormats).values(CATALOG.map((f) => ({
     id: f.id, secao: f.section, nome: f.name, referenciaBrl: f.referenceText, escopo: f.scope,
     disponibilidade: f.status, motivoDisponibilidade: f.statusReason,
@@ -30,7 +27,7 @@ const fails = async (p: Promise<unknown>, constraint: string) => {
   expect(txt).toContain(constraint);
 };
 
-describe('schema proposto aplicado em PostgreSQL (PGlite)', () => {
+describe('schema comercial de @ln/db (migrações reais, PGlite)', () => {
   it('carrega os 47 formatos do catálogo, nenhum disponível', async () => {
     expect(await db.$count(s.adFormats)).toBe(47);
     const r = await client.query<{ n: number }>("select count(*)::int n from ad_formats where disponibilidade = 'disponivel'");
