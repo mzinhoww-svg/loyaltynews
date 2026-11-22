@@ -30,22 +30,33 @@ export const SlotPosition = z.enum([
 export const AdSlot = z.object({
   id: Id,
   posicao: SlotPosition,
+  formatoId: z.string().min(1),
   dimensaoDesktop: z.string().regex(/^\d+×\d+$|^parametrizavel$/),
+  /** null = parametrizável, não reservável. */
   limiteCotas: z.number().int().positive().nullable(),
   pesoMaxKb: z.number().int().positive().nullable(),
-  contratoMinimo: z.string().min(1).nullable(),
+  contratoMinimoDias: z.number().int().positive().nullable(),
+}).refine((s) => s.limiteCotas === null || s.contratoMinimoDias !== null, {
+  message: 'posição reservável exige contrato mínimo em dias',
+  path: ['contratoMinimoDias'],
 });
 export type AdSlot = z.infer<typeof AdSlot>;
+
+/** Os 7 estados de campanha do Blueprint §4 (alinhado a packages/db, campanha_status). */
+export const CampaignStatus = z.enum(['draft', 'reserved', 'approved', 'active', 'paused', 'completed', 'cancelled']);
+export type CampaignStatus = z.infer<typeof CampaignStatus>;
 
 export const Campaign = z
   .object({
     id: Id,
-    anunciante: z.string().min(1),
-    formatoIds: z.array(z.string()).min(1),
-    slotIds: z.array(Id).default([]),
+    nome: z.string().min(1),
+    contaId: Id,
+    oportunidadeId: Id.nullable().default(null),
+    formatoId: z.string().min(1),
+    slotId: Id.nullable().default(null),
     inicio: IsoDate,
     fim: IsoDate,
-    status: z.enum(['rascunho', 'proposta', 'ativa', 'pausada', 'encerrada']),
+    status: CampaignStatus,
     /** Conteúdo pago sempre rotulado (F-074). */
     rotulada: z.literal(true),
   })

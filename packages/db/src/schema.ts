@@ -26,7 +26,8 @@ export const articleStatus = pgEnum('article_status', [
   'corrigido',
 ]);
 export const linkOrigin = pgEnum('link_origin', ['declarado', 'inferido']);
-export const disponibilidade = pgEnum('disponibilidade', ['disponivel', 'sob_consulta', 'indisponivel']);
+// Enum compartilhado com o módulo comercial; definido em arquivo próprio para evitar ciclo de carga.
+export { disponibilidade } from './schema/enums';
 
 export const editorias = pgTable('editorias', {
   slug: text('slug').primaryKey(),
@@ -119,33 +120,11 @@ export const moves = pgTable('moves', {
   origem: linkOrigin('origem').notNull(),
 });
 
-export const adFormats = pgTable('ad_formats', {
-  id: text('id').primaryKey(),
-  secao: text('secao').notNull(),
-  nome: text('nome').notNull(),
-  referenciaBrl: text('referencia_brl').notNull(),
-  escopo: text('escopo').notNull(),
-  disponibilidade: disponibilidade('disponibilidade').notNull().default('indisponivel'),
-});
+// Frente 02 Backend: auth, outbox, orçamento, recibos/mídia/agenda (arquivos em ./schema/).
+export * from './schema/auth';
+export * from './schema/outbox';
+export * from './schema/budget';
+export * from './schema/editorial-api';
 
-export const adSlots = pgTable('ad_slots', {
-  id: text('id').primaryKey(),
-  posicao: text('posicao').notNull(),
-  dimensaoDesktop: text('dimensao_desktop').notNull(),
-  limiteCotas: integer('limite_cotas'),
-  pesoMaxKb: integer('peso_max_kb'),
-  contratoMinimo: text('contrato_minimo'),
-});
-
-export const campaigns = pgTable('campaigns', {
-  id: text('id').primaryKey(),
-  anunciante: text('anunciante').notNull(),
-  formatoIds: jsonb('formato_ids').notNull(),
-  inicio: date('inicio').notNull(),
-  fim: date('fim').notNull(),
-  status: text('status').notNull().default('rascunho'),
-  rotulada: boolean('rotulada').notNull().default(true),
-}, (t) => [
-  check('campaigns_periodo', sql`${t.fim} >= ${t.inicio}`),
-  check('campaigns_rotulada', sql`${t.rotulada}`),
-]);
+// Frente 10 Comercial: catálogo, inventário, CRM, campanhas e métricas (./schema/commercial.ts).
+export * from './schema/commercial';
