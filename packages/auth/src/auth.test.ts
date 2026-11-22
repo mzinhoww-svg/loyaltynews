@@ -25,6 +25,7 @@ const PASSWORD = 'senha-longa-de-teste-1';
 let t: Awaited<ReturnType<typeof createTestDb>>;
 let auth: ReturnType<typeof createAuth>;
 let handle: (r: Request) => Promise<Response>;
+let handle0: (r: Request) => Promise<Response>;
 let clock = new Date('2026-11-22T12:00:00Z');
 let seq = 0;
 
@@ -33,7 +34,8 @@ beforeAll(async () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = t.db as any;
   auth = createAuth({ db, secret: 'x'.repeat(40), baseURL: ORIGIN });
-  handle = createAuthHandler({ auth, db, now: () => clock });
+  handle = createAuthHandler({ auth, db, now: () => clock, trustedProxyHops: 1 });
+  handle0 = createAuthHandler({ auth, db, now: () => clock, trustedProxyHops: 0 });
 });
 afterAll(async () => {
   await t.close();
@@ -233,6 +235,62 @@ describe('ADR-011: limite de tentativas (5 falhas / 15 min, bloqueio de 15 min)'
     clock = new Date('2026-11-22T14:16:00Z');
     await bad(u.email, '10.3.0.3');
     expect((await login(u.email, '10.3.0.7')).status).toBe(200);
+  });
+});
+
+describe('QA: IP só de proxy confiável e limite estrito sob concorrência', () => {
+  const attempt = (h: typeof handle, email: string, xff: string, password = 'senha-errada-123') =>
+    h(req('/sign-in/email', { body: { email, password }, ip: xff }));
+  const tally = (rs: Response[]) => ({
+    passaram: rs.filter((r) => r.status === 401).length,
+    barradas: rs.filter((r) => r.status === 429).length,
+    outros: rs.filter((r) => r.status !== 401 && r.status !== 429).length,
+  });
+
+  it('cabeçalho forjado à esquerda não burla o limite por IP (contas diferentes, mesmo IP real)', async () => {
+    const ok = await newUser('editor');
+    clock = new Date('2026-11-22T15:00:00Z');
+    // atacante troca o valor forjado a cada tentativa; o proxy confiável acrescenta o IP real à direita
+    for (let i = 0; i < 5; i++) expect((await attempt(handle, `alvo${i}@ln.test`, `7.7.7.${i}, 198.51.100.9`)).status).toBe(401);
+    expect((await attempt(handle, ok.email, '8.8.8.8, 198.51.100.9', PASSWORD)).status).toBe(429);
+    expect((await attempt(handle, ok.email, '8.8.8.8, 198.51.100.10', PASSWORD)).status).toBe(200); // outro IP real
+  });
+
+  it('sem proxy confiável configurado, o cabeçalho é ignorado: não cria bucket de IP e o limite por conta continua valendo', async () => {
+    const u = await newUser('editor');
+    clock = new Date('2026-11-22T16:00:00Z');
+    const rs: Response[] = [];
+    for (let i = 0; i < 6; i++) rs.push(await attempt(handle0, u.email, `1.1.1.${i}`));
+    expect(tally(rs)).toEqual({ passaram: 5, barradas: 1, outros: 0 });
+    for (let i = 0; i < 8; i++) await attempt(handle0, `outro${i}@ln.test`, '1.1.1.1');
+    const ipRows = await t.db.select().from(schema.authAttempt).where(eq(schema.authAttempt.kind, 'ip'));
+    expect(ipRows.filter((r) => r.subject.startsWith('1.1.1.'))).toHaveLength(0);
+  });
+
+  it('requisição sem a cadeia de proxies esperada (cabeçalho ausente) não cria bucket de IP', async () => {
+    const r = await handle(
+      new Request(`${ORIGIN}/api/auth/sign-in/email`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ORIGIN },
+        body: JSON.stringify({ email: 'nenhum@ln.test', password: 'x'.repeat(12) }),
+      }),
+    );
+    expect(r.status).toBe(401);
+  });
+
+  it('20 tentativas simultâneas na mesma conta (IPs diferentes): exatamente 5 chegam à senha, 15 são barradas', async () => {
+    const u = await newUser('editor');
+    clock = new Date('2026-11-22T17:00:00Z');
+    const rs = await Promise.all(Array.from({ length: 20 }, (_, i) => attempt(handle, u.email, `192.0.2.${i + 1}`)));
+    expect(tally(rs)).toEqual({ passaram: 5, barradas: 15, outros: 0 });
+    // com a conta bloqueada, nem a senha certa entra
+    expect((await attempt(handle, u.email, '192.0.2.99', PASSWORD)).status).toBe(429);
+  });
+
+  it('20 tentativas simultâneas do mesmo IP em contas diferentes: exatamente 5 passam', async () => {
+    clock = new Date('2026-11-22T18:00:00Z');
+    const rs = await Promise.all(Array.from({ length: 20 }, (_, i) => attempt(handle, `ip-conc${i}@ln.test`, '203.0.113.50')));
+    expect(tally(rs)).toEqual({ passaram: 5, barradas: 15, outros: 0 });
   });
 });
 

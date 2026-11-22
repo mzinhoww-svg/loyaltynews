@@ -9,7 +9,8 @@ export * from './guard';
 export * from './attempts';
 export { audit, redact, type AuditEntry } from './audit';
 export { createAuth, createStaffUser, type Auth, type CreateAuthOptions, type NewStaffUser } from './server';
-export { createAuthHandler, clientIp } from './handler';
+export { createAuthHandler } from './handler';
+export { clientIp, trustedProxyHops } from './client-ip';
 export type { Db } from './types';
 
 async function headersOf(request?: Request): Promise<Headers | null> {

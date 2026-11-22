@@ -8,7 +8,8 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 - `POST /api/auth/two-factor/verify-totp` `{code}` → cria a sessão (cookie `better-auth.session_token`).
 - `POST /api/auth/two-factor/enable` `{password}` → `{totpURI, backupCodes}`; ativar exige depois `verify-totp`.
 - `POST /api/auth/sign-out`, `GET /api/auth/get-session`, `GET /api/auth/list-sessions`, `POST /api/auth/revoke-session|revoke-sessions|revoke-other-sessions`, `POST /api/auth/change-password`.
-- Qualquer outra rota de `/api/auth/*` (cadastro, reset, social…) responde **404**. 5 falhas em 15 min bloqueiam conta e IP por 15 min (**429** + `Retry-After`).
+- Qualquer outra rota de `/api/auth/*` (cadastro, reset, social…) responde **404**. Até 5 tentativas por 15 min, por conta e por IP; a 5ª aciona bloqueio de 15 min (**429** + `Retry-After`). A tentativa é reservada de forma atômica (transação com `FOR UPDATE`) antes de verificar a senha, então rajadas simultâneas não passam de 5. Login correto zera a conta e devolve a reserva do IP.
+- **IP do cliente**: cabeçalhos de proxy NÃO valem por padrão (o cliente os escreve). Configure `TRUSTED_PROXY_HOPS=N` (N proxies confiáveis na frente do app): vale a N-ésima entrada de `X-Forwarded-For` contada da direita; `X-Real-IP` é ignorado. Sem configuração o limite por IP não se aplica (fica o limite por conta). Como o IP do cliente chega na Vertra **não está na documentação consultada**: o DevOps deve confirmar em staging antes de ligar.
 - Sem 2º fator ativo toda rota protegida responde 403 `MFA_REQUIRED`. Sem sessão: 401 `UNAUTHENTICATED`. Sem permissão: 403 `FORBIDDEN`.
 - No código (Server Components/rotas): `getSession()` e `requireRole(['admin'])` de `@ln/auth` (nega por padrão).
 - Papéis (proposta, matriz em `packages/auth/src/rbac.ts`): admin, editor_chefe, editor, revisor, comercial, leitor.

@@ -24,7 +24,7 @@ export interface RouteCtx {
   url: URL;
   /** null só em rotas públicas sem login. */
   session: Session | null;
-  ip: string;
+  ip: string | null;
   requestId: string;
 }
 
