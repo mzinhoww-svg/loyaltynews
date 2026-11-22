@@ -40,6 +40,20 @@ export interface Source {
   imageRights: ImageRightsBasis | null;
   maxRequestsPerHour: number;
   notes?: string;
+  verification?: SourceVerification;
+}
+
+/** Resultado da pesquisa somente-leitura da fonte (não aprova uso; a aprovação é do QA/responsável). */
+export interface SourceVerification {
+  level: 'lido' | 'parcial' | 'inacessivel';
+  robots: 'permitido' | 'bloqueado' | 'indisponivel';
+  robotsNote: string;
+  /** Trecho literal curto dos termos; null = não encontrado. */
+  termsExcerpt: string | null;
+  termsFetchedAt: string | null;
+  consultedAt: string | null;
+  imageRightsNote: string;
+  notes: string;
 }
 
 export type RightsBasisKind = 'license' | 'authorization' | 'public_domain' | 'validated_exception';

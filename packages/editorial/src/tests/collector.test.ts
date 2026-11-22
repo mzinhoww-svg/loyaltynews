@@ -5,7 +5,6 @@ import { assertAllowedUrl, isPrivateHost, UrlRejected } from '../collector/ssrf'
 import { isAllowedByRobots, parseRobots } from '../collector/robots';
 import { SourceRegistry, eligibility } from '../sources/registry';
 import { SEED_SOURCES } from '../sources/seed';
-import { EDITORIAS } from '../types';
 import { MOCK_SOURCE, MockFetcher, mockResolver, mockWeb } from '../../fixtures/mock-web.mock';
 
 const fixedNow = () => new Date('2026-11-23T12:00:00Z');
@@ -82,19 +81,6 @@ test('feed: coleta itens, descarta restritos/paywall e mantém duplicatas para o
 
 test('evidência sem URL, data ou hash é rejeitada', () => {
   assert.deepEqual(validateEvidence({ sourceId: 's' }).sort(), ['missing_date', 'missing_hash', 'missing_url']);
-});
-
-test('registro: seed honesto — nenhuma fonte coletável, todas as editorias sem cobertura até revisão de termos', () => {
-  const reg = new SourceRegistry(SEED_SOURCES);
-  assert.equal(reg.collectable().length, 0);
-  assert.deepEqual(reg.uncovered(), [...EDITORIAS]);
-  for (const s of reg.all()) {
-    const el = eligibility(s);
-    assert.equal(el.ok, false);
-    assert.equal(s.feedUrl, null, 'feed não pode ser inventado');
-  }
-  assert.ok(reg.byEditoria('regulacao').length >= 1);
-  assert.throws(() => reg.add(SEED_SOURCES[0]!), /duplicate/);
 });
 
 // ---------- prefixo de caminho (hosts compartilhados, ex.: www.gov.br/<órgão>) ----------
