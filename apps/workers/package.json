@@ -10,7 +10,8 @@
     "./ad-redis": "./src/ad-redis.ts",
     "./outbox": "./src/pg-stores.ts",
     "./redis-tls": "./src/redis-tls.ts",
-    "./seed-staging": "./src/seed-staging.ts"
+    "./seed-staging": "./src/seed-staging.ts",
+    "./openbot-pg": "./src/openbot-pg.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
@@ -20,6 +21,7 @@
     "@ln/db": "0.0.0",
     "@ln/editorial": "0.0.0",
     "@ln/modelops": "0.0.0",
+    "@ln/openbot": "0.1.0",
     "bullmq": "6.7.8",
     "drizzle-orm": "0.45.4",
     "ioredis": "5.11.1",
