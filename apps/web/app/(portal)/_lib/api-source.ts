@@ -88,6 +88,34 @@ const host = (url: string) => {
   }
 };
 
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+const isDate = (v: unknown): v is string => typeof v === 'string' && !Number.isNaN(Date.parse(v));
+
+/**
+ * Item da listagem pública em formato aceitável (campos mínimos que a tela usa). Item nulo, fora do formato ou com data inválida
+ * é DESCARTADO: um item ruim nunca derruba a página (formatDate lança com data inválida) nem vira "MOCK".
+ */
+export function isRawListItem(v: unknown): v is RawListItem {
+  return (
+    isObj(v) &&
+    isStr(v.slug) &&
+    isStr(v.titulo) &&
+    typeof v.resumo === 'string' &&
+    isStr(v.editoria) &&
+    isStr(v.assinatura) &&
+    isDate(v.publicadoEm) &&
+    (v.subtitulo == null || typeof v.subtitulo === 'string') &&
+    (v.tipoConteudo == null || typeof v.tipoConteudo === 'string') &&
+    (v.tempoLeituraMin == null || (typeof v.tempoLeituraMin === 'number' && Number.isFinite(v.tempoLeituraMin))) &&
+    (v.imagem == null || isObj(v.imagem))
+  );
+}
+
+export function isRawArticle(v: unknown): v is RawArticle {
+  return isRawListItem(v) && typeof (v as { corpo?: unknown }).corpo === 'string';
+}
+
 export function mapListItem(r: RawListItem): Article {
   return {
     slug: r.slug,
@@ -109,13 +137,14 @@ export function mapListItem(r: RawListItem): Article {
 }
 
 export function mapArticle(r: RawArticle): Article {
-  const erratas = (r.erratas ?? []).filter((e) => e.nota);
+  const erratas = (Array.isArray(r.erratas) ? r.erratas : []).filter((e) => isObj(e) && isStr(e.nota) && isDate(e.em));
+  const fontes = (Array.isArray(r.fontes) ? r.fontes : []).filter((f) => isObj(f) && isStr(f.url));
   return {
     ...mapListItem(r),
     updatedAt: erratas.at(-1)?.em,
     image: mapImage(r.imagem),
     body: bodyToBlocks(r.corpo),
-    sources: (r.fontes ?? []).map((f) => ({ label: host(f.url), url: f.url, publishedAt: f.capturadoEm })),
+    sources: fontes.map((f) => ({ label: host(f.url), url: f.url, publishedAt: isDate(f.capturadoEm) ? f.capturadoEm : undefined })),
     corrections: erratas.map((e) => ({ at: e.em, text: e.nota as string })),
   };
 }
@@ -165,9 +194,12 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
       return { items: [], total: 0 };
     }
     try {
-      const j = (await res.json()) as { data?: RawListItem[]; total?: number };
-      if (!Array.isArray(j.data)) throw new Error('formato');
-      return { items: j.data, total: typeof j.total === 'number' ? j.total : j.data.length };
+      const j = (await res.json()) as { data?: unknown; total?: unknown };
+      // Formato do envelope: data é lista e total é número finito não negativo; "total": "12" (texto) é resposta inválida.
+      if (!Array.isArray(j.data) || typeof j.total !== 'number' || !Number.isFinite(j.total) || j.total < 0) throw new Error('formato');
+      const items = j.data.filter(isRawListItem);
+      if (items.length < j.data.length) logFalha('matérias', `${j.data.length - items.length} item(ns) inválido(s) descartado(s)`);
+      return { items, total: j.total };
     } catch {
       logFalha('matérias', 'resposta inválida');
       return { items: [], total: 0 };
@@ -205,7 +237,9 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
         return null;
       }
       try {
-        return mapArticle(((await res.json()) as { data: RawArticle }).data);
+        const data = ((await res.json()) as { data?: unknown }).data;
+        if (!isRawArticle(data)) throw new Error('formato');
+        return mapArticle(data);
       } catch {
         logFalha('matéria', 'resposta inválida');
         return null;

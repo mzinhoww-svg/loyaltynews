@@ -49,6 +49,13 @@ test.describe(`indexação com APP_ENV=${appEnv}${semInterruptor ? ' sem PORTAL_
     if (blocked) expect(nf.headers()['x-robots-tag']).toBe('noindex, nofollow');
   });
 
+  test('feed.xml: sem itens quando a indexação está bloqueada; com itens só em produção indexável (fonte api)', async ({ request }) => {
+    const body = await (await request.get('/feed.xml')).text();
+    expect(body).toContain('<rss');
+    if (blocked) expect(body, 'feed bloqueado não publica itens').not.toContain('<item>');
+    else if (mode === 'api' && !process.env.PORTAL_API_DOWN) expect(body).toContain('<item>');
+  });
+
   test('meta robots e canonical na home', async ({ page }) => {
     await page.goto('/');
     const robots = page.locator('meta[name="robots"]');
