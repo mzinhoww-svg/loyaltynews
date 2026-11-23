@@ -90,3 +90,56 @@ describe('/api/ready: prazo da sonda de migrações', () => {
     }
   });
 });
+
+describe('/api/ready: resposta tardia não grava o cache (ajuste do QA 6)', () => {
+  it('1ª consulta expira e termina tarde com a contagem antiga; a 2ª (mais nova) vale; a 3ª consulta de novo ou usa só o resultado no prazo', async () => {
+    const { vi } = await import('vitest');
+    const { PROBE_TIMEOUT_MS } = await import('../_lib/ready');
+    vi.useFakeTimers();
+    try {
+      let clock = 5_000_000;
+      const nowFn = () => clock;
+      let liberarAntiga: (v: unknown) => void = () => undefined;
+      let chamadas = 0;
+      const fake = {
+        execute: () => {
+          chamadas++;
+          if (chamadas === 1) return new Promise((res) => { liberarAntiga = res; }); // pendurada; termina tarde com N (ok)
+          return Promise.resolve({ rows: [{ n: N - 1 }] }); // estado atual: falta uma migração
+        },
+      } as unknown as Db;
+      const probe = migrationProbe(fake, N, nowFn);
+      // 1ª: expira no handler
+      const r1p = readiness(ENV, { db: ok, redis: ok, migrations: probe });
+      clock += PROBE_TIMEOUT_MS + 1;
+      await vi.advanceTimersByTimeAsync(PROBE_TIMEOUT_MS + 1);
+      expect(await r1p).toMatchObject({ motivo: 'migracoes_falha' });
+      // 2ª: consulta nova, no prazo: pendentes (grava o cache)
+      expect(await readiness(ENV, { db: ok, redis: ok, migrations: probe })).toMatchObject({ status: 'indisponivel', motivo: 'migracoes_pendentes' });
+      // a 1ª termina agora, tarde, com a contagem antiga (N = ok): NÃO pode sobrescrever
+      liberarAntiga({ rows: [{ n: N }] });
+      await vi.advanceTimersByTimeAsync(0);
+      // 3ª: dentro dos 30 s, usa o cache da 2ª (pendentes), nunca o "ok" tardio
+      const r3 = await readiness(ENV, { db: ok, redis: ok, migrations: probe });
+      expect(r3).toMatchObject({ status: 'indisponivel', motivo: 'migracoes_pendentes' });
+      expect(chamadas).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('consulta única que termina depois do prazo não grava cache: a próxima chamada consulta de novo', async () => {
+    let clock = 9_000_000;
+    let n = 0;
+    const { PROBE_TIMEOUT_MS } = await import('../_lib/ready');
+    const lenta = { execute: async () => { n++; clock += PROBE_TIMEOUT_MS + 10; return { rows: [{ n: N }] }; } } as unknown as Db;
+    const p = migrationProbe(lenta, N, () => clock);
+    await p();
+    await p();
+    expect(n).toBe(2);
+  });
+
+  it('com transação (PGlite): limita a consulta no banco e ainda responde ok', async () => {
+    expect(await migrationProbe(db, N)()).toBe('ok');
+  });
+});

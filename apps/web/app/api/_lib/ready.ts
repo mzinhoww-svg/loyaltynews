@@ -123,25 +123,45 @@ export function resetMigrationCacheForTest(): void {
   migCache = null;
 }
 
+/** Prazo da consulta no próprio banco (statement_timeout), abaixo do prazo da sonda. */
+const DB_STATEMENT_TIMEOUT_MS = PROBE_TIMEOUT_MS - 500;
+let migSeq = 0;
+
+type Rows = { rows?: Array<{ n: number }> } | Array<{ n: number }>;
+async function countApplied(db: Db): Promise<number> {
+  const q = sql`select count(*)::int as n from drizzle.__drizzle_migrations`;
+  const tx = (db as unknown as { transaction?: (fn: (t: Db) => Promise<Rows>) => Promise<Rows> }).transaction;
+  // Com transação: o banco também corta a consulta (SET LOCAL vale só nela); sem transação (porta de teste), só o prazo da sonda.
+  const r = typeof tx === 'function'
+    ? await tx.call(db, async (t: Db) => {
+        await t.execute(sql.raw(`set local statement_timeout = ${DB_STATEMENT_TIMEOUT_MS}`));
+        return (await t.execute(q)) as unknown as Rows;
+      })
+    : ((await db.execute(q)) as unknown as Rows);
+  const rows = Array.isArray(r) ? r : (r.rows ?? []);
+  return Number(rows[0]?.n ?? 0);
+}
+
 /**
  * Compara as linhas de drizzle.__drizzle_migrations com o journal do build. UMA consulta, com cache de 30 s.
  * Aplicadas < journal: `pendentes`; aplicadas > journal (banco à frente do build): `divergentes`; tabela ausente: `pendentes` (nada aplicado).
+ * Resultado tardio (passou do prazo da sonda) ou superado por uma consulta mais nova NUNCA grava o cache (ajuste do QA 6 em 76350ba).
  */
 export const migrationProbe = (db: Db, expected: number, now: () => number = Date.now) => async (): Promise<MigrationState> => {
   const t = now();
   if (migCache && migCache.expected === expected && t - migCache.at < MIG_TTL_MS) return migCache.value;
+  const seq = ++migSeq;
   let applied: number;
   try {
-    const r = (await db.execute(sql`select count(*)::int as n from drizzle.__drizzle_migrations`)) as unknown as { rows?: Array<{ n: number }> } | Array<{ n: number }>;
-    const rows = Array.isArray(r) ? r : (r.rows ?? []);
-    applied = Number(rows[0]?.n ?? 0);
+    applied = await countApplied(db);
   } catch (e) {
     const code = (e as { code?: string; cause?: { code?: string } } | null)?.cause?.code ?? (e as { code?: string } | null)?.code;
     if (code !== '42P01' && code !== '3F000') throw e; // undefined_table / invalid_schema_name ⇒ nada aplicado
     applied = 0;
   }
   const value: MigrationState = applied === expected ? 'ok' : applied < expected ? 'pendentes' : 'divergentes';
-  migCache = { at: t, expected, value };
+  const noPrazo = now() - t < PROBE_TIMEOUT_MS;
+  if (noPrazo && seq === migSeq) migCache = { at: t, expected, value };
   return value;
 };
 
