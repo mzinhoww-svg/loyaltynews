@@ -20,7 +20,7 @@ export interface HandlerCtx {
   sources?: SourceRegistry;
   /** Consulta de matérias publicadas (ADR-019 §c): âncora dos casos de correção/resposta. Obrigatória para abrir caso. */
   published?: PublishedArticleLookup;
-  /** URL base do portal (ex.: https://loyaltynews.example), para montar /materias/{slug} na preservação de evidência. */
+  /** URL base do portal (ex.: https://loyaltynews.example), para montar /noticia/{slug} na preservação de evidência. */
   siteBaseUrl?: string;
 }
 export interface ApiResponse<T> { status: number; body: T | ApiError }

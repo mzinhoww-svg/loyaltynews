@@ -34,3 +34,5 @@ export * from './api/publication';
 export { extractRoles } from './pipeline/stages';
 export * from './api/illustration';
 export * from './api/published-lookup';
+export * from './api/correction-publication';
+export { NOTICES_MARK, FONTES_MARK, renderNotices, parseNotices, composeBody, fontesPart } from './notices';

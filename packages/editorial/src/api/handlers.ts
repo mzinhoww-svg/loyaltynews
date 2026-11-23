@@ -9,7 +9,7 @@ import {
 } from '../corrections/corrections';
 import type { Step } from '../corrections/corrections';
 import type { ArticleRecord, CorrectionRecord } from './store';
-import { isCorrectable } from './published-lookup';
+import { isCorrectable, publicArticleUrl } from './published-lookup';
 
 /**
  * Handlers de API do CMS (LN Studio) como FUNÇÕES PURAS: (contexto, entrada) -> { status, body }.
@@ -67,7 +67,7 @@ export async function getArticleReview(ctx: HandlerCtx, input: unknown): Promise
   const r = await ctx.store.getArticle(p.data.articleId);
   if (!r) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
   const d = r.draft;
-  const chk = d ? runDeterministicChecks(d, r.evidences) : null;
+  const chk = d ? runDeterministicChecks(d, r.evidences, { notices: r.notices?.map((n) => n.text) ?? [] }) : null;
   const ind = independence(r);
   const verdictOf = (id: string) => r.factcheck?.verdicts.find((v) => v.claimId === id)?.verdict ?? null;
   const allPass = !!d && d.claims.length > 0 && d.claims.every((c) => verdictOf(c.id) === 'pass');
@@ -252,8 +252,8 @@ export async function preserveCorrectionEvidence(ctx: HandlerCtx, input: unknown
   const p = parse(PreserveIn, input); if (bad(p)) return fail(p);
   const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
-  // sem URL informada, usa a página pública /materias/{slug} (ADR-019 §4)
-  const url = p.data.url ?? (ctx.siteBaseUrl && rec.articleSlug ? `${ctx.siteBaseUrl.replace(/\/+$/, '')}/materias/${rec.articleSlug}` : undefined);
+  // sem URL informada, usa a página pública do Portal /noticia/{slug} (ADR-019 §4; decisão do PM)
+  const url = p.data.url ?? (ctx.siteBaseUrl && rec.articleSlug ? publicArticleUrl(ctx.siteBaseUrl, rec.articleSlug) : undefined);
   if (!url) return fail(apiError('INVALID_INPUT', 'informe a URL pública da matéria (ou configure siteBaseUrl)'));
   return await stepResult(ctx, rec, preserveEvidence(rec.case, { url, body: p.data.body, capturedAt: ctx.now().toISOString() }), 'correction.preserve_evidence', a.userId);
 }

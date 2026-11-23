@@ -34,7 +34,7 @@ beforeAll(async () => {
 /** Matéria aprovada e PUBLICADA (recibo registrado): só de matéria já publicada se abre caso de correção (ADR-019). */
 async function publishedStore(): Promise<InMemoryEditorialStore> {
   const store = await approvedStore();
-  const r = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-MOCK', url: 'https://loyaltynews.example/materias/a1', publishedAt: NOW.toISOString() });
+  const r = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-MOCK', url: 'https://loyaltynews.example/noticia/a1', publishedAt: NOW.toISOString() });
   assert.ok(r.ok, r.ok ? '' : r.message);
   return store;
 }
