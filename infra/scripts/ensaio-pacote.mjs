@@ -172,6 +172,19 @@ try {
     if (vitrine) step(`portal ${p}${portal ? ' (com a faixa da vitrine)' : ''}`, res.status === 200 && (!portal || body.includes(VITRINE_BANNER)), `HTTP ${res.status}`);
     else step(`portal ${p}`, res.status === 200 && !/\bMOCK\b/.test(body) && !VITRINE_MARCADORES.some((m) => body.includes(m)), `HTTP ${res.status}`);
   }
+  if (apiSrc) {
+    // Decisão 12, A6 (Security): API indisponível/com erro = estado vazio honesto, nunca 500, nunca fixture, e nada interno na resposta (URL base, stack).
+    // Aqui a API própria do pacote responde 503 NOT_CONFIGURED (sem banco): as listagens têm de sair vazias e a matéria inexistente 404 ou 503.
+    for (const p of ['/', '/noticias']) {
+      const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      const body = await res.text();
+      const vaza = /127\.0\.0\.1|localhost|\bat \w+\s*\(|ECONNREFUSED|api\/publico/i.test(body.replace(/https?:\/\/loyaltynews[a-z0-9.-]*\.vertraweb\.app/gi, ''));
+      step(`[A6] ${p} com a API indisponível: 200 vazio, sem MOCK e sem URL interna`, res.status === 200 && !/\bMOCK\b/.test(body) && !vaza, `HTTP ${res.status}${vaza ? ' (vaza detalhe interno)' : ''}`);
+    }
+    const art = await fetch(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+    await art.text();
+    step('[A6] matéria com a API indisponível: 404 ou 503 (nunca 500)', art.status === 404 || art.status === 503, `HTTP ${art.status}`);
+  }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
   for (const p of ['/sitemap.xml', '/feed.xml']) {
     const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
