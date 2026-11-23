@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { isEnabled } from '@ln/contracts';
 import type { DashboardSummary, QueueResult, ReceiptRow } from '@ln/growth/dashboard';
 import { DashboardSummaryCards, PackageQueue } from '@ln/growth/ui';
 import { dispatchSocial } from '@/app/api/_lib/social';
@@ -12,6 +11,7 @@ import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { gerarPacotesAction } from './actions';
 import { metricasVista, rotuloEstado } from '@/lib/studio/social-metricas';
+import { flagAtiva } from '@/lib/studio/flags'; // ADR-022: flag pelo resolvedor de runtime, só no servidor (página force-dynamic)
 
 export const metadata: Metadata = { title: 'Social dashboard' };
 export const dynamic = 'force-dynamic';
@@ -54,7 +54,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
       <DashboardSummaryCards summary={resumo.body as DashboardSummary} />
       <MetricasMlabs metricas={(resumo.body as DashboardSummary).metrics} />
       <p className="st-hint">
-        Flags: linkedinPublicacao {isEnabled('linkedinPublicacao') ? 'ligada' : 'desligada'} · instagram {isEnabled('instagram') ? 'ligada' : 'desligada'} · theLoyal {isEnabled('theLoyal') ? 'ligada' : 'desligada'}.
+        Flags: linkedinPublicacao {flagAtiva('linkedinPublicacao') ? 'ligada' : 'desligada'} · instagram {flagAtiva('instagram') ? 'ligada' : 'desligada'} · theLoyal {flagAtiva('theLoyal') ? 'ligada' : 'desligada'}.
       </p>
 
       <h2>Fila de pacotes</h2>
