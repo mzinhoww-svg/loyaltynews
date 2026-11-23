@@ -33,3 +33,4 @@ export { draftContentSha256, toPublishableContent, imageToRights, makeIllustrati
 export * from './api/publication';
 export { extractRoles } from './pipeline/stages';
 export * from './api/illustration';
+export * from './api/published-lookup';
