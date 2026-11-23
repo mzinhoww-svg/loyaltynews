@@ -10,3 +10,4 @@ export * from './discovery';
 export * from './shadow';
 export * from './firecrawl';
 export * from './tavily';
+export * from './live-shadow';

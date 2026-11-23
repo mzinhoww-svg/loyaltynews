@@ -18,6 +18,7 @@ import { readFlags, isProviderDisabled } from '../flags';
 import type { DatasetEntry, AttemptRecord } from '../types';
 import { shadowRun } from '../shadow';
 import { FirecrawlReader } from '../firecrawl';
+import { LiveShadow } from '../live-shadow';
 
 const LONG = 'Lorem ipsum dolor sit amet. '.repeat(60);
 const article = (title: string, date = '2026-11-20T10:00:00Z') =>
@@ -351,5 +352,40 @@ describe('disjuntor por provedor × domínio', () => {
     for (const i of [1, 2, 3]) await router.route(`https://blocked.com/${i}`);
     expect(r.calls).toBe(2); // 3ª do mesmo site: disjuntor aberto
     expect((await router.route('https://other.com/x')).provider).toBe('d');
+  });
+});
+
+describe('shadow ao vivo (MOCK de leitores)', () => {
+  const primaryOk = { name: 'tavily', read: async (_u: string) => ({ status: 200, body: '<html>corpo atual</html>', format: 'html' as const }) };
+  it('desligado por padrão: devolve o próprio leitor e não chama o roteador', async () => {
+    const r = new MockReader('z', (q) => ok('z', q.url));
+    const sh = new LiveShadow({ router: new AdaptiveRouter([{ name: 'z', reader: r, worstCaseCredits: 0, usdPerCredit: 0 }], { env: {} }), env: {} });
+    expect(sh.wrap(primaryOk)).toBe(primaryOk);
+    sh.observe('https://a.com/1', { name: 'direct', status: 200, body: 'x', ms: 1 });
+    await sh.drain();
+    expect(r.calls).toBe(0);
+  });
+  it('ligado: o coletor recebe o resultado atual inalterado; a sombra grava só métricas e hash', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'sh-'));
+    const sink = join(dir, 'shadow.jsonl');
+    const r = new MockReader('z', (q) => ok('z', q.url));
+    const sh = new LiveShadow({ router: new AdaptiveRouter([{ name: 'z', reader: r, worstCaseCredits: 0, usdPerCredit: 0 }], { env: {} }), env: { SCRAPING_SHADOW_MODE: 'true' }, sinkPath: sink, maxUrlsPerRun: 1 });
+    const res = await sh.wrap(primaryOk).read('https://a.com/1');
+    expect(res).toEqual({ status: 200, body: '<html>corpo atual</html>', format: 'html' });
+    await sh.wrap(primaryOk).read('https://a.com/2'); // acima do teto: sem sombra
+    await sh.drain();
+    const lines = readFileSync(sink, 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
+    const c = JSON.parse(lines[0]!);
+    expect(c).toMatchObject({ url: 'https://a.com/1', primary: { ok: true, bodyLength: 24 }, shadow: { provider: 'z', ok: true }, divergent: false });
+    expect(lines[0]).not.toContain('corpo atual');
+    expect(lines[0]).not.toContain('Lorem ipsum');
+  });
+  it('erro na sombra não chega ao coletor', async () => {
+    const boom = { provider: 'b', read: async () => { throw new Error('falhou'); } } as unknown as ReaderPort;
+    const sh = new LiveShadow({ router: new AdaptiveRouter([{ name: 'b', reader: boom, worstCaseCredits: 0, usdPerCredit: 0 }], { env: {} }), env: { SCRAPING_SHADOW_MODE: 'true' } });
+    const res = await sh.wrap(primaryOk).read('https://a.com/3');
+    expect(res.status).toBe(200);
+    await expect(sh.drain()).resolves.toBeUndefined();
   });
 });

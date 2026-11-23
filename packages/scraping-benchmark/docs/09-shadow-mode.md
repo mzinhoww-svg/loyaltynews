@@ -10,7 +10,14 @@ Estado (após parecer QA 3, M2): **replay offline concluído** (06: paradas, dis
 4. Nada do caminho shadow é publicado; o feed continua vindo só do coletor atual.
 5. Desligamento imediato: flag `false` (sem deploy) ou `SCRAPING_PROVIDER_<NOME>_DISABLED=true` por provedor.
 
-## Ponto de integração proposto (fora da minha pasta: dono decide)
+## Gancho pronto: `LiveShadow` (`src/live-shadow.ts`, testado)
+
+- `shadow.wrap(leitorAtual)`: o coletor recebe **exatamente** o resultado do caminho atual; em segundo plano o `AdaptiveRouter` lê a mesma URL e grava só a comparação (status, tamanho, hash, latência, créditos, provedor, passos) em JSONL. Nada de corpo, nada publicado, nada gravado como matéria.
+- `shadow.observe(url, resultado)`: para as fontes que o coletor lê direto (sem leitor).
+- Desligado se `SCRAPING_SHADOW_MODE` != `true` (devolve o próprio leitor, custo zero). Fila com concorrência 1, teto de URLs por processo (200), erros da sombra nunca chegam ao coletor, corte por cota pelo `BudgetGuard` do roteador.
+- Autorização do PM (23/11): combinar com DevOps (staging) e Editorial (worker); deploy no staging é do PM.
+
+## Ponto de integração (fora da minha pasta: dono decide)
 
 `apps/workers/src/editorial-factory.ts` aceita `reader?: ReaderPort` (coletor). A ponte é `asEditorialReader` do Data, que converte um `ReaderPort` no `ReaderPort` do coletor. Proposta ao Backend/Editorial: injetar um leitor que chame o caminho atual e, em sombra, o roteador, registrando a divergência.
 

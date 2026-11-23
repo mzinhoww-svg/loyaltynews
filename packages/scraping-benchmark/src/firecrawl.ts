@@ -12,7 +12,7 @@ export class FirecrawlReader implements KeyedReader {
   readonly provider = 'firecrawl-scrape';
   readonly creditsPerRead = 1;
   readonly unlocks = false; // proxy 'stealth' custa mais e não é usado
-  readonly freeQuotaFractionPerRead = 1 / 500;
+  readonly freeQuotaFractionPerRead = 1 / 1000; // plan_credits 1.000/mês (conta, lido pelo PM em 23/11)
   constructor(private readonly fetchImpl: typeof fetch = fetch) {}
 
   async read(req: ReadRequest, apiKey: string): Promise<ProviderResponse> {
