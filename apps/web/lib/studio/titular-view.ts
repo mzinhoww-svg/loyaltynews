@@ -24,7 +24,8 @@ export interface PedidoLinha {
   decisao?: unknown;
   decidido_por?: string;
   decidido_em?: string;
-  efeitoPublico?: 'pendente';
+  /** 'pendente' até o Intelligence aplicar; 'aplicado' quando o portal já reflete a decisão (ft/backend 37dd430). */
+  efeitoPublico?: 'pendente' | 'aplicado';
 }
 export interface EventoAuditoria {
   em: string;
