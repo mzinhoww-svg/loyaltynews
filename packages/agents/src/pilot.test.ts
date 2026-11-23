@@ -84,6 +84,8 @@ describe('agentes do piloto (rascunho, nada criado): pauta, redação, checagem 
     expect(by('ln_pilot_redator').adapter_kind).toBe('editorial_draft');
     expect(by('ln_pilot_checador').adapter_kind).toBe('fact_check');
     expect(PILOT_STAGES.check_edit.adapterKind).toBe('fact_check'); // chamada única checagem+revisão
+    expect(PILOT_STAGES.review.adapterKind).toBe('editorial_review'); // alinhado a DISPATCHABLE_KINDS da Integration
+    expect(PILOT_STAGES.social_pack.adapterKind).toBe('social_copy');
     expect(INDEPENDENT_STAGES).toEqual(['factcheck', 'review', 'check_edit']);
   });
 });
@@ -159,7 +161,7 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
   it('independência: mesmo autor, autor desconhecido ou cross_provider_ok=false reprova', () => {
     const same = evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'claude-opus-5-5' })]);
     expect(same.exit.independence).toBe('fail');
-    expect(same.exit.overall).toBe('fail');
+    expect(same.exit.overall).toBe('invalid'); // conta codex com modelo Claude declarado também é registro contraditório (QA 3, F1)
     expect(same.independence.failures[0]).toMatch(/a1\/c1\(check_edit\): redator claude-sonnet-5-5 x checador claude-opus-5-5/);
     expect(evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.independence).toBe('fail');
     expect(evaluatePilot([draft(1, 0), check(1, 3, { cross_provider_ok: false })]).exit.independence).toBe('fail');
@@ -202,7 +204,7 @@ describe('sondas do QA 1 sobre o avaliador (f5c7b08)', () => {
     ];
     const e = evaluatePilot(rows);
     expect(e.exit.independence).toBe('fail');
-    expect(e.exit.overall).toBe('fail');
+    expect(e.exit.overall).toBe('invalid'); // o par do mesmo autor só existe com conta e modelo contraditórios
     expect(e.independence.failures[0]).toMatch(/redator claude-sonnet-5-5 x checador claude-opus-5-5/);
     expect(e.independence.uncheckedFinalDrafts).toEqual(['a1/d1b']); // e a revisão final nunca foi checada
   });
@@ -393,5 +395,45 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
     expect(e.tariffed.apiCalls).toBe(1);
     expect(e.exit.overall).toBe('stopped');
     expect(canDispatchNext([draft(1, 0), factcheck(1, 3, { tarifada_api_call: true })]).allowed).toBe(false);
+  });
+});
+
+describe('QA 3 (ba51ea2), F1: conta × modelo declarado coerentes (sondas A–H)', () => {
+  const contradiz = (r: PilotRow) => validatePilotRow(r).filter((x) => /registro contraditório/.test(x));
+  const pass = (rows: PilotRow[]) => evaluatePilot(rows);
+  it('A. checagem em codex com modelo deepseek (rascunho Claude) é inválida, não pass; check_edit idem', () => {
+    const f = base({ task_id: 'f1', kind: 'fact_check', stage: 'factcheck', account: 'codex', declared_model: 'deepseek-chat', prompt_version: 'editorial-0.2', started_at: iso(3), ended_at: iso(5), reviewed_draft_task_id: 'd1', gate_verdict: 'approved', cross_provider_ok: true });
+    expect(contradiz(f)).toHaveLength(1);
+    expect(pass([draft(1, 0), f]).exit.overall).toBe('invalid');
+    expect(contradiz(check(1, 3, { declared_model: 'deepseek-chat' }))).toHaveLength(1);
+    expect(pass([draft(1, 0), check(1, 3, { declared_model: 'deepseek-chat' })]).exit.overall).toBe('invalid');
+  });
+  it('B. antigravity com modelo GPT e codex com modelo Gemini são inválidos', () => {
+    expect(contradiz(check(1, 3, { account: 'antigravity', declared_model: 'gpt-6.1-terra' }))).toHaveLength(1);
+    expect(contradiz(check(1, 3, { account: 'codex', declared_model: 'gemini-3-pro' }))).toHaveLength(1);
+    expect(pass([draft(1, 0), check(1, 3, { account: 'antigravity', declared_model: 'gpt-6.1-terra' })]).exit.overall).toBe('invalid');
+  });
+  it('C. redação em claude com modelo Gemini declarado é inválida', () => {
+    expect(contradiz(draft(1, 0, { declared_model: 'gemini-3-pro' }))).toHaveLength(1);
+    expect(pass([draft(1, 0, { declared_model: 'gemini-3-pro' }), check(1, 3)]).exit.overall).toBe('invalid');
+  });
+  it('D/G. pauta em opencode com modelo Claude e pauta em claude com modelo Gemini são inválidas', () => {
+    const t = (over: Partial<PilotRow>) => base({ task_id: 't1', kind: 'classification', stage: 'triage', account: 'opencode', declared_model: 'deepseek-chat (opencode)', prompt_version: 'editorial-0.2', output_valid: true, ...over });
+    expect(contradiz(t({}))).toEqual([]);
+    expect(contradiz(t({ declared_model: 'claude-sonnet-5-5' }))).toHaveLength(1);
+    expect(contradiz(t({ account: 'claude', declared_model: 'gemini-3-pro' }))).toHaveLength(1);
+    expect(contradiz(t({ account: 'antigravity', declared_model: 'claude-sonnet-5-5' }))).toHaveLength(1); // Claude via Antigravity não vale como Gemini
+  });
+  it('E/H. codex com modelo Claude ou com autor desconhecido não passa', () => {
+    expect(contradiz(check(1, 3, { declared_model: 'claude-opus-5-5' }))).toHaveLength(1);
+    expect(contradiz(check(1, 3, { declared_model: 'modelo-x' }))).toHaveLength(1);
+    expect(pass([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.overall).toBe('invalid');
+  });
+  it('pares coerentes continuam válidos (Claude↔Anthropic, Codex↔OpenAI, Antigravity↔Google, OpenCode↔DeepSeek)', () => {
+    expect(contradiz(draft(1, 0))).toEqual([]);
+    expect(contradiz(check(1, 3))).toEqual([]);
+    expect(contradiz(check(1, 3, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual([]);
+    expect(contradiz(base({ task_id: 'q', stage: 'rights_seo_qa', account: 'deterministic', declared_model: null, prompt_version: null, output_valid: true }))).toEqual([]);
+    expect(contradiz(base({ task_id: 'q', stage: 'rights_seo_qa', account: 'deterministic', declared_model: 'gpt-6.1-terra', prompt_version: null }))).toHaveLength(1);
   });
 });

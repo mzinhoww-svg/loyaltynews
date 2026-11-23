@@ -73,9 +73,9 @@ export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   triage: { account: 'opencode', backups: ['claude', 'antigravity'], label: 'Pauta/triagem (DeepSeek grátis via OpenCode; backup automático Claude ou Gemini)', taskClass: 'triage', adapterKind: 'classification' },
   draft: { account: 'claude', backups: [], label: 'Redação (Claude); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
   factcheck: { account: 'codex', backups: ['antigravity'], label: 'Checagem de fatos independente (Codex; backup Gemini; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
-  review: { account: 'codex', backups: ['antigravity'], label: 'Revisão editorial independente (Codex; backup Gemini; gate WF02)', taskClass: 'review', adapterKind: null },
+  review: { account: 'codex', backups: ['antigravity'], label: 'Revisão editorial independente (Codex; backup Gemini; gate WF02)', taskClass: 'review', adapterKind: 'editorial_review' },
   check_edit: { account: 'codex', backups: ['antigravity'], label: 'Checagem + revisão numa chamada só (opção do Arquiteto, −24%; backup Gemini)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
-  social_pack: { account: 'claude', backups: [], label: 'Texto social de LinkedIn como rascunho (Claude)', taskClass: 'social_pack', adapterKind: null },
+  social_pack: { account: 'claude', backups: [], label: 'Texto social de LinkedIn como rascunho (Claude)', taskClass: 'social_pack', adapterKind: 'social_copy' },
   roles: { account: 'claude', backups: [], label: 'Entidades e cargos citados no texto (Claude)', taskClass: 'roles', adapterKind: 'entity_resolution' },
   rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO mínimo (slug e resumo); QA visual fora', taskClass: null, adapterKind: null },
 };
@@ -245,6 +245,11 @@ export const BLOCKING_GATE_REASONS = [
   'approval_missing', 'rights_basis_unresolved', 'unanchored', 'unanchored_claim', 'needs_primary_anchor',
 ] as const;
 
+/** Autor do modelo que cada conta serve no piloto (QA 3, F1): conta e modelo declarado que divergem são um registro contraditório. */
+export const ACCOUNT_AUTHOR: Record<Exclude<PilotAccount, 'deterministic'>, ReturnType<typeof authorOfDeclaredModel>> = {
+  claude: 'anthropic', codex: 'openai', antigravity: 'google', opencode: 'deepseek',
+};
+
 const isoOk = (s: string) => !Number.isNaN(Date.parse(s));
 
 export function validatePilotRow(r: PilotRow): string[] {
@@ -256,6 +261,12 @@ export function validatePilotRow(r: PilotRow): string[] {
   if (!spec) e.push(`etapa desconhecida: ${String(r.stage)}`);
   else if (!allowedAccounts(r.stage).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${allowedAccounts(r.stage).join(' ou ')}`);
   if (r.account !== 'deterministic' && !r.declared_model) e.push('modelo declarado no UsageReport obrigatório fora da etapa determinística');
+  if (r.account !== 'deterministic' && r.declared_model) {
+    const expected = ACCOUNT_AUTHOR[r.account];
+    const got = authorOfDeclaredModel(r.declared_model);
+    if (expected && got !== expected) e.push(`conta ${r.account} serve modelo de autor ${expected}, mas o modelo declarado (${r.declared_model}) é de autor ${got}: registro contraditório`);
+  }
+  if (r.account === 'deterministic' && r.declared_model) e.push('etapa determinística não declara modelo (registro contraditório)');
   if (r.account !== 'deterministic' && !r.prompt_version) e.push('prompt_version obrigatório');
   if (r.tokens_measured !== false) e.push('tokens_measured deve ser false: o OpenBot não expõe tokens (registrar packet_chars e "não medido")');
   if (!Number.isInteger(r.attempt) || r.attempt < 1) e.push('attempt inteiro >= 1');
