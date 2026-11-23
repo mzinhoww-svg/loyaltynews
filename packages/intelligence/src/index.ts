@@ -14,6 +14,7 @@ export * from './views';
 export * from './roles';
 export * from './reread';
 export * from './readers/direct-page';
+export * from './readers/flagged';
 export * from './ingest';
 export * from './org-layout';
 export * from './editorial-consumer';

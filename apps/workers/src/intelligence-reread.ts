@@ -1,24 +1,32 @@
-// Releitura agendada das páginas OFICIAIS de diretoria (Entity Intelligence). DESLIGADA por padrão: só roda com as DUAS chaves explícitas
-//   LN_INTELLIGENCE_REREAD=on     (este job)
-//   LN_INTELLIGENCE_PESSOAS=on    (ingestão de pessoas = flag `intelligencePessoas`, J-01; sem a decisão registrada, não liga)
-// e com LN_REREAD_SEED apontando o conjunto de cargos (seed.public.v5.json) que o job relê. Chave do provedor (opcional, só se a leitura
-// direta recusar): ZYTE_API_KEY no ambiente (nunca em log). Intervalo por página: LN_REREAD_INTERVAL_HOURS (padrão 168; piso 24).
+// Releitura agendada das páginas OFICIAIS de diretoria (Entity Intelligence). DESLIGADA por padrão: só roda com
+//   LN_INTELLIGENCE_REREAD=on      (chave operacional deste job)
+//   flag `intelligencePessoas`      (J-01; pelo RESOLVEDOR de flags, ADR-022: `opts.flags`; sem resolvedor, desligada)
+// e com LN_REREAD_SEED apontando o conjunto de cargos (seed.public.v5/v7.json) que o job relê. A leitura por provedor (reserva, só se a direta
+// recusar) usa a Bright Data do staging (DP-36) e SÓ liga pela flag `leitorViaProvedor` do mesmo resolvedor (ADR-022, adendo 2); a chave vem
+// de BRIGHTDATA_API_KEY no ambiente (nunca em log). Nenhuma flag de produto é lida de variável de ambiente própria.
+// Intervalo por página: LN_REREAD_INTERVAL_HOURS (padrão 168; piso 24).
 // Logs: só contagens e motivos (nunca texto de página, nunca segredo). Lógica e testes: packages/intelligence/src/reread.ts.
 import { readFileSync } from 'node:fs';
 import {
-  DEFAULT_REREAD_CONFIG, ZyteReader, createDirectPageReader, createReader, rereadSourcesFromSeed, runRereadCycle, validateSeed,
+  DEFAULT_REREAD_CONFIG, createBrightDataStagingReader, createDirectPageReader, rereadSourcesFromSeed, runRereadCycle, validateSeed,
   type Db as IntelDb, type PageReader, type SeedDataset,
 } from '@ln/intelligence';
 
 type Env = Record<string, string | undefined>;
 const TICK_MS = 6 * 3_600_000;
 
-export function startIntelligenceReread(opts: { db: IntelDb; env?: Env; log?: (line: string) => void }): { stop: () => void } | null {
+/** Resolvedor de flags do app (ex.: `(f) => isEnabled(f, runtimeFlags())`, ADR-022). Sem ele, toda flag está desligada. */
+export type FlagResolver = (flag: 'intelligencePessoas' | 'leitorViaProvedor') => boolean;
+const NO_FLAGS: FlagResolver = () => false;
+
+export function startIntelligenceReread(opts: { db: IntelDb; env?: Env; flags?: FlagResolver; log?: (line: string) => void }): { stop: () => void } | null {
   const env = opts.env ?? process.env;
   const log = opts.log ?? ((l: string) => console.log(l));
+  const flags = opts.flags ?? NO_FLAGS;
+  const flagOn = (f: Parameters<FlagResolver>[0]) => { try { return flags(f) === true; } catch { return false; } }; // falha fechada
   if (env.LN_INTELLIGENCE_REREAD !== 'on') return null;
-  if (env.LN_INTELLIGENCE_PESSOAS !== 'on') {
-    log('[intelligence-reread] desligado: falta LN_INTELLIGENCE_PESSOAS=on (J-01)');
+  if (!flagOn('intelligencePessoas')) {
+    log('[intelligence-reread] desligado: flag intelligencePessoas desligada (J-01; ADR-022)');
     return null;
   }
   const seedPath = env.LN_REREAD_SEED;
@@ -33,13 +41,12 @@ export function startIntelligenceReread(opts: { db: IntelDb; env?: Env; log?: (l
     return null;
   }
   const sources = rereadSourcesFromSeed(ds);
-  const key = env.ZYTE_API_KEY;
-  const fallback: PageReader | undefined = key
-    ? async (url) => {
-        const r = await createReader({ keyed: new ZyteReader('http'), keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 50_000 }], resolveSecret: () => key }, { enabled: true }).read({ url });
-        return r.ok ? { ok: true, text: r.text, finalUrl: r.finalUrl ?? url } : { ok: false, failure: r.failure ?? 'falha' };
-      }
-    : undefined;
+  // reserva por provedor: Bright Data do staging (uma conta, sem troca), ligada SÓ pela flag leitorViaProvedor (consultada a cada leitura)
+  const provider = createBrightDataStagingReader((ref) => env[ref], (f) => flagOn(f));
+  const fallback: PageReader = async (url) => {
+    const r = await provider.read({ url });
+    return r.ok ? { ok: true, text: r.text, finalUrl: r.finalUrl ?? url } : { ok: false, failure: r.failure ?? 'falha' };
+  };
   const read = createDirectPageReader({ fallback });
   const intervalHours = Math.max(Number(env.LN_REREAD_INTERVAL_HOURS) || DEFAULT_REREAD_CONFIG.intervalHours, 24);
   let running = false;

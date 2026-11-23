@@ -35,7 +35,8 @@ async function main() {
       .catch((e) => console.error('[workers] flush de anúncios falhou:', e instanceof Error ? e.message : 'erro'));
   }, 60_000);
   // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on e LN_INTELLIGENCE_PESSOAS=on
-  const reread = startIntelligenceReread({ db: { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb });
+  const reread = startIntelligenceReread({ // flags: ligar o resolvedor do ADR-022 quando existir (Backend): `flags: (f) => isEnabled(f, runtimeFlags())`; sem ele, desligado
+    db: { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb });
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {
