@@ -1,0 +1,3871 @@
+{
+  "schema": "ln.agents.catalog/2",
+  "status": "CATALOGO_DESLIGADO",
+  "runs": false,
+  "counts": {
+    "rituals": 28,
+    "workflows": 19
+  },
+  "rituals": [
+    {
+      "id": "D-mercado",
+      "title": "Daily: Mercado & Negócios",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_mercado",
+      "participants": [
+        "editor_mercado",
+        "writer_mercado"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-programas",
+      "title": "Daily: Programas de Fidelidade",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_programas",
+      "participants": [
+        "editor_programas",
+        "writer_programas"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-pontos",
+      "title": "Daily: Pontos & Milhas",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_pontos",
+      "participants": [
+        "editor_pontos",
+        "writer_pontos"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-bancos",
+      "title": "Daily: Bancos & Cartões",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_bancos",
+      "participants": [
+        "editor_bancos",
+        "writer_bancos"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-varejo",
+      "title": "Daily: Varejo & Cashback",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_varejo",
+      "participants": [
+        "editor_varejo",
+        "writer_varejo"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-travel",
+      "title": "Daily: Travel & Hospitality",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_travel",
+      "participants": [
+        "editor_travel",
+        "writer_travel"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-tech",
+      "title": "Daily: LoyaltyTech & IA",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_tech",
+      "participants": [
+        "editor_tech",
+        "writer_tech"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-crm",
+      "title": "Daily: CRM & CX",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_crm",
+      "participants": [
+        "editor_crm",
+        "writer_crm"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-global",
+      "title": "Daily: Global Loyalty",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_global",
+      "participants": [
+        "editor_global",
+        "writer_global"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-regulacao",
+      "title": "Daily: Regulação & Dados",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "editor_regulacao",
+      "participants": [
+        "editor_regulacao",
+        "writer_regulacao"
+      ],
+      "quorum": {
+        "minimum": 2,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Pautas, evidências, bloqueios e atribuição",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-editorial",
+      "title": "Daily editorial",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:20",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_editorial",
+      "participants": [
+        "director_editorial",
+        "newsdesk",
+        "editor_mercado",
+        "editor_programas",
+        "editor_pontos",
+        "editor_bancos",
+        "editor_varejo",
+        "editor_travel",
+        "editor_tech",
+        "editor_crm",
+        "editor_global",
+        "editor_regulacao"
+      ],
+      "quorum": {
+        "minimum": 8,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Agenda do dia, concorrência de pautas, notícia urgente",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "daily brief",
+            "kind": "status_report"
+          },
+          {
+            "label": "decisões",
+            "kind": "decision_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-creative",
+      "title": "Daily Criação",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:40",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_creative",
+      "participants": [
+        "director_creative",
+        "art",
+        "designer",
+        "media",
+        "image",
+        "visualqa"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Revisar fila, entregas, riscos e impedimentos",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-growth",
+      "title": "Daily Growth",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:45",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_growth",
+      "participants": [
+        "director_growth",
+        "social",
+        "linkedin",
+        "instagram",
+        "seo",
+        "newsletter",
+        "publisher_social",
+        "growth_analytics",
+        "community"
+      ],
+      "quorum": {
+        "minimum": 6,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Revisar fila, entregas, riscos e impedimentos",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-intelligence",
+      "title": "Daily Intelligence",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "06:10",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_intelligence",
+      "participants": [
+        "director_intelligence",
+        "discovery",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "marketdata",
+        "dataqa"
+      ],
+      "quorum": {
+        "minimum": 6,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Revisar fila, entregas, riscos e impedimentos",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-commercial",
+      "title": "Daily Comercial",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "08:30",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_commercial",
+      "participants": [
+        "director_commercial",
+        "adops",
+        "sales",
+        "pricing",
+        "account"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Revisar fila, entregas, riscos e impedimentos",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-technology",
+      "title": "Daily Tecnologia",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "08:15",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_technology",
+      "participants": [
+        "director_technology",
+        "sre",
+        "finops",
+        "platform",
+        "security"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Revisar fila, entregas, riscos e impedimentos",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-trust",
+      "title": "Daily Trust & Quality",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "07:15",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_trust",
+      "participants": [
+        "director_trust",
+        "factcheck",
+        "rights",
+        "privacy",
+        "audit"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Revisar fila, entregas, riscos e impedimentos",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "economy",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "D-sync",
+      "title": "Sincronização de diretorias",
+      "cycle": "weekday",
+      "cadence": {
+        "schedule_local": "07:25",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence",
+        "director_trust"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Resolver dependências e arbitrar prioridades do dia",
+        "family": "sync",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [
+          "D-trust",
+          "D-intelligence",
+          "D-editorial",
+          "D-creative",
+          "D-growth"
+        ],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "prioridade aprovada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "dependências",
+            "kind": "dependency_list"
+          },
+          {
+            "label": "impedimentos",
+            "kind": "blocker_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "W-pautas",
+      "title": "Conselho editorial semanal",
+      "cycle": "weekly",
+      "cadence": {
+        "schedule_local": "MON 08:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_editorial",
+      "participants": [
+        "director_editorial",
+        "newsdesk",
+        "editor_mercado",
+        "editor_programas",
+        "editor_pontos",
+        "editor_bancos",
+        "editor_varejo",
+        "editor_travel",
+        "editor_tech",
+        "editor_crm",
+        "editor_global",
+        "editor_regulacao",
+        "director_intelligence",
+        "director_growth",
+        "director_creative"
+      ],
+      "quorum": {
+        "minimum": 10,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Planejar cobertura e investigações",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": "WF12",
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "calendário",
+            "kind": "calendar"
+          },
+          {
+            "label": "pautas",
+            "kind": "priority_list"
+          },
+          {
+            "label": "hipóteses",
+            "kind": "hypothesis_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "W-cross",
+      "title": "Weekly interdiretorias",
+      "cycle": "weekly",
+      "cadence": {
+        "schedule_local": "MON 09:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence",
+        "director_commercial",
+        "director_technology",
+        "director_trust"
+      ],
+      "quorum": {
+        "minimum": 6,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Estratégia, prioridades e capacidade",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": "WF15",
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "OKRs",
+            "kind": "plan"
+          },
+          {
+            "label": "decisões",
+            "kind": "decision_list"
+          },
+          {
+            "label": "alocação proposta",
+            "kind": "proposal"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "premium",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "W-performance",
+      "title": "Performance e experimentos",
+      "cycle": "weekly",
+      "cadence": {
+        "schedule_local": "FRI 15:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_growth",
+      "participants": [
+        "director_growth",
+        "growth_analytics",
+        "director_editorial",
+        "director_creative",
+        "director_intelligence",
+        "seo",
+        "newsletter"
+      ],
+      "quorum": {
+        "minimum": 5,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Avaliar coortes, distribuição e conversão",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "experimentos",
+            "kind": "plan"
+          },
+          {
+            "label": "aprendizados",
+            "kind": "finding_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "W-finops",
+      "title": "FinOps & Model Council",
+      "cycle": "weekly",
+      "cadence": {
+        "schedule_local": "FRI 14:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_technology",
+      "participants": [
+        "director_technology",
+        "finops",
+        "security",
+        "publisher",
+        "director_trust"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Custos, qualidade, fallback, rate cards e evals",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "recomendações de routing",
+            "kind": "proposal"
+          },
+          {
+            "label": "riscos",
+            "kind": "finding_list"
+          },
+          {
+            "label": "orçamento proposto",
+            "kind": "proposal"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "W-trust",
+      "title": "Auditoria editorial e dados",
+      "cycle": "weekly",
+      "cadence": {
+        "schedule_local": "THU 14:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_trust",
+      "participants": [
+        "director_trust",
+        "audit",
+        "factcheck",
+        "rights",
+        "privacy",
+        "director_editorial",
+        "dataqa"
+      ],
+      "quorum": {
+        "minimum": 5,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Amostras, reclamações, correções e privacidade",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "achados",
+            "kind": "finding_list"
+          },
+          {
+            "label": "ações corretivas",
+            "kind": "task_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "W-intel",
+      "title": "Intelligence Research Council",
+      "cycle": "weekly",
+      "cadence": {
+        "schedule_local": "WED 14:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_intelligence",
+      "participants": [
+        "director_intelligence",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "dataqa",
+        "marketdata"
+      ],
+      "quorum": {
+        "minimum": 6,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Cobertura, qualidade de organogramas e prioridades",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "plano de enriquecimento",
+            "kind": "plan"
+          },
+          {
+            "label": "casos inconclusivos",
+            "kind": "finding_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "M-board",
+      "title": "Monthly Executive Board",
+      "cycle": "monthly",
+      "cadence": {
+        "schedule_local": "FIRST_BUSINESS_DAY 10:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence",
+        "director_commercial",
+        "director_technology",
+        "director_trust"
+      ],
+      "quorum": {
+        "minimum": 6,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "P&L, OKRs, estratégia e riscos com responsável humano",
+        "family": "monthly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "ata",
+            "kind": "minutes"
+          },
+          {
+            "label": "decisões sujeitas a aprovação humana",
+            "kind": "decision_list"
+          },
+          {
+            "label": "plano mensal",
+            "kind": "plan"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "strategic",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "M-model",
+      "title": "Model & Quality Review",
+      "cycle": "monthly",
+      "cadence": {
+        "schedule_local": "FIRST_BUSINESS_DAY 14:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_technology",
+      "participants": [
+        "director_technology",
+        "finops",
+        "director_trust",
+        "audit",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence"
+      ],
+      "quorum": {
+        "minimum": 6,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Benchmark e mudanças de modelos em sandbox",
+        "family": "monthly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "evals",
+            "kind": "metric_report"
+          },
+          {
+            "label": "proposta de promoção ou rollback",
+            "kind": "proposal"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "premium",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "M-commercial",
+      "title": "Revisão comercial",
+      "cycle": "monthly",
+      "cadence": {
+        "schedule_local": "FIRST_BUSINESS_DAY 15:00",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "director_commercial",
+      "participants": [
+        "director_commercial",
+        "sales",
+        "pricing",
+        "account",
+        "director_growth",
+        "publisher"
+      ],
+      "quorum": {
+        "minimum": 4,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Inventário, pipeline, receita e renovação",
+        "family": "monthly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
+        "event_rules": null,
+        "from_digest": true,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "forecast",
+            "kind": "metric_report"
+          },
+          {
+            "label": "propostas",
+            "kind": "proposal"
+          },
+          {
+            "label": "ações",
+            "kind": "task_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "review",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    },
+    {
+      "id": "X-incident",
+      "title": "Comitê extraordinário",
+      "cycle": "event",
+      "cadence": {
+        "schedule_local": "incident / breaking / dependency",
+        "timezone": "America/Sao_Paulo",
+        "holiday_calendar": "BR configured, versioned, test R4-11"
+      },
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_trust",
+        "director_technology",
+        "director_editorial"
+      ],
+      "quorum": {
+        "minimum": 3,
+        "chair_required": true
+      },
+      "max_rounds": 2,
+      "input": {
+        "mode": "async_structured_first",
+        "agenda": "Tratar incidente ou decisão acima da alçada",
+        "family": "event",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": "EVENT_TRIGGER_SCHEMA",
+        "event_rules": {
+          "idempotency": "kind+ref",
+          "breaking_bypasses_editorial_gates": false,
+          "breaking_still_requires": [
+            "WF02",
+            "WF03"
+          ]
+        },
+        "from_digest": false,
+        "depends_on": [],
+        "workflow": null,
+        "silence_rule": "no new evidence or decision: status_only"
+      },
+      "output": {
+        "artifacts": [
+          {
+            "label": "contenção",
+            "kind": "plan"
+          },
+          {
+            "label": "decisão",
+            "kind": "decision_list"
+          },
+          {
+            "label": "responsáveis",
+            "kind": "task_list"
+          }
+        ],
+        "minutes": {
+          "persisted": true,
+          "record": "MeetingOutcomeRecord",
+          "fields": [
+            "summary",
+            "blockers",
+            "evidence_refs",
+            "outputs",
+            "notes"
+          ],
+          "decisions": true,
+          "actions": "idempotent_with_owner_due_evidence"
+        }
+      },
+      "route": "premium",
+      "authority": "automatic within approved policy and budget; independent verifier for protected decisions",
+      "enabled": false
+    }
+  ],
+  "workflows": [
+    {
+      "id": "WF01",
+      "name": "Radar e pauta",
+      "triggers": [
+        "source.item"
+      ],
+      "owner": "newsdesk",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "writer_{editoria}",
+              "kind": "agent",
+              "agents": [
+                "writer_mercado",
+                "writer_programas",
+                "writer_pontos",
+                "writer_bancos",
+                "writer_varejo",
+                "writer_travel",
+                "writer_tech",
+                "writer_crm",
+                "writer_global",
+                "writer_regulacao"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "editor_{editoria}",
+              "kind": "agent",
+              "agents": [
+                "editor_mercado",
+                "editor_programas",
+                "editor_pontos",
+                "editor_bancos",
+                "editor_varejo",
+                "editor_travel",
+                "editor_tech",
+                "editor_crm",
+                "editor_global",
+                "editor_regulacao"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_triage",
+          "after": "editor_{editoria}",
+          "blockers": [
+            "duplicate",
+            "rights_unknown"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "proposal"
+        }
+      ],
+      "evidence": {
+        "artifact": "triaged",
+        "fail_closed_blockers": [
+          "duplicate",
+          "rights_unknown"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF02",
+      "name": "Redação especializada",
+      "triggers": [
+        "topic.assigned"
+      ],
+      "owner": "director_editorial",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "writer_{editoria}",
+              "kind": "agent",
+              "agents": [
+                "writer_mercado",
+                "writer_programas",
+                "writer_pontos",
+                "writer_bancos",
+                "writer_varejo",
+                "writer_travel",
+                "writer_tech",
+                "writer_crm",
+                "writer_global",
+                "writer_regulacao"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "factcheck",
+              "kind": "agent",
+              "agents": [
+                "factcheck"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "rights",
+              "kind": "agent",
+              "agents": [
+                "rights"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "editor_{editoria}",
+              "kind": "agent",
+              "agents": [
+                "editor_mercado",
+                "editor_programas",
+                "editor_pontos",
+                "editor_bancos",
+                "editor_varejo",
+                "editor_travel",
+                "editor_tech",
+                "editor_crm",
+                "editor_global",
+                "editor_regulacao"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "auto_gate_editor",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_editor",
+          "after": "editor_{editoria}",
+          "blockers": [
+            "unsupported_claim",
+            "rights_unknown",
+            "approval_missing",
+            "rights_basis_unresolved",
+            "copy_literal",
+            "cross_provider_check_failed"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "article.approved",
+        "fail_closed_blockers": [
+          "unsupported_claim",
+          "rights_unknown",
+          "approval_missing",
+          "rights_basis_unresolved",
+          "copy_literal",
+          "cross_provider_check_failed"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF03",
+      "name": "Publicar matéria",
+      "triggers": [
+        "article.approved"
+      ],
+      "owner": "director_editorial",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "validate_revision",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "transactional_publish",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "outbox",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "postpublication_audit",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "unpublish_if_failed",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_publish",
+          "after": "validate_revision",
+          "blockers": [
+            "stale_approval",
+            "embargo"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [
+            "unpublish_if_failed"
+          ],
+          "source": "proposal"
+        }
+      ],
+      "evidence": {
+        "artifact": "article.published",
+        "fail_closed_blockers": [
+          "stale_approval",
+          "embargo"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF04",
+      "name": "Pacote social",
+      "triggers": [
+        "article.published"
+      ],
+      "owner": "director_growth",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "discovery",
+              "kind": "agent",
+              "agents": [
+                "discovery"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "media",
+              "kind": "agent",
+              "agents": [
+                "media"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "art",
+              "kind": "agent",
+              "agents": [
+                "art"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "designer",
+              "kind": "agent",
+              "agents": [
+                "designer"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "linkedin",
+              "kind": "agent",
+              "agents": [
+                "linkedin"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "instagram_if_enabled",
+              "kind": "agent",
+              "agents": [
+                "instagram"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "visualqa",
+              "kind": "agent",
+              "agents": [
+                "visualqa"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "auto_gate_social",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "tokens": [
+            {
+              "token": "publisher_social",
+              "kind": "agent",
+              "agents": [
+                "publisher_social"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_social",
+          "after": "visualqa",
+          "blockers": [
+            "no_image",
+            "mention_unverified",
+            "no_receipt"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "social.receipt",
+        "fail_closed_blockers": [
+          "no_image",
+          "mention_unverified",
+          "no_receipt"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {
+        "provider": "mLabs",
+        "instagram_enabled": false
+      },
+      "enabled": false
+    },
+    {
+      "id": "WF05",
+      "name": "The Loyal",
+      "triggers": [
+        "schedule.weekdays"
+      ],
+      "owner": "director_growth",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "newsletter",
+              "kind": "agent",
+              "agents": [
+                "newsletter"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "factcheck",
+              "kind": "agent",
+              "agents": [
+                "factcheck"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "auto_gate_editor",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "esp_send",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_editor",
+          "after": "factcheck",
+          "blockers": [
+            "consent_missing",
+            "stale_revision"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "newsletter.sent",
+        "fail_closed_blockers": [
+          "consent_missing",
+          "stale_revision"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {
+        "channel_enabled": false
+      },
+      "enabled": false
+    },
+    {
+      "id": "WF06",
+      "name": "Entity Intelligence",
+      "triggers": [
+        "article.approved",
+        "source.evidence"
+      ],
+      "owner": "director_intelligence",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "discovery",
+              "kind": "agent",
+              "agents": [
+                "discovery"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "people",
+              "kind": "agent",
+              "agents": [
+                "people"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "company",
+              "kind": "agent",
+              "agents": [
+                "company"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "graph",
+              "kind": "agent",
+              "agents": [
+                "graph"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "dataqa",
+              "kind": "agent",
+              "agents": [
+                "dataqa"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "auto_gate_data",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_data",
+          "after": "dataqa",
+          "blockers": [
+            "ambiguous_identity",
+            "conflicting_evidence"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "entity.revision",
+        "fail_closed_blockers": [
+          "ambiguous_identity",
+          "conflicting_evidence"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF07",
+      "name": "Organograma e Moves",
+      "triggers": [
+        "entity.revision"
+      ],
+      "owner": "director_intelligence",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "orgchart",
+              "kind": "agent",
+              "agents": [
+                "orgchart"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "moves",
+              "kind": "agent",
+              "agents": [
+                "moves"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "dataqa",
+              "kind": "agent",
+              "agents": [
+                "dataqa"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "auto_gate_data",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_data",
+          "after": "dataqa",
+          "blockers": [
+            "unverified_reporting",
+            "sensitive_change"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "org.snapshot",
+        "fail_closed_blockers": [
+          "unverified_reporting",
+          "sensitive_change"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF08",
+      "name": "Correção editorial",
+      "triggers": [
+        "correction.requested"
+      ],
+      "owner": "director_trust",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "editor_{editoria}",
+              "kind": "agent",
+              "agents": [
+                "editor_mercado",
+                "editor_programas",
+                "editor_pontos",
+                "editor_bancos",
+                "editor_varejo",
+                "editor_travel",
+                "editor_tech",
+                "editor_crm",
+                "editor_global",
+                "editor_regulacao"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "factcheck",
+              "kind": "agent",
+              "agents": [
+                "factcheck"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "auto_gate_editor",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "republish",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "social_reconcile",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "tokens": [
+            {
+              "token": "entity_rebuild",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_editor",
+          "after": "factcheck",
+          "blockers": [
+            "missing_evidence",
+            "remote_unresolved"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "correction.closed",
+        "fail_closed_blockers": [
+          "missing_evidence",
+          "remote_unresolved"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF09",
+      "name": "Mídia kit e métricas",
+      "triggers": [
+        "schedule.metrics"
+      ],
+      "owner": "director_growth",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "collect_providers",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "validate_periods",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "aggregate",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "publish_snapshot",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_metrics",
+          "after": "aggregate",
+          "blockers": [],
+          "soft": {
+            "stale_data": "mark_unavailable",
+            "provider_unavailable": "mark_unavailable"
+          },
+          "routes": {},
+          "fail_conditions": [
+            {
+              "id": "stale_value_presented_as_current",
+              "blocker": "stale_data"
+            },
+            {
+              "id": "no_valid_metric",
+              "blocker": "provider_unavailable"
+            }
+          ],
+          "never_gated": [],
+          "source": "proposal"
+        }
+      ],
+      "evidence": {
+        "artifact": "metrics.snapshot",
+        "fail_closed_blockers": [
+          "stale_data",
+          "provider_unavailable"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF10",
+      "name": "Comercial e mídia",
+      "triggers": [
+        "lead.created",
+        "campaign.approved"
+      ],
+      "owner": "director_commercial",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "sales",
+              "kind": "agent",
+              "agents": [
+                "sales"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "pricing",
+              "kind": "agent",
+              "agents": [
+                "pricing"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "auto_gate_sales",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "adops",
+              "kind": "agent",
+              "agents": [
+                "adops"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "account",
+              "kind": "agent",
+              "agents": [
+                "account"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_sales",
+          "after": "pricing",
+          "blockers": [
+            "inventory_conflict",
+            "approval_missing"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "campaign.report",
+        "fail_closed_blockers": [
+          "inventory_conflict",
+          "approval_missing"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF11",
+      "name": "FinOps e modelos",
+      "triggers": [
+        "usage.recorded",
+        "schedule.daily"
+      ],
+      "owner": "director_technology",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "finops",
+              "kind": "agent",
+              "agents": [
+                "finops"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "reconcile",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "budget_alert",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "auto_gate_admin",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_admin",
+          "after": "budget_alert",
+          "blockers": [
+            "unknown_rate",
+            "budget_exhausted"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "budget.snapshot",
+        "fail_closed_blockers": [
+          "unknown_rate",
+          "budget_exhausted"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF12",
+      "name": "Conselho de pauta",
+      "triggers": [
+        "schedule.weekly"
+      ],
+      "owner": "publisher",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "director_editorial",
+              "kind": "agent",
+              "agents": [
+                "director_editorial"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "director_creative",
+              "kind": "agent",
+              "agents": [
+                "director_creative"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "director_growth",
+              "kind": "agent",
+              "agents": [
+                "director_growth"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "director_intelligence",
+              "kind": "agent",
+              "agents": [
+                "director_intelligence"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "director_commercial",
+              "kind": "agent",
+              "agents": [
+                "director_commercial"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "director_technology",
+              "kind": "agent",
+              "agents": [
+                "director_technology"
+              ],
+              "evidence": "agent_output"
+            },
+            {
+              "token": "director_trust",
+              "kind": "agent",
+              "agents": [
+                "director_trust"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "publisher",
+              "kind": "agent",
+              "agents": [
+                "publisher"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "auto_gate_owner",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_owner",
+          "after": "publisher",
+          "blockers": [
+            "policy_conflict",
+            "budget_exceeded"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "plan.approved",
+        "fail_closed_blockers": [
+          "policy_conflict",
+          "budget_exceeded"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF13",
+      "name": "Incidente e restauração",
+      "triggers": [
+        "incident.raised"
+      ],
+      "owner": "director_technology",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "sre",
+              "kind": "agent",
+              "agents": [
+                "sre"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "security",
+              "kind": "agent",
+              "agents": [
+                "security"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "auto_gate_ops",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "recover",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "audit",
+              "kind": "agent",
+              "agents": [
+                "audit"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_ops",
+          "after": "security",
+          "blockers": [
+            "unsafe_replay",
+            "missing_approval"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "incident.closed",
+        "fail_closed_blockers": [
+          "unsafe_replay",
+          "missing_approval"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF14",
+      "name": "Watchlist",
+      "triggers": [
+        "entity.revision",
+        "article.published"
+      ],
+      "owner": "director_intelligence",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "match_active_subscriptions",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "dedupe",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "consent_check",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "notify",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_alert",
+          "after": "consent_check",
+          "blockers": [
+            "unverified_event",
+            "optout"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "proposal"
+        }
+      ],
+      "evidence": {
+        "artifact": "alert.receipt",
+        "fail_closed_blockers": [
+          "unverified_event",
+          "optout"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF15",
+      "name": "Reuniões e rituais",
+      "triggers": [
+        "schedule.meeting",
+        "meeting.requested"
+      ],
+      "owner": "publisher",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "snapshot",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "structured_inputs",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "chair_synthesis",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "challenge_if_needed",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "validate_decisions",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "tokens": [
+            {
+              "token": "auto_gate_gate_if_needed",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 7,
+          "tokens": [
+            {
+              "token": "transactional_actions",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_gate_if_needed",
+          "after": "validate_decisions",
+          "blockers": [
+            "missing_inputs",
+            "invalid_authority",
+            "budget_exhausted"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "meeting.closed",
+        "fail_closed_blockers": [
+          "missing_inputs",
+          "invalid_authority",
+          "budget_exhausted"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF16",
+      "name": "Acompanhamento de decisões",
+      "triggers": [
+        "schedule.actions",
+        "decision.approved"
+      ],
+      "owner": "publisher",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "validate_authority",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "assign",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "track_due_date",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "verify_evidence",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "escalate_overdue",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_actions",
+          "after": "verify_evidence",
+          "blockers": [
+            "missing_owner",
+            "unverified_completion"
+          ],
+          "soft": {},
+          "routes": {
+            "overdue": "escalate_overdue"
+          },
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "proposal"
+        }
+      ],
+      "evidence": {
+        "artifact": "action.updated",
+        "fail_closed_blockers": [
+          "missing_owner",
+          "overdue",
+          "unverified_completion"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF17",
+      "name": "Governança de modelos",
+      "triggers": [
+        "model.change_requested"
+      ],
+      "owner": "director_technology",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "refresh_catalog",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "offline_eval",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "cost_review",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "security_review",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "auto_gate_approval",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "tokens": [
+            {
+              "token": "canary",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 7,
+          "tokens": [
+            {
+              "token": "monitor_or_rollback",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_approval",
+          "after": "security_review",
+          "blockers": [
+            "unknown_model",
+            "unknown_price",
+            "regression",
+            "approval_missing"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "model.policy_version",
+        "fail_closed_blockers": [
+          "unknown_model",
+          "unknown_price",
+          "regression",
+          "approval_missing"
+        ],
+        "policy": "independent verifier; fail closed; evidence and idempotency; no credentials in model"
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF18",
+      "name": "Resposta e retificação",
+      "triggers": [
+        "legal.response_requested"
+      ],
+      "owner": "director_trust",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "intake",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "preserve_evidence",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "triage",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "auto_gate_response",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "errata",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "tokens": [
+            {
+              "token": "social_reconcile",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 7,
+          "tokens": [
+            {
+              "token": "notify_owner_if_legal",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_response",
+          "after": "triage",
+          "blockers": [
+            "unverified_request"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "response.receipt",
+        "fail_closed_blockers": [
+          "unverified_request"
+        ],
+        "policy": ""
+      },
+      "channel_flags": {},
+      "enabled": false
+    },
+    {
+      "id": "WF19",
+      "name": "Pedido do titular",
+      "triggers": [
+        "privacy.requested"
+      ],
+      "owner": "director_trust",
+      "stages": [
+        {
+          "order": 1,
+          "tokens": [
+            {
+              "token": "intake",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "tokens": [
+            {
+              "token": "verify_identity",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "tokens": [
+            {
+              "token": "restrict_processing",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "tokens": [
+            {
+              "token": "auto_gate_privacy",
+              "kind": "gate",
+              "agents": [],
+              "evidence": "gate_verdict"
+            }
+          ]
+        },
+        {
+          "order": 5,
+          "tokens": [
+            {
+              "token": "rectify_or_remove",
+              "kind": "step",
+              "agents": [],
+              "evidence": "deterministic_step"
+            }
+          ]
+        },
+        {
+          "order": 6,
+          "tokens": [
+            {
+              "token": "audit",
+              "kind": "agent",
+              "agents": [
+                "audit"
+              ],
+              "evidence": "agent_output"
+            }
+          ]
+        }
+      ],
+      "gates": [
+        {
+          "id": "auto_gate_privacy",
+          "after": "restrict_processing",
+          "blockers": [
+            "identity_unverified",
+            "legal_conflict"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
+          "source": "registry"
+        }
+      ],
+      "evidence": {
+        "artifact": "privacy.receipt",
+        "fail_closed_blockers": [
+          "identity_unverified",
+          "legal_conflict"
+        ],
+        "policy": ""
+      },
+      "channel_flags": {},
+      "enabled": false
+    }
+  ],
+  "independence": [
+    {
+      "workflow": "WF02",
+      "authors": [
+        "writer_{editoria}"
+      ],
+      "checkers": [
+        "factcheck"
+      ],
+      "reviewers": [
+        "editor_{editoria}"
+      ],
+      "note": "redação ≠ checagem ≠ revisão como perfis; checagem e revisão de provedor diferente do redator (gate WF02); checagem e revisão podem dividir o provedor (v7)"
+    },
+    {
+      "workflow": "WF03",
+      "authors": [
+        "writer_{editoria}"
+      ],
+      "checkers": [
+        "audit"
+      ],
+      "reviewers": [],
+      "note": "auditoria pós-publicação por provedor diferente do autor do conteúdo publicado"
+    },
+    {
+      "workflow": "WF05",
+      "authors": [
+        "newsletter"
+      ],
+      "checkers": [
+        "factcheck"
+      ],
+      "reviewers": [],
+      "note": "checagem da newsletter por provedor diferente do autor do texto"
+    },
+    {
+      "workflow": "WF08",
+      "authors": [
+        "editor_{editoria}",
+        "writer_{editoria}"
+      ],
+      "checkers": [
+        "factcheck"
+      ],
+      "reviewers": [],
+      "note": "PM-2026-11-23-G: o texto da correção é redigido no Claude pelo editor (ou pelo redator) da editoria; a checagem fica no Codex; também difere do autor do conteúdo sob correção"
+    }
+  ]
+}

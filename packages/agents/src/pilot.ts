@@ -567,3 +567,15 @@ export function applyRowPatch(row: PilotRow, patch: Record<string, unknown>): { 
   errors.push(...validatePilotRow(next).filter((e) => !validatePilotRow(row).includes(e)));
   return errors.length ? { row, errors } : { row: next, errors: [] };
 }
+
+/**
+ * Todos os campos do `PilotRow`, exaustivo: o compilador recusa este objeto se um campo for acrescentado ou removido do `PilotRow` sem
+ * atualizá-lo. O teste `pilot-columns.test.ts` exige que as colunas da planilha sejam exatamente estes campos (a planilha é o `PilotRow`).
+ */
+export const PILOT_ROW_FIELDS: Record<keyof PilotRow, true> = {
+  task_id: true, kind: true, article_id: true, source_id: true, stage: true, account: true, declared_model: true, prompt_version: true,
+  started_at: true, ended_at: true, attempt: true, reviewed_draft_task_id: true, outcome: true, limit_message: true, limit_at: true,
+  account_resumed_at: true, gate_verdict: true, gate_reasons: true, cross_provider_ok: true, packet_chars: true, output_valid: true,
+  tokens_measured: true, unsupported_facts: true, unsupported_high: true, unsupported_medium: true, unsupported_low: true,
+  published_attempt: true, tarifada_api_call: true, secret_in_log: true, tool_outside_contract: true, notes: true,
+};
