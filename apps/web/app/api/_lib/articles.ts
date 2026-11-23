@@ -9,6 +9,7 @@ import { can } from '@ln/auth';
 import { publishedContentSha256 } from '@ln/contracts/hash';
 import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
+import { issueFromEditorial } from './editorial/receipt';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
 import {
@@ -68,6 +69,13 @@ export function gateFailures(a: ArticleRow, evidenceCount: number): string[] {
     else if (!isImagePublishable(img.data)) f.push('imagem sem base de direito');
   }
   return f;
+}
+
+/** Imagem só sai pública com base de direito (D08): 'pendente' ou inválida vira null. */
+function publishableImage(img: unknown): unknown {
+  if (img == null) return null;
+  const p = ImageRights.safeParse(img);
+  return p.success && isImagePublishable(p.data) ? img : null;
 }
 
 function serialize(a: ArticleRow, withBody = true) {
@@ -253,6 +261,10 @@ export const deleteArticle: RouteFn = async (_req, c) => {
 // ---------- recibo de publicação ----------
 export const issueReceipt: RouteFn = async (req, c) => {
   const b = await readBody(req, ReceiptInput);
+  // Com rascunho no CMS editorial (mesmo id), o recibo nasce DELE (ADR-017 §4): upsert em articles + recibo numa transação.
+  const rec = await new PgEditorialStore(c.deps.db).getArticle(c.params.id ?? '');
+  if (rec) return issueFromEditorial(c, c.params.id ?? '', b, rec);
+  if (b.versao === undefined) throw new HttpError(400, 'VALIDATION_ERROR', 'Entrada inválida.', [{ path: 'versao', message: 'obrigatória' }]);
   const a = await load(c.deps.db, c.params.id ?? '');
   if (a.status !== 'em_checagem') throw new HttpError(409, 'BAD_STATE', 'Recibo só é emitido para matéria em checagem.');
   if (b.versao !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'Versão do recibo difere da matéria.', { versaoAtual: a.versao });
@@ -406,7 +418,7 @@ export const publicGetArticle: RouteFn = async (_req, c) => {
     editoria: a.editoria,
     assinatura: a.assinatura,
     corpo: a.corpo,
-    imagem: a.imagem,
+    imagem: publishableImage(a.imagem),
     patrocinado: a.patrocinado,
     rotuloPublieditorial: a.rotuloPublieditorial,
     publicadoEm: a.publicadoEm,

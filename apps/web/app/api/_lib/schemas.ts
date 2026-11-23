@@ -78,7 +78,8 @@ export const ArticleTransition = z.strictObject({
 });
 
 export const ReceiptInput = z.strictObject({
-  versao: z.number().int().positive(),
+  /** Obrigatória para matéria só em `articles`; opcional com rascunho no CMS editorial (a versão da projeção é do servidor). */
+  versao: z.number().int().positive().optional(),
   checagens: PublicationReceipt.shape.checagens,
   identidadePublicacao: z.string().min(1).optional(),
 });

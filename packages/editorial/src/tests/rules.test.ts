@@ -17,7 +17,7 @@ function mk(over: Partial<Draft> & { body?: string } = {}): Draft {
   const o = goodDraftOutput(ev.id) as { headline: string; body: string; claims: Draft['claims'] };
   const body = `${over.body ?? o.body}\n\n${buildAttribution([ev], [MOCK_SOURCE])}`;
   return {
-    id: 'd', editoria: 'pontos', headline: o.headline, claims: o.claims, evidenceIds: [ev.id], signature: SIGNATURE,
+    id: 'd', editoria: 'pontos', slug: 'mock-programa-alfa', resumo: 'Resumo MOCK do programa fictício.', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, headline: o.headline, claims: o.claims, evidenceIds: [ev.id], signature: SIGNATURE,
     image: { mode: 'none', reason: 'teste' }, modelProvider: 'deepseek', promptVersion: 't', ...over, body,
   };
 }

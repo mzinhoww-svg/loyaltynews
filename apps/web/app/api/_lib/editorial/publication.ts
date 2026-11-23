@@ -11,7 +11,7 @@
 // - a data da publicação é a do servidor; `isMock`, `publishedAt` e qualquer campo extra são RECUSADOS (sem mock em produção);
 // - idempotente pela chave do outbox do produtor (`article.published:{id}:{sha}`): repetir devolve 200, sem novos efeitos;
 // - a gravação é UMA transação (matéria publicada + auditoria + outbox) ou nada.
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { apiError } from '@ln/contracts';
 import type { FlagState } from '@ln/contracts';
@@ -19,6 +19,7 @@ import { schema } from '@ln/db';
 import { applyPublication, draftContentSha256, type ApiResponse, type HandlerCtx } from '@ln/editorial';
 import type { Db } from '@ln/auth';
 import { HttpUrl } from '../schemas';
+import { HttpError, newId } from '../http';
 
 export type PublicationCtx = HandlerCtx & { flags: FlagState; db: Db };
 
@@ -65,9 +66,28 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
 
   const r = await applyPublication(ctx.store, { articleId, receiptId, url, publishedAt: ctx.now().toISOString(), expectedContentSha256: receipt.sha });
   if (!r.ok) {
-    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409 }[r.code];
+    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409, slug_immutable: 409, slug_taken: 409 }[r.code];
     const code = r.code === 'receipt_stale' ? 'RECEIPT_CONTENT_MISMATCH' : r.code.toUpperCase();
     return err(status, code, r.message, r.findings);
+  }
+  // A projeção em `articles` passa a 'publicado' NA MESMA transação do commitPublication (o dispatcher abre a transação
+  // e a loja está ligada a ela). Sem linha aprovada/publicada, a publicação inteira é desfeita (lança ⇒ rollback).
+  const pub = r.record.publication;
+  const [proj] = await ctx.db
+    .select({ status: schema.articles.status, slug: schema.articles.slug })
+    .from(schema.articles)
+    .where(eq(schema.articles.id, articleId));
+  if (!proj || (proj.status !== 'aprovado' && proj.status !== 'publicado')) {
+    throw new HttpError(409, 'PROJECTION_NOT_APPROVED', 'A projeção em articles não está aprovada para este id; emita o recibo antes.');
+  }
+  if (proj.status === 'aprovado' && pub) {
+    await ctx.db
+      .update(schema.articles)
+      .set({ status: 'publicado', publicadoEm: new Date(pub.publishedAt) })
+      .where(and(eq(schema.articles.id, articleId), inArray(schema.articles.status, ['aprovado'])));
+    await ctx.db.insert(schema.articleTransitions).values({
+      id: newId(), articleId, de: 'aprovado', para: 'publicado', actorId: actor.userId, nota: null, receiptId, at: new Date(pub.publishedAt),
+    });
   }
   return {
     status: r.alreadyPublished ? 200 : 201,

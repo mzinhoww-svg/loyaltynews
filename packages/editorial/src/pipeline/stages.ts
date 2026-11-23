@@ -9,6 +9,7 @@ import {
   buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
 } from '../rules/rules';
 import { normalizeText } from '../dedupe/dedupe';
+import { PUBLISHABLE_DEFAULTS, RESUMO_MAX, uniqueSlug } from '../publishable';
 import { PORTAL_SOURCE_NAME, draftContentSha256 } from '../intelligence/published';
 import type { DroppedMention, IntelligenceHandoff, PublishedArticle, RoleMention } from '../intelligence/types';
 import { extractRoleMentionsDeterministic, mentionKey, minimizeToOrganizations, validateMention } from '../intelligence/roles';
@@ -35,6 +36,8 @@ export interface StageDeps {
   flags?: EditorialFlagOverrides;
   now?: () => Date;
   siteBaseUrl?: string;
+  /** Consulta de slug ocupado (o worker liga ao store); a unicidade definitiva é do banco. */
+  slugExists?: (slug: string) => Promise<boolean>;
 }
 
 const PROMPT_VERSION = 'editorial-0.1';
@@ -131,11 +134,13 @@ const FINDING_TO_BLOCKER: Record<string, BlockerCode> = {
 };
 const toBlockers = (fs: Finding[]): BlockerCode[] => [...new Set(fs.map((x) => FINDING_TO_BLOCKER[x.code] ?? 'unsupported_claim'))];
 
+const withAlt = (img: Draft['image'], alt: string): Draft['image'] => (img.mode === 'source_image' && alt ? { ...img, alt } : img);
+
 export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
   requireFlag(deps.flags, 'editorialPipeline');
   const r = await call(deps, job, 'draft', 'draft', 'review', 'WF02', {
     editoria: job.editoria, evidences: untrusted(job.evidences), context: job.context ?? [], feedback: job.feedback ?? [],
-    rules: ['usar somente fatos das evidências', 'não inventar falas, fontes, entrevistas ou métricas', 'não copiar trechos da fonte', `não assinar com nome de pessoa; assinatura é ${SIGNATURE}`],
+    rules: ['usar somente fatos das evidências', 'não inventar falas, fontes, entrevistas ou métricas', 'não copiar trechos da fonte', `resumo obrigatório de até ${RESUMO_MAX} caracteres, sem números ou citações fora da fonte`, `não assinar com nome de pessoa; assinatura é ${SIGNATURE}`],
   });
   if (!r.ok) return refused(job, 'draft', r);
   const o = r.output;
@@ -150,19 +155,25 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
   const cand = isObj(o['imageCandidate']) && typeof o['imageCandidate']['url'] === 'string'
     ? { url: o['imageCandidate']['url'] as string, credit: String(o['imageCandidate']['credit'] ?? ''), creditLink: String(o['imageCandidate']['creditLink'] ?? '') }
     : null;
+  const alt = isObj(o['imageCandidate']) && typeof o['imageCandidate']['alt'] === 'string' ? (o['imageCandidate']['alt'] as string).trim() : '';
+  const slug = job.slug ?? (await uniqueSlug(o['headline'], deps.slugExists));
+  const resumo = typeof o['resumo'] === 'string' ? o['resumo'].trim() : '';
+  const subtitulo = typeof o['subtitulo'] === 'string' && o['subtitulo'].trim() ? o['subtitulo'].trim().slice(0, RESUMO_MAX + 1) : undefined;
   const body = `${mainBody(o['body'])}\n\n${buildAttribution(used, sources)}`;
   const d: Draft = {
     id: `${job.articleId}:d${job.attempt}`, editoria: job.editoria, headline: o['headline'], body, claims, evidenceIds,
+    // campos publicáveis: tipo/classe/patrocínio são do sistema (o modelo não os define); slug e resumo vêm da redação
+    slug, resumo, ...(subtitulo ? { subtitulo } : {}), ...PUBLISHABLE_DEFAULTS,
     signature: SIGNATURE, // sempre imposta pelo sistema; o modelo não define autoria
-    image: primary ? decideImage(primary, cand) : { mode: 'none', reason: 'fonte desconhecida' },
+    image: primary ? withAlt(decideImage(primary, cand), alt) : { mode: 'none', reason: 'fonte desconhecida' },
     modelProvider: r.provider, promptVersion: PROMPT_VERSION,
   };
   const chk = runDeterministicChecks(d, job.evidences);
   if (chk.verdict !== 'pass') {
     if (job.attempt + 1 >= MAX_ATTEMPTS) return blocked(job, 'draft', ['max_attempts', ...toBlockers(chk.findings)], chk.findings);
-    return next('draft', { ...job, attempt: job.attempt + 1, feedback: chk.findings });
+    return next('draft', { ...job, slug, attempt: job.attempt + 1, feedback: chk.findings });
   }
-  return next('factcheck', { ...job, draft: d, feedback: undefined });
+  return next('factcheck', { ...job, slug, draft: d, feedback: undefined });
 }
 
 // ---------------- 4. checagem em provedor distinto ----------------

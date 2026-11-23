@@ -18,6 +18,8 @@ export interface ArticleJob {
   duplicateOf?: string | null;
   context?: ContextNote[];
   draft?: Draft;
+  /** Slug gerado na 1ª redação e mantido nas seguintes (muda livremente até a 1ª publicação; depois é imutável). */
+  slug?: string;
   attempt: number;           // redações tentadas (máx. 3, model.policy rules.max_attempts)
   feedback?: Finding[];      // achados que motivaram nova redação
   factcheck?: { provider: string; model: string; verdicts: FactVerdict[] };

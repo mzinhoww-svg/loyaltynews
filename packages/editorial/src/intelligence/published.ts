@@ -1,28 +1,9 @@
-import { publishedContentSha256 } from '@ln/contracts/hash';
-import type { PublishableContent } from '@ln/contracts';
-import type { Draft } from '../types';
+import { draftContentSha256 } from '../publishable';
 import { mainBody } from '../rules/rules';
 import type { ArticleRecord } from '../api/store';
 import type { PublishedArticle } from './types';
 
-/**
- * Conteúdo publicável do RASCUNHO editorial aprovado, na forma que `@ln/contracts` canoniza (ADR-017, decisão 3).
- * É a ÚNICA derivação Draft → PublishableContent: o Backend deve usá-la (não reimplementar) ao emitir o recibo.
- * O Draft editorial é sempre notícia pública e não patrocinada (conteúdo pago é do módulo Comercial), sem subtítulo/resumo.
- */
-export function toPublishableContent(d: Draft): PublishableContent {
-  return {
-    titulo: d.headline, subtitulo: null, resumo: null, tipoConteudo: 'noticia', editoria: d.editoria, corpo: d.body,
-    imagem: d.image, classeDeDado: 'public', patrocinado: false, rotuloPublieditorial: null, fontes: d.evidenceIds,
-  };
-}
-
-/**
- * Hash do recibo (`publishedContentSha256`, versão ln-published-content/1) sobre o rascunho aprovado: cobre título, editoria,
- * corpo com "Fontes:", imagem com base de direito, classe, patrocínio e fontes. Mudar QUALQUER um depois da aprovação invalida o recibo.
- * O mesmo valor vai ao recibo, à chave de outbox `article.published:{id}:{sha}` e a `publication.contentSha256`.
- */
-export const draftContentSha256 = (d: Draft): string => publishedContentSha256(toPublishableContent(d));
+export { draftContentSha256, toPublishableContent } from '../publishable';
 
 export const PORTAL_SOURCE_NAME = 'Loyalty News';
 

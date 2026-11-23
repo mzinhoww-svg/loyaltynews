@@ -42,7 +42,7 @@ export function sampleArticle(id: string, over: Partial<ArticleRecord> = {}): Ar
   return {
     articleId: id, editoria: 'pontos', status: 'em_checagem',
     draft: {
-      id: `${id}:d0`, editoria: 'pontos', headline: 'MOCK: título com acentuação, “aspas” e emoji 🚀', body: 'Corpo MOCK.\n\nFontes:\n- MOCK: https://ri.mock.example/a (acessado em 2026-11-23)',
+      id: `${id}:d0`, editoria: 'pontos', slug: `materia-${id}`, resumo: 'Resumo MOCK', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, headline: 'MOCK: título com acentuação, “aspas” e emoji 🚀', body: 'Corpo MOCK.\n\nFontes:\n- MOCK: https://ri.mock.example/a (acessado em 2026-11-23)',
       claims: [{ id: 'c1', kind: 'fact', text: 'afirmação MOCK', evidenceIds: ['ev_1'] }, { id: 'c2', kind: 'quote', text: 'fala', evidenceIds: ['ev_1'], quote: { text: 'texto literal', speaker: 'Pessoa MOCK' } }],
       evidenceIds: ['ev_1'], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem base de direito' }, modelProvider: 'deepseek', promptVersion: 'editorial-0.1',
     },

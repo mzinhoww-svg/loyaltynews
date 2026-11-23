@@ -25,7 +25,7 @@ export interface PublicationInput {
    */
   expectedContentSha256?: string;
 }
-export type PublicationCode = 'not_found' | 'invalid_input' | 'not_approved' | 'gate_failed' | 'no_draft' | 'receipt_stale';
+export type PublicationCode = 'not_found' | 'invalid_input' | 'not_approved' | 'gate_failed' | 'no_draft' | 'receipt_stale' | 'slug_immutable' | 'slug_taken';
 export type PublicationResult =
   | { ok: true; record: ArticleRecord; outbox: 'enqueued' | 'duplicate'; alreadyPublished: boolean }
   | { ok: false; code: PublicationCode; message: string; findings?: Array<{ code: string; message: string }> };
@@ -41,6 +41,13 @@ export async function applyPublication(store: EditorialStore, input: Publication
   if (!rec.draft) return { ok: false, code: 'no_draft', message: 'matéria sem rascunho' };
   if (input.expectedContentSha256 && input.expectedContentSha256 !== draftContentSha256(rec.draft)) {
     return { ok: false, code: 'receipt_stale', message: 'o conteúdo do rascunho mudou depois do recibo: o hash do recibo não corresponde mais' };
+  }
+  // Slug: imutável depois da 1ª publicação (URL estável) e único entre as matérias (a unicidade definitiva é do banco).
+  if (rec.publication?.slug && rec.publication.slug !== rec.draft.slug) {
+    return { ok: false, code: 'slug_immutable', message: `slug já publicado como "${rec.publication.slug}": não pode mudar` };
+  }
+  if ((await store.listArticles()).some((a) => a.articleId !== rec.articleId && a.publication && a.draft?.slug === rec.draft!.slug)) {
+    return { ok: false, code: 'slug_taken', message: `slug "${rec.draft.slug}" já pertence a outra matéria publicada` };
   }
   const item = (r: ArticleRecord): OutboxItem => ({ queue: INTELLIGENCE_QUEUE, refId: r.articleId, idempotencyKey: outboxKey(r.articleId, r.publication!.contentSha256) });
   const auditOf = (r: ArticleRecord) => ({ at: input.publishedAt, userId: null, action: 'article.published', target: r.articleId, detail: `recibo ${input.receiptId}` });
@@ -64,7 +71,7 @@ export async function applyPublication(store: EditorialStore, input: Publication
   }
   const next: ArticleRecord = {
     ...rec, status: 'publicado', updatedAt: input.publishedAt,
-    publication: { receiptId: input.receiptId, url: input.url, publishedAt: input.publishedAt, contentSha256: draftContentSha256(rec.draft), ...(input.isMock ? { isMock: true } : {}) },
+    publication: { receiptId: input.receiptId, url: input.url, publishedAt: input.publishedAt, contentSha256: draftContentSha256(rec.draft), slug: rec.draft.slug, ...(input.isMock ? { isMock: true } : {}) },
   };
   const r = await store.commitPublication({ article: next, audit: auditOf(next), outbox: item(next) });
   return { ok: true, record: (await store.getArticle(next.articleId)) ?? next, outbox: r.outbox, alreadyPublished: r.outbox === 'duplicate' };
