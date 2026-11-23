@@ -1,11 +1,12 @@
 # Resultados — run-20261123-01
 
-Tentativas reais no dataset vigente: 830 (fora do dataset v1.2, de URLs trocadas: 182; mock: 0). Gerado em 2026-11-23T15:00:41.144Z.
+Tentativas reais no dataset vigente: 930 (fora do dataset v1.2, de URLs trocadas: 182; mock: 0). Gerado em 2026-11-23T16:09:08.666Z.
 
 ## Métricas por provedor
 
 | Provedor | n | Técnico | Editorial | Título | Data (verif.) | p50 ms | p95 ms | p99 ms | 403 | 429 | Timeout | Créditos | US$ equiv. | US$/artigo válido |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| firecrawl-scrape | 100 | 100.0% | 96.0% | 99.0% | 100.0% (60) | 5668 | 9425 | 11506 | 0.0% | 0.0% | 0.0% | 100 | 0.5333 | 0.00556 |
 | zyte-http | 100 | 100.0% | 95.0% | 98.0% | 100.0% (79) | 1249 | 7578 | 23842 | 0.0% | 0.0% | 0.0% | 200 | 0.0200 | 0.00021 |
 | scrapfly-basic | 100 | 99.0% | 94.0% | 98.0% | 100.0% (78) | 2377 | 6010 | 8958 | 0.0% | 0.0% | 0.0% | 171 | 0.0256 | 0.00027 |
 | exa-contents | 100 | 100.0% | 90.0% | 95.0% | — (0) | 238 | 940 | 2369 | 0.0% | 0.0% | 0.0% | 100 | 0.1000 | 0.00111 |
@@ -23,27 +24,28 @@ Tentativas reais no dataset vigente: 830 (fora do dataset v1.2, de URLs trocadas
 | 3 | exa-contents | 0.797 | 0.95 | 1.00 | 0.19 | 1.00 | 0.53 | 100 |
 | 4 | scrapfly-basic | 0.788 | 0.98 | 0.99 | 0.77 | 0.10 | 0.56 | 100 |
 | 5 | brightdata-unlocker | 0.647 | 0.97 | 0.94 | 0.13 | 0.10 | 0.60 | 100 |
-| 6 | tavily-extract | 0.636 | 0.90 | 0.93 | 0.11 | 0.25 | 0.57 | 100 |
-| 7 | apify-rag-web-browser | 0.605 | 0.97 | 0.90 | 0.05 | 0.03 | 0.53 | 100 |
+| 6 | firecrawl-scrape | 0.638 | 0.99 | 1.00 | 0.04 | 0.04 | 0.56 | 100 |
+| 7 | tavily-extract | 0.636 | 0.90 | 0.93 | 0.11 | 0.25 | 0.57 | 100 |
+| 8 | apify-rag-web-browser | 0.605 | 0.97 | 0.90 | 0.05 | 0.03 | 0.53 | 100 |
 
 ## Sucesso editorial por categoria
 
-| Categoria | apify-rag-web-browser | brightdata-unlocker | direct | exa-contents | scrapfly-basic | tavily-extract | zyte-http |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| financeiro | 100.0% (25) | 88.0% (25) | 92.0% (25) | 92.0% (25) | 100.0% (25) | 92.0% (25) | 100.0% (25) |
-| fintech | 80.0% (20) | 100.0% (20) | 95.0% (20) | 100.0% (20) | 95.0% (20) | 65.0% (20) | 100.0% (20) |
-| aviacao-fidelidade | 100.0% (20) | 100.0% (20) | 95.0% (20) | 100.0% (20) | 100.0% (20) | 95.0% (20) | 100.0% (20) |
-| tecnologia | 66.7% (15) | 100.0% (15) | 80.0% (15) | 73.3% (15) | 100.0% (15) | 100.0% (15) | 100.0% (15) |
-| restritivo | 73.3% (15) | 60.0% (15) | 73.3% (15) | 80.0% (15) | 73.3% (15) | 40.0% (15) | 73.3% (15) |
-| internacional | 100.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) |
+| Categoria | apify-rag-web-browser | brightdata-unlocker | direct | exa-contents | firecrawl-scrape | scrapfly-basic | tavily-extract | zyte-http |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| financeiro | 100.0% (25) | 88.0% (25) | 92.0% (25) | 92.0% (25) | 100.0% (25) | 100.0% (25) | 92.0% (25) | 100.0% (25) |
+| fintech | 80.0% (20) | 100.0% (20) | 95.0% (20) | 100.0% (20) | 100.0% (20) | 95.0% (20) | 65.0% (20) | 100.0% (20) |
+| aviacao-fidelidade | 100.0% (20) | 100.0% (20) | 95.0% (20) | 100.0% (20) | 100.0% (20) | 100.0% (20) | 95.0% (20) | 100.0% (20) |
+| tecnologia | 66.7% (15) | 100.0% (15) | 80.0% (15) | 73.3% (15) | 100.0% (15) | 100.0% (15) | 100.0% (15) | 100.0% (15) |
+| restritivo | 73.3% (15) | 60.0% (15) | 73.3% (15) | 80.0% (15) | 80.0% (15) | 73.3% (15) | 40.0% (15) | 73.3% (15) |
+| internacional | 100.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) | 80.0% (5) |
 
 ## Sucesso editorial por recência
 
-| Recência | apify-rag-web-browser | brightdata-unlocker | direct | exa-contents | scrapfly-basic | tavily-extract | zyte-http |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| historico | 100.0% (20) | 95.0% (20) | 90.0% (20) | 100.0% (20) | 100.0% (20) | 100.0% (20) | 100.0% (20) |
-| recente | 86.7% (60) | 95.0% (60) | 91.7% (60) | 88.3% (60) | 98.3% (60) | 85.0% (60) | 98.3% (60) |
-| problema | 75.0% (20) | 70.0% (20) | 75.0% (20) | 85.0% (20) | 75.0% (20) | 45.0% (20) | 80.0% (20) |
+| Recência | apify-rag-web-browser | brightdata-unlocker | direct | exa-contents | firecrawl-scrape | scrapfly-basic | tavily-extract | zyte-http |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| historico | 100.0% (20) | 95.0% (20) | 90.0% (20) | 100.0% (20) | 100.0% (20) | 100.0% (20) | 100.0% (20) | 100.0% (20) |
+| recente | 86.7% (60) | 95.0% (60) | 91.7% (60) | 88.3% (60) | 98.3% (60) | 98.3% (60) | 85.0% (60) | 98.3% (60) |
+| problema | 75.0% (20) | 70.0% (20) | 75.0% (20) | 85.0% (20) | 85.0% (20) | 75.0% (20) | 45.0% (20) | 80.0% (20) |
 
 ## Pipeline combinado (URLs elegíveis = sem paywall)
 
@@ -57,42 +59,42 @@ Tentativas reais no dataset vigente: 830 (fora do dataset v1.2, de URLs trocadas
 
 ## Matriz por domínio (válidos/tentativas)
 
-| Domínio | apify-rag-web-browser | brightdata-unlocker | direct | exa-contents | scrapfly-basic | tavily-extract | zyte-http |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| aeroin.net | 0/1 | 1/1 | 0/1 | 1/1 | 0/1 | 0/1 | 0/1 |
-| airlines.org | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
-| bradescori.com.br | 3/3 | 3/3 | 3/3 | 0/3 | 3/3 | 3/3 | 3/3 |
-| brasscom.org.br | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
-| canaltech.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| edpb.europa.eu | 3/3 | 0/3 | 3/3 | 3/3 | 3/3 | 1/3 | 3/3 |
-| exame.com | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| finextra.com | 0/1 | 1/1 | 0/1 | 1/1 | 0/1 | 1/1 | 1/1 |
-| finsidersbrasil.com.br | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 0/2 | 2/2 |
-| gov.br | 3/3 | 0/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| iata.org | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 2/3 | 3/3 |
-| infomoney.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| itau.com.br | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
-| latamairlines.com | 0/3 | 0/3 | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 |
-| livelo.com.br | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 0/1 | 1/1 |
-| melhoresdestinos.com.br | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 |
-| mercadoeconsumo.com.br | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 4/5 | 5/5 |
-| mobiletime.com.br | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 |
-| moneytimes.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| nu.com | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 1/2 | 2/2 |
-| olhardigital.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| onemileatatime.com | 2/2 | 2/2 | 2/2 | 1/2 | 2/2 | 1/2 | 2/2 |
-| oneworld.com | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
-| passageirodeprimeira.com | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 |
-| paymentsdive.com | 0/3 | 3/3 | 3/3 | 3/3 | 3/3 | 1/3 | 3/3 |
-| pontospravoar.com | 3/3 | 3/3 | 2/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| portal.staralliance.com | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 0/3 | 3/3 |
-| pt.oneworld.com | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
-| pymnts.com | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 2/3 | 3/3 |
-| seudinheiro.com | 6/6 | 6/6 | 4/6 | 6/6 | 6/6 | 5/6 | 6/6 |
-| simpleflying.com | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 |
-| tecnoblog.net | 0/5 | 5/5 | 2/5 | 1/5 | 5/5 | 5/5 | 5/5 |
-| thepointsguy.com | 1/1 | 0/1 | 0/1 | 1/1 | 0/1 | 1/1 | 0/1 |
-| www12.senado.leg.br | 2/2 | 2/2 | 2/2 | 0/2 | 2/2 | 2/2 | 2/2 |
+| Domínio | apify-rag-web-browser | brightdata-unlocker | direct | exa-contents | firecrawl-scrape | scrapfly-basic | tavily-extract | zyte-http |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| aeroin.net | 0/1 | 1/1 | 0/1 | 1/1 | 1/1 | 0/1 | 0/1 | 0/1 |
+| airlines.org | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
+| bradescori.com.br | 3/3 | 3/3 | 3/3 | 0/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| brasscom.org.br | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 |
+| canaltech.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| edpb.europa.eu | 3/3 | 0/3 | 3/3 | 3/3 | 3/3 | 3/3 | 1/3 | 3/3 |
+| exame.com | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| finextra.com | 0/1 | 1/1 | 0/1 | 1/1 | 1/1 | 0/1 | 1/1 | 1/1 |
+| finsidersbrasil.com.br | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 0/2 | 2/2 |
+| gov.br | 3/3 | 0/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| iata.org | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 2/3 | 3/3 |
+| infomoney.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| itau.com.br | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
+| latamairlines.com | 0/3 | 0/3 | 0/3 | 3/3 | 3/3 | 0/3 | 0/3 | 0/3 |
+| livelo.com.br | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 0/1 | 1/1 |
+| melhoresdestinos.com.br | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 |
+| mercadoeconsumo.com.br | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 5/5 | 4/5 | 5/5 |
+| mobiletime.com.br | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 | 7/7 |
+| moneytimes.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| nu.com | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 1/2 | 2/2 |
+| olhardigital.com.br | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| onemileatatime.com | 2/2 | 2/2 | 2/2 | 1/2 | 2/2 | 2/2 | 1/2 | 2/2 |
+| oneworld.com | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
+| passageirodeprimeira.com | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 | 8/8 |
+| paymentsdive.com | 0/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 1/3 | 3/3 |
+| pontospravoar.com | 3/3 | 3/3 | 2/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
+| portal.staralliance.com | 3/3 | 3/3 | 3/3 | 3/3 | 0/3 | 3/3 | 0/3 | 3/3 |
+| pt.oneworld.com | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
+| pymnts.com | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 2/3 | 3/3 |
+| seudinheiro.com | 6/6 | 6/6 | 4/6 | 6/6 | 6/6 | 6/6 | 5/6 | 6/6 |
+| simpleflying.com | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 | 2/2 |
+| tecnoblog.net | 0/5 | 5/5 | 2/5 | 1/5 | 5/5 | 5/5 | 5/5 | 5/5 |
+| thepointsguy.com | 1/1 | 0/1 | 0/1 | 1/1 | 0/1 | 0/1 | 1/1 | 0/1 |
+| www12.senado.leg.br | 2/2 | 2/2 | 2/2 | 0/2 | 2/2 | 2/2 | 2/2 | 2/2 |
 
 ## Matriz de roteamento recomendada (menor custo esperado por artigo válido)
 
@@ -111,7 +113,7 @@ Tentativas reais no dataset vigente: 830 (fora do dataset v1.2, de URLs trocadas
 | iata.org | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |
 | infomoney.com.br | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |
 | itau.com.br | direct (0.0003) | scrapfly-basic (0.000525) | zyte-http (0.0006) |
-| latamairlines.com | exa-contents (0.0015) | apify-rag-web-browser (1003) | brightdata-unlocker (1003) |
+| latamairlines.com | exa-contents (0.0015) | firecrawl-scrape (0.006916) | apify-rag-web-browser (1003) |
 | livelo.com.br | direct (0.0003) | scrapfly-basic (0.000525) | zyte-http (0.0006) |
 | melhoresdestinos.com.br | direct (0.000267) | scrapfly-basic (0.000467) | zyte-http (0.000533) |
 | mercadoeconsumo.com.br | direct (0.000233) | scrapfly-basic (0.000408) | zyte-http (0.000467) |
@@ -144,3 +146,4 @@ Tentativas reais no dataset vigente: 830 (fora do dataset v1.2, de URLs trocadas
 | tavily-extract | 1.86 | 18.6 | 93 | 186 |
 | brightdata-unlocker | 1.57 | 15.67 | 78.35 | 156.7 |
 | apify-rag-web-browser | 4.14 | 41.38 | 206.9 | 413.8 |
+| firecrawl-scrape | 5.55 | 55.55 | 277.75 | 555.5 |

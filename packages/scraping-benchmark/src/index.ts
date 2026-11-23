@@ -8,3 +8,5 @@ export * from './direct-reader';
 export * from './runner';
 export * from './discovery';
 export * from './shadow';
+export * from './firecrawl';
+export * from './tavily';

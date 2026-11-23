@@ -24,17 +24,18 @@ O adaptativo ganha +4 artigos válidos sobre o caminho atual e custa ~45 % menos
 
 ## Matriz de roteamento recomendada (resumo)
 
-Primeiro provedor por domínio, com a estatística real: **direct em 30 dos 34 domínios**; Exa em `latamairlines.com` (único que leu); Apify em 2 e Scrapfly em 1 domínio onde o direto falhou. A tabela completa (1º, 2º e 3º, com custo esperado) está em `report.md` → "Matriz de roteamento".
+Primeiro provedor por domínio, com a estatística real: **direct em 30 dos 34 domínios**; Exa em `latamairlines.com` (Exa e Firecrawl leram; Exa é mais barata); Apify em 2 e Scrapfly em 1 domínio onde o direto falhou. A tabela completa (1º, 2º e 3º, com custo esperado) está em `report.md` → "Matriz de roteamento".
 
-Fallback global sugerido depois do direto (pelo ranking e pelo custo): **Zyte → Scrapfly → Exa → Bright Data → Tavily → Apify**. A ordem por domínio substitui a global quando houver ≥ 2 tentativas no domínio.
+Fallback global sugerido depois do direto (pelo ranking e pelo custo): **Zyte → Scrapfly → Exa → Bright Data → Firecrawl → Tavily → Apify**. O shadow por replay com o Firecrawl incluído dá o mesmo resultado (100/100, US$ 0,000074 por válido): ele quase nunca é necessário. A ordem por domínio substitui a global quando houver ≥ 2 tentativas no domínio.
 
 ## Comparação com a hipótese da Diretiva V3 §12
 
 | Hipótese | Resultado |
 |---|---|
 | RSS autorizado primeiro | Confirmado para descoberta (41/43 feeds, US$ 0) |
-| Firecrawl como caminho padrão | Não aplicável: não existe no código nem tem chave |
+| Firecrawl como caminho padrão | **Não confirmado**: melhor qualidade (96 %), mas ~26× o custo do Zyte por artigo válido e p50 de 5,7 s; serve como fallback, não como padrão |
 | Zyte como alternativa principal | **Confirmado**: maior taxa editorial (95 %) e menor custo pago |
 | Scrapfly como fallback | Confirmado (94 %, custo real baixo) |
 | Bright Data para casos difíceis | **Não confirmado** nesta amostra: 70 % nas "problema", abaixo de Exa (85 %) e Zyte (80 %) |
 | Exa como complemento | Melhor nas "problema" e a mais rápida; sem metadados de data |
+| Firecrawl (rodada delta) | Maior taxa editorial (96 %) e lê LATAM, mas o mais caro e lento: entra como fallback de qualidade para domínios em que Exa/Zyte falham; não muda a matriz (direct segue 1º em 30 de 34 domínios) |

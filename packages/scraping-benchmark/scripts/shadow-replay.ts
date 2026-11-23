@@ -19,7 +19,7 @@ const recs: AttemptRecord[] = readFileSync(join(dir, 'attempts.jsonl'), 'utf8').
 const last = new Map<string, AttemptRecord>();
 for (const r of recs) if (r.errorClass !== 'budget_blocked' || !last.has(`${r.urlId}|${r.provider}`)) last.set(`${r.urlId}|${r.provider}`, r);
 const R = [...last.values()];
-const USD: Record<string, number> = { direct: 0, 'scrapfly-basic': 30 / 200_000, 'zyte-http': 0.0001, 'exa-contents': 0.001, 'tavily-extract': 0.008, 'brightdata-unlocker': 0.0015, 'apify-rag-web-browser': 0.001 };
+const USD: Record<string, number> = { direct: 0, 'scrapfly-basic': 30 / 200_000, 'zyte-http': 0.0001, 'exa-contents': 0.001, 'tavily-extract': 0.008, 'brightdata-unlocker': 0.0015, 'apify-rag-web-browser': 0.001, 'firecrawl-scrape': 16 / 3000 };
 const ALL = Object.keys(USD);
 const eligible = ds.filter((d) => !d.paywall);
 const even = eligible.filter((_, i) => i % 2 === 0).map((d) => d.url);

@@ -14,6 +14,7 @@ import type { KeyedReader } from '@ln/intelligence';
 import { BudgetGuard, type ProviderBudget } from '../src/budget.ts';
 import { DirectReader } from '../src/direct-reader.ts';
 import { TavilyExtractReader } from '../src/tavily.ts';
+import { FirecrawlReader } from '../src/firecrawl.ts';
 import { runBenchmark, type BenchProvider } from '../src/runner.ts';
 import type { DatasetEntry } from '../src/types.ts';
 
@@ -47,11 +48,25 @@ const BUDGETS: Record<string, ProviderBudget> = {
   'apify-rag-web-browser': { provider: 'apify-rag-web-browser', billing: 'free-confirmed', billingEvidence: 'DP-33 + FREE US$ 5/mês', creditCap: 1_000, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 (estimado; real em usageTotalUsd da execução)', alertAt: 4_000, accountQuota: 5_000 },
   'exa-contents': { provider: 'exa-contents', billing: 'free-confirmed', billingEvidence: 'DP-33 + crédito gratuito', creditCap: 200, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 = costDollars.total da resposta, arredondado p/ cima', alertAt: 8_000, accountQuota: 10_000 },
   'brightdata-unlocker': { provider: 'brightdata-unlocker', billing: 'free-confirmed', billingEvidence: 'DP-33 + conta 2 com zona web_unlocker1, 5.000/mês', creditCap: 300, usdPerCredit: 1.5 / 1000, account: 'conta-2', unit: '1 requisição Web Unlocker (Browser API = 5/MB, não usado)', alertAt: 4_000, accountQuota: 5_000 },
+  'firecrawl-scrape': { provider: 'firecrawl-scrape', billing: 'free-confirmed', billingEvidence: 'DP-33 + plano Free (500 créditos)', creditCap: 150, usdPerCredit: 16 / 3000, account: 'conta-1', unit: '1 crédito Firecrawl por scrape', alertAt: 400, accountQuota: 500 },
   'tavily-extract': { provider: 'tavily-extract', billing: 'free-confirmed', billingEvidence: 'DP-33 + Researcher 1.000/mês', creditCap: 60, usdPerCredit: 0.008, account: 'conta-2', unit: '1 crédito Tavily (0,2 por extract basic bem-sucedido)', alertAt: 800, accountQuota: 1_000 },
 };
 
 function pooled(keyed: KeyedReader, keyName: string, cap: number) {
   return createReader({ keyed, keys: [{ label: 'conta', secretRef: keyName, monthlyCreditCap: cap }], resolveSecret: secret }, { enabled: true, pace: false });
+}
+
+/** Espaço mínimo entre chamadas ao MESMO provedor (Firecrawl Free ≈ 10/min). */
+function spaced<T extends { read: (r: { url: string; purpose?: 'discovery' | 'read' }) => Promise<unknown> }>(reader: T, ms: number): T {
+  let last = 0;
+  const orig = reader.read.bind(reader);
+  (reader as { read: unknown }).read = async (r: { url: string; purpose?: 'discovery' | 'read' }) => {
+    const wait = last + ms - Date.now();
+    if (wait > 0) await new Promise((ok) => setTimeout(ok, wait));
+    last = Date.now();
+    return orig(r);
+  };
+  return reader;
 }
 
 const all: BenchProvider[] = [
@@ -61,6 +76,7 @@ const all: BenchProvider[] = [
   { name: 'exa-contents', reader: pooled(new ExaContentsReader(), 'EXA_API_KEY', 200), worstCaseCredits: 1 },
   { name: 'tavily-extract', reader: pooled(new TavilyExtractReader(), 'TAVILY_API_KEY_2', 60), worstCaseCredits: 1 },
   { name: 'brightdata-unlocker', reader: pooled(new BrightDataUnlockerReader('web_unlocker1'), 'BRIGHTDATA_API_KEY_2', 300), worstCaseCredits: 1 },
+  { name: 'firecrawl-scrape', reader: spaced(pooled(new FirecrawlReader(), 'FIRECRAWL_API_KEY', 150), 6_500), worstCaseCredits: 1 },
   { name: 'apify-rag-web-browser', reader: pooled(new ApifyRagBrowserReader(), 'APIFY_API_TOKEN', 1_000), worstCaseCredits: 5 },
 ];
 const providers = only ? all.filter((p) => only.includes(p.name)) : all;

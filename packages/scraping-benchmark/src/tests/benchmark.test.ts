@@ -17,6 +17,7 @@ import { runBenchmark, loadDone, classify } from '../runner';
 import { readFlags, isProviderDisabled } from '../flags';
 import type { DatasetEntry, AttemptRecord } from '../types';
 import { shadowRun } from '../shadow';
+import { FirecrawlReader } from '../firecrawl';
 
 const LONG = 'Lorem ipsum dolor sit amet. '.repeat(60);
 const article = (title: string, date = '2026-11-20T10:00:00Z') =>
@@ -290,5 +291,22 @@ describe('shadow por replay (respostas registradas; nenhuma chamada)', () => {
     expect(fixed).toMatchObject({ valid: 2, attempts: 4, fallbacks: 2, creditsUsdEquiv: 0.004 });
     const adapt = await shadowRun('adapt', urls, recs, ['a', 'b'], { a: 0, b: 0.001 }, { adaptive: true, seedFrom: recs });
     expect(adapt).toMatchObject({ valid: 2, attempts: 2, fallbacks: 0 });
+  });
+});
+
+describe('contrato Firecrawl (MOCK de fetch)', () => {
+  it('ok com metadados viram título/data; 402 = cota; 429 = ritmo; segredo não vaza', async () => {
+    const ok = (async () => new Response(JSON.stringify({ success: true, data: { markdown: `# Azul anuncia nova rota para Lisboa\n${LONG}`, metadata: { ogTitle: 'Azul anuncia nova rota para Lisboa', publishedTime: '2026-11-20T10:00:00Z', statusCode: 200, sourceURL: 'https://a.com/x' } } }), { status: 200 })) as unknown as typeof fetch;
+    const reader = createReader({ keyed: new FirecrawlReader(ok), keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 150 }], resolveSecret: () => 'SEGREDO-FC' }, { enabled: true, pace: false });
+    const r = await reader.read({ url: 'https://a.com/x' });
+    expect(r).toMatchObject({ ok: true, creditsUsed: 1 });
+    const v = evaluate(r.text, r.html, 'Azul anuncia nova rota para Lisboa', r.httpStatus);
+    expect(v).toMatchObject({ editorialSuccess: true });
+    expect(v.meta.publishedAt).toBe('2026-11-20T10:00:00Z');
+    expect(JSON.stringify({ ...r, text: undefined })).not.toContain('SEGREDO');
+    const k = new FirecrawlReader((async () => new Response('{"error":"Payment Required"}', { status: 402 })) as unknown as typeof fetch);
+    expect((await k.read({ url: 'https://a.com' }, 'x')).status).toBe('quota_exhausted');
+    const rl = new FirecrawlReader((async () => new Response('{"error":"Rate limit exceeded"}', { status: 429, headers: { 'retry-after': '7' } })) as unknown as typeof fetch);
+    expect(await rl.read({ url: 'https://a.com' }, 'x')).toMatchObject({ status: 'rate_limited', retryAfterSeconds: 7 });
   });
 });

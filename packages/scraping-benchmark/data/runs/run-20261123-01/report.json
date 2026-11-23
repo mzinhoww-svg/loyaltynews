@@ -1,8 +1,8 @@
 {
   "runId": "run-20261123-01",
-  "generatedAt": "2026-11-23T15:00:41.144Z",
-  "attempts": 1012,
-  "realAttempts": 830,
+  "generatedAt": "2026-11-23T16:09:08.666Z",
+  "attempts": 1112,
+  "realAttempts": 930,
   "excludedReplaced": 182,
   "mockAttempts": 0,
   "metrics": [
@@ -180,6 +180,31 @@
       "costPerValidArticleUsd": 0.004138,
       "freshness": 0.5287356321839081,
       "eligible": true
+    },
+    {
+      "provider": "firecrawl-scrape",
+      "n": 100,
+      "technicalSuccessRate": 1,
+      "editorialSuccessRate": 0.96,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.99,
+      "sourceAccuracy": 1,
+      "dateAccuracy": 1,
+      "dateVerifiable": 60,
+      "p50": 5668,
+      "p95": 9425,
+      "p99": 11506,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 100,
+      "costEstimatedUsd": 0.5333,
+      "costPerValidArticleUsd": 0.005555,
+      "freshness": 0.5625,
+      "eligible": true
     }
   ],
   "ranking": [
@@ -244,6 +269,19 @@
         "cost": 0.13465220165922145,
         "latency": 0.10084745762711865,
         "freshness": 0.6
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "firecrawl-scrape",
+      "score": 0.6376,
+      "parts": {
+        "quality": 0.9875,
+        "success": 1,
+        "cost": 0.03798379837983799,
+        "latency": 0.04199011997177135,
+        "freshness": 0.5625
       },
       "n": 100,
       "lowSample": false
@@ -451,6 +489,31 @@
         "costPerValidArticleUsd": 0.004,
         "freshness": 0.64,
         "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 25,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 19,
+        "p50": 6252,
+        "p95": 8290,
+        "p99": 9619,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 25,
+        "costEstimatedUsd": 0.133325,
+        "costPerValidArticleUsd": 0.005333,
+        "freshness": 0.64,
+        "eligible": true
       }
     ],
     "fintech": [
@@ -628,6 +691,31 @@
         "costPerValidArticleUsd": 0.00015,
         "freshness": 0.5789473684210527,
         "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 13,
+        "p50": 5290,
+        "p95": 11506,
+        "p99": 14748,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.10666,
+        "costPerValidArticleUsd": 0.005333,
+        "freshness": 0.6,
+        "eligible": true
       }
     ],
     "aviacao-fidelidade": [
@@ -803,6 +891,31 @@
         "creditsUsed": 20,
         "costEstimatedUsd": 0.003,
         "costPerValidArticleUsd": 0.00015,
+        "freshness": 0.55,
+        "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 12,
+        "p50": 5630,
+        "p95": 8691,
+        "p99": 8997,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.10666,
+        "costPerValidArticleUsd": 0.005333,
         "freshness": 0.55,
         "eligible": true
       }
@@ -982,6 +1095,31 @@
         "costPerValidArticleUsd": 0.00015,
         "freshness": 0.7333333333333333,
         "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 11,
+        "p50": 5843,
+        "p95": 9545,
+        "p99": 9545,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.079995,
+        "costPerValidArticleUsd": 0.005333,
+        "freshness": 0.7333333333333333,
+        "eligible": true
       }
     ],
     "restritivo": [
@@ -1159,6 +1297,31 @@
         "costPerValidArticleUsd": 0.000205,
         "freshness": 0,
         "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 1,
+        "p50": 5668,
+        "p95": 8976,
+        "p99": 8976,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.079995,
+        "costPerValidArticleUsd": 0.006666,
+        "freshness": 0,
+        "eligible": true
       }
     ],
     "internacional": [
@@ -1334,6 +1497,31 @@
         "creditsUsed": 5,
         "costEstimatedUsd": 0.00075,
         "costPerValidArticleUsd": 0.000187,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 5402,
+        "p95": 7601,
+        "p99": 7601,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 5,
+        "costEstimatedUsd": 0.026665,
+        "costPerValidArticleUsd": 0.006666,
         "freshness": 1,
         "eligible": true
       }
@@ -1515,6 +1703,31 @@
         "costPerValidArticleUsd": 0.004,
         "freshness": 0,
         "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 15,
+        "p50": 4653,
+        "p95": 7575,
+        "p99": 9619,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.10666,
+        "costPerValidArticleUsd": 0.005333,
+        "freshness": 0,
+        "eligible": true
       }
     ],
     "recente": [
@@ -1691,6 +1904,31 @@
         "costEstimatedUsd": 0.208,
         "costPerValidArticleUsd": 0.004,
         "freshness": 0.8846153846153846,
+        "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 60,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.9833333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9833333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 43,
+        "p50": 6252,
+        "p95": 9244,
+        "p99": 10141,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 60,
+        "costEstimatedUsd": 0.31998,
+        "costPerValidArticleUsd": 0.005423,
+        "freshness": 0.8983050847457628,
         "eligible": true
       }
     ],
@@ -1869,6 +2107,31 @@
         "costPerValidArticleUsd": 0.00019,
         "freshness": 0,
         "eligible": true
+      },
+      {
+        "provider": "firecrawl-scrape",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.85,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 2,
+        "p50": 5668,
+        "p95": 11506,
+        "p99": 14748,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.10666,
+        "costPerValidArticleUsd": 0.006274,
+        "freshness": 0.058823529411764705,
+        "eligible": true
       }
     ]
   },
@@ -1879,6 +2142,7 @@
       "brightdata-unlocker": "1/1",
       "direct": "0/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "1/1",
       "scrapfly-basic": "0/1",
       "tavily-extract": "0/1",
       "zyte-http": "0/1"
@@ -1889,6 +2153,7 @@
       "brightdata-unlocker": "4/4",
       "direct": "4/4",
       "exa-contents": "4/4",
+      "firecrawl-scrape": "4/4",
       "scrapfly-basic": "4/4",
       "tavily-extract": "4/4",
       "zyte-http": "4/4"
@@ -1899,6 +2164,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "0/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -1909,6 +2175,7 @@
       "brightdata-unlocker": "4/4",
       "direct": "4/4",
       "exa-contents": "4/4",
+      "firecrawl-scrape": "4/4",
       "scrapfly-basic": "4/4",
       "tavily-extract": "4/4",
       "zyte-http": "4/4"
@@ -1919,6 +2186,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -1929,6 +2197,7 @@
       "brightdata-unlocker": "0/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "1/3",
       "zyte-http": "3/3"
@@ -1939,6 +2208,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -1949,6 +2219,7 @@
       "brightdata-unlocker": "1/1",
       "direct": "0/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "1/1",
       "scrapfly-basic": "0/1",
       "tavily-extract": "1/1",
       "zyte-http": "1/1"
@@ -1959,6 +2230,7 @@
       "brightdata-unlocker": "2/2",
       "direct": "2/2",
       "exa-contents": "2/2",
+      "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
       "tavily-extract": "0/2",
       "zyte-http": "2/2"
@@ -1969,6 +2241,7 @@
       "brightdata-unlocker": "0/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -1979,6 +2252,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "2/3",
       "zyte-http": "3/3"
@@ -1989,6 +2263,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -1999,6 +2274,7 @@
       "brightdata-unlocker": "1/1",
       "direct": "1/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "1/1",
       "scrapfly-basic": "1/1",
       "tavily-extract": "1/1",
       "zyte-http": "1/1"
@@ -2009,6 +2285,7 @@
       "brightdata-unlocker": "0/3",
       "direct": "0/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "0/3",
       "tavily-extract": "0/3",
       "zyte-http": "0/3"
@@ -2019,6 +2296,7 @@
       "brightdata-unlocker": "1/1",
       "direct": "1/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "1/1",
       "scrapfly-basic": "1/1",
       "tavily-extract": "0/1",
       "zyte-http": "1/1"
@@ -2029,6 +2307,7 @@
       "brightdata-unlocker": "2/2",
       "direct": "2/2",
       "exa-contents": "2/2",
+      "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
       "tavily-extract": "2/2",
       "zyte-http": "2/2"
@@ -2039,6 +2318,7 @@
       "brightdata-unlocker": "5/5",
       "direct": "5/5",
       "exa-contents": "5/5",
+      "firecrawl-scrape": "5/5",
       "scrapfly-basic": "5/5",
       "tavily-extract": "4/5",
       "zyte-http": "5/5"
@@ -2049,6 +2329,7 @@
       "brightdata-unlocker": "7/7",
       "direct": "7/7",
       "exa-contents": "7/7",
+      "firecrawl-scrape": "7/7",
       "scrapfly-basic": "7/7",
       "tavily-extract": "7/7",
       "zyte-http": "7/7"
@@ -2059,6 +2340,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -2069,6 +2351,7 @@
       "brightdata-unlocker": "2/2",
       "direct": "2/2",
       "exa-contents": "2/2",
+      "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
       "tavily-extract": "1/2",
       "zyte-http": "2/2"
@@ -2079,6 +2362,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -2089,6 +2373,7 @@
       "brightdata-unlocker": "2/2",
       "direct": "2/2",
       "exa-contents": "1/2",
+      "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
       "tavily-extract": "1/2",
       "zyte-http": "2/2"
@@ -2099,6 +2384,7 @@
       "brightdata-unlocker": "1/1",
       "direct": "1/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "1/1",
       "scrapfly-basic": "1/1",
       "tavily-extract": "1/1",
       "zyte-http": "1/1"
@@ -2109,6 +2395,7 @@
       "brightdata-unlocker": "8/8",
       "direct": "8/8",
       "exa-contents": "8/8",
+      "firecrawl-scrape": "8/8",
       "scrapfly-basic": "8/8",
       "tavily-extract": "8/8",
       "zyte-http": "8/8"
@@ -2119,6 +2406,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "1/3",
       "zyte-http": "3/3"
@@ -2129,6 +2417,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "2/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "3/3",
       "zyte-http": "3/3"
@@ -2139,6 +2428,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "0/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "0/3",
       "zyte-http": "3/3"
@@ -2149,6 +2439,7 @@
       "brightdata-unlocker": "1/1",
       "direct": "1/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "1/1",
       "scrapfly-basic": "1/1",
       "tavily-extract": "1/1",
       "zyte-http": "1/1"
@@ -2159,6 +2450,7 @@
       "brightdata-unlocker": "3/3",
       "direct": "3/3",
       "exa-contents": "3/3",
+      "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
       "tavily-extract": "2/3",
       "zyte-http": "3/3"
@@ -2169,6 +2461,7 @@
       "brightdata-unlocker": "6/6",
       "direct": "4/6",
       "exa-contents": "6/6",
+      "firecrawl-scrape": "6/6",
       "scrapfly-basic": "6/6",
       "tavily-extract": "5/6",
       "zyte-http": "6/6"
@@ -2179,6 +2472,7 @@
       "brightdata-unlocker": "2/2",
       "direct": "2/2",
       "exa-contents": "2/2",
+      "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
       "tavily-extract": "2/2",
       "zyte-http": "2/2"
@@ -2189,6 +2483,7 @@
       "brightdata-unlocker": "5/5",
       "direct": "2/5",
       "exa-contents": "1/5",
+      "firecrawl-scrape": "5/5",
       "scrapfly-basic": "5/5",
       "tavily-extract": "5/5",
       "zyte-http": "5/5"
@@ -2199,6 +2494,7 @@
       "brightdata-unlocker": "0/1",
       "direct": "0/1",
       "exa-contents": "1/1",
+      "firecrawl-scrape": "0/1",
       "scrapfly-basic": "0/1",
       "tavily-extract": "1/1",
       "zyte-http": "0/1"
@@ -2209,6 +2505,7 @@
       "brightdata-unlocker": "2/2",
       "direct": "2/2",
       "exa-contents": "0/2",
+      "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
       "tavily-extract": "2/2",
       "zyte-http": "2/2"
@@ -2444,11 +2741,11 @@
           "expectedUsdPerValid": 0.0015
         },
         {
-          "provider": "apify-rag-web-browser",
-          "expectedUsdPerValid": 1003
+          "provider": "firecrawl-scrape",
+          "expectedUsdPerValid": 0.006916
         },
         {
-          "provider": "brightdata-unlocker",
+          "provider": "apify-rag-web-browser",
           "expectedUsdPerValid": 1003
         }
       ]
@@ -2847,6 +3144,12 @@
       "10000": 41.38,
       "50000": 206.9,
       "100000": 413.8
+    },
+    "firecrawl-scrape": {
+      "1000": 5.55,
+      "10000": 55.55,
+      "50000": 277.75,
+      "100000": 555.5
     }
   }
 }
