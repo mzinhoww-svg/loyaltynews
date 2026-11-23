@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./flags": "./src/flags.ts",
-    "./editoria": "./src/editorias.data.ts"
+    "./editoria": "./src/editorias.data.ts",
+    "./hash": "./src/hash.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
