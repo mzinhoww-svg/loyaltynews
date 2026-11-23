@@ -18,11 +18,13 @@ const SIGNATURE_HEADER = 'x-ln-signature';
 const TIMESTAMP_HEADER = 'x-ln-timestamp';
 
 export class CliError extends Error {
-  constructor(code, message, status) {
+  /** `stop`: o agente deve PARAR o ciclo e não repetir em laço (423 Locked e indisponibilidade da borda). */
+  constructor(code, message, status, stop = false) {
     super(message);
     this.name = 'CliError';
     this.code = code;
     this.status = status;
+    this.stop = stop;
   }
 }
 
@@ -82,10 +84,15 @@ export async function post(cfg, path, payload, { fetchImpl = fetch, now = () => 
     }
   })();
   if (!res.ok) {
-    // A borda da Vertra troca o corpo de 502/503/504 por uma página HTML (cabeçalho x-vertra-error): o código da API (DISPATCH_OFF, KILL_SWITCH, PILOT_STOPPED) se perde.
-    // O agente não tenta adivinhar: trata 5xx sem JSON como "despacho parado ou app indisponível", PARA o ciclo e não repete em laço (confira /api/health).
+    // 423 Locked (decisão PM-2026-11-23-I): o servidor responde DISPATCH_OFF, KILL_SWITCH e PILOT_STOPPED com 423 e o corpo JSON da API, porque a borda da Vertra
+    // troca o corpo de 502/503/504 por uma página HTML e o código se perderia. 423 = o LN está TRAVADO de propósito: o agente PARA o ciclo e não repete em laço.
+    if (res.status === 423) {
+      const code = body?.error?.code ?? 'LOCKED';
+      throw new CliError(code, `${code}: ${String(body?.error?.message ?? 'travado').slice(0, 200)}; 423 Locked: pare o ciclo e não repita em laço`, 423, true);
+    }
+    // 502/503/504 sem corpo da API = indisponibilidade REAL (ou servidor anterior à decisão do 423): o agente não adivinha, PARA o ciclo e não repete em laço (confira /api/health).
     if (body === null && res.status >= 502 && res.status <= 504) {
-      throw new CliError(`UPSTREAM_${res.status}`, `${res.status} da borda sem corpo da API: despacho desligado (DISPATCH_OFF), parada (KILL_SWITCH/PILOT_STOPPED) ou app indisponível; pare o ciclo e não repita em laço`, res.status);
+      throw new CliError(`UPSTREAM_${res.status}`, `${res.status} da borda sem corpo da API: indisponibilidade real (ou servidor anterior ao 423 Locked); pare o ciclo e não repita em laço`, res.status, true);
     }
     const code = body?.error?.code ?? 'HTTP';
     throw new CliError(code, `${code}: ${String(body?.error?.message ?? res.status).slice(0, 200)}`, res.status);
@@ -218,7 +225,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       process.stdout.write(`${JSON.stringify(r)}\n`);
     },
     (e) => {
-      const err = e instanceof CliError ? { code: e.code, message: e.message, ...(e.status ? { status: e.status } : {}) } : { code: 'erro', message: 'falha inesperada' };
+      const err = e instanceof CliError ? { code: e.code, message: e.message, ...(e.status ? { status: e.status } : {}), ...(e.stop ? { stop: true } : {}) } : { code: 'erro', message: 'falha inesperada' };
       process.stderr.write(`${JSON.stringify({ error: err })}\n`);
       process.exitCode = 1;
     },

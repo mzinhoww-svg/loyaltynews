@@ -15,6 +15,9 @@ O `pull` com o despacho desligado responde 503 `DISPATCH_OFF` no código, **mas 
 - **`DISPATCH_OFF` no #1 é INFERIDO, não observado**: vem de `flags: []` + app e banco no ar + rota viva (#2). Quando houver segredo, a leitura direta do estado é `heartbeat` (404 `LEASE_ERROR` = assinatura aceita) e `GET /api/health` (`flags`).
 - Decisão possível do Backend/PM (não feita aqui): responder `DISPATCH_OFF`, `KILL_SWITCH` e `PILOT_STOPPED` com um status que a borda não substitui (ex.: 409 ou 423), para o código chegar ao agente. Hoje os testes do Backend fixam 503; é mudança de contrato.
 
+## Decisão posterior (PM-2026-11-23-I): 423 Locked
+Em resposta a este achado o PM decidiu que `DISPATCH_OFF`, `KILL_SWITCH` e `PILOT_STOPPED` no `pull` passam a **423 Locked** com o JSON e o mesmo `error.code` (503 só para indisponibilidade real); o Backend 1 faz o lado do servidor na ft/backend e a Integration o cliente. **Cliente (ft/growth):** 423 mantém o código da API e marca `stop: true` (parar o ciclo, sem repetir); `UPSTREAM_502/503/504` também `stop`. **A evidência acima é de ANTES da mudança do servidor** (a int/012 do staging responde 503): repetir com o servidor novo deve dar 423 `DISPATCH_OFF` no `pull` com o despacho desligado.
+
 ## O que continua não verificado (precisa do segredo no staging, passo (c) do PM)
 - `heartbeat` com o segredo REAL: 404 `LEASE_ERROR` (assinatura aceita), e 401 com um segredo diferente.
 - `pull` com o despacho LIGADO (`LN_FLAGS_ON=openbotDispatch`) e o piloto (`LN_OPENBOT_PILOT=1`): só depois dos itens 5 e 6 do checklist (`ATIVACAO-STAGING.md` §0.2) e do sinal do PM.

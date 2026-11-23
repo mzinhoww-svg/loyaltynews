@@ -4,6 +4,8 @@ export const KINDS: readonly string[];
 export class CliError extends Error {
   code: string;
   status?: number;
+  /** Parar o ciclo e não repetir em laço (423 Locked; indisponibilidade da borda). */
+  stop: boolean;
 }
 export interface CliIo {
   fetchImpl?: typeof fetch;
