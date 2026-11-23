@@ -138,6 +138,58 @@ export interface EntitySummary {
   mock?: boolean;
 }
 
+/** Tipos de organização do Entity Intelligence (CHECK de intelligence.organization.kind). */
+export type CompanyKind = 'company' | 'program' | 'association' | 'regulator' | 'media' | 'other';
+export const COMPANY_KINDS: readonly CompanyKind[] = ['company', 'program', 'association', 'regulator', 'media', 'other'];
+
+/** Fonte pública de um fato: nome, link e data de coleta. Nunca o trecho literal (termos J-14). */
+export interface EvidenceSource {
+  name: string;
+  url: string;
+  retrievedAt: string;
+}
+
+export interface CompanyListItem {
+  id: string;
+  name: string;
+  legalName: string;
+  kind: CompanyKind;
+  relationCount: number;
+  validatedAt: string;
+  mock?: boolean;
+}
+
+export type CompanyRelationType = 'parent_of' | 'partner_of' | 'supplier_of' | 'coalition_member' | 'acquired' | 'other';
+export interface CompanyRelation {
+  id: string;
+  type: CompanyRelationType;
+  /** `from`: esta empresa é a origem da relação; `to`: é o destino. */
+  direction: 'from' | 'to';
+  other: { id: string; name: string; kind: CompanyKind };
+  validFrom: string;
+  validatedAt: string;
+  source: EvidenceSource;
+  mock?: boolean;
+}
+
+export interface CompanyProfile {
+  id: string;
+  name: string;
+  legalName: string;
+  kind: CompanyKind;
+  source: EvidenceSource;
+  relations: CompanyRelation[];
+  /** Pessoas só com a flag `intelligencePessoas` (J-01); desligada = indisponível. */
+  peopleAvailable: boolean;
+  mock?: boolean;
+}
+
+/** `unavailable` = a API falhou: a página diz isso, não finge que não há empresas. */
+export type CompanyDirectory =
+  | { status: 'ok'; items: CompanyListItem[]; total: number; kinds: { kind: CompanyKind; total: number }[] }
+  | { status: 'unavailable' };
+export type CompanyLookup = { status: 'ok'; company: CompanyProfile } | { status: 'not_found' } | { status: 'unavailable' };
+
 export type MetricState = 'ok' | 'unavailable' | 'stale';
 export interface MetricValue {
   label: string;
@@ -224,4 +276,8 @@ export interface PortalSource {
   getAd(slot: AdSlotId): Promise<AdCreative | null>;
   /** Home, menus, SEO e links internos publicados no Studio; `null` quando a fonte não os tem (vazia, MOCK) ou a API falha. */
   getSiteConfig(): Promise<SiteConfig | null>;
+  /** Diretório do Entity Intelligence (filtro por tipo e texto). */
+  getCompanyDirectory(filter?: { kind?: CompanyKind; q?: string }): Promise<CompanyDirectory>;
+  /** Empresa com relações declaradas e a fonte de cada uma. */
+  getCompany(id: string): Promise<CompanyLookup>;
 }

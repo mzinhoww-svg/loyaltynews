@@ -62,4 +62,10 @@ export const emptySource: PortalSource = {
   async getSiteConfig() {
     return null;
   },
+  async getCompanyDirectory() {
+    return { status: 'ok', items: [], total: 0, kinds: [] };
+  },
+  async getCompany() {
+    return { status: 'not_found' };
+  },
 };

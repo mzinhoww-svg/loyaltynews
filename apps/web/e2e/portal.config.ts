@@ -37,7 +37,7 @@ export default defineConfig({
         ? /(api-down|env)\.spec\.ts/
         : apiSite
           ? /api-site\.spec\.ts/
-          : /(api|api-site|api-agenda|env)\.spec\.ts/
+          : /(api|api-site|api-agenda|env|intelligence)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
         : /env\.spec\.ts/,

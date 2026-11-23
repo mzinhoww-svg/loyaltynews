@@ -5,8 +5,12 @@
 import { renderThumbnail, svgToDataUri } from '@ln/ui';
 import { EDITORIAS } from '../editorias';
 import { normalize } from '../format';
+import { filterDirectory, KIND_LABEL } from '../intelligence-source';
 import type {
   Article,
+  CompanyListItem,
+  CompanyProfile,
+  CompanyRelation,
   ContentType,
   EntitySummary,
   EventItem,
@@ -101,9 +105,28 @@ const moves: MoveItem[] = [
   },
 ];
 
-const companies: EntitySummary[] = [
-  { slug: 'mock-empresa-1', name: 'Empresa de Teste (MOCK)', segment: 'Programas de fidelidade', mock: true },
+// Entity Intelligence MOCK: três organizações sintéticas ligadas entre si (domínio .invalid; nunca empresas reais).
+const MOCK_SRC = (n: string) => ({ name: `Fonte de teste ${n} (MOCK)`, url: `https://fonte-${n}.invalid/pagina`, retrievedAt: '2026-11-20T12:00:00.000Z' });
+const ORG = {
+  a: { id: '00000000-0000-4000-8000-00000000000a', name: 'Empresa de Teste (MOCK)', kind: 'company' as const },
+  b: { id: '00000000-0000-4000-8000-00000000000b', name: 'Programa de Teste (MOCK)', kind: 'program' as const },
+  c: { id: '00000000-0000-4000-8000-00000000000c', name: 'Associação de Teste (MOCK)', kind: 'association' as const },
+};
+const rel = (id: string, type: CompanyRelation['type'], direction: 'from' | 'to', other: (typeof ORG)[keyof typeof ORG], n: string): CompanyRelation => ({
+  id, type, direction, other, validFrom: '2026-11-20', validatedAt: '2026-11-20T12:00:00.000Z', source: MOCK_SRC(n), mock: true,
+});
+const companyProfiles: CompanyProfile[] = [
+  { ...ORG.a, legalName: 'Empresa de Teste S.A. (MOCK)', source: MOCK_SRC('a'), peopleAvailable: false, mock: true,
+    relations: [rel('00000000-0000-4000-8000-0000000000ab', 'parent_of', 'from', ORG.b, 'ab'), rel('00000000-0000-4000-8000-0000000000ac', 'other', 'from', ORG.c, 'ac')] },
+  { ...ORG.b, legalName: 'Programa de Teste (MOCK)', source: MOCK_SRC('b'), peopleAvailable: false, mock: true,
+    relations: [rel('00000000-0000-4000-8000-0000000000ab', 'parent_of', 'to', ORG.a, 'ab')] },
+  { ...ORG.c, legalName: 'Associação de Teste (MOCK)', source: MOCK_SRC('c'), peopleAvailable: false, mock: true,
+    relations: [rel('00000000-0000-4000-8000-0000000000ac', 'other', 'to', ORG.a, 'ac')] },
 ];
+const companyItems: CompanyListItem[] = companyProfiles.map((c) => ({
+  id: c.id, name: c.name, legalName: c.legalName, kind: c.kind, relationCount: c.relations.length, validatedAt: c.source.retrievedAt, mock: true,
+}));
+const companies: EntitySummary[] = companyItems.map((c) => ({ slug: c.id, name: c.name, segment: KIND_LABEL[c.kind], lastReviewedAt: c.validatedAt, mock: true }));
 const people: EntitySummary[] = [{ slug: 'mock-pessoa-1', name: 'Pessoa de Teste (MOCK)', mock: true }];
 
 function paginate<T>(all: T[], page = 1, pageSize = 12): Page<T> {
@@ -170,5 +193,12 @@ export const mockSource: PortalSource = {
   },
   async getSiteConfig() {
     return null;
+  },
+  async getCompanyDirectory(filter) {
+    return filterDirectory(companyItems, filter);
+  },
+  async getCompany(id) {
+    const company = companyProfiles.find((c) => c.id === id);
+    return company ? { status: 'ok', company } : { status: 'not_found' };
   },
 };
