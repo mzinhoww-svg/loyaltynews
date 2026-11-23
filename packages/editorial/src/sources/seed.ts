@@ -1,4 +1,5 @@
 import type { Source } from '../types';
+import { SEED_BLOG_SOURCES } from './seed-blogs';
 
 /**
  * Registro de fontes primárias (Frente 06). GERADO da pesquisa somente-leitura de 22/11/2026 (docs/fontes-pesquisa.json,
@@ -6,7 +7,7 @@ import type { Source } from '../types';
  * a pesquisa registra o que foi lido, não aprova uso. 'verification.level' = lido | parcial | inacessivel.
  * Nunca preencher feedUrl/termsUrl sem abrir a URL. Imagens: nenhuma base de direito registrada (imageRights=null).
  */
-export const SEED_SOURCES: Source[] = [
+export const SEED_BASE_SOURCES: Source[] = [
   {
     "id": "azul-ri",
     "name": "Azul RI (Relações com Investidores)",
@@ -122,7 +123,7 @@ export const SEED_SOURCES: Source[] = [
     "pathPrefix": null,
     "listingUrl": "https://ri.magazineluiza.com.br/",
     "feedUrl": null,
-    "termsUrl": "não encontrado",
+    "termsUrl": "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==",
     "termsStatus": "pending",
     "urlVerified": false,
     "robotsRespected": true,
@@ -132,14 +133,14 @@ export const SEED_SOURCES: Source[] = [
     "maxRequestsPerHour": 6,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
-      "level": "inacessivel",
-      "robots": "indisponivel",
-      "robotsNote": "https://ri.magazineluiza.com.br/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.",
+      "level": "parcial",
+      "robots": "permitido",
+      "robotsNote": "Reavaliada em 2026-11-23 com o User-Agent identificado da fábrica: https://ri.magazineluiza.com.br/robots.txt responde 404 (ausente): nenhuma restrição declarada; a fábrica segue com 1 requisição espaçada por vez e limite por hora.",
       "termsExcerpt": null,
-      "termsFetchedAt": "2026-11-22",
-      "consultedAt": "2026-11-22",
+      "termsFetchedAt": "2026-11-23",
+      "consultedAt": "2026-11-23",
       "imageRightsNote": "não informado (site inacessível ao fetch automatizado).",
-      "notes": "robots.txt e home do RI retornaram HTTP 403 (provável WAF). Nenhuma outra URL tentada. Requer verificação manual por humano antes de ativar coleta; até lá, o CVM (fatos relevantes) é fonte primária equivalente. | Host do seed confirmado apenas via busca (comunicados ao mercado de MGLU3 citam o site de RI), mas pagina de comunicados nao foi aberta. Comunicados tambem existem na CVM/Empresas.NET (fonte alternativa a ser avaliada por outro lote/regulador)."
+      "notes": "Reavaliação de 2026-11-23 (antes: inacessivel por HTTP 403 em 22/11): home do RI responde 200 (≈63 mil caracteres, estática) e lista comunicados e releases; muitos itens são PDFs em /Download/..., que o coletor de HTML não lê. Sem feed nem sitemap declarado: a fonte só vira coletável quando houver feed/sitemap ou coleta por listagem. Classe D no dossiê (termos só afirmam titularidade). Revisão humana ainda decide termos, paywall e URL."
     }
   },
   {
@@ -527,15 +528,17 @@ export const SEED_SOURCES: Source[] = [
     "maxRequestsPerHour": 6,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
-      "level": "inacessivel",
-      "robots": "indisponivel",
-      "robotsNote": "https://www.livelo.com.br/robots.txt retornou HTTP 403 Forbidden ao acesso automatizado; não contornado.",
+      "level": "parcial",
+      "robots": "permitido",
+      "robotsNote": "Reavaliada em 2026-11-23 com o User-Agent identificado da fábrica: robots.txt 200 (Allow: /; Disallow só /api/, /autologin, /logout, /redirect-login-page; /imprensa permitido); Sitemap declarado: https://www.livelo.com.br/sitemap/sitemap.xml (índice). As páginas /imprensa/* estão no static-sitemap-0.xml (666 URLs; 1 leitura). Sem Crawl-delay.",
       "termsExcerpt": null,
-      "termsFetchedAt": "2026-11-22",
-      "consultedAt": "2026-11-22",
+      "termsFetchedAt": "2026-11-23",
+      "consultedAt": "2026-11-23",
       "imageRightsNote": "não informado (inacessível).",
-      "notes": "URL https://www.livelo.com.br/imprensa veio de resultado de busca (sala de imprensa da Livelo); robots.txt e /imprensa retornaram 403 ao fetch automatizado. Releases também são distribuídos via PR Newswire Brasil (https://www.prnewswire.com/br/comunicados-para-a-imprensa/), distribuição terceirizada não verificada aqui. Não coletar até verificação manual."
-    }
+      "notes": "Reavaliação de 2026-11-23 (antes: inacessivel por HTTP 403 do cliente genérico em 22/11): site e /imprensa respondem 200 com texto estático; o rodapé só leva a Regulamentos e Privacidade (classe D no dossiê de termos). Sem feed: a coleta usa o sitemap com prefixo /imprensa/. Se o coletor receber 403, registrar bloqueada e NÃO contornar. Revisão humana ainda decide termos, paywall e URL."
+    },
+    "sitemapUrl": "https://www.livelo.com.br/sitemap/static-sitemap-0.xml",
+    "sitemapPathPrefix": "/imprensa/"
   },
   {
     "id": "febraban",
@@ -670,9 +673,9 @@ export const SEED_SOURCES: Source[] = [
     "editorias": [
       "bancos"
     ],
-    "host": "ri.santander.com.br",
-    "pathPrefix": null,
-    "listingUrl": null,
+    "host": "www.santander.com.br",
+    "pathPrefix": "/ri",
+    "listingUrl": "https://www.santander.com.br/ri/",
     "feedUrl": null,
     "termsUrl": "não encontrado",
     "termsStatus": "pending",
@@ -686,12 +689,12 @@ export const SEED_SOURCES: Source[] = [
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
       "robots": "indisponivel",
-      "robotsNote": "https://ri.santander.com.br/robots.txt retornou HTTP 403 ao fetch automatizado. Nao contornado.",
+      "robotsNote": "Reavaliada em 2026-11-23 com o User-Agent identificado da fábrica: https://ri.santander.com.br/ responde 302 para https://www.santander.com.br/ri/, que responde HTTP 403 (Access Denied do CDN) tanto no robots.txt quanto na home. Sondagem do Data (480250c, outro cliente) obteve 200: o bloqueio depende do cliente. NÃO contornado.",
       "termsExcerpt": null,
-      "termsFetchedAt": "2026-11-22T18:47:20-03:00",
-      "consultedAt": "2026-11-22T18:47:20-03:00",
+      "termsFetchedAt": "2026-11-23",
+      "consultedAt": "2026-11-23",
       "imageRightsNote": "não informado",
-      "notes": "Somente robots.txt tentado (403). Nenhuma pagina de noticias confirmada."
+      "notes": "Reavaliação de 2026-11-23: segue BLOQUEADA para o nosso coletor (302 → www.santander.com.br/ri/ → 403). Registrada como inacessivel; não tentar outro User-Agent. Caminhos legítimos: o CVM (fatos relevantes), autorização/contato do RI do Santander ou nova sondagem quando o bloqueio mudar. O dossiê de termos (classe D) vale para o texto de privacidade lido na releitura anterior. Destino do redirecionamento cadastrado como a fonte (www.santander.com.br, prefixo /ri), conforme o Data (480250c); o coletor não segue redirecionamento para outro host (url_rejected)."
     }
   },
   {
@@ -1295,3 +1298,6 @@ export const SEED_SOURCES: Source[] = [
     }
   }
 ] as unknown as Source[];
+
+/** Cadastro completo: fontes primárias da pesquisa de 22/11 + blogs e imprensa de nicho da DP-29 (todas desabilitadas até a revisão humana). */
+export const SEED_SOURCES: Source[] = [...SEED_BASE_SOURCES, ...SEED_BLOG_SOURCES];

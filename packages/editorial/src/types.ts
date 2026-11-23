@@ -11,7 +11,13 @@ export type Editoria = EditoriaSlug;
 /** Assinatura institucional única (D09), definida em @ln/contracts. */
 export const SIGNATURE = ASSINATURA;
 
-export type SourceKind = 'investor_relations' | 'regulator' | 'press_room' | 'association' | 'government';
+export type SourceKind = 'investor_relations' | 'regulator' | 'press_room' | 'association' | 'government'
+  // DP-29: blogs especializados e imprensa de nicho. São fonte de PAUTA e contexto; fatos precisam de âncora em fonte primária.
+  | 'blog' | 'trade_media' | 'company_blog';
+/** primary = emissor oficial do fato (RI, regulador, governo, associação, sala de imprensa); secondary = blog/imprensa de nicho (relata o que outros disseram). */
+export type SourceTier = 'primary' | 'secondary';
+export const SECONDARY_KINDS: readonly SourceKind[] = ['blog', 'trade_media', 'company_blog'];
+export const sourceTier = (k: SourceKind): SourceTier => (SECONDARY_KINDS.includes(k) ? 'secondary' : 'primary');
 /** Estado da revisão dos termos de uso (J-14 do Blueprint: termos de cada fonte não verificados). */
 export type TermsStatus = 'pending' | 'approved' | 'denied';
 
@@ -28,6 +34,10 @@ export interface Source {
   listingUrl: string | null;
   /** URL de feed RSS/Atom. null = não identificado (nunca inventar). */
   feedUrl: string | null;
+  /** Sitemap declarado no robots.txt da fonte (alternativa ao feed; coleta espaçada). null/ausente = não usado. */
+  sitemapUrl?: string | null;
+  /** Só URLs do sitemap cujo caminho começa por este prefixo (ex.: '/noticias/'). */
+  sitemapPathPrefix?: string | null;
   termsUrl: string | null;
   termsStatus: TermsStatus;
   /** URL/host conferidos manualmente por humano/QA? Seed inicial = false. */
@@ -78,6 +88,10 @@ export interface Evidence {
   publishedAt: string | null;
   suspicious: boolean;     // instrução embutida detectada
   suspiciousReasons: string[];
+  /** Nível da fonte no momento da coleta (ausente = primary, como nas evidências anteriores à DP-29). */
+  sourceTier?: SourceTier;
+  /** Links http(s) do corpo da página (até 25): usados para ANCORAR fatos de blog em fonte primária habilitada. */
+  outboundLinks?: string[];
 }
 
 export type Verdict = 'pass' | 'fail' | 'inconclusive';
@@ -110,7 +124,11 @@ export interface Draft {
   image: ImageDecision;
   modelProvider: string;   // provedor que redigiu
   promptVersion: string;
+  /** Conteúdo AUTORAL (DP-29): pauta própria da redação, ancorada em fontes primárias. Ausente = matéria de reescrita. */
+  autoral?: { formato: AutoralFormat; pautaId: string };
 }
+export type AutoralFormat = 'analise' | 'explicador' | 'comparativo';
+export const AUTORAL_FORMATS: readonly AutoralFormat[] = ['analise', 'explicador', 'comparativo'];
 
 export type ImageDecision =
   | { mode: 'none'; reason: string }

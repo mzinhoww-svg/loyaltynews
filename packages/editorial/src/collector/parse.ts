@@ -42,7 +42,7 @@ export function parseFeed(xml: string): FeedItem[] {
   return items;
 }
 
-export interface HtmlMeta { title: string; canonical: string | null; publishedAt: string | null; bodyHtml: string }
+export interface HtmlMeta { title: string; canonical: string | null; publishedAt: string | null; bodyHtml: string; /** links http(s) absolutos do corpo escolhido (até 25, sem repetição) */ links: string[] }
 
 /** Blocos que nunca são conteúdo da matéria (menus, rodapé, avisos, formulários, mídia embutida). */
 const CHROME = /<(script|style|noscript|template|svg|iframe|nav|header|footer|aside|form|dialog|button|select)\b[\s\S]*?<\/\1>/gi;
@@ -73,7 +73,20 @@ export function paragraphsHtml(html: string): string {
 const MIN_BLOCK = 400;
 const textLen = (h: string) => stripHtml(h).replace(/\s+/g, ' ').trim().length;
 
-export function parseHtml(html: string): HtmlMeta {
+/** Links http(s) do trecho (resolvidos contra a base). Só o corpo da matéria: menus e rodapé ficam de fora quando há <article>/<main>. */
+export function linksIn(html: string, base?: string): string[] {
+  const out = new Set<string>();
+  for (const m of html.matchAll(/<a(?=[\s>])[^>]*?\shref=["']([^"'#][^"']*)["']/gi)) {
+    try {
+      const u = new URL(m[1]!.replace(/&amp;/g, '&'), base);
+      if (u.protocol === 'http:' || u.protocol === 'https:') out.add(u.toString());
+    } catch { /* ignora href inválido */ }
+    if (out.size >= 25) break;
+  }
+  return [...out];
+}
+
+export function parseHtml(html: string, base?: string): HtmlMeta {
   const og = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1];
   const t = tag(html, 'title');
   const h1 = tag(html, 'h1');
@@ -89,5 +102,18 @@ export function parseHtml(html: string): HtmlMeta {
     const paras = paragraphsHtml(html);
     if (main === null ? textLen(paras) >= MIN_BLOCK / 2 || textLen(paras) > textLen(block) : textLen(paras) > textLen(block)) bodyHtml = paras;
   }
-  return { title: stripHtml(og ?? h1 ?? t ?? ''), canonical, publishedAt: isoOrNull(pub), bodyHtml };
+  return { title: stripHtml(og ?? h1 ?? t ?? ''), canonical, publishedAt: isoOrNull(pub), bodyHtml, links: linksIn(main ?? block, base) };
+}
+
+export interface SitemapEntry { loc: string; lastmod: string | null }
+/** sitemap.xml: <urlset> (páginas) ou <sitemapindex> (outros sitemaps). Sem dependências; ignora entradas sem http(s). */
+export function parseSitemap(xml: string): { kind: 'urlset' | 'index'; entries: SitemapEntry[] } {
+  const kind = /<sitemapindex(?=[\s>])/i.test(xml) ? 'index' : 'urlset';
+  const entries: SitemapEntry[] = [];
+  for (const m of xml.matchAll(/<(url|sitemap)(?=[\s>])[^>]*>([\s\S]*?)<\/\1>/gi)) {
+    const loc = tag(m[2]!, 'loc')?.replace(/&amp;/g, '&').trim();
+    if (!loc || !/^https?:\/\//i.test(loc)) continue;
+    entries.push({ loc, lastmod: isoOrNull(tag(m[2]!, 'lastmod')) });
+  }
+  return { kind, entries };
 }

@@ -1,10 +1,11 @@
 import type { Evidence, Source } from '../types';
+import { sourceTier } from '../types';
 import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
 import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
-import { parseFeed, parseHtml } from './parse';
+import { parseFeed, parseHtml, parseSitemap } from './parse';
 import { sanitize } from './sanitize';
 import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
@@ -155,7 +156,7 @@ export class Collector {
     if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
-    const meta = parseHtml(r.body);
+    const meta = parseHtml(r.body, u.toString());
     const san = sanitize(meta.bodyHtml);
     if (!san.text) return { skip: { url, code: 'empty_content', detail: '' } };
     // A extração por parágrafos descarta comentários HTML: confere-os na página inteira (onde se esconde instrução para modelos).
@@ -171,6 +172,8 @@ export class Collector {
       contentSha256: hash, title: meta.title || hint?.title || '', text: san.text,
       publishedAt: meta.publishedAt ?? hint?.publishedAt ?? null,
       suspicious: san.suspicious, suspiciousReasons: san.reasons,
+      sourceTier: sourceTier(source.kind),
+      ...(meta.links.length ? { outboundLinks: meta.links } : {}),
     };
     return { evidence };
   }
@@ -190,6 +193,46 @@ export class Collector {
       else if (r.skip) {
         out.skipped.push(r.skip);
         // sem insistir quando a fonte pede pausa: limite por hora ou Crawl-delay excessivo
+        if (r.skip.code === 'rate_limited' || r.skip.code === 'crawl_delay_excessive') break;
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Coleta por SITEMAP (fontes sem feed que declaram sitemap no robots.txt). Mesmas salvaguardas do feed: elegibilidade, robots,
+   * host/pathPrefix, ritmo e parada em 429. Índice de sitemaps: abre só os 2 filhos de data mais recente. As páginas mais recentes
+   * (lastmod) que casam com sitemapPathPrefix são coletadas até o limite.
+   */
+  async collectSitemap(source: Source, limit = 20): Promise<CollectResult> {
+    requireFlag(this.flags, 'editorialCollector');
+    const out: CollectResult = { evidences: [], skipped: [] };
+    const el = eligibility(source);
+    if (!el.ok) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
+    const top = await this.collectRaw(source, source.sitemapUrl);
+    if (top.skip) { out.skipped.push(top.skip); return out; }
+    const parsed = parseSitemap(top.body!);
+    let pages = parsed.entries;
+    if (parsed.kind === 'index') {
+      const children = [...parsed.entries].sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')).slice(0, 2);
+      pages = [];
+      for (const c of children) {
+        const sub = await this.collectRaw(source, c.loc);
+        if (sub.skip) { out.skipped.push(sub.skip); if (sub.skip.code === 'rate_limited') return out; continue; }
+        pages.push(...parseSitemap(sub.body!).entries);
+      }
+    }
+    const prefix = source.sitemapPathPrefix ?? '/';
+    const chosen = pages
+      .filter((e) => { try { return new URL(e.loc).pathname.startsWith(prefix); } catch { return false; } })
+      .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))
+      .slice(0, limit);
+    for (const e of chosen) {
+      const r = await this.collectUrl(source, e.loc, { publishedAt: e.lastmod });
+      if (r.evidence) out.evidences.push(r.evidence);
+      else if (r.skip) {
+        out.skipped.push(r.skip);
         if (r.skip.code === 'rate_limited' || r.skip.code === 'crawl_delay_excessive') break;
       }
     }
