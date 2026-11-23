@@ -44,6 +44,20 @@ export function resolveSourceKind(env: Env = process.env): { kind: SourceKind; r
   return outsideDeploy ? { kind: 'mock', refusedMock: false } : { kind: 'empty', refusedMock: true };
 }
 
+/**
+ * Vitrine (Security R1/R2/R8): `PORTAL_VITRINE` só pode existir com o valor exato "1" e APP_ENV=staging.
+ * Qualquer outra combinação (inclusive produção/producao/homologacao) faz o BUILD falhar; em execução a fonte vazia é usada
+ * (ver resolveSourceKind). Chamada no carregamento de site.ts, que roda durante `next build`.
+ */
+export function assertVitrineEnv(env: Env = process.env): void {
+  const v = env.PORTAL_VITRINE;
+  if (v === undefined || v === '') return;
+  if (env.NEXT_PHASE !== 'phase-production-build') return;
+  if (v !== '1' || env.APP_ENV !== 'staging') {
+    throw new Error('Build recusado: PORTAL_VITRINE só é aceita com o valor 1 e APP_ENV=staging (decisão do Security; vitrine nunca em produção).');
+  }
+}
+
 /** robots.txt: bloqueado = nada rastreável e sem Sitemap; liberado = regra de produção. */
 export function robotsTxt(blocked: boolean, siteUrl: string): string {
   return blocked

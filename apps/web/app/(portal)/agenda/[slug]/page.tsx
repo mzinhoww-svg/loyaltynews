@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Sidebar } from '../../_components/Sidebar';
+import { WithSidebar } from '../../_components/Sidebar';
 import { MockTag, PageHead } from '../../_components/ui';
 import { formatDateTime } from '../../_lib/format';
 import { getSource } from '../../_lib/source';
@@ -41,7 +41,7 @@ export default async function EventPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <PageHead title={ev.title} crumbs={[{ label: 'Agenda', href: '/agenda' }, { label: ev.title }]} />
-      <div className="pt-layout">
+      <WithSidebar>
         <div>
           {ev.mock && <p><MockTag /> Evento sintético de teste.</p>}
           {ev.status === 'cancelado' && <p className="pt-state">Evento cancelado</p>}
@@ -63,8 +63,7 @@ export default async function EventPage({ params }: Props) {
           </p>
           <p><Link href="/agenda" className="pt-more">← Voltar à agenda</Link></p>
         </div>
-        <Sidebar />
-      </div>
+        </WithSidebar>
     </>
   );
 }

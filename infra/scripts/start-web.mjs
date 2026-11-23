@@ -26,6 +26,14 @@ export function startProblems(env, release) {
   const url = String(env.NEXT_PUBLIC_SITE_URL ?? '');
   if (!url) p.push(`NEXT_PUBLIC_SITE_URL ausente em execução: páginas dinâmicas e a revalidação da home voltariam a http://localhost:3000; defina ${release.siteUrl}`);
   else if (url !== release.siteUrl) p.push(`NEXT_PUBLIC_SITE_URL="${url}" difere do release.json ("${release.siteUrl}"; sem barra no fim, sem espaços)`);
+  // Vitrine (Security R3): em execução PORTAL_VITRINE tem de ser exatamente o que o release.json diz (1 com vitrine; ausente/vazia sem).
+  const vitEnv = String(env.PORTAL_VITRINE ?? '').trim();
+  const vitRel = release.vitrine === true ? '1' : '';
+  if (vitEnv !== vitRel) p.push(release.vitrine === true ? 'PORTAL_VITRINE ausente em execução: o pacote é de VITRINE (release.json.vitrine=true); defina PORTAL_VITRINE=1' : `PORTAL_VITRINE=${env.PORTAL_VITRINE} em execução, mas o pacote NÃO é de vitrine (release.json.vitrine=false): apague a variável`);
+  // DP-24: em execução PORTAL_INDEXAVEL tem de ser 1 só se o release.json for indexável (go-live); do contrário ausente.
+  const idxEnv = String(env.PORTAL_INDEXAVEL ?? ''); // exato, sem trim (I4)
+  const idxRel = release.indexavel === true ? '1' : '';
+  if (idxEnv !== idxRel) p.push(release.indexavel === true ? 'PORTAL_INDEXAVEL ausente em execução: o pacote é INDEXÁVEL (release.json.indexavel=true); defina PORTAL_INDEXAVEL=1' : `PORTAL_INDEXAVEL=${env.PORTAL_INDEXAVEL} em execução, mas o pacote NÃO é indexável (release.json.indexavel=false): apague a variável (a indexação só liga no go-live)`);
   const commit = String(env.APP_COMMIT ?? '');
   if (!/^[0-9a-f]{40}$/.test(commit)) p.push(`APP_COMMIT não é um SHA de 40 caracteres hexadecimais minúsculos (tamanho ${commit.length}); apague o valor inteiro e cole só ${release.commit}`);
   else if (commit !== release.commit) p.push(`APP_COMMIT=${commit} difere do release.json (${release.commit})`);

@@ -1,0 +1,1902 @@
+{
+  "schema": "ln.agents.routing-plan/1",
+  "nota": "GERADO. PROJEÇÃO com premissas de tokens NÃO medidas; não é cobrança nem autorização de chamada. Modelos não qualificados (R2-07/08) e production_enabled=false: nenhuma chamada real é feita.",
+  "politica": {
+    "arquivo": "packages/modelops/fixtures/model.policy.proposto-DP02-v5.json",
+    "sha256": "2641a8fe3d193af283d3984352ebce5464eed39da7941b62a29ed46afd359a71",
+    "version": "2.1-dp02-v5-proposta",
+    "rate_card_as_of": "2026-11-21",
+    "status": "proposta v5 aprovada pelo QA; contrato protegido ainda em v2.1"
+  },
+  "unidade_de_custo": "micro-USD (1 USD = 1_000_000)",
+  "cenario_conservador": {
+    "descricao": "todo participante gera insumo por chamada de modelo",
+    "resumo": {
+      "ok": true,
+      "expected_usd": "6.66",
+      "ceiling_usd": "12.39",
+      "essential_ceiling_usd": "5.40",
+      "non_essential_ceiling_usd": "6.99",
+      "escalation_ceiling_usd": "0.44",
+      "anthropic_headroom_usd": "9.61",
+      "openai_headroom_usd": "20.00",
+      "escalation_headroom_usd": "4.56"
+    },
+    "plano": {
+      "policyVersion": "2.1-dp02-v5-proposta",
+      "monthKey": "2026-12",
+      "holidayCalendar": "BR-nacional-v1",
+      "assumptions": {
+        "status": "PREMISSAS NAO MEDIDAS (medir em R4)",
+        "participantInput": {
+          "promptTokens": 1500,
+          "cacheReadTokens": 6000,
+          "maxOutputTokens": 700
+        },
+        "chairSynthesis": {
+          "promptTokens": 2000,
+          "cacheReadTokens": 6000,
+          "maxOutputTokens": 1500,
+          "extraPromptTokensPerParticipant": 400
+        },
+        "expectedOutputFraction": 0.6,
+        "incidentsPerMonth": 2,
+        "participantRouteWhenRitualIsPremium": "review",
+        "digestForConsolidation": false
+      },
+      "rituals": [
+        {
+          "meeting_id": "D-mercado",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-programas",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-pontos",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-bancos",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-varejo",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-travel",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-tech",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-crm",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-global",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-regulacao",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-editorial",
+          "cycle": "weekday",
+          "essential": true,
+          "route": "review",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 11,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 22400,
+              "ceilingMicroPerCall": 28400
+            }
+          ],
+          "expectedMicro": 2380400,
+          "ceilingMicro": 3190000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-creative",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 4,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 870,
+              "ceilingMicroPerCall": 5850
+            }
+          ],
+          "expectedMicro": 56100,
+          "ceilingMicro": 375100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-growth",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 7,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 990,
+              "ceilingMicroPerCall": 6450
+            }
+          ],
+          "expectedMicro": 86460,
+          "ceilingMicro": 573100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-intelligence",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 8,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 1030,
+              "ceilingMicroPerCall": 6650
+            }
+          ],
+          "expectedMicro": 96580,
+          "ceilingMicro": 639100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-commercial",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 3,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 830,
+              "ceilingMicroPerCall": 5650
+            }
+          ],
+          "expectedMicro": 45980,
+          "ceilingMicro": 309100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-technology",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 2,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 790,
+              "ceilingMicroPerCall": 5450
+            }
+          ],
+          "expectedMicro": 35860,
+          "ceilingMicro": 243100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-trust",
+          "cycle": "weekday",
+          "essential": true,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 4,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 870,
+              "ceilingMicroPerCall": 5850
+            }
+          ],
+          "expectedMicro": 56100,
+          "ceilingMicro": 375100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-sync",
+          "cycle": "weekday",
+          "essential": true,
+          "route": "review",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 5,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 17600,
+              "ceilingMicroPerCall": 23600
+            }
+          ],
+          "expectedMicro": 1245200,
+          "ceilingMicro": 1685200,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-pautas",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 14,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 24800,
+              "ceilingMicroPerCall": 30800
+            }
+          ],
+          "expectedMicro": 536000,
+          "ceilingMicro": 716800,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-cross",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "premium",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 7,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "premium",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-opus-5-5",
+              "modelCeiling": "claude-opus-5-5",
+              "expectedMicroPerCall": 38400,
+              "ceilingMicroPerCall": 50400
+            }
+          ],
+          "expectedMicro": 372000,
+          "ceilingMicro": 498400,
+          "escalationCeilingMicro": 201600
+        },
+        {
+          "meeting_id": "W-performance",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 6,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 18400,
+              "ceilingMicroPerCall": 24400
+            }
+          ],
+          "expectedMicro": 260800,
+          "ceilingMicro": 352000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-finops",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 3,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 16000,
+              "ceilingMicroPerCall": 22000
+            }
+          ],
+          "expectedMicro": 157600,
+          "ceilingMicro": 215200,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-trust",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 5,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 6,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 18400,
+              "ceilingMicroPerCall": 24400
+            }
+          ],
+          "expectedMicro": 326000,
+          "ceilingMicro": 440000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-intel",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 5,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 7,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 19200,
+              "ceilingMicroPerCall": 25200
+            }
+          ],
+          "expectedMicro": 369000,
+          "ceilingMicro": 497000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "M-board",
+          "cycle": "monthly",
+          "essential": false,
+          "route": "strategic",
+          "occurrencesInMonth": 1,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 7,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "strategic",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-fable-5-2",
+              "modelCeiling": "claude-fable-5-2",
+              "expectedMicroPerCall": 75600,
+              "ceilingMicroPerCall": 99600
+            }
+          ],
+          "expectedMicro": 130200,
+          "ceilingMicro": 173800,
+          "escalationCeilingMicro": 99600
+        },
+        {
+          "meeting_id": "M-model",
+          "cycle": "monthly",
+          "essential": false,
+          "route": "premium",
+          "occurrencesInMonth": 1,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 6,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "premium",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-opus-5-5",
+              "modelCeiling": "claude-opus-5-5",
+              "expectedMicroPerCall": 36800,
+              "ceilingMicroPerCall": 48800
+            }
+          ],
+          "expectedMicro": 83600,
+          "ceilingMicro": 112400,
+          "escalationCeilingMicro": 48800
+        },
+        {
+          "meeting_id": "M-commercial",
+          "cycle": "monthly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 1,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 5,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 17600,
+              "ceilingMicroPerCall": 23600
+            }
+          ],
+          "expectedMicro": 56600,
+          "ceilingMicro": 76600,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "X-incident",
+          "cycle": "event",
+          "essential": true,
+          "route": "premium",
+          "occurrencesInMonth": 2,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 3,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "premium",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-opus-5-5",
+              "modelCeiling": "claude-opus-5-5",
+              "expectedMicroPerCall": 32000,
+              "ceilingMicroPerCall": 44000
+            }
+          ],
+          "expectedMicro": 110800,
+          "ceilingMicro": 151600,
+          "escalationCeilingMicro": 88000
+        }
+      ],
+      "totals": {
+        "expectedMicro": 6662680,
+        "ceilingMicro": 12394600,
+        "essentialCeilingMicro": 5401900,
+        "nonEssentialCeilingMicro": 6992700,
+        "escalationCeilingMicro": 438000,
+        "byProviderCeilingMicro": {
+          "anthropic": 12394600
+        }
+      },
+      "caps": {
+        "hardMonthlyMicro": 50000000,
+        "anthropicAllocationMicro": 22000000,
+        "openaiAllocationMicro": 20000000,
+        "escalationSublimitMicro": 5000000
+      },
+      "headroomMicro": {
+        "anthropic": 9605400,
+        "openai": 20000000,
+        "escalation": 4562000
+      },
+      "checks": [
+        {
+          "id": "no_unknown_cost",
+          "severity": "error",
+          "ok": true,
+          "detail": "toda chamada de ritual tem rota, modelo elegível e preço"
+        },
+        {
+          "id": "hard_cap",
+          "severity": "error",
+          "ok": true,
+          "detail": "teto dos rituais 12394600 <= 50000000 micro-USD (US$ 50)"
+        },
+        {
+          "id": "anthropic_allocation",
+          "severity": "error",
+          "ok": true,
+          "detail": "anthropic 12394600 <= verba 22000000"
+        },
+        {
+          "id": "openai_not_used_by_rituals",
+          "severity": "error",
+          "ok": true,
+          "detail": "OpenAI só na rota de revisão (fact-check, auditoria): rituais não a usam"
+        },
+        {
+          "id": "escalation_sublimit",
+          "severity": "error",
+          "ok": true,
+          "detail": "escalonamento (Opus/Fable) 438000 <= sublimite 5000000"
+        },
+        {
+          "id": "no_images_no_deepseek",
+          "severity": "error",
+          "ok": true,
+          "detail": "imagens e DeepSeek têm verba zero (DP-04)"
+        },
+        {
+          "id": "rituals_leave_room_for_editorial",
+          "severity": "warning",
+          "ok": false,
+          "detail": "HEURISTICA AgentOps: rituais (teto) <= 50% da verba Anthropic, para sobrar ao editorial; teto dos rituais 12394600 de 22000000"
+        }
+      ],
+      "ok": true
+    }
+  },
+  "cenario_digest_na_consolidacao": {
+    "descricao": "insumos dos rituais de consolidação (D-editorial, D-sync, W-pautas, W-cross, W-performance, W-finops, W-trust, W-intel, M-board, M-model, M-commercial) vêm de digest determinístico (ADR-014); só a síntese do presidente chama modelo",
+    "resumo": {
+      "ok": true,
+      "expected_usd": "2.33",
+      "ceiling_usd": "6.51",
+      "essential_ceiling_usd": "1.67",
+      "non_essential_ceiling_usd": "4.84",
+      "escalation_ceiling_usd": "0.44",
+      "anthropic_headroom_usd": "15.49",
+      "openai_headroom_usd": "20.00",
+      "escalation_headroom_usd": "4.56"
+    },
+    "plano": {
+      "policyVersion": "2.1-dp02-v5-proposta",
+      "monthKey": "2026-12",
+      "holidayCalendar": "BR-nacional-v1",
+      "assumptions": {
+        "status": "PREMISSAS NAO MEDIDAS (medir em R4)",
+        "participantInput": {
+          "promptTokens": 1500,
+          "cacheReadTokens": 6000,
+          "maxOutputTokens": 700
+        },
+        "chairSynthesis": {
+          "promptTokens": 2000,
+          "cacheReadTokens": 6000,
+          "maxOutputTokens": 1500,
+          "extraPromptTokensPerParticipant": 400
+        },
+        "expectedOutputFraction": 0.6,
+        "incidentsPerMonth": 2,
+        "participantRouteWhenRitualIsPremium": "review",
+        "digestForConsolidation": true
+      },
+      "rituals": [
+        {
+          "meeting_id": "D-mercado",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-programas",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-pontos",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-bancos",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-varejo",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-travel",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-tech",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-crm",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-global",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-regulacao",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 750,
+              "ceilingMicroPerCall": 5250
+            }
+          ],
+          "expectedMicro": 25740,
+          "ceilingMicro": 177100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-editorial",
+          "cycle": "weekday",
+          "essential": true,
+          "route": "review",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 22400,
+              "ceilingMicroPerCall": 28400
+            }
+          ],
+          "expectedMicro": 492800,
+          "ceilingMicro": 624800,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-creative",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 4,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 870,
+              "ceilingMicroPerCall": 5850
+            }
+          ],
+          "expectedMicro": 56100,
+          "ceilingMicro": 375100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-growth",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 7,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 990,
+              "ceilingMicroPerCall": 6450
+            }
+          ],
+          "expectedMicro": 86460,
+          "ceilingMicro": 573100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-intelligence",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 8,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 1030,
+              "ceilingMicroPerCall": 6650
+            }
+          ],
+          "expectedMicro": 96580,
+          "ceilingMicro": 639100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-commercial",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 3,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 830,
+              "ceilingMicroPerCall": 5650
+            }
+          ],
+          "expectedMicro": 45980,
+          "ceilingMicro": 309100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-technology",
+          "cycle": "weekday",
+          "essential": false,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 2,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 790,
+              "ceilingMicroPerCall": 5450
+            }
+          ],
+          "expectedMicro": 35860,
+          "ceilingMicro": 243100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-trust",
+          "cycle": "weekday",
+          "essential": true,
+          "route": "economy",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "economy",
+              "callsPerOccurrence": 4,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 420,
+              "ceilingMicroPerCall": 2800
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "economy",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-haiku-5-5",
+              "modelCeiling": "claude-haiku-5-5",
+              "expectedMicroPerCall": 870,
+              "ceilingMicroPerCall": 5850
+            }
+          ],
+          "expectedMicro": 56100,
+          "ceilingMicro": 375100,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "D-sync",
+          "cycle": "weekday",
+          "essential": true,
+          "route": "review",
+          "occurrencesInMonth": 22,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 17600,
+              "ceilingMicroPerCall": 23600
+            }
+          ],
+          "expectedMicro": 387200,
+          "ceilingMicro": 519200,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-pautas",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 24800,
+              "ceilingMicroPerCall": 30800
+            }
+          ],
+          "expectedMicro": 99200,
+          "ceilingMicro": 123200,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-cross",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "premium",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "premium",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-opus-5-5",
+              "modelCeiling": "claude-opus-5-5",
+              "expectedMicroPerCall": 38400,
+              "ceilingMicroPerCall": 50400
+            }
+          ],
+          "expectedMicro": 153600,
+          "ceilingMicro": 201600,
+          "escalationCeilingMicro": 201600
+        },
+        {
+          "meeting_id": "W-performance",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 18400,
+              "ceilingMicroPerCall": 24400
+            }
+          ],
+          "expectedMicro": 73600,
+          "ceilingMicro": 97600,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-finops",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 4,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 16000,
+              "ceilingMicroPerCall": 22000
+            }
+          ],
+          "expectedMicro": 64000,
+          "ceilingMicro": 88000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-trust",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 5,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 18400,
+              "ceilingMicroPerCall": 24400
+            }
+          ],
+          "expectedMicro": 92000,
+          "ceilingMicro": 122000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "W-intel",
+          "cycle": "weekly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 5,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 19200,
+              "ceilingMicroPerCall": 25200
+            }
+          ],
+          "expectedMicro": 96000,
+          "ceilingMicro": 126000,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "M-board",
+          "cycle": "monthly",
+          "essential": false,
+          "route": "strategic",
+          "occurrencesInMonth": 1,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "strategic",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-fable-5-2",
+              "modelCeiling": "claude-fable-5-2",
+              "expectedMicroPerCall": 75600,
+              "ceilingMicroPerCall": 99600
+            }
+          ],
+          "expectedMicro": 75600,
+          "ceilingMicro": 99600,
+          "escalationCeilingMicro": 99600
+        },
+        {
+          "meeting_id": "M-model",
+          "cycle": "monthly",
+          "essential": false,
+          "route": "premium",
+          "occurrencesInMonth": 1,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "premium",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-opus-5-5",
+              "modelCeiling": "claude-opus-5-5",
+              "expectedMicroPerCall": 36800,
+              "ceilingMicroPerCall": 48800
+            }
+          ],
+          "expectedMicro": 36800,
+          "ceilingMicro": 48800,
+          "escalationCeilingMicro": 48800
+        },
+        {
+          "meeting_id": "M-commercial",
+          "cycle": "monthly",
+          "essential": false,
+          "route": "review",
+          "occurrencesInMonth": 1,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 0,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "review",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 17600,
+              "ceilingMicroPerCall": 23600
+            }
+          ],
+          "expectedMicro": 17600,
+          "ceilingMicro": 23600,
+          "escalationCeilingMicro": 0
+        },
+        {
+          "meeting_id": "X-incident",
+          "cycle": "event",
+          "essential": true,
+          "route": "premium",
+          "occurrencesInMonth": 2,
+          "calls": [
+            {
+              "role": "participant_input",
+              "route": "review",
+              "callsPerOccurrence": 3,
+              "modelExpected": "claude-sonnet-5-5",
+              "modelCeiling": "claude-sonnet-5-5",
+              "expectedMicroPerCall": 7800,
+              "ceilingMicroPerCall": 10600
+            },
+            {
+              "role": "chair_synthesis",
+              "route": "premium",
+              "callsPerOccurrence": 1,
+              "modelExpected": "claude-opus-5-5",
+              "modelCeiling": "claude-opus-5-5",
+              "expectedMicroPerCall": 32000,
+              "ceilingMicroPerCall": 44000
+            }
+          ],
+          "expectedMicro": 110800,
+          "ceilingMicro": 151600,
+          "escalationCeilingMicro": 88000
+        }
+      ],
+      "totals": {
+        "expectedMicro": 2333680,
+        "ceilingMicro": 6511600,
+        "essentialCeilingMicro": 1670700,
+        "nonEssentialCeilingMicro": 4840900,
+        "escalationCeilingMicro": 438000,
+        "byProviderCeilingMicro": {
+          "anthropic": 6511600
+        }
+      },
+      "caps": {
+        "hardMonthlyMicro": 50000000,
+        "anthropicAllocationMicro": 22000000,
+        "openaiAllocationMicro": 20000000,
+        "escalationSublimitMicro": 5000000
+      },
+      "headroomMicro": {
+        "anthropic": 15488400,
+        "openai": 20000000,
+        "escalation": 4562000
+      },
+      "checks": [
+        {
+          "id": "no_unknown_cost",
+          "severity": "error",
+          "ok": true,
+          "detail": "toda chamada de ritual tem rota, modelo elegível e preço"
+        },
+        {
+          "id": "hard_cap",
+          "severity": "error",
+          "ok": true,
+          "detail": "teto dos rituais 6511600 <= 50000000 micro-USD (US$ 50)"
+        },
+        {
+          "id": "anthropic_allocation",
+          "severity": "error",
+          "ok": true,
+          "detail": "anthropic 6511600 <= verba 22000000"
+        },
+        {
+          "id": "openai_not_used_by_rituals",
+          "severity": "error",
+          "ok": true,
+          "detail": "OpenAI só na rota de revisão (fact-check, auditoria): rituais não a usam"
+        },
+        {
+          "id": "escalation_sublimit",
+          "severity": "error",
+          "ok": true,
+          "detail": "escalonamento (Opus/Fable) 438000 <= sublimite 5000000"
+        },
+        {
+          "id": "no_images_no_deepseek",
+          "severity": "error",
+          "ok": true,
+          "detail": "imagens e DeepSeek têm verba zero (DP-04)"
+        },
+        {
+          "id": "rituals_leave_room_for_editorial",
+          "severity": "warning",
+          "ok": true,
+          "detail": "HEURISTICA AgentOps: rituais (teto) <= 50% da verba Anthropic, para sobrar ao editorial; teto dos rituais 6511600 de 22000000"
+        }
+      ],
+      "ok": true
+    }
+  }
+}
