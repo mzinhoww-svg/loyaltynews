@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { addDays, isRescheduled, occurrencesOn } from '@ln/agents';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { hojeSP } from '@/lib/studio/datas';
 import { findModule } from '@/lib/studio/modules';
 import { getCalendarioBr, getOrganizacao, getStoreAgentes } from '@/lib/studio/agentes';
@@ -33,7 +33,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
       <h1>Calendário de reuniões</h1>
       <SemRotaBackend o_que="Rituais vêm da configuração; reuniões agendadas aqui são registros do Studio." />
       <p>
-        Rituais no fuso America/Sao_Paulo, com feriados nacionais. Execução dos rituais: <strong>{isEnabled('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais, ativa só após o gate R4).
+        Rituais no fuso America/Sao_Paulo, com feriados nacionais. Execução dos rituais: <strong>{flagAtiva('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais, ativa só após o gate R4).
       </p>
       <nav aria-label="Navegar entre dias" className="st-actions" style={{ marginBottom: 12 }}>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, -1)}`}>

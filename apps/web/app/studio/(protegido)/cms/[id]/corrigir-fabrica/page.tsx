@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { FLAG_DEFAULTS } from '@ln/contracts';
-import { getDeps } from '@/app/api/_lib/deps';
+import { flagAtiva } from '@/lib/studio/flags';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
@@ -61,7 +60,7 @@ export default async function CorrigirFabrica({ params, searchParams }: { params
   }
   const casosResp = await api.editorial.correcoes({});
   const casos = (!ehErro(casosResp) ? ((casosResp.body as { items: { id: string; articleId: string; kind: string; state: string }[] }).items ?? []) : []).filter((c) => c.articleId === id && ACEITOS.includes(c.state));
-  const ligada = (getDeps()?.flags ?? FLAG_DEFAULTS).publicacaoPortal === true;
+  const ligada = flagAtiva('publicacaoPortal');
   const urlBase = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   const d = base.rascunho;
   const inicial = { ...edicaoInicial(base, casos[0]?.id ?? ''), url: urlBase ? `${urlBase}/noticia/${d.slug}` : (base.publicacao?.url ?? '') };

@@ -25,7 +25,7 @@ test.describe('Biblioteca de mídia (/api/midia)', () => {
       if (extra.evidencia) await reg.getByLabel('Referência da evidência').fill(extra.evidencia);
     };
     await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
-    await erro(page, /direitos\.url/);
+    await erro(page, /URL do ativo/); // nome do campo como na tela, não o caminho interno (direitos.url)
 
     await preencher('https://exemplo.com.br/a.jpg', HASH, { base: 'licenca' });
     await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
@@ -110,7 +110,7 @@ test.describe('Agenda (/api/agenda)', () => {
     await page.getByLabel(/Início/).fill('2099-12-01');
     await page.getByLabel('Local').fill('São Paulo');
     await enviar(page, page.getByRole('button', { name: 'Criar evento' }));
-    await erro(page, /fonteUrl/);
+    await erro(page, /URL da fonte oficial/); // nome do campo como na tela, não fonteUrl
 
     const criar = async (titulo: string, inicio: string, fim: string) => {
       await page.getByLabel('Título').fill(titulo);

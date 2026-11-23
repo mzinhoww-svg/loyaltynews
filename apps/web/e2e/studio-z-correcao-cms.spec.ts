@@ -141,3 +141,29 @@ test('sem caso aceito o Backend recusa; revisão não ocorre fora de caso; leitu
   await expect(page.getByRole('button', { name: 'Salvar revisão' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Publicar correção' })).toHaveCount(0);
 });
+
+test('destaque da home: seletor de matérias publicadas com busca, sem digitar slug', async ({ page, context }) => {
+  await entrar(context, 'ana', 'editor_chefe');
+  await page.goto('/studio/home-menus');
+  // sem resultado para o que não existe
+  await page.getByLabel('Buscar matéria publicada para o destaque (por título)').fill('Zzz sem materia');
+  await page.getByRole('button', { name: 'Buscar matéria' }).click();
+  await expect(page.locator('[data-vazio="materias"]').first()).toBeVisible();
+  // busca por título acha a matéria publicada (e corrigida) e a fixa no destaque
+  await page.goto('/studio/home-menus?tipo=home&busca=Banco%20Beta');
+  await page.getByLabel('Tipo de bloco').selectOption('destaque');
+  await page.locator('[data-seletor="materias"]').last().getByLabel(/Banco Beta revisa tarifas/).check();
+  await page.getByLabel('Título (opcional)').fill('Em destaque');
+  await enviar(page, page.getByRole('button', { name: 'Adicionar bloco ao rascunho' }));
+  await sucesso(page, 'Rascunho salvo');
+  await expect(page.locator('[data-bloco="destaque"]')).toContainText('Destaque');
+  // o bloco guardou o slug da matéria (não texto digitado)
+  const rascunho = (await api(context, 'GET', '/api/site/documentos/home')).body.data.rascunho.conteudo as { blocos: { tipo: string; materiaSlugs?: string[] }[] };
+  const destaque = rascunho.blocos.find((b) => b.tipo === 'destaque')!;
+  expect(destaque.materiaSlugs?.length).toBe(1);
+  // publica: o Backend aceita porque a matéria está publicada; o Portal recebe o destaque resolvido
+  await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+  await sucesso(page, 'Documento publicado.');
+  const publico = (await api(context, 'GET', '/api/publico/site')).body.data.home.blocos as { tipo: string; materias?: unknown[] }[];
+  expect(publico.find((b) => b.tipo === 'destaque')?.materias?.length).toBe(1);
+});

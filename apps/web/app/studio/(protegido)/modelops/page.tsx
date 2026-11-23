@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { isEnabled, modelCallsAllowed } from '@ln/contracts';
+import { modelCallsAllowed } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { TASK_CATALOG, route } from '@ln/modelops';
 import { findModule } from '@/lib/studio/modules';
 import { POLITICA_ROTULO, carregarPolitica } from '@/lib/studio/modelops';
@@ -26,7 +27,7 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
     );
   }
   const policy = pol.policy;
-  const flag = isEnabled('modelosHabilitados');
+  const flag = flagAtiva('modelosHabilitados');
   const reais = modelCallsAllowed(policy as unknown as Parameters<typeof modelCallsAllowed>[0], flag);
   const simular = Boolean(q.task);
   const decisao = simular

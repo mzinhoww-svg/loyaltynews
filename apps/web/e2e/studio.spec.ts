@@ -84,6 +84,18 @@ test.describe('shell e navegação', () => {
     }
   });
 
+  test('botão feito com link mantém o texto visível (cor do texto ≠ cor do fundo)', async ({ page, context }) => {
+    await entrar(context, 'ana', 'admin');
+    await page.goto('/studio/cms');
+    const primario = page.getByRole('link', { name: 'Nova matéria' });
+    const cores = await primario.evaluate((el) => ({ texto: getComputedStyle(el).color, fundo: getComputedStyle(el).backgroundColor }));
+    expect(cores.texto).not.toBe(cores.fundo);
+    expect(cores.texto).toBe('rgb(255, 255, 255)');
+    const secundario = page.getByRole('link', { name: 'Fila de checagem' });
+    const sec = await secundario.evaluate((el) => ({ texto: getComputedStyle(el).color, fundo: getComputedStyle(el).backgroundColor }));
+    expect(sec.texto).not.toBe(sec.fundo);
+  });
+
   test('flag desligada aparece no módulo', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio/social');
