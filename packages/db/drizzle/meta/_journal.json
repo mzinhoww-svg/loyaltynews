@@ -176,6 +176,13 @@
       "when": 1795448461583,
       "tag": "0024_growth_media_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795450141332,
+      "tag": "0025_titular_pedidos",
+      "breakpoints": true
     }
   ]
 }
