@@ -238,6 +238,30 @@ test.describe('honestidade de dados', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
+  test('P2-a: rótulos do mapa legíveis (≥ 11 px reais) e dentro das caixas, no desktop e no celular', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const r = await page.evaluate(() => {
+      const svg = document.querySelector('[data-testid="mk-mapa"] svg') as SVGSVGElement;
+      const k = svg.getScreenCTM()!.a;
+      const px = (sel: string) => [...svg.querySelectorAll(sel)].map((t) => parseFloat(getComputedStyle(t).fontSize) * k);
+      const fora: string[] = [];
+      for (const g of svg.querySelectorAll('g[data-position]')) {
+        const rect = g.querySelector('rect')!.getBBox();
+        for (const t of g.querySelectorAll('text')) {
+          const b = (t as SVGTextElement).getBBox();
+          if (b.x < rect.x || b.x + b.width > rect.x + rect.width || b.y < rect.y || b.y + b.height > rect.y + rect.height) fora.push(`${g.getAttribute('data-position')}: ${t.textContent}`);
+        }
+      }
+      const ed = svg.querySelector('[data-testid="mk-mapa-editorial"]')!;
+      const er = ed.querySelector('rect')!.getBBox();
+      for (const t of ed.querySelectorAll('text')) { const b = (t as SVGTextElement).getBBox(); if (b.x + b.width > er.x + er.width || b.y + b.height > er.y + er.height) fora.push(`editorial: ${t.textContent}`); }
+      return { nomes: px('.pt-map-text'), dims: px('.pt-map-small'), legenda: px('.pt-map-cap'), fora };
+    });
+    for (const v of [...r.nomes, ...r.dims, ...r.legenda]) expect(v).toBeGreaterThanOrEqual(11);
+    expect(r.nomes.length).toBeGreaterThan(5);
+    expect(r.fora).toEqual([]);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');

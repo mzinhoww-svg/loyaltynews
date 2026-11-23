@@ -148,3 +148,10 @@
   .pt-map figcaption { grid-column: 1; grid-row: 2; }
   .pt-map-list { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
 }
+
+/* P2-a (UI/UX): o viewBox (672 unidades) vai a ~380 px no celular, escala ~0,56; sobe as fontes (unidades do viewBox) para o texto render >= 11 px */
+@media (max-width: 639px) {
+  .pt-map .pt-map-text { font-size: 26px; }
+  .pt-map .pt-map-small { font-size: 22px; }
+  .pt-map .pt-map-cap { font-size: 20px; }
+}
