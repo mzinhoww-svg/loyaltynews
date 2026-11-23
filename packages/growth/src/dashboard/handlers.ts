@@ -1,3 +1,4 @@
+import type { SocialMetricsSource } from '../metrics/mlabs-metrics';
 import { apiError, type ApiError } from '@ln/contracts';
 import { z } from 'zod';
 import { CopyRefusal } from '../copy/engine';
@@ -29,6 +30,8 @@ export interface DashboardDeps {
   publisher: SocialPublisher;
   flags: GrowthFlags;
   now: () => string;
+  /** Métricas do canal (mLabs, só leitura). Opcional: sem fonte, o painel mostra "indisponível". */
+  metrics?: SocialMetricsSource;
 }
 
 export interface HandlerResult<T> {
@@ -151,6 +154,14 @@ export async function getDashboardSummary(deps: DashboardDeps, caller: Caller): 
     .map(([blocker, count]) => ({ blocker, count }))
     .sort((a, b) => b.count - a.count || a.blocker.localeCompare(b.blocker))
     .slice(0, 8);
+  let metrics: DashboardSummary['metrics'] = { available: false, reason: 'integração de métricas não configurada; sem números fictícios' };
+  if (deps.metrics) {
+    try {
+      metrics = { available: true, data: await deps.metrics.read() };
+    } catch {
+      metrics = { available: false, reason: 'leitura de métricas falhou; sem números fictícios' };
+    }
+  }
   const live = deps.publisher.mode === 'live';
   const mode = live ? 'real' : 'simulado';
   return ok<DashboardSummary>({
@@ -162,7 +173,7 @@ export async function getDashboardSummary(deps: DashboardDeps, caller: Caller): 
     ],
     topBlockers,
     brandStatus: TOKENS.status,
-    metrics: { available: false, reason: 'integração de métricas ainda não construída; sem números fictícios' },
+    metrics,
     note: live ? 'Adaptador REAL ativo.' : 'Modo simulado: nada é enviado ao mLabs.',
   });
 }
