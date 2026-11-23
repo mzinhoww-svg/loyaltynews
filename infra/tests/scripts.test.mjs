@@ -1,7 +1,7 @@
 // Testes dos scripts de infra (node:test, sem dependências). Rodar: node --test infra/tests/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1183,4 +1183,18 @@ test('guards: jobsProblems exige LN_INTELLIGENCE_ALERTS/PESSOAS = release.json.j
   assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_REREAD: 'on' }, { jobsIntelligence: ['alertas'] }).join('|'), /LN_INTELLIGENCE_REREAD definida/);
   assert.match(jobsProblems({ ...ok, LN_FLAGS_ON: '' }, { jobsIntelligence: ['alertas'] }).join('|'), /exige LN_FLAGS_ON com intelligencePessoas/);
   assert.match(jobsProblems({ ...ok, APP_ENV: 'production' }, { jobsIntelligence: ['alertas'] }).join('|'), /só o staging/);
+});
+
+test('guards: LN_OPENBOT_PILOT só no staging; LN_FLAGS_ON=openbotDispatch em produção reprova; contrato declara as variáveis do piloto', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', LN_OPENBOT_PILOT: 'on' }, { deploy: true }).filter((m) => /LN_OPENBOT_PILOT/.test(m)), []);
+  assert.match(envProblems({ APP_ENV: 'production', LN_OPENBOT_PILOT: 'on' }).join('|'), /LN_OPENBOT_PILOT definida em produção/);
+  assert.match(envProblems({ APP_ENV: 'producao', LN_OPENBOT_PILOT: 'on' }).join('|'), /LN_OPENBOT_PILOT definida em produção/);
+  assert.match(envProblems({ APP_ENV: 'homolog', LN_OPENBOT_PILOT: 'on' }, { deploy: true }).join('|'), /só existe com APP_ENV=staging/);
+  assert.deepEqual(envProblems({ APP_ENV: 'production' }).filter((m) => /OPENBOT/.test(m)), []);
+  assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'openbotDispatch' }).join('|'), /LN_FLAGS_ON definida em produção/);
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  const nomes = c.variaveis.map((v) => v.nome);
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT', 'MLABS_MCP_TOKEN', 'MLABS_MCP_URL', 'MLABS_PROFILE_ID', 'MLABS_CHANNEL_ID']) assert.ok(nomes.includes(n), n);
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'MLABS_MCP_TOKEN']) assert.equal(c.variaveis.find((v) => v.nome === n).secreto, true, n);
 });

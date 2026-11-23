@@ -214,6 +214,90 @@
         "workers"
       ],
       "provisorio": true
+    },
+    {
+      "nome": "LN_FLAGS_ON",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "so_staging": true,
+      "dono_do_codigo": "packages/contracts (resolveFlags, ADR-022)",
+      "nota": "Lista de nomes de flag separados por virgula, sem espacos. SO com APP_ENV=staging; em producao a variavel DEFINIDA reprova no guard-env (build e start) e a flag liga por commit revisado em FLAG_RELEASES. E definida pelo PACOTE (package-web --flags grava flagsLigadas no release.json); o guard-env recusa se divergir. Flags sem decisao para o ambiente (ex.: openbotDispatch em production) fazem a subida falhar no codigo."
+    },
+    {
+      "nome": "LN_OPENBOT_PILOT",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "so_staging": true,
+      "dono_do_codigo": "packages/openbot (Integration; DP-41)",
+      "nota": "Liga o piloto OpenBot. SO com APP_ENV=staging e valor on; em production (ou qualquer APP_ENV diferente de staging) a variavel DEFINIDA reprova no guard-env (build e start). Fora do release.json: quem liga e o PM por set_env no staging, depois do checklist ATIVACAO-STAGING.md."
+    },
+    {
+      "nome": "OPENBOT_HMAC_SECRET",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "dono_do_codigo": "packages/openbot (Integration)",
+      "nota": "Segredo HMAC das tarefas do OpenBot. Do cofre, via set_env, nunca em arquivo, chat ou commit. Valor DISTINTO em staging e producao."
+    },
+    {
+      "nome": "OPENBOT_HMAC_SECRET_PREVIOUS",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "opcional": true,
+      "dono_do_codigo": "packages/openbot (Integration)",
+      "nota": "Segredo anterior, aceito so durante a rotacao; apagar depois. Mesmas regras de OPENBOT_HMAC_SECRET."
+    },
+    {
+      "nome": "MLABS_MCP_TOKEN",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "opcional": true,
+      "dono_do_codigo": "packages/growth (resumo social)",
+      "nota": "Token somente leitura do mLabs, do cofre. Opcional: sem ele a rota do resumo social fica desligada."
+    },
+    {
+      "nome": "MLABS_MCP_URL",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "opcional": true,
+      "dono_do_codigo": "packages/growth (resumo social)"
+    },
+    {
+      "nome": "MLABS_PROFILE_ID",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "opcional": true,
+      "dono_do_codigo": "packages/growth (resumo social)"
+    },
+    {
+      "nome": "MLABS_CHANNEL_ID",
+      "secreto": false,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "opcional": true,
+      "dono_do_codigo": "packages/growth (resumo social)"
     }
   ],
   "so_para_ci_nao_vai_para_a_vertra": [

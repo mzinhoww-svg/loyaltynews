@@ -70,6 +70,12 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
     else if (ambFlags === 'staging' && !/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
     else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
   }
+  // Piloto OpenBot (DP-41): LN_OPENBOT_PILOT só com APP_ENV=staging; em produção (ou qualquer outro ambiente de deploy) a variável DEFINIDA reprova.
+  if (String(env.LN_OPENBOT_PILOT ?? '').trim() !== '') {
+    const ambPiloto = String(env.APP_ENV ?? '').trim().toLowerCase();
+    if (prod) p.push('LN_OPENBOT_PILOT definida em produção: o piloto OpenBot é só do staging (DP-41)');
+    else if (ambPiloto !== 'staging' && deploy) p.push(`LN_OPENBOT_PILOT com APP_ENV=${env.APP_ENV || '(vazio)'}: o piloto OpenBot só existe com APP_ENV=staging (DP-41)`);
+  }
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
 
   return p;
