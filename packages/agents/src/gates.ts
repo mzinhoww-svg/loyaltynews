@@ -92,7 +92,7 @@ export const GATES: Gate[] = [
     name: 'Ledger de orçamento e saldo persistidos em PostgreSQL',
     decidedBy: 'Backend + FinOps (pacote modelops)',
     criteria: [
-      { id: 'G4.0', text: 'O PostgresLedgerStore passa a suíte de aceitação do ledger (A01–A12 obrigatórios, A10 com SQL cru; A13 opcional)', measure: 'packages/modelops/src/ledger-acceptance (branch ft/g4-suite): PGlite no npm test e PostgreSQL local real com LN_G4_REAL=1', threshold: '12 de 12 obrigatórios passando, nenhum "skipped"; repetir no SHA corrigido pelo Backend', owner: 'Backend + AgentOps' },
+      { id: 'G4.0', text: 'O PostgresLedgerStore passa a suíte de aceitação do ledger (A01–A12 obrigatórios, A10 com SQL cru; A13 opcional)', measure: 'packages/modelops/src/ledger-acceptance (já no canônico, ft/modelops c354b89): PGlite no npm test e PostgreSQL local real com LN_G4_REAL=1', threshold: '12 de 12 obrigatórios passando, nenhum "skipped"', owner: 'Backend + AgentOps' },
       { id: 'G4.1', text: 'Exclusão mútua entre conexões e processos', measure: 'caso A07 + estresse de 1.000 reservas em 4 conexões + dois processos de SO contra PostgreSQL local (real-pg.test.ts)', threshold: 'exatamente 440 aceitas de 1.000 (verba de US$ 22 a US$ 0,05), 0 estouros, ids únicos; dois processos: 220 + 220 = 440', owner: 'Backend + AgentOps' },
       { id: 'G4.2', text: 'Replay do ledger reproduz o gasto', measure: 'replay == soma das gerações conciliadas', threshold: 'diferença ≤ 1% (limite proposto no modelops)', owner: 'FinOps' },
       { id: 'G4.3', text: 'Saldo do provedor lido antes da primeira chamada', measure: 'BalanceGuard injetado na composição do produto', threshold: 'leitura obrigatória; falha de leitura bloqueia', owner: 'Backend' },
@@ -167,9 +167,10 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   set('G3.2', pgTest.includes('PgStore sobre as migrações oficiais'), 'pg.test.ts presente (execução verde é de `npm test`)');
   external('G3.3', 'não existe banco de staging');
 
-  external('G4.0', 'passou 12 de 12 obrigatórios em PostgreSQL 18.7 local (ft/backend 09f4656; suíte movida para ft/g4-suite a2f2b53); falta repetir no SHA que o Backend entregar depois das correções do QA 1 e rodar no staging só com banco de teste próprio');
-  external('G4.1', 'passou em PostgreSQL 18.7 local: estresse de 1.000 reservas → 440 aceitas e dois processos de SO → 220 + 220; falta repetir no SHA corrigido');
-  for (const id of ['G4.2', 'G4.3']) external(id, 'pendência do Backend: G4.2 = conciliação com /generation; G4.3 = leitura do saldo do provedor antes da primeira chamada');
+  external('G4.0', 'passou 12 de 12 obrigatórios em PostgreSQL 18.7 local no ft/modelops c354b89 (suíte já no canônico); falta rodar no staging, só com banco de teste próprio (G3)');
+  external('G4.1', 'passou em PostgreSQL 18.7 local no c354b89: estresse de 1.000 reservas → 440 aceitas e dois processos de SO → 220 + 220; falta o staging (G3)');
+  external('G4.2', 'pendência do Backend: exige gerações reais (chamadas pagas) e a conciliação com /generation');
+  external('G4.3', 'fechado pelo Backend no ft/modelops c354b89 (balance_guard_missing antes de qualquer reserva; saldo lido antes da 1ª retenção); a evidência é do Backend, não repetida aqui');
 
   const draft = buildOpenBotDraft(reg);
   const issues = validateOpenBotDraft(draft, reg);
