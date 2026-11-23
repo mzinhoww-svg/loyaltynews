@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOINDEX_HEADER, indexingBlocked, isProductionEnv, resolveSiteUrl, robotsTxt } from '../app/(portal)/_lib/indexing';
+import { NOINDEX_HEADER, indexingBlocked, isProductionEnv, resolveSiteUrl, resolveSourceKind, robotsTxt } from '../app/(portal)/_lib/indexing';
 
 describe('política de indexação por APP_ENV', () => {
   it('só production libera indexação', () => {
@@ -54,5 +54,28 @@ describe('NEXT_PUBLIC_SITE_URL', () => {
   });
   it('em execução (fora do build) não lança por falta da variável', () => {
     expect(resolveSiteUrl({ APP_ENV: 'production' })).toBe('http://localhost:3000');
+  });
+});
+
+describe('fonte de dados por ambiente (sem abrir caminho para mock em produção)', () => {
+  it('api vale em staging e em produção, sem cair em mock', () => {
+    for (const APP_ENV of ['staging', 'production', 'homologacao', undefined]) {
+      expect(resolveSourceKind({ APP_ENV, PORTAL_SOURCE: 'api' })).toEqual({ kind: 'api', refusedMock: false });
+    }
+  });
+  it('mock vale fora de produção', () => {
+    for (const APP_ENV of ['staging', 'development', 'homologacao', undefined]) {
+      expect(resolveSourceKind({ APP_ENV, PORTAL_SOURCE: 'mock' })).toEqual({ kind: 'mock', refusedMock: false });
+    }
+  });
+  it('mock em produção é recusado (vira fonte vazia); só o build de e2e o aceita', () => {
+    expect(resolveSourceKind({ APP_ENV: 'production', PORTAL_SOURCE: 'mock' })).toEqual({ kind: 'empty', refusedMock: true });
+    expect(resolveSourceKind({ APP_ENV: 'production', PORTAL_SOURCE: 'mock', LN_E2E_BUILD: '1' })).toEqual({ kind: 'mock', refusedMock: false });
+    expect(resolveSourceKind({ APP_ENV: 'production', PORTAL_SOURCE: 'mock', LN_E2E_BUILD: '0' }).kind).toBe('empty');
+  });
+  it('valor desconhecido ou ausente é fonte vazia', () => {
+    for (const PORTAL_SOURCE of [undefined, '', 'intelligence', 'MOCK', 'mock ', 'api ']) {
+      expect(resolveSourceKind({ APP_ENV: 'production', PORTAL_SOURCE }).kind).toBe('empty');
+    }
   });
 });

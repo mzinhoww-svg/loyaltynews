@@ -50,7 +50,8 @@ export default defineConfig({
           env: {
             PORTAL_SOURCE: mode,
             ...(mode === 'api' ? { PORTAL_API_BASE_URL: `http://localhost:${fakeApiPort}`, PORT: String(port) } : {}),
-            APP_ENV: appEnv,
+            // Mock nunca roda com APP_ENV=production (resolveSourceKind recusa): o servidor de mock usa staging.
+            APP_ENV: mode === 'mock' ? 'staging' : appEnv,
             NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
             NEXT_TELEMETRY_DISABLED: '1',
           },

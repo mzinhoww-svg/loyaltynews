@@ -15,6 +15,24 @@ export const isProductionEnv = (env: Env = process.env): boolean => env.APP_ENV 
 
 export const indexingBlocked = (env: Env = process.env): boolean => !isProductionEnv(env) || env.PORTAL_SOURCE === 'mock';
 
+export type SourceKind = 'empty' | 'mock' | 'api';
+
+/**
+ * Fonte de dados efetiva a partir do ambiente (fail-closed):
+ *  - `api` e `empty` valem em qualquer ambiente; valor desconhecido ou ausente = vazia (honesta);
+ *  - `mock` só fora de produção ou no build de e2e (LN_E2E_BUILD=1). Com APP_ENV=production, pedir mock NÃO o ativa:
+ *    cai na fonte vazia e `refusedMock` fica verdadeiro (quem chama registra o erro).
+ */
+export function resolveSourceKind(env: Env = process.env): { kind: SourceKind; refusedMock: boolean } {
+  const wanted = env.PORTAL_SOURCE;
+  if (wanted === 'api') return { kind: 'api', refusedMock: false };
+  if (wanted === 'mock') {
+    const allowed = !isProductionEnv(env) || env.LN_E2E_BUILD === '1';
+    return allowed ? { kind: 'mock', refusedMock: false } : { kind: 'empty', refusedMock: true };
+  }
+  return { kind: 'empty', refusedMock: false };
+}
+
 /** robots.txt: bloqueado = nada rastreável e sem Sitemap; liberado = regra de produção. */
 export function robotsTxt(blocked: boolean, siteUrl: string): string {
   return blocked
