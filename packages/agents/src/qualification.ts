@@ -7,6 +7,7 @@
  * Alinhado com `r0-preparacao/finops/proposta-politica-modelos-producao.md` (papéis e modelos) e com a política v5
  * (`@ln/modelops`). Limiares marcados `proposed: true` são sugestões da Frente 07, a ratificar (FinOps/QA/proprietário).
  */
+import { escalationAllocationUsd } from './policy-compat';
 import { estimateMicro, usdToMicro, type ModelEntry, type ModelPolicy, type TokenEstimate } from '@ln/modelops';
 import { validateAgentOutput } from './output';
 import type { AgentProfile } from './schemas';
@@ -311,7 +312,7 @@ export function buildQualificationPlan(policy: ModelPolicy, cases: readonly Qual
     openaiAllocationMicro: usdToMicro(alloc.openai),
     monthlyCapMicro: usdToMicro(policy.rules.hard_monthly_budget_usd),
     adr021ModeCapMicro: usdToMicro(QUAL_BUDGET_PROPOSAL.adr021ModeCapUsd),
-    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
+    escalationSublimitMicro: usdToMicro(escalationAllocationUsd(alloc)),
   };
   type Check = QualificationPlan['checks'][number];
   const err = (id: string, ok: boolean, detail: string): Check => ({ id, ok, severity: 'error', detail });
