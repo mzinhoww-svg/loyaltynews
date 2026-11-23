@@ -34,6 +34,8 @@ import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
 import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha } from '@/lib/studio/intelligence-view';
 import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
+import { dispatchTitular } from '@/app/api/_lib/titular-studio';
+import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -181,6 +183,9 @@ export interface EventoAgenda {
 const E = '/api/studio/editorial';
 const C = '/api/commercial';
 const I = '/api/studio/intelligence';
+const T = '/api/studio/correcoes';
+/** O catch-all opcional lê o caminho de `params.path`, como o App Router entrega. */
+const titularEm = (path: string[]): Despachante => (req) => dispatchTitular(req, { params: Promise.resolve({ path }) });
 
 export const api = {
   materias: {
@@ -291,8 +296,17 @@ export const api = {
     alertas: (query: { status?: 'pending_review' | 'approved' | 'rejected'; watchlistId?: string }) => chamar<{ items: AlertaLinha[] }>(dispatchIntelligence, `${I}/alerts`, { query }),
     revisarAlerta: (id: string, status: 'approved' | 'rejected') => chamar<{ id: string; status: string; reviewed_by: string }>(dispatchIntelligence, `${I}/alerts/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
   },
+  /** Pedidos do titular (DP-38; Studio 2): /api/studio/correcoes/[[...path]] (ft/backend-2). RBAC `titular`: editor-chefe e admin. */
+  titular: {
+    listar: (query: { estado?: string; responsavel?: string } = {}) => chamar<{ items: PedidoLinha[] }>(titularEm([]), T, { query }),
+    /** Detalhe com nome, contato e trilha; a própria consulta entra na auditoria. */
+    obter: (id: string) => chamar<PedidoDetalhe>(titularEm([id]), `${T}/${encodeURIComponent(id)}`),
+    atribuir: (id: string, responsavel: string) => chamar<PedidoLinha>(titularEm([id, 'atribuir']), `${T}/${encodeURIComponent(id)}/atribuir`, { metodo: 'POST', corpo: { responsavel } }),
+    decidir: (id: string, corpo: { acao: AcaoDecisao; campos?: Record<string, string>; motivo?: string }) =>
+      chamar<PedidoLinha>(titularEm([id, 'decidir']), `${T}/${encodeURIComponent(id)}/decidir`, { metodo: 'POST', corpo }),
+  },
   editorial: {
-    fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
+    fila:(query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
     /** Rascunho editorial completo + última checagem (para a correção de matéria da Fábrica; 404 sem registro editorial). */
     rascunho: (articleId: string) => chamar<RascunhoFabrica>(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/draft`),
     revisao: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/review`),
