@@ -131,6 +131,10 @@ export function longestCommonRun(a: string[], b: string[]): number {
 
 export const COPY_RUN_LIMIT = 8;
 export const COPY_RATIO_LIMIT = 0.3;
+/** DP-29 ("nunca reproduzir"): blogs e imprensa de nicho (fonte secundária) têm limite de cópia mais rígido. */
+export const COPY_RUN_LIMIT_SECONDARY = 6;
+export const COPY_RATIO_LIMIT_SECONDARY = 0.2;
+const isSecondary = (e: Evidence): boolean => e.sourceTier === 'secondary';
 
 /** Gate de originalidade: trechos entre aspas (fala literal verificada) são excluídos da comparação. */
 export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
@@ -139,16 +143,18 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
   const bw = words(bodyNoQuotes);
   for (const e of evidences.filter((x) => d.evidenceIds.includes(x.id))) {
     const ew = words(e.text);
+    const runLimit = isSecondary(e) ? COPY_RUN_LIMIT_SECONDARY : COPY_RUN_LIMIT;
+    const ratioLimit = isSecondary(e) ? COPY_RATIO_LIMIT_SECONDARY : COPY_RATIO_LIMIT;
     for (const [label, txt] of [['resumo', d.resumo], ['subtitulo', d.subtitulo]] as const) {
-      if (txt && longestCommonRun(words(txt), ew) >= COPY_RUN_LIMIT) out.push(f('copy_literal', `${label} copia trecho da fonte ${e.sourceId}`));
+      if (txt && longestCommonRun(words(txt), ew) >= runLimit) out.push(f('copy_literal', `${label} copia trecho da fonte ${e.sourceId}`));
     }
     const run = longestCommonRun(bw, ew);
-    if (run >= COPY_RUN_LIMIT) out.push(f('copy_literal', `${run} palavras consecutivas idênticas à fonte ${e.sourceId}`));
+    if (run >= runLimit) out.push(f('copy_literal', `${run} palavras consecutivas idênticas à fonte ${e.sourceId}`));
     const set = new Set<string>();
     for (let i = 0; i + 4 < ew.length; i++) set.add(ew.slice(i, i + 5).join(' '));
     let hit = 0; let tot = 0;
     for (let i = 0; i + 4 < bw.length; i++) { tot++; if (set.has(bw.slice(i, i + 5).join(' '))) hit++; }
-    if (tot && hit / tot > COPY_RATIO_LIMIT) out.push(f('copy_literal', `${Math.round((hit / tot) * 100)}% dos 5-gramas coincidem com a fonte ${e.sourceId}`));
+    if (tot && hit / tot > ratioLimit) out.push(f('copy_literal', `${Math.round((hit / tot) * 100)}% dos 5-gramas coincidem com a fonte ${e.sourceId}`));
   }
   return result(out);
 }
@@ -259,12 +265,54 @@ export function checkNotices(d: Draft, expected: readonly string[]): CheckResult
   return result(out);
 }
 
+// ---------- DP-29: âncora em fonte primária e conteúdo autoral ----------
+
+/**
+ * Blog e imprensa de nicho (fonte SECUNDÁRIA) são pista, não prova. Se qualquer evidência usada for secundária, a matéria
+ * precisa de pelo menos uma evidência PRIMÁRIA (RI, regulador, governo, associação, sala de imprensa), e todo número, data
+ * ou citação precisa estar sustentado por evidência primária.
+ */
+export function checkAnchoring(d: Draft, evidences: Evidence[]): CheckResult {
+  const out: Finding[] = [];
+  const byId = new Map(evidences.map((e) => [e.id, e]));
+  const used = d.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
+  if (!used.some(isSecondary)) return result(out);
+  if (!used.some((e) => !isSecondary(e))) out.push(f('needs_primary_anchor', 'matéria só com fonte secundária (blog/imprensa de nicho): falta evidência de fonte primária que confirme os fatos'));
+  for (const c of d.claims) {
+    if (c.kind === 'fact') continue;
+    const evs = c.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
+    if (evs.length && !evs.some((e) => !isSecondary(e))) out.push(f('unanchored_claim', 'número, data ou citação sustentado só por fonte secundária: precisa constar em fonte primária', c.id));
+  }
+  return result(out);
+}
+
+/** Aviso fixo do conteúdo autoral (a fábrica o põe no início do texto; o gate exige). */
+export const AUTORAL_LABEL = 'Conteúdo autoral da Redação Loyalty News: análise feita a partir de fontes oficiais citadas ao final; não é recomendação de compra, investimento ou contratação.';
+export const AUTORAL_MIN_PRIMARY = 2;
+
+/**
+ * Conteúdo autoral (pauta própria): ancorado em pelo menos 2 fontes primárias distintas, rotulado, sem falas
+ * (não há entrevista), tipo 'analise'. As demais regras (números/datas nas evidências, sem apuração inventada, cópia) valem iguais.
+ */
+export function checkAutoral(d: Draft, evidences: Evidence[]): CheckResult {
+  const out: Finding[] = [];
+  if (!d.autoral) return result(out);
+  const byId = new Map(evidences.map((e) => [e.id, e]));
+  const used = d.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
+  const primaryUrls = new Set(used.filter((e) => !isSecondary(e)).map((e) => e.canonicalUrl));
+  if (primaryUrls.size < AUTORAL_MIN_PRIMARY) out.push(f('autoral_needs_anchors', `conteúdo autoral exige ao menos ${AUTORAL_MIN_PRIMARY} páginas de fontes primárias distintas (há ${primaryUrls.size})`));
+  if (!d.body.startsWith(AUTORAL_LABEL)) out.push(f('autoral_label_missing', 'conteúdo autoral precisa começar com o aviso de conteúdo autoral'));
+  if (d.tipoConteudo !== 'analise') out.push(f('autoral_wrong_type', "conteúdo autoral é do tipo 'analise'"));
+  if (d.claims.some((c) => c.kind === 'quote')) out.push(f('autoral_quote', 'conteúdo autoral não traz falas (não há entrevista nem apuração própria)'));
+  return result(out);
+}
+
 export interface CheckOptions { /** Textos dos avisos já registrados na matéria (em ordem). */ notices?: readonly string[] }
 
 export function runDeterministicChecks(d: Draft, evidences: Evidence[], opts: CheckOptions = {}): CheckResult {
   const parts = [
     checkSignature(d), checkNoFabricatedReporting(d), checkEvidenceTrust(d, evidences), checkClaims(d, evidences),
-    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d), checkNotices(d, opts.notices ?? []),
+    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAnchoring(d, evidences), checkAutoral(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d), checkNotices(d, opts.notices ?? []),
   ];
   const findings = parts.flatMap((p) => p.findings);
   return result(findings);

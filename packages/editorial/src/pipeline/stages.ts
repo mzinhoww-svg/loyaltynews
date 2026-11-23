@@ -6,7 +6,7 @@ import type { GatewayRequest, GatewayResponse, ModelGateway, RouteClass, TaskCla
 import type { SourceRegistry } from '../sources/registry';
 import { eligibility } from '../sources/registry';
 import {
-  buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
+  AUTORAL_LABEL, buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
 } from '../rules/rules';
 import { normalizeText } from '../dedupe/dedupe';
 import { PUBLISHABLE_DEFAULTS, RESUMO_MAX, imageToRights, uniqueSlug } from '../publishable';
@@ -42,7 +42,7 @@ export interface StageDeps {
   slugExists?: (slug: string) => Promise<boolean>;
 }
 
-const PROMPT_VERSION = 'editorial-0.1';
+const PROMPT_VERSION = 'editorial-0.2';
 
 function blocked(job: ArticleJob, stage: JobSpec['stage'], blockers: BlockerCode[], findings: Finding[] = []): StageOutcome {
   return { kind: 'blocked', blocked: { articleId: job.articleId, stage, blockers, findings } };
@@ -72,7 +72,7 @@ const refused = (job: ArticleJob, stage: JobSpec['stage'], r: Extract<GatewayRes
     [{ code: r.refusal, message: r.detail ?? r.refusal }]);
 
 /** Evidência é dado não confiável: vai ao modelo só como string citada, nunca como instrução. */
-const untrusted = (evs: Evidence[]) => evs.map((e) => ({ id: e.id, sourceId: e.sourceId, title: e.title, text: e.text.slice(0, 6000), suspicious: e.suspicious }));
+const untrusted = (evs: Evidence[]) => evs.map((e) => ({ id: e.id, sourceId: e.sourceId, tier: e.sourceTier ?? 'primary', title: e.title, text: e.text.slice(0, 6000), suspicious: e.suspicious }));
 
 // ---------------- 1. triagem (WF01) ----------------
 export async function triage(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
@@ -133,6 +133,8 @@ function parseClaims(x: unknown): Claim[] | null {
 
 const FINDING_TO_BLOCKER: Record<string, BlockerCode> = {
   copy_literal: 'copy_literal', rights_basis_unresolved: 'rights_basis_unresolved', suspicious_evidence: 'suspicious_evidence',
+  needs_primary_anchor: 'unanchored', unanchored_claim: 'unanchored',
+  autoral_needs_anchors: 'autoral_invalid', autoral_label_missing: 'autoral_invalid', autoral_wrong_type: 'autoral_invalid', autoral_quote: 'autoral_invalid',
 };
 const toBlockers = (fs: Finding[]): BlockerCode[] => [...new Set(fs.map((x) => FINDING_TO_BLOCKER[x.code] ?? 'unsupported_claim'))];
 
@@ -142,6 +144,7 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
   requireFlag(deps.flags, 'editorialPipeline');
   const r = await call(deps, job, 'draft', 'draft', 'review', 'WF02', {
     editoria: job.editoria, evidences: untrusted(job.evidences), context: job.context ?? [], feedback: job.feedback ?? [],
+    ...(job.autoral ? { mode: 'autoral', pauta: { titulo: job.autoral.titulo, angulo: job.autoral.angulo, formato: job.autoral.formato } } : {}),
     rules: ['usar somente fatos das evidências', 'não inventar falas, fontes, entrevistas ou métricas', 'não copiar trechos da fonte', `resumo obrigatório de até ${RESUMO_MAX} caracteres, sem números ou citações fora da fonte`, `não assinar com nome de pessoa; assinatura é ${SIGNATURE}`],
   });
   if (!r.ok) return refused(job, 'draft', r);
@@ -161,13 +164,16 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
   const slug = job.slug ?? (await uniqueSlug(o['headline'], deps.slugExists));
   const resumo = typeof o['resumo'] === 'string' ? o['resumo'].trim() : '';
   const subtitulo = typeof o['subtitulo'] === 'string' && o['subtitulo'].trim() ? o['subtitulo'].trim().slice(0, RESUMO_MAX + 1) : undefined;
-  const body = `${mainBody(o['body'])}\n\n${buildAttribution(used, sources)}`;
+  // Conteúdo autoral: o aviso fixo abre o texto (o sistema põe; o gate exige). Nunca vem do modelo.
+  const text = job.autoral ? `${AUTORAL_LABEL}\n\n${mainBody(o['body']).replace(AUTORAL_LABEL, '').trim()}` : mainBody(o['body']);
+  const body = `${text}\n\n${buildAttribution(used, sources)}`;
   const d: Draft = {
     id: `${job.articleId}:d${job.attempt}`, editoria: job.editoria, headline: o['headline'], body, claims, evidenceIds,
     // campos publicáveis: tipo/classe/patrocínio são do sistema (o modelo não os define); slug e resumo vêm da redação
     slug, resumo, ...(subtitulo ? { subtitulo } : {}), ...PUBLISHABLE_DEFAULTS,
     signature: SIGNATURE, // sempre imposta pelo sistema; o modelo não define autoria
-    image: primary ? withAlt(decideImage(primary, cand), alt) : { mode: 'none', reason: 'fonte desconhecida' },
+    image: job.autoral ? { mode: 'none', reason: 'conteúdo autoral: sem imagem de fonte (D08)' } : primary ? withAlt(decideImage(primary, cand), alt) : { mode: 'none', reason: 'fonte desconhecida' },
+    ...(job.autoral ? { tipoConteudo: 'analise' as const, autoral: { formato: job.autoral.formato, pautaId: job.autoral.pautaId } } : {}),
     modelProvider: r.provider, promptVersion: PROMPT_VERSION,
   };
   const chk = runDeterministicChecks(d, job.evidences);

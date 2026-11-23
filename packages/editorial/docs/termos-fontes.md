@@ -939,10 +939,10 @@ Checklist do revisor (classes B/D): (a) reabrir a página de termos e confirmar 
 **O que a DP-29 diz** (registro `r0-preparacao/decisoes-proprietario-2026-11-22.md`): buscar o **maior número de fontes possível**; **nunca reproduzir** — a IA lê a fonte e redige com outras palavras, no tom de voz do projeto; **priorizar blogs especializados**, ancorados no que as fontes oficiais entregam; e **gerar conteúdo autoral próprio** sempre que houver espaço. Limite mantido pelo Program Manager (não é ato do proprietário e envolve risco jurídico e técnico): **não contornar bloqueios técnicos** (403, CAPTCHA, robots, rate limit); ampliar por vias legítimas — RSS/Atom, sitemaps, APIs públicas, newsletters públicas, renderização de JavaScript em navegador, coleta espaçada.
 
 **Como isto entra neste dossiê e na fábrica:**
-- A classificação A–E continua sendo o retrato do que o texto do site diz; a DP-28/DP-29 decidem o que se faz com ela (A/B/D habilitáveis; C só caso a caso; E sem leitura). Blogs especializados seguem a mesma régua e têm levantamento em documento próprio (`docs/fontes-blogs.md`, próximo commit).
+- A classificação A–E continua sendo o retrato do que o texto do site diz; a DP-28/DP-29 decidem o que se faz com ela (A/B/D habilitáveis; C só caso a caso; E sem leitura). Blogs especializados seguem a mesma régua e têm levantamento próprio em `docs/fontes-blogs.md` (66 fontes cadastradas; classes mecânicas, o revisor humano lê o termo).
 - "Nunca reproduzir" já é regra da fábrica (gate `copy_literal`: bloqueia 8 palavras consecutivas iguais à fonte ou 30% de 5-gramas coincidentes).
 - Blog é fonte de **pauta e contexto**, não de fato: números, datas e anúncios só entram quando confirmados por fonte oficial ou primária (ancoragem).
-- Conteúdo autoral (`tipo autoral`, com pauta própria) é ancorado em fontes oficiais coletadas e rotulado como tal.
+- Conteúdo autoral (pauta própria) é ancorado em fontes oficiais coletadas, rotulado como tal e exige ≥ 2 páginas primárias. Tom de voz, âncora e autoral: `docs/dp29-reescrita-e-autoral.md`.
 
 ## Fontes do Intelligence (carga `seed.public.v2`) — situação
 A carga usa 6 páginas públicas como evidência de vínculos entre organizações, com **citação literal curta** por registro. Situação dos termos de cada uma:
