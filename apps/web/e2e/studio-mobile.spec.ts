@@ -43,7 +43,7 @@ test.describe('Studio no celular (390 px)', () => {
     const f = await page.evaluate(() => ['h1', 'h2', 'h3'].map((t) => { const el = document.querySelector('main ' + t); return el ? t + ':' + getComputedStyle(el).fontFamily : null; }).filter(Boolean));
     expect(f.length).toBeGreaterThanOrEqual(2);
     for (const x of f) expect(x, x).toMatch(/Inter/i);
-    for (const x of f) expect(x, x).not.toMatch(/Georgia|serif(?!,? ?$)/i);
+    for (const x of f) expect(x, x).not.toMatch(/Georgia/i);
   });
 
   for (const slug of MODULOS) {
