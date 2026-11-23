@@ -28,7 +28,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
           ) : result.items.length ? (
             <>
               <p className="pt-meta" data-testid="result-count">{result.total} resultado(s) para “{q}”</p>
-              <ArticleGrid items={result.items} cols={3} />
+              <ArticleGrid items={result.items} cols={3} headingLevel={2} />
               <Pager page={result} basePath="/busca" query={{ q }} />
             </>
           ) : (

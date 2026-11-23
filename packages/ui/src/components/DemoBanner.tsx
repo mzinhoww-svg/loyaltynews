@@ -14,7 +14,7 @@ export interface DemoBannerProps {
  */
 export function DemoBanner({ className }: DemoBannerProps) {
   return (
-    <div className={cx("ln-demo-banner", className)} role="note" data-testid="demo-banner">
+    <div className={cx("ln-demo-banner", className)} role="region" aria-label="Aviso: conteúdo de demonstração" data-testid="demo-banner">
       {DEMO_BANNER_TEXT}
     </div>
   );

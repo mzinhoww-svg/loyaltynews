@@ -65,18 +65,22 @@ export function Footer({
               ))}
             </ul>
           </nav>
+          {groups.length > 0 ? (
+            <div className="ln-footer__groups">
           {groups.map((g) => (
-            <nav key={g.title} aria-label={g.title} className="ln-footer__col">
-              <h2 className="ln-footer__title">{g.title}</h2>
-              <ul className="ln-footer__list">
-                {g.links.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href}>{l.label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ))}
+              <nav key={g.title} aria-label={g.title} className="ln-footer__col">
+                <h2 className="ln-footer__title">{g.title}</h2>
+                <ul className="ln-footer__list">
+                  {g.links.map((l) => (
+                    <li key={l.href}>
+                      <Link href={l.href}>{l.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+            </div>
+          ) : null}
         </div>
         <div className="ln-footer__bottom">
           <p>© {year ? `${year} ` : ""}Loyalty News</p>

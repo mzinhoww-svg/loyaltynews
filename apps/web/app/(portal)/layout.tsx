@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import '@fontsource-variable/inter/index.css';
-import { DemoBanner } from '@ln/ui';
+import '@fontsource-variable/inter';
 import '@ln/ui/styles.css';
 import './portal.css';
+import { DemoBanner } from '@ln/ui';
 import { SiteFooter } from './_components/SiteFooter';
 import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
@@ -29,7 +29,7 @@ export const viewport: Viewport = { themeColor: '#153c3c', width: 'device-width'
 export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
     <div className="ln-root pt">
-      {/* Faixa fina de demonstração em TODA página com conteúdo MOCK/vitrine (Security R5). */}
+      {/* Faixa fina e fixa quando o conteúdo é de demonstração (fonte MOCK). Nunca em produção real. */}
       {isMockSource() && <DemoBanner />}
       <SiteHeader flags={{ theLoyal: flags.theLoyal, marketData: flags.marketData, podcast: flags.podcast }} editorias={EDITORIAS} />
       <main id="conteudo" className="pt-main">

@@ -4,8 +4,8 @@ import { EDITORIAS } from '../_lib/editorias';
 import { flags } from '../_lib/flags';
 
 /**
- * Footer do design system. Sem bloco "Notícias em alta" (já está na lateral); sem redes até serem confirmadas.
- * As seções que saíram da barra (todas as notícias, formatos, contato) ficam aqui.
+ * Footer do design system (logo, frase institucional, editorias) + grupos de links.
+ * Redes sociais só entram quando as URLs oficiais forem confirmadas (nada inventado).
  */
 export function SiteFooter() {
   return (
@@ -15,19 +15,21 @@ export function SiteFooter() {
       linkAs={Link}
       groups={[
         {
-          title: 'Seções',
+          title: 'Conteúdo',
           links: [
-            { label: 'Todas as notícias', href: '/noticias' },
+            { label: 'Últimas notícias', href: '/noticias' },
+            { label: 'Em alta', href: '/em-alta' },
             { label: 'Loyalty Flash', href: '/flash' },
             { label: 'Análises', href: '/analises' },
             { label: 'Entrevistas', href: '/entrevistas' },
-            { label: 'Opinião', href: '/opiniao' },
             { label: 'Agenda', href: '/agenda' },
+            { label: 'Moves', href: '/moves' },
+            { label: 'Loyalty Intelligence', href: '/intelligence' },
             ...(flags.theLoyal ? [{ label: 'The Loyal', href: '/the-loyal' }] : []),
           ],
         },
         {
-          title: 'Informações',
+          title: 'Institucional',
           links: [
             { label: 'Sobre', href: '/sobre' },
             { label: 'Metodologia', href: '/metodologia' },
@@ -43,8 +45,6 @@ export function SiteFooter() {
           links: [
             { label: 'Fale conosco', href: '/contato' },
             { label: 'Anuncie · Mídia kit', href: '/midia-kit' },
-            { label: 'Loyalty Intelligence', href: '/intelligence' },
-            { label: 'Loyalty Moves', href: '/moves' },
           ],
         },
       ]}

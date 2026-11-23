@@ -61,7 +61,7 @@ for (const p of [...PAGES, ...EDITORIAS]) {
     await expect(page.getByRole('link', { name: 'Pular para o conteúdo' })).toHaveCount(1);
 
     if (mode === 'empty' && p.empty) await expect(page.getByText(p.empty).first()).toBeVisible();
-    if (mode === 'mock') await expect(page.getByTestId('demo-banner')).toHaveText('Conteúdo de demonstração — não publicado');
+    if (mode === 'mock') await expect(page.getByText(/Conteúdo de demonstração — não publicado/)).toBeVisible();
 
     // Sem rolagem horizontal (responsivo).
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

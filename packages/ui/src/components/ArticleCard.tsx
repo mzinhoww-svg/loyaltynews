@@ -79,9 +79,9 @@ export function ArticleCard({
           </Link>
         </Heading>
         {showExcerpt ? <p className="ln-card__excerpt">{excerpt}</p> : null}
-        {date || author || readingMinutes ? (
+        {date || (author && size === "lg") || readingMinutes ? (
           <p className="ln-card__byline">
-            {author ? <span className="ln-card__author">{author}</span> : null}
+            {author && size === "lg" ? <span className="ln-card__author">{author}</span> : null}
             {date && publishedAt ? <time dateTime={publishedAt}>{date}</time> : null}
             {readingMinutes ? <span>{readingMinutes} min de leitura</span> : null}
           </p>

@@ -123,7 +123,7 @@ describe("DemoBanner", () => {
   it("mostra o texto exato exigido pelo Security, com role note", () => {
     render(<DemoBanner />);
     expect(DEMO_BANNER_TEXT).toBe("Conteúdo de demonstração — não publicado");
-    expect(screen.getByRole("note")).toHaveTextContent("Conteúdo de demonstração — não publicado");
+    expect(screen.getByRole("region", { name: /conteúdo de demonstração/i })).toHaveTextContent("Conteúdo de demonstração — não publicado");
   });
 });
 

@@ -10,6 +10,8 @@ export interface HeaderLink {
   label: string;
   href: string;
   current?: boolean;
+  /** Não aparece na barra superior do desktop; só no menu recolhível (mobile). */
+  barHidden?: boolean;
 }
 
 export interface HeaderProps {
@@ -111,16 +113,18 @@ export function Header({
             <Logo variant="primary" height={36} decorative />
           </Link>
           {searchSlot ? <div className="ln-header__search">{searchSlot}</div> : null}
-          {utilityLinks && utilityLinks.length > 0 ? (
+          {utilityLinks && utilityLinks.some((l) => !l.barHidden) ? (
             <nav aria-label={utilityLabel} className="ln-header__utility">
               <ul className="ln-header__utility-list">
-                {utilityLinks.map((l) => (
+                {utilityLinks
+                  .filter((l) => !l.barHidden)
+                  .map((l) => (
                   <li key={l.href}>
                     <Link href={l.href} aria-current={l.current ? "page" : undefined}>
                       {l.label}
                     </Link>
                   </li>
-                ))}
+                  ))}
               </ul>
             </nav>
           ) : null}

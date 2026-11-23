@@ -41,7 +41,7 @@ export default async function EmAltaPage({ searchParams }: { searchParams: Promi
       <WithSidebar>
         <div>
           {items.length ? (
-            <RankedList items={items} />
+            <RankedList items={items} headingLevel={2} />
           ) : (
             <EmptyState title="Ranking em formação">
               O ranking de mais lidas depende de matérias publicadas e de histórico de leitura suficiente. Nada é simulado.
