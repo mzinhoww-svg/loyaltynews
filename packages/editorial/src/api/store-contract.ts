@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
-import type { AuditItem, ArticleRecord, CorrectionRecord, EditorialStore, SourceState } from './store';
+import type { AuditItem, ArticleRecord, CorrectionRecord, EditorialStore, PublicationCommit, PublicationCommitStep, SourceState } from './store';
 import { openCase } from '../corrections/corrections';
 import { SourceRegistry } from '../sources/registry';
 import { SEED_SOURCES } from '../sources/seed';
@@ -18,10 +18,19 @@ import type { HandlerCtx } from './common';
  * schema limpo/transação revertida). Se a fábrica devolver `{ store, teardown }`, `teardown` roda ao fim de cada teste.
  */
 
-export type StoreHandle = EditorialStore | { store: EditorialStore; teardown?: () => Promise<void> };
+export interface StoreHandleObject {
+  store: EditorialStore;
+  teardown?: () => Promise<void>;
+  /**
+   * Gancho de TESTE (opcional, mas recomendado ao Backend): faz a PRÓXIMA `commitPublication` falhar no passo indicado
+   * (`null` desarma). Com ele, a suíte prova que uma falha entre os passos não deixa gravação parcial. Sem ele, o caso é pulado.
+   */
+  armFault?: (step: PublicationCommitStep | null) => void;
+}
+export type StoreHandle = EditorialStore | StoreHandleObject;
 export type StoreFactory = () => StoreHandle | Promise<StoreHandle>;
 
-async function open(f: StoreFactory): Promise<{ store: EditorialStore; teardown?: () => Promise<void> }> {
+async function open(f: StoreFactory): Promise<StoreHandleObject> {
   const r = await f();
   return 'store' in r ? r : { store: r };
 }
@@ -55,12 +64,32 @@ export function sampleSourceState(id: string, over: Partial<SourceState> = {}): 
   return { sourceId: id, enabled: false, termsStatus: 'pending', urlVerified: false, paywall: 'unknown', review: null, updatedAt: '2026-11-23T12:00:00.000Z', updatedBy: 'u1', ...over };
 }
 
+export function sampleCommit(id: string, over: { receiptId?: string } = {}): PublicationCommit {
+  const publishedAt = '2026-11-24T13:00:00.000Z';
+  const article = sampleArticle(id, {
+    status: 'publicado', updatedAt: publishedAt,
+    publication: { receiptId: over.receiptId ?? 'rcpt-1', url: `https://loyaltynews.example/materia/${id}`, publishedAt, contentSha256: 'b'.repeat(64) },
+  });
+  return {
+    article,
+    audit: { at: publishedAt, userId: null, action: 'article.published', target: id, detail: `recibo ${over.receiptId ?? 'rcpt-1'}` },
+    outbox: { queue: 'intelligence-ingest', refId: id, idempotencyKey: `article.published:${id}:${'b'.repeat(64)}` },
+  };
+}
+
 export interface ContractCase { name: string; run: (f: StoreFactory) => Promise<void> }
 
-const withStore = async (f: StoreFactory, fn: (s: EditorialStore) => Promise<void>) => {
-  const { store, teardown } = await open(f);
-  try { await fn(store); } finally { await teardown?.(); }
+const withStore = async (f: StoreFactory, fn: (s: EditorialStore, h: StoreHandleObject) => Promise<void>) => {
+  const h = await open(f);
+  try { await fn(h.store, h); } finally { await h.teardown?.(); }
 };
+
+/** Nada da publicação pode estar gravado. */
+async function assertNothingCommitted(s: EditorialStore, id: string): Promise<void> {
+  assert.equal(await s.getArticle(id), undefined, 'matéria não pode existir');
+  assert.deepEqual(await s.listAudit(), [], 'auditoria não pode existir');
+  assert.deepEqual(await s.listOutbox(), [], 'outbox não pode existir');
+}
 
 export const EDITORIAL_STORE_CONTRACT: ContractCase[] = [
   { name: 'loja nova está vazia; get de chave inexistente devolve undefined', run: (f) => withStore(f, async (s) => {
@@ -157,6 +186,58 @@ export const EDITORIAL_STORE_CONTRACT: ContractCase[] = [
     const got = await s.getArticle('same');
     assert.ok(variants.some((v) => JSON.stringify(json(v)) === JSON.stringify(got)), 'o registro final deve ser exatamente um dos enviados');
     assert.equal((await s.listArticles()).length, 1);
+  }) },
+  { name: 'publicação atômica: commitPublication grava matéria publicada (com recibo), auditoria e outbox juntas', run: (f) => withStore(f, async (s) => {
+    const c = sampleCommit('pub1');
+    assert.deepEqual(await s.commitPublication(c), { outbox: 'enqueued' });
+    assert.deepEqual(await s.getArticle('pub1'), json(c.article));
+    assert.deepEqual(await s.listAudit(), [json(c.audit)]);
+    assert.deepEqual(await s.listOutbox(), [c.outbox]);
+    c.article.status = 'aprovado'; c.outbox.refId = 'ALTERADO'; // sem aliasing na entrada
+    assert.equal((await s.getArticle('pub1'))?.status, 'publicado');
+    assert.equal((await s.listOutbox())[0]?.refId, 'pub1');
+  }) },
+  { name: 'publicação atômica: idempotente pela chave da outbox (repetição não duplica nem sobrescreve)', run: (f) => withStore(f, async (s) => {
+    const c = sampleCommit('pub1');
+    await s.commitPublication(c);
+    const again = { ...sampleCommit('pub1', { receiptId: 'rcpt-OUTRO' }), outbox: c.outbox };
+    assert.deepEqual(await s.commitPublication(again), { outbox: 'duplicate' });
+    assert.equal((await s.listAudit()).length, 1);
+    assert.equal((await s.listOutbox()).length, 1);
+    assert.equal((await s.getArticle('pub1'))?.publication?.receiptId, 'rcpt-1', 'o registro original não é sobrescrito');
+  }) },
+  { name: 'publicação atômica: entrada inválida rejeita SEM efeito parcial', run: (f) => withStore(f, async (s) => {
+    const bad: PublicationCommit[] = [
+      { ...sampleCommit('x1'), article: sampleArticle('x1', { status: 'aprovado' }) },                         // não publicada
+      { ...sampleCommit('x1'), article: sampleArticle('x1', { status: 'publicado' }) },                        // sem recibo
+      { ...sampleCommit('x1'), outbox: { queue: 'intelligence-ingest', refId: 'x1', idempotencyKey: '' } },    // chave vazia
+      { ...sampleCommit('x1'), audit: { at: '2026-11-24T13:00:00.000Z', userId: null, action: '', target: 'x1' } }, // auditoria vazia
+    ];
+    for (const c of bad) {
+      await assert.rejects(s.commitPublication(c));
+      await assertNothingCommitted(s, 'x1');
+    }
+  }) },
+  { name: 'publicação atômica: commits idênticos em paralelo resultam em 1 matéria, 1 auditoria, 1 outbox e um único enqueued', run: (f) => withStore(f, async (s) => {
+    const results = await Promise.all(Array.from({ length: 10 }, () => s.commitPublication(sampleCommit('par1'))));
+    assert.equal(results.filter((r) => r.outbox === 'enqueued').length, 1);
+    assert.equal(results.filter((r) => r.outbox === 'duplicate').length, 9);
+    assert.equal((await s.listAudit()).length, 1);
+    assert.equal((await s.listOutbox()).length, 1);
+    assert.equal((await s.listArticles()).length, 1);
+  }) },
+  { name: 'publicação atômica: falha injetada entre os passos não deixa gravação parcial e a repetição completa tudo uma única vez', run: (f) => withStore(f, async (s, h) => {
+    if (!h.armFault) return; // sem gancho de falha o caso não se aplica (recomendado implementar no Backend)
+    for (const step of ['after_article', 'after_audit', 'after_outbox'] as const) {
+      h.armFault(step);
+      await assert.rejects(s.commitPublication(sampleCommit('f1')), /falha injetada|injected/i);
+      await assertNothingCommitted(s, 'f1');
+    }
+    h.armFault(null);
+    assert.deepEqual(await s.commitPublication(sampleCommit('f1')), { outbox: 'enqueued' });
+    assert.equal((await s.listAudit()).length, 1);
+    assert.equal((await s.listOutbox()).length, 1);
+    assert.equal((await s.getArticle('f1'))?.status, 'publicado');
   }) },
   { name: 'handlers sobre a loja: fila e visão de revisão leem o que foi gravado', run: (f) => withStore(f, async (s) => {
     await s.putArticle(sampleArticle('h1', { status: 'bloqueado', blockers: ['duplicate'] }));

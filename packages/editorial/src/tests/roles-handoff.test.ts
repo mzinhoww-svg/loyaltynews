@@ -12,7 +12,7 @@ import { InMemoryQueue, makeProcessor } from '../pipeline/queue';
 import type { ArticleJob, StageOutcome } from '../pipeline/jobs';
 import type { Evidence } from '../types';
 import { InMemoryEditorialStore, applyOutcome } from '../api/store';
-import { InMemoryOutbox, INTELLIGENCE_QUEUE, applyPublication } from '../api/publication';
+import { INTELLIGENCE_QUEUE, applyPublication } from '../api/publication';
 import { articleContentSha256, jobFromRecord, toPublishedArticle } from '../intelligence/published';
 import { extractRoleMentionsDeterministic, explicitDates, minimizeToOrganizations, validateMention } from '../intelligence/roles';
 import type { IntelligenceHandoff } from '../intelligence/types';
@@ -47,10 +47,9 @@ async function approve(gw: MockGateway, flags: StageDeps['flags']) {
 }
 
 async function publish(store: InMemoryEditorialStore) {
-  const outbox = new InMemoryOutbox();
-  const res = await applyPublication(store, outbox, { articleId: 'a1', receiptId: 'rcpt-MOCK-1', url: URL_PUB, publishedAt: NOW.toISOString(), isMock: true });
+  const res = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-MOCK-1', url: URL_PUB, publishedAt: NOW.toISOString(), isMock: true });
   assert.ok(res.ok, res.ok ? '' : res.message);
-  return { outbox, res };
+  return { outbox: { items: await store.listOutbox() }, res };
 }
 
 const handoffOf = (o: StageOutcome): IntelligenceHandoff => { assert.ok(o.kind === 'done' && o.handoff, JSON.stringify(o)); return o.handoff; };
@@ -218,27 +217,26 @@ test('modelo: recusa do gateway (orçamento) bloqueia; saída malformada é reje
 // ---------- publicação (outbox) ----------
 test('applyPublication: só matéria aprovada; gate refeito; idempotente pelo recibo; outbox deduplica; entrada inválida recusada', async () => {
   const { store } = await approve(gateway(), ROLES_PERSONS);
-  const outbox = new InMemoryOutbox();
   const base = { articleId: 'a1', receiptId: 'rcpt-1', url: URL_PUB, publishedAt: NOW.toISOString() };
-  assert.equal((await applyPublication(store, outbox, { ...base, receiptId: ' ' })).ok, false);
-  assert.equal((await applyPublication(store, outbox, { ...base, url: 'ftp://x' })).ok, false);
-  const nf = await applyPublication(store, outbox, { ...base, articleId: 'nao-existe' });
+  assert.equal((await applyPublication(store, { ...base, receiptId: ' ' })).ok, false);
+  assert.equal((await applyPublication(store, { ...base, url: 'ftp://x' })).ok, false);
+  const nf = await applyPublication(store, { ...base, articleId: 'nao-existe' });
   assert.ok(!nf.ok && nf.code === 'not_found');
   // adulteração depois da aprovação: o gate refeito recusa
   const rec = (await store.getArticle('a1'))!;
   await store.putArticle({ ...rec, draft: { ...rec.draft!, body: rec.draft!.body.replace('\n\nFontes:\n', '\nA alta foi de 87%.\n\nFontes:\n') } });
-  const tampered = await applyPublication(store, outbox, base);
+  const tampered = await applyPublication(store, base);
   assert.ok(!tampered.ok && tampered.code === 'gate_failed');
-  assert.equal(outbox.items.length, 0);
+  assert.equal((await store.listOutbox()).length, 0);
   assert.equal((await store.getArticle('a1'))?.status, 'aprovado');
   await store.putArticle(rec); // restaura
-  const first = await applyPublication(store, outbox, base);
+  const first = await applyPublication(store, base);
   assert.ok(first.ok && !first.alreadyPublished && first.outbox === 'enqueued');
-  const again = await applyPublication(store, outbox, base);
+  const again = await applyPublication(store, base);
   assert.ok(again.ok && again.alreadyPublished && again.outbox === 'duplicate');
-  assert.equal(outbox.items.length, 1);
+  assert.equal((await store.listOutbox()).length, 1);
   // outro recibo para matéria já publicada não republica
-  const other = await applyPublication(store, outbox, { ...base, receiptId: 'rcpt-2' });
+  const other = await applyPublication(store, { ...base, receiptId: 'rcpt-2' });
   assert.ok(!other.ok && other.code === 'not_approved');
   assert.deepEqual((await store.listAudit()).filter((a) => a.action === 'article.published').length, 1);
 });
@@ -263,4 +261,58 @@ test('minimizeToOrganizations remove o nome de todas as pessoas do lote em todos
   ]);
   assert.ok(ms.every((m) => !/Maria Teste|João Exemplo/.test(JSON.stringify(m))));
   assert.equal(ms[0]?.excerpt, '[pessoa omitida] assume; [pessoa omitida] sai.');
+});
+
+// ---------- atomicidade da publicação (bloqueio do QA 2 no 941ee41) ----------
+test('publicação atômica: falha injetada em QUALQUER passo não deixa matéria publicada sem auditoria/outbox; a repetição completa tudo uma vez', async () => {
+  for (const step of ['after_article', 'after_audit', 'after_outbox'] as const) {
+    const { store } = await approve(gateway(), ROLES_PERSONS);
+    const base = { articleId: 'a1', receiptId: 'rcpt-A', url: URL_PUB, publishedAt: NOW.toISOString(), isMock: true };
+    store.armFault(step);
+    await assert.rejects(applyPublication(store, base), /falha injetada/);
+    // nada parcial: continua aprovada, sem recibo, sem auditoria, sem outbox
+    const mid = (await store.getArticle('a1'))!;
+    assert.equal(mid.status, 'aprovado', step);
+    assert.equal(mid.publication, undefined, step);
+    assert.equal((await store.listAudit()).filter((a) => a.action === 'article.published').length, 0, step);
+    assert.equal((await store.listOutbox()).length, 0, step);
+    assert.equal(toPublishedArticle(mid).ok, false);
+    // retry: completa tudo, uma única vez
+    const ok = await applyPublication(store, base);
+    assert.ok(ok.ok && ok.outbox === 'enqueued' && !ok.alreadyPublished, step);
+    assert.equal((await store.listAudit()).filter((a) => a.action === 'article.published').length, 1, step);
+    assert.equal((await store.listOutbox()).length, 1, step);
+    assert.equal((await store.getArticle('a1'))?.status, 'publicado');
+    // e repetir de novo não duplica nada
+    const again = await applyPublication(store, base);
+    assert.ok(again.ok && again.alreadyPublished && again.outbox === 'duplicate', step);
+    assert.equal((await store.listAudit()).filter((a) => a.action === 'article.published').length, 1, step);
+    assert.equal((await store.listOutbox()).length, 1, step);
+  }
+});
+
+test('publicação atômica: publicação antiga SEM auditoria/outbox (estado legado) é completada pelo retry idempotente', async () => {
+  const { store } = await approve(gateway(), ROLES_PERSONS);
+  const rec = (await store.getArticle('a1'))!;
+  // estado legado: matéria já marcada publicada com recibo, mas sem auditoria e sem outbox
+  await store.putArticle({ ...rec, status: 'publicado', publication: { receiptId: 'rcpt-L', url: URL_PUB, publishedAt: NOW.toISOString(), contentSha256: articleContentSha256(rec.draft!.body) } });
+  assert.equal((await store.listAudit()).length, 0);
+  assert.equal((await store.listOutbox()).length, 0);
+  const fixed = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-L', url: URL_PUB, publishedAt: NOW.toISOString() });
+  assert.ok(fixed.ok && fixed.alreadyPublished === true && fixed.outbox === 'enqueued', 'já estava publicada, mas o retry completou auditoria e outbox');
+  assert.equal((await store.listAudit()).length, 1);
+  assert.equal((await store.listOutbox()).length, 1);
+  const twice = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-L', url: URL_PUB, publishedAt: NOW.toISOString() });
+  assert.ok(twice.ok && twice.outbox === 'duplicate');
+  assert.equal((await store.listAudit()).length, 1);
+});
+
+test('publicação atômica: duas publicações concorrentes da mesma matéria geram 1 auditoria e 1 outbox', async () => {
+  const { store } = await approve(gateway(), ROLES_PERSONS);
+  const base = { articleId: 'a1', receiptId: 'rcpt-C', url: URL_PUB, publishedAt: NOW.toISOString() };
+  const rs = await Promise.all([applyPublication(store, base), applyPublication(store, base), applyPublication(store, base)]);
+  assert.ok(rs.every((r) => r.ok));
+  assert.equal(rs.filter((r) => r.ok && r.outbox === 'enqueued').length, 1);
+  assert.equal((await store.listAudit()).length, 1);
+  assert.equal((await store.listOutbox()).length, 1);
 });

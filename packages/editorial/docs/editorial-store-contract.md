@@ -15,7 +15,7 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 });
 ```
 - A fábrica roda **antes de cada teste** e deve devolver uma loja **vazia**.
-- Passar a suíte (14 casos) é condição para a loja ser aceita pelo QA. A suíte também é testada contra implementações erradas (aliasing, upsert que mescla, auditoria fora de ordem, appends perdidos): `src/tests/store-contract.test.ts`.
+- Passar a suíte (19 casos) é condição para a loja ser aceita pelo QA. A suíte também é testada contra implementações erradas (aliasing, upsert que mescla, auditoria fora de ordem, appends perdidos): `src/tests/store-contract.test.ts`.
 - Os casos "handlers sobre a loja" exigem apenas as tabelas desta porta; não dependem de Next.js.
 
 ## Métodos
@@ -24,6 +24,8 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 | `getArticle(id)` / `getCorrection(id)` / `getSourceState(id)` | Registro ou `undefined` se não existe. Nunca lança por ausência. |
 | `putArticle(r)` / `putCorrection(r)` / `putSourceState(s)` | **UPSERT atômico** pela chave (`articleId`, `case.id`, `sourceId`): substitui o registro **inteiro** (campos que sumiram do novo registro somem do armazenado). Resolve só depois de durável. |
 | `listArticles()` / `listCorrections()` / `listSourceStates()` | Todos os registros, sem duplicatas. **Ordem não garantida** (os handlers ordenam). Paginação é feita pelos handlers em memória hoje; se o volume exigir, evoluir a porta (ver "Evolução"). |
+| `commitPublication(c)` | **Uma transação**: upsert de `c.article` (status `publicado`, com `publication`/recibo), `INSERT` de `c.audit` e `INSERT` de `c.outbox`. Qualquer falha ⇒ rejeita e NADA fica gravado. **Idempotente pela `outbox.idempotencyKey`**: chave já existente ⇒ devolve `{ outbox: 'duplicate' }` sem efeito algum (nem sobrescreve a matéria nem duplica auditoria); senão `'enqueued'`. Entrada inválida (matéria não `publicado`, sem `publication`, campos vazios) ⇒ rejeita sem efeito. |
+| `listOutbox()` | Itens `{ queue, refId, idempotencyKey }` gravados por `commitPublication`. |
 | `appendAudit(a)` | Somente-acréscimo. Nunca altera nem apaga entradas anteriores. |
 | `listAudit()` | Todas as entradas **na ordem em que os `appendAudit` foram resolvidos** (para chamadas sequenciais, a ordem de chamada). |
 
@@ -43,6 +45,25 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 | `AuditItem` | `editorial_audit` | `id bigserial PK` | `INSERT` apenas; `listAudit` = `ORDER BY id`. Revogar `UPDATE/DELETE` do papel da aplicação. |
 
 Se o schema final ficar em `packages/db`, a migração é do Chief Architect (regra de ownership).
+
+## `commitPublication` em PostgreSQL (roteiro)
+```ts
+async commitPublication(c) {
+  validar(c);                                                       // rejeita antes de abrir a transação
+  return this.db.transaction(async (tx) => {
+    const ins = await tx.insert(schema.outbox).values({ id: newId(), queue: c.outbox.queue, refId: c.outbox.refId, idempotencyKey: c.outbox.idempotencyKey })
+      .onConflictDoNothing({ target: schema.outbox.idempotencyKey }).returning({ id: schema.outbox.id });
+    if (ins.length === 0) return { outbox: 'duplicate' as const };   // já commitado: nada mais a fazer (a tx não escreveu nada)
+    await upsertArticle(tx, c.article);                             // mesmo upsert de putArticle
+    await tx.insert(schema.editorialAudit).values({ at: c.audit.at, record: plain(c.audit) });
+    return { outbox: 'enqueued' as const };                         // qualquer erro acima ⇒ rollback de tudo, inclusive o outbox
+  });
+}
+async listOutbox() { /* SELECT queue, ref_id, idempotency_key FROM outbox ORDER BY created_at, id → OutboxItem[] */ }
+```
+A tabela `outbox` de `packages/db` já tem a unicidade em `idempotency_key`. Para a suíte provar a atomicidade, a fábrica pode devolver `armFault(step)`
+(`'after_article' | 'after_audit' | 'after_outbox'`): faz a próxima `commitPublication` lançar nesse ponto DENTRO da transação (ex.: flag lida pelo wrapper que
+chama `throw` depois de cada comando). Sem `armFault` esse caso é pulado — recomendado implementar.
 
 ## Concorrência além do contrato (recomendação)
 O contrato exige last-writer-wins atômico. Para evitar sobrescrita silenciosa entre dois revisores, o Backend pode acrescentar uma coluna `version` e rejeitar `put` com versão defasada — isso **muda a porta** (precisaria de `expectedVersion` e de erro `Conflict`) e deve ser pedido ao dono do pacote (Frente 06) com novo caso de contrato.
