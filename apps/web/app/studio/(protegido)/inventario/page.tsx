@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
-import { getInventoryOverview, listFormats } from '@ln/commercial/api';
-import { mediaKitPage } from '@ln/commercial';
+import type { MediaKitPage } from '@ln/commercial';
 import { isEnabled } from '@ln/contracts';
 import { findModule } from '@/lib/studio/modules';
-import { comercialCtx, periodo30 } from '@/lib/studio/comercial';
+import { periodo30 } from '@/lib/studio/comercial';
+import { hojeSP } from '@/lib/studio/datas';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
-import { SemBackend } from '../../_components/Flash';
+import { SemBanco } from '../../_components/SemBanco';
 
 export const metadata: Metadata = { title: 'Inventário' };
 export const dynamic = 'force-dynamic';
@@ -16,15 +18,24 @@ type Formato = { id: string; section: string; name: string; price: string; scope
 const fmt = (v: string | readonly string[] | null): string => (v === null ? '—' : Array.isArray(v) ? v.join(', ') : String(v));
 
 export default async function InventarioPage({ searchParams }: { searchParams: Promise<{ section?: string; status?: string }> }) {
-  const { session } = await requireModule(findModule('inventario')!);
+  await requireModule(findModule('inventario')!);
   const q = await searchParams;
-  const ctx = comercialCtx(session);
-  const { from, to } = periodo30(ctx.today);
-  const posicoes = (getInventoryOverview(ctx, { from, to }).body ?? []) as unknown as Posicao[];
-  const catalogo = listFormats(ctx, { ...(q.section ? { section: q.section } : {}), ...(q.status ? { status: q.status } : {}) });
-  const view = catalogo.body as unknown as { total: number; sections: string[]; formats: Formato[]; note: string };
-  const filtroOk = catalogo.status < 400 && Array.isArray(view.formats);
-  const kit = mediaKitPage(ctx);
+  const { from, to } = periodo30(hojeSP());
+  const inv = await api.comercial.inventario(from, to);
+  if (naoConfigurado(inv)) {
+    return (
+      <>
+        <h1>Inventário</h1>
+        <SemBanco modulo="O inventário" />
+      </>
+    );
+  }
+  const posicoes = (ehErro(inv) ? [] : inv.body) as unknown as Posicao[];
+  const catalogo = await api.comercial.formatos({ section: q.section, status: q.status });
+  const view = (ehErro(catalogo) ? null : catalogo.body) as unknown as { total: number; sections: string[]; formats: Formato[]; note: string } | null;
+  const filtroOk = view !== null && Array.isArray(view.formats);
+  const kitRes = await api.comercial.midiaKit();
+  const kit = (ehErro(kitRes) ? null : kitRes.body) as unknown as MediaKitPage | null;
   const vendas = isEnabled('adServerVendas');
   return (
     <>
@@ -75,7 +86,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           <label htmlFor="section">Seção</label>
           <select id="section" name="section" defaultValue={q.section ?? ''}>
             <option value="">Todas</option>
-            {(filtroOk ? view.sections : []).map((s) => (
+            {(view ? view.sections : []).map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -95,7 +106,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           Filtrar
         </button>
       </form>
-      {!filtroOk ? (
+      {!filtroOk || !view ? (
         <div className="st-alert err" role="alert">
           Filtro inválido.
         </div>
@@ -130,6 +141,8 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       )}
 
       <h2 style={{ marginTop: 24 }}>Mídia kit</h2>
+      {kit ? (
+        <>
       <p>
         {kit.blocks.catalogo.total} formatos no catálogo ·{' '}
         {Object.entries(kit.blocks.catalogo.byStatus)
@@ -140,7 +153,11 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       <p className="st-hint">
         Capacidades: venda {kit.capabilities.adServerVendas ? 'ligada' : 'desligada'} · Instagram {kit.capabilities.instagram ? 'ligado' : 'desligado'} · The Loyal {kit.capabilities.theLoyal ? 'ligado' : 'desligado'} · retargeting {kit.capabilities.retargeting ? 'ligado' : 'desligado'}.
       </p>
-      <SemBackend>Reserva de slot e takeover são feitas na campanha.</SemBackend>
+        </>
+      ) : (
+        <p className="st-hint">Mídia kit indisponível.</p>
+      )}
+      <p className="st-hint">Reserva de slot e takeover são feitas na campanha.</p>
     </>
   );
 }

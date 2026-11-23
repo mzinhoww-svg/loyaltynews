@@ -38,6 +38,7 @@
     "governance/policy.json",
     "governance/acceptance/",
     ".mcp.json",
+    ".gitattributes",
     ".claude/",
     ".github/",
     "tools/",

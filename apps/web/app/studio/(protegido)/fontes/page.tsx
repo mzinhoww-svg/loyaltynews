@@ -42,6 +42,9 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
       <h1>Banco de fontes</h1>
       <p>Só fontes de acesso público: nada de contornar login ou paywall. A fonte nasce inativa e só pode ser ativada depois de revisar os termos de uso. As evidências (URL, data e hash do conteúdo capturado) alimentam as matérias.</p>
       <Flash tipo={tipo} aviso={aviso} />
+      <p>
+        <Link href="/studio/fontes/fabrica">Fontes da Fábrica editorial (habilitação da coleta)</Link>
+      </p>
 
       {fontes.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">
