@@ -303,6 +303,11 @@ export class BudgetGate {
     return this.store.withLock(async (io) => (await this.states(io)).get(reservationId));
   }
 
+  // Reservas conciliadas (committed) de um mês, para a conciliação com o provedor (G4.2).
+  async committedOf(month: string): Promise<ReservationState[]> {
+    return this.store.withLock(async (io) => [...(await this.states(io)).values()].filter((s) => s.monthKey === month && s.status === 'committed'));
+  }
+
   // Resultado incerto depois do envio: a reserva continua contando no teto como pendente de conciliação.
   async markPending(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
     return this.store.withLock(async (io) => {

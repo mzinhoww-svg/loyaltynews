@@ -17,3 +17,6 @@ export { SimulatedOpenRouterClient, type SimulatedOptions } from './openrouter.m
 export { selectClient, createRealOpenRouterClient, createOpenRouterCreditsReader, OPENROUTER_URL, OPENROUTER_CREDITS_URL, type ClientConfig } from './openrouter-client';
 export { BalanceGuard, type HoldResult } from './balance';
 export { callModel, reconcilePending, type GatewayCall, type GatewayDeps, type GatewayOutcome, type ReconcileProbe, type ReconcileOutcome } from './gateway';
+// G4.2: conciliação do ledger com o provedor (`/generation`) e replay mensal com tolerância; G4.3: composição do gateway.
+export { createOpenRouterGenerationReader, generationProbe, reconcileMonth, describeReconciliation, OPENROUTER_GENERATION_URL, type GenerationReader, type GenerationRecord, type MonthReconciliation, type ReconcileItem } from './reconcile';
+export { buildModelGateway, type ModelGateway, type ModelGatewayEnv, type BuildModelGatewayOptions } from './compose';
