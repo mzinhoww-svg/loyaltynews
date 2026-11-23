@@ -1,3 +1,4 @@
+import type { SocialMetrics } from '../metrics/mlabs-metrics';
 import type { PublishReceipt } from '../mlabs/port';
 import type { Channel } from '../types';
 
@@ -81,8 +82,8 @@ export interface DashboardSummary {
   channels: { channel: Channel; flagEnabled: boolean; mode: 'simulado' | 'real' }[];
   topBlockers: { blocker: string; count: number }[];
   brandStatus: string;
-  /** Sem integração de métricas: estado vazio honesto, nunca números fictícios. */
-  metrics: { available: false; reason: string };
+  /** Sem fonte de métricas (ou leitura falhou): estado vazio honesto, nunca números fictícios. Com fonte: leitura do mLabs (só leitura). */
+  metrics: { available: false; reason: string } | { available: true; data: SocialMetrics };
   note: string;
 }
 

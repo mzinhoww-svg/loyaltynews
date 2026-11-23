@@ -2,9 +2,9 @@ import type { UploadedMedia } from '../mlabs/create-post-draft';
 import type { CreativeAsset } from '../types';
 
 /**
- * Porta do envio de mídia ao mLabs (`upload_media`/`get_media_upload`). O criativo do Growth é SVG; o LinkedIn exige imagem
- * raster (PNG/JPG): a conversão e o envio reais NÃO existem ainda (sem rasterizador no repositório e sem teste de upload em
- * página de teste, R5-02). Por isso a implementação real recusa com uma razão clara, em vez de fingir.
+ * Porta genérica de envio de mídia (legado). O envio real ao mLabs NÃO passa por aqui: ele é método do publicador
+ * (`publisher.uploadMedia`, R5-02), com identidade, flag e capability de escrita; ver `raster-upload.ts`. Esta porta fica só
+ * para quem precisa de um envio simulado sem publicador (`media.mock.ts`).
  */
 export interface MediaUploader {
   upload(asset: CreativeAsset, imageRef: string): Promise<UploadedMedia>;
