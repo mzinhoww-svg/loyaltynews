@@ -82,12 +82,40 @@ export async function bloquearAction(fd: FormData): Promise<void> {
   await transicionar(t(fd, 'id'), 'bloqueado', t(fd, 'nota'), 'Matéria bloqueada.');
 }
 
-/** Publicar só pela rota oficial de publicação (recibo da versão + identidade de publicação + flag publicacaoPortal). As recusas aparecem como vêm. */
+/**
+ * Publicar só pela rota oficial de publicação (recibo da versão + identidade de publicação + flag publicacaoPortal). Serve à primeira
+ * publicação e à correção (recibo da revisão aprovada ⇒ a matéria vira 'corrigido'). A transição genérica NÃO publica nem corrige.
+ * As recusas aparecem como vêm.
+ */
 export async function publicarAction(fd: FormData): Promise<void> {
   await requireStudio(['admin', 'editor_chefe']);
   const id = t(fd, 'id');
+  const correcao = t(fd, 'correcao') === '1';
   const r = await api.editorial.publicar(id, { receiptId: t(fd, 'recibo'), url: t(fd, 'url') });
-  ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : 'Publicação registrada.');
+  ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : correcao ? 'Correção publicada: a matéria agora está corrigida.' : 'Publicação registrada.');
+}
+
+/** Cria ou refaz a revisão de correção de matéria publicada (a página pública não muda até a publicação oficial). Exige caso ACEITO. */
+export async function salvarRevisaoAction(fd: FormData): Promise<void> {
+  await requireStudio(CMS_EDIT);
+  const id = t(fd, 'id');
+  const nulavel = (k: string) => t(fd, k) || null;
+  const r = await api.materias.atualizar(id, {
+    versaoEsperada: Number(t(fd, 'versaoEsperada')),
+    casoCorrecaoId: t(fd, 'casoCorrecaoId'),
+    titulo: t(fd, 'titulo'),
+    subtitulo: nulavel('subtitulo'),
+    resumo: nulavel('resumo'),
+    corpo: t(fd, 'corpo'),
+  });
+  ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : 'Revisão de correção salva. A página publicada não mudou; emita o recibo da revisão e publique.');
+}
+
+export async function descartarRevisaoAction(fd: FormData): Promise<void> {
+  await requireStudio(CMS_EDIT);
+  const id = t(fd, 'id');
+  const r = await api.materias.descartarRevisao(id);
+  ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : 'Revisão descartada. A página publicada não foi tocada.');
 }
 
 // ---------- fila da Fábrica editorial (revisão humana) ----------

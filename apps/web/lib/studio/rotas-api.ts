@@ -5,6 +5,7 @@ import * as materiaRoute from '@/app/api/materias/[id]/route';
 import * as materiaFontesRoute from '@/app/api/materias/[id]/fontes/route';
 import * as materiaReciboRoute from '@/app/api/materias/[id]/recibos/route';
 import * as materiaTransicaoRoute from '@/app/api/materias/[id]/transicao/route';
+import * as materiaCorrecaoRoute from '@/app/api/materias/[id]/correcao/route';
 import * as fontesRoute from '@/app/api/fontes/route';
 import * as fonteRoute from '@/app/api/fontes/[id]/route';
 import * as evidenciasRoute from '@/app/api/fontes/[id]/evidencias/route';
@@ -80,6 +81,23 @@ export interface MateriaDetalhe extends MateriaLinha {
   transicoes: Transicao[];
 }
 
+export interface Revisao {
+  id: string;
+  articleId: string;
+  casoId: string;
+  baseVersao: number;
+  versao: number;
+  estado: 'rascunho' | 'aprovada' | 'publicada' | 'descartada';
+  titulo: string;
+  subtitulo: string | null;
+  resumo: string | null;
+  corpo: string;
+  aviso: string;
+  corpoFinal: string;
+  receiptId: string | null;
+  criadoEm: string;
+}
+
 export interface Midia {
   id: string;
   tipo: string;
@@ -120,6 +138,9 @@ export const api = {
     definirFontes: (id: string, corpo: unknown) => chamar(comParams(materiaFontesRoute.PUT as Handler, { id }), `/api/materias/${id}/fontes`, { metodo: 'PUT', corpo }),
     emitirRecibo: (id: string, corpo: unknown) => chamar(comParams(materiaReciboRoute.POST as Handler, { id }), `/api/materias/${id}/recibos`, { metodo: 'POST', corpo }),
     transicao: (id: string, corpo: unknown) => chamar(comParams(materiaTransicaoRoute.POST as Handler, { id }), `/api/materias/${id}/transicao`, { metodo: 'POST', corpo }),
+    /** Revisão de correção em aberto de matéria publicada (404 se não há). Criar/alterar é `atualizar` com casoCorrecaoId. */
+    revisao: (id: string) => chamar<{ data: Revisao }>(comParams(materiaCorrecaoRoute.GET as Handler, { id }), `/api/materias/${id}/correcao`),
+    descartarRevisao: (id: string) => chamar(comParams(materiaCorrecaoRoute.DELETE as Handler, { id }), `/api/materias/${id}/correcao`, { metodo: 'DELETE' }),
   },
   fontes: {
     listar: () => chamar<{ data: Fonte[] }>(fontesRoute.GET as Despachante, '/api/fontes'),

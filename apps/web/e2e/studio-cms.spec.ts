@@ -230,7 +230,7 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
     await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
   });
 
-  test('ligada: o Backend recusa o que não é publicável e a recusa aparece como veio', async ({ page, context }) => {
+  test('ligada: o Backend recusa URL inválida e a recusa aparece como veio', async ({ page, context }) => {
     await definirFlag(context, 'publicacaoPortal', true);
     try {
       await entrar(context, 'ana', 'editor_chefe');
@@ -243,12 +243,8 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
       await enviar(page, page.getByRole('button', { name: 'Publicar' }));
       await erro(page, /http/i);
 
-      await page.getByLabel('URL pública da matéria').fill('https://portal.example.test/materias/banco-beta');
-      await enviar(page, page.getByRole('button', { name: 'Publicar' }));
-      // matéria do CMS não está no store editorial: o Backend responde (404/409) e o Studio mostra a mensagem, sem declarar sucesso
-      await erro(page, 'matéria não encontrada');
-      await expect(page.locator('.ln-pill', { hasText: 'Publicado' })).toHaveCount(0);
-      await expect(page.locator('[data-publicado="sim"]')).toHaveCount(0);
+      // a publicação que dá certo (matéria só do CMS, rota oficial) é testada em studio-z-correcao-cms.spec.ts, que roda por último
+      await expect(page.locator('[data-publicado]')).toHaveCount(0);
     } finally {
       await definirFlag(context, 'publicacaoPortal', false);
     }
