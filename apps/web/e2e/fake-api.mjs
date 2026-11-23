@@ -4,6 +4,8 @@
 import http from 'node:http';
 
 const port = Number(process.env.FAKE_API_PORT ?? 3104);
+// FAKE_API_STATUS=503 simula a API pública sem banco (NOT_CONFIGURED) ou com erro: toda rota /api/publico responde esse status.
+const forcedStatus = Number(process.env.FAKE_API_STATUS ?? 0);
 
 const corpoCorrigido =
   'Parágrafo de teste da matéria corrigida (MOCK).\n\n## Subtítulo de teste\n\nSegundo parágrafo de teste (MOCK).\n\nAvisos:\n- Corrigimos o valor citado (MOCK).\n  Segunda linha do aviso.\n\nFontes:\n- https://fonte.example/mock';
@@ -85,10 +87,44 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+// MOCK de GET /api/commercial/mediakit (formato do handler getMediaKit do @ln/commercial). Só para o e2e do portal em modo api.
+const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
+const MEDIAKIT = {
+  generatedAt: '2026-12-05T12:00:00-03:00',
+  // cobertura coletada: a de 30 dias é real; a de 90 dias vem marcada como demonstração (seed de staging) e NUNCA pode virar número
+  coverage: [
+    { id: 'articles_published_30d', label: 'Matérias publicadas (30 dias)', value: '12', state: 'ok', source: 'CMS', window: '05/11/2026 a 04/12/2026', collectedAt: '2026-12-05T08:00:00-03:00' },
+    { id: 'articles_published_90d', label: '[DEMO · staging] Matérias publicadas (90 dias)', value: '20', state: 'ok', source: 'CMS', window: '05/09/2026 a 04/12/2026', collectedAt: '2026-12-05T08:00:00-03:00', demo: true },
+    unavailable('Eventos futuros', 'CMS'),
+  ],
+  audience: {
+    realtime: [unavailable('Usuários ativos agora (últimos 30 min)', 'GA4 (tempo real)')],
+    historical: [
+      { label: 'Sessões (30 dias)', value: '1.234', state: 'ok', source: 'GA4', window: '05/11/2026 a 04/12/2026', collectedAt: '2026-12-05T08:00:00-03:00' },
+      unavailable('Usuários ativos (30 dias)', 'GA4'),
+    ],
+  },
+  blocks: {
+    catalogo: {
+      formats: [
+        { id: 'banners--banner-topo', section: 'Banners', name: 'Banner topo', price: 'R$ 3.000/mês', scope: '1280 × 150; 4 cotas; mínimo 3 meses', status: 'sob_consulta' },
+        { id: 'banners--retangulo-sidebar', section: 'Banners', name: 'Retângulo sidebar', price: 'R$ 1.750/mês', scope: '336 × 280; 3 posições; 10 cotas por posição', status: 'sob_consulta' },
+        { id: 'the-loyal--banner-meio', section: 'The Loyal', name: 'Banner meio', price: 'R$ 1.250/mês', scope: 'Todas as edições contratadas', status: 'indisponivel' },
+      ],
+    },
+  },
+  deliveryIntegrity: { gaps: [], note: null },
+};
+
 http
   .createServer((req, res) => {
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
+    if (u.pathname === '/api/commercial/mediakit') {
+      if (forcedStatus) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
+      return send(res, 200, MEDIAKIT);
+    }
+    if (forcedStatus && u.pathname.startsWith('/api/publico/')) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
     if (u.pathname === '/api/publico/materias') {
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);

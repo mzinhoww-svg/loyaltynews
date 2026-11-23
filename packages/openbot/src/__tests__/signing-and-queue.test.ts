@@ -88,7 +88,7 @@ describe('fila com lease (pull)', () => {
     const queue = q();
     await queue.enqueue(task(), NOW);
     const [l] = await queue.claim({ workerId: 'w', now: NOW, leaseMs: 1000, limit: 1 });
-    assert.deepEqual(Object.keys(l!).sort(), ['attempt', 'dataClass', 'id', 'kind', 'leaseExpiresAt', 'leaseId', 'maxCostMicro', 'profileId', 'refId']);
+    assert.deepEqual(Object.keys(l!).sort(), ['account', 'attempt', 'dataClass', 'id', 'kind', 'leaseExpiresAt', 'leaseId', 'maxCostMicro', 'profileId', 'refId']);
   });
 
   test('lease vencido: outra tarefa-detentora pode puxar de novo (tentativa 2); o antigo detentor perde o lease', async () => {

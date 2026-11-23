@@ -5,13 +5,14 @@ import {
   type Creative, type Reservation,
 } from './index';
 import * as h from './api/index';
+import { realContent } from './real-creative.mock';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 /** Passa por JSON como o banco/Redis fariam: o snapshot precisa sobreviver a isso sem perda. */
 const wire = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 const creative = (id: string, campaignId: string, positionId = 'TOP', weight = 1): Creative => ({
-  id, campaignId, positionId, weight, startDate: '2026-12-01', endDate: '2027-02-28', approved: true, campaignActive: true,
+  id, campaignId, positionId, weight, startDate: '2026-12-01', endDate: '2027-02-28', approved: true, campaignActive: true, ...realContent(positionId),
 });
 
 describe('Crm', () => {

@@ -2,6 +2,7 @@
 // Não sobe sozinho: index.ts liga tudo a partir do ambiente. O BullMQ NÃO roda sobre ioredis-mock
 // (scripts Lua), então este arquivo só é exercitado com Redis real; a lógica testável fica em
 // reconciler.ts e pg-stores.ts.
+import { onClientError } from '@ln/db/safe-log';
 import { Queue, Worker, type ConnectionOptions } from 'bullmq';
 import type { Db } from '@ln/auth';
 import { DEFAULT_JOB_OPTIONS, QUEUE_NAMES, type JobPayload, type QueueName } from './queues';
@@ -16,6 +17,7 @@ export class BullQueueSink implements QueueSink {
     let q = this.queues.get(name);
     if (!q) {
       q = new Queue(name, { connection: this.connection });
+      q.on('error', onClientError(`[workers] fila ${name}`)); // C1
       this.queues.set(name, q);
     }
     return q;
@@ -49,7 +51,7 @@ export function startWorkers(opts: { connection: ConnectionOptions; db: Db; hand
       new Worker(name, async (job) => void (await processJob(effects, name, job.data, handler)), {
         connection: opts.connection,
         concurrency: opts.concurrency ?? 4,
-      }),
+      }).on('error', onClientError(`[workers] worker ${name}`)), // C1
     );
   }
   return { workers, close: () => Promise.all(workers.map((w) => w.close())) };

@@ -14,6 +14,9 @@ export const ROUTES: readonly Route[] = [
   { method: 'POST', path: '/api/commercial/leads', auth: 'public', handler: h.submitLead },
   { method: 'POST', path: '/api/commercial/ads/serve', auth: 'public', handler: h.serveAd },
   { method: 'POST', path: '/api/commercial/ads/event', auth: 'public', handler: h.recordAdEvent },
+  { method: 'GET', path: '/api/commercial/ads/plan', auth: 'public', handler: h.getAdPlan },
+  { method: 'GET', path: '/api/commercial/ads/click', auth: 'public', handler: h.resolveAdClick },
+  { method: 'GET', path: '/api/commercial/ads/creative-image', auth: 'public', handler: h.resolveCreativeImage },
 
   { method: 'GET', path: '/api/commercial/studio/dashboard', auth: 'studio', handler: h.getStudioDashboard },
   { method: 'GET', path: '/api/commercial/studio/inventory', auth: 'studio', handler: h.getInventoryOverview },
@@ -29,8 +32,11 @@ export const ROUTES: readonly Route[] = [
   { method: 'POST', path: '/api/commercial/studio/takeovers', auth: 'studio', handler: h.reserveTakeover },
   { method: 'POST', path: '/api/commercial/studio/campaigns', auth: 'studio', handler: h.createCampaign },
   { method: 'GET', path: '/api/commercial/studio/campaigns/detail', auth: 'studio', handler: h.getCampaignDetail },
+  { method: 'GET', path: '/api/commercial/studio/campaigns/report', auth: 'studio', handler: h.getCampaignReport },
+  { method: 'GET', path: '/api/commercial/studio/campaigns/report-csv', auth: 'studio', handler: h.exportCampaignReportCsv },
   { method: 'POST', path: '/api/commercial/studio/campaigns/transition', auth: 'studio', handler: h.transitionCampaign },
   { method: 'POST', path: '/api/commercial/studio/creatives', auth: 'studio', handler: h.addCreative },
+  { method: 'POST', path: '/api/commercial/studio/creatives/content', auth: 'studio', handler: h.setCreativeContent },
   { method: 'POST', path: '/api/commercial/studio/creatives/approve', auth: 'studio', handler: h.approveCreative },
   { method: 'POST', path: '/api/commercial/studio/metrics', auth: 'studio', handler: h.ingestMetric },
 ];

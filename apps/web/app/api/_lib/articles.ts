@@ -2,9 +2,9 @@
 // Regras: publicar só a partir de `aprovado`, com recibo da versão atual (hash do conteúdo igual), pela
 // papel com permissão `publish` (a identidade de publicação do recibo é o canal `portal`, ADR-017 §5). Conteúdo publicado é imutável;
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
-import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
-import { canTransition, imageLabel, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
+import { canTransition, imageLabel, isImagePublishable, readingTimeMinutes, ContentType, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
 import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
@@ -381,12 +381,15 @@ export const publicArticlesWhere = (...extra: Array<ReturnType<typeof eq> | unde
   and(inArray(schema.articles.status, [...PUBLIC_STATUS]), sql`${schema.articles.classeDeDado} = 'public'`, ...extra);
 
 export const publicListArticles: RouteFn = async (_req, c) => {
-  const q = parse(ArticleQuery.pick({ editoria: true, q: true }).extend(Paging.shape), queryObject(c.url));
+  // `tipo` (tipo de conteúdo: noticia, flash, analise…) combina com editoria, q, limit e offset; o `total` já reflete todos os filtros
+  const q = parse(ArticleQuery.pick({ editoria: true, q: true }).extend({ tipo: ContentType.optional() }).extend(Paging.shape), queryObject(c.url));
+  const like = q.q ? `%${q.q.replace(/[%_\\]/g, '\\$&')}%` : null;
   const where = and(
     inArray(schema.articles.status, [...PUBLIC_STATUS]),
     sql`${schema.articles.classeDeDado} = 'public'`,
     q.editoria ? eq(schema.articles.editoria, q.editoria) : undefined,
-    q.q ? ilike(schema.articles.titulo, `%${q.q.replace(/[%_\\]/g, '\\$&')}%`) : undefined,
+    q.tipo ? eq(schema.articles.tipoConteudo, q.tipo) : undefined,
+    like ? or(ilike(schema.articles.titulo, like), ilike(schema.articles.resumo, like)) : undefined, // a busca casa título OU resumo
   );
   const rows = await c.deps.db
     .select()

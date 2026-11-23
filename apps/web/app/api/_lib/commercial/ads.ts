@@ -18,7 +18,15 @@ type Extra = { now: string; today: string; flags: CommercialCtx['flags']; actor?
 export const isAdRoute = (path: string): boolean => path.endsWith('/ads/serve') || path.endsWith('/ads/event');
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 && v.length <= 128 ? v : null);
-const degraded = (r: ServeResult): ServeResult => ({ ...r, impressionId: null, counted: false, reason: 'dedupe_indisponivel' });
+/**
+ * Sem dedupe confiável: serve sem contar. O anúncio é REMONTADO sem impressão (`href` = `c:{criativo}`): o que o ledger local gerou apontaria para uma
+ * impressão que não existe no Redis e o clique daria 404.
+ */
+const degraded = (r: ServeResult, ads: AdServer): ServeResult => {
+  const { ad: _local, ...rest } = r; // eslint-disable-line @typescript-eslint/no-unused-vars
+  const ad = r.creativeId ? ads.publicAdFor(r.creativeId, null) : null;
+  return { ...rest, impressionId: null, counted: false, reason: 'dedupe_indisponivel', ...(ad ? { ad } : {}) };
+};
 
 function freshState(ledger: ImpressionLedger) {
   const s = createCommercialState();
@@ -45,14 +53,14 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
     if (!store || !pv || !pos) {
       const res = route.handler(makeCtx(state, extra), input);
       if (res.status >= 400) return res;
-      return { status: res.status, body: store ? res.body : degraded(res.body as ServeResult) };
+      return { status: res.status, body: store ? res.body : degraded(res.body as ServeResult, state.ads) };
     }
     try {
       const existing = await store.loadView(pv, pos);
       if (existing) ledger.preload([existing]);
     } catch {
       const res = route.handler(makeCtx(state, extra), input);
-      return res.status >= 400 ? res : { status: res.status, body: degraded(res.body as ServeResult) };
+      return res.status >= 400 ? res : { status: res.status, body: degraded(res.body as ServeResult, state.ads) };
     }
     const before = state.ads.countersSnapshot();
     const res = route.handler(makeCtx(state, extra), input);
@@ -64,13 +72,17 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
         if (!committed.won) {
           // outra instância gravou antes: esta visualização já tem impressão; devolve a vencedora e não conta
           const w = committed.existing;
-          return { status: 200, body: { kind: 'creative', creativeId: w?.creativeId ?? result.creativeId, impressionId: w?.impressionId ?? null, counted: false, reason: 'refresh' } };
+          const creativeId = w?.creativeId ?? result.creativeId;
+          const impressionId = w?.impressionId ?? null;
+          // a resposta da vencedora também leva o anúncio (sem ele a posição ficaria oculta para quem perdeu a corrida)
+          const ad = creativeId ? state.ads.publicAdFor(creativeId, impressionId) : null;
+          return { status: 200, body: { kind: 'creative', creativeId, impressionId, counted: false, reason: 'refresh', ...(ad ? { ad } : {}) } };
         }
       }
       const delta = diffCounters(before, state.ads.countersSnapshot());
       for (const [creativeId, d] of Object.entries(delta)) await store.addCounters(creativeId, extra.today, d);
     } catch {
-      return { status: 200, body: degraded(result) }; // sub-conta: serviu, não contou
+      return { status: 200, body: degraded(result, state.ads) }; // sub-conta: serviu, não contou
     }
     return res;
   }

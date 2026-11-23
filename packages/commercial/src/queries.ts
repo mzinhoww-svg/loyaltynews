@@ -3,27 +3,34 @@
 import { isEnabled } from '@ln/contracts';
 import { priceLabel } from './catalog';
 import { auditabilityOf, campaignPeriodMs } from './audit';
-import { generateMediaKit, type MediaKit } from './mediakit';
+import { generateMediaKit, portalAudience, portalCoverage, type MediaKit, type PortalAudience, type PortalMetric } from './mediakit';
 import { POSITIONS } from './inventory';
 import type { CommercialCtx } from './state';
 import type { FormatStatus } from './types';
 import type { OpportunityStage } from './crm';
 import type { CampaignStatus } from './campaigns';
+import { buildCampaignReport, type CampaignReport } from './report';
 
 // ---------- Portal: página do mídia kit ----------
 export interface MediaKitPage extends MediaKit {
   /** O que a tela pode oferecer. Instagram e The Loyal seguem desligados até P-01/P-02. */
   capabilities: { adServerVendas: boolean; instagram: boolean; theLoyal: boolean; retargeting: boolean };
   /** Integridade da entrega de anúncios: lacunas em que o dedupe perdeu estado. Vazio = nenhuma lacuna registrada. */
+  /** Audiência no formato do portal (origem, janela e horário em cada número; sem coleta = indisponível). */
+  audience: PortalAudience;
+  /** Cobertura do CMS coletada (matérias em 30/90 dias, eventos futuros), com origem, janela e data; sem coleta = indisponível. */
+  coverage: PortalMetric[];
   deliveryIntegrity: { gaps: readonly import('./audit').AuditGap[]; note: string | null };
 }
 export function mediaKitPage(ctx: CommercialCtx): MediaKitPage {
   return {
-    ...generateMediaKit({ store: ctx.metrics, now: ctx.now, catalog: ctx.catalog }),
+    ...generateMediaKit({ store: ctx.metrics, now: ctx.now, catalog: ctx.catalog, internal: ctx.actor?.canManageCommercial === true }),
     capabilities: {
       adServerVendas: isEnabled('adServerVendas', ctx.flags), instagram: isEnabled('instagram', ctx.flags),
       theLoyal: isEnabled('theLoyal', ctx.flags), retargeting: isEnabled('retargeting', ctx.flags),
     },
+    audience: portalAudience(ctx.metrics, ctx.now),
+    coverage: portalCoverage(ctx.metrics, ctx.now),
     deliveryIntegrity: { gaps: ctx.ads.audit.list(), note: ctx.ads.audit.list().length ? 'Há período(s) não auditável(is) na entrega de anúncios: os números desses períodos são mínimos, não totais.' : null },
   };
 }
@@ -33,7 +40,7 @@ export function formatCatalogView(ctx: CommercialCtx, filter: { section?: string
   return {
     total: rows.length,
     sections: [...new Set(ctx.catalog.map((f) => f.section))],
-    formats: rows.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), priceBRL: f.fromBRL, priceType: f.priceType, unit: f.unit, scope: f.scope, status: f.status, statusReason: f.statusReason })),
+    formats: rows.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), priceBRL: f.fromBRL, priceType: f.priceType, unit: f.unit, scope: f.scope, status: f.status, ...(ctx.actor?.canManageCommercial === true ? { statusReason: f.statusReason } : {}) })),
     note: 'Preço é referência comercial, não oferta; disponibilidade é real.',
   };
 }
@@ -120,4 +127,14 @@ export function studioDashboard(ctx: CommercialCtx, from: string, to: string) {
     attention,
     sellingEnabled: isEnabled('adServerVendas', ctx.flags),
   };
+}
+
+/** Relatório do anunciante da campanha (janela opcional, recortada ao período da campanha). Lança CampaignError se não existir e ReportError se a janela for inválida. */
+export function campaignReport(ctx: CommercialCtx, i: { campaignId: string; from?: string; to?: string }): CampaignReport {
+  const c = ctx.campaigns.get(i.campaignId);
+  return buildCampaignReport({
+    campaign: c, advertiserName: ctx.crm.accounts.get(c.accountId)?.name ?? null,
+    creatives: ctx.ads.listCreatives(), reservations: ctx.inventory.list(), delivery: ctx.delivery ?? [], audit: ctx.ads.audit,
+    now: ctx.now, window: { from: i.from, to: i.to }, positions: ctx.inventory.listPositions(),
+  });
 }

@@ -1,0 +1,19 @@
+{
+  "name": "@ln/analytics",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Medição do portal (protótipo atrás de flag desligada): contagem agregada própria, sem cookie, sem identificador e sem dado pessoal; consentimento por finalidade; relatório com período, fonte e estado. Dono: Frente 09 — LN Integration Engineer.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/contracts": "0.0.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@ln/commercial": "0.0.0"
+  }
+}

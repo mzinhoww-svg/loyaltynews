@@ -262,7 +262,8 @@ export function buildRoutingPlan(input: {
     hardMonthlyMicro: usdToMicro(policy.rules.hard_monthly_budget_usd),
     anthropicAllocationMicro: usdToMicro(alloc.anthropic),
     openaiAllocationMicro: usdToMicro(alloc.openai),
-    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
+    // v6/v7 renomeia para `anthropic_escalation_opus_included` (só Opus); a v5 usa `..._opus_fable_included` (igual a modelops/budget.ts)
+    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_included ?? alloc.anthropic_escalation_opus_fable_included ?? 0),
   };
   const headroomMicro = {
     anthropic: caps.anthropicAllocationMicro - (byProvider.anthropic ?? 0),

@@ -9,7 +9,9 @@
     "./editorial-store": "./src/editorial-store.ts",
     "./ad-redis": "./src/ad-redis.ts",
     "./outbox": "./src/pg-stores.ts",
-    "./redis-tls": "./src/redis-tls.ts"
+    "./redis-tls": "./src/redis-tls.ts",
+    "./seed-staging": "./src/seed-staging.ts",
+    "./openbot-pg": "./src/openbot-pg.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
@@ -18,7 +20,9 @@
     "@ln/contracts": "0.0.0",
     "@ln/db": "0.0.0",
     "@ln/editorial": "0.0.0",
+    "@ln/intelligence": "0.0.0",
     "@ln/modelops": "0.0.0",
+    "@ln/openbot": "0.1.0",
     "bullmq": "6.7.8",
     "drizzle-orm": "0.45.4",
     "ioredis": "5.11.1",
@@ -33,6 +37,8 @@
     "build": "esbuild src/main.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:bullmq --external:ioredis --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
     "build:budget-cli": "esbuild src/budget-cli.ts --bundle --platform=node --format=esm --outfile=dist/budget-cli.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
     "build:factory": "esbuild src/editorial-factory.main.ts --bundle --platform=node --format=esm --outfile=dist/editorial-factory.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
+    "build:seed-staging": "esbuild src/seed-staging.ts --bundle --platform=node --format=esm --outfile=dist/seed-staging.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
+    "build:staging-admin": "esbuild src/staging-admin.ts --bundle --platform=node --format=esm --outfile=dist/staging-admin.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
     "start": "node dist/index.js",
     "typecheck": "tsc -p ../../tsconfig.json --noEmit"
   }

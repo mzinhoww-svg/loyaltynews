@@ -272,7 +272,7 @@ async function resolverHome(db: RouteCtx['deps']['db'], h: HomeContentT, now: Da
       .where(publicArticlesWhere(editoria ? eq(schema.articles.editoria, editoria) : undefined))
       .orderBy(desc(schema.articles.publicadoEm), asc(schema.articles.id))
       .limit(limite);
-  return Promise.all(
+  const resolvidos = await Promise.all(
     h.blocos.map(async (b) => {
       switch (b.tipo) {
         case 'destaque':
@@ -292,9 +292,17 @@ async function resolverHome(db: RouteCtx['deps']['db'], h: HomeContentT, now: Da
         }
         case 'publicidade':
           return { ...b, dimensao: dimensaoReservada(b.posicao) };
+        default: {
+          // Tipo de bloco novo SEM resolução ainda: o compilador acusa aqui (`never`) e, em tempo de execução, o bloco é IGNORADO de forma
+          // explícita (nunca sai como undefined/null na resposta pública). Acrescentar o tipo no `switch` é o que o liga ao Portal.
+          const _novo: never = b;
+          void _novo;
+          return null;
+        }
       }
     }),
   );
+  return resolvidos.filter((b): b is NonNullable<typeof b> => b !== null);
 }
 
 /** Tudo o que o Portal precisa para montar a página, na versão em vigor agora. Sem documento publicado = null (o Portal usa o padrão dele). */

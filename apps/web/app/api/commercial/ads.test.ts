@@ -1,14 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
+import IORedis from 'ioredis';
 import RedisMock from 'ioredis-mock';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
+import { assertLocalTestHost } from '@ln/db/testing';
 import { adKeys, flushAdDelivery, readCounters, type AdRedis } from '@ln/workers/ad-redis';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 import { seedCommercial } from '../_lib/commercial/repo';
 
+/** Colunas de um criativo real e completo para a posição TOP (1280x150, PNG, ≤ 200 KB). */
+export const SHA_TOP = 'a'.repeat(64);
+export const ARQUIVO_TOP = {
+  arquivoRef: `anuncios/${SHA_TOP}.png`, arquivoMime: 'image/png', largura: 1280, altura: 150, tamanhoKb: 100, arquivoSha256: SHA_TOP,
+  textoAlternativo: 'Oferta do anunciante teste', destinoUrl: 'https://anunciante.example/oferta',
+} as const;
+
 let app: Awaited<ReturnType<typeof makeApp>>;
+// Padrão: ioredis-mock. Com LN_TEST_REDIS_URL (ex.: redis://127.0.0.1:56379, um Redis LOCAL de teste: o teste faz flushall) usa Redis REAL.
+const REAL_REDIS_URL = process.env.LN_TEST_REDIS_URL;
+if (REAL_REDIS_URL) assertLocalTestHost(REAL_REDIS_URL, 'LN_TEST_REDIS_URL'); // o teste faz flushall: só em Redis local
 let redis: InstanceType<typeof RedisMock>;
 const R = () => redis as unknown as AdRedis;
 const DAY = '2026-11-22'; // relógio do testkit (12:00Z) em America/Sao_Paulo
@@ -24,13 +36,17 @@ beforeAll(async () => {
   await app.db.insert(schema.campaigns).values({
     id: 'cmp-1', nome: 'Campanha', contaId: 'acc-1', formatoId: 'banners--banner-topo', slotId: 'TOP', inicio: '2026-11-01', fim: '2026-12-31', status: 'active',
   });
-  await app.db.insert(schema.adCreatives).values({ id: 'cr-1', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true });
+  // criativo REAL (regra do PM: só criativo real aparece): arquivo medido, texto alternativo, anunciante (conta da campanha) e destino https
+  await app.db.insert(schema.adCreatives).values({ id: 'cr-1', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true, ...ARQUIVO_TOP });
 }, 120_000);
 beforeEach(async () => {
-  redis = new RedisMock();
+  redis = (REAL_REDIS_URL ? new IORedis(REAL_REDIS_URL, { maxRetriesPerRequest: 2 }) : new RedisMock()) as unknown as InstanceType<typeof RedisMock>;
   await redis.flushall();
   app.deps.redis = R();
   app.deps.flags.adServerVendas = true;
+});
+afterEach(async () => {
+  if (REAL_REDIS_URL) await (redis as unknown as { quit: () => Promise<unknown> }).quit().catch(() => undefined);
 });
 afterAll(async () => {
   await app.close();
@@ -171,7 +187,7 @@ describe('flush de entrega: Redis → ad_delivery_daily', () => {
     expect(await redis.hgetall(keys[0]!)).toEqual({ s: '5' });
     expect(await ledger()).toBe(ledgerBefore); // a transação que falhou desfez o ledger junto
     // o criativo passa a existir: a próxima rodada recupera a chave de trabalho e grava UMA vez
-    await app.db.insert(schema.adCreatives).values({ id: 'cr-novo', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true });
+    await app.db.insert(schema.adCreatives).values({ id: 'cr-novo', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true, ...ARQUIVO_TOP });
     const r = await flushAdDelivery(R(), app.db);
     expect(r).toMatchObject({ keys: 0, rows: 1, recovered: 0 });
     expect((await row(`cr-novo@${DAY}`))?.servidas).toBe(5);

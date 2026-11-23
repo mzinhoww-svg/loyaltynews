@@ -4,6 +4,7 @@ import { Sidebar } from './_components/Sidebar';
 import { AdSlot, ArticleCard, ArticleGrid, EmptyState, Section } from './_components/ui';
 import { editoriaName } from './_lib/editorias';
 import { dayOf, monthAbbrev } from './_lib/format';
+import { jsonLdString } from './_lib/jsonld';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { getSource } from './_lib/source';
 import { flags } from './_lib/flags';
@@ -61,7 +62,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <h1 className="pt-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
       <AdSlot slot="topo" />
 

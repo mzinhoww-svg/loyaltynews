@@ -639,3 +639,54 @@ test('I4 (decisão 13): PORTAL_INDEXAVEL com espaço (" 1", "1 ") reprova; só "
   const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'production', indexavel: true };
   assert.match(startProblems({ APP_ENV: 'production', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl, PORTAL_INDEXAVEL: ' 1' }, rel).join('|'), /PORTAL_INDEXAVEL ausente|so o valor 1/);
 });
+
+// ---------- Opção (e) do PM: typecheck fora do build da Vertra, só com relatório verde do MESMO commit ----------
+test('opção (e): typecheckReportProblem aceita só relatório do mesmo commit com a etapa typecheck verde', async () => {
+  const { typecheckReportProblem } = await import('../scripts/lib/typecheck-report.mjs');
+  const sha = 'd'.repeat(40);
+  const ok = { head: sha, ok: true, verificacao: [{ etapa: 'lint', ok: true }, { etapa: 'typecheck', ok: true }] };
+  assert.equal(typecheckReportProblem(ok, sha), '');
+  assert.match(typecheckReportProblem(ok, 'e'.repeat(40)), /OUTRO commit/);
+  assert.match(typecheckReportProblem({ ...ok, verificacao: [{ etapa: 'typecheck', ok: false }] }, sha), /FALHOU/);
+  assert.match(typecheckReportProblem({ ...ok, verificacao: [{ etapa: 'lint', ok: true }] }, sha), /não tem a etapa typecheck/);
+  assert.match(typecheckReportProblem({ ...ok, head: 'curto' }, sha), /sem "head"/);
+  assert.match(typecheckReportProblem(null, sha), /ilegível/);
+  assert.match(typecheckReportProblem({ ...ok, verificacao: 'x' }, sha), /não tem a etapa typecheck/);
+});
+
+test('opção (e): typecheckEnv só liga LN_BUILD_SKIP_TYPECHECK quando o release.json dispensa; o painel nunca decide', async () => {
+  const { typecheckEnv } = await import('../scripts/lib/typecheck-report.mjs');
+  assert.deepEqual(typecheckEnv({ semTypecheckNoBuild: true }), { LN_BUILD_SKIP_TYPECHECK: '1' });
+  assert.deepEqual(typecheckEnv({ semTypecheckNoBuild: false }), {});
+  assert.deepEqual(typecheckEnv({}), {});
+  assert.deepEqual(typecheckEnv(null), {});
+  assert.deepEqual(typecheckEnv({ semTypecheckNoBuild: 'true' }), {}, 'só o booleano true');
+});
+
+test('opção (e): package-web --sem-typecheck-no-build exige o relatório, recusa worker e relatório de outro commit', () => {
+  const dir = join(tmp(), 'nada');
+  const sem = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--sem-typecheck-no-build']);
+  assert.equal(sem.status, 2);
+  assert.match(sem.stderr, /exige --typecheck-report/);
+  const w = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--app', 'workers', '--sem-typecheck-no-build', '--typecheck-report', 'x.json']);
+  assert.equal(w.status, 2);
+  assert.match(w.stderr, /so vale para o web/);
+  const d = tmp();
+  put(d, 'rel.json', JSON.stringify({ head: 'f'.repeat(40), ok: true, verificacao: [{ etapa: 'typecheck', ok: true }] }));
+  const outro = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--sem-typecheck-no-build', '--typecheck-report', join(d, 'rel.json')]);
+  assert.notEqual(outro.status, 0);
+  assert.match(outro.stderr, /OUTRO commit/);
+  const ruim = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--sem-typecheck-no-build', '--typecheck-report', join(d, 'nao-existe.json')]);
+  assert.equal(ruim.status, 2);
+  assert.match(ruim.stderr, /ilegivel/);
+  rmSync(d, { recursive: true, force: true });
+});
+
+test('opção (e): start-web reprova LN_BUILD_SKIP_TYPECHECK em execução (a variável é só do build)', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'a'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'staging' };
+  const env = { APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl };
+  assert.deepEqual(startProblems(env, rel), []);
+  assert.match(startProblems({ ...env, LN_BUILD_SKIP_TYPECHECK: '1' }, rel).join('|'), /LN_BUILD_SKIP_TYPECHECK definida em execução/);
+});
