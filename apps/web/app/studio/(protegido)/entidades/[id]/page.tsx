@@ -10,6 +10,7 @@ import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { MovesPendentes } from '../../../_components/MovesPendentes';
+import { CargosAConfirmar } from '../../../_components/CargosEntidades';
 
 export const metadata: Metadata = { title: 'Empresa' };
 export const dynamic = 'force-dynamic';
@@ -44,7 +45,7 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
       if (aqui) cargos.set(`${p.person_id}|${p.title}`, aqui);
     }),
   );
-  const aConfirmar = ov.people.filter((p) => p.certainty === 'inferred');
+  const podeAgir = checkAccess(session, ['admin', 'editor_chefe', 'editor']).ok;
   const podeRevisar = checkAccess(session, ['admin', 'editor_chefe', 'editor', 'revisor']).ok;
   return (
     <>
@@ -105,25 +106,7 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
         </table>
       )}
 
-      <h2>Cargos a confirmar{aConfirmar.length ? ` (${aConfirmar.length})` : ''}</h2>
-      {aConfirmar.length === 0 ? (
-        <p className="st-hint" data-vazio="a-confirmar">
-          Nenhum cargo desta empresa aguardando confirmação.
-        </p>
-      ) : (
-        <>
-          <ul className="st-issues" aria-label="Cargos a confirmar">
-            {aConfirmar.map((p) => (
-              <li key={`${p.person_id}-${p.title}`} data-a-confirmar={p.title}>
-                {p.full_name} — {p.title}
-              </li>
-            ))}
-          </ul>
-          <p className="st-hint" data-lacuna="confirmar-descartar">
-            Fonte secundária (LinkedIn ou site de organograma), nunca fato. Confirmar com a página oficial ou descartar depende de rotas que o Backend ainda não expõe; quando uma leitura oficial do mesmo cargo chega, ele passa a oficial sozinho.
-          </p>
-        </>
-      )}
+      <CargosAConfirmar organizationId={id} podeAgir={podeAgir} retorno={`/studio/entidades/${id}`} />
 
       <h2>Relações</h2>
       {ov.relations.length === 0 ? (

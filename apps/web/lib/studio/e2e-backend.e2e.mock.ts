@@ -115,6 +115,7 @@ async function montar() {
         await processObservation(idb, obs('MOCK Ana Souza', 'Diretora de CRM', e2, d2, 'oficial'), cfg); // title_change: Move detectado com antes e depois
         await processObservation(idb, obs('MOCK Bruno Lima', 'Diretor Financeiro', e1, d1, 'oficial'), cfg);
         await processObservation(idb, obs('MOCK Carla Dias', 'Gerente de Dados', e3, d2, 'secundaria'), cfg); // a confirmar
+        await processObservation(idb, obs('MOCK Eva Rocha', 'Gerente de Parcerias', e3, d2, 'secundaria'), cfg); // a confirmar (será descartada no teste)
         const alfa = await upsertOrganization(idb, { legalName: ALFA, evidenceId: e1, observedAt: d1 });
         const beta = await upsertOrganization(idb, { legalName: BETA, evidenceId: e1, observedAt: d1 });
         await addOrgRelation(idb, { fromOrgId: alfa, toOrgId: beta, type: 'partner_of', validFrom: '2026-01-01', evidenceId: e1, observedAt: d1 });

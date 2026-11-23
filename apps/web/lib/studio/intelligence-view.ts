@@ -125,3 +125,41 @@ export function antesEDepois(m: MoveLinha): [LadoDoMove, LadoDoMove] {
     : { rotulo: 'Depois', cargo: m.to_title || m.to_organization ? { organizacao: m.to_organization ?? '—', titulo: m.to_title ?? '—' } : null, evidencia: m.evidence, validadoEm: null };
   return [antes, depois];
 }
+
+export type NivelDaFonte = 'official' | 'secondary' | 'inferred';
+/** Linha da lista de cargos (GET /api/studio/intelligence/roles): cargo aberto com nível da fonte e situação. */
+export interface CargoDaLista {
+  role_id: string;
+  person_id: string;
+  person_name: string;
+  organization_id: string;
+  organization: string;
+  title: string;
+  certainty: Certeza;
+  source_level: NivelDaFonte;
+  /** confirmed = fato; to_confirm = a confirmar (nunca aparece como fato). */
+  status: 'confirmed' | 'to_confirm';
+  valid_from: string;
+  valid_to: string | null;
+  validated_at: string;
+  evidence: EvidenciaRef;
+}
+export interface PaginaDeCargos {
+  items: CargoDaLista[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/** Nível pelo campo source_level (não pela dedução): oficial; secundária (LinkedIn/The Org) a confirmar; outra inferência a confirmar. */
+export function nivelPorFonte(n: NivelDaFonte): { chave: 'oficial' | 'secundaria' | 'inferida'; rotulo: string; aConfirmar: boolean } {
+  if (n === 'official') return { chave: 'oficial', rotulo: 'Oficial', aConfirmar: false };
+  if (n === 'secondary') return { chave: 'secundaria', rotulo: 'Secundária — a confirmar', aConfirmar: true };
+  return { chave: 'inferida', rotulo: 'Inferida — a confirmar', aConfirmar: true };
+}
+export const FILTROS_DE_NIVEL: readonly { valor: '' | NivelDaFonte; rotulo: string }[] = [
+  { valor: '', rotulo: 'Todos os níveis' },
+  { valor: 'official', rotulo: 'Oficial' },
+  { valor: 'secondary', rotulo: 'Secundária (a confirmar)' },
+  { valor: 'inferred', rotulo: 'Inferida (a confirmar)' },
+];
