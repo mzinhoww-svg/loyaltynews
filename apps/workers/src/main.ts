@@ -72,8 +72,8 @@ async function main() {
   // flags de produto pelo resolvedor da ADR-022 (o mesmo do web): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
   const flags = workerFlagResolver(process.env);
   const reread = startIntelligenceReread({ db: intelDbPort, flags });
-  // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on, LN_INTELLIGENCE_PESSOAS=on e a flag)
-  const alerts = startIntelligenceAlerts({ db: intelDbPort });
+  // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on e a flag intelligencePessoas pelo resolvedor)
+  const alerts = startIntelligenceAlerts({ db: intelDbPort, flags });
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {

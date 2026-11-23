@@ -2,36 +2,31 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { addEvidence, createWatchlist, ingestBatch, INGEST_SCHEMA_VERSION, listAlerts, reviewMove, upsertOrganization, watch, type Db as IntelDb } from '@ln/intelligence';
 import { createTestDb } from '@ln/db/testing';
 import { runAlertCycle, startIntelligenceAlerts } from './intelligence-alerts';
+import { workerFlagResolver } from './worker-flags';
+
+const quiet = () => undefined;
 
 const T = '2026-11-01T00:00:00Z';
 const ON = { personIngestion: true, extendedPersonalData: false } as const;
 const FLAG = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas' };
 const db0 = { query: async () => ({ rows: [] }) } as unknown as IntelDb;
 
-describe('job de alertas das watchlists: desligado por padrão', () => {
-  it('sem as duas chaves não liga e não agenda nada; só a do job ou só a das pessoas também não', () => {
+describe('job de alertas das watchlists: desligado por padrão (resolvedor único da ADR-022)', () => {
+  it('sem a chave operacional ou sem a flag pelo resolvedor não liga; LN_INTELLIGENCE_PESSOAS ou LN_FLAGS_ON no env do job não ligam nada', () => {
     const lines: string[] = [];
     const log = (l: string) => lines.push(l);
-    expect(startIntelligenceAlerts({ db: db0, env: {}, log })).toBeNull();
-    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_PESSOAS: 'on' }, log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: {}, flags: workerFlagResolver(FLAG, quiet), log })).toBeNull();
     expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, log })).toBeNull();
-    expect(lines.join('\n')).toMatch(/LN_INTELLIGENCE_PESSOAS/);
+    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on', ...FLAG }, log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: workerFlagResolver({ APP_ENV: 'staging' }, quiet), log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: workerFlagResolver({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, quiet), log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: () => { throw new Error('x'); }, log })).toBeNull();
+    expect(lines.join(' | ')).toMatch(/flag intelligencePessoas desligada/);
   });
 
-  it('ADR-022: com as chaves mas sem a flag (ou em produção) não liga; flags inválidas não ligam', () => {
+  it('com a chave e a flag pelo resolvedor (staging) liga (janela 30 d; piso de 5 min) e o stop cancela os timers', () => {
     const lines: string[] = [];
-    const log = (l: string) => lines.push(l);
-    const KEYS = { LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on' };
-    expect(startIntelligenceAlerts({ db: db0, env: KEYS, log })).toBeNull();
-    expect(startIntelligenceAlerts({ db: db0, env: { ...KEYS, APP_ENV: 'production' }, log })).toBeNull();
-    expect(startIntelligenceAlerts({ db: db0, env: { ...KEYS, APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, log })).toBeNull();
-    expect(lines.join('\n')).toMatch(/flag intelligencePessoas não ligada/);
-    expect(lines.join('\n')).toMatch(/sem decisão para production/);
-  });
-
-  it('com as duas chaves liga (janela 30 d; a cada 15 min por padrão; piso de 5 min) e o stop cancela os timers', () => {
-    const lines: string[] = [];
-    const h = startIntelligenceAlerts({ db: db0, env: { ...FLAG, LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on', LN_ALERTS_INTERVAL_MIN: '1' }, log: (l) => lines.push(l) });
+    const h = startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on', LN_ALERTS_INTERVAL_MIN: '1' }, flags: workerFlagResolver(FLAG, quiet), log: (l) => lines.push(l) });
     expect(h).not.toBeNull();
     h!.stop();
     expect(lines[0]).toBe('[intelligence-alerts] ligado: janela 30 d, a cada 5 min');
