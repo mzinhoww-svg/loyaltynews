@@ -282,11 +282,32 @@ describe('planilha e relatório', () => {
     const csv = pilotCsv([row({ notes: '=HYPERLINK("http://x")', gate_reasons: ['a', 'b'], limit_message: 'disse "oi", ok' })]);
     const [head, line] = csv.trim().split('\n');
     assert.equal(head, PILOT_CSV_COLUMNS.join(','));
-    assert.equal(PILOT_CSV_COLUMNS.length, 28);
+    assert.equal(PILOT_CSV_COLUMNS.length, 31);
     assert.ok(line!.includes("\"'=HYPERLINK(\"\"http://x\"\")\""));
     assert.ok(line!.includes('a | b'));
     assert.ok(line!.includes('"disse ""oi"", ok"'));
     assert.ok(line!.includes(',false,'));
+  });
+
+  test('gravidade dos fatos não suportados (ft/agents 041a74f): as 3 colunas vêm logo depois de unsupported_facts, na ordem do AgentOps, com os valores', () => {
+    const cols = [...PILOT_CSV_COLUMNS];
+    const i = cols.indexOf('unsupported_facts');
+    assert.deepEqual(cols.slice(i, i + 5), ['unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low', 'published_attempt']);
+    const [head, line] = pilotCsv([row({ unsupported_facts: 3, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 2 })]).trim().split('\n');
+    const h = head!.split(',');
+    const v = line!.split(',');
+    assert.deepEqual(['unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low'].map((c) => v[h.indexOf(c)]), ['3', '0', '1', '2']);
+    // sem gravidade informada, as células ficam vazias (nunca 0 inventado)
+    const [, none] = pilotCsv([row({ unsupported_facts: 2 })]).trim().split('\n');
+    assert.deepEqual(['unsupported_high', 'unsupported_medium', 'unsupported_low'].map((c) => none!.split(',')[h.indexOf(c)]), ['', '', '']);
+  });
+
+  test('o patch da Editorial com a gravidade é gravado e relido (campos opcionais do PilotRow)', async () => {
+    const store = new InMemoryPilotRowStore();
+    await store.upsert(row({ task_id: 'p1', stage: 'review', account: 'codex', declared_model: 'gpt-5.1-codex' }));
+    assert.equal(await store.patch('p1', 1, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true, unsupported_facts: 3, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 2 }), true);
+    const [r] = await store.all();
+    assert.deepEqual([r!.unsupported_facts, r!.unsupported_high, r!.unsupported_medium, r!.unsupported_low], [3, 0, 1, 2]);
   });
 
   test('relatório do adaptador: contas, limites e janelas, independência por modelo declarado (Claude via Antigravity não é independente do redator Claude)', () => {
