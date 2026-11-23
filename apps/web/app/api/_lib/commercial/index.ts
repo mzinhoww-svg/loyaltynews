@@ -8,7 +8,9 @@ import { createDispatcher, type PureRoute } from '../handler-adapter';
 import type { RouteCtx } from '../http';
 import { adCall, isAdRoute } from './ads';
 import { listAccounts, listCampaigns } from './lists';
-import { COMMERCIAL_LOCK, hydrate, persist, seedCommercial } from './repo';
+import { COMMERCIAL_LOCK, hydrate, loadDelivery, persist, seedCommercial } from './repo';
+
+const isReportRoute = (path: string): boolean => path.endsWith('/campaigns/report') || path.endsWith('/campaigns/report-csv');
 
 /** Data de calendário em America/Sao_Paulo (YYYY-MM-DD). */
 export const saoPauloDate = (d: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
@@ -37,7 +39,9 @@ export const dispatchCommercial = createDispatcher({
     if (isAdRoute(route.path)) return adCall(route as Route, input, c, extra);
     if (route.method === 'GET') {
       const h = await hydrate(c.deps.db, now);
-      return route.handler(makeCtx(h.state, extra), input);
+      // relatório do anunciante: só nestas rotas (e só da campanha e da janela pedidas) as linhas diárias de entrega entram no contexto
+      const delivery = isReportRoute(route.path) ? await loadDelivery(c.deps.db, input) : undefined;
+      return route.handler(makeCtx(h.state, { ...extra, delivery }), input);
     }
     return runCommercialWrite(route as Route, input, c, extra);
   },

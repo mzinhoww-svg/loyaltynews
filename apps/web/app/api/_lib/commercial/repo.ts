@@ -3,12 +3,12 @@
 // mudou (diferença linha a linha). Leituras: sem lock. Escritas: uma transação com lock consultivo
 // (pg_advisory_xact_lock), então reservas e transições se serializam. Carrega as tabelas inteiras por requisição
 // (volume pequeno; otimizar depois). O ad server público NÃO passa por aqui: ver ads.ts (Redis).
-import { and, getTableColumns, gte, inArray, like, not, sql, type SQL } from 'drizzle-orm';
+import { and, eq, getTableColumns, gte, inArray, like, lte, not, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
   AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION,
   type Account, type BannerPosition, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
-  type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
+  type DeliveryRow, type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
 } from '@ln/commercial';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
@@ -119,6 +119,27 @@ export async function cmsCoverageMetrics(db: Db, now: Date): Promise<MetricRecor
     ...rec('articles_published_90d', await countArticles(90), new Date(now.getTime() - 90 * DIA), now),
     ...rec('upcoming_events', evs?.n ?? 0, now, new Date(now.getTime() + 730 * DIA)),
   ];
+}
+
+/**
+ * Linhas diárias de entrega (ad_delivery_daily) dos criativos DE UMA campanha, só na janela pedida (from/to inclusivos, AAAA-MM-DD). Alimenta o relatório do
+ * anunciante; sem `campaignId` válido devolve vazio (o handler recusa a entrada). `updatedAt` é a "data do dado" (o flush do Redis é por minuto).
+ */
+export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[]> {
+  const i = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; from?: unknown; to?: unknown };
+  if (typeof i.campaignId !== 'string' || !i.campaignId) return [];
+  const d = schema.adDeliveryDaily;
+  // só data de calendário REAL (2026-02-30 não vai ao banco: o PostgreSQL a recusaria com erro); o handler responde 400 à entrada inválida
+  const day = { test: (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v };
+  const rows = await db
+    .select({ r: d })
+    .from(d)
+    .innerJoin(schema.adCreatives, eq(schema.adCreatives.id, d.criativoId))
+    .where(and(eq(schema.adCreatives.campanhaId, i.campaignId), typeof i.from === 'string' && day.test(i.from) ? gte(d.dia, i.from) : undefined, typeof i.to === 'string' && day.test(i.to) ? lte(d.dia, i.to) : undefined));
+  return rows.map(({ r }) => ({
+    creativeId: r.criativoId, day: r.dia, served: r.servidas, visible: r.visiveis, clicks: r.cliques,
+    ignoredBotInternal: r.ignoradasBotInterno, refreshSuppressed: r.refreshSuprimido, updatedAt: r.atualizadoEm.toISOString(),
+  }));
 }
 
 export async function hydrate(db: Db, now: Date = new Date()): Promise<Hydrated> {
