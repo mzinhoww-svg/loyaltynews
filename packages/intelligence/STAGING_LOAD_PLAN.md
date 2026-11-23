@@ -8,7 +8,7 @@ Dono: Frente 08 (LN Data Engineer). Execução: DevOps, com o banco e a `DATABAS
 2. **Carga v4** (homologada pelo QA 3 no commit 5074064) — seção abaixo: check → dry-run `--with-persons` → apply `--with-persons --manifest …intelligence-seed-v4.manifest.json` → check.
 3. **Carga v5** (12 cargos a mais; **só depois do parecer do QA 3 sobre o v5**) — seção "Carga v5".
 4. Conferir no Studio (fila "a confirmar" vazia; cargos com nível oficial) e **manter a exibição pública de pessoas desligada** até a decisão de produto; flag `intelligencePessoas` do produto continua desligada (o `--with-persons` liga só o carregador, só naquela execução).
-5. Só então, se decidido, ligar o job de releitura (`REREAD_JOB.md`: `LN_INTELLIGENCE_REREAD=on`, `LN_INTELLIGENCE_PESSOAS=on`, `LN_REREAD_SEED=<seed v5>`).
+5. Só então, se decidido, ligar o job de releitura (`REREAD_JOB.md`: `LN_INTELLIGENCE_REREAD=on`, `LN_REREAD_SEED=<seed v7>` e a flag `intelligencePessoas` pelo resolvedor do ADR-022 (`LN_FLAGS_ON`, staging); a reserva por provedor só com a flag `leitorViaProvedor`).
 Parada: dry-run com qualquer `rejected` (exit 1) ⇒ não aplicar. Sem o manifesto não há desfazer automático (plano B: snapshot).
 
 ## Carga v7 — relações entre organizações de fontes oficiais (sobre a v6 JÁ carregada)
