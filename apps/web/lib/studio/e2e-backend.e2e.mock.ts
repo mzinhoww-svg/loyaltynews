@@ -86,6 +86,12 @@ async function montar() {
         recheckCount: 0,
         updatedAt: agora,
       });
+      // ADR-019: o caso de correção só abre sobre matéria JÁ PUBLICADA em `articles` (a Fábrica é a origem quando há registro editorial
+      // com o mesmo id). Só para o e2e dos casos: a linha publicada é fictícia (MOCK), no banco de e2e.
+      await db
+        .insert(schema.articles)
+        .values({ id: articleId, slug: 'programa-alfa-altera-regra-de-pontos-fabrica', titulo: 'Programa Alfa altera regra de pontos (Fábrica)', editoria: 'pontos', corpo: 'O Programa Alfa alterou a regra de pontos.', resumo: 'O Programa Alfa alterou a regra de pontos.', status: 'publicado', versao: 3, publicadoEm: new Date('2026-11-20T10:00:00Z') } as typeof schema.articles.$inferInsert)
+        .onConflictDoNothing();
       return { articleId };
     },
     async login(user, role, mfa) {

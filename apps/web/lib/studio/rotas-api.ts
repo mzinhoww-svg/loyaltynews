@@ -81,6 +81,35 @@ export interface MateriaDetalhe extends MateriaLinha {
   transicoes: Transicao[];
 }
 
+export interface Pagina<T> {
+  data: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+export interface CampanhaLinha {
+  id: string;
+  name: string;
+  status: string;
+  formatId: string;
+  formatName: string | null;
+  positionId: string | null;
+  startDate: string;
+  endDate: string;
+  accountId: string;
+  accountName: string | null;
+  sponsoredLabel: boolean;
+}
+export interface ContaLinha {
+  id: string;
+  name: string;
+  createdAt: string;
+  leads: number;
+  opportunities: number;
+  campaigns: number;
+  activeCampaigns: number;
+}
+
 export interface Revisao {
   id: string;
   articleId: string;
@@ -190,6 +219,10 @@ export const api = {
     oportunidades: () => chamar(dispatchCommercial, `${C}/studio/opportunities`),
     moverEstagio: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/opportunities/stage`, { metodo: 'POST', corpo }),
     painel: (from: string, to: string) => chamar(dispatchCommercial, `${C}/studio/dashboard`, { query: { from, to } }),
+    /** Lista paginada de campanhas (filtros status, accountId, q; limit/offset). Chaves em inglês, como o resto da API comercial. */
+    campanhas: (query: Record<string, string | undefined> = {}) => chamar<Pagina<CampanhaLinha>>(dispatchCommercial, `${C}/studio/campaigns`, { query }),
+    /** Contas/anunciantes: contagens, sem dado pessoal (filtro q; limit/offset). */
+    contas: (query: Record<string, string | undefined> = {}) => chamar<Pagina<ContaLinha>>(dispatchCommercial, `${C}/studio/accounts`, { query }),
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
     transicaoCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns/transition`, { metodo: 'POST', corpo }),

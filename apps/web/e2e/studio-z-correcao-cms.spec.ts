@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, definirFlag, entrar, enviar } from './helpers';
+import { api, definirFlag, entrar, enviar, semearFabrica } from './helpers';
 
 // Publicação oficial de matéria só do CMS e correção de matéria publicada (ft/backend 71d735d), com sessão real.
 // O nome do arquivo o põe POR ÚLTIMO: o banco de e2e é compartilhado e este spec publica uma matéria e abre um caso de
@@ -8,7 +8,6 @@ import { api, definirFlag, entrar, enviar } from './helpers';
 test.describe.configure({ mode: 'serial' });
 
 const TITULO = 'Banco Beta revisa tarifas de cartão';
-const erro = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.err').filter({ hasText: txt }).first()).toBeVisible();
 const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
 
 let materiaId = '';
@@ -118,6 +117,12 @@ test('sem caso aceito o Backend recusa; revisão não ocorre fora de caso; leitu
   expect([409, 422]).toContain(sem.status);
   await page.goto(casoUrl);
   await expect(page.getByRole('link', { name: 'Abrir a matéria' })).toBeVisible();
+
+  // matéria da Fábrica não segue este caminho: a nova versão é do rascunho editorial (409 EDITORIAL_ORIGIN), e a recusa vem do Backend
+  const fabrica = await semearFabrica(context);
+  const origem = await api(context, 'PATCH', `/api/materias/${fabrica}`, { versaoEsperada: 3, casoCorrecaoId: 'qualquer', titulo: 'Novo título' });
+  expect(origem.status).toBe(409);
+  expect(origem.body.error.code).toBe('EDITORIAL_ORIGIN');
 
   await entrar(context, 'lia', 'leitor');
   await page.goto(`/studio/cms/${materiaId}`);
