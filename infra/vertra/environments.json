@@ -11,8 +11,8 @@
   "conta": {
     "plano": "pro-8",
     "memoria_limite_mb": 8192,
-    "memoria_alocada_mb": 3072,
-    "memoria_livre_mb": 5120,
+    "memoria_alocada_mb": 3584,
+    "memoria_livre_mb": 4608,
     "fonte": "get_profile (vertra-ln-leitura) em 22/11/2026 ~18h35 BRT, confirmando o aviso do PM (~18h50); upgrade feito pelo proprietário",
     "ressalva": "Os campos owner_plan de cada recurso ainda mostravam 'pro-4' na mesma leitura (provável campo atrasado; não verificado). Reconfirmar get_profile imediatamente antes de aplicar.",
     "recursos_de_outros_projetos_nao_tocar": [
@@ -23,7 +23,8 @@
       "34a59fd4 agencia-web (512)",
       "38496aaf agencia-db (1024)"
     ],
-    "regra": "os 3072 MB desses 6 recursos não podem ser tocados; conferir mesmo ID, RAM e estado antes e depois de cada deploy"
+    "regra": "os 3072 MB desses 6 recursos não podem ser tocados; conferir mesmo ID, RAM e estado antes e depois de cada deploy",
+    "correcao_23_11": "Corrigido em 23/11/2026 (get_profile): os 6 recursos de outros projetos somam 3072 MB e o app ln-staging-web já usa mais 512 MB, então 3584 MB estão alocados e 4608 MB livres (não 5120)."
   },
   "organizacao": {
     "recomendado": "workspace 'loyalty-news' (papéis e chaves próprias; Pro permite até 5 membros). Recursos de workspace usam o plano do dono: não somam memória extra (a confirmar: FinOps v2 também marca como não verificado).",
@@ -232,35 +233,48 @@
   },
   "cenarios_de_capacidade": [
     {
-      "nome": "pro-8 (atual, 5120 MB livres)",
-      "livre_mb": 5120,
-      "cabe": [
-        "staging (2304) + production (2432) = 4736"
-      ],
+      "nome": "pro-8 (atual): staging completo + produção",
+      "livre_mb": 4608,
+      "novo_staging_mb": 1792,
+      "novo_producao_mb": 2432,
+      "total_novo_mb": 4224,
+      "alocado_final_mb": 7808,
       "sobra_mb": 384,
-      "recomendacao": "adotar: staging e produção com bancos separados (isolamento). Não é preciso compartilhar banco."
+      "cabe": true,
+      "ressalva": "CABE para criar, mas com 384 MB livres NÃO há memória para reconstruir um web depois: o build exige o app em 1024 MB no mínimo (2048 MB é o que passou) e o ambiente de build é 2x a RAM do app. Decisão do proprietário: subir o plano (business-12: 12288 MB, R$ 59,90/mês na tabela de 23/11/2026, contra R$ 47,90 do pro-8), ou compartilhar um PostgreSQL entre staging e produção (-1024 MB, perde isolamento), ou entregar o web já compilado. Ordem de criação para nunca passar de 8192 MB: PEDIDO-PROVISIONAMENTO-v1.md, seção 2."
     },
     {
-      "nome": "alternativa só se faltar RAM no futuro",
-      "descricao": "staging e produção no mesmo PostgreSQL, em schemas separados (staging/production): economiza 1024 MB e um banco, mas perde isolamento (um erro de migração ou de carga em staging afeta produção; backup e restauração acoplados; certificado/credencial compartilhado). Não recomendado agora.",
-      "economia_mb": 1024
+      "nome": "business-12 (se o proprietário aprovar)",
+      "livre_mb": 8704,
+      "alocado_final_mb": 7808,
+      "sobra_mb": 4480,
+      "cabe": true,
+      "ressalva": "Sobram 4480 MB: dá para reconstruir o web com 2048 MB a qualquer momento. Preço de tabela, não cotação; pagamento é do proprietário."
     },
     {
-      "nome": "pro-4 (anterior, 1024 MB livres)",
-      "livre_mb": 1024,
-      "cabe": [
-        "staging-min (512)"
-      ],
-      "observacao": "superado pelo upgrade; mantido só como registro"
+      "nome": "alternativa: staging e produção no mesmo PostgreSQL (schemas separados)",
+      "economia_mb": 1024,
+      "alocado_final_mb": 6784,
+      "sobra_mb": 1408,
+      "ressalva": "Perde isolamento (erro de migração ou carga em staging afeta produção; backup e restauração acoplados; credencial compartilhada). Não recomendado."
     }
   ],
-  "capacidade_nota": "Usar 4736 de 5120 MB deixa 384 MB (7,5%) de folga: pouco para picos. Se o web em produção precisar de 1024 MB, a folga some (4736 + 512 = 5248 > 5120): nesse caso adotar workers de 256 em produção (-128) e/ou schemas separados em um banco só. Preços de tabela, não cotação.",
+  "capacidade_nota": "Conta corrigida em 23/11/2026: 4608 MB livres no pro-8. Staging completo (+1792) e produção (+2432) cabem (+4224), sobrando 384 MB, o que impede reconstruir o web depois. Ver cenarios_de_capacidade e PEDIDO-PROVISIONAMENTO-v1.md. Preços de tabela, não cotação.",
   "dominio": {
     "agora": "subdomínio *.vertraweb.app",
     "staging_web": "loyaltynews-staging.vertraweb.app (se disponível)",
     "producao_web": "loyaltynews.vertraweb.app (se disponível)",
     "nota": "disponibilidade só se confirma ao definir o subdomínio (escrita); se ocupado, usar variante (ex.: ln-news-staging). Domínio próprio depois: pro-8 permite 2 por app, com SSL automático. Não verifiquei disponibilidade.",
     "variavel": "APP_URL"
+  },
+  "variaveis_somente_staging": {
+    "lista": [
+      {
+        "nome": "PORTAL_VITRINE",
+        "regra": "so o valor 1 e so com APP_ENV=staging; production definida = reprovado (guard-env no build e no start; ci-checks reprova atribuicao em configuracao de producao); temporaria (R9)"
+      }
+    ],
+    "referencia": "r0-preparacao/seguranca/10_decisao-vitrine-staging.md"
   },
   "variaveis_proibidas_em_staging_e_producao": {
     "lista": [

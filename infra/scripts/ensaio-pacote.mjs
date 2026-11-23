@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, fail } from './lib/util.mjs';
+import { VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
 
 const SELF = dirname(fileURLToPath(import.meta.url));
 const args = parseArgs(process.argv.slice(2));
@@ -21,6 +22,10 @@ if (!args.manifest || args.manifest === true) fail('use --manifest <arquivo>', 2
 const port = String(args.port ?? 3197);
 const man = JSON.parse(readFileSync(resolve(String(args.manifest)), 'utf8'));
 const ca = man.ferramentas.create_app;
+const apiSrc = man.depois_do_create.set_env.some((e) => e.nome === 'PORTAL_SOURCE' && e.valor === 'api'); // staging completo e producao: dados reais pela API (decisao 12)
+const producao = man.depois_do_create.set_env.some((e) => e.nome === 'APP_ENV' && e.valor === 'production');
+const indexavel = man.indexavel === true; // DP-24: producao so e indexavel no go-live (--indexavel)
+const vitrine = man.vitrine === true; // pacote de VITRINE (staging com fixtures rotuladas) ou pacote normal (fonte vazia)
 const win = process.platform === 'win32';
 const results = [];
 const step = (nome, ok, detalhe) => { results.push({ nome, ok, ...(detalhe ? { detalhe } : {}) }); console.error(`[${ok ? 'ok' : 'FALHOU'}] ${nome}${detalhe ? ' — ' + detalhe : ''}`); return ok; };
@@ -82,6 +87,48 @@ try {
   step('build RECUSADO com LN_STUDIO_TEST_SESSION definida', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
   r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_SOURCE: 'mock' } });
   step('start RECUSADO com PORTAL_SOURCE=mock em staging', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
+  // Vitrine (Security 23/11/2026, testes 2, 3 e 4): production + PORTAL_VITRINE=1 recusa build E start; pacote production com vitrine é recusado; start diverge do release.vitrine
+  r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, APP_ENV: 'production', PORTAL_VITRINE: '1' } });
+  step('[vitrine 2] build RECUSADO com APP_ENV=production + PORTAL_VITRINE=1', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`) && /PORTAL_VITRINE/.test(`${r.stdout}${r.stderr}`));
+  r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, APP_ENV: 'production', PORTAL_VITRINE: '1' } });
+  step('[vitrine 2] start RECUSADO com APP_ENV=production + PORTAL_VITRINE=1', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`) && /PORTAL_VITRINE/.test(`${r.stdout}${r.stderr}`));
+  r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '0' } });
+  step('[vitrine 1] start RECUSADO com PORTAL_VITRINE=0 (só o valor 1 vale)', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
+  r = spawnSync(process.execPath, [join(SELF, 'package-web.mjs'), '--repo', work, '--commit', man.commit, '--out', join(dir, 'prod-vitrine'), '--profile', 'production', '--vitrine'], { encoding: 'utf8' });
+  step('[vitrine 3] package-web --profile production --vitrine RECUSADO', r.status !== 0 && /vitrine recusado/i.test(`${r.stdout}${r.stderr}`) && !existsSync(join(dir, 'prod-vitrine')));
+  if (apiSrc) {
+    // Decisão 12 do Security (A2, A3, A4): a fonte de dados reais só aceita a grafia exata, não convive com a vitrine e só fala com o próprio servidor
+    r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, PORTAL_SOURCE: 'API' } });
+    step('[api A2] build RECUSADO com PORTAL_SOURCE=API (grafia diferente de api)', r.status !== 0 && /exatamente api/.test(`${r.stdout}${r.stderr}`));
+    r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '1' } });
+    step('[api A3] start RECUSADO com PORTAL_VITRINE junto de PORTAL_SOURCE=api', r.status !== 0 && /uma fonte por pacote/.test(`${r.stdout}${r.stderr}`));
+    r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '1' } });
+    step('[api A3] build RECUSADO com PORTAL_VITRINE no painel junto de PORTAL_SOURCE=api', r.status !== 0 && /uma fonte por pacote/.test(`${r.stdout}${r.stderr}`));
+    r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_API_BASE_URL: 'https://exemplo.invalid' } });
+    step('[api A4] start RECUSADO com PORTAL_API_BASE_URL fora do loopback', r.status !== 0 && /PORTAL_API_BASE_URL/.test(`${r.stdout}${r.stderr}`));
+  }
+  if (producao) {
+    // DP-24: produção nasce NÃO indexável; PORTAL_INDEXAVEL só com o pacote indexável (go-live) e nunca em staging
+    const e = { ...clean, ...appEnv }; delete e.PORTAL_INDEXAVEL;
+    if (indexavel) {
+      r = runChain(ca.start, { cwd: work, env: e });
+      step('[DP-24] start RECUSADO sem PORTAL_INDEXAVEL em pacote indexável', r.status !== 0 && /PORTAL_INDEXAVEL ausente/.test(`${r.stdout}${r.stderr}`));
+    } else {
+      r = runChain(ca.start, { cwd: work, env: { ...e, PORTAL_INDEXAVEL: '1' } });
+      step('[DP-24] start RECUSADO com PORTAL_INDEXAVEL=1 em pacote NÃO indexável', r.status !== 0 && /pacote NÃO é indexável/.test(`${r.stdout}${r.stderr}`));
+    }
+  }
+  r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, APP_ENV: 'staging', PORTAL_INDEXAVEL: '1' } });
+  step('[DP-24] start RECUSADO com PORTAL_INDEXAVEL=1 fora de produção', r.status !== 0 && /so a producao pode ser indexavel/.test(`${r.stdout}${r.stderr}`));
+  if (vitrine) {
+    const e = { ...clean, ...appEnv }; delete e.PORTAL_VITRINE;
+    r = runChain(ca.start, { cwd: work, env: e });
+    step('[vitrine 4] start RECUSADO sem PORTAL_VITRINE em pacote de vitrine (release.vitrine=true)', r.status !== 0 && /PORTAL_VITRINE ausente em execução/.test(`${r.stdout}${r.stderr}`));
+  } else {
+    r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '1' } });
+    // com PORTAL_SOURCE=api o guard recusa antes (A3: uma fonte por pacote); sem api quem recusa é o start-web (vitrine ≠ release.vitrine)
+    step('[vitrine 4] start RECUSADO com PORTAL_VITRINE=1 em pacote SEM vitrine (release.vitrine=false)', r.status !== 0 && /pacote NÃO é de vitrine|uma fonte por pacote/.test(`${r.stdout}${r.stderr}`));
+  }
   if (/start-web.mjs/.test(ca.start)) {
     // start-web.mjs: o ambiente de EXECUÇÃO errado impede o start (APP_COMMIT corrompido, URL ausente ou localhost, APP_ENV trocado)
     const recusa = (nome, over, re) => { const x = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, ...over } }); step(nome, x.status !== 0 && re.test(`${x.stdout}${x.stderr}`)); };
@@ -93,9 +140,15 @@ try {
   }
 
   // o "painel" aqui traz NEXT_PUBLIC_SITE_URL=localhost (pior caso, como na Vertra em 22/11): o build_command do pacote tem de sobrescrever
-  r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' } });
+  const buildEnv = { ...clean, ...appEnv, NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' };
+  if (vitrine || apiSrc) delete buildEnv.PORTAL_VITRINE; else buildEnv.PORTAL_VITRINE = '1'; // a vitrine vem do release.json, nunca do painel (com api o painel hostil com vitrine é recusado, testado acima)
+  r = runChain(ca.build, { cwd: work, env: buildEnv });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
-  if (!step('build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost)', r.status === 0, motivoBuild)) throw new Error('build falhou');
+  if (man.semTypecheckNoBuild === true) {
+    const log = `${r.stdout}${r.stderr}`;
+    step('[typecheck] build do pacote SEM checagem de tipos dentro do build (release.json.semTypecheckNoBuild)', r.status === 0 && /typecheck-no-build=dispensado/.test(log) && (/Skipping validation of types/i.test(log) || !/Running TypeScript/.test(log)), /Running TypeScript/.test(log) ? 'o Next AINDA rodou o TypeScript: falta a linha de apps/web/next.config.ts (int/006)' : '');
+  }
+  if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : apiSrc ? 'sem PORTAL_VITRINE' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
   server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });
@@ -105,8 +158,8 @@ try {
   }
   if (!step('servidor sobe com o start_command do manifesto', up)) throw new Error('servidor não subiu');
 
-  r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', '--no-mock', '/'], { encoding: 'utf8' });
-  step('sondas: saúde com o commit certo, Studio nega sem login, sem MOCK', r.status === 0, r.status === 0 ? JSON.parse(r.stdout).denied?.status + ' ' + (JSON.parse(r.stdout).denied?.location ?? '') : r.stdout.trim().slice(0, 300));
+  r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', ...(vitrine ? ['--vitrine', '/'] : ['--no-mock', '/'])], { encoding: 'utf8' });
+  step(vitrine ? 'sondas: saúde com o commit certo, Studio nega sem login, home COM a faixa da vitrine' : 'sondas: saúde com o commit certo, Studio nega sem login, sem MOCK nem marcador da vitrine', r.status === 0, r.status === 0 ? JSON.parse(r.stdout).denied?.status + ' ' + (JSON.parse(r.stdout).denied?.location ?? '') : r.stdout.trim().slice(0, 300));
 
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--noindex', '/', '--canonical', man.siteUrl], { encoding: 'utf8' });
   step('staging NÃO indexável (robots Disallow: /, sitemap vazio, noindex) e canonical certo na home e em /noticias', r.status === 0, r.status === 0 ? '' : (() => { try { return JSON.parse(r.stdout).failures.join(' | ').slice(0, 400); } catch { return r.stdout.trim().slice(0, 400); } })());
@@ -119,7 +172,37 @@ try {
   for (const p of ['/', '/noticias', '/agenda', '/busca', '/studio/entrar']) {
     const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
     const body = await res.text();
-    step(`portal ${p}`, res.status === 200 && !/\bMOCK\b/.test(body), `HTTP ${res.status}`);
+    const portal = p !== '/studio/entrar';
+    if (vitrine) step(`portal ${p}${portal ? ' (com a faixa da vitrine)' : ''}`, res.status === 200 && (!portal || body.includes(VITRINE_BANNER)), `HTTP ${res.status}`);
+    else step(`portal ${p}`, res.status === 200 && !/\bMOCK\b/.test(body) && !VITRINE_MARCADORES.some((m) => body.includes(m)), `HTTP ${res.status}`);
+  }
+  if (apiSrc) {
+    // Decisão 12, A6 (Security): API indisponível/com erro = estado vazio honesto, nunca 500, nunca fixture, e nada interno na resposta (URL base, stack).
+    // Aqui a API própria do pacote responde 503 NOT_CONFIGURED (sem banco): as listagens têm de sair vazias e a matéria inexistente 404 ou 503.
+    for (const p of ['/', '/noticias']) {
+      const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      const body = await res.text();
+      const vaza = /127\.0\.0\.1|localhost|\bat \w+\s*\(|ECONNREFUSED|api\/publico/i.test(body.replace(/https?:\/\/loyaltynews[a-z0-9.-]*\.vertraweb\.app/gi, ''));
+      step(`[A6] ${p} com a API indisponível: 200 vazio, sem MOCK e sem URL interna`, res.status === 200 && !/\bMOCK\b/.test(body) && !vaza, `HTTP ${res.status}${vaza ? ' (vaza detalhe interno)' : ''}`);
+    }
+    const art = await fetch(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+    await art.text();
+    step('[A6] matéria com a API indisponível: 404 ou 503 (nunca 500)', art.status === 404 || art.status === 503, `HTTP ${art.status}`);
+  }
+  // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
+  for (const p of ['/sitemap.xml', '/feed.xml']) {
+    const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+    const body = await res.text();
+    const vaza = VITRINE_MARCADORES.some((m) => body.includes(m)) || /\bMOCK\b/.test(body) || /<(?:loc|item|entry)\b/i.test(body);
+    step(`${vitrine ? '[vitrine 1]' : '[vitrine 5]'} ${p} sem itens nem marcadores de demonstração`, (res.status === 200 || res.status === 404) && !vaza, `HTTP ${res.status}`);
+  }
+  // [vitrine 7] teste unitário do Frontend para getSource/resolveSourceKind: APP_ENV=production + PORTAL_VITRINE=1 + PORTAL_SOURCE=mock => fonte vazia
+  const unit = join(work, 'apps', 'web', 'lib', 'indexing.test.ts');
+  if (existsSync(unit)) {
+    r = sh('npx vitest run apps/web/lib/indexing.test.ts', { cwd: work, env: { ...clean, CI: '' } });
+    step('[vitrine 7] teste unitário de resolveSourceKind/getSource (production nunca vê mock)', r.status === 0, r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter(Boolean).slice(-4).join(' | ').slice(0, 300));
+  } else {
+    step('[vitrine 7] teste unitário de resolveSourceKind/getSource', !vitrine, vitrine ? 'AUSENTE no pacote de vitrine: o portal precisa do teste do Frontend (apps/web/lib/indexing.test.ts)' : 'n/a: este commit não tem o suporte de vitrine do portal (sem apps/web/lib/indexing.test.ts)');
   }
   ok = results.every((x) => x.ok);
 } catch (e) {

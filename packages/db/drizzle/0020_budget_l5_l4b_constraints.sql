@@ -1,0 +1,2 @@
+ALTER TABLE "budget_reservations" ALTER COLUMN "task_class" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "budget_reservations" ADD CONSTRAINT "budget_reservations_actual_nonneg" CHECK ("budget_reservations"."actual_microusd" IS NULL OR "budget_reservations"."actual_microusd" >= 0);

@@ -78,12 +78,11 @@ test.describe('matéria via API pública', () => {
 
   test('cards da listagem mostram a imagem pública e o rótulo da ilustração', async ({ page }) => {
     await page.goto('/noticias');
-    const card = page.locator('.pt-card-labeled', { hasText: 'ilustração conceitual e errata' });
-    await expect(card.getByTestId('card-image-label')).toHaveText('Ilustração conceitual');
+    const card = page.locator('article.ln-card', { hasText: 'ilustração conceitual e errata' });
+    await expect(card.locator('.ln-card__imglabel')).toHaveText('Ilustração conceitual');
     await expect(card.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
     // foto de terceiro: imagem sem selo de ilustração; matéria sem imagem: card sem imagem.
-    await expect(page.locator('.pt-card-labeled')).toHaveCount(1);
-    await expect(page.getByTestId('card-image-label')).toHaveCount(1);
+        await expect(page.locator('.ln-card__imglabel')).toHaveCount(1);
     await expect(page.locator('article', { hasText: 'foto de terceiro' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/foto-1');
     await expect(page.locator('article', { hasText: 'imagem venceu' }).locator('img')).toHaveCount(0);
   });
@@ -106,7 +105,8 @@ test.describe('matéria via API pública', () => {
     const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
     const r = await request.get('/noticia/api-ilustracao-corrigida');
     expect(r.status()).toBe(200);
-    if (appEnv === 'production') expect(r.headers()['x-robots-tag']).toBeUndefined();
+    // DP-24: produção só é indexável com PORTAL_INDEXAVEL=1 (PORTAL_INDEXAVEL_E2E=0 sobe a produção sem o interruptor).
+    if (appEnv === 'production' && process.env.PORTAL_INDEXAVEL_E2E !== '0') expect(r.headers()['x-robots-tag']).toBeUndefined();
     else expect(r.headers()['x-robots-tag']).toBe('noindex, nofollow');
   });
 });

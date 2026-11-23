@@ -38,7 +38,7 @@ test.describe('ModelOps e FinOps (@ln/modelops)', () => {
     await page.goto('/studio/modelops?task=tarefa_inexistente');
     await expect(page.getByRole('region', { name: 'Resultado da simulação' })).toContainText('unknown_task');
     await page.goto('/studio/finops');
-    await expect(page.locator('[data-consumo]')).toHaveText('US$ 0.00'); // a simulação não consumiu nada
+    await expect(page.locator('[data-consumo]')).not.toHaveText(/US\$ [1-9]/); // a simulação não consumiu nada (sem banco: indisponível; com banco: US$ 0.00)
   });
 
   test('finops: teto, verbas e degraus da política, consumo zero sem inventar projeção', async ({ page, context }) => {
@@ -46,7 +46,8 @@ test.describe('ModelOps e FinOps (@ln/modelops)', () => {
     await page.goto('/studio/finops');
     await expect(page.getByRole('heading', { level: 1, name: 'FinOps' })).toBeVisible();
     await expect(page.locator('[data-teto]')).toHaveText('US$ 50.00');
-    await expect(page.getByText('Sem consumo: nenhuma chamada foi feita.')).toBeVisible();
+    // sem banco no e2e: o consumo é "indisponível" (nunca um zero inventado); com banco e sem chamadas: "Sem consumo"
+    await expect(page.locator('[data-consumo]')).toHaveText(/indisponível|US\$ 0\.00/);
     await expect(page.locator('tr[data-provedor="openai"]')).toContainText('US$ 20.00');
     await expect(page.locator('tr[data-provedor="anthropic"]')).toContainText('US$ 22.00');
     await expect(page.getByRole('list', { name: 'Degraus de gasto' })).toContainText('US$ 42.00');

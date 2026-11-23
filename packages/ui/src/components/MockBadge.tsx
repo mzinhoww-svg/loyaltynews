@@ -1,21 +1,27 @@
 import type { ReactNode } from "react";
 import { cx } from "../utils";
 
+/** Complemento padrão do selo. */
+export const MOCK_BADGE_LABEL = "dados de exemplo";
+
 interface MockBadgeProps {
-  /** Complemento do selo, ex.: "dados de exemplo". */
+  /**
+   * Complemento visível do selo (padrão: "dados de exemplo"). Com `label=""` o selo mostra só "MOCK"
+   * (versão compacta, ex.: cartões), mas leitores de tela continuam lendo "MOCK · dados de exemplo".
+   */
   label?: string;
   className?: string;
 }
 
 /**
  * Selo VISÍVEL de conteúdo simulado (regra 2 do fast-track: todo mock renderizado
- * mostra o texto MOCK). Não esconder, não reduzir abaixo de 12px.
+ * mostra o texto MOCK). Não esconder, não reduzir abaixo de 12px. O nome acessível é sempre completo.
  */
-export function MockBadge({ label = "dados de exemplo", className }: MockBadgeProps) {
+export function MockBadge({ label = MOCK_BADGE_LABEL, className }: MockBadgeProps) {
   return (
     <span className={cx("ln-mock-badge", className)} data-testid="mock-badge">
       <strong>MOCK</strong>
-      {label ? <span> · {label}</span> : null}
+      {label ? <span> · {label}</span> : <span className="ln-sr-only"> · {MOCK_BADGE_LABEL}</span>}
     </span>
   );
 }
