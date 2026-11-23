@@ -58,7 +58,9 @@ describe('política v6 (DP-26) e modo de qualificação (T6, ADR-021)', () => {
   });
 
   it('produção exige a política de dados do OpenRouter arquivada (DP-26 a)', () => {
-    expect(ModelPolicy.safeParse({ ...v6, rules: { ...v6.rules, production_enabled: true } }).success).toBe(false);
+    expect(v6.rules.privacy.openrouter_data_policy_ref).toMatch(/openrouter-politica-dados-arquivada-2026-11-23\.md/);
+    const semRef = { ...v6, rules: { ...v6.rules, production_enabled: true, privacy: { ...v6.rules.privacy, openrouter_data_policy_ref: null } } };
+    expect(ModelPolicy.safeParse(semRef).success).toBe(false);
     const ok = { ...v6, rules: { ...v6.rules, production_enabled: true, privacy: { ...v6.rules.privacy, openrouter_data_policy_ref: 'arquivo e data (FinOps)' } } };
     expect(ModelPolicy.safeParse(ok).success).toBe(true);
   });
