@@ -4,7 +4,7 @@ import path from 'node:path';
 
 /**
  * Flash, Análises, Entrevistas e Opinião lidos da API pelo tipo da matéria (`tipo` em /api/publico/materias) e busca real em /busca.
- * O servidor MOCK (e2e/fake-api.mjs) imita o contrato: `tipo` filtra por tipoConteudo, `q` procura no título (até 100 caracteres).
+ * O servidor MOCK (e2e/fake-api.mjs) imita o contrato: `tipo` filtra por tipoConteudo, `q` procura no título ou no resumo (até 100 caracteres).
  */
 const SHOTS = path.resolve(import.meta.dirname, '..', 'screenshots', 'api');
 test.skip(process.env.PORTAL_MODE !== 'api' || Boolean(process.env.PORTAL_API_DOWN), 'somente no modo api com a API no ar');
@@ -38,9 +38,9 @@ test.describe('páginas por tipo de matéria', () => {
   }
 
   test('o navegador do portal pede o tipo ao servidor: tipo inexistente na API não vaza para outro tipo', async ({ request }) => {
-    // Contrato do servidor MOCK (igual ao pedido ao Backend): valor inválido = 422
+    // Contrato do servidor MOCK (igual ao pedido ao Backend): valor inválido = 400 VALIDATION_ERROR
     const base = `http://localhost:${Number(process.env.PORTAL_PORT_BASE) ? Number(process.env.PORTAL_PORT_BASE) + 4 : 3104}`;
-    expect((await request.get(`${base}/api/publico/materias?tipo=invalido`)).status()).toBe(422);
+    expect((await request.get(`${base}/api/publico/materias?tipo=invalido`)).status()).toBe(400);
     const ok = await (await request.get(`${base}/api/publico/materias?tipo=flash`)).json();
     expect(ok.data.map((a: { slug: string }) => a.slug)).toEqual(['api-foto-terceiro']);
     expect(ok.total).toBe(1);
