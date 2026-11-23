@@ -10,52 +10,88 @@ const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main 
 const HASH = 'b'.repeat(64);
 
 test.describe('Biblioteca de mídia (/api/midia)', () => {
-  test('começa vazia; valida; registra com direito; pendente não é publicável; filtro; só chefia remove', async ({ page, context }) => {
+  test('começa vazia; valida; exige evidência; licença vencida/renovação; dedupe; filtros; upload sem S3; só chefia remove', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/midia');
     await expect(page.getByRole('heading', { name: 'Nenhum ativo na biblioteca' })).toBeVisible();
-    await enviar(page, page.getByRole('button', { name: 'Registrar ativo' }));
-    await erro(page, /direitos.url/);
+    const reg = page.getByRole('region', { name: 'Registrar ativo hospedado fora' });
+    const preencher = async (url: string, sha: string, extra: { base?: string; expira?: string; evidencia?: string } = {}) => {
+      await reg.getByLabel('URL do ativo').fill(url);
+      await reg.getByLabel(/SHA-256/).fill(sha);
+      await reg.getByLabel('Crédito').fill('Agência');
+      await reg.getByLabel('Texto alternativo').fill('Cartão de fidelidade');
+      if (extra.base) await reg.getByLabel('Base de direito').selectOption(extra.base);
+      if (extra.expira) await reg.getByLabel(/Expiração da licença/).fill(extra.expira);
+      if (extra.evidencia) await reg.getByLabel('Referência da evidência').fill(extra.evidencia);
+    };
+    await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
+    await erro(page, /direitos\.url/);
 
-    await page.getByLabel('URL do ativo').fill('https://exemplo.com.br/a.jpg');
-    await page.getByLabel(/SHA-256/).fill('curto');
-    await page.getByLabel('Crédito').fill('Agência');
-    await page.getByLabel('Texto alternativo').fill('Cartão de fidelidade');
-    await page.getByLabel('Base de direito').selectOption('licenca');
-    await enviar(page, page.getByRole('button', { name: 'Registrar ativo' }));
-    await erro(page, /sha256/i);
+    await preencher('https://exemplo.com.br/a.jpg', HASH, { base: 'licenca' });
+    await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
+    await erro(page, /exige evidência da licença/);
 
-    await page.getByLabel('URL do ativo').fill('https://exemplo.com.br/a.jpg');
-    await page.getByLabel(/SHA-256/).fill(HASH);
-    await page.getByLabel('Crédito').fill('Agência');
-    await page.getByLabel('Texto alternativo').fill('Cartão de fidelidade');
-    await page.getByLabel('Base de direito').selectOption('licenca');
-    await enviar(page, page.getByRole('button', { name: 'Registrar ativo' }));
+    await preencher('https://exemplo.com.br/a.jpg', HASH, { base: 'licenca', expira: '2000-01-01', evidencia: 'https://exemplo.com.br/termos' });
+    await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
+    await erro(page, /já está vencida/);
+
+    await preencher('https://exemplo.com.br/a.jpg', HASH, { base: 'licenca', expira: '2099-01-01', evidencia: 'https://exemplo.com.br/termos' });
+    await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
     await sucesso(page, 'Ativo registrado');
-    await expect(page.getByRole('row', { name: /a\.jpg/ })).toContainText('Publicável');
+    const linhaA = page.locator('tr[data-midia]').filter({ hasText: 'a.jpg' });
+    await expect(linhaA).toContainText('Publicável');
+    await expect(linhaA).toContainText('Licença válida (até 2099-01-01)');
+    await expect(linhaA).toContainText('evidência url: https://exemplo.com.br/termos');
 
-    await page.getByLabel('URL do ativo').fill('https://exemplo.com.br/p.jpg');
-    await page.getByLabel(/SHA-256/).fill('c'.repeat(64));
-    await page.getByLabel('Crédito').fill('Própria');
-    await page.getByLabel('Texto alternativo').fill('Pendente');
-    await enviar(page, page.getByRole('button', { name: 'Registrar ativo' }));
-    await expect(page.getByRole('row', { name: /p\.jpg/ })).toContainText('Direito pendente');
+    // um ativo por conteúdo: mesmo SHA-256 com outra URL não duplica
+    await preencher('https://exemplo.com.br/copia.jpg', HASH, { base: 'licenca', expira: '2099-01-01', evidencia: 'https://exemplo.com.br/termos' });
+    await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
+    await sucesso(page, 'nada foi duplicado');
+    await expect(page.locator('tr[data-midia]')).toHaveCount(1);
 
+    await preencher('https://exemplo.com.br/p.jpg', 'c'.repeat(64));
+    await enviar(page, reg.getByRole('button', { name: 'Registrar ativo' }));
+    await expect(page.locator('tr[data-midia]').filter({ hasText: 'p.jpg' })).toContainText('Direito pendente');
+    await expect(page.locator('tr[data-midia]')).toHaveCount(2);
+
+    // licença vencida deixa de ser publicável (renovação com data passada é aceita pelo Backend como PATCH)
+    await enviar(page, page.getByRole('button', { name: /Renovar licença .*a\.jpg/ }));
+    await erro(page, 'Informe a nova data de expiração');
+    await page.getByLabel(/Nova expiração de .*a\.jpg/).fill('2000-01-01');
+    await enviar(page, page.getByRole('button', { name: /Renovar licença .*a\.jpg/ }));
+    await sucesso(page, 'Licença atualizada.');
+    const vencida = page.locator('tr[data-midia]').filter({ hasText: 'a.jpg' });
+    await expect(vencida).toContainText('Licença vencida');
+    await expect(vencida).not.toContainText('Publicável');
+
+    await page.goto('/studio/midia?vencida=true');
+    await expect(page.locator('tr[data-midia]')).toHaveCount(1);
+    await page.goto('/studio/midia?vencendo=30');
+    await expect(page.getByRole('heading', { name: 'Nenhum ativo com esses filtros' })).toBeVisible();
     await page.goto('/studio/midia?filtro=video');
-    await expect(page.getByRole('heading', { name: 'Nenhum ativo na biblioteca' })).toBeVisible();
-    await page.goto('/studio/midia?filtro=zzz');
+    await expect(page.getByRole('heading', { name: 'Nenhum ativo com esses filtros' })).toBeVisible();
+    await page.goto('/studio/midia?vencendo=0');
     await expect(page.getByText(/Filtro inválido/)).toBeVisible();
 
+    // upload: sem armazenamento S3 no ambiente de teste o Backend recusa e a mensagem aparece (nunca sucesso falso)
     await page.goto('/studio/midia');
+    const up = page.getByRole('region', { name: 'Enviar arquivo' });
+    await up.getByLabel('Arquivo').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]) });
+    await up.getByLabel('Crédito').fill('Agência');
+    await up.getByLabel('Texto alternativo').fill('Foto de teste');
+    await enviar(page, up.getByRole('button', { name: 'Enviar arquivo' }));
+    await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+    await expect(page.locator('main .st-alert.ok')).toHaveCount(0);
+
     await expect(page.getByRole('button', { name: /Remover/ })).toHaveCount(0); // editor não remove
     await entrar(context, 'chefe', 'editor_chefe');
     await page.goto('/studio/midia');
     await enviar(page, page.getByRole('button', { name: /Remover https:\/\/exemplo\.com\.br\/p\.jpg/ }));
     await sucesso(page, 'Ativo removido.');
-    await expect(page.getByRole('row', { name: /p\.jpg/ })).toHaveCount(0);
+    await expect(page.locator('tr[data-midia]').filter({ hasText: 'p.jpg' })).toHaveCount(0);
   });
 
-  test('leitor lê sem registrar', async ({ page, context }) => {
+  test('revisor lê sem registrar; leitor não acessa', async ({ page, context }) => {
     await entrar(context, 'lia', 'leitor');
     await page.goto('/studio/midia');
     await expect(page).toHaveURL(/motivo=FORBIDDEN/);
@@ -66,7 +102,7 @@ test.describe('Biblioteca de mídia (/api/midia)', () => {
 });
 
 test.describe('Agenda (/api/agenda)', () => {
-  test('exige fonte oficial; encerrado sai de "Próximos"; só chefia remove', async ({ page, context }) => {
+  test('exige fonte oficial; encerrado sai de "Próximos"; evento da redação nasce aprovado; só chefia remove', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/agenda');
     await expect(page.getByRole('heading', { name: 'Nenhum evento cadastrado' })).toBeVisible();
@@ -92,6 +128,8 @@ test.describe('Agenda (/api/agenda)', () => {
     await expect(proximos.getByRole('row', { name: /Evento futuro/ })).toBeVisible();
     await expect(proximos.getByRole('row', { name: /Evento antigo/ })).toHaveCount(0);
     await expect(arquivo.getByRole('row', { name: /Evento antigo/ })).toBeVisible();
+    await expect(proximos.getByRole('row', { name: /Evento futuro/ }).locator('[data-moderacao="aprovado"]')).toBeVisible(); // da redação: nasce aprovado
+    await expect(page.locator('[data-pendentes="0"]')).toBeVisible();
 
     await page.getByLabel('Título').fill('Fim antes do início');
     await page.getByLabel(/Início/).fill('2099-12-10');
@@ -107,6 +145,44 @@ test.describe('Agenda (/api/agenda)', () => {
     await enviar(page, page.getByRole('button', { name: 'Remover Evento antigo' }));
     await sucesso(page, 'Evento removido.');
     await expect(page.getByRole('row', { name: /Evento antigo/ })).toHaveCount(0);
+  });
+
+  test('sugestão pública entra pendente; só chefia modera; rejeitar exige motivo; aprovar publica', async ({ page, context }) => {
+    const dia = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+    const sug = await context.request.post('/api/publico/agenda/sugestoes', {
+      data: { titulo: 'Meetup de fidelidade', inicio: dia(10), fim: dia(11), local: 'Curitiba', fonteUrl: 'https://meetup.exemplo.com.br', editorias: ['programas'] },
+    });
+    expect(sug.status()).toBe(202);
+
+    await entrar(context, 'ana', 'editor');
+    await page.goto('/studio/agenda');
+    await expect(page.locator('[data-pendentes="1"]')).toBeVisible();
+    const linha = page.getByRole('row', { name: /Meetup de fidelidade/ });
+    await expect(linha.locator('[data-moderacao="pendente"]')).toBeVisible();
+    await expect(linha).toContainText('origem publico');
+    await expect(page.getByRole('button', { name: /^Aprovar / })).toHaveCount(0); // editor não modera
+
+    await entrar(context, 'chefe', 'editor_chefe');
+    await page.goto('/studio/agenda');
+    await enviar(page, page.getByRole('button', { name: 'Rejeitar Meetup de fidelidade' }));
+    await erro(page, /motivo/i);
+    await page.getByLabel('Motivo da rejeição de Meetup de fidelidade').fill('Sem fonte oficial verificável');
+    await enviar(page, page.getByRole('button', { name: 'Rejeitar Meetup de fidelidade' }));
+    await sucesso(page, 'Evento rejeitado.');
+    const rej = page.getByRole('row', { name: /Meetup de fidelidade/ });
+    await expect(rej.locator('[data-moderacao="rejeitado"]')).toBeVisible();
+    await expect(rej).toContainText('Sem fonte oficial verificável');
+
+    await page.goto('/studio/agenda?moderacao=pendente');
+    await expect(page.getByRole('row', { name: /Meetup de fidelidade/ })).toHaveCount(0);
+    await page.goto('/studio/agenda?moderacao=rejeitado&origem=publico');
+    await enviar(page, page.getByRole('button', { name: 'Aprovar Meetup de fidelidade' }));
+    await sucesso(page, 'Evento aprovado.');
+    await expect(page.getByRole('row', { name: /Meetup de fidelidade/ }).locator('[data-moderacao="aprovado"]')).toBeVisible();
+
+    const pub = await context.request.get('/api/publico/agenda');
+    const corpo = (await pub.json()) as { data: { titulo: string }[] };
+    expect(corpo.data.map((e) => e.titulo)).toContain('Meetup de fidelidade'); // aprovado aparece no público
   });
 });
 

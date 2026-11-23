@@ -15,7 +15,7 @@ export interface ErroApi {
 export async function chamar<T = unknown>(
   despachar: Despachante,
   caminho: string,
-  opts: { metodo?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; query?: Record<string, string | undefined>; corpo?: unknown } = {},
+  opts: { metodo?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; query?: Record<string, string | undefined>; corpo?: unknown; form?: FormData } = {},
 ): Promise<RespostaApi<T>> {
   const url = new URL(caminho, 'http://studio.local');
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v) url.searchParams.set(k, v);
@@ -23,8 +23,9 @@ export async function chamar<T = unknown>(
   const metodo = opts.metodo ?? 'GET';
   const req = new Request(url, {
     method: metodo,
-    headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
-    ...(opts.corpo !== undefined && metodo !== 'GET' ? { body: JSON.stringify(opts.corpo) } : {}),
+    // multipart: o content-type (com boundary) é definido pelo próprio Request ao receber o FormData
+    headers: { ...(opts.form ? {} : { 'content-type': 'application/json' }), ...(cookie ? { cookie } : {}) },
+    ...(opts.form ? { body: opts.form } : opts.corpo !== undefined && metodo !== 'GET' ? { body: JSON.stringify(opts.corpo) } : {}),
   });
   const res = await despachar(req);
   const body = await res.json().catch(() => null);

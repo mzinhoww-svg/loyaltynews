@@ -12,6 +12,17 @@ import * as midiasRoute from '@/app/api/midia/route';
 import * as midiaRoute from '@/app/api/midia/[id]/route';
 import * as agendasRoute from '@/app/api/agenda/route';
 import * as agendaRoute from '@/app/api/agenda/[id]/route';
+import * as agendaModeracaoRoute from '@/app/api/agenda/[id]/moderacao/route';
+import * as midiaUploadRoute from '@/app/api/midia/arquivo/route';
+import * as siteDocsRoute from '@/app/api/site/documentos/route';
+import * as siteDocRoute from '@/app/api/site/documentos/[tipo]/route';
+import * as siteRascunhoRoute from '@/app/api/site/documentos/[tipo]/rascunho/route';
+import * as sitePreviewRoute from '@/app/api/site/documentos/[tipo]/preview/route';
+import * as sitePublicarRoute from '@/app/api/site/documentos/[tipo]/publicar/route';
+import * as siteRollbackRoute from '@/app/api/site/documentos/[tipo]/rollback/route';
+import * as siteAgendamentoRoute from '@/app/api/site/documentos/[tipo]/agendamento/route';
+import * as siteRedirectsRoute from '@/app/api/site/redirects/route';
+import * as siteRedirectRoute from '@/app/api/site/redirects/[id]/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
@@ -76,6 +87,11 @@ export interface Midia {
   sha256: string;
   criadoEm: string;
   publicavel: boolean;
+  licencaExpiraEm: string | null;
+  licencaEvidencia: { tipo: string; referencia: string; descricao?: string } | null;
+  /** sem_expiracao | valida | vence_em_breve | vencida */
+  licencaStatus: string;
+  temArquivo: boolean;
 }
 export interface EventoAgenda {
   id: string;
@@ -87,6 +103,9 @@ export interface EventoAgenda {
   editorias: string[];
   patrocinado: boolean;
   fonteUrl: string;
+  moderacao: 'pendente' | 'aprovado' | 'rejeitado';
+  motivoRejeicao: string | null;
+  origem: 'interno' | 'publico';
 }
 
 const E = '/api/studio/editorial';
@@ -111,7 +130,10 @@ export const api = {
   },
   midia: {
     listar: (query: Record<string, string | undefined> = {}) => chamar<{ data: Midia[]; total: number }>(midiasRoute.GET as Despachante, '/api/midia', { query }),
-    criar: (corpo: unknown) => chamar<{ data: Midia }>(midiasRoute.POST as Despachante, '/api/midia', { metodo: 'POST', corpo }),
+    criar: (corpo: unknown) => chamar<{ data: Midia; deduplicada?: boolean }>(midiasRoute.POST as Despachante, '/api/midia', { metodo: 'POST', corpo }),
+    atualizar: (id: string, corpo: unknown) => chamar<{ data: Midia }>(comParams(midiaRoute.PATCH as Handler, { id }), `/api/midia/${id}`, { metodo: 'PATCH', corpo }),
+    /** Upload multipart (campos `arquivo` e `metadados`): tipo e hash vêm do CONTEÚDO; sem armazenamento S3 o Backend responde 503. */
+    enviarArquivo: (form: FormData) => chamar<{ data: Midia; deduplicada?: boolean }>(midiaUploadRoute.POST as Despachante, '/api/midia/arquivo', { metodo: 'POST', form }),
     excluir: (id: string) => chamar(comParams(midiaRoute.DELETE as Handler, { id }), `/api/midia/${id}`, { metodo: 'DELETE' }),
   },
   agenda: {
@@ -119,6 +141,20 @@ export const api = {
     criar: (corpo: unknown) => chamar<{ data: EventoAgenda }>(agendasRoute.POST as Despachante, '/api/agenda', { metodo: 'POST', corpo }),
     atualizar: (id: string, corpo: unknown) => chamar<{ data: EventoAgenda }>(comParams(agendaRoute.PATCH as Handler, { id }), `/api/agenda/${id}`, { metodo: 'PATCH', corpo }),
     excluir: (id: string) => chamar(comParams(agendaRoute.DELETE as Handler, { id }), `/api/agenda/${id}`, { metodo: 'DELETE' }),
+    moderar: (id: string, corpo: { estado: 'aprovado' | 'rejeitado'; motivo?: string }) => chamar<{ data: EventoAgenda }>(comParams(agendaModeracaoRoute.POST as Handler, { id }), `/api/agenda/${id}/moderacao`, { metodo: 'POST', corpo }),
+  },
+  site: {
+    documentos: () => chamar(siteDocsRoute.GET as Despachante, '/api/site/documentos'),
+    documento: (tipo: string) => chamar(comParams(siteDocRoute.GET as Handler, { tipo }), `/api/site/documentos/${tipo}`),
+    salvarRascunho: (tipo: string, conteudo: unknown) => chamar(comParams(siteRascunhoRoute.PUT as Handler, { tipo }), `/api/site/documentos/${tipo}/rascunho`, { metodo: 'PUT', corpo: { conteudo } }),
+    preview: (tipo: string) => chamar(comParams(sitePreviewRoute.GET as Handler, { tipo }), `/api/site/documentos/${tipo}/preview`),
+    publicar: (tipo: string, agendarPara?: string) => chamar(comParams(sitePublicarRoute.POST as Handler, { tipo }), `/api/site/documentos/${tipo}/publicar`, { metodo: 'POST', corpo: agendarPara ? { agendarPara } : {} }),
+    cancelarAgendamento: (tipo: string) => chamar(comParams(siteAgendamentoRoute.DELETE as Handler, { tipo }), `/api/site/documentos/${tipo}/agendamento`, { metodo: 'DELETE' }),
+    rollback: (tipo: string, versao: number) => chamar(comParams(siteRollbackRoute.POST as Handler, { tipo }), `/api/site/documentos/${tipo}/rollback`, { metodo: 'POST', corpo: { versao } }),
+    redirects: () => chamar(siteRedirectsRoute.GET as Despachante, '/api/site/redirects'),
+    criarRedirect: (corpo: unknown) => chamar(siteRedirectsRoute.POST as Despachante, '/api/site/redirects', { metodo: 'POST', corpo }),
+    alterarRedirect: (id: string, corpo: unknown) => chamar(comParams(siteRedirectRoute.PATCH as Handler, { id }), `/api/site/redirects/${id}`, { metodo: 'PATCH', corpo }),
+    excluirRedirect: (id: string) => chamar(comParams(siteRedirectRoute.DELETE as Handler, { id }), `/api/site/redirects/${id}`, { metodo: 'DELETE' }),
   },
   comercial: {
     formatos: (query: Record<string, string | undefined> = {}) => chamar(dispatchCommercial, `${C}/formats`, { query }),
