@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { TabelaRolavel, TABELA_NO_CONTEINER } from '../../_components/TabelaRolavel';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { flagAtiva } from '@/lib/studio/flags';
@@ -124,7 +125,8 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
               Nenhuma campanha com esses filtros.
             </p>
           ) : (
-            <table className="st-table">
+            <TabelaRolavel rotulo="Lista de campanhas">
+<table className="st-table" style={TABELA_NO_CONTEINER}>
               <caption className="st-hint" style={{ textAlign: 'left' }}>
                 {totalFiltrado} campanha(s) · página {pag} de {paginas}
               </caption>
@@ -153,6 +155,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
                 ))}
               </tbody>
             </table>
+</TabelaRolavel>
           )}
           {paginas > 1 ? (
             <nav aria-label="Paginação de campanhas" className="st-actions">

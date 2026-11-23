@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { TabelaRolavel, TABELA_NO_CONTEINER } from '../../_components/TabelaRolavel';
 import { findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -86,7 +87,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           <p>Nenhum lead recebido. Os leads chegam pelo formulário do mídia kit (portal) ou são registrados abaixo.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <TabelaRolavel rotulo="Leads">
+<table className="st-table" style={TABELA_NO_CONTEINER}>
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {leads.length} lead(s)
           </caption>
@@ -127,6 +129,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</TabelaRolavel>
       )}
 
       <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="novo-lead">

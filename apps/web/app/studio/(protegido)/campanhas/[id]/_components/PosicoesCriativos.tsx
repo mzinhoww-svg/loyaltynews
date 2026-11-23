@@ -1,4 +1,5 @@
 import { POSITIONS } from '@ln/commercial';
+import { TabelaRolavel, TABELA_NO_CONTEINER } from '../../../../_components/TabelaRolavel';
 import { adicionarCriativoAction, definirPosicoesAction, aprovarCriativoAction, cancelarReservaAction, enviarArquivoCriativoAction, reservarPosicaoAction } from '../../actions';
 
 export type ReservaLinha = { id: string; positionId: string; startDate: string; endDate: string; status: string };
@@ -63,7 +64,8 @@ export function PosicoesCriativos(props: {
         {reservas.length === 0 ? (
           <p data-vazio="posicoes">Nenhuma posição reservada. Para mover a campanha para “reserved”, reserve ao menos uma posição.</p>
         ) : (
-          <table className="st-table" aria-label="Reservas da campanha">
+          <TabelaRolavel rotulo="Reservas da campanha">
+<table className="st-table" style={TABELA_NO_CONTEINER} aria-label="Reservas da campanha">
             <thead>
               <tr>
                 <th scope="col">Posição</th>
@@ -97,6 +99,7 @@ export function PosicoesCriativos(props: {
               ))}
             </tbody>
           </table>
+</TabelaRolavel>
         )}
         {escreve && DA_CAMPANHA.length > 0 ? (
           <form action={reservarPosicaoAction} aria-label="Reservar posição" style={{ marginTop: 12 }}>
