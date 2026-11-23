@@ -84,3 +84,25 @@ test('collectSitemap: índice abre só os 2 filhos mais recentes; 429 no sitemap
   const r2 = await c.collectSitemap({ ...SITEMAP_SRC, sitemapUrl: null });
   assert.deepEqual(r2.skipped.map((s) => s.code), ['empty_content']);
 });
+
+test('empresas por sitemap: só as 3 conferidas têm sitemap e prefixo; mesmo host da fonte; Natura RI nasce desabilitada', async () => {
+  const { SEED_SOURCES: ALL } = await import('../sources/seed');
+  const wired = ALL.filter((s) => s.sitemapUrl && s.sitemapPathPrefix); // coletáveis por sitemap: só com prefixo verificado
+  assert.deepEqual(wired.map((s) => s.id).sort(), ['bradesco-ri', 'livelo-imprensa', 'natura-ri']);
+  for (const s of wired) {
+    assert.equal(new URL(s.sitemapUrl!).host, s.host, s.id);
+    assert.match(s.sitemapPathPrefix ?? '', /^\/[a-z0-9-]+\/$/, `${s.id}: prefixo da seção de notícias`);
+    assert.equal(s.enabled, false, s.id); assert.equal(s.termsStatus, 'pending', s.id);
+  }
+  const nat = ALL.find((s) => s.id === 'natura-ri')!;
+  assert.equal(nat.kind, 'investor_relations'); assert.equal(nat.verification?.researchedBy, 'ln-editorial-engineer');
+});
+
+test('sitemap sem prefixo verificado NÃO é coletado (a fábrica não lê página qualquer do sitemap)', async () => {
+  const f = new MockFetcher({ 'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:', 'https://ri.mock.example/sitemap.xml': SM_ANY });
+  const c = new Collector(f, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON, minSpacingMs: 0 });
+  const r = await c.collectSitemap({ ...SITEMAP_SRC, sitemapPathPrefix: null });
+  assert.deepEqual(r.skipped.map((x) => x.code), ['empty_content']); assert.match(r.skipped[0]!.detail, /sem sitemapPathPrefix/);
+  assert.ok(!f.calls.some((u) => u.endsWith('/sitemap.xml')), 'nem o sitemap é lido');
+});
+const SM_ANY = '<urlset><url><loc>https://ri.mock.example/produto/1</loc></url></urlset>';

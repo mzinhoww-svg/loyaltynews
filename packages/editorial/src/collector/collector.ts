@@ -426,6 +426,8 @@ export class Collector {
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
     if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
+    // Sem prefixo de caminho verificado para a seção de notícias, o sitemap traria páginas quaisquer (produtos, institucional): não coletar.
+    if (!source.sitemapPathPrefix) { out.skipped.push({ url: source.sitemapUrl, code: 'empty_content', detail: 'sitemap sem sitemapPathPrefix verificado (seção de notícias não identificada)' }); return out; }
     const top = await this.collectRaw(source, source.sitemapUrl);
     if (top.skip) { out.skipped.push(top.skip); return out; }
     const parsed = parseSitemap(top.body!);
@@ -439,7 +441,7 @@ export class Collector {
         pages.push(...parseSitemap(sub.body!).entries);
       }
     }
-    const prefix = source.sitemapPathPrefix ?? '/';
+    const prefix = source.sitemapPathPrefix;
     const chosen = pages
       .filter((e) => { try { return new URL(e.loc).pathname.startsWith(prefix); } catch { return false; } })
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))

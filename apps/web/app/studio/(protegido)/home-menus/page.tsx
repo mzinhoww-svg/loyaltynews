@@ -5,11 +5,12 @@ import { POSITIONS } from '@ln/commercial';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
-import { HOME_PADRAO, MENU_PADRAO, ROTULO_TIPO, descreverBloco, type HomeConteudo, type MenuConteudo, type TipoDoc } from '@/lib/studio/site-docs';
+import { HOME_PADRAO, MENU_PADRAO, ROTULO_TIPO, descreverBloco, type Bloco, type HomeConteudo, type MenuConteudo, type TipoDoc } from '@/lib/studio/site-docs';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
+import { PortalAgora } from '../../_components/PortalAgora';
 import { editarDocAction } from './actions';
 
 export const metadata: Metadata = { title: 'Home e menus' };
@@ -40,6 +41,64 @@ function Setas({ tipo, indice }: { tipo: TipoDoc; indice: number }) {
         </button>
       </form>
     </>
+  );
+}
+
+function EditarBloco({ b, i }: { b: Bloco; i: number }) {
+  return (
+    <details>
+      <summary>Editar bloco {i + 1}</summary>
+      <form action={editarDocAction} aria-label={`Editar bloco ${i + 1}`} className="st-card">
+        <input type="hidden" name="tipo" value="home" />
+        <input type="hidden" name="op" value="editar-bloco" />
+        <input type="hidden" name="indice" value={i} />
+        {b.tipo !== 'publicidade' ? (
+          <div className="st-field">
+            <label htmlFor={`bt-${i}`}>Título do bloco {i + 1}</label>
+            <input id={`bt-${i}`} name="titulo" type="text" defaultValue={b.titulo ?? ''} />
+          </div>
+        ) : null}
+        {b.tipo === 'destaque' ? (
+          <div className="st-field">
+            <label htmlFor={`bs-${i}`}>Slugs das matérias do bloco {i + 1} (separados por vírgula)</label>
+            <input id={`bs-${i}`} name="materiaSlugs" type="text" defaultValue={b.materiaSlugs.join(', ')} />
+          </div>
+        ) : null}
+        {b.tipo === 'lista_editoria' ? (
+          <div className="st-field">
+            <label htmlFor={`be-${i}`}>Editoria do bloco {i + 1}</label>
+            <select id={`be-${i}`} name="editoria" defaultValue={b.editoria}>
+              {EDITORIAS.map((e) => (
+                <option key={e.slug} value={e.slug}>
+                  {e.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        {b.tipo === 'lista_editoria' || b.tipo === 'ultimas' || b.tipo === 'agenda' ? (
+          <div className="st-field">
+            <label htmlFor={`bl-${i}`}>Limite de itens do bloco {i + 1}</label>
+            <input id={`bl-${i}`} name="limite" type="text" defaultValue={String(b.limite)} />
+          </div>
+        ) : null}
+        {b.tipo === 'publicidade' ? (
+          <div className="st-field">
+            <label htmlFor={`bp-${i}`}>Posição do bloco {i + 1}</label>
+            <select id={`bp-${i}`} name="posicao" defaultValue={b.posicao}>
+              {POSITIONS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.id} {p.desktop ? `(${p.desktop})` : '(sem dimensão: não publica)'}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        <button className="st-btn sec" type="submit">
+          Salvar bloco {i + 1}
+        </button>
+      </form>
+    </details>
   );
 }
 
@@ -94,6 +153,7 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
             <li key={b.id} data-bloco={b.id}>
               <strong>{i + 1}.</strong> {descreverBloco(b)}
               {podeEditar ? <Setas tipo={tipo} indice={i} /> : null}
+              {podeEditar ? <EditarBloco b={b} i={i} /> : null}
             </li>
           ))}
         </ol>
@@ -102,7 +162,47 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
           {(emEdicao as MenuConteudo).itens.map((it, i) => (
             <li key={`${it.rotulo}-${i}`} data-item={it.rotulo}>
               <strong>{it.rotulo}</strong> → <code>{it.destino}</code>
-              {it.filhos.length ? <span className="st-hint"> ({it.filhos.map((f) => f.rotulo).join(', ')})</span> : null}
+              {it.filhos.length ? (
+                <ul className="st-issues" aria-label={`Subitens de ${it.rotulo}`}>
+                  {it.filhos.map((f, j) => (
+                    <li key={`${f.rotulo}-${j}`} data-filho={f.rotulo}>
+                      {f.rotulo} → <code>{f.destino}</code>
+                      {podeEditar ? (
+                        <form action={editarDocAction} style={{ display: 'inline', marginLeft: 8 }}>
+                          <input type="hidden" name="tipo" value={tipo} />
+                          <input type="hidden" name="op" value="remover-filho" />
+                          <input type="hidden" name="indice" value={i} />
+                          <input type="hidden" name="filho" value={j} />
+                          <button className="st-btn danger" type="submit" aria-label={`Remover subitem ${f.rotulo} de ${it.rotulo}`}>
+                            Remover subitem
+                          </button>
+                        </form>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {podeEditar ? (
+                <details>
+                  <summary>Editar item {it.rotulo}</summary>
+                  <form action={editarDocAction} aria-label={`Editar item ${it.rotulo}`} className="st-card">
+                    <input type="hidden" name="tipo" value={tipo} />
+                    <input type="hidden" name="op" value="editar-item" />
+                    <input type="hidden" name="indice" value={i} />
+                    <div className="st-field">
+                      <label htmlFor={`ir-${i}`}>Rótulo de {it.rotulo}</label>
+                      <input id={`ir-${i}`} name="rotulo" type="text" defaultValue={it.rotulo} />
+                    </div>
+                    <div className="st-field">
+                      <label htmlFor={`id-${i}`}>Destino de {it.rotulo}</label>
+                      <input id={`id-${i}`} name="destino" type="text" defaultValue={it.destino} />
+                    </div>
+                    <button className="st-btn sec" type="submit">
+                      Salvar item {it.rotulo}
+                    </button>
+                  </form>
+                </details>
+              ) : null}
               {podeEditar ? <Setas tipo={tipo} indice={i} /> : null}
               {podeEditar ? (
                 <form action={editarDocAction} className="st-actions" aria-label={`Adicionar subitem a ${it.rotulo}`}>
@@ -217,6 +317,9 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
 
       <div style={{ marginTop: 18 }}>
         <SiteDocPainel tipo={tipo} estado={estado} podePublicar={podeEditar} retorno={`/studio/home-menus?tipo=${tipo}`} />
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <PortalAgora parte={tipo === 'home' ? 'home' : 'menus'} />
       </div>
     </>
   );

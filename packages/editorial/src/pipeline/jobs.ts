@@ -22,7 +22,9 @@ export interface ArticleJob {
   slug?: string;
   attempt: number;           // redações tentadas (máx. 3, model.policy rules.max_attempts)
   feedback?: Finding[];      // achados que motivaram nova redação
-  factcheck?: { provider: string; model: string; verdicts: FactVerdict[] };
+  factcheck?: { provider: string; model: string; verdicts: FactVerdict[]; reviewedDraftTaskId?: string; reviewedDraftSha256?: string };
+  /** Resultado da revisão final (qual revisão do rascunho avaliou e por qual modelo). */
+  review?: { provider: string; model: string; reviewedDraftTaskId: string; reviewedDraftSha256: string };
   approved?: boolean;
   /** Pauta AUTORAL (DP-29): presente só no conteúdo próprio da redação; ausente = matéria de reescrita de fonte. */
   autoral?: { pautaId: string; formato: AutoralFormat; titulo: string; angulo: string };

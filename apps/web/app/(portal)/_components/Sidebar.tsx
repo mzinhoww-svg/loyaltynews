@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { flags } from '../_lib/flags';
 import { getSource } from '../_lib/source';
 import type { AdSlotId } from '../_lib/types';
-import { AdSlot, RankedList } from './ui';
+import { AD_POSITION_OF } from '../_lib/ads';
+import { AdSlot, loadAdPlan, RankedList } from './ui';
 
 /** Barra lateral: "Em alta" (só quando há ranking real), anúncios reais e The Loyal (flag). Sem texto de vazio repetido. */
 export async function Sidebar() {
@@ -47,8 +48,13 @@ const SIDE_ADS: AdSlotId[] = ['sidebar-1', 'sidebar-2', 'sidebar-3'];
  */
 export async function WithSidebar({ children }: { children: ReactNode }) {
   const src = getSource();
-  const [trending, ads] = await Promise.all([src.getTrending('24h'), Promise.all(SIDE_ADS.map((s) => src.getAd(s)))]);
-  if (trending.length === 0 && !ads.some(Boolean) && !flags.theLoyal) return <>{children}</>;
+  const [trending, hasSideAd] = await Promise.all([
+    src.getTrending('24h'),
+    src.kind === 'api'
+      ? loadAdPlan().then((plan) => SIDE_ADS.some((s) => plan.has(AD_POSITION_OF[s])))
+      : Promise.all(SIDE_ADS.map((s) => src.getAd(s))).then((ads) => ads.some(Boolean)),
+  ]);
+  if (trending.length === 0 && !hasSideAd && !flags.theLoyal) return <>{children}</>;
   return (
     <div className="pt-layout">
       <div className="pt-col">{children}</div>

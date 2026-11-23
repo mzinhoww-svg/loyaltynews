@@ -8,7 +8,7 @@ import type { GatewayRequest, TaskClass } from '../gateway';
  * formato pedido. O modelo não tem rede nem ferramentas e não define autoria, tipo, classe ou patrocínio.
  */
 
-export const FACTORY_PROMPT_VERSION = 'editorial-0.2';
+export const FACTORY_PROMPT_VERSION = 'editorial-0.3';
 
 export interface ChatMessage { role: 'system' | 'user'; content: string }
 
@@ -24,18 +24,23 @@ const COMMON = [
 ].join('\n');
 
 /**
- * Tom de voz do Loyalty News (VERSÃO PROVISÓRIA tom-0.1: não há guia de estilo aprovado no projeto; precisa de validação do
- * Editor-chefe/UI-UX). Vale para toda redação; o modelo só escolhe palavras, nunca fatos.
+ * Tom de voz do Loyalty News — v0.2, versão de trabalho (decisão do PM, 23/11/2026, com o parecer do UI/UX Director; o proprietário pode
+ * vetar ou ajustar ao ler as matérias do piloto). Guia completo: docs/tom-de-voz-v0.2.md. O modelo só escolhe palavras, nunca fatos.
+ * O "tom lint" (src/rules/tone.ts) confere o que é objetivo: bloqueia emoji, "!" e mais de 90 caracteres no título, título que começa por
+ * veja/saiba/confira e a frase em inglês do rodapé; avisa o revisor sobre palavras proibidas, data relativa e "você" em notícia.
  */
-export const TOM_DE_VOZ_VERSION = 'tom-0.1';
+export const TOM_DE_VOZ_VERSION = 'tom-0.2';
 export const TOM_DE_VOZ = [
   'TOM DE VOZ (Loyalty News):',
-  '- Português do Brasil, direto e claro; voz ativa; frases curtas; parágrafos de 2 a 4 linhas.',
-  '- Informativo e sóbrio: sem sensacionalismo, sem "imperdível", "corra", "bomba", sem pontos de exclamação e sem emojis.',
-  '- Fala com o leitor que acompanha fidelidade, milhas, cartões e varejo: explique siglas e termos de nicho na primeira vez (ex.: "transferência bonificada: ...").',
-  '- Título informativo de até 90 caracteres, sem clickbait. O 1º parágrafo responde quem, o quê e quando; o 2º traz o contexto; "o que muda para o consumidor" só se as evidências sustentarem.',
-  '- Neutro frente a marcas: nada de elogio ou crítica própria; atribua a fonte ("segundo o comunicado da Livelo"). Não recomende compra, cartão ou programa.',
-  '- Números sempre com unidade e data de referência quando houver; sem arredondar para parecer maior.',
+  '- Português do Brasil, claro e sóbrio; voz ativa; frases de até ~25 palavras; parágrafos de 2 a 4 linhas, um assunto por parágrafo.',
+  '- TÍTULO: informativo, com sujeito e verbo; meta de até 70 caracteres e NUNCA mais de 90; sem ponto de exclamação; nunca começa com "Veja", "Saiba" ou "Confira"; sem pergunta retórica.',
+  '- 1º parágrafo: quem, o quê e quando, com a fonte ("segundo o comunicado da empresa"). Contexto no 2º. "O que muda para o consumidor" só se as evidências descreverem o efeito.',
+  '- NUNCA use emoji nem estas palavras: "imperdível", "corra", "bomba", "incrível", "revolucionário", "exclusivo" (só em citação literal ou nome próprio de produto), "aproveite", "não perca".',
+  '- Impessoal em notícia, análise e comparativo: não use "você"; só um explicador pode falar em "você".',
+  '- Datas absolutas ("1º de dezembro de 2026"); evite "hoje", "ontem", "semana que vem" sem a data. Números com unidade e referência; sem arredondar para parecer maior.',
+  '- Explique siglas e termos de nicho na primeira vez (ex.: "transferência bonificada: ..."). Mantenha "pontos" e "milhas" como a fonte usa.',
+  '- Neutro frente a marcas: sem elogio nem crítica própria, sem recomendar compra, cartão ou programa. Diga o que a fonte não informa em vez de deduzir.',
+  '- Nunca escreva a frase "The global network for board-level loyalty leaders" nem outro slogan da marca dentro da matéria.',
 ].join('\n');
 
 const FORMAT: Record<TaskClass, string> = {

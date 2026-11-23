@@ -18,7 +18,7 @@ export const emptySource: PortalSource = {
     return emptyPage(q?.page, q?.pageSize);
   },
   async getArticle() {
-    return null;
+    return { article: null };
   },
   async getRelated() {
     return [];
@@ -27,10 +27,10 @@ export const emptySource: PortalSource = {
     return emptyPage(page);
   },
   async listEvents() {
-    return [];
+    return { items: [] };
   },
   async getEvent() {
-    return null;
+    return { event: null };
   },
   async listMoves() {
     return [];
@@ -57,6 +57,9 @@ export const emptySource: PortalSource = {
     };
   },
   async getAd() {
+    return null;
+  },
+  async getSiteConfig() {
     return null;
   },
 };

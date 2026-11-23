@@ -6,6 +6,7 @@ import * as materiaFontesRoute from '@/app/api/materias/[id]/fontes/route';
 import * as materiaReciboRoute from '@/app/api/materias/[id]/recibos/route';
 import * as materiaTransicaoRoute from '@/app/api/materias/[id]/transicao/route';
 import type { RascunhoFabrica } from '@/lib/studio/cms/fabrica-correcao';
+import type { PautaVista } from '@/lib/studio/cms/pauta';
 import * as materiaCorrecaoRoute from '@/app/api/materias/[id]/correcao/route';
 import * as fontesRoute from '@/app/api/fontes/route';
 import * as fonteRoute from '@/app/api/fontes/[id]/route';
@@ -25,6 +26,10 @@ import * as siteRollbackRoute from '@/app/api/site/documentos/[tipo]/rollback/ro
 import * as siteAgendamentoRoute from '@/app/api/site/documentos/[tipo]/agendamento/route';
 import * as siteRedirectsRoute from '@/app/api/site/redirects/route';
 import * as siteRedirectRoute from '@/app/api/site/redirects/[id]/route';
+import * as publicoSiteRoute from '@/app/api/publico/site/route';
+import * as publicoSitemapRoute from '@/app/api/publico/site/sitemap/route';
+import * as publicoRedirectsRoute from '@/app/api/publico/site/redirects/route';
+import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
@@ -111,6 +116,20 @@ export interface ContaLinha {
   activeCampaigns: number;
 }
 
+/** Formato de GET /api/publico/site (o que o Portal lê). Blocos já resolvidos pelo Backend. */
+export type BlocoPublico =
+  | { tipo: 'destaque'; id: string; titulo?: string; materias: { slug: string; titulo: string }[] }
+  | { tipo: 'lista_editoria'; id: string; titulo?: string; editoria: string; limite: number; materias: { slug: string; titulo: string }[] }
+  | { tipo: 'ultimas'; id: string; titulo?: string; limite: number; materias: { slug: string; titulo: string }[] }
+  | { tipo: 'agenda'; id: string; titulo?: string; limite: number; eventos: { id: string; titulo: string }[] }
+  | { tipo: 'publicidade'; id: string; posicao: string; dimensao?: unknown };
+export interface SitePublico {
+  home: { versao: number; blocos: BlocoPublico[] } | null;
+  menus: { principal: { itens: { rotulo: string; destino: string; filhos?: { rotulo: string; destino: string }[] }[] } | null; rodape: { itens: { rotulo: string; destino: string; filhos?: { rotulo: string; destino: string }[] }[] } | null };
+  seo: { tituloPadrao: string; descricaoPadrao: string; imagemOgUrl: string | null; indexacao: 'indexar' | 'noindex'; jsonLd: Record<string, unknown> } | null;
+  linksInternos: { termo: string; destino: string }[];
+}
+
 export interface Revisao {
   id: string;
   articleId: string;
@@ -192,9 +211,15 @@ export const api = {
     criar: (corpo: unknown) => chamar<{ data: EventoAgenda }>(agendasRoute.POST as Despachante, '/api/agenda', { metodo: 'POST', corpo }),
     atualizar: (id: string, corpo: unknown) => chamar<{ data: EventoAgenda }>(comParams(agendaRoute.PATCH as Handler, { id }), `/api/agenda/${id}`, { metodo: 'PATCH', corpo }),
     excluir: (id: string) => chamar(comParams(agendaRoute.DELETE as Handler, { id }), `/api/agenda/${id}`, { metodo: 'DELETE' }),
+    /** O que o Portal lê hoje (aprovados e não encerrados): GET /api/publico/agenda. */
+    publica: () => chamar<{ data: { id: string; titulo: string; inicio: string; fim: string }[] }>(publicoAgendaRoute.GET as Despachante, '/api/publico/agenda'),
     moderar: (id: string, corpo: { estado: 'aprovado' | 'rejeitado'; motivo?: string }) => chamar<{ data: EventoAgenda }>(comParams(agendaModeracaoRoute.POST as Handler, { id }), `/api/agenda/${id}/moderacao`, { metodo: 'POST', corpo }),
   },
   site: {
+    /** O que o Portal lê agora (versão em vigor, home já resolvida): GET /api/publico/site. */
+    publico: () => chamar<{ data: SitePublico }>(publicoSiteRoute.GET as Despachante, '/api/publico/site'),
+    publicoSitemap: () => chamar<{ data: { indexacao: string; urls: unknown[] } }>(publicoSitemapRoute.GET as Despachante, '/api/publico/site/sitemap'),
+    publicoRedirects: () => chamar<{ data: { origem: string; destino: string; codigo: number }[] }>(publicoRedirectsRoute.GET as Despachante, '/api/publico/site/redirects'),
     documentos: () => chamar(siteDocsRoute.GET as Despachante, '/api/site/documentos'),
     documento: (tipo: string) => chamar(comParams(siteDocRoute.GET as Handler, { tipo }), `/api/site/documentos/${tipo}`),
     salvarRascunho: (tipo: string, conteudo: unknown) => chamar(comParams(siteRascunhoRoute.PUT as Handler, { tipo }), `/api/site/documentos/${tipo}/rascunho`, { metodo: 'PUT', corpo: { conteudo } }),
@@ -241,6 +266,9 @@ export const api = {
     correcoes: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/corrections`, { query }),
     correcao: (id: string) => chamar(dispatchEditorial, `${E}/corrections/${encodeURIComponent(id)}`),
     fontesRegistro: () => chamar(dispatchEditorial, `${E}/sources`),
+    /** Pautas autorais (DP-29): fila com o estado e o resultado do worker. */
+    pautas: () => chamar<{ items: PautaVista[] }>(dispatchEditorial, `${E}/pautas`),
+    enviarPauta: (corpo: unknown) => chamar<{ id: string; estado: 'pendente' }>(dispatchEditorial, `${E}/pautas`, { metodo: 'POST', corpo }),
     abrirCorrecao: (corpo: unknown) => chamar(dispatchEditorial, `${E}/corrections`, { metodo: 'POST', corpo }),
     /** Passos do caso: verify-requester, preserve-evidence, triage, ack-legal, publish-notice, reconcile-social, entities-rebuilt, close. */
     passoCorrecao: (id: string, passo: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/corrections/${encodeURIComponent(id)}/${passo}`, { metodo: 'POST', corpo }),

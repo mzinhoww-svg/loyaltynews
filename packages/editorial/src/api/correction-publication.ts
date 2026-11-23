@@ -85,7 +85,7 @@ export async function prepareCorrection(store: EditorialStore, input: Correction
   const notices = [...(rec.notices ?? []), { caseId: cr.case.id, kind: cr.case.kind, text: notice.text, at: input.publishedAt }];
   const draft: Draft = { ...input.draft, body: composeBody(mainBody(input.draft.body), notices.map((n) => n.text), fontesPart(input.draft.body)) };
 
-  const chk = runDeterministicChecks(draft, rec.evidences, { notices: notices.map((n) => n.text) });
+  const chk = runDeterministicChecks(draft, rec.evidences, { notices: notices.map((n) => n.text), tone: false }); // matéria já publicada: o tom lint não reprova texto antigo
   if (chk.verdict !== 'pass') return fail('gate_failed', 'a versão corrigida não passa no gate editorial', chk.findings);
   const fc = input.factcheck;
   const independent = fc.provider !== draft.modelProvider;

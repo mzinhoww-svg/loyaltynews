@@ -94,6 +94,20 @@ async function montar() {
         .onConflictDoNothing();
       return { articleId };
     },
+    async seedPautasProcessadas() {
+      const store = new PgEditorialStore(db);
+      const agora = new Date().toISOString();
+      const existentes = new Set((await store.listAudit()).map((a) => a.target));
+      const pauta = (id: string, titulo: string) => ({ id, titulo, angulo: 'Ângulo de teste (MOCK) com mais de vinte caracteres.', formato: 'analise', editoria: 'pontos', ancoras: ['https://exemplo.com.br/a', 'https://exemplo.com.br/b'] });
+      const grava = async (id: string, titulo: string, resultado: Record<string, unknown>) => {
+        if (existentes.has(id)) return;
+        await store.appendAudit({ at: agora, userId: 'redacao-e2e', action: 'pauta.submitted', target: id, detail: JSON.stringify({ pauta: pauta(id, titulo) }) });
+        await store.appendAudit({ at: agora, userId: null, action: 'pauta.processed', target: id, detail: JSON.stringify(resultado) });
+      };
+      await grava('pauta-e2e-aprovada', 'Pauta de teste aprovada (MOCK)', { status: 'aprovado', articleId: 'aut_e2e_aprovada', blockers: [], findings: [] });
+      await grava('pauta-e2e-bloqueada', 'Pauta de teste bloqueada (MOCK)', { status: 'bloqueado', articleId: null, blockers: ['autoral_needs_anchors'], findings: ['âncora sem evidência coletada'] });
+      return { aprovada: 'pauta-e2e-aprovada', bloqueada: 'pauta-e2e-bloqueada' };
+    },
     async seedEditorialAprovada() {
       const articleId = 'fabrica-e2e-2';
       const dia = new Date().toISOString().slice(0, 10);

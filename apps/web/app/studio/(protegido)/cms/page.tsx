@@ -49,6 +49,9 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
         <Link className="st-btn sec" href="/studio/cms/correcoes">
           Correções e direito de resposta
         </Link>
+        <Link className="st-btn sec" href="/studio/cms/pautas">
+          Pauta autoral
+        </Link>
       </div>
 
       <form className="st-filters" method="get" role="search" aria-label="Filtrar matérias">
