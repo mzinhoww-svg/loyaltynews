@@ -95,7 +95,7 @@ describe('E2E parte 1: flag openbotDispatch DESLIGADA (padrão do contrato)', ()
     expect(app.deps.flags.openbotDispatch).toBe(false);
   });
 
-  it('a Fábrica não despacha NEM grava entrada; o agente puxa e recebe 503 DISPATCH_OFF; nada é lido, gravado ou cobrado', async () => {
+  it('a Fábrica não despacha NEM grava entrada; o agente puxa e recebe 423 DISPATCH_OFF; nada é lido, gravado ou cobrado', async () => {
     const { gw } = factory();
     const r = await gw.invoke(req());
     expect(r).toMatchObject({ ok: false, refusal: 'model_disabled', detail: 'DISPATCH_OFF' });
@@ -104,7 +104,7 @@ describe('E2E parte 1: flag openbotDispatch DESLIGADA (padrão do contrato)', ()
 
     for (const a of Object.values(agents)) {
       const [run] = await a.tick();
-      expect(run).toMatchObject({ decision: 'sem_entrada', steps: [{ path: 'pull', status: 503, code: 'DISPATCH_OFF' }] });
+      expect(run).toMatchObject({ decision: 'sem_entrada', steps: [{ path: 'pull', status: 423, code: 'DISPATCH_OFF' }] });
     }
     expect(await costs()).toHaveLength(0);
     expect(await callbacks()).toHaveLength(0);
@@ -121,7 +121,7 @@ describe('E2E parte 1: flag openbotDispatch DESLIGADA (padrão do contrato)', ()
     const run = await agents.codex.run(p.body.tasks[0]);
     expect(run.steps.map((s) => [s.path, s.status])).toEqual([['io/input', 200], ['io/result', 200], ['callback', 200]]);
     expect((await tasks())[0]).toMatchObject({ status: 'completed' });
-    expect((await agents.codex.tick())[0]!.steps[0]).toMatchObject({ status: 503, code: 'DISPATCH_OFF' });
+    expect((await agents.codex.tick())[0]!.steps[0]).toMatchObject({ status: 423, code: 'DISPATCH_OFF' });
   });
 });
 
@@ -270,7 +270,7 @@ describe('E2E parte 2: flag LIGADA só no ambiente de teste', () => {
     expect(await costs()).toHaveLength(0);
   });
 
-  it('piloto (staging + LN_OPENBOT_PILOT=1) sem o gate do AgentOps (@ln/agents sem canDispatchNext, por mock): o agente é recusado (503 PILOT_STOPPED) e nada é entregue; sem a variável, segue normal', async () => {
+  it('piloto (staging + LN_OPENBOT_PILOT=1) sem o gate do AgentOps (@ln/agents sem canDispatchNext, por mock): o agente é recusado (423 PILOT_STOPPED) e nada é entregue; sem a variável, segue normal', async () => {
     vi.doMock('@ln/agents', () => ({}));
     const q = new PgLeaseQueue(app.db as any);
     await new PgTaskIo(app.db as any, app.deps.now).putInput('gw-pl', { x: 1 }, { taskClass: 'factcheck', promptVersion: 'p' });
@@ -278,7 +278,7 @@ describe('E2E parte 2: flag LIGADA só no ambiente de teste', () => {
     Object.assign(process.env, { APP_ENV: 'staging', LN_OPENBOT_PILOT: '1' });
     const [run] = await agents.codex.tick();
     vi.doUnmock('@ln/agents');
-    expect(run!.steps[0]).toMatchObject({ path: 'pull', status: 503, code: 'PILOT_STOPPED' });
+    expect(run!.steps[0]).toMatchObject({ path: 'pull', status: 423, code: 'PILOT_STOPPED' });
     expect((await tasks())[0]).toMatchObject({ status: 'pending' });
     delete process.env.APP_ENV;
     delete process.env.LN_OPENBOT_PILOT;
@@ -287,6 +287,6 @@ describe('E2E parte 2: flag LIGADA só no ambiente de teste', () => {
 
   it('desligar a flag no fim volta ao estado inicial: o agente é recusado de novo (a flag do teste nunca vaza)', async () => {
     app.deps.flags.openbotDispatch = false;
-    expect((await agents.codex.tick())[0]!.steps[0]).toMatchObject({ status: 503, code: 'DISPATCH_OFF' });
+    expect((await agents.codex.tick())[0]!.steps[0]).toMatchObject({ status: 423, code: 'DISPATCH_OFF' });
   });
 });
