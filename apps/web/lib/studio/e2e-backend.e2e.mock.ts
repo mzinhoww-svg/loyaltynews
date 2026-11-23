@@ -122,9 +122,9 @@ async function montar() {
       }
       const alfa = (await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [ALFA])).rows[0]!.id;
       const beta = (await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [BETA])).rows[0]!.id;
-      const pessoa = (await idb.query<{ id: string }>("SELECT id FROM intelligence.person WHERE full_name = 'MOCK Ana Souza'")).rows[0]!.id;
-      const idDe = async (nome: string) => (await idb.query<{ id: string }>('SELECT id FROM intelligence.person WHERE full_name = $1', [nome])).rows[0]!.id;
-      return { alfa, beta, pessoa, bruno: await idDe('MOCK Bruno Lima'), carla: await idDe('MOCK Carla Dias') };
+      // as pessoas são achadas pelo perfil público (estável): o nome muda quando um pedido do titular o corrige, e a pessoa removida continua com o mesmo perfil
+      const idDe = async (slug: string) => (await idb.query<{ id: string }>('SELECT id FROM intelligence.person WHERE public_profile_url = $1', [`https://mock.invalid/in/${slug}`])).rows[0]!.id;
+      return { alfa, beta, pessoa: await idDe('mock-ana-souza'), bruno: await idDe('mock-bruno-lima'), carla: await idDe('mock-carla-dias') };
     },
     async seedPautasProcessadas() {
       const store = new PgEditorialStore(db);
