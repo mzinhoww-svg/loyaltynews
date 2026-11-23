@@ -10,8 +10,12 @@ import { defineConfig, devices } from '@playwright/test';
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 // APP_ENV do servidor sob teste: production (padrão) ou staging. Portas distintas evitam reaproveitar servidor com outro ambiente.
 const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
-const port = mode === 'mock' ? 3102 : mode === 'api' ? 3105 : appEnv === 'production' ? 3101 : 3103;
-const fakeApiPort = 3104;
+// PORTAL_PORT_BASE (ex.: 3410) isola a rodada: portas próprias (base+0..4) e SEM reaproveitar servidor já em execução
+// (evita testar, sem querer, o código de outro worktree/agente que ocupe as portas padrão).
+const base = Number(process.env.PORTAL_PORT_BASE) || 0;
+const fakeApiPort = base ? base + 4 : 3104;
+const port = base ? base + (mode === 'mock' ? 1 : mode === 'api' ? 2 : appEnv === 'production' ? 0 : 3) : mode === 'mock' ? 3102 : mode === 'api' ? 3105 : appEnv === 'production' ? 3101 : 3103;
+
 
 export default defineConfig({
   testDir: './portal',
@@ -35,7 +39,7 @@ export default defineConfig({
                 command: 'node e2e/fake-api.mjs',
                 cwd: '..',
                 url: `http://localhost:${fakeApiPort}/health`,
-                reuseExistingServer: true,
+                reuseExistingServer: !base,
                 timeout: 30_000,
                 env: { FAKE_API_PORT: String(fakeApiPort) },
               },
@@ -45,7 +49,7 @@ export default defineConfig({
           command: `npx next dev -p ${port}`,
           cwd: '..',
           url: `http://localhost:${port}`,
-          reuseExistingServer: true,
+          reuseExistingServer: !base,
           timeout: 120_000,
           env: {
             PORTAL_SOURCE: mode,

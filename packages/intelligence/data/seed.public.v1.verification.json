@@ -1,0 +1,92 @@
+{
+  "datasetId": "seed.public.v1",
+  "verifiedAt": "2026-11-23T10:09:54.920Z",
+  "verifier": "LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "url": "https://www.livelo.com.br/imprensa",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:09:57.106Z",
+      "content_sha256": "4450396c90bcb12f33f0f210ffc338883c7b9f90e2578cea2bf8ccf542ca65c5",
+      "text_length": 13339,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-livelo",
+      "url": "https://banco.bradesco/cartoes/hotsitefidelidade/",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:10:00.228Z",
+      "content_sha256": "832b2e38af37fca6a49c9434386848c07534c4b025e1416af5d8259f5fe17882",
+      "text_length": 21183,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://banco.bradesco/cartoes/hotsitefidelidade/"
+    },
+    {
+      "id": "latampass-conheca",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:10:04.106Z",
+      "content_sha256": "ab12e961fb809d0a6f4c3b5e1129514fb6a820cd337a64edbc03e1463ca1c772",
+      "text_length": 4642,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "url": "https://www.abemf.com.br/",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:10:08.561Z",
+      "content_sha256": "c303f7984b0b16306098e10c040570a4154f56018568bc3cd2cc17269f9307b3",
+      "text_length": 4260,
+      "robots": "robots.txt ausente",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/"
+    }
+  ],
+  "records": [
+    {
+      "ref": "organization:livelo",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bradesco",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:abemf",
+      "source_id": "abemf-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bradesco>other>livelo",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam>other>latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    }
+  ]
+}

@@ -85,6 +85,6 @@ export interface PublishReceipt {
   /** `true` quando nada foi enviado ao mLabs. */
   simulated: boolean;
   createdAt: string;
-  status: 'scheduled' | 'published' | 'edited' | 'deleted';
+  status: 'draft' | 'scheduled' | 'published' | 'edited' | 'deleted';
   idempotencyKey: string;
 }

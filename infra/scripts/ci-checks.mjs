@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK } from './lib/guards.mjs';
+import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage']);
@@ -81,9 +81,15 @@ for (const f of all) {
   for (const [nome, re] of SECRET_PATTERNS) if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
 }
 
+/** Texto sem comentários (comentário que CITA `PORTAL_VITRINE=1` não é atribuição). Só para a checagem da vitrine. */
+function semComentarios(txt, r) {
+  if (/\.ya?ml$|(^|\/)Dockerfile/.test(r)) return txt.replace(/(^|\s)#.*$/gm, '$1');
+  return txt.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
 // 4. variáveis só de teste (alerta do PM): nunca no ambiente, no build nem em arquivos de deploy
 const argv = parseArgs(process.argv.slice(2));
-for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy) })) problems.push(`ambiente: ${msg}`);
+for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy), migracao: Boolean(argv.migracao) })) problems.push(`ambiente: ${msg}`);
 for (const f of all) {
   const r = rel(f);
   if (r.startsWith('infra/tests/') || r === 'infra/scripts/lib/guards.mjs') continue; // fixtures e definições dos próprios padrões
@@ -97,11 +103,20 @@ for (const f of all) {
     for (const [nome, cmd] of Object.entries(scripts)) {
       if (/e2e|test/i.test(nome)) continue; // scripts de teste podem usar as variáveis
       if (ASSIGN_STUDIO.test(String(cmd)) || ASSIGN_PORTAL_MOCK.test(String(cmd))) problems.push(`variável só de teste no script "${nome}" de ${r}`);
+      if (ASSIGN_VITRINE.test(String(cmd))) problems.push(`PORTAL_VITRINE atribuída no script "${nome}" de ${r}: a vitrine do staging liga-se só pelo release.json do pacote (package-web --vitrine)`);
     }
     continue;
   }
   if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
   if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE/PORTAL_MODE=mock atribuído em ${r}`);
+  if (ASSIGN_WAIVER.test(semComentarios(txt, r))) problems.push(`variável da dispensa de backup (DP-23) atribuída em ${r}: ela vale só no processo da migração`);
+  // Vitrine (Security R8): nunca atribuída em configuração de deploy de PRODUÇÃO. Em environments.json vale só a subárvore ambientes.production
+  // (o texto de regras e o contrato citam o nome); em workflows, Dockerfile e next.config qualquer atribuição reprova (a vitrine entra pelo release.json).
+  if (r === 'infra/vertra/environments.json') {
+    try { if (ASSIGN_VITRINE.test(JSON.stringify(JSON.parse(txt).ambientes?.production ?? {}))) problems.push(`PORTAL_VITRINE atribuída na configuração de produção de ${r}`); } catch { /* JSON inválido é reportado em outra checagem */ }
+  } else if (!r.startsWith('infra/vertra/') && ASSIGN_VITRINE.test(semComentarios(txt, r))) {
+    problems.push(`PORTAL_VITRINE atribuída em ${r} (configuração de deploy): vitrine só no staging, ligada pelo release.json do pacote`);
+  }
   // next.config pode LER a variável para RECUSAR o build (padrão do Studio); o que reprova é injetá-la no build via `env:`/define
   if (/next\.config/.test(r) && /\b(?:env|define)\s*:\s*\{[^}]*(?:LN_STUDIO_TEST_SESSION|PORTAL_(?:SOURCE|MODE))/s.test(txt)) problems.push(`next.config injeta variável só de teste no build: ${r}`);
 }

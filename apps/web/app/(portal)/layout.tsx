@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import '@fontsource-variable/inter';
 import '@ln/ui/styles.css';
 import './portal.css';
+import { DemoBanner } from '@ln/ui';
 import { SiteFooter } from './_components/SiteFooter';
-import { PortalNav } from './_components/PortalNav';
 import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
 import { flags } from './_lib/flags';
@@ -28,13 +29,9 @@ export const viewport: Viewport = { themeColor: '#153c3c', width: 'device-width'
 export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
     <div className="ln-root pt">
-      {isMockSource() && (
-        <div className="pt-mockbar" role="note">
-          MOCK — conteúdo sintético de teste. Nenhuma matéria, evento ou pessoa aqui é real.
-        </div>
-      )}
-      <SiteHeader flags={{ theLoyal: flags.theLoyal }} editorias={EDITORIAS} />
-      <PortalNav marketData={flags.marketData} podcast={flags.podcast} />
+      {/* Faixa fina e fixa quando o conteúdo é de demonstração (fonte MOCK). Nunca em produção real. */}
+      {(process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_PORTAL_DEMO === '1') && isMockSource() && <DemoBanner />}
+      <SiteHeader flags={{ theLoyal: flags.theLoyal, marketData: flags.marketData, podcast: flags.podcast }} editorias={EDITORIAS} />
       <main id="conteudo" className="pt-main">
         <div className="pt-wrap">{children}</div>
       </main>

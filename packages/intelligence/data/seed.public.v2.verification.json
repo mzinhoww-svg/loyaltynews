@@ -1,0 +1,287 @@
+{
+  "datasetId": "seed.public.v2",
+  "verifiedAt": "2026-11-23T10:23:42.655Z",
+  "verifier": "LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "url": "https://www.livelo.com.br/imprensa",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:23:45.209Z",
+      "content_sha256": "4450396c90bcb12f33f0f210ffc338883c7b9f90e2578cea2bf8ccf542ca65c5",
+      "text_length": 13339,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-livelo",
+      "url": "https://banco.bradesco/cartoes/hotsitefidelidade/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:23:48.336Z",
+      "content_sha256": "832b2e38af37fca6a49c9434386848c07534c4b025e1416af5d8259f5fe17882",
+      "text_length": 21183,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://banco.bradesco/cartoes/hotsitefidelidade/"
+    },
+    {
+      "id": "latampass-conheca",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:23:52.309Z",
+      "content_sha256": "ab12e961fb809d0a6f4c3b5e1129514fb6a820cd337a64edbc03e1463ca1c772",
+      "text_length": 4642,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "url": "https://www.abemf.com.br/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:23:57.358Z",
+      "content_sha256": "c303f7984b0b16306098e10c040570a4154f56018568bc3cd2cc17269f9307b3",
+      "text_length": 4260,
+      "robots": "robots.txt ausente",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/"
+    },
+    {
+      "id": "abemf-associados",
+      "url": "https://web.abemf.com.br/associados/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:24:03.614Z",
+      "content_sha256": "c9119986bb5f6db6dd00fb298f03dbcd9184ea234f97501d6b37925c967aa395",
+      "text_length": 3658,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/associados/"
+    },
+    {
+      "id": "dotz-home",
+      "url": "https://www.dotz.com.br/home",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:22:26.774Z",
+      "content_sha256": "36695375a23ee6353ac117012e778d2f2709a5a9574c4934a6aec283ed0f3ddd",
+      "text_length": 3677,
+      "robots": "robots.txt permite (conferido com scripts/verify-dataset.mjs --robots antes da captura)",
+      "note": "",
+      "final_url": "https://www.dotz.com.br/home"
+    }
+  ],
+  "records": [
+    {
+      "ref": "organization:livelo",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bradesco",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:abemf",
+      "source_id": "abemf-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:azul",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bravium",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:clube-giro",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:dotz",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:esfera",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:juntos-somos-mais",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:mastercard",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:orbia",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:smiles",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:stix",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-do-brasil",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-bv",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:uber",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:brb",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:km-de-vantagens",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bradesco>other>livelo",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam>other>latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:azul>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bravium>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:clube-giro>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:esfera>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:juntos-somos-mais>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:mastercard>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:orbia>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:smiles>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:stix>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>partner_of>banco-do-brasil",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>partner_of>banco-bv",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>uber",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>brb",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>km-de-vantagens",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    }
+  ]
+}

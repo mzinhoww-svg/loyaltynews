@@ -13,27 +13,56 @@ async function expand(button: import('@playwright/test').Locator) {
 }
 
 test.describe('navegação e menu', () => {
-  test('desktop: Header do DS lista as 10 editorias e a navegação de utilidade os formatos', async ({ page }, info) => {
+  test('desktop: barra enxuta (poucas entradas) e as 10 editorias dentro do menu, não na barra', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');
-    const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
-    await expect(nav.getByRole('link')).toHaveCount(10);
-    await expect(nav.getByRole('link', { name: 'Bancos & Cartões' })).toBeVisible();
-    const util = page.getByRole('navigation', { name: 'Seções do portal' });
-    for (const l of ['Todas as notícias', 'Loyalty Flash', 'Análises', 'Em alta', 'Agenda', 'Entrevistas', 'Moves', 'Intelligence', 'Contato']) {
-      await expect(util.getByRole('link', { name: l, exact: true })).toBeVisible();
+    const bar = page.getByRole('navigation', { name: 'Seções do portal' });
+    // Barra: o botão do menu + 4 links fixos (a opção de navegação pode variar; o contrato é "poucas entradas")
+    const fixos = await bar.getByRole('link').count();
+    expect(fixos, 'barra deve ter poucas entradas fixas').toBeLessThanOrEqual(5);
+    // As editorias NÃO aparecem na barra com o menu fechado
+    await expect(bar.getByRole('link', { name: 'Bancos & Cartões' })).toHaveCount(0);
+    const menu = bar.locator('.ln-header__menu-btn');
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    const mega = page.locator('.ln-header__mega');
+    for (const nome of ['Mercado & Negócios', 'Programas de Fidelidade', 'Pontos & Milhas', 'Bancos & Cartões', 'Varejo & Cashback',
+      'Travel & Hospitality', 'LoyaltyTech & IA', 'CRM & CX', 'Global Loyalty', 'Regulação & Dados']) {
+      await expect(mega.getByRole('link', { name: nome, exact: true })).toBeVisible();
     }
     await page.screenshot({ path: path.join(SHOTS, 'desktop-menu.png') });
-    await nav.getByRole('link', { name: 'Bancos & Cartões' }).click();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(mega).toBeHidden();
+    // Cabeçalho enxuto: uma única barra
+    const h = await page.locator('header').boundingBox();
+    expect(h?.height ?? 0, 'altura do cabeçalho').toBeLessThanOrEqual(72);
+    // Navega por uma editoria pelo menu
+    await menu.click();
+    await mega.getByRole('link', { name: 'Bancos & Cartões', exact: true }).click();
     await expect(page).toHaveURL(/\/editoria\/bancos$/);
-    await expect(page.getByRole('link', { name: 'Bancos & Cartões' }).first()).toHaveAttribute('aria-current', 'page');
+    await menu.click();
+    await expect(mega.getByRole('link', { name: 'Bancos & Cartões', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('desktop: clique fora fecha o menu e o CTA Anuncie leva ao mídia kit', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop');
+    await page.goto('/');
+    const menu = page.locator('.ln-header__menu-btn');
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    await page.mouse.click(8, 600); // margem da página, fora do menu (a home vazia é curta: não depende de `main`)
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await page.locator('header').getByRole('link', { name: 'Anuncie' }).click();
+    await expect(page).toHaveURL(/\/midia-kit$/);
   });
 
   test('mobile: menu colapsável abre, navega e fecha com ESC', async ({ page }, info) => {
     test.skip(info.project.name !== 'mobile');
     await page.goto('/');
     const toggle = page.locator('.ln-header__toggle');
-    const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
+    const nav = page.getByRole('navigation', { name: 'Menu e editorias' });
     await expect(nav).toBeHidden();
     await expand(toggle);
     await expect(nav).toBeVisible();
@@ -94,7 +123,10 @@ test.describe('SEO básico', () => {
     }
     const feed = await request.get('/feed.xml');
     expect(feed.status()).toBe(200);
-    expect(await feed.text()).toContain('<rss');
+    const feedBody = await feed.text();
+    expect(feedBody).toContain('<rss');
+    // Vitrine/mock nunca publica itens no feed (Security R6).
+    if (mode === 'mock') expect(feedBody).not.toContain('<item>');
   });
 
   test('busca não é indexável', async ({ page }) => {
@@ -143,7 +175,7 @@ test.describe('conteúdo MOCK', () => {
 
   test('home mostra destaques, em alta, últimas, agenda e editorias, com faixa MOCK', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/MOCK — conteúdo sintético/)).toBeVisible();
+    await expect(page.getByText(/Conteúdo de demonstração — não publicado/)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Destaques' })).toBeVisible();
     await expect(page.locator('#destaques article')).not.toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Em alta' }).first()).toBeVisible();
@@ -191,6 +223,14 @@ test.describe('conteúdo MOCK', () => {
 
   test('Moves e Intelligence mostram itens marcados MOCK', async ({ page }) => {
     await page.goto('/moves');
+    // Selo compacto visível "MOCK" + texto completo para leitor de tela.
+    const cell = page.getByRole('table').locator('td', { has: page.locator('[data-testid="mock-badge"]') }).first();
+    await expect(cell).toContainText('MOCK');
+    const txt = (await cell.evaluate((e) => e.textContent)) ?? '';
+    expect(txt).toContain('MOCK · dados de exemplo');
+    // O texto para leitor de tela vem só do DS: nunca duplicado.
+    expect(txt.split('dados de exemplo').length - 1).toBe(1);
+    await expect(cell.locator('.ln-sr-only')).toHaveCount(1);
     await expect(page.getByRole('table')).toBeVisible();
     await expect(page.locator('[data-testid="mock-badge"]').first()).toBeVisible();
     await page.goto('/intelligence/empresas');
@@ -210,20 +250,18 @@ test.describe('conteúdo MOCK', () => {
 
   test('foto com crédito não leva rótulo de ilustração; matéria sem imagem não quebra', async ({ page }) => {
     await page.goto('/noticia/mock-programas-1');
-    await expect(page.getByTestId('article-image').locator('figcaption')).toContainText('Crédito: Fotógrafo de teste (MOCK)');
+    await expect(page.getByTestId('article-image').locator('figcaption')).toContainText('Crédito: Template de teste (MOCK)');
     await expect(page.getByTestId('image-label')).toHaveCount(0);
     await page.goto('/noticia/mock-mercado-2');
     await expect(page.getByTestId('article-image')).toHaveCount(0);
     await expect(page.getByTestId('correction-notice')).toHaveCount(0);
   });
 
-  test('cards com ilustração mostram o rótulo visível (home, mobile incluso)', async ({ page }, info) => {
-    await page.goto('/');
-    const labels = page.getByTestId('card-image-label');
-    await expect(labels.first()).toBeVisible();
-    await expect(labels.first()).toHaveText('Ilustração conceitual');
+  test('cards com ilustração mostram o rótulo visível sobre a imagem (editoria, mobile incluso)', async ({ page }, info) => {
     await page.goto('/editoria/mercado');
-    await expect(page.getByTestId('card-image-label').first()).toBeVisible();
+    const label = page.locator('.ln-card__imglabel').first();
+    await expect(label).toBeVisible();
+    await expect(label).toHaveText('Ilustração conceitual');
     await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-card-rotulo.png`) });
   });
 

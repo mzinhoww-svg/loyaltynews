@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { getSource } from '../_lib/source';
 import type { ContentType } from '../_lib/types';
-import { Sidebar } from './Sidebar';
+import { WithSidebar } from './Sidebar';
 import { AdSlot, ArticleGrid, EmptyState, PageHead, Pager } from './ui';
 
 export function parsePage(raw: string | string[] | undefined): number {
@@ -47,11 +47,11 @@ export async function Listing(p: ListingProps) {
           ))}
         </ul>
       )}
-      <div className="pt-layout">
+      <WithSidebar>
         <div>
           {data.items.length ? (
             <>
-              <ArticleGrid items={data.items} cols={3} />
+              <ArticleGrid items={data.items} cols={3} headingLevel={2} />
               <Pager page={data} basePath={p.basePath} />
             </>
           ) : (
@@ -60,8 +60,7 @@ export async function Listing(p: ListingProps) {
             </EmptyState>
           )}
         </div>
-        <Sidebar />
-      </div>
+        </WithSidebar>
       <AdSlot slot="rodape" />
     </>
   );

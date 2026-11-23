@@ -38,3 +38,25 @@ Origem: `C:\Users\mazin\OpenBot\Shared\loyalty-news\fast-track\mlabs-leitura-202
 | `get_account_settings` | plano "unknown"; produtos chat e social; fuso America/Sao_Paulo |
 
 Conclusão registrada: existe um canal LinkedIn "Loyalty News" ativo, sem posts publicados nem agendados e sem limite mensal informado. Efeito no código: nenhum (o adaptador real segue sem mapeamento de escrita). Permanecem não provados por leitura (R5-02): menção, edição, exclusão, carrossel/PDF, idempotência no mLabs e 7 dias sem sessão interativa.
+
+## 6. Rascunho e aprovação no mLabs: verificação DOCUMENTAL (23/11/2026, só leitura de esquemas)
+Método: li as descrições e os esquemas de entrada das ferramentas do conector (`create_post`, `update_post`, `create_post_approval_link`, `create_workflow`, `send_workflow_to_approval`, `get_workflow_options`, `get_post_limits`, `toggle_post_status`). **Nenhuma ferramenta foi chamada** (nem leitura): ler o esquema não toca a conta. Isto prova o que a ferramenta **documenta**, não o que ela **faz**; o comportamento só se confirma em R5-02, em página de teste.
+
+| Capacidade | O que o esquema documenta | Efeito no código |
+|---|---|---|
+| **Rascunho** | `create_post` aceita `status: "draft"` ("rascunho, status 9, não agenda"); sem `scheduledAt` vira rascunho; `update_post` informa que rascunho "continua rascunho" ao mudar a data e que **efetivar** o rascunho é abrir `scheduleLink` na mLabs (a ferramenta não promove rascunho a agendado) | `linkedinDraftMapper` (`src/mlabs/create-post-draft.ts`): só `status: "draft"`, nunca `scheduled`/`pending_approval`/`scheduledAt` (testado) |
+| **Aprovação por link** | `status: "pending_approval"` (status 10, "não publica", exige `scheduledAt` futuro) + `create_post_approval_link` (link público para o aprovador; **não envia e-mail**; só quando o usuário pede aprovação por link) | **Não usado.** Quem aprova é o proprietário, na mLabs; sem decisão dele, nada de `pending_approval` |
+| **Aprovação por Workflow** | `create_workflow`/`send_workflow_to_approval`: demanda no board, com criadores e aprovadores; o texto de `create_post` manda **não** usar as ferramentas de Workflow para aprovação por link | **Não usado** (outro fluxo, exige colaboradores) |
+| **Idempotência** | `requestId` (16–128 caracteres `[a-zA-Z0-9_-]`): reutilizar nas tentativas; sem ele, pedidos idênticos da mesma pessoa reutilizam o resultado por **24 h enquanto o post existir** | `requestIdFor(idempotencyKey)`: derivado por hash, determinístico |
+| **Documento (carrossel em PDF)** | LinkedIn (`linkedin`/`linkedin_personal`) aceita PDF/Word/PPT via `documentIds` (de `upload_media`), com `documentTitles` obrigatório (≤ 100); `urlData` e mídia são exclusivos (XOR) no LinkedIn | mapeado (`documentIds` + título); a montagem do PDF não existe ainda (hoje só slides em SVG) |
+| **Menção no LinkedIn** | **Não há campo.** `mentions` do `create_post` é people-tag de Instagram (`instagram`, `instagram_reels`, `instagram_stories`); `search_social_users` serve ao Instagram/collabs | confirma o fallback: **texto puro** no LinkedIn; o mapeador recusa menção |
+| **Edição** | `update_post` edita post agendado (legenda, mídia, data); "posts já publicados não podem ser editados" | adaptador real ainda recusa (sem teste de escrita) |
+| **Exclusão** | existem `delete_post` e `delete_published_post` (esquemas não carregados por mim) | adaptador real ainda recusa |
+| **Mídia** | `upload_media` (referência do cliente ou URL HTTP(S)) ou `attach_media` (link para o usuário anexar); consultar `get_media_upload` antes de criar o post | o mapeador exige upload concluído por `imageRef` (sem upload, recusa) |
+| **Limites** | `get_post_limits` devolve limites de agendamento da conta (leitura do PM: `monthly_limit` nulo) | — |
+
+**Não verificado (continua pendente para R5-02, em página de teste):** se o rascunho realmente aparece no LinkedIn do mLabs sem agendar nem publicar; o formato exato da resposta de `create_post` (o mapeador procura `scheduleId` e **recusa** se não achar); `requestId` na prática; documento/PDF de ponta a ponta; exclusão de rascunho; o que acontece com rascunho velho. **Decisão do proprietário:** rascunho no mLabs só será criado depois do gate R5-02; até lá, "rascunho" = modo simulado.
+
+## 7. Modos do adaptador mLabs (LinkedIn)
+- **Simulado (único modo ativo):** `createSocialPublisher({ mode: 'simulated' })`. Nada sai do processo; recibos `SIM-…`. Testado.
+- **Real:** `createSocialPublisher({ mode: 'live', … })` exige confirmação explícita, ator `publisher_social` e a flag `growth_linkedin_live`; só funciona com `payloadMapper` (use `linkedinDraftMapper`, que é só rascunho); edição e exclusão reais recusam. Testado com transporte falso; **nunca chamado no mLabs**.
