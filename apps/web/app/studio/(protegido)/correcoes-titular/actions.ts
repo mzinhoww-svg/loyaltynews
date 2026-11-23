@@ -48,6 +48,8 @@ export async function decidirAction(fd: FormData): Promise<void> {
       ? mensagemErro(r)
       : acao === 'negar'
         ? 'Pedido negado: decisão registrada e auditada, com o motivo. Nada muda na exibição pública.'
-        : 'Decisão registrada e auditada. O efeito na exibição pública ainda está pendente: o portal não muda por esta tela.',
+        : r.body.efeitoPublico === 'aplicado'
+          ? 'Decisão registrada e auditada. Efeito na exibição pública: aplicado.'
+          : 'Decisão registrada e auditada. O efeito na exibição pública ainda está pendente: o portal não muda por esta tela.',
   );
 }
