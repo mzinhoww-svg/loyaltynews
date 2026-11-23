@@ -63,7 +63,7 @@ export function computeMetrics(records: AttemptRecord[], opts: { ineligible?: Se
       contentCompleteness: lens.length ? Math.min(1, (lens[Math.floor(lens.length / 2)] ?? 0) / 3000) : 0,
       // sobre as extrações com texto (não só as válidas: a validade já exige título, o que tornaria a métrica circular)
       titleAccuracy: rs.some((r) => r.technicalSuccess) ? frac((r) => (r.titleMatch ?? 0) >= 0.5, rs.filter((r) => r.technicalSuccess)) : null,
-      sourceAccuracy: valid.length ? frac((r) => r.sourceMatch === true, valid) : null,
+      sourceAccuracy: valid.some((r) => r.sourceMatch !== undefined) ? frac((r) => r.sourceMatch === true, valid.filter((r) => r.sourceMatch !== undefined)) : null,
       dateAccuracy: dated.length ? frac((r) => r.dateMatch === true, dated) : null,
       dateVerifiable: dated.length,
       p50: percentile(rs.map((r) => r.durationMs), 50),

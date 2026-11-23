@@ -40,6 +40,8 @@ export type ErrorClass =
   | 'provider_error'
   | 'auth_failed'
   | 'empty_content'
+  | 'title_mismatch'
+  | 'not_found'
   | 'ssrf_blocked'
   | 'disabled';
 

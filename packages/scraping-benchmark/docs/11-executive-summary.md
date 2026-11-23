@@ -4,8 +4,9 @@
 
 ## Resultado
 
-- **Pipeline combinado: 100/100 URLs elegíveis com extração editorial válida** (meta ≥ 90 %); sucesso técnico 100 % (meta ≥ 95 %); título 100 %; data 79/79 verificáveis; rastreamento 100 %.
-- **Firecrawl** (rodada delta): maior taxa editorial (96 %) e lê LATAM, mas o mais caro (~US$ 5,6 por mil válidos) e lento; fallback de qualidade.
+- **Pipeline combinado: 100/100 URLs elegíveis pelo critério automático** (meta ≥ 90 %); sucesso técnico 100 % (meta ≥ 95 %); título 98/100 (automático); data 79/79 (cobertura 79 %); rastreamento 100 %. As metas de **precisão** só valem depois da rotulagem independente.
+- **Firecrawl** (rodada delta): maior taxa automática (96 %) e lê LATAM, mas o 2º mais caro (~US$ 4 por mil válidos, preço oficial Hobby) e lento; fallback de qualidade.
+- **Parecer QA 3 (M2): não homologado.** Corrigido: 404 no replay, disjuntor por domínio, título não circular (98/100), fonte só onde verificável, custos e denominadores, preço Firecrawl. **Pendente**: precisão rotulada (amostra de 40 pares pronta) e deduplicação rotulada; shadow ao vivo em staging.
 - **Melhor extrator pago custo-benefício: Zyte** (95 % editorial, ~US$ 0,21 por mil artigos válidos, custo estimado). Scrapfly logo atrás (94 %, custo real). Leitura direta grátis resolve 88 %.
 - **Fontes difíceis** (20 sem feed ou bloqueadas): Exa 85 %, Firecrawl 85 %, Zyte 80 %, Bright Data 70 %, Tavily 45 %. LATAM só foi lida por Exa e Firecrawl.
 - **Caminho atual (direct → Tavily)** perde 4 de 100; o roteador adaptativo recupera os 4 e custa ~US$ 0,07 por mil artigos (shadow por replay).

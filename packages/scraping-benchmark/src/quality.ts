@@ -122,7 +122,8 @@ export interface EditorialVerdict {
 export function evaluate(text: string | undefined, html: string | undefined, referenceTitle: string, httpStatus?: number): EditorialVerdict {
   const body = (text ?? '').trim();
   const m = extractMeta(html, body);
-  const tm = Math.max(titleSimilarity(m.title, referenceTitle), titleSimilarity(body.slice(0, 2000), referenceTitle) >= 0.8 ? 0.8 : 0);
+  // título só pelos metadados/H1 (ressalva QA 3, M2: o atalho pelo corpo aceitava divergências); sem metadados, 1ª linha do texto
+  const tm = titleSimilarity(m.title, referenceTitle);
   const base = { meta: m, textLength: body.length, titleMatch: tm, contentHash: body ? sha256(body) : undefined, snippet: body ? snippetOf(body) : undefined };
   const lp = detectLoginOrPaywall({ text: body, html, httpStatus });
   if (lp) return { ...base, editorialSuccess: false, reason: lp };

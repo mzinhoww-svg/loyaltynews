@@ -310,3 +310,46 @@ describe('contrato Firecrawl (MOCK de fetch)', () => {
     expect(await rl.read({ url: 'https://a.com' }, 'x')).toMatchObject({ status: 'rate_limited', retryAfterSeconds: 7 });
   });
 });
+
+describe('ressalvas QA 3 (M2)', () => {
+  const rec = (over: Partial<AttemptRecord>): AttemptRecord => ({ experimentId: 'e', runId: 'r', correlationId: 'c', codeVersion: 'v', at: '2026-11-23T00:00:00Z', provider: 'a', urlId: 'https://d.com/1', url: 'https://d.com/1', domain: 'd.com', durationMs: 1, technicalSuccess: false, editorialSuccess: false, errorClass: 'http_4xx', httpStatus: 404, textLength: 0, creditsUsed: 0, costEstimatedUsd: 0, costEffectiveUsd: null, cacheState: 'miss', retries: 0, mock: false, ...over });
+  it('replay: 404/410 param o roteador (sem fallback), como no roteador normal', async () => {
+    const recs = [rec({ provider: 'a' }), rec({ provider: 'b', editorialSuccess: true, technicalSuccess: true, errorClass: 'none', httpStatus: 200, textLength: 2000 })];
+    const out = await shadowRun('x', ['https://d.com/1'], recs, ['a', 'b'], { a: 0, b: 0 }, { adaptive: false });
+    expect(out).toMatchObject({ valid: 0, attempts: 1, stopsByRestriction: 1 });
+  });
+  it('classify: título divergente e 404 têm classe própria', () => {
+    expect(classify({ ok: true, url: '', provider: 'x' }, 'title_mismatch')).toBe('title_mismatch');
+    expect(classify({ ok: false, url: '', provider: 'x', failure: 'not_found', httpStatus: 404 }, 'ok')).toBe('not_found');
+  });
+  it('runner: sem URL final, a fonte fica não verificável (antes contava como correta)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'src-'));
+    const p = new MockReader('p', (r) => ({ ...ok('p', r.url), finalUrl: undefined }));
+    const g = new BudgetGuard({ p: { provider: 'p', billing: 'free-confirmed', creditCap: 10, usdPerCredit: 0 } });
+    const ds1: DatasetEntry[] = [{ id: 'u1', url: 'https://n.com/a', domain: 'n.com', category: 'financeiro', recency: 'recente', country: 'BR', language: 'pt', publishedAt: null, contentType: 'noticia', difficulty: 'baixa', discoveryMethod: 'rss', discoverySource: 'f', accessCondition: 'publico', paywall: false, needsJs: null, errorHistory: null, referenceTitle: 'Azul anuncia nova rota para Lisboa' }];
+    const [a] = await runBenchmark(ds1, [{ name: 'p', reader: p, worstCaseCredits: 1 }], { experimentId: 'e', runId: 'r', codeVersion: 't', outPath: join(dir, 'a.jsonl'), budget: g, minSecondsPerHost: 0 });
+    expect(a!.sourceMatch).toBeUndefined();
+  });
+  it('título só pelo corpo não aprova mais (atalho removido)', () => {
+    const v = evaluate(`Azul anuncia nova rota para Lisboa\n${LONG}`, article('Página inicial do portal'), 'Azul anuncia nova rota para Lisboa');
+    expect(v.reason).toBe('title_mismatch');
+  });
+  it('contrato exportado (ReaderPort): 401/402 da ORIGEM viram login/paywall nos adaptadores Firecrawl e Scrapfly', async () => {
+    const fc402 = (async () => new Response(JSON.stringify({ success: true, data: { markdown: LONG, metadata: { statusCode: 402, title: 'x' } } }), { status: 200 })) as unknown as typeof fetch;
+    const r1 = await createReader({ keyed: new FirecrawlReader(fc402), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com/x' });
+    expect(r1).toMatchObject({ ok: false, failure: 'paywall' });
+    const sf401 = (async () => new Response(JSON.stringify({ result: { content: article('x'), status_code: 401 } }), { status: 200 })) as unknown as typeof fetch;
+    const r2 = await createReader({ keyed: new ScrapflyReader('basic', sf401), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com/x' });
+    expect(r2).toMatchObject({ ok: false, failure: 'login_required' });
+  });
+});
+
+describe('disjuntor por provedor × domínio', () => {
+  it('falhas seguidas num site bloqueado não desligam o provedor nos outros sites', async () => {
+    const r = new MockReader('d', (q) => (q.url.includes('blocked.com') ? { ok: false, url: q.url, provider: 'd', failure: 'provider_error' } : ok('d', q.url)));
+    const router = new AdaptiveRouter([{ name: 'd', reader: r, worstCaseCredits: 0, usdPerCredit: 0 }], { env: {}, breakerThreshold: 2, sleep: async () => {} });
+    for (const i of [1, 2, 3]) await router.route(`https://blocked.com/${i}`);
+    expect(r.calls).toBe(2); // 3ª do mesmo site: disjuntor aberto
+    expect((await router.route('https://other.com/x')).provider).toBe('d');
+  });
+});

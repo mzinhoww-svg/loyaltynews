@@ -1,6 +1,6 @@
 # 09 — Shadow mode
 
-Estado: **projetado e com peças testadas; não executado contra o pipeline real** (o pipeline editorial ainda não roda de forma recorrente no ambiente; não há ingestão de produção para comparar).
+Estado (após parecer QA 3, M2): **replay offline concluído** (06: paradas, disjuntor com relógio simulado, divergência por URL e latência); **comparação ao vivo em staging ainda não executada** — exige staging com a ingestão existente ativa, e isso depende do DevOps e do dono do worker (Backend/Editorial). É o que falta para fechar §§ 14 e 16. Estado anterior: **projetado e com peças testadas; não executado contra o pipeline real** (o pipeline editorial ainda não roda de forma recorrente no ambiente; não há ingestão de produção para comparar).
 
 ## Como funciona
 

@@ -11,7 +11,7 @@ Tudo dentro da cota gratuita (DP-33: só corte ao fim da cota). Consumo do bench
 | exa-contents + exa-search (1) | 127 + 48 | US$ 0,001 (costDollars) | 10.000 (US$ 10) | 1,8 % |
 | tavily-extract (2) | 23,6 | crédito Tavily | 1.000 | 2,4 % |
 | brightdata-unlocker (2) | 116 | requisição | 5.000 | 2,3 % |
-| firecrawl-scrape (1) | 100 | crédito Firecrawl (1 por scrape) | 500 (plano Free) | 20 % |
+| firecrawl-scrape (1) | 100 | crédito Firecrawl (1 por scrape) | 500 informada pelo PM (tabela pública Free: 1.000/mês, 10 scrapes/min — **divergência não resolvida**) | 20 % da cota informada |
 | apify-rag-web-browser (1) | 468 | US$ 0,001 (estimado) | 5.000 (US$ 5) | 9,4 % |
 
 Observação: o Scrapfly custou em média 1,7 crédito por leitura, não 1 (páginas grandes); o teto foi corrigido de 150 para 600 e os pares cortados foram refeitos.
@@ -27,7 +27,7 @@ Observação: o Scrapfly custou em média 1,7 crédito por leitura, não 1 (pág
 | brightdata-unlocker | 0,00157 | 1,57 | 15,67 | 78,35 | 156,70 |
 | tavily-extract | 0,00186 | 1,86 | 18,60 | 93,00 | 186,00 |
 | apify-rag-web-browser | 0,00414 | 4,14 | 41,38 | 206,90 | 413,80 |
-| firecrawl-scrape | 0,00556 | 5,56 | 55,56 | 277,80 | 555,60 |
+| firecrawl-scrape (Hobby mensal US$ 19/5.000) | 0,00396 | 3,96 | 39,58 | 197,90 | 395,80 |
 | **roteador adaptativo (shadow)** | **0,000074** | **0,07** | **0,74** | **3,72** | **7,45** |
 
 Roteador: custo médio por artigo válido medido no replay (06), porque ~88 % das URLs são lidas pelo caminho direto (grátis) e só o resto vai a provedor pago.
@@ -36,4 +36,4 @@ Roteador: custo médio por artigo válido medido no replay (06), porque ~88 % da
 
 Com o roteador, ~12 % das leituras vão a provedor pago. Só na cota gratuita mensal atual (1 conta cada): Zyte ≈ 25.000 leituras no 1º mês (crédito de US$ 5 não recorrente — **a verificar**), Scrapfly ≈ 580, Bright Data 5.000, Exa ≈ 9.000, Tavily ≈ 5.000 extrações. 10.000 artigos/mês ⇒ ~1.200 leituras pagas: cabem na cota gratuita somando Bright Data + Exa + Tavily. Acima de ~50.000/mês, o volume pago passa da cota gratuita e exige decisão do proprietário (qualquer plano pago).
 
-Preços de lista e cotas: `packages/intelligence/leitores-externos.md` (pesquisa do Data, 23/11). Não verifiquei de novo os preços de lista. Firecrawl: preço de referência US$ 16 / 3.000 créditos é suposição minha (não verificado); a cota Free (500) é do PM.
+Preços de lista e cotas: `packages/intelligence/leitores-externos.md` (pesquisa do Data, 23/11). Não verifiquei de novo os preços de lista. Firecrawl: corrigido pelo parecer do QA 3 — tabela oficial (firecrawl.dev/pricing): Hobby US$ 19/mês por 5.000 créditos (US$ 16 no anual); a versão anterior usava US$ 16/3.000, suposição minha errada. Os custos dos registros já gravados são recalculados na análise pelo preço vigente.

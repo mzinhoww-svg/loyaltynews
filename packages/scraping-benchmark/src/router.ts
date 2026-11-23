@@ -137,6 +137,7 @@ export class AdaptiveRouter {
     this.stats.set(k, s);
   }
 
+  // disjuntor por provedor × DOMÍNIO: um site que bloqueia não desliga o provedor para os outros sites (achado no replay)
   private breakerOpen(p: string) {
     const b = this.breaker.get(p);
     return !!b && b.openUntil > this.o.now();
@@ -180,7 +181,7 @@ export class AdaptiveRouter {
         push({ url, domain, step: 'skip_disabled', provider: p.name });
         continue;
       }
-      if (this.breakerOpen(p.name)) {
+      if (this.breakerOpen(`${p.name}|${domain}`)) {
         push({ url, domain, step: 'skip_circuit_open', provider: p.name });
         continue;
       }
@@ -201,7 +202,7 @@ export class AdaptiveRouter {
         const valid = this.o.isValid(r);
         if (valid) {
           this.bump(domain, p.name, true, used);
-          this.breakerResult(p.name, false);
+          this.breakerResult(`${p.name}|${domain}`, false);
           this.cache.set(url, r);
           push({ url, domain, step: 'success', provider: p.name });
           return { result: r, provider: p.name, decisions, creditsUsed: credits, fromCache: false };
@@ -212,7 +213,7 @@ export class AdaptiveRouter {
           return { result: r, provider: p.name, decisions, creditsUsed: credits, fromCache: false };
         }
         const technical = !r.failure || FALLBACK_ELIGIBLE.has(r.failure);
-        this.breakerResult(p.name, technical && r.failure !== 'rate_limited');
+        this.breakerResult(`${p.name}|${domain}`, technical && r.failure !== 'rate_limited');
         const retryable = (r.failure === 'rate_limited' || r.failure === 'timeout') && attempt < this.o.maxRetriesPerProvider;
         if (!retryable) break;
         const wait =

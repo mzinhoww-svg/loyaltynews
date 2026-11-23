@@ -39,7 +39,7 @@ export interface RunnerOptions {
 const domainOf = (u: string) => new URL(u).hostname.replace(/^www\./, '');
 
 export function classify(r: ReadResult, verdictReason: string): ErrorClass {
-  if (r.ok) return verdictReason === 'ok' ? 'none' : verdictReason === 'captcha' ? 'captcha' : verdictReason === 'login_required' ? 'login_required' : verdictReason === 'paywall' ? 'paywall' : 'empty_content';
+  if (r.ok) return verdictReason === 'ok' ? 'none' : verdictReason === 'captcha' ? 'captcha' : verdictReason === 'login_required' ? 'login_required' : verdictReason === 'paywall' ? 'paywall' : verdictReason === 'title_mismatch' ? 'title_mismatch' : 'empty_content';
   switch (r.failure) {
     case 'rate_limited':
       return 'http_429';
@@ -58,7 +58,7 @@ export function classify(r: ReadResult, verdictReason: string): ErrorClass {
     case 'disabled':
       return 'disabled';
     case 'not_found':
-      return 'http_4xx';
+      return 'not_found';
     default:
       if (r.httpStatus === 403) return 'http_403';
       if (r.httpStatus === 429) return 'http_429';
@@ -147,7 +147,7 @@ export async function runBenchmark(dataset: DatasetEntry[], providers: BenchProv
             contentHash: v.contentHash,
             snippet: v.snippet,
             titleMatch: +v.titleMatch.toFixed(3),
-            sourceMatch: r.ok ? (!r.finalUrl || domainOf(r.finalUrl).endsWith(e.domain.split('.').slice(-2).join('.'))) : undefined,
+            sourceMatch: r.ok && r.finalUrl ? domainOf(r.finalUrl).endsWith(e.domain.split('.').slice(-2).join('.')) : undefined, // sem URL final: não verificável
             dateMatch: sameDate(v.meta.publishedAt, e.publishedAt),
             creditsUsed: credits,
             costEstimatedUsd: o.budget.estimateUsd(p.name, credits),
