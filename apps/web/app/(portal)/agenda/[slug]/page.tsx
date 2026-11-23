@@ -1,69 +1,106 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import { WithSidebar } from '../../_components/Sidebar';
+import { ErrorState } from '../../_components/states';
 import { MockTag, PageHead } from '../../_components/ui';
-import { formatDateTime } from '../../_lib/format';
+import { eventWhen, eventWhere } from '../../_lib/events';
 import { getSource } from '../../_lib/source';
 
 type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 60;
 
+/** Uma leitura por requisição (metadados e página compartilham o resultado). */
+const loadEvent = cache((slug: string) => getSource().getEvent(slug));
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const ev = await getSource().getEvent(slug);
-  if (!ev) return { title: 'Evento não encontrado', robots: { index: false } };
+  const { event: ev, unavailable } = await loadEvent(slug);
+  if (!ev) return { title: unavailable ? 'Agenda' : 'Evento não encontrado', robots: { index: false } };
   return {
     title: ev.title,
-    description: `${ev.title} — ${ev.online ? 'online' : ev.city ?? 'local a confirmar'}, organizado por ${ev.organizer}.`,
-    alternates: { canonical: `/agenda/${ev.slug}` },
+    description: `${ev.title} — ${eventWhen(ev)}, ${eventWhere(ev)}.`,
+    alternates: { canonical: `/agenda/${encodeURIComponent(ev.slug)}` },
     robots: ev.mock ? { index: false, follow: false } : undefined,
   };
 }
 
 export default async function EventPage({ params }: Props) {
   const { slug } = await params;
-  const ev = await getSource().getEvent(slug);
+  const { event: ev, unavailable } = await loadEvent(slug);
+  if (!ev && unavailable) {
+    return (
+      <>
+        <PageHead title="Agenda" crumbs={[{ label: 'Agenda', href: '/agenda' }]} />
+        <ErrorState title="Não conseguimos carregar este evento agora" retryHref={`/agenda/${encodeURIComponent(slug)}`}>
+          A agenda não respondeu. O evento pode existir: tente novamente em instantes ou <Link href="/agenda">volte à agenda</Link>.
+        </ErrorState>
+      </>
+    );
+  }
   if (!ev) notFound();
+
+  // Só o que a fonte publica: sem organizador, modalidade ou local inventados.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: ev.title,
     startDate: ev.startsAt,
-    endDate: ev.endsAt,
+    ...(ev.endsAt ? { endDate: ev.endsAt } : {}),
     eventStatus: ev.status === 'cancelado' ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
-    eventAttendanceMode: ev.online ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode',
-    location: ev.online ? { '@type': 'VirtualLocation', url: ev.officialUrl } : { '@type': 'Place', name: ev.city ?? '' },
-    organizer: { '@type': 'Organization', name: ev.organizer },
-    url: ev.officialUrl,
+    ...(ev.online === true ? { eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode' } : ev.online === false ? { eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode' } : {}),
+    ...(ev.online === true
+      ? ev.officialUrl ? { location: { '@type': 'VirtualLocation', url: ev.officialUrl } } : {}
+      : ev.city ?? ev.place ? { location: { '@type': 'Place', name: ev.city ?? ev.place } } : {}),
+    ...(ev.organizer ? { organizer: { '@type': 'Organization', name: ev.organizer } } : {}),
+    ...(ev.officialUrl ? { url: ev.officialUrl } : {}),
   };
+  const row = { margin: 0 } as const;
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <PageHead title={ev.title} crumbs={[{ label: 'Agenda', href: '/agenda' }, { label: ev.title }]} />
       <WithSidebar>
         <div>
           {ev.mock && <p><MockTag /> Evento sintético de teste.</p>}
           {ev.status === 'cancelado' && <p className="pt-state">Evento cancelado</p>}
+          {ev.sponsored && <p><span className="pt-sponsored" data-testid="event-sponsored">Patrocinado</span> Evento patrocinado: o patrocínio não influencia a seleção editorial.</p>}
           <dl className="pt-panel" style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '8px 18px' }}>
             <dt>Quando</dt>
-            <dd style={{ margin: 0 }}><time dateTime={ev.startsAt}>{formatDateTime(ev.startsAt)}</time> ({ev.timezone})</dd>
+            <dd style={row}><time dateTime={ev.startsAt}>{eventWhen(ev)}</time></dd>
             <dt>Onde</dt>
-            <dd style={{ margin: 0 }}>{ev.online ? 'Online' : ev.city ?? 'A confirmar'}</dd>
-            <dt>Organizador</dt>
-            <dd style={{ margin: 0 }}>{ev.organizer}</dd>
-            <dt>Preço</dt>
-            <dd style={{ margin: 0 }}>{ev.priceNote ?? 'Não confirmado'}</dd>
-            <dt>Fonte</dt>
-            <dd style={{ margin: 0 }}><a href={ev.sourceUrl} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>Fonte da informação</a></dd>
+            <dd style={row}>{eventWhere(ev)}</dd>
+            {ev.organizer && (
+              <>
+                <dt>Organizador</dt>
+                <dd style={row}>{ev.organizer}</dd>
+              </>
+            )}
+            {ev.priceNote && (
+              <>
+                <dt>Preço</dt>
+                <dd style={row}>{ev.priceNote}</dd>
+              </>
+            )}
+            {ev.sourceUrl && (
+              <>
+                <dt>Fonte</dt>
+                <dd style={row}><a href={ev.sourceUrl} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>Fonte da informação</a></dd>
+              </>
+            )}
           </dl>
           <p style={{ marginTop: 16 }}>
-            <a className="ln-btn ln-btn--primary" href={ev.officialUrl} rel="noopener noreferrer" target="_blank">Página oficial do evento</a>{' '}
-            <a className="ln-btn ln-btn--ghost" href={`/agenda/${ev.slug}/ics`}>Adicionar ao calendário (.ics)</a>
+            {ev.officialUrl && (
+              <>
+                <a className="ln-btn ln-btn--primary" href={ev.officialUrl} rel="noopener noreferrer" target="_blank">Página oficial do evento</a>{' '}
+              </>
+            )}
+            <a className="ln-btn ln-btn--ghost" href={`/agenda/${encodeURIComponent(ev.slug)}/ics`}>Adicionar ao calendário (.ics)</a>
           </p>
           <p><Link href="/agenda" className="pt-more">← Voltar à agenda</Link></p>
         </div>
-        </WithSidebar>
+      </WithSidebar>
     </>
   );
 }

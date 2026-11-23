@@ -3,6 +3,7 @@ import { EDITORIAS } from '../_lib/editorias';
 import { getSource } from '../_lib/source';
 import type { ContentType } from '../_lib/types';
 import { WithSidebar } from './Sidebar';
+import { ErrorState } from './states';
 import { AdSlot, ArticleGrid, EmptyState, PageHead, Pager } from './ui';
 
 export function parsePage(raw: string | string[] | undefined): number {
@@ -49,7 +50,11 @@ export async function Listing(p: ListingProps) {
       )}
       <WithSidebar>
         <div>
-          {data.items.length ? (
+          {data.unavailable ? (
+            <ErrorState title="Não conseguimos carregar as matérias agora" retryHref={p.page > 1 ? `${p.basePath}?page=${p.page}` : p.basePath}>
+              Isso não significa que não haja matérias aqui: tente novamente em instantes.
+            </ErrorState>
+          ) : data.items.length ? (
             <>
               <ArticleGrid items={data.items} cols={3} headingLevel={2} />
               <Pager page={data} basePath={p.basePath} />

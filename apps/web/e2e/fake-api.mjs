@@ -1,4 +1,4 @@
-// MOCK de teste: servidor mínimo que imita as rotas públicas do Backend (GET /api/publico/materias[/slug]),
+// MOCK de teste: servidor mínimo que imita as rotas públicas do Backend (GET /api/publico/materias[/slug], /agenda[/id], /site),
 // com o mesmo formato de apps/web/app/api/_lib/articles.ts. Só serve ao e2e do portal em PORTAL_MODE=api.
 // Nenhum conteúdo aqui é real.
 import http from 'node:http';
@@ -82,6 +82,16 @@ const listItem = (a) => ({
   imagem: a.imagem ? { url: a.imagem.url, textoAlternativo: a.imagem.textoAlternativo, credito: a.imagem.credito, rotulo: a.imagem.origem === 'ilustracao_gerada' ? 'Ilustração conceitual' : null } : null,
 });
 
+// Agenda (formato de apps/web/app/api/_lib/agenda.ts, publicView): datas só com dia, relativas a hoje (nunca ficam "passadas").
+const day = (n) => new Date(Date.now() - 3 * 3600e3 + n * 864e5).toISOString().slice(0, 10);
+const agendaEvents = [
+  { id: 'ev-1', titulo: '[MOCK] Congresso publicado', inicio: day(10), fim: day(11), local: 'São Paulo (MOCK)', url: 'https://evento.example/mock', editorias: [], patrocinado: false, fonteUrl: 'https://fonte.example/evento-mock' },
+  { id: 'ev-2', titulo: '[MOCK] Fórum patrocinado', inicio: day(20), fim: day(20), local: 'Rio de Janeiro (MOCK)', url: null, editorias: ['bancos'], patrocinado: true, fonteUrl: 'https://fonte.example/forum-mock' },
+];
+// Evento encerrado: só a rota por id (Backend: aprovado em qualquer data) o devolve; a lista pública traz só os que não terminaram.
+const eventoPassado = { id: 'ev-passado', titulo: '[MOCK] Evento encerrado', inicio: day(-30), fim: day(-29), local: 'Belo Horizonte (MOCK)', url: 'https://evento.example/passado', editorias: [], patrocinado: false, fonteUrl: 'https://fonte.example/passado-mock' };
+const agendaMode = process.env.FAKE_API_AGENDA ?? 'ok'; // ok | vazia
+
 // GET /api/publico/site (formato de apps/web/app/api/_lib/site/index.ts). FAKE_API_SITE: full (padrão) | vazio | noindex | invalido.
 const siteMode = process.env.FAKE_API_SITE ?? 'full';
 const siteFull = () => ({
@@ -96,7 +106,7 @@ const siteFull = () => ({
         id: 'agenda',
         limite: 5,
         titulo: 'Agenda do Studio (MOCK)',
-        eventos: [{ id: 'ev-1', titulo: '[MOCK] Congresso publicado', inicio: '2026-12-04', fim: '2026-12-05', local: 'São Paulo', url: 'https://evento.example/mock', editorias: [], patrocinado: false, fonteUrl: null }],
+        eventos: [agendaEvents[0]],
       },
       { tipo: 'publicidade', id: 'pub-topo', posicao: 'TOP', dimensao: { largura: 1280, altura: 150 } },
     ],
@@ -131,13 +141,26 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 http
-  .createServer((req, res) => {
+  .createServer(async (req, res) => {
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
     if (forcedStatus && u.pathname.startsWith('/api/publico/')) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
     if (u.pathname === '/api/publico/site') return send(res, 200, sitePayload());
+    if (u.pathname === '/api/publico/agenda') return send(res, 200, { data: agendaMode === 'vazia' ? [] : agendaEvents });
+    const ev = /^\/api\/publico\/agenda\/([^/]+)$/.exec(u.pathname);
+    if (ev) {
+      const id = decodeURIComponent(ev[1]);
+      const found = [...agendaEvents, eventoPassado].find((e) => e.id === id);
+      return found ? send(res, 200, { data: found }) : send(res, 404, { error: { code: 'NOT_FOUND', message: 'Evento não encontrado.' } });
+    }
     if (u.pathname === '/api/publico/materias') {
+      // Gatilhos de teste dos estados de carregando e de erro (busca): q=lento atrasa a resposta; q=falha responde 503.
+      const q0 = u.searchParams.get('q');
+      if (q0 === 'lento') await sleep(2500);
+      if (q0 === 'falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);
       const ed = u.searchParams.get('editoria');
@@ -147,6 +170,7 @@ http
     }
     const m = /^\/api\/publico\/materias\/([^/]+)$/.exec(u.pathname);
     if (m) {
+      if (decodeURIComponent(m[1]) === 'api-falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'detalhe interno de teste' } });
       const a = articles.find((x) => x.slug === decodeURIComponent(m[1]));
       if (!a) return send(res, 404, { error: { code: 'NOT_FOUND', message: 'Matéria não encontrada.' } });
       const pub = { ...a };

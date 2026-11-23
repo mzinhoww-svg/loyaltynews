@@ -108,12 +108,12 @@ describe('mapeamento da matéria', () => {
 describe('cliente da API pública', () => {
   const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
 
-  it('getArticle: 404 e 500 viram null (sem erro); sempre sem cache e com timeout', async () => {
+  it('getArticle: 404 = inexistente; 500 = indisponível (sem erro); sempre sem cache e com timeout', async () => {
     const f = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => (String(url).endsWith('/ausente') ? json({}, 404) : String(url).endsWith('/quebra') ? json({}, 500) : json({ data: article() })));
     const api = createApiSlice('http://api.test/', f as unknown as typeof fetch);
-    expect(await api.getArticle('ausente')).toBeNull();
-    expect(await api.getArticle('quebra')).toBeNull();
-    expect((await api.getArticle('materia-teste'))!.image?.label).toBe('Ilustração conceitual');
+    expect(await api.getArticle('ausente')).toEqual({ article: null });
+    expect(await api.getArticle('quebra')).toEqual({ article: null, unavailable: true });
+    expect((await api.getArticle('materia-teste')).article!.image?.label).toBe('Ilustração conceitual');
     expect(f.mock.calls[0]![0]).toBe('http://api.test/api/publico/materias/ausente');
     expect(f.mock.calls[0]![1]?.cache).toBe('no-store');
   });
@@ -144,7 +144,7 @@ describe('cliente da API pública', () => {
   });
 });
 
-describe('API indisponível = estado vazio honesto, nunca erro (regra A6 do Security)', () => {
+describe('API indisponível = estado de erro honesto (unavailable), nunca exceção nem 500 (regra A6 do Security)', () => {
   let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
     vi.useFakeTimers();
@@ -163,19 +163,24 @@ describe('API indisponível = estado vazio honesto, nunca erro (regra A6 do Secu
   it('conexão recusada: todas as leituras devolvem vazio/null e nada lança', async () => {
     const api = createApiSlice('http://api.test', refused() as unknown as typeof fetch);
     expect((await api.getLatest({ pageSize: 12 })).items).toEqual([]);
+    expect((await api.getLatest({ pageSize: 12 })).unavailable).toBe(true);
     expect((await api.getLatest({ contentType: 'flash' })).total).toBe(0);
+    expect((await api.getLatest({ contentType: 'flash' })).unavailable).toBe(true);
     expect(await api.getHighlights()).toEqual([]);
     expect((await api.search('bancos')).items).toEqual([]);
-    expect(await api.getArticle('qualquer')).toBeNull();
+    expect((await api.search('bancos')).unavailable).toBe(true);
+    expect(await api.getArticle('qualquer')).toEqual({ article: null, unavailable: true });
+    expect(await api.listEvents()).toEqual({ items: [], unavailable: true });
+    expect(await api.getEvent('ev-1')).toEqual({ event: null, unavailable: true });
     const art = mapArticle({ slug: 'a', titulo: 't', resumo: 'r', editoria: 'bancos', assinatura: 'x', publicadoEm: '2026-11-20T10:00:00-03:00', corpo: 'c' });
     expect(await api.getRelated(art)).toEqual([]);
   });
 
-  it('status 503 (NOT_CONFIGURED), 500 e 502: estado vazio e matéria nula', async () => {
+  it('status 503 (NOT_CONFIGURED), 500 e 502: indisponível, lista vazia e matéria nula', async () => {
     for (const code of [503, 500, 502]) {
       const api = createApiSlice('http://api.test', status(code) as unknown as typeof fetch);
-      expect(await api.getLatest()).toMatchObject({ items: [], total: 0 });
-      expect(await api.getArticle('x')).toBeNull();
+      expect(await api.getLatest()).toMatchObject({ items: [], total: 0, unavailable: true });
+      expect(await api.getArticle('x')).toEqual({ article: null, unavailable: true });
     }
   });
 
@@ -183,7 +188,8 @@ describe('API indisponível = estado vazio honesto, nunca erro (regra A6 do Secu
     for (const body of ['<html>erro</html>', '{"data":"não é lista"}', 'null']) {
       const api = createApiSlice('http://api.test', status(200, body) as unknown as typeof fetch);
       expect((await api.getLatest()).items).toEqual([]);
-      expect(await api.getArticle('x')).toBeNull();
+      expect((await api.getLatest()).unavailable).toBe(true);
+      expect((await api.getArticle('x')).article).toBeNull();
     }
   });
 
@@ -215,7 +221,7 @@ describe('API indisponível = estado vazio honesto, nunca erro (regra A6 do Secu
 
   it('nenhum caminho de falha devolve conteúdo MOCK', async () => {
     const api = createApiSlice('http://api.test', status(503) as unknown as typeof fetch);
-    const tudo = JSON.stringify([await api.getLatest(), await api.getHighlights(), await api.search('x'), await api.getArticle('x')]);
+    const tudo = JSON.stringify([await api.getLatest(), await api.getHighlights(), await api.search('x'), await api.getArticle('x'), await api.listEvents(), await api.getEvent('x')]);
     expect(tudo).not.toMatch(/MOCK/);
   });
 });
@@ -260,13 +266,13 @@ describe('envelope e itens malformados nunca derrubam a página (QA 1: A6.1)', (
   it('matéria malformada = null (404), sem exceção: sem corpo, data inválida ou envelope errado', async () => {
     for (const data of [null, {}, ok(), ok({ corpo: 1 }), ok({ corpo: 'c', publicadoEm: 'x' }), 'texto']) {
       const api = createApiSlice('http://api.test', resp({ data }));
-      expect(await api.getArticle('x')).toBeNull();
+      expect((await api.getArticle('x')).article).toBeNull();
     }
   });
 
   it('matéria boa com errata/fonte malformadas: mantém o que presta e descarta o resto', async () => {
     const data = { ...ok({ corpo: 'Texto.' }), erratas: [null, { nota: '', em: '2026-11-21T09:00:00-03:00' }, { nota: 'Corrigido.', em: 'x' }, { nota: 'Corrigido.', em: '2026-11-21T09:00:00-03:00' }], fontes: [null, { url: 3 }, { url: 'https://f.example/a', capturadoEm: 'x' }] };
-    const art = await createApiSlice('http://api.test', resp({ data })).getArticle('x');
+    const art = (await createApiSlice('http://api.test', resp({ data })).getArticle('x')).article;
     expect(art?.corrections).toHaveLength(1);
     expect(art?.sources).toEqual([{ label: 'f.example', url: 'https://f.example/a', publishedAt: undefined }]);
   });

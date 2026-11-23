@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { parsePage } from '../_components/Listing';
 import { SearchInput } from '../_components/ds-client';
 import { WithSidebar } from '../_components/Sidebar';
+import { ErrorState } from '../_components/states';
 import { ArticleGrid, EmptyState, PageHead, Pager } from '../_components/ui';
 import { getSource } from '../_lib/source';
 
@@ -25,6 +26,10 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
         <div aria-live="polite">
           {!result ? (
             <EmptyState title="Digite um termo para buscar">Resultados aparecem aqui, por relevância e data de publicação.</EmptyState>
+          ) : result.unavailable ? (
+            <ErrorState title="Não conseguimos buscar agora" retryHref={`/busca?q=${encodeURIComponent(q)}`}>
+              A busca não respondeu; isso não significa que não haja resultados para “{q}”. Tente novamente em instantes.
+            </ErrorState>
           ) : result.items.length ? (
             <>
               <p className="pt-meta" data-testid="result-count">{result.total} resultado(s) para “{q}”</p>

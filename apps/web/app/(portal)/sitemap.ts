@@ -35,8 +35,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     if (page * res.pageSize >= res.total) break;
   }
-  for (const ev of await src.listEvents()) {
-    if (ev.status === 'validado') entries.push({ url: abs(`/agenda/${ev.slug}`), changeFrequency: 'weekly', priority: 0.5 });
+  for (const ev of (await src.listEvents()).items) {
+    if (ev.status === 'validado') entries.push({ url: abs(`/agenda/${encodeURIComponent(ev.slug)}`), changeFrequency: 'weekly', priority: 0.5 });
   }
   return entries;
 }

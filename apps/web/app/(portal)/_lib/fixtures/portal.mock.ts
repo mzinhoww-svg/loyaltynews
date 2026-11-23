@@ -126,7 +126,8 @@ export const mockSource: PortalSource = {
     return paginate(list, q?.page, q?.pageSize);
   },
   async getArticle(slug) {
-    return articles.find((a) => a.slug === slug) ?? null;
+    const article = articles.find((a) => a.slug === slug);
+    return article ? { article } : { article: null };
   },
   async getRelated(article, limit = 3) {
     return articles.filter((a) => a.slug !== article.slug && a.editoriaSlug === article.editoriaSlug).concat(
@@ -142,10 +143,11 @@ export const mockSource: PortalSource = {
     );
   },
   async listEvents() {
-    return events;
+    return { items: events };
   },
   async getEvent(slug) {
-    return events.find((e) => e.slug === slug) ?? null;
+    const event = events.find((e) => e.slug === slug);
+    return event ? { event } : { event: null };
   },
   async listMoves() {
     return moves;

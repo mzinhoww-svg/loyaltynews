@@ -1,5 +1,5 @@
 import { imageLabel } from '@ln/contracts';
-import type { Article, ArticleBlock, ArticleImage, ContentType, Page, PortalSource } from './types';
+import type { Article, ArticleBlock, ArticleImage, ContentType, EventItem, EventList, Page, PortalSource } from './types';
 
 /**
  * Adaptador `api`: lê as rotas públicas do Backend (`/api/publico/*`, sem login).
@@ -149,9 +149,56 @@ export function mapArticle(r: RawArticle): Article {
   };
 }
 
-export type ApiSlice = Pick<PortalSource, 'getHighlights' | 'getTrending' | 'getLatest' | 'getArticle' | 'getRelated' | 'search'>;
+export interface RawEvent {
+  id: string;
+  titulo: string;
+  inicio: string;
+  fim: string;
+  local: string;
+  url?: string | null;
+  editorias?: unknown;
+  patrocinado?: boolean;
+  fonteUrl?: string | null;
+}
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const isHttp = (v: unknown): v is string => {
+  if (typeof v !== 'string') return false;
+  try {
+    const u = new URL(v);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+const isDay = (v: unknown): v is string => typeof v === 'string' && (DATE_ONLY.test(v) ? !Number.isNaN(Date.parse(`${v}T12:00:00-03:00`)) : isDate(v));
 
-const emptyPage = (page: number, pageSize: number): Page<Article> => ({ items: [], page, pageSize, total: 0 });
+/** Evento da agenda pública (`/api/publico/agenda`): campos mínimos presentes e datas válidas; item fora do formato é descartado. */
+export function isRawEvent(v: unknown): v is RawEvent {
+  return isObj(v) && isStr(v.id) && isStr(v.titulo) && isDay(v.inicio) && isDay(v.fim) && isStr(v.local);
+}
+
+/**
+ * O Studio publica só: id, título, datas (sem hora), local, link oficial opcional, fonte e patrocínio.
+ * Organizador, modalidade (online/presencial), fuso e preço NÃO existem na fonte e ficam ausentes (nunca inventados).
+ */
+export function mapEvent(r: RawEvent): EventItem {
+  return {
+    slug: r.id,
+    title: r.titulo,
+    startsAt: r.inicio,
+    endsAt: r.fim,
+    place: r.local,
+    officialUrl: isHttp(r.url) ? r.url : undefined,
+    sourceUrl: isHttp(r.fonteUrl) ? r.fonteUrl : undefined,
+    status: 'validado',
+    sponsored: r.patrocinado === true,
+    dateOnly: DATE_ONLY.test(r.inicio),
+  };
+}
+
+export type ApiSlice = Pick<PortalSource, 'getHighlights' | 'getTrending' | 'getLatest' | 'getArticle' | 'getRelated' | 'search' | 'listEvents' | 'getEvent'>;
+
+const emptyPage = (page: number, pageSize: number, unavailable = false): Page<Article> => ({ items: [], page, pageSize, total: 0, ...(unavailable ? { unavailable: true } : {}) });
 
 /** Tempo máximo de espera pela API pública: página lenta não pode travar o portal. */
 const API_TIMEOUT_MS = 5000;
@@ -169,7 +216,7 @@ export function createApiHttp(baseUrl: string, fetchImpl: typeof fetch = fetch) 
     const now = Date.now();
     if (now - (lastLog.get(what) ?? 0) < LOG_EVERY_MS) return;
     lastLog.set(what, now);
-    console.error(`[portal] API pública indisponível (${what}): ${motivo}; exibindo estado vazio`);
+    console.error(`[portal] API pública indisponível (${what}): ${motivo}; exibindo estado de erro`);
   };
   const get = async (path: string, what: string): Promise<Response | null> => {
     try {
@@ -191,14 +238,14 @@ export function createApiHttp(baseUrl: string, fetchImpl: typeof fetch = fetch) 
 export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch): ApiSlice {
   const { get, logFalha } = createApiHttp(baseUrl, fetchImpl);
 
-  async function list(params: Record<string, string | number | undefined>): Promise<{ items: RawListItem[]; total: number }> {
+  async function list(params: Record<string, string | number | undefined>): Promise<{ items: RawListItem[]; total: number; unavailable?: boolean }> {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') qs.set(k, String(v));
     const res = await get(`/api/publico/materias?${qs}`, 'matérias');
-    if (!res) return { items: [], total: 0 };
+    if (!res) return { items: [], total: 0, unavailable: true };
     if (!res.ok) {
       logFalha('matérias', `status ${res.status}`);
-      return { items: [], total: 0 };
+      return { items: [], total: 0, unavailable: true };
     }
     try {
       const j = (await res.json()) as { data?: unknown; total?: unknown };
@@ -209,7 +256,26 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
       return { items, total: j.total };
     } catch {
       logFalha('matérias', 'resposta inválida');
-      return { items: [], total: 0 };
+      return { items: [], total: 0, unavailable: true };
+    }
+  }
+
+  async function fetchEvents(): Promise<EventList> {
+    const res = await get('/api/publico/agenda', 'agenda');
+    if (!res) return { items: [], unavailable: true };
+    if (!res.ok) {
+      logFalha('agenda', `status ${res.status}`);
+      return { items: [], unavailable: true };
+    }
+    try {
+      const j = (await res.json()) as { data?: unknown };
+      if (!Array.isArray(j.data)) throw new Error('formato');
+      const items = j.data.filter(isRawEvent);
+      if (items.length < j.data.length) logFalha('agenda', `${j.data.length - items.length} item(ns) inválido(s) descartado(s)`);
+      return { items: items.map(mapEvent) };
+    } catch {
+      logFalha('agenda', 'resposta inválida');
+      return { items: [], unavailable: true };
     }
   }
 
@@ -220,9 +286,11 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
       // A API filtra por editoria e texto, não por tipo: filtra aqui (até 100 itens recentes) e pagina localmente.
       const r = await list({ limit: 100, offset: 0, editoria: q.editoriaSlug, q: q.q });
       const all = r.items.filter((i) => asContentType(i.tipoConteudo) === q.contentType);
+      if (r.unavailable) return emptyPage(pageNo, size, true);
       return { items: all.slice((pageNo - 1) * size, pageNo * size).map(mapListItem), page: pageNo, pageSize: size, total: all.length };
     }
     const r = await list({ limit: size, offset: (pageNo - 1) * size, editoria: q.editoriaSlug, q: q.q });
+    if (r.unavailable) return emptyPage(pageNo, size, true);
     return { items: r.items.map(mapListItem), page: pageNo, pageSize: size, total: r.total };
   }
 
@@ -237,20 +305,41 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
     getLatest: (q) => page(q ?? {}),
     async getArticle(slug) {
       const res = await get(`/api/publico/materias/${encodeURIComponent(slug)}`, 'matéria');
-      if (!res || res.status === 404) return null;
+      if (!res) return { article: null, unavailable: true };
+      if (res.status === 404) return { article: null };
       if (!res.ok) {
-        // Falha da API não é "matéria inexistente", mas a página só tem duas saídas honestas: 404 do portal (sem 500).
+        // Falha da API não é "matéria inexistente": a página mostra o estado de erro (200 + noindex), nunca 500.
         logFalha('matéria', `status ${res.status}`);
-        return null;
+        return { article: null, unavailable: true };
       }
       try {
         const data = ((await res.json()) as { data?: unknown }).data;
         if (!isRawArticle(data)) throw new Error('formato');
-        return mapArticle(data);
+        return { article: mapArticle(data) };
       } catch {
         logFalha('matéria', 'resposta inválida');
-        return null;
+        return { article: null, unavailable: true };
       }
+    },
+    async listEvents() {
+      return fetchEvents();
+    },
+    async getEvent(id) {
+      // Rota por id (Backend): evento aprovado em qualquer data. Enquanto ela não existir, procura na lista pública,
+      // que traz só eventos que ainda não terminaram.
+      const res = await get(`/api/publico/agenda/${encodeURIComponent(id)}`, 'evento');
+      if (res?.ok) {
+        try {
+          const data = ((await res.json()) as { data?: unknown }).data;
+          if (isRawEvent(data) && data.id === id) return { event: mapEvent(data) };
+        } catch {
+          /* cai para a lista */
+        }
+      }
+      const all = await fetchEvents();
+      const found = all.items.find((e) => e.slug === id);
+      if (found) return { event: found };
+      return { event: null, unavailable: all.unavailable };
     },
     async getRelated(article, limit = 3) {
       const r = await page({ pageSize: limit + 1, editoriaSlug: article.editoriaSlug });

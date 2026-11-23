@@ -75,23 +75,47 @@ export interface Page<T> {
   page: number;
   pageSize: number;
   total: number;
+  /** Fonte api: a API falhou (rede, timeout, status não-OK, resposta inválida). Diferente de lista vazia legítima. */
+  unavailable?: boolean;
 }
 
 export interface EventItem {
+  /** Fonte api: o id do evento no Studio. */
   slug: string;
   title: string;
+  /** `YYYY-MM-DD` (evento do Studio, só data) ou ISO com hora. */
   startsAt: string;
   endsAt?: string;
-  timezone: string;
+  /** Só quando a fonte informa; o Studio publica apenas datas. */
+  timezone?: string;
   city?: string;
-  online: boolean;
-  organizer: string;
-  officialUrl: string;
-  sourceUrl: string;
+  /** Local como publicado (texto livre do Studio). */
+  place?: string;
+  /** `undefined` = a fonte não informa se é online ou presencial (nunca inferimos). */
+  online?: boolean;
+  /** `undefined` = a fonte não informa organizador. */
+  organizer?: string;
+  officialUrl?: string;
+  sourceUrl?: string;
   status: 'validado' | 'cancelado';
   priceNote?: string;
+  /** Evento patrocinado: o portal rotula (F-074). */
+  sponsored?: boolean;
+  /** `startsAt`/`endsAt` são datas sem hora. */
+  dateOnly?: boolean;
   mock?: boolean;
 }
+
+/** Matéria por slug: `unavailable` = a API falhou (distinto de matéria inexistente). */
+export type ArticleResult = { article: Article; unavailable?: false } | { article: null; unavailable?: boolean };
+
+/** Lista de eventos; `unavailable` = a API falhou (distinto de agenda vazia). */
+export interface EventList {
+  items: EventItem[];
+  unavailable?: boolean;
+}
+/** Evento por id: `unavailable` = a API falhou (distinto de evento inexistente). */
+export type EventResult = { event: EventItem; unavailable?: false } | { event: null; unavailable?: boolean };
 
 export interface MoveItem {
   id: string;
@@ -188,11 +212,11 @@ export interface PortalSource {
   getHighlights(): Promise<Article[]>;
   getTrending(window: TrendingWindow): Promise<Article[]>;
   getLatest(q?: LatestQuery): Promise<Page<Article>>;
-  getArticle(slug: string): Promise<Article | null>;
+  getArticle(slug: string): Promise<ArticleResult>;
   getRelated(article: Article, limit?: number): Promise<Article[]>;
   search(q: string, page?: number): Promise<Page<Article>>;
-  listEvents(): Promise<EventItem[]>;
-  getEvent(slug: string): Promise<EventItem | null>;
+  listEvents(): Promise<EventList>;
+  getEvent(slug: string): Promise<EventResult>;
   listMoves(): Promise<MoveItem[]>;
   listCompanies(): Promise<EntitySummary[]>;
   listPeople(): Promise<EntitySummary[]>;

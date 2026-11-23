@@ -38,10 +38,10 @@ test.describe('site publicado (full)', () => {
     await expect(page.getByRole('heading', { name: 'Últimas notícias' })).toHaveCount(0);
     const slugs = await page.locator('main article a[href^="/noticia/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href')));
     expect(new Set(slugs).size, `matérias repetidas na home: ${slugs.join(', ')}`).toBe(slugs.length);
-    // Agenda do bloco (evento aprovado pelo Studio), com link externo e sem página interna inventada.
+    // Agenda do bloco (evento aprovado pelo Studio): leva à página interna do evento (/agenda/{id}).
     const ag = page.getByRole('heading', { name: 'Agenda do Studio (MOCK)' });
     await expect(ag).toBeVisible();
-    await expect(page.getByRole('link', { name: '[MOCK] Congresso publicado' })).toHaveAttribute('href', 'https://evento.example/mock');
+    await expect(page.getByRole('link', { name: '[MOCK] Congresso publicado' })).toHaveAttribute('href', '/agenda/ev-1');
     // Destaque com a ilustração rotulada
     await expect(page.locator('.ln-card__imglabel').first()).toHaveText('Ilustração conceitual');
     // Bloco de publicidade sem criativo real: nada é renderizado

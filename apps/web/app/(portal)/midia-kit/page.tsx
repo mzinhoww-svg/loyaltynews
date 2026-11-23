@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
+import { isUpcoming } from '../_lib/events';
 import { formatDateTime } from '../_lib/format';
 import { getSource } from '../_lib/source';
 import type { MetricValue } from '../_lib/types';
@@ -42,7 +43,7 @@ const FORMATS = [
 export default async function MidiaKitPage() {
   const src = getSource();
   const [audience, latest, events] = await Promise.all([src.getAudience(), src.getLatest({ pageSize: 1 }), src.listEvents()]);
-  const upcoming = events.filter((e) => e.status === 'validado' && new Date(e.startsAt) >= new Date()).length;
+  const upcoming = events.items.filter((e) => e.status === 'validado' && isUpcoming(e, new Date())).length;
   const stamps = [...audience.realtime, ...audience.historical].map((m) => m.collectedAt).filter(Boolean) as string[];
   const last = stamps.sort().at(-1);
 

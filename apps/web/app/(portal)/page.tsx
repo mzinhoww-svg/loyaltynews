@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Sidebar } from './_components/Sidebar';
+import { ErrorState, LoadingState } from './_components/states';
 import { AdSlot, ArticleCard, ArticleGrid, EmptyState, Section } from './_components/ui';
 import { editoriaName } from './_lib/editorias';
+import { eventWhere, isUpcoming, noon } from './_lib/events';
 import { dayOf, formatDate, monthAbbrev } from './_lib/format';
 import { prepareHome } from './_lib/home';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
@@ -25,9 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Blocos de editoria da home (wireframe v1.0): só quatro; as outras seis ficam no menu e nas páginas próprias. */
 const HOME_EDITORIAS = ['mercado', 'programas', 'bancos', 'tech'] as const;
 
-/** Data `YYYY-MM-DD` (ou ISO) publicada → instante ao meio-dia de Brasília (evita virar o dia no fuso). */
-const noon = (d: string) => (d.length === 10 ? `${d}T12:00:00-03:00` : d);
-
 function PublishedAgenda({ title, events }: { title?: string; events: SiteEvent[] }) {
   return (
     <section className="pt-panel" aria-labelledby="home-agenda">
@@ -40,11 +40,7 @@ function PublishedAgenda({ title, events }: { title?: string; events: SiteEvent[
               <span>{monthAbbrev(noon(ev.startsAt))}</span>
             </div>
             <div>
-              {ev.url ? (
-                <a href={ev.url} className="pt-event-title" rel="noopener noreferrer" target="_blank">{ev.title}</a>
-              ) : (
-                <span className="pt-event-title">{ev.title}</span>
-              )}
+              <Link href={`/agenda/${encodeURIComponent(ev.id)}`} className="pt-event-title">{ev.title}</Link>
               <div className="pt-meta">
                 {ev.place ?? 'Local a confirmar'} · {formatDate(noon(ev.startsAt), { day: '2-digit', month: 'short' })}
                 {ev.sponsored && <> · <span className="pt-sponsored">Patrocinado</span></>}
@@ -107,7 +103,15 @@ function PublishedHome({ site }: { site: SiteConfig }) {
   );
 }
 
-export default async function HomePage() {
+export default function HomePage() {
+  return (
+    <Suspense fallback={<LoadingState label="Carregando a página inicial…" />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
   const src = getSource();
   const site = await src.getSiteConfig();
 
@@ -137,7 +141,7 @@ export default async function HomePage() {
     );
   }
 
-  const [highlights, latest, flash, events, ...byEditoria] = await Promise.all([
+  const [highlights, latest, flash, eventList, ...byEditoria] = await Promise.all([
     src.getHighlights(),
     src.getLatest({ pageSize: 12 }),
     src.getLatest({ contentType: 'flash', pageSize: 6 }),
@@ -163,7 +167,8 @@ export default async function HomePage() {
   const latestItems = take(latest.items, 6);
   const flashItems = take(flash.items, 4);
   const blocks = HOME_EDITORIAS.map((slug, i) => ({ slug, items: take(byEditoria[i]?.items ?? [], 3) })).filter((b) => b.items.length > 0);
-  const upcoming = events.filter((e) => e.status === 'validado' && new Date(e.startsAt) >= new Date()).slice(0, 4);
+  const now = new Date();
+  const upcoming = eventList.items.filter((e) => e.status === 'validado' && isUpcoming(e, now)).slice(0, 4);
   const hasContent = hero.length + latestItems.length + flashItems.length + blocks.length > 0;
 
   return (
@@ -175,9 +180,15 @@ export default async function HomePage() {
 
       {!hasContent && (
         <div className="pt-section">
-          <EmptyState title="Em breve: primeiras matérias">
-            O Loyalty News está se preparando para publicar. Explore as editorias no menu ou veja a <Link href="/sobre">metodologia editorial</Link>.
-          </EmptyState>
+          {latest.unavailable ? (
+            <ErrorState title="Não conseguimos carregar as matérias agora" retryHref="/">
+              O portal não conseguiu falar com a redação digital. Isso não significa que não haja matérias: tente novamente em instantes.
+            </ErrorState>
+          ) : (
+            <EmptyState title="Em breve: primeiras matérias">
+              O Loyalty News está se preparando para publicar. Explore as editorias no menu ou veja a <Link href="/sobre">metodologia editorial</Link>.
+            </EmptyState>
+          )}
         </div>
       )}
 
@@ -230,16 +241,18 @@ export default async function HomePage() {
                 {upcoming.map((ev) => (
                   <li key={ev.slug} className="pt-event">
                     <div className="pt-date">
-                      <b>{dayOf(ev.startsAt)}</b>
-                      <span>{monthAbbrev(ev.startsAt)}</span>
+                      <b>{dayOf(noon(ev.startsAt))}</b>
+                      <span>{monthAbbrev(noon(ev.startsAt))}</span>
                     </div>
                     <div>
-                      <Link href={`/agenda/${ev.slug}`} className="pt-event-title">{ev.title}</Link>
-                      <div className="pt-meta">{ev.online ? 'Online' : ev.city}</div>
+                      <Link href={`/agenda/${encodeURIComponent(ev.slug)}`} className="pt-event-title">{ev.title}</Link>
+                      <div className="pt-meta">{eventWhere(ev)}{ev.sponsored ? <> · <span className="pt-sponsored">Patrocinado</span></> : null}</div>
                     </div>
                   </li>
                 ))}
               </ul>
+            ) : eventList.unavailable ? (
+              <ErrorState appearance="inline" title="Agenda indisponível agora." retryHref="/">Tente novamente em instantes.</ErrorState>
             ) : (
               <p className="pt-meta">Nenhum evento verificado por enquanto.</p>
             )}
