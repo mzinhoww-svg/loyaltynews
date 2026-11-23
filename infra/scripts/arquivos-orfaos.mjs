@@ -18,7 +18,7 @@ const norm = (p) => String(p).replace(/\\/g, '/').replace(/^\.?\//, '').replace(
 export function arquivosDaArvore(entrada) {
   let dado = entrada;
   if (typeof entrada === 'string') {
-    entrada = entrada.replace(/^﻿/, ''); // PowerShell 5.1 grava UTF-8 com BOM (e UTF-16 com `>`: ver readTexto)
+    entrada = entrada.replace(/^\uFEFF/, ''); // PowerShell 5.1 grava UTF-8 com BOM (e UTF-16 com `>`: ver readTexto)
     try { dado = JSON.parse(entrada); } catch { return entrada.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.endsWith('/')).map(norm); }
   }
   const out = new Set();
@@ -44,12 +44,17 @@ export function readTexto(arquivo) {
   const b = readFileSync(arquivo);
   if (b[0] === 0xff && b[1] === 0xfe) return b.subarray(2).toString('utf16le');
   if (b[0] === 0xfe && b[1] === 0xff) { const s = Buffer.from(b.subarray(2)); s.swap16(); return s.toString('utf16le'); }
-  return b.toString('utf8').replace(/^﻿/, '');
+  return b.toString('utf8').replace(/^\uFEFF/, '');
 }
 
 function arquivosDaPasta(dir) {
   const out = [];
-  const anda = (d) => { for (const e of readdirSync(d)) { const p = join(d, e); statSync(p).isDirectory() ? anda(p) : out.push(relative(dir, p).split(sep).join('/')); } };
+  const anda = (d) => {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e);
+      if (statSync(p).isDirectory()) anda(p); else out.push(relative(dir, p).split(sep).join('/'));
+    }
+  };
   anda(dir);
   return out;
 }
