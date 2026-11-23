@@ -13,7 +13,7 @@ import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
 import { conexoesComSenhaReais } from './lib/segredos.mjs';
 import { achadosDoArquivo, ehCodigoDeProduto } from './lib/erros-log.mjs';
-import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER } from './lib/guards.mjs';
+import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER, ASSIGN_FLAGS } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage']);
@@ -111,12 +111,14 @@ for (const f of all) {
     for (const [nome, cmd] of Object.entries(scripts)) {
       if (/e2e|test/i.test(nome)) continue; // scripts de teste podem usar as variáveis
       if (ASSIGN_STUDIO.test(String(cmd)) || ASSIGN_PORTAL_MOCK.test(String(cmd))) problems.push(`variável só de teste no script "${nome}" de ${r}`);
+      if (ASSIGN_FLAGS.test(String(cmd))) problems.push(`LN_FLAGS_ON atribuída no script "${nome}" de ${r}: flags de produto por variável só no staging, no set_env do pedido de deploy (ADR-022)`);
       if (ASSIGN_VITRINE.test(String(cmd))) problems.push(`PORTAL_VITRINE atribuída no script "${nome}" de ${r}: a vitrine do staging liga-se só pelo release.json do pacote (package-web --vitrine)`);
     }
     continue;
   }
   if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
   if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE ou PORTAL_MODE com valor mock atribuído em ${r}`);
+  if (ASSIGN_FLAGS.test(semComentarios(txt, r))) problems.push(`LN_FLAGS_ON atribuída em ${r} (configuração de deploy): a variável só existe no staging, no set_env do pedido de deploy (ADR-022); produção liga a flag por commit revisado`);
   if (ASSIGN_WAIVER.test(semComentarios(txt, r))) problems.push(`variável da dispensa de backup (DP-23) atribuída em ${r}: ela vale só no processo da migração`);
   // Vitrine (Security R8): nunca atribuída em configuração de deploy de PRODUÇÃO. Em environments.json vale só a subárvore ambientes.production
   // (o texto de regras e o contrato citam o nome); em workflows, Dockerfile e next.config qualquer atribuição reprova (a vitrine entra pelo release.json).

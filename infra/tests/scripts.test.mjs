@@ -971,3 +971,52 @@ test('ci-checks: segredo em log de erro avisa por padrão e REPROVA com --produc
   assert.equal(node('ci-checks.mjs', ['--root', r, '--producao']).status, 0);
   rmSync(r, { recursive: true, force: true });
 });
+
+// ---- ADR-022 (DP-38): LN_FLAGS_ON só no staging, amarrada ao release.json
+test('guards: LN_FLAGS_ON só no staging, formato de lista e vínculo com release.json.flagsLigadas', async () => {
+  const { envProblems, flagsProblems, flagsNormalizadas, ASSIGN_FLAGS } = await import('../scripts/lib/guards.mjs');
+  const stg = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas' };
+  assert.deepEqual(envProblems(stg, { deploy: true }).filter((m) => /LN_FLAGS_ON/.test(m)), []);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', LN_FLAGS_ON: 'a,b' }, { deploy: true }).filter((m) => /LN_FLAGS_ON/.test(m)), []);
+  for (const ruim of ['intelligencePessoas, openbotDispatch', "'intelligencePessoas'", 'a;b', '1abc', ',a']) assert.match(envProblems({ ...stg, LN_FLAGS_ON: ruim }, { deploy: true }).join('|'), /LN_FLAGS_ON fora do formato/, ruim);
+  assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }).join('|'), /LN_FLAGS_ON definida em produção/);
+  assert.match(envProblems({ APP_ENV: 'producao', LN_FLAGS_ON: 'x' }).join('|'), /em produção/);
+  assert.match(envProblems({ APP_ENV: 'homolog', LN_FLAGS_ON: 'x' }, { deploy: true }).join('|'), /só o staging aceita flags/);
+  assert.deepEqual(envProblems({ APP_ENV: 'local', LN_FLAGS_ON: 'x' }).filter((m) => /LN_FLAGS_ON/.test(m)), [], 'desenvolvimento local não é barrado');
+  assert.equal(flagsNormalizadas(' b, a ,'), 'a,b');
+  assert.equal(flagsNormalizadas(['b', 'a']), 'a,b');
+  assert.deepEqual(flagsProblems({}, { flagsLigadas: [] }), []);
+  assert.deepEqual(flagsProblems({}, {}), []);
+  assert.deepEqual(flagsProblems({ LN_FLAGS_ON: 'b,a' }, { flagsLigadas: ['a', 'b'] }), []);
+  assert.match(flagsProblems({}, { flagsLigadas: ['intelligencePessoas'] }).join('|'), /defina LN_FLAGS_ON=intelligencePessoas/);
+  assert.match(flagsProblems({ LN_FLAGS_ON: 'openbotDispatch' }, { flagsLigadas: ['intelligencePessoas'] }).join('|'), /difere do release\.json/);
+  assert.match(flagsProblems({ LN_FLAGS_ON: 'intelligencePessoas' }, {}).join('|'), /não liga nenhuma flag/);
+  assert.equal(ASSIGN_FLAGS.test('LN_FLAGS_ON=intelligencePessoas'), true);
+  assert.equal(ASSIGN_FLAGS.test("{ LN_FLAGS_ON: 'a' }"), true);
+  assert.equal(ASSIGN_FLAGS.test('process.env.LN_FLAGS_ON === undefined'), false);
+});
+
+test('guard-env: release.json do pacote manda em LN_FLAGS_ON (web e worker); ci-checks reprova atribuição em arquivo de deploy', () => {
+  const r = tmp();
+  put(r, 'release.json', JSON.stringify({ appEnv: 'staging', flagsLigadas: ['intelligencePessoas'] }));
+  const env = { ...cleanEnvFlags(), APP_ENV: 'staging' };
+  const g = (extra) => spawnSync(process.execPath, [join(S, 'guard-env.mjs')], { cwd: r, encoding: 'utf8', env: { ...env, ...extra } });
+  assert.equal(g({ LN_FLAGS_ON: 'intelligencePessoas' }).status, 0);
+  const falta = g({});
+  assert.equal(falta.status, 1);
+  assert.match(falta.stderr, /defina LN_FLAGS_ON=intelligencePessoas/);
+  assert.equal(g({ LN_FLAGS_ON: 'openbotDispatch' }).status, 1);
+  put(r, 'release.json', JSON.stringify({ appEnv: 'staging', flagsLigadas: [] }));
+  assert.equal(g({}).status, 0);
+  assert.equal(g({ LN_FLAGS_ON: 'intelligencePessoas' }).status, 1);
+  rmSync(r, { recursive: true, force: true });
+  const c = tmp();
+  put(c, 'package.json', '{"name":"x","scripts":{"start":"LN_FLAGS_ON=intelligencePessoas next start"}}');
+  put(c, '.github/workflows/deploy.yml', 'env:\n  LN_FLAGS_ON: intelligencePessoas\n');
+  const x = node('ci-checks.mjs', ['--root', c], { env: cleanEnvFlags() });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /LN_FLAGS_ON atribuída no script "start"/);
+  assert.match(x.stderr, /LN_FLAGS_ON atribuída em \.github\/workflows\/deploy\.yml/);
+  rmSync(c, { recursive: true, force: true });
+});
+function cleanEnvFlags() { const e = { ...process.env }; for (const k of ['APP_ENV', 'LN_FLAGS_ON', 'CI', 'PORTAL_SOURCE', 'PORTAL_MODE', 'LN_STUDIO_TEST_SESSION', 'PORTAL_VITRINE', 'PORTAL_INDEXAVEL', 'DIAG_XFF']) delete e[k]; return e; }
