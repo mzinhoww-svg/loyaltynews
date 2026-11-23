@@ -482,3 +482,29 @@ describe('critério de qualidade aprovado pelo PM: 0 altas e no máximo 1 média
     expect(run((n) => (n === 1 ? { unsupported_facts: 2, unsupported_high: 1 } : { unsupported_facts: 0 })).exit.overall).toBe('invalid');
   });
 });
+
+describe('códigos de barreira da Editorial como motivo bloqueante (tone_lint e autoral_invalid)', () => {
+  const rev = (over: Partial<PilotRow> = {}) =>
+    base({ task_id: 'r1', kind: 'editorial_review', article_id: 'a1', stage: 'review', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', started_at: iso(3), ended_at: iso(5), reviewed_draft_task_id: 'd1', cross_provider_ok: true, ...over });
+
+  it('BLOCKING_GATE_REASONS inclui tone_lint e autoral_invalid, e mantém os anteriores', () => {
+    expect(BLOCKING_GATE_REASONS).toEqual(expect.arrayContaining(['tone_lint', 'autoral_invalid', 'same_author', 'unsupported_claim', 'copy_literal', 'cross_provider_check_failed']));
+  });
+
+  it.each(['tone_lint', 'autoral_invalid'])('veredito approved com %s é registro contraditório (linha inválida)', (reason) => {
+    expect(validatePilotRow(rev({ gate_verdict: 'approved', gate_reasons: [reason] }))).toEqual(expect.arrayContaining([expect.stringMatching(new RegExp(`approved com motivo bloqueante \\(${reason}\\)`))]));
+    expect(evaluatePilot([draft(1, 0), rev({ gate_verdict: 'approved', gate_reasons: [reason] })]).exit.overall).toBe('invalid');
+  });
+
+  it.each(['tone_lint', 'autoral_invalid'])('veredito blocked com %s é válido (a barreira funcionou) e não conta como aprovada', (reason) => {
+    const row = rev({ gate_verdict: 'blocked', gate_reasons: [reason] });
+    expect(validatePilotRow(row)).toEqual([]);
+    const e = evaluatePilot([draft(1, 0), row]);
+    expect(e.exit.overall).not.toBe('invalid');
+    expect(e.quality.approvedWithEvaluation + e.quality.approvedWithoutEvaluation).toBe(0);
+  });
+
+  it('approved sem motivo bloqueante continua válido', () => {
+    expect(validatePilotRow(rev({ gate_verdict: 'approved', gate_reasons: [] }))).toEqual([]);
+  });
+});

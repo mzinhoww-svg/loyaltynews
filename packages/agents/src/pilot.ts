@@ -249,6 +249,8 @@ export function authorOfDeclaredModel(model: string | null): 'anthropic' | 'open
 export const BLOCKING_GATE_REASONS = [
   'same_author', 'unsupported_claim', 'copy_literal', 'rights_unknown', 'terms_unresolved', 'cross_provider_check_failed',
   'approval_missing', 'rights_basis_unresolved', 'unanchored', 'unanchored_claim', 'needs_primary_anchor',
+  // códigos de barreira da Editorial (ft/editorial 9b3ec79): tom lint bloqueante (guia de tom v0.2) e pauta autoral inválida (DP-29)
+  'tone_lint', 'autoral_invalid',
 ] as const;
 
 /** Autor do modelo que cada conta serve no piloto (QA 3, F1): conta e modelo declarado que divergem são um registro contraditório. */
