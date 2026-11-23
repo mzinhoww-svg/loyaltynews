@@ -4,6 +4,7 @@ import IORedis from 'ioredis';
 import { Pool } from 'pg';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
+import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { handlers } from './handlers';
 import { BullQueueSink, startReconciler, startWorkers } from './runtime';
 
@@ -25,10 +26,17 @@ async function main() {
     onResult: (r) => console.log('[workers] reconciliador', JSON.stringify(r)),
     onError: (e) => console.error('[workers] reconciliador falhou:', e instanceof Error ? e.message : 'erro'),
   });
+  // entrega dos anúncios: Redis → ad_delivery_daily a cada minuto (sub-conta em caso de falha, nunca infla)
+  const adFlush = setInterval(() => {
+    flushAdDelivery(connection as unknown as AdRedis, db)
+      .then((r) => { if (r.rows) console.log('[workers] entrega de anúncios gravada', JSON.stringify(r)); })
+      .catch((e) => console.error('[workers] flush de anúncios falhou:', e instanceof Error ? e.message : 'erro'));
+  }, 60_000);
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {
     reconciler.stop();
+    clearInterval(adFlush);
     await workers.close();
     await sink.close();
     connection.disconnect();

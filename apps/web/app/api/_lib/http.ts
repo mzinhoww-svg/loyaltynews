@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { apiError } from '@ln/contracts';
-import { AccessDeniedError, audit, authorize, clientIp, type Action, type Resource, type Session } from '@ln/auth';
+import { AccessDeniedError, audit, authorize, clientIp, type Action, type Resource, type FullSession } from '@ln/auth';
 import { getDeps, type Deps } from './deps';
 
 export class HttpError extends Error {
@@ -23,7 +23,7 @@ export interface RouteCtx {
   params: Record<string, string>;
   url: URL;
   /** null só em rotas públicas sem login. */
-  session: Session | null;
+  session: FullSession | null;
   ip: string | null;
   requestId: string;
 }

@@ -1,6 +1,9 @@
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
+import { parseNotices } from '../notices';
+import { ContentType } from '@ln/contracts';
+import { RESUMO_MAX, SLUG_MAX, SLUG_RE } from '../publishable';
 
 /**
  * Regras editoriais determinísticas (sem LLM). O modelo propõe; estas regras decidem. Fail closed.
@@ -21,8 +24,8 @@ const FABRICATED_REPORTING: RegExp[] = [
 ];
 const BYLINE = /^\s*([Pp]or|[Tt]exto( de)?|[Rr]eportagem( de)?|[Rr]ep[óo]rter|[Aa]utor(a)?)\s*[:\-–]?\s+[A-ZÀ-Ú][a-zà-ú]+(\s+[A-ZÀ-Ú][a-zà-ú]+)+/m;
 
-/** Corpo sem o bloco determinístico de atribuição ("Fontes:"), que contém URLs e datas de acesso. */
-export function mainBody(body: string): string { return body.split(/\n\nFontes:\n/)[0]!; }
+/** Corpo sem os blocos gerados pelo sistema: "Avisos:" (errata/resposta publicadas) e "Fontes:" (URLs e datas de acesso). */
+export function mainBody(body: string): string { return body.split(/\n\n(?:Avisos|Fontes):\n/)[0]!; }
 
 function f(code: string, message: string, claimId?: string): Finding {
   return claimId ? { code, message, claimId } : { code, message };
@@ -47,7 +50,7 @@ export function fabricatedReportingFindings(text: string): Finding[] {
 
 export function checkNoFabricatedReporting(d: Draft): CheckResult {
   const out: Finding[] = [];
-  const text = `${d.headline}\n${d.body}`;
+  const text = `${d.headline}\n${d.subtitulo ?? ''}\n${d.resumo ?? ''}\n${d.body}`;
   for (const re of FABRICATED_REPORTING) if (re.test(text)) out.push(f('fabricated_reporting', `linguagem de apuração/entrevista própria não suportada: ${re.source}`));
   return result(out);
 }
@@ -90,11 +93,14 @@ export function checkBodyGrounding(d: Draft, evidences: Evidence[]): CheckResult
   const used = evidences.filter((e) => d.evidenceIds.includes(e.id));
   const evNorm = normalizeText(evidenceText(used));
   const evNums = new Set(numbersIn(evidenceText(used)).map(digitsKey));
-  for (const n of numbersIn(`${d.headline} ${mainBody(d.body)}`)) {
+  const visible = [mainBody(d.body), d.resumo ?? '', d.subtitulo ?? ''];
+  for (const n of numbersIn(`${d.headline} ${visible.join(' ')}`)) {
     if (!evNums.has(digitsKey(n))) out.push(f('unsupported_metric', `número "${n}" no texto não consta nas evidências`));
   }
-  for (const m of mainBody(d.body).matchAll(/["“]([^"”]{12,})["”]/g)) {
-    if (!evNorm.includes(normalizeText(m[1]!))) out.push(f('invented_quote', `trecho entre aspas não consta literalmente nas evidências: "${m[1]!.slice(0, 40)}…"`));
+  for (const part of visible) {
+    for (const m of part.matchAll(/["“]([^"”]{12,})["”]/g)) {
+      if (!evNorm.includes(normalizeText(m[1]!))) out.push(f('invented_quote', `trecho entre aspas não consta literalmente nas evidências: "${m[1]!.slice(0, 40)}…"`));
+    }
   }
   return result(out);
 }
@@ -126,6 +132,9 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
   const bw = words(bodyNoQuotes);
   for (const e of evidences.filter((x) => d.evidenceIds.includes(x.id))) {
     const ew = words(e.text);
+    for (const [label, txt] of [['resumo', d.resumo], ['subtitulo', d.subtitulo]] as const) {
+      if (txt && longestCommonRun(words(txt), ew) >= COPY_RUN_LIMIT) out.push(f('copy_literal', `${label} copia trecho da fonte ${e.sourceId}`));
+    }
     const run = longestCommonRun(bw, ew);
     if (run >= COPY_RUN_LIMIT) out.push(f('copy_literal', `${run} palavras consecutivas idênticas à fonte ${e.sourceId}`));
     const set = new Set<string>();
@@ -188,22 +197,67 @@ export function decideImage(source: Source, candidate: { url: string; credit: st
   return { mode: 'source_image', sourceId: source.id, url: candidate.url, credit: candidate.credit, creditLink: candidate.creditLink, basis: b };
 }
 
+/** Menção a IA/ferramenta/modelo: proibida em texto público da ilustração (D09). */
+const TOOL_MENTION = /(\bIA\b|intelig[êe]ncia artificial|\bgerad[ao]s? (por|com|pelo|pela)\b|\bmodelo\b|\bdall|midjourney|\bgpt|openai|stable diffusion|\bflux\b|\bprompt\b)/i;
+
 export function checkImage(img: ImageDecision): CheckResult {
   const out: Finding[] = [];
   if (img.mode === 'source_image') {
     if (!img.basis || !BASIS_KINDS.includes(img.basis.kind) || !img.basis.reference) out.push(f('rights_basis_unresolved', 'imagem sem base de direito registrada'));
     if (!img.credit || !img.creditLink) out.push(f('image_credit_missing', 'crédito e link obrigatórios'));
   }
-  if (img.mode === 'conceptual' && !/ilustra[çc][ãa]o conceitual|gerad[ao] por ia/i.test(img.label)) {
-    out.push(f('conceptual_unlabeled', 'imagem conceitual precisa ser rotulada; não fabricar foto documental'));
+  if (img.mode === 'conceptual') {
+    // Ilustração gerada (ADR-018). Limites de uso sem detector automático ⇒ exigem REVISÃO HUMANA registrada:
+    // nunca pessoa real reconhecível, logotipo/marca/produto/cartão real, cena documental, nem imagem de terceiro como referência.
+    if (!/^https?:\/\/\S+$/i.test(img.url)) out.push(f('illustration_url_invalid', 'ilustração sem URL pública válida'));
+    if (!img.alt.trim()) out.push(f('illustration_alt_missing', 'texto alternativo obrigatório'));
+    if (TOOL_MENTION.test(img.alt)) out.push(f('illustration_mentions_tool', 'o texto alternativo não pode citar IA, modelo ou ferramenta (D09)'));
+    if (!img.generatedBy.trim() || !img.promptVersion.trim() || !/^[0-9a-f]{64}$/.test(img.promptSha256)) out.push(f('illustration_registry_incomplete', 'registro interno incompleto (generatedBy, promptVersion, promptSha256)'));
+    if (!img.humanReview?.limitsConfirmed || !img.humanReview.reviewedBy.trim()) {
+      out.push(f('illustration_needs_human_review', 'revisão humana dos limites de uso pendente: sem pessoa real, marca/logotipo real, cena documental ou imagem de terceiro como referência'));
+    }
   }
   return result(out);
 }
 
-export function runDeterministicChecks(d: Draft, evidences: Evidence[]): CheckResult {
+/** Campos publicáveis (ADR-017 §4): resumo obrigatório ≤ 300, slug válido, classe pública, nunca patrocinado. */
+export function checkPublishable(d: Draft): CheckResult {
+  const out: Finding[] = [];
+  if (typeof d.resumo !== 'string' || d.resumo.trim() === '') out.push(f('resumo_missing', 'resumo obrigatório para aprovar (até 300 caracteres)'));
+  else if (d.resumo.length > RESUMO_MAX) out.push(f('resumo_too_long', `resumo com ${d.resumo.length} caracteres (máximo ${RESUMO_MAX})`));
+  if (d.subtitulo !== undefined && d.subtitulo.length > RESUMO_MAX) out.push(f('subtitulo_too_long', `subtítulo acima de ${RESUMO_MAX} caracteres`));
+  if (typeof d.slug !== 'string' || !SLUG_RE.test(d.slug) || d.slug.length > SLUG_MAX) out.push(f('slug_invalid', 'slug inválido (minúsculas, números e hífens)'));
+  if (!ContentType.safeParse(d.tipoConteudo).success) out.push(f('content_type_invalid', 'tipo de conteúdo inválido'));
+  if (d.classeDeDado !== 'public') out.push(f('data_class_not_public', 'matéria publicável precisa ser de classe pública'));
+  if (d.patrocinado || d.tipoConteudo === 'patrocinado') out.push(f('sponsored_not_editorial', 'conteúdo patrocinado não nasce na fábrica editorial (é do módulo Comercial)'));
+  if (d.image.mode === 'conceptual' && d.tipoConteudo === 'cobertura_evento') out.push(f('illustration_not_allowed_for_event', 'cobertura de evento não aceita ilustração (parece registro documental)'));
+  if (d.rotuloPublieditorial !== undefined && d.patrocinado === false) out.push(f('label_without_sponsorship', 'rótulo publieditorial em conteúdo não patrocinado'));
+  return result(out);
+}
+
+/**
+ * Avisos publicados (ADR-019 §c.5): o bloco "Avisos:" do corpo precisa ser EXATAMENTE a lista de avisos registrados
+ * (`expected`, em ordem). Aviso anterior removido ou alterado, aviso a mais ou bloco malformado reprovam. Sem avisos
+ * registrados, o corpo não pode ter bloco "Avisos:".
+ */
+export function checkNotices(d: Draft, expected: readonly string[]): CheckResult {
+  const out: Finding[] = [];
+  const p = parseNotices(d.body);
+  if (!p.ok) return result([f('notices_malformed', 'bloco "Avisos:" malformado ou duplicado')]);
+  expected.forEach((t, i) => {
+    if (p.notices[i] === undefined) out.push(f('notice_removed', `aviso #${i + 1} registrado não consta no corpo (avisos anteriores não podem sair)`));
+    else if (p.notices[i] !== t) out.push(f('notice_altered', `aviso #${i + 1} difere do texto registrado`));
+  });
+  if (p.notices.length > expected.length) out.push(f('notice_unexpected', 'o corpo traz aviso que não foi registrado por um caso aceito'));
+  return result(out);
+}
+
+export interface CheckOptions { /** Textos dos avisos já registrados na matéria (em ordem). */ notices?: readonly string[] }
+
+export function runDeterministicChecks(d: Draft, evidences: Evidence[], opts: CheckOptions = {}): CheckResult {
   const parts = [
     checkSignature(d), checkNoFabricatedReporting(d), checkEvidenceTrust(d, evidences), checkClaims(d, evidences),
-    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image),
+    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d), checkNotices(d, opts.notices ?? []),
   ];
   const findings = parts.flatMap((p) => p.findings);
   return result(findings);

@@ -1,154 +1,223 @@
 import type { Metadata } from 'next';
-import { isEnabled } from '@ln/contracts';
-import { findModule } from '@/lib/studio/modules';
-import { EDITORIAS_MENU, getHome, validarHome } from '@/lib/studio/home';
+import Link from 'next/link';
+import { EDITORIAS } from '@ln/contracts';
+import { POSITIONS } from '@ln/commercial';
+import { checkAccess, findModule } from '@/lib/studio/modules';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
+import { HOME_PADRAO, MENU_PADRAO, ROTULO_TIPO, descreverBloco, type HomeConteudo, type MenuConteudo, type TipoDoc } from '@/lib/studio/site-docs';
 import { requireModule } from '../../_lib/guard';
-import { Flash, SemBackend } from '../../_components/Flash';
-import { descartarRascunhoAction, editarHomeAction, reverterAction, salvarVersaoAction } from './actions';
+import { Flash } from '../../_components/Flash';
+import { SemBanco } from '../../_components/SemBanco';
+import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
+import { editarDocAction } from './actions';
 
 export const metadata: Metadata = { title: 'Home e menus' };
 export const dynamic = 'force-dynamic';
 
-function Mover({ op, id, nome }: { op: string; id: string; nome: string }) {
+const ABAS: readonly TipoDoc[] = ['home', 'menu_principal', 'menu_rodape'];
+
+function Setas({ tipo, indice }: { tipo: TipoDoc; indice: number }) {
   return (
     <>
       {(['up', 'down'] as const).map((d) => (
-        <form action={editarHomeAction} key={d} style={{ display: 'inline' }}>
-          <input type="hidden" name="op" value={op} />
-          <input type="hidden" name="id" value={id} />
+        <form action={editarDocAction} key={d} style={{ display: 'inline' }}>
+          <input type="hidden" name="tipo" value={tipo} />
+          <input type="hidden" name="op" value="mover" />
+          <input type="hidden" name="indice" value={indice} />
           <input type="hidden" name="dir" value={d} />
-          <button className="st-btn sec" type="submit" aria-label={`${d === 'up' ? 'Subir' : 'Descer'} ${nome}`}>
+          <button className="st-btn sec" type="submit" aria-label={`${d === 'up' ? 'Subir' : 'Descer'} item ${indice + 1}`}>
             {d === 'up' ? '↑' : '↓'}
           </button>
         </form>
       ))}
+      <form action={editarDocAction} style={{ display: 'inline' }}>
+        <input type="hidden" name="tipo" value={tipo} />
+        <input type="hidden" name="op" value="remover" />
+        <input type="hidden" name="indice" value={indice} />
+        <button className="st-btn danger" type="submit" aria-label={`Remover item ${indice + 1}`}>
+          Remover
+        </button>
+      </form>
     </>
   );
 }
 
-export default async function HomeMenusPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
-  await requireModule(findModule('home-menus')!);
-  const { tipo, aviso } = await searchParams;
-  const home = getHome();
-  const vigente = home.vigente();
-  const cfg = home.rascunho ?? vigente.config;
-  const problemas = validarHome(cfg);
+export default async function HomeMenusPage({ searchParams }: { searchParams: Promise<{ tipo?: string; tipoMsg?: string; aviso?: string }> }) {
+  const { session } = await requireModule(findModule('home-menus')!);
+  const q = await searchParams;
+  const tipo: TipoDoc = ABAS.includes(q.tipo as TipoDoc) ? (q.tipo as TipoDoc) : 'home';
+  const r = await api.site.documento(tipo);
+  if (naoConfigurado(r)) {
+    return (
+      <>
+        <h1>Home e menus</h1>
+        <SemBanco modulo="A gestão da home e dos menus" />
+      </>
+    );
+  }
+  if (ehErro(r)) {
+    return (
+      <>
+        <h1>Home e menus</h1>
+        <div className="st-alert err" role="alert">
+          {mensagemErro(r)}
+        </div>
+      </>
+    );
+  }
+  const estado = (r.body as { data: EstadoDoc }).data;
+  const podeEditar = checkAccess(session, ['admin', 'editor_chefe']).ok;
+  const emEdicao = (estado.rascunho?.conteudo ?? estado.vigente?.conteudo ?? (tipo === 'home' ? HOME_PADRAO : MENU_PADRAO)) as HomeConteudo | MenuConteudo;
+  const origem = estado.rascunho ? 'rascunho' : estado.vigente ? 'versão em vigor (sem rascunho: editar cria um)' : 'padrão mínimo (nada publicado ainda)';
   return (
     <>
       <h1>Home e menus</h1>
       <p>
-        Ordem dos blocos do blueprint (0–12). Header, footer e ticker têm posição fixa; header e footer não se escondem. Posições de anúncio mantêm a dimensão reservada mesmo vazias, para o layout não deslocar. Editar altera um <strong>rascunho</strong>; só &quot;Salvar versão&quot; cria versão, e voltar atrás cria nova versão.
+        Documentos versionados: editar muda só o <strong>rascunho</strong>; publicar cria a próxima versão (ou agenda); voltar atrás cria nova versão. Matéria fixada precisa estar publicada e posição de anúncio precisa ter dimensão reservada, ou o Backend recusa a publicação.
       </p>
-      <Flash tipo={tipo} aviso={aviso} />
-      <p>
-        <span className="st-badge">Versão vigente: v{vigente.numero}</span>{' '}
-        {home.rascunho ? <span className="st-badge em_checagem">Rascunho com alterações não salvas</span> : <span className="st-badge aprovado">Sem alterações pendentes</span>}
-      </p>
-      {problemas.length ? (
-        <div className="st-alert err" role="alert">
-          Configuração inválida: {problemas.join(' ')}
-        </div>
-      ) : null}
+      <nav aria-label="Documentos do site" className="st-actions">
+        {ABAS.map((a) => (
+          <Link key={a} className={a === tipo ? 'st-btn' : 'st-btn sec'} href={`/studio/home-menus?tipo=${a}`} aria-current={a === tipo ? 'page' : undefined}>
+            {ROTULO_TIPO[a]}
+          </Link>
+        ))}
+      </nav>
+      <Flash tipo={q.tipoMsg} aviso={q.aviso} />
 
-      <div className="st-two">
-        <section aria-labelledby="blocos">
-          <h2 id="blocos">Blocos da home</h2>
-          <ol className="st-issues" aria-label="Blocos da home em ordem">
-            {cfg.blocos.map((b, i) => (
-              <li key={b.id} data-bloco={b.id}>
-                <strong>
-                  {i}. {b.nome}
-                </strong>{' '}
-                <span className="st-badge">{b.visivel ? 'visível' : 'oculto'}</span>
-                {b.dimensao ? <span className="st-badge"> reserva {b.dimensao}</span> : null}
-                {b.fixo ? <span className="st-badge"> posição fixa</span> : null}{' '}
-                {!b.fixo ? <Mover op="mover-bloco" id={b.id} nome={b.nome} /> : null}
-                {!b.obrigatorio ? (
-                  <form action={editarHomeAction} style={{ display: 'inline' }}>
-                    <input type="hidden" name="op" value="alternar-bloco" />
-                    <input type="hidden" name="id" value={b.id} />
-                    <button className="st-btn sec" type="submit" aria-label={`${b.visivel ? 'Ocultar' : 'Mostrar'} ${b.nome}`}>
-                      {b.visivel ? 'Ocultar' : 'Mostrar'}
-                    </button>
-                  </form>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        </section>
-        <aside>
-          <section className="st-card" aria-labelledby="menu">
-            <h2 id="menu" style={{ marginTop: 0 }}>
-              Menu principal
-            </h2>
-            <ol className="st-issues" aria-label="Itens do menu">
-              {cfg.menu.map((m) => {
-                const bloqueado = m.flag ? !isEnabled(m.flag) : false;
-                return (
-                  <li key={m.id} data-menu={m.id}>
-                    {m.nome} <span className="st-badge">{m.visivel ? 'visível' : 'oculto'}</span>
-                    {bloqueado ? <span className="st-flagtag"> flag {m.flag} desligada</span> : null} <Mover op="mover-menu" id={m.id} nome={m.nome} />
-                    <form action={editarHomeAction} style={{ display: 'inline' }}>
-                      <input type="hidden" name="op" value="alternar-menu" />
-                      <input type="hidden" name="id" value={m.id} />
-                      <button className="st-btn sec" type="submit" aria-label={`${m.visivel ? 'Ocultar' : 'Mostrar'} ${m.nome} no menu`}>
-                        {m.visivel ? 'Ocultar' : 'Mostrar'}
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
-            </ol>
-            <p className="st-hint">Dropdown Notícias: {EDITORIAS_MENU.map((e) => e.nome).join(' · ')}.</p>
-          </section>
+      <h2>
+        {ROTULO_TIPO[tipo]} em edição <span className="st-hint">(origem: {origem})</span>
+      </h2>
+      {tipo === 'home' ? (
+        <ol className="st-issues" aria-label="Blocos da home em ordem">
+          {(emEdicao as HomeConteudo).blocos.map((b, i) => (
+            <li key={b.id} data-bloco={b.id}>
+              <strong>{i + 1}.</strong> {descreverBloco(b)}
+              {podeEditar ? <Setas tipo={tipo} indice={i} /> : null}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <ol className="st-issues" aria-label={`Itens de ${ROTULO_TIPO[tipo]}`}>
+          {(emEdicao as MenuConteudo).itens.map((it, i) => (
+            <li key={`${it.rotulo}-${i}`} data-item={it.rotulo}>
+              <strong>{it.rotulo}</strong> → <code>{it.destino}</code>
+              {it.filhos.length ? <span className="st-hint"> ({it.filhos.map((f) => f.rotulo).join(', ')})</span> : null}
+              {podeEditar ? <Setas tipo={tipo} indice={i} /> : null}
+              {podeEditar ? (
+                <form action={editarDocAction} className="st-actions" aria-label={`Adicionar subitem a ${it.rotulo}`}>
+                  <input type="hidden" name="tipo" value={tipo} />
+                  <input type="hidden" name="op" value="adicionar-filho" />
+                  <input type="hidden" name="indice" value={i} />
+                  <input name="rotulo" type="text" placeholder="Subitem" aria-label={`Rótulo do subitem de ${it.rotulo}`} />
+                  <input name="destino" type="text" placeholder="/caminho" aria-label={`Destino do subitem de ${it.rotulo}`} />
+                  <button className="st-btn sec" type="submit" aria-label={`Adicionar subitem a ${it.rotulo}`}>
+                    + subitem
+                  </button>
+                </form>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      )}
 
-          <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="salvar">
-            <h2 id="salvar" style={{ marginTop: 0 }}>
-              Salvar
-            </h2>
-            <form action={salvarVersaoAction}>
-              <div className="st-field">
-                <label htmlFor="nota">Nota da versão</label>
-                <input id="nota" name="nota" type="text" />
+      {podeEditar ? (
+        <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="add">
+          <h3 id="add" style={{ marginTop: 0 }}>
+            {tipo === 'home' ? 'Adicionar bloco' : 'Adicionar item'}
+          </h3>
+          {tipo === 'home' ? (
+            <form action={editarDocAction}>
+              <input type="hidden" name="tipo" value={tipo} />
+              <input type="hidden" name="op" value="adicionar" />
+              <div className="st-row">
+                <div className="st-field">
+                  <label htmlFor="blocoTipo">Tipo de bloco</label>
+                  <select id="blocoTipo" name="blocoTipo" defaultValue="ultimas">
+                    <option value="ultimas">Últimas</option>
+                    <option value="destaque">Destaque (matérias fixadas)</option>
+                    <option value="lista_editoria">Lista de uma editoria</option>
+                    <option value="agenda">Agenda</option>
+                    <option value="publicidade">Posição de publicidade</option>
+                  </select>
+                </div>
+                <div className="st-field">
+                  <label htmlFor="titulo-bloco">Título (opcional)</label>
+                  <input id="titulo-bloco" name="titulo" type="text" />
+                </div>
               </div>
-              <div className="st-actions">
-                <button className="st-btn" type="submit" disabled={!home.rascunho}>
-                  Salvar versão
-                </button>
+              <div className="st-row">
+                <div className="st-field">
+                  <label htmlFor="materiaSlugs">Destaque: slugs das matérias (separados por vírgula)</label>
+                  <input id="materiaSlugs" name="materiaSlugs" type="text" />
+                </div>
+                <div className="st-field">
+                  <label htmlFor="editoria-bloco">Lista de editoria: editoria</label>
+                  <select id="editoria-bloco" name="editoria" defaultValue="mercado">
+                    {EDITORIAS.map((e) => (
+                      <option key={e.slug} value={e.slug}>
+                        {e.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </form>
-            <form action={descartarRascunhoAction} style={{ marginTop: 8 }}>
-              <button className="st-btn sec" type="submit" disabled={!home.rascunho}>
-                Descartar rascunho
+              <div className="st-row">
+                <div className="st-field">
+                  <label htmlFor="limite-bloco">Limite de itens</label>
+                  <input id="limite-bloco" name="limite" type="text" />
+                </div>
+                <div className="st-field">
+                  <label htmlFor="posicao-bloco">Publicidade: posição</label>
+                  <select id="posicao-bloco" name="posicao" defaultValue="TOP">
+                    {POSITIONS.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.id} {p.desktop ? `(${p.desktop})` : '(sem dimensão: não publica)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <button className="st-btn" type="submit">
+                Adicionar bloco ao rascunho
               </button>
             </form>
-          </section>
+          ) : (
+            <form action={editarDocAction}>
+              <input type="hidden" name="tipo" value={tipo} />
+              <input type="hidden" name="op" value="adicionar" />
+              <div className="st-row">
+                <div className="st-field">
+                  <label htmlFor="rotulo-item">Rótulo</label>
+                  <input id="rotulo-item" name="rotulo" type="text" />
+                </div>
+                <div className="st-field">
+                  <label htmlFor="destino-item">Destino (caminho interno ou URL http/https)</label>
+                  <input id="destino-item" name="destino" type="text" />
+                </div>
+              </div>
+              <button className="st-btn" type="submit">
+                Adicionar item ao rascunho
+              </button>
+            </form>
+          )}
+          {!estado.rascunho ? (
+            <form action={editarDocAction} style={{ marginTop: 10 }}>
+              <input type="hidden" name="tipo" value={tipo} />
+              <input type="hidden" name="op" value="iniciar" />
+              <button className="st-btn sec" type="submit">
+                Criar rascunho a partir do conteúdo atual
+              </button>
+            </form>
+          ) : null}
+        </section>
+      ) : (
+        <p className="st-hint">Seu papel só lê a home e os menus.</p>
+      )}
 
-          <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="versoes">
-            <h2 id="versoes" style={{ marginTop: 0 }}>
-              Versões
-            </h2>
-            <ol reversed className="st-issues">
-              {[...home.versoes].reverse().map((v) => (
-                <li key={v.numero}>
-                  v{v.numero} · {v.autor} · {v.em.slice(0, 16).replace('T', ' ')} UTC · {v.nota}
-                  {v.numero !== vigente.numero ? (
-                    <form action={reverterAction} style={{ display: 'inline', marginLeft: 6 }}>
-                      <input type="hidden" name="versao" value={v.numero} />
-                      <button className="st-btn sec" type="submit" aria-label={`Reverter para v${v.numero}`}>
-                        Reverter para esta
-                      </button>
-                    </form>
-                  ) : (
-                    <span className="st-badge aprovado"> vigente</span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </section>
-        </aside>
+      <div style={{ marginTop: 18 }}>
+        <SiteDocPainel tipo={tipo} estado={estado} podePublicar={podeEditar} retorno={`/studio/home-menus?tipo=${tipo}`} />
       </div>
-      <SemBackend>A publicação da configuração no portal depende do backend; aqui a versão vigente é só a do Studio.</SemBackend>
     </>
   );
 }

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCampaignDetail } from '@ln/commercial/api';
 import { findModule } from '@/lib/studio/modules';
-import { comercialCtx } from '@/lib/studio/comercial';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
+import { SemBanco } from '../../../_components/SemBanco';
 import { transicaoAction } from '../actions';
 
 export const metadata: Metadata = { title: 'Campanha' };
@@ -27,12 +28,13 @@ type Detalhe = {
 };
 
 export default async function CampanhaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
-  const { session } = await requireModule(findModule('campanhas')!);
+  await requireModule(findModule('campanhas')!);
   const id = decodeURIComponent((await params).id);
   const { tipo, aviso } = await searchParams;
-  const r = getCampaignDetail(comercialCtx(session), { campaignId: id });
+  const r = await api.comercial.campanha(id);
+  if (naoConfigurado(r)) return <SemBanco modulo="O módulo de campanhas" />;
   if (r.status === 404) notFound();
-  if (r.status >= 400) throw new Error('falha ao carregar a campanha');
+  if (ehErro(r)) throw new Error(mensagemErro(r));
   const d = r.body as unknown as Detalhe;
   const c = d.campaign;
   return (

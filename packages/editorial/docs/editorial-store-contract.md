@@ -15,7 +15,7 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 });
 ```
 - A fábrica roda **antes de cada teste** e deve devolver uma loja **vazia**.
-- Passar a suíte (14 casos) é condição para a loja ser aceita pelo QA. A suíte também é testada contra implementações erradas (aliasing, upsert que mescla, auditoria fora de ordem, appends perdidos): `src/tests/store-contract.test.ts`.
+- Passar a suíte (20 casos) é condição para a loja ser aceita pelo QA. A suíte também é testada contra implementações erradas (aliasing, upsert que mescla, auditoria fora de ordem, appends perdidos): `src/tests/store-contract.test.ts`.
 - Os casos "handlers sobre a loja" exigem apenas as tabelas desta porta; não dependem de Next.js.
 
 ## Métodos
@@ -24,6 +24,8 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 | `getArticle(id)` / `getCorrection(id)` / `getSourceState(id)` | Registro ou `undefined` se não existe. Nunca lança por ausência. |
 | `putArticle(r)` / `putCorrection(r)` / `putSourceState(s)` | **UPSERT atômico** pela chave (`articleId`, `case.id`, `sourceId`): substitui o registro **inteiro** (campos que sumiram do novo registro somem do armazenado). Resolve só depois de durável. |
 | `listArticles()` / `listCorrections()` / `listSourceStates()` | Todos os registros, sem duplicatas. **Ordem não garantida** (os handlers ordenam). Paginação é feita pelos handlers em memória hoje; se o volume exigir, evoluir a porta (ver "Evolução"). |
+| `commitPublication(c)` | **Uma transação**: upsert de `c.article` (status `publicado`, com `publication`/recibo), `INSERT` de `c.audit` e `INSERT` de `c.outbox`. Qualquer falha ⇒ rejeita e NADA fica gravado. **Idempotente pela `outbox.idempotencyKey`**: chave já existente ⇒ devolve `{ outbox: 'duplicate' }` sem efeito algum (nem sobrescreve a matéria nem duplica auditoria); senão `'enqueued'`. Entrada inválida (matéria não `publicado`, sem `publication`, campos vazios) ⇒ rejeita sem efeito. |
+| `listOutbox()` | Itens `{ queue, refId, idempotencyKey }` gravados por `commitPublication`. |
 | `appendAudit(a)` | Somente-acréscimo. Nunca altera nem apaga entradas anteriores. |
 | `listAudit()` | Todas as entradas **na ordem em que os `appendAudit` foram resolvidos** (para chamadas sequenciais, a ordem de chamada). |
 
@@ -44,6 +46,25 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 
 Se o schema final ficar em `packages/db`, a migração é do Chief Architect (regra de ownership).
 
+## `commitPublication` em PostgreSQL (roteiro)
+```ts
+async commitPublication(c) {
+  validar(c);                                                       // rejeita antes de abrir a transação
+  return this.db.transaction(async (tx) => {
+    const ins = await tx.insert(schema.outbox).values({ id: newId(), queue: c.outbox.queue, refId: c.outbox.refId, idempotencyKey: c.outbox.idempotencyKey })
+      .onConflictDoNothing({ target: schema.outbox.idempotencyKey }).returning({ id: schema.outbox.id });
+    if (ins.length === 0) return { outbox: 'duplicate' as const };   // já commitado: nada mais a fazer (a tx não escreveu nada)
+    await upsertArticle(tx, c.article);                             // mesmo upsert de putArticle
+    await tx.insert(schema.editorialAudit).values({ at: c.audit.at, record: plain(c.audit) });
+    return { outbox: 'enqueued' as const };                         // qualquer erro acima ⇒ rollback de tudo, inclusive o outbox
+  });
+}
+async listOutbox() { /* SELECT queue, ref_id, idempotency_key FROM outbox ORDER BY created_at, id → OutboxItem[] */ }
+```
+A tabela `outbox` de `packages/db` já tem a unicidade em `idempotency_key`. Para a suíte provar a atomicidade, a fábrica pode devolver `armFault(step)`
+(`'after_article' | 'after_audit' | 'after_outbox'`): faz a próxima `commitPublication` lançar nesse ponto DENTRO da transação (ex.: flag lida pelo wrapper que
+chama `throw` depois de cada comando). Sem `armFault` esse caso é pulado — recomendado implementar.
+
 ## Concorrência além do contrato (recomendação)
 O contrato exige last-writer-wins atômico. Para evitar sobrescrita silenciosa entre dois revisores, o Backend pode acrescentar uma coluna `version` e rejeitar `put` com versão defasada — isso **muda a porta** (precisaria de `expectedVersion` e de erro `Conflict`) e deve ser pedido ao dono do pacote (Frente 06) com novo caso de contrato.
 
@@ -54,3 +75,36 @@ O contrato exige last-writer-wins atômico. Para evitar sobrescrita silenciosa e
 
 ## Evolução prevista
 Paginação/filtros no servidor (`listArticles({status, editoria, limit, offset})`) quando a fila passar de alguns milhares de matérias; `expectedVersion` para concorrência otimista. Ambas exigem novos casos na suíte de contrato.
+
+## Id da matéria e hash do recibo (ADR-017)
+- **Um id só.** `articleId` é gerado na criação do rascunho (primeiro `putArticle`/`applyOutcome` do job) e **nunca muda**: é a chave do registro, `editorial_article.article_id`, e é o mesmo `articles.id` do portal (sem chave estrangeira). A porta não tem operação de renomear; `commitPublication` grava sempre sob `article.articleId`. O recibo emitido para outro `articleId` deve ser recusado pelo Backend (teste dele).
+- **Hash do recibo = `publishedContentSha256`** de `@ln/contracts/hash`, calculado sobre o **rascunho editorial aprovado** com `toPublishableContent(draft)` / `draftContentSha256(draft)` (exportados por `@ln/editorial`; o Backend deve usá-los, não reimplementar). Cobre título, editoria, corpo (com "Fontes:"), imagem e base de direito, classe, patrocínio e fontes. O mesmo valor vai a `PublicationReceipt.conteudoSha256`, à chave de outbox `article.published:{id}:{sha}` e a `publication.contentSha256`.
+- `applyPublication(store, { ..., expectedContentSha256 })`: o Backend passa o hash do recibo; se o rascunho mudou depois da aprovação (manchete, imagem, fontes...), a publicação é recusada com `receipt_stale`.
+
+## Campos publicáveis do Draft (ADR-017 §4) e `toPublishableContent(rec)`
+`articles` é a projeção do conteúdo **aprovado**; nunca guarda rascunho. O `Draft` traz os campos de `PublishableContent`:
+`slug` (gerado na 1ª redação a partir da manchete, único via `deps.slugExists`; **imutável depois da 1ª publicação** — `applyPublication` recusa com `slug_immutable`, e `slug_taken` se outra matéria publicada já o usa; a unicidade definitiva é o índice único do banco), `resumo` (≤ 300, **obrigatório no gate de aprovação**: sem ele o WF02 bloqueia; passa pelos mesmos gates de número, aspas, entrevista e cópia do corpo), `subtitulo?` (≤ 300), `tipoConteudo` (padrão `noticia`), `classeDeDado` (padrão `public`; só `public` passa), `patrocinado`/`rotuloPublieditorial` (o pipeline editorial nunca gera conteúdo patrocinado: é do Comercial; `sponsored_not_editorial` no gate). Tipo, classe e patrocínio são do sistema; o modelo não os define.
+
+`toPublishableContent(rec | draft)` (de `@ln/editorial`): `headline→titulo`, `subtitulo`, `resumo`, `tipoConteudo`, `editoria`, `body→corpo` (com "Fontes:"), `image→imagem` (`ImageRights` de `@ln/contracts`: `origem 'fonte_terceiro'`, `baseDeDireito` mapeada de licença/autorização/domínio público/exceção validada, ou `pendente` sem base; `textoAlternativo` = `alt` do candidato ou "Imagem da matéria: <manchete>"), `classeDeDado`, `patrocinado`, `rotuloPublieditorial`, `evidenceIds→fontes`. Imagem conceptual não tem equivalente em `ImageRights`: sai crua (coberta pelo hash) e **não é publicável** até o Chief Architect definir; o pipeline hoje não a produz. O `slug` não faz parte de `PublishableContent` (a imutabilidade é regra própria acima).
+
+Para o upsert em `articles` na emissão do recibo (Backend): `id = rec.articleId`, `versao` = versão do rascunho, `slug = rec.draft.slug`, demais campos de `toPublishableContent(rec)`, `status = 'aprovado'`; recibo com `conteudoSha256 = draftContentSha256(rec)`. Rascunho que não está `aprovado` → 409 sem efeito. O estado `publicado` só vem de `applyPublication`.
+
+## Ilustração conceitual gerada (ADR-018)
+`ImageDecision { mode: 'conceptual' }` = `{ url, alt, generatedBy, promptVersion, promptSha256, humanReview? }`. `generatedBy`, `promptVersion` e `promptSha256` são **registro interno** (Blueprint §6): nunca saem em `ImageRights`, API pública, EXIF/XMP, nome de arquivo ou texto alternativo. `imageToRights` mapeia para `{ origem: 'ilustracao_gerada', baseDeDireito: 'gerada_ia', credito: ILLUSTRATION_CREDIT ('Loyalty News'), textoAlternativo: 'Ilustração conceitual: …', url, edicoes: [] }`, sem `link`. O hash do recibo cobre o `ImageRights` inteiro (trocar foto por ilustração invalida o recibo); revisão humana e registro interno não entram no hash.
+**Gate (`checkImage`/`checkPublishable`)**: sem detector automático de pessoa real, marca/logotipo/produto/cartão real, cena documental ou imagem de terceiro como referência, a ilustração só passa com **revisão humana registrada** (`illustration_needs_human_review`); `confirmIllustrationLimits` (papéis admin/editor_chefe/revisor, MFA, nota ≥ 10 caracteres, auditoria) grava `humanReview`. Também barra: alt vazio ou citando IA/modelo/ferramenta (D09), URL inválida, registro interno incompleto e `tipoConteudo = 'cobertura_evento'`. O card social (`SocialPack.image.label`) leva o rótulo `imageLabel` ("Ilustração conceitual"; com `rotulagemIa` ligada, "…gerada por IA"). `makeIllustration(...)` monta a decisão a partir do gerador; **a geração segue desligada** (`modelosHabilitados`) e os termos do provedor de imagem não foram verificados.
+
+## Casos de correção ancorados em `articles.id` publicado (ADR-019 §c)
+`HandlerCtx.published: PublishedArticleLookup` (porta; o Backend implementa sobre `articles`, `origem: 'fabrica'` quando existe `editorial_article` com o mesmo id): `get(id) → { id, slug, titulo, status, versao, publicadoEm, origem } | undefined` e `evidences?(id)` (Fábrica = evidências do registro; CMS = `article_sources`). `openCorrection` e `intakeRightOfReply` usam a porta, não o `EditorialStore`: só abre caso para status `publicado`, `corrigido` ou `despublicado`; inexistente e não publicada (rascunho, em_checagem, aprovado, bloqueado) dão **404 com a mesma resposta** (o intake público não revela rascunho). Sem a porta: 503. O caso guarda `articleVersao`, `articleOrigem` e (no registro) `articleSlug`. `preserveCorrectionEvidence` usa `{siteBaseUrl}/materias/{slug}` quando a URL não é informada. A verificação da errata usa as evidências do registro editorial **mais** as da porta. `storeBackedPublishedLookup(store)` é a referência só para matérias da Fábrica.
+
+## Aplicar correção a matéria publicada da Fábrica (ADR-019 §c.5)
+`applyCorrection(store, { articleId, correctionId, draft, factcheck, receiptId, publishedAt, expectedContentSha256? })` (`@ln/editorial`):
+reabre a matéria PUBLICADA (continua no ar como `publicado`/`corrigido` até o commit) e publica a nova versão como **`corrigido`** num único `commitPublication`
+(matéria + auditoria + outbox `article.corrected:{id}:{sha}` na fila `article-corrected` + caso `notice_published`). `prepareCorrection` valida e compõe SEM gravar e devolve o
+`contentSha256` que o Backend usa para emitir o recibo da nova versão (`expectedContentSha256`).
+- **Sem caso aceito = recusa sem efeito**: o caso precisa existir, ser da mesma matéria e estar `accepted` (jurídico: `escalated_legal` aceito **com** ciência do responsável). Códigos: `case_not_found`, `case_mismatch`, `case_not_accepted`, `already_corrected`, `not_published`.
+- **O aviso entra no corpo e no hash.** O sistema compõe o corpo: texto + bloco `Avisos:` (todos os avisos registrados, em ordem) + `Fontes:`. O rascunho enviado NÃO pode trazer `Avisos:` (`notices_in_draft`). `ArticleRecord.notices` guarda os avisos; o gate (`checkNotices`) exige que o bloco seja exatamente essa lista: **avisos anteriores não podem sair, ser alterados nem ser inventados**. O bloco é excluído das checagens de número/aspas/cópia do texto (`mainBody`). Resposta do requerente (multilinha) é publicada sem alteração (recuo de 2 espaços nas linhas seguintes).
+- **`publicadoEm` original mantido** (`publication.publishedAt`); `publication.correctedAt` = data da correção; `publication.previous` encadeia recibo+hash das versões anteriores; URL e slug não mudam (`slug_immutable`).
+- A nova versão passa no mesmo gate editorial e em checagem de provedor distinto (`gate_failed`, `factcheck_failed`); hash do recibo velho ⇒ `receipt_stale`.
+- **Idempotente**: repetir o mesmo caso com o mesmo recibo devolve `alreadyApplied` e `outbox: 'duplicate'` sem efeitos (e completa o que uma versão anterior deixou para trás); outro recibo para o mesmo caso ⇒ `already_corrected`.
+- `PublicationCommit` ganhou `correction?: CorrectionRecord` (gravado na mesma transação) e `commitPublication` aceita matéria `publicado` **ou** `corrigido`. O `PgEditorialStore` precisa gravar o caso junto, na mesma transação (a suíte de contrato cobre).
+- **URL pública** da matéria no Portal: `{siteBaseUrl}/noticia/{slug}` (`publicArticleUrl`), usada em `preserveCorrectionEvidence`.

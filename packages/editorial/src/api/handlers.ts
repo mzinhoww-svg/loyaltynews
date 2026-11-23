@@ -9,6 +9,7 @@ import {
 } from '../corrections/corrections';
 import type { Step } from '../corrections/corrections';
 import type { ArticleRecord, CorrectionRecord } from './store';
+import { isCorrectable, publicArticleUrl } from './published-lookup';
 
 /**
  * Handlers de API do CMS (LN Studio) como FUNÇÕES PURAS: (contexto, entrada) -> { status, body }.
@@ -66,7 +67,7 @@ export async function getArticleReview(ctx: HandlerCtx, input: unknown): Promise
   const r = await ctx.store.getArticle(p.data.articleId);
   if (!r) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
   const d = r.draft;
-  const chk = d ? runDeterministicChecks(d, r.evidences) : null;
+  const chk = d ? runDeterministicChecks(d, r.evidences, { notices: r.notices?.map((n) => n.text) ?? [] }) : null;
   const ind = independence(r);
   const verdictOf = (id: string) => r.factcheck?.verdicts.find((v) => v.claimId === id)?.verdict ?? null;
   const allPass = !!d && d.claims.length > 0 && d.claims.every((c) => verdictOf(c.id) === 'pass');
@@ -148,7 +149,7 @@ export async function requestRecheck(ctx: HandlerCtx, input: unknown): Promise<A
 // ---------- 5. correções e direito de resposta ----------
 const CorrIdIn = z.object({ correctionId: z.string().min(1).max(128) });
 const CaseView = (rec: CorrectionRecord) => ({
-  id: rec.case.id, articleId: rec.case.articleId, kind: rec.case.kind, state: rec.case.state, legal: rec.case.legal,
+  id: rec.case.id, articleId: rec.case.articleId, articleVersao: rec.case.articleVersao ?? null, articleOrigem: rec.case.articleOrigem ?? null, articleSlug: rec.articleSlug ?? null, kind: rec.case.kind, state: rec.case.state, legal: rec.case.legal,
   requester: { name: rec.case.requester.name, identityVerified: rec.case.requester.identityVerified, channel: rec.case.requester.channel },
   receivedAt: rec.case.receivedAt, deadlineAt: rec.case.deadlineAt, contested: rec.case.contested,
   socialPosts: rec.case.socialPosts, entitiesRebuilt: rec.case.entitiesRebuilt, ownerAckAt: rec.case.ownerAckAt ?? null,
@@ -214,15 +215,18 @@ export async function intakeRightOfReply(ctx: HandlerCtx, input: unknown): Promi
 
 async function doOpen(ctx: HandlerCtx, input: unknown, userId: string | null, by: string): Promise<ApiResponse<CorrectionView>> {
   const p = parse(OpenIn, input); if (bad(p)) return fail(p);
-  const art = await ctx.store.getArticle(p.data.articleId);
-  if (!art) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
+  // ADR-019 §c: o caso ancora em articles.id JÁ PUBLICADO (Fábrica ou CMS). Inexistente e não publicada dão a MESMA resposta:
+  // o intake público não revela se um rascunho existe (erro antes da publicação se corrige no próprio rascunho).
+  if (!ctx.published) return fail(apiError('UNAVAILABLE', 'consulta de matérias publicadas indisponível'));
+  const art = await ctx.published.get(p.data.articleId);
+  if (!isCorrectable(art)) return fail(apiError('NOT_FOUND', 'matéria não encontrada'));
   const id = ctx.newId(); const at = ctx.now().toISOString();
   const c = openCase({
-    id, articleId: art.articleId, kind: p.data.kind, receivedAt: at, contested: p.data.contested, deadlineAt: p.data.deadlineAt,
+    id, articleId: art.id, articleVersao: art.versao, articleOrigem: art.origem, kind: p.data.kind, receivedAt: at, contested: p.data.contested, deadlineAt: p.data.deadlineAt,
     requester: { name: p.data.requester.name, identityVerified: false, channel: p.data.requester.channel },
     supportingEvidenceIds: p.data.supportingEvidenceIds, socialPosts: [],
   });
-  const rec: CorrectionRecord = { case: c, ...(p.data.replyText ? { replyText: p.data.replyText } : {}), ...(p.data.contact ? { contact: p.data.contact } : {}) };
+  const rec: CorrectionRecord = { case: c, articleSlug: art.slug, ...(p.data.replyText ? { replyText: p.data.replyText } : {}), ...(p.data.contact ? { contact: p.data.contact } : {}) };
   await ctx.store.putCorrection(rec);
   await audit(ctx, userId, 'correction.open', id, `${p.data.kind} por ${by}`);
   return ok(CaseView(rec), 201);
@@ -242,13 +246,16 @@ export async function verifyRequester(ctx: HandlerCtx, input: unknown): Promise<
   return ok(CaseView(next));
 }
 
-const PreserveIn = z.object({ correctionId: z.string().min(1), url: z.url(), body: z.string().min(1).max(2_000_000) });
+const PreserveIn = z.object({ correctionId: z.string().min(1), url: z.url().optional(), body: z.string().min(1).max(2_000_000) });
 export async function preserveCorrectionEvidence(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<CorrectionView>> {
   const a = authorize(ctx, 'correction.manage'); if (isErr(a)) return fail(a);
   const p = parse(PreserveIn, input); if (bad(p)) return fail(p);
   const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
-  return await stepResult(ctx, rec, preserveEvidence(rec.case, { url: p.data.url, body: p.data.body, capturedAt: ctx.now().toISOString() }), 'correction.preserve_evidence', a.userId);
+  // sem URL informada, usa a página pública do Portal /noticia/{slug} (ADR-019 §4; decisão do PM)
+  const url = p.data.url ?? (ctx.siteBaseUrl && rec.articleSlug ? publicArticleUrl(ctx.siteBaseUrl, rec.articleSlug) : undefined);
+  if (!url) return fail(apiError('INVALID_INPUT', 'informe a URL pública da matéria (ou configure siteBaseUrl)'));
+  return await stepResult(ctx, rec, preserveEvidence(rec.case, { url, body: p.data.body, capturedAt: ctx.now().toISOString() }), 'correction.preserve_evidence', a.userId);
 }
 
 const TriageIn = z.object({
@@ -267,11 +274,13 @@ export async function triageCorrection(ctx: HandlerCtx, input: unknown): Promise
   const rec = await ctx.store.getCorrection(p.data.correctionId);
   if (!rec) return fail(apiError('NOT_FOUND', 'caso não encontrado'));
   const art = await ctx.store.getArticle(rec.case.articleId);
+  const fromLookup = (await ctx.published?.evidences?.(rec.case.articleId)) ?? [];
+  const evidencePool = [...new Map([...(art?.evidences ?? []), ...fromLookup].map((e) => [e.id, e])).values()];
   let working = rec;
   if (p.data.legal !== undefined) working = { ...rec, case: { ...rec.case, legal: p.data.legal || rec.case.legal } };
   if (p.data.accepted && rec.case.kind === 'erratum') {
     if (!p.data.corrected || !p.data.claims?.length) return fail(apiError('INVALID_INPUT', 'errata aceita exige texto corrigido e claims com evidência'));
-    const findings = verifyCorrectionClaims(p.data.claims, art?.evidences ?? []);
+    const findings = verifyCorrectionClaims(p.data.claims, evidencePool);
     if (findings.length) return fail(apiError('BLOCKED', 'correção não sustentada pelas evidências', findings));
     working = { ...working, corrected: p.data.corrected, claims: p.data.claims, case: { ...working.case, supportingEvidenceIds: [...new Set(p.data.claims.flatMap((c) => c.evidenceIds))] } };
   }

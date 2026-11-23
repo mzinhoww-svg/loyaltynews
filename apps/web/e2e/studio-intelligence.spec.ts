@@ -1,12 +1,8 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { entrar } from './helpers';
 
-const BASE = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
 const UUID_INEXISTENTE = '11111111-1111-4111-8111-111111111111';
 
-async function entrar(context: BrowserContext, userId: string, roles: string) {
-  await context.clearCookies();
-  await context.addCookies([{ name: 'ln-test-session', value: `${userId}:${roles}`, url: BASE }]);
-}
 const erro = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.err').filter({ hasText: txt }).first()).toBeVisible();
 const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
 

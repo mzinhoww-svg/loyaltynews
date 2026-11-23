@@ -9,6 +9,8 @@ import type { StageDeps } from '../pipeline/stages';
 import { InMemoryQueue, makeProcessor } from '../pipeline/queue';
 import type { Evidence } from '../types';
 import { InMemoryEditorialStore, applyOutcome } from '../api/store';
+import { storeBackedPublishedLookup } from '../api/published-lookup';
+import { applyPublication } from '../api/publication';
 import type { ArticleRecord } from '../api/store';
 import {
   acknowledgeLegalCase, closeCorrection, getArticleReview, getCorrection, getFactcheck, intakeRightOfReply, listCorrections, listQueue,
@@ -22,12 +24,20 @@ const user = (roles: string[], mfa = true): Actor => ({ userId: `u-${roles[0]}`,
 const editor = user(['editor']); const chefe = user(['editor_chefe']); const admin = user(['admin']); const revisor = user(['revisor']);
 let n = 0;
 const mkctx = (actor: Actor | null, store: InMemoryEditorialStore, queue?: InMemoryQueue): HandlerCtx =>
-  ({ actor, store, now: () => NOW, newId: () => `id-${++n}`, ...(queue ? { queue } : {}) });
+  ({ actor, store, published: storeBackedPublishedLookup(store), siteBaseUrl: 'https://loyaltynews.example', now: () => NOW, newId: () => `id-${++n}`, ...(queue ? { queue } : {}) });
 
 let ev: Evidence;
 beforeAll(async () => {
   ev = (await new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 });
+
+/** Matéria aprovada e PUBLICADA (recibo registrado): só de matéria já publicada se abre caso de correção (ADR-019). */
+async function publishedStore(): Promise<InMemoryEditorialStore> {
+  const store = await approvedStore();
+  const r = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-MOCK', url: 'https://loyaltynews.example/noticia/a1', publishedAt: NOW.toISOString() });
+  assert.ok(r.ok, r.ok ? '' : r.message);
+  return store;
+}
 
 /** Roda o pipeline (MOCK) e grava o resultado no store, como o worker do Backend faria. */
 async function approvedStore(articleId = 'a1'): Promise<InMemoryEditorialStore> {
@@ -140,7 +150,7 @@ test('checagem: visão por claim, independência; recheck apenas enfileira (idem
 });
 
 test('errata completa pelos handlers: abrir → preservar → triar com claims verificadas → aviso → social → entidades → fechar', async () => {
-  const store = await approvedStore();
+  const store = await publishedStore();
   const c = mkctx(chefe, store);
   const opened = await openCorrection(c, { articleId: 'a1', kind: 'erratum', contested: '3 pontos por real', requester: { name: 'MOCK Leitor', channel: 'email' } });
   assert.equal(opened.status, 201);
@@ -171,7 +181,7 @@ test('errata completa pelos handlers: abrir → preservar → triar com claims v
 });
 
 test('direito de resposta: intake público, identidade, escalonamento ao responsável (admin), texto preservado, sem vazar contato', async () => {
-  const store = await approvedStore();
+  const store = await publishedStore();
   const reply = 'Texto original da empresa, escrito por ela e que deve ser publicado sem qualquer edição.';
   const intake = await intakeRightOfReply(mkctx(null, store), { articleId: 'a1', contested: 'afirmação sobre a empresa', requester: { name: 'MOCK Empresa S.A.' }, contact: 'contato@mock.example', replyText: reply });
   assert.equal(intake.status, 201);

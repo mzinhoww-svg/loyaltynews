@@ -31,12 +31,27 @@ export interface ArticleRecord {
   reviews: ReviewNote[];
   recheckCount: number;
   updatedAt: string;
+  /** Preenchido por `applyPublication` quando o Backend publica (WF03) e devolve o recibo. */
+  publication?: {
+    receiptId: string; url: string;
+    /** Data da PRIMEIRA publicação: nunca muda (articles.publicado_em). */
+    publishedAt: string;
+    contentSha256: string; slug?: string; isMock?: boolean;
+    /** Última correção aplicada (quando status 'corrigido'). */
+    correctedAt?: string;
+    /** Versões anteriores (recibo + hash), da mais antiga para a mais nova. */
+    previous?: Array<{ receiptId: string; contentSha256: string; at: string }>;
+  };
+  /** Avisos publicados no corpo (errata/resposta), em ordem. Avisos anteriores nunca saem. */
+  notices?: Array<{ caseId: string; kind: 'erratum' | 'right_of_reply'; text: string; at: string }>;
 }
 
 /** Caso de correção/resposta + dados que o fluxo precisa guardar e que não pertencem à máquina de estados. */
 export interface CorrectionRecord {
   case: CorrectionCase;
   /** Texto do requerente (dado NÃO confiável e pessoal): preservado sem alteração; nunca vai a modelo sem saneamento. */
+  /** Slug público da matéria no momento da abertura (monta /noticia/{slug}). */
+  articleSlug?: string;
   replyText?: string;
   /** Contato do requerente (dado pessoal, LGPD): usar só para o caso. */
   contact?: string;
@@ -73,7 +88,28 @@ export interface SourceState {
   updatedBy: string;
 }
 
+/** Item de outbox por REFERÊNCIA (o worker relê a matéria do banco). Mesmo formato de packages/db outbox: queue, refId, idempotencyKey. */
+export interface OutboxItem { queue: string; refId: string; idempotencyKey: string }
+
+/**
+ * Registro ATÔMICO de uma publicação: matéria `publicado` (com recibo), auditoria e item de outbox. Ou os três ficam
+ * gravados, ou nenhum. Idempotente pela `outbox.idempotencyKey`: se a chave já existe, não faz NADA e devolve 'duplicate'.
+ */
+export interface PublicationCommit {
+  article: ArticleRecord; audit: AuditItem; outbox: OutboxItem;
+  /** Correção aplicada junto (ADR-019 §c.5): o caso avança para 'notice_published' na MESMA transação. */
+  correction?: CorrectionRecord;
+}
+export type PublicationCommitStep = 'after_article' | 'after_audit' | 'after_outbox';
+
 export interface EditorialStore {
+  /**
+   * UMA operação transacional (no PostgreSQL: uma transação): grava `commit.article` (upsert), acrescenta `commit.audit`,
+   * insere `commit.outbox` e, se vier, grava `commit.correction` (upsert). A matéria pode estar `publicado` ou `corrigido`. Qualquer falha ⇒ a promessa rejeita e NADA fica gravado. Entrada inválida (matéria não
+   * `publicado`, sem `publication`, campos vazios) rejeita sem efeito. Chave de outbox já existente ⇒ 'duplicate', sem efeito.
+   */
+  commitPublication(commit: PublicationCommit): Promise<{ outbox: 'enqueued' | 'duplicate' }>;
+  listOutbox(): Promise<OutboxItem[]>;
   getArticle(id: string): Promise<ArticleRecord | undefined>;
   putArticle(r: ArticleRecord): Promise<void>;
   listArticles(): Promise<ArticleRecord[]>;
@@ -89,11 +125,39 @@ export interface EditorialStore {
 
 const copy = <T>(v: T): T => structuredClone(v);
 
+const sleep0 = () => Promise.resolve();
+
 export class InMemoryEditorialStore implements EditorialStore {
   private readonly articles = new Map<string, ArticleRecord>();
   private readonly corrections = new Map<string, CorrectionRecord>();
   private readonly sources = new Map<string, SourceState>();
   private readonly auditLog: AuditItem[] = [];
+  private readonly outboxItems: OutboxItem[] = [];
+  /** Só para teste: faz a PRÓXIMA commitPublication falhar no passo indicado (consome o gatilho). */
+  private fault: PublicationCommitStep | null = null;
+  armFault(step: PublicationCommitStep | null): void { this.fault = step; }
+  private maybeFail(step: PublicationCommitStep): void {
+    if (this.fault === step) { this.fault = null; throw new Error(`falha injetada em ${step}`); }
+  }
+  async listOutbox() { return this.outboxItems.map(copy); }
+  async commitPublication(c: PublicationCommit): Promise<{ outbox: 'enqueued' | 'duplicate' }> {
+    const a = c.article; const o = c.outbox;
+    if (!a.articleId || (a.status !== 'publicado' && a.status !== 'corrigido') || !a.publication || !c.audit.action || !c.audit.target || !o.queue || !o.refId || !o.idempotencyKey) {
+      throw new Error('commitPublication: entrada inválida');
+    }
+    if (c.correction && !c.correction.case.id) throw new Error('commitPublication: correção inválida');
+    // Tudo é preparado em cópias; a aplicação ao estado real é UM bloco síncrono no fim (atômico).
+    const article = copy(a); await sleep0(); this.maybeFail('after_article');
+    const audit = copy(c.audit); await sleep0(); this.maybeFail('after_audit');
+    const outbox = copy(o); await sleep0(); this.maybeFail('after_outbox');
+    const correction = c.correction ? copy(c.correction) : undefined;
+    if (this.outboxItems.some((i) => i.idempotencyKey === outbox.idempotencyKey)) return { outbox: 'duplicate' };
+    this.articles.set(article.articleId, article);
+    if (correction) this.corrections.set(correction.case.id, correction);
+    this.auditLog.push(audit);
+    this.outboxItems.push(outbox);
+    return { outbox: 'enqueued' };
+  }
   async getArticle(id: string) { const r = this.articles.get(id); return r ? copy(r) : undefined; }
   async putArticle(r: ArticleRecord) { this.articles.set(r.articleId, copy(r)); }
   async listArticles() { return [...this.articles.values()].map(copy); }

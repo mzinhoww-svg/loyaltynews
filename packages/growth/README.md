@@ -14,10 +14,11 @@ Amostras: `node scripts/render-sample.ts` (gera `out/samples/`, ignorado pelo gi
 | Arquivo | O que faz |
 |---|---|
 | `src/mlabs/port.ts` | Interfaces de leitura/escrita; listas de ferramentas de leitura e de escrita do mLabs |
-| `src/mlabs/simulated.mock.ts` | **MOCK** — adaptador simulado (padrão): nada vai ao mLabs; recibos `SIM-…` |
-| `src/mlabs/live.ts` | `createLiveMlabsAdapter` (única forma de obter o adaptador real) e `readOnlyTransport` |
+| `src/mlabs/simulated.mock.ts` | **MOCK** (INTERNO, não exportado) — adaptador simulado (padrão): nada vai ao mLabs; recibos `SIM-…` |
+| `src/mlabs/live.ts`, `live-adapter.internal.ts` | Público: `readOnlyTransport`, `LIVE_ACK`, `LiveAdapterRefused`. O adaptador real (classe e construtor) é INTERNO e só `createSocialPublisher` o cria |
+| `src/mlabs/write-gate.internal.ts`, `adapter-types.internal.ts` | INTERNOS: capability de escrita e tipos do adaptador com escrita (nada disto sai do pacote) |
 | `src/mlabs/validate.ts` | Validação de capacidades só por leitura (forma das respostas, sem valores) |
-| `src/publisher/publisher.ts` | `SocialPublisher`: único caminho de publicação; só a identidade `publisher_social`; flags; gates; imagem aprovada; regras de copy; idempotência; auditoria |
+| `src/publisher/publisher.ts` | `createSocialPublisher(config)`: único caminho de publicação e a única forma de obter um adaptador. Cria o adaptador (simulado ou real) e a capability de escrita no mesmo passo e os mantém em closure; só a identidade `publisher_social`; flags; gates; imagem aprovada; regras de copy; idempotência; auditoria |
 | `src/copy/engine.ts` | Motor de copy LinkedIn + `validateCopy` |
 | `src/creative/post.ts` | Criativo de contexto por código (SVG/HTML) a partir do brandkit; 4 formatos; sem fs/Buffer |
 | `src/package/linkedin.ts`, `instagram.ts` | Pacote por matéria (LinkedIn) e Instagram (construído, flag desligada) |
@@ -37,8 +38,8 @@ Amostras: `node scripts/render-sample.ts` (gera `out/samples/`, ignorado pelo gi
 
 ## Garantias de publicação (ADR-008)
 - Redação/design/agentes recebem `identidade_nao_autorizada` (teste negativo). Esta guarda é de software; o controle real é só o serviço de publicação ter a credencial/MCP do mLabs.
-- **Adaptador real só por fábrica:** a classe não é exportada; `createLiveMlabsAdapter` exige `liveAck`, ator `publisher_social` e flag `growth_linkedin_live` ligada. A flag (função lida a cada operação) e a identidade são conferidas **dentro** do adaptador antes de qualquer leitura ou escrita; o transporte cru fica em campo privado (`#`). Testes chamam o adaptador real diretamente.
-- **Escrita só pelo SocialPublisher:** `createPost`/`updatePost`/`deletePost` de TODO adaptador (real e simulado) exigem uma capability (`WriteCapability`, `src/mlabs/write-gate.ts`) que o publicador recebe ao se vincular (`bindWriteAuthority`, uma vez por adaptador) e guarda em campo privado. Chamada direta, sem a capability ou com uma forjada/de outro objeto, lança `WriteRefused` antes de qualquer efeito (inclusive antes de tocar o transporte real). Um segundo publicador no mesmo adaptador é recusado. Testes: `src/__tests__/write-capability.test.ts`.
+- **Sem adaptador fora do publicador:** nem a classe do adaptador (simulado ou real), nem `mintWriteCapability`, nem `bindWriteAuthority` são exportados por nenhuma entrada do pacote (`.`, `./ui`, `./dashboard`, `./jobs`). `createSocialPublisher` cria o adaptador por dentro; o publicador devolvido é um objeto congelado sem `createPost`, sem referência ao adaptador e sem construtor alcançável. Modo real: `createSocialPublisher({ mode: 'live', transport, liveAck, actor, flags, payloadMapper })` exige `liveAck`, ator `publisher_social` e flag `growth_linkedin_live` ligada (conferidos na criação e antes de CADA operação, dentro do adaptador); o transporte fica em campo `#` privado.
+- **Escrita só com a capability do publicador:** `createPost`/`updatePost`/`deletePost` de todo adaptador exigem uma `WriteCapability` mintada e vinculada dentro de `createSocialPublisher`; sem ela, `WriteRefused` antes de qualquer efeito. Teste `src/__tests__/public-surface.test.ts` importa tudo o que o pacote exporta, varre o grafo de objetos alcançável (membros proibidos: `createPost`, `updatePost`, `deletePost`, `bindWriteAuthority`, `mintWriteCapability`, `transport`, `adapter`), segue os reexports dos 4 pontos de entrada e confere o `package.json`: não há caminho para escrever sem o publicador. Verificado por mutação (reexportar um módulo interno faz o teste falhar).
 - Instagram e The Loyal: chave desligada ⇒ recusa registrada na auditoria, mesmo pela identidade de publicação.
 - Sem imagem aprovada ou gates pendentes ⇒ bloqueia. Reenvio com a mesma chave não duplica.
 - O dashboard só pede publicação **simulada** e recusa com adaptador real; regera o pacote e compara o hash do criativo (matéria mudou ⇒ 409).

@@ -1,114 +1,94 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import * as liveModule from '../mlabs/live';
-import * as indexModule from '../index';
-import { createLiveMlabsAdapter, LIVE_ACK, LiveAdapterRefused, type LiveOptions } from '../mlabs/live';
+import { LIVE_ACK, LiveAdapterRefused, type LiveOptions } from '../mlabs/live';
 import { DEFAULT_FLAGS, type GrowthFlags } from '../flags';
-import { PUBLISHER_SOCIAL } from '../publisher/publisher';
-import type { PostPayload, PublishReceipt } from '../mlabs/port';
-import { mintWriteCapability } from '../mlabs/write-gate';
+import { createSocialPublisher, PUBLISHER_SOCIAL, PublishRefused } from '../publisher/publisher';
+import { generateLinkedInCopy } from '../copy/engine';
+import type { PublishReceipt } from '../mlabs/port';
+import { MOCK_ARTICLE } from '../../fixtures/article.mock';
 
-const payload: PostPayload = { channel: 'linkedin', text: 't', imageRef: 'creative://x/1', mentions: [] };
+// O adaptador real só existe dentro do publicador: estes testes exercitam o modo real pela única porta pública
+// (`createSocialPublisher({ mode: 'live', ... })`).
+
 const ON: GrowthFlags = { ...DEFAULT_FLAGS, growth_linkedin_live: true };
 
-function opts(over: Partial<LiveOptions> = {}) {
-  const calls: { tool: string }[] = [];
-  const o: LiveOptions = {
-    transport: {
-      call: async (tool) => {
-        calls.push({ tool });
-        return [];
-      },
-    },
+function live(over: Partial<LiveOptions> = {}, flagsFn: () => GrowthFlags = () => ON) {
+  const calls: string[] = [];
+  const publisher = createSocialPublisher({
+    mode: 'live',
+    transport: { call: async (tool) => { calls.push(tool); return []; } },
     liveAck: LIVE_ACK,
     actor: PUBLISHER_SOCIAL,
-    flags: () => ON,
+    flags: flagsFn,
     payloadMapper: {
       create: () => ({ tool: 'create_post', args: {} }),
       toReceipt: (_raw, p, key): PublishReceipt => ({
         id: 'LIVE-1', channel: p.channel, mode: 'live', simulated: false, createdAt: 'x', status: 'scheduled', idempotencyKey: key,
       }),
     },
+    now: () => 'x',
     ...over,
-  };
-  return { o, calls };
-}
-
-/** Simula o SocialPublisher: vincula uma capability ao adaptador e a devolve. */
-function bind(live: { bindWriteAuthority(c: ReturnType<typeof mintWriteCapability>): void }) {
-  const cap = mintWriteCapability();
-  live.bindWriteAuthority(cap);
-  return cap;
+  });
+  return { publisher, calls };
 }
 
 const refusal = (reason: string) => (e: unknown) => e instanceof LiveAdapterRefused && e.reason === reason;
+const request = () => {
+  const copy = generateLinkedInCopy(MOCK_ARTICLE);
+  return { article: MOCK_ARTICLE, channel: 'linkedin' as const, text: copy.text, mentions: copy.mentions, idempotencyKey: 'k1', imageRef: 'fixture://mock/imagem-aprovada' };
+};
 
-test('fronteira: a classe do adaptador real não é exportada (só a fábrica)', () => {
-  assert.equal('LiveMlabsAdapter' in liveModule, false);
-  assert.equal('LiveMlabsAdapter' in indexModule, false);
-  assert.equal(typeof liveModule.createLiveMlabsAdapter, 'function');
-});
-
-test('fábrica recusa sem as três condições: liveAck, identidade publisher_social e flag ligada', () => {
-  assert.throws(() => createLiveMlabsAdapter(opts({ liveAck: 'nope' as never }).o), refusal('live_ack_ausente'));
+test('criar o modo real recusa sem as três condições: liveAck, identidade publisher_social e flag ligada', () => {
+  assert.throws(() => live({ liveAck: 'nope' as never }), refusal('live_ack_ausente'));
   for (const role of ['redacao', 'design', 'growth_agent', 'unknown'] as const) {
-    assert.throws(() => createLiveMlabsAdapter(opts({ actor: { id: 'x', role } }).o), refusal('identidade_nao_autorizada'));
+    assert.throws(() => live({ actor: { id: 'x', role } }), refusal('identidade_nao_autorizada'));
   }
-  assert.throws(() => createLiveMlabsAdapter(opts({ flags: () => DEFAULT_FLAGS }).o), refusal('flag_desligada'));
+  assert.throws(() => live({}, () => DEFAULT_FLAGS), refusal('flag_desligada'));
 });
 
-test('chamada DIRETA ao adaptador real: flag desligada depois da criação, nenhuma operação toca o transporte', async () => {
-  let flags = ON;
-  const { o, calls } = opts({ flags: () => flags });
-  const live = createLiveMlabsAdapter(o);
-  const cap = bind(live);
-  flags = DEFAULT_FLAGS; // desligada em tempo de execução
-  await assert.rejects(() => live.createPost(cap, payload, 'k1'), refusal('flag_desligada'));
-  await assert.rejects(() => live.updatePost(cap, 'r', { text: 'x' }), refusal('flag_desligada'));
-  await assert.rejects(() => live.deletePost(cap, 'r'), refusal('flag_desligada'));
-  await assert.rejects(() => live.listChannels(), refusal('flag_desligada'));
-  await assert.rejects(() => live.getPostLimits(), refusal('flag_desligada'));
-  await assert.rejects(() => live.listTemplates(), refusal('flag_desligada'));
-  assert.equal(calls.length, 0);
+test('flag desligada em tempo de execução: leituras do adaptador real recusam e o transporte não é tocado', async () => {
+  let on = true;
+  const { publisher, calls } = live({}, () => ({ ...DEFAULT_FLAGS, growth_linkedin_live: on }));
+  on = false;
+  await assert.rejects(() => publisher.reads.listChannels(), refusal('flag_desligada'));
+  await assert.rejects(() => publisher.reads.getPostLimits(), refusal('flag_desligada'));
+  await assert.rejects(() => publisher.reads.listTemplates(), refusal('flag_desligada'));
+  assert.deepEqual(calls, []);
 });
 
-test('chamada DIRETA ao adaptador real: com as três condições e mapeamento, a escrita passa; sem mapeamento recusa', async () => {
-  const a = opts();
-  const live = createLiveMlabsAdapter(a.o);
-  const cap = bind(live);
-  const r = await live.createPost(cap, payload, 'k1');
+test('flag desligada em tempo de execução: publicar, editar e excluir recusam sem tocar o transporte', async () => {
+  let on = true;
+  const { publisher, calls } = live({}, () => ({ ...DEFAULT_FLAGS, growth_linkedin_live: on }));
+  on = false;
+  await assert.rejects(() => publisher.publish(PUBLISHER_SOCIAL, request()), (e: unknown) => e instanceof PublishRefused && e.reason === 'publicacao_real_desligada');
+  await assert.rejects(() => publisher.edit(PUBLISHER_SOCIAL, 'linkedin', 'r', 'x'), (e: unknown) => e instanceof PublishRefused);
+  await assert.rejects(() => publisher.remove(PUBLISHER_SOCIAL, 'linkedin', 'r'), (e: unknown) => e instanceof PublishRefused);
+  assert.deepEqual(calls, []);
+});
+
+test('com as três condições e mapeamento, a escrita passa pelo transporte; sem mapeamento recusa', async () => {
+  const a = live();
+  const r = await a.publisher.publish(PUBLISHER_SOCIAL, request());
   assert.equal(r.simulated, false);
-  assert.deepEqual(a.calls.map((c) => c.tool), ['create_post']);
+  assert.equal(r.mode, 'live');
+  assert.deepEqual(a.calls, ['create_post']);
 
-  const b = opts({ payloadMapper: undefined });
-  const liveB = createLiveMlabsAdapter(b.o);
-  await assert.rejects(() => liveB.createPost(bind(liveB), payload, 'k'), refusal('mapeamento_ausente'));
-  assert.equal(b.calls.length, 0);
+  const b = live({ payloadMapper: undefined });
+  await assert.rejects(() => b.publisher.publish(PUBLISHER_SOCIAL, request()), refusal('mapeamento_ausente'));
+  assert.deepEqual(b.calls, []);
 });
 
 test('edição e exclusão reais não confirmadas: recusam mesmo com tudo ligado', async () => {
-  const { o, calls } = opts();
-  const live = createLiveMlabsAdapter(o);
-  const cap = bind(live);
-  await assert.rejects(() => live.updatePost(cap, 'r', { text: 'x' }), refusal('capacidade_nao_confirmada'));
-  await assert.rejects(() => live.deletePost(cap, 'r'), refusal('capacidade_nao_confirmada'));
-  assert.equal(calls.length, 0);
+  const { publisher, calls } = live();
+  await assert.rejects(() => publisher.edit(PUBLISHER_SOCIAL, 'linkedin', 'r', 'x'), refusal('capacidade_nao_confirmada'));
+  await assert.rejects(() => publisher.remove(PUBLISHER_SOCIAL, 'linkedin', 'r'), refusal('capacidade_nao_confirmada'));
+  assert.deepEqual(calls, []);
 });
 
-test('leituras do adaptador real só usam ferramentas de leitura', async () => {
-  const { o, calls } = opts();
-  const live = createLiveMlabsAdapter(o);
-  await live.listChannels();
-  await live.getPostLimits();
-  await live.listTemplates();
-  assert.deepEqual(calls.map((c) => c.tool), ['list_channels', 'get_post_limits', 'list_templates']);
-});
-
-test('o transporte cru não é acessível pelo objeto do adaptador', () => {
-  const live = createLiveMlabsAdapter(opts().o) as unknown as Record<string, unknown>;
-  for (const k of [...Object.keys(live), ...Object.getOwnPropertyNames(Object.getPrototypeOf(live))]) {
-    assert.notEqual(k, 'transport');
-    assert.notEqual(k, '_transport');
-  }
-  assert.equal(JSON.stringify(live).includes('transport'), false);
+test('leituras do modo real só usam ferramentas de leitura', async () => {
+  const { publisher, calls } = live();
+  await publisher.reads.listChannels();
+  await publisher.reads.getPostLimits();
+  await publisher.reads.listTemplates();
+  assert.deepEqual(calls, ['list_channels', 'get_post_limits', 'list_templates']);
 });

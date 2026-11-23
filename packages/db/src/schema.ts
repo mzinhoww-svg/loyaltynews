@@ -43,7 +43,12 @@ export const sources = pgTable('sources', {
   acesso: text('acesso').notNull().default('publico'),
   termosRevisados: boolean('termos_revisados').notNull().default(false),
   ativo: boolean('ativo').notNull().default(false),
-}, (t) => [check('sources_acesso_publico', sql`${t.acesso} = 'publico'`)]);
+  /** ADR-019 §d: 'fabrica' = linha projetada do registro da Fábrica (somente leitura no CMS); 'cms' = cadastro manual de citação. */
+  origem: text('origem').notNull().default('cms'),
+}, (t) => [
+  check('sources_acesso_publico', sql`${t.acesso} = 'publico'`),
+  check('sources_origem', sql`${t.origem} in ('fabrica', 'cms')`),
+]);
 
 export const evidences = pgTable('evidences', {
   id: text('id').primaryKey(),
@@ -138,3 +143,6 @@ export * from './schema/commercial';
 export * from './schema/agents';
 
 export * from './schema/editorial-store';
+export * from './schema/social';
+export * from './schema/ad-flush';
+export * from './schema/site';

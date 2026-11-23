@@ -2,6 +2,7 @@
 // e no `next dev`; o build de produção nunca o inclui (scripts/verify-no-mock.mjs prova). Ainda exige LN_STUDIO_DEV_DB=pglite.
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import type { PGlite } from '@electric-sql/pglite';
 import type { Db } from '@ln/intelligence';
 import type { FabricaDev } from './intelligence-db-core';
 
@@ -12,11 +13,23 @@ function pastaMigracoes(): string {
   return achada;
 }
 
-export const devDb: FabricaDev | null = async () => {
-  const { PGlite } = await import('@electric-sql/pglite');
-  const client = new PGlite();
+async function novoClientePglite(): Promise<PGlite> {
+  const { PGlite: Pg } = await import('@electric-sql/pglite');
+  const client = new Pg();
   const pasta = pastaMigracoes();
   const journal = JSON.parse(readFileSync(join(pasta, 'meta', '_journal.json'), 'utf8')) as { entries: { tag: string }[] };
   for (const e of journal.entries) await client.exec(readFileSync(join(pasta, `${e.tag}.sql`), 'utf8').replaceAll('--> statement-breakpoint', ''));
-  return { db: client as unknown as Db, origem: 'pglite-memoria' };
-};
+  return client;
+}
+
+const KEY = Symbol.for('ln.studio.e2e.pglite');
+type G = typeof globalThis & { [KEY]?: Promise<PGlite> };
+
+/** Um único PGlite por processo (migrado), compartilhado entre o backend de e2e e o Entity Intelligence: mesmo banco, como em produção. */
+export function criarClientePglite(): Promise<PGlite> {
+  const g = globalThis as G;
+  g[KEY] ??= novoClientePglite();
+  return g[KEY];
+}
+
+export const devDb: FabricaDev | null = async () => ({ db: (await criarClientePglite()) as unknown as Db, origem: 'pglite-memoria' });

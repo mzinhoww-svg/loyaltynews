@@ -4,12 +4,18 @@
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import { getRuntime } from '@ln/auth/runtime';
 import type { Auth, Db } from '@ln/auth';
+import type { AdRedis } from '@ln/workers/ad-redis';
+import type { BlobStore } from './blob';
 
 export interface Deps {
   db: Db;
   auth: Auth;
   now: () => Date;
   flags: FlagState;
+  /** Redis do ad server. undefined = buscar do ambiente; null = indisponível (o ad server sub-conta). Testes injetam um falso. */
+  redis?: AdRedis | null;
+  /** Armazenamento de arquivos (Blob S3). undefined = buscar do ambiente; null = não configurado (rotas de arquivo: 503). Testes injetam um falso. */
+  blob?: BlobStore | null;
 }
 
 let override: Deps | null = null;

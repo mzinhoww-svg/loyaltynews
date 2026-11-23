@@ -1,13 +1,13 @@
-// MOCK — adaptador simulado do mLabs. É o padrão: nada sai do processo, nada é enviado ao mLabs.
+// MOCK — adaptador simulado do mLabs. INTERNO: só `createSocialPublisher` o instancia; não é exportado pelo pacote. É o padrão: nada sai do processo, nada é enviado ao mLabs.
 // Os canais e limites abaixo são dados de TESTE, não refletem a conta real (ver docs/mlabs-capabilities.md).
 import type {
-  MlabsAdapter,
   MlabsChannel,
   PostLimits,
   PostPayload,
   PublishReceipt,
 } from './port';
-import { WriteGate, type WriteCapability } from './write-gate';
+import type { MlabsAdapter } from './adapter-types.internal';
+import { WriteGate, type WriteCapability } from './write-gate.internal';
 
 export class SimulatedMlabsAdapter implements MlabsAdapter {
   readonly mode = 'simulated' as const;

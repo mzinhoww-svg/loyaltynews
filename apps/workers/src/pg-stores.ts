@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
-import { isQueueName } from './queues';
+import { resolveQueue } from './queues';
 import type { EffectStore, OutboxRow, OutboxStore } from './reconciler';
 
 export const MAX_ATTEMPTS = 20;
@@ -13,7 +13,7 @@ export async function enqueueOutbox(
   tx: Db,
   e: { queue: string; refId: string; idempotencyKey: string },
 ): Promise<{ created: boolean }> {
-  if (!isQueueName(e.queue)) throw new Error(`fila desconhecida: ${e.queue}`);
+  if (!resolveQueue(e.queue)) throw new Error(`fila desconhecida: ${e.queue}`);
   const rows = await tx
     .insert(schema.outbox)
     .values({ id: randomUUID(), queue: e.queue, refId: e.refId, idempotencyKey: e.idempotencyKey })
@@ -92,7 +92,7 @@ export class PgEffectStore implements EffectStore<Db> {
       await tx
         .update(schema.outbox)
         .set({ status: 'done', updatedAt: new Date() })
-        .where(eq(schema.outbox.idempotencyKey, key));
+        .where(eq(schema.outbox.id, key)); // a chave do job é o id da linha do outbox
       return true;
     });
   }
