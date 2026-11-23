@@ -112,7 +112,7 @@ function nameFrom(before: string): string | null {
     const w = words[i]!;
     const bare = w.replace(/[|,;:]/g, '');
     if (!bare) break;
-    const isName = /^\p{Lu}[\p{L}'’.-]*$/u.test(bare) && !STOP.has(bare.toLowerCase()) && !HONORIFIC.has(bare.toLowerCase().replace(/.$/, ''));
+    const isName = /^\p{Lu}[\p{L}'’.-]*$/u.test(bare) && !STOP.has(bare.toLowerCase()) && !HONORIFIC.has(bare.toLowerCase().replace(/\.+$/, ''));
     const isPart = PARTICLE.has(bare.toLowerCase());
     if (!isName && !isPart) break;
     picked.unshift(bare);
