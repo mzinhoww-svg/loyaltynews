@@ -134,7 +134,7 @@ describe.skipIf(!URL_LOCAL)('rodada simulada local (PostgreSQL real, modelo simu
   it('4. coleta REAL (1 requisição por URL, Crawl-delay, anti-SSRF) → redação simulada → checagem simulada → aprovada', async () => {
     const reports: unknown[] = [];
     for (const id of SOURCES) {
-      const collector = new Collector(createNodeFetcher(), { resolver: systemResolver, flags: FLAGS });
+      const collector = new Collector(createNodeFetcher(), { minSpacingMs: 0, resolver: systemResolver, flags: FLAGS });
       const r = await runFactory({ store, registry, collector, gateway: createLlmGateway(sim), audit: new InMemoryAuditLog(), flags: FLAGS }, { onlySourceIds: [id], limitPerSource: 3, maxArticles: 1 });
       reports.push({ fonte: id, ...r });
     }

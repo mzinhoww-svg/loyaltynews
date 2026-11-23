@@ -1,3 +1,4 @@
+import { stopsCollection } from '../collector/collector';
 import type { Collector, Skip } from '../collector/collector';
 import { eligibility, type SourceRegistry } from '../sources/registry';
 import { canonicalUrl } from '../dedupe/dedupe';
@@ -43,7 +44,7 @@ export async function anchorEvidences(collector: Collector, registry: SourceRegi
     if (r.evidence && !r.evidence.suspicious) out.anchors.push(r.evidence);
     else if (r.skip) {
       out.skipped.push(r.skip);
-      if (r.skip.code === 'rate_limited' || r.skip.code === 'crawl_delay_excessive') break;
+      if (stopsCollection(r.skip)) break;
     } else if (r.evidence?.suspicious) out.skipped.push({ url: link, code: 'gated', detail: 'âncora suspeita (instrução embutida): descartada' });
   }
   return out;

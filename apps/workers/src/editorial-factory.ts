@@ -103,7 +103,7 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
-  const collector = i.collector ?? new Collector(createNodeFetcher(), { now, resolver: systemResolver, flags });
+  const collector = i.collector ?? new Collector(createNodeFetcher(), { minSpacingMs: 0, now, resolver: systemResolver, flags });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
   return runFactory({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
 }

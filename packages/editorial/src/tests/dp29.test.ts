@@ -102,7 +102,7 @@ class Llm implements ChatTransport {
 function deps(llm: ChatTransport, fetcher: MockFetcher, over: Partial<FactoryDeps> = {}): FactoryDeps {
   return {
     store, registry, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags: FLAGS, now: () => NOW,
-    collector: new Collector(fetcher, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON, sleep: async () => {} }), ...over,
+    collector: new Collector(fetcher, { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON, sleep: async () => {} }), ...over,
   };
 }
 const LINK_PRIMARY = '<a href="https://ri.mock.example/noticias/alfa-parceria">comunicado oficial</a>';

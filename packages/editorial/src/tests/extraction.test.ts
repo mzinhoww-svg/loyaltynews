@@ -48,7 +48,7 @@ test('instrução escondida em comentário HTML continua marcando a evidência c
     'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:',
     'https://ri.mock.example/noticias/senado': SENADO_LIKE,
   });
-  const c = new Collector(f, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(f, { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
   const r = await c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/senado');
   assert.ok(r.evidence);
   assert.equal(r.evidence.suspicious, true);
@@ -64,7 +64,7 @@ test('HTTP 429 da fonte vira rate_limited (a fonte pediu pausa); o feed para de 
     'https://ri.mock.example/feed.xml': feed,
     'https://ri.mock.example/noticias/1': { status: 429, headers: { 'retry-after': '120' }, body: '' },
   });
-  const c = new Collector(f, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(f, { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
   const r = await c.collectFeed(MOCK_SOURCE);
   assert.deepEqual(r.skipped.map((s) => s.code), ['rate_limited']);
   assert.match(r.skipped[0]!.detail, /429.*Retry-After: 120/);
@@ -72,6 +72,6 @@ test('HTTP 429 da fonte vira rate_limited (a fonte pediu pausa); o feed para de 
   assert.ok(!f.calls.includes('https://ri.mock.example/noticias/2'), 'não insiste nos demais itens');
   // feed em 429: a própria listagem é pulada
   const f2 = new MockFetcher({ 'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:', 'https://ri.mock.example/feed.xml': { status: 429, headers: {}, body: '' } });
-  const r2 = await new Collector(f2, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectFeed(MOCK_SOURCE);
+  const r2 = await new Collector(f2, { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectFeed(MOCK_SOURCE);
   assert.deepEqual(r2.skipped.map((s) => s.code), ['rate_limited']);
 });

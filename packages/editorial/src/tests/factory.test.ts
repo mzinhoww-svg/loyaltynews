@@ -68,7 +68,7 @@ class FakeLlm implements ChatTransport {
 function deps(llm: ChatTransport, over: Partial<FactoryDeps> = {}): FactoryDeps {
   return {
     store, registry, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags: FLAGS, now: () => NOW,
-    collector: new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }), ...over,
+    collector: new Collector(mockWeb(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }), ...over,
   };
 }
 
@@ -178,7 +178,7 @@ test('coleta: fonte sem feed é relatada (no_feed) e só fontes elegíveis são 
   registry = new SourceRegistry([SOURCE, noFeed]);
   await enableSource();
   assert.equal((await setSourceEnabled(hctx(admin), { sourceId: 'sem-feed', enabled: true })).status, 409, 'sem revisão não habilita');
-  const out = await collectFromSources({ store, registry, collector: new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }) });
+  const out = await collectFromSources({ store, registry, collector: new Collector(mockWeb(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }) });
   assert.deepEqual(out.sources.map((s) => s.sourceId), ['mock-ri']);
   assert.equal((await store.listArticles()).length, 0);
 });

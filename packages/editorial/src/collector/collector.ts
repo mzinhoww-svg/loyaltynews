@@ -5,8 +5,9 @@ import { canonicalUrl, sha256 } from '../dedupe/dedupe';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
 import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
+import { detectChallenge } from './crawl-guards.mjs';
 import { parseFeed, parseHtml, parseSitemap } from './parse';
-import { sanitize } from './sanitize';
+import { sanitize, stripHtml } from './sanitize';
 import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
 import type { Family, Resolver } from './net';
@@ -26,7 +27,14 @@ const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
-  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive';
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge';
+
+/**
+ * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
+ * da fonte PARA. Nunca insistir, repetir com outro cliente ou contornar.
+ */
+export const stopsCollection = (k: { code: SkipCode; detail: string }): boolean =>
+  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || k.code === 'challenge' || (k.code === 'http_error' && k.detail === '403');
 
 export interface Skip { url: string; code: SkipCode; detail: string }
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
@@ -37,11 +45,13 @@ export interface CollectorOptions {
   sleep?: (ms: number) => Promise<void>;
   /** Crawl-delay acima disto (segundos) não é esperado: a coleta da fonte é pulada ('crawl_delay_excessive'). Padrão 120. */
   maxCrawlDelaySec?: number;
+  /** Intervalo mínimo entre requisições ao MESMO host, mesmo sem Crawl-delay (ms). Padrão 3000. Os testes passam 0. */
+  minSpacingMs?: number;
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
-const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive'] as const;
+const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
 const skipCodeOf = (e: unknown): SkipCode =>
   e instanceof UrlRejected ? ((OWN_SKIP_CODES as readonly string[]).includes(e.code) ? (e.code as SkipCode) : 'url_rejected') : 'http_error';
 
@@ -54,6 +64,7 @@ export class Collector {
   private readonly flags: EditorialFlagOverrides | undefined;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly maxCrawlDelaySec: number;
+  private readonly minSpacingMs: number;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
@@ -66,6 +77,7 @@ export class Collector {
     this.flags = opts.flags;
     this.sleep = opts.sleep ?? realSleep;
     this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
+    this.minSpacingMs = opts.minSpacingMs ?? 3000;
   }
 
   /**
@@ -84,12 +96,17 @@ export class Collector {
     }
     const delaySec = this.robotsCache.get(host)?.crawlDelaySec ?? 0;
     if (delaySec > this.maxCrawlDelaySec) throw new UrlRejected('crawl_delay_excessive', `Crawl-delay de ${delaySec}s excede o máximo de ${this.maxCrawlDelaySec}s`);
+    this.hourWindow.set(host, win);
+  }
+
+  /** Espera o maior entre o Crawl-delay do robots.txt e o intervalo mínimo (padrão 3 s) desde a última requisição ao host. */
+  private async space(host: string): Promise<void> {
+    const delayMs = Math.max((this.robotsCache.get(host)?.crawlDelaySec ?? 0) * 1000, this.minSpacingMs);
     const last = this.lastRequestAt.get(host);
-    if (delaySec > 0 && last !== undefined) {
-      const wait = last + delaySec * 1000 - nowMs();
+    if (delayMs > 0 && last !== undefined) {
+      const wait = last + delayMs - this.now().getTime();
       if (wait > 0) await this.sleep(wait);
     }
-    this.hourWindow.set(host, win);
   }
 
   private record(host: string): void {
@@ -108,8 +125,15 @@ export class Collector {
     let cur = url;
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
       const isRobots = new URL(cur).pathname === '/robots.txt';
-      assertAllowedUrl(cur, [source.host], source.pathPrefix, { allowRobots: isRobots });
+      const here = assertAllowedUrl(cur, [source.host], source.pathPrefix, { allowRobots: isRobots });
+      if (i > 0 && !isRobots) {
+        // Redirecionamento: o destino também precisa passar pelo robots.txt (mesmo host; outro host já é recusado acima).
+        const rules = await this.robotsFor(source);
+        if (!rules) throw new UrlRejected('robots_unavailable', 'robots.txt indisponível ao seguir redirecionamento');
+        if (!isAllowedByRobots(rules, here.pathname + here.search)) throw new UrlRejected('robots_disallow', `redirecionamento para caminho vedado pelo robots.txt: ${here.pathname}`);
+      }
       if (!isRobots) await this.throttle(source);
+      await this.space(source.host);
       const { pinned } = await resolvePublic(new URL(cur).hostname, this.resolver);
       const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
       this.record(source.host);
@@ -127,7 +151,11 @@ export class Collector {
     let rules: ReturnType<typeof parseRobots> | null;
     try {
       const r = await this.safeGet(`https://${source.host}/robots.txt`, source);
-      if (r.status === 200) rules = parseRobots(r.body, this.ua);
+      if (r.status === 200) {
+        // 200 com HTML ou desafio no lugar do robots.txt não é "sem restrição": é falha de leitura (fail closed).
+        const html = /<\s*(html|head|body|!doctype)/i.test(r.body.slice(0, 1000));
+        rules = html || detectChallenge({ status: 200, headers: r.headers, html: r.body, text: r.body }) ? null : parseRobots(r.body, this.ua);
+      }
       else if (r.status === 404) rules = { allow: [], disallow: [], crawlDelaySec: null }; // sem robots = sem restrição
       else rules = null; // 401/403/5xx: tratar como indisponível => não coletar (fail closed)
     } catch { rules = null; }
@@ -151,10 +179,13 @@ export class Collector {
     try { r = await this.safeGet(u.toString(), source); } catch (e) {
       return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
-    const gate = detectGate(r);
-    if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
+    // Ordem importa: 429 e erros HTTP vêm ANTES de paywall/desafio (uma página de erro com "faça login" não pode esconder o 429 e manter a coleta insistindo).
     if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+    const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
+    if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+    const gate = detectGate(r);
+    if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
     const meta = parseHtml(r.body, u.toString());
     const san = sanitize(meta.bodyHtml);
@@ -193,7 +224,7 @@ export class Collector {
       else if (r.skip) {
         out.skipped.push(r.skip);
         // sem insistir quando a fonte pede pausa: limite por hora ou Crawl-delay excessivo
-        if (r.skip.code === 'rate_limited' || r.skip.code === 'crawl_delay_excessive') break;
+        if (stopsCollection(r.skip)) break;
       }
     }
     return out;
@@ -233,7 +264,7 @@ export class Collector {
       if (r.evidence) out.evidences.push(r.evidence);
       else if (r.skip) {
         out.skipped.push(r.skip);
-        if (r.skip.code === 'rate_limited' || r.skip.code === 'crawl_delay_excessive') break;
+        if (stopsCollection(r.skip)) break;
       }
     }
     return out;
@@ -249,10 +280,12 @@ export class Collector {
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     try {
       const r = await this.safeGet(u.toString(), source);
-      const gate = detectGate(r);
-      if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
       if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
       if (r.status !== 200) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+      const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
+      if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+      const gate = detectGate(r);
+      if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
       return { body: r.body };
     } catch (e) {
       return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };

@@ -58,7 +58,7 @@ test('collectSitemap: usa só o prefixo, as mais recentes primeiro, respeita o l
     'https://ri.mock.example/sitemap.xml': `<urlset><url><loc>https://ri.mock.example/noticias/velha</loc><lastmod>2026-01-01</lastmod></url><url><loc>https://ri.mock.example/outros/x</loc><lastmod>2026-11-24</lastmod></url><url><loc>https://ri.mock.example/noticias/nova</loc><lastmod>2026-11-24</lastmod></url><url><loc>https://ri.mock.example/noticias/media</loc><lastmod>2026-06-01</lastmod></url></urlset>`,
     'https://ri.mock.example/noticias/nova': PAGE('Nova'), 'https://ri.mock.example/noticias/media': PAGE('Media'), 'https://ri.mock.example/noticias/velha': PAGE('Velha'),
   });
-  const c = new Collector(f, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(f, { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
   const r = await c.collectSitemap(SITEMAP_SRC, 2);
   assert.deepEqual(r.evidences.map((e) => e.title), ['Nova', 'Media']);
   assert.ok(!f.calls.includes('https://ri.mock.example/outros/x'), 'fora do prefixo não é lido');
@@ -76,7 +76,7 @@ test('collectSitemap: índice abre só os 2 filhos mais recentes; 429 no sitemap
     'https://ri.mock.example/s-2026a.xml': { status: 429, headers: { 'retry-after': '60' }, body: '' },
     'https://ri.mock.example/noticias/b1': PAGE('B1'),
   });
-  const c = new Collector(f, { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(f, { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON });
   const r = await c.collectSitemap(SITEMAP_SRC);
   assert.ok(!f.calls.includes('https://ri.mock.example/s-2020.xml'));
   assert.deepEqual(r.skipped.map((s) => s.code), ['rate_limited']);
