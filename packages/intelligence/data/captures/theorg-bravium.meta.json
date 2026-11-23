@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "theorg-bravium",
+  "url": "https://theorg.com/org/bravium",
+  "finalUrl": "https://theorg.com/org/bravium",
+  "capturedAt": "2026-11-23T15:20:38.272Z",
+  "robots": "robots.txt permite",
+  "length": 2402,
+  "sha256Claimed": "937e05c90c6e154e81b12267d6d1c872d82ceaff2482f8ef1c8bfad6abdc10b7"
+}

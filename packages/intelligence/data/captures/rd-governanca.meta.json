@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "rd-governanca",
+  "url": "https://ri.rdsaude.com.br/governanca-corporativa",
+  "finalUrl": "https://ri.rdsaude.com.br/governanca-corporativa",
+  "capturedAt": "2026-11-23T13:10:00.696Z",
+  "robots": "robots.txt ausente",
+  "length": 45067,
+  "sha256Claimed": "b208cd8d3fc353fa16e7edef5b7095dd9bdf82fefd1ebbaec3e50b2607338846"
+}

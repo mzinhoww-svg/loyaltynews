@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "mastercard-exec",
+  "url": "https://www.mastercard.com/news/latin-america/pt-br/noticias/biografias/",
+  "finalUrl": "https://www.mastercard.com/news/latin-america/pt-br/noticias/biografias/",
+  "capturedAt": "2026-11-23T14:51:57.558Z",
+  "robots": "robots.txt permite",
+  "length": 13015,
+  "sha256Claimed": "5577f079b036eed724fc8b3a65305689603fce2b84457a23707cecdade9050e2"
+}

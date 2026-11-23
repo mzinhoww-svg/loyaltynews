@@ -22,6 +22,7 @@ export async function criarBanco(env: Record<string, string | undefined>, fabric
   if (env.DATABASE_URL) {
     const { Pool } = await import('pg');
     const pool = new Pool({ connectionString: env.DATABASE_URL });
+    pool.on('error', () => undefined); // C1: erro de conexão ociosa não vira exceção com o objeto de opções no log
     return { db: pool as unknown as Db, origem: 'postgres' };
   }
   if (fabricaDev && env.LN_STUDIO_DEV_DB === 'pglite') return fabricaDev();

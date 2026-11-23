@@ -1,0 +1,135 @@
+{
+  "datasetId": "terms.review.v1",
+  "verifiedAt": "2026-11-23T10:36:06.404Z",
+  "verifier": "LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "url": "https://www.livelo.com.br/imprensa",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:36:08.688Z",
+      "content_sha256": "4450396c90bcb12f33f0f210ffc338883c7b9f90e2578cea2bf8ccf542ca65c5",
+      "text_length": 13339,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-app-termos",
+      "url": "https://banco.bradesco/assets/common/inc/termo-de-uso-bradesco-celular.shtm",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:36:11.790Z",
+      "content_sha256": "90797a667cb7c9d4302069af254902894b7f5acb46842dc009daf4d50eb8430d",
+      "text_length": 16325,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://banco.bradesco/assets/common/inc/termo-de-uso-bradesco-celular.shtm"
+    },
+    {
+      "id": "latampass-conheca",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:36:15.577Z",
+      "content_sha256": "ab12e961fb809d0a6f4c3b5e1129514fb6a820cd337a64edbc03e1463ca1c772",
+      "text_length": 4642,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "url": "https://web.abemf.com.br/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:36:21.703Z",
+      "content_sha256": "c303f7984b0b16306098e10c040570a4154f56018568bc3cd2cc17269f9307b3",
+      "text_length": 4260,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/"
+    },
+    {
+      "id": "abemf-associados",
+      "url": "https://web.abemf.com.br/associados/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:36:27.209Z",
+      "content_sha256": "c9119986bb5f6db6dd00fb298f03dbcd9184ea234f97501d6b37925c967aa395",
+      "text_length": 3658,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/associados/"
+    },
+    {
+      "id": "dotz-home",
+      "url": "https://www.dotz.com.br/home",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:22:26.774Z",
+      "content_sha256": "36695375a23ee6353ac117012e778d2f2709a5a9574c4934a6aec283ed0f3ddd",
+      "text_length": 3677,
+      "robots": "robots.txt permite (conferido com scripts/verify-dataset.mjs --robots antes da captura)",
+      "note": "",
+      "final_url": "https://www.dotz.com.br/home"
+    },
+    {
+      "id": "dotz-conta-termos",
+      "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:36:34.693Z",
+      "content_sha256": "39312b3bf664602caa4c96ce5f7ee4e5a39017bd93e912c7aba504f4b5b5f345",
+      "text_length": 34774,
+      "robots": "robots.txt ausente",
+      "note": "",
+      "final_url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/"
+    }
+  ],
+  "records": [
+    {
+      "ref": "terms:livelo-rodape",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "terms:bradesco-app",
+      "source_id": "bradesco-app-termos",
+      "quote_found": true
+    },
+    {
+      "ref": "terms:latam-rodape",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "terms:abemf-rodape-home",
+      "source_id": "abemf-home",
+      "quote_found": true
+    },
+    {
+      "ref": "terms:abemf-rodape-associados",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "terms:dotz-rodape",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "terms:dotz-conta",
+      "source_id": "dotz-conta-termos",
+      "quote_found": true
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { InventoryBook } from './inventory';
 import { MetricStore } from './metrics';
 import { AdServer } from './rotation';
 import type { CommercialFormat } from './types';
+import type { DeliveryRow } from './report';
 
 export interface Actor { id: string; /** Calculado pelo Backend (papel comercial/admin). Handlers de Studio exigem true. */ canManageCommercial: boolean }
 
@@ -23,13 +24,18 @@ export interface CommercialCtx extends CommercialState {
   today: string;
   flags: Partial<FlagState>;
   actor?: Actor;
+  /**
+   * Linhas diárias de entrega (ad_delivery_daily) para o relatório do anunciante. Opcional: quem hidrata o contexto (Backend) preenche;
+   * sem isso o relatório diz "sem entrega registrada" (nunca inventa número).
+   */
+  delivery?: readonly DeliveryRow[];
 }
 
 export function createCommercialState(): CommercialState {
   return { catalog: CATALOG, crm: new Crm(), inventory: new InventoryBook(), campaigns: new CampaignBook(), ads: new AdServer(), metrics: new MetricStore() };
 }
-export function makeCtx(state: CommercialState, extra: { now: string; today?: string; flags?: Partial<FlagState>; actor?: Actor }): CommercialCtx {
-  return { ...state, now: extra.now, today: extra.today ?? extra.now.slice(0, 10), flags: extra.flags ?? {}, actor: extra.actor };
+export function makeCtx(state: CommercialState, extra: { now: string; today?: string; flags?: Partial<FlagState>; actor?: Actor; delivery?: readonly DeliveryRow[] }): CommercialCtx {
+  return { ...state, now: extra.now, today: extra.today ?? extra.now.slice(0, 10), flags: extra.flags ?? {}, actor: extra.actor, delivery: extra.delivery };
 }
 
 // ---------- snapshot do estado inteiro ----------

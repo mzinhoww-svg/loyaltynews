@@ -25,6 +25,8 @@ export interface RoleObservation {
   observedAt: string; // ISO
   /** 'present' = a fonte mostra a pessoa neste cargo; 'left' = a fonte diz que saiu. */
   kind: 'present' | 'left';
+  /** 'oficial' (padrão): página da própria empresa ou comunicado. 'secundaria': LinkedIn/The Org (só página pública): registra "a confirmar", nunca Move nem fato. */
+  sourceLevel?: 'oficial' | 'secundaria';
   /** Preencha só se a própria fonte anuncia a mudança (comunicado/nota). Sem isso, primeira observação é linha de base, não Move. */
   announcement?: { effectiveDate?: string };
   /** Campos além de nome/cargo/empresa: recusados com a flag desligada. */

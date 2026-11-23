@@ -13,7 +13,7 @@ export interface HttpResult {
 }
 
 export interface PureRoute<H = unknown> {
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'DELETE';
   /** Caminho com segmentos `:nome` opcionais; os valores entram na entrada do handler (e vencem o que o cliente enviar). */
   path: string;
   auth: 'public' | 'studio';
@@ -80,7 +80,7 @@ export function createDispatcher<H>(opts: DispatcherOptions<H>) {
       const result = await opts.call(route, { ...base, ...params }, c);
       return json(result.body, result.status);
     };
-    return execute(req, route.auth === 'public' ? 'public' : (route.perm ?? opts.studioPerm), fn, {}, route.auth === 'studio' && method === 'POST'
+    return execute(req, route.auth === 'public' ? 'public' : (route.perm ?? opts.studioPerm), fn, {}, route.auth === 'studio' && method !== 'GET'
       ? { audit: { action: `${opts.auditResource}.${route.path.split('/').filter((x) => x && !x.startsWith(':')).slice(-2).join('.')}`, resource: opts.auditResource } }
       : {});
   };
