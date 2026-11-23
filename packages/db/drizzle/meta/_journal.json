@@ -141,6 +141,13 @@
       "when": 1795431067224,
       "tag": "0019_budget_pendente_killswitch",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795432130072,
+      "tag": "0020_budget_custo_nao_negativo",
+      "breakpoints": true
     }
   ]
 }

@@ -38,6 +38,7 @@ export const budgetReservations = pgTable(
     check('budget_reservations_pool', sql`${t.pool} IN ('allocation', 'reserve')`),
     check('budget_reservations_task_class', sql`${t.taskClass} IN ('essential', 'non_essential', 'premium', 'reserve')`),
     check('budget_reservations_lane', sql`${t.lane} IN ('text', 'image')`),
+    check('budget_reservations_actual', sql`${t.actualMicrousd} IS NULL OR ${t.actualMicrousd} >= 0`),
     check(
       'budget_reservations_conciliada',
       sql`${t.state} <> 'conciliada' OR (${t.actualMicrousd} IS NOT NULL AND ${t.generationId} IS NOT NULL)`,

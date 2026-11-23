@@ -41,13 +41,19 @@ async function appendEvent(tx: SqlRunner, e: LedgerEvent): Promise<void> {
   const id = e.reservationId;
   switch (e.type) {
     case 'reserve': {
-      const max = e.amountMicro ?? 0;
+      // sem padrões silenciosos: classe, bolsa, faixa, provedor, modelo e tarefa vêm do gate; faltando algum, a reserva não nasce
+      for (const [k, v] of [['taskId', e.taskId], ['taskClass', e.taskClass], ['pool', e.pool], ['lane', e.lane], ['provider', e.provider], ['model', e.model]] as const) {
+        if (v === undefined || v === '') throw new Error(`reserva sem ${k}: campo obrigatório`);
+      }
+      if (e.escalation === undefined) throw new Error('reserva sem escalation: campo obrigatório');
+      if (!Number.isSafeInteger(e.amountMicro) || (e.amountMicro as number) < 0) throw new Error('reserva com valor inválido');
+      const max = e.amountMicro as number;
       await tx.execute(sql`
         INSERT INTO budget_reservations
           (id, task_id, idempotency_key, month_key, route, provider, model, max_estimated_microusd, state, pool, task_class, lane, escalation, reserved_at)
         VALUES
-          (${id}, ${e.taskId ?? ''}, ${id}, ${e.monthKey}, ${e.route ?? ''}, ${e.provider ?? ''}, ${e.model ?? ''}, ${max},
-           'reservada', ${e.pool ?? 'allocation'}, ${e.taskClass ?? 'essential'}, ${e.lane ?? 'text'}, ${e.escalation ?? false}, ${at})`);
+          (${id}, ${e.taskId}, ${id}, ${e.monthKey}, ${e.route ?? ''}, ${e.provider}, ${e.model}, ${max},
+           'reservada', ${e.pool}, ${e.taskClass}, ${e.lane}, ${e.escalation}, ${at})`);
       // Linha do ledger logo após a reserva; o guarda do banco confere que a reserva nasceu 'reservada'.
       await tx.execute(sql`
         INSERT INTO budget_ledger (id, month_key, reservation_id, kind, delta_microusd, idempotency_key, at)
