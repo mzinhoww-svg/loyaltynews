@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE } from './lib/guards.mjs';
+import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage']);
@@ -89,7 +89,7 @@ function semComentarios(txt, r) {
 
 // 4. variáveis só de teste (alerta do PM): nunca no ambiente, no build nem em arquivos de deploy
 const argv = parseArgs(process.argv.slice(2));
-for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy) })) problems.push(`ambiente: ${msg}`);
+for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy), migracao: Boolean(argv.migracao) })) problems.push(`ambiente: ${msg}`);
 for (const f of all) {
   const r = rel(f);
   if (r.startsWith('infra/tests/') || r === 'infra/scripts/lib/guards.mjs') continue; // fixtures e definições dos próprios padrões
@@ -109,6 +109,7 @@ for (const f of all) {
   }
   if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
   if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE/PORTAL_MODE=mock atribuído em ${r}`);
+  if (ASSIGN_WAIVER.test(semComentarios(txt, r))) problems.push(`variável da dispensa de backup (DP-23) atribuída em ${r}: ela vale só no processo da migração`);
   // Vitrine (Security R8): nunca atribuída em configuração de deploy de PRODUÇÃO. Em environments.json vale só a subárvore ambientes.production
   // (o texto de regras e o contrato citam o nome); em workflows, Dockerfile e next.config qualquer atribuição reprova (a vitrine entra pelo release.json).
   if (r === 'infra/vertra/environments.json') {

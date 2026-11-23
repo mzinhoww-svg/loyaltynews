@@ -45,3 +45,14 @@ Criar `ln-staging-db` (PostgreSQL 18, 1024 MB), `ln-staging-redis` (8.2, 512 MB)
 - [ ] Antes do go-live: `PORTAL_VITRINE` **removida** do app de staging (variável ausente) e pacote reconstruído **sem** `--vitrine` (`release.json.vitrine=false`).
 - [ ] `healthcheck.mjs --no-mock /` sem marcadores ("Conteúdo de demonstração", "MOCK · dados de exemplo", "[MOCK]") em staging e produção.
 - [ ] Nenhuma configuração de produção atribui `PORTAL_VITRINE` (`ci-checks` aprovado).
+
+## G. Produção NÃO indexável até o go-live (DP-24, decisão 13 do Security)
+- [ ] Todo deploy de produção ANTES do go-live: `healthcheck.mjs --url <URL> --expect-commit <sha> --denied /studio --no-mock / --noindex / --canonical <URL>` passa (robots `Disallow: /`, sitemap vazio, meta e X-Robots noindex) (I2). Se falhar, o deploy não conta.
+- [ ] `PORTAL_INDEXAVEL` NÃO existe no app de produção (nem em staging, nunca). O pacote não indexável tem `release.json.indexavel=false`.
+- [ ] **Go-live (I3):** pacote NOVO `package-web.mjs --profile production --indexavel` (`release.json.indexavel=true`) + `set_env PORTAL_INDEXAVEL=1` (valor exato `1`, sem espaço) junto com o `APP_COMMIT` novo; só depois do domínio definitivo (R1-04) e do backup externo. Conferir sem `--noindex`: robots com `Allow`, sitemap com a URL definitiva.
+
+## H. Migração de produção sem backup externo (DP-23, decisão 13): dispensa com prazo
+- [ ] 1ª migração: `migrate.mjs --env production --confirm-production --first-run-empty` (banco sem tabelas).
+- [ ] Demais, até o backup externo existir: `--waive-external-backup` no PROCESSO da migração (nunca no app da Vertra, no build nem no CI: o guard reprova), com `LN_BACKUP_WAIVER_REF=DP-23`, `LN_BACKUP_WAIVER_UNTIL=AAAA-MM-DD` (futuro, ≤ 60 dias) e `LN_BACKUP_VERTRA_SNAPSHOT_AT=<ISO>` (B2: snapshot da Vertra do banco de produção com MENOS de 24 h, conferido por `list_snapshots`; `create_snapshot` antes se preciso).
+- [ ] Registrar no `status.json` o risco: sem backup externo o RPO de 6 h e o RTO de 4 h da ADR-012 não são cumpridos; vale só o snapshot diário da Vertra (sem PITR confirmado) e o Blob não tem backup.
+- [ ] Antes de qualquer dado real de usuário em produção: backup externo ativo (`BACKUP_DEST`, chave GPG, credenciais) e a dispensa deixa de ser usada.

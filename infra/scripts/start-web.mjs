@@ -31,7 +31,7 @@ export function startProblems(env, release) {
   const vitRel = release.vitrine === true ? '1' : '';
   if (vitEnv !== vitRel) p.push(release.vitrine === true ? 'PORTAL_VITRINE ausente em execução: o pacote é de VITRINE (release.json.vitrine=true); defina PORTAL_VITRINE=1' : `PORTAL_VITRINE=${env.PORTAL_VITRINE} em execução, mas o pacote NÃO é de vitrine (release.json.vitrine=false): apague a variável`);
   // DP-24: em execução PORTAL_INDEXAVEL tem de ser 1 só se o release.json for indexável (go-live); do contrário ausente.
-  const idxEnv = String(env.PORTAL_INDEXAVEL ?? '').trim();
+  const idxEnv = String(env.PORTAL_INDEXAVEL ?? ''); // exato, sem trim (I4)
   const idxRel = release.indexavel === true ? '1' : '';
   if (idxEnv !== idxRel) p.push(release.indexavel === true ? 'PORTAL_INDEXAVEL ausente em execução: o pacote é INDEXÁVEL (release.json.indexavel=true); defina PORTAL_INDEXAVEL=1' : `PORTAL_INDEXAVEL=${env.PORTAL_INDEXAVEL} em execução, mas o pacote NÃO é indexável (release.json.indexavel=false): apague a variável (a indexação só liga no go-live)`);
   const commit = String(env.APP_COMMIT ?? '');

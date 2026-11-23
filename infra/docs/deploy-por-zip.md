@@ -73,3 +73,6 @@ Para a avaliação visual o staging pode exibir o portal com fixtures **rotulada
 - **Sonda do staging COM vitrine**: `healthcheck.mjs --url <URL> --expect-commit <sha> --denied /studio --vitrine / --noindex / --canonical <URL>` (exige a faixa). Sem vitrine: `--no-mock /`.
 - **Ensaio**: `ensaio-pacote.mjs` roda os 7 testes obrigatórios (production recusado em build e start; pacote production com vitrine recusado; start divergente recusado; sitemap e feed sem itens; `PORTAL_SOURCE=mock` recusado; teste unitário do portal).
 - **R9 (sair do staging antes do go-live)**: ao ligar, anotar o dia no `status.json`; antes do go-live apagar `PORTAL_VITRINE` do app (`delete_env`), subir um pacote **sem** `--vitrine` e conferir que `healthcheck.mjs --no-mock /` passa (sem marcadores). O `start-web.mjs` já impede o app de subir com a variável sobrando.
+
+## 6. Staging completo e produção (banco, Redis, worker); produção não indexável (DP-22/23/24)
+Pedido e ordem de memória: `releases\staging\PEDIDO-PROVISIONAMENTO-v2.md`. Pacotes: web `--profile staging|production` (`PORTAL_SOURCE=api`), worker `--app workers`, produção indexável só com `--indexavel` no go-live. Credenciais sem exposição: `credenciais-sem-expor.md`. As variáveis `LN_BACKUP_WAIVER_*` e `LN_BACKUP_VERTRA_SNAPSHOT_AT` existem só no processo da migração.

@@ -5,11 +5,17 @@
 const DEPLOY_ENVS = ['staging', 'production', 'homologacao', 'producao']; // o scaffold cita homologacao/producao; aceitamos os dois vocabulários
 
 /** Problemas no ambiente do processo. `deploy` força o modo estrito (staging/produção/build de deploy). */
-export function envProblems(env = process.env, { deploy = false } = {}) {
+export function envProblems(env = process.env, { deploy = false, migracao = false } = {}) {
   const p = [];
   const v = env.LN_STUDIO_TEST_SESSION;
   if (v !== undefined && v !== '') {
     p.push('LN_STUDIO_TEST_SESSION está definida: a sessão simulada do Studio é SÓ de teste e não pode existir no ambiente nem no build (qualquer valor reprova)');
+  }
+  // B1 (Security, decisao 13): a dispensa de backup externo (DP-23) existe SO no processo da migracao (migrate.mjs passa migracao:true); em app, build, start ou CI reprova.
+  if (!migracao) {
+    for (const k of ['LN_BACKUP_WAIVER_REF', 'LN_BACKUP_WAIVER_UNTIL', 'LN_BACKUP_VERTRA_SNAPSHOT_AT']) {
+      if (String(env[k] ?? '') !== '') p.push(`${k} definida: a dispensa de backup externo (DP-23) vale so no processo da migracao, nunca no app da Vertra, no build nem no CI`);
+    }
   }
   const strict = deploy || DEPLOY_ENVS.includes(String(env.APP_ENV ?? '').toLowerCase());
   if (strict) {
@@ -39,7 +45,8 @@ export function envProblems(env = process.env, { deploy = false } = {}) {
     }
     // DP-24 (proprietario) + Security: a PRODUCAO nasce NAO indexavel (noindex, robots Disallow: /, sem sitemap). Indexar so com o interruptor explicito PORTAL_INDEXAVEL=1,
     // ligado no go-live, e so com APP_ENV=production. Em staging ou com outro valor = reprovado (staging nunca e indexavel).
-    const indexavel = String(env.PORTAL_INDEXAVEL ?? '').trim();
+    // I4 (Security): comparacao EXATA, sem trim: o portal compara === '1'; ' 1' passaria no guard e deixaria a producao silenciosamente nao indexavel.
+    const indexavel = String(env.PORTAL_INDEXAVEL ?? '');
     if (indexavel !== '') {
       if (indexavel !== '1') p.push(`PORTAL_INDEXAVEL=${env.PORTAL_INDEXAVEL}: so o valor 1 e aceito (e so em producao)`);
       else if (!['production', 'producao'].includes(String(env.APP_ENV ?? '').trim().toLowerCase())) p.push(`PORTAL_INDEXAVEL=1 com APP_ENV=${env.APP_ENV || '(vazio)'}: so a producao pode ser indexavel (staging nunca)`);
@@ -65,6 +72,8 @@ export const ASSIGN_STUDIO = /LN_STUDIO_TEST_SESSION["']?\s*[=:]/;
 export const ASSIGN_PORTAL_MOCK = /PORTAL_(?:SOURCE|MODE)["']?\s*[=:]\s*["']?(?:mock|intelligence)\b/i;
 
 // Vitrine (R8): ATRIBUIÇÃO de PORTAL_VITRINE (`PORTAL_VITRINE=1`, `PORTAL_VITRINE: '1'`, `"PORTAL_VITRINE": "1"`); LER (`process.env.PORTAL_VITRINE === '1'`) ou citar o nome não conta.
+// B1: ATRIBUICAO das variaveis da dispensa em configuracao de deploy (ler ou citar o nome nao conta).
+export const ASSIGN_WAIVER = /LN_BACKUP_(?:WAIVER_(?:REF|UNTIL)|VERTRA_SNAPSHOT_AT)["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
 export const ASSIGN_VITRINE = /PORTAL_VITRINE["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
 // Marcadores que só existem com a vitrine ligada (Security R5/R8): a home de produção, e de staging sem vitrine, não pode conter nenhum.
 export const VITRINE_MARCADORES = ['Conteúdo de demonstração', 'MOCK · dados de exemplo', '[MOCK]'];

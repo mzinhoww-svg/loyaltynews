@@ -119,7 +119,7 @@ try {
     }
   }
   r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, APP_ENV: 'staging', PORTAL_INDEXAVEL: '1' } });
-  step('[DP-24] start RECUSADO com PORTAL_INDEXAVEL=1 fora de produção', r.status !== 0 && /so a producao pode ser indexavel|PORTAL_INDEXAVEL/.test(`${r.stdout}${r.stderr}`));
+  step('[DP-24] start RECUSADO com PORTAL_INDEXAVEL=1 fora de produção', r.status !== 0 && /so a producao pode ser indexavel/.test(`${r.stdout}${r.stderr}`));
   if (vitrine) {
     const e = { ...clean, ...appEnv }; delete e.PORTAL_VITRINE;
     r = runChain(ca.start, { cwd: work, env: e });

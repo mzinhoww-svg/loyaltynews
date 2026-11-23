@@ -18,13 +18,18 @@ import { envProblems } from './lib/guards.mjs';
 const args = parseArgs(process.argv.slice(2));
 
 /** Valida a dispensa de backup externo (DP-23): referencia DP-23, data AAAA-MM-DD ainda nao vencida e a no maximo 60 dias. Devolve o motivo da recusa ou ''. Pura (testada). */
-export function waiverProblem(ate, ref, agora) {
+export function waiverProblem(ate, ref, agora, snapshotEm) {
   if (String(ref ?? '') !== 'DP-23') return 'LN_BACKUP_WAIVER_REF deve ser DP-23 (decisao do proprietario)';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ate)) return 'LN_BACKUP_WAIVER_UNTIL deve ser AAAA-MM-DD';
   const fim = new Date(`${ate}T23:59:59Z`);
   if (Number.isNaN(fim.getTime())) return 'LN_BACKUP_WAIVER_UNTIL invalida';
   if (fim.getTime() < agora.getTime()) return `a dispensa venceu em ${ate}`;
   if (fim.getTime() - agora.getTime() > 60 * 24 * 3600 * 1000) return 'prazo maior que 60 dias: renove por periodos curtos';
+  // B2 (Security, decisao 13): antes de migrar sob dispensa, a Vertra tem de ter um backup (snapshot) do banco de producao com MENOS de 24 h, conferido por leitura (list_snapshots) e informado aqui.
+  const snap = new Date(String(snapshotEm ?? ''));
+  if (!snapshotEm || Number.isNaN(snap.getTime())) return 'LN_BACKUP_VERTRA_SNAPSHOT_AT deve ser o instante (ISO 8601) do snapshot mais recente da Vertra para este banco (list_snapshots)';
+  if (snap.getTime() > agora.getTime() + 5 * 60 * 1000) return 'LN_BACKUP_VERTRA_SNAPSHOT_AT esta no futuro';
+  if (agora.getTime() - snap.getTime() > 24 * 3600 * 1000) return 'o snapshot da Vertra tem mais de 24 h: tire um novo antes de migrar (create_snapshot) e informe o instante';
   return '';
 }
 const envName = canonEnv(args.env);
@@ -32,13 +37,13 @@ if (!envName) fail('use --env staging|production', 2);
 requireEnv(['APP_ENV', 'DATABASE_URL', 'DB_SSL_CA_PEM', 'DB_SSL_CERT_PEM', 'DB_SSL_KEY_PEM']);
 if (canonEnv(process.env.APP_ENV) !== envName) fail(`APP_ENV (${process.env.APP_ENV}) não corresponde a --env ${envName}: recusado`, 2);
 
-const probs = envProblems(process.env, { deploy: true });
+const probs = envProblems(process.env, { deploy: true, migracao: true });
 if (probs.length) fail(`ambiente reprovado: ${probs.join('; ')}`, 1);
 
 let alvo;
 try { alvo = assertBound({ env: envName, databaseUrl: process.env.DATABASE_URL, root: process.cwd() }); } catch (e) { fail(e.message, 2); }
 
-if (run(process.execPath, ['infra/scripts/ci-checks.mjs', '--deploy']).status !== 0) fail('ci-checks reprovado: migração recusada');
+if (run(process.execPath, ['infra/scripts/ci-checks.mjs', '--deploy', '--migracao']).status !== 0) fail('ci-checks reprovado: migração recusada');
 
 if (envName === 'production') {
   if (!args['confirm-production']) fail('produção exige --confirm-production', 2);
@@ -53,7 +58,7 @@ if (envName === 'production') {
     // DP-23 (proprietario): ate o lancamento a producao roda so com o backup diario da Vertra; o backup externo (ADR-012) fica para depois. A dispensa e EXPLICITA, com prazo
     // (LN_BACKUP_WAIVER_UNTIL=AAAA-MM-DD, no maximo 60 dias a frente) e referencia (LN_BACKUP_WAIVER_REF=DP-23); sem isso, ou vencida, a migracao recusa como antes.
     const ate = String(process.env.LN_BACKUP_WAIVER_UNTIL ?? '');
-    const prazo = waiverProblem(ate, process.env.LN_BACKUP_WAIVER_REF, new Date());
+    const prazo = waiverProblem(ate, process.env.LN_BACKUP_WAIVER_REF, new Date(), process.env.LN_BACKUP_VERTRA_SNAPSHOT_AT);
     if (prazo) fail(`--waive-external-backup recusado: ${prazo}`, 2);
     console.warn(`ATENCAO (DP-23): migracao de producao SEM backup externo fresco (dispensa ate ${ate}); vale o backup diario da Vertra. Risco aceito pelo proprietario; registrar no status.`);
   } else {

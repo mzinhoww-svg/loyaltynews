@@ -592,12 +592,17 @@ test('DP-23: waiverProblem aceita só DP-23, data futura de até 60 dias; recusa
   const corpo = src.slice(src.indexOf('export function waiverProblem'), src.indexOf('\n}\n', src.indexOf('export function waiverProblem')) + 3).replace('export ', '');
   const waiverProblem = new Function(corpo + '; return waiverProblem;')();
   const hoje = new Date('2026-11-23T12:00:00Z');
-  assert.equal(waiverProblem('2026-12-20', 'DP-23', hoje), '');
-  assert.match(waiverProblem('2026-12-20', 'outro', hoje), /DP-23/);
-  assert.match(waiverProblem('20/12/2026', 'DP-23', hoje), /AAAA-MM-DD/);
-  assert.match(waiverProblem('2026-11-20', 'DP-23', hoje), /venceu/);
-  assert.match(waiverProblem('2027-06-01', 'DP-23', hoje), /60 dias/);
-  assert.match(waiverProblem('', 'DP-23', hoje), /AAAA-MM-DD/);
+  const snap = '2026-11-23T06:00:00Z'; // 6 h antes de 'hoje'
+  assert.equal(waiverProblem('2026-12-20', 'DP-23', hoje, snap), '');
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje), /SNAPSHOT_AT/, 'sem snapshot recusa (B2)');
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje, '2026-11-22T06:00:00Z'), /mais de 24 h/);
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje, '2026-11-24T06:00:00Z'), /futuro/);
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje, 'ontem'), /SNAPSHOT_AT/);
+  assert.match(waiverProblem('2026-12-20', 'outro', hoje, snap), /DP-23/);
+  assert.match(waiverProblem('20/12/2026', 'DP-23', hoje, snap), /AAAA-MM-DD/);
+  assert.match(waiverProblem('2026-11-20', 'DP-23', hoje, snap), /venceu/);
+  assert.match(waiverProblem('2027-06-01', 'DP-23', hoje, snap), /60 dias/);
+  assert.match(waiverProblem('', 'DP-23', hoje, snap), /AAAA-MM-DD/);
 });
 
 test('DP-23: migrate de produção com --waive-external-backup sem referência/prazo recusa (código 2) e sem a flag exige o backup', () => {
@@ -605,4 +610,32 @@ test('DP-23: migrate de produção com --waive-external-backup sem referência/p
   const x = node('migrate.mjs', ['--env', 'production', '--confirm-production', '--waive-external-backup'], { env: base });
   assert.notEqual(x.status, 0);
   assert.doesNotMatch(x.stdout + x.stderr, /ATENCAO \(DP-23\)/, 'sem vínculo a migração nem chega à dispensa');
+});
+
+test('B1 (decisão 13): as variáveis da dispensa de backup reprovam em app/build/CI e só passam no processo da migração; atribuição em config reprova no ci-checks', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const env = { APP_ENV: 'production', LN_BACKUP_WAIVER_REF: 'DP-23', LN_BACKUP_WAIVER_UNTIL: '2026-12-20', LN_BACKUP_VERTRA_SNAPSHOT_AT: '2026-11-23T06:00:00Z' };
+  assert.equal(envProblems(env, { deploy: true }).filter((m) => /DP-23/.test(m)).length, 3);
+  assert.equal(envProblems(env, { deploy: true, migracao: true }).filter((m) => /DP-23/.test(m)).length, 0);
+  assert.equal(node('guard-env.mjs', [], { env: { ...cleanEnv(), ...env } }).status, 1);
+  const bad = tmp();
+  put(bad, '.github/workflows/migrar.yml', 'env:\n  LN_BACKUP_WAIVER_REF: DP-23\n');
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /dispensa de backup \(DP-23\) atribuída em .*migrar\.yml/);
+  rmSync(bad, { recursive: true, force: true });
+  const ok = tmp();
+  put(ok, 'docs/nota.md', 'A dispensa usa LN_BACKUP_WAIVER_REF=DP-23 so no processo da migracao.');
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0, 'citar o nome em texto não reprova');
+  rmSync(ok, { recursive: true, force: true });
+});
+
+test('I4 (decisão 13): PORTAL_INDEXAVEL com espaço (" 1", "1 ") reprova; só "1" exato em production; start-web também compara exato', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const v of [' 1', '1 ', ' 1 ', '01']) assert.match(envProblems({ APP_ENV: 'production', PORTAL_INDEXAVEL: v }, { deploy: true }).join('|'), /so o valor 1/, JSON.stringify(v));
+  assert.deepEqual(envProblems({ APP_ENV: 'production', PORTAL_INDEXAVEL: '1' }, { deploy: true }), []);
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'c'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'production', indexavel: true };
+  assert.match(startProblems({ APP_ENV: 'production', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl, PORTAL_INDEXAVEL: ' 1' }, rel).join('|'), /PORTAL_INDEXAVEL ausente|so o valor 1/);
 });
