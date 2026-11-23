@@ -13,6 +13,8 @@ export interface E2eBackend {
   seedAlertasWatchlist(): Promise<{ gerados: number }>;
   /** Semeia dois artigos MOCK (sampleArticle da Editorial) para a leitura do piloto; o mapa a1/a2 é fixado pelo teste. Idempotente. */
   seedPilotoArtigos(): Promise<{ artigos: string[] }>;
+  /** Duas linhas MOCK da trilha do piloto com parada imediata (segredo em log; ferramenta fora do contrato). Idempotente. */
+  seedPilotoViolacoes(): Promise<{ linhas: string[] }>;
   /** Liga/desliga uma flag SÓ no backend de e2e (as rotas e o Studio leem o mesmo getDeps). */
   setFlag(nome: string, ligada: boolean): void;
 }

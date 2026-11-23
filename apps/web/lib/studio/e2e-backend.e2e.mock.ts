@@ -183,6 +183,14 @@ Fontes:
       await linhas.upsert({ ...base, task_id: 'mock-a1-review', stage: 'review', started_at: '2026-11-23T12:10:00.000Z', gate_verdict: 'approved', gate_reasons: ['ok'], cross_provider_ok: true, output_valid: true, notes: '=MOCK nota' } as never);
       return { artigos: ids };
     },
+    async seedPilotoViolacoes() {
+      // Studio 2: duas linhas MOCK com parada imediata (segredo em log; ferramenta fora do contrato) para a tela de resolução. Idempotente (upsert).
+      const linhas = new PgPilotRowStore(db);
+      const base = { kind: 'editorial_draft', article_id: 'piloto-e2e-a2', source_id: 'mock-ri', account: 'claude', declared_model: 'MOCK', prompt_version: 'editorial-0.3', ended_at: '2026-11-23T13:05:00.000Z', attempt: 1, outcome: 'completed', packet_chars: 900, tokens_measured: false, published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false };
+      await linhas.upsert({ ...base, task_id: 'mock-viol-segredo', stage: 'draft', started_at: '2026-11-23T13:00:00.000Z', secret_in_log: true } as never);
+      await linhas.upsert({ ...base, task_id: 'mock-viol-ferramenta', stage: 'draft', started_at: '2026-11-23T13:01:00.000Z', tool_outside_contract: true } as never);
+      return { linhas: ['mock-viol-segredo', 'mock-viol-ferramenta'] };
+    },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
       const key = `${user}:${role}:${mfa ? 'mfa' : 'nomfa'}`;

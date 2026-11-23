@@ -84,6 +84,8 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
       </table>
       <p style={{ marginTop: 10 }}>
         <Link href="/studio/piloto/importar">Importar a leitura do QA 3 (folha do leitor 2)</Link>
+        {' · '}
+        <Link href="/studio/piloto/violacoes">Violações do piloto (só admin resolve)</Link>
       </p>
       <p>
         {/* download (anexo CSV): link comum, não navegação do Next */}

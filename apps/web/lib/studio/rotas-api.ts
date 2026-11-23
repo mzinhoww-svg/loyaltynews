@@ -36,7 +36,8 @@ import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha, PaginaDeC
 import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
 import { dispatchTitular } from '@/app/api/_lib/titular-studio';
 import * as pilotoLinhasRoute from '@/app/api/studio/openbot/piloto/linhas/route';
-import type { LinhaPiloto } from '@/lib/studio/piloto-planilha';
+import * as pilotoResolveRoute from '@/app/api/studio/openbot/pilot/rows/[taskId]/[attempt]/resolve/route';
+import type { LinhaComTratamento, Tratada } from '@/lib/studio/piloto-violacoes';
 import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
 import type { Achado, Checklist, Fechamento, Leitura, MateriaId, MateriaPiloto } from '@/lib/studio/piloto-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
@@ -322,7 +323,14 @@ export const api = {
   piloto: {
     materias: () => chamar<{ items: MateriaPiloto[]; fechamento?: Fechamento }>(dispatchEditorial, `${E}/piloto`),
     /** Linhas da trilha do piloto (planilha do AgentOps), uma por tarefa e tentativa: GET /api/studio/openbot/piloto/linhas (Backend 1, ft/backend 0d886d9). */
-    linhas: () => chamar<{ items: LinhaPiloto[] }>(pilotoLinhasRoute.GET as Despachante, '/api/studio/openbot/piloto/linhas'),
+    linhas: () => chamar<{ items: LinhaComTratamento[] }>(pilotoLinhasRoute.GET as Despachante, '/api/studio/openbot/piloto/linhas'),
+    /** Trata uma violação (parada imediata) da linha: só admin, auditada, não apaga nada (ft/backend 0d886d9, PM-2026-11-23-D). 201 nova, 200 já resolvida. */
+    resolverViolacao: (taskId: string, attempt: number, corpo: { motivo: string; acaoTomada: string }) =>
+      chamar<{ taskId: string; attempt: number; violacoes: string[]; tratada: Tratada; jaResolvida: boolean }>(
+        comParams(pilotoResolveRoute.POST as Handler, { taskId, attempt: String(attempt) }),
+        `/api/studio/openbot/pilot/rows/${encodeURIComponent(taskId)}/${attempt}/resolve`,
+        { metodo: 'POST', corpo },
+      ),
     fixarMapa: (mapa: Partial<Record<MateriaId, string>>) => chamar<{ mapa: Record<string, string> }>(dispatchEditorial, `${E}/piloto/mapa`, { metodo: 'POST', corpo: mapa }),
     leituras: (materia: string) => chamar<{ materia: string; articleId: string; leituras: Leitura[]; ocultas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leituras`),
     /** Registra só o hash da folha do leitor 2 no primeiro envio (sem conteúdo); 200 se o mesmo sha256 já estava; 409 FOLHA_DIFERENTE. */

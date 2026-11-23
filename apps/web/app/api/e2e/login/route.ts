@@ -60,6 +60,13 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }
   }
+  if (q.get('seed') === 'piloto-violacoes') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedPilotoViolacoes()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
   const user = q.get('user') ?? '';
   const role = q.get('role') ?? '';
   if (!/^[a-z0-9_-]{1,32}$/.test(user)) return Response.json({ error: { code: 'BAD_REQUEST', message: 'user inválido' } }, { status: 400 });
