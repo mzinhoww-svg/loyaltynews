@@ -176,7 +176,14 @@ describe('fluxo comercial persistido no banco entre requisições', () => {
     const bad = await call(d, 'POST', { path: P('/studio/campaigns/transition'), body: { campaignId: cid, to: 'reserved', reservationIds: [foreign[0]!.id] }, as: comercial });
     expect(bad.body.error.code).toBe('INVALID_RESERVATION'); // reserva de outra campanha (sem vínculo)
 
-    const cr = await call(d, 'POST', { path: P('/studio/creatives'), body: { campaignId: cid, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-03-01' }, as: comercial });
+    // criativo SEM arquivo/alt/destino não é real: aprovar é recusado com a lista do que falta, e o banco também o recusa (CHECK ad_creatives_aprovado_completo)
+    const vazio = await call(d, 'POST', { path: P('/studio/creatives'), body: { campaignId: cid, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-03-01' }, as: comercial });
+    expect(vazio.status).toBe(201);
+    const recusada = await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: vazio.body.id }, as: comercial });
+    expect([recusada.status, recusada.body.error?.code]).toEqual([422, 'CREATIVE_INVALID']);
+    // criativo REAL: arquivo (1280x150 PNG ≤ 200 KB, hash), texto alternativo, anunciante e destino https
+    const real = { asset: { key: `anuncios/${'b'.repeat(64)}.png`, mime: 'image/png', width: 1280, height: 150, sizeKB: 90, sha256: 'b'.repeat(64) }, altText: 'Oferta do anunciante', destinationUrl: 'https://anunciante.example/oferta', advertiserName: 'Anunciante Teste' };
+    const cr = await call(d, 'POST', { path: P('/studio/creatives'), body: { campaignId: cid, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-03-01', ...real }, as: comercial });
     expect(cr.status).toBe(201);
     expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: cr.body.id }, as: comercial })).body).toMatchObject({ approved: true });
     expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: 'cr-999' }, as: comercial })).status).toBe(404);

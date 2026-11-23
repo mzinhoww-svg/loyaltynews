@@ -11,9 +11,13 @@ Implementa o contrato do ADR-003: o OpenBot executa e coordena os agentes; estad
 | `src/lease-queue.ts` | Porta `LeaseQueue` (a real é o outbox PostgreSQL do Backend) + implementação em memória com a mesma semântica: dedupe por chave, lease com expiração, heartbeat, complete idempotente, retentável/`failed`/`dead` |
 | `src/costs.ts` | Validação do custo relatado (custo desconhecido = recusa), `CostLedger` (dedupe por `executionId`, estouro da tarefa registrado), `budgetStatus` (alerta em 80%, teto US$ 50), `reconcile` (OpenBot × ledger do gateway por `generationId`) |
 | `src/health.ts` | Saúde pelo último pull: `sem_contato` / `saudavel` / `atrasado`; atrasado ⇒ workers próprios de reserva + pausa de publicação |
-| `src/handlers.ts` | Handlers puros: `handlePull`, `handleHeartbeat`, `handleCallback`, `dispatchTask`, `getOpenBotStatus` |
+| `src/handlers.ts` | Handlers puros: `handlePull`, `handleHeartbeat`, `handleCallback`, `dispatchTask`, `getOpenBotStatus`, `resumePilot`; rotas de contas e troca de via no limite |
+| `src/pilot.ts` | Trilha do piloto (linha por execução = planilha), parada imediata, `pilotCsv`, `adapterReport`, máscara de segredo e e-mail |
+| `src/gateway.ts` | `OpenBotModelGateway`: gateway síncrono para o `ModelGateway.invoke` da Editorial (despacha, espera o callback, `pending` no tempo-limite) |
+| `src/routes.ts` | Cola HTTP (`createOpenBotRoutes`, `toSignedRequest`) e `openbotFlagsFrom` (flag `openbotDispatch` do contrato; o kill switch prevalece) |
 
 Protocolo, formato das requisições e fluxos: `docs/PROTOCOL.md`.
+Roteiro de ativação em staging e do piloto de 10 matérias (rotas de contas, trilha, parada imediata, gateway síncrono): `docs/ATIVACAO-STAGING.md`.
 
 ## Garantias (cada uma tem teste)
 - Assinatura obrigatória em pull, heartbeat e callback; sem segredo configurado tudo é 401 (falha fechada); chamada recusada não conta como contato.

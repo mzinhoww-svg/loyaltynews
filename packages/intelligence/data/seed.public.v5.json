@@ -1,0 +1,834 @@
+{
+  "schemaVersion": "intelligence-seed/2",
+  "datasetId": "seed.public.v5",
+  "description": "Conjunto verificável v3 do Entity Intelligence (supera o v2): organizações e relações declaradas, cada registro com citação literal de página pública oficial (HTTP, ou captura pelo navegador do OpenBot com sha256 e SEM o texto no git). Sem pessoas (flag intelligencePessoas desligada, J-01), sem Moves, sem vínculo presumido. O site da Stix NÃO é fonte (página atual não descreve o programa): as relações da Stix vêm das páginas da ABEMF e da Livelo, e a Stix segue marcada para revisão humana. Tipo de organização \"other\" quando a fonte não diz o que a entidade é. v4: v3 + cargos públicos (CEO e diretoria) de 10 organizações, só de páginas oficiais de RI/\"quem somos\", com citação literal. v5: + cargos públicos de mais 7 organizações (Livelo, Mastercard, Orbia, Bradesco Seguros, Grupo Santander, Madero, Shopee). Santander→Esfera marcada como validação vencida (a fonte mudou), fora da exibição pública até uma nova fonte confirmar.",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "name": "Livelo — página de imprensa (oficial)",
+      "url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-livelo",
+      "name": "Bradesco — hotsite Fidelidade/Livelo (oficial)",
+      "url": "https://banco.bradesco/cartoes/hotsitefidelidade/"
+    },
+    {
+      "id": "latampass-conheca",
+      "name": "LATAM Pass — Conheça o programa (oficial)",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "name": "ABEMF — página inicial (oficial)",
+      "url": "https://web.abemf.com.br/"
+    },
+    {
+      "id": "abemf-associados",
+      "name": "ABEMF — Empresas Associadas (oficial)",
+      "url": "https://web.abemf.com.br/associados/"
+    },
+    {
+      "id": "dotz-home",
+      "name": "Dotz — site oficial (página inicial; captura pelo navegador)",
+      "url": "https://www.dotz.com.br/home",
+      "method": "browser"
+    },
+    {
+      "id": "santander-ri",
+      "name": "Santander Brasil — Relações com Investidores (página inicial)",
+      "url": "https://www.santander.com.br/ri/"
+    },
+    {
+      "id": "bradesco-diretoria",
+      "name": "Bradesco RI — Diretoria Executiva",
+      "url": "https://www.bradescori.com.br/o-bradesco/governanca-corporativa/conselhos-e-diretoria/diretoria-executiva/",
+      "method": "capture"
+    },
+    {
+      "id": "bb-diretor",
+      "name": "Banco do Brasil RI — Conselho Diretor",
+      "url": "https://ri.bb.com.br/governanca-e-sustentabilidade/conselho-diretor/",
+      "method": "capture"
+    },
+    {
+      "id": "santander-diretoria",
+      "name": "Santander Brasil RI — Management Board",
+      "url": "https://www.santander.com.br/ri/en/about-santander-brasil/administration-and-corporate-governance/management-board/",
+      "method": "capture"
+    },
+    {
+      "id": "dotz-adm",
+      "name": "Dotz RI — Administração",
+      "url": "https://ri.dotz.com.br/governanca/administracao/",
+      "method": "capture"
+    },
+    {
+      "id": "brb-adm",
+      "name": "BRB RI — Administração",
+      "url": "https://ri.brb.com.br/pt/administracao",
+      "method": "capture"
+    },
+    {
+      "id": "bv-diretoria",
+      "name": "Banco BV RI — Diretoria, Conselhos e Comitês",
+      "url": "https://ri.bv.com.br/governanca-corporativa/diretoria-conselhos-e-comites/",
+      "method": "capture"
+    },
+    {
+      "id": "gpa-adm",
+      "name": "GPA RI — Administração",
+      "url": "https://www.gpari.com.br/governanca-corporativa/administracao/",
+      "method": "capture"
+    },
+    {
+      "id": "latam-alta-adm",
+      "name": "LATAM RI — Alta Administração",
+      "url": "https://ir.latam.com/Portuguese/governan-a/alta-administra-o/default.aspx",
+      "method": "capture"
+    },
+    {
+      "id": "uber-gov",
+      "name": "Uber Investor Relations — Governance",
+      "url": "https://investor.uber.com/governance/default.aspx",
+      "method": "capture"
+    },
+    {
+      "id": "rd-governanca",
+      "name": "RD Saúde RI — Governança Corporativa",
+      "url": "https://ri.rdsaude.com.br/governanca-corporativa",
+      "method": "capture"
+    },
+    {
+      "id": "livelo-imp",
+      "name": "Livelo — imprensa: balanço 2025 (release da própria Livelo)",
+      "url": "https://www.livelo.com.br/imprensa/balanco-livelo-2025",
+      "method": "capture"
+    },
+    {
+      "id": "mastercard-exec",
+      "name": "Mastercard Newsroom América Latina — Biografias (liderança executiva)",
+      "url": "https://www.mastercard.com/news/latin-america/pt-br/noticias/biografias/",
+      "method": "capture"
+    },
+    {
+      "id": "orbia-lider",
+      "name": "Orbia — Equipo de liderazgo",
+      "url": "https://www.orbia.com/es/esto-es-orbia/equipo-de-liderazgo/",
+      "method": "capture"
+    },
+    {
+      "id": "bradseg-exec",
+      "name": "Bradesco Seguros — Executivos do Grupo Segurador",
+      "url": "https://www.bradescoseguros.com.br/clientes/atendimento/assessoria-de-imprensa/executivos-grupo-segurador",
+      "method": "capture"
+    },
+    {
+      "id": "santander-grupo",
+      "name": "Banco Santander (grupo) — Consejo de administración",
+      "url": "https://www.santander.com/es/accionistas-e-inversores/gobierno-corporativo/consejo-de-administracion",
+      "method": "capture"
+    },
+    {
+      "id": "madero-dir",
+      "name": "Madero RI — Diretoria e Conselho de Administração",
+      "url": "https://ri.grupomadero.com.br/governanca-corporativa/diretoria-e-conselho-de-administracao/",
+      "method": "capture"
+    },
+    {
+      "id": "sea-lider",
+      "name": "Sea Limited — Our Leadership (controladora da Shopee)",
+      "url": "https://www.sea.com/aboutus/leadership",
+      "method": "capture"
+    }
+  ],
+  "organizations": [
+    {
+      "key": "livelo",
+      "legalName": "Livelo",
+      "kind": "company",
+      "sourceId": "livelo-imprensa",
+      "quote": "A Livelo é o maior e mais completo ecossistema de engajamento do Brasil"
+    },
+    {
+      "key": "bradesco",
+      "legalName": "Bradesco",
+      "kind": "company",
+      "sourceId": "bradesco-livelo",
+      "quote": "A Livelo é mais uma empresa Bradesco, criada exclusivamente para ampliar sua experiência de resgates de recompensas"
+    },
+    {
+      "key": "latam-pass",
+      "legalName": "LATAM Pass",
+      "kind": "program",
+      "sourceId": "latampass-conheca",
+      "quote": "LATAM Pass é o programa de fidelidade da LATAM"
+    },
+    {
+      "key": "latam",
+      "legalName": "LATAM",
+      "kind": "company",
+      "sourceId": "latampass-conheca",
+      "quote": "LATAM Pass é o programa de fidelidade da LATAM"
+    },
+    {
+      "key": "abemf",
+      "legalName": "ABEMF — Associação Brasileira das Empresas do Mercado de Fidelização",
+      "kind": "association",
+      "sourceId": "abemf-home",
+      "quote": "ABEMF – Associação Brasileira das Empresas do Mercado de Fidelização"
+    },
+    {
+      "key": "azul",
+      "legalName": "Azul",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Azul Companhia Aérea Av. Marcos P. de U. Rodrigues, 939",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "bravium",
+      "legalName": "Bravium",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Bravium Programas de Incentivo Rua Luigi Galvani, 42",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "clube-giro",
+      "legalName": "Clube Giro",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Clube Giro Transporte Rodoviário Alameda Tocantins, 75",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "dotz",
+      "legalName": "DOTZ",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "DOTZ Coalizão Rua Joaquim Floriano, 533",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "esfera",
+      "legalName": "Esfera",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Esfera Bancos e Cartões Avenida Presidente Juscelino Kubitscheck, 2041",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "juntos-somos-mais",
+      "legalName": "Juntos Somos +",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Juntos Somos + Construção e Varejo 0800.050.1000",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "mastercard",
+      "legalName": "Mastercard",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Mastercard Meios de Pagamento Av. das Nações Unidas, 14.171",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "orbia",
+      "legalName": "Orbia",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Orbia Agronegócio Acessar Site",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "smiles",
+      "legalName": "Smiles",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Smiles Companhia Aérea Alameda Rio Negro, 585",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "stix",
+      "legalName": "Stix",
+      "kind": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Stix Varejo 4007.1607 Telefone (capitais Brasil)",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "key": "banco-do-brasil",
+      "legalName": "Banco do Brasil",
+      "kind": "company",
+      "sourceId": "dotz-home",
+      "quote": "em compras com cartões do Banco do Brasil e Banco BV"
+    },
+    {
+      "key": "banco-bv",
+      "legalName": "Banco BV",
+      "kind": "company",
+      "sourceId": "dotz-home",
+      "quote": "em compras com cartões do Banco do Brasil e Banco BV"
+    },
+    {
+      "key": "uber",
+      "legalName": "Uber",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Nova parceria da Uber com a Livelo transforma gastos com viagens elegíveis em pontos"
+    },
+    {
+      "key": "brb",
+      "legalName": "BRB",
+      "kind": "company",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo anuncia parceria com BRB para transferência de pontos"
+    },
+    {
+      "key": "km-de-vantagens",
+      "legalName": "Km de Vantagens",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Km de Vantagens e Livelo firmam parceria e clientes podem comprar pontos do programa de recompensas"
+    },
+    {
+      "key": "banco-santander-brasil",
+      "legalName": "Banco Santander (Brasil) S.A.",
+      "kind": "company",
+      "sourceId": "santander-ri",
+      "quote": "© 2026 Banco Santander (Brasil) S.A., CNPJ: 90.400.888/0001-42"
+    },
+    {
+      "key": "grupo-santander",
+      "legalName": "Grupo Santander",
+      "kind": "other",
+      "sourceId": "santander-ri",
+      "quote": "pertence ao Grupo Santander, com forte presença na Europa e nas Américas"
+    },
+    {
+      "key": "madero",
+      "legalName": "Grupo Madero",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo anuncia parceria com o Grupo Madero e pontos podem ser usados pelos consumidores para o pagamento"
+    },
+    {
+      "key": "shopee",
+      "legalName": "Shopee",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo lança parceria com a Shopee para permitir acúmulo de pontos em compras"
+    },
+    {
+      "key": "bradesco-seguros",
+      "legalName": "Bradesco Seguros",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Bradesco Seguros anuncia parceria com a Livelo e pontos podem ser usados como forma de pagamento"
+    },
+    {
+      "key": "genial",
+      "legalName": "Genial Investimentos",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo anuncia parceria com a Genial Investimentos para transferência de pontos"
+    },
+    {
+      "key": "gpa",
+      "legalName": "GPA",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Decola a parceria entre Livelo e Stix, programa de pontos do GPA com Raia Drogasil"
+    },
+    {
+      "key": "raia-drogasil",
+      "legalName": "Raia Drogasil",
+      "kind": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Decola a parceria entre Livelo e Stix, programa de pontos do GPA com Raia Drogasil"
+    }
+  ],
+  "relations": [
+    {
+      "from": "bradesco",
+      "to": "livelo",
+      "type": "other",
+      "sourceId": "bradesco-livelo",
+      "quote": "A Livelo é mais uma empresa Bradesco, criada exclusivamente para ampliar sua experiência de resgates de recompensas"
+    },
+    {
+      "from": "latam",
+      "to": "latam-pass",
+      "type": "other",
+      "sourceId": "latampass-conheca",
+      "quote": "LATAM Pass é o programa de fidelidade da LATAM"
+    },
+    {
+      "from": "azul",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Azul Companhia Aérea Av. Marcos P. de U. Rodrigues, 939",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "bravium",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Bravium Programas de Incentivo Rua Luigi Galvani, 42",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "clube-giro",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Clube Giro Transporte Rodoviário Alameda Tocantins, 75",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "dotz",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "DOTZ Coalizão Rua Joaquim Floriano, 533",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "esfera",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Esfera Bancos e Cartões Avenida Presidente Juscelino Kubitscheck, 2041",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "juntos-somos-mais",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Juntos Somos + Construção e Varejo 0800.050.1000",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "latam-pass",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Latam Pass Companhia Aérea Rua Verbo Divino, 2.001",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "livelo",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Livelo Coalizão Multissetorial Alameda Xingu, 512",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "mastercard",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Mastercard Meios de Pagamento Av. das Nações Unidas, 14.171",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "orbia",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Orbia Agronegócio Acessar Site",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "smiles",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Smiles Companhia Aérea Alameda Rio Negro, 585",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "stix",
+      "to": "abemf",
+      "type": "other",
+      "sourceId": "abemf-associados",
+      "quote": "Stix Varejo 4007.1607 Telefone (capitais Brasil)",
+      "contextQuote": "Empresas Associadas Conheça as empresas que fazem parte da ABEMF"
+    },
+    {
+      "from": "dotz",
+      "to": "banco-do-brasil",
+      "type": "partner_of",
+      "sourceId": "dotz-home",
+      "quote": "em compras com cartões do Banco do Brasil e Banco BV"
+    },
+    {
+      "from": "dotz",
+      "to": "banco-bv",
+      "type": "partner_of",
+      "sourceId": "dotz-home",
+      "quote": "em compras com cartões do Banco do Brasil e Banco BV"
+    },
+    {
+      "from": "livelo",
+      "to": "stix",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Stix e Livelo expandem parceria e clientes pagam compras com pontos nos apps de Drogasil e Raia"
+    },
+    {
+      "from": "livelo",
+      "to": "uber",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Nova parceria da Uber com a Livelo transforma gastos com viagens elegíveis em pontos"
+    },
+    {
+      "from": "livelo",
+      "to": "brb",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo anuncia parceria com BRB para transferência de pontos"
+    },
+    {
+      "from": "livelo",
+      "to": "km-de-vantagens",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Km de Vantagens e Livelo firmam parceria e clientes podem comprar pontos do programa de recompensas"
+    },
+    {
+      "from": "banco-santander-brasil",
+      "to": "grupo-santander",
+      "type": "other",
+      "sourceId": "santander-ri",
+      "quote": "pertence ao Grupo Santander, com forte presença na Europa e nas Américas"
+    },
+    {
+      "from": "livelo",
+      "to": "madero",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo anuncia parceria com o Grupo Madero e pontos podem ser usados pelos consumidores para o pagamento"
+    },
+    {
+      "from": "livelo",
+      "to": "shopee",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo lança parceria com a Shopee para permitir acúmulo de pontos em compras"
+    },
+    {
+      "from": "livelo",
+      "to": "bradesco-seguros",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Bradesco Seguros anuncia parceria com a Livelo e pontos podem ser usados como forma de pagamento"
+    },
+    {
+      "from": "livelo",
+      "to": "genial",
+      "type": "partner_of",
+      "sourceId": "livelo-imprensa",
+      "quote": "Livelo anuncia parceria com a Genial Investimentos para transferência de pontos"
+    },
+    {
+      "from": "gpa",
+      "to": "stix",
+      "type": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Decola a parceria entre Livelo e Stix, programa de pontos do GPA com Raia Drogasil"
+    },
+    {
+      "from": "raia-drogasil",
+      "to": "stix",
+      "type": "other",
+      "sourceId": "livelo-imprensa",
+      "quote": "Decola a parceria entre Livelo e Stix, programa de pontos do GPA com Raia Drogasil"
+    }
+  ],
+  "revisaoHumana": [
+    {
+      "key": "stix",
+      "motivo": "O site atual da Stix (stix.com.br, \"Em Evolução\") não descreve um programa de fidelidade; não é usado como fonte. As relações da Stix vêm das páginas da ABEMF (associada) e da Livelo (parceria; programa de pontos do GPA com Raia Drogasil). Confirmar a situação atual da Stix antes de qualquer destaque editorial."
+    }
+  ],
+  "roles": [
+    {
+      "personName": "Marcelo de Araújo Noronha",
+      "orgKey": "bradesco",
+      "title": "Diretor-Presidente",
+      "sourceId": "bradesco-diretoria",
+      "sourceLevel": "oficial",
+      "quote": "Marcelo de Araújo Noronha Diretor-Presidente"
+    },
+    {
+      "personName": "Cassiano Ricardo Scarpelli",
+      "orgKey": "bradesco",
+      "title": "Vice-Presidente",
+      "sourceId": "bradesco-diretoria",
+      "sourceLevel": "oficial",
+      "quote": "Cassiano Ricardo Scarpelli Vice-Presidente Diretor Executivo"
+    },
+    {
+      "personName": "José Ramos Rocha Neto",
+      "orgKey": "bradesco",
+      "title": "Vice-Presidente",
+      "sourceId": "bradesco-diretoria",
+      "sourceLevel": "oficial",
+      "quote": "José Ramos Rocha Neto Vice-Presidente Diretor Executivo"
+    },
+    {
+      "personName": "Tarciana Paula Gomes Medeiros",
+      "orgKey": "banco-do-brasil",
+      "title": "Presidente",
+      "sourceId": "bb-diretor",
+      "sourceLevel": "oficial",
+      "quote": "Tarciana Paula Gomes Medeiros PRESIDENTE"
+    },
+    {
+      "personName": "Ana Cristina Rosa Garcia",
+      "orgKey": "banco-do-brasil",
+      "title": "Vice-presidente Corporativo",
+      "sourceId": "bb-diretor",
+      "sourceLevel": "oficial",
+      "quote": "Ana Cristina Rosa Garcia VICE-PRESIDENTE CORPORATIVO"
+    },
+    {
+      "personName": "Felipe Guimarães Geissler Prince",
+      "orgKey": "banco-do-brasil",
+      "title": "Vice-presidente de Controles Internos e Gestão de Risco",
+      "sourceId": "bb-diretor",
+      "sourceLevel": "oficial",
+      "quote": "Felipe Guimarães Geissler Prince VICE-PRESIDENTE DE CONTROLES INTERNOS E GESTÃO DE RISCO"
+    },
+    {
+      "personName": "Gilson Finkelsztain",
+      "orgKey": "banco-santander-brasil",
+      "title": "Chief Executive Officer",
+      "sourceId": "santander-diretoria",
+      "sourceLevel": "oficial",
+      "quote": "Gilson Finkelsztain Chief Executive Officer"
+    },
+    {
+      "personName": "Carlos Ignacio Muñiz Gonzalez Blanch",
+      "orgKey": "banco-santander-brasil",
+      "title": "Vice President Executive and Investor Relations Officer",
+      "sourceId": "santander-diretoria",
+      "sourceLevel": "oficial",
+      "quote": "Carlos Ignacio Muñiz Gonzalez Blanch Vice President Executive and Investor Relations Officer"
+    },
+    {
+      "personName": "Otávio Araujo",
+      "orgKey": "dotz",
+      "title": "Diretor Presidente",
+      "sourceId": "dotz-adm",
+      "sourceLevel": "oficial",
+      "quote": "Otávio Araujo Diretor Presidente"
+    },
+    {
+      "personName": "Murilo Oranges",
+      "orgKey": "dotz",
+      "title": "Diretor Financeiro",
+      "sourceId": "dotz-adm",
+      "sourceLevel": "oficial",
+      "quote": "Murilo Oranges Diretor Financeiro"
+    },
+    {
+      "personName": "Nelson Antônio de Souza",
+      "orgKey": "brb",
+      "title": "Presidente",
+      "sourceId": "brb-adm",
+      "sourceLevel": "oficial",
+      "quote": "Nelson Antônio de Souza Presidente"
+    },
+    {
+      "personName": "Ana Paula Teixeira",
+      "orgKey": "brb",
+      "title": "Diretora Executiva de Controles e Riscos",
+      "sourceId": "brb-adm",
+      "sourceLevel": "oficial",
+      "quote": "Ana Paula Teixeira Diretora Executiva de Controles e Riscos"
+    },
+    {
+      "personName": "Antônio José Barreto de Araújo Júnior",
+      "orgKey": "brb",
+      "title": "Diretor Executivo de Finanças, Controladoria e Relações com Investidores",
+      "sourceId": "brb-adm",
+      "sourceLevel": "oficial",
+      "quote": "Antônio José Barreto de Araújo Júnior Diretor Executivo de Finanças, Controladoria e Relações com Investidores"
+    },
+    {
+      "personName": "Gustavo Henrique Santos de Sousa",
+      "orgKey": "banco-bv",
+      "title": "Diretor Presidente",
+      "sourceId": "bv-diretoria",
+      "sourceLevel": "oficial",
+      "quote": "Gustavo Henrique Santos de Sousa Diretor Presidente"
+    },
+    {
+      "personName": "Alexandre de Jesus Santoro",
+      "orgKey": "gpa",
+      "title": "Diretor Presidente",
+      "validFrom": "2026-01-05",
+      "sourceId": "gpa-adm",
+      "sourceLevel": "oficial",
+      "quote": "Alexandre de Jesus Santoro Diretor Presidente 05/01/2026"
+    },
+    {
+      "personName": "Roberto Alvo",
+      "orgKey": "latam",
+      "title": "CEO LATAM Airlines Group",
+      "sourceId": "latam-alta-adm",
+      "sourceLevel": "oficial",
+      "quote": "Roberto Alvo CEO LATAM Airlines Group"
+    },
+    {
+      "personName": "Andres Bianchi",
+      "orgKey": "latam",
+      "title": "CEO LATAM Cargo Group",
+      "sourceId": "latam-alta-adm",
+      "sourceLevel": "oficial",
+      "quote": "Andres Bianchi CEO LATAM Cargo Group"
+    },
+    {
+      "personName": "Dara Khosrowshahi",
+      "orgKey": "uber",
+      "title": "Chief Executive Officer",
+      "sourceId": "uber-gov",
+      "sourceLevel": "oficial",
+      "quote": "Dara Khosrowshahi , Chief Executive Officer"
+    },
+    {
+      "personName": "Andrew Macdonald",
+      "orgKey": "uber",
+      "title": "President and Chief Operating Officer",
+      "sourceId": "uber-gov",
+      "sourceLevel": "oficial",
+      "quote": "Andrew Macdonald , President and Chief Operating Officer"
+    },
+    {
+      "personName": "Marcílio D’Amico Pousada",
+      "orgKey": "raia-drogasil",
+      "title": "Presidente",
+      "body": "conselho",
+      "sourceId": "rd-governanca",
+      "sourceLevel": "oficial",
+      "quote": "Marcílio D’Amico Pousada Presidente"
+    },
+    {
+      "personName": "André Fehlauer",
+      "orgKey": "livelo",
+      "title": "CEO",
+      "sourceId": "livelo-imp",
+      "sourceLevel": "oficial",
+      "quote": "afirma André Fehlauer, CEO da Livelo"
+    },
+    {
+      "personName": "Andrea Scerch",
+      "orgKey": "mastercard",
+      "title": "Presidente Mastercard América Latina e Caribe",
+      "sourceId": "mastercard-exec",
+      "sourceLevel": "oficial",
+      "quote": "Andrea Scerch Presidente Mastercard América Latina e Caribe"
+    },
+    {
+      "personName": "Walter Pimenta",
+      "orgKey": "mastercard",
+      "title": "Vice-Presidente Executivo de Produtos e Engenharia para a América Latina e Caribe",
+      "sourceId": "mastercard-exec",
+      "sourceLevel": "oficial",
+      "quote": "Walter Pimenta Vice-Presidente Executivo de Produtos e Engenharia para a América Latina e Caribe"
+    },
+    {
+      "personName": "Sameer S. Bharadwaj",
+      "orgKey": "orbia",
+      "title": "CEO",
+      "sourceId": "orbia-lider",
+      "sourceLevel": "oficial",
+      "quote": "Sameer S. Bharadwaj CEO, Orbia"
+    },
+    {
+      "personName": "Ney Ferraz Dias",
+      "orgKey": "bradesco-seguros",
+      "title": "Diretor-Presidente",
+      "sourceId": "bradseg-exec",
+      "sourceLevel": "oficial",
+      "quote": "Ney Ferraz Dias | Diretor-Presidente"
+    },
+    {
+      "personName": "Edilson Dias dos Reis",
+      "orgKey": "bradesco-seguros",
+      "title": "Diretor-Gerente",
+      "sourceId": "bradseg-exec",
+      "sourceLevel": "oficial",
+      "quote": "Edilson Dias dos Reis |Diretor-Gerente"
+    },
+    {
+      "personName": "Ana Botín",
+      "orgKey": "grupo-santander",
+      "title": "Presidenta ejecutiva",
+      "body": "conselho",
+      "sourceId": "santander-grupo",
+      "sourceLevel": "oficial",
+      "quote": "Ana Botín Presidenta ejecutiva"
+    },
+    {
+      "personName": "Héctor Grisi",
+      "orgKey": "grupo-santander",
+      "title": "Consejero delegado",
+      "body": "conselho",
+      "sourceId": "santander-grupo",
+      "sourceLevel": "oficial",
+      "quote": "Héctor Grisi Consejero delegado"
+    },
+    {
+      "personName": "Luiz Renato Durski Junior",
+      "orgKey": "madero",
+      "title": "Diretor Presidente e Fundador",
+      "sourceId": "madero-dir",
+      "sourceLevel": "oficial",
+      "quote": "Luiz Renato Durski Junior Diretor Presidente e Fundador"
+    },
+    {
+      "personName": "Rafael de Oliveira Mello",
+      "orgKey": "madero",
+      "title": "Diretor Vice-Presidente Operacional",
+      "sourceId": "madero-dir",
+      "sourceLevel": "oficial",
+      "quote": "Rafael de Oliveira Mello Diretor Vice-Presidente Operacional"
+    },
+    {
+      "personName": "Laércio José Brunetto",
+      "orgKey": "madero",
+      "title": "Diretor Vice-Presidente Industrial",
+      "sourceId": "madero-dir",
+      "sourceLevel": "oficial",
+      "quote": "Laércio José Brunetto Diretor Vice-Presidente Industrial"
+    },
+    {
+      "personName": "David Chen",
+      "orgKey": "shopee",
+      "title": "Chief Product Officer",
+      "sourceId": "sea-lider",
+      "sourceLevel": "oficial",
+      "quote": "David Chen Chief Product Officer, Shopee"
+    }
+  ],
+  "persons": [],
+  "expiredRelations": [
+    {
+      "fromName": "Santander",
+      "toName": "Esfera",
+      "type": "other",
+      "expiredOn": "2026-11-23",
+      "reason": "a página inicial da Esfera mudou e o título deixou de afirmar que o programa é do Santander; a citação do v3 não existe mais na fonte"
+    }
+  ]
+}

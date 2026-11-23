@@ -56,7 +56,7 @@ describe('pré-checagem do schema', () => {
 describe('conferência de estado (--check)', () => {
   it('antes: tudo zero e flag ampliada desligada; depois da carga: 20/20, nenhuma relação não declarada, sem pessoas, cargos ou Moves', async () => {
     expect(await checkSeedState(db)).toEqual({
-      organizations: 0, org_relations: 0, org_relations_not_declared: 0, evidence: 0, evidence_mock: 0, persons: 0, role_assignments: 0, moves: 0,
+      organizations: 0, org_relations: 0, org_relations_not_declared: 0, evidence: 0, evidence_mock: 0, persons: 0, persons_suppressed: 0, role_assignments_inferred: 0, role_assignments_without_evidence: 0, role_assignments: 0, moves: 0,
       suppression_tombstones: 0, extended_personal_data_enabled: false,
     });
     const dir = mkdtempSync(join(tmpdir(), 'ln-seed-'));

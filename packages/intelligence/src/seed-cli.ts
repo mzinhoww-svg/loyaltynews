@@ -4,6 +4,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import type { Db } from './db';
+import { DEFAULT_CONFIG, type IntelligenceConfig } from './config';
 import { loadSeed, planSeedLoad, type LoadManifest, type LoadPlan, type SeedDataset, type VerificationReport } from './seed-load';
 
 export interface SeedCliOptions {
@@ -13,6 +14,8 @@ export interface SeedCliOptions {
   apply?: boolean;
   /** Onde gravar o manifesto da carga (obrigatório com apply). */
   manifestPath?: string;
+  /** true = liga a ingestão de pessoas SÓ nesta execução (cargos públicos de intelligence-seed/2; J-01 exige decisão registrada). Padrão: desligada. */
+  withPersons?: boolean;
 }
 
 export interface SeedCliResult {
@@ -40,6 +43,9 @@ export async function checkSeedState(db: Db) {
     evidence: await q(`SELECT count(*)::text c FROM intelligence.evidence`),
     evidence_mock: await q(`SELECT count(*)::text c FROM intelligence.evidence WHERE is_mock`),
     persons: await q(`SELECT count(*)::text c FROM intelligence.person`),
+    persons_suppressed: await q(`SELECT count(*)::text c FROM intelligence.person WHERE suppressed_at IS NOT NULL`),
+    role_assignments_inferred: await q(`SELECT count(*)::text c FROM intelligence.role_assignment WHERE certainty <> 'declared'`),
+    role_assignments_without_evidence: await q(`SELECT count(*)::text c FROM intelligence.role_assignment WHERE evidence_id IS NULL OR validated_at IS NULL`),
     role_assignments: await q(`SELECT count(*)::text c FROM intelligence.role_assignment`),
     moves: await q(`SELECT count(*)::text c FROM intelligence.move`),
     suppression_tombstones: await q(`SELECT count(*)::text c FROM intelligence.suppression_tombstone`),
@@ -51,9 +57,10 @@ export async function runSeedCli(db: Db, o: SeedCliOptions): Promise<SeedCliResu
   await preflight(db);
   const ds = JSON.parse(readFileSync(o.datasetPath, 'utf8')) as SeedDataset;
   const ver = JSON.parse(readFileSync(o.verificationPath, 'utf8')) as VerificationReport;
-  if (!o.apply) return { mode: 'dry-run', plan: await planSeedLoad(db, ds, ver), manifest: null };
+  const cfg: IntelligenceConfig = o.withPersons ? { ...DEFAULT_CONFIG, personIngestion: true } : DEFAULT_CONFIG;
+  if (!o.apply) return { mode: 'dry-run', plan: await planSeedLoad(db, ds, ver, cfg), manifest: null };
   if (!o.manifestPath) throw new Error('manifestPath é obrigatório com apply (necessário para desfazer a carga)');
-  const { plan, manifest } = await loadSeed(db, ds, ver);
+  const { plan, manifest } = await loadSeed(db, ds, ver, cfg);
   if (manifest) writeFileSync(o.manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   return { mode: 'apply', plan, manifest };
 }

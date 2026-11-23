@@ -14,7 +14,9 @@ const MODULOS: Array<[string, string]> = [
   ['creative', 'Creative studio'],
   ['entidades', 'Entity intelligence'],
   ['organogramas', 'Organogramas'],
+  ['piloto', 'Leitura do piloto'],
   ['watchlists', 'Watchlists'],
+  ['correcoes-titular', 'Pedidos do titular'],
   ['crm', 'CRM'],
   ['inventario', 'Inventário'],
   ['campanhas', 'Campanhas'],
@@ -30,7 +32,7 @@ const MODULOS: Array<[string, string]> = [
 ];
 
 // Módulos com tela própria (os demais mostram o estado vazio genérico).
-const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria'];
+const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'correcoes-titular', 'piloto', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria'];
 
 test.describe('proteção de rota (negar por padrão)', () => {
   for (const rota of ['/studio', '/studio/cms', '/studio/cms/nova', '/studio/cms/checagem', '/studio/fontes', '/studio/finops', '/studio/nao-existe']) {
@@ -66,7 +68,7 @@ test.describe('proteção de rota (negar por padrão)', () => {
 });
 
 test.describe('shell e navegação', () => {
-  test('admin vê os 25 módulos e abre cada um com estado vazio honesto', async ({ page, context }) => {
+  test('admin vê os 27 módulos e abre cada um com estado vazio honesto', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio');
     await expect(page.getByRole('heading', { level: 1, name: 'LN Studio' })).toBeVisible();

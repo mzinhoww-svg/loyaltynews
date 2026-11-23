@@ -5,8 +5,8 @@
 import type { Db } from '@ln/auth';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
-  Collector, type ReaderPort, StoreReadBudget, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
-  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass,
+  Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
+  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type ModelGateway, type RefusalCode, type TaskClass,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
 import { PgEditorialStore } from './editorial-store';
@@ -86,28 +86,49 @@ export interface RunEditorialFactoryInput {
   options?: Omit<FactoryOptions, 'dryRun'>;
   /** Deps do gateway de modelos (política, orçamento, cliente). Obrigatório fora do dry-run. */
   gateway?: ModelopsTransportOptions;
+  /**
+   * Gateway do OpenBot (DP-41): em vez do gateway de modelos (OpenRouter), as tarefas vão às contas de assinatura pelo adaptador (`OpenBotModelGateway` de
+   * `@ln/openbot`, montado pelo chamador com os stores PostgreSQL, o TaskIo e o gate do piloto). Exclusivo com `gateway`. Os custos do OpenBot são gravados em
+   * `openbot_cost_entries` (PostgreSQL), então a exigência de ledger persistente está atendida. O gateway recusa sozinho com despacho desligado (`openbotDispatch`),
+   * kill switch ou piloto parado; este arquivo não liga flag nenhuma nem cria o gateway.
+   */
+  openbotGateway?: ModelGateway;
   /** Orçamento persistido em PostgreSQL? Sem isso, `modelosHabilitados` é recusada (o teto de US$ 50/mês não sobreviveria a um restart). */
   persistentLedger?: boolean;
   registry?: SourceRegistry;
   collector?: Collector;
   /** DP-31: serviço de leitura (ex.: TavilyReader) para as fontes com acesso 'via-provedor'. Ausente = essas fontes são puladas. */
   reader?: ReaderPort;
+  /** Shadow ao vivo do roteador de scraping (só mede; ligado só no staging com SCRAPING_SHADOW_MODE=true). Ausente = nenhum efeito. */
+  shadow?: ShadowPort;
+  /** Rede e resolução de DNS do coletor padrão (testes injetam simulados; padrão: rede real com anti-SSRF). Ignorados se `collector` for informado. */
+  fetcher?: Fetcher;
+  resolver?: Resolver;
+  /** Opções do coletor padrão (ex.: ritmo). Só para testes/operação; o padrão mantém 3 s por host. */
+  collectorOptions?: Partial<CollectorOptions>;
   now?: () => Date;
 }
 
 export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<FactoryReport> {
   const flags: FlagState = { ...FLAG_DEFAULTS, ...(i.flags ?? {}) };
   const dryRun = i.dryRun !== false;
-  if (!dryRun && flags.modelosHabilitados && !i.persistentLedger) {
+  if (i.openbotGateway && i.gateway) throw new Error('openbotGateway e gateway de modelos são exclusivos: escolha um');
+  if (!dryRun && flags.modelosHabilitados && !i.persistentLedger && !i.openbotGateway) {
     throw new Error('modelosHabilitados exige ledger de orçamento persistente (PostgreSQL); recusado para não perder o teto mensal em um restart');
   }
-  if (!dryRun && !i.gateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos');
+  if (!dryRun && !i.gateway && !i.openbotGateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos (gateway) ou o do OpenBot (openbotGateway)');
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
-  const collector = i.collector ?? new Collector(createNodeFetcher(), { now, resolver: systemResolver, flags, readBudget: new StoreReadBudget(store), ...(i.reader ? { reader: i.reader } : {}) });
+  const reader = shadowReader(i.reader, i.shadow);
+  const observer = shadowObserver(i.shadow);
+  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
-  return runFactory({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
+  try {
+    return await runFactory({ store, registry, collector, gateway: i.openbotGateway ?? createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
+  } finally {
+    await drainShadow(i.shadow); // o job só termina quando a fila da sombra termina
+  }
 }
 
 /**
@@ -123,7 +144,26 @@ export async function runEditorialAutoral(i: Omit<RunEditorialFactoryInput, 'opt
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
-  const collector = i.collector ?? new Collector(createNodeFetcher(), { now, resolver: systemResolver, flags, readBudget: new StoreReadBudget(store), ...(i.reader ? { reader: i.reader } : {}) });
+  const reader = shadowReader(i.reader, i.shadow);
+  const observer = shadowObserver(i.shadow);
+  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
   const llm: ChatTransport = createModelopsTransport(i.gateway);
-  return runAutoralQueue({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.max ? { max: i.max } : {}) });
+  try {
+    return await runAutoralQueue({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.max ? { max: i.max } : {}) });
+  } finally {
+    await drainShadow(i.shadow);
+  }
+}
+
+/**
+ * Shadow ao vivo do roteador de scraping (só medição; dono: loyalty-news-scraping-benchmark). Desligado por padrão: só com SCRAPING_SHADOW_MODE=true
+ * (staging) o pacote do benchmark é carregado e o caminho do JSONL vem de SCRAPING_SHADOW_SINK. O pacote não é dependência do Editorial: se a
+ * flag estiver ligada e o pacote ou a fábrica `createLiveShadowFromEnv` não existirem, o job RECUSA começar (não segue sem medir em silêncio).
+ */
+export async function loadShadow(env: Record<string, string | undefined>, importer: (spec: string) => Promise<Record<string, unknown>> = (s) => import(/* @vite-ignore */ s) as Promise<Record<string, unknown>>): Promise<ShadowPort | undefined> {
+  if (env['SCRAPING_SHADOW_MODE'] !== 'true') return undefined;
+  const mod = await importer('@ln/scraping-benchmark').catch(() => null);
+  const make = mod?.['createLiveShadowFromEnv'];
+  if (typeof make !== 'function') throw new Error('SCRAPING_SHADOW_MODE=true, mas @ln/scraping-benchmark (createLiveShadowFromEnv) não está disponível neste ambiente');
+  return make(env) as ShadowPort;
 }

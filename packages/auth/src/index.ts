@@ -39,3 +39,4 @@ export async function requireRole(allowed: readonly Role[], request?: Request): 
   if (!rt || !h) throw new AccessDeniedError('NO_SESSION');
   return requireRoleWith(rt.auth, h, allowed);
 }
+export { bootstrapStagingAdmin, assertStagingEmail, STAGING_ADMIN_DEFAULT_EMAIL, type StagingAdminResult, type StagingAdminDeps, type StagingAdminOptions } from './staging-admin';

@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "livelo-bradesco",
+  "url": "https://www.livelo.com.br/juntar-pontos/instituicoes-financeiras/bradesco",
+  "finalUrl": "https://www.livelo.com.br/juntar-pontos/instituicoes-financeiras/bradesco",
+  "capturedAt": "2026-11-23T16:46:42.993Z",
+  "robots": "robots.txt permite",
+  "length": 8049,
+  "sha256Claimed": "1b957fc610cc205075645eb65391180940482cf8ad4cd0c1bb7ae35dd50c8398"
+}

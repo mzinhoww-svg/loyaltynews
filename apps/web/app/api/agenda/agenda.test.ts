@@ -8,6 +8,7 @@ import * as agenda from './route';
 import * as agendaUma from './[id]/route';
 import * as moderacao from './[id]/moderacao/route';
 import * as pubAgenda from '../publico/agenda/route';
+import * as pubAgendaUm from '../publico/agenda/[id]/route';
 import * as sugestoes from '../publico/agenda/sugestoes/route';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -174,5 +175,42 @@ describe('moderação (editor-chefe e admin)', () => {
     // editar uma sugestão pendente (corrigir erro de digitação) não a aprova
     const p = await call(agendaUma.PATCH, 'PATCH', { params: { id }, body: { local: 'Local corrigido' }, as: editor });
     expect(p.body.data).toMatchObject({ local: 'Local corrigido', moderacao: 'pendente' });
+  });
+});
+
+describe('GET /api/publico/agenda/:id (página do evento)', () => {
+  const um = (id: string) => call(pubAgendaUm.GET, 'GET', { path: `/api/publico/agenda/${id}`, params: { id } });
+  const ev = (id: string, over: Record<string, unknown> = {}) =>
+    app.db.insert(schema.agendaEvents).values({ id, titulo: `Evento ${id}`, inicio: '2099-05-01', fim: '2099-05-02', local: 'São Paulo', fonteUrl: 'https://example.org/e', editorias: ['pontos'], moderacao: 'aprovado', ...over } as any);
+
+  it('aprovado abre com o mesmo formato público da lista (sem campos de moderação), com cache de 300 s', async () => {
+    await ev('um-ok', { patrocinado: true, url: 'https://example.org/inscricao' });
+    const r = await um('um-ok');
+    expect(r.status).toBe(200);
+    expect(r.body.data).toEqual({ id: 'um-ok', titulo: 'Evento um-ok', inicio: '2099-05-01', fim: '2099-05-02', local: 'São Paulo', url: 'https://example.org/inscricao', editorias: ['pontos'], patrocinado: true, fonteUrl: 'https://example.org/e' });
+    expect(r.headers.get('cache-control')).toBe('public, max-age=300');
+    const naLista = (await call(pubAgenda.GET, 'GET', {})).body.data.find((x: any) => x.id === 'um-ok');
+    expect(r.body.data).toEqual(naLista); // exatamente o `publicView` da lista
+  });
+
+  it('evento já encerrado continua abrindo (a lista não o traz, a página sim)', async () => {
+    await ev('um-passado', { inicio: '2020-01-01', fim: '2020-01-02' });
+    expect((await um('um-passado')).status).toBe(200);
+    expect((await call(pubAgenda.GET, 'GET', {})).body.data.map((x: any) => x.id)).not.toContain('um-passado');
+  });
+
+  it('pendente, rejeitado e inexistente dão o MESMO 404 NOT_FOUND (não revela sugestão em moderação)', async () => {
+    await ev('um-pendente', { moderacao: 'pendente', origem: 'publico' });
+    await ev('um-rejeitado', { moderacao: 'rejeitado', motivoRejeicao: 'duplicado' });
+    const respostas = await Promise.all(['um-pendente', 'um-rejeitado', 'nao-existe'].map(um));
+    for (const r of respostas) expect([r.status, r.body.error.code]).toEqual([404, 'NOT_FOUND']);
+    expect(new Set(respostas.map((r) => r.body.error.message)).size).toBe(1);
+    expect(JSON.stringify(respostas.map((r) => r.body))).not.toContain('duplicado');
+  });
+
+  it('sem login e sem vazar campo interno: nenhum campo de moderação, autor ou chave', async () => {
+    await ev('um-campos', { moderadoPor: 'u-1', chaveDedupe: 'abc', origem: 'interno' });
+    const d = (await um('um-campos')).body.data;
+    for (const k of ['moderacao', 'origem', 'moderadoPor', 'moderadoEm', 'motivoRejeicao', 'chaveDedupe', 'criadoEm']) expect(d[k], k).toBeUndefined();
   });
 });

@@ -8,8 +8,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildOpenBotDraft, validateOpenBotDraft } from './openbot-profiles';
+import { loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { loadRegistries } from './config';
-import { PKG_DIR } from './paths';
+import { buildQualificationPlan } from './qualification';
+import { PKG_DIR, POLICY_FIXTURE } from './paths';
 
 export type CriterionStatus = 'met_offline' | 'unmet' | 'external';
 
@@ -71,6 +73,8 @@ export const GATES: Gate[] = [
       { id: 'G2.3', text: 'Qualidade PT-BR frente ao golden set', measure: 'avaliação cega comparando o modelo candidato com a referência (claude-sonnet-5-5)', threshold: 'não pior que a referência em fidelidade factual; limiar numérico a definir com a Editorial', owner: 'Editorial + QA' },
       { id: 'G2.4', text: 'ZDR / data_collection=deny disponível por modelo', measure: 'consulta ao endpoint do provedor no OpenRouter', threshold: 'confirmado para 100% dos modelos usados', owner: 'Security' },
       { id: 'G2.5', text: 'Resposta traz usage e evidência de geração (custo conciliável)', measure: 'sampleFromResponse(resposta) != null em 100% das chamadas de teste em staging', threshold: '100%', owner: 'AgentOps + Backend' },
+      { id: 'G2.6', text: 'Orçamento da qualificação em etapas cabe na DP-04: etapa 1 ≤ US$ 5, etapa 2 ≤ US$ 10, total de novembro ≤ US$ 15, sem Opus/GPT-6.2-sol, sem DeepSeek/Fable, sem a reserva de auditoria', measure: 'buildQualificationPlan(política).ok (model-qualification-protocol.md, seções 2 e 8)', threshold: 'todas as verificações de erro do plano OK (avisos viram decisão pendente)', owner: 'AgentOps + FinOps', proposedThreshold: true },
+      { id: 'G2.7', text: 'Travas do protocolo resolvidas antes de qualquer chamada: T1–T3 decididas (DP-26) e T6 decidida (ADR-021) mais T4, T5 (efetividade), T6 (implementação e homologação do modo), T7 (G4 fechado), T8, T9 (recarga), T10 (cap por etapa) e T11 (fonte de verba da rotulagem)', measure: 'registro de cada trava em model-qualification-protocol.md, seção 1', threshold: 'todas resolvidas; qualificação real só depois do G4 fechado e do modo qualification homologado', owner: 'Proprietário + PM + Arquiteto + Backend + FinOps + Security + Editorial' },
     ],
   },
   {
@@ -88,7 +92,8 @@ export const GATES: Gate[] = [
     name: 'Ledger de orçamento e saldo persistidos em PostgreSQL',
     decidedBy: 'Backend + FinOps (pacote modelops)',
     criteria: [
-      { id: 'G4.1', text: 'LedgerStore em PostgreSQL com transação e bloqueio de linha', measure: 'teste de concorrência: N reservas paralelas não ultrapassam o teto', threshold: '0 estouros em 1000 reservas concorrentes (proposta)', owner: 'Backend', proposedThreshold: true },
+      { id: 'G4.0', text: 'O PostgresLedgerStore passa a suíte de aceitação do ledger (A01–A12 obrigatórios, A10 com SQL cru; A13 opcional)', measure: 'packages/modelops/src/ledger-acceptance (já no canônico, ft/modelops c354b89): PGlite no npm test e PostgreSQL local real com LN_G4_REAL=1', threshold: '12 de 12 obrigatórios passando, nenhum "skipped"', owner: 'Backend + AgentOps' },
+      { id: 'G4.1', text: 'Exclusão mútua entre conexões e processos', measure: 'caso A07 + estresse de 1.000 reservas em 4 conexões + dois processos de SO contra PostgreSQL local (real-pg.test.ts)', threshold: 'exatamente 440 aceitas de 1.000 (verba de US$ 22 a US$ 0,05), 0 estouros, ids únicos; dois processos: 220 + 220 = 440', owner: 'Backend + AgentOps' },
       { id: 'G4.2', text: 'Replay do ledger reproduz o gasto', measure: 'replay == soma das gerações conciliadas', threshold: 'diferença ≤ 1% (limite proposto no modelops)', owner: 'FinOps' },
       { id: 'G4.3', text: 'Saldo do provedor lido antes da primeira chamada', measure: 'BalanceGuard injetado na composição do produto', threshold: 'leitura obrigatória; falha de leitura bloqueia', owner: 'Backend' },
     ],
@@ -103,6 +108,7 @@ export const GATES: Gate[] = [
       { id: 'G5.3', text: 'Adaptador por pull com lease, só conexão de saída, callback assinado e idempotente (R2-10, testes 2, 3, 6 e 7)', measure: 'suíte do adaptador', threshold: '100%', owner: 'Integration' },
       { id: 'G5.4', text: 'Teste negativo por agente: nenhum agente lê credencial ou memória de produção que não é sua (R2-09, teste 11)', measure: 'teste por agente criado', threshold: '8 de 8 agentes negam', owner: 'Security' },
       { id: 'G5.5', text: 'Nenhuma credencial de provedor na configuração dos agentes', measure: 'varredura da configuração (ADR-003)', threshold: '0 ocorrências', owner: 'Security' },
+      { id: 'G5.6', text: 'Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas', measure: 'editorial_split_criteria do rascunho + harness de tokens/latência', threshold: 'S1, S2 e S3 dentro do limiar; senão dividir', owner: 'AgentOps + PM', proposedThreshold: true },
     ],
   },
   {
@@ -148,6 +154,10 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   const outTest = read(join(PKG_DIR, 'src/output.test.ts'));
   out.push({ criterion: 'G2.2', status: 'external', evidence: outTest ? 'o validador por perfil existe (output.test.ts, 64 perfis); falta o golden set real e a taxa por modelo' : 'validador ausente' });
   for (const id of ['G2.3', 'G2.4']) external(id, 'exige medição/consulta real fora deste pacote');
+  const qualSrc = read(join(PKG_DIR, 'src/qualification.ts'));
+  const qualPlan = buildQualificationPlan(loadPolicyFile(POLICY_FIXTURE).policy as ModelPolicy);
+  set('G2.6', qualSrc.includes('buildQualificationPlan') && qualPlan.ok, qualPlan.ok ? `plano de qualificação OK: etapa 1 US$ ${(qualPlan.stageTotals[1].ceilingWithRetriesMicro / 1_000_000).toFixed(2)}, etapa 2 US$ ${(qualPlan.stageTotals[2].ceilingWithRetriesMicro / 1_000_000).toFixed(2)} (teto com reexecução; total de novembro ≤ US$ 15)` : `plano reprovado: ${qualPlan.checks.filter((c) => !c.ok).map((c) => c.id).join(', ')}`);
+  external('G2.7', 'DP-26 e ADR-021 decidiram T1–T3 e T6; faltam o G4 fechado (L5), a implementação e homologação do modo, a recarga, o cap por etapa (T10), a fonte de verba da rotulagem (T11) e o golden set humano: nada roda');
   const measureSrc = read(join(PKG_DIR, 'src/measure.ts'));
   out.push({ criterion: 'G2.5', status: 'external', evidence: measureSrc.includes('sampleFromResponse') ? 'sampleFromResponse existe; falta rodar em staging com chamadas reais' : 'harness ausente' });
 
@@ -157,12 +167,15 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   set('G3.2', pgTest.includes('PgStore sobre as migrações oficiais'), 'pg.test.ts presente (execução verde é de `npm test`)');
   external('G3.3', 'não existe banco de staging');
 
-  for (const id of ['G4.1', 'G4.2', 'G4.3']) external(id, 'pacote modelops (Backend + FinOps): fora desta frente');
+  external('G4.0', 'passou 12 de 12 obrigatórios em PostgreSQL 18.7 local no ft/modelops c354b89 (suíte já no canônico); falta rodar no staging, só com banco de teste próprio (G3)');
+  external('G4.1', 'passou em PostgreSQL 18.7 local no c354b89: estresse de 1.000 reservas → 440 aceitas e dois processos de SO → 220 + 220; falta o staging (G3)');
+  external('G4.2', 'pendência do Backend: exige gerações reais (chamadas pagas) e a conciliação com /generation');
+  external('G4.3', 'fechado pelo Backend no ft/modelops c354b89 (balance_guard_missing antes de qualquer reserva; saldo lido antes da 1ª retenção); a evidência é do Backend, não repetida aqui');
 
   const draft = buildOpenBotDraft(reg);
   const issues = validateOpenBotDraft(draft, reg);
   set('G5.1', issues.length === 0, issues.length ? issues.map((i) => i.code).join(', ') : '8 agentes cobrem 64 perfis, 28 rituais e 19 workflows; created=false');
-  for (const id of ['G5.2', 'G5.3', 'G5.4', 'G5.5']) external(id, 'depende de aval, adaptador e agentes que não existem');
+  for (const id of ['G5.2', 'G5.3', 'G5.4', 'G5.5', 'G5.6']) external(id, 'depende de aval, adaptador e agentes que não existem');
 
   const schemas = read(join(PKG_DIR, 'src/schemas.ts'));
   const sched = read(join(PKG_DIR, 'src/scheduler.ts'));

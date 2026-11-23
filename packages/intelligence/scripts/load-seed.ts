@@ -8,6 +8,7 @@
  * Rodar (dry-run é o padrão):
  *   node ln-com-credenciais.mjs staging -- node <checkout>/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset <json> --verification <json>
  * Conferir o estado (só leitura, sem dataset):  … load-seed.mjs --check
+ * Cargos públicos (intelligence-seed/2) só carregam com --with-persons (flag de pessoas, J-01); sem ela o plano recusa cada cargo com o motivo.
  * Aplicar (só APP_ENV=staging; produção é recusada):
  *   … load-seed.mjs --dataset <json> --verification <json> --apply --manifest <arquivo>
  * Conexão única (Client), não pool: a carga usa BEGIN/COMMIT.
@@ -29,11 +30,12 @@ const verification = arg('verification');
 const check = flag('check'); // só leitura: contagens e invariantes, sem dataset
 if (missing.length || (!check && (!dataset || !verification))) {
   // só NOMES de variáveis, nunca valores
-  console.error(`uso: <script de credenciais> -- load-seed --dataset <arquivo> --verification <arquivo> [--apply --manifest <arquivo>]`);
+  console.error(`uso: <script de credenciais> -- load-seed --dataset <arquivo> --verification <arquivo> [--with-persons] [--apply --manifest <arquivo>]`);
   if (missing.length) console.error(`variáveis ausentes no ambiente: ${missing.join(', ')}`);
   process.exit(2);
 }
 const apply = flag('apply');
+const withPersons = flag('with-persons'); // liga a ingestão de pessoas SÓ nesta execução (J-01: só com decisão registrada); padrão desligada
 if (apply && process.env.APP_ENV !== 'staging') {
   console.error('--apply só é permitido com APP_ENV=staging (produção exige decisão e janela próprias).');
   process.exit(2);
@@ -56,7 +58,7 @@ try {
     console.log(JSON.stringify({ env: process.env.APP_ENV, mode: 'check', state: await checkSeedState(db) }, null, 2));
     process.exit(0);
   }
-  const r = await runSeedCli(db, { datasetPath: dataset!, verificationPath: verification!, apply, manifestPath: arg('manifest') });
+  const r = await runSeedCli(db, { datasetPath: dataset!, verificationPath: verification!, apply, manifestPath: arg('manifest'), withPersons });
   console.log(JSON.stringify({ env: process.env.APP_ENV, mode: r.mode, ok: r.plan.ok, issues: r.plan.issues, counts: r.plan.counts, records: r.plan.records, manifest: r.manifest }, null, 2));
   process.exitCode = r.plan.ok && r.plan.counts.rejected === 0 ? 0 : 1;
 } catch (e) {

@@ -1,0 +1,10 @@
+{
+  "method": "zyte-http",
+  "id": "uber-gov",
+  "url": "https://investor.uber.com/governance/default.aspx",
+  "finalUrl": "https://investor.uber.com/governance/default.aspx",
+  "capturedAt": "2026-11-23T13:36:50.281Z",
+  "robots": "robots.txt permite",
+  "length": 4184,
+  "sha256Claimed": "7b3beae51f4e971046fd11008a60c5ca0f7429a92140713e35658a8f469971bf"
+}

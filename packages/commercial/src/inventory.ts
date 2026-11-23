@@ -44,7 +44,8 @@ const DAY = 86_400_000;
 const parse = (d: string): number => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new InventoryError('INVALID_PERIOD', `Data inválida: ${d}`);
   const t = Date.parse(d + 'T00:00:00Z');
-  if (Number.isNaN(t)) throw new InventoryError('INVALID_PERIOD', `Data inválida: ${d}`);
+  // O motor aceita 2026-02-30 como 2 de março: confere a ida e volta para só aceitar data de calendário real.
+  if (Number.isNaN(t) || new Date(t).toISOString().slice(0, 10) !== d) throw new InventoryError('INVALID_PERIOD', `Data inválida: ${d}`);
   return t;
 };
 export const daysInclusive = (s: string, e: string): number => {

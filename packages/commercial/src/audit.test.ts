@@ -4,11 +4,12 @@ import {
   loadState, makeCtx, mediaKitPage, snapshotState, studioDashboard, campaignDetail, type Creative,
 } from './index';
 import * as h from './api/index';
+import { realContent } from './real-creative.mock';
 
 const T0 = Date.parse('2026-12-05T12:00:00-03:00');
 const MIN = 60_000;
 const wire = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
-const cr = (id: string, campaignId: string, positionId = 'TOP'): Creative => ({ id, campaignId, positionId, weight: 1, startDate: '2026-12-01', endDate: '2027-02-28', approved: true, campaignActive: true });
+const cr = (id: string, campaignId: string, positionId = 'TOP'): Creative => ({ id, campaignId, positionId, weight: 1, startDate: '2026-12-01', endDate: '2027-02-28', approved: true, campaignActive: true, ...realContent(positionId) });
 const serve = (s: AdServer, pv: string, nowMs: number) => s.serve({ positionId: 'TOP', today: '2026-12-05', pageViewId: pv, nowMs });
 function server() { const s = new AdServer(); s.addCreative(cr('c1', 'k1')); return s; }
 

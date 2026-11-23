@@ -1,0 +1,10 @@
+{
+  "method": "zyte-browser",
+  "id": "dotz-home",
+  "url": "https://www.dotz.com.br/home",
+  "finalUrl": "https://www.dotz.com.br/home",
+  "capturedAt": "2026-11-23T13:20:17.138Z",
+  "robots": "robots.txt permite",
+  "length": 3890,
+  "sha256Claimed": "4b67a99bdcf38e115d7df5cfaa46f29fe5f4f53584b49f18862fd26ebee84360"
+}

@@ -146,3 +146,7 @@ export * from './schema/editorial-store';
 export * from './schema/social';
 export * from './schema/ad-flush';
 export * from './schema/site';
+export * from './schema/openbot';
+export * from './schema/growth';
+// Canal do titular (DP-38), Backend 2.
+export * from './schema/titular';

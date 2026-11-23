@@ -3,6 +3,8 @@
 import type { MlabsChannel, PostLimits, PostPayload, PublishReceipt } from './port';
 import type { MlabsAdapter } from './adapter-types.internal';
 import { LIVE_ACK, LiveAdapterRefused, readOnlyTransport, type LiveOptions, type McpTransport } from './live';
+import type { MediaUploadPort, PutBytes } from '../pipeline/raster-upload';
+import { buildLiveMediaPort } from './media-port.internal';
 import { WriteGate, type WriteCapability } from './write-gate.internal';
 
 class LiveMlabsAdapter implements MlabsAdapter {
@@ -58,6 +60,12 @@ class LiveMlabsAdapter implements MlabsAdapter {
     const { tool, args } = mapper.create(payload, idempotencyKey);
     const raw = await this.#transport.call(tool, args);
     return mapper.toReceipt(raw, payload, idempotencyKey);
+  }
+
+  mediaUploadPort(cap: WriteCapability, putBytes?: PutBytes): MediaUploadPort {
+    this.#gate.assert(cap);
+    this.#guard();
+    return buildLiveMediaPort({ transport: this.#transport, guard: () => this.#guard(), putBytes });
   }
 
   async updatePost(cap: WriteCapability): Promise<PublishReceipt> {

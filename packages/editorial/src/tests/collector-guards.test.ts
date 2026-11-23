@@ -131,3 +131,22 @@ test('(5) robots.txt pelo módulo comum (RFC 9309): caminho percent-encoded equi
   b.f.routes.set(u('/robots.txt'), { status: 200, headers: {}, body: 'User-agent: loyaltynews\nDisallow: /\n\nUser-agent: *\nDisallow: /privado/' });
   assert.ok((await b.c.collectUrl(MOCK_SOURCE, u('/noticias/ok'))).evidence);
 });
+
+test('(6) onDirectRead (shadow ao vivo): só leituras DIRETAS de página, com status, corpo e latência; erro do observador não afeta o coletor', async () => {
+  const seen: Array<{ url: string; sourceId: string; status: number; len: number; ms: number }> = [];
+  const mkC = (onDirectRead: (e: { url: string; sourceId: string; status: number; body?: string; ms: number }) => void) => mk({
+    [u('/noticias/1')]: PAGE(1), [u('/noticias/403')]: { status: 403, headers: {}, body: 'negado' }, [u('/feed.xml')]: `<rss><channel><item><title>MOCK 1</title><link>${u('/noticias/1')}</link></item></channel></rss>`,
+  }, { onDirectRead });
+  const a = mkC((e) => { seen.push({ url: e.url, sourceId: e.sourceId, status: e.status, len: e.body?.length ?? -1, ms: e.ms }); });
+  assert.ok((await a.c.collectUrl(MOCK_SOURCE, u('/noticias/1'))).evidence);
+  await a.c.collectUrl(MOCK_SOURCE, u('/noticias/403'));
+  await a.c.collectFeed(MOCK_SOURCE); // feed e robots NÃO são observados; a página do item sim
+  assert.deepEqual(seen.map((s) => [s.url, s.status]), [[u('/noticias/1'), 200], [u('/noticias/403'), 403], [u('/noticias/1'), 200]]);
+  assert.ok(seen[0]!.len > 100 && seen[0]!.sourceId === 'mock-ri' && seen[0]!.ms >= 0);
+  assert.ok(!seen.some((s) => s.url.endsWith('/robots.txt') || s.url.endsWith('/feed.xml')));
+  const b = mkC(() => { throw new Error('sombra quebrada'); });
+  const r = await b.c.collectUrl(MOCK_SOURCE, u('/noticias/1'));
+  assert.ok(r.evidence, 'o resultado do coletor é o mesmo mesmo com o observador quebrado');
+  const off = mk({ [u('/noticias/1')]: PAGE(1) });
+  assert.equal((await off.c.collectUrl(MOCK_SOURCE, u('/noticias/1'))).evidence?.contentSha256, r.evidence?.contentSha256, 'sem observador: mesma evidência');
+});

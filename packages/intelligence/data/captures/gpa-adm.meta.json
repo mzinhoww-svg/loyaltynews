@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "gpa-adm",
+  "url": "https://www.gpari.com.br/governanca-corporativa/administracao/",
+  "finalUrl": "https://www.gpari.com.br/governanca-corporativa/administracao/",
+  "capturedAt": "2026-11-23T13:08:41.086Z",
+  "robots": "robots.txt permite",
+  "length": 28606,
+  "sha256Claimed": "637a61131eda33de244720da542f093f92d83f4c86c7702db60da1ae7f07c0b0"
+}

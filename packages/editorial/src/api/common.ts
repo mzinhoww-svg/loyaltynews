@@ -29,7 +29,7 @@ export interface ApiResponse<T> { status: number; body: T | ApiError }
 export type Action =
   | 'queue.list' | 'article.read' | 'article.review' | 'factcheck.read' | 'factcheck.recheck'
   | 'correction.list' | 'correction.manage' | 'correction.verify_requester' | 'correction.ack_legal'
-  | 'source.read' | 'source.review' | 'source.enable' | 'source.disable' | 'pauta.read' | 'pauta.submit';
+  | 'source.read' | 'source.review' | 'source.enable' | 'source.disable' | 'pauta.read' | 'pauta.submit' | 'piloto.read' | 'piloto.map' | 'piloto.leitura';
 
 /** Papéis de @ln/auth (stub do scaffold): admin, editor_chefe, editor, revisor, comercial, leitor. `comercial`/`leitor` não têm acesso editorial. */
 export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
@@ -51,6 +51,10 @@ export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
   // Pauta autoral (DP-29): quem propõe é a redação; revisor lê. A aprovação da matéria segue o fluxo de revisão comum.
   'pauta.read': ['admin', 'editor_chefe', 'editor', 'revisor'],
   'pauta.submit': ['admin', 'editor_chefe', 'editor'],
+  // Piloto de 10 matérias: leitor 1 = proprietário (admin/editor_chefe), leitor 2 = revisor (QA 3); o fino está em pilot-handlers.
+  'piloto.read': ['admin', 'editor_chefe', 'editor', 'revisor'],
+  'piloto.map': ['admin', 'editor_chefe'],
+  'piloto.leitura': ['admin', 'editor_chefe', 'revisor'],
 };
 
 export function authorize(ctx: HandlerCtx, action: Action): ApiError | Actor {
