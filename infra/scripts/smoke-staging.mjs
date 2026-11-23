@@ -108,6 +108,11 @@ async function main() {
     const itensFeed = (r.body.match(/<item\b/g) || []).length;
     check('feed.xml: canal RSS válido e SEM itens (staging não indexável, R6)', r.status === 200 && /<rss/.test(r.body) && itensFeed === 0, `HTTP ${r.status}, ${itensFeed} itens`);
   });
+  await tentar('midia-kit', async () => {
+    const r = await get('/midia-kit');
+    const noindex = /<meta[^>]+name="robots"[^>]*content="[^"]*noindex/i.test(r.body) || /noindex/i.test(r.h.get('x-robots-tag') ?? '');
+    check('midia-kit: 200, título "Mídia kit", sem MOCK e não indexável', r.status === 200 && /<title>[^<]*Mídia kit/i.test(r.body) && !/MOCK/.test(r.body) && noindex, `HTTP ${r.status}`);
+  });
   await tentar('intelligence', async () => {
     const r = await get('/intelligence');
     const n = empresasNaPagina(r.body);
