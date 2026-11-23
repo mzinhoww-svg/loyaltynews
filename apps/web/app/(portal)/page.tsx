@@ -5,6 +5,7 @@ import { AdSlot, ArticleCard, ArticleGrid, EmptyState, Section } from './_compon
 import { editoriaName } from './_lib/editorias';
 import { dayOf, formatDate, monthAbbrev } from './_lib/format';
 import { prepareHome } from './_lib/home';
+import { jsonLdString } from './_lib/jsonld';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { getSource } from './_lib/source';
 import { flags } from './_lib/flags';
@@ -127,8 +128,8 @@ export default async function HomePage() {
   if (site?.home) {
     return (
       <>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        {orgLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }} />}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+        {orgLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(orgLd) }} />}
         <h1 className="pt-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
         <AdSlot slot="topo" />
         <PublishedHome site={site} />
@@ -168,8 +169,8 @@ export default async function HomePage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      {orgLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      {orgLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(orgLd) }} />}
       <h1 className="pt-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
       <AdSlot slot="topo" />
 
