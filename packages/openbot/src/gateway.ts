@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { dispatchTask, routeFor, type Caller, type OpenBotDeps } from './handlers';
+import { dispatchTask, effectiveRoute, type Caller, type OpenBotDeps } from './handlers';
 import { ID_RE, providerOfModel, PROVIDER_OF_ACCOUNT, type Account } from './types';
 
 // Gateway SÍNCRONO sobre o adaptador OpenBot. A Fábrica editorial chama `ModelGateway.invoke` e espera a resposta; este
@@ -55,6 +55,8 @@ export interface TaskInputMeta {
   promptVersion: string;
   /** Id da tarefa do rascunho que esta checagem/revisão recebe (prova de independência). Lido de `input.reviewedDraftTaskId`, se houver. */
   reviewedDraftTaskId?: string;
+  /** Id da matéria (da chave de idempotência `<articleId>:<etapa>:<tentativa>` ou de `input.articleId`): agrupa as etapas na planilha do piloto. */
+  articleId?: string;
 }
 
 /** O armazém recusou: já existe entrada com este refId e conteúdo diferente. */
@@ -81,6 +83,15 @@ export interface OpenBotGatewayConfig {
   clock?: () => number;
 }
 
+/** Id da matéria: a Editorial usa a chave `<articleId>:<classe>:<tentativa>`; senão `input.articleId`. Só vale no formato de id. */
+export function articleIdOf(req: Pick<GatewayRequestLike, 'idempotencyKey' | 'input' | 'taskClass'>): string | undefined {
+  const m = /^(.+):(triage|context|draft|factcheck|review|social_pack|roles):\d+$/.exec(req.idempotencyKey);
+  const fromKey = m?.[1];
+  if (fromKey && ID_RE.test(fromKey)) return fromKey;
+  const fromInput = (req.input as { articleId?: unknown } | null)?.articleId;
+  return typeof fromInput === 'string' && ID_RE.test(fromInput) ? fromInput : undefined;
+}
+
 const hex = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 32);
 
 export class OpenBotModelGateway {
@@ -99,7 +110,7 @@ export class OpenBotModelGateway {
     // Independência: tira da rota as vias cujo provedor é conhecido e proibido. Via de provedor incerto (antigravity) fica e é
     // conferida DEPOIS, pelo modelo declarado no custo.
     const excluded = new Set(req.excludeProviders);
-    const full = routeFor(c.deps, kind);
+    const full = effectiveRoute(c.deps, kind); // no piloto, já sem as contas fora da DP-41
     const route = full.filter((a) => a === 'antigravity' || !excluded.has(PROVIDER_OF_ACCOUNT[a]));
     if (route.length === 0) return { ok: false, refusal: 'no_independent_provider', detail: `nenhuma via de ${kind} fora de ${[...excluded].join(', ')}` };
 
@@ -110,11 +121,13 @@ export class OpenBotModelGateway {
 
     const key = `gw-${hex(req.idempotencyKey)}`;
     const reviewed = (req.input as { reviewedDraftTaskId?: unknown } | null)?.reviewedDraftTaskId;
+    const articleId = articleIdOf(req);
     try {
       await c.io.putInput(key, req.input, {
         taskClass: req.taskClass,
         promptVersion: req.promptVersion,
         ...(typeof reviewed === 'string' && ID_RE.test(reviewed) ? { reviewedDraftTaskId: reviewed } : {}),
+        ...(articleId ? { articleId } : {}),
       });
     } catch (e) {
       if (e instanceof InputConflict) return { ok: false, refusal: 'model_disabled', detail: 'input_divergente: a entrada desta chave já foi gravada com outro conteúdo' };

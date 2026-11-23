@@ -11,10 +11,16 @@ const NOW = new Date('2026-11-23T12:00:00.000Z');
 
 interface Req { method: string; headers: Record<string, string>; body: { id?: number; method: string; params?: { name?: string; arguments?: Record<string, unknown> } } }
 
-/** Servidor MCP falso: initialize (com sessão), notifications/initialized (202) e tools/call. `sse` troca o formato da resposta. */
-function fakeServer(tools: Record<string, (a: Record<string, unknown>) => unknown>, opts: { sse?: boolean; expireSessionOnce?: boolean; status?: number } = {}) {
+/** Servidor MCP falso: initialize (cria sessão), notifications/initialized (202) e tools/call (exige sessão válida: senão 404). */
+function fakeServer(
+  tools: Record<string, (a: Record<string, unknown>) => unknown>,
+  opts: { sse?: boolean; expireSessionOnce?: boolean; status?: number; failNotifyOnce?: boolean; initDelayMs?: number } = {},
+) {
   const reqs: Req[] = [];
+  const valid = new Set<string>();
   let expired = false;
+  let notifyFailed = false;
+  let sessions = 0;
   const fetchImpl = (async (_url: string, init: RequestInit) => {
     const headers = Object.fromEntries(Object.entries(init.headers as Record<string, string>));
     const body = JSON.parse(String(init.body)) as Req['body'];
@@ -23,19 +29,34 @@ function fakeServer(tools: Record<string, (a: Record<string, unknown>) => unknow
     if (headers.authorization !== `Bearer ${TOKEN}`) return new Response('no', { status: 401 });
     const reply = (msg: unknown, h: Record<string, string> = {}) =>
       opts.sse
-        ? new Response(`event: message\ndata: ${JSON.stringify(msg)}\n\n`, { status: 200, headers: { 'content-type': 'text/event-stream', ...h } })
+        ? new Response(`event: message
+data: ${JSON.stringify(msg)}
+
+`, { status: 200, headers: { 'content-type': 'text/event-stream', ...h } })
         : new Response(JSON.stringify(msg), { status: 200, headers: { 'content-type': 'application/json', ...h } });
-    if (body.method === 'initialize') return reply({ jsonrpc: '2.0', id: body.id, result: { protocolVersion: '2025-06-18', capabilities: {} } }, { 'mcp-session-id': `sess-${reqs.length}` });
-    if (body.method === 'notifications/initialized') return new Response(null, { status: 202 });
+    if (body.method === 'initialize') {
+      if (opts.initDelayMs) await new Promise((r) => setTimeout(r, opts.initDelayMs));
+      const sid = `sess-${++sessions}`;
+      valid.add(sid);
+      return reply({ jsonrpc: '2.0', id: body.id, result: { protocolVersion: '2025-06-18', capabilities: {} } }, { 'mcp-session-id': sid });
+    }
+    if (body.method === 'notifications/initialized') {
+      if (opts.failNotifyOnce && !notifyFailed) {
+        notifyFailed = true;
+        return new Response('indisponivel', { status: 503 });
+      }
+      return new Response(null, { status: 202 });
+    }
     if (opts.expireSessionOnce && !expired) {
       expired = true;
-      return new Response('expirada', { status: 404 });
+      valid.clear();
     }
+    if (!valid.has(headers['mcp-session-id'] ?? '')) return new Response('sessao expirada', { status: 404 });
     const t = tools[body.params?.name ?? ''];
     if (!t) return reply({ jsonrpc: '2.0', id: body.id, error: { code: -32601, message: 'sem a ferramenta' } });
     return reply({ jsonrpc: '2.0', id: body.id, result: { content: [{ type: 'text', text: JSON.stringify(t(body.params?.arguments ?? {})) }] } });
   }) as unknown as typeof fetch;
-  return { fetchImpl, reqs };
+  return { fetchImpl, reqs, expireAll: () => valid.clear() };
 }
 const refusal = (p: Promise<unknown>) => p.then(() => 'ok', (e: unknown) => (e instanceof McpHttpError ? e.reason : `outro:${String(e)}`));
 const tx = (srv: { fetchImpl: typeof fetch }) => createReadOnlyMlabsMcpTransport({ url: URL_OK, token: TOKEN, fetchImpl: srv.fetchImpl });
@@ -98,6 +119,59 @@ describe('transporte MCP por HTTP (somente leitura)', () => {
     const srv = fakeServer({ list_profiles: () => ({ ok: 1 }) }, { expireSessionOnce: true });
     assert.deepEqual(await tx(srv).call('list_profiles', {}), { ok: 1 });
     assert.equal(srv.reqs.filter((q) => q.body.method === 'initialize').length, 2);
+  });
+});
+
+describe('inicialização da sessão: recuperação e concorrência', () => {
+  const inits = (srv: { reqs: Req[] }) => srv.reqs.filter((q) => q.body.method === 'initialize').length;
+  const confirms = (srv: { reqs: Req[] }) => srv.reqs.filter((q) => q.body.method === 'notifications/initialized').length;
+  const calls = (srv: { reqs: Req[] }) => srv.reqs.filter((q) => q.body.method === 'tools/call');
+
+  test('503 na confirmação de inicialização: a sessão NÃO fica pronta; a leitura falha e a seguinte reinicializa e funciona', async () => {
+    const srv = fakeServer({ list_profiles: () => ({ ok: 1 }) }, { failNotifyOnce: true });
+    const t = tx(srv);
+    assert.equal(await refusal(t.call('list_profiles', {})), 'http');
+    assert.equal(calls(srv).length, 0, 'nenhuma leitura foi enviada com a sessão não confirmada');
+    assert.deepEqual(await t.call('list_profiles', {}), { ok: 1 });
+    assert.deepEqual([inits(srv), confirms(srv)], [2, 2]);
+    assert.deepEqual(await t.call('list_profiles', {}), { ok: 1 });
+    assert.equal(inits(srv), 2, 'depois de confirmada a sessão é reaproveitada');
+  });
+
+  test('leituras simultâneas compartilham UMA inicialização e a mesma sessão (uma confirmação só)', async () => {
+    const srv = fakeServer({ list_profiles: () => ({ ok: 1 }), list_channels: () => [] }, { initDelayMs: 10 });
+    const t = tx(srv);
+    const [a, b, c] = await Promise.all([t.call('list_profiles', {}), t.call('list_channels', {}), t.call('list_profiles', {})]);
+    assert.deepEqual([a, b, c], [{ ok: 1 }, [], { ok: 1 }]);
+    assert.deepEqual([inits(srv), confirms(srv)], [1, 1]);
+    assert.deepEqual([...new Set(calls(srv).map((q) => q.headers['mcp-session-id']))], ['sess-1']);
+  });
+
+  test('inicialização que falha com leituras simultâneas: todas recusam, nada fica guardado e a próxima funciona', async () => {
+    const srv = fakeServer({ list_profiles: () => ({ ok: 1 }) }, { failNotifyOnce: true, initDelayMs: 10 });
+    const t = tx(srv);
+    const r = await Promise.all([refusal(t.call('list_profiles', {})), refusal(t.call('list_profiles', {}))]);
+    assert.deepEqual(r, ['http', 'http']);
+    assert.equal(inits(srv), 1, 'as duas esperaram a mesma tentativa');
+    assert.deepEqual(await t.call('list_profiles', {}), { ok: 1 });
+    assert.equal(inits(srv), 2);
+  });
+
+  test('sessão expirada com leituras simultâneas: UMA nova sessão para as duas, e as duas concluem', async () => {
+    const srv = fakeServer({ list_profiles: () => ({ ok: 1 }) }, { initDelayMs: 10 });
+    const t = tx(srv);
+    await t.call('list_profiles', {});
+    srv.expireAll();
+    const out = await Promise.all([t.call('list_profiles', {}), t.call('list_profiles', {})]);
+    assert.deepEqual(out, [{ ok: 1 }, { ok: 1 }]);
+    assert.equal(inits(srv), 2, 'uma sessão nova, não uma por leitura');
+    assert.deepEqual(calls(srv).slice(-2).map((q) => q.headers['mcp-session-id']), ['sess-2', 'sess-2']);
+  });
+
+  test('o token nunca vai na confirmação de inicialização com falha (mensagem do erro sem corpo nem segredo)', async () => {
+    const srv = fakeServer({}, { failNotifyOnce: true });
+    const e = await tx(srv).call('list_profiles', {}).catch((x: Error) => x);
+    assert.doesNotMatch(`${(e as Error).message} ${JSON.stringify(e)}`, /indisponivel|tok-|Bearer/);
   });
 });
 

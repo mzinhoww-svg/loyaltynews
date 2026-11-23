@@ -1,7 +1,7 @@
-import { providerOfModel } from './types';
+import { providerOfModel, type Account } from './types';
 
-// Trilha e parada imediata do PILOTO de 10 matérias pelo canal OpenBot (assinaturas Claude/Codex + OpenCode grátis;
-// OpenRouter desligado). Desenho: fast-track/custo/piloto-10-materias-openbot.md. Kit do AgentOps: packages/agents (pilot.ts).
+// Trilha e parada imediata do PILOTO de 10 matérias pelo canal OpenBot (DP-41: SÓ as assinaturas Claude e Codex;
+// sem OpenCode, Antigravity nem OpenRouter). Desenho: fast-track/custo/piloto-10-materias-openbot.md. Kit do AgentOps: packages/agents (pilot.ts).
 // Aqui o adaptador faz o que só ele vê: grava uma LINHA por execução (a mesma da planilha), detecta as condições de parada
 // imediata (publicar, API tarifada, segredo em texto, ferramenta fora do contrato) e consulta o `canDispatchNext` do AgentOps
 // antes de entregar ou despachar qualquer tarefa. Nenhuma chamada de modelo, nenhuma rede.
@@ -96,12 +96,34 @@ export class InMemoryPilotState implements PilotStateStore {
   }
 }
 
+/**
+ * DP-41 (23/11/2026, proprietário): o piloto só usa as assinaturas JÁ PAGAS, Claude e Codex; sem OpenCode nem Antigravity, sem API
+ * tarifada, sem publicação. Vale por padrão sempre que o piloto está ativo (`PilotControl.allowedAccounts` só pode ESTREITAR ou, em
+ * teste da mecânica genérica, ampliar de forma explícita).
+ */
+export const DP41_ACCOUNTS: readonly Account[] = Object.freeze(['claude', 'codex'] as Account[]);
+
 export interface PilotControl {
   /** Piloto ativo: ligado só em staging, por decisão registrada. Desligado = nada disto vale. */
   enabled: boolean;
+  /** Contas que o piloto aceita (rota, pull e despacho). Padrão: DP-41 = claude e codex. */
+  allowedAccounts?: readonly Account[];
   rows: PilotRowStore;
   state: PilotStateStore;
   gate: PilotGate;
+}
+
+/** Etapas de independência: a linha só fica completa quando a Editorial grava `gate_verdict` (por `patch`), depois do callback. */
+export const INDEPENDENT_STAGES: readonly string[] = ['factcheck', 'review', 'check_edit'];
+
+/**
+ * Linha concluída de uma etapa de independência que ainda NÃO recebeu o veredito do gate da Editorial. O `canDispatchNext` do AgentOps
+ * a considera inválida (`gate_verdict` obrigatório), o que PARARIA o piloto no intervalo entre o callback e o `patch`. Por isso ela não
+ * entra na consulta do gate: as paradas imediatas já foram registradas pelo próprio adaptador no callback, e a linha continua na
+ * planilha, pendente, até a Editorial completá-la (a avaliação final do piloto exige todas completas).
+ */
+export function awaitingEditorialGate(r: Pick<PilotRow, 'stage' | 'outcome' | 'gate_verdict'>): boolean {
+  return INDEPENDENT_STAGES.includes(r.stage) && r.outcome === 'completed' && r.gate_verdict === undefined;
 }
 
 export const STOP = {
