@@ -170,6 +170,10 @@ export async function run(
     if (missing.length > 0 || (env.BETTER_AUTH_SECRET ?? '').length < 32) {
       discardFile();
       out(`variáveis ausentes ou inválidas: ${missing.length ? missing.join(', ') : 'BETTER_AUTH_SECRET (mínimo 32 caracteres)'}`);
+      if (missing.includes('BETTER_AUTH_SECRET') || (env.BETTER_AUTH_SECRET ?? '').length < 32) {
+        // O plugin de 2º fator CIFRA o segredo do TOTP com o BETTER_AUTH_SECRET: a CLI e o WEB precisam usar o MESMO valor, senão o administrador nasce e o código do autenticador não vale no web.
+        out('BETTER_AUTH_SECRET: use EXATAMENTE o segredo do web de staging (≥ 32 caracteres). O segredo do TOTP é cifrado com ele; um valor diferente cria o administrador, mas o login com o código do autenticador falha no web.');
+      }
       return 2;
     }
     const rt = getRuntime(env);

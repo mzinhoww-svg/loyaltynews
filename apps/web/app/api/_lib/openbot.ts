@@ -13,10 +13,10 @@
 //  - Corpo até 64 KB nas rotas de controle. Nunca loga corpo, cabeçalhos, IP nem segredo.
 import { apiError } from '@ln/contracts';
 import {
-  createOpenBotRoutes, ID_RE, openbotFlagsFrom, verifySignature, toSignedRequest,
+  createOpenBotRoutes, ID_RE, openbotFlagsFrom, resultRefFor, verifySignature, toSignedRequest,
   type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate,
 } from '@ln/openbot';
-import { IoTooLargeError, MAX_IO_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from '@ln/workers/openbot-pg';
+import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
 import { z } from 'zod';
 import { HttpError, json, type RouteCtx, type RouteFn } from './http';
 import { killFlags } from './orcamento';
@@ -60,6 +60,8 @@ export async function openbotDeps(c: RouteCtx, env: Record<string, string | unde
     secrets: () => openbotSecrets(env),
     flags: () => flags,
     now: c.deps.now,
+    // o agente não escolhe o resultRef: o callback de `completed` só aceita `res-<taskId>-a<tentativa>` (o mesmo que a rota io/result devolve)
+    requireDerivedResultRef: true,
     ...(pilot ? { pilot } : {}),
   };
 }
@@ -134,20 +136,21 @@ export const openbotIoInput: RouteFn = async (req, c) => {
   if (!g.ok) return g.res;
   const got = await new PgTaskIo(c.deps.db, c.deps.now).getInputFor(g.task.refId);
   if (!got) return err(404, 'NOT_FOUND', 'entrada da tarefa não encontrada');
-  return json({ data: { refId: g.task.refId, input: got.input, taskClass: got.taskClass, promptVersion: got.promptVersion } }, 200, NO_STORE);
+  return json({ data: { refId: g.task.refId, input: got.input, taskClass: got.taskClass, promptVersion: got.promptVersion, ...(got.meta ? { meta: got.meta } : {}) } }, 200, NO_STORE);
 };
 
 /** O agente grava o RESULTADO da tentativa (idempotente) e recebe o `resultRef` para mandar no callback. Só com o lease vivo. */
 export const openbotIoResult: RouteFn = async (req, c) => {
-  const g = await guarded(req, c, ResultBody, MAX_IO_BYTES + 4096); // o resultado vai até 256 KB, mais o envelope
+  const g = await guarded(req, c, ResultBody, MAX_RESULT_BYTES + 4096); // o resultado vai até 256 KB, mais o envelope
   if (!g.ok) return g.res;
   const { result } = g.body as unknown as { result: unknown };
   if (result === undefined) return err(400, 'VALIDATION_ERROR', 'falta o resultado', ['result']);
-  const resultRef = `res-${g.task.id}-a${g.task.attempts}`;
+  const resultRef = resultRefFor(g.task.id, g.task.attempts);
   try {
-    await new PgTaskIo(c.deps.db, c.deps.now).putResultFor(resultRef, g.task.id, result);
+    await new PgTaskIo(c.deps.db, c.deps.now).putResultFor(resultRef, g.task.id, result); // primeira gravação vence; a mesma repetida devolve o mesmo resultRef
   } catch (e) {
-    if (e instanceof IoTooLargeError) return err(413, 'PAYLOAD_TOO_LARGE', `resultado acima de ${MAX_IO_BYTES / 1024} KB`);
+    if (e instanceof IoTooLargeError) return err(413, 'PAYLOAD_TOO_LARGE', `resultado acima de ${MAX_RESULT_BYTES / 1024} KB`);
+    if (e instanceof ResultConflict) return err(409, 'RESULT_CONFLICT', 'esta tentativa já gravou outro resultado (a primeira gravação vence)');
     throw e;
   }
   return json({ data: { resultRef } }, 200, NO_STORE);

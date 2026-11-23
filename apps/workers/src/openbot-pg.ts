@@ -8,9 +8,9 @@ import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { monthKey } from '@ln/modelops';
 import {
-  FALLBACK_ROUTE, LeaseError,
-  type Account, type CallbackStore, type ClaimRequest, type CostEntry, type CostLedger, type GatewayTaskClass, type HealthStore, type LeaseQueue, type LeasedTask,
-  type NewTask, type PilotRow, type PilotRowStore, type PilotStateStore, type PilotStop, type Task, type TaskIo, type UsageReport,
+  FALLBACK_ROUTE, InputConflict, LeaseError,
+  type Account, type CallbackStore, type ClaimRequest, type CostEntry, type CostLedger, type HealthStore, type LeaseQueue, type LeasedTask,
+  type NewTask, type PilotRow, type PilotRowStore, type PilotStateStore, type PilotStop, type Task, type TaskInputMeta, type TaskIo, type UsageReport,
 } from '@ln/openbot';
 
 type TaskRow = typeof schema.openbotTasks.$inferSelect;
@@ -307,29 +307,48 @@ export class PgPilotStateStore implements PilotStateStore {
   }
 }
 
-export const MAX_IO_BYTES = 256 * 1024;
+export const MAX_INPUT_BYTES = 512 * 1024;
+export const MAX_RESULT_BYTES = 256 * 1024;
+export const MAX_IO_BYTES = MAX_RESULT_BYTES; // (compatibilidade: teto do resultado)
 export class IoTooLargeError extends Error {
-  constructor() {
-    super(`conteúdo acima de ${MAX_IO_BYTES / 1024} KB`);
+  constructor(max: number) {
+    super(`conteúdo acima de ${max / 1024} KB`);
     this.name = 'IoTooLargeError';
   }
 }
-const sizeOk = (v: unknown): boolean => Buffer.byteLength(JSON.stringify(v) ?? 'null', 'utf8') <= MAX_IO_BYTES;
+/** Já existe resultado desta tentativa com conteúdo DIFERENTE (a primeira gravação vence). */
+export class ResultConflict extends Error {
+  constructor(resultRef: string) {
+    super(`resultado ${resultRef} já gravado com outro conteúdo`);
+    this.name = 'ResultConflict';
+  }
+}
+const bytes = (v: unknown): number => Buffer.byteLength(JSON.stringify(v ?? null), 'utf8');
+/** Igualdade de conteúdo como o jsonb do PostgreSQL a vê (ordem das chaves não importa). */
+const jsonbEquals = async (db: Db, ref: string, v: unknown): Promise<boolean> => {
+  const r = (await db.execute(sql`SELECT (content = ${JSON.stringify(v ?? null)}::jsonb) AS same FROM openbot_io WHERE ref = ${ref}`)) as unknown as { rows: { same: boolean }[] };
+  return r.rows[0]?.same === true;
+};
 
 /**
- * Armazém do conteúdo (TaskIo): a Fábrica grava a ENTRADA por `refId` (`putInput`) e lê o RESULTADO por `resultRef` (`getResult`); o agente do OpenBot lê a
- * entrada e grava o resultado só pelas rotas autenticadas e presas ao lease (`getInputFor`, `putResultFor`).
+ * Armazém do conteúdo (TaskIo): a Fábrica grava a ENTRADA por `refId` (`putInput`, idempotente) e lê o RESULTADO por `resultRef` (`getResult`); o agente do OpenBot
+ * lê a entrada e grava o resultado só pelas rotas autenticadas e presas ao lease (`getInputFor`, `putResultFor`). Entrada até 512 KB; resultado até 256 KB.
  */
 export class PgTaskIo implements TaskIo {
   constructor(private readonly db: Db, private readonly clock: () => Date = () => new Date()) {}
 
-  async putInput(refId: string, input: unknown, meta: { taskClass: GatewayTaskClass; promptVersion: string }): Promise<void> {
-    if (!sizeOk(input)) throw new IoTooLargeError();
+  /** Mesmo `refId` e mesmo conteúdo = nada a fazer; conteúdo DIFERENTE = `InputConflict` (a entrada de uma tarefa em andamento não muda). */
+  async putInput(refId: string, input: unknown, meta: TaskInputMeta): Promise<void> {
+    if (bytes(input) > MAX_INPUT_BYTES) throw new IoTooLargeError(MAX_INPUT_BYTES);
     const t = schema.openbotIo;
-    await this.db
+    const ins = await this.db
       .insert(t)
-      .values({ ref: refId, direction: 'input', content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion, createdAt: this.clock() })
-      .onConflictDoUpdate({ target: t.ref, set: { content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion }, setWhere: eq(t.direction, 'input') });
+      .values({ ref: refId, direction: 'input', content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion, meta: meta.reviewedDraftTaskId ? { reviewedDraftTaskId: meta.reviewedDraftTaskId } : null, createdAt: this.clock() })
+      .onConflictDoNothing()
+      .returning({ ref: t.ref });
+    if (ins.length > 0) return;
+    const [cur] = await this.db.select({ direction: t.direction }).from(t).where(eq(t.ref, refId));
+    if (cur?.direction !== 'input' || !(await jsonbEquals(this.db, refId, input))) throw new InputConflict(refId);
   }
 
   async getResult(resultRef: string): Promise<unknown | null> {
@@ -338,20 +357,21 @@ export class PgTaskIo implements TaskIo {
     return r ? r.content : null;
   }
 
-  /** Para a rota do agente: a entrada de `refId` com a classe e a versão do prompt. */
-  async getInputFor(refId: string): Promise<{ input: unknown; taskClass: string | null; promptVersion: string | null } | null> {
+  /** Para a rota do agente: a entrada de `refId` com a classe, a versão do prompt e os metadados. */
+  async getInputFor(refId: string): Promise<{ input: unknown; taskClass: string | null; promptVersion: string | null; meta: { reviewedDraftTaskId?: string } | null } | null> {
     const t = schema.openbotIo;
     const [r] = await this.db.select().from(t).where(and(eq(t.ref, refId), eq(t.direction, 'input')));
-    return r ? { input: r.content, taskClass: r.taskClass, promptVersion: r.promptVersion } : null;
+    return r ? { input: r.content, taskClass: r.taskClass, promptVersion: r.promptVersion, meta: (r.meta as { reviewedDraftTaskId?: string } | null) ?? null } : null;
   }
 
-  /** Para a rota do agente: grava o resultado da tentativa; idempotente (repetir a mesma tentativa sobrescreve o mesmo `resultRef`). */
-  async putResultFor(resultRef: string, taskId: string, result: unknown): Promise<void> {
-    if (!sizeOk(result)) throw new IoTooLargeError();
+  /** Para a rota do agente: PRIMEIRA gravação vence. Repetir o mesmo conteúdo devolve `false` (nada a fazer); conteúdo diferente = `ResultConflict`. */
+  async putResultFor(resultRef: string, taskId: string, result: unknown): Promise<boolean> {
+    if (bytes(result) > MAX_RESULT_BYTES) throw new IoTooLargeError(MAX_RESULT_BYTES);
     const t = schema.openbotIo;
-    await this.db
-      .insert(t)
-      .values({ ref: resultRef, direction: 'result', content: result ?? null, taskId, createdAt: this.clock() })
-      .onConflictDoUpdate({ target: t.ref, set: { content: result ?? null, taskId }, setWhere: eq(t.direction, 'result') });
+    const ins = await this.db.insert(t).values({ ref: resultRef, direction: 'result', content: result ?? null, taskId, createdAt: this.clock() }).onConflictDoNothing().returning({ ref: t.ref });
+    if (ins.length > 0) return true;
+    const [cur] = await this.db.select({ direction: t.direction }).from(t).where(eq(t.ref, resultRef));
+    if (cur?.direction !== 'result' || !(await jsonbEquals(this.db, resultRef, result))) throw new ResultConflict(resultRef);
+    return false;
   }
 }

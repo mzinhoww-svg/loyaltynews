@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
+import { sql } from 'drizzle-orm';
 import type { Db } from '@ln/auth';
 import { createTestDb, isRealTestDb } from '@ln/db/testing';
-import { InMemoryLeaseQueue, type NewTask } from '@ln/openbot';
-import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue } from './openbot-pg';
+import type { NewTask, PilotRow } from '@ln/openbot';
+import { leaseQueueConformanceCases } from '@ln/openbot/testing';
+import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore } from './openbot-pg';
 
 const NOW = new Date('2026-11-23T12:00:00Z');
 const task = (n: number, over: Partial<NewTask> = {}): NewTask => ({
@@ -12,50 +14,43 @@ const usage = (id: string, over: Record<string, unknown> = {}) => ({
   executionId: `exec-${id}`, taskId: id, leaseId: 'l1', model: 'm', generationIds: ['g1'], promptTokens: 1, completionTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, costMicro: 1000, ...over,
 });
 
-describe('stores do OpenBot no PostgreSQL', () => {
-  it('mesma semântica da fila em memória: ordem de chegada, limite, kinds, lease, esgotamento e idempotência (execução paralela dos dois)', async () => {
-    const t = await createTestDb();
-    try {
-      let n = 0;
-      const pg = new PgLeaseQueue(t.db as unknown as Db, () => `x${++n}`);
-      const mem = new InMemoryLeaseQueue();
-      for (const q of [pg, mem]) {
-        await q.enqueue(task(1), NOW);
-        await q.enqueue(task(2, { kind: 'fact_check', maxAttempts: 1 }), NOW);
-        await q.enqueue(task(3), NOW);
-        expect((await q.enqueue(task(1), NOW)).created).toBe(false);
-      }
-      const run = async (q: PgLeaseQueue | InMemoryLeaseQueue) => {
-        const out: unknown[] = [];
-        const a = await q.claim({ workerId: 'w1', now: NOW, leaseMs: 1000, limit: 2, kinds: ['editorial_draft'] });
-        out.push(a.map((x) => [x.refId, x.attempt]));
-        const later = new Date(NOW.getTime() + 5000); // lease vencido: volta; a de maxAttempts=1 depois de 1 tentativa vira 'dead'
-        const f = await q.claim({ workerId: 'w2', now: NOW, leaseMs: 1000, limit: 5, kinds: ['fact_check'] });
-        out.push(f.map((x) => [x.refId, x.attempt]));
-        const b = await q.claim({ workerId: 'w3', now: later, leaseMs: 1000, limit: 5 });
-        out.push(b.map((x) => [x.refId, x.attempt]));
-        out.push(await q.counts());
-        return out;
-      };
-      expect(await run(pg)).toEqual(await run(mem));
-    } finally {
-      await t.close();
-    }
+// A fila PostgreSQL passa INTEIRA a suíte de conformidade da Integration (a mesma da fila em memória): dedupe, lease, claim em paralelo sem
+// duplicar, filtro por via, troca de via no limite sem consumir tentativa, redação que nunca troca, espera da janela, dead/failed.
+describe('PgLeaseQueue: conformidade com o contrato do @ln/openbot', () => {
+  const closers: Array<() => Promise<void>> = [];
+  afterAll(async () => {
+    for (const c of closers) await c();
   });
+  const make = async () => {
+    const t = await createTestDb();
+    closers.push(t.close);
+    return new PgLeaseQueue(t.db as unknown as Db);
+  };
+  for (const c of leaseQueueConformanceCases(make)) it(c.name, c.run, 60_000);
+});
 
-  it('custos: dedupe por executionId, estouro do teto da tarefa e soma só do mês corrente', async () => {
+describe('stores do OpenBot no PostgreSQL', () => {
+  it('custos: faixa gratuita sem tokens nem geração (tokens ausentes ficam ausentes, nunca zero), dedupe por executionId, estouro do teto da tarefa e soma só do mês corrente', async () => {
     const t = await createTestDb();
     try {
       const db = t.db as unknown as Db;
       const q = new PgLeaseQueue(db);
       const a = (await q.enqueue(task(1, { maxCostMicro: 500 }), NOW)).task;
       const b = (await q.enqueue(task(2), NOW)).task;
+      const c = (await q.enqueue(task(3), NOW)).task;
       const ledger = new PgCostLedger(db, () => NOW);
-      expect((await ledger.record(usage(a.id) as never, a.maxCostMicro, NOW))).toMatchObject({ recorded: true, entry: { overrun: true, costMicro: 1000 } });
+      expect((await ledger.record(usage(a.id) as never, a.maxCostMicro, NOW))).toMatchObject({ recorded: true, entry: { overrun: true, costMicro: 1000, lane: 'api' } });
       expect((await ledger.record(usage(a.id, { costMicro: 9999 }) as never, a.maxCostMicro, NOW))).toMatchObject({ recorded: false, entry: { costMicro: 1000 } });
       await ledger.record(usage(b.id, { costMicro: 2000 }) as never, b.maxCostMicro, new Date('2026-10-15T12:00:00Z')); // mês anterior
       expect(await ledger.totalMicro()).toBe(1000);
-      expect((await ledger.entries()).map((e) => e.executionId)).toEqual([`exec-${a.id}`]);
+      const livre = await ledger.record({ lane: 'subscription', account: 'claude', executionId: 'exec-livre', taskId: c.id, leaseId: 'l', model: 'claude-sonnet', costMicro: 0 }, c.maxCostMicro, NOW);
+      expect(livre.entry).toMatchObject({ lane: 'subscription', account: 'claude', costMicro: 0, overrun: false });
+      expect(livre.entry.promptTokens).toBeUndefined(); // não medido: ausente
+      expect(livre.entry.generationIds).toBeUndefined();
+      expect((await ledger.entries()).map((e) => e.executionId).sort()).toEqual([`exec-${a.id}`, 'exec-livre'].sort()); // mesma hora de registro: ordem estável por executionId
+      // o banco recusa faixa gratuita com custo e conta/faixa desconhecidas
+      await expect(db.execute(sql`UPDATE openbot_cost_entries SET cost_micro = 5 WHERE execution_id = 'exec-livre'`)).rejects.toBeDefined();
+      await expect(ledger.record({ lane: 'opencode', account: 'opencode', executionId: 'x1', taskId: c.id, leaseId: 'l', model: 'm', costMicro: 7 }, 1, NOW)).rejects.toBeDefined();
     } finally {
       await t.close();
     }
@@ -72,6 +67,48 @@ describe('stores do OpenBot no PostgreSQL', () => {
       await h.markPull('w1', NOW);
       await h.markPull('w2', new Date(NOW.getTime() + 1000));
       expect(await h.last()).toEqual({ workerId: 'w2', at: '2026-11-23T12:00:01.000Z' });
+    } finally {
+      await t.close();
+    }
+  });
+
+  const linha = (over: Partial<PilotRow> = {}): PilotRow => ({
+    task_id: 't1', kind: 'editorial_draft', article_id: 'a1', source_id: 's1', stage: 'draft', account: 'claude', declared_model: 'claude-sonnet', prompt_version: 'editorial-0.2',
+    started_at: '2026-11-23T12:00:00.000Z', ended_at: '2026-11-23T12:05:00.000Z', attempt: 1, outcome: 'completed', packet_chars: 1200, tokens_measured: false,
+    published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false, ...over,
+  });
+
+  it('trilha do piloto: upsert por (task_id, attempt), patch preserva o resto e só mexe em linha existente, all em ordem de início', async () => {
+    const t = await createTestDb();
+    try {
+      const rows = new PgPilotRowStore(t.db as unknown as Db, () => NOW);
+      await rows.upsert(linha({ task_id: 't2', started_at: '2026-11-23T13:00:00.000Z' }));
+      await rows.upsert(linha());
+      await rows.upsert(linha({ attempt: 2, outcome: 'pending_limit', limit_message: 'limite', limit_at: '2026-11-23T12:10:00.000Z', started_at: '2026-11-23T12:06:00.000Z' }));
+      expect((await rows.all()).map((r) => `${r.task_id}#${r.attempt}`)).toEqual(['t1#1', 't1#2', 't2#1']);
+      await rows.upsert(linha({ outcome: 'failed' })); // mesma chave: substitui
+      expect((await rows.all())[0]).toMatchObject({ outcome: 'failed' });
+      expect(await rows.patch('t1', 1, { gate_verdict: 'approved', unsupported_facts: 0, task_id: 'outra', attempt: 9 })).toBe(true);
+      const p = (await rows.all())[0]!;
+      expect(p).toMatchObject({ task_id: 't1', attempt: 1, gate_verdict: 'approved', unsupported_facts: 0, outcome: 'failed', declared_model: 'claude-sonnet' });
+      expect(await rows.patch('nao-existe', 1, { notes: 'x' })).toBe(false);
+      await expect(t.db.execute(sql`INSERT INTO openbot_pilot_rows (task_id, attempt, stage, account, outcome, started_at, row, updated_at) VALUES ('z', 1, 'draft', 'claude', 'inventado', now(), '{}', now())`)).rejects.toBeDefined();
+    } finally {
+      await t.close();
+    }
+  });
+
+  it('estado do piloto: parada acumula motivos sem repetir, guarda o instante do primeiro, e clear libera', async () => {
+    const t = await createTestDb();
+    try {
+      const st = new PgPilotStateStore(t.db as unknown as Db);
+      expect(await st.get()).toBeNull();
+      await st.stop('api_tarifada', '2026-11-23T12:00:00.000Z');
+      await st.stop('segredo_em_texto', '2026-11-23T12:30:00.000Z');
+      await st.stop('api_tarifada', '2026-11-23T12:40:00.000Z');
+      expect(await st.get()).toEqual({ reasons: ['api_tarifada', 'segredo_em_texto'], at: '2026-11-23T12:00:00.000Z' });
+      await st.clear();
+      expect(await st.get()).toBeNull();
     } finally {
       await t.close();
     }

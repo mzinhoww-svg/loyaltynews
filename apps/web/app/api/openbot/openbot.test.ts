@@ -9,6 +9,9 @@ import { makeApp } from '../_lib/testkit';
 import * as pull from './pull/route';
 import * as heartbeat from './heartbeat/route';
 import * as callback from './callback/route';
+import * as ioInput from './io/input/route';
+import * as ioResult from './io/result/route';
+import { PgTaskIo } from '@ln/workers/openbot-pg';
 
 // Rotas do OpenBot (ADR-003) sobre o PostgreSQL: assinatura HMAC no corpo cru, flag openbotDispatch, kill switch, fila com lease,
 // callback idempotente com custo, estouro de teto e saúde.
@@ -32,6 +35,8 @@ async function post(r: Route, body: unknown, opts: { secret?: string | null; ts?
   return { status: res.status, body: text ? JSON.parse(text) : null, headers: res.headers };
 }
 
+/** resultRef derivado (o callback de completed só aceita `res-<taskId>-a<tentativa>`). */
+const R = (t: { id: string; attempt?: number }, attempt = t.attempt ?? 1) => `res-${t.id}-a${attempt}`;
 const task = (n: number, over: Record<string, unknown> = {}) => ({
   kind: 'editorial_draft' as const, profileId: 'writer_pontos', refId: `art-${n}`, idempotencyKey: `idem-${n}`, dataClass: 'public' as const, maxCostMicro: 1_000_000, ...over,
 });
@@ -49,7 +54,7 @@ beforeEach(() => {
   app.deps.flags.openbotDispatch = true;
 });
 afterEach(async () => {
-  for (const tbl of [schema.openbotCostEntries, schema.openbotCallbacks, schema.openbotHealth, schema.openbotTasks, schema.budgetKillSwitch]) await app.db.delete(tbl as any);
+  for (const tbl of [schema.openbotCostEntries, schema.openbotCallbacks, schema.openbotHealth, schema.openbotPilotRows, schema.openbotPilotState, schema.openbotIo, schema.openbotTasks, schema.budgetKillSwitch]) await app.db.delete(tbl as any);
 });
 afterAll(async () => {
   delete process.env.OPENBOT_HMAC_SECRET;
@@ -91,7 +96,7 @@ describe('flag openbotDispatch e kill switch', () => {
     const off = await post(pull, { workerId: 'w1' });
     expect(off).toMatchObject({ status: 503, body: { error: { code: 'DISPATCH_OFF' } } });
     expect((await post(heartbeat, { taskId: t!.id, leaseId: t!.leaseId })).status).toBe(200);
-    expect((await post(callback, { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: 'res-1' })).status).toBe(200);
+    expect((await post(callback, { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!) })).status).toBe(200);
   });
 
   it('kill switch global ou da rota openbot bloqueia pull e heartbeat (503); rota de outro assunto não bloqueia; o callback segue aceito e registra o custo já gasto', async () => {
@@ -110,7 +115,7 @@ describe('flag openbotDispatch e kill switch', () => {
     expect((await post(pull, { workerId: 'w1' })).status).toBe(503);
     expect((await q.get(t!.id))!.status).toBe('leased'); // nada mudou durante a parada
     // o custo já gasto não pode se perder: o callback é aceito mesmo parado
-    const cb = await post(callback, { callbackId: 'cb-k', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', usage: usage(t!) });
+    const cb = await post(callback, { callbackId: 'cb-k', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!), usage: usage(t!) });
     expect(cb).toMatchObject({ status: 200, body: { costRecorded: true } });
   });
 });
@@ -124,7 +129,7 @@ describe('fila com lease sobre o PostgreSQL', () => {
     expect(a.status).toBe(200);
     expect(a.body.tasks).toHaveLength(1);
     expect(a.body.tasks[0]).toMatchObject({ kind: 'fact_check', refId: 'art-2', attempt: 1 });
-    expect(Object.keys(a.body.tasks[0]).sort()).toEqual(['attempt', 'dataClass', 'id', 'kind', 'leaseExpiresAt', 'leaseId', 'maxCostMicro', 'profileId', 'refId']); // nada de conteúdo
+    expect(Object.keys(a.body.tasks[0]).sort()).toEqual(['account', 'attempt', 'dataClass', 'id', 'kind', 'leaseExpiresAt', 'leaseId', 'maxCostMicro', 'profileId', 'refId']); // nada de conteúdo
     const b = await post(pull, { workerId: 'w2', limit: 5 });
     expect(b.body.tasks.map((t: any) => t.refId)).toEqual(['art-1']); // a outra já está com w1
     expect((await app.db.select().from(schema.openbotHealth))[0]).toMatchObject({ id: 'pull', workerId: 'w2' });
@@ -159,7 +164,7 @@ describe('callback assinado e idempotente, com custo', () => {
     const q = queue();
     await q.enqueue(task(1), app.clock.now);
     const [t] = await q.claim({ workerId: 'w1', now: app.clock.now, leaseMs: 120_000, limit: 1 });
-    const body = { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: 'res-1', usage: usage(t!) };
+    const body = { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!), usage: usage(t!) };
     const r1 = await post(callback, body);
     expect(r1).toMatchObject({ status: 200, body: { duplicate: false, costRecorded: true, overrun: false, pauseModelCalls: false } });
     expect(r1.body.task).toMatchObject({ status: 'completed' });
@@ -171,14 +176,14 @@ describe('callback assinado e idempotente, com custo', () => {
     const custos = await app.db.select().from(schema.openbotCostEntries);
     expect(custos).toHaveLength(1);
     expect(custos[0]).toMatchObject({ executionId: `exec-${t!.id}`, costMicro: 400_000, overrun: false });
-    expect((await q.get(t!.id))).toMatchObject({ status: 'completed', resultRef: 'res-1' });
+    expect((await q.get(t!.id))).toMatchObject({ status: 'completed', resultRef: R(t!) });
   });
 
   it('custo desconhecido, de outra tarefa ou outro lease: 422 sem efeito e SEM consumir o callbackId (pode reenviar corrigido)', async () => {
     const q = queue();
     await q.enqueue(task(1), app.clock.now);
     const [t] = await q.claim({ workerId: 'w1', now: app.clock.now, leaseMs: 120_000, limit: 1 });
-    const base = { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed' };
+    const base = { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!) };
     expect((await post(callback, { ...base, usage: usage(t!, { costMicro: null }) })).body.error.code).toBe('USAGE_INVALID');
     expect((await post(callback, { ...base, usage: usage(t!, { costMicro: 1.5 }) })).status).toBe(422);
     expect((await post(callback, { ...base, usage: usage({ id: t!.id, leaseId: 'outro' }) })).body.error.code).toBe('USAGE_MISMATCH');
@@ -191,7 +196,7 @@ describe('callback assinado e idempotente, com custo', () => {
     const q = queue();
     await q.enqueue(task(1, { maxCostMicro: 100_000 }), app.clock.now);
     const [t] = await q.claim({ workerId: 'w1', now: app.clock.now, leaseMs: 120_000, limit: 1 });
-    const r = await post(callback, { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', usage: usage(t!, { costMicro: 51_000_000 }) });
+    const r = await post(callback, { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!), usage: usage(t!, { costMicro: 51_000_000 }) });
     expect(r.body).toMatchObject({ costRecorded: true, overrun: true, pauseModelCalls: true, budget: { status: 'estourado' } });
     expect((await app.db.select().from(schema.openbotCostEntries))[0]).toMatchObject({ overrun: true, costMicro: 51_000_000 });
   });
@@ -207,7 +212,7 @@ describe('callback assinado e idempotente, com custo', () => {
     expect((await post(callback, { callbackId: 'f3', taskId: b2!.id, leaseId: b2!.leaseId, outcome: 'failed', error: 'regra', retryable: false })).body.task.status).toBe('failed');
     await q.enqueue(task(3), app.clock.now);
     const [c] = await q.claim({ workerId: 'w1', now: new Date(app.clock.now.getTime() - 10 * 60_000), leaseMs: 1000, limit: 1 }); // lease já vencido no relógio da API
-    expect((await post(callback, { callbackId: 'f4', taskId: c!.id, leaseId: c!.leaseId, outcome: 'completed' })).status).toBe(409);
+    expect((await post(callback, { callbackId: 'f4', taskId: c!.id, leaseId: c!.leaseId, outcome: 'completed', resultRef: R(c!) })).status).toBe(409);
   });
 });
 
@@ -226,5 +231,116 @@ describe('estado no banco', () => {
     await expect(q.enqueue(task(2, { maxCostMicro: 0 }), app.clock.now)).rejects.toBeDefined();
     await q.enqueue(task(3), app.clock.now);
     await expect(app.db.update(schema.openbotTasks).set({ status: 'leased' }).where(eq(schema.openbotTasks.refId, 'art-3'))).rejects.toBeDefined();
+  });
+});
+
+// ---------- conteúdo (TaskIo) para o agente, resultRef derivado e piloto ----------
+describe('rotas do agente: io/input e io/result (presas ao lease vivo)', () => {
+  const io = () => new PgTaskIo(app.db as any, app.deps.now);
+  async function leased(n = 1, kind: string = 'editorial_draft') {
+    const q = queue();
+    await q.enqueue(task(n, { kind, refId: `gw-${n}` }), app.clock.now);
+    const [t] = await q.claim({ workerId: 'w1', now: app.clock.now, leaseMs: 120_000, limit: 1 });
+    return { q, t: t! };
+  }
+
+  it('entrada: só com assinatura e lease vivo; devolve conteúdo, classe, versão do prompt e meta; sem entrada 404', async () => {
+    const { t } = await leased();
+    await io().putInput('gw-1', { pauta: 'conteúdo público' }, { taskClass: 'draft', promptVersion: 'editorial-0.2', reviewedDraftTaskId: 'task-rascunho-1' });
+    const ok = await post(ioInput, { taskId: t.id, leaseId: t.leaseId });
+    expect(ok).toMatchObject({ status: 200, body: { data: { refId: 'gw-1', input: { pauta: 'conteúdo público' }, taskClass: 'draft', promptVersion: 'editorial-0.2', meta: { reviewedDraftTaskId: 'task-rascunho-1' } } } });
+    expect((await post(ioInput, { taskId: t.id, leaseId: t.leaseId }, { secret: null })).status).toBe(401);
+    expect((await post(ioInput, { taskId: t.id, leaseId: t.leaseId }, { secret: 'outro' })).status).toBe(401);
+    expect((await post(ioInput, { taskId: t.id, leaseId: 'lease-errado' })).status).toBe(409);
+    expect((await post(ioInput, { taskId: 'nao-existe', leaseId: 'x' })).status).toBe(404);
+    expect((await post(ioInput, { taskId: t.id })).status).toBe(400);
+    await app.db.delete(schema.openbotIo as any);
+    expect((await post(ioInput, { taskId: t.id, leaseId: t.leaseId })).status).toBe(404); // lease vivo, sem entrada gravada
+  });
+
+  it('o lease antigo morre quando a tarefa é reentregue; a via seguinte (lease novo) lê a MESMA entrada', async () => {
+    const { q, t } = await leased(2);
+    await io().putInput('gw-2', { x: 1 }, { taskClass: 'draft', promptVersion: 'v' });
+    const depois = new Date(app.clock.now.getTime() + 10 * 60_000);
+    const [novo] = await q.claim({ workerId: 'w2', now: depois, leaseMs: 40 * 60_000, limit: 1 }); // o lease de w1 venceu; w2 pega com validade longa
+    expect(novo!.id).toBe(t.id);
+    expect((await post(ioInput, { taskId: t.id, leaseId: t.leaseId })).status).toBe(409); // o lease antigo não vale mais
+    expect((await post(ioInput, { taskId: t.id, leaseId: novo!.leaseId })).body.data.input).toEqual({ x: 1 });
+  });
+
+  it('kill switch bloqueia a leitura e a gravação (503)', async () => {
+    const { t } = await leased(3);
+    await io().putInput('gw-3', { x: 1 }, { taskClass: 'draft', promptVersion: 'v' });
+    await new PostgresLedgerStore(app.db as unknown as SqlDatabase).setKill('global', true, 'parada geral', app.clock.now);
+    expect((await post(ioInput, { taskId: t.id, leaseId: t.leaseId })).body.error.code).toBe('KILL_SWITCH');
+    expect((await post(ioResult, { taskId: t.id, leaseId: t.leaseId, result: { a: 1 } })).body.error.code).toBe('KILL_SWITCH');
+  });
+
+  it('resultado: resultRef derivado, primeira gravação vence, repetir devolve o mesmo, conteúdo diferente na mesma tentativa = 409, teto de 256 KB', async () => {
+    const { t } = await leased(4);
+    const a = await post(ioResult, { taskId: t.id, leaseId: t.leaseId, result: { texto: 'rascunho' } });
+    expect(a).toMatchObject({ status: 200, body: { data: { resultRef: `res-${t.id}-a1` } } });
+    expect((await post(ioResult, { taskId: t.id, leaseId: t.leaseId, result: { texto: 'rascunho' } })).body.data.resultRef).toBe(`res-${t.id}-a1`);
+    expect((await post(ioResult, { taskId: t.id, leaseId: t.leaseId, result: { texto: 'OUTRO' } })).status).toBe(409);
+    expect(await io().getResult(`res-${t.id}-a1`)).toEqual({ texto: 'rascunho' }); // a primeira gravação ficou
+    const { t: t2 } = await leased(5);
+    expect((await post(ioResult, { taskId: t2.id, leaseId: t2.leaseId, result: 'x'.repeat(300 * 1024) })).status).toBe(413);
+    expect((await post(ioResult, { taskId: t2.id, leaseId: t2.leaseId })).status).toBe(400); // sem result
+    expect((await post(ioResult, { taskId: t2.id, leaseId: 'errado', result: {} })).status).toBe(409);
+  });
+
+  it('o callback de completed só aceita o resultRef derivado (422 RESULT_REF_MISMATCH) e NÃO consome o callbackId; o certo, com o mesmo callbackId, fecha a tarefa e o resultado fica legível pela Fábrica', async () => {
+    const { q, t } = await leased(6);
+    const { body } = await post(ioResult, { taskId: t.id, leaseId: t.leaseId, result: { ok: true } });
+    const base = { callbackId: 'cb-rr', taskId: t.id, leaseId: t.leaseId, outcome: 'completed' };
+    for (const bad of [undefined, 'res-de-outra-tarefa-a1', `res-${t.id}-a2`]) {
+      const r = await post(callback, { ...base, ...(bad ? { resultRef: bad } : {}) });
+      expect([r.status, r.body.error.code]).toEqual([422, 'RESULT_REF_MISMATCH']);
+    }
+    expect((await q.get(t.id))!.status).toBe('leased');
+    const good = await post(callback, { ...base, resultRef: body.data.resultRef });
+    expect(good).toMatchObject({ status: 200, body: { duplicate: false, task: { status: 'completed' } } });
+    expect(await io().getResult(body.data.resultRef)).toEqual({ ok: true });
+  });
+});
+
+describe('PgTaskIo (a Fábrica grava a entrada no mesmo processo)', () => {
+  it('putInput é idempotente: mesmo conteúdo (ordem das chaves não importa) = nada a fazer; conteúdo diferente = InputConflict; teto de 512 KB', async () => {
+    const io = new PgTaskIo(app.db as any, app.deps.now);
+    const meta = { taskClass: 'draft' as const, promptVersion: 'v1' };
+    await io.putInput('gw-x', { a: 1, b: [1, 2] }, meta);
+    await io.putInput('gw-x', { b: [1, 2], a: 1 }, meta);
+    await expect(io.putInput('gw-x', { a: 2 }, meta)).rejects.toMatchObject({ name: 'InputConflict' });
+    await expect(io.putInput('gw-y', 'x'.repeat(600 * 1024), meta)).rejects.toMatchObject({ name: 'IoTooLargeError' });
+    await io.putInput('gw-z', 'x'.repeat(400 * 1024), meta); // entrada grande cabe (até 512 KB)
+    expect(await io.getResult('gw-x')).toBeNull(); // entrada não é resultado
+  });
+});
+
+describe('piloto (só staging, só com decisão registrada) e gate do AgentOps', () => {
+  const on = () => Object.assign(process.env, { APP_ENV: 'staging', LN_OPENBOT_PILOT: '1' });
+  const off = () => {
+    delete process.env.APP_ENV;
+    delete process.env.LN_OPENBOT_PILOT;
+  };
+  afterEach(off);
+
+  it('sem APP_ENV=staging E LN_OPENBOT_PILOT=1 o piloto não existe (produção ou só uma das duas variáveis); pull sem account funciona como antes', async () => {
+    for (const env of [{ APP_ENV: 'production', LN_OPENBOT_PILOT: '1' }, { APP_ENV: 'staging' }, { LN_OPENBOT_PILOT: '1' }]) {
+      off();
+      Object.assign(process.env, env);
+      expect((await post(pull, { workerId: 'w1' })).status, JSON.stringify(env)).toBe(200);
+    }
+  });
+
+  it('piloto ligado: pull exige a via (account); sem o gate do AgentOps (@ln/agents sem canDispatchNext) FALHA FECHADO com o motivo, nada é entregue', async () => {
+    await queue().enqueue(task(7), app.clock.now);
+    on();
+    expect((await post(pull, { workerId: 'w1' })).status).toBe(400); // piloto: o pull informa a via
+    const r = await post(pull, { workerId: 'w1', account: 'claude' });
+    expect(r).toMatchObject({ status: 503, body: { error: { code: 'PILOT_STOPPED' } } });
+    expect(JSON.stringify(r.body)).toMatch(/canDispatchNext/);
+    off();
+    expect(await queue().counts()).toMatchObject({ pending: 1, leased: 0 });
   });
 });

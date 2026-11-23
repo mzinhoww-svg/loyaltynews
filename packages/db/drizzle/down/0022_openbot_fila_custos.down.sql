@@ -8,4 +8,4 @@ DROP TABLE IF EXISTS openbot_health;
 DROP TABLE IF EXISTS openbot_cost_entries;
 DROP TABLE IF EXISTS openbot_callbacks;
 DROP TABLE IF EXISTS openbot_tasks;
-DELETE FROM drizzle.__drizzle_migrations WHERE created_at = 1795441426476;
+DELETE FROM drizzle.__drizzle_migrations WHERE created_at = 1795441681286;

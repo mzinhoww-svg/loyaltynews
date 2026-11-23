@@ -139,13 +139,15 @@ export const openbotIo = pgTable(
     content: jsonb('content').notNull(),
     taskClass: text('task_class'),
     promptVersion: text('prompt_version'),
+    /** Só na entrada: metadados que o agente precisa (ex.: `reviewedDraftTaskId` da checagem/revisão). */
+    meta: jsonb('meta'),
     /** Só no resultado: a tarefa e a tentativa que o gravaram. */
     taskId: text('task_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   },
   (t) => [
     check('openbot_io_direction', sql`${t.direction} IN ('input', 'result')`),
-    // o teto de tamanho também vale no banco (a rota recusa antes, com 413): 256 KB por conteúdo
-    check('openbot_io_size', sql`octet_length(${t.content}::text) <= 262144`),
+    // o teto de tamanho também vale no banco (a rota recusa antes, com 413): entrada até 512 KB (rascunho + evidências), resultado até 256 KB
+    check('openbot_io_size', sql`octet_length(${t.content}::text) <= CASE WHEN ${t.direction} = 'input' THEN 524288 ELSE 262144 END`),
   ],
 );
