@@ -10,6 +10,7 @@ import {
 } from '@ln/intelligence';
 import type { Action, Db, Resource } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
+import { confirmRoleHandler, discardRoleHandler, listRolesHandler } from './cargos';
 
 /** Porta SQL do Intelligence sobre o cliente do driver (pg Pool em produção, PGlite nos testes). */
 export function intelDb(db: Db): IntelDb {
@@ -54,6 +55,10 @@ export const INTELLIGENCE_ROUTES: readonly IRoute[] = [
   stu('GET', '/moves', READ, (db, _a, i) => listMovesHandler(db, 'studio', i)),
   stu('GET', '/graph/neighbors', READ, (db, _a, i) => graphNeighborsHandler(db, 'studio', i)),
   stu('POST', '/graph/path', READ, (db, _a, i) => graphPathHandler(db, 'studio', i)),
+  // cargos "a confirmar" (fonte secundária): fila, confirmação com a página OFICIAL e descarte (editor ou superior: entidades:update)
+  stu('GET', '/roles', READ, listRolesHandler),
+  stu('POST', '/roles/:id/confirm', WRITE, confirmRoleHandler),
+  stu('POST', '/roles/:id/discard', WRITE, discardRoleHandler),
   stu('POST', '/moves/:id/review', REVIEW, (db, a, i) => reviewMoveHandler(db, a, i)),
   stu('GET', '/watchlists', READ, (db, _a, i) => listWatchlistsHandler(db, i)),
   stu('POST', '/watchlists', CREATE, (db, a, i) => createWatchlistHandler(db, a, i)),
