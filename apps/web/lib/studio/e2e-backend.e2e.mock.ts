@@ -12,6 +12,7 @@ import { getRuntime, setRuntimeForTest } from '@ln/auth/runtime';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { sampleArticle } from '@ln/editorial/testing';
+import { PgPilotRowStore } from '@ln/workers/openbot-pg';
 import { DEFAULT_CONFIG, addEvidence, addOrgRelation, processObservation, upsertOrganization, generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 import { criarClientePglite } from './dev-db.e2e.mock';
 import type { E2eBackend } from './e2e-backend.types';
@@ -175,7 +176,20 @@ Fontes:
       const store = new PgEditorialStore(db);
       const ids = ['piloto-e2e-a1', 'piloto-e2e-a2', 'piloto-e2e-a4'];
       for (const id of ids) if (!(await store.getArticle(id))) await store.putArticle(sampleArticle(id, { status: 'aprovado' }));
+      // linhas MOCK da trilha do piloto (planilha) para a1: redação e revisão final; idempotente (upsert por task_id + attempt)
+      const linhas = new PgPilotRowStore(db);
+      const base = { kind: 'editorial_draft', article_id: 'piloto-e2e-a1', source_id: 'mock-ri', account: 'claude', declared_model: 'MOCK', prompt_version: 'editorial-0.3', ended_at: '2026-11-23T12:05:00.000Z', attempt: 1, outcome: 'completed', packet_chars: 1200, tokens_measured: false, published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false };
+      await linhas.upsert({ ...base, task_id: 'mock-a1-draft', stage: 'draft', started_at: '2026-11-23T12:00:00.000Z', output_valid: true } as never);
+      await linhas.upsert({ ...base, task_id: 'mock-a1-review', stage: 'review', started_at: '2026-11-23T12:10:00.000Z', gate_verdict: 'approved', gate_reasons: ['ok'], cross_provider_ok: true, output_valid: true, notes: '=MOCK nota' } as never);
       return { artigos: ids };
+    },
+    async seedPilotoViolacoes() {
+      // Studio 2: duas linhas MOCK com parada imediata (segredo em log; ferramenta fora do contrato) para a tela de resolução. Idempotente (upsert).
+      const linhas = new PgPilotRowStore(db);
+      const base = { kind: 'editorial_draft', article_id: 'piloto-e2e-a2', source_id: 'mock-ri', account: 'claude', declared_model: 'MOCK', prompt_version: 'editorial-0.3', ended_at: '2026-11-23T13:05:00.000Z', attempt: 1, outcome: 'completed', packet_chars: 900, tokens_measured: false, published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false };
+      await linhas.upsert({ ...base, task_id: 'mock-viol-segredo', stage: 'draft', started_at: '2026-11-23T13:00:00.000Z', secret_in_log: true } as never);
+      await linhas.upsert({ ...base, task_id: 'mock-viol-ferramenta', stage: 'draft', started_at: '2026-11-23T13:01:00.000Z', tool_outside_contract: true } as never);
+      return { linhas: ['mock-viol-segredo', 'mock-viol-ferramenta'] };
     },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);

@@ -90,7 +90,7 @@ test('detalhe: nome, contato e texto; a consulta entra na trilha; atribuir a mim
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
 });
 
-test('remover a pessoa: pede confirmação; registra a decisão e diz que o efeito público está pendente', async ({ page, context }) => {
+test('remover a pessoa: pede confirmação; registra a decisão e mostra o efeito público declarado pelo Backend', async ({ page, context }) => {
   await entrar(context, 'tit-chefe', 'editor_chefe');
   await page.goto(`/studio/correcoes-titular/${ids.pessoa}`);
   const form = page.getByRole('form', { name: 'Remover a pessoa da exibição' });
