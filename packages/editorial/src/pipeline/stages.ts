@@ -24,6 +24,8 @@ export const MAX_ATTEMPTS = 3; // model.policy.json rules.max_attempts
 export interface AuditEntry {
   at: string; articleId: string; stage: string; event: string;
   provider?: string; model?: string; promptVersion?: string; evidenceIds?: string[]; detail?: string;
+  /** Revisão do rascunho que a checagem/revisão avaliou (id da tarefa de redação + hash do rascunho): prova o par redator→checador. */
+  reviewedDraftTaskId?: string; reviewedDraftSha256?: string;
 }
 export interface AuditLog { record(e: AuditEntry): void }
 export class InMemoryAuditLog implements AuditLog {
@@ -49,8 +51,18 @@ function blocked(job: ArticleJob, stage: JobSpec['stage'], blockers: BlockerCode
 }
 const next = (stage: JobSpec['stage'], data: ArticleJob): StageOutcome => ({ kind: 'next', next: { stage, jobId: `${data.articleId}:${stage}:${data.attempt}`, data } });
 
+/**
+ * Identificador ESTÁVEL da revisão do rascunho que uma checagem ou revisão recebe: `taskId` = id da tarefa de redação que o produziu
+ * (`<matéria>:draft:<tentativa>`), `sha256` = hash do rascunho inteiro (ADR-017). Vai na entrada do modelo, no registro de auditoria e no
+ * resultado persistido; o avaliador do piloto usa `reviewedDraftTaskId` como `reviewed_draft_task_id`.
+ */
+export interface DraftRevision { taskId: string; draftId: string; sha256: string }
+export function draftRevision(job: ArticleJob, d: Draft): DraftRevision {
+  return { taskId: `${job.articleId}:draft:${job.attempt}`, draftId: d.id, sha256: draftContentSha256(d) };
+}
+
 async function call(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], taskClass: TaskClass, route: RouteClass, workflow: WorkflowId,
-  input: unknown, excludeProviders: string[] = []): Promise<GatewayResponse> {
+  input: unknown, excludeProviders: string[] = [], rev?: DraftRevision): Promise<GatewayResponse> {
   const req: GatewayRequest = {
     taskClass, route, workflow, dataClass: 'public', excludeProviders, input, promptVersion: PROMPT_VERSION,
     idempotencyKey: `${job.articleId}:${taskClass}:${job.attempt}`,
@@ -60,6 +72,7 @@ async function call(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], t
     at: (deps.now?.() ?? new Date()).toISOString(), articleId: job.articleId, stage, event: r.ok ? 'model_call' : `refused:${r.refusal}`,
     ...(r.ok ? { provider: r.provider, model: r.model } : {}), promptVersion: PROMPT_VERSION,
     evidenceIds: job.evidences.map((e) => e.id), ...(r.ok ? {} : r.detail ? { detail: r.detail } : {}),
+    ...(rev ? { reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } : {}),
   });
   return r;
 }
@@ -190,8 +203,9 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
   const d = job.draft;
   if (!d) return blocked(job, 'factcheck', ['approval_missing'], [{ code: 'no_draft', message: 'sem rascunho' }]);
   const used = job.evidences.filter((e) => d.evidenceIds.includes(e.id));
+  const rev = draftRevision(job, d);
   const r = await call(deps, job, 'factcheck', 'factcheck', 'review', 'WF02',
-    { claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, [d.modelProvider]);
+    { reviewedDraft: rev, claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, [d.modelProvider], rev);
   if (!r.ok) return refused(job, 'factcheck', r);
   if (r.provider === d.modelProvider) {
     return blocked(job, 'factcheck', ['cross_provider_check_failed'], [{ code: 'same_provider', message: `checagem veio do mesmo provedor do redator (${r.provider})` }]);
@@ -210,7 +224,7 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
     else if (v.verdict !== 'pass') findings.push({ code: 'unsupported_claim', message: `veredito ${v.verdict}`, claimId: c.id });
   }
   if (findings.length) return blocked(job, 'factcheck', ['unsupported_claim'], findings);
-  return next('review', { ...job, factcheck: { provider: r.provider, model: r.model, verdicts } });
+  return next('review', { ...job, factcheck: { provider: r.provider, model: r.model, verdicts, reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } });
 }
 
 // ---------------- 5. revisão (auto_gate_editor) ----------------
@@ -224,14 +238,19 @@ export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOut
   if (fc.provider === d.modelProvider) return blocked(job, 'review', ['cross_provider_check_failed'], [{ code: 'same_provider', message: 'redator e checador no mesmo provedor' }]);
   const ok = d.claims.every((c) => fc.verdicts.some((v) => v.claimId === c.id && v.verdict === 'pass'));
   if (!ok) return blocked(job, 'review', ['unsupported_claim'], [{ code: 'factcheck_incomplete', message: 'nem todo claim aprovado' }]);
-  const r = await call(deps, job, 'review', 'review', 'economy', 'WF02', { headline: d.headline, body: d.body, editoria: d.editoria });
+  const rev = draftRevision(job, d);
+  // A checagem precisa ser DESTA revisão do rascunho (mesmo hash); rascunho alterado depois da checagem invalida a aprovação.
+  if (fc.reviewedDraftSha256 !== undefined && fc.reviewedDraftSha256 !== rev.sha256) {
+    return blocked(job, 'review', ['stale_approval'], [{ code: 'factcheck_for_other_draft', message: 'a checagem avaliou outra revisão do rascunho' }]);
+  }
+  const r = await call(deps, job, 'review', 'review', 'economy', 'WF02', { reviewedDraft: rev, headline: d.headline, body: d.body, editoria: d.editoria }, [], rev);
   if (!r.ok) return refused(job, 'review', r);
   if (!isObj(r.output) || typeof r.output['approve'] !== 'boolean') return bad(job, 'review', 'review: esperado {approve:boolean}');
   if (!r.output['approve']) {
     const issues = Array.isArray(r.output['issues']) ? r.output['issues'].map(String) : [];
     return blocked(job, 'review', ['approval_missing'], issues.map((m) => ({ code: 'editor_rejected', message: m })));
   }
-  return { kind: 'done', event: 'article.approved', data: { ...job, approved: true } };
+  return { kind: 'done', event: 'article.approved', data: { ...job, approved: true, review: { provider: r.provider, model: r.model, reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } } };
 }
 
 // ---------------- 6. pacote social (WF04; só após article.published) ----------------
