@@ -80,11 +80,14 @@ export function ArticleCard({
   size = 'md',
   rank,
   headingLevel = 3,
+  withImage = true,
 }: {
   article: Article;
   size?: CardSize;
   rank?: number;
   headingLevel?: 2 | 3 | 4;
+  /** `false` força a variante só-texto (usado pela grade para manter uma única variante de card). */
+  withImage?: boolean;
 }) {
   const nome = editoriaName(article.editoriaSlug);
   return (
@@ -97,9 +100,9 @@ export function ArticleCard({
       publishedAt={article.publishedAt}
       readingMinutes={article.readingMinutes}
       author={article.authorLabel}
-      imageSrc={article.image?.src}
-      imageAlt={article.image?.alt}
-      imageLabel={article.image?.label ?? undefined}
+      imageSrc={withImage ? article.image?.src : undefined}
+      imageAlt={withImage ? article.image?.alt : undefined}
+      imageLabel={withImage ? (article.image?.label ?? undefined) : undefined}
       headingLevel={headingLevel}
       rank={rank}
       isMock={article.mock}
@@ -110,10 +113,15 @@ export function ArticleCard({
 
 /** `headingLevel`: use 2 quando a grade vem logo abaixo do h1 (listagens); 3 dentro de uma Section (h2). */
 export function ArticleGrid({ items, cols = 4, headingLevel = 3 }: { items: Article[]; cols?: 3 | 4; headingLevel?: 2 | 3 | 4 }) {
+  // Uma única variante de card por grade: com foto só se TODAS as matérias têm foto; senão todas só texto.
+  const withImage = items.length > 0 && items.every((a) => Boolean(a.image?.src));
+  // A grade se ajusta ao número de itens: 1 item = linha única (miniatura ao lado), 2 itens = 2 colunas.
+  const n = Math.min(items.length, cols);
+  const cls = ['pt-grid', cols === 3 && 'pt-grid-3', n <= 2 && `pt-grid--n${n}`].filter(Boolean).join(' ');
   return (
-    <div className={cols === 3 ? 'pt-grid pt-grid-3' : 'pt-grid'}>
+    <div className={cls}>
       {items.map((a) => (
-        <ArticleCard key={a.slug} article={a} headingLevel={headingLevel} />
+        <ArticleCard key={a.slug} article={a} headingLevel={headingLevel} withImage={withImage} size={n === 1 && withImage ? 'sm' : 'md'} />
       ))}
     </div>
   );

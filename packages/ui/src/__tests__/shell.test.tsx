@@ -139,6 +139,12 @@ describe("Footer", () => {
     rerender(<Footer tagline="Outra frase" />);
     expect(screen.getByText("Outra frase")).toBeInTheDocument();
   });
+  it("V-12: a frase institucional padrão (em inglês) é marcada com lang=en; frases customizadas não herdam o idioma", () => {
+    const { rerender } = render(<Footer />);
+    expect(screen.getByText(FOOTER_TAGLINE)).toHaveAttribute("lang", "en");
+    rerender(<Footer tagline="Outra frase" />);
+    expect(screen.getByText("Outra frase")).not.toHaveAttribute("lang");
+  });
   it("redes sociais: só aparecem as que têm URL; nomes acessíveis; externas abrem com rel seguro", async () => {
     const { container } = render(
       <Footer
@@ -225,6 +231,18 @@ describe("ArticleCard", () => {
   it("rank aparece com rótulo acessível", () => {
     render(<ArticleCard {...base} size="compact" rank={3} />);
     expect(document.querySelector(".ln-card__rank")).toHaveTextContent("Posição 3");
+  });
+  it("cartão com posição: a posição é filha direta do cartão (coluna própria), fora da linha de selos", () => {
+    const { container } = render(<ArticleCard {...base} size="compact" rank={2} editoria={EDITORIAS[0]} isMock />);
+    const card = container.querySelector("article.ln-card")!;
+    expect(card).toHaveClass("ln-card--ranked");
+    expect(card.querySelector(":scope > .ln-card__rank")).not.toBeNull();
+    expect(card.querySelector(".ln-card__meta .ln-card__rank")).toBeNull();
+    expect(screen.getByTestId("mock-badge")).toHaveTextContent("MOCK"); // selo MOCK continua visível
+  });
+  it("cartão sem posição não ganha a classe de ranking", () => {
+    const { container } = render(<ArticleCard {...base} />);
+    expect(container.querySelector("article.ln-card")).not.toHaveClass("ln-card--ranked");
   });
 });
 

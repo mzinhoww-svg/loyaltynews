@@ -60,7 +60,13 @@ export function ArticleCard({
   const date = publishedAt ? formatDateShortPtBR(publishedAt) : "";
 
   return (
-    <article className={cx("ln-card", `ln-card--${size}`, !showMedia && size !== "compact" && "ln-card--noimg", className)}>
+    <article className={cx("ln-card", `ln-card--${size}`, !showMedia && size !== "compact" && "ln-card--noimg", Boolean(rank) && "ln-card--ranked", className)}>
+      {rank ? (
+        <span className="ln-card__rank">
+          <span className="ln-sr-only">Posição </span>
+          {rank}
+        </span>
+      ) : null}
       {showMedia ? (
         <div className="ln-card__media">
           <img src={imageSrc} alt={imageAlt} loading="lazy" decoding="async" />
@@ -69,7 +75,6 @@ export function ArticleCard({
       ) : null}
       <div className="ln-card__body">
         <div className="ln-card__meta">
-          {rank ? <span className="ln-card__rank"><span className="ln-sr-only">Posição </span>{rank}</span> : null}
           {editoria ? <EditoriaBadge editoria={editoria} /> : null}
           {isMock ? <MockBadge label="" /> : null}
         </div>

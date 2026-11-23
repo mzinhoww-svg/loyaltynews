@@ -52,7 +52,11 @@ export function Footer({
             <Link href={homeHref} aria-label="Loyalty News — página inicial">
               <Logo variant="reverse" height={40} decorative />
             </Link>
-            {tagline ? <p className="ln-footer__tagline">{tagline}</p> : null}
+            {tagline ? (
+              <p className="ln-footer__tagline" lang={tagline === FOOTER_TAGLINE ? "en" : undefined}>
+                {tagline}
+              </p>
+            ) : null}
             <SocialLinks links={social} className="ln-footer__social" />
           </div>
           <nav aria-label="Editorias (rodapé)" className="ln-footer__col ln-footer__col--wide">

@@ -61,3 +61,34 @@ describe("editorias", () => {
     for (const s of slugs) expect(s).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
 });
+
+describe("tipografia aplicada (Brandkit 2.0: Inter em UI, manchetes e dados; Georgia só na assinatura editorial)", () => {
+  const base = readFileSync(resolve(root, "src/styles/base.css"), "utf8");
+  const studio = readFileSync(resolve(root, "src/styles/studio.css"), "utf8");
+  it("h1–h4 usam a fonte de UI (Inter), não a editorial", () => {
+    const rule = base.match(/\.ln-root h1,[^{]*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("font-family: var(--ln-font-ui)");
+    expect(rule).not.toContain("--ln-font-editorial");
+  });
+  it("valores de KPI (dados) usam Inter", () => {
+    const rule = studio.match(/\.ln-kpi__value \{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("var(--ln-font-ui)");
+  });
+});
+
+describe("regras visuais P2 dos cards e do toque (V-07, V-08, V-11)", () => {
+  const content = readFileSync(resolve(root, "src/styles/content.css"), "utf8");
+  it("V-07: miniatura sm em 16:9 (3:2 cortava as laterais da arte)", () => {
+    expect(content).toMatch(/\.ln-card--sm \.ln-card__media \{ aspect-ratio: 16 \/ 9; \}/);
+    expect(content).not.toMatch(/\.ln-card--sm \.ln-card__media \{ aspect-ratio: 3 \/ 2; \}/);
+  });
+  it("V-08: selos do card ficam numa linha só (sem wrap) e o MOCK não encolhe", () => {
+    expect(content).toMatch(/\.ln-card__meta \{ flex-wrap: nowrap; \}/);
+    expect(content).toMatch(/\.ln-card \.ln-mock-badge \{ flex: none; white-space: nowrap;/);
+  });
+  it("V-11: no mobile, tags de editoria e breadcrumb usam o token de alvo de toque", () => {
+    expect(content).toMatch(/max-width: 767px\) \{ \.ln-root a\.ln-tag--link \{ min-height: var\(--ln-touch-target\)/);
+    const controls = readFileSync(resolve(root, "src/styles/controls.css"), "utf8");
+    expect(controls).toMatch(/max-width: 767px\) \{ \.ln-breadcrumb__item a \{ min-height: var\(--ln-touch-target\)/);
+  });
+});

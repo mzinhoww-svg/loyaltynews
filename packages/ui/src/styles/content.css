@@ -62,17 +62,40 @@
 .ln-card--lg.ln-card--noimg { border-left-width: 4px; padding-block: var(--ln-space-1); }
 @media (min-width: 768px) {
   .ln-card--lg:not(.ln-card--noimg) { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--ln-space-5); align-items: start; }
-  .ln-card--lg .ln-card__media { aspect-ratio: 16 / 10; }
-  .ln-card--lg .ln-card__title { font-size: var(--ln-text-3xl); line-height: var(--ln-leading-3xl); }
+  /* 16:9 = proporção dos criativos por código (thumbnail 1280×720): nada é cortado */
+  .ln-card--lg .ln-card__media { aspect-ratio: 16 / 9; }
+  /* manchete do destaque com foto: 28/34 (a coluna de texto tem ~5/12 da largura; 36px quebrava em 5 linhas) */
+  .ln-card--lg:not(.ln-card--noimg) .ln-card__title { font-size: var(--ln-text-2xl); line-height: var(--ln-leading-2xl); }
+  .ln-card--lg.ln-card--noimg .ln-card__title { font-size: var(--ln-text-3xl); line-height: var(--ln-leading-3xl); }
 }
 /* md */
 .ln-card--md .ln-card__title { font-size: var(--ln-text-lg); line-height: 1.33; }
 /* sm: miniatura ao lado (se houver foto) */
 .ln-card--sm { gap: var(--ln-space-3); }
-.ln-card--sm:not(.ln-card--noimg) { grid-template-columns: 96px minmax(0, 1fr); align-items: start; }
-.ln-card--sm .ln-card__media { aspect-ratio: 3 / 2; }
+.ln-card--sm:not(.ln-card--noimg) { grid-template-columns: 112px minmax(0, 1fr); align-items: start; }
+/* V-07: 16:9 como o criativo (1280×720): em 3:2 o object-fit cortava as laterais e os rótulos da arte saíam das bordas */
+.ln-card--sm .ln-card__media { aspect-ratio: 16 / 9; }
 .ln-card--sm .ln-card__title { font-size: var(--ln-text-md); line-height: 1.33; }
 /* compact: só texto (listas Últimas / Em Alta) */
 .ln-card--compact { padding-block: var(--ln-space-2); border-bottom: 1px solid var(--ln-color-border); }
 .ln-card--compact .ln-card__title { font-size: var(--ln-text-md); line-height: 1.33; }
 .ln-card--compact .ln-card__body { grid-template-columns: minmax(0, 1fr); }
+
+/* ranking compacto (lateral "Em alta"): [posição] título em até 2 linhas, e data + selo MOCK na linha de baixo.
+ * O selo da editoria some aqui (o título já situa a matéria; a lateral não deve competir com a leitura). */
+.ln-card--ranked { grid-template-columns: 28px minmax(0, 1fr); column-gap: var(--ln-space-3); align-items: start; padding-block: var(--ln-space-2); }
+.ln-card--ranked .ln-card__body { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title title" "byline meta"; gap: 4px var(--ln-space-2); align-items: center; }
+.ln-card--ranked .ln-card__title { grid-area: title; }
+.ln-card--ranked .ln-card__byline { grid-area: byline; }
+.ln-card--ranked .ln-card__meta { grid-area: meta; }
+.ln-card--ranked .ln-card__meta .ln-badge { display: none; }
+.ln-card--ranked .ln-card__byline > span { display: none; } /* no ranking só a data; o tempo de leitura fica nas páginas */
+
+/* V-08: selos do card (editoria + MOCK) sempre na mesma linha; MOCK menor; se faltar largura, o nome da editoria reticencia (o aviso de demonstração nunca quebra para baixo) */
+.ln-card__meta { flex-wrap: nowrap; }
+.ln-card__meta .ln-badge { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ln-card .ln-mock-badge { flex: none; white-space: nowrap; padding: 1px 6px; font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.04em; }
+
+/* V-11: tags/links de editoria com alvo de toque de 44px no mobile */
+@media (max-width: 767px) { .ln-root a.ln-tag--link { min-height: var(--ln-touch-target); } }
+.ln-card .ln-badge { font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.03em; padding: 1px 6px; }
