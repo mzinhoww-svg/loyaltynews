@@ -9,6 +9,7 @@
  * declaradas no resultado. O plano é determinístico e não chama modelo nem rede. Quem decide
  * (qualificação de modelos, R2-07/08) é o gateway; isto só dimensiona a organização.
  */
+import { escalationAllocationUsd } from './policy-compat';
 import { estimateMicro, usdToMicro, type ModelEntry, type ModelPolicy, type TokenEstimate } from '@ln/modelops';
 import { addDays, createBrCalendar, type HolidayCalendar } from './calendar';
 import type { LoadedRegistries } from './config';
@@ -262,7 +263,7 @@ export function buildRoutingPlan(input: {
     hardMonthlyMicro: usdToMicro(policy.rules.hard_monthly_budget_usd),
     anthropicAllocationMicro: usdToMicro(alloc.anthropic),
     openaiAllocationMicro: usdToMicro(alloc.openai),
-    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
+    escalationSublimitMicro: usdToMicro(escalationAllocationUsd(alloc)),
   };
   const headroomMicro = {
     anthropic: caps.anthropicAllocationMicro - (byProvider.anthropic ?? 0),
