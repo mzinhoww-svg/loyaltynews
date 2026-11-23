@@ -107,7 +107,7 @@ export function buildCampaignReport(i: ReportInput): CampaignReport {
   const ownIds = new Map(own.map((x) => [x.id, x]));
   const approved = own.filter((x) => x.approved);
   const resv = i.reservations.filter((r) => r.campaignId === c.id && r.status !== 'cancelled');
-  const posIds = [...new Set([...(c.positionId ? [c.positionId] : []), ...own.map((x) => x.positionId), ...resv.map((r) => r.positionId)])].sort();
+  const posIds = [...new Set([...c.positionIds, ...own.map((x) => x.positionId), ...resv.map((r) => r.positionId)])].sort();
   const positions = posIds.map((id) => {
     const spec = positionsSpec.find((p) => p.id === id);
     return {
