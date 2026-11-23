@@ -7,6 +7,7 @@ import { AdSlot, ArticleGrid, MockTag, Section } from '../../_components/ui';
 import { CONTENT_TYPE_LABEL, editoriaName } from '../../_lib/editorias';
 import { flags } from '../../_lib/flags';
 import { formatDate } from '../../_lib/format';
+import { linkTerms } from '../../_lib/site-config';
 import { SITE_NAME, SITE_URL } from '../../_lib/site';
 import { getSource } from '../../_lib/source';
 
@@ -44,6 +45,9 @@ export default async function ArticlePage({ params }: Props) {
   const a = await src.getArticle(slug);
   if (!a) notFound();
   const related = await src.getRelated(a, 3);
+  // Links internos publicados no Studio: 1ª ocorrência de cada termo vira link (só em parágrafos; nunca em títulos ou citações).
+  const linkRules = (await src.getSiteConfig())?.internalLinks ?? [];
+  const linked = new Set<string>();
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -133,7 +137,11 @@ export default async function ArticlePage({ params }: Props) {
                   {b.attribution && <footer className="pt-meta">— {b.attribution}</footer>}
                 </blockquote>
               ) : (
-                <p key={i}>{b.text}</p>
+                <p key={i}>
+                  {linkTerms(b.text, linkRules, linked).map((part, j) =>
+                    typeof part === 'string' ? part : <Link key={j} href={part.href} data-testid="internal-link">{part.text}</Link>,
+                  )}
+                </p>
               ),
             )}
           </div>

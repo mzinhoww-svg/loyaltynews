@@ -144,6 +144,44 @@ export interface LatestQuery {
   contentType?: ContentType;
 }
 
+/** Item de menu publicado no Studio (principal e rodapé). `href` é caminho interno ou URL http(s) já validada. */
+export interface SiteMenuItem {
+  label: string;
+  href: string;
+  children: { label: string; href: string }[];
+}
+export interface SiteEvent {
+  id: string;
+  title: string;
+  /** Datas `YYYY-MM-DD` (ou ISO) como publicadas. */
+  startsAt: string;
+  endsAt?: string;
+  place?: string;
+  url?: string;
+  sponsored: boolean;
+}
+export type HomeBlock =
+  | { type: 'destaque'; id: string; title?: string; articles: Article[] }
+  | { type: 'lista_editoria'; id: string; title?: string; editoriaSlug: string; articles: Article[] }
+  | { type: 'ultimas'; id: string; title?: string; articles: Article[] }
+  | { type: 'agenda'; id: string; title?: string; events: SiteEvent[] }
+  | { type: 'publicidade'; id: string; position: string };
+export interface SiteSeo {
+  title: string;
+  description: string;
+  ogImage?: string;
+  /** `noindex` publicado SOMA-SE ao bloqueio de indexação do ambiente; nunca o relaxa. */
+  noindex: boolean;
+  organization?: { name: string; url: string; logo?: string; sameAs: string[] };
+}
+/** Configuração do site publicada no Studio (`/api/publico/site`). Cada parte `null` = nada publicado: vale o padrão do portal. */
+export interface SiteConfig {
+  home: { version: number; blocks: HomeBlock[] } | null;
+  menus: { main: SiteMenuItem[] | null; footer: SiteMenuItem[] | null };
+  seo: SiteSeo | null;
+  internalLinks: { term: string; href: string }[];
+}
+
 /** Camada de acesso trocável: empty (padrão), mock (dev/teste) e, depois, API. */
 export interface PortalSource {
   readonly kind: 'empty' | 'mock' | 'api';
@@ -160,4 +198,6 @@ export interface PortalSource {
   listPeople(): Promise<EntitySummary[]>;
   getAudience(): Promise<AudienceSnapshot>;
   getAd(slot: AdSlotId): Promise<AdCreative | null>;
+  /** Home, menus, SEO e links internos publicados no Studio; `null` quando a fonte não os tem (vazia, MOCK) ou a API falha. */
+  getSiteConfig(): Promise<SiteConfig | null>;
 }

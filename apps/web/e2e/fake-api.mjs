@@ -82,6 +82,50 @@ const listItem = (a) => ({
   imagem: a.imagem ? { url: a.imagem.url, textoAlternativo: a.imagem.textoAlternativo, credito: a.imagem.credito, rotulo: a.imagem.origem === 'ilustracao_gerada' ? 'Ilustração conceitual' : null } : null,
 });
 
+// GET /api/publico/site (formato de apps/web/app/api/_lib/site/index.ts). FAKE_API_SITE: full (padrão) | vazio | noindex | invalido.
+const siteMode = process.env.FAKE_API_SITE ?? 'full';
+const siteFull = () => ({
+  home: {
+    versao: 2,
+    blocos: [
+      { tipo: 'destaque', id: 'foco', titulo: 'Em foco do dia (MOCK)', materiaSlugs: ['api-ilustracao-corrigida', 'api-foto-terceiro'], materias: [articles[0], articles[2]].map(listItem) },
+      { tipo: 'lista_editoria', id: 'pontos', editoria: 'pontos', limite: 6, titulo: 'Pontos publicados (MOCK)', materias: [articles[1]].map(listItem) },
+      { tipo: 'ultimas', id: 'ultimas', limite: 10, materias: articles.map(listItem) },
+      {
+        tipo: 'agenda',
+        id: 'agenda',
+        limite: 5,
+        titulo: 'Agenda do Studio (MOCK)',
+        eventos: [{ id: 'ev-1', titulo: '[MOCK] Congresso publicado', inicio: '2026-12-04', fim: '2026-12-05', local: 'São Paulo', url: 'https://evento.example/mock', editorias: [], patrocinado: false, fonteUrl: null }],
+      },
+      { tipo: 'publicidade', id: 'pub-topo', posicao: 'TOP', dimensao: { largura: 1280, altura: 150 } },
+    ],
+  },
+  menus: {
+    principal: { itens: [{ rotulo: 'Agenda', destino: '/agenda', filhos: [] }, { rotulo: 'Parceiro MOCK', destino: 'https://parceiro.example/mock', filhos: [] }] },
+    rodape: {
+      itens: [
+        { rotulo: 'Institucional MOCK', destino: '/sobre', filhos: [{ rotulo: 'Sobre nós', destino: '/sobre' }, { rotulo: 'Nossa metodologia', destino: '/metodologia' }] },
+        { rotulo: 'Fale com a redação', destino: '/contato', filhos: [] },
+      ],
+    },
+  },
+  seo: {
+    tituloPadrao: 'Loyalty News — SEO publicado (MOCK)',
+    descricaoPadrao: 'Descrição publicada no Studio (MOCK).',
+    imagemOgUrl: 'https://cdn.example/og-mock.png',
+    indexacao: siteMode === 'noindex' ? 'noindex' : 'indexar',
+    jsonLd: { '@context': 'https://schema.org', '@type': 'Organization', name: 'Loyalty News MOCK', url: 'https://loyaltynews.example', sameAs: ['https://linkedin.example/mock'] },
+  },
+  linksInternos: [{ termo: 'matéria corrigida', destino: '/correcoes' }],
+});
+const sitePayload = () =>
+  siteMode === 'vazio'
+    ? { data: { home: null, menus: { principal: null, rodape: null }, seo: null, linksInternos: [] } }
+    : siteMode === 'invalido'
+      ? { data: 'isto não é a configuração do site' }
+      : { data: siteFull() };
+
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
@@ -92,6 +136,7 @@ http
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
     if (forcedStatus && u.pathname.startsWith('/api/publico/')) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
+    if (u.pathname === '/api/publico/site') return send(res, 200, sitePayload());
     if (u.pathname === '/api/publico/materias') {
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);

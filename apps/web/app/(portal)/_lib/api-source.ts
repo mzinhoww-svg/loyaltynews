@@ -159,11 +159,10 @@ const API_TIMEOUT_MS = 5000;
 const LOG_EVERY_MS = 60_000;
 
 /**
- * Falha da API (decisão do Security, regra A6): rede, timeout, status não-OK ou JSON inválido NUNCA derrubam a página.
- * Listagens viram estado vazio honesto; matéria vira "não encontrada". O log leva só a classe do erro e o status
- * (nunca URL, corpo da resposta, cabeçalhos ou dados do leitor) e é limitado a um por minuto e tipo.
+ * HTTP tolerante a falha da API pública, compartilhado pelo adaptador de matérias e pelo da configuração do site:
+ * `get` devolve a resposta ou null (rede, recusa de conexão, timeout); `logFalha` registra só classe/status, 1 por minuto e tipo.
  */
-export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch): ApiSlice {
+export function createApiHttp(baseUrl: string, fetchImpl: typeof fetch = fetch) {
   const base = baseUrl.replace(/\/$/, '');
   const lastLog = new Map<string, number>();
   const logFalha = (what: string, motivo: string) => {
@@ -172,8 +171,6 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
     lastLog.set(what, now);
     console.error(`[portal] API pública indisponível (${what}): ${motivo}; exibindo estado vazio`);
   };
-
-  /** Resposta HTTP ou null quando a API não respondeu (rede, recusa de conexão, timeout). */
   const get = async (path: string, what: string): Promise<Response | null> => {
     try {
       // no-store: leitura sempre dinâmica (nunca congela uma resposta da API no build).
@@ -183,6 +180,16 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
       return null;
     }
   };
+  return { get, logFalha };
+}
+
+/**
+ * Falha da API (decisão do Security, regra A6): rede, timeout, status não-OK ou JSON inválido NUNCA derrubam a página.
+ * Listagens viram estado vazio honesto; matéria vira "não encontrada". O log leva só a classe do erro e o status
+ * (nunca URL, corpo da resposta, cabeçalhos ou dados do leitor) e é limitado a um por minuto e tipo.
+ */
+export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch): ApiSlice {
+  const { get, logFalha } = createApiHttp(baseUrl, fetchImpl);
 
   async function list(params: Record<string, string | number | undefined>): Promise<{ items: RawListItem[]; total: number }> {
     const qs = new URLSearchParams();

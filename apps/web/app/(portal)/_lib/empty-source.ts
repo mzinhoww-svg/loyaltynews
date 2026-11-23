@@ -59,4 +59,7 @@ export const emptySource: PortalSource = {
   async getAd() {
     return null;
   },
+  async getSiteConfig() {
+    return null;
+  },
 };

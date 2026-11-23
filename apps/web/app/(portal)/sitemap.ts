@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const src = getSource();
   // Fora de produção (staging, homologação, dev) ou com fonte MOCK: sitemap vazio, nem a home.
-  if (indexingBlocked() || src.kind === 'mock') return [];
+  if (indexingBlocked() || src.kind === 'mock' || (await src.getSiteConfig())?.seo?.noindex) return [];
 
   const abs = (p: string) => `${SITE_URL}${p}`;
   const staticPaths = [

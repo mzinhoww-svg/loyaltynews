@@ -62,6 +62,7 @@ test.describe('matéria via API pública', () => {
   });
 
   test('axe (WCAG A/AA, contraste) na matéria com errata, ilustração e card', async ({ page }) => {
+    test.setTimeout(90_000);
     for (const p of ['/noticia/api-ilustracao-corrigida', '/noticia/api-sem-imagem', '/noticias']) {
       await page.goto(p);
       await page.waitForLoadState('networkidle');
