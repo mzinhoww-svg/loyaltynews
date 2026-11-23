@@ -16,6 +16,6 @@ describe('studio.css', () => {
     expect(semComentarios).not.toMatch(/system-ui/);
   });
   it('tabela larga rola no próprio quadro no celular (F-27)', () => {
-    expect(semComentarios).toMatch(/@media \(max-width: 860px\)[\s\S]*\.st-table \{[^}]*overflow-x: auto/);
+    expect(semComentarios).toMatch(/@media \(max-width: 860px\)[\s\S]*\.studio table \{[^}]*overflow-x: auto/);
   });
 });
