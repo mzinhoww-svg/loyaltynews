@@ -29,6 +29,7 @@ export { sourceFingerprint, effectiveSource, resolveEffectiveSources } from './s
 export * from './intelligence/types';
 export { extractRoleMentionsDeterministic, validateMention, minimizeToOrganizations, explicitDates, ANNOUNCEMENT_CUE } from './intelligence/roles';
 export { toPublishedArticle, jobFromRecord, PORTAL_SOURCE_NAME } from './intelligence/published';
-export { draftContentSha256, toPublishableContent, imageToRights, slugify, uniqueSlug, RESUMO_MAX, SLUG_MAX, SLUG_RE, PUBLISHABLE_DEFAULTS } from './publishable';
+export { draftContentSha256, toPublishableContent, imageToRights, makeIllustration, ALT_PREFIX, slugify, uniqueSlug, RESUMO_MAX, SLUG_MAX, SLUG_RE, PUBLISHABLE_DEFAULTS } from './publishable';
 export * from './api/publication';
 export { extractRoles } from './pipeline/stages';
+export * from './api/illustration';

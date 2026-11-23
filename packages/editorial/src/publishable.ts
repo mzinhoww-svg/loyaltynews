@@ -1,6 +1,8 @@
+import { ILLUSTRATION_CREDIT } from '@ln/contracts';
 import { publishedContentSha256 } from '@ln/contracts/hash';
 import type { PublishableContent } from '@ln/contracts';
 import type { Draft, RightsBasisKind } from './types';
+import { sha256 } from './dedupe/dedupe';
 import type { ArticleRecord } from './api/store';
 
 /**
@@ -35,19 +37,27 @@ export async function uniqueSlug(headline: string, exists?: (slug: string) => Pr
   return `${base}-${Date.now().toString(36)}`;
 }
 
+export const ALT_PREFIX = 'Ilustração conceitual: ';
+
 const BASIS: Record<RightsBasisKind, 'licenca' | 'autorizacao' | 'dominio_publico' | 'excecao_validada'> = {
   license: 'licenca', authorization: 'autorizacao', public_domain: 'dominio_publico', validated_exception: 'excecao_validada',
 };
 
 /**
  * Draft.image → `ImageRights` de @ln/contracts (ou null sem imagem). Sem base de direito registrada, `baseDeDireito: 'pendente'`
- * (não publicável, D08). Imagem conceptual não tem equivalente em ImageRights: é repassada crua (e coberta pelo hash) e NÃO
- * é publicável pelo Backend até o Chief Architect definir a origem; o pipeline editorial hoje nunca a produz.
+ * (não publicável, D08). Ilustração conceitual gerada (ADR-018) → origem 'ilustracao_gerada' + base 'gerada_ia', crédito institucional
+ * fixo e SEM nenhum dado interno (generatedBy, promptVersion, promptSha256 ficam só no registro editorial).
  */
 export function imageToRights(d: Draft): unknown {
   const img = d.image;
   if (img.mode === 'none') return null;
-  if (img.mode === 'conceptual') return { unsupported: 'conceptual', label: img.label, generatedBy: img.generatedBy };
+  if (img.mode === 'conceptual') {
+    const alt = img.alt.trim();
+    return {
+      url: img.url, origem: 'ilustracao_gerada', credito: ILLUSTRATION_CREDIT, baseDeDireito: 'gerada_ia', edicoes: [],
+      textoAlternativo: alt.startsWith(ALT_PREFIX) ? alt : `${ALT_PREFIX}${alt}`,
+    };
+  }
   return {
     url: img.url, origem: 'fonte_terceiro', credito: img.credit, link: img.creditLink,
     baseDeDireito: img.basis ? BASIS[img.basis.kind] : 'pendente', edicoes: [],
@@ -68,3 +78,12 @@ export function toPublishableContent(x: Draft | Pick<ArticleRecord, 'draft'>): P
 
 /** Hash do recibo (`publishedContentSha256`, ln-published-content/1) sobre o rascunho aprovado. Mesmo valor: recibo, outbox, publication. */
 export const draftContentSha256 = (x: Draft | Pick<ArticleRecord, 'draft'>): string => publishedContentSha256(toPublishableContent(x));
+
+/**
+ * Monta a decisão de ilustração a partir do resultado do gerador (a geração está DESLIGADA: `modelosHabilitados`). O hash do
+ * prompt vai ao registro interno; o prompt em si não é guardado aqui. Nasce SEM revisão humana: o gate bloqueia até alguém
+ * confirmar os limites de uso (`confirmIllustrationLimits`).
+ */
+export function makeIllustration(input: { url: string; alt: string; generatedBy: string; promptVersion: string; prompt: string }): Extract<Draft['image'], { mode: 'conceptual' }> {
+  return { mode: 'conceptual', url: input.url, alt: input.alt, generatedBy: input.generatedBy, promptVersion: input.promptVersion, promptSha256: sha256(input.prompt) };
+}

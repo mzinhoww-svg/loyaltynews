@@ -196,14 +196,25 @@ export function decideImage(source: Source, candidate: { url: string; credit: st
   return { mode: 'source_image', sourceId: source.id, url: candidate.url, credit: candidate.credit, creditLink: candidate.creditLink, basis: b };
 }
 
+/** Menção a IA/ferramenta/modelo: proibida em texto público da ilustração (D09). */
+const TOOL_MENTION = /(\bIA\b|intelig[êe]ncia artificial|\bgerad[ao]s? (por|com|pelo|pela)\b|\bmodelo\b|\bdall|midjourney|\bgpt|openai|stable diffusion|\bflux\b|\bprompt\b)/i;
+
 export function checkImage(img: ImageDecision): CheckResult {
   const out: Finding[] = [];
   if (img.mode === 'source_image') {
     if (!img.basis || !BASIS_KINDS.includes(img.basis.kind) || !img.basis.reference) out.push(f('rights_basis_unresolved', 'imagem sem base de direito registrada'));
     if (!img.credit || !img.creditLink) out.push(f('image_credit_missing', 'crédito e link obrigatórios'));
   }
-  if (img.mode === 'conceptual' && !/ilustra[çc][ãa]o conceitual|gerad[ao] por ia/i.test(img.label)) {
-    out.push(f('conceptual_unlabeled', 'imagem conceitual precisa ser rotulada; não fabricar foto documental'));
+  if (img.mode === 'conceptual') {
+    // Ilustração gerada (ADR-018). Limites de uso sem detector automático ⇒ exigem REVISÃO HUMANA registrada:
+    // nunca pessoa real reconhecível, logotipo/marca/produto/cartão real, cena documental, nem imagem de terceiro como referência.
+    if (!/^https?:\/\/\S+$/i.test(img.url)) out.push(f('illustration_url_invalid', 'ilustração sem URL pública válida'));
+    if (!img.alt.trim()) out.push(f('illustration_alt_missing', 'texto alternativo obrigatório'));
+    if (TOOL_MENTION.test(img.alt)) out.push(f('illustration_mentions_tool', 'o texto alternativo não pode citar IA, modelo ou ferramenta (D09)'));
+    if (!img.generatedBy.trim() || !img.promptVersion.trim() || !/^[0-9a-f]{64}$/.test(img.promptSha256)) out.push(f('illustration_registry_incomplete', 'registro interno incompleto (generatedBy, promptVersion, promptSha256)'));
+    if (!img.humanReview?.limitsConfirmed || !img.humanReview.reviewedBy.trim()) {
+      out.push(f('illustration_needs_human_review', 'revisão humana dos limites de uso pendente: sem pessoa real, marca/logotipo real, cena documental ou imagem de terceiro como referência'));
+    }
   }
   return result(out);
 }
@@ -218,6 +229,7 @@ export function checkPublishable(d: Draft): CheckResult {
   if (!ContentType.safeParse(d.tipoConteudo).success) out.push(f('content_type_invalid', 'tipo de conteúdo inválido'));
   if (d.classeDeDado !== 'public') out.push(f('data_class_not_public', 'matéria publicável precisa ser de classe pública'));
   if (d.patrocinado || d.tipoConteudo === 'patrocinado') out.push(f('sponsored_not_editorial', 'conteúdo patrocinado não nasce na fábrica editorial (é do módulo Comercial)'));
+  if (d.image.mode === 'conceptual' && d.tipoConteudo === 'cobertura_evento') out.push(f('illustration_not_allowed_for_event', 'cobertura de evento não aceita ilustração (parece registro documental)'));
   if (d.rotuloPublieditorial !== undefined && d.patrocinado === false) out.push(f('label_without_sponsorship', 'rótulo publieditorial em conteúdo não patrocinado'));
   return result(out);
 }
