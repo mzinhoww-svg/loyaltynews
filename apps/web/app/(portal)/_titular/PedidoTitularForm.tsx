@@ -21,12 +21,15 @@ export function PedidoTitularForm() {
   const [erros, setErros] = useState<PedidoErros>({});
   const [estado, setEstado] = useState<'idle' | 'enviando' | EstadoEnvio>('idle');
   const [urlInicial, setUrlInicial] = useState('');
+  // Pronto = hidratado: antes disso o clique faria o envio nativo do formulário (recarga, sem estado). O botão só habilita aqui.
+  const [pronto, setPronto] = useState(false);
   const textoId = useId();
   const tipoId = useId();
   const avisoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setUrlInicial(urlDoAlvo(new URLSearchParams(window.location.search).get('alvo'), window.location.origin));
+    setPronto(true);
   }, []);
 
   useEffect(() => {
@@ -77,7 +80,7 @@ export function PedidoTitularForm() {
 
   const enviando = estado === 'enviando';
   return (
-    <form onSubmit={enviar} noValidate aria-describedby={`${textoId}-legenda`} data-testid="pedido-form" style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
+    <form onSubmit={enviar} noValidate aria-describedby={`${textoId}-legenda`} data-testid="pedido-form" data-pronto={pronto ? '1' : undefined} style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
       <p id={`${textoId}-legenda`} className="pt-meta" style={{ margin: 0 }}>Todos os campos marcados com * são obrigatórios.</p>
       {(estado === 'invalido' || estado === 'muitos' || estado === 'falha') && (
         <div className="pt-panel" role="alert" tabIndex={-1} ref={avisoRef} data-testid="pedido-erro">
@@ -131,7 +134,7 @@ export function PedidoTitularForm() {
         </label>
       </div>
       <div>
-        <Button type="submit" variant="primary" disabled={enviando} aria-busy={enviando || undefined}>
+        <Button type="submit" variant="primary" disabled={enviando || !pronto} aria-busy={enviando || undefined}>
           {enviando ? 'Enviando…' : 'Enviar pedido'}
         </Button>
       </div>
