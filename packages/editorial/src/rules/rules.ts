@@ -4,6 +4,7 @@ import { normalizeText } from '../dedupe/dedupe';
 import { parseNotices } from '../notices';
 import { ContentType } from '@ln/contracts';
 import { RESUMO_MAX, SLUG_MAX, SLUG_RE } from '../publishable';
+import { checkTone } from './tone';
 
 /**
  * Regras editoriais determinísticas (sem LLM). O modelo propõe; estas regras decidem. Fail closed.
@@ -307,15 +308,23 @@ export function checkAutoral(d: Draft, evidences: Evidence[]): CheckResult {
   return result(out);
 }
 
-export interface CheckOptions { /** Textos dos avisos já registrados na matéria (em ordem). */ notices?: readonly string[] }
+export interface CheckOptions {
+  /** Textos dos avisos já registrados na matéria (em ordem). */ notices?: readonly string[];
+  /** Tom lint BLOQUEANTE (guia de tom v0.2). Padrão ligado; a correção de matéria JÁ publicada o desliga (não reprova texto antigo). */ tone?: boolean;
+}
+
+/** Bloqueios objetivos do guia de tom (emoji, "!" no título, título > 90, "veja/saiba/confira", frase do rodapé em inglês). Avisos: checkTone(d).warnings. */
+export function checkToneBlocking(d: Draft): CheckResult { return result(checkTone(d).blocking); }
 
 export function runDeterministicChecks(d: Draft, evidences: Evidence[], opts: CheckOptions = {}): CheckResult {
   const parts = [
     checkSignature(d), checkNoFabricatedReporting(d), checkEvidenceTrust(d, evidences), checkClaims(d, evidences),
     checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAnchoring(d, evidences), checkAutoral(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d), checkNotices(d, opts.notices ?? []),
+    ...(opts.tone === false ? [] : [checkToneBlocking(d)]),
   ];
   const findings = parts.flatMap((p) => p.findings);
   return result(findings);
 }
 
+export { checkTone } from './tone';
 export type { Claim };

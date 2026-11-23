@@ -82,7 +82,7 @@ test('prompts: regras fixas, conteúdo externo como dado não confiável, JSON t
   assert.deepEqual(parseModelJson('```json\n{"a":1}\n```'), { a: 1 });
   assert.deepEqual(parseModelJson('Claro! {"a":{"b":2}} fim'), { a: { b: 2 } });
   for (const bad of ['', 'sem json', '[1,2]', '{quebrado', '"texto"']) assert.equal(parseModelJson(bad), null, bad);
-  assert.equal(FACTORY_PROMPT_VERSION, 'editorial-0.2');
+  assert.equal(FACTORY_PROMPT_VERSION, 'editorial-0.3');
 });
 
 test('gateway LLM: recusa do transporte passa adiante; texto que não é JSON vira saída nula (estágio recusa); excludeProviders chega ao transporte', async () => {
