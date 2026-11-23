@@ -127,8 +127,11 @@ export async function cmsCoverageMetrics(db: Db, now: Date): Promise<MetricRecor
  * anunciante; sem `campaignId` válido devolve vazio (o handler recusa a entrada). `updatedAt` é a "data do dado" (o flush do Redis é por minuto).
  */
 export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[]> {
-  const i = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; from?: unknown; to?: unknown };
-  if (typeof i.campaignId !== 'string' || !i.campaignId) return [];
+  const i = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; accountId?: unknown; from?: unknown; to?: unknown };
+  // por campanha (relatório de campanha) OU por anunciante (todas as campanhas da conta); sem nenhum dos dois, nada é lido
+  const byCampaign = typeof i.campaignId === 'string' && i.campaignId !== '';
+  const byAccount = !byCampaign && typeof i.accountId === 'string' && i.accountId !== '';
+  if (!byCampaign && !byAccount) return [];
   const d = schema.adDeliveryDaily;
   // só data de calendário REAL (2026-02-30 não vai ao banco: o PostgreSQL a recusaria com erro); o handler responde 400 à entrada inválida
   const day = { test: (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v };
@@ -136,7 +139,8 @@ export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[
     .select({ r: d })
     .from(d)
     .innerJoin(schema.adCreatives, eq(schema.adCreatives.id, d.criativoId))
-    .where(and(eq(schema.adCreatives.campanhaId, i.campaignId), typeof i.from === 'string' && day.test(i.from) ? gte(d.dia, i.from) : undefined, typeof i.to === 'string' && day.test(i.to) ? lte(d.dia, i.to) : undefined));
+    .innerJoin(schema.campaigns, eq(schema.campaigns.id, schema.adCreatives.campanhaId))
+    .where(and(byCampaign ? eq(schema.adCreatives.campanhaId, i.campaignId as string) : eq(schema.campaigns.contaId, i.accountId as string), typeof i.from === 'string' && day.test(i.from) ? gte(d.dia, i.from) : undefined, typeof i.to === 'string' && day.test(i.to) ? lte(d.dia, i.to) : undefined));
   return rows.map(({ r }) => ({
     creativeId: r.criativoId, day: r.dia, served: r.servidas, visible: r.visiveis, clicks: r.cliques,
     ignoredBotInternal: r.ignoradasBotInterno, refreshSuppressed: r.refreshSuprimido, updatedAt: r.atualizadoEm.toISOString(),

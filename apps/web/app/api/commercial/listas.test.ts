@@ -95,6 +95,7 @@ describe('GET /api/commercial/studio/campaigns', () => {
     expect(t.status).toBe(200);
     expect((await list({ status: 'cancelled' })).body.total).toBe(2);
   });
+
 });
 
 describe('GET /api/commercial/studio/accounts', () => {
@@ -132,5 +133,28 @@ describe('GET /api/commercial/studio/accounts', () => {
     // POST /studio/accounts passou a existir (criar conta, ft/commercial 4ea7404): corpo vazio é 400, não rota inexistente
     expect((await call(d, 'POST', { path: P('/studio/accounts'), body: {}, as: comercial })).status).toBe(400);
     expect((await call(d, 'DELETE', { path: P('/studio/campaigns'), as: comercial })).status).toBeGreaterThanOrEqual(404);
+  });
+});
+
+// Por último: cria uma conta e uma campanha próprias (não mexe nas contagens conferidas acima).
+describe('GET /api/commercial/studio/campaigns: período e posições', () => {
+  const list = (query: Record<string, string> = {}) => call(d, 'GET', { path: P('/studio/campaigns'), query, as: comercial });
+  it('período por SOBREPOSIÇÃO (início ≤ to e fim ≥ from, bordas inclusas); positionId; positions em cada linha; datas inválidas 400', async () => {
+    const nomes = async (query: Record<string, string>) => (await list(query)).body.data.map((c: any) => c.name).sort();
+    // Alfa verão 2026-12-01..2027-03-01 · Alfa outono 2027-03-02..2027-06-01 · Beta 2027-01-10..2027-04-10
+    expect(await nomes({ from: '2027-03-01', to: '2027-03-01' })).toEqual(['Campanha Alfa verão', 'Campanha Beta']); // borda do fim inclusa
+    expect(await nomes({ from: '2027-03-02' })).toEqual(['Campanha Alfa outono', 'Campanha Beta']);
+    expect(await nomes({ to: '2026-12-01' })).toEqual(['Campanha Alfa verão']); // borda do início inclusa
+    expect(await nomes({ from: '2027-06-02' })).toEqual([]);
+    const r = await list({ from: '2027-01-01', to: '2027-01-31' });
+    expect(r.body.total).toBe(r.body.data.length);
+    const acc = (await call(d, 'POST', { path: P('/studio/accounts'), body: { name: 'Conta só do teste de posições' }, as: comercial })).body.id as string; // conta própria: não mexe nas contagens das outras
+    const multi = await call(d, 'POST', { path: P('/studio/campaigns'), body: { name: 'Gama multi', accountId: acc, formatId: 'banners--banner-rodape', positionIds: ['FOOTER', 'SIDEBAR_1'], startDate: '2027-02-01', endDate: '2027-02-28' }, as: comercial });
+    expect(multi.status).toBe(201);
+    expect(await nomes({ positionId: 'SIDEBAR_1' })).toEqual(['Gama multi']);
+    expect((await nomes({ positionId: 'TOP' })).length).toBe(3);
+    const linha = (await list({ positionId: 'FOOTER' })).body.data.find((c: any) => c.name === 'Gama multi');
+    expect([linha.positions, linha.positionId]).toEqual([['FOOTER', 'SIDEBAR_1'], 'FOOTER']);
+    for (const bad of <Record<string, string>[]>[{ from: '2027-02-30' }, { to: '27-01-01' }, { from: '2027-03-01', to: '2027-02-01' }]) expect((await list(bad)).status).toBe(400);
   });
 });
