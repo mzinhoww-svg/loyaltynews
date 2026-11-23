@@ -22,6 +22,8 @@ export interface GatewayCall extends RouteRequest {
   estimate: TokenEstimate;
   /** Modo qualification (ADR-021): id do candidato na política (ex.: claude-haiku-5-5). Ignorado nos demais modos. */
   candidate?: string;
+  /** Modo qualification, política v7: etapa do protocolo ('1' = US$ 5, '2' = US$ 10). Obrigatória quando a política tem `stage_caps_usd`. */
+  stage?: '1' | '2';
 }
 
 export interface GatewayDeps {
@@ -290,6 +292,16 @@ async function callQualification(deps: GatewayDeps, call: GatewayCall): Promise<
   const binding = model.binding;
   if (!binding) return blocked('unknown_cost', `${id} sem vínculo de preço`);
 
+  // Teto da etapa (v7): a política manda `stage_caps_usd`; sem a etapa (ou etapa sem teto) não há chamada. v6: só `cap_usd`.
+  const stageCaps = mode.stage_caps_usd;
+  let stageCapUsd: number | undefined;
+  if (stageCaps && Object.keys(stageCaps).length > 0) {
+    if (!call.stage) return blocked('qualification_stage', 'informe a etapa (1 ou 2): a política define teto por etapa');
+    stageCapUsd = stageCaps[call.stage];
+    if (stageCapUsd === undefined) return blocked('qualification_stage', `a política não tem teto para a etapa ${call.stage}`);
+  }
+  const stageTaskId = call.stage && stageCapUsd !== undefined ? `${call.task}:${call.stage}` : call.task;
+
   // Parada persistida (global e por rota `qualification`), somada à que o chamador informar.
   const kill = await deps.gate.killState();
   if (call.killGlobal === true || kill.global) return blocked('kill_global', 'parada global ativa');
@@ -300,6 +312,10 @@ async function callQualification(deps: GatewayDeps, call: GatewayCall): Promise<
   const micro = estimateMicro(model, call.estimate);
   if (micro === null) return blocked('unknown_cost', 'custo máximo não estimado');
   const amountUsd = microToUsd(micro);
+  // A reserva (custo máximo estimado) nunca pode passar do teto da etapa: recusa ANTES de segurar saldo e de enviar.
+  if (stageCapUsd !== undefined && amountUsd > stageCapUsd) {
+    return blocked('qualification_cap', `custo máximo estimado US$ ${amountUsd} acima do teto da etapa ${call.stage} (US$ ${stageCapUsd})`);
+  }
 
   const guard = deps.balance;
   if (guard) {
@@ -308,7 +324,8 @@ async function callQualification(deps: GatewayDeps, call: GatewayCall): Promise<
   }
 
   const reserve = await deps.gate.reserve({
-    taskId: call.task,
+    taskId: stageTaskId,
+    ...(stageCapUsd !== undefined ? { qualificationStageCapUsd: stageCapUsd } : {}),
     taskClass: 'non_essential', // a reserva de qualificação não usa degrau; a classe só rotula o registro
     lane: 'text',
     route: QUALIFICATION_ROUTE,
@@ -350,10 +367,36 @@ async function callQualification(deps: GatewayDeps, call: GatewayCall): Promise<
   const commit = await deps.gate.commit(reserve.reservationId, costUsd, call.now, response.id);
   if (guard) await guard.settle(amountUsd, costUsd);
 
+  // Custo real acima da reserva (que já cabe no teto da etapa): o gasto ficou gravado como realmente foi, mas a chamada NÃO vale
+  // como qualificação. Nunca `ok` com `overrun`: estourou o que foi autorizado, então a rodada é bloqueada.
+  if (!commit.ok || commit.overrun || costUsd > amountUsd || (stageCapUsd !== undefined && costUsd > stageCapUsd)) {
+    return {
+      status: 'blocked',
+      reason: 'qualification_cost_overrun',
+      detail: `custo real US$ ${costUsd} acima do reservado (US$ ${amountUsd})${stageCapUsd !== undefined ? ` / teto da etapa ${call.stage} (US$ ${stageCapUsd})` : ''}; não conta como qualificação`,
+      reservationId: reserve.reservationId,
+      costUsd,
+      attempts: 1,
+    };
+  }
+
   // Evidência por chamada (review_evidence.required): sem ela a chamada custou, conta no teto, e a saída não vale como qualificação.
   const missing = checkEvidence(response);
   if (missing.length > 0) {
     return { status: 'blocked', reason: 'evidence_invalid', detail: `faltam: ${missing.join(', ')}`, reservationId: reserve.reservationId, costUsd, attempts: 1 };
   }
-  return { status: 'ok', model: binding.openrouter_id, response, reservationId: reserve.reservationId, attempts: 1, costUsd, overrun: commit.overrun };
+  // A evidência precisa ser do modelo PEDIDO pelo gateway (`openrouter_id` ou `canonical_slug`): resposta de outro modelo custou, mas não qualifica.
+  const requested = new Set([binding.openrouter_id, binding.canonical_slug]);
+  const answered = [response.model, response.generation?.model].filter((m): m is string => typeof m === 'string' && m !== '');
+  if (answered.length === 0 || answered.some((m) => !requested.has(m))) {
+    return {
+      status: 'blocked',
+      reason: 'evidence_model_mismatch',
+      detail: `pedido ${binding.openrouter_id}; respondeu ${answered.join(' / ') || '(sem modelo)'}; não conta como qualificado`,
+      reservationId: reserve.reservationId,
+      costUsd,
+      attempts: 1,
+    };
+  }
+  return { status: 'ok', model: binding.openrouter_id, response, reservationId: reserve.reservationId, attempts: 1, costUsd, overrun: false };
 }

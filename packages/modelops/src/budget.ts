@@ -27,6 +27,8 @@ export interface ReserveInput {
   escalation: boolean;
   /** Modo qualification (ADR-021): pool `qualification`, dentro do teto próprio; sem verba de provedor, degrau nem reserva de auditoria. */
   qualification?: boolean;
+  /** Teto (US$) da etapa desta chamada de qualificação (v7). Gasto da etapa = reservas do pool com o mesmo `taskId`. */
+  qualificationStageCapUsd?: number;
   amountUsd: number | null; // teto superior estimado; null = custo desconhecido
   at: Date;
 }
@@ -87,7 +89,7 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
     escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_included ?? alloc.anthropic_escalation_opus_fable_included ?? 0),
     reserveMicro: usdToMicro(alloc.audit_errata_reserve),
     reserveTaskIds: AUDIT_RESERVE_TASK_KEYS,
-    qualificationCapMicro: policy.qualification?.mode ? usdToMicro(policy.qualification.mode.cap_usd) : 0,
+    qualificationCapMicro: qualificationPoolCapMicro(policy.qualification?.mode),
     ceilingMicro: {
       premium: usdToMicro(Number(findStep(steps, '35'))),
       non_essential: usdToMicro(Number(findStep(steps, '40'))),
@@ -95,6 +97,14 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
       reserve: usdToMicro(Number(findStep(steps, '50'))),
     },
   };
+}
+
+// Teto do pool de qualificação: v6 = cap_usd; v7 = soma dos tetos por etapa (cada etapa tem o seu, conferido na reserva). Sem modo = 0.
+function qualificationPoolCapMicro(mode: NonNullable<ModelPolicy['qualification']>['mode']): number {
+  if (!mode) return 0;
+  const stages = Object.values(mode.stage_caps_usd ?? {});
+  if (stages.length > 0) return stages.reduce((a, v) => a + usdToMicro(v), 0);
+  return mode.cap_usd === undefined ? 0 : usdToMicro(mode.cap_usd);
 }
 
 // Os valores dos degraus são texto ("stop premium/experiments"); o teto de cada degrau vem da chave.
@@ -175,7 +185,17 @@ export class BudgetGate {
       //     do provedor chamado; NÃO usa degrau nem a reserva de auditoria. Teto 0 = modo ausente.
       if (input.qualification) {
         if (this.config.qualificationCapMicro <= 0) return refuse('qualification_cap', 'modo de qualificação sem teto configurado');
-        const snapQ = this.computeSnapshot(await this.states(io), month);
+        const statesQ = await this.states(io);
+        const snapQ = this.computeSnapshot(statesQ, month);
+        if (input.qualificationStageCapUsd !== undefined) {
+          // teto da etapa conferido ANTES de reservar: gasto da etapa no mês + esta reserva não pode passar dele
+          const stageCap = usdToMicro(input.qualificationStageCapUsd);
+          let stageSpent = 0;
+          for (const s of statesQ.values()) if (s.monthKey === month && s.pool === 'qualification' && s.taskId === input.taskId) stageSpent += spentMicro(s);
+          if (stageSpent + amountMicro > stageCap) {
+            return refuse('qualification_cap', `teto da etapa de US$ ${microToUsd(stageCap)} atingido (${microToUsd(stageSpent)} gastos + ${microToUsd(amountMicro)} reservados)`);
+          }
+        }
         if (snapQ.qualificationMicro + amountMicro > this.config.qualificationCapMicro) {
           return refuse('qualification_cap', `teto de qualificação de US$ ${microToUsd(this.config.qualificationCapMicro)} atingido`);
         }

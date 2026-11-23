@@ -34,7 +34,8 @@ const call = (over: Partial<GatewayCall> = {}): GatewayCall => ({
 
 function setup(policy: ModelPolicy = policyV6(), clientOpts: SimulatedOptions = {}, store: any = new MemoryLedgerStore()) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const gate = new BudgetGate(gateConfigFromPolicy(policy), store);
-  const client = new SimulatedOpenRouterClient(clientOpts);
+  // custo simulado padrão US$ 0,0003: abaixo da reserva (custo máximo estimado) de qualquer candidato com a estimativa padrão; custo acima da reserva é bloqueado
+  const client = new SimulatedOpenRouterClient({ costUsd: 0.0003, ...clientOpts });
   return { policy, gate, client, store, deps: { policy, gate, client, flags: FLAGS } };
 }
 const nothing = async (s: ReturnType<typeof setup>) => {
@@ -67,10 +68,10 @@ describe('modo qualification: caminho permitido', () => {
     expect(ev[0]).toMatchObject({ pool: 'qualification', route: 'qualification', taskId: 'model_qualification', taskClass: 'non_essential', escalation: false });
     expect(ev[1]).toMatchObject({ generationId: 'sim-1' });
     const snap = await s.gate.snapshot(NOW);
-    expect(snap.qualificationMicro).toBe(500_000); // custo real da resposta simulada
-    expect(snap.totalMicro).toBe(500_000); // conta no teto de US$ 50
-    expect(snap.allocationMicro).toBe(500_000); // DP-30: debita a verba do provedor chamado
-    expect(snap.providerMicro).toEqual({ anthropic: 500_000 });
+    expect(snap.qualificationMicro).toBe(300); // custo real da resposta simulada
+    expect(snap.totalMicro).toBe(300); // conta no teto de US$ 50
+    expect(snap.allocationMicro).toBe(300); // DP-30: debita a verba do provedor chamado
+    expect(snap.providerMicro).toEqual({ anthropic: 300 });
     expect(snap.reserveMicro).toBe(0); // nunca a reserva de auditoria
   });
 
@@ -91,8 +92,8 @@ describe('modo qualification: caminho permitido', () => {
       expect((await callModel(a.deps, call())).status).toBe('ok');
       const b = mk(); // restart
       const snap = await b.gate.snapshot(NOW);
-      expect(snap.qualificationMicro).toBe(500_000);
-      expect(snap.totalMicro).toBe(500_000);
+      expect(snap.qualificationMicro).toBe(300);
+      expect(snap.totalMicro).toBe(300);
     } finally {
       await t.close();
     }
@@ -223,7 +224,7 @@ describe('modo qualification: teto próprio de US$ 5 e teto mensal', () => {
 
   it('com a verba do provedor esgotada pela produção, a qualificação desse provedor é recusada (provider_allocation_exhausted) e a do outro segue', async () => {
     const policy = policyV6();
-    const s = setup(policy, { costUsd: 0.1 });
+    const s = setup(policy);
     expect((await s.gate.reserve({ taskId: 'editorial_draft', taskClass: 'essential', lane: 'text', provider: 'anthropic', model: 'm', escalation: false, amountUsd: 22, at: NOW })).ok).toBe(true);
     const bloqueada = await callModel(s.deps, call({ candidate: 'claude-haiku-5-5' }));
     expect(bloqueada).toMatchObject({ status: 'blocked', reason: 'budget_refused', detail: 'provider_allocation_exhausted' });
@@ -256,6 +257,144 @@ describe('modo qualification: falhas, sem fallback, evidência', () => {
     const s = setup(policyV6(), { omitGeneration: true });
     const out = await callModel(s.deps, call());
     expect(out).toMatchObject({ status: 'blocked', reason: 'evidence_invalid' });
-    expect((await s.gate.snapshot(NOW)).qualificationMicro).toBe(500_000);
+    expect((await s.gate.snapshot(NOW)).qualificationMicro).toBe(300);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Reprovação do QA 1 em 53d15fc: (1) evidência de OUTRO modelo era aceita; (2) `ok` com custo acima do teto. Política v7 (DP-27/DP-30):
+// teto POR ETAPA (1 = US$ 5, 2 = US$ 10), conferido ANTES de reservar; custo real acima do reservado/teto da etapa = bloqueado.
+// ---------------------------------------------------------------------------------------------------------------------
+const V7 = fileURLToPath(new URL('../../contracts/fixtures/model.policy.dp02-v7.json', import.meta.url));
+function policyV7(mutate: (p: any) => void = () => undefined): ModelPolicy { // eslint-disable-line @typescript-eslint/no-explicit-any
+  const p = JSON.parse(readFileSync(V7, 'utf8'));
+  p.qualification.mode.enabled = true;
+  mutate(p);
+  const check = validatePolicy(p);
+  if (!check.policy) throw new Error(`política inválida: ${check.errors.join('; ')}`);
+  return check.policy;
+}
+const est = (tokens: number) => ({ promptTokens: tokens, cacheWriteTokens: 0, cacheReadTokens: 0, maxOutputTokens: 500, uncertain: false });
+/** Custo máximo reservado (US$) de `id` para `tokens` de prompt. */
+const reservaDe = (policy: ModelPolicy, id: string, tokens: number) => microToUsd(estimateMicro(policy.models.find((m) => m.id === id)!, est(tokens))!);
+
+describe('QA 1: a evidência precisa ser do modelo PEDIDO', () => {
+  it('sonda do QA: pediu Haiku e a resposta (e a geração) são de outro modelo ⇒ bloqueado, custo gravado, NÃO conta como qualificado', async () => {
+    const s = setup(policyV6(), { responseModel: 'openai/gpt-6.1-terra' });
+    const out = await callModel(s.deps, call());
+    expect(out).toMatchObject({ status: 'blocked', reason: 'evidence_model_mismatch' });
+    expect((out as { detail: string }).detail).toContain('anthropic/claude-haiku-5.5');
+    expect((out as { costUsd?: number }).costUsd).toBeGreaterThan(0);
+    expect((await s.gate.snapshot(NOW)).qualificationMicro).toBe(300); // a chamada custou e fica no ledger
+  });
+
+  it('resposta e geração discordando entre si seguem inválidas (evidence_invalid), antes mesmo de comparar com o pedido', async () => {
+    const s = setup();
+    const orig = s.client.chat.bind(s.client);
+    s.client.chat = async (b) => {
+      const r = await orig(b);
+      return { ...r, generation: { ...r.generation, model: 'openai/gpt-6.1-terra' } };
+    };
+    expect(await callModel(s.deps, call())).toMatchObject({ status: 'blocked', reason: 'evidence_invalid' });
+  });
+
+  it('o slug canônico do vínculo (versão datada que o OpenRouter devolve) é aceito; id do pedido também', async () => {
+    const policy = policyV7();
+    const slug = policy.models.find((m) => m.id === 'claude-haiku-5-5')!.binding!.canonical_slug;
+    expect(slug).not.toBe(policy.models.find((m) => m.id === 'claude-haiku-5-5')!.binding!.openrouter_id);
+    const a = setup(policy, { responseModel: slug });
+    expect(await callModel(a.deps, call({ stage: '1' }))).toMatchObject({ status: 'ok', model: 'anthropic/claude-haiku-5.5' });
+    const b = setup(policy);
+    expect((await callModel(b.deps, call({ stage: '1' }))).status).toBe('ok');
+  });
+
+  it('modelo parecido mas diferente (outra versão do mesmo autor) não passa', async () => {
+    const s = setup(policyV7(), { responseModel: 'anthropic/claude-haiku-5.4' });
+    expect(await callModel(s.deps, call({ stage: '1' }))).toMatchObject({ status: 'blocked', reason: 'evidence_model_mismatch' });
+  });
+});
+
+describe('QA 1: teto por etapa (v7) conferido ANTES, e custo acima do teto nunca é ok', () => {
+  it('o portão da v7 lê o pool como a soma das etapas (15) e a v6 segue com o cap_usd (5)', () => {
+    expect(gateConfigFromPolicy(policyV7()).qualificationCapMicro).toBe(15_000_000);
+    expect(gateConfigFromPolicy(policyV6()).qualificationCapMicro).toBe(5_000_000);
+  });
+
+  it('v7 exige a etapa: sem ela, ou com etapa sem teto, nada é reservado nem enviado', async () => {
+    const a = setup(policyV7());
+    expect(await callModel(a.deps, call())).toMatchObject({ status: 'blocked', reason: 'qualification_stage' });
+    await nothing(a);
+    const b = setup(policyV7((p) => { delete p.qualification.mode.stage_caps_usd['2']; }));
+    expect(await callModel(b.deps, call({ stage: '2' }))).toMatchObject({ status: 'blocked', reason: 'qualification_stage' });
+    await nothing(b);
+  });
+
+  it('sonda do QA: etapa 1 (teto US$ 5), reserva cabendo e custo real US$ 5,01 ⇒ BLOQUEADO (nunca ok com overrun); o gasto real fica no ledger', async () => {
+    const policy = policyV7();
+    let tokens = 1_000_000; // acima de 272 mil tokens a OpenAI cobra a faixa de contexto longo (US$ 2/Mtok)
+    while (reservaDe(policy, 'openai-text-review', tokens) < 4.9) tokens += 50_000;
+    expect(reservaDe(policy, 'openai-text-review', tokens)).toBeLessThanOrEqual(5);
+    const s = setup(policy, { costUsd: 5.01 });
+    const out = await callModel(s.deps, call({ candidate: 'openai-text-review', stage: '1', estimate: est(tokens) }));
+    expect(out).toMatchObject({ status: 'blocked', reason: 'qualification_cost_overrun', costUsd: 5.01 });
+    const snap = await s.gate.snapshot(NOW);
+    expect(snap.qualificationMicro).toBe(5_010_000); // o que foi cobrado de verdade
+    expect(snap.reserveMicro).toBe(0);
+  });
+
+  it('o mesmo vale na v6 (teto único) e para qualquer custo acima do reservado, mesmo longe do teto', async () => {
+    const s = setup(policyV6(), { costUsd: 0.0004 }); // reserva de US$ 0,00035 (Haiku, 1000+500 tokens) e cobrança de 0,0004
+    const out = await callModel(s.deps, call());
+    expect(out).toMatchObject({ status: 'blocked', reason: 'qualification_cost_overrun' });
+    expect((await s.gate.snapshot(NOW)).qualificationMicro).toBe(400);
+  });
+
+  it('custo dentro da reserva e do teto: ok, sem overrun', async () => {
+    const s = setup(policyV7());
+    expect(await callModel(s.deps, call({ stage: '1' }))).toMatchObject({ status: 'ok', overrun: false });
+  });
+
+  it('a reserva (custo máximo estimado) acima do teto da etapa é recusada ANTES de qualquer envio ou reserva', async () => {
+    const policy = policyV7();
+    let tokens = 1_000_000;
+    while (reservaDe(policy, 'openai-text-review', tokens) <= 5) tokens += 50_000;
+    const s = setup(policy);
+    expect(await callModel(s.deps, call({ candidate: 'openai-text-review', stage: '1', estimate: est(tokens) }))).toMatchObject({ status: 'blocked', reason: 'qualification_cap' });
+    await nothing(s);
+    // a MESMA reserva cabe na etapa 2 (teto US$ 10)
+    const t = setup(policy);
+    expect((await callModel(t.deps, call({ candidate: 'openai-text-review', stage: '2', estimate: est(tokens) }))).status).toBe('ok');
+  });
+
+  it('o gasto da etapa soma: depois de gastar na etapa 1, a reserva que passaria de US$ 5 é recusada, mas a etapa 2 segue com o seu teto', async () => {
+    const policy = policyV7();
+    let tokens = 1_000_000;
+    while (reservaDe(policy, 'openai-text-review', tokens) < 2.4) tokens += 100_000;
+    const s = setup(policy, { costUsd: 2.4 });
+    const c = (stage: '1' | '2') => call({ candidate: 'openai-text-review', stage, estimate: est(tokens) });
+    expect((await callModel(s.deps, c('1'))).status).toBe('ok');
+    expect((await callModel(s.deps, c('1'))).status).toBe('ok'); // 2 x ~2,4 = ~4,8 na etapa 1
+    const terceira = await callModel(s.deps, c('1'));
+    expect(terceira).toMatchObject({ status: 'blocked', reason: 'budget_refused', detail: 'qualification_cap' });
+    expect(s.client.calls).toHaveLength(2);
+    expect((await callModel(s.deps, c('2'))).status).toBe('ok'); // a etapa 2 não herda o gasto da 1
+    const ev = (await s.store.readAll()).filter((e: { type: string }) => e.type === 'reserve') as { taskId: string; pool: string }[];
+    expect(ev.map((e) => e.taskId)).toEqual(['model_qualification:1', 'model_qualification:1', 'model_qualification:2']);
+    expect(ev.every((e) => e.pool === 'qualification')).toBe(true);
+  });
+
+  it('persiste a etapa no PostgreSQL e o teto da etapa vale depois de reiniciar', async () => {
+    const t = await createTestDb();
+    try {
+      const policy = policyV7();
+      let tokens = 1_000_000;
+      while (reservaDe(policy, 'openai-text-review', tokens) < 2.6) tokens += 100_000;
+      const mk = () => setup(policy, { costUsd: 2.6 }, new PostgresLedgerStore(t.db as unknown as SqlDatabase));
+      const c = call({ candidate: 'openai-text-review', stage: '1', estimate: est(tokens) });
+      expect((await callModel(mk().deps, c)).status).toBe('ok');
+      expect(await callModel(mk().deps, c)).toMatchObject({ status: 'blocked', reason: 'budget_refused' }); // 2,6 + 2,6 > 5, depois do restart
+    } finally {
+      await t.close();
+    }
   });
 });

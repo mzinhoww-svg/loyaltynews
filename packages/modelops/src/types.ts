@@ -107,9 +107,12 @@ export interface QualificationModeCfg {
   data_class: 'public';
   candidates: string[];
   excluded: string[];
-  provider_zdr_per_call: true;
+  provider_zdr_per_call: boolean; // v6: true (DP-26); v7: false = ZDR é preferência (DP-27)
   allow_fallbacks: false;
-  cap_usd: number;
+  /** v6: teto único do pool. */
+  cap_usd?: number;
+  /** v7 (DP-27/T10): teto POR ETAPA (1 = US$ 5, 2 = US$ 10). */
+  stage_caps_usd?: Partial<Record<'1' | '2', number>>;
   uses_audit_reserve: false;
   [key: string]: unknown;
 }
