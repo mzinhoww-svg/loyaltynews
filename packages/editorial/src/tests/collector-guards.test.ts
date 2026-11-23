@@ -119,3 +119,15 @@ test('(4) 429 com corpo que parece login/paywall continua sendo rate_limited (n�
   const c2 = mk({ [u('/feed.xml')]: { status: 429, headers: {}, body: body429 } });
   assert.deepEqual((await c2.c.collectFeed(MOCK_SOURCE)).skipped.map((s) => s.code), ['rate_limited']);
 });
+
+test('(5) robots.txt pelo módulo comum (RFC 9309): caminho percent-encoded equivale ao decodificado; UA só casa grupo pelo token exato', async () => {
+  const a = mk({ [u('/%70rivado/x')]: PAGE('x'), [u('/noticias/ok')]: PAGE('ok') });
+  const r = await a.c.collectUrl(MOCK_SOURCE, u('/%70rivado/x'));
+  assert.equal(r.skip?.code, 'robots_disallow', 'Disallow: /privado/ também barra /%70rivado/ (RFC 9309 §2.2.2)');
+  assert.ok(!a.f.log.some((l) => l.url === u('/%70rivado/x')));
+  assert.ok((await a.c.collectUrl(MOCK_SOURCE, u('/noticias/ok'))).evidence);
+  // "loyaltynews" (substring do nosso token) não forma grupo específico: vale o '*'
+  const b = mk({ [u('/noticias/ok')]: PAGE('ok') });
+  b.f.routes.set(u('/robots.txt'), { status: 200, headers: {}, body: 'User-agent: loyaltynews\nDisallow: /\n\nUser-agent: *\nDisallow: /privado/' });
+  assert.ok((await b.c.collectUrl(MOCK_SOURCE, u('/noticias/ok'))).evidence);
+});

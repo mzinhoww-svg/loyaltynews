@@ -42,24 +42,51 @@ export function parseRobots(text) {
   return { groups, sitemaps };
 }
 
+/**
+ * Normalização de caminho do RFC 9309 §2.2.2, aplicada ao caminho da URL E ao padrão da regra antes de comparar:
+ *  - caracteres fora do ASCII viram octetos UTF-8 percent-encoded (hex em maiúsculas);
+ *  - um %XX que representa caractere NÃO reservado (A-Z a-z 0-9 - . _ ~) é decodificado ("/%7Efoo" ≡ "/~foo");
+ *  - %XX de caractere reservado ou fora do conjunto não reservado permanece codificado, com hex em maiúsculas
+ *    ("/a%2fb" ≡ "/a%2Fb", mas "/a%2Fb" NÃO é "/a/b").
+ * '*' e '$' (curinga e âncora do padrão) são ASCII e passam intactos.
+ */
+export function normalizePath(s) {
+  let out = '';
+  for (const ch of String(s)) {
+    const cp = ch.codePointAt(0);
+    if (cp > 0x7f) {
+      try { out += encodeURIComponent(ch); } catch { out += '%EF%BF%BD'; }
+    } else out += ch;
+  }
+  return out.replace(/%([0-9a-fA-F]{2})/g, (m, hex) => {
+    const code = parseInt(hex, 16);
+    return code < 0x80 && /[A-Za-z0-9\-._~]/.test(String.fromCharCode(code)) ? String.fromCharCode(code) : `%${hex.toUpperCase()}`;
+  });
+}
+
 /** Padrão do robots → RegExp ancorada no início do caminho: '*' = qualquer sequência, '$' final = fim do caminho. */
 export function patternToRegExp(pattern) {
-  let p = pattern;
+  let p = normalizePath(pattern);
   let anchored = false;
   if (p.endsWith('$')) { anchored = true; p = p.slice(0, -1); }
   const body = p.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*');
   return new RegExp('^' + body + (anchored ? '$' : ''));
 }
-export const matchesPattern = (pattern, path) => patternToRegExp(pattern).test(path);
+export const matchesPattern = (pattern, path) => patternToRegExp(pattern).test(normalizePath(path));
+
+/** Token de produto do valor de um `User-agent:` do robots (RFC 9309: só o token; versão/comentário depois de '/' ou espaço é ignorado). */
+export const agentToken = (value) => String(value).trim().split(/[\s/]/)[0].toLowerCase();
 
 /**
  * Decisão do RFC 9309 para um caminho (com query) e um User-Agent.
+ * O grupo específico é o que traz o TOKEN DE PRODUTO do nosso agente (comparação sem diferenciar maiúsculas, igualdade exata do
+ * token: "verifier" ou "loyaltynews" NÃO casam com "LoyaltyNewsSourceVerifier"; texto do restante da string do UA não conta).
+ * Sem grupo específico, vale o grupo '*'.
  * @returns {{ allowed: boolean; rule: string | null; group: 'specific' | '*' | 'none' }}
  */
 export function robotsDecision(parsed, ua, path) {
   const token = productToken(ua);
-  const uaLower = String(ua).toLowerCase();
-  const specific = parsed.groups.filter((g) => g.agents.some((a) => a !== '*' && (token === a || token.startsWith(a) || uaLower.includes(a))));
+  const specific = parsed.groups.filter((g) => g.agents.some((a) => a !== '*' && agentToken(a) === token));
   const star = parsed.groups.filter((g) => g.agents.includes('*'));
   const chosen = specific.length ? specific : star;
   const group = specific.length ? 'specific' : star.length ? '*' : 'none';

@@ -1,4 +1,10 @@
-export interface RobotsRules { allow: string[]; disallow: string[]; crawlDelaySec: number | null }
+import { parseRobots as parseGuard, robotsDecision } from './crawl-guards.mjs';
+
+export interface RobotsRules {
+  allow: string[]; disallow: string[]; crawlDelaySec: number | null;
+  /** Decisão pelo módulo comum de guardas (RFC 9309: normalização percent-encoded, grupo pelo token de produto, * e $). Quando presente, vale no lugar de allow/disallow. */
+  decide?: (pathAndQuery: string) => boolean;
+}
 
 /** Parser mínimo de robots.txt: escolhe o grupo mais específico para o UA, senão '*'. */
 export function parseRobots(txt: string, userAgent: string): RobotsRules {
@@ -28,7 +34,9 @@ export function parseRobots(txt: string, userAgent: string): RobotsRules {
   }
   const specific = groups.find((g) => g.agents.some((a) => a !== '*' && ua.includes(a)));
   const g = specific ?? groups.find((g) => g.agents.includes('*'));
-  return g ? { allow: g.allow, disallow: g.disallow, crawlDelaySec: g.delay } : { allow: [], disallow: [], crawlDelaySec: null };
+  const parsed = parseGuard(txt);
+  const decide = (path: string): boolean => robotsDecision(parsed, userAgent, path).allowed;
+  return g ? { allow: g.allow, disallow: g.disallow, crawlDelaySec: g.delay, decide } : { allow: [], disallow: [], crawlDelaySec: null, decide };
 }
 
 function matchLen(pattern: string, path: string): number {
@@ -41,6 +49,7 @@ function matchLen(pattern: string, path: string): number {
 
 /** Regra mais longa vence; empate favorece Allow (padrão RFC 9309). */
 export function isAllowedByRobots(rules: RobotsRules, pathAndQuery: string): boolean {
+  if (rules.decide) return rules.decide(pathAndQuery);
   let best = -1; let allowed = true;
   for (const d of rules.disallow) { const l = matchLen(d, pathAndQuery); if (l > best) { best = l; allowed = false; } }
   for (const a of rules.allow) { const l = matchLen(a, pathAndQuery); if (l >= best && l >= 0) { best = l; allowed = true; } }
