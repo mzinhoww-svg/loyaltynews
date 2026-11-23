@@ -1,0 +1,1 @@
+Sonda R0-03 T4 (Security, 23/11/2026): PR de sonda. O merge sem os 2 status do ln-verifier[bot] TEM de ser recusado pelo ruleset main-required-checks. Este PR e fechado sem merge.
