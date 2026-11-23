@@ -90,7 +90,7 @@ export interface RunEditorialFactoryInput {
   persistentLedger?: boolean;
   registry?: SourceRegistry;
   collector?: Collector;
-  /** DP-31: serviço de leitura (ex.: TavilyReader) para as fontes com acesso 'risco-aceito-dp31'. Ausente = essas fontes são puladas. */
+  /** DP-31: serviço de leitura (ex.: TavilyReader) para as fontes com acesso 'via-provedor'. Ausente = essas fontes são puladas. */
   reader?: ReaderPort;
   now?: () => Date;
 }

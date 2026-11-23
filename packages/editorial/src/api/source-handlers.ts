@@ -17,7 +17,7 @@ export interface SourceView {
   id: string; nome: string; kind: string; host: string; pathPrefix: string | null; editorias: string[];
   listingUrl: string | null; feedUrl: string | null; termsUrl: string | null;
   pesquisa: { nivel: string | null; pesquisadoPor: string | null; robots: string | null; trechoTermos: string | null; imagens: string | null };
-  /** 'risco-aceito-dp31' = lida por serviço de extração, com risco aceito pelo proprietário (a tela deve destacar). */
+  /** 'via-provedor' = lida por serviço de extração, com risco aceito pelo proprietário (a tela deve destacar). */
   acesso: string;
   habilitada: boolean; termsStatus: string; urlVerificada: boolean; paywall: string;
   elegivel: boolean; motivosInelegivel: string[]; revisao: { revisor: string; em: string; termos: string; vencida: boolean } | null;
@@ -79,9 +79,9 @@ export async function reviewSource(ctx: HandlerCtx, input: unknown): Promise<Api
   if (a.userId === researcher) return fail(apiError('BLOCKED', 'o revisor não pode ser o mesmo que pesquisou a fonte'));
   if (p.data.termsStatus === 'approved') {
     if (src.verification?.level === 'inacessivel') {
-      // DP-31: só com acesso 'risco-aceito-dp31' cadastrado E nota de revisão que cite a DP-31 (risco aceito pelo proprietário); senão segue não aprovável.
-      if (src.acesso !== 'risco-aceito-dp31') return fail(apiError('BLOCKED', 'fonte inacessível na pesquisa: não aprovável'));
-      if (!/DP-31/i.test(p.data.termsNote)) return fail(apiError('BLOCKED', 'fonte DP-31: a nota da revisão precisa citar a DP-31 (risco aceito pelo proprietário)'));
+      // DP-31/DP-32: só com acesso 'via-provedor' cadastrado E nota de revisão que cite a DP-31 ou a DP-32 (risco aceito pelo proprietário); senão segue não aprovável.
+      if (src.acesso !== 'via-provedor') return fail(apiError('BLOCKED', 'fonte inacessível na pesquisa: não aprovável'));
+      if (!/DP-3[12]/i.test(p.data.termsNote)) return fail(apiError('BLOCKED', 'fonte via provedor: a nota da revisão precisa citar a DP-31 ou a DP-32 (risco aceito pelo proprietário)'));
     }
     if (!p.data.urlVerified || !p.data.robotsChecked) return fail(apiError('BLOCKED', 'aprovação exige URL verificada e robots.txt conferido'));
     if (p.data.paywall !== 'none') return fail(apiError('BLOCKED', 'fonte com login/paywall não pode ser aprovada'));

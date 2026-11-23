@@ -6,7 +6,7 @@ export { SEED_SOURCES, SEED_BASE_SOURCES } from './sources/seed';
 export { SEED_BLOG_SOURCES } from './sources/seed-blogs';
 export { Collector, validateEvidence, USER_AGENT, stopsCollection, capText } from './collector/collector';
 export type { ReaderPort, ReaderResult, ReadBudget } from './collector/collector';
-export { MemoryReadBudget, StopGuard } from './collector/collector';
+export { MemoryReadBudget, StopGuard, ChainedReader } from './collector/collector';
 export { StoreReadBudget } from './factory/read-budget';
 export { TavilyReader, parseTavilyKeys } from './collector/tavily-reader';
 export type { Fetcher, FetchOptions, HttpResponse, CollectResult, Skip } from './collector/collector';

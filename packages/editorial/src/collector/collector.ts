@@ -1,5 +1,5 @@
 import type { Evidence, Source } from '../types';
-import { ACESSO_DP31, sourceTier } from '../types';
+import { ACESSO_VIA_PROVEDOR, sourceTier } from '../types';
 import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
@@ -23,7 +23,7 @@ export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpRes
 
 /**
  * DP-31: leitura de página PÚBLICA por serviço de busca e extração (Tavily ou similar) no lugar da busca direta, só para fontes
- * com acesso 'risco-aceito-dp31'. O serviço NÃO resolve CAPTCHA, não entra em login/paywall e não falsifica navegador: se a
+ * com acesso 'via-provedor'. O serviço NÃO resolve CAPTCHA, não entra em login/paywall e não falsifica navegador: se a
  * página vier com desafio, login ou paywall, o coletor para. status = o da leitura (200 ok; 429 pedido de pausa; 403/5xx falha).
  */
 export interface ReaderResult { status: number; body: string; format?: 'html' | 'text'; retryAfterSec?: number | null; /** o serviço não conseguiu ler ESTA URL (site recusou/não renderizou): para a coleta da fonte, sem repetir */ failedUrl?: boolean; /** a COTA do serviço acabou em todas as chaves: não é culpa da fonte, mas a coleta DP-31 não tem como seguir */ quotaExhausted?: boolean }
@@ -48,9 +48,46 @@ export class MemoryReadBudget implements ReadBudget {
 
 export interface ReaderPort {
   readonly name: string;
+  /** O provedor faz o desbloqueio (CAPTCHA e proxies próprios, DP-32). Informativo: o coletor nunca resolve CAPTCHA por conta própria. */
+  readonly unlocks?: boolean;
   read(url: string): Promise<ReaderResult>;
   /** Descoberta de matérias novas da fonte (busca restrita ao domínio). Opcional. */
   discover?(source: Source, limit: number): Promise<Array<{ url: string; title?: string; publishedAt?: string | null }>>;
+}
+
+/**
+ * Vários provedores em ordem (DP-32: Tavily, Bright Data, Firecrawl e similares; cada um com as suas contas/chaves na cota gratuita).
+ * Passa ao próximo provedor quando o anterior esgota a COTA (quotaExhausted) ou não consegue ler ESTA URL (failedUrl); o 429 por ritmo de
+ * um serviço NÃO troca de provedor (devolve 429 e a coleta da fonte para). Tudo falhou = último resultado (cota esgotada ou falha por URL).
+ */
+export class ChainedReader implements ReaderPort {
+  readonly name: string;
+  readonly unlocks: boolean;
+  private readonly exhausted = new Set<ReaderPort>();
+  constructor(private readonly readers: ReaderPort[]) {
+    if (!readers.length) throw new Error('ChainedReader: nenhum provedor');
+    this.name = readers.map((r) => r.name).join('>');
+    this.unlocks = readers.some((r) => r.unlocks === true);
+  }
+  async read(url: string): Promise<ReaderResult> {
+    let last: ReaderResult = { status: 432, body: '', quotaExhausted: true };
+    for (const r of this.readers) {
+      if (this.exhausted.has(r)) continue;
+      const res = await r.read(url);
+      if (res.quotaExhausted) { this.exhausted.add(r); last = res; continue; }
+      if (res.failedUrl) { last = res; continue; }
+      return res;
+    }
+    return last;
+  }
+  async discover(source: Source, limit: number): Promise<Array<{ url: string; title?: string; publishedAt?: string | null }>> {
+    let lastErr: unknown = new Error('nenhum provedor com descoberta');
+    for (const r of this.readers) {
+      if (this.exhausted.has(r) || !r.discover) continue;
+      try { return await r.discover(source, limit); } catch (e) { lastErr = e; if (/cota do serviço esgotada/.test(String((e as Error).message))) this.exhausted.add(r); }
+    }
+    throw lastErr;
+  }
 }
 
 export const USER_AGENT = 'LoyaltyNewsBot/0.1 (+coletor determinístico; respeita robots.txt)';
@@ -65,12 +102,13 @@ export type SkipCode =
  * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
  * da fonte PARA. Nunca insistir, repetir com outro cliente ou contornar.
  */
-export const stopsCollection = (k: { code: SkipCode; detail: string }): boolean =>
-  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || k.code === 'challenge' || k.code === 'reader_unavailable'
+export const stopsCollection = (k: { code: SkipCode; detail: string; viaProvider?: true }): boolean =>
+  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || (k.code === 'challenge' && !('viaProvider' in k && k.viaProvider)) || k.code === 'reader_unavailable'
   || (k.code === 'http_error' && (k.detail === '403' || k.detail === '401' || k.detail === 'reader_failed'));
 
 /**
- * Guarda de parada de um laço de coleta (feed, sitemap, descoberta, âncoras, autoral). Para SEMPRE em 429, 403, desafio, Crawl-delay
+ * Guarda de parada de um laço de coleta (feed, sitemap, descoberta, âncoras, autoral). Para SEMPRE em 429, 403, desafio (no coletor DIRETO;
+ * via provedor, DP-32, o desafio conta como falha por URL), Crawl-delay
  * excessivo, serviço de leitura ausente ou falha do serviço por URL; e para depois de 2 páginas seguidas com login/paywall
  * (gated) ou 3 falhas seguidas (HTTP de erro / conteúdo vazio): uma fonte que só devolve isso não pode ser martelada.
  * Um sucesso zera as sequências.
@@ -85,12 +123,17 @@ export class StopGuard {
     if (!skip) { this.gated = 0; this.fails = 0; return false; }
     if (stopsCollection(skip)) return true;
     if (skip.code === 'gated') { this.fails = 0; return ++this.gated >= GATED_LIMIT; }
-    if (skip.code === 'http_error' || skip.code === 'empty_content') { this.gated = 0; return ++this.fails >= FAIL_LIMIT; }
+    // desafio via provedor (DP-32): o provedor não conseguiu esta URL; conta como falha e a coleta segue até FAIL_LIMIT seguidas
+    if (skip.code === 'http_error' || skip.code === 'empty_content' || skip.code === 'challenge') { this.gated = 0; return ++this.fails >= FAIL_LIMIT; }
     return false; // robots/url_rejected/etc.: decisão nossa, não hostilidade da fonte
   }
 }
 
-export interface Skip { url: string; code: SkipCode; detail: string }
+export interface Skip {
+  url: string; code: SkipCode; detail: string;
+  /** A leitura passou por provedor com desbloqueio (DP-32): desafio/CAPTCHA aqui é falha do provedor nessa URL, não recusa da fonte ao nosso coletor. */
+  viaProvider?: true;
+}
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
 
 export interface CollectorOptions {
@@ -101,7 +144,7 @@ export interface CollectorOptions {
   maxCrawlDelaySec?: number;
   /** Intervalo mínimo entre requisições ao MESMO host, mesmo sem Crawl-delay (ms). Padrão 3000. Os testes passam 0. */
   minSpacingMs?: number;
-  /** DP-31: serviço de leitura das fontes com acesso 'risco-aceito-dp31'. Sem ele, essas fontes são puladas ('reader_unavailable'). */
+  /** DP-31: serviço de leitura das fontes com acesso 'via-provedor'. Sem ele, essas fontes são puladas ('reader_unavailable'). */
   reader?: ReaderPort;
   /** DP-31: contador GLOBAL de leituras por host (ex.: StoreReadBudget, no banco). Padrão: em memória (por instância; só para testes/dev). */
   readBudget?: ReadBudget;
@@ -246,7 +289,7 @@ export class Collector {
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
-    if (source.acesso === ACESSO_DP31) return this.collectUrlViaReader(source, u, hint);
+    if (source.acesso === ACESSO_VIA_PROVEDOR) return this.collectUrlViaReader(source, u, hint);
     const rules = await this.robotsFor(source);
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
@@ -287,7 +330,7 @@ export class Collector {
       suspicious: san.suspicious, suspiciousReasons: san.reasons,
       sourceTier: sourceTier(source.kind),
       ...(meta.links.length ? { outboundLinks: meta.links } : {}),
-      ...(dp31 ? { acesso: ACESSO_DP31 } : {}),
+      ...(dp31 ? { acesso: ACESSO_VIA_PROVEDOR } : {}),
     };
     if (dp31) evidence.text = capText(evidence.text, this.dp31MaxStoredChars);
     return { evidence };
@@ -299,7 +342,7 @@ export class Collector {
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
-    if (source.acesso === ACESSO_DP31) return this.collectDp31(source, limit);
+    if (source.acesso === ACESSO_VIA_PROVEDOR) return this.collectDp31(source, limit);
     if (!source.feedUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem feedUrl cadastrado' }); return out; }
     const f = await this.collectRaw(source, source.feedUrl);
     if (f.skip) { out.skipped.push(f.skip); return out; }
@@ -314,7 +357,7 @@ export class Collector {
 
   /** Janela de 24 h, espaçamento mínimo e leitura pelo serviço. Nunca repete, nunca tenta outro caminho. */
   private async readViaReader(source: Source, url: string): Promise<{ r?: ReaderResult; skip?: Skip }> {
-    if (!this.reader) return { skip: { url, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_DP31} e nenhum serviço de leitura configurado` } };
+    if (!this.reader) return { skip: { url, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_VIA_PROVEDOR} e nenhum serviço de leitura configurado` } };
     const host = source.host;
     // Espera o intervalo desde a leitura anterior do host (de QUALQUER instância) e só então reserva a leitura no orçamento global.
     const slot = await this.readBudget.reserve(host, this.now().getTime(), this.dp31MaxPagesPerDay, 86_400_000, this.dp31SpacingMs);
@@ -345,7 +388,7 @@ export class Collector {
     const html = this.asHtml(g.r!);
     if (html.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(html.length) } };
     const chal = detectChallenge({ status: g.r!.status, headers: {}, html, text: stripHtml(html) });
-    if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+    if (chal) return { skip: { url, code: 'challenge', detail: chal, viaProvider: true } };
     const gate = detectGate({ status: g.r!.status, headers: {}, body: html });
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
     return this.toEvidence(source, u, html, hint, true);
@@ -354,7 +397,7 @@ export class Collector {
   /** DP-31: descoberta por busca restrita ao domínio (discover) ou pelo feed lido pelo serviço; depois lê cada página, parando como na coleta normal. */
   private async collectDp31(source: Source, limit: number): Promise<CollectResult> {
     const out: CollectResult = { evidences: [], skipped: [] };
-    if (!this.reader) { out.skipped.push({ url: source.host, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_DP31} e nenhum serviço de leitura configurado` }); return out; }
+    if (!this.reader) { out.skipped.push({ url: source.host, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_VIA_PROVEDOR} e nenhum serviço de leitura configurado` }); return out; }
     let items: Array<{ url: string; title?: string; publishedAt?: string | null }> = [];
     if (this.reader.discover) {
       try { items = await this.reader.discover(source, limit); } catch (e) { out.skipped.push({ url: source.host, code: 'http_error', detail: e instanceof Error ? e.message.slice(0, 160) : 'erro na descoberta' }); return out; }
@@ -415,11 +458,11 @@ export class Collector {
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
-    if (source.acesso === ACESSO_DP31) {
+    if (source.acesso === ACESSO_VIA_PROVEDOR) {
       const g = await this.readViaReader(source, url);
       if (g.skip) return { skip: g.skip };
       const chal = detectChallenge({ status: g.r!.status, headers: {}, html: g.r!.body, text: g.r!.body });
-      return chal ? { skip: { url, code: 'challenge', detail: chal } } : { body: g.r!.body };
+      return chal ? { skip: { url, code: 'challenge', detail: chal, viaProvider: true } } : { body: g.r!.body };
     }
     const rules = await this.robotsFor(source);
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };

@@ -102,7 +102,7 @@ test('(4) falha por URL e gates PARAM a rodada: 2 login/paywall seguidos, 3 falh
   const rb = await b.c.collectFeed(MOCK_SOURCE);
   assert.equal(rb.skipped.length, 3);
   // DP-31: serviço não conseguiu ler a URL → para na hora, sem repetir
-  const DP: Source = { ...MOCK_SOURCE, id: 'dp', host: 'blog.mock.example', kind: 'blog', acesso: 'risco-aceito-dp31', feedUrl: null, listingUrl: 'https://blog.mock.example/' };
+  const DP: Source = { ...MOCK_SOURCE, id: 'dp', host: 'blog.mock.example', kind: 'blog', acesso: 'via-provedor', feedUrl: null, listingUrl: 'https://blog.mock.example/' };
   const calls: string[] = [];
   const reader: ReaderPort = { name: 'x', read: async (url) => { calls.push(url); return { status: 502, body: '', failedUrl: true }; }, discover: async () => [1, 2, 3].map((n) => ({ url: `https://blog.mock.example/p${n}` })) };
   const d = new Collector(new MockFetcher({}), { now: new Clock().now, sleep: async () => {}, resolver: resolver(), flags: COLLECT_ON, reader });
@@ -114,7 +114,7 @@ test('(4) falha por URL e gates PARAM a rodada: 2 login/paywall seguidos, 3 falh
 test('(5) limite diário e espaçamento DP-31 são GLOBAIS: duas instâncias do coletor sobre o mesmo banco somam as leituras', async () => {
   const store = new InMemoryEditorialStore();
   const clock = new Clock();
-  const DP: Source = { ...MOCK_SOURCE, id: 'dp', host: 'blog.mock.example', kind: 'blog', acesso: 'risco-aceito-dp31', feedUrl: null, listingUrl: 'https://blog.mock.example/' };
+  const DP: Source = { ...MOCK_SOURCE, id: 'dp', host: 'blog.mock.example', kind: 'blog', acesso: 'via-provedor', feedUrl: null, listingUrl: 'https://blog.mock.example/' };
   const reads: Array<{ who: string; at: number }> = [];
   const mkInst = (who: string) => {
     const reader: ReaderPort = { name: who, read: async (): Promise<ReaderResult> => { reads.push({ who, at: clock.t }); return { status: 200, body: 'Texto da matéria. '.repeat(40), format: 'text' }; } };
@@ -187,7 +187,7 @@ test('Tavily com várias chaves em ordem: troca SÓ quando a cota do serviço ac
   assert.deepEqual(dead, { status: 432, body: '', quotaExhausted: true });
   assert.deepEqual(used, ['KEY-1', 'KEY-2']);
   await assert.rejects(() => t4.discover({ ...MOCK_SOURCE, name: 'X' }, 3), (e: Error) => /cota do serviço esgotada/.test(e.message) && !/KEY-/.test(e.message));
-  const DP: Source = { ...MOCK_SOURCE, id: 'dp', host: 'blog.mock.example', kind: 'blog', acesso: 'risco-aceito-dp31', feedUrl: null };
+  const DP: Source = { ...MOCK_SOURCE, id: 'dp', host: 'blog.mock.example', kind: 'blog', acesso: 'via-provedor', feedUrl: null };
   const col = new Collector(new MockFetcher({}), { now: new Clock().now, sleep: async () => {}, resolver: resolver(), flags: COLLECT_ON, reader: t4 });
   const sk = await col.collectUrl(DP, 'https://blog.mock.example/p1');
   assert.equal(sk.skip?.code, 'reader_unavailable'); assert.match(sk.skip!.detail, /cota do serviço de leitura esgotada/);

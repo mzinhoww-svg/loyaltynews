@@ -3,7 +3,7 @@ import type { Source } from '../types';
 
 /**
  * Leitura via Tavily (DP-31) — DESLIGADA: só é usada se o worker injetar `new TavilyReader({ apiKey })` no Collector e a fonte
- * tiver `acesso: 'risco-aceito-dp31'`. A chave vem do cofre do OpenBot (TAVILY_API_KEY), nunca do código nem de log.
+ * tiver `acesso: 'via-provedor'`. A chave vem do cofre do OpenBot (TAVILY_API_KEY), nunca do código nem de log.
  *
  * O que usa (documentação oficial, docs.tavily.com, lida em 23/11/2026):
  *  - POST /extract: 1 a 20 URLs por chamada; `extract_depth` basic = 1 crédito a cada 5 extrações bem-sucedidas; extração com falha não é cobrada;
@@ -46,6 +46,8 @@ const isQuota = (status: number, json: J | null): boolean => {
 
 export class TavilyReader implements ReaderPort {
   readonly name = 'tavily';
+  /** Tavily não promete resolver CAPTCHA; outros provedores (Bright Data Web Unlocker etc.) podem declarar unlocks. */
+  readonly unlocks = false;
   private readonly base: string;
   private readonly f: typeof fetch;
   private readonly timeout: number;

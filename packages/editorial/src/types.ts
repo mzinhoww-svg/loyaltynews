@@ -15,8 +15,8 @@ export type SourceKind = 'investor_relations' | 'regulator' | 'press_room' | 'as
   // DP-29: blogs especializados e imprensa de nicho. São fonte de PAUTA e contexto; fatos precisam de âncora em fonte primária.
   | 'blog' | 'trade_media' | 'company_blog';
 /** primary = emissor oficial do fato (RI, regulador, governo, associação, sala de imprensa); secondary = blog/imprensa de nicho (relata o que outros disseram). */
-export type AccessMode = 'padrao' | 'risco-aceito-dp31';
-export const ACESSO_DP31: AccessMode = 'risco-aceito-dp31';
+export type AccessMode = 'padrao' | 'via-provedor';
+export const ACESSO_VIA_PROVEDOR: AccessMode = 'via-provedor';
 export type SourceTier = 'primary' | 'secondary';
 export const SECONDARY_KINDS: readonly SourceKind[] = ['blog', 'trade_media', 'company_blog'];
 export const sourceTier = (k: SourceKind): SourceTier => (SECONDARY_KINDS.includes(k) ? 'secondary' : 'primary');
@@ -52,10 +52,10 @@ export interface Source {
   imageRights: ImageRightsBasis | null;
   maxRequestsPerHour: number;
   /**
-   * DP-31 (risco aceito pelo proprietário): fonte que bloqueia robôs e é lida por serviço de busca/extração (ReaderPort) em vez do
-   * coletor direto; ignora robots.txt e a recusa por UA/403 em página PÚBLICA. Ausente = acesso padrão com todas as guardas.
-   * Continua proibido: CAPTCHA, login/paywall, falsificar navegador, proxy rotativo, carga pesada. Só guarda trecho curto + link + data.
-   */
+   * DP-31/DP-32 (risco aceito pelo proprietário): fonte lida VIA PROVEDOR de leitura/desbloqueio (ReaderPort: Tavily, Bright Data,
+   * Firecrawl e similares), em vez do coletor direto; ignora robots.txt e a recusa por UA/403 em página PÚBLICA, e o provedor pode resolver
+   * CAPTCHA e usar proxies próprios. Ausente = acesso padrão do coletor direto, com todas as guardas.
+   * Continua proibido: login e paywall, carga pesada, nada pago sem o proprietário. Só guarda trecho curto + link + data.   */
   acesso?: AccessMode;
   notes?: string;
   verification?: SourceVerification;
@@ -100,7 +100,7 @@ export interface Evidence {
   sourceTier?: SourceTier;
   /** Links http(s) do corpo da página (até 25): usados para ANCORAR fatos de blog em fonte primária habilitada. */
   outboundLinks?: string[];
-  /** 'risco-aceito-dp31' quando lida por serviço de leitura (DP-31); o texto guardado é só um trecho curto. */
+  /** 'via-provedor' quando lida por provedor de leitura (DP-31/DP-32); o texto guardado é só um trecho curto. */
   acesso?: AccessMode;
 }
 
