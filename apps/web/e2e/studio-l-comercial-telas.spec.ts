@@ -50,8 +50,8 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await page.goto('/studio/campanhas');
     await page.getByLabel('Nome', { exact: true }).fill('Telas Topo');
     await page.getByLabel('Anunciante (conta)').selectOption({ label: 'Fidelidade Telas SA' });
-    await page.getByLabel('Início (AAAA-MM-DD)').fill('2099-03-01');
-    await page.getByLabel('Fim (AAAA-MM-DD)').fill('2099-05-31');
+    await page.getByLabel('Início (obrigatório)').fill('2099-03-01');
+    await page.getByLabel('Fim (obrigatório)').fill('2099-05-31');
     await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
     await sucesso(page, 'Campanha criada em rascunho.');
 
@@ -74,8 +74,8 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(page.getByLabel('Confirmar venda')).toBeDisabled();
 
     // período inválido: o domínio recusa e a página mostra
-    await page.getByLabel('Início da reserva (AAAA-MM-DD)').fill('2099-05-31');
-    await page.getByLabel('Fim da reserva (AAAA-MM-DD)').fill('2099-03-01');
+    await page.getByLabel('Início da reserva').fill('2099-05-31');
+    await page.getByLabel('Fim da reserva').fill('2099-03-01');
     await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
     await expect(page.locator('main .st-alert.err').first()).toBeVisible();
 
@@ -95,7 +95,7 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
 
     // criativo: nasce não aprovado; aprovar sem arquivo é recusado com o que falta
     await page.getByLabel('Texto alternativo').fill('Banner topo Telas');
-    await page.getByLabel('Destino (https)').fill('https://fidelidadetelas.example/oferta');
+    await page.getByLabel('Destino (https').fill('https://fidelidadetelas.example/oferta');
     await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
     await sucesso(page, 'Criativo adicionado');
     const cr = page.locator('li[data-criativo]');

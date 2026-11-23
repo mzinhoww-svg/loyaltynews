@@ -114,12 +114,12 @@ export function PosicoesCriativos(props: {
                 </select>
               </div>
               <div className="st-field">
-                <label htmlFor="res-inicio">Início da reserva (AAAA-MM-DD)</label>
-                <input id="res-inicio" name="inicio" type="text" defaultValue={c.startDate} />
+                <label htmlFor="res-inicio">Início da reserva (obrigatório)</label>
+                <input id="res-inicio" name="inicio" type="date" required defaultValue={c.startDate} />
               </div>
               <div className="st-field">
-                <label htmlFor="res-fim">Fim da reserva (AAAA-MM-DD)</label>
-                <input id="res-fim" name="fim" type="text" defaultValue={c.endDate} />
+                <label htmlFor="res-fim">Fim da reserva (obrigatório)</label>
+                <input id="res-fim" name="fim" type="date" required defaultValue={c.endDate} />
               </div>
             </div>
             <p>
@@ -199,19 +199,19 @@ export function PosicoesCriativos(props: {
                 </select>
               </div>
               <div className="st-field">
-                <label htmlFor="cr-inicio">Início do criativo (AAAA-MM-DD)</label>
-                <input id="cr-inicio" name="inicio" type="text" defaultValue={c.startDate} />
+                <label htmlFor="cr-inicio">Início do criativo (obrigatório)</label>
+                <input id="cr-inicio" name="inicio" type="date" required defaultValue={c.startDate} />
               </div>
               <div className="st-field">
-                <label htmlFor="cr-fim">Fim do criativo (AAAA-MM-DD)</label>
-                <input id="cr-fim" name="fim" type="text" defaultValue={c.endDate} />
+                <label htmlFor="cr-fim">Fim do criativo (obrigatório)</label>
+                <input id="cr-fim" name="fim" type="date" required defaultValue={c.endDate} />
               </div>
               <div className="st-field">
-                <label htmlFor="cr-alt">Texto alternativo</label>
+                <label htmlFor="cr-alt">Texto alternativo (obrigatório para aprovar)</label>
                 <input id="cr-alt" name="alt" type="text" maxLength={200} />
               </div>
               <div className="st-field">
-                <label htmlFor="cr-destino">Destino (https)</label>
+                <label htmlFor="cr-destino">Destino (https, obrigatório para aprovar)</label>
                 <input id="cr-destino" name="destino" type="text" inputMode="url" maxLength={2000} />
               </div>
               <div className="st-field">
