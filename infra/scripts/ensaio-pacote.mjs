@@ -144,6 +144,10 @@ try {
   if (vitrine || apiSrc) delete buildEnv.PORTAL_VITRINE; else buildEnv.PORTAL_VITRINE = '1'; // a vitrine vem do release.json, nunca do painel (com api o painel hostil com vitrine é recusado, testado acima)
   r = runChain(ca.build, { cwd: work, env: buildEnv });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
+  if (man.buildLeve === true) {
+    const log = `${r.stdout}${r.stderr}`;
+    step('[build leve] o next build usou 1 worker (release.json.buildLeve)', r.status === 0 && /build-leve=1 worker/.test(log) && /using 1 worker/i.test(log), /using \d+ workers/i.test(log) ? 'o Next usou varios workers' : '');
+  }
   if (man.semTypecheckNoBuild === true) {
     const log = `${r.stdout}${r.stderr}`;
     step('[typecheck] build do pacote SEM checagem de tipos dentro do build (release.json.semTypecheckNoBuild)', r.status === 0 && /typecheck-no-build=dispensado/.test(log) && (/Skipping validation of types/i.test(log) || !/Running TypeScript/.test(log)), /Running TypeScript/.test(log) ? 'o Next AINDA rodou o TypeScript: falta a linha de apps/web/next.config.ts (int/006)' : '');
