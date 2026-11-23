@@ -5,6 +5,7 @@ import { cache } from 'react';
 import { ErrorState } from '../../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { getSource } from '../../../_lib/source';
+import { linkPedido } from '../../../_titular/pedido';
 import { MoveCard, RolesTable, SourceLink } from '../../_components/intel';
 
 export const revalidate = 60;
@@ -41,7 +42,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
     <>
       <PageHead title={p.name} crumbs={[...crumbs, { label: p.name }]} />
       <p style={{ margin: '0 0 8px' }}>
-        <Link href="/correcoes" className="ln-btn ln-btn--ghost" data-testid="request-correction">
+        <Link href={linkPedido(`/intelligence/pessoas/${p.id}`)} className="ln-btn ln-btn--ghost" data-testid="request-correction">
           Solicitar correção ou remoção
         </Link>
       </p>
