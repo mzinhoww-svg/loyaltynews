@@ -1020,3 +1020,55 @@ test('guard-env: release.json do pacote manda em LN_FLAGS_ON (web e worker); ci-
   rmSync(c, { recursive: true, force: true });
 });
 function cleanEnvFlags() { const e = { ...process.env }; for (const k of ['APP_ENV', 'LN_FLAGS_ON', 'CI', 'PORTAL_SOURCE', 'PORTAL_MODE', 'LN_STUDIO_TEST_SESSION', 'PORTAL_VITRINE', 'PORTAL_INDEXAVEL', 'DIAG_XFF']) delete e[k]; return e; }
+
+// ---- sharp (binário nativo por plataforma): lockfile do Windows precisa listar o Linux; prova-png.mjs
+test('ci-checks: lockfile com sharp exige o binário Linux (sharp-linux-x64 e libvips) com resolved e integrity', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const lock = (pk) => JSON.stringify({ lockfileVersion: 3, packages: { '': {}, ...pk } });
+  const base = { 'node_modules/sharp': { version: '0.35.5', resolved: 'https://r/sharp.tgz', integrity: 'sha512-x' } };
+  const linux = { 'node_modules/@img/sharp-linux-x64': { resolved: 'https://r/l.tgz', integrity: 'sha512-y' }, 'node_modules/@img/sharp-libvips-linux-x64': { resolved: 'https://r/v.tgz', integrity: 'sha512-z' } };
+  const win = { 'node_modules/@img/sharp-win32-x64': { resolved: 'https://r/w.tgz', integrity: 'sha512-w' } };
+  put(r, 'package-lock.json', lock({ ...base, ...win }));
+  const sem = node('ci-checks.mjs', ['--root', r]);
+  assert.equal(sem.status, 1);
+  assert.match(sem.stderr, /sem o binário Linux: falta @img\/sharp-linux-x64/);
+  assert.match(sem.stderr, /falta @img\/sharp-libvips-linux-x64/);
+  put(r, 'package-lock.json', lock({ ...base, ...win, ...linux }));
+  assert.equal(node('ci-checks.mjs', ['--root', r]).status, 0);
+  put(r, 'package-lock.json', lock({ ...base, ...win, '@x': {}, 'node_modules/@img/sharp-linux-x64': { resolved: 'https://r/l.tgz' }, 'node_modules/@img/sharp-libvips-linux-x64': linux['node_modules/@img/sharp-libvips-linux-x64'] }));
+  assert.match(node('ci-checks.mjs', ['--root', r]).stderr, /falta @img\/sharp-linux-x64/);
+  put(r, 'package-lock.json', lock({ 'node_modules/next': { version: '1' } })); // sem sharp: nada a exigir
+  assert.equal(node('ci-checks.mjs', ['--root', r]).status, 0);
+  rmSync(r, { recursive: true, force: true });
+});
+
+test('prova-png: sem sharp instalado devolve 3 com a plataforma e sem caminho de usuário; sem --root usa a pasta atual', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const x = node('prova-png.mjs', ['--root', r]);
+  assert.equal(x.status, 3);
+  const j = JSON.parse(x.stdout);
+  assert.equal(j.ok, false);
+  assert.match(j.plataforma, /^[a-z0-9]+-[a-z0-9]+$/);
+  assert.equal(j.erro, 'sharp não carrega nesta plataforma');
+  assert.doesNotMatch(x.stdout, /Users[/\\]/);
+  rmSync(r, { recursive: true, force: true });
+});
+
+test('ensaio-worker-tls: vazamentoDeChave acha o marcador e trechos do corpo da chave (inclusive quebrados em linhas de log); uso e build ausente', async () => {
+  const { vazamentoDeChave } = await import('../scripts/ensaio-worker-tls.mjs');
+  const corpo = 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ';
+  const chave = ['-----BEGIN ' + 'PRIVATE KEY-----', corpo.slice(0, 40), corpo.slice(40), '-----END ' + 'PRIVATE KEY-----'].join('\n');
+  assert.deepEqual(vazamentoDeChave('tudo certo; connect ECONNREFUSED 127.0.0.1:5', chave), []);
+  assert.deepEqual(vazamentoDeChave('key: ' + "'-----BEGIN " + "PRIVATE KEY-----\n'", chave), ['marcador PRIVATE KEY']);
+  // o corpo aparece como no util.inspect: aspas, "+" e \n entre pedaços
+  const inspecionado = `key: '${corpo.slice(0, 40)}\n' +\n  '${corpo.slice(40)}\n'`;
+  assert.deepEqual(vazamentoDeChave(inspecionado, chave), ['trecho do corpo da chave']);
+  const r = tmp();
+  assert.equal(node('ensaio-worker-tls.mjs', []).status, 2);
+  const sem = node('ensaio-worker-tls.mjs', ['--root', r]);
+  assert.equal(sem.status, 3);
+  assert.match(sem.stdout, /sem apps\/workers\/dist\/index\.js/);
+  rmSync(r, { recursive: true, force: true });
+});

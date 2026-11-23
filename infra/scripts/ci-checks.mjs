@@ -51,6 +51,15 @@ for (const f of all) {
       const m = name && name.match(FORBIDDEN);
       if (m) problems.push(`ADR-001: pacote instalado "${name}" em ${r}`);
     }
+    // Binário nativo por plataforma (sharp, ft/growth 01798ed): um lockfile gerado no Windows tem de listar também o pacote do Linux da Vertra, com origem e integridade,
+    // senão o `npm ci` no Linux não baixa o binário e o app quebra só em execução.
+    const pk = lock.packages || {};
+    if (pk['node_modules/sharp']) {
+      for (const alvo of ['node_modules/@img/sharp-linux-x64', 'node_modules/@img/sharp-libvips-linux-x64']) {
+        const e = pk[alvo];
+        if (!e || !e.resolved || !e.integrity) problems.push(`sharp no ${r} sem o binário Linux: falta ${alvo.replace('node_modules/', '')} com resolved e integrity (gere o lockfile com todas as plataformas; \`npm ci\` no Linux da Vertra não o baixaria)`);
+      }
+    }
     continue;
   }
   const m = txt.match(FORBIDDEN);
