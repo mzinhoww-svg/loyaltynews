@@ -1,29 +1,184 @@
 {
   "descricao": "Candidatas a fonte de empresas do setor (RI e site oficial) para o cadastro do Editorial. 'tipo' e 'nota' são palpites de triagem, NÃO fatos: o estado real vem da sonda (scripts/probe-sources.mjs). Classe C (DP-28) não consta.",
   "fontes": [
-    { "id": "livelo-imprensa", "nome": "Livelo — imprensa", "url": "https://www.livelo.com.br/imprensa", "tipo": "imprensa", "nota": "reavaliar: Editorial registrou inacessivel em 22/11" },
-    { "id": "magalu-ri", "nome": "Magalu — Relações com Investidores", "url": "https://ri.magazineluiza.com.br/", "tipo": "ri", "nota": "reavaliar: Editorial registrou inacessivel" },
-    { "id": "santander-ri", "nome": "Santander Brasil — Relações com Investidores", "url": "https://ri.santander.com.br/", "tipo": "ri", "nota": "reavaliar: Editorial registrou inacessivel" },
-    { "id": "itau-ri", "nome": "Itaú Unibanco — Relações com Investidores", "url": "https://www.itau.com.br/relacoes-com-investidores/", "tipo": "ri", "nota": "reavaliar: Editorial registrou inacessivel" },
-    { "id": "bradesco-ri", "nome": "Bradesco — Relações com Investidores", "url": "https://www.bradescori.com.br/", "tipo": "ri" },
-    { "id": "bb-ri", "nome": "Banco do Brasil — Relações com Investidores", "url": "https://ri.bb.com.br/", "tipo": "ri" },
-    { "id": "latam-ir", "nome": "LATAM Airlines Group — Investor Relations", "url": "https://ir.latam.com/", "tipo": "ri" },
-    { "id": "dotz-ri", "nome": "Dotz — Relações com Investidores", "url": "https://ri.dotz.com.br/", "tipo": "ri" },
-    { "id": "gpa-ri", "nome": "GPA (Pão de Açúcar) — Relações com Investidores", "url": "https://www.gpari.com.br/", "tipo": "ri" },
-    { "id": "rd-ri", "nome": "Raia Drogasil — Relações com Investidores", "url": "https://ri.rd.com.br/", "tipo": "ri" },
-    { "id": "natura-ri", "nome": "Natura &Co — Relações com Investidores", "url": "https://ri.naturaeco.com/", "tipo": "ri" },
-    { "id": "inter-ri", "nome": "Banco Inter — Relações com Investidores", "url": "https://ri.inter.co/", "tipo": "ri" },
-    { "id": "xp-ri", "nome": "XP Inc. — Relações com Investidores", "url": "https://ri.xpinc.com/", "tipo": "ri" },
-    { "id": "brb-ri", "nome": "BRB — Relações com Investidores", "url": "https://ri.brb.com.br/", "tipo": "ri" },
-    { "id": "bv-ri", "nome": "Banco BV — Relações com Investidores", "url": "https://ri.bv.com.br/", "tipo": "ri" },
-    { "id": "vibra-ri", "nome": "Vibra Energia — Relações com Investidores (Premmia)", "url": "https://ri.vibraenergia.com.br/", "tipo": "ri" },
-    { "id": "americanas-ri", "nome": "Americanas — Relações com Investidores", "url": "https://ri.americanas.io/", "tipo": "ri" },
-    { "id": "mastercard-newsroom", "nome": "Mastercard — newsroom América Latina", "url": "https://www.mastercard.com/news/latin-america/pt-br/", "tipo": "imprensa" },
-    { "id": "uber-newsroom", "nome": "Uber — newsroom Brasil", "url": "https://www.uber.com/pt-BR/newsroom/", "tipo": "imprensa" },
-    { "id": "stix-site", "nome": "Stix — site oficial", "url": "https://www.stix.com.br/", "tipo": "site_oficial" },
-    { "id": "esfera-site", "nome": "Esfera — site oficial", "url": "https://www.esfera.com.vc/", "tipo": "site_oficial" },
-    { "id": "dotz-site", "nome": "Dotz — site oficial", "url": "https://www.dotz.com.br/home", "tipo": "site_oficial" },
-    { "id": "latampass-site", "nome": "LATAM Pass — site oficial", "url": "https://latampass.latam.com/br/pt/conheca-latampass", "tipo": "site_oficial" },
-    { "id": "smiles-site", "nome": "Smiles — site oficial", "url": "https://www.smiles.com.br/", "tipo": "site_oficial" }
+    {
+      "id": "livelo-imprensa",
+      "nome": "Livelo — imprensa",
+      "url": "https://www.livelo.com.br/imprensa",
+      "tipo": "imprensa",
+      "nota": "reavaliar: Editorial registrou inacessivel em 22/11"
+    },
+    {
+      "id": "magalu-ri",
+      "nome": "Magalu — Relações com Investidores",
+      "url": "https://ri.magazineluiza.com.br/",
+      "tipo": "ri",
+      "nota": "reavaliar: Editorial registrou inacessivel"
+    },
+    {
+      "id": "santander-ri",
+      "nome": "Santander Brasil — Relações com Investidores",
+      "url": "https://ri.santander.com.br/",
+      "tipo": "ri",
+      "nota": "reavaliar: Editorial registrou inacessivel"
+    },
+    {
+      "id": "itau-ri",
+      "nome": "Itaú Unibanco — Relações com Investidores",
+      "url": "https://www.itau.com.br/relacoes-com-investidores/",
+      "tipo": "ri",
+      "nota": "reavaliar: Editorial registrou inacessivel"
+    },
+    {
+      "id": "bradesco-ri",
+      "nome": "Bradesco — Relações com Investidores",
+      "url": "https://www.bradescori.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "bb-ri",
+      "nome": "Banco do Brasil — Relações com Investidores",
+      "url": "https://ri.bb.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "latam-ir",
+      "nome": "LATAM Airlines Group — Investor Relations",
+      "url": "https://ir.latam.com/",
+      "tipo": "ri"
+    },
+    {
+      "id": "dotz-ri",
+      "nome": "Dotz — Relações com Investidores",
+      "url": "https://ri.dotz.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "gpa-ri",
+      "nome": "GPA (Pão de Açúcar) — Relações com Investidores",
+      "url": "https://www.gpari.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "rd-ri",
+      "nome": "Raia Drogasil — Relações com Investidores",
+      "url": "https://ri.rd.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "natura-ri",
+      "nome": "Natura — Relações com Investidores",
+      "url": "https://ri.natura.com.br/",
+      "tipo": "ri",
+      "nota": "host corrigido (antes ri.naturaeco.com: robots.txt ilegível); endereço indicado por busca, a confirmar pela sonda"
+    },
+    {
+      "id": "inter-ri",
+      "nome": "Inter&Co — Investor Relations",
+      "url": "https://investors.inter.co/en/",
+      "tipo": "ri",
+      "nota": "host corrigido (antes ri.inter.co: robots.txt ilegível); endereço indicado por busca, a confirmar pela sonda"
+    },
+    {
+      "id": "xp-ri",
+      "nome": "XP Inc. — Investor Relations",
+      "url": "https://investors.xpinc.com/en/",
+      "tipo": "ri",
+      "nota": "host corrigido (antes ri.xpinc.com: robots.txt ilegível); endereço indicado por busca, a confirmar pela sonda"
+    },
+    {
+      "id": "brb-ri",
+      "nome": "BRB — Relações com Investidores",
+      "url": "https://ri.brb.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "bv-ri",
+      "nome": "Banco BV — Relações com Investidores",
+      "url": "https://ri.bv.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "vibra-ri",
+      "nome": "Vibra Energia — Relações com Investidores (Premmia)",
+      "url": "https://ri.vibraenergia.com.br/",
+      "tipo": "ri"
+    },
+    {
+      "id": "americanas-ri",
+      "nome": "Americanas — Relações com Investidores",
+      "url": "https://ri.americanas.io/",
+      "tipo": "ri"
+    },
+    {
+      "id": "mastercard-newsroom",
+      "nome": "Mastercard — newsroom América Latina",
+      "url": "https://www.mastercard.com/news/latin-america/pt-br/",
+      "tipo": "imprensa"
+    },
+    {
+      "id": "uber-newsroom",
+      "nome": "Uber — newsroom Brasil",
+      "url": "https://www.uber.com/pt-BR/newsroom/",
+      "tipo": "imprensa"
+    },
+    {
+      "id": "stix-site",
+      "nome": "Stix — site oficial",
+      "url": "https://www.stix.com.br/",
+      "tipo": "site_oficial"
+    },
+    {
+      "id": "esfera-site",
+      "nome": "Esfera — site oficial",
+      "url": "https://www.esfera.com.vc/",
+      "tipo": "site_oficial"
+    },
+    {
+      "id": "dotz-site",
+      "nome": "Dotz — site oficial",
+      "url": "https://www.dotz.com.br/home",
+      "tipo": "site_oficial"
+    },
+    {
+      "id": "latampass-site",
+      "nome": "LATAM Pass — site oficial",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "tipo": "site_oficial"
+    },
+    {
+      "id": "smiles-site",
+      "nome": "Smiles — site oficial",
+      "url": "https://www.smiles.com.br/",
+      "tipo": "site_oficial"
+    },
+    {
+      "id": "santander-ri-destino",
+      "nome": "Santander Brasil — RI (destino do redirecionamento de ri.santander.com.br)",
+      "url": "https://www.santander.com.br/ri/",
+      "tipo": "ri",
+      "nota": "destino de redirecionamento: candidata própria, com robots.txt próprio (QA 2: o redirecionamento não é seguido)"
+    },
+    {
+      "id": "rd-ri-destino",
+      "nome": "Raia Drogasil / RD Saúde — RI (destino do redirecionamento de ri.rd.com.br)",
+      "url": "https://ri.rdsaude.com.br/default.aspx",
+      "tipo": "ri",
+      "nota": "destino de redirecionamento: candidata própria, com robots.txt próprio (QA 2: o redirecionamento não é seguido)"
+    },
+    {
+      "id": "uber-newsroom-destino",
+      "nome": "Uber — newsroom Brasil (destino do redirecionamento)",
+      "url": "https://www.uber.com/br/pt-br/newsroom/",
+      "tipo": "imprensa",
+      "nota": "destino de redirecionamento: candidata própria, com robots.txt próprio (QA 2: o redirecionamento não é seguido)"
+    },
+    {
+      "id": "smiles-site-destino",
+      "nome": "Smiles — site oficial (destino do redirecionamento)",
+      "url": "https://www.smiles.com.br/portal/home",
+      "tipo": "site_oficial",
+      "nota": "destino de redirecionamento: candidata própria, com robots.txt próprio (QA 2: o redirecionamento não é seguido)"
+    }
   ]
 }

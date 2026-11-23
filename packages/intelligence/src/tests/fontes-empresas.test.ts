@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 type Row = {
-  id: string; nome: string; url: string; estado: string; robots: string | null; http_status: number | null; texto_caracteres: number;
+  id: string; nome: string; url: string; estado: string; redireciona_para: string | null; robots: string | null; http_status: number | null; texto_caracteres: number;
   renderizacao: string | null; sitemaps: string[]; feeds_declarados: string[]; observacao: string;
 };
 const file = (n: string) => fileURLToPath(new URL(`../../data/${n}`, import.meta.url));
@@ -12,7 +12,7 @@ const SONDA = JSON.parse(readFileSync(file('fontes-empresas.candidatos.sonda.jso
 const MD = readFileSync(fileURLToPath(new URL('../../fontes-empresas.md', import.meta.url)), 'utf8');
 
 const CLASSE_C = /(voeazul|voegol|abecs|iata\.org|nubank|accor|marriott|salesforce|hubspot|zendesk|oneworld|abav)/i;
-const ESTADOS = ['acessivel', 'acessivel_requer_navegador', 'bloqueada_http', 'bloqueada_captcha', 'bloqueada_por_robots', 'robots_inacessivel_nao_buscada', 'indisponivel', 'erro_de_rede', 'nao_sondada_classe_c'];
+const ESTADOS = ['acessivel', 'acessivel_requer_navegador', 'redirecionada', 'bloqueada_desafio', 'bloqueada_http', 'bloqueada_captcha', 'bloqueada_por_robots', 'robots_inacessivel_nao_buscada', 'indisponivel', 'erro_de_rede', 'nao_sondada_classe_c'];
 
 describe('sonda de fontes de empresas (DP-28/DP-29)', () => {
   it('nenhuma fonte de classe C entre as candidatas; sonda cobre todas as candidatas, na mesma ordem', () => {
@@ -27,6 +27,13 @@ describe('sonda de fontes de empresas (DP-28/DP-29)', () => {
       if (r.estado === 'bloqueada_por_robots' || r.estado === 'robots_inacessivel_nao_buscada') {
         expect(r.http_status).toBeNull(); // não buscada
         expect(r.texto_caracteres).toBe(0);
+      }
+      if (r.estado === 'redirecionada') {
+        // redirecionamento NÃO é seguido: destino anotado, nenhum texto lido, URL final = URL pedida
+        expect([301, 302, 303, 307, 308]).toContain(r.http_status);
+        expect(r.redireciona_para).toMatch(/^https:\/\//);
+        expect(r.texto_caracteres).toBe(0);
+        expect(CAND.fontes.some((f) => f.url === r.redireciona_para || f.id === `${r.id}-destino`)).toBe(true); // o destino é candidata própria
       }
       if (r.estado.startsWith('acessivel')) {
         expect(r.http_status).toBe(200);
@@ -46,9 +53,12 @@ describe('sonda de fontes de empresas (DP-28/DP-29)', () => {
 
   it('reavaliação das três fontes marcadas como inacessíveis pelo Editorial está no documento com o estado real', () => {
     const by = Object.fromEntries(SONDA.fontes.map((r) => [r.id, r]));
-    for (const id of ['livelo-imprensa', 'magalu-ri', 'santander-ri']) {
+    expect(by['santander-ri']!.estado).toBe('redirecionada'); // o host antigo só redireciona; o destino é candidata própria
+    expect([301, 302, 307, 308]).toContain(by['santander-ri']!.http_status);
+    for (const id of ['livelo-imprensa', 'magalu-ri', 'santander-ri-destino']) {
       expect(by[id]!.estado).toBe('acessivel');
       expect(MD).toContain(by[id]!.nome.split(' — ')[0]!.split(' (')[0]!);
+      expect(by[id]!.redireciona_para).toBeNull();
     }
   });
 });
