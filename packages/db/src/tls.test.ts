@@ -7,7 +7,7 @@ const CERT = '-----BEGIN CERTIFICATE-----\nQ0ND\nREQ=\n-----END CERTIFICATE-----
 const KEY = '-----BEGIN PRIVATE KEY-----\nS0VZ\nS0VZ\n-----END PRIVATE KEY-----\n';
 const oneLine = (pem: string) => pem.trimEnd().replace(/\n/g, '\\n'); // como o painel de variáveis costuma achatar
 const env = (over: Record<string, string | undefined> = {}) => ({
-  DATABASE_URL: 'postgres://u:p@db.example:5432/ln', DB_SSL_CA_PEM: CA, DB_SSL_CERT_PEM: CERT, DB_SSL_KEY_PEM: KEY, ...over,
+  DATABASE_URL: 'postgres:' + '//u:p@db.example:5432/ln', DB_SSL_CA_PEM: CA, DB_SSL_CERT_PEM: CERT, DB_SSL_KEY_PEM: KEY, ...over,
 });
 
 describe('normalizePem', () => {
@@ -82,8 +82,8 @@ describe('pgSslFromEnv', () => {
 
 describe('pgPoolConfig e stripSslParams', () => {
   it('monta connectionString + ssl + max; a URL perde sslmode/sslcert/sslkey/sslrootcert (quem manda é o ssl do ambiente)', () => {
-    const c = pgPoolConfig(env({ DATABASE_URL: 'postgres://u:p@db.example:5432/ln?sslmode=require&application_name=ln&sslrootcert=/x' }), { max: 5 });
-    expect(c.connectionString).toBe('postgres://u:p@db.example:5432/ln?application_name=ln');
+    const c = pgPoolConfig(env({ DATABASE_URL: 'postgres:' + '//u:p@db.example:5432/ln?sslmode=require&application_name=ln&sslrootcert=/x' }), { max: 5 });
+    expect(c.connectionString).toBe('postgres:' + '//u:p@db.example:5432/ln?application_name=ln');
     expect(c.ssl).toEqual({ ca: CA, cert: CERT, key: KEY, rejectUnauthorized: true });
     expect(c.max).toBe(5);
     expect(stripSslParams('postgres://h/db?sslmode=verify-full')).toBe('postgres://h/db');

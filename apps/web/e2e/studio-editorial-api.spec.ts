@@ -106,6 +106,10 @@ test.describe('Agenda (/api/agenda)', () => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/agenda');
     await expect(page.getByRole('heading', { name: 'Nenhum evento cadastrado' })).toBeVisible();
+    // P2-07: datas com calendário e campos obrigatórios marcados
+    await expect(page.locator('#inicio')).toHaveAttribute('type', 'date');
+    await expect(page.locator('#fim')).toHaveAttribute('type', 'date');
+    await expect(page.getByLabel('Título (obrigatório)')).toBeVisible();
     await page.getByLabel('Título').fill('Congresso sem fonte');
     await page.getByLabel(/Início/).fill('2099-12-01');
     await page.getByLabel('Local').fill('São Paulo');
@@ -117,7 +121,7 @@ test.describe('Agenda (/api/agenda)', () => {
       await page.getByLabel(/Início/).fill(inicio);
       await page.getByLabel(/Fim/).fill(fim);
       await page.getByLabel('Local').fill('São Paulo');
-      await page.getByLabel('Fonte oficial (URL)').fill('https://congresso.exemplo.com.br');
+      await page.getByLabel(/Fonte oficial \(URL/).fill('https://congresso.exemplo.com.br');
       await enviar(page, page.getByRole('button', { name: 'Criar evento' }));
       await sucesso(page, 'Evento criado.');
     };
@@ -135,7 +139,7 @@ test.describe('Agenda (/api/agenda)', () => {
     await page.getByLabel(/Início/).fill('2099-12-10');
     await page.getByLabel(/Fim/).fill('2099-12-09');
     await page.getByLabel('Local').fill('Rio');
-    await page.getByLabel('Fonte oficial (URL)').fill('https://congresso.exemplo.com.br');
+    await page.getByLabel(/Fonte oficial \(URL/).fill('https://congresso.exemplo.com.br');
     await enviar(page, page.getByRole('button', { name: 'Criar evento' }));
     await erro(page, /fim anterior|fim/i);
 
@@ -189,7 +193,7 @@ test.describe('Agenda (/api/agenda)', () => {
 test.describe('Fontes da Fábrica (/api/studio/editorial/sources)', () => {
   test('todas nascem desabilitadas; habilitar sem revisão é recusado; revisão exige nota e conferências', async ({ page, context }) => {
     await entrar(context, 'rui', 'revisor');
-    await page.goto('/studio/fontes/fabrica');
+    await page.goto('/studio/fontes/fabrica?q=azul');
     await expect(page.getByRole('heading', { level: 1, name: 'Fontes da Fábrica editorial' })).toBeVisible();
     const azul = page.locator('[data-fabrica-fonte="azul-ri"]');
     await expect(azul).toBeVisible();
@@ -218,24 +222,38 @@ test.describe('Fontes da Fábrica (/api/studio/editorial/sources)', () => {
 
   test('chefia habilita só com revisão atual e pode desabilitar', async ({ page, context }) => {
     await entrar(context, 'chefe', 'editor_chefe');
-    await page.goto('/studio/fontes/fabrica');
+    // a lista é paginada (20 por página): a busca leva direto à fonte
+    await page.goto('/studio/fontes/fabrica?q=gol');
     const gol = page.locator('[data-fabrica-fonte="gol-ri"]');
     await enviar(page, gol.getByRole('button', { name: /Habilitar/ }));
     await erro(page, /sem revisão registrada/i);
 
+    await page.goto('/studio/fontes/fabrica?q=azul');
     const azul = page.locator('[data-fabrica-fonte="azul-ri"]');
     await enviar(page, azul.getByRole('button', { name: /Habilitar/ }));
     // pode habilitar ou recusar por inelegibilidade do cadastro; em ambos os casos a mensagem do Backend aparece e nada fica falso
     const msg = page.locator('main .st-alert').filter({ hasText: /Fonte habilitada|inelegível|revisão|termos/i }).first();
     await expect(msg).toBeVisible();
+    await page.goto('/studio/fontes/fabrica?q=azul');
     if (await page.locator('[data-fabrica-fonte="azul-ri"][data-habilitada="sim"]').count()) {
       await page.locator('[data-fabrica-fonte="azul-ri"]').getByRole('button', { name: /Desabilitar/ }).click();
       await sucesso(page, 'Fonte desabilitada.');
+      await page.goto('/studio/fontes/fabrica?q=azul');
       await expect(page.locator('[data-habilitada="sim"]')).toHaveCount(0);
     }
     await entrar(context, 'ed', 'editor');
     await page.goto('/studio/fontes/fabrica');
     await expect(page.getByRole('button', { name: /Registrar revisão|Habilitar/ })).toHaveCount(0);
+  });
+
+  test('o cadastro é paginado: 20 por página, com Anterior e Próxima', async ({ page, context }) => {
+    await entrar(context, 'chefe', 'editor_chefe');
+    await page.goto('/studio/fontes/fabrica');
+    await expect(page.locator('[data-fabrica-fonte]')).toHaveCount(20);
+    await expect(page.getByText(/página 1 de [2-9]/)).toBeVisible();
+    await page.getByRole('navigation', { name: 'Paginação das fontes' }).getByRole('link', { name: 'Próxima' }).click();
+    await expect(page.getByText(/página 2 de/)).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Paginação das fontes' }).getByRole('link', { name: 'Anterior' })).toBeVisible();
   });
 });
 

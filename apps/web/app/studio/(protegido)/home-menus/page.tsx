@@ -50,13 +50,13 @@ interface Opcao {
   titulo: string;
   editoria: string;
 }
-function SeletorMaterias({ opcoes, marcadas, idBase }: { opcoes: Opcao[]; marcadas: readonly string[]; idBase: string }) {
+function SeletorMaterias({ opcoes, marcadas, idBase, nao }: { opcoes: Opcao[]; marcadas: readonly string[]; idBase: string; nao?: string }) {
   const todas: (Opcao & { fora?: boolean })[] = [
     ...marcadas.map((slug) => opcoes.find((o) => o.slug === slug) ?? { slug, titulo: slug, editoria: '', fora: true }),
     ...opcoes.filter((o) => !marcadas.includes(o.slug)),
   ];
   return (
-    <fieldset className="st-field" data-seletor="materias">
+    <fieldset className="st-field" data-seletor="materias" data-nao={nao}>
       <legend>Matérias do destaque (publicadas)</legend>
       {todas.length === 0 ? (
         <p className="st-hint" data-vazio="materias">
@@ -280,9 +280,10 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
             {tipo === 'home' ? 'Adicionar bloco' : 'Adicionar item'}
           </h3>
           {tipo === 'home' ? (
-            <form action={editarDocAction}>
+            <form action={editarDocAction} className="bloco-form" aria-label="Adicionar bloco">
               <input type="hidden" name="tipo" value={tipo} />
               <input type="hidden" name="op" value="adicionar" />
+              <p className="st-hint">Escolha o tipo: o formulário mostra só os campos dele.</p>
               <div className="st-row">
                 <div className="st-field">
                   <label htmlFor="blocoTipo">Tipo de bloco</label>
@@ -294,15 +295,15 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
                     <option value="publicidade">Posição de publicidade</option>
                   </select>
                 </div>
-                <div className="st-field">
+                <div className="st-field" data-nao="publicidade">
                   <label htmlFor="titulo-bloco">Título (opcional)</label>
                   <input id="titulo-bloco" name="titulo" type="text" />
                 </div>
               </div>
               <div className="st-row">
-                <SeletorMaterias opcoes={opcoes} marcadas={[]} idBase="novo" />
-                <div className="st-field">
-                  <label htmlFor="editoria-bloco">Lista de editoria: editoria</label>
+                <SeletorMaterias opcoes={opcoes} marcadas={[]} idBase="novo" nao="lista_editoria ultimas agenda publicidade" />
+                <div className="st-field" data-nao="destaque ultimas agenda publicidade">
+                  <label htmlFor="editoria-bloco">Editoria da lista</label>
                   <select id="editoria-bloco" name="editoria" defaultValue="mercado">
                     {EDITORIAS.map((e) => (
                       <option key={e.slug} value={e.slug}>
@@ -313,12 +314,12 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
                 </div>
               </div>
               <div className="st-row">
-                <div className="st-field">
-                  <label htmlFor="limite-bloco">Limite de itens</label>
+                <div className="st-field" data-nao="destaque publicidade">
+                  <label htmlFor="limite-bloco">Limite de itens (opcional)</label>
                   <input id="limite-bloco" name="limite" type="text" />
                 </div>
-                <div className="st-field">
-                  <label htmlFor="posicao-bloco">Publicidade: posição</label>
+                <div className="st-field" data-nao="destaque lista_editoria ultimas agenda">
+                  <label htmlFor="posicao-bloco">Posição do anúncio</label>
                   <select id="posicao-bloco" name="posicao" defaultValue="TOP">
                     {POSITIONS.map((p) => (
                       <option key={p.id} value={p.id}>

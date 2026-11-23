@@ -6,6 +6,8 @@ import { ehErro, mensagemErro, type ErroApi, type RespostaApi } from '@/lib/stud
 import { corpoAtualizacao, corpoCriacao, lerCampos, mesmasEvidencias } from '@/lib/studio/cms/materia-form';
 import { CMS_EDIT, CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { montarCorrecao, type EdicaoFabrica } from '@/lib/studio/cms/fabrica-correcao';
+import { urlPublicaDaMateria } from '@/lib/studio/cms/url-publica';
+import { traduzirMensagem } from '@/lib/studio/erros';
 import { checkAccess } from '@/lib/studio/modules';
 import { requireStudio } from '../../_lib/guard';
 
@@ -18,8 +20,10 @@ export interface FormState {
 function estadoDeErro(r: RespostaApi<unknown>): FormState {
   const e = (r.body as ErroApi | null)?.error;
   const erros: Record<string, string> = {};
-  if (Array.isArray(e?.details)) for (const d of e.details as { path?: string; message?: string }[]) if (d.path) erros[d.path] ??= d.message ?? 'inválido';
-  return { erros, mensagem: mensagemErro(r) };
+  // o slug nasce do título e não é campo da tela: o erro dele não vira linha própria (o do Título já diz o que falta)
+  if (Array.isArray(e?.details)) for (const d of e.details as { path?: string; message?: string }[]) if (d.path && d.path !== 'slug') erros[d.path] ??= traduzirMensagem(d.message ?? 'inválido');
+  // com erros por campo a faixa só manda olhar os campos; sem eles, a mensagem do Backend (já traduzida)
+  return { erros, mensagem: Object.keys(erros).length ? 'Corrija os campos destacados e envie de novo.' : mensagemErro(r) };
 }
 
 const ir = (id: string, tipo: 'ok' | 'err', msg: string): never => redirect(`/studio/cms/${encodeURIComponent(id)}?tipo=${tipo}&aviso=${encodeURIComponent(msg)}`);
@@ -93,7 +97,10 @@ export async function publicarAction(fd: FormData): Promise<void> {
   await requireStudio(['admin', 'editor_chefe']);
   const id = t(fd, 'id');
   const correcao = t(fd, 'correcao') === '1';
-  const r = await api.editorial.publicar(id, { receiptId: t(fd, 'recibo'), url: t(fd, 'url') });
+  // com base do Portal configurada a URL é SEMPRE a canônica da matéria (a digitada é ignorada): erro de digitação não vai para o recibo
+  const materia = await api.materias.obter(id);
+  const canonica = !ehErro(materia) ? urlPublicaDaMateria(materia.body.data.slug) : '';
+  const r = await api.editorial.publicar(id, { receiptId: t(fd, 'recibo'), url: canonica || t(fd, 'url') });
   ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : correcao ? 'Correção publicada: a matéria agora está corrigida.' : 'Publicação registrada.');
 }
 
@@ -193,7 +200,8 @@ export async function corrigirFabricaAction(_prev: EstadoCorrecao, fd: FormData)
   if (op === 'publicar') {
     if (!checkAccess(session, ['admin', 'editor_chefe']).ok) return falha('Publicar é do editor-chefe ou do admin; o recibo emitido por outra pessoa vale.');
     if (!reciboAnterior) return falha('Emita o recibo da correção (ou informe o id do recibo) antes de publicar.');
-    const r = await api.editorial.publicar(id, { receiptId: reciboAnterior, url: valores.url, correcao: c.correcao });
+    const canonica = urlPublicaDaMateria(String(base.body.rascunho.slug ?? ''));
+    const r = await api.editorial.publicar(id, { receiptId: reciboAnterior, url: canonica || valores.url, correcao: c.correcao });
     if (ehErro(r)) return falha(mensagemErro(r));
     return { tipo: 'ok', mensagem: 'Correção publicada: a matéria agora está corrigida.', publicado: true, reciboId: reciboAnterior, valores };
   }

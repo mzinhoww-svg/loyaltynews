@@ -6,8 +6,8 @@
 import { sql } from 'drizzle-orm';
 import {
   acknowledgeLegalCase, closeCorrection, getArticleReview, getCorrection, getFactcheck, intakeRightOfReply, listCorrections, listQueue,
-  listLeituras, listPautas, listPiloto, listSources, mapPiloto, markCorrectionEntitiesRebuilt, openCorrection, preserveCorrectionEvidence, publishCorrectionNotice, reconcileCorrectionSocial,
-  registerLeitura, requestRecheck, reviewSource, setSourceEnabled, submitPauta, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
+  importLeitura2, listLeituras, listPautas, listPiloto, listSources, mapPiloto, markCorrectionEntitiesRebuilt, openCorrection, preserveCorrectionEvidence, publishCorrectionNotice, reconcileCorrectionSocial,
+  registerFolha, registerLeitura, requestRecheck, reviewSource, setSourceEnabled, submitPauta, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
   type ApiResponse, type JobQueue,
 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
@@ -62,6 +62,8 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   // piloto de 10 matérias (leitura humana; cegueira entre leitores nos handlers)
   stu('GET', '/piloto', READ, listPiloto),
   stu('POST', '/piloto/mapa', WRITE, mapPiloto),
+  stu('POST', '/piloto/importacao/registro', WRITE, registerFolha),
+  stu('POST', '/piloto/importacao', WRITE, importLeitura2),
   stu('GET', '/piloto/:materia/leituras', READ, listLeituras),
   stu('POST', '/piloto/:materia/leitura', WRITE, registerLeitura),
   // Portal (sem sessão; limite por IP no dispatcher): formulário de direito de resposta

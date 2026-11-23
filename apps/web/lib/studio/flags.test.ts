@@ -35,8 +35,8 @@ describe('flagAtiva', () => {
   });
 });
 
-describe('o Studio não lê flag por isEnabled direto (exceto as telas do Studio 2)', () => {
-  it('nenhuma tela minha usa isEnabled', async () => {
+describe('o Studio não lê flag por isEnabled direto (todas as telas, inclusive as do Studio 2)', () => {
+  it('nenhuma tela do Studio usa isEnabled', async () => {
     const { readFileSync, readdirSync, statSync } = await import('node:fs');
     const { join } = await import('node:path');
     const raiz = join(__dirname, '../../app/studio');
@@ -45,7 +45,6 @@ describe('o Studio não lê flag por isEnabled direto (exceto as telas do Studio
       for (const n of readdirSync(dir)) {
         const p = join(dir, n);
         if (statSync(p).isDirectory()) {
-          if (/^(social|watchlists|correcoes-titular)$/.test(n)) continue; // pastas do Studio 2
           varre(p);
         } else if (/\.(ts|tsx)$/.test(n) && /\bisEnabled\(/.test(readFileSync(p, 'utf8'))) achados.push(p);
       }

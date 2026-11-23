@@ -11,6 +11,7 @@ import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
+import { pilotWiringImporter } from './openbot-wiring';
 import { createFactoryPool, loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
 
 // Nenhum erro de conexão pode sair com o objeto inteiro (ca/cert/key do TLS): filtro de PEM na saída e saída com código ≠ 0 em erro não tratado.
@@ -30,7 +31,7 @@ async function main() {
   try { pool = createFactoryPool(process.env, { max: 4 }); } catch (e) { console.error(errLine('[fábrica] configuração de TLS do banco inválida', e)); process.exit(1); }
   const db = drizzle(pool, { schema }) as unknown as Db;
   try {
-    const pilot = await loadPilotWiring(process.env); // DP-41: só staging (APP_ENV=staging e LN_OPENBOT_PILOT=1); senão undefined
+    const pilot = await loadPilotWiring(process.env, pilotWiringImporter(db)); // importador ESTÁTICO (o main é empacotado por esbuild); DP-41: só staging (APP_ENV=staging e LN_OPENBOT_PILOT=1); senão undefined
     let gateway;
     if (run && !pilot) {
       if (!simulate) { console.error('[fábrica] --run exige --simulate enquanto não houver chamada real de modelo autorizada'); process.exit(1); }

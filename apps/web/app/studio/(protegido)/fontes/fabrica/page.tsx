@@ -30,9 +30,9 @@ interface FonteFabrica {
   revisao: { revisor: string; em: string; termos: string; vencida: boolean } | null;
 }
 
-export default async function FontesFabricaPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; q?: string }> }) {
+export default async function FontesFabricaPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; q?: string; pagina?: string }> }) {
   const { session } = await requireModule(findModule('fontes')!);
-  const { tipo, aviso, q = '' } = await searchParams;
+  const { tipo, aviso, q = '', pagina: paginaParam = '1' } = await searchParams;
   const r = await api.editorial.fontesRegistro();
   if (naoConfigurado(r)) {
     return (
@@ -55,6 +55,12 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
   const todas = (r.body as { items: FonteFabrica[] }).items;
   const termo = q.trim().toLowerCase();
   const itens = termo ? todas.filter((f) => f.nome.toLowerCase().includes(termo) || f.host.toLowerCase().includes(termo)) : todas;
+  // P2-09: o cadastro tem mais de 100 fontes; a tela mostra 20 por vez (a busca por nome ou host continua)
+  const POR_PAGINA = 20;
+  const totalPaginas = Math.max(1, Math.ceil(itens.length / POR_PAGINA));
+  const pagina = Math.min(Math.max(1, Math.floor(Number(paginaParam)) || 1), totalPaginas);
+  const daPagina = itens.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  const irPara = (n: number) => `/studio/fontes/fabrica?${new URLSearchParams({ ...(q ? { q } : {}), pagina: String(n) }).toString()}`;
   const podeRevisar = checkAccess(session, ['admin', 'editor_chefe', 'revisor']).ok;
   const podeHabilitar = checkAccess(session, ['admin', 'editor_chefe']).ok;
   return (
@@ -84,9 +90,9 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
       ) : (
         <>
           <p className="st-hint">
-            {itens.length} fonte(s); {itens.filter((f) => f.habilitada).length} habilitada(s).
+            {itens.length} fonte(s); {itens.filter((f) => f.habilitada).length} habilitada(s) · página {pagina} de {totalPaginas}.
           </p>
-          {itens.map((f) => (
+          {daPagina.map((f) => (
             <section key={f.id} className="st-card" style={{ marginBottom: 12 }} aria-label={f.nome} data-fabrica-fonte={f.id} data-habilitada={f.habilitada ? 'sim' : 'nao'}>
               <h2 style={{ marginTop: 0 }}>{f.nome}</h2>
               {f.acesso === 'via-provedor' ? (
@@ -111,6 +117,8 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
                 {podeHabilitar && !f.habilitada ? (
                   <form action={habilitarFonteFabricaAction}>
                     <input type="hidden" name="sourceId" value={f.id} />
+                    <input type="hidden" name="q" value={q} />
+                    <input type="hidden" name="pagina" value={pagina} />
                     <input type="hidden" name="ligar" value="1" />
                     <button className="st-btn" type="submit" aria-label={`Habilitar ${f.nome}`}>
                       Habilitar
@@ -120,6 +128,8 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
                 {podeRevisar && f.habilitada ? (
                   <form action={habilitarFonteFabricaAction}>
                     <input type="hidden" name="sourceId" value={f.id} />
+                    <input type="hidden" name="q" value={q} />
+                    <input type="hidden" name="pagina" value={pagina} />
                     <input type="hidden" name="ligar" value="0" />
                     <button className="st-btn danger" type="submit" aria-label={`Desabilitar ${f.nome}`}>
                       Desabilitar
@@ -132,6 +142,8 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
                   <summary>Registrar revisão dos termos</summary>
                   <form action={revisarFonteFabricaAction} aria-label={`Revisar ${f.nome}`}>
                     <input type="hidden" name="sourceId" value={f.id} />
+                    <input type="hidden" name="q" value={q} />
+                    <input type="hidden" name="pagina" value={pagina} />
                     <div className="st-field">
                       <label htmlFor={`termos-${f.id}`}>Termos</label>
                       <select id={`termos-${f.id}`} name="termos" defaultValue="approved">
@@ -167,6 +179,12 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
               ) : null}
             </section>
           ))}
+          {totalPaginas > 1 ? (
+            <nav aria-label="Paginação das fontes" className="st-actions">
+              {pagina > 1 ? <Link className="st-btn sec" href={irPara(pagina - 1)}>Anterior</Link> : null}
+              {pagina < totalPaginas ? <Link className="st-btn sec" href={irPara(pagina + 1)}>Próxima</Link> : null}
+            </nav>
+          ) : null}
         </>
       )}
     </>

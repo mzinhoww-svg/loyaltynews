@@ -320,6 +320,13 @@ export default async function LeituraMateriaPage({
               Registrada em {quando(l.em)} UTC · {l.unsupportedFacts} fato(s)
               não suportado(s): {l.altas} alta(s), {l.medias} média(s),{" "}
               {l.baixas} baixa(s). A leitura é definitiva.
+              {l.origem === 'importacao' ? (
+                <span data-origem="importacao">
+                  {' '}
+                  · {l.por}
+                  {l.arquivo ? ` (arquivo ${l.arquivo.nome}, sha256 ${l.arquivo.sha256.slice(0, 12)}…)` : ''}
+                </span>
+              ) : null}
             </p>
             {l.achados.length ? (
               <ul aria-label={`Achados do leitor ${l.leitor}`}>

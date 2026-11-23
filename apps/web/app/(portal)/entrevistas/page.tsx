@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Listing, parsePage } from '../_components/Listing';
 
-export const revalidate = 60;
+// Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Entrevistas',
   description: 'Conversas e perfis com quem constrói o mercado de fidelização.',

@@ -190,6 +190,7 @@ const E = '/api/studio/editorial';
 const C = '/api/commercial';
 const I = '/api/studio/intelligence';
 const T = '/api/studio/correcoes';
+type ArquivoFolha = { nome: string; sha256: string; linhas: number };
 /** O catch-all opcional lê o caminho de `params.path`, como o App Router entrega. */
 const titularEm = (path: string[]): Despachante => (req) => dispatchTitular(req, { params: Promise.resolve({ path }) });
 
@@ -342,6 +343,12 @@ export const api = {
     materias: () => chamar<{ items: MateriaPiloto[]; fechamento?: Fechamento }>(dispatchEditorial, `${E}/piloto`),
     fixarMapa: (mapa: Partial<Record<MateriaId, string>>) => chamar<{ mapa: Record<string, string> }>(dispatchEditorial, `${E}/piloto/mapa`, { metodo: 'POST', corpo: mapa }),
     leituras: (materia: string) => chamar<{ materia: string; articleId: string; leituras: Leitura[]; ocultas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leituras`),
+    /** Registra só o hash da folha do leitor 2 no primeiro envio (sem conteúdo); 200 se o mesmo sha256 já estava; 409 FOLHA_DIFERENTE. */
+    registrarFolha: (corpo: { arquivo: ArquivoFolha; leitor2Nome: string; materias: string[] }) =>
+      chamar<{ registradoEm: string; sha256: string }>(dispatchEditorial, `${E}/piloto/importacao/registro`, { metodo: 'POST', corpo }),
+    /** Importa as leituras do leitor 2 (tudo ou nada; 409 LEITOR1_PENDENTE, FOLHA_DIFERENTE). A resposta nunca traz o conteúdo. */
+    importar: (corpo: { arquivo: ArquivoFolha; leitor2Nome: string; leituras: { materia: string; achados: Achado[]; checklist: Checklist; veredito: 'aprovado' | 'bloqueado' }[] }) =>
+      chamar<{ importadas: { materia: string; unsupportedFacts: number; altas: number; medias: number; baixas: number }[] }>(dispatchEditorial, `${E}/piloto/importacao`, { metodo: 'POST', corpo }),
     registrar: (materia: string, corpo: { leitor: 1; achados: Achado[]; checklist: Checklist; veredito: 'aprovado' | 'bloqueado' }) =>
       chamar<{ materia: string; leitor: number; unsupportedFacts: number; altas: number; medias: number; baixas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leitura`, { metodo: 'POST', corpo }),
   },

@@ -237,12 +237,12 @@ http
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);
       const ed = u.searchParams.get('editoria');
-      const q = u.searchParams.get('q')?.toLowerCase();
-      // Contrato: `tipo` filtra por tipoConteudo (valor inválido = 422); q com até 100 caracteres (acima disso = 422), como o Backend.
+      const q = u.searchParams.get('q')?.trim().toLowerCase();
+      // Contrato: `tipo` filtra por tipoConteudo (valor inválido ou vazio = 400 VALIDATION_ERROR, não é ignorado); q aparado, até 100 caracteres (acima disso ou só espaços = 400), casando título OU resumo, como o Backend (ft/backend-3).
       const tipo = u.searchParams.get('tipo');
-      if (tipo && !TIPOS.includes(tipo)) return send(res, 422, { error: { code: 'VALIDATION_ERROR', message: 'tipo inválido' } });
-      if (q && q.length > 100) return send(res, 422, { error: { code: 'VALIDATION_ERROR', message: 'q longo' } });
-      const all = articles.filter((a) => (!ed || a.editoria === ed) && (!tipo || a.tipoConteudo === tipo) && (!q || a.titulo.toLowerCase().includes(q)));
+      if (tipo !== null && !TIPOS.includes(tipo)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'tipo inválido' } });
+      if (q !== undefined && (q.length > 100 || q.length === 0)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'q inválido' } });
+      const all = articles.filter((a) => (!ed || a.editoria === ed) && (!tipo || a.tipoConteudo === tipo) && (!q || a.titulo.toLowerCase().includes(q) || a.resumo.toLowerCase().includes(q)));
       return send(res, 200, { data: all.slice(offset, offset + limit).map(listItem), total: all.length, limit, offset });
     }
     const m = /^\/api\/publico\/materias\/([^/]+)$/.exec(u.pathname);

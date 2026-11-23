@@ -52,7 +52,11 @@ export async function editarDocAction(fd: FormData): Promise<void> {
       const campos: Record<string, string> = {};
       for (const k of ['id', 'titulo', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
       campos.materiaSlugs = slugsDoForm(fd);
-      novo = { blocos: [...h.blocos, novoBloco(t(fd, 'blocoTipo'), campos, h.blocos.map((b) => b.id))] };
+      const novoB = novoBloco(t(fd, 'blocoTipo'), campos, h.blocos.map((b) => b.id));
+      // bloco repetido: a home não ganha nada com dois iguais (auditoria P2-08)
+      const repetido = h.blocos.find((b) => b.tipo === novoB.tipo && (novoB.tipo === 'agenda' || novoB.tipo === 'ultimas' || (novoB.tipo === 'lista_editoria' && b.tipo === 'lista_editoria' && b.editoria === novoB.editoria)));
+      if (repetido) return volta(tipo, false, novoB.tipo === 'lista_editoria' ? 'Já existe um bloco desta editoria: edite o existente.' : `Já existe um bloco de ${novoB.tipo === 'agenda' ? 'Agenda' : 'Últimas'}: edite o existente em vez de repetir.`);
+      novo = { blocos: [...h.blocos, novoB] };
     } else if (op === 'iniciar') msg = 'Rascunho criado a partir do conteúdo atual.';
   } else {
     const m = atual as MenuConteudo;

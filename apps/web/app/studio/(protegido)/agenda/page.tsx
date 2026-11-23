@@ -170,22 +170,22 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           </h2>
           <form action={criarEventoAction}>
             <div className="st-field">
-              <label htmlFor="titulo">Título</label>
+              <label htmlFor="titulo">Título (obrigatório)</label>
               <input id="titulo" name="titulo" type="text" />
             </div>
             <div className="st-row">
               <div className="st-field">
-                <label htmlFor="inicio">Início (AAAA-MM-DD)</label>
-                <input id="inicio" name="inicio" type="text" placeholder="2026-12-01" />
+                <label htmlFor="inicio">Início (obrigatório)</label>
+                <input id="inicio" name="inicio" type="date" />
               </div>
               <div className="st-field">
-                <label htmlFor="fim">Fim (AAAA-MM-DD)</label>
-                <input id="fim" name="fim" type="text" placeholder="2026-12-02" />
+                <label htmlFor="fim">Fim (obrigatório)</label>
+                <input id="fim" name="fim" type="date" />
               </div>
             </div>
             <div className="st-row">
               <div className="st-field">
-                <label htmlFor="local">Local</label>
+                <label htmlFor="local">Local (obrigatório)</label>
                 <input id="local" name="local" type="text" />
               </div>
               <div className="st-field">
@@ -194,7 +194,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               </div>
             </div>
             <div className="st-field">
-              <label htmlFor="fonteUrl">Fonte oficial (URL)</label>
+              <label htmlFor="fonteUrl">Fonte oficial (URL, obrigatória)</label>
               <input id="fonteUrl" name="fonteUrl" type="url" />
             </div>
             <fieldset className="st-field">
