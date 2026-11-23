@@ -1,14 +1,14 @@
-// Prova (QA/Security) de que o build de PRODUÇÃO do Studio não contém nem aceita a sessão simulada nem o banco PGlite em memória:
+// Prova (QA/Security) de que o build de PRODUÇÃO do Studio não contém nem aceita o backend de teste (PGlite + login de teste):
 //  1) `next build` com LN_STUDIO_TEST_SESSION ou LN_STUDIO_DEV_DB definida (sem LN_E2E_BUILD) deve FALHAR;
-//  2) build de produção limpo não pode conter os marcadores do código simulado (ln-test-session, parseTestSession, electric-sql/pglite);
-//  3) servidor de produção iniciado COM as duas variáveis no ambiente e cookie simulado continua NEGANDO (NO_SESSION) e sobe sem o código de dev;
-//  4) controle positivo: se existir .next-e2e, os marcadores têm de aparecer lá (prova que a varredura enxerga o mock).
+//  2) build de produção limpo não pode conter os marcadores do código de teste (senha de teste, electric-sql/pglite);
+//  3) servidor de produção iniciado COM as duas variáveis no ambiente: /api/e2e/login responde 404 e /studio continua NEGANDO (NO_SESSION);
+//  4) controle positivo: se existir .next-e2e, os marcadores têm de aparecer lá (prova que a varredura enxerga o código de teste).
 // Uso: npm run verify:no-mock -w @ln/web   (VERIFY_PORT define a porta; padrão 3190)
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-const MARKERS = ['ln-test-session', 'parseTestSession', 'LN_STUDIO_TEST_SESSION', 'electric-sql/pglite'];
+const MARKERS = ['senha-longa-de-teste-1', 'electric-sql/pglite'];
 const PORT = Number(process.env.VERIFY_PORT ?? 3190);
 const base = { ...process.env };
 delete base.LN_E2E_BUILD;
@@ -81,8 +81,11 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
     }
     if (!pronto) fail('servidor de produção não subiu');
     else {
-      for (const rota of ['/studio', '/studio/cms', '/studio/cms/nova']) {
-        const r = await fetch(`http://127.0.0.1:${PORT}${rota}`, { redirect: 'manual', headers: { cookie: 'ln-test-session=ana:admin' } });
+      const login = await fetch(`http://127.0.0.1:${PORT}/api/e2e/login?user=ana&role=admin`);
+      if (login.status === 404) ok('/api/e2e/login responde 404 em produção');
+      else fail(`/api/e2e/login deveria ser 404; status ${login.status}`);
+      for (const rota of ['/studio', '/studio/cms', '/studio/social']) {
+        const r = await fetch(`http://127.0.0.1:${PORT}${rota}`, { redirect: 'manual', headers: { cookie: 'better-auth.session_token=forjado' } });
         const loc = r.headers.get('location') ?? '';
         if (r.status >= 300 && r.status < 400 && loc.includes('/studio/entrar') && loc.includes('NO_SESSION')) ok(`${rota} negado (${r.status} → ${loc})`);
         else fail(`${rota} deveria negar; status ${r.status} location ${loc}`);
@@ -97,7 +100,7 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
 console.log('4) controle positivo: o build de e2e contém o mock (a varredura enxerga)');
 if (existsSync('.next-e2e')) {
   const achados = scan('.next-e2e');
-  if (achados.includes('ln-test-session') && achados.includes('electric-sql/pglite')) ok('marcadores presentes em .next-e2e (varredura válida)');
+  if (achados.length === MARKERS.length) ok('marcadores presentes em .next-e2e (varredura válida)');
   else fail(`varredura não achou todos os marcadores no build de e2e (${achados.join(', ')}): verificação inconclusiva`);
 } else {
   console.log('  -    .next-e2e ausente (rode npm run e2e antes para o controle positivo)');

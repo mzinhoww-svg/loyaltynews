@@ -1,11 +1,5 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-
-const BASE = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
-
-async function entrar(context: BrowserContext, userId: string, roles: string, mfa = true) {
-  await context.clearCookies();
-  await context.addCookies([{ name: 'ln-test-session', value: `${userId}:${roles}${mfa ? '' : ':nomfa'}`, url: BASE }]);
-}
+import { expect, test, type Page } from '@playwright/test';
+import { entrar } from './helpers';
 
 const MODULOS: Array<[string, string]> = [
   ['cms', 'CMS editorial'],
@@ -48,8 +42,8 @@ test.describe('proteção de rota (negar por padrão)', () => {
     });
   }
 
-  test('cookie com papel inexistente não vale como sessão', async ({ page, context }) => {
-    await entrar(context, 'x', 'superuser');
+  test('cookie de sessão forjado não vale: só a sessão real do Better Auth', async ({ page, context }) => {
+    await context.addCookies([{ name: 'better-auth.session_token', value: 'forjado.assinatura', url: page.url() === 'about:blank' ? 'http://127.0.0.1:' + (process.env.E2E_PORT ?? 3100) : page.url() }]);
     await page.goto('/studio');
     await expect(page).toHaveURL(/NO_SESSION/);
   });
@@ -72,11 +66,10 @@ test.describe('proteção de rota (negar por padrão)', () => {
 });
 
 test.describe('shell e navegação', () => {
-  test('admin vê os 25 módulos, o aviso MOCK de sessão e abre cada um com estado vazio honesto', async ({ page, context }) => {
+  test('admin vê os 25 módulos e abre cada um com estado vazio honesto', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio');
     await expect(page.getByRole('heading', { level: 1, name: 'LN Studio' })).toBeVisible();
-    await expect(page.getByText('MOCK · sessão de teste simulada')).toBeVisible();
     const nav = page.getByRole('navigation', { name: 'Módulos do Studio' });
     for (const [, nome] of MODULOS) await expect(nav.getByRole('link', { name: nome })).toBeVisible();
     for (const [slug, nome] of MODULOS) {

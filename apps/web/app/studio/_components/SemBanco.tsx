@@ -1,8 +1,8 @@
-export function SemBanco() {
+export function SemBanco({ modulo = 'Este módulo' }: { modulo?: string }) {
   return (
     <section className="st-empty" aria-labelledby="sem-banco">
       <h2 id="sem-banco">Banco de dados não configurado</h2>
-      <p>O Entity Intelligence lê do PostgreSQL. Neste ambiente não há DATABASE_URL, então não há dados para mostrar. Nada é simulado.</p>
+      <p>{modulo} lê do PostgreSQL pelas rotas do Backend. Neste ambiente não há DATABASE_URL, então não há dados para mostrar. Nada é simulado.</p>
     </section>
   );
 }

@@ -13,11 +13,11 @@
       "@/*": [
         "./*"
       ],
-      "@ln-studio/test-seam": [
-        "./lib/studio/test-seam.prod.ts"
-      ],
       "@ln-studio/dev-db": [
         "./lib/studio/dev-db.prod.ts"
+      ],
+      "@ln-studio/e2e-backend": [
+        "./lib/studio/e2e-backend.prod.ts"
       ]
     }
   },

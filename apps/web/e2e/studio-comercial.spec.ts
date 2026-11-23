@@ -1,11 +1,6 @@
-import { expect, test, type BrowserContext } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { entrar } from './helpers';
 
-const BASE = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
-
-async function entrar(context: BrowserContext, userId: string, roles: string) {
-  await context.clearCookies();
-  await context.addCookies([{ name: 'ln-test-session', value: `${userId}:${roles}`, url: BASE }]);
-}
 const erro = (page: import('@playwright/test').Page, txt: string | RegExp) => expect(page.locator('main .st-alert.err').filter({ hasText: txt }).first()).toBeVisible();
 const sucesso = (page: import('@playwright/test').Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
 

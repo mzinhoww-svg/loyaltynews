@@ -1,10 +1,10 @@
 import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants';
 import type { NextConfig } from 'next';
 
-// Build de e2e do Studio: único caso em que o código de sessão simulada (MOCK) entra no bundle.
+// Build de e2e do Studio: único caso em que o backend de teste (PGlite + login de teste) entra no bundle.
 const e2eBuild = process.env.LN_E2E_BUILD === '1';
 
-const seam = e2eBuild ? './lib/studio/test-seam.e2e.mock.ts' : './lib/studio/test-seam.prod.ts';
+const e2eBackendSeam = e2eBuild ? './lib/studio/e2e-backend.e2e.mock.ts' : './lib/studio/e2e-backend.prod.ts';
 
 // Variáveis que só existem em dev/e2e: o build de produção as recusa (sessão simulada e banco PGlite em memória).
 const VARIAVEIS_SO_DEV = ['LN_STUDIO_TEST_SESSION', 'LN_STUDIO_DEV_DB'] as const;
@@ -39,7 +39,7 @@ const config = (phase: string): NextConfig => {
     // e2e usa diretório de build próprio para não contaminar o artefato de produção.
     distDir: e2eBuild ? '.next-e2e' : '.next',
     turbopack: {
-      resolveAlias: { '@ln-studio/test-seam': seam, '@ln-studio/dev-db': devDbSeam },
+      resolveAlias: { '@ln-studio/e2e-backend': e2eBackendSeam, '@ln-studio/dev-db': devDbSeam },
     },
   };
 };

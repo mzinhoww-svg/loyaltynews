@@ -1,41 +1,56 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { isEnabled } from '@ln/contracts';
-import { getDashboardSummary, listQueue, listReceipts } from '@ln/growth/dashboard';
+import type { DashboardSummary, QueueResult, ReceiptRow } from '@ln/growth/dashboard';
 import { DashboardSummaryCards, PackageQueue } from '@ln/growth/ui';
-import { findModule } from '@/lib/studio/modules';
-import { socialCaller, socialDeps } from '@/lib/studio/social';
+import { dispatchSocial } from '@/app/api/_lib/social';
+import { dispatchEditorial } from '@/app/api/_lib/editorial';
+import { chamar, ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
+import { checkAccess, findModule } from '@/lib/studio/modules';
 import { requireModule } from '../../_lib/guard';
+import { Flash } from '../../_components/Flash';
+import { SemBanco } from '../../_components/SemBanco';
+import { gerarPacotesAction } from './actions';
 
 export const metadata: Metadata = { title: 'Social dashboard' };
 export const dynamic = 'force-dynamic';
 
-export default async function SocialPage({ searchParams }: { searchParams: Promise<{ channel?: string; status?: string }> }) {
+const API = '/api/studio/social';
+
+export default async function SocialPage({ searchParams }: { searchParams: Promise<{ channel?: string; status?: string; tipo?: string; aviso?: string }> }) {
   const { session } = await requireModule(findModule('social')!);
   const q = await searchParams;
-  const deps = socialDeps();
-  const caller = socialCaller(session);
-  const resumo = await getDashboardSummary(deps, caller);
-  const fila = await listQueue(deps, caller, { channel: q.channel || undefined, status: q.status || undefined });
-  const recibos = await listReceipts(deps, caller);
-  if (resumo.status !== 200 || !('totals' in resumo.body)) {
+  const resumo = await chamar<DashboardSummary>(dispatchSocial, `${API}/summary`);
+  if (naoConfigurado(resumo)) {
     return (
       <>
         <h1>Social dashboard</h1>
-        <p role="alert" className="st-alert err">
-          Sem permissão para ver o Social dashboard.
-        </p>
+        <SemBanco modulo="O Social dashboard" />
       </>
     );
   }
-  const filtroInvalido = fila.status !== 200 || !('items' in fila.body);
+  if (ehErro(resumo)) {
+    return (
+      <>
+        <h1>Social dashboard</h1>
+        <div className="st-alert err" role="alert">
+          {mensagemErro(resumo)}
+        </div>
+      </>
+    );
+  }
+  const fila = await chamar<QueueResult>(dispatchSocial, `${API}/queue`, { query: { channel: q.channel, status: q.status } });
+  const recibos = await chamar<{ items: ReceiptRow[] }>(dispatchSocial, `${API}/receipts`);
+  const aprovadas = await chamar<{ items: { id: string; titulo: string }[] }>(dispatchEditorial, '/api/studio/editorial/queue', { query: { status: 'aprovado' } });
+  const podeGerar = checkAccess(session, ['admin', 'editor_chefe', 'editor']).ok;
   return (
     <>
       <h1>Social dashboard</h1>
       <p>
-        Pacotes sociais por canal, com bloqueios e recibos. O Studio <strong>não publica</strong>: não há integração de escrita com o mLabs aqui (identidade de publicação separada, ADR-008). Instagram e The Loyal estão construídos e desligados por flag.
+        Pacotes sociais por canal, com bloqueios e recibos, vindos das rotas reais do Backend (<code>/api/studio/social</code>). A publicação é <strong>somente simulada</strong>: nada vai ao mLabs (identidade de publicação separada, ADR-008). Instagram e The Loyal estão construídos e desligados por flag.
       </p>
-      <DashboardSummaryCards summary={resumo.body} />
+      <Flash tipo={q.tipo} aviso={q.aviso} />
+      <DashboardSummaryCards summary={resumo.body as DashboardSummary} />
       <p className="st-hint">
         Flags: linkedinPublicacao {isEnabled('linkedinPublicacao') ? 'ligada' : 'desligada'} · instagram {isEnabled('instagram') ? 'ligada' : 'desligada'} · theLoyal {isEnabled('theLoyal') ? 'ligada' : 'desligada'}.
       </p>
@@ -66,22 +81,52 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           Filtrar
         </button>
       </form>
-      {filtroInvalido ? (
+      {ehErro(fila) ? (
         <div className="st-alert err" role="alert">
           Filtro inválido.
         </div>
       ) : (
-        <PackageQueue result={fila.body as Parameters<typeof PackageQueue>[0]['result']} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
+        <PackageQueue result={fila.body as QueueResult} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
       )}
+
+      {podeGerar ? (
+        <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="gerar">
+          <h2 id="gerar" style={{ marginTop: 0 }}>
+            Gerar pacotes
+          </h2>
+          <p className="st-hint">Só matérias aprovadas. Os fatos vêm da checagem editorial aprovada: sem fato aprovado o pacote vira &quot;falhou&quot;, com as regras violadas.</p>
+          <form action={gerarPacotesAction}>
+            <div className="st-field">
+              <label htmlFor="articleId">Matéria aprovada</label>
+              <select id="articleId" name="articleId">
+                {(!ehErro(aprovadas) ? (aprovadas.body as { items: { id: string; titulo: string }[] }).items ?? [] : []).map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.titulo}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="st-field">
+              <label htmlFor="canal">Canal</label>
+              <select id="canal" name="canal" defaultValue="linkedin">
+                <option value="linkedin">LinkedIn</option>
+                <option value="instagram">Instagram (flag desligada)</option>
+              </select>
+            </div>
+            <button className="st-btn" type="submit">
+              Gerar pacote
+            </button>
+          </form>
+        </section>
+      ) : null}
       <p className="st-hint">
-        Geração de pacotes depende de matérias com fatos aprovados e gates automáticos (WF02/WF03) da Fábrica editorial, que ainda não alimenta o Studio.{' '}
         <Link href="/studio/cms">Ver o CMS</Link>.
       </p>
 
       <h2>Recibos</h2>
-      {'items' in recibos.body && recibos.body.items.length > 0 ? (
+      {!ehErro(recibos) && (recibos.body as { items: ReceiptRow[] }).items.length > 0 ? (
         <ul>
-          {recibos.body.items.map((r) => (
+          {(recibos.body as { items: ReceiptRow[] }).items.map((r) => (
             <li key={r.receipt.id}>
               {r.packageId}: {r.receipt.status} {r.receipt.simulated ? '(simulado)' : ''}
             </li>

@@ -1,11 +1,5 @@
-import { expect, test, type BrowserContext } from '@playwright/test';
-
-const BASE = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
-
-async function entrar(context: BrowserContext, userId: string, roles: string) {
-  await context.clearCookies();
-  await context.addCookies([{ name: 'ln-test-session', value: `${userId}:${roles}`, url: BASE }]);
-}
+import { expect, test } from '@playwright/test';
+import { entrar } from './helpers';
 
 test.describe('Fontes', () => {
   test.describe.configure({ mode: 'serial' });
