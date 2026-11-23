@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { audit, authorize, clientIp } from '@ln/auth';
 import { schema } from '@ln/db';
 import { getDeps } from './deps';
+import { EFEITO_APLICADO } from './titular-efeito';
 import { HttpError, json, parse, queryObject, readBody, toResponse } from './http';
 
 const t = schema.titularPedidos;
@@ -30,7 +31,7 @@ export const itemTitular = (r: Row) => ({
   url: r.url,
   resumo: r.texto.length > 140 ? `${r.texto.slice(0, 139)}…` : r.texto,
   ...(r.decididoEm
-    ? { decisao: r.decisao, decidido_por: r.decididoPor, decidido_em: r.decididoEm.toISOString(), efeitoPublico: 'pendente' as const }
+    ? { decisao: r.decisao, decidido_por: r.decididoPor, decidido_em: r.decididoEm.toISOString(), efeitoPublico: (EFEITO_APLICADO ? 'aplicado' : 'pendente') as 'aplicado' | 'pendente' }
     : {}),
 });
 

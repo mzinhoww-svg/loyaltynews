@@ -139,3 +139,27 @@ describe('fila do titular no Studio (DP-38)', () => {
     expect((await postar('POST', [id, 'apagar'], chefe, {})).status).toBe(404);
   });
 });
+
+describe('efeitosTitular (contrato com as rotas públicas)', () => {
+  it('remover_pessoa, remover_cargo, move e corrigir viram conjuntos; negado e sem alvo não', async () => {
+    const { efeitosTitular } = await import('../../_lib/titular-efeito');
+    const pes = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p1' });
+    const car = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p2?cargo=ef-c1' });
+    const mov = await novo({ url: 'https://ln.example/intelligence/moves/ef-m1' });
+    const cor = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p3' });
+    const neg = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p4' });
+    const sem = await novo({ url: 'https://ln.example/noticia/x' });
+    await postar('POST', [pes, 'decidir'], chefe, { acao: 'remover_pessoa' });
+    await postar('POST', [car, 'decidir'], chefe, { acao: 'remover_cargo' });
+    await postar('POST', [mov, 'decidir'], chefe, { acao: 'remover_pessoa' });
+    await postar('POST', [cor, 'decidir'], chefe, { acao: 'corrigir', campos: { cargo: 'CEO' } });
+    await postar('POST', [neg, 'decidir'], chefe, { acao: 'negar', motivo: 'fonte oficial confirma' });
+    await postar('POST', [sem, 'decidir'], chefe, { acao: 'remover_pessoa' });
+    const e = await efeitosTitular(app.db);
+    expect(e.pessoasOcultas.has('ef-p1')).toBe(true);
+    expect(e.cargosOcultos.has('ef-c1')).toBe(true);
+    expect(e.movesOcultos.has('ef-m1')).toBe(true);
+    expect(e.correcoes.get('pessoa:ef-p3')).toEqual({ cargo: 'CEO' });
+    expect(e.pessoasOcultas.has('ef-p4')).toBe(false);
+  });
+});
