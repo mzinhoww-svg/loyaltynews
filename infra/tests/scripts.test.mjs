@@ -693,7 +693,7 @@ test('opção (e): start-web reprova LN_BUILD_SKIP_TYPECHECK em execução (a va
 
 test('build leve: buildLeveEnv só liga CIRCLE_NODE_TOTAL=2 (1 worker do Next) quando o release.json pede', async () => {
   const { buildLeveEnv } = await import('../scripts/lib/typecheck-report.mjs');
-  assert.deepEqual(buildLeveEnv({ buildLeve: true }), { CIRCLE_NODE_TOTAL: '2' });
+  assert.deepEqual(buildLeveEnv({ buildLeve: true }), { CIRCLE_NODE_TOTAL: '2', LN_BUILD_LEVE: '1' });
   assert.deepEqual(buildLeveEnv({ buildLeve: false }), {});
   assert.deepEqual(buildLeveEnv({}), {});
   assert.deepEqual(buildLeveEnv(null), {});

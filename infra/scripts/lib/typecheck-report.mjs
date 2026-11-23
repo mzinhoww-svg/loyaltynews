@@ -22,5 +22,6 @@ export function typecheckEnv(release) {
  * CIRCLE_NODE_TOTAL=2 => 1 worker (confirmado: "Collecting page data using 1 worker"). Só variável do build; nenhum código de produto muda.
  */
 export function buildLeveEnv(release) {
-  return release && release.buildLeve === true ? { CIRCLE_NODE_TOTAL: '2' } : {};
+  // LN_BUILD_LEVE: lida por apps/web/next.config.ts (staticGenerationMaxConcurrency=1 e sem cache de arquivos do Turbopack no build); sem essa linha no config e no-op.
+  return release && release.buildLeve === true ? { CIRCLE_NODE_TOTAL: '2', LN_BUILD_LEVE: '1' } : {};
 }

@@ -50,6 +50,7 @@ if (direct) {
   Object.assign(efetivo, typecheckEnv(releaseJson));
   // Build leve (1 worker no next build) so quando o release.json pede; o painel nao decide (a variavel do painel, se existir, e apagada).
   delete efetivo.CIRCLE_NODE_TOTAL;
+  delete efetivo.LN_BUILD_LEVE;
   Object.assign(efetivo, buildLeveEnv(releaseJson));
   const probs = envProblems(efetivo, { deploy: true });
   if (probs.length) { console.error(`[build-web] ambiente reprovado:\n - ${probs.join('\n - ')}`); process.exit(1); }
