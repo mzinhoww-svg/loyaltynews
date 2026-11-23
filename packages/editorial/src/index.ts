@@ -34,6 +34,7 @@ export * from './api/handlers';
 export * from './api/store';
 export * from './api/source-handlers';
 export * from './api/pauta-handlers';
+export * from './api/pilot-handlers';
 export * from './factory/autoral-queue';
 export { sourceFingerprint, effectiveSource, resolveEffectiveSources } from './sources/state';
 export * from './intelligence/types';
