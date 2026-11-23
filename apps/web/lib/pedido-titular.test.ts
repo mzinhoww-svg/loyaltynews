@@ -32,6 +32,10 @@ describe('urlDoAlvo', () => {
   it.each([null, '', 'https://evil.example/x', '//evil.example/x', '/\\evil.example', 'javascript:alert(1)', `/${'a'.repeat(600)}`])('recusa %j', (alvo) => {
     expect(urlDoAlvo(alvo, origin)).toBe('');
   });
+  it('alvo com ?cargo= (pedido por cargo) é aceito e preservado', () => {
+    expect(urlDoAlvo('/intelligence/pessoas/abc?cargo=def', origin)).toBe('https://portal.example.test/intelligence/pessoas/abc?cargo=def');
+    expect(linkPedido('/intelligence/pessoas/abc?cargo=def')).toBe('/correcoes?alvo=%2Fintelligence%2Fpessoas%2Fabc%3Fcargo%3Ddef#pedido');
+  });
   it('link do botão leva ao formulário com o alvo', () => {
     expect(linkPedido('/intelligence/pessoas/abc')).toBe('/correcoes?alvo=%2Fintelligence%2Fpessoas%2Fabc#pedido');
   });

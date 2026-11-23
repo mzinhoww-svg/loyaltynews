@@ -6,6 +6,7 @@ import { ErrorState } from '../../_components/states';
 import { PageHead } from '../../_components/ui';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
 import { getSource } from '../../_lib/source';
+import { linkPedido } from '../../_titular/pedido';
 import { MoveCard } from '../../intelligence/_components/intel';
 
 export const revalidate = 60;
@@ -40,6 +41,11 @@ export default async function MovePage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <PageHead title={`${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`} crumbs={[...crumbs, { label: r.move.person.name }]} />
+      <p style={{ margin: '0 0 8px' }}>
+        <Link href={linkPedido(`/moves/${r.move.id}`)} className="ln-btn ln-btn--ghost" data-testid="move-correction">
+          Solicitar correção ou remoção
+        </Link>
+      </p>
       <MoveCard m={r.move} link={false} />
       <p className="pt-meta" style={{ marginTop: 18 }}>
         &quot;Antes&quot; é a última fonte que sustentou o cargo anterior; &quot;depois&quot; é a leitura que registrou a mudança. A data efetiva só aparece quando a fonte a declara.
