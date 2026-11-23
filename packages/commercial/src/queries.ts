@@ -21,7 +21,7 @@ export interface MediaKitPage extends MediaKit {
 }
 export function mediaKitPage(ctx: CommercialCtx): MediaKitPage {
   return {
-    ...generateMediaKit({ store: ctx.metrics, now: ctx.now, catalog: ctx.catalog }),
+    ...generateMediaKit({ store: ctx.metrics, now: ctx.now, catalog: ctx.catalog, internal: ctx.actor?.canManageCommercial === true }),
     capabilities: {
       adServerVendas: isEnabled('adServerVendas', ctx.flags), instagram: isEnabled('instagram', ctx.flags),
       theLoyal: isEnabled('theLoyal', ctx.flags), retargeting: isEnabled('retargeting', ctx.flags),
@@ -36,7 +36,7 @@ export function formatCatalogView(ctx: CommercialCtx, filter: { section?: string
   return {
     total: rows.length,
     sections: [...new Set(ctx.catalog.map((f) => f.section))],
-    formats: rows.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), priceBRL: f.fromBRL, priceType: f.priceType, unit: f.unit, scope: f.scope, status: f.status, statusReason: f.statusReason })),
+    formats: rows.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), priceBRL: f.fromBRL, priceType: f.priceType, unit: f.unit, scope: f.scope, status: f.status, ...(ctx.actor?.canManageCommercial === true ? { statusReason: f.statusReason } : {}) })),
     note: 'Preço é referência comercial, não oferta; disponibilidade é real.',
   };
 }
