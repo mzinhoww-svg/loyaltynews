@@ -34,21 +34,27 @@ describe('ensaio do piloto em dry-run (simulado)', () => {
       expect(m.gates).toHaveLength(13);
       expect(m.gates!.filter((g) => g.verdict !== 'pass'), m.slot).toEqual([]);
       expect(m.checagem).toEqual({ provedor: SIM_CHECKER, independente: true });
-      expect(m.linhasPiloto.filter((x) => x.gate_verdict === 'approved').map((x) => x.etapa)).toEqual(['factcheck', 'review']);
+      expect(m.linhasPiloto.filter((x) => x.gate_verdict === 'approved').map((x) => x.etapa)).toEqual(['draft', 'factcheck', 'review']);
     }
     const por = (c: string) => r.materias.find((m) => m.cenario === c)!;
     expect(por('copia_literal').gatesQueBarraram).toEqual(['copy_literal']);
     expect(por('copia_literal').achados.join(' ')).toMatch(/copy_literal: \d+ palavras consecutivas/);
     expect(por('numero_sem_fonte').achados.join(' ')).toMatch(/unsupported_metric: número "35"/);
     expect(por('tom_exclamacao').achados.join(' ')).toMatch(/tone_title_exclamation/);
-    expect(por('checagem_reprova').linhasPiloto.find((x) => x.gate_verdict)).toMatchObject({ etapa: 'factcheck', gate_verdict: 'blocked' });
+    expect(por('checagem_reprova').linhasPiloto.find((x) => x.etapa === 'factcheck' && x.gate_verdict)).toMatchObject({ etapa: 'factcheck', gate_verdict: 'blocked' });
     expect(por('mesmo_provedor').bloqueios).toEqual(['cross_provider_check_failed']);
     expect(por('mesmo_provedor').checagem).toEqual({ provedor: SIM_DRAFTER, independente: false });
-    expect(por('mesmo_provedor').linhasPiloto.find((x) => x.gate_verdict)).toMatchObject({ gate_verdict: 'blocked', cross_provider_ok: false });
+    expect(por('mesmo_provedor').linhasPiloto.find((x) => x.etapa === 'factcheck' && x.gate_verdict)).toMatchObject({ gate_verdict: 'blocked', cross_provider_ok: false });
     // redação barrada por gate (barreira determinística): UMA chamada de redação, sem nova tentativa e sem max_attempts
     for (const c of ['copia_literal', 'numero_sem_fonte', 'tom_exclamacao']) {
       expect(por(c).bloqueios).not.toContain('max_attempts');
       expect(por(c).estagios.filter((s) => s === 'draft'), c).toHaveLength(1);
+    }
+    // o gate da redação grava o veredito e os motivos na linha do piloto (achado 2)
+    for (const c of ['copia_literal', 'numero_sem_fonte', 'tom_exclamacao']) {
+      const g = por(c).linhasPiloto.find((x) => x.etapa === 'draft' && x.gate_verdict);
+      expect(g, c).toMatchObject({ gate_verdict: 'blocked' });
+      expect(g!.gate_reasons!.length, c).toBeGreaterThan(0);
     }
     expect(r.chamadasSimuladasPorClasse['draft']).toBe(10);
   });

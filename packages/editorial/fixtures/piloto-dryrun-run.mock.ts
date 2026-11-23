@@ -47,7 +47,7 @@ export interface DryrunArticle {
   gates: GateResult[] | null;
   checagem: { provedor: string; independente: boolean } | null;
   publicacao: string;
-  linhasPiloto: Array<{ etapa: string; gate_verdict?: string; output_valid?: boolean; cross_provider_ok?: boolean }>;
+  linhasPiloto: Array<{ etapa: string; gate_verdict?: string; gate_reasons?: string[]; output_valid?: boolean; cross_provider_ok?: boolean }>;
   conforme: boolean;
 }
 export interface DryrunReport {
@@ -134,7 +134,7 @@ export async function runPilotoDryrun(): Promise<DryrunReport> {
       gates,
       checagem: checkOf(page.slot),
       publicacao,
-      linhasPiloto: ownRows.map((r) => ({ etapa: r.stage, ...(r.patch.gate_verdict ? { gate_verdict: r.patch.gate_verdict } : {}), ...(r.patch.output_valid !== undefined ? { output_valid: r.patch.output_valid } : {}), ...(r.patch.cross_provider_ok !== undefined ? { cross_provider_ok: r.patch.cross_provider_ok } : {}) })),
+      linhasPiloto: ownRows.map((r) => ({ etapa: r.stage, ...(r.patch.gate_verdict ? { gate_verdict: r.patch.gate_verdict, gate_reasons: r.patch.gate_reasons ?? [] } : {}), ...(r.patch.output_valid !== undefined ? { output_valid: r.patch.output_valid } : {}), ...(r.patch.cross_provider_ok !== undefined ? { cross_provider_ok: r.patch.cross_provider_ok } : {}) })),
       conforme: status === exp.status && exp.blockers.every((b) => (blockers as string[]).includes(b)) && (exp.finding === null || (rec?.findings ?? []).some((f) => f.code === exp.finding)),
     });
   }

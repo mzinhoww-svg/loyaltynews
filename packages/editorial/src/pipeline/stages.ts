@@ -215,6 +215,8 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
     modelProvider: r.provider, promptVersion: PROMPT_VERSION,
   };
   const chk = runDeterministicChecks(d, job.evidences);
+  // Veredito do gate da redação na linha do piloto (planilha): quem mede bloqueios por gate lê a linha, não só o registro da matéria.
+  await patchRow(deps, job, 'draft', r, chk.verdict === 'pass' ? { gate_verdict: 'approved', gate_reasons: [] } : { gate_verdict: 'blocked', gate_reasons: toBlockers(chk.findings) });
   if (chk.verdict !== 'pass') {
     // Barreira DETERMINÍSTICA (cópia, número fora da fonte, tom, resumo...): refazer com o mesmo modelo e a mesma evidência só gasta cota
     // (ensaio do piloto: 3 chamadas por matéria barrada). Não há nova tentativa; nova tentativa é só para falha transitória (fila/gateway).

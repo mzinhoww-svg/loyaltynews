@@ -69,20 +69,21 @@ export function renderDryrunMarkdown(r: DryrunReport): string {
   L.push('');
   L.push('## Linha do piloto (planilha) por matéria');
   L.push('');
-  L.push('| # | `output_valid` | `gate_verdict` na checagem | `gate_verdict` na revisão | `cross_provider_ok` |');
-  L.push('|---|---|---|---|---|');
+  L.push('| # | `output_valid` | `gate_verdict` na redação | `gate_verdict` na checagem | `gate_verdict` na revisão | `cross_provider_ok` |');
+  L.push('|---|---|---|---|---|---|');
   for (const m of r.materias) {
+    const dr = m.linhasPiloto.find((x) => x.etapa === 'draft' && x.gate_verdict);
     const ov = m.linhasPiloto.filter((x) => x.output_valid !== undefined);
     const fc = m.linhasPiloto.find((x) => x.etapa === 'factcheck' && x.gate_verdict);
     const rv = m.linhasPiloto.find((x) => x.etapa === 'review' && x.gate_verdict);
     const cp = [fc, rv].filter((x) => x && x.cross_provider_ok !== undefined).map((x) => String(x!.cross_provider_ok)).join(' / ');
-    L.push(`| ${m.slot} | ${ov.filter((x) => x.output_valid).length}/${ov.length} válidas | ${fc?.gate_verdict ?? '—'} | ${rv?.gate_verdict ?? '—'} | ${cp || '—'} |`);
+    L.push(`| ${m.slot} | ${ov.filter((x) => x.output_valid).length}/${ov.length} válidas | ${dr ? `${dr.gate_verdict}${dr.gate_reasons?.length ? ` (${dr.gate_reasons.join(', ')})` : ''}` : '—'} | ${fc?.gate_verdict ?? '—'} | ${rv?.gate_verdict ?? '—'} | ${cp || '—'} |`);
   }
   L.push('');
   L.push('## O que o ensaio mostrou (para o PM e o AgentOps)');
   L.push('');
   L.push('1. **Redação barrada por gate NÃO é refeita** (corrigido nesta rodada). Cópia literal, número fora da fonte, tom, resumo etc. são barreiras determinísticas: a matéria bloqueia na 1ª redação, com 1 chamada de redação (antes eram 3 por matéria barrada, `max_attempts`). Nova tentativa fica só para falha transitória (fila/gateway).');
-  L.push('2. **O gate da redação não grava `gate_verdict` na planilha.** Pelo contrato com o AgentOps, `gate_verdict` e `cross_provider_ok` só vão na checagem e na revisão; a matéria barrada na redação fica com `output_valid` e o motivo só no registro da matéria (`findings`). Quem mede "bloqueios por gate" deve ler o registro, não só a planilha.');
+  L.push('2. **O gate da redação grava `gate_verdict` e `gate_reasons` na planilha** (corrigido nesta rodada): matéria barrada na redação sai com `blocked` e os motivos na linha da tarefa de redação; aprovada, com `approved` e motivos vazios. A checagem e a revisão seguem como antes.');
   L.push('3. **Rótulo do bloqueio de tom.** O tom lint bloqueante (a6) sai com o código `unsupported_claim` (padrão de `FINDING_TO_BLOCKER`; não existe código próprio de tom); o achado `tone_title_exclamation` identifica o motivo. Não mudei isso (mexe no contrato dos códigos de bloqueio); fica para decisão do PM.');
   L.push('4. **Fonte com paywall `unknown` (Livelo)** só coleta depois que a revisão humana marca `paywall = none`; o ensaio simula essa revisão em memória.');
   L.push('');

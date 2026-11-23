@@ -85,23 +85,23 @@ Checagem em provedor distinto nas aprovadas: sim, todas (`simulado-checador` ≠
 
 ## Linha do piloto (planilha) por matéria
 
-| # | `output_valid` | `gate_verdict` na checagem | `gate_verdict` na revisão | `cross_provider_ok` |
-|---|---|---|---|---|
-| a1 | 5/5 válidas | approved | approved | true / true |
-| a2 | 3/3 válidas | — | — | — |
-| a3 | 5/5 válidas | approved | approved | true / true |
-| a4 | 3/3 válidas | — | — | — |
-| a5 | 5/5 válidas | approved | approved | true / true |
-| a6 | 3/3 válidas | — | — | — |
-| a7 | 5/5 válidas | approved | approved | true / true |
-| a8 | 4/4 válidas | blocked | — | true |
-| a9 | 5/5 válidas | approved | approved | true / true |
-| a10 | 4/4 válidas | blocked | — | false |
+| # | `output_valid` | `gate_verdict` na redação | `gate_verdict` na checagem | `gate_verdict` na revisão | `cross_provider_ok` |
+|---|---|---|---|---|---|
+| a1 | 5/5 válidas | approved | approved | approved | true / true |
+| a2 | 3/3 válidas | blocked (copy_literal) | — | — | — |
+| a3 | 5/5 válidas | approved | approved | approved | true / true |
+| a4 | 3/3 válidas | blocked (unsupported_claim) | — | — | — |
+| a5 | 5/5 válidas | approved | approved | approved | true / true |
+| a6 | 3/3 válidas | blocked (unsupported_claim) | — | — | — |
+| a7 | 5/5 válidas | approved | approved | approved | true / true |
+| a8 | 4/4 válidas | approved | blocked | — | true |
+| a9 | 5/5 válidas | approved | approved | approved | true / true |
+| a10 | 4/4 válidas | approved | blocked | — | false |
 
 ## O que o ensaio mostrou (para o PM e o AgentOps)
 
 1. **Redação barrada por gate NÃO é refeita** (corrigido nesta rodada). Cópia literal, número fora da fonte, tom, resumo etc. são barreiras determinísticas: a matéria bloqueia na 1ª redação, com 1 chamada de redação (antes eram 3 por matéria barrada, `max_attempts`). Nova tentativa fica só para falha transitória (fila/gateway).
-2. **O gate da redação não grava `gate_verdict` na planilha.** Pelo contrato com o AgentOps, `gate_verdict` e `cross_provider_ok` só vão na checagem e na revisão; a matéria barrada na redação fica com `output_valid` e o motivo só no registro da matéria (`findings`). Quem mede "bloqueios por gate" deve ler o registro, não só a planilha.
+2. **O gate da redação grava `gate_verdict` e `gate_reasons` na planilha** (corrigido nesta rodada): matéria barrada na redação sai com `blocked` e os motivos na linha da tarefa de redação; aprovada, com `approved` e motivos vazios. A checagem e a revisão seguem como antes.
 3. **Rótulo do bloqueio de tom.** O tom lint bloqueante (a6) sai com o código `unsupported_claim` (padrão de `FINDING_TO_BLOCKER`; não existe código próprio de tom); o achado `tone_title_exclamation` identifica o motivo. Não mudei isso (mexe no contrato dos códigos de bloqueio); fica para decisão do PM.
 4. **Fonte com paywall `unknown` (Livelo)** só coleta depois que a revisão humana marca `paywall = none`; o ensaio simula essa revisão em memória.
 

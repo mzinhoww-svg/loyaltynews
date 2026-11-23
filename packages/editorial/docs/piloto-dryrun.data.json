@@ -185,12 +185,18 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         },
         {
@@ -200,6 +206,7 @@
         {
           "etapa": "review",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         }
       ],
@@ -248,6 +255,13 @@
         {
           "etapa": "draft",
           "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "gate_verdict": "blocked",
+          "gate_reasons": [
+            "copy_literal"
+          ]
         }
       ],
       "conforme": true
@@ -359,12 +373,18 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         },
         {
@@ -374,6 +394,7 @@
         {
           "etapa": "review",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         }
       ],
@@ -422,6 +443,13 @@
         {
           "etapa": "draft",
           "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "gate_verdict": "blocked",
+          "gate_reasons": [
+            "unsupported_claim"
+          ]
         }
       ],
       "conforme": true
@@ -533,12 +561,18 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         },
         {
@@ -548,6 +582,7 @@
         {
           "etapa": "review",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         }
       ],
@@ -595,6 +630,13 @@
         {
           "etapa": "draft",
           "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "gate_verdict": "blocked",
+          "gate_reasons": [
+            "unsupported_claim"
+          ]
         }
       ],
       "conforme": true
@@ -706,12 +748,18 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         },
         {
@@ -721,6 +769,7 @@
         {
           "etapa": "review",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         }
       ],
@@ -840,12 +889,20 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "blocked",
+          "gate_reasons": [
+            "unsupported_claim"
+          ],
           "cross_provider_ok": true
         }
       ],
@@ -958,12 +1015,18 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         },
         {
@@ -973,6 +1036,7 @@
         {
           "etapa": "review",
           "gate_verdict": "approved",
+          "gate_reasons": [],
           "cross_provider_ok": true
         }
       ],
@@ -1092,12 +1156,20 @@
           "output_valid": true
         },
         {
+          "etapa": "draft",
+          "gate_verdict": "approved",
+          "gate_reasons": []
+        },
+        {
           "etapa": "factcheck",
           "output_valid": true
         },
         {
           "etapa": "factcheck",
           "gate_verdict": "blocked",
+          "gate_reasons": [
+            "cross_provider_check_failed"
+          ],
           "cross_provider_ok": false
         }
       ],
