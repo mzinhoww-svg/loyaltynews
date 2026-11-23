@@ -41,7 +41,7 @@ function secret(name: string): string | undefined {
 
 // Teto do benchmark por provedor (créditos no mês), abaixo da cota gratuita; preço só para custo EQUIVALENTE estimado.
 const BUDGETS: Record<string, ProviderBudget> = {
-  'scrapfly-basic': { provider: 'scrapfly-basic', billing: 'free-confirmed', billingEvidence: 'DP-33 + plano FREE 1.000/mês', creditCap: 150, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800, accountQuota: 1_000 },
+  'scrapfly-basic': { provider: 'scrapfly-basic', billing: 'free-confirmed', billingEvidence: 'DP-33 + plano FREE 1.000/mês', creditCap: 600, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800, accountQuota: 1_000 },
   'scrapfly-asp': { provider: 'scrapfly-asp', billing: 'free-confirmed', billingEvidence: 'DP-33', creditCap: 500, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800, accountQuota: 1_000 },
   'zyte-http': { provider: 'zyte-http', billing: 'free-confirmed', billingEvidence: 'DP-33 + crédito US$ 5 inicial', creditCap: 3_000, usdPerCredit: 0.0001, account: 'conta-1', unit: 'US$ 0,0001 (estimado: a Zyte não informa custo por resposta)', alertAt: 40_000, accountQuota: 50_000 },
   'apify-rag-web-browser': { provider: 'apify-rag-web-browser', billing: 'free-confirmed', billingEvidence: 'DP-33 + FREE US$ 5/mês', creditCap: 1_000, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 (estimado; real em usageTotalUsd da execução)', alertAt: 4_000, accountQuota: 5_000 },
@@ -56,7 +56,7 @@ function pooled(keyed: KeyedReader, keyName: string, cap: number) {
 
 const all: BenchProvider[] = [
   { name: 'direct', reader: new DirectReader(), worstCaseCredits: 0 },
-  { name: 'scrapfly-basic', mode: 'basic', reader: pooled(new ScrapflyReader('basic'), 'SCRAPFLY_API_KEY', 150), worstCaseCredits: 1 },
+  { name: 'scrapfly-basic', mode: 'basic', reader: pooled(new ScrapflyReader('basic'), 'SCRAPFLY_API_KEY', 600), worstCaseCredits: 6 },
   { name: 'zyte-http', mode: 'http', reader: pooled(new ZyteReader('http'), 'ZYTE_API_KEY', 3_000), worstCaseCredits: 13 },
   { name: 'exa-contents', reader: pooled(new ExaContentsReader(), 'EXA_API_KEY', 200), worstCaseCredits: 1 },
   { name: 'tavily-extract', reader: pooled(new TavilyExtractReader(), 'TAVILY_API_KEY_2', 60), worstCaseCredits: 1 },

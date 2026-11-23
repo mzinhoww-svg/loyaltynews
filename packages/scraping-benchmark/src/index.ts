@@ -7,3 +7,4 @@ export * from './metrics';
 export * from './direct-reader';
 export * from './runner';
 export * from './discovery';
+export * from './shadow';

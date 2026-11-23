@@ -37,7 +37,7 @@ export interface ProviderMetrics {
   eligible: boolean;
 }
 
-export function computeMetrics(records: AttemptRecord[], opts: { ineligible?: Set<string> } = {}): ProviderMetrics[] {
+export function computeMetrics(records: AttemptRecord[], opts: { ineligible?: Set<string>; referenceDates?: Map<string, string | null> } = {}): ProviderMetrics[] {
   const real = records.filter((r) => !r.mock && r.errorClass !== 'billing_unconfirmed' && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled');
   const by = new Map<string, AttemptRecord[]>();
   for (const r of real) by.set(r.provider, [...(by.get(r.provider) ?? []), r]);
@@ -52,14 +52,17 @@ export function computeMetrics(records: AttemptRecord[], opts: { ineligible?: Se
     for (const r of valid) if (r.contentHash) hashes.set(r.contentHash, (hashes.get(r.contentHash) ?? 0) + 1);
     const dupes = [...hashes.values()].reduce((a, c) => a + (c > 1 ? c - 1 : 0), 0);
     const cost = rs.reduce((a, r) => a + (r.costEffectiveUsd ?? r.costEstimatedUsd), 0);
-    const fresh = valid.filter((r) => r.publishedAt && Date.parse(r.at) - Date.parse(r.publishedAt) <= 7 * 864e5);
+    // frescor: data extraída; sem ela (provedores que só devolvem texto), a data da descoberta da mesma URL
+    const dateOf = (r: AttemptRecord) => r.publishedAt ?? opts.referenceDates?.get(r.urlId) ?? null;
+    const fresh = valid.filter((r) => { const d = dateOf(r); return !!d && Date.parse(r.at) - Date.parse(d) <= 7 * 864e5; });
     out.push({
       provider,
       n,
       technicalSuccessRate: frac((r) => r.technicalSuccess),
       editorialSuccessRate: frac((r) => r.editorialSuccess),
       contentCompleteness: lens.length ? Math.min(1, (lens[Math.floor(lens.length / 2)] ?? 0) / 3000) : 0,
-      titleAccuracy: valid.length ? frac((r) => (r.titleMatch ?? 0) >= 0.5, valid) : null,
+      // sobre as extrações com texto (não só as válidas: a validade já exige título, o que tornaria a métrica circular)
+      titleAccuracy: rs.some((r) => r.technicalSuccess) ? frac((r) => (r.titleMatch ?? 0) >= 0.5, rs.filter((r) => r.technicalSuccess)) : null,
       sourceAccuracy: valid.length ? frac((r) => r.sourceMatch === true, valid) : null,
       dateAccuracy: dated.length ? frac((r) => r.dateMatch === true, dated) : null,
       dateVerifiable: dated.length,
@@ -97,7 +100,8 @@ export function rank(ms: ProviderMetrics[]): RankRow[] {
   const el = ms.filter((m) => m.eligible && m.n > 0);
   const costs = el.map((m) => m.costPerValidArticleUsd).filter((c): c is number => c !== null);
   const lats = el.map((m) => m.p50).filter((c): c is number => c !== null);
-  const minC = Math.min(...costs);
+  // custo normalizado entre os PAGOS (o leitor direto, custo 0, recebe 1 e não zera os demais)
+  const minC = Math.min(...costs.filter((c) => c > 0));
   const minL = Math.min(...lats);
   return el
     .map((m) => {

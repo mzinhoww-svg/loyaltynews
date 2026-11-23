@@ -20,14 +20,15 @@ const byId = new Map(ds.map((d) => [d.id, d]));
 const real = recs.filter((r) => !r.mock && byId.has(r.urlId));
 const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${(x * 100).toFixed(1)}%`);
 
-const metrics = computeMetrics(real);
+const refDates = new Map(ds.map((d) => [d.id, d.publishedAt] as [string, string | null]));
+const metrics = computeMetrics(real, { referenceDates: refDates });
 const ranking = rank(metrics);
 
 // por categoria e por recência
 const groups = (key: (d: DatasetEntry) => string) => {
   const out: Record<string, ProviderMetrics[]> = {};
   const keys = [...new Set(ds.map(key))];
-  for (const k of keys) out[k] = computeMetrics(real.filter((r) => key(byId.get(r.urlId)!) === k));
+  for (const k of keys) out[k] = computeMetrics(real.filter((r) => key(byId.get(r.urlId)!) === k), { referenceDates: refDates });
   return out;
 };
 const byCategory = groups((d) => d.category);
@@ -79,12 +80,12 @@ for (const d of eligible) {
 const failedUrls = eligible.filter((d) => !real.some((r) => r.urlId === d.id && r.editorialSuccess)).map((d) => ({ id: d.id, domain: d.domain, category: d.category, errors: [...new Set(real.filter((r) => r.urlId === d.id).map((r) => `${r.provider}:${r.errorClass}${r.httpStatus ? `/${r.httpStatus}` : ''}`))] }));
 
 const projections = Object.fromEntries(metrics.map((m) => [m.provider, projectMonthly(m.costPerValidArticleUsd)]));
-const report = { runId, generatedAt: new Date().toISOString(), attempts: recs.length, realAttempts: real.length, mockAttempts: recs.length - real.length, metrics, ranking, byCategory, byRecency, domainMatrix, routingMatrix, combined, failedUrls, projections };
+const report = { runId, generatedAt: new Date().toISOString(), attempts: recs.length, realAttempts: real.length, excludedReplaced: recs.filter((r) => !byId.has(r.urlId)).length, mockAttempts: recs.filter((r) => r.mock).length, metrics, ranking, byCategory, byRecency, domainMatrix, routingMatrix, combined, failedUrls, projections };
 writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2));
 
 // markdown
 const L: string[] = [];
-L.push(`# Resultados — ${runId}`, '', `Tentativas reais: ${real.length} (mock: ${recs.length - real.length}). Gerado em ${report.generatedAt}.`, '');
+L.push(`# Resultados — ${runId}`, '', `Tentativas reais no dataset vigente: ${real.length} (fora do dataset v1.2, de URLs trocadas: ${recs.length - real.length}; mock: ${recs.filter((r) => r.mock).length}). Gerado em ${report.generatedAt}.`, '');
 L.push('## Métricas por provedor', '', '| Provedor | n | Técnico | Editorial | Título | Data (verif.) | p50 ms | p95 ms | p99 ms | 403 | 429 | Timeout | Créditos | US$ equiv. | US$/artigo válido |', '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
 for (const m of [...metrics].sort((a, b) => b.editorialSuccessRate - a.editorialSuccessRate))
   L.push(`| ${m.provider} | ${m.n} | ${pct(m.technicalSuccessRate)} | ${pct(m.editorialSuccessRate)} | ${pct(m.titleAccuracy)} | ${pct(m.dateAccuracy)} (${m.dateVerifiable}) | ${m.p50 ?? '—'} | ${m.p95 ?? '—'} | ${m.p99 ?? '—'} | ${pct(m.rate403)} | ${pct(m.rate429)} | ${pct(m.timeoutRate)} | ${+m.creditsUsed.toFixed(2)} | ${m.costEstimatedUsd.toFixed(4)} | ${m.costPerValidArticleUsd?.toFixed(5) ?? '—'} |`);

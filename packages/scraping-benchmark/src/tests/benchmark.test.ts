@@ -15,7 +15,8 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { runBenchmark, loadDone, classify } from '../runner';
 import { readFlags, isProviderDisabled } from '../flags';
-import type { DatasetEntry } from '../types';
+import type { DatasetEntry, AttemptRecord } from '../types';
+import { shadowRun } from '../shadow';
 
 const LONG = 'Lorem ipsum dolor sit amet. '.repeat(60);
 const article = (title: string, date = '2026-11-20T10:00:00Z') =>
@@ -277,5 +278,17 @@ describe('métricas e ranking', () => {
     expect(rk[0]!.provider).toBe('A');
     expect(rk[0]!.lowSample).toBe(true);
     expect(projectMonthly(0.002)).toEqual({ '1000': 2, '10000': 20, '50000': 100, '100000': 200 });
+  });
+});
+
+describe('shadow por replay (respostas registradas; nenhuma chamada)', () => {
+  it('caminho fixo faz fallback e conta custo; adaptativo semeado prefere o provedor que funciona no domínio', async () => {
+    const mk = (provider: string, url: string, ok: boolean, credits: number): AttemptRecord => ({ experimentId: 'e', runId: 'r', correlationId: 'c', codeVersion: 'v', at: '2026-11-23T00:00:00Z', provider, urlId: url, url, domain: 'd.com', durationMs: 1, technicalSuccess: ok, editorialSuccess: ok, errorClass: ok ? 'none' : 'http_403', textLength: ok ? 2000 : 0, creditsUsed: credits, costEstimatedUsd: 0, costEffectiveUsd: null, cacheState: 'miss', retries: 0, mock: false });
+    const urls = ['https://d.com/1', 'https://d.com/2'];
+    const recs = urls.flatMap((u) => [mk('a', u, false, 0), mk('b', u, true, 2)]);
+    const fixed = await shadowRun('fixo', urls, recs, ['a', 'b'], { a: 0, b: 0.001 }, { adaptive: false });
+    expect(fixed).toMatchObject({ valid: 2, attempts: 4, fallbacks: 2, creditsUsdEquiv: 0.004 });
+    const adapt = await shadowRun('adapt', urls, recs, ['a', 'b'], { a: 0, b: 0.001 }, { adaptive: true, seedFrom: recs });
+    expect(adapt).toMatchObject({ valid: 2, attempts: 2, fallbacks: 0 });
   });
 });

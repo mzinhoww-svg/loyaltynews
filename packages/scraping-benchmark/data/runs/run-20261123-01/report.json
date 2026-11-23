@@ -1,0 +1,2852 @@
+{
+  "runId": "run-20261123-01",
+  "generatedAt": "2026-11-23T15:00:41.144Z",
+  "attempts": 1012,
+  "realAttempts": 830,
+  "excludedReplaced": 182,
+  "mockAttempts": 0,
+  "metrics": [
+    {
+      "provider": "direct",
+      "n": 100,
+      "technicalSuccessRate": 0.93,
+      "editorialSuccessRate": 0.88,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.978494623655914,
+      "sourceAccuracy": 1,
+      "dateAccuracy": 1,
+      "dateVerifiable": 72,
+      "p50": 400,
+      "p95": 3461,
+      "p99": 30566,
+      "rate403": 0.04,
+      "rate429": 0,
+      "timeoutRate": 0.03,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 0,
+      "costEstimatedUsd": 0,
+      "costPerValidArticleUsd": 0,
+      "freshness": 0.5568181818181818,
+      "eligible": true
+    },
+    {
+      "provider": "scrapfly-basic",
+      "n": 100,
+      "technicalSuccessRate": 0.99,
+      "editorialSuccessRate": 0.94,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.9797979797979798,
+      "sourceAccuracy": 1,
+      "dateAccuracy": 1,
+      "dateVerifiable": 78,
+      "p50": 2377,
+      "p95": 6010,
+      "p99": 8958,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 171,
+      "costEstimatedUsd": 0.02565,
+      "costPerValidArticleUsd": 0.000273,
+      "freshness": 0.5638297872340425,
+      "eligible": true
+    },
+    {
+      "provider": "zyte-http",
+      "n": 100,
+      "technicalSuccessRate": 1,
+      "editorialSuccessRate": 0.95,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.98,
+      "sourceAccuracy": 1,
+      "dateAccuracy": 1,
+      "dateVerifiable": 79,
+      "p50": 1249,
+      "p95": 7578,
+      "p99": 23842,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 200,
+      "costEstimatedUsd": 0.02,
+      "costPerValidArticleUsd": 0.000211,
+      "freshness": 0.5684210526315789,
+      "eligible": true
+    },
+    {
+      "provider": "exa-contents",
+      "n": 100,
+      "technicalSuccessRate": 1,
+      "editorialSuccessRate": 0.9,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.95,
+      "sourceAccuracy": 1,
+      "dateAccuracy": null,
+      "dateVerifiable": 0,
+      "p50": 238,
+      "p95": 940,
+      "p99": 2369,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 100,
+      "costEstimatedUsd": 0.1,
+      "costPerValidArticleUsd": 0.001111,
+      "freshness": 0.5333333333333333,
+      "eligible": true
+    },
+    {
+      "provider": "tavily-extract",
+      "n": 100,
+      "technicalSuccessRate": 0.93,
+      "editorialSuccessRate": 0.8,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.8924731182795699,
+      "sourceAccuracy": 1,
+      "dateAccuracy": null,
+      "dateVerifiable": 0,
+      "p50": 934,
+      "p95": 9797,
+      "p99": 10182,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 18.599999999999966,
+      "costEstimatedUsd": 0.1488,
+      "costPerValidArticleUsd": 0.00186,
+      "freshness": 0.575,
+      "eligible": true
+    },
+    {
+      "provider": "brightdata-unlocker",
+      "n": 100,
+      "technicalSuccessRate": 0.94,
+      "editorialSuccessRate": 0.9,
+      "contentCompleteness": 1,
+      "titleAccuracy": 0.9893617021276596,
+      "sourceAccuracy": 1,
+      "dateAccuracy": 1,
+      "dateVerifiable": 76,
+      "p50": 2360,
+      "p95": 17375,
+      "p99": 42819,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 94,
+      "costEstimatedUsd": 0.141,
+      "costPerValidArticleUsd": 0.001567,
+      "freshness": 0.6,
+      "eligible": true
+    },
+    {
+      "provider": "apify-rag-web-browser",
+      "n": 100,
+      "technicalSuccessRate": 0.9,
+      "editorialSuccessRate": 0.87,
+      "contentCompleteness": 1,
+      "titleAccuracy": 1,
+      "sourceAccuracy": 1,
+      "dateAccuracy": null,
+      "dateVerifiable": 0,
+      "p50": 7957,
+      "p95": 17820,
+      "p99": 33736,
+      "rate403": 0,
+      "rate429": 0,
+      "timeoutRate": 0,
+      "retryRate": 0,
+      "duplicateRate": 0,
+      "cacheHitRate": 0,
+      "creditsUsed": 360,
+      "costEstimatedUsd": 0.36,
+      "costPerValidArticleUsd": 0.004138,
+      "freshness": 0.5287356321839081,
+      "eligible": true
+    }
+  ],
+  "ranking": [
+    {
+      "provider": "direct",
+      "score": 0.8872,
+      "parts": {
+        "quality": 0.9646236559139785,
+        "success": 0.93,
+        "cost": 1,
+        "latency": 0.595,
+        "freshness": 0.5568181818181818
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "zyte-http",
+      "score": 0.8509,
+      "parts": {
+        "quality": 0.9824999999999999,
+        "success": 1,
+        "cost": 1,
+        "latency": 0.19055244195356286,
+        "freshness": 0.5684210526315789
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "exa-contents",
+      "score": 0.7972,
+      "parts": {
+        "quality": 0.95,
+        "success": 1,
+        "cost": 0.18991899189918993,
+        "latency": 1,
+        "freshness": 0.5333333333333333
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "scrapfly-basic",
+      "score": 0.7883,
+      "parts": {
+        "quality": 0.9799494949494949,
+        "success": 0.99,
+        "cost": 0.7728937728937728,
+        "latency": 0.10012620950778292,
+        "freshness": 0.5638297872340425
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "brightdata-unlocker",
+      "score": 0.6474,
+      "parts": {
+        "quality": 0.9723404255319149,
+        "success": 0.94,
+        "cost": 0.13465220165922145,
+        "latency": 0.10084745762711865,
+        "freshness": 0.6
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "tavily-extract",
+      "score": 0.6358,
+      "parts": {
+        "quality": 0.896236559139785,
+        "success": 0.93,
+        "cost": 0.11344086021505376,
+        "latency": 0.25481798715203424,
+        "freshness": 0.575
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "apify-rag-web-browser",
+      "score": 0.6047,
+      "parts": {
+        "quality": 0.9675,
+        "success": 0.9,
+        "cost": 0.05099081681971967,
+        "latency": 0.029910770390850824,
+        "freshness": 0.5287356321839081
+      },
+      "n": 100,
+      "lowSample": false
+    }
+  ],
+  "byCategory": {
+    "financeiro": [
+      {
+        "provider": "direct",
+        "n": 25,
+        "technicalSuccessRate": 0.92,
+        "editorialSuccessRate": 0.92,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 23,
+        "p50": 251,
+        "p95": 30243,
+        "p99": 30566,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0.08,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0.6956521739130435,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 25,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 25,
+        "p50": 2330,
+        "p95": 5024,
+        "p99": 6010,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 97,
+        "costEstimatedUsd": 0.01455,
+        "costPerValidArticleUsd": 0.000582,
+        "freshness": 0.64,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 25,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 25,
+        "p50": 1193,
+        "p95": 3088,
+        "p99": 3373,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 50,
+        "costEstimatedUsd": 0.005,
+        "costPerValidArticleUsd": 0.0002,
+        "freshness": 0.64,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 25,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.92,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 237,
+        "p95": 1724,
+        "p99": 2882,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 25,
+        "costEstimatedUsd": 0.025,
+        "costPerValidArticleUsd": 0.001087,
+        "freshness": 0.6086956521739131,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 25,
+        "technicalSuccessRate": 0.96,
+        "editorialSuccessRate": 0.92,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9583333333333334,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 1308,
+        "p95": 6604,
+        "p99": 10169,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 4.800000000000002,
+        "costEstimatedUsd": 0.0384,
+        "costPerValidArticleUsd": 0.00167,
+        "freshness": 0.6086956521739131,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 25,
+        "technicalSuccessRate": 0.88,
+        "editorialSuccessRate": 0.88,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 22,
+        "p50": 2195,
+        "p95": 17375,
+        "p99": 42819,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 22,
+        "costEstimatedUsd": 0.033,
+        "costPerValidArticleUsd": 0.0015,
+        "freshness": 0.7272727272727273,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 25,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 8365,
+        "p95": 33736,
+        "p99": 50683,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 100,
+        "costEstimatedUsd": 0.1,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0.64,
+        "eligible": true
+      }
+    ],
+    "fintech": [
+      {
+        "provider": "direct",
+        "n": 20,
+        "technicalSuccessRate": 0.95,
+        "editorialSuccessRate": 0.95,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 17,
+        "p50": 209,
+        "p95": 3215,
+        "p99": 3461,
+        "rate403": 0.05,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0.5789473684210527,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 18,
+        "p50": 1449,
+        "p95": 7578,
+        "p99": 34897,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 40,
+        "costEstimatedUsd": 0.004,
+        "costPerValidArticleUsd": 0.0002,
+        "freshness": 0.6,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 230,
+        "p95": 256,
+        "p99": 282,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.02,
+        "costPerValidArticleUsd": 0.001,
+        "freshness": 0.6,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 20,
+        "technicalSuccessRate": 0.9,
+        "editorialSuccessRate": 0.65,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.7777777777777778,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 587,
+        "p95": 9797,
+        "p99": 10182,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 3.600000000000001,
+        "costEstimatedUsd": 0.0288,
+        "costPerValidArticleUsd": 0.002215,
+        "freshness": 0.5384615384615384,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 18,
+        "p50": 3887,
+        "p95": 15200,
+        "p99": 16194,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.03,
+        "costPerValidArticleUsd": 0.0015,
+        "freshness": 0.6,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 20,
+        "technicalSuccessRate": 0.8,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 7791,
+        "p95": 16072,
+        "p99": 18296,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 64,
+        "costEstimatedUsd": 0.064,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0.5,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 20,
+        "technicalSuccessRate": 0.95,
+        "editorialSuccessRate": 0.95,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 17,
+        "p50": 2173,
+        "p95": 8958,
+        "p99": 14309,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 19,
+        "costEstimatedUsd": 0.00285,
+        "costPerValidArticleUsd": 0.00015,
+        "freshness": 0.5789473684210527,
+        "eligible": true
+      }
+    ],
+    "aviacao-fidelidade": [
+      {
+        "provider": "direct",
+        "n": 20,
+        "technicalSuccessRate": 0.95,
+        "editorialSuccessRate": 0.95,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 12,
+        "p50": 400,
+        "p95": 1646,
+        "p99": 31324,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0.05,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0.5263157894736842,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 13,
+        "p50": 1615,
+        "p95": 11417,
+        "p99": 23842,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 40,
+        "costEstimatedUsd": 0.004,
+        "costPerValidArticleUsd": 0.0002,
+        "freshness": 0.55,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 233,
+        "p95": 341,
+        "p99": 371,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.02,
+        "costPerValidArticleUsd": 0.001,
+        "freshness": 0.55,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.95,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.95,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 846,
+        "p95": 2485,
+        "p99": 3541,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 4.000000000000001,
+        "costEstimatedUsd": 0.032,
+        "costPerValidArticleUsd": 0.001684,
+        "freshness": 0.5263157894736842,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 13,
+        "p50": 1683,
+        "p95": 8810,
+        "p99": 9496,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.03,
+        "costPerValidArticleUsd": 0.0015,
+        "freshness": 0.55,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 8128,
+        "p95": 11862,
+        "p99": 12813,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 80,
+        "costEstimatedUsd": 0.08,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0.55,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 13,
+        "p50": 2856,
+        "p95": 3669,
+        "p99": 4767,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.003,
+        "costPerValidArticleUsd": 0.00015,
+        "freshness": 0.55,
+        "eligible": true
+      }
+    ],
+    "tecnologia": [
+      {
+        "provider": "direct",
+        "n": 15,
+        "technicalSuccessRate": 0.8,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 12,
+        "p50": 100,
+        "p95": 986,
+        "p99": 986,
+        "rate403": 0.2,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0.6666666666666666,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 15,
+        "p50": 1537,
+        "p95": 15605,
+        "p99": 15605,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 30,
+        "costEstimatedUsd": 0.003,
+        "costPerValidArticleUsd": 0.0002,
+        "freshness": 0.7333333333333333,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.7333333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.7333333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 288,
+        "p95": 2369,
+        "p99": 2369,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.015,
+        "costPerValidArticleUsd": 0.001364,
+        "freshness": 0.6363636363636364,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 1029,
+        "p95": 4178,
+        "p99": 4178,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 3.0000000000000004,
+        "costEstimatedUsd": 0.024,
+        "costPerValidArticleUsd": 0.0016,
+        "freshness": 0.7333333333333333,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 15,
+        "p50": 2937,
+        "p95": 10057,
+        "p99": 10057,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.0225,
+        "costPerValidArticleUsd": 0.0015,
+        "freshness": 0.7333333333333333,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 15,
+        "technicalSuccessRate": 0.6666666666666666,
+        "editorialSuccessRate": 0.6666666666666666,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 7522,
+        "p95": 15660,
+        "p99": 15660,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 40,
+        "costEstimatedUsd": 0.04,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0.6,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 15,
+        "p50": 2184,
+        "p95": 6985,
+        "p99": 6985,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.00225,
+        "costPerValidArticleUsd": 0.00015,
+        "freshness": 0.7333333333333333,
+        "eligible": true
+      }
+    ],
+    "restritivo": [
+      {
+        "provider": "direct",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.7333333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9333333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 1265,
+        "p95": 2382,
+        "p99": 2382,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.7333333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9333333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 908,
+        "p95": 1679,
+        "p99": 1679,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 30,
+        "costEstimatedUsd": 0.003,
+        "costPerValidArticleUsd": 0.000273,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 226,
+        "p95": 290,
+        "p99": 290,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.015,
+        "costPerValidArticleUsd": 0.00125,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 15,
+        "technicalSuccessRate": 0.7333333333333333,
+        "editorialSuccessRate": 0.4,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.7272727272727273,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 872,
+        "p95": 10377,
+        "p99": 10377,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 2.1999999999999997,
+        "costEstimatedUsd": 0.0176,
+        "costPerValidArticleUsd": 0.002933,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 15,
+        "technicalSuccessRate": 0.8,
+        "editorialSuccessRate": 0.6,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 3851,
+        "p95": 54632,
+        "p99": 54632,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 12,
+        "costEstimatedUsd": 0.018,
+        "costPerValidArticleUsd": 0.002,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 15,
+        "technicalSuccessRate": 0.9333333333333333,
+        "editorialSuccessRate": 0.7333333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 6155,
+        "p95": 9646,
+        "p99": 9646,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 56,
+        "costEstimatedUsd": 0.056,
+        "costPerValidArticleUsd": 0.005091,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 15,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.7333333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9333333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 2313,
+        "p95": 6938,
+        "p99": 6938,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 15,
+        "costEstimatedUsd": 0.00225,
+        "costPerValidArticleUsd": 0.000205,
+        "freshness": 0,
+        "eligible": true
+      }
+    ],
+    "internacional": [
+      {
+        "provider": "direct",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 731,
+        "p95": 1793,
+        "p99": 1793,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 857,
+        "p95": 1415,
+        "p99": 1415,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 10,
+        "costEstimatedUsd": 0.001,
+        "costPerValidArticleUsd": 0.00025,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 238,
+        "p95": 903,
+        "p99": 903,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 5,
+        "costEstimatedUsd": 0.005,
+        "costPerValidArticleUsd": 0.00125,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 776,
+        "p95": 1100,
+        "p99": 1100,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 1,
+        "costEstimatedUsd": 0.008,
+        "costPerValidArticleUsd": 0.002,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 1796,
+        "p95": 5467,
+        "p99": 5467,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 5,
+        "costEstimatedUsd": 0.0075,
+        "costPerValidArticleUsd": 0.001875,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 4523,
+        "p95": 11954,
+        "p99": 11954,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.02,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 1,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 5,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.8,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 4,
+        "p50": 2906,
+        "p95": 5121,
+        "p99": 5121,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 5,
+        "costEstimatedUsd": 0.00075,
+        "costPerValidArticleUsd": 0.000187,
+        "freshness": 1,
+        "eligible": true
+      }
+    ]
+  },
+  "byRecency": {
+    "historico": [
+      {
+        "provider": "direct",
+        "n": 20,
+        "technicalSuccessRate": 0.9,
+        "editorialSuccessRate": 0.9,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 14,
+        "p50": 434,
+        "p95": 30243,
+        "p99": 30566,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0.1,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 16,
+        "p50": 2588,
+        "p95": 4767,
+        "p99": 6010,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 44,
+        "costEstimatedUsd": 0.0066,
+        "costPerValidArticleUsd": 0.00033,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 16,
+        "p50": 1246,
+        "p95": 2352,
+        "p99": 2599,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 40,
+        "costEstimatedUsd": 0.004,
+        "costPerValidArticleUsd": 0.0002,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 249,
+        "p95": 341,
+        "p99": 371,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.02,
+        "costPerValidArticleUsd": 0.001,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 1048,
+        "p95": 4632,
+        "p99": 5889,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 4.000000000000001,
+        "costEstimatedUsd": 0.032,
+        "costPerValidArticleUsd": 0.0016,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 20,
+        "technicalSuccessRate": 0.95,
+        "editorialSuccessRate": 0.95,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 15,
+        "p50": 2195,
+        "p95": 13600,
+        "p99": 42819,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 19,
+        "costEstimatedUsd": 0.0285,
+        "costPerValidArticleUsd": 0.0015,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 1,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 7902,
+        "p95": 17820,
+        "p99": 50683,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 80,
+        "costEstimatedUsd": 0.08,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0,
+        "eligible": true
+      }
+    ],
+    "recente": [
+      {
+        "provider": "direct",
+        "n": 60,
+        "technicalSuccessRate": 0.9333333333333333,
+        "editorialSuccessRate": 0.9166666666666666,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9821428571428571,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 52,
+        "p50": 179,
+        "p95": 1793,
+        "p99": 31324,
+        "rate403": 0.05,
+        "rate429": 0,
+        "timeoutRate": 0.016666666666666666,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0.8909090909090909,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 60,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.9833333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9833333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 56,
+        "p50": 2272,
+        "p95": 5024,
+        "p99": 8958,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 108,
+        "costEstimatedUsd": 0.0162,
+        "costPerValidArticleUsd": 0.000275,
+        "freshness": 0.8983050847457628,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 60,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.9833333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9833333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 56,
+        "p50": 1249,
+        "p95": 11417,
+        "p99": 34897,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 120,
+        "costEstimatedUsd": 0.012,
+        "costPerValidArticleUsd": 0.000203,
+        "freshness": 0.8983050847457628,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 60,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8833333333333333,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9166666666666666,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 240,
+        "p95": 1494,
+        "p99": 2882,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 60,
+        "costEstimatedUsd": 0.06,
+        "costPerValidArticleUsd": 0.001132,
+        "freshness": 0.8867924528301887,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 60,
+        "technicalSuccessRate": 0.9666666666666667,
+        "editorialSuccessRate": 0.85,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.896551724137931,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 846,
+        "p95": 4178,
+        "p99": 10169,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 11.59999999999999,
+        "costEstimatedUsd": 0.0928,
+        "costPerValidArticleUsd": 0.00182,
+        "freshness": 0.8823529411764706,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 60,
+        "technicalSuccessRate": 0.9666666666666667,
+        "editorialSuccessRate": 0.95,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9827586206896551,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 54,
+        "p50": 1881,
+        "p95": 10057,
+        "p99": 17375,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 58,
+        "costEstimatedUsd": 0.087,
+        "costPerValidArticleUsd": 0.001526,
+        "freshness": 0.9298245614035088,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 60,
+        "technicalSuccessRate": 0.8666666666666667,
+        "editorialSuccessRate": 0.8666666666666667,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 8244,
+        "p95": 18296,
+        "p99": 33736,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 208,
+        "costEstimatedUsd": 0.208,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0.8846153846153846,
+        "eligible": true
+      }
+    ],
+    "problema": [
+      {
+        "provider": "direct",
+        "n": 20,
+        "technicalSuccessRate": 0.95,
+        "editorialSuccessRate": 0.75,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9473684210526315,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 6,
+        "p50": 1265,
+        "p95": 3215,
+        "p99": 3461,
+        "rate403": 0.05,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 0,
+        "costEstimatedUsd": 0,
+        "costPerValidArticleUsd": 0,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "zyte-http",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.95,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 7,
+        "p50": 1188,
+        "p95": 3537,
+        "p99": 7578,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 40,
+        "costEstimatedUsd": 0.004,
+        "costPerValidArticleUsd": 0.00025,
+        "freshness": 0.0625,
+        "eligible": true
+      },
+      {
+        "provider": "exa-contents",
+        "n": 20,
+        "technicalSuccessRate": 1,
+        "editorialSuccessRate": 0.85,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 226,
+        "p95": 282,
+        "p99": 290,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 20,
+        "costEstimatedUsd": 0.02,
+        "costPerValidArticleUsd": 0.001176,
+        "freshness": 0.058823529411764705,
+        "eligible": true
+      },
+      {
+        "provider": "tavily-extract",
+        "n": 20,
+        "technicalSuccessRate": 0.75,
+        "editorialSuccessRate": 0.45,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.7333333333333333,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 872,
+        "p95": 10182,
+        "p99": 10377,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 3.0000000000000004,
+        "costEstimatedUsd": 0.024,
+        "costPerValidArticleUsd": 0.002667,
+        "freshness": 0.1111111111111111,
+        "eligible": true
+      },
+      {
+        "provider": "brightdata-unlocker",
+        "n": 20,
+        "technicalSuccessRate": 0.85,
+        "editorialSuccessRate": 0.7,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 7,
+        "p50": 3851,
+        "p95": 33302,
+        "p99": 54632,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 17,
+        "costEstimatedUsd": 0.0255,
+        "costPerValidArticleUsd": 0.001821,
+        "freshness": 0.07142857142857142,
+        "eligible": true
+      },
+      {
+        "provider": "apify-rag-web-browser",
+        "n": 20,
+        "technicalSuccessRate": 0.9,
+        "editorialSuccessRate": 0.75,
+        "contentCompleteness": 1,
+        "titleAccuracy": 1,
+        "sourceAccuracy": 1,
+        "dateAccuracy": null,
+        "dateVerifiable": 0,
+        "p50": 7233,
+        "p95": 9159,
+        "p99": 9646,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 72,
+        "costEstimatedUsd": 0.072,
+        "costPerValidArticleUsd": 0.0048,
+        "freshness": 0,
+        "eligible": true
+      },
+      {
+        "provider": "scrapfly-basic",
+        "n": 20,
+        "technicalSuccessRate": 0.95,
+        "editorialSuccessRate": 0.75,
+        "contentCompleteness": 1,
+        "titleAccuracy": 0.9473684210526315,
+        "sourceAccuracy": 1,
+        "dateAccuracy": 1,
+        "dateVerifiable": 6,
+        "p50": 2633,
+        "p95": 6938,
+        "p99": 14309,
+        "rate403": 0,
+        "rate429": 0,
+        "timeoutRate": 0,
+        "retryRate": 0,
+        "duplicateRate": 0,
+        "cacheHitRate": 0,
+        "creditsUsed": 19,
+        "costEstimatedUsd": 0.00285,
+        "costPerValidArticleUsd": 0.00019,
+        "freshness": 0,
+        "eligible": true
+      }
+    ]
+  },
+  "domainMatrix": [
+    {
+      "domain": "aeroin.net",
+      "apify-rag-web-browser": "0/1",
+      "brightdata-unlocker": "1/1",
+      "direct": "0/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "0/1",
+      "tavily-extract": "0/1",
+      "zyte-http": "0/1"
+    },
+    {
+      "domain": "airlines.org",
+      "apify-rag-web-browser": "4/4",
+      "brightdata-unlocker": "4/4",
+      "direct": "4/4",
+      "exa-contents": "4/4",
+      "scrapfly-basic": "4/4",
+      "tavily-extract": "4/4",
+      "zyte-http": "4/4"
+    },
+    {
+      "domain": "bradescori.com.br",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "0/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "brasscom.org.br",
+      "apify-rag-web-browser": "4/4",
+      "brightdata-unlocker": "4/4",
+      "direct": "4/4",
+      "exa-contents": "4/4",
+      "scrapfly-basic": "4/4",
+      "tavily-extract": "4/4",
+      "zyte-http": "4/4"
+    },
+    {
+      "domain": "canaltech.com.br",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "edpb.europa.eu",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "0/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "1/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "exame.com",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "finextra.com",
+      "apify-rag-web-browser": "0/1",
+      "brightdata-unlocker": "1/1",
+      "direct": "0/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "0/1",
+      "tavily-extract": "1/1",
+      "zyte-http": "1/1"
+    },
+    {
+      "domain": "finsidersbrasil.com.br",
+      "apify-rag-web-browser": "2/2",
+      "brightdata-unlocker": "2/2",
+      "direct": "2/2",
+      "exa-contents": "2/2",
+      "scrapfly-basic": "2/2",
+      "tavily-extract": "0/2",
+      "zyte-http": "2/2"
+    },
+    {
+      "domain": "gov.br",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "0/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "iata.org",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "2/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "infomoney.com.br",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "itau.com.br",
+      "apify-rag-web-browser": "1/1",
+      "brightdata-unlocker": "1/1",
+      "direct": "1/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "1/1",
+      "tavily-extract": "1/1",
+      "zyte-http": "1/1"
+    },
+    {
+      "domain": "latamairlines.com",
+      "apify-rag-web-browser": "0/3",
+      "brightdata-unlocker": "0/3",
+      "direct": "0/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "0/3",
+      "tavily-extract": "0/3",
+      "zyte-http": "0/3"
+    },
+    {
+      "domain": "livelo.com.br",
+      "apify-rag-web-browser": "1/1",
+      "brightdata-unlocker": "1/1",
+      "direct": "1/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "1/1",
+      "tavily-extract": "0/1",
+      "zyte-http": "1/1"
+    },
+    {
+      "domain": "melhoresdestinos.com.br",
+      "apify-rag-web-browser": "2/2",
+      "brightdata-unlocker": "2/2",
+      "direct": "2/2",
+      "exa-contents": "2/2",
+      "scrapfly-basic": "2/2",
+      "tavily-extract": "2/2",
+      "zyte-http": "2/2"
+    },
+    {
+      "domain": "mercadoeconsumo.com.br",
+      "apify-rag-web-browser": "5/5",
+      "brightdata-unlocker": "5/5",
+      "direct": "5/5",
+      "exa-contents": "5/5",
+      "scrapfly-basic": "5/5",
+      "tavily-extract": "4/5",
+      "zyte-http": "5/5"
+    },
+    {
+      "domain": "mobiletime.com.br",
+      "apify-rag-web-browser": "7/7",
+      "brightdata-unlocker": "7/7",
+      "direct": "7/7",
+      "exa-contents": "7/7",
+      "scrapfly-basic": "7/7",
+      "tavily-extract": "7/7",
+      "zyte-http": "7/7"
+    },
+    {
+      "domain": "moneytimes.com.br",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "nu.com",
+      "apify-rag-web-browser": "2/2",
+      "brightdata-unlocker": "2/2",
+      "direct": "2/2",
+      "exa-contents": "2/2",
+      "scrapfly-basic": "2/2",
+      "tavily-extract": "1/2",
+      "zyte-http": "2/2"
+    },
+    {
+      "domain": "olhardigital.com.br",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "onemileatatime.com",
+      "apify-rag-web-browser": "2/2",
+      "brightdata-unlocker": "2/2",
+      "direct": "2/2",
+      "exa-contents": "1/2",
+      "scrapfly-basic": "2/2",
+      "tavily-extract": "1/2",
+      "zyte-http": "2/2"
+    },
+    {
+      "domain": "oneworld.com",
+      "apify-rag-web-browser": "1/1",
+      "brightdata-unlocker": "1/1",
+      "direct": "1/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "1/1",
+      "tavily-extract": "1/1",
+      "zyte-http": "1/1"
+    },
+    {
+      "domain": "passageirodeprimeira.com",
+      "apify-rag-web-browser": "8/8",
+      "brightdata-unlocker": "8/8",
+      "direct": "8/8",
+      "exa-contents": "8/8",
+      "scrapfly-basic": "8/8",
+      "tavily-extract": "8/8",
+      "zyte-http": "8/8"
+    },
+    {
+      "domain": "paymentsdive.com",
+      "apify-rag-web-browser": "0/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "1/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "pontospravoar.com",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "2/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "3/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "portal.staralliance.com",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "0/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "pt.oneworld.com",
+      "apify-rag-web-browser": "1/1",
+      "brightdata-unlocker": "1/1",
+      "direct": "1/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "1/1",
+      "tavily-extract": "1/1",
+      "zyte-http": "1/1"
+    },
+    {
+      "domain": "pymnts.com",
+      "apify-rag-web-browser": "3/3",
+      "brightdata-unlocker": "3/3",
+      "direct": "3/3",
+      "exa-contents": "3/3",
+      "scrapfly-basic": "3/3",
+      "tavily-extract": "2/3",
+      "zyte-http": "3/3"
+    },
+    {
+      "domain": "seudinheiro.com",
+      "apify-rag-web-browser": "6/6",
+      "brightdata-unlocker": "6/6",
+      "direct": "4/6",
+      "exa-contents": "6/6",
+      "scrapfly-basic": "6/6",
+      "tavily-extract": "5/6",
+      "zyte-http": "6/6"
+    },
+    {
+      "domain": "simpleflying.com",
+      "apify-rag-web-browser": "2/2",
+      "brightdata-unlocker": "2/2",
+      "direct": "2/2",
+      "exa-contents": "2/2",
+      "scrapfly-basic": "2/2",
+      "tavily-extract": "2/2",
+      "zyte-http": "2/2"
+    },
+    {
+      "domain": "tecnoblog.net",
+      "apify-rag-web-browser": "0/5",
+      "brightdata-unlocker": "5/5",
+      "direct": "2/5",
+      "exa-contents": "1/5",
+      "scrapfly-basic": "5/5",
+      "tavily-extract": "5/5",
+      "zyte-http": "5/5"
+    },
+    {
+      "domain": "thepointsguy.com",
+      "apify-rag-web-browser": "1/1",
+      "brightdata-unlocker": "0/1",
+      "direct": "0/1",
+      "exa-contents": "1/1",
+      "scrapfly-basic": "0/1",
+      "tavily-extract": "1/1",
+      "zyte-http": "0/1"
+    },
+    {
+      "domain": "www12.senado.leg.br",
+      "apify-rag-web-browser": "2/2",
+      "brightdata-unlocker": "2/2",
+      "direct": "2/2",
+      "exa-contents": "0/2",
+      "scrapfly-basic": "2/2",
+      "tavily-extract": "2/2",
+      "zyte-http": "2/2"
+    }
+  ],
+  "routingMatrix": [
+    {
+      "domain": "aeroin.net",
+      "order": [
+        {
+          "provider": "apify-rag-web-browser",
+          "expectedUsdPerValid": 0.0006
+        },
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0006
+        },
+        {
+          "provider": "tavily-extract",
+          "expectedUsdPerValid": 0.0006
+        }
+      ]
+    },
+    {
+      "domain": "airlines.org",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00024
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.00042
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.00048
+        }
+      ]
+    },
+    {
+      "domain": "bradescori.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "brasscom.org.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00024
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.00042
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.00048
+        }
+      ]
+    },
+    {
+      "domain": "canaltech.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "edpb.europa.eu",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "exame.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "finextra.com",
+      "order": [
+        {
+          "provider": "apify-rag-web-browser",
+          "expectedUsdPerValid": 0.0006
+        },
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0006
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.0006
+        }
+      ]
+    },
+    {
+      "domain": "finsidersbrasil.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000267
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000533
+        }
+      ]
+    },
+    {
+      "domain": "gov.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        },
+        {
+          "provider": "exa-contents",
+          "expectedUsdPerValid": 0.0015
+        }
+      ]
+    },
+    {
+      "domain": "iata.org",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "infomoney.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "itau.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0003
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000525
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0006
+        }
+      ]
+    },
+    {
+      "domain": "latamairlines.com",
+      "order": [
+        {
+          "provider": "exa-contents",
+          "expectedUsdPerValid": 0.0015
+        },
+        {
+          "provider": "apify-rag-web-browser",
+          "expectedUsdPerValid": 1003
+        },
+        {
+          "provider": "brightdata-unlocker",
+          "expectedUsdPerValid": 1003
+        }
+      ]
+    },
+    {
+      "domain": "livelo.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0003
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000525
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0006
+        }
+      ]
+    },
+    {
+      "domain": "melhoresdestinos.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000267
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000533
+        }
+      ]
+    },
+    {
+      "domain": "mercadoeconsumo.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000233
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000408
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000467
+        }
+      ]
+    },
+    {
+      "domain": "mobiletime.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000225
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000394
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.00045
+        }
+      ]
+    },
+    {
+      "domain": "moneytimes.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "nu.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000267
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000533
+        }
+      ]
+    },
+    {
+      "domain": "olhardigital.com.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "onemileatatime.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000267
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000533
+        }
+      ]
+    },
+    {
+      "domain": "oneworld.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0003
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000525
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0006
+        }
+      ]
+    },
+    {
+      "domain": "passageirodeprimeira.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000222
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000389
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000444
+        }
+      ]
+    },
+    {
+      "domain": "paymentsdive.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "pontospravoar.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000333
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "portal.staralliance.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "pt.oneworld.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0003
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000525
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0006
+        }
+      ]
+    },
+    {
+      "domain": "pymnts.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00025
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000437
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0005
+        }
+      ]
+    },
+    {
+      "domain": "seudinheiro.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.00032
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.0004
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000457
+        }
+      ]
+    },
+    {
+      "domain": "simpleflying.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000267
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000533
+        }
+      ]
+    },
+    {
+      "domain": "tecnoblog.net",
+      "order": [
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000408
+        },
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000467
+        }
+      ]
+    },
+    {
+      "domain": "thepointsguy.com",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.0006
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.00105
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.0012
+        }
+      ]
+    },
+    {
+      "domain": "www12.senado.leg.br",
+      "order": [
+        {
+          "provider": "direct",
+          "expectedUsdPerValid": 0.000267
+        },
+        {
+          "provider": "scrapfly-basic",
+          "expectedUsdPerValid": 0.000467
+        },
+        {
+          "provider": "zyte-http",
+          "expectedUsdPerValid": 0.000533
+        }
+      ]
+    }
+  ],
+  "combined": {
+    "eligibleUrls": 100,
+    "technical": 100,
+    "editorial": 100,
+    "allUrls": 100,
+    "editorialAll": 100,
+    "titleOk": 100,
+    "dateVerifiable": 79,
+    "dateOk": 79
+  },
+  "failedUrls": [],
+  "projections": {
+    "direct": {
+      "1000": 0,
+      "10000": 0,
+      "50000": 0,
+      "100000": 0
+    },
+    "scrapfly-basic": {
+      "1000": 0.27,
+      "10000": 2.73,
+      "50000": 13.65,
+      "100000": 27.3
+    },
+    "zyte-http": {
+      "1000": 0.21,
+      "10000": 2.11,
+      "50000": 10.55,
+      "100000": 21.1
+    },
+    "exa-contents": {
+      "1000": 1.11,
+      "10000": 11.11,
+      "50000": 55.55,
+      "100000": 111.1
+    },
+    "tavily-extract": {
+      "1000": 1.86,
+      "10000": 18.6,
+      "50000": 93,
+      "100000": 186
+    },
+    "brightdata-unlocker": {
+      "1000": 1.57,
+      "10000": 15.67,
+      "50000": 78.35,
+      "100000": 156.7
+    },
+    "apify-rag-web-browser": {
+      "1000": 4.14,
+      "10000": 41.38,
+      "50000": 206.9,
+      "100000": 413.8
+    }
+  }
+}

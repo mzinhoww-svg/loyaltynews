@@ -1,0 +1,40 @@
+{
+  "runId": "run-20261123-01",
+  "note": "replay das respostas reais medidas; nenhuma chamada nova; nada publicado",
+  "eligible": 100,
+  "results": [
+    {
+      "path": "atual: direct → tavily",
+      "urls": 100,
+      "valid": 96,
+      "attempts": 112,
+      "fallbacks": 12,
+      "creditsUsdEquiv": 0.0128,
+      "usdPerValid": 0.000133,
+      "stopsByRestriction": 0,
+      "decisions": 212
+    },
+    {
+      "path": "cascata fixa por preço: direct → zyte → scrapfly → brightdata → exa → tavily → apify",
+      "urls": 100,
+      "valid": 100,
+      "attempts": 126,
+      "fallbacks": 26,
+      "creditsUsdEquiv": 0.01465,
+      "usdPerValid": 0.000147,
+      "stopsByRestriction": 0,
+      "decisions": 226
+    },
+    {
+      "path": "adaptativo (validação cruzada 2 dobras)",
+      "urls": 100,
+      "valid": 100,
+      "attempts": 116,
+      "fallbacks": 16,
+      "creditsUsdEquiv": 0.00745,
+      "usdPerValid": 0.000074,
+      "stopsByRestriction": 0,
+      "decisions": 216
+    }
+  ]
+}

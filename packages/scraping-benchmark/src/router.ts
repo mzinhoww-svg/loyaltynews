@@ -28,6 +28,8 @@ export const FALLBACK_ELIGIBLE: ReadonlySet<ReaderFailure> = new Set<ReaderFailu
 ]);
 export const STOP_FAILURES: ReadonlySet<ReaderFailure> = new Set<ReaderFailure>(['login_required', 'paywall', 'not_found']);
 
+export const ATTEMPT_OVERHEAD_USD = 0.0002;
+
 export interface DomainStat {
   attempts: number;
   valid: number;
@@ -108,9 +110,12 @@ export class AdaptiveRouter {
   /** Custo esperado por artigo válido no domínio (Laplace: provedores sem histórico não ficam com 0 nem ∞). */
   expectedCostPerValid(domain: string, p: RoutedProvider): number {
     const s = this.stats.get(`${domain}|${p.name}`) ?? { attempts: 0, valid: 0, credits: 0 };
+    // provedor com ≥ 2 tentativas e nenhum sucesso no domínio vai para o fim (gratuito que sempre falha só gasta tempo)
+    if (s.attempts >= 2 && s.valid === 0) return 1e3 + s.attempts;
     const pValid = (s.valid + 1) / (s.attempts + 2);
     const creditsPerAttempt = s.attempts ? s.credits / s.attempts : p.worstCaseCredits;
-    return (creditsPerAttempt * p.usdPerCredit + 1e-6) / pValid;
+    // custo fixo por tentativa (US$ equiv. da latência/oportunidade): evita que custo ~0 ignore a taxa de falha
+    return (creditsPerAttempt * p.usdPerCredit + ATTEMPT_OVERHEAD_USD) / pValid;
   }
 
   order(domain: string): RoutedProvider[] {
