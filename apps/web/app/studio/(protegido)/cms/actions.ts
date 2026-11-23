@@ -6,6 +6,7 @@ import { ehErro, mensagemErro, type ErroApi, type RespostaApi } from '@/lib/stud
 import { corpoAtualizacao, corpoCriacao, lerCampos, mesmasEvidencias } from '@/lib/studio/cms/materia-form';
 import { CMS_EDIT, CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { montarCorrecao, type EdicaoFabrica } from '@/lib/studio/cms/fabrica-correcao';
+import { checkAccess } from '@/lib/studio/modules';
 import { requireStudio } from '../../_lib/guard';
 
 export interface FormState {
@@ -84,7 +85,7 @@ export async function bloquearAction(fd: FormData): Promise<void> {
 }
 
 /**
- * Publicar só pela rota oficial de publicação (recibo da versão + identidade de publicação + flag publicacaoPortal). Serve à primeira
+ * Publicar só pela rota oficial de publicação (recibo válido da versão + flag publicacaoPortal + permissão materias:publish; a identidade de publicação é fixada pelo servidor). Serve à primeira
  * publicação e à correção (recibo da revisão aprovada ⇒ a matéria vira 'corrigido'). A transição genérica NÃO publica nem corrige.
  * As recusas aparecem como vêm.
  */
@@ -159,7 +160,8 @@ const bruto = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? lf(f
  * é preciso reemitir). As recusas do Backend aparecem como vêm; o formulário mantém o que foi digitado.
  */
 export async function corrigirFabricaAction(_prev: EstadoCorrecao, fd: FormData): Promise<EstadoCorrecao> {
-  await requireStudio(['admin', 'editor_chefe']);
+  // recibo: quem tem materias:transition (revisor, chefia, admin); publicar: materias:publish (chefia, admin), seja quem for o emissor do recibo
+  const { session } = await requireStudio(CMS_REVIEW);
   const id = t(fd, 'id');
   const op = t(fd, 'op');
   const valores: EstadoCorrecao['valores'] = {
@@ -189,7 +191,8 @@ export async function corrigirFabricaAction(_prev: EstadoCorrecao, fd: FormData)
     return { tipo: 'ok', mensagem: `Recibo da versão corrigida (v${rec.versao}) emitido. Publique no mesmo dia: o hash depende do dia do aviso.`, reciboId: rec.id, valores };
   }
   if (op === 'publicar') {
-    if (!reciboAnterior) return falha('Emita o recibo da correção antes de publicar.');
+    if (!checkAccess(session, ['admin', 'editor_chefe']).ok) return falha('Publicar é do editor-chefe ou do admin; o recibo emitido por outra pessoa vale.');
+    if (!reciboAnterior) return falha('Emita o recibo da correção (ou informe o id do recibo) antes de publicar.');
     const r = await api.editorial.publicar(id, { receiptId: reciboAnterior, url: valores.url, correcao: c.correcao });
     if (ehErro(r)) return falha(mensagemErro(r));
     return { tipo: 'ok', mensagem: 'Correção publicada: a matéria agora está corrigida.', publicado: true, reciboId: reciboAnterior, valores };
