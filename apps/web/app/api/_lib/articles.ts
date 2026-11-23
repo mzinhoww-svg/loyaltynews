@@ -11,6 +11,7 @@ import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { issueFromEditorial } from './editorial/receipt';
 import { issueCorrectionReceipt } from './editorial/fabrica-correction';
 import { evidenceIdsOf, gateFailures, rowContentSha, type ArticleRow } from './article-core';
+import { publicImageOf } from './midia';
 import { issueRevisionReceipt, openRevision } from './correcao';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
@@ -405,7 +406,7 @@ export const publicGetArticle: RouteFn = async (_req, c) => {
     editoria: a.editoria,
     assinatura: a.assinatura,
     corpo: a.corpo,
-    imagem: publishableImage(a.imagem),
+    imagem: await publicImageOf(c.deps.db, publishableImage(a.imagem), c.deps.now()),
     patrocinado: a.patrocinado,
     rotuloPublieditorial: a.rotuloPublieditorial,
     publicadoEm: a.publicadoEm,
