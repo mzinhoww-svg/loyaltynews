@@ -1,6 +1,6 @@
 // Matérias: CRUD, fontes, transições de estado e recibos de publicação (ADR-008).
 // Regras: publicar só a partir de `aprovado`, com recibo da versão atual (hash do conteúdo igual), pela
-// identidade de publicação do recibo e por papel com permissão `publish`. Conteúdo publicado é imutável;
+// papel com permissão `publish` (a identidade de publicação do recibo é o canal `portal`, ADR-017 §5). Conteúdo publicado é imutável;
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
@@ -10,7 +10,7 @@ import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { issueFromEditorial } from './editorial/receipt';
 import { issueCorrectionReceipt } from './editorial/fabrica-correction';
-import { evidenceIdsOf, gateFailures, rowContentSha, type ArticleRow } from './article-core';
+import { evidenceIdsOf, gateFailures, PUBLISH_IDENTITY, rowContentSha, type ArticleRow } from './article-core';
 import { publicImageOf } from './midia';
 import { issueRevisionReceipt, openRevision } from './correcao';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
@@ -268,7 +268,7 @@ export const issueReceipt: RouteFn = async (req, c) => {
       conteudoSha256: hash,
       checagens: b.checagens,
       aprovador: c.session?.userId ?? 'desconhecido',
-      identidadePublicacao: b.identidadePublicacao ?? c.session?.userId ?? 'desconhecido',
+      identidadePublicacao: PUBLISH_IDENTITY,
       emitidoEm: c.deps.now(),
     })
     .returning();

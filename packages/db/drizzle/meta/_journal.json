@@ -127,6 +127,13 @@
       "when": 1795396427623,
       "tag": "0017_article_revisions",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795399208189,
+      "tag": "0018_outbox_meta",
+      "breakpoints": true
     }
   ]
 }

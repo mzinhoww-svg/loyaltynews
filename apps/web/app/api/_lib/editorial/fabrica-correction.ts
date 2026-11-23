@@ -7,13 +7,14 @@
 // A página pública só muda quando a publicação é registrada. Repetir a mesma aplicação é idempotente.
 import { and, eq, max } from 'drizzle-orm';
 import { apiError } from '@ln/contracts';
-import { audit } from '@ln/auth';
 import { schema } from '@ln/db';
 import { applyCorrection, prepareCorrection, toPublishableContent, type ApiResponse, type CorrectionFail, type CorrectionInput } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { HttpError, json, newId, type RouteCtx } from '../http';
 import type { PublicationCtx } from './publication';
 import { contentFailures, projectSources } from './receipt';
+import { PUBLISH_IDENTITY } from '../article-core';
+import { recordPublisher } from './publisher-trail';
 import type { CorrecaoInput } from './correcao-schema';
 
 const STATUS: Record<CorrectionFail['code'], number> = {
@@ -28,7 +29,7 @@ const toInput = (articleId: string, k: CorrecaoInput, receiptId: string, publish
 
 /** Recibo da versão corrigida de matéria da Fábrica. Idempotente: mesmo conteúdo ⇒ o recibo existente (200). */
 export async function issueCorrectionReceipt(
-  c: RouteCtx, id: string, body: { versao?: number; checagens: unknown; identidadePublicacao?: string }, k: CorrecaoInput,
+  c: RouteCtx, id: string, body: { versao?: number; checagens: unknown }, k: CorrecaoInput,
 ): Promise<Response> {
   const session = c.session;
   if (!session) throw new HttpError(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
@@ -48,7 +49,7 @@ export async function issueCorrectionReceipt(
       .insert(schema.publicationReceipts)
       .values({
         id: newId(), articleId: id, versao, conteudoSha256: prep.contentSha256, checagens: body.checagens, aprovador: session.userId,
-        identidadePublicacao: body.identidadePublicacao ?? session.userId, emitidoEm: c.deps.now(),
+        identidadePublicacao: PUBLISH_IDENTITY, emitidoEm: c.deps.now(),
       })
       .returning();
     return json({ data: r }, 201);
@@ -58,7 +59,7 @@ export async function issueCorrectionReceipt(
 export interface FabricaCorrectionInput {
   userId: string;
   role: string | undefined;
-  receipt: { id: string; versao: number; sha: string };
+  receipt: { id: string; versao: number; sha: string; aprovador: string };
   articleId: string;
   url: string;
   correcao: CorrecaoInput;
@@ -94,7 +95,10 @@ export async function applyFabricaCorrection(ctx: PublicationCtx, p: FabricaCorr
     if (!upd[0]) throw new HttpError(409, 'STATE_CONFLICT', 'A matéria mudou durante a operação; tente de novo.'); // desfaz também o commit do Editorial
     await db.insert(schema.articleTransitions).values({ id: newId(), articleId: art.id, de: art.status, para: 'corrigido', actorId: p.userId, nota: notice?.text ?? null, receiptId: p.receipt.id, at: now });
     await projectSources(db, art.id, r.record);
-    await audit(db, { actorId: p.userId, actorRole: p.role, action: 'materia.corrigida', resource: 'materias', resourceId: art.id, detalhe: { receiptId: p.receipt.id, contentSha256: r.contentSha256, casoId: p.correcao.casoId, versao: p.receipt.versao }, at: now });
+    await recordPublisher(db, {
+      publicadoPor: p.userId, role: p.role, aprovador: p.receipt.aprovador, receiptId: p.receipt.id, articleId: art.id, action: 'materia.corrigida', sha: r.contentSha256,
+      outboxKey: `article.corrected:${art.id}:${r.contentSha256}`, at: now, extra: { casoId: p.correcao.casoId, versao: p.receipt.versao }, store: ctx.store,
+    });
   }
   return {
     status: r.alreadyApplied ? 200 : 201,

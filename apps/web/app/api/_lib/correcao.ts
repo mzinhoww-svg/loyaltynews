@@ -8,7 +8,7 @@ import { and, eq, inArray, max } from 'drizzle-orm';
 import { buildErratumNotice, buildReplyNotice, type CorrectionCase, type CorrectionRecord } from '@ln/editorial';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
-import { gateFailures, evidenceIdsOf, rowContentSha, receiptOfVersion, type ArticleRow } from './article-core';
+import { gateFailures, evidenceIdsOf, PUBLISH_IDENTITY, rowContentSha, receiptOfVersion, type ArticleRow } from './article-core';
 import { HttpError, json, newId, type RouteCtx, type RouteFn } from './http';
 import type { z } from 'zod';
 import type { ArticleUpdate, ReceiptInput } from './schemas';
@@ -145,7 +145,7 @@ export async function issueRevisionReceipt(c: RouteCtx, a: ArticleRow, b: z.outp
       .insert(schema.publicationReceipts)
       .values({
         id: newId(), articleId: a.id, versao: rev.versao, conteudoSha256: hash, checagens: b.checagens, aprovador: session.userId,
-        identidadePublicacao: b.identidadePublicacao ?? session.userId, emitidoEm: c.deps.now(),
+        identidadePublicacao: PUBLISH_IDENTITY, emitidoEm: c.deps.now(),
       })
       .returning();
     await tx.update(schema.articleRevisions).set({ estado: 'aprovada', conteudoSha256: hash, receiptId: r!.id }).where(eq(schema.articleRevisions.id, rev.id));
