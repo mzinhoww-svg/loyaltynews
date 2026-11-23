@@ -14,6 +14,7 @@ export interface OpenRouterBody {
     data_collection: 'deny'; // obrigatório em toda chamada
     require_parameters: true;
     zdr?: true; // exigido em trabalho editorial não publicado
+    allow_fallbacks?: false; // modo qualification: o OpenRouter não troca de provedor
   };
   // Proibidos pela política: lista de modelos (fallback silencioso) e plugins de busca web.
   models?: never;
@@ -47,6 +48,8 @@ export function buildRequestBody(p: {
   messages: ChatMessage[];
   maxTokens: number;
   zdrRequired: boolean;
+  /** false = o OpenRouter não pode trocar de provedor (modo qualification: allow_fallbacks=false). */
+  allowFallbacks?: boolean;
 }): OpenRouterBody {
   const body: OpenRouterBody = {
     model: p.openrouterId,
@@ -55,6 +58,7 @@ export function buildRequestBody(p: {
     provider: { data_collection: 'deny', require_parameters: true },
   };
   if (p.zdrRequired) body.provider.zdr = true;
+  if (p.allowFallbacks === false) body.provider.allow_fallbacks = false;
   return body;
 }
 

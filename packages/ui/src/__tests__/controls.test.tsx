@@ -20,6 +20,7 @@ import {
   Tag,
   EditoriaBadge,
   EDITORIAS,
+  formatDateShortPtBR,
   pageRange,
 } from "../index";
 
@@ -106,6 +107,28 @@ describe("EmptyState", () => {
     rerender(<EmptyState kind="error" title="Falha ao carregar" action={<Button href="/">Voltar</Button>} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
     await expectNoViolations(container);
+  });
+});
+
+describe("EmptyState inline", () => {
+  it("uma linha discreta: título em negrito (sem heading), role status, sem caixa", async () => {
+    const { container } = render(<EmptyState appearance="inline" title="Em breve: primeiras matérias" description="As notícias aparecerão aqui." />);
+    expect(screen.getByRole("status")).toHaveTextContent("Em breve: primeiras matérias");
+    expect(screen.queryByRole("heading")).toBeNull();
+    expect(container.querySelector(".ln-empty--inline")).not.toBeNull();
+    await expectNoViolations(container);
+  });
+  it("erro inline usa role alert", () => {
+    render(<EmptyState appearance="inline" kind="error" title="Falha" />);
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+});
+
+describe("formatDateShortPtBR", () => {
+  it("formata sem 'de' e sem ponto, no fuso de Brasília", () => {
+    expect(formatDateShortPtBR("2026-11-22T12:00:00-03:00")).toBe("22 nov 2026");
+    expect(formatDateShortPtBR("2026-05-03T01:00:00-03:00")).toBe("03 mai 2026");
+    expect(formatDateShortPtBR("invalid")).toBe("");
   });
 });
 

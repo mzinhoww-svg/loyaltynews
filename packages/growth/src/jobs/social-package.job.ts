@@ -121,11 +121,17 @@ export interface QueueLike {
 }
 
 /** Enfileira o job de geração de uma matéria. Idempotente por jobId; o payload leva só IDs. */
-export async function enqueueSocialPackage(queue: QueueLike, articleId: string, version = 1): Promise<{ jobId: string }> {
+export async function enqueueSocialPackage(
+  queue: QueueLike,
+  articleId: string,
+  version = 1,
+  /** Sobrepõe opções de job (ex.: backoff curto em teste de integração). `jobId` não é sobreponível. */
+  overrides: Partial<typeof SOCIAL_JOB_OPTIONS> = {},
+): Promise<{ jobId: string }> {
   const idempotencyKey = socialPackageKey(articleId, version);
   const payload = parseSocialPayload({ refId: articleId, idempotencyKey });
   const jobId = socialJobId(idempotencyKey);
-  await queue.add(SOCIAL_PACKAGE_JOB, payload, { ...SOCIAL_JOB_OPTIONS, jobId });
+  await queue.add(SOCIAL_PACKAGE_JOB, payload, { ...SOCIAL_JOB_OPTIONS, ...overrides, jobId });
   return { jobId };
 }
 
@@ -133,7 +139,7 @@ export interface BullmqLike {
   Worker: new (
     queueName: string,
     processor: (job: { name: string; data: unknown }) => Promise<unknown>,
-    opts: { connection: unknown; concurrency: number },
+    opts: { connection: unknown; concurrency: number } & Record<string, unknown>,
   ) => unknown;
   UnrecoverableError: new (message: string) => Error;
 }
@@ -147,6 +153,8 @@ export function createSocialPackageWorker(
   connection: unknown,
   deps: SocialJobDeps,
   concurrency = 2,
+  /** Opções extras do Worker (ex.: `prefix` para isolar teste de integração). `connection` e `concurrency` não são sobreponíveis. */
+  extraWorkerOptions: Record<string, unknown> = {},
 ): unknown {
   return new bullmq.Worker(
     SOCIAL_QUEUE,
@@ -159,6 +167,6 @@ export function createSocialPackageWorker(
         throw e;
       }
     },
-    { connection, concurrency },
+    { ...extraWorkerOptions, connection, concurrency },
   );
 }

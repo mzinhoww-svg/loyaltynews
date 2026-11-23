@@ -284,6 +284,12 @@
     "frente 09 Growth: credenciais mLabs (flag desligada)",
     "frente 04/Studio: nada além de AUTH_SECRET por enquanto"
   ],
+  "somente_staging": [
+    {
+      "nome": "PORTAL_VITRINE",
+      "regra": "Vitrine de demonstração do portal (decisão do Security 23/11/2026, R1-R3, R8, R9). Só existe com o valor exato 1 e APP_ENV=staging; em production/producao/homologacao a variável DEFINIDA (qualquer valor) reprova no guard-env (build e start). É definida pelo PACOTE (package-web --vitrine grava vitrine:true no release.json; build-web.mjs a passa ao next build a partir do release.json, não do painel; start-web.mjs recusa se a variável em execução divergir do release.json). Temporária: sai do staging antes do go-live (checklist), e o healthcheck de produção reprova os marcadores da vitrine. NÃO reabilita o valor mock em PORTAL_SOURCE nem em PORTAL_MODE, que seguem proibidos em qualquer deploy."
+    }
+  ],
   "proibidas_em_staging_e_producao": [
     {
       "nome": "LN_STUDIO_TEST_SESSION",

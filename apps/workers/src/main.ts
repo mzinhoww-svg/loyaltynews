@@ -3,9 +3,11 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import IORedis from 'ioredis';
 import { Pool } from 'pg';
 import { schema } from '@ln/db';
+import { pgPoolConfig } from '@ln/db/tls';
 import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { handlers } from './handlers';
+import { redisTlsOptions } from './redis-tls';
 import { BullQueueSink, startReconciler, startWorkers } from './runtime';
 
 async function main() {
@@ -14,9 +16,18 @@ async function main() {
     console.error('[workers] DATABASE_URL e REDIS_URL são obrigatórios');
     process.exit(1);
   }
-  const pool = new Pool({ connectionString: DATABASE_URL, max: 8 });
+  let poolConfig: ReturnType<typeof pgPoolConfig>;
+  let redisTls: ReturnType<typeof redisTlsOptions>;
+  try {
+    poolConfig = pgPoolConfig(process.env, { max: 8 }); // TLS + certificado de cliente (DB_SSL_*_PEM)
+    redisTls = redisTlsOptions(process.env); // rediss:// + REDIS_SSL_*_PEM
+  } catch (e) {
+    console.error(`[workers] configuração de TLS inválida: ${e instanceof Error ? e.message : 'erro'}`);
+    process.exit(1);
+  }
+  const pool = new Pool(poolConfig);
   const db = drizzle(pool, { schema }) as unknown as Db;
-  const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null }); // exigido pelo BullMQ nos workers
+  const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null, ...redisTls }); // exigido pelo BullMQ nos workers
 
   const sink = new BullQueueSink(connection);
   const workers = startWorkers({ connection, db, handlers });

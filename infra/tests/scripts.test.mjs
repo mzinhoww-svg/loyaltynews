@@ -173,7 +173,10 @@ test('build-web: checkHome aprova canonical do ambiente + noindex e reprova loca
   assert.match(checkHome(ok.replace(url, 'http://localhost:3000'), url, 'staging').join('|'), /canonical da home é "http:\/\/localhost:3000"/);
   assert.match(checkHome(ok.replace(url, 'https://loyaltynews-staging.vertraweb.app'), url, 'staging').join('|'), /esperado começar com/);
   assert.match(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'staging').join('|'), /sem meta robots noindex/);
-  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production'), [], 'em produção não exige noindex');
+  // DP-24: produção nasce NÃO indexável (exige noindex) e só dispensa o noindex com o pacote indexável (go-live)
+  assert.match(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production').join('|'), /produção sem meta robots noindex/);
+  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/><meta name="robots" content="noindex"/>`, url, 'production'), []);
+  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production', false, true), [], 'pacote indexável de produção não exige noindex');
   assert.match(checkHome('<html></html>', url, 'staging').join('|'), /sem link canonical/);
 });
 
@@ -255,12 +258,12 @@ test('verify-migrations: journal vs aplicadas (CI não pode ficar verde sem migr
 
 test('ci.yml: migrations sem --if-present, com verify-migrations e travado por LN_ACTIONS_ENABLED', async () => {
   const { readFileSync } = await import('node:fs');
-  const y = readFileSync(join(S, '..', '..', '.github', 'workflows', 'ci.yml'), 'utf8');
+  const y = readFileSync(join(S, '..', 'github-workflows', 'ci.yml'), 'utf8');
   assert.match(y, /npm run migrate -w @ln\/db\s*$/m);
   assert.doesNotMatch(y, /run:.*--if-present/);
   assert.match(y, /verify-migrations\.mjs/);
   assert.equal((y.match(/vars\.LN_ACTIONS_ENABLED == 'true'/g) || []).length, 2, 'os dois jobs precisam da trava');
-  const b = readFileSync(join(S, '..', '..', '.github', 'workflows', 'backup.yml'), 'utf8');
+  const b = readFileSync(join(S, '..', 'github-workflows', 'backup.yml'), 'utf8');
   assert.match(b, /vars\.LN_ACTIONS_ENABLED == 'true'/);
 });
 
@@ -293,4 +296,397 @@ test('start-web: sem release.json recusa (código 2); com ambiente errado recusa
     assert.match(r.stderr, /AMBIENTE DE EXECUÇÃO REPROVADO/);
     assert.doesNotMatch(r.stdout + r.stderr, /segredo-que-nao-pode-vazar/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('arquivos-orfaos: acha as sobras de upload antigo na árvore do app (JSON aninhado, lista plana e texto) e ignora node_modules/.next', async () => {
+  const { arquivosDaArvore, orfaos } = await import('../scripts/arquivos-orfaos.mjs');
+  const pacote = ['package.json', 'apps/web/app/page.tsx', 'apps/web/lib/studio/session.ts', 'release.json'];
+  const aninhada = { name: '', type: 'directory', children: [
+    { name: 'package.json', type: 'file' }, { name: 'release.json', type: 'file' },
+    { name: 'node_modules', type: 'directory', children: [{ name: 'x', type: 'file' }] },
+    { name: 'apps', type: 'directory', children: [{ name: 'web', type: 'directory', children: [
+      { name: '.next', type: 'directory', children: [{ name: 'BUILD_ID', type: 'file' }] },
+      { name: 'app', type: 'directory', children: [{ name: 'page.tsx', type: 'file' }, { name: 'velho.tsx', type: 'file' }] },
+      { name: 'lib', type: 'directory', children: [{ name: 'studio', type: 'directory', children: [{ name: 'session.ts', type: 'file' }, { name: 'test-seam.prod.ts', type: 'file' }] }] },
+    ] }] },
+  ] };
+  const esperado = ['apps/web/app/velho.tsx', 'apps/web/lib/studio/test-seam.prod.ts'];
+  assert.deepEqual(orfaos(arquivosDaArvore(aninhada), pacote), esperado);
+  const plana = { files: ['package.json', 'apps/web/app/page.tsx', 'apps/web/app/velho.tsx', 'apps/web/lib/studio/test-seam.prod.ts', 'node_modules/y/index.js', 'apps/web/.next/BUILD_ID'] };
+  assert.deepEqual(orfaos(arquivosDaArvore(plana), pacote), esperado);
+  assert.deepEqual(orfaos(arquivosDaArvore(JSON.stringify(['./package.json', '/apps/web/app/velho.tsx'])), pacote), ['apps/web/app/velho.tsx']);
+  assert.deepEqual(orfaos(arquivosDaArvore('package.json\napps/web/app/velho.tsx\napps/\n'), pacote), ['apps/web/app/velho.tsx']);
+  assert.deepEqual(orfaos(arquivosDaArvore(aninhada), [...pacote, ...esperado]), [], 'sem sobras quando o pacote cobre tudo');
+});
+
+test('arquivos-orfaos: aceita JSON com BOM UTF-8 e arquivo em UTF-16 (saída do PowerShell 5.1)', async () => {
+  const { arquivosDaArvore, orfaos, readTexto } = await import('../scripts/arquivos-orfaos.mjs');
+  const dir = tmp();
+  try {
+    const json = JSON.stringify({ files: ['package.json', 'apps/web/velho.tsx'] });
+    assert.deepEqual(orfaos(arquivosDaArvore('﻿' + json), ['package.json']), ['apps/web/velho.tsx']);
+    writeFileSync(join(dir, 'bom.json'), '﻿' + json);
+    assert.deepEqual(orfaos(arquivosDaArvore(readTexto(join(dir, 'bom.json'))), ['package.json']), ['apps/web/velho.tsx']);
+    writeFileSync(join(dir, 'u16.json'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(json, 'utf16le')]));
+    assert.deepEqual(orfaos(arquivosDaArvore(readTexto(join(dir, 'u16.json'))), ['package.json']), ['apps/web/velho.tsx']);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('arquivos-orfaos: ignora next-env.d.ts (gerado pelo Next)', async () => {
+  const { orfaos } = await import('../scripts/arquivos-orfaos.mjs');
+  assert.deepEqual(orfaos(['package.json', 'apps/web/next-env.d.ts', 'apps/web/velho.ts'], ['package.json']), ['apps/web/velho.ts']);
+});
+
+// ---------- Vitrine do staging (Security 23/11/2026, R1-R3 e R8) ----------
+test('vitrine R1/R2: guard aceita só PORTAL_VITRINE=1 com APP_ENV=staging; production/producao/homologacao e outros valores reprovam; PORTAL_SOURCE=mock segue proibido', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (env) => envProblems(env, { deploy: true }).join('|');
+  assert.equal(p({ APP_ENV: 'staging', PORTAL_VITRINE: '1' }), '');
+  assert.equal(p({ APP_ENV: 'staging' }), '', 'sem vitrine passa');
+  assert.equal(p({ APP_ENV: 'staging', PORTAL_VITRINE: '' }), '', 'vazia = ausente');
+  for (const e of ['production', 'producao', 'homologacao', '', 'dev']) assert.match(p({ APP_ENV: e, PORTAL_VITRINE: '1' }), /vitrine de demonstração só existe no staging/, e || '(vazio)');
+  for (const v of ['0', 'true', 'yes', '2', 'on']) assert.match(p({ APP_ENV: 'staging', PORTAL_VITRINE: v }), /só o valor 1 é aceito/, v);
+  assert.match(p({ APP_ENV: 'production', PORTAL_VITRINE: '0' }), /só o valor 1/);
+  assert.match(p({ APP_ENV: 'staging', PORTAL_SOURCE: 'mock', PORTAL_VITRINE: '1' }), /PORTAL_SOURCE=mock em ambiente de deploy/, 'a vitrine não reabilita PORTAL_SOURCE=mock');
+  assert.match(p({ APP_ENV: 'staging', PORTAL_MODE: 'mock', PORTAL_VITRINE: '1' }), /PORTAL_MODE=mock/);
+  assert.equal(envProblems({ PORTAL_VITRINE: '1' }, { deploy: false }).length, 0, 'fora de deploy (dev local) não bloqueia');
+});
+
+test('vitrine: guard-env recusa (código 1) em production e aceita em staging', () => {
+  const run = (env) => node('guard-env.mjs', [], { env: { ...cleanEnv(), ...env } });
+  assert.equal(run({ APP_ENV: 'staging', PORTAL_VITRINE: '1' }).status, 0);
+  const x = run({ APP_ENV: 'production', PORTAL_VITRINE: '1' });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /guard-env REPROVADO/);
+});
+
+test('vitrine R5/R8: checkHome exige a faixa COM vitrine e proíbe qualquer marcador SEM vitrine', async () => {
+  const { checkHome } = await import('../scripts/build-web.mjs');
+  const url = 'https://x.vertraweb.app';
+  const base = `<link rel="canonical" href="${url}"/><meta name="robots" content="noindex"/>`;
+  const faixa = '<div>Conteúdo de demonstração — não publicado</div>';
+  assert.deepEqual(checkHome(base + faixa, url, 'staging', true), []);
+  assert.match(checkHome(base, url, 'staging', true).join('|'), /não tem a faixa/);
+  assert.deepEqual(checkHome(base, url, 'staging', false), []);
+  assert.deepEqual(checkHome(base, url, 'staging'), [], 'padrão = sem vitrine');
+  for (const m of ['Conteúdo de demonstração', 'MOCK · dados de exemplo', '[MOCK] Matéria de teste']) assert.match(checkHome(base + m, url, 'staging', false).join('|'), /contém marcador/, m);
+  assert.match(checkHome(base + faixa, url, 'production', false).join('|'), /contém marcador/, 'produção nunca com marcador');
+});
+
+test('vitrine R3: startProblems exige PORTAL_VITRINE igual ao release.json (1 com vitrine; ausente sem)', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'a'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'staging' };
+  const env = { APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl };
+  assert.deepEqual(startProblems(env, rel), [], 'release sem campo vitrine = sem vitrine');
+  assert.deepEqual(startProblems(env, { ...rel, vitrine: false }), []);
+  assert.match(startProblems({ ...env, PORTAL_VITRINE: '1' }, { ...rel, vitrine: false }).join('|'), /pacote NÃO é de vitrine/);
+  assert.deepEqual(startProblems({ ...env, PORTAL_VITRINE: '1' }, { ...rel, vitrine: true }), []);
+  assert.match(startProblems(env, { ...rel, vitrine: true }).join('|'), /PORTAL_VITRINE ausente em execução/);
+  assert.match(startProblems({ ...env, PORTAL_VITRINE: '0' }, { ...rel, vitrine: true }).join('|'), /só o valor 1/);
+  assert.match(startProblems({ ...env, APP_ENV: 'production', PORTAL_VITRINE: '1' }, { ...rel, appEnv: 'production', vitrine: true }).join('|'), /só existe no staging/);
+});
+
+test('vitrine R3: package-web recusa --vitrine com perfil production (antes de tocar no repositório)', () => {
+  const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--profile', 'production', '--vitrine']);
+  assert.equal(x.status, 2);
+  assert.match(x.stderr, /vitrine recusado/);
+});
+
+test('vitrine R8: ci-checks reprova PORTAL_VITRINE atribuída na produção (environments.json) e em workflows/Dockerfile/next.config; citar, ler e staging passam', () => {
+  const ok = tmp();
+  put(ok, 'infra/vertra/environments.json', JSON.stringify({ ambientes: { staging: { recursos: { web: { env: { PORTAL_VITRINE: '1' } } } }, production: { recursos: { web: { env: { APP_ENV: 'production' } } } } }, regras: 'PORTAL_VITRINE=1 só no staging' }));
+  put(ok, 'infra/vertra/env-contract.json', '{"regra":"PORTAL_VITRINE=1 só no staging; nunca em produção"}');
+  put(ok, 'apps/web/next.config.ts', "// vitrine (PORTAL_VITRINE=1 com APP_ENV=staging)\nconst portalDemo = process.env.PORTAL_VITRINE === '1' && process.env.APP_ENV === 'staging' ? '1' : '0';\nexport default { env: { NEXT_PUBLIC_PORTAL_DEMO: portalDemo } };");
+  put(ok, '.github/workflows/ci.yml', '# a vitrine (PORTAL_VITRINE=1) não entra aqui\nname: ci\n');
+  put(ok, 'apps/web/package.json', JSON.stringify({ scripts: { 'verify:no-mock': 'node scripts/verify-no-mock.mjs', 'test:portal': 'PORTAL_VITRINE=1 vitest' } }));
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0, node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).stderr);
+  rmSync(ok, { recursive: true, force: true });
+  const bad = tmp();
+  put(bad, 'infra/vertra/environments.json', JSON.stringify({ ambientes: { production: { recursos: { web: { env: { PORTAL_VITRINE: '1' } } } } } }));
+  put(bad, '.github/workflows/deploy.yml', 'env:\n  PORTAL_VITRINE: 1\n');
+  put(bad, 'Dockerfile', 'ENV PORTAL_VITRINE=1\n');
+  put(bad, 'apps/web/package.json', JSON.stringify({ scripts: { start: 'PORTAL_VITRINE=1 next start' } }));
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  for (const s of ['configuração de produção de infra/vertra/environments.json', 'deploy.yml', 'Dockerfile', 'script "start"']) assert.match(x.stderr, new RegExp(s));
+  rmSync(bad, { recursive: true, force: true });
+  const env = tmp();
+  put(env, 'package.json', '{"name":"x"}');
+  const e = node('ci-checks.mjs', ['--root', env, '--deploy'], { env: { ...cleanEnv(), APP_ENV: 'production', PORTAL_VITRINE: '1' } });
+  assert.equal(e.status, 1);
+  assert.match(e.stderr, /vitrine de demonstração só existe no staging/);
+  rmSync(env, { recursive: true, force: true });
+});
+
+test('vitrine R8: healthcheck --no-mock reprova marcadores da vitrine (produção); --vitrine exige a faixa (staging com vitrine)', async () => {
+  let home = '<h1>Loyalty News</h1>';
+  const s = await server((req, res) => {
+    if (req.url === '/api/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"status":"ok"}'); }
+    if (req.url === '/') { res.writeHead(200); return res.end(home); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  try {
+    assert.equal((await hc(port, ['--no-mock', '/'])).status, 0, 'home limpa');
+    const v = await hc(port, ['--vitrine', '/']);
+    assert.equal(v.status, 1);
+    assert.match(v.stdout, /sem a faixa/);
+    home = '<div>Conteúdo de demonstração — não publicado</div>';
+    const a = await hc(port, ['--no-mock', '/']);
+    assert.equal(a.status, 1);
+    assert.match(a.stdout, /marcador\(es\) da vitrine/);
+    assert.equal((await hc(port, ['--vitrine', '/'])).status, 0);
+    home = '<span>MOCK · dados de exemplo</span>';
+    assert.equal((await hc(port, ['--no-mock', '/'])).status, 1);
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+// ---------- Provisionamento completo (staging com banco e produção) ----------
+test('guard: PORTAL_SOURCE=api é aceito em deploy (dados reais); mock, intelligence e outros seguem reprovados; PORTAL_MODE só vazio/empty', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (env) => envProblems({ APP_ENV: 'production', ...env }, { deploy: true }).join('|');
+  assert.equal(p({ PORTAL_SOURCE: 'api' }), '');
+  assert.equal(p({ PORTAL_SOURCE: 'empty' }), '');
+  assert.equal(p({}), '');
+  for (const v of ['mock', 'intelligence', 'real', 'apis']) assert.match(p({ PORTAL_SOURCE: v }), /PORTAL_SOURCE=.* deve ficar vazio ou api/, v);
+  assert.match(p({ PORTAL_MODE: 'api' }), /PORTAL_MODE=api/);
+  assert.match(p({ PORTAL_MODE: 'mock' }), /PORTAL_MODE=mock/);
+});
+
+test('pg: parseUserTables lê a saída do psql (vazio = banco novo; uma linha por tabela)', async () => {
+  const { parseUserTables } = await import('../scripts/lib/pg.mjs');
+  assert.deepEqual(parseUserTables([]), []);
+  assert.deepEqual(parseUserTables(undefined), []);
+  assert.deepEqual(parseUserTables([{ t: 'public.users' }, { t: ' public.articles ' }, { t: '' }]), ['public.users', 'public.articles']);
+  const { pgClientConfig } = await import('../scripts/lib/pg.mjs');
+  assert.throws(() => pgClientConfig({}), /variáveis ausentes: DATABASE_URL/);
+  const cfg = pgClientConfig({ DATABASE_URL: 'postgres://u:p@h:1/d', DB_SSL_CA_PEM: 'a', DB_SSL_CERT_PEM: 'b', DB_SSL_KEY_PEM: 'c' });
+  assert.equal(cfg.ssl.rejectUnauthorized, true);
+  assert.deepEqual([cfg.ssl.ca, cfg.ssl.cert, cfg.ssl.key], ['a', 'b', 'c']);
+});
+
+test('package-web: --app só aceita web ou workers; --vitrine não vale para workers', () => {
+  const dir = join(tmp(), 'nada');
+  const a = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--app', 'banco']);
+  assert.equal(a.status, 2);
+  assert.match(a.stderr, /--app deve ser web ou workers/);
+  const b = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--app', 'workers', '--vitrine']);
+  assert.equal(b.status, 2);
+  assert.match(b.stderr, /--vitrine só vale para o web/);
+});
+
+test('migrate: produção exige --confirm-production e vínculo; --first-run-empty não contorna o vínculo nem o ambiente', () => {
+  const base = { ...cleanEnv(), APP_ENV: 'production', DATABASE_URL: 'postgres://u:p@abc.db.usa1.vertraweb.app:1/vertracloud', DB_SSL_CA_PEM: 'x', DB_SSL_CERT_PEM: 'x', DB_SSL_KEY_PEM: 'x' };
+  const sem = node('migrate.mjs', ['--env', 'production', '--first-run-empty'], { env: base });
+  assert.notEqual(sem.status, 0);
+  assert.match(sem.stderr, /sem vínculo|NÃO corresponde|bindings/, 'o vínculo com bindings.json vem antes de qualquer outra coisa');
+  const errado = node('migrate.mjs', ['--env', 'production', '--first-run-empty'], { env: { ...base, APP_ENV: 'staging' } });
+  assert.notEqual(errado.status, 0);
+  assert.match(errado.stderr, /não corresponde a --env production/);
+});
+
+test('check-conexoes: redisTlsFromEnv exige rediss://, as 3 variáveis PEM e devolve o servername; sem env recusa', async () => {
+  const { redisTlsFromEnv } = await import('../scripts/check-conexoes.mjs');
+  const pem = '-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----\n';
+  const env = { REDIS_URL: 'rediss://vertracloud:senha@abc.db.usa1.vertraweb.app:12345', REDIS_SSL_CA_PEM: pem, REDIS_SSL_CERT_PEM: pem, REDIS_SSL_KEY_PEM: pem };
+  const ok = redisTlsFromEnv(env);
+  assert.equal(ok.host, 'abc.db.usa1.vertraweb.app');
+  assert.equal(ok.tls.servername, 'abc.db.usa1.vertraweb.app');
+  assert.equal(ok.tls.rejectUnauthorized, true);
+  assert.throws(() => redisTlsFromEnv({ ...env, REDIS_URL: 'redis://x:y@h:1' }), /rediss/);
+  assert.throws(() => redisTlsFromEnv({ ...env, REDIS_SSL_KEY_PEM: undefined }), /ausentes: REDIS_SSL_KEY_PEM/);
+  assert.throws(() => redisTlsFromEnv({ ...env, REDIS_SSL_CA_PEM: 'texto' }), /não parece PEM/);
+});
+
+test('check-conexoes: sem --env recusa (código 2) e sem vínculo em bindings.json o postgres falha fechado sem imprimir segredo', () => {
+  assert.equal(node('check-conexoes.mjs', []).status, 2);
+  const x = node('check-conexoes.mjs', ['--env', 'staging', '--pg'], { env: { ...cleanEnv(), DATABASE_URL: 'postgres://vertracloud:SEGREDO123@abc.db.usa1.vertraweb.app:1/vertracloud', DB_SSL_CA_PEM: 'x', DB_SSL_CERT_PEM: 'x', DB_SSL_KEY_PEM: 'x' } });
+  assert.equal(x.status, 1);
+  assert.match(x.stdout, /postgres FALHOU/);
+  assert.doesNotMatch(x.stdout + x.stderr, /SEGREDO123/);
+});
+
+// ---------- Decisão 12 do Security: PORTAL_SOURCE=api (A1-A4; casos 1-5) ----------
+test('decisao 12 caso 1: staging e producao com PORTAL_SOURCE=api passam no guard (build e start via envProblems)', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const appEnv of ['staging', 'production']) assert.deepEqual(envProblems({ APP_ENV: appEnv, PORTAL_SOURCE: 'api' }, { deploy: true }), [], appEnv);
+  const run = (env) => node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), ...env } });
+  assert.equal(run({ APP_ENV: 'production', PORTAL_SOURCE: 'api' }).status, 0);
+  assert.equal(run({ APP_ENV: 'staging', PORTAL_SOURCE: 'api' }).status, 0);
+});
+
+test('decisao 12 caso 2 (A2): só a grafia exata api; API e " api " são reprovados', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const v of ['API', ' api ', 'Api', 'api ']) assert.match(envProblems({ APP_ENV: 'staging', PORTAL_SOURCE: v }, { deploy: true }).join('|'), /exatamente api/, JSON.stringify(v));
+  assert.equal(node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), APP_ENV: 'production', PORTAL_SOURCE: 'API' } }).status, 1);
+});
+
+test('decisao 12 caso 3 (A3): PORTAL_VITRINE junto com PORTAL_SOURCE=api é reprovado em staging; vitrine sozinha segue válida', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  assert.match(envProblems({ APP_ENV: 'staging', PORTAL_SOURCE: 'api', PORTAL_VITRINE: '1' }, { deploy: true }).join('|'), /uma fonte por pacote/);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', PORTAL_VITRINE: '1' }, { deploy: true }), []);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', PORTAL_SOURCE: 'empty', PORTAL_VITRINE: '1' }, { deploy: true }), []);
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'a'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'staging', vitrine: true };
+  assert.match(startProblems({ APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl, PORTAL_VITRINE: '1', PORTAL_SOURCE: 'api' }, rel).join('|'), /uma fonte por pacote/);
+});
+
+test('decisao 12 caso 4 (A4): PORTAL_API_BASE_URL em deploy só ausente ou loopback http', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (v) => envProblems({ APP_ENV: 'production', PORTAL_SOURCE: 'api', ...(v === undefined ? {} : { PORTAL_API_BASE_URL: v }) }, { deploy: true }).join('|');
+  assert.equal(p(undefined), '');
+  assert.equal(p(''), '');
+  assert.equal(p('http://127.0.0.1:3000'), '');
+  assert.equal(p('http://localhost'), '');
+  for (const v of ['https://exemplo.invalid', 'http://exemplo.invalid', 'https://127.0.0.1', 'http://10.0.0.5:80', 'http://127.0.0.1.evil.test', 'nao-e-url']) assert.match(p(v), /PORTAL_API_BASE_URL/, v);
+});
+
+test('decisao 12 caso 5: mock e intelligence continuam reprovados (regressão), com ou sem api no meio', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const v of ['mock', 'intelligence', 'MOCK']) assert.match(envProblems({ APP_ENV: 'production', PORTAL_SOURCE: v }, { deploy: true }).join('|'), /PORTAL_SOURCE=.* deve ficar vazio ou api/, v);
+  assert.match(envProblems({ APP_ENV: 'staging', PORTAL_MODE: 'mock' }, { deploy: true }).join('|'), /PORTAL_MODE=mock/);
+});
+
+// ---------- DP-24: produção NÃO indexável até o go-live; DP-23: dispensa de backup externo com prazo ----------
+test('DP-24: PORTAL_INDEXAVEL=1 só com APP_ENV=production; qualquer outro valor ou ambiente reprova; ausente é o padrão (não indexável)', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (env) => envProblems(env, { deploy: true }).join('|');
+  assert.equal(p({ APP_ENV: 'production' }), '');
+  assert.equal(p({ APP_ENV: 'production', PORTAL_INDEXAVEL: '1' }), '');
+  assert.equal(p({ APP_ENV: 'producao', PORTAL_INDEXAVEL: '1' }), '');
+  assert.match(p({ APP_ENV: 'staging', PORTAL_INDEXAVEL: '1' }), /so a producao pode ser indexavel/);
+  assert.match(p({ APP_ENV: 'production', PORTAL_INDEXAVEL: '0' }), /so o valor 1/);
+  assert.match(p({ APP_ENV: 'production', PORTAL_INDEXAVEL: 'true' }), /so o valor 1/);
+  assert.match(p({ PORTAL_INDEXAVEL: '1' }), /so a producao pode ser indexavel/);
+});
+
+test('DP-24: start-web exige PORTAL_INDEXAVEL igual ao release.json (1 só com pacote indexável; ausente nos demais)', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'b'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'production' };
+  const env = { APP_ENV: 'production', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl };
+  assert.deepEqual(startProblems(env, rel), [], 'padrão: não indexável');
+  assert.match(startProblems({ ...env, PORTAL_INDEXAVEL: '1' }, rel).join('|'), /pacote NÃO é indexável/);
+  assert.deepEqual(startProblems({ ...env, PORTAL_INDEXAVEL: '1' }, { ...rel, indexavel: true }), []);
+  assert.match(startProblems(env, { ...rel, indexavel: true }).join('|'), /PORTAL_INDEXAVEL ausente em execução/);
+});
+
+test('DP-24: package-web --indexavel só para o web de production (não staging, não worker, não vitrine)', () => {
+  const dir = join(tmp(), 'nada');
+  for (const extra of [['--profile', 'staging'], ['--profile', 'staging-min'], ['--profile', 'production', '--app', 'workers']]) {
+    const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--indexavel', ...extra]);
+    assert.equal(x.status, 2, extra.join(' '));
+    assert.match(x.stderr, /--indexavel so vale para o web do perfil production/);
+  }
+  const v = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--profile', 'production', '--indexavel', '--vitrine']);
+  assert.equal(v.status, 2);
+});
+
+test('DP-23: waiverProblem aceita só DP-23, data futura de até 60 dias; recusa referência errada, data inválida, vencida ou longa demais', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(join(S, 'migrate.mjs'), 'utf8');
+  assert.match(src, /export function waiverProblem/);
+  // a função é pura, mas migrate.mjs executa ao ser importado; extrai e avalia só a função
+  const corpo = src.slice(src.indexOf('export function waiverProblem'), src.indexOf('\n}\n', src.indexOf('export function waiverProblem')) + 3).replace('export ', '');
+  const waiverProblem = new Function(corpo + '; return waiverProblem;')();
+  const hoje = new Date('2026-11-23T12:00:00Z');
+  const snap = '2026-11-23T06:00:00Z'; // 6 h antes de 'hoje'
+  assert.equal(waiverProblem('2026-12-20', 'DP-23', hoje, snap), '');
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje), /SNAPSHOT_AT/, 'sem snapshot recusa (B2)');
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje, '2026-11-22T06:00:00Z'), /mais de 24 h/);
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje, '2026-11-24T06:00:00Z'), /futuro/);
+  assert.match(waiverProblem('2026-12-20', 'DP-23', hoje, 'ontem'), /SNAPSHOT_AT/);
+  assert.match(waiverProblem('2026-12-20', 'outro', hoje, snap), /DP-23/);
+  assert.match(waiverProblem('20/12/2026', 'DP-23', hoje, snap), /AAAA-MM-DD/);
+  assert.match(waiverProblem('2026-11-20', 'DP-23', hoje, snap), /venceu/);
+  assert.match(waiverProblem('2027-06-01', 'DP-23', hoje, snap), /60 dias/);
+  assert.match(waiverProblem('', 'DP-23', hoje, snap), /AAAA-MM-DD/);
+});
+
+test('DP-23: migrate de produção com --waive-external-backup sem referência/prazo recusa (código 2) e sem a flag exige o backup', () => {
+  const base = { ...cleanEnv(), APP_ENV: 'production', DATABASE_URL: 'postgres://u:p@abc.db.usa1.vertraweb.app:1/vertracloud', DB_SSL_CA_PEM: 'x', DB_SSL_CERT_PEM: 'x', DB_SSL_KEY_PEM: 'x' };
+  const x = node('migrate.mjs', ['--env', 'production', '--confirm-production', '--waive-external-backup'], { env: base });
+  assert.notEqual(x.status, 0);
+  assert.doesNotMatch(x.stdout + x.stderr, /ATENCAO \(DP-23\)/, 'sem vínculo a migração nem chega à dispensa');
+});
+
+test('B1 (decisão 13): as variáveis da dispensa de backup reprovam em app/build/CI e só passam no processo da migração; atribuição em config reprova no ci-checks', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const env = { APP_ENV: 'production', LN_BACKUP_WAIVER_REF: 'DP-23', LN_BACKUP_WAIVER_UNTIL: '2026-12-20', LN_BACKUP_VERTRA_SNAPSHOT_AT: '2026-11-23T06:00:00Z' };
+  assert.equal(envProblems(env, { deploy: true }).filter((m) => /DP-23/.test(m)).length, 3);
+  assert.equal(envProblems(env, { deploy: true, migracao: true }).filter((m) => /DP-23/.test(m)).length, 0);
+  assert.equal(node('guard-env.mjs', [], { env: { ...cleanEnv(), ...env } }).status, 1);
+  const bad = tmp();
+  put(bad, '.github/workflows/migrar.yml', 'env:\n  LN_BACKUP_WAIVER_REF: DP-23\n');
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /dispensa de backup \(DP-23\) atribuída em .*migrar\.yml/);
+  rmSync(bad, { recursive: true, force: true });
+  const ok = tmp();
+  put(ok, 'docs/nota.md', 'A dispensa usa LN_BACKUP_WAIVER_REF=DP-23 so no processo da migracao.');
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0, 'citar o nome em texto não reprova');
+  rmSync(ok, { recursive: true, force: true });
+});
+
+test('I4 (decisão 13): PORTAL_INDEXAVEL com espaço (" 1", "1 ") reprova; só "1" exato em production; start-web também compara exato', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const v of [' 1', '1 ', ' 1 ', '01']) assert.match(envProblems({ APP_ENV: 'production', PORTAL_INDEXAVEL: v }, { deploy: true }).join('|'), /so o valor 1/, JSON.stringify(v));
+  assert.deepEqual(envProblems({ APP_ENV: 'production', PORTAL_INDEXAVEL: '1' }, { deploy: true }), []);
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'c'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'production', indexavel: true };
+  assert.match(startProblems({ APP_ENV: 'production', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl, PORTAL_INDEXAVEL: ' 1' }, rel).join('|'), /PORTAL_INDEXAVEL ausente|so o valor 1/);
+});
+
+// ---------- Opção (e) do PM: typecheck fora do build da Vertra, só com relatório verde do MESMO commit ----------
+test('opção (e): typecheckReportProblem aceita só relatório do mesmo commit com a etapa typecheck verde', async () => {
+  const { typecheckReportProblem } = await import('../scripts/lib/typecheck-report.mjs');
+  const sha = 'd'.repeat(40);
+  const ok = { head: sha, ok: true, verificacao: [{ etapa: 'lint', ok: true }, { etapa: 'typecheck', ok: true }] };
+  assert.equal(typecheckReportProblem(ok, sha), '');
+  assert.match(typecheckReportProblem(ok, 'e'.repeat(40)), /OUTRO commit/);
+  assert.match(typecheckReportProblem({ ...ok, verificacao: [{ etapa: 'typecheck', ok: false }] }, sha), /FALHOU/);
+  assert.match(typecheckReportProblem({ ...ok, verificacao: [{ etapa: 'lint', ok: true }] }, sha), /não tem a etapa typecheck/);
+  assert.match(typecheckReportProblem({ ...ok, head: 'curto' }, sha), /sem "head"/);
+  assert.match(typecheckReportProblem(null, sha), /ilegível/);
+  assert.match(typecheckReportProblem({ ...ok, verificacao: 'x' }, sha), /não tem a etapa typecheck/);
+});
+
+test('opção (e): typecheckEnv só liga LN_BUILD_SKIP_TYPECHECK quando o release.json dispensa; o painel nunca decide', async () => {
+  const { typecheckEnv } = await import('../scripts/lib/typecheck-report.mjs');
+  assert.deepEqual(typecheckEnv({ semTypecheckNoBuild: true }), { LN_BUILD_SKIP_TYPECHECK: '1' });
+  assert.deepEqual(typecheckEnv({ semTypecheckNoBuild: false }), {});
+  assert.deepEqual(typecheckEnv({}), {});
+  assert.deepEqual(typecheckEnv(null), {});
+  assert.deepEqual(typecheckEnv({ semTypecheckNoBuild: 'true' }), {}, 'só o booleano true');
+});
+
+test('opção (e): package-web --sem-typecheck-no-build exige o relatório, recusa worker e relatório de outro commit', () => {
+  const dir = join(tmp(), 'nada');
+  const sem = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--sem-typecheck-no-build']);
+  assert.equal(sem.status, 2);
+  assert.match(sem.stderr, /exige --typecheck-report/);
+  const w = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--app', 'workers', '--sem-typecheck-no-build', '--typecheck-report', 'x.json']);
+  assert.equal(w.status, 2);
+  assert.match(w.stderr, /so vale para o web/);
+  const d = tmp();
+  put(d, 'rel.json', JSON.stringify({ head: 'f'.repeat(40), ok: true, verificacao: [{ etapa: 'typecheck', ok: true }] }));
+  const outro = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--sem-typecheck-no-build', '--typecheck-report', join(d, 'rel.json')]);
+  assert.notEqual(outro.status, 0);
+  assert.match(outro.stderr, /OUTRO commit/);
+  const ruim = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--sem-typecheck-no-build', '--typecheck-report', join(d, 'nao-existe.json')]);
+  assert.equal(ruim.status, 2);
+  assert.match(ruim.stderr, /ilegivel/);
+  rmSync(d, { recursive: true, force: true });
+});
+
+test('opção (e): start-web reprova LN_BUILD_SKIP_TYPECHECK em execução (a variável é só do build)', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'a'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'staging' };
+  const env = { APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl };
+  assert.deepEqual(startProblems(env, rel), []);
+  assert.match(startProblems({ ...env, LN_BUILD_SKIP_TYPECHECK: '1' }, rel).join('|'), /LN_BUILD_SKIP_TYPECHECK definida em execução/);
 });

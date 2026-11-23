@@ -13,13 +13,14 @@ import { editoriaName } from '../_lib/editorias';
 import { getSource } from '../_lib/source';
 import type { AdSlotId, Article, Page } from '../_lib/types';
 
+/** Selo compacto: "MOCK" visível; o texto completo para leitor de tela ("· dados de exemplo") vem do `MockBadge` do DS (ln-sr-only). */
 export function MockTag() {
   return <MockBadge label="" />;
 }
 
-/** Estado vazio honesto (DS `EmptyState`). */
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
-  return <DsEmptyState title={title} description={children} />;
+/** Estado vazio honesto (DS `EmptyState`), discreto por padrão: uma linha, sem caixa. */
+export function EmptyState({ title, children, appearance = 'inline' }: { title: string; children?: ReactNode; appearance?: 'inline' | 'box' }) {
+  return <DsEmptyState title={title} description={children} appearance={appearance} />;
 }
 
 export function PageHead({
@@ -83,8 +84,7 @@ export function ArticleCard({
   headingLevel?: 2 | 3 | 4;
 }) {
   const nome = editoriaName(article.editoriaSlug);
-  const label = article.image?.label;
-  const card = (
+  return (
     <DsArticleCard
       title={article.title}
       href={`/noticia/${article.slug}`}
@@ -96,40 +96,32 @@ export function ArticleCard({
       author={article.authorLabel}
       imageSrc={article.image?.src}
       imageAlt={article.image?.alt}
+      imageLabel={article.image?.label ?? undefined}
       headingLevel={headingLevel}
       rank={rank}
       isMock={article.mock}
       linkAs={Link}
     />
   );
-  // Rótulo visível obrigatório junto da imagem (ADR-018), também nos cards: só quando o card mostra imagem.
-  if (!label || !article.image || size === 'compact') return card;
-  return (
-    <div className="pt-card-labeled">
-      <span className="pt-card-label" data-testid="card-image-label">
-        {label}
-      </span>
-      {card}
-    </div>
-  );
 }
 
-export function ArticleGrid({ items, cols = 4 }: { items: Article[]; cols?: 3 | 4 }) {
+/** `headingLevel`: use 2 quando a grade vem logo abaixo do h1 (listagens); 3 dentro de uma Section (h2). */
+export function ArticleGrid({ items, cols = 4, headingLevel = 3 }: { items: Article[]; cols?: 3 | 4; headingLevel?: 2 | 3 | 4 }) {
   return (
     <div className={cols === 3 ? 'pt-grid pt-grid-3' : 'pt-grid'}>
       {items.map((a) => (
-        <ArticleCard key={a.slug} article={a} />
+        <ArticleCard key={a.slug} article={a} headingLevel={headingLevel} />
       ))}
     </div>
   );
 }
 
-export function RankedList({ items }: { items: Article[] }) {
+export function RankedList({ items, headingLevel = 3 }: { items: Article[]; headingLevel?: 2 | 3 | 4 }) {
   return (
     <ol className="pt-list">
       {items.map((a, i) => (
         <li key={a.slug}>
-          <ArticleCard article={a} size="compact" rank={i + 1} />
+          <ArticleCard article={a} size="compact" rank={i + 1} headingLevel={headingLevel} />
         </li>
       ))}
     </ol>

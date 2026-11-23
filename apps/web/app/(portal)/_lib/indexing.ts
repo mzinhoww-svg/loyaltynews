@@ -1,8 +1,11 @@
 /**
  * Política de indexação e URL pública do portal.
  *
- * Regra: só `APP_ENV=production` é indexável. Qualquer outro valor (staging, homologacao, development)
- * ou ausência da variável bloqueia indexação (padrão seguro). A fonte MOCK também bloqueia, em qualquer ambiente.
+ * Regra (DP-24): a indexação só é liberada com `APP_ENV=production` E o interruptor explícito `PORTAL_INDEXAVEL=1`
+ * (valor exato; definido pelo pacote só no go-live). Produção SEM o interruptor sobe NÃO indexável, igual ao staging:
+ * robots `Disallow: /`, sem Sitemap, sitemap vazio, meta noindex/nofollow e X-Robots-Tag.
+ * Qualquer outro APP_ENV (staging, homologacao, development) ou ausência da variável bloqueia (padrão seguro), assim como a fonte
+ * MOCK e a vitrine, em qualquer ambiente; o interruptor nunca afrouxa staging nem vitrine (nem o R8).
  * `APP_ENV` deve estar definido no BUILD de produção (metadata das páginas estáticas é gerada no build);
  * robots.txt, sitemap e o cabeçalho X-Robots-Tag (proxy.ts) são decididos em tempo de execução.
  */
@@ -13,8 +16,28 @@ const LOCAL_URL = 'http://localhost:3000';
 
 export const isProductionEnv = (env: Env = process.env): boolean => env.APP_ENV === 'production';
 
+/** Interruptor de indexação de produção: só o valor exato "1" conta. */
+export const indexavelFlag = (env: Env = process.env): boolean => env.PORTAL_INDEXAVEL === '1';
+
 export const indexingBlocked = (env: Env = process.env): boolean =>
-  !isProductionEnv(env) || env.PORTAL_SOURCE === 'mock' || (env.PORTAL_VITRINE !== undefined && env.PORTAL_VITRINE !== '');
+  !isProductionEnv(env) ||
+  !indexavelFlag(env) ||
+  env.PORTAL_SOURCE === 'mock' ||
+  (env.PORTAL_VITRINE !== undefined && env.PORTAL_VITRINE !== '');
+
+/**
+ * Guard de build do interruptor (junto com a vitrine, ver assertVitrineEnv): `PORTAL_INDEXAVEL` definida só pode valer "1" e exige
+ * APP_ENV=production. Outra combinação (staging com 1, valor diferente de 1, como "0" ou "true") faz o BUILD falhar, para um erro de
+ * digitação não virar indexação nem esconder a intenção.
+ */
+export function assertIndexavelEnv(env: Env = process.env): void {
+  const v = env.PORTAL_INDEXAVEL;
+  if (v === undefined || v === '') return;
+  if (env.NEXT_PHASE !== 'phase-production-build') return;
+  if (v !== '1' || !isProductionEnv(env)) {
+    throw new Error('Build recusado: PORTAL_INDEXAVEL só é aceita com o valor 1 e APP_ENV=production (staging e vitrine nunca são indexáveis).');
+  }
+}
 
 export type SourceKind = 'empty' | 'mock' | 'api';
 
@@ -42,6 +65,20 @@ export function resolveSourceKind(env: Env = process.env): { kind: SourceKind; r
   }
   const outsideDeploy = env.NODE_ENV !== 'production' || env.LN_E2E_BUILD === '1';
   return outsideDeploy ? { kind: 'mock', refusedMock: false } : { kind: 'empty', refusedMock: true };
+}
+
+/**
+ * Vitrine (Security R1/R2/R8): `PORTAL_VITRINE` só pode existir com o valor exato "1" e APP_ENV=staging.
+ * Qualquer outra combinação (inclusive produção/producao/homologacao) faz o BUILD falhar; em execução a fonte vazia é usada
+ * (ver resolveSourceKind). Chamada no carregamento de site.ts, que roda durante `next build`.
+ */
+export function assertVitrineEnv(env: Env = process.env): void {
+  const v = env.PORTAL_VITRINE;
+  if (v === undefined || v === '') return;
+  if (env.NEXT_PHASE !== 'phase-production-build') return;
+  if (v !== '1' || env.APP_ENV !== 'staging') {
+    throw new Error('Build recusado: PORTAL_VITRINE só é aceita com o valor 1 e APP_ENV=staging (decisão do Security; vitrine nunca em produção).');
+  }
 }
 
 /** robots.txt: bloqueado = nada rastreável e sem Sitemap; liberado = regra de produção. */
