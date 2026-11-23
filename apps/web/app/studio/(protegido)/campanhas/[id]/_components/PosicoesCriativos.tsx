@@ -1,5 +1,5 @@
 import { POSITIONS } from '@ln/commercial';
-import { adicionarCriativoAction, aprovarCriativoAction, cancelarReservaAction, enviarArquivoCriativoAction, reservarPosicaoAction } from '../../actions';
+import { adicionarCriativoAction, definirPosicoesAction, aprovarCriativoAction, cancelarReservaAction, enviarArquivoCriativoAction, reservarPosicaoAction } from '../../actions';
 
 export type ReservaLinha = { id: string; positionId: string; startDate: string; endDate: string; status: string };
 export type CriativoLinha = {
@@ -24,20 +24,42 @@ const GRADE = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(1
  * As regras (período, dimensão, peso, venda ligada, criativo real) são do domínio: as recusas voltam no aviso da página.
  */
 export function PosicoesCriativos(props: {
-  campanha: { id: string; accountId: string; startDate: string; endDate: string; status: string; positionId?: string | null };
+  campanha: { id: string; accountId: string; startDate: string; endDate: string; status: string; positionId?: string | null; positionIds?: string[] };
   reservas: ReservaLinha[];
   criativos: CriativoLinha[];
   vendaLigada: boolean;
 }) {
   const { campanha: c, reservas, criativos, vendaLigada } = props;
   const escreve = c.status !== 'completed' && c.status !== 'cancelled';
-  const posPadrao = c.positionId ?? RESERVAVEIS[0]?.id;
+  const declaradas = c.positionIds ?? [];
+  // reserva e criativo só nas posições da campanha (regra do domínio); sem posição declarada, o formulário não aparece
+  const DA_CAMPANHA = RESERVAVEIS.filter((p) => declaradas.includes(p.id));
+  const posPadrao = DA_CAMPANHA[0]?.id;
   return (
     <>
       <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="h-posicoes" data-testid="posicoes">
         <h2 id="h-posicoes" style={{ marginTop: 0 }}>
           Posições
         </h2>
+        <form action={definirPosicoesAction} aria-label="Posições da campanha" data-testid="posicoes-campanha" style={{ marginBottom: 12 }}>
+          <input type="hidden" name="id" value={c.id} />
+          <fieldset disabled={c.status !== 'draft'}>
+            <legend>Posições da campanha</legend>
+            {RESERVAVEIS.map((p) => (
+              <label key={p.id} style={{ marginRight: 12, display: 'inline-block' }}>
+                <input type="checkbox" name="posicoes" value={p.id} defaultChecked={declaradas.includes(p.id)} /> {p.id}
+              </label>
+            ))}
+          </fieldset>
+          {c.status === 'draft' ? (
+            <button className="st-btn sec" type="submit" style={{ marginTop: 8 }}>
+              Salvar posições
+            </button>
+          ) : (
+            <p className="st-hint">As posições só mudam em rascunho.</p>
+          )}
+          {declaradas.length === 0 ? <p data-vazio="posicoes-campanha">Nenhuma posição definida: defina ao menos uma para reservar e criar criativos.</p> : null}
+        </form>
         {reservas.length === 0 ? (
           <p data-vazio="posicoes">Nenhuma posição reservada. Para mover a campanha para “reserved”, reserve ao menos uma posição.</p>
         ) : (
@@ -76,7 +98,7 @@ export function PosicoesCriativos(props: {
             </tbody>
           </table>
         )}
-        {escreve ? (
+        {escreve && DA_CAMPANHA.length > 0 ? (
           <form action={reservarPosicaoAction} aria-label="Reservar posição" style={{ marginTop: 12 }}>
             <input type="hidden" name="id" value={c.id} />
             <input type="hidden" name="conta" value={c.accountId} />
@@ -84,7 +106,7 @@ export function PosicoesCriativos(props: {
               <div className="st-field">
                 <label htmlFor="res-posicao">Posição</label>
                 <select id="res-posicao" name="posicao" defaultValue={posPadrao}>
-                  {RESERVAVEIS.map((p) => (
+                  {DA_CAMPANHA.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.id} · {p.name} ({p.desktop})
                     </option>
@@ -162,14 +184,14 @@ export function PosicoesCriativos(props: {
             ))}
           </ul>
         )}
-        {escreve ? (
+        {escreve && DA_CAMPANHA.length > 0 ? (
           <form action={adicionarCriativoAction} aria-label="Adicionar criativo" style={{ marginTop: 12 }}>
             <input type="hidden" name="id" value={c.id} />
             <div style={GRADE}>
               <div className="st-field">
                 <label htmlFor="cr-posicao">Posição do criativo</label>
                 <select id="cr-posicao" name="posicao" defaultValue={posPadrao}>
-                  {RESERVAVEIS.map((p) => (
+                  {DA_CAMPANHA.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.id} ({p.desktop}, até {p.maxWeightKB} KB)
                     </option>

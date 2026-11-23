@@ -93,3 +93,11 @@ export async function aprovarCriativoAction(fd: FormData): Promise<void> {
   await requireStudio(PAPEIS_COMERCIAIS);
   voltarCampanha(texto(fd, 'id'), await api.comercial.aprovarCriativo(texto(fd, 'criativo')), 'Criativo aprovado.');
 }
+
+/** Posições da campanha (checkboxes). O domínio recusa fora de rascunho, posição não configurada ou formato indisponível. */
+export async function definirPosicoesAction(fd: FormData): Promise<void> {
+  await requireStudio(PAPEIS_COMERCIAIS);
+  const id = texto(fd, 'id');
+  const ids = fd.getAll('posicoes').filter((v): v is string => typeof v === 'string' && v.length > 0);
+  voltarCampanha(id, await api.comercial.definirPosicoes(id, ids), 'Posições da campanha atualizadas.');
+}

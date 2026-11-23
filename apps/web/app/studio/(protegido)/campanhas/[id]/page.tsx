@@ -27,7 +27,7 @@ const DESTINOS: Record<string, string[]> = {
 };
 
 type Detalhe = {
-  campaign: { id: string; name: string; status: string; accountId: string; positionId?: string | null; startDate: string; endDate: string; history: { from: string | null; to: string; at: string; note?: string }[] };
+  campaign: { id: string; name: string; status: string; accountId: string; positionId?: string | null; positionIds?: string[]; startDate: string; endDate: string; history: { from: string | null; to: string; at: string; note?: string }[] };
   reservations: ReservaLinha[];
   creatives: CriativoLinha[];
   report: { utmVisits: number | null };

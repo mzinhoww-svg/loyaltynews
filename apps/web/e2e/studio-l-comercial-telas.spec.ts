@@ -58,6 +58,18 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     // estados vazios honestos
     await expect(page.locator('[data-vazio="posicoes"]')).toBeVisible();
     await expect(page.locator('[data-vazio="criativos"]')).toBeVisible();
+
+    // posições da campanha: sem nenhuma, não há reserva nem criativo; salvar sem marcar é recusado
+    await expect(page.locator('[data-vazio="posicoes-campanha"]')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reservar posição' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Adicionar criativo' })).toHaveCount(0);
+    await enviar(page, page.getByRole('button', { name: 'Salvar posições' }));
+    await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+    await page.getByTestId('posicoes-campanha').getByLabel('TOP').check();
+    await enviar(page, page.getByRole('button', { name: 'Salvar posições' }));
+    await sucesso(page, 'Posições da campanha atualizadas.');
+    await expect(page.getByTestId('posicoes-campanha').getByLabel('TOP')).toBeChecked();
+    await expect(page.getByLabel('Posição', { exact: true }).locator('option')).toHaveCount(1);
     // venda desligada: confirmar não é oferecido (só pré-reserva)
     await expect(page.getByLabel('Confirmar venda')).toBeDisabled();
 
@@ -67,7 +79,6 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
     await expect(page.locator('main .st-alert.err').first()).toBeVisible();
 
-    await page.getByLabel('Posição', { exact: true }).selectOption('TOP');
     await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
     await sucesso(page, 'Posição reservada.');
     const reserva = page.locator('tr[data-reserva]');
@@ -80,6 +91,7 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
     await sucesso(page, 'Estado da campanha atualizado.');
     await expect(page.locator('main .st-badge').first()).toHaveText('reserved');
+    await expect(page.getByTestId('posicoes-campanha').getByRole('button', { name: 'Salvar posições' })).toHaveCount(0); // fora de rascunho não muda
 
     // criativo: nasce não aprovado; aprovar sem arquivo é recusado com o que falta
     await page.getByLabel('Texto alternativo').fill('Banner topo Telas');

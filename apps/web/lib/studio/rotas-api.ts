@@ -18,6 +18,10 @@ import * as agendaRoute from '@/app/api/agenda/[id]/route';
 import * as agendaModeracaoRoute from '@/app/api/agenda/[id]/moderacao/route';
 import * as midiaUploadRoute from '@/app/api/midia/arquivo/route';
 import * as criativoUploadRoute from '@/app/api/commercial/studio/creatives/upload/route';
+import * as creativeTemplatesRoute from '@/app/api/studio/creative/templates/route';
+import * as creativePreviewRoute from '@/app/api/studio/creative/preview/route';
+import * as creativeCardsRoute from '@/app/api/studio/creative/cards/route';
+import * as creativeTransicaoRoute from '@/app/api/studio/creative/cards/[id]/transicao/route';
 import * as siteDocsRoute from '@/app/api/site/documentos/route';
 import * as siteDocRoute from '@/app/api/site/documentos/[tipo]/route';
 import * as siteRascunhoRoute from '@/app/api/site/documentos/[tipo]/rascunho/route';
@@ -256,6 +260,8 @@ export const api = {
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
     /** Posições da campanha: pré-reserva (held) ou confirmação (só com venda ligada); cancelar recusa reserva de campanha ativa. */
+    /** Posições da campanha (só em rascunho; ao menos uma). Reserva e criativo só nas posições declaradas. */
+    definirPosicoes: (campaignId: string, positionIds: string[]) => chamar(dispatchCommercial, `${C}/studio/campaigns/positions`, { metodo: 'POST', corpo: { campaignId, positionIds } }),
     reservar: (corpo: { positionId: string; accountId: string; campaignId: string; startDate: string; endDate: string; confirm?: boolean }) => chamar<{ id: string }>(dispatchCommercial, `${C}/studio/reservations`, { metodo: 'POST', corpo }),
     cancelarReserva: (reservationId: string) => chamar(dispatchCommercial, `${C}/studio/reservations/cancel`, { metodo: 'POST', corpo: { reservationId } }),
     /** Criativos: cadastro (sem arquivo), arquivo medido no servidor (multipart) e aprovação (recusa com a lista do que falta). */
@@ -310,4 +316,35 @@ export const api = {
     revisarFonte: (sourceId: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/review`, { metodo: 'POST', corpo }),
     habilitarFonte: (sourceId: string, enabled: boolean) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/enabled`, { metodo: 'POST', corpo: { enabled } }),
   },
+  /** Creative Studio (contrato fast-track/contratos/creative-studio-api.md): cards sociais por template; nada publica nem chama o mLabs. */
+  creative: {
+    templates: () => chamar<{ items: { kind: 'materia' | 'analise'; formats: string[]; descricao: string }[] }>(creativeTemplatesRoute.GET as Despachante, '/api/studio/creative/templates'),
+    previa: (corpo: CardPedido) => chamar<CardPrevia>(creativePreviewRoute.POST as Despachante, '/api/studio/creative/preview', { metodo: 'POST', corpo }),
+    criar: (corpo: CardPedido) => chamar<{ card: CardSocial; existente: boolean }>(creativeCardsRoute.POST as Despachante, '/api/studio/creative/cards', { metodo: 'POST', corpo }),
+    cards: (query: Record<string, string | undefined> = {}) => chamar<{ data: CardSocial[]; total: number; limit: number; offset: number }>(creativeCardsRoute.GET as Despachante, '/api/studio/creative/cards', { query }),
+    transicao: (id: string, corpo: { para: CardSocial['estado']; motivo?: string }) =>
+      chamar<{ card: CardSocial }>(comParams(creativeTransicaoRoute.POST as Handler, { id }), `/api/studio/creative/cards/${encodeURIComponent(id)}/transicao`, { metodo: 'POST', corpo }),
+  },
 };
+
+export type CardPedido = { articleId: string; kind: 'materia' | 'analise'; format: 'linkedin_landscape' | 'square'; autoralFormato?: 'analise' | 'explicador' | 'comparativo' };
+export type CardPrevia = { svg: string; altText: string; width: number; height: number; svgSha256: string; mock: boolean; brandStatus: string };
+export interface CardSocial {
+  id: string;
+  articleId: string;
+  articleTitulo: string | null;
+  kind: 'materia' | 'analise';
+  format: 'linkedin_landscape' | 'square';
+  autoralFormato: string | null;
+  estado: 'rascunho' | 'em_revisao' | 'aprovado' | 'rejeitado';
+  svgSha256: string;
+  altText: string;
+  width: number;
+  height: number;
+  mock: boolean;
+  criadoPor: string;
+  criadoEm: string;
+  revisadoPor: string | null;
+  revisadoEm: string | null;
+  motivo: string | null;
+}
