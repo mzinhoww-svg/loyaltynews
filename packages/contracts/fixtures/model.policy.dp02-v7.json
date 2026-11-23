@@ -454,7 +454,9 @@
         "uses_audit_reserve": false,
         "charged_to": "verba do provedor chamado (openai ou anthropic) no mes da chamada, pool qualification, dentro de stage_caps_usd",
         "reason": "DP-04 ja soma 50 (20+22+0+8): nao ha folga fora das verbas; com producao desligada elas estao ociosas",
-        "status": "proposta do Chief Architect; FinOps confirma"
+        "stops_when_production_enabled": true,
+        "status": "confirmado pelo FinOps (23/11): livro-de-custos-v7.csv e reserva-qualificacao-novembro-2026.md",
+        "risk": "nov/2026: rotulagem do golden set ~US$ 9 + etapa 1 GPT-6.1-terra ~US$ 1,14 = ~US$ 10,1 dos US$ 20 da OpenAI; sobra ~US$ 9,9 para producao; se a producao comecar cedo, a rotulagem disputa a verba (decisao do proprietario)"
       },
       "zdr_preferred": true,
       "stage_caps_usd": {
