@@ -9,7 +9,7 @@ import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { evidenciasDisponiveis } from '@/lib/studio/cms/evidencias';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
-import { STATUS_EDITAVEIS, TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
+import { STATUS_EDITAVEIS, STATUS_LABEL, TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
 import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
@@ -67,7 +67,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
         <section aria-label="Editor">
           {!editavel ? (
             <div className="st-alert" role="note" data-travada="sim">
-              Esta matéria está em <strong>{m.status}</strong>: os campos abaixo ficam travados. Só rascunho e bloqueado são editáveis; para alterar, volte a matéria a rascunho.
+              Esta matéria está em <strong>{STATUS_LABEL[m.status as keyof typeof STATUS_LABEL] ?? m.status}</strong>: os campos abaixo ficam travados. Só rascunho e bloqueado são editáveis; para alterar, volte a matéria a rascunho.
             </div>
           ) : null}
           <MateriaForm
