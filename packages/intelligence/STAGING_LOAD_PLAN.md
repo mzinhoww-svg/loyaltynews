@@ -22,25 +22,48 @@ Conjunto `data/seed.public.v2.json` (formato `intelligence-seed/1`; supera o v1,
 - Idempotente: repetir não duplica; relação existente só renova `validated_at` e a evidência.
 - Transação única: falha no meio desfaz tudo. Desfazer depois da carga: manifesto + `rollbackSeed` (mantém organização que já tenha outro uso).
 
-## Pré-condições
-1. Banco de staging PostgreSQL 18 criado pelo DevOps; `DATABASE_URL` só no ambiente do executor (nunca em arquivo, log ou chat).
-2. Migrações do produto aplicadas com `npm run migrate -w @ln/db` — inclui `0006_intelligence` (schema `intelligence`). Conferir: `SELECT count(*) FROM information_schema.tables WHERE table_schema = 'intelligence';` = 14 tabelas (13 do modelo + a de tombstones; views não contam).
-3. Flags: `intelligencePessoas` **desligada** (padrão). Esta carga não toca pessoas e funciona assim.
-4. Backup/snapshot do staging antes da carga (regra comum do DevOps).
+## Execução no `ln-staging-db` (formato de `infra/docs/credenciais-sem-expor.md`, do DevOps)
+Estado: **pronto para rodar quando o DevOps liberar; nada foi executado no staging.** Eu não tenho (nem peço) a chave da Vertra, a senha ou os PEM: o script de credenciais do PM injeta `APP_ENV`, `DATABASE_URL`, `DB_SSL_CA_PEM`, `DB_SSL_CERT_PEM`, `DB_SSL_KEY_PEM` **só no ambiente do processo filho**. O `load-seed` nunca imprime URL nem PEM, não gira senha, não recebe segredo por argumento e mostra só nomes de variáveis ausentes.
 
-## Passo a passo
-1. **Reverificar as fontes** (as páginas mudam; a verificação envelhece; páginas "browser" usam a captura salva — para renovar, recapturar com o navegador do OpenBot, respeitando robots e uma visita por URL, e atualizar o arquivo em `data/captures/`): `node packages/intelligence/scripts/verify-dataset.mjs packages/intelligence/data/seed.public.v2.json` — respeita robots.txt, 1 requisição por URL, pausa entre elas. Se algum registro sair `FALHA`, ele será recusado na carga (não corrija a citação "de cabeça": confira a página e ajuste o conjunto).
-2. **Compilar o carregador** (na raiz do monorepo):
-   `npx esbuild packages/intelligence/scripts/load-seed.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/ln-intelligence/load-seed.mjs`
-3. **Dry-run** (padrão, só leitura): `DATABASE_URL=… node node_modules/.cache/ln-intelligence/load-seed.mjs --dataset packages/intelligence/data/seed.public.v2.json --verification packages/intelligence/data/seed.public.v2.verification.json`
-   Esperado no primeiro staging: `create: 40, exists: 0, rejected: 0` (se o v1 já tiver sido carregado: `create: 33, exists: 7`). Qualquer `rejected` ⇒ parar e investigar (exit code 1).
-4. **Aplicar**: o mesmo comando com `--apply --manifest <caminho>/seed.public.v2.manifest.json`. Guardar o manifesto (é o que desfaz a carga).
-5. **Conferir** (SQL de leitura):
-   - `SELECT count(*) FROM intelligence.organization;` → 20 · `SELECT count(*) FROM intelligence.org_relation;` → 20
-   - `SELECT count(*) FROM intelligence.person;` e `role_assignment`, `move` → 0
-   - `SELECT x.certainty, e.source_url, e.retrieved_at, e.content_hash FROM intelligence.org_relation x JOIN intelligence.evidence e ON e.id = x.evidence_id;` → `declared`, URL https, data e hash preenchidos
-   - Páginas públicas do portal: empresa Livelo mostra suas relações (Bradesco, ABEMF, Stix, Uber, BRB, Km de Vantagens), cada uma com fonte e data de validação.
-6. **Desfazer, se preciso**: `rollbackSeed(db, manifesto)` (função exportada de `@ln/intelligence`; ainda sem comando próprio) ou restaurar o snapshot do passo 4 das pré-condições.
+### Pré-condições (DevOps/PM)
+1. `ln-staging-db` com as migrações do produto aplicadas, **incluindo `0006_intelligence`** (`infra/scripts/migrate.mjs --env staging` e `verify-migrations`). O `load-seed` confere isso antes de qualquer coisa e para com `schema_intelligence_ausente` se faltar.
+2. Regra da senha do doc do DevOps: o script de credenciais **gira a senha a cada execução**. Antes de os apps usarem o banco (Fase 1) isso é inofensivo; **depois** (Fase 3) cada execução derruba web/worker até receberem a nova senha. Portanto: se o staging já tem apps conectados, o DevOps escolhe a variante da Fase 3 (gira, atualiza `DATABASE_URL` nos dois apps e reinicia) — **ou** rodamos a carga na mesma janela de uma migração, que já tem esse procedimento. Cada execução abaixo (check, dry-run, apply) é uma execução do script de credenciais: **agrupar em uma única janela** reduz giros.
+3. Snapshot/backup do banco antes do `--apply` (regra comum do DevOps).
+4. Checkout para compilar o carregador: este (`C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligence`, com `node_modules`). O script de credenciais roda com `cwd = LN_CHECKOUT` (`wt-migrar`), então **os caminhos abaixo são absolutos**.
+5. Flags: `intelligencePessoas` desligada (padrão). A carga não toca pessoas.
+
+### Roteiro (cada comando = uma execução do script de credenciais; "ln-com-credenciais.mjs" fica na pasta de scripts do PM)
+```
+# 0) compilar o carregador (sem credenciais; uma vez)
+cd C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligence
+npx esbuild packages/intelligence/scripts/load-seed.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/ln-intelligence/load-seed.mjs
+
+# 1) estado antes (só leitura): esperado tudo 0, extended_personal_data_enabled=false
+node ln-com-credenciais.mjs staging -- node C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligence
+ode_modules.cacheln-intelligenceload-seed.mjs --check
+
+# 2) DRY-RUN (padrão, só leitura): esperado create 40, exists 0, rejected 0; exit 0
+node ln-com-credenciais.mjs staging -- node C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligence
+ode_modules.cacheln-intelligenceload-seed.mjs --dataset C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligencepackagesintelligencedataseed.public.v2.json --verification C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligencepackagesintelligencedataseed.public.v2.verification.json
+
+# 3) APLICAR — só depois do OK do PM sobre o dry-run (exige APP_ENV=staging; em produção é recusado)
+node ln-com-credenciais.mjs staging -- node C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligence
+ode_modules.cacheln-intelligenceload-seed.mjs --dataset … --verification … --apply --manifest <pasta de releases do DevOps>intelligence-seed-v2.manifest.json
+
+# 4) estado depois (só leitura): esperado organizations 20, org_relations 20, org_relations_not_declared 0, evidence_mock 0, persons/role_assignments/moves 0
+node ln-com-credenciais.mjs staging -- node C:UsersmazinOpenBotSharedloyalty-newscodewt-intelligence
+ode_modules.cacheln-intelligenceload-seed.mjs --check
+```
+O manifesto (só IDs, nenhum segredo) fica com o DevOps; sem ele não há desfazer automático (a alternativa é restaurar o snapshot).
+
+### Critérios de parada
+- Dry-run com qualquer `rejected` (exit 1) ⇒ **não aplicar**; reverificar as fontes (`verify-dataset.mjs`) e investigar.
+- `--check` antes com contagens diferentes de 0 ⇒ alguém já carregou: rodar o dry-run e ler `exists` (a carga é idempotente, mas confirmar com o PM).
+- Qualquer falha de conexão/TLS ⇒ o carregador imprime só tipo e código do erro; **não** repetir em laço (cada tentativa gira a senha); chamar o DevOps.
+- Depois da carga: conferir no portal de staging (quando existir) a página da Livelo: relações com fonte e data, **sem o trecho literal** (ver `termos-fontes.md`).
+
+### Desfazer
+Com o manifesto: `rollbackSeed(db, manifesto)` (organizações/relações criadas pela carga, se nada mais as usa; evidência órfã). Sem comando próprio ainda; o DevOps pode chamar via um script curto, ou restaurar o snapshot do item 3 das pré-condições.
 
 ## Ampliar (próximas cargas)
 - Cada nova organização/relação = uma entrada em `sources` + `organizations`/`relations` com citação literal de página pública oficial (RI, imprensa, regulador, associação), depois `verify-dataset`, depois carga. Sem citação verificável, não entra.

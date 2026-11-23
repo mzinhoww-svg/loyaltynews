@@ -152,6 +152,8 @@ async function verify(path) {
     ...ds.organizations.map((o) => ({ ref: `organization:${o.key}`, sourceId: o.sourceId, quote: o.quote, contextQuote: o.contextQuote })),
     ...ds.relations.map((r) => ({ ref: `relation:${r.from}>${r.type}>${r.to}`, sourceId: r.sourceId, quote: r.quote, contextQuote: r.contextQuote })),
     ...(ds.persons ?? []).map((p) => ({ ref: `person:${p.key}`, sourceId: p.sourceId, quote: p.quote })),
+    // achados sobre termos de uso/direitos (revisão J-14): também exigem citação literal na página indicada
+    ...(ds.termsFindings ?? []).map((f) => ({ ref: `terms:${f.id}`, sourceId: f.sourceId, quote: f.quote })),
   ];
   for (const rec of all) {
     const t = texts.get(rec.sourceId);
