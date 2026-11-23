@@ -31,6 +31,15 @@ test.describe('Biblioteca de mídia (/api/midia)', () => {
     await page.getByLabel('Texto alternativo').fill('Cartão de fidelidade');
     await page.getByLabel('Base de direito').selectOption('licenca');
     await enviar(page, page.getByRole('button', { name: 'Registrar ativo' }));
+    // int/003: o Backend 344d356 exige evidência da licença (licenca/autorizacao/excecao_validada); esta tela ainda não tem o campo
+    // (vem no ft/studio 7461a05, não homologado). Recusa explícita, sem efeito; o registro segue com base própria.
+    await erro(page, /exige evidência da licença/);
+    await page.getByLabel('URL do ativo').fill('https://exemplo.com.br/a.jpg');
+    await page.getByLabel(/SHA-256/).fill(HASH);
+    await page.getByLabel('Crédito').fill('Agência');
+    await page.getByLabel('Texto alternativo').fill('Cartão de fidelidade');
+    await page.getByLabel('Base de direito').selectOption('propria');
+    await enviar(page, page.getByRole('button', { name: 'Registrar ativo' }));
     await sucesso(page, 'Ativo registrado');
     await expect(page.getByRole('row', { name: /a\.jpg/ })).toContainText('Publicável');
 
