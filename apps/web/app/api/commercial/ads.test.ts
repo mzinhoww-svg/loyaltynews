@@ -130,6 +130,40 @@ describe('flush de entrega: Redis → ad_delivery_daily', () => {
     expect(row2).toMatchObject({ servidas: 6, visiveis: 1, cliques: 1 });
   });
 
+  it('dois flushes concorrentes sobre o mesmo contador: soma exata no banco, nunca em dobro (QA 2)', async () => {
+    const key = adKeys.cnt('cr-1', '2026-11-21');
+    for (const [f, n] of [['s', 100], ['v', 40], ['c', 7], ['i', 3], ['r', 11]] as const) await redis.hincrby(key, f, n);
+    const rs = await Promise.all([flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]);
+    expect(rs.reduce((a, r) => a + r.rows, 0)).toBe(1); // exatamente um flush levou o hash
+    const [row] = await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.id, 'cr-1@2026-11-21'));
+    expect(row).toMatchObject({ servidas: 100, visiveis: 40, cliques: 7, ignoradasBotInterno: 3, refreshSuprimido: 11 });
+    expect(await redis.keys('ln:ad:*')).toEqual([]); // nada sobra: hash tomado e chave de trabalho apagada
+  });
+
+  it('conservação: muitos flushes concorrentes com incrementos chegando durante o flush; banco + Redis = total exato', async () => {
+    const day = '2026-11-19';
+    const key = adKeys.cnt('cr-1', day);
+    const bump = async (n: number) => { for (let i = 0; i < n; i++) { await redis.hincrby(key, 's', 1); await redis.hincrby(key, 'r', 2); } };
+    await Promise.all([
+      bump(60), bump(60), bump(60),
+      flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db),
+    ]);
+    await Promise.all([flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]); // varre o que sobrou
+    const [row] = await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.id, `cr-1@${day}`));
+    const rest = await readCounters(R(), 'cr-1', day);
+    expect((row?.servidas ?? 0) + (rest.s ?? 0)).toBe(180);
+    expect((row?.refreshSuprimido ?? 0) + (rest.r ?? 0)).toBe(360);
+    expect(row?.servidas).toBe(180); // depois da varredura final tudo está no banco
+  });
+
+  it('falha de gravação com flush concorrente: nada é gravado em dobro e o que falhou volta ao Redis', async () => {
+    await redis.hincrby(adKeys.cnt('cr-inexistente', DAY), 's', 5); // FK falha no banco
+    const rs = await Promise.allSettled([flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]);
+    expect(rs.filter((r) => r.status === 'rejected')).toHaveLength(1); // só um tomou o hash; o outro pulou
+    expect(await readCounters(R(), 'cr-inexistente', DAY)).toEqual({ s: 5 });
+    expect((await redis.keys('ln:ad:flush:*'))).toEqual([]);
+  });
+
   it('falha ao gravar devolve os contadores ao Redis (nada se perde nem duplica); visível nunca passa de servida', async () => {
     await redis.hincrby(adKeys.cnt('cr-inexistente', DAY), 's', 3); // FK falha no banco
     await expect(flushAdDelivery(R(), app.db)).rejects.toThrow();

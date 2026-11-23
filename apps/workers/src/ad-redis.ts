@@ -3,7 +3,8 @@
 //   ln:ad:view:{pageViewId}:{positionId}  JSON da LedgerEntry         TTL 30 min  SET NX EX
 //   ln:ad:imp:{impressionId}              hash {creativeId,key,at,visible,clicked}  TTL 2 h  HSETNX
 //   ln:ad:cnt:{creativeId}:{AAAA-MM-DD}   hash dos 5 contadores        TTL 3 dias  HINCRBY
-// O worker `flushAdDelivery` soma os contadores em ad_delivery_daily e subtrai do Redis o que gravou.
+// O worker `flushAdDelivery` soma os contadores em ad_delivery_daily. Tomada ATÔMICA do delta por RENAME: só um flush
+// leva o hash; o outro recebe "no such key" e pula; incrementos novos criam outro hash. Nunca soma duas vezes.
 import { sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
@@ -18,6 +19,9 @@ export interface AdRedis {
   hsetnx(key: string, field: string, value: string): Promise<number>;
   hincrby(key: string, field: string, increment: number): Promise<number>;
   expire(key: string, seconds: number): Promise<number>;
+  /** Atômico; rejeita se a origem não existe. É a tomada do delta no flush. */
+  rename(key: string, newKey: string): Promise<'OK'>;
+  del(key: string): Promise<number>;
   scan(cursor: string | number, match: 'MATCH', pattern: string, count: 'COUNT', n: number): Promise<[string, string[]]>;
 }
 
@@ -88,7 +92,13 @@ function splitKey(key: string): [string, string] {
   return [key.slice(0, i), key.slice(i + 1)];
 }
 
-/** Subtrai do Redis o que leu e grava no PostgreSQL; falha ao gravar devolve ao Redis. Crash no meio sub-conta. */
+/**
+ * Grava os contadores no PostgreSQL SEM poder inflar, mesmo com vários flushes ao mesmo tempo:
+ *  1) RENAME atômico do hash para uma chave de trabalho exclusiva (quem perde a corrida não vê a chave e pula);
+ *  2) lê só a chave de trabalho (ninguém mais escreve nela) e grava no banco (soma);
+ *  3) sucesso: apaga a chave de trabalho; falha: devolve ao hash original SÓ o que não foi gravado e apaga a de trabalho.
+ * Queda do processo entre 1 e 2 deixa a chave de trabalho (expira em 1 dia): sub-conta, nunca duplica.
+ */
 export async function flushAdDelivery(redis: AdRedis, db: Db): Promise<{ keys: number; rows: number }> {
   let cursor = '0';
   let keys = 0;
@@ -100,21 +110,33 @@ export async function flushAdDelivery(redis: AdRedis, db: Db): Promise<{ keys: n
       const m = /^ln:ad:cnt:(.+):(\d{4}-\d{2}-\d{2})$/.exec(key);
       if (!m) continue;
       const [, creativeId, day] = m as unknown as [string, string, string];
-      const h = await redis.hgetall(key);
+      const work = `ln:ad:flush:${crypto.randomUUID()}:${creativeId}:${day}`;
+      try {
+        await redis.rename(key, work);
+      } catch {
+        continue; // outro flush levou este hash (ou ele expirou): nada a fazer
+      }
+      await redis.expire(work, 86_400);
+      const h = await redis.hgetall(work);
       const d = {
         s: Number(h.s ?? 0), v: Number(h.v ?? 0), c: Number(h.c ?? 0), i: Number(h.i ?? 0), r: Number(h.r ?? 0),
       };
-      if (!Object.values(d).some((x) => x > 0)) continue;
+      if (!Object.values(d).some((x) => x > 0)) {
+        await redis.del(work);
+        continue;
+      }
       keys++;
-      // 1) tira do Redis o que foi lido (incrementos novos ficam); 2) grava; se falhar, devolve
-      for (const [f, v] of Object.entries(d)) if (v > 0) await redis.hincrby(key, f, -v);
       try {
         await upsertDelivery(db, creativeId, day, d);
-        rows++;
       } catch (e) {
+        // não gravou: devolve ao hash original (incrementos que chegaram depois do RENAME ficam somados)
         for (const [f, v] of Object.entries(d)) if (v > 0) await redis.hincrby(key, f, v);
+        await redis.expire(key, TTL.cnt);
+        await redis.del(work);
         throw e;
       }
+      await redis.del(work);
+      rows++;
     }
   } while (cursor !== '0');
   return { keys, rows };
