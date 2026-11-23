@@ -58,7 +58,7 @@ export const QualificationMode = z.looseObject({
   /** v6: teto único (até US$ 5). */
   cap_usd: z.number().positive().max(5).optional(),
   /** v7 (decisão do PM, T10): teto POR ETAPA — etapa 1 US$ 5, etapa 2 US$ 10; nenhuma etapa acima de 10. */
-  stage_caps_usd: z.record(z.string().regex(/^[1-9]$/), z.number().positive().max(10)).optional(),
+  stage_caps_usd: z.partialRecord(z.enum(['1', '2']), z.number().positive()).optional(),
   uses_audit_reserve: z.literal(false),
   /** T11: rotulagem do golden set sai da verba OpenAI (allocation), nunca da reserva de auditoria. */
   golden_set_labeling_budget: z.literal('openai_allocation').optional(),
@@ -118,6 +118,13 @@ export const ModelPolicy = z
   .superRefine((p, ctx) => {
     const mode = p.qualification?.mode;
     if (mode) {
+      // T10 (decisão do PM): etapa 1 até US$ 5, etapa 2 até US$ 10. Política v7 (com `execution`) exige teto por etapa.
+      const TETO_DA_ETAPA = { '1': 5, '2': 10 } as const;
+      for (const [etapa, v] of Object.entries(mode.stage_caps_usd ?? {}))
+        if (v > TETO_DA_ETAPA[etapa as '1' | '2'])
+          ctx.addIssue({ code: 'custom', message: `etapa ${etapa} acima de US$ ${TETO_DA_ETAPA[etapa as '1' | '2']}`, path: ['qualification', 'mode', 'stage_caps_usd', etapa] });
+      if (p.execution && !mode.stage_caps_usd)
+        ctx.addIssue({ code: 'custom', message: 'política v7 exige teto por etapa (stage_caps_usd), não só o teto único', path: ['qualification', 'mode', 'stage_caps_usd'] });
       const byId = new Map(p.models.map((m) => [m.id, m]));
       for (const id of mode.candidates) {
         const m = byId.get(id);
@@ -137,13 +144,18 @@ export const ModelPolicy = z
       ctx.addIssue({ code: 'custom', message: 'complemento acima do teto mensal', path: ['execution', 'complement'] });
     if (ex) {
       const bt = ex.primary.by_task;
+      const PROVEDOR_DA_CONTA = { claude: 'anthropic', codex: 'openai' } as const;
+      for (const [k, t] of Object.entries(bt)) {
+        if (PROVEDOR_DA_CONTA[t.account] !== t.provider)
+          ctx.addIssue({ code: 'custom', message: `${k}: conta ${t.account} não é do provedor ${t.provider}`, path: ['execution', 'primary', 'by_task', k] });
+      }
       const draft = bt.editorial_draft;
       if (!draft || !bt.fact_check)
         ctx.addIssue({ code: 'custom', message: 'canal principal precisa de redação e checagem definidas', path: ['execution', 'primary', 'by_task'] });
       else {
         for (const k of ['fact_check', 'editorial_review'] as const) {
           const t = bt[k];
-          if (t && t.provider === draft.provider)
+          if (t && (t.provider === draft.provider || t.account === draft.account))
             ctx.addIssue({ code: 'custom', message: `${k} do mesmo provedor da redação (autor distinto obrigatório)`, path: ['execution', 'primary', 'by_task', k] });
         }
       }
