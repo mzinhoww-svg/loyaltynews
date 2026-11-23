@@ -55,8 +55,16 @@ export const QualificationMode = z.looseObject({
   excluded: z.array(z.string().min(1)).default([]),
   provider_zdr_per_call: z.boolean(),
   allow_fallbacks: z.literal(false),
-  cap_usd: z.number().positive().max(5),
+  /** v6: teto único (até US$ 5). */
+  cap_usd: z.number().positive().max(5).optional(),
+  /** v7 (decisão do PM, T10): teto POR ETAPA — etapa 1 US$ 5, etapa 2 US$ 10; nenhuma etapa acima de 10. */
+  stage_caps_usd: z.record(z.string().regex(/^[1-9]$/), z.number().positive().max(10)).optional(),
   uses_audit_reserve: z.literal(false),
+  /** T11: rotulagem do golden set sai da verba OpenAI (allocation), nunca da reserva de auditoria. */
+  golden_set_labeling_budget: z.literal('openai_allocation').optional(),
+}).refine((m) => m.cap_usd !== undefined || (m.stage_caps_usd !== undefined && Object.keys(m.stage_caps_usd).length > 0), {
+  message: 'modo de qualificação precisa de teto (cap_usd ou stage_caps_usd)',
+  path: ['cap_usd'],
 });
 export type QualificationMode = z.infer<typeof QualificationMode>;
 
@@ -80,7 +88,11 @@ export const ExecutionChannels = z.looseObject({
   primary: z.looseObject({
     channel: z.literal('openbot_subscription'),
     outside_monthly_cap: z.literal(true),
-    by_task: z.record(z.string(), z.string()),
+    /** Conta e provedor por tarefa (estruturado): o autor distinto da checagem é verificável no contrato. */
+    by_task: z.record(
+      z.string(),
+      z.looseObject({ account: z.enum(['claude', 'codex']), provider: z.enum(['anthropic', 'openai']), note: z.string().optional() }),
+    ),
     evidence_required: z.array(z.string().min(1)).min(1),
   }),
   complement: z.looseObject({
@@ -123,8 +135,19 @@ export const ModelPolicy = z
     const ex = p.execution;
     if (ex && ex.complement.inside_monthly_cap_usd > p.rules.hard_monthly_budget_usd)
       ctx.addIssue({ code: 'custom', message: 'complemento acima do teto mensal', path: ['execution', 'complement'] });
-    if (ex && !ex.primary.by_task.fact_check)
-      ctx.addIssue({ code: 'custom', message: 'canal principal sem checagem definida (autor distinto obrigatório)', path: ['execution', 'primary', 'by_task'] });
+    if (ex) {
+      const bt = ex.primary.by_task;
+      const draft = bt.editorial_draft;
+      if (!draft || !bt.fact_check)
+        ctx.addIssue({ code: 'custom', message: 'canal principal precisa de redação e checagem definidas', path: ['execution', 'primary', 'by_task'] });
+      else {
+        for (const k of ['fact_check', 'editorial_review'] as const) {
+          const t = bt[k];
+          if (t && t.provider === draft.provider)
+            ctx.addIssue({ code: 'custom', message: `${k} do mesmo provedor da redação (autor distinto obrigatório)`, path: ['execution', 'primary', 'by_task', k] });
+        }
+      }
+    }
     const ids = new Set(p.models.map((m) => m.id));
     for (const [route, list] of Object.entries(p.routes)) {
       for (const id of list) {

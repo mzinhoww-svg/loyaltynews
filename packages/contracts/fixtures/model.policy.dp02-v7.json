@@ -428,7 +428,6 @@
       ],
       "provider_zdr_per_call": false,
       "allow_fallbacks": false,
-      "cap_usd": 5,
       "retry_allowance": 0.2,
       "escalation_share_of_opus_sublimit": 0.2,
       "uses_audit_reserve": false,
@@ -446,11 +445,16 @@
       "preconditions": [
         "G4: ledger persistente (ADR-020) com L1-L4 fechadas",
         "modo qualification homologado (QA)",
-        "T4 retencao contratual verificada",
         "T5 politica de dados do OpenRouter arquivada",
-        "T8 golden set humano"
+        "T8 golden set humano",
+        "piloto de 10 materias pelo canal OpenBot ANTES da etapa 1 paga (DP-27; se cobrir redacao/checagem, a etapa 1 encolhe)"
       ],
       "zdr_preferred": true,
+      "stage_caps_usd": {
+        "1": 5,
+        "2": 10
+      },
+      "golden_set_labeling_budget": "openai_allocation",
       "note_openbot_channel": "canal OpenBot qualificado por piloto de medicao (10 materias, limites por conta), nao por /api/v1/generation"
     }
   },
@@ -519,13 +523,37 @@
       "adapter": "ADR-003 (@ln/openbot: pull com lease, callback HMAC, UsageReport com model)",
       "outside_monthly_cap": true,
       "by_task": {
-        "editorial_draft": "claude (assinatura Anthropic)",
-        "fact_check": "codex (assinatura OpenAI) — autor distinto do redator Claude",
-        "editorial_review": "codex (assinatura OpenAI), na mesma chamada da checagem quando consolidado",
-        "daily": "claude",
-        "ritual": "claude",
-        "entity_extraction": "claude",
-        "social_copy": "claude"
+        "editorial_draft": {
+          "account": "claude",
+          "provider": "anthropic",
+          "note": "assinatura Anthropic"
+        },
+        "fact_check": {
+          "account": "codex",
+          "provider": "openai",
+          "note": "assinatura OpenAI; autor distinto do redator"
+        },
+        "editorial_review": {
+          "account": "codex",
+          "provider": "openai",
+          "note": "mesma chamada da checagem quando consolidado"
+        },
+        "daily": {
+          "account": "claude",
+          "provider": "anthropic"
+        },
+        "ritual": {
+          "account": "claude",
+          "provider": "anthropic"
+        },
+        "entity_extraction": {
+          "account": "claude",
+          "provider": "anthropic"
+        },
+        "social_copy": {
+          "account": "claude",
+          "provider": "anthropic"
+        }
       },
       "evidence_required": [
         "task.id",

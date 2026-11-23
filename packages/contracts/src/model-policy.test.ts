@@ -111,3 +111,33 @@ describe('política v7 (DP-27): OpenBot nas assinaturas como principal, API como
     expect(qualificationCallAllowed(p, { ...qreq, model: 'claude-fable-5-2' })).toBe(false);
   });
 });
+
+describe('v7: autor distinto verificável no contrato e teto por etapa (QA 2 + decisões do PM T10/T11)', () => {
+  const ex = v7.execution;
+  const comTask = (k: string, val: unknown) => ({ ...v7, execution: { ...ex, primary: { ...ex.primary, by_task: { ...ex.primary.by_task, [k]: val } } } });
+  const comModo = (mode: object) => ({ ...v7, qualification: { ...v7.qualification, mode: { ...v7.qualification.mode, ...mode } } });
+
+  it('recusa checagem ou editor do mesmo provedor da redação', () => {
+    expect(ModelPolicy.safeParse(comTask('fact_check', { account: 'claude', provider: 'anthropic' })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comTask('editorial_review', { account: 'claude', provider: 'anthropic' })).success).toBe(false);
+  });
+
+  it('recusa checador em branco, conta desconhecida ou texto solto no lugar da estrutura', () => {
+    expect(ModelPolicy.safeParse(comTask('fact_check', { account: ' ', provider: 'openai' })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comTask('fact_check', { account: 'outro', provider: 'openai' })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comTask('fact_check', 'codex (assinatura OpenAI)')).success).toBe(false);
+  });
+
+  it('teto por etapa: v7 tem etapa 1 = 5 e etapa 2 = 10; etapa acima de 10 ou sem teto nenhum é recusado', () => {
+    const p = ModelPolicy.parse(v7);
+    expect(p.qualification?.mode?.stage_caps_usd).toEqual({ '1': 5, '2': 10 });
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: { '1': 5, '2': 11 } })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: {} })).success).toBe(false);
+    expect(ModelPolicy.safeParse(v6).success).toBe(true); // v6 continua com cap_usd único
+  });
+
+  it('golden set só na verba OpenAI, nunca na reserva de auditoria', () => {
+    expect(ModelPolicy.parse(v7).qualification?.mode?.golden_set_labeling_budget).toBe('openai_allocation');
+    expect(ModelPolicy.safeParse(comModo({ golden_set_labeling_budget: 'audit_errata_reserve' })).success).toBe(false);
+  });
+});
