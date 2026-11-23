@@ -11,7 +11,7 @@ import { CONSOLIDATION_RITUAL_IDS } from './routing-plan';
 import { EDITORIAS, type AgentProfile, type Meeting, type Workflow } from './schemas';
 import type { LoadedRegistries } from './config';
 import type { OrgProfilesDraft, OrgProfileDraft, OrgTaskKind } from './org-profiles';
-import { ARTIFACT_SCHEMAS, OUTPUT_LABEL_KIND, PROPOSED_GATES, RITUAL_FAMILIES, STAGE_EVIDENCE_KINDS, ritualFamily, type ArtifactKind, type StageEvidenceKind } from './catalog-schemas';
+import { ARTIFACT_SCHEMAS, EVENT_KIND_RULES, OUTPUT_LABEL_KIND, PROPOSED_GATES, RITUAL_FAMILIES, STAGE_EVIDENCE_KINDS, STAGE_EVIDENCE_SCHEMAS, ritualFamily, type ArtifactKind, type StageEvidenceKind } from './catalog-schemas';
 
 const ARTIFACT_KINDS = Object.keys(ARTIFACT_SCHEMAS) as [ArtifactKind, ...ArtifactKind[]];
 
@@ -33,6 +33,8 @@ export const RitualSpecSchema = z.object({
     family: z.enum(RITUAL_FAMILIES),
     participant_input: z.literal('ParticipantInput+payload'),
     event_trigger: z.literal('EVENT_TRIGGER_SCHEMA').nullable(),
+    /** só no ritual por evento: idempotência do gatilho por `kind+ref`; `breaking` não dispensa os gates editoriais (WF02 e WF03) */
+    event_rules: z.object({ idempotency: z.literal('kind+ref'), breaking_bypasses_editorial_gates: z.literal(false), breaking_still_requires: z.tuple([z.literal('WF02'), z.literal('WF03')]) }).strict().nullable(),
     from_digest: z.boolean(),
     depends_on: z.array(z.string()),
     workflow: z.string().nullable(),
@@ -63,11 +65,19 @@ const GateSchema = z.object({
   id: z.string().regex(/^auto_gate_[a-z_]+$/),
   /** token da etapa depois da qual o gate vale */
   after: z.string().min(1),
-  /** bloqueios do registro que o gate cobre (fail-closed) */
-  blockers: z.array(z.string()).min(1),
+  /** bloqueios DUROS do registro: o gate falha (`fail`) se algum ocorrer */
+  blockers: z.array(z.string()),
+  /** bloqueios do registro que não param nada: o item sai como "não disponível", com o motivo */
+  soft: z.record(z.string(), z.literal('mark_unavailable')),
+  /** bloqueios do registro que viram desvio para uma etapa do workflow (ex.: `overdue` → `escalate_overdue`) */
+  routes: z.record(z.string(), z.string()),
+  /** condições em que o gate falha mesmo com bloqueios brandos, ligadas a um bloqueio do registro */
+  fail_conditions: z.array(z.object({ id: z.string().min(1), blocker: z.string().min(1) }).strict()),
+  /** etapas que nunca passam por este gate (vêm depois dele) */
+  never_gated: z.array(z.string()),
   /** `registry` = já está nas etapas do registro; `proposal` = PROPOSTA da frente (o registro protegido não tem gate neste workflow) */
   source: z.enum(['registry', 'proposal']),
-}).strict();
+}).strict().refine((g) => g.blockers.length + g.fail_conditions.length > 0, 'o gate precisa de pelo menos um bloqueio duro ou uma condição de falha');
 
 export const WorkflowSpecSchema = z.object({
   id: z.string().regex(/^WF\d{2}$/),
@@ -139,6 +149,7 @@ function ritualSpec(m: Meeting): RitualSpec {
       family: ritualFamily(m.id, m.cycle),
       participant_input: 'ParticipantInput+payload',
       event_trigger: m.cycle === 'event' ? 'EVENT_TRIGGER_SCHEMA' : null,
+      event_rules: m.cycle === 'event' ? { idempotency: 'kind+ref' as const, breaking_bypasses_editorial_gates: false as const, breaking_still_requires: ['WF02', 'WF03'] as ['WF02', 'WF03'] } : null,
       from_digest: CONSOLIDATION_RITUAL_IDS.includes(m.id),
       depends_on: [...(m.depends_on ?? [])],
       workflow: m.workflow ?? null,
@@ -169,10 +180,10 @@ function workflowSpec(w: Workflow, agentIds: ReadonlySet<string>): WorkflowSpec 
   }));
   // gates: os `auto_gate_*` do registro cobrem todos os bloqueios do workflow; sem eles, vale a proposta da frente
   const tokens = stages.flatMap((s) => s.tokens);
-  const gates: WorkflowSpec['gates'] = tokens.flatMap((t, i) => (t.kind === 'gate' ? [{ id: t.token, after: tokens[i - 1]?.token ?? t.token, blockers: [...w.blockers], source: 'registry' as const }] : []));
+  const gates: WorkflowSpec['gates'] = tokens.flatMap((t, i) => (t.kind === 'gate' ? [{ id: t.token, after: tokens[i - 1]?.token ?? t.token, blockers: [...w.blockers], soft: {}, routes: {}, fail_conditions: [], never_gated: [], source: 'registry' as const }] : []));
   if (gates.length === 0 && PROPOSED_GATES[w.id]) {
     const p = PROPOSED_GATES[w.id]!;
-    gates.push({ id: p.id, after: p.after, blockers: [...p.blockers], source: 'proposal' });
+    gates.push({ id: p.id, after: p.after, blockers: [...p.blockers], soft: { ...(p.soft ?? {}) }, routes: { ...(p.routes ?? {}) }, fail_conditions: (p.fail_conditions ?? []).map((c) => ({ ...c })), never_gated: [...(p.never_gated ?? [])], source: 'proposal' });
   }
   const flags: WorkflowSpec['channel_flags'] = {};
   const raw = w as unknown as { provider?: string; instagram_enabled?: boolean; channel_enabled?: boolean };
@@ -284,16 +295,40 @@ export function validateCatalog(catalog: Catalog, registries: Pick<LoadedRegistr
     }
     // gates: pelo menos um; cada um cobre bloqueios do registro, está depois de uma etapa existente, e juntos cobrem todos
     if (w.gates.length === 0) add('GATE_MISSING', `${w.id}: sem gate explícito`);
+    const flat = w.stages.flatMap((s) => s.tokens.map((t) => t.token));
+    const reg = w.evidence.fail_closed_blockers;
     const covered = new Set<string>();
     for (const g of w.gates) {
       if (!tokens.has(g.after)) add('GATE_AFTER', `${w.id}/${g.id}: etapa "${g.after}" inexistente`);
       for (const b of g.blockers) {
-        if (!w.evidence.fail_closed_blockers.includes(b)) add('GATE_BLOCKER', `${w.id}/${g.id}: bloqueio ${b} não está no registro`);
+        if (!reg.includes(b)) add('GATE_BLOCKER', `${w.id}/${g.id}: bloqueio ${b} não está no registro`);
         covered.add(b);
+      }
+      for (const b of Object.keys(g.soft)) {
+        if (!reg.includes(b)) add('GATE_BLOCKER', `${w.id}/${g.id}: bloqueio brando ${b} não está no registro`);
+        covered.add(b);
+      }
+      for (const [b, to] of Object.entries(g.routes)) {
+        if (!reg.includes(b)) add('GATE_BLOCKER', `${w.id}/${g.id}: bloqueio desviado ${b} não está no registro`);
+        if (!tokens.has(to)) add('GATE_ROUTE', `${w.id}/${g.id}: desvio de ${b} para "${to}", etapa inexistente`);
+        if (g.blockers.includes(b)) add('GATE_ROUTE', `${w.id}/${g.id}: ${b} não pode ser bloqueio duro e desvio ao mesmo tempo`);
+        covered.add(b);
+      }
+      for (const c of g.fail_conditions) if (!reg.includes(c.blocker)) add('GATE_BLOCKER', `${w.id}/${g.id}: a condição ${c.id} cita o bloqueio ${c.blocker}, que não está no registro`);
+      for (const n of g.never_gated) {
+        if (!tokens.has(n)) add('GATE_NEVER', `${w.id}/${g.id}: etapa ${n} inexistente`);
+        else if (flat.indexOf(n) <= flat.indexOf(g.after)) add('GATE_NEVER', `${w.id}/${g.id}: ${n} deveria vir depois do gate, para nunca passar por ele`);
       }
       if (g.source === 'proposal' && tokens.has(g.id)) add('GATE_SOURCE', `${w.id}/${g.id}: gate proposto já existe nas etapas do registro`);
     }
-    for (const b of w.evidence.fail_closed_blockers) if (!covered.has(b)) add('GATE_COVERAGE', `${w.id}: bloqueio ${b} sem gate que o cubra`);
+    for (const b of reg) if (!covered.has(b)) add('GATE_COVERAGE', `${w.id}: bloqueio ${b} sem gate que o cubra`);
+  }
+  const incident = catalog.rituals.find((r) => r.cycle === 'event');
+  if (incident) {
+    const need = incident.input.event_rules?.breaking_still_requires ?? [];
+    if (need.length !== 2) add('EVENT_RULES', `${incident.id}: regra do breaking ausente`);
+    for (const wf of need) if (!catalog.workflows.find((w) => w.id === wf)?.gates.length) add('EVENT_RULES', `${incident.id}: breaking exige ${wf} com gate, e ele não existe`);
+    if (EVENT_KIND_RULES.breaking.bypasses_editorial_gates !== false) add('EVENT_RULES', 'breaking não pode dispensar os gates editoriais');
   }
 
   // independência editorial por papel (regras explícitas, por editoria)
@@ -345,4 +380,58 @@ export function checkReviewSameProvider(catalog: Catalog, org: OrgLike): string[
     if (c.some((p) => p !== null && r.includes(p))) out.push(rule.workflow);
   }
   return out;
+}
+
+// --- evidência por etapa: validação contra o catálogo e os perfis -------------------------------------------------------------
+
+export type StageEvidenceInput = { kind: 'agent_output'; record: unknown } | { kind: 'deterministic_step'; record: unknown } | { kind: 'gate_verdict'; record: unknown };
+
+/**
+ * Valida um registro de evidência de etapa: esquema do tipo, workflow e etapa existentes, tipo coerente com a etapa, bloqueios do
+ * veredito como subconjunto dos do registro do workflow e, no `agent_output`, provedor e conta coerentes com o perfil na v7.
+ */
+export function validateStageEvidence(input: StageEvidenceInput, catalog: Catalog, org: OrgLike): CatalogIssue[] {
+  const issues: CatalogIssue[] = [];
+  const add = (code: string, message: string) => issues.push({ code, message });
+  const parsed = STAGE_EVIDENCE_SCHEMAS[input.kind].safeParse(input.record);
+  if (!parsed.success) return [{ code: 'EVIDENCE_SCHEMA', message: parsed.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; ') }];
+  const rec = parsed.data as { workflow_id: string; step: string; actor: string; provider?: string; account?: string; blockers?: string[]; verdict?: string };
+  const wf = catalog.workflows.find((w) => w.id === rec.workflow_id);
+  if (!wf) return [{ code: 'EVIDENCE_WORKFLOW', message: `workflow ${rec.workflow_id} inexistente` }];
+  const token = wf.stages.flatMap((s) => s.tokens).find((t) => t.token === rec.step) ?? (wf.gates.some((g) => g.id === rec.step) ? { token: rec.step, kind: 'gate' as const, evidence: 'gate_verdict' as const, agents: [] } : undefined);
+  if (!token) add('EVIDENCE_STEP', `${wf.id}: etapa ${rec.step} inexistente`);
+  else if (token.evidence !== input.kind) add('EVIDENCE_KIND', `${wf.id}/${rec.step}: a etapa pede evidência ${token.evidence}, não ${input.kind}`);
+  if (input.kind === 'gate_verdict') {
+    for (const b of rec.blockers ?? []) if (!wf.evidence.fail_closed_blockers.includes(b)) add('EVIDENCE_BLOCKER', `${wf.id}/${rec.step}: bloqueio ${b} não é do registro do workflow`);
+  }
+  if (input.kind === 'agent_output') {
+    const p = org.profiles.find((x) => x.id === rec.actor);
+    if (!p) add('EVIDENCE_ACTOR', `${wf.id}/${rec.step}: ${rec.actor} não é um dos 64 perfis`);
+    else {
+      const expectedProvider = providerIn(org, rec.actor, wf.id);
+      const expectedAccount = p.workflow_tasks[wf.id]?.account ?? p.execution.account;
+      if (expectedProvider !== rec.provider) add('EVIDENCE_PROVIDER', `${wf.id}/${rec.step}: ${rec.actor} roda em ${expectedProvider} na v7, mas a evidência diz ${rec.provider}`);
+      if (expectedAccount !== rec.account) add('EVIDENCE_ACCOUNT', `${wf.id}/${rec.step}: ${rec.actor} roda na conta ${expectedAccount} na v7, mas a evidência diz ${rec.account}`);
+    }
+  }
+  return issues;
+}
+
+/** Independência provada pela EVIDÊNCIA de uma execução: em cada run, quem checa (depois) nunca está no provedor de quem escreveu (antes). */
+export function runIndependenceIssues(records: { workflow_id: string; run_id: string; actor: string; provider: string; at: string }[], org: OrgLike): CatalogIssue[] {
+  const issues: CatalogIssue[] = [];
+  const runs = new Map<string, typeof records>();
+  for (const r of records) runs.set(`${r.workflow_id}|${r.run_id}`, [...(runs.get(`${r.workflow_id}|${r.run_id}`) ?? []), r]);
+  for (const [key, list] of runs) {
+    const wf = key.split('|')[0]!;
+    const sorted = [...list].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    const writers: typeof records = [];
+    for (const r of sorted) {
+      if (CHECK_KINDS.includes(kindIn(org, r.actor, wf) as OrgTaskKind)) {
+        for (const w of writers) if (w.provider === r.provider) issues.push({ code: 'RUN_SAME_PROVIDER', message: `${key}: ${r.actor} checou o texto de ${w.actor} no mesmo provedor (${r.provider})` });
+      }
+      if (WRITE_KINDS.includes(kindIn(org, r.actor, wf) as OrgTaskKind)) writers.push(r);
+    }
+  }
+  return issues;
 }

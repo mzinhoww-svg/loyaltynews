@@ -37,7 +37,7 @@ export function buildCatalogArtifacts(registries: Pick<LoadedRegistries, 'agents
   });
 
   const kinds = Object.keys(ARTIFACT_SCHEMAS);
-  const proposed = Object.entries(PROPOSED_GATES).map(([wf, g]) => `${wf} → \`${g.id}\` depois de \`${g.after}\` (${g.blockers.join(', ')})`);
+  const proposed = Object.entries(PROPOSED_GATES).map(([wf, g]) => `${wf} → \`${g.id}\` depois de \`${g.after}\` (${[...g.blockers, ...Object.keys(g.soft ?? {}).map((x) => `${x}: não disponível, sem bloquear`), ...Object.entries(g.routes ?? {}).map(([x, t]) => `${x} → ${t}`)].join(', ')})`);
 
   const md = [
     '# Catálogo dos 28 rituais e 19 workflows: tabela de lacunas (Frente 07)',
@@ -72,17 +72,17 @@ export function buildCatalogArtifacts(registries: Pick<LoadedRegistries, 'agents
     '|---|---|---|---|---|---|',
     ...workflowRows,
     '',
-    '## 4. Lacunas fechadas (como PROPOSTA a ratificar) e o que continua aberto',
+    '## 4. Lacunas fechadas (ratificadas pelo Chief Architect, com ajustes) e o que continua aberto',
     '',
     '| Id | Situação | Detalhe |',
     '|---|---|---|',
-    '| G-R1 | fechada (proposta) | formato da entrada por família de ritual (`RITUAL_INPUT_SCHEMAS`), reaproveitando o `ParticipantInput` do agendador |',
-    '| G-R2 | fechada (proposta) | esquema de cada saída por rótulo (`OUTPUT_LABEL_KIND`); rótulo novo no registro sem esquema falha o validador (`OUTPUT_LABEL`) |',
-    '| G-R3 | fechada (proposta) | gatilho do `X-incident` (`EVENT_TRIGGER_SCHEMA`: incident, breaking ou dependency, com referência e hora) |',
-    `| G-W1 | fechada (proposta) | gate explícito nos 5 workflows sem \`auto_gate_*\`: ${proposed.join('; ')}. O registro protegido NÃO foi alterado |`,
-    '| G-W2 | fechada (proposta) | esquema de evidência por etapa (`STAGE_EVIDENCE_SCHEMAS`) e tipo de evidência em cada etapa do catálogo |',
+    '| G-R1 | fechada (ratificada com ajustes) | formato da entrada por família de ritual (`RITUAL_INPUT_SCHEMAS`), reaproveitando o `ParticipantInput`; número sempre com `source_ref` e `null` só com `unavailable_reason`; `containment_proposals` como `{text, evidence_refs}` |',
+    '| G-R2 | fechada (ratificada com ajustes) | esquema de cada saída por rótulo (`OUTPUT_LABEL_KIND`); rótulo novo sem esquema falha o validador (`OUTPUT_LABEL`); `metric_report` aceita `null` com motivo; decisão `owner_reserved` nunca executa sozinha (D01); `proposal.budget_usd` não reserva (ADR-015) |',
+    '| G-R3 | fechada (ratificada com ajustes) | gatilho do `X-incident`: `raised_at` em ISO 8601 com fuso, `severity` obrigatória no `incident`, idempotência por `kind+ref`; `breaking` decide contenção e prioridade e não dispensa WF02 e WF03 |',
+    `| G-W1 | fechada (semântica ratificada; WF09 e WF16 ajustados) | gate explícito nos 5 workflows sem \`auto_gate_*\`: ${proposed.join('; ')}. WF09: métrica velha ou sem provedor sai "não disponível" sem bloquear, e o gate falha só com valor velho como atual ou nenhuma métrica válida; WF16: \`overdue\` é desvio para \`escalate_overdue\`; WF03: a despublicação nunca passa pelo gate. O registro protegido NÃO foi alterado |`,
+    '| G-W2 | fechada (ratificada com ajustes) | esquema de evidência por etapa (`STAGE_EVIDENCE_SCHEMAS`): `agent_output` com `provider`, `account` e `cost_ref`; `at` em ISO com fuso; bloqueios do `gate_verdict` como subconjunto dos do registro (`validateStageEvidence`) |',
     '| G-W3 | **aberta** | não existe motor de execução dos workflows (por desenho: tudo desligado até o gate R4); Integration, Backend e Editorial, depois do R4 |',
-    '| G-P1 | **aberta** | os esquemas de entrada e saída, os 5 gates e os esquemas de evidência são proposta da frente; os contratos protegidos (`contracts/*.registry.json`) seguem como estão, e ratificá-los é decisão do Chief Architect (mudança protegida) |',
+    '| G-P1 | **ratificada com ajustes** (Chief Architect, `fast-track/decisoes/ratificacao-G-P1-catalogo.md`) | os ajustes estão aplicados em `catalog-schemas.ts` e `catalog.ts`. Os esquemas de entrada, saída e evidência ficam em `@ln/agents` (não protegidos). Os 5 gates valem como contrato de código (`PROPOSED_GATES`); formalizá-los no `contracts/workflows.registry.json` é mudança protegida, por ato raiz, sem urgência (G-W3) |',
     `| G-I1 | resolvida (PM-2026-11-23-G) | checagem e revisão diferem do redator em papel e provedor e não precisam diferir entre si; sem terceiro provedor (DP-41). Checagem e revisão no mesmo provedor em: ${sameProvider.join(', ') || 'nenhum'} |`,
     '| G-I2 | resolvida (PM-2026-11-23-G) | em WF08 o texto da correção é redigido no Claude, pelo editor (tarefa `correction_draft` do perfil) ou pelo redator da editoria, e o `factcheck` segue no Codex |',
     '',

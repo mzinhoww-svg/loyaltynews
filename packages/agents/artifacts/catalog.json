@@ -32,6 +32,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -95,6 +96,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -158,6 +160,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -221,6 +224,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -284,6 +288,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -347,6 +352,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -410,6 +416,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -473,6 +480,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -536,6 +544,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -599,6 +608,7 @@
         "family": "newsroom_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -672,6 +682,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -739,6 +750,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -809,6 +821,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -879,6 +892,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -945,6 +959,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -1011,6 +1026,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -1077,6 +1093,7 @@
         "family": "directorate_daily",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -1144,6 +1161,7 @@
         "family": "sync",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [
           "D-trust",
@@ -1226,6 +1244,7 @@
         "family": "weekly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": "WF12",
@@ -1295,6 +1314,7 @@
         "family": "weekly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": "WF15",
@@ -1363,6 +1383,7 @@
         "family": "weekly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1429,6 +1450,7 @@
         "family": "weekly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1497,6 +1519,7 @@
         "family": "weekly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1562,6 +1585,7 @@
         "family": "weekly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1627,6 +1651,7 @@
         "family": "monthly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1696,6 +1721,7 @@
         "family": "monthly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1759,6 +1785,7 @@
         "family": "monthly",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": null,
+        "event_rules": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1824,6 +1851,14 @@
         "family": "event",
         "participant_input": "ParticipantInput+payload",
         "event_trigger": "EVENT_TRIGGER_SCHEMA",
+        "event_rules": {
+          "idempotency": "kind+ref",
+          "breaking_bypasses_editorial_gates": false,
+          "breaking_still_requires": [
+            "WF02",
+            "WF03"
+          ]
+        },
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -1925,6 +1960,10 @@
             "duplicate",
             "rights_unknown"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "proposal"
         }
       ],
@@ -2036,6 +2075,10 @@
             "copy_literal",
             "cross_provider_check_failed"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2125,6 +2168,12 @@
           "blockers": [
             "stale_approval",
             "embargo"
+          ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [
+            "unpublish_if_failed"
           ],
           "source": "proposal"
         }
@@ -2258,6 +2307,10 @@
             "mention_unverified",
             "no_receipt"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2341,6 +2394,10 @@
             "consent_missing",
             "stale_revision"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2446,6 +2503,10 @@
             "ambiguous_identity",
             "conflicting_evidence"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2522,6 +2583,10 @@
             "unverified_reporting",
             "sensitive_change"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2632,6 +2697,10 @@
             "missing_evidence",
             "remote_unresolved"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2703,10 +2772,23 @@
         {
           "id": "auto_gate_metrics",
           "after": "aggregate",
-          "blockers": [
-            "stale_data",
-            "provider_unavailable"
+          "blockers": [],
+          "soft": {
+            "stale_data": "mark_unavailable",
+            "provider_unavailable": "mark_unavailable"
+          },
+          "routes": {},
+          "fail_conditions": [
+            {
+              "id": "stale_value_presented_as_current",
+              "blocker": "stale_data"
+            },
+            {
+              "id": "no_valid_metric",
+              "blocker": "provider_unavailable"
+            }
           ],
+          "never_gated": [],
           "source": "proposal"
         }
       ],
@@ -2802,6 +2884,10 @@
             "inventory_conflict",
             "approval_missing"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2880,6 +2966,10 @@
             "unknown_rate",
             "budget_exhausted"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -2996,6 +3086,10 @@
             "policy_conflict",
             "budget_exceeded"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -3088,6 +3182,10 @@
             "unsafe_replay",
             "missing_approval"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -3164,6 +3262,10 @@
             "unverified_event",
             "optout"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "proposal"
         }
       ],
@@ -3274,6 +3376,10 @@
             "invalid_authority",
             "budget_exhausted"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -3360,9 +3466,14 @@
           "after": "verify_evidence",
           "blockers": [
             "missing_owner",
-            "overdue",
             "unverified_completion"
           ],
+          "soft": {},
+          "routes": {
+            "overdue": "escalate_overdue"
+          },
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "proposal"
         }
       ],
@@ -3474,6 +3585,10 @@
             "regression",
             "approval_missing"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -3583,6 +3698,10 @@
           "blockers": [
             "unverified_request"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
@@ -3681,6 +3800,10 @@
             "identity_unverified",
             "legal_conflict"
           ],
+          "soft": {},
+          "routes": {},
+          "fail_conditions": [],
+          "never_gated": [],
           "source": "registry"
         }
       ],
