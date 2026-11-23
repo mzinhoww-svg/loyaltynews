@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "intelligence-seed/1",
+  "datasetId": "terms.review.v1",
+  "description": "Revisão J-14 dos termos das fontes do seed.public.v2: o que as próprias páginas dizem sobre direitos/reprodução, com citação literal verificada. Não é parecer jurídico.",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "name": "Livelo — página de imprensa (oficial)",
+      "url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-app-termos",
+      "name": "Bradesco — Termos e Condições do aplicativo (oficial; escopo: aplicativo)",
+      "url": "https://banco.bradesco/assets/common/inc/termo-de-uso-bradesco-celular.shtm"
+    },
+    {
+      "id": "latampass-conheca",
+      "name": "LATAM Pass — Conheça o programa (oficial)",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "name": "ABEMF — página inicial (oficial)",
+      "url": "https://web.abemf.com.br/"
+    },
+    {
+      "id": "abemf-associados",
+      "name": "ABEMF — Empresas Associadas (oficial)",
+      "url": "https://web.abemf.com.br/associados/"
+    },
+    {
+      "id": "dotz-home",
+      "name": "Dotz — site oficial (página inicial; captura pelo navegador)",
+      "url": "https://www.dotz.com.br/home",
+      "method": "browser"
+    },
+    {
+      "id": "dotz-conta-termos",
+      "name": "Dotz — Termos e Condições de Uso da Conta Dotz (oficial; escopo: aplicativo/conta)",
+      "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/"
+    }
+  ],
+  "organizations": [],
+  "relations": [],
+  "persons": [],
+  "termsFindings": [
+    {
+      "id": "livelo-rodape",
+      "sourceId": "livelo-imprensa",
+      "tipo": "reserva_geral",
+      "quote": "Livelo S.A. Todos os direitos reservados"
+    },
+    {
+      "id": "bradesco-app",
+      "sourceId": "bradesco-app-termos",
+      "tipo": "proibicao_reproducao_escopo_app",
+      "quote": "sendo proibida sua reprodução, exceto para uso pessoal e com autorização por escrito do Bradesco"
+    },
+    {
+      "id": "latam-rodape",
+      "sourceId": "latampass-conheca",
+      "tipo": "reserva_geral",
+      "quote": "© 2026 LATAM Airlines Brasil. Todos os direitos reservados."
+    },
+    {
+      "id": "abemf-rodape-home",
+      "sourceId": "abemf-home",
+      "tipo": "reserva_geral",
+      "quote": "© 2026 ABEMF - Associação Brasileira das Empresas do Mercado de Fidelização Todos os direitos reservados"
+    },
+    {
+      "id": "abemf-rodape-associados",
+      "sourceId": "abemf-associados",
+      "tipo": "reserva_geral",
+      "quote": "© 2026 ABEMF - Associação Brasileira das Empresas do Mercado de Fidelização Todos os direitos reservados"
+    },
+    {
+      "id": "dotz-rodape",
+      "sourceId": "dotz-home",
+      "tipo": "reserva_geral",
+      "quote": "© Copyright 2026 - DOTZ - CNPJ 10.221.279/0001-97"
+    },
+    {
+      "id": "dotz-conta",
+      "sourceId": "dotz-conta-termos",
+      "tipo": "proibicao_uso_comercial_escopo_app",
+      "quote": "reprodução, cópia ou quaisquer outras formas de utilização comercial de tal conteúdo pelo usuário são rigorosamente proibidas"
+    }
+  ]
+}

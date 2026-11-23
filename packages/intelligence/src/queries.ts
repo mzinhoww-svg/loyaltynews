@@ -138,6 +138,22 @@ export interface MoveView {
   to_title: string | null;
   effective_date: string | null;
   observed_on: string;
+  /** Evidência da leitura que DETECTOU o Move (a de depois). */
+  evidence: EvidenceRef;
+  /** As DUAS leituras: antes (cargo anterior, com a última evidência que o sustentou) e depois (cargo novo). Nulas quando não existem (nomeação: sem antes; saída: sem depois). */
+  before: MoveReading | null;
+  after: MoveReading | null;
+}
+
+/** Uma leitura do cargo: o que a fonte mostrava, onde, com que data de coleta e de validação. Nunca traz o trecho da página (só fato + fonte + link + data). */
+export interface MoveReading {
+  role_id: Uuid;
+  organization: string;
+  title: string;
+  valid_from: string;
+  valid_to: string | null;
+  certainty: Certainty;
+  validated_at: string;
   evidence: EvidenceRef;
 }
 
@@ -175,12 +191,29 @@ export async function listMoveViews(db: Db, f: MoveFilter = {}): Promise<MoveVie
   const r = await db.query<any>(
     `SELECT m.id, m.kind, m.basis, m.status, m.person_id, p.full_name AS person_name,
             fo.legal_name AS from_organization, fr.title AS from_title, tor.legal_name AS to_organization, tr.title AS to_title,
-            m.effective_date::text, m.observed_on::text, ${EVIDENCE_COLS}${MOVE_FROM}
+            m.from_role_id, m.to_role_id, m.effective_date::text, m.observed_on::text, ${EVIDENCE_COLS}${MOVE_FROM}
       ORDER BY m.observed_on DESC, m.detected_at DESC, m.id
       LIMIT $8 OFFSET $9`,
     [...moveParams(f), Math.min(Math.max(f.limit ?? 50, 1), 200), Math.max(f.offset ?? 0, 0)],
   );
-  return r.rows.map((x) => ({ ...x, evidence: toEvidence(x) }));
+  const roleIds = [...new Set(r.rows.flatMap((x: any) => [x.from_role_id, x.to_role_id]).filter(Boolean))] as Uuid[];
+  const readings = await readingsByRole(db, roleIds);
+  return r.rows.map(({ from_role_id, to_role_id, ...x }: any) => ({ ...x, evidence: toEvidence(x), before: from_role_id ? readings.get(from_role_id) ?? null : null, after: to_role_id ? readings.get(to_role_id) ?? null : null }));
+}
+
+async function readingsByRole(db: Db, roleIds: Uuid[]): Promise<Map<Uuid, MoveReading>> {
+  const out = new Map<Uuid, MoveReading>();
+  if (!roleIds.length) return out;
+  const rr = await db.query<any>(
+    `SELECT r.id AS role_id, o.legal_name AS organization, r.title, r.valid_from::text, r.valid_to::text, r.certainty, r.validated_at, ${EVIDENCE_COLS}
+       FROM ${S}.role_assignment r
+       JOIN ${S}.organization o ON o.id = r.organization_id
+       JOIN ${S}.evidence ev ON ev.id = r.evidence_id
+      WHERE r.id = ANY($1::uuid[])`,
+    [roleIds],
+  );
+  for (const x of rr.rows) out.set(x.role_id, { role_id: x.role_id, organization: x.organization, title: x.title, valid_from: x.valid_from, valid_to: x.valid_to, certainty: x.certainty, validated_at: new Date(x.validated_at).toISOString(), evidence: toEvidence(x) });
+  return out;
 }
 
 export async function countMoveViews(db: Db, f: MoveFilter = {}): Promise<number> {

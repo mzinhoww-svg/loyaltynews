@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "brb-adm",
+  "url": "https://ri.brb.com.br/pt/administracao",
+  "finalUrl": "https://ri.brb.com.br/pt/administracao",
+  "capturedAt": "2026-11-23T13:08:30.373Z",
+  "robots": "robots.txt permite",
+  "length": 86476,
+  "sha256Claimed": "6817bd8f03036d80fce4cbd7a2b50049010fe29b8caddd45c0cd4417fdd2f917"
+}

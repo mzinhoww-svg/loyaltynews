@@ -1,2 +1,4 @@
 node_modules/
 package-lock.json
+data/captures/*.json
+!data/captures/*.meta.json
