@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadRegistries } from './config';
-import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, buildPilotPrompts, canDispatchNext, CLASS_C_EXCLUDED, evaluatePilot, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, type PilotRow } from './pilot';
+import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, canDispatchNext, CLASS_C_EXCLUDED, EDITORIAL_PROMPTS_REF, evaluatePilot, INDEPENDENT_STAGES, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, type PilotRow } from './pilot';
 
 const reg = loadRegistries();
 
@@ -16,58 +16,73 @@ const draft = (n: number, at: number, over: Partial<PilotRow> = {}) => base({ ta
 const check = (n: number, at: number, over: Partial<PilotRow> = {}) =>
   base({ task_id: `c${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'check_edit', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'checker_editor-v1+y', started_at: iso(at), ended_at: iso(at + 3), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, unsupported_facts: 0, ...over });
 
-describe('prompts versionados do piloto', () => {
-  const prompts = buildPilotPrompts(reg);
-
-  it('3 prompts v1, com promptVersion = id-v1+sha256, contas Claude/Codex/Claude', () => {
-    expect(prompts.map((p) => [p.id, p.account])).toEqual([['writer', 'claude'], ['checker_editor', 'codex'], ['extractor_social', 'claude']]);
-    for (const p of prompts) expect(p.promptVersion).toMatch(new RegExp(`^${p.id}-v1\\+[0-9a-f]{12}$`));
-    expect(new Set(prompts.map((p) => p.promptVersion)).size).toBe(3);
-    // determinístico: mesmo texto, mesma versão
-    expect(buildPilotPrompts(reg).map((p) => p.promptVersion)).toEqual(prompts.map((p) => p.promptVersion));
-  });
-
-  it('os campos de saída vêm do registro de perfis (contratos), não de memória', () => {
-    const w = reg.agents.find((a) => a.id === 'writer_regulacao')!.required_result_fields;
-    expect(prompts[0]!.text).toContain(w.join(', '));
-    const f = reg.agents.find((a) => a.id === 'factcheck')!.required_result_fields;
-    expect(prompts[1]!.text).toContain(f.join(', '));
-    const l = reg.agents.find((a) => a.id === 'linkedin')!.required_result_fields;
-    expect(prompts[2]!.text).toContain(l.join(', '));
-    for (const p of prompts) for (const id of p.profiles) expect(reg.agents.some((a) => a.id === id), `${p.id}/${id}`).toBe(true);
-  });
-
-  it('regras da DP-28 e do piloto presentes: citar/linkar, mínimo necessário, robots/classe C, só JSON, sem publicar, modelo declarado', () => {
-    for (const p of prompts) {
-      expect(p.text).toMatch(/Cite e linke a fonte/);
-      expect(p.text).toMatch(/no máximo uma citação curta, até 25 palavras/);
-      expect(p.text).toMatch(/robots/);
-      expect(p.text).toMatch(/Responda APENAS com JSON/);
-      expect(p.text).toMatch(/kpi_observations\.model/);
-    }
-    expect(prompts[1]!.text).toMatch(/same_author/);
-    expect(prompts[1]!.text).toMatch(/NÃO reescreve/);
-    expect(prompts[2]!.text).toMatch(/NUNCA o trecho/);
-    expect(prompts[2]!.text).toMatch(/Instagram e The Loyal estão desligados/);
-  });
-
-  it('nenhum prompt carrega segredo, chave ou URL de API tarifada', () => {
-    for (const p of prompts) expect(p.text).not.toMatch(/sk-[A-Za-z0-9]{10,}|api[_-]?key|openrouter\.ai|Bearer /i);
+describe('prompts: referência única à Editorial (editorial-0.2), sem texto próprio', () => {
+  it('fixa a versão, o commit e o hash do arquivo da fábrica; limites de saída por classe', () => {
+    expect(EDITORIAL_PROMPTS_REF).toMatchObject({ version: 'editorial-0.2', toneVersion: 'tom-0.1', branch: 'ft/editorial', file: 'packages/editorial/src/factory/prompts.ts' });
+    expect(EDITORIAL_PROMPTS_REF.commit).toMatch(/^[0-9a-f]{7,}$/);
+    expect(EDITORIAL_PROMPTS_REF.blobSha).toMatch(/^[0-9a-f]{40}$/);
+    expect(EDITORIAL_PROMPTS_REF.maxOutputTokens).toMatchObject({ triage: 200, draft: 3000, factcheck: 1200, review: 500 });
   });
 });
 
-describe('agentes do piloto (rascunho, nada criado)', () => {
-  const agents = buildPilotAgents(buildPilotPrompts(reg));
-  it('3 agentes: redator (Claude), checador+editor (Codex, autor distinto), extrator+social (Claude)', () => {
-    expect(agents.map((a) => [a.draft_id, a.account, a.stage])).toEqual([['ln_pilot_writer', 'claude', 'draft'], ['ln_pilot_checker', 'codex', 'check_edit'], ['ln_pilot_extractor', 'claude', 'extract_social']]);
+describe('agentes do piloto (rascunho, nada criado): pauta, redação, checagem e revisão', () => {
+  const agents = buildPilotAgents(reg);
+  const by = (id: string) => agents.find((a) => a.draft_id === id)!;
+
+  it('4 obrigatórios (pauta, redator, checador, revisor) + 1 opcional (social/entidades), cada um com a classe da fábrica', () => {
+    expect(agents.map((a) => [a.draft_id, a.stage, a.required])).toEqual([
+      ['ln_pilot_pauta', 'triage', true], ['ln_pilot_redator', 'draft', true], ['ln_pilot_checador', 'factcheck', true], ['ln_pilot_revisor', 'review', true], ['ln_pilot_social', 'social_pack', false],
+    ]);
+    expect(agents.map((a) => a.editorial_task_class)).toEqual(['triage', 'draft', 'factcheck', 'review', 'social_pack']);
     for (const a of agents) {
-      expect(PILOT_STAGES[a.stage].account).toBe(a.account);
-      expect(a.must_not.join(' ')).toMatch(/publicar/);
-      expect(a.must_not.join(' ')).toMatch(/API tarifada/);
-      expect(a.must_not.join(' ')).toMatch(/segredo/);
-      expect(a.tool_contract.join(' ')).toMatch(/\/api\/openbot\/pull/);
-      expect(a.description).toContain(a.prompt_version);
+      expect(a.prompt_ref).toContain(EDITORIAL_PROMPTS_REF.version);
+      expect(a.primary.model).toMatch(/declarado no UsageReport/);
+      expect(PILOT_STAGES[a.stage].account).toBe(a.primary.account);
     }
+  });
+
+  it('contas: pauta no OpenCode grátis, redação em Claude, checagem e revisão em Codex (autor distinto)', () => {
+    expect(by('ln_pilot_pauta').primary.account).toBe('opencode');
+    expect(by('ln_pilot_pauta').primary.model).toMatch(/DeepSeek/);
+    expect(by('ln_pilot_redator').primary.account).toBe('claude');
+    expect(by('ln_pilot_checador').primary.account).toBe('codex');
+    expect(by('ln_pilot_revisor').primary.account).toBe('codex');
+    expect(by('ln_pilot_checador').independence).toMatch(/autor diferente do redator/);
+    expect(by('ln_pilot_revisor').independence).toMatch(/Claude nunca revisa rascunho de Claude/);
+  });
+
+  it('backups só na pauta (OpenCode → Claude); redação, checagem e revisão não têm backup e ficam pending no limite', () => {
+    expect(by('ln_pilot_pauta').backups.map((b) => b.account)).toEqual(['claude']);
+    for (const id of ['ln_pilot_redator', 'ln_pilot_checador', 'ln_pilot_revisor']) {
+      expect(by(id).backups, id).toEqual([]);
+      expect(by(id).on_limit, id).toMatch(/SEM backup/);
+    }
+    expect(by('ln_pilot_redator').on_limit).toMatch(/DP-26 b/);
+    expect(by('ln_pilot_checador').on_limit).toMatch(/falha fechada/);
+    // nenhum backup é API tarifada
+    expect(JSON.stringify(agents.flatMap((a) => a.backups))).not.toMatch(/openrouter|api tarifada|gpt-6\.1-terra/i);
+  });
+
+  it('restrições em todos: sem API tarifada, sem publicar, sem segredo, dado não confiável, sem criar agentes', () => {
+    for (const a of agents) {
+      const m = a.must_not.join(' | ');
+      expect(m, a.draft_id).toMatch(/API tarifada ou o OpenRouter/);
+      expect(m, a.draft_id).toMatch(/publicar/);
+      expect(m, a.draft_id).toMatch(/segredo/);
+      expect(m, a.draft_id).toMatch(/dado não confiável/);
+      expect(m, a.draft_id).toMatch(/criar agentes/);
+      expect(a.tool_contract.join(' '), a.draft_id).toMatch(/\/api\/openbot\/pull/);
+    }
+    expect(JSON.stringify(agents)).not.toMatch(/sk-[A-Za-z0-9]{10,}|Bearer\s+\S{10,}/);
+  });
+
+  it('as lacunas do adaptador ficam explícitas: a revisão não tem tipo (adapter_kind null) e deve ser pedida à Integração', () => {
+    expect(by('ln_pilot_revisor').adapter_kind).toBeNull();
+    expect(by('ln_pilot_pauta').adapter_kind).toBe('classification');
+    expect(by('ln_pilot_redator').adapter_kind).toBe('editorial_draft');
+    expect(by('ln_pilot_checador').adapter_kind).toBe('fact_check');
+    expect(PILOT_STAGES.check_edit.adapterKind).toBe('fact_check'); // chamada única checagem+revisão
+    expect(INDEPENDENT_STAGES).toEqual(['factcheck', 'review', 'check_edit']);
   });
 });
 
@@ -141,7 +156,7 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
     const same = evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'claude-opus-5-5' })]);
     expect(same.exit.independence).toBe('fail');
     expect(same.exit.overall).toBe('fail');
-    expect(same.independence.failures[0]).toMatch(/a1\/c1: redator claude-sonnet-5-5 x checador claude-opus-5-5/);
+    expect(same.independence.failures[0]).toMatch(/a1\/c1\(check_edit\): redator claude-sonnet-5-5 x checador claude-opus-5-5/);
     expect(evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.independence).toBe('fail');
     expect(evaluatePilot([draft(1, 0), check(1, 3, { cross_provider_ok: false })]).exit.independence).toBe('fail');
     expect(evaluatePilot([check(1, 3)]).exit.independence).toBe('fail'); // checagem sem rascunho conhecido
@@ -286,5 +301,67 @@ describe('sondas do QA 1 sobre o avaliador (f5c7b08)', () => {
     expect(r.stopped).toBe(true);
     expect(s.canDispatch()).toBe(false);
     expect(s.evaluate().exit.overall).toBe('invalid');
+  });
+});
+
+describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados SIMULADOS', () => {
+  const triage = (n: number, at: number, over: Partial<PilotRow> = {}) =>
+    base({ task_id: `t${n}`, kind: 'classification', article_id: `a${n}`, stage: 'triage', account: 'opencode', declared_model: 'deepseek-chat (opencode)', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 1), output_valid: true, ...over });
+  const factcheck = (n: number, at: number, over: Partial<PilotRow> = {}) =>
+    base({ task_id: `f${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 2), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, ...over });
+  const review = (n: number, at: number, over: Partial<PilotRow> = {}) =>
+    base({ task_id: `r${n}`, kind: 'editorial_review', article_id: `a${n}`, stage: 'review', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 2), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, unsupported_facts: 0, ...over });
+
+  it('pauta no OpenCode, backup Claude aceito; qualquer outra conta é inválida', () => {
+    expect(validatePilotRow(triage(1, 0))).toEqual([]);
+    expect(validatePilotRow(triage(1, 0, { account: 'claude', declared_model: 'claude-sonnet-5-5' }))).toEqual([]); // backup permitido
+    expect(validatePilotRow(triage(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/opencode ou claude/)]));
+    // redação, checagem e revisão não têm backup: conta de backup é inválida
+    expect(validatePilotRow(draft(1, 0, { account: 'opencode' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+    expect(validatePilotRow(factcheck(1, 3, { account: 'claude' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em codex/)]));
+  });
+
+  it('checagem e revisão separadas: as duas precisam ser de autor diferente do redator e apontar o mesmo rascunho', () => {
+    const ok = evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6)]);
+    expect(ok.independence).toMatchObject({ checked: 2, ok: 2, failures: [] });
+    expect(ok.exit).toMatchObject({ independence: 'pass', quality: 'pass' });
+    // revisor do mesmo autor do redator reprova só com a revisão
+    const bad = evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { declared_model: 'claude-opus-5-5' })]);
+    expect(bad.independence).toMatchObject({ checked: 2, ok: 1 });
+    expect(bad.independence.failures[0]).toMatch(/\(review\): redator claude-sonnet-5-5 x revisor claude-opus-5-5/);
+    expect(bad.exit.independence).toBe('fail');
+    // revisão sem vínculo reprova
+    expect(evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { reviewed_draft_task_id: undefined })]).exit.overall).toBe('invalid');
+  });
+
+  it('a qualidade vale pelo veredito do gate final (revisão ou chamada fundida), não pela checagem sozinha', () => {
+    const only = evaluatePilot([draft(1, 0), factcheck(1, 3, { unsupported_facts: 0 })]);
+    expect(only.quality.approvedWithEvaluation).toBe(0);
+    expect(only.exit.quality).toBe('inconclusive');
+    expect(evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { unsupported_facts: 2 })]).exit.quality).toBe('fail');
+  });
+
+  it('janela do OpenCode é contada à parte; a pauta no backup Claude entra na janela do Claude', () => {
+    const rows = [
+      triage(1, 0), triage(2, 2), triage(3, 4, { outcome: 'pending_limit', limit_message: 'limite da camada gratuita (SIMULADO)', limit_at: iso(5), account_resumed_at: iso(60) }),
+      triage(3, 61, { task_id: 't3b', account: 'claude', declared_model: 'claude-sonnet-5-5', attempt: 2 }),
+    ];
+    const e = evaluatePilot(rows);
+    expect(e.limitHits).toEqual([{ account: 'opencode', at: iso(5), message: 'limite da camada gratuita (SIMULADO)', resumedAt: iso(60) }]);
+    expect(e.windows.find((w) => w.account === 'opencode')).toMatchObject({ completedTasks: 2, articles: 2, endedByLimit: true });
+    expect(e.windows.find((w) => w.account === 'claude')).toMatchObject({ completedTasks: 1, articles: 1, endedByLimit: false });
+  });
+
+  it('formato da saída: conta os JSON válidos e a taxa; etapa determinística não entra', () => {
+    const e = evaluatePilot([triage(1, 0), triage(2, 2, { output_valid: false }), draft(1, 0, { output_valid: true }), base({ task_id: 'q1', stage: 'rights_seo_qa', account: 'deterministic', declared_model: null, prompt_version: null, output_valid: true })]);
+    expect(e.outputValidity).toEqual({ checked: 3, valid: 2, rate: 2 / 3 });
+  });
+
+  it('custo zero tarifado: tariffed.apiCalls conta e a chamada à API tarifada é parada imediata', () => {
+    expect(evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6)]).tariffed.apiCalls).toBe(0);
+    const e = evaluatePilot([draft(1, 0), factcheck(1, 3, { tarifada_api_call: true })]);
+    expect(e.tariffed.apiCalls).toBe(1);
+    expect(e.exit.overall).toBe('stopped');
+    expect(canDispatchNext([draft(1, 0), factcheck(1, 3, { tarifada_api_call: true })]).allowed).toBe(false);
   });
 });
