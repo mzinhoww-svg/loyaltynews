@@ -31,6 +31,9 @@ describe('validação do criativo contra a posição', () => {
     expect(codes(base({ altText: 'x'.repeat(201) }))).toEqual(['NO_ALT']);
     expect(codes(base({ advertiserName: '' }))).toEqual(['NO_ADVERTISER']);
     expect(codes(base({ destinationUrl: undefined }))).toEqual(['NO_DESTINATION']);
+    expect(codes(base({ asset: { ...asset, sha256: undefined as unknown as string } }))).toEqual(['NO_HASH']);
+    expect(codes(base({ asset: { ...asset, sha256: 'ABC' } }))).toEqual(['NO_HASH']);
+    expect(codes(base({ asset: { ...asset, sha256: 'A'.repeat(64) } }))).toEqual(['NO_HASH']); // hex em maiúsculas não vale
     const tudo = codes(base({ asset: undefined, altText: '', advertiserName: undefined, destinationUrl: 'http://x.example' }));
     expect(tudo).toEqual(['NO_ASSET', 'NO_ALT', 'NO_ADVERTISER', 'BAD_DESTINATION']);
   });
@@ -65,7 +68,7 @@ describe('só criativo real é servido', () => {
     expect(r).toMatchObject({ kind: 'creative', counted: true });
     expect(r.ad).toMatchObject({ positionId: 'TOP', creativeId: 'c1', label: 'Publicidade', advertiser: 'Anunciante Teste', alt: 'Anúncio de teste', width: 1280, height: 150, impressionId: r.impressionId });
     expect(r.ad!.href).toBe(`/api/commercial/ads/click?ref=${encodeURIComponent(r.impressionId!)}`);
-    expect(r.ad!.imageSrc).toBe('/api/commercial/ads/creative-image?id=c1');
+    expect(r.ad!.imageSrc).toBe('/api/commercial/ads/creative-image?id=c1&v=abababab');
   });
   it('a visão pública NÃO vaza campo interno (campanha, conta, peso, aprovação, chave do arquivo, destino)', () => {
     const s = new AdServer(); s.addCreative(base({ asset: { ...realContent('TOP').asset, sha256: 'a'.repeat(64) } }));
@@ -165,7 +168,7 @@ describe('handlers públicos do anúncio', () => {
   it('imagem: só criativo real, aprovado, ativo e no período; devolve a chave do arquivo, nunca o destino', () => {
     const { state, ctx } = live();
     const ok = h.resolveCreativeImage(ctx, { id: 'c1' });
-    expect(ok.body).toEqual({ key: 'ads/teste/TOP.png', mime: 'image/png', sizeKB: 50, sha256: null });
+    expect(ok.body).toEqual({ key: 'ads/teste/TOP.png', mime: 'image/png', sizeKB: 50, sha256: 'ab'.repeat(32) });
     for (const patch of [{ approved: false }, { campaignActive: false }, { endDate: '2026-12-04' }, { altText: '' }, { asset: undefined }]) {
       state.ads.setCreative('c1', { approved: true, campaignActive: true, endDate: '2027-02-28', ...realContent('TOP'), ...patch } as Partial<Creative>);
       expect(h.resolveCreativeImage(ctx, { id: 'c1' }).status).toBe(404);
@@ -218,6 +221,15 @@ describe('Studio: aprovar exige criativo real', () => {
     h.setCreativeContent(ctx, { creativeId: id, altText: 'Texto novo' });
     expect(state.ads.listCreatives()[0]!.approved).toBe(false);
     expect(h.setCreativeContent(ctx, { creativeId: 'nope', altText: 'x' }).status).toBe(404);
+  });
+  it('o arquivo precisa chegar com o hash sha256 (calculado no servidor): sem hash, 400 e nada é gravado', () => {
+    const { ctx, camp, state } = setup();
+    const { sha256: _omit, ...semHash } = realContent('FOOTER').asset; void _omit;
+    expect(h.addCreative(ctx, { campaignId: camp.id, positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2027-01-31', ...realContent('FOOTER'), asset: semHash }).status).toBe(400);
+    expect(state.ads.listCreatives()).toHaveLength(0);
+    const id = (h.addCreative(ctx, { campaignId: camp.id, positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2027-01-31' }).body as { id: string }).id;
+    expect(h.setCreativeContent(ctx, { creativeId: id, asset: { ...semHash, sha256: 'xyz' } }).status).toBe(400);
+    expect(h.setCreativeContent(ctx, { creativeId: id, ...realContent('FOOTER') }).status).toBe(200);
   });
   it('sem sessão do Studio: 401 nas três ações de criativo', () => {
     const { state } = setup();

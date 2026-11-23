@@ -76,7 +76,7 @@ export const resolveCreativeImage = define({ auth: 'public', schema: z.object({ 
   if (!isEnabled('adServerVendas', ctx.flags)) return fail(404, 'NOT_FOUND', 'Arquivo indisponível.');
   const c = ctx.ads.listCreatives().find((x) => x.id === i.id);
   const live = c && c.asset && c.approved && c.campaignActive && c.startDate <= ctx.today && ctx.today <= c.endDate && validateCreative(c).length === 0;
-  return live ? ok({ key: c.asset!.key, mime: c.asset!.mime, sizeKB: c.asset!.sizeKB, sha256: c.asset!.sha256 ?? null }) : fail(404, 'NOT_FOUND', 'Arquivo indisponível.');
+  return live ? ok({ key: c.asset!.key, mime: c.asset!.mime, sizeKB: c.asset!.sizeKB, sha256: c.asset!.sha256 }) : fail(404, 'NOT_FOUND', 'Arquivo indisponível.');
 });
 
 // ---------- Studio (exige ctx.actor.canManageCommercial) ----------
@@ -140,7 +140,7 @@ export const createCampaign = define({
   return ok(ctx.campaigns.create(i, ctx.now), 201);
 });
 
-const AssetSchema = z.object({ key: z.string().min(1).max(300), mime: z.enum(ALLOWED_MIME), width: z.number().int().positive(), height: z.number().int().positive(), sizeKB: z.number().positive().finite(), sha256: z.string().regex(/^[0-9a-f]{64}$/).optional() });
+const AssetSchema = z.object({ key: z.string().min(1).max(300), mime: z.enum(ALLOWED_MIME), width: z.number().int().positive(), height: z.number().int().positive(), sizeKB: z.number().positive().finite(), sha256: z.string().regex(/^[0-9a-f]{64}$/) });
 const CreativeContent = { asset: AssetSchema.optional(), altText: z.string().max(200).optional(), destinationUrl: z.string().max(2000).optional(), advertiserName: z.string().max(80).optional() };
 
 export const addCreative = define({

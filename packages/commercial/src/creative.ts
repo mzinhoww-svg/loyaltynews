@@ -17,13 +17,13 @@ export interface CreativeAsset {
   mime: AdMime;
   width: number; height: number;
   sizeKB: number;
-  /** sha256 do arquivo, para cache e verificação; opcional. */
-  sha256?: string;
+  /** sha256 do arquivo (64 hex minúsculos), calculado NO SERVIDOR no upload: cache, ETag e verificação de integridade. Obrigatório. */
+  sha256: string;
 }
 
 export type CreativeIssueCode =
   | 'POSITION_UNKNOWN' | 'POSITION_NOT_CONFIGURED' | 'NO_ASSET' | 'BAD_MIME' | 'BAD_DIMENSIONS' | 'TOO_HEAVY'
-  | 'NO_ALT' | 'NO_ADVERTISER' | 'NO_DESTINATION' | 'BAD_DESTINATION';
+  | 'NO_HASH' | 'NO_ALT' | 'NO_ADVERTISER' | 'NO_DESTINATION' | 'BAD_DESTINATION';
 export interface CreativeIssue { code: CreativeIssueCode; message: string }
 
 /** Cada problema é uma linha: o Studio mostra tudo o que falta de uma vez. Lista vazia = criativo válido. */
@@ -36,6 +36,7 @@ export function validateCreative(c: Creative, positions: readonly BannerPosition
   const a = c.asset;
   if (!a || !a.key) out.push({ code: 'NO_ASSET', message: 'Sem arquivo do criativo.' });
   else {
+    if (!/^[0-9a-f]{64}$/.test(a.sha256 ?? '')) out.push({ code: 'NO_HASH', message: 'Hash sha256 do arquivo ausente ou inválido (64 hex minúsculos).' });
     if (!(ALLOWED_MIME as readonly string[]).includes(a.mime)) out.push({ code: 'BAD_MIME', message: `Tipo ${a.mime} não aceito (JPG, PNG ou GIF).` });
     if (p.desktop !== null) {
       const [w, h] = p.desktop.split('x').map(Number);
@@ -71,7 +72,7 @@ export interface AdUrls {
   click(ref: string): string;
 }
 export const DEFAULT_AD_URLS: AdUrls = {
-  image: (id, a) => `/api/commercial/ads/creative-image?id=${encodeURIComponent(id)}${a.sha256 ? `&v=${a.sha256.slice(0, 8)}` : ''}`,
+  image: (id, a) => `/api/commercial/ads/creative-image?id=${encodeURIComponent(id)}&v=${a.sha256.slice(0, 8)}`,
   click: (ref) => `/api/commercial/ads/click?ref=${encodeURIComponent(ref)}`,
 };
 

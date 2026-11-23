@@ -7,7 +7,7 @@ export function realContent(positionId: string = 'TOP', over: Partial<{ asset: C
   const p = POSITIONS.find((x) => x.id === positionId);
   const [width, height] = (p?.desktop ?? '1280x150').split('x').map(Number) as [number, number];
   return {
-    asset: { key: `ads/teste/${positionId}.png`, mime: 'image/png' as const, width, height, sizeKB: 50 },
+    asset: { key: `ads/teste/${positionId}.png`, mime: 'image/png' as const, width, height, sizeKB: 50, sha256: 'ab'.repeat(32) },
     altText: 'Anúncio de teste',
     advertiserName: 'Anunciante Teste',
     destinationUrl: 'https://anunciante.example/oferta',
