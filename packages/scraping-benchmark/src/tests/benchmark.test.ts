@@ -483,3 +483,16 @@ describe('ressalvas abertas QA 3 (router 1 observação; adaptador cru)', () => 
     expect(t.text).toBeUndefined();
   });
 });
+
+describe('Firecrawl: sucesso diferente de 200 com paywall/login (ressalva QA 3)', () => {
+  it.each([200, 201, 203])('origem %i com paywall → 402; com login → 401; sem corpo; pool classifica', async (code) => {
+    const mk = (md: string) => new FirecrawlReader((async () => new Response(JSON.stringify({ success: true, data: { markdown: md, metadata: { statusCode: code } } }), { status: 200 })) as unknown as typeof fetch);
+    const pw = await mk(`${LONG} Conteúdo exclusivo para assinantes`).read({ url: 'https://a.com' }, 'k');
+    expect(pw).toMatchObject({ status: 'ok', httpStatus: 402 });
+    expect(pw.text).toBeUndefined();
+    const lg = await mk('Faça login para continuar lendo').read({ url: 'https://a.com' }, 'k');
+    expect(lg).toMatchObject({ httpStatus: 401 });
+    const viaPool = await createReader({ keyed: mk(`${LONG} Conteúdo exclusivo para assinantes`), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com' });
+    expect(viaPool).toMatchObject({ ok: false, failure: 'paywall' });
+  });
+});
