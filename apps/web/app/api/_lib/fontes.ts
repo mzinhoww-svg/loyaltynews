@@ -3,6 +3,7 @@ import { asc, eq, inArray } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { HttpError, json, newId, readBody, type RouteFn } from './http';
+import { sourceRegistry } from './editorial';
 import { EvidenceCreate, SourceCreate, SourcePatch } from './schemas';
 
 async function withEditorias(db: Db, rows: (typeof schema.sources.$inferSelect)[]) {
@@ -23,6 +24,11 @@ async function loadSource(db: Db, id: string) {
   return s;
 }
 
+/** Linha projetada do registro da Fábrica: somente leitura aqui (a coleta e a definição mudam só nos handlers da Fábrica). */
+const factoryReadonly = (s: { id: string; origem: string }) => {
+  if (s.origem === 'fabrica') throw new HttpError(409, 'FACTORY_SOURCE_READONLY', 'Fonte da Fábrica é somente leitura no CMS.', { id: s.id });
+};
+
 export const listSources: RouteFn = async (_req, c) =>
   json({ data: await withEditorias(c.deps.db, await c.deps.db.select().from(schema.sources).orderBy(asc(schema.sources.nome))) });
 
@@ -33,6 +39,8 @@ export const getSource: RouteFn = async (_req, c) => {
 
 export const createSource: RouteFn = async (req, c) => {
   const b = await readBody(req, SourceCreate);
+  // ADR-019 §d: o id de uma fonte do registro da Fábrica é reservado (a linha 'fabrica' nasce da projeção, nunca do CMS)
+  if (sourceRegistry.get(b.id)) throw new HttpError(409, 'ID_RESERVED', 'Id reservado: pertence ao registro de fontes da Fábrica.', { id: b.id });
   const eds = [...new Set(b.editorias)];
   await assertEditorias(c.deps.db, eds);
   await c.deps.db.transaction(async (tx) => {
@@ -53,6 +61,7 @@ export const createSource: RouteFn = async (req, c) => {
 export const patchSource: RouteFn = async (req, c) => {
   const b = await readBody(req, SourcePatch);
   const cur = await loadSource(c.deps.db, c.params.id ?? '');
+  factoryReadonly(cur);
   const termos = b.termosRevisados ?? cur.termosRevisados;
   const ativo = b.ativo ?? cur.ativo;
   if (ativo && !termos) throw new HttpError(409, 'TERMS_NOT_REVIEWED', 'Fonte só é ativada com os termos de uso revisados.');
@@ -71,6 +80,7 @@ export const patchSource: RouteFn = async (req, c) => {
 };
 
 export const deleteSource: RouteFn = async (_req, c) => {
+  factoryReadonly(await loadSource(c.deps.db, c.params.id ?? ''));
   const deleted = await c.deps.db.delete(schema.sources).where(eq(schema.sources.id, c.params.id ?? '')).returning();
   if (!deleted[0]) throw new HttpError(404, 'NOT_FOUND', 'Fonte não encontrada.');
   return new Response(null, { status: 204 });
