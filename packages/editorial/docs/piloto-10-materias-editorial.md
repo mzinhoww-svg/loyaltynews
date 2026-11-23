@@ -5,7 +5,7 @@ Kit do piloto: `ft/agents` 85e6ca5 / ba51ea2 (`packages/agents/artifacts/pilot-p
 ## 1. Prompts fixados
 
 - Os prompts `editorial-0.2` estão em `packages/editorial/src/factory/prompts.ts`; o arquivo tem o blob `fd9a9f2f2a84` **idêntico** em `7b35efa` e nos commits seguintes (nada em `prompts.ts` mudou depois). **O commit certo é o `7b35efa`**; se `prompts.ts` mudar, eu aviso com o novo blob.
-- O tom segue **`tom-0.1` (provisório)**; a proposta `tom-0.2` está em `docs/tom-de-voz-v0.2.md`, aguardando o UI/UX Director. Se for aprovada, `TOM_DE_VOZ` muda e a versão do prompt sobe para `editorial-0.3`.
+- **Atualização (23/11, decisão do PM):** o tom `tom-0.2` foi adotado como versão de trabalho e o prompt subiu para **`editorial-0.3`** (guia em `docs/tom-de-voz-v0.2.md`; "tom lint" bloqueante e avisos em `src/rules/tone.ts`). O kit do piloto deve fixar o `editorial-0.3` quando ele for homologado; o blob de `prompts.ts` do `editorial-0.3` está na mensagem de entrega ao QA 3. O parágrafo acima sobre `7b35efa` vale para o `editorial-0.2`.
 - Mudou no commit que acompanha este documento, **fora de `prompts.ts`**: a entrada de `factcheck` e `review` ganha `reviewedDraft` (item 3). Como `prompts.ts` não muda, o blob fixado continua valendo; quem mede o piloto deve reler a entrada, não só o prompt.
 
 ## 2. Fontes a habilitar (ato humano; a Editorial não habilita)

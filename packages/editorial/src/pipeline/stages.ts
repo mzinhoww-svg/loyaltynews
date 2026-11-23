@@ -44,7 +44,7 @@ export interface StageDeps {
   slugExists?: (slug: string) => Promise<boolean>;
 }
 
-const PROMPT_VERSION = 'editorial-0.2';
+const PROMPT_VERSION = 'editorial-0.3';
 
 function blocked(job: ArticleJob, stage: JobSpec['stage'], blockers: BlockerCode[], findings: Finding[] = []): StageOutcome {
   return { kind: 'blocked', blocked: { articleId: job.articleId, stage, blockers, findings } };
