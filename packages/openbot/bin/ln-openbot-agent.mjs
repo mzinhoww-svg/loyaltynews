@@ -11,6 +11,8 @@ import { pathToFileURL } from 'node:url';
 
 export const ACCOUNTS = ['claude', 'codex'];
 export const STAGES = ['triage', 'draft', 'factcheck', 'review', 'social_pack', 'roles'];
+/** Tipos de tarefa do piloto (o `pull` filtra por eles: vários agentes podem dividir a mesma conta). */
+export const KINDS = ['classification', 'editorial_draft', 'fact_check', 'editorial_review', 'social_copy', 'entity_resolution'];
 const ID_RE = /^[A-Za-z0-9_.-]{1,128}$/;
 const SIGNATURE_HEADER = 'x-ln-signature';
 const TIMESTAMP_HEADER = 'x-ln-timestamp';
@@ -72,12 +74,13 @@ export async function post(cfg, path, payload, { fetchImpl = fetch, now = () => 
     throw new CliError('rede', 'a chamada à API do LN falhou (rede ou tempo esgotado)');
   }
   const text = await res.text();
-  let body = null;
-  try {
-    body = text ? JSON.parse(text) : null;
-  } catch {
-    body = null;
-  }
+  const body = (() => {
+    try {
+      return text ? JSON.parse(text) : null;
+    } catch {
+      return null;
+    }
+  })();
   if (!res.ok) {
     const code = body?.error?.code ?? 'HTTP';
     throw new CliError(code, `${code}: ${String(body?.error?.message ?? res.status).slice(0, 200)}`, res.status);
@@ -124,10 +127,12 @@ function traceOf(cfg, a, now, extra = {}) {
 
 const COMMANDS = {
   async pull(cfg, argv, io) {
-    const a = parseArgs(argv, ['limit']);
+    const a = parseArgs(argv, ['limit', 'kinds']);
     const limit = a.limit ? Number.parseInt(a.limit, 10) : 1;
     if (!(limit >= 1 && limit <= 10)) throw new CliError('uso', '--limit entre 1 e 10');
-    return (await post(cfg, 'pull', { workerId: cfg.workerId, account: cfg.account, limit }, io)).body;
+    const kinds = a.kinds !== undefined ? a.kinds.split(',').map((k) => k.trim()) : undefined;
+    if (kinds && (kinds.length === 0 || kinds.some((k) => !KINDS.includes(k)))) throw new CliError('uso', `--kinds: lista separada por vírgula de ${KINDS.join('|')}`);
+    return (await post(cfg, 'pull', { workerId: cfg.workerId, account: cfg.account, limit, ...(kinds ? { kinds } : {}) }, io)).body;
   },
   async heartbeat(cfg, argv, io) {
     const a = parseArgs(argv, ['task', 'lease']);

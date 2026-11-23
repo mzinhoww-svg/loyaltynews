@@ -79,6 +79,18 @@ describe('cliente do agente contra as rotas reais', () => {
     expect((await cli(['heartbeat', '--task', t.id, '--lease', t.leaseId])).leaseExpiresAt).toBeTruthy();
   });
 
+  it('pull --kinds: vários agentes dividem a mesma conta e cada um só recebe o seu tipo de tarefa; tipo desconhecido é recusado antes da rede', async () => {
+    await seed(7, 'fact_check', ['codex']);
+    await seed(8, 'editorial_review', ['codex']);
+    expect((await cli(['pull', '--kinds', 'editorial_draft'])).tasks).toEqual([]);
+    const rev = (await cli(['pull', '--kinds', 'editorial_review'])).tasks;
+    expect(rev.map((t: any) => t.kind)).toEqual(['editorial_review']);
+    const chk = (await cli(['pull', '--kinds', 'fact_check,classification', '--limit', '5'])).tasks;
+    expect(chk.map((t: any) => t.kind)).toEqual(['fact_check']);
+    expect(await refusal(cli(['pull', '--kinds', 'create_post']))).toBe('uso');
+    expect(await refusal(cli(['pull', '--kinds', '']))).toBe('uso');
+  });
+
   it('limite da conta: o callback de limite deixa a tarefa pendente (sem consumir tentativa) e não grava custo', async () => {
     await seed(3);
     const t = (await cli(['pull'])).tasks[0];
@@ -93,6 +105,17 @@ describe('cliente do agente contra as rotas reais', () => {
     expect(await refusal(cli(['done', '--task', t.id, '--lease', 'lease-alheio', '--result-ref', `res-${t.id}-a1`, '--model', 'm', '--stage', 'factcheck']))).toBe('LEASE_ERROR:409');
     const f = await cli(['fail', '--task', t.id, '--lease', t.leaseId, '--stage', 'factcheck', '--error', 'saída fora do esquema']);
     expect(f.task.status).toBe('pending');
+  });
+});
+
+describe('sonda de assinatura (sem tocar dado)', () => {
+  it('heartbeat de uma tarefa que não existe: com o segredo certo a API assina como válido (404 LEASE_ERROR); com o errado, 401; nada é criado', async () => {
+    app.deps.flags.openbotDispatch = false; // a sonda vale com o despacho DESLIGADO (como no passo 6.1 do roteiro): o pull daria 503 antes de conferir a assinatura
+    expect((await cli(['pull']).catch((e: CliError) => e)).code).toBe('DISPATCH_OFF');
+    expect(await refusal(cli(['heartbeat', '--task', 'sonda-inexistente', '--lease', 'sonda']))).toBe('LEASE_ERROR:404');
+    files['/cofre/errado2'] = 'segredo-errado';
+    expect(await refusal(cli(['heartbeat', '--task', 'sonda-inexistente', '--lease', 'sonda'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado2' })))).toBe('UNAUTHORIZED:401');
+    expect(await app.db.select().from(schema.openbotTasks)).toHaveLength(0);
   });
 });
 
