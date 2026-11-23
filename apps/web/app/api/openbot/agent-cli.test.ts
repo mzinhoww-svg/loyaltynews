@@ -2,6 +2,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
 import { PgLeaseQueue, PgTaskIo } from '@ln/workers/openbot-pg';
+import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import { makeApp } from '../_lib/testkit';
 import * as pull from './pull/route';
 import * as heartbeat from './heartbeat/route';
@@ -159,6 +160,29 @@ describe('423 Locked (PM-2026-11-23-I): o LN travado de propósito', () => {
     files['/cofre/errado4'] = 'segredo-errado-4';
     const e: any = await run(['pull'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado4' }), io()).catch((x) => x);
     expect([e.code, e.stop]).toEqual(['UNAUTHORIZED', false]);
+  });
+});
+
+describe('423 Locked pelas rotas REAIS (ft/backend 0a2e2c8): o código chega ao agente, que para o ciclo', () => {
+  it('despacho desligado: pull = 423 DISPATCH_OFF com stop; a sonda de assinatura (heartbeat) continua passando', async () => {
+    app.deps.flags.openbotDispatch = false;
+    const e: any = await cli(['pull']).catch((x) => x);
+    expect([e.code, e.status, e.stop]).toEqual(['DISPATCH_OFF', 423, true]);
+    expect(await refusal(cli(['heartbeat', '--task', 'sonda-inexistente', '--lease', 'sonda']))).toBe('LEASE_ERROR:404');
+  });
+
+  it('kill switch (route:openbot): pull, heartbeat, input e result = 423 KILL_SWITCH com stop; soltando o kill o pull volta', async () => {
+    await seed(9);
+    const t = (await cli(['pull'])).tasks[0];
+    const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
+    await store.setKill('route:openbot', true, 'ensaio do 423', app.clock.now);
+    const lease = ['--task', t.id, '--lease', t.leaseId];
+    for (const argv of [['pull'], ['heartbeat', ...lease], ['input', ...lease], ['result', ...lease, '--file', '/tmp/result.json']]) {
+      const e: any = await cli(argv).catch((x) => x);
+      expect([e.code, e.status, e.stop], argv[0]).toEqual(['KILL_SWITCH', 423, true]);
+    }
+    await store.setKill('route:openbot', false, 'soltar', app.clock.now);
+    expect((await cli(['heartbeat', ...lease])).leaseExpiresAt).toBeTruthy();
   });
 });
 
