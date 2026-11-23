@@ -41,8 +41,9 @@ export type PolicyRules = z.infer<typeof PolicyRules>;
 
 /**
  * Modo de qualificação no gateway (T6 do protocolo de qualificação; ADR-021). Só os candidatos do protocolo, tarefa
- * `model_qualification`, classe `public`, ZDR por chamada, sem fallback, teto próprio (até US$ 5) e sem a reserva de
- * auditoria. NÃO é produção: exige `production_enabled=false`. Ligar (`enabled=true`) é mudança protegida.
+ * `model_qualification`, classe `public`, sem fallback, teto próprio (até US$ 5) e sem a reserva de auditoria. ZDR por
+ * chamada: obrigatório na v6 (DP-26 a), preferência na v7 (DP-27). NÃO é produção: exige `production_enabled=false`.
+ * Ligar (`enabled=true`) é mudança protegida.
  */
 export const QualificationMode = z.looseObject({
   name: z.literal('qualification'),
@@ -52,20 +53,43 @@ export const QualificationMode = z.looseObject({
   data_class: z.literal('public'),
   candidates: z.array(z.string().min(1)).min(1),
   excluded: z.array(z.string().min(1)).default([]),
-  provider_zdr_per_call: z.literal(true),
+  provider_zdr_per_call: z.boolean(),
   allow_fallbacks: z.literal(false),
   cap_usd: z.number().positive().max(5),
   uses_audit_reserve: z.literal(false),
 });
 export type QualificationMode = z.infer<typeof QualificationMode>;
 
-/** Privacidade de produção (DP-26 a): ZDR listado no OpenRouter + política de dados do OpenRouter arquivada. */
+/**
+ * Privacidade de produção. v6 (DP-26 a): ZDR listado + política do OpenRouter arquivada, ambos exigidos. v7 (DP-27): ZDR
+ * não exigido (retenção aceita pelo proprietário); a referência arquivada fica, sem bloquear. Quando
+ * `openrouter_data_policy_archived_required` é true, produção sem a referência é recusada.
+ */
 export const PrivacyRules = z.looseObject({
-  unpublished_requires_listed_zdr: z.literal(true),
-  provider_zdr_per_call: z.literal(true),
-  openrouter_data_policy_archived_required: z.literal(true),
+  unpublished_requires_listed_zdr: z.boolean(),
+  provider_zdr_per_call: z.boolean(),
+  openrouter_data_policy_archived_required: z.boolean(),
   openrouter_data_policy_ref: z.string().min(1).nullable(),
 });
+
+/**
+ * Canais de execução (v7, DP-27): principal = agentes do OpenBot nas assinaturas (fora do teto), complemento = API
+ * tarifada (OpenRouter) dentro do teto de US$ 50. O complemento usa as rotas da política; nunca muda o teto.
+ */
+export const ExecutionChannels = z.looseObject({
+  primary: z.looseObject({
+    channel: z.literal('openbot_subscription'),
+    outside_monthly_cap: z.literal(true),
+    by_task: z.record(z.string(), z.string()),
+    evidence_required: z.array(z.string().min(1)).min(1),
+  }),
+  complement: z.looseObject({
+    channel: z.literal('openrouter_metered'),
+    inside_monthly_cap_usd: z.number().positive(),
+  }),
+  never: z.array(z.string().min(1)).min(1),
+});
+export type ExecutionChannels = z.infer<typeof ExecutionChannels>;
 
 export const ModelPolicy = z
   .looseObject({
@@ -77,6 +101,7 @@ export const ModelPolicy = z
     data_classes: z.looseObject({ public: z.array(ModelProvider) }),
     routing_by_task: z.record(z.string(), z.string()),
     qualification: z.looseObject({ mode: QualificationMode.optional() }).optional(),
+    execution: ExecutionChannels.optional(),
   })
   .superRefine((p, ctx) => {
     const mode = p.qualification?.mode;
@@ -91,8 +116,15 @@ export const ModelPolicy = z
       if (mode.enabled && p.rules.production_enabled) ctx.addIssue({ code: 'custom', message: 'qualificação só com production_enabled=false', path: ['qualification', 'mode', 'enabled'] });
     }
     const priv = p.rules.privacy;
-    if (priv && p.rules.production_enabled && !priv.openrouter_data_policy_ref)
+    if (priv && priv.openrouter_data_policy_archived_required && p.rules.production_enabled && !priv.openrouter_data_policy_ref)
       ctx.addIssue({ code: 'custom', message: 'produção exige a política de dados do OpenRouter arquivada (DP-26 a)', path: ['rules', 'privacy'] });
+    if (priv && priv.unpublished_requires_listed_zdr && !priv.provider_zdr_per_call)
+      ctx.addIssue({ code: 'custom', message: 'ZDR exigido no não publicado precisa de provider.zdr por chamada', path: ['rules', 'privacy'] });
+    const ex = p.execution;
+    if (ex && ex.complement.inside_monthly_cap_usd > p.rules.hard_monthly_budget_usd)
+      ctx.addIssue({ code: 'custom', message: 'complemento acima do teto mensal', path: ['execution', 'complement'] });
+    if (ex && !ex.primary.by_task.fact_check)
+      ctx.addIssue({ code: 'custom', message: 'canal principal sem checagem definida (autor distinto obrigatório)', path: ['execution', 'primary', 'by_task'] });
     const ids = new Set(p.models.map((m) => m.id));
     for (const [route, list] of Object.entries(p.routes)) {
       for (const id of list) {

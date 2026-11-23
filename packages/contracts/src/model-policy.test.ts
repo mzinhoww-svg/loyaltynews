@@ -65,3 +65,49 @@ describe('política v6 (DP-26) e modo de qualificação (T6, ADR-021)', () => {
     expect(ModelPolicy.safeParse(ok).success).toBe(true);
   });
 });
+
+const v7 = JSON.parse(readFileSync(fileURLToPath(new URL('../fixtures/model.policy.dp02-v7.json', import.meta.url)), 'utf-8'));
+
+describe('política v7 (DP-27): OpenBot nas assinaturas como principal, API como complemento, ZDR não exigido', () => {
+  it('a v7 valida: canal principal openbot_subscription fora do teto, complemento openrouter_metered dentro de US$ 50', () => {
+    const p = ModelPolicy.parse(v7);
+    expect(p.execution?.primary.channel).toBe('openbot_subscription');
+    expect(p.execution?.primary.outside_monthly_cap).toBe(true);
+    expect(p.execution?.complement.channel).toBe('openrouter_metered');
+    expect(p.execution?.complement.inside_monthly_cap_usd).toBe(50);
+    expect(p.rules.privacy?.unpublished_requires_listed_zdr).toBe(false);
+    expect(p.qualification?.mode?.provider_zdr_per_call).toBe(false);
+    expect(p.rules.production_enabled).toBe(false);
+  });
+
+  it('mantém DP-26 b/c: sem DeepSeek, Fable fora de toda rota; nunca publicar sem checagem distinta', () => {
+    const p = ModelPolicy.parse(v7);
+    const rotas = Object.values(p.routes).flat();
+    expect(rotas.some((m) => m.startsWith('deepseek') || m.includes('fable'))).toBe(false);
+    expect(p.execution?.never.join(' ')).toMatch(/checagem por provedor distinto/);
+    expect(String((p.rules as Record<string, unknown>).editorial_draft_fallback)).toMatch(/sem modelo ALTERNATIVO/);
+  });
+
+  it('sem ZDR obrigatório, produção não exige a referência do OpenRouter; com a exigência ligada, exige', () => {
+    const prod = { ...v7, rules: { ...v7.rules, production_enabled: true, privacy: { ...v7.rules.privacy, openrouter_data_policy_ref: null } } };
+    expect(ModelPolicy.safeParse(prod).success).toBe(true);
+    const exige = { ...prod, rules: { ...prod.rules, privacy: { ...prod.rules.privacy, openrouter_data_policy_archived_required: true } } };
+    expect(ModelPolicy.safeParse(exige).success).toBe(false);
+  });
+
+  it('recusa: complemento acima do teto, canal principal sem checagem, ZDR exigido sem provider.zdr', () => {
+    const ex = v7.execution;
+    expect(ModelPolicy.safeParse({ ...v7, execution: { ...ex, complement: { ...ex.complement, inside_monthly_cap_usd: 60 } } }).success).toBe(false);
+    const semChecagem = { ...ex.primary.by_task };
+    delete semChecagem.fact_check;
+    expect(ModelPolicy.safeParse({ ...v7, execution: { ...ex, primary: { ...ex.primary, by_task: semChecagem } } }).success).toBe(false);
+    expect(ModelPolicy.safeParse({ ...v7, rules: { ...v7.rules, privacy: { ...v7.rules.privacy, unpublished_requires_listed_zdr: true, provider_zdr_per_call: false } } }).success).toBe(false);
+  });
+
+  it('a v6 continua válida (ZDR exigido) e o modo de qualificação da v7 continua só com candidatos e produção desligada', () => {
+    expect(ModelPolicy.safeParse(v6).success).toBe(true);
+    const p = ModelPolicy.parse({ ...v7, qualification: { ...v7.qualification, mode: { ...v7.qualification.mode, enabled: true } } });
+    expect(qualificationCallAllowed(p, qreq)).toBe(true);
+    expect(qualificationCallAllowed(p, { ...qreq, model: 'claude-fable-5-2' })).toBe(false);
+  });
+});
