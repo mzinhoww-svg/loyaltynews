@@ -15,6 +15,10 @@ import type {
   TrendingWindow,
 } from '../types';
 
+/** Imagem SVG sintética (data URI), só para testes visuais. */
+const svg = (fill: string, text: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675"><rect width="1200" height="675" fill="${fill}"/><text x="600" y="350" font-size="64" text-anchor="middle" fill="#ffffff" font-family="Arial">${text}</text></svg>`)}`;
+
 const TYPES: ContentType[] = ['noticia', 'analise', 'flash', 'entrevista', 'opiniao'];
 
 const articles: Article[] = EDITORIAS.flatMap((ed, i) =>
@@ -33,6 +37,13 @@ const articles: Article[] = EDITORIAS.flatMap((ed, i) =>
       publishedAt: `2026-11-${day}T10:00:00-03:00`,
       updatedAt: n === 0 ? `2026-11-${day}T15:30:00-03:00` : undefined,
       readingMinutes: 3 + (idx % 5),
+      // idx 0: ilustração conceitual (rótulo obrigatório); idx 2: foto com crédito; demais: sem imagem.
+      image:
+        idx === 0
+          ? { src: svg('#34877a', 'MOCK ilustração'), alt: 'Ilustração conceitual: cena abstrata de teste (MOCK)', credit: 'Loyalty News', label: 'Ilustração conceitual' }
+          : idx === 2
+            ? { src: svg('#153c3c', 'MOCK foto'), alt: 'Foto de teste (MOCK)', credit: 'Fotógrafo de teste (MOCK)', label: null }
+            : undefined,
       body: [
         { type: 'heading', text: 'O que aconteceu' },
         { type: 'paragraph', text: 'Parágrafo de teste (MOCK). Nenhum fato real é afirmado aqui.' },

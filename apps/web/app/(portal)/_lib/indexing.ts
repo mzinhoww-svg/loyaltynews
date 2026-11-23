@@ -13,7 +13,36 @@ const LOCAL_URL = 'http://localhost:3000';
 
 export const isProductionEnv = (env: Env = process.env): boolean => env.APP_ENV === 'production';
 
-export const indexingBlocked = (env: Env = process.env): boolean => !isProductionEnv(env) || env.PORTAL_SOURCE === 'mock';
+export const indexingBlocked = (env: Env = process.env): boolean =>
+  !isProductionEnv(env) || env.PORTAL_SOURCE === 'mock' || (env.PORTAL_VITRINE !== undefined && env.PORTAL_VITRINE !== '');
+
+export type SourceKind = 'empty' | 'mock' | 'api';
+
+/** Produção em qualquer grafia usada pelos pacotes de deploy. */
+const isProductionLike = (env: Env) => env.APP_ENV === 'production' || env.APP_ENV === 'producao';
+
+/**
+ * Fonte de dados efetiva a partir do ambiente (fail-closed; decisão do Security & Governance, R1-R4):
+ *  - `api` e vazia valem em qualquer ambiente; valor desconhecido ou ausente = vazia (honesta);
+ *  - APP_ENV=production/producao: SEMPRE vazia ou api; pedir mock (PORTAL_SOURCE=mock ou PORTAL_VITRINE) nunca o ativa;
+ *  - vitrine de staging: `PORTAL_VITRINE=1` (só o valor 1) com `APP_ENV=staging` ativa as fixtures;
+ *  - `PORTAL_SOURCE=mock` NÃO é aceito em deploy (build/start de produção do Next, inclusive staging): só em desenvolvimento
+ *    e testes (NODE_ENV diferente de production, ex.: next dev e vitest) ou no build de e2e (LN_E2E_BUILD=1).
+ * Pedido recusado cai na fonte vazia e `refusedMock` fica verdadeiro (quem chama registra o erro).
+ */
+export function resolveSourceKind(env: Env = process.env): { kind: SourceKind; refusedMock: boolean } {
+  if (env.PORTAL_SOURCE === 'api') return { kind: 'api', refusedMock: false };
+  const wantsVitrine = env.PORTAL_VITRINE !== undefined && env.PORTAL_VITRINE !== '';
+  const wantsMock = env.PORTAL_SOURCE === 'mock';
+  if (!wantsVitrine && !wantsMock) return { kind: 'empty', refusedMock: false };
+  if (isProductionLike(env)) return { kind: 'empty', refusedMock: true };
+  if (wantsVitrine) {
+    const ok = env.PORTAL_VITRINE === '1' && env.APP_ENV === 'staging';
+    return ok ? { kind: 'mock', refusedMock: false } : { kind: 'empty', refusedMock: true };
+  }
+  const outsideDeploy = env.NODE_ENV !== 'production' || env.LN_E2E_BUILD === '1';
+  return outsideDeploy ? { kind: 'mock', refusedMock: false } : { kind: 'empty', refusedMock: true };
+}
 
 /** robots.txt: bloqueado = nada rastreável e sem Sitemap; liberado = regra de produção. */
 export function robotsTxt(blocked: boolean, siteUrl: string): string {

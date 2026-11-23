@@ -83,7 +83,8 @@ export function ArticleCard({
   headingLevel?: 2 | 3 | 4;
 }) {
   const nome = editoriaName(article.editoriaSlug);
-  return (
+  const label = article.image?.label;
+  const card = (
     <DsArticleCard
       title={article.title}
       href={`/noticia/${article.slug}`}
@@ -100,6 +101,16 @@ export function ArticleCard({
       isMock={article.mock}
       linkAs={Link}
     />
+  );
+  // Rótulo visível obrigatório junto da imagem (ADR-018), também nos cards: só quando o card mostra imagem.
+  if (!label || !article.image || size === 'compact') return card;
+  return (
+    <div className="pt-card-labeled">
+      <span className="pt-card-label" data-testid="card-image-label">
+        {label}
+      </span>
+      {card}
+    </div>
   );
 }
 
