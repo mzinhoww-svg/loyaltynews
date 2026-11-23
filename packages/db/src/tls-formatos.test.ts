@@ -1,14 +1,25 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 import { describePem, normalizePem, pgSslFromEnv, selfCheckPemSet } from './tls';
 
-// PEM REAL (certificado autoassinado e chave de TESTE, sem valor algum; gerados só para este arquivo) em todas as formas em que um painel de variáveis ou um
-// executor de processos pode entregá-los. O que o worker de staging recebeu fez o OpenSSL responder "PEM routines::no start line": aqui cada forma
-// tem de virar um PEM que o OpenSSL aceita, e o auto-diagnóstico tem de apontar QUAL variável quebrou, sem mostrar conteúdo.
-const lf = (s: string) => s.split(String.fromCharCode(13, 10)).join(String.fromCharCode(10)); // o checkout pode trazer CRLF
-const crt = lf(readFileSync(fileURLToPath(new URL('../fixtures/tls-teste.crt', import.meta.url)), 'utf8'));
-const key = lf(readFileSync(fileURLToPath(new URL('../fixtures/tls-teste.key', import.meta.url)), 'utf8'));
+// PEM REAL em todas as formas em que um painel de variáveis ou um executor de processos pode entregá-los. O que o worker de staging recebeu fez o OpenSSL
+// responder "PEM routines::no start line": aqui cada forma tem de virar um PEM que o OpenSSL aceita, e o auto-diagnóstico tem de apontar QUAL variável
+// quebrou, sem mostrar conteúdo. O par certificado/chave de TESTE é GERADO aqui, em diretório temporário apagado no fim (nenhuma chave é versionada no
+// repositório, que é público); usa o `openssl` do ambiente.
+const dir = mkdtempSync(join(tmpdir(), 'ln-tls-teste-'));
+afterAll(() => rmSync(dir, { recursive: true, force: true }));
+try {
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(dir, 'k.pem'), '-out', join(dir, 'c.pem'), '-days', '2', '-subj', '/CN=ln-teste.invalid'], { stdio: 'ignore' });
+  execFileSync('openssl', ['pkcs8', '-topk8', '-nocrypt', '-in', join(dir, 'k.pem'), '-out', join(dir, 'k8.pem')], { stdio: 'ignore' });
+} catch {
+  throw new Error('este teste precisa do `openssl` no PATH para gerar o par certificado/chave de teste');
+}
+const lf = (s: string) => s.split(String.fromCharCode(13, 10)).join(String.fromCharCode(10)); // o sistema pode devolver CRLF
+const crt = lf(readFileSync(join(dir, 'c.pem'), 'utf8'));
+const key = lf(readFileSync(join(dir, 'k8.pem'), 'utf8'));
 const flatEscaped = (s: string) => s.trim().replace(/\n/g, '\\n');
 const flatDoubleEscaped = (s: string) => s.trim().replace(/\n/g, '\\\\n'); // `\\n`: escapado duas vezes (painel + executor)
 const flatQuotedEscaped = (s: string) => `"${s.trim().replace(/\n/g, '\\n')}"`;
