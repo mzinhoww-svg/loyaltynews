@@ -1,11 +1,13 @@
 // Geração agendada dos ALERTAS das watchlists (Entity Intelligence): quando um Move é CONFIRMADO por revisão humana, cria o alerta (pending_review) para
 // cada watchlist que observa a pessoa ou a organização do Move. Antes deste job nenhum código de produção chamava `generateAlerts`.
-// DESLIGADO por padrão: só roda com as DUAS chaves explícitas
+// DESLIGADO por padrão: só roda com as chaves explícitas E a flag `intelligencePessoas` ligada pela ADR-022 (resolveFlags: staging com LN_FLAGS_ON)
 //   LN_INTELLIGENCE_ALERTS=on     (este job)
 //   LN_INTELLIGENCE_PESSOAS=on    (flag `intelligencePessoas`, J-01/DP-38: sem ela não há dado de pessoa em operação)
 // Só Moves `confirmed` entram (detectado e rejeitado nunca geram alerta). Idempotente (UNIQUE watchlist+move + ON CONFLICT DO NOTHING): repetir o ciclo não duplica.
 // Janela: só Moves detectados nos últimos LN_ALERTS_WINDOW_DAYS dias (padrão 30), para uma lista nova não despejar o histórico inteiro.
 // Intervalo: LN_ALERTS_INTERVAL_MIN (padrão 15; piso 5). Logs: só contagens (nunca nome de pessoa, lista ou dono).
+import { randomUUID } from 'node:crypto';
+import { resolveFlags } from '@ln/contracts';
 import { errLine } from '@ln/db/safe-log';
 import { generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 
@@ -26,6 +28,17 @@ export async function runAlertCycle(db: IntelDb, opts: { now?: Date; windowDays?
   const ids = r.rows.map((m) => m.id);
   if (ids.length === 0) return { moves: 0, created: 0 };
   const created = await generateAlerts(db, { moveIds: ids });
+  if (created.length) {
+    // Auditoria: uma linha por alerta criado, ator = sistema; só ids (sem nome de pessoa, lista ou dono).
+    const at = now.toISOString();
+    const vals: unknown[] = [];
+    const rows = created.map((a, i) => {
+      vals.push(randomUUID(), at, 'intelligence.alerta_gerado', 'intelligence_alerts', a.id, JSON.stringify({ moveId: a.move_id, watchlistId: a.watchlist_id, origem: 'job' }));
+      const b = i * 6;
+      return `($${b + 1}, $${b + 2}::timestamptz, NULL, 'sistema', $${b + 3}, $${b + 4}, $${b + 5}, NULL, $${b + 6}::jsonb)`;
+    });
+    await db.query(`INSERT INTO public.audit_log (id, at, actor_id, actor_role, action, resource, resource_id, ip, detalhe) VALUES ${rows.join(', ')}`, vals);
+  }
   return { moves: ids.length, created: created.length };
 }
 
@@ -40,6 +53,18 @@ export function startIntelligenceAlerts(opts: { db: IntelDb; env?: Env; log?: (l
   if (env.LN_INTELLIGENCE_ALERTS !== 'on') return null;
   if (env.LN_INTELLIGENCE_PESSOAS !== 'on') {
     log('[intelligence-alerts] desligado: falta LN_INTELLIGENCE_PESSOAS=on (J-01)');
+    return null;
+  }
+  // ADR-022: a mesma flag de produto do web (resolveFlags), ligada só por decisão registrada (staging = DP-38).
+  let flagOn: boolean;
+  try {
+    flagOn = resolveFlags(env).state.intelligencePessoas;
+  } catch (e) {
+    log(errLine('[intelligence-alerts] desligado: flags inválidas', e));
+    return null;
+  }
+  if (!flagOn) {
+    log('[intelligence-alerts] desligado: flag intelligencePessoas não ligada (ADR-022: APP_ENV=staging e LN_FLAGS_ON)');
     return null;
   }
   const windowDays = intEnv(env.LN_ALERTS_WINDOW_DAYS, 30, 1);
