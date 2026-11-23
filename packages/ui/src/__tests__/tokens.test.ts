@@ -61,3 +61,17 @@ describe("editorias", () => {
     for (const s of slugs) expect(s).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
 });
+
+describe("tipografia aplicada (Brandkit 2.0: Inter em UI, manchetes e dados; Georgia só na assinatura editorial)", () => {
+  const base = readFileSync(resolve(root, "src/styles/base.css"), "utf8");
+  const studio = readFileSync(resolve(root, "src/styles/studio.css"), "utf8");
+  it("h1–h4 usam a fonte de UI (Inter), não a editorial", () => {
+    const rule = base.match(/\.ln-root h1,[^{]*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("font-family: var(--ln-font-ui)");
+    expect(rule).not.toContain("--ln-font-editorial");
+  });
+  it("valores de KPI (dados) usam Inter", () => {
+    const rule = studio.match(/\.ln-kpi__value \{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("var(--ln-font-ui)");
+  });
+});

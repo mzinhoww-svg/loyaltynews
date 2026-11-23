@@ -36,7 +36,7 @@ body { margin: 0; }
 
 .ln-root h1, .ln-root h2, .ln-root h3, .ln-root h4 {
   margin: 0;
-  font-family: var(--ln-font-editorial);
+  font-family: var(--ln-font-ui); /* Brandkit 2.0: Inter nas manchetes; Georgia só na assinatura editorial */
   font-weight: var(--ln-weight-bold);
   color: inherit;
 }

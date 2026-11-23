@@ -120,3 +120,22 @@
 /* matéria: breadcrumb, selo e kicker com respiro (o selo MOCK encostava no breadcrumb) */
 .pt-article .ln-breadcrumb { margin-bottom: var(--ln-space-3); }
 .pt-article .pt-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ln-space-2); margin-bottom: var(--ln-space-2); }
+
+/* V-01: destaque da home. O card lg já divide imagem|texto em telas largas; dentro da coluna 7/12 do hero isso espremia o texto
+ * (manchete em 5 linhas, autor cortado). Aqui o card empilha: imagem 16:9 em cima, manchete e linha de autoria embaixo. */
+.pt-hero-main .ln-card--lg:not(.ln-card--noimg) { grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-3); }
+.pt-hero-main .ln-card--lg .ln-card__byline { flex-wrap: wrap; white-space: normal; row-gap: 2px; }
+.pt-hero-main .ln-card--lg .ln-card__excerpt { -webkit-line-clamp: 2; }
+.pt-hero--text .pt-hero-main .ln-card--lg { max-width: 920px; }
+
+/* V-02: topo da matéria com ritmo único (breadcrumb → selos → título → subtítulo → autoria → imagem) */
+.pt-layout:has(> .pt-col > .pt-article) { padding-top: var(--ln-space-4); } /* matéria: coluna e lateral começam na mesma linha, com respiro sob o cabeçalho */
+.pt-article h1 { margin-top: var(--ln-space-1); line-height: var(--ln-leading-3xl); }
+.pt-article .pt-byline { margin-bottom: var(--ln-space-3); padding-bottom: var(--ln-space-3); border-bottom: 1px solid var(--ln-color-border); }
+.pt-article .pt-figure { margin-top: 0; }
+
+/* V-06: grade que se ajusta ao número de itens (sem 2/3 da largura vazios) */
+.pt-grid--n1 { grid-template-columns: minmax(0, 1fr); }
+.pt-grid--n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pt-grid--n1 .ln-card--noimg { max-width: 640px; }
+@media (max-width: 639px) { .pt-grid--n2 { grid-template-columns: minmax(0, 1fr); } }
