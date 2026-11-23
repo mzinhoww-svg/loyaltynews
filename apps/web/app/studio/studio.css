@@ -83,6 +83,8 @@
   /* P2-10: alvos de toque de pelo menos 44 px no celular */
   .studio .st-btn, .studio select, .studio input[type='text'], .studio input[type='url'], .studio input[type='search'], .studio input[type='date'] { min-height: 44px; }
   .studio .st-table a, .studio .st-issues a, .studio .st-actions a { display: inline-block; min-height: 44px; line-height: 44px; }
+  /* abrir e fechar seção (details/summary) também é alvo de toque */
+  .studio summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
   /* link sozinho no seu bloco (voltar, cartões de módulo, itens de lista); link no meio de uma frase é exceção de tamanho */
   .studio main a:only-child { display: inline-block; min-height: 44px; line-height: 44px; }
   .studio label:has(input[type='checkbox']), .studio label:has(input[type='radio']) { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
