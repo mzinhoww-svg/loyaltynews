@@ -29,3 +29,10 @@ Protocolo, formato das requisições e fluxos: `docs/PROTOCOL.md`.
 - **Flag:** `openbotDispatch` não existe em `@ln/contracts/flags`; aqui é parâmetro (padrão desligado). Pedir ao Chief Architect.
 - **Segredo:** o provedor de segredos (`deps.secrets()`) deve ler do cofre do OpenBot/Vertra; nenhum segredo foi criado ou usado. Credencial do OpenBot de produção segue como pendência de R2-09.
 - Sem teste com BullMQ/Redis nem com o OpenBot real.
+
+## Integração contra Redis real e local (sem custo)
+`src/redis-stores.ts` traz `RedisCallbackStore` (dedupe atômico de `callbackId` com `SET NX PX`, TTL mínimo = 2× a janela de assinatura) e `RedisHealthStore`. Os testes `redis.integration.test.ts` (aqui) e `packages/growth/src/__tests__/jobs.bullmq.integration.test.ts` (job social com **BullMQ 6.7.8 real**) só rodam com `LN_TEST_REDIS_URL`; sem ela aparecem como **pulados**. Para rodar:
+1. Suba um Redis local sem persistência, em porta própria (não reutilize o de outra pessoa): `redis-server --port 56391 --bind 127.0.0.1 --save "" --appendonly no`.
+2. `LN_TEST_REDIS_URL=redis://127.0.0.1:56391 npx vitest run packages/openbot packages/growth`.
+Cada execução usa prefixo próprio e apaga só as próprias chaves (BullMQ: `obliterate` da fila de teste). Nada de `FLUSHALL`. O Redis do ADR-002 guarda só IDs e chaves de idempotência: o teste confere que o payload no Redis não contém conteúdo da matéria.
+
