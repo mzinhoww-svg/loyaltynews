@@ -40,6 +40,11 @@ Endpoint customizado por agente no OpenBot; métrica de uso por execução; rela
 - **`callback`** ganha `trace` (`stage`, `account`, `startedAt`, `endedAt`, `packetChars`, `limit{message,at,resumeAt?}`, `reviewedDraftTaskId`, `promptVersion`, `sourceId`, `outputValid`, `toolOutsideContract`, `notes`) e `retryAfterSeconds`. A conta de `trace` e a do `usage` têm de coincidir (422 `TRACE_MISMATCH`) e ser a da via atribuída (422 `ACCOUNT_OUT_OF_ROUTE`). No piloto a trilha é obrigatória (422 `TRACE_REQUIRED`).
 - **Piloto**: códigos novos `PILOT_STOPPED` (503), `ROUTE_INVALID` (422), `ACCOUNT_OUT_OF_ROUTE`, `TRACE_REQUIRED`, `TRACE_MISMATCH`; `resumePilot` exige `openbot:pilot_admin`. Roteiro completo: `docs/ATIVACAO-STAGING.md`.
 
+## Atualização de 23/11/2026 (DP-41 e matéria no piloto)
+- **DP-41:** com o piloto ativo só valem as contas `claude` e `codex` (`DP41_ACCOUNTS`). Despacho com outra conta = 422 `ROUTE_INVALID`; `pull` de outra conta = 422 `ACCOUNT_OUT_OF_ROUTE` + linha de violação + piloto parado. Checagem e revisão só na `codex`, sem reserva (no limite a tarefa fica pendente).
+- **`meta.articleId`** na entrada (`io/input`): o gateway deriva o id da matéria da chave `<articleId>:<classe>:<tentativa>` (ou `input.articleId`); o agente o devolve em `trace.articleId` e a linha do piloto usa esse id como `article_id` (sem ele, o `refId`).
+- Linha concluída de checagem/revisão **sem `gate_verdict`** fica fora da consulta do `canDispatchNext` até a Editorial gravá-lo (`awaitingEditorialGate`): não para o piloto.
+
 ## Rotas do agente: entrada e resultado do conteúdo (combinado com o Backend, 23/11/2026)
 A fila só leva IDs; o conteúdo vai por duas rotas do agente, assinadas com o MESMO HMAC (`x-ln-signature`, `x-ln-timestamp`) e **presas ao lease vivo** da tarefa.
 - **Quem grava a entrada:** a Fábrica, no MESMO processo, por `TaskIo.putInput` (no Backend, `PgTaskIo`), chamado pelo `OpenBotModelGateway` a cada `invoke` (inclusive ao retomar a espera). Tem de ser **idempotente**: mesmo `refId` e mesmo conteúdo = nada a fazer; conteúdo DIFERENTE = lançar `InputConflict` (a entrada de uma tarefa em andamento não muda; o gateway devolve recusa `input_divergente`). Falha do armazém = recusa `armazem_de_conteudo_indisponivel` e **nenhuma tarefa é despachada**. Só dado público ou interno.

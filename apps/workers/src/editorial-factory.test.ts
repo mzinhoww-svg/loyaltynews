@@ -102,7 +102,7 @@ describe('execução da fábrica (PostgreSQL de teste)', () => {
   const registry = () => new SourceRegistry([SRC]);
   const collector = () => new Collector(
     new MockFetcher({ 'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:', 'https://ri.mock.example/feed.xml': '<rss><channel><item><title>MOCK</title><link>https://ri.mock.example/noticias/alfa-parceria</link></item></channel></rss>', 'https://ri.mock.example/noticias/alfa-parceria': MOCK_ARTICLE_ALFA }),
-    { now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
+    { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
   );
   async function enable(db: Db) {
     const store = new PgEditorialStore(db);
@@ -149,6 +149,28 @@ describe('execução da fábrica (PostgreSQL de teste)', () => {
     try {
       await expect(runEditorialFactory({ db, dryRun: false, flags: { editorialCollector: true, editorialPipeline: true, modelosHabilitados: true }, gateway: opts() })).rejects.toThrow(/ledger/);
       await expect(runEditorialFactory({ db, dryRun: false, flags: { editorialCollector: true, editorialPipeline: true } })).rejects.toThrow(/gateway/);
+    } finally { await client.close(); }
+  });
+});
+
+describe('modelGateway com o OpenBotModelGateway REAL (DP-41): a Fábrica usa o adaptador do OpenBot em vez do gateway de modelos', () => {
+  it('o OpenBotModelGateway REAL é aceito como modelGateway (tipo) e, com o despacho desligado, recusa antes de gravar qualquer entrada (nenhuma tarefa, nenhuma rede)', async () => {
+    const { OpenBotModelGateway, OPENBOT_PERMISSIONS, openbotFlagsFrom } = await import('@ln/openbot');
+    const { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgTaskIo } = await import('./openbot-pg');
+    const { db, client } = await freshDb();
+    try {
+      const flags = openbotFlagsFrom({ overrides: { openbotDispatch: false }, kill: false });
+      const gw = new OpenBotModelGateway({
+        deps: { queue: new PgLeaseQueue(db), ledger: new PgCostLedger(db, () => NOW), health: new PgHealthStore(db), callbacks: new PgCallbackStore(db), secrets: () => ['s'], flags: () => flags, now: () => NOW, requireDerivedResultRef: true },
+        io: new PgTaskIo(db, () => NOW), caller: { id: 'fabrica', permissions: [OPENBOT_PERMISSIONS.dispatch] },
+        profiles: { triage: 'newsdesk', context: 'newsdesk', draft: 'writer_pontos', factcheck: 'newsdesk', review: 'newsdesk', social_pack: 'newsdesk', roles: 'newsdesk' },
+      });
+      const r = await runEditorialFactory({ db, dryRun: true, flags: { editorialCollector: true }, registry: new SourceRegistry([]), now: () => NOW, modelGateway: gw });
+      expect(r.articles).toEqual([]);
+      const res = await gw.invoke({ taskClass: 'triage', idempotencyKey: 'art-1:triage:1', excludeProviders: [], dataClass: 'public', input: { x: 1 } } as never);
+      expect(res).toMatchObject({ ok: false, refusal: 'model_disabled', detail: 'DISPATCH_OFF' });
+      expect(await new PgTaskIo(db, () => NOW).getInputFor(`gw-${'0'.repeat(32)}`)).toBeNull();
+      expect((await new PgLeaseQueue(db).counts())).toMatchObject({ pending: 0, leased: 0 });
     } finally { await client.close(); }
   });
 });

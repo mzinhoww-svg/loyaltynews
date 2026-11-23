@@ -4,7 +4,7 @@ import type { Db } from '@ln/auth';
 import { createTestDb, isRealTestDb } from '@ln/db/testing';
 import type { NewTask, PilotRow } from '@ln/openbot';
 import { leaseQueueConformanceCases } from '@ln/openbot/testing';
-import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore } from './openbot-pg';
+import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
 
 const NOW = new Date('2026-11-23T12:00:00Z');
 const task = (n: number, over: Partial<NewTask> = {}): NewTask => ({
@@ -133,4 +133,23 @@ describe('stores do OpenBot no PostgreSQL', () => {
       await t.close();
     }
   }, 30_000);
+});
+
+describe('PgTaskIo: meta.articleId (DP-41: a planilha do piloto agrupa as etapas pela matéria)', () => {
+  it('guarda e devolve articleId e reviewedDraftTaskId, juntos ou separados; sem nenhum dos dois o meta é nulo', async () => {
+    const t = await createTestDb();
+    try {
+      const io = new PgTaskIo(t.db as unknown as Db, () => NOW);
+      await io.putInput('gw-a', { x: 1 }, { taskClass: 'draft', promptVersion: 'p', articleId: 'art-1' });
+      await io.putInput('gw-b', { x: 1 }, { taskClass: 'factcheck', promptVersion: 'p', reviewedDraftTaskId: 'task-d1', articleId: 'art-1' });
+      await io.putInput('gw-c', { x: 1 }, { taskClass: 'factcheck', promptVersion: 'p', reviewedDraftTaskId: 'task-d1' });
+      await io.putInput('gw-d', { x: 1 }, { taskClass: 'draft', promptVersion: 'p' });
+      expect((await io.getInputFor('gw-a'))!.meta).toEqual({ articleId: 'art-1' });
+      expect((await io.getInputFor('gw-b'))!.meta).toEqual({ reviewedDraftTaskId: 'task-d1', articleId: 'art-1' });
+      expect((await io.getInputFor('gw-c'))!.meta).toEqual({ reviewedDraftTaskId: 'task-d1' });
+      expect((await io.getInputFor('gw-d'))!.meta).toBeNull();
+    } finally {
+      await t.close();
+    }
+  });
 });

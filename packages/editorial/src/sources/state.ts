@@ -10,7 +10,7 @@ import type { SourceRegistry } from './registry';
 
 /** Impressão digital do que o revisor conferiu. Qualquer mudança de host/prefixo/URLs/termos invalida a revisão. */
 export function sourceFingerprint(s: Source): string {
-  return createHash('sha256').update(JSON.stringify([s.host, s.pathPrefix ?? null, s.listingUrl, s.feedUrl, s.termsUrl])).digest('hex');
+  return createHash('sha256').update(JSON.stringify([s.host, s.pathPrefix ?? null, s.listingUrl, s.feedUrl, s.termsUrl, s.acesso ?? 'padrao'])).digest('hex');
 }
 
 /** Combina cadastro + estado. Estado sem revisão válida e atual não habilita nada (fail closed). */

@@ -1,0 +1,3006 @@
+[
+ {
+  "id": "passageiro-de-primeira",
+  "name": "Passageiro de Primeira",
+  "home": "https://passageirodeprimeira.com/",
+  "kind": "blog",
+  "editorias": [
+   "pontos",
+   "programas",
+   "travel"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "Google-Extended",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://passageirodeprimeira.com/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://passageirodeprimeira.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://passageirodeprimeira.com/feed/",
+  "feedItens": 30,
+  "feedMaisRecente": "2026-11-23T11:00:05.000Z",
+  "feedAmostraLinks": [
+   "https://passageirodeprimeira.com/vem-ai-a-black-friday-confira-como-acompanhar-todas-as-campanhas/",
+   "https://passageirodeprimeira.com/emirates-inaugura-lounge-temporario-primeira-classe-dubai/"
+  ],
+  "feedComTextoLongo": 16,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Passageiro de Primeira",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "melhores-destinos",
+  "name": "Melhores Destinos",
+  "home": "https://www.melhoresdestinos.com.br/",
+  "kind": "blog",
+  "editorias": [
+   "travel",
+   "pontos",
+   "programas"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.melhoresdestinos.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.melhoresdestinos.com.br/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://www.melhoresdestinos.com.br/feed",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:23:02.000Z",
+  "feedAmostraLinks": [
+   "https://www.melhoresdestinos.com.br/promocao/black-friday-rent-cars-2026-10-off",
+   "https://www.melhoresdestinos.com.br/promocao/nomad-oferta-bf-23nov26"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2008 - 2026 · Melhores Destinos · Todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "pontos-pra-voar",
+  "name": "Pontos pra Voar",
+  "home": "https://pontospravoar.com/",
+  "kind": "blog",
+  "editorias": [
+   "pontos",
+   "programas",
+   "travel"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://pontospravoar.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://pontospravoar.com/",
+  "feedsAnunciados": [
+   "https://pontospravoar.com/feed/",
+   "https://pontospravoar.com/comments/feed/"
+  ],
+  "feedUrl": "https://pontospravoar.com/feed/",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-23T11:00:22.000Z",
+  "feedAmostraLinks": [
+   "https://pontospravoar.com/black-friday-all-accor-garanta-assinatura-all-signature-ate-40-porcento-desconto/",
+   "https://pontospravoar.com/castelos-em-sao-paulo-para-visitar-dicas/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "Todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "mestre-das-milhas",
+  "name": "Mestre das Milhas",
+  "home": "https://www.mestredasmilhas.com/",
+  "kind": "blog",
+  "editorias": [
+   "pontos",
+   "programas"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "Google-Extended",
+   "CCBot"
+  ],
+  "sitemaps": [],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://mestredasmilhas.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://mestredasmilhas.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-16T12:54:59.000Z",
+  "feedAmostraLinks": [
+   "https://mestredasmilhas.com/assistencia-especial-aeroporto-como-avaliar/",
+   "https://mestredasmilhas.com/aluguel-de-carro-programas-de-fidelidade-pontos/"
+  ],
+  "feedComTextoLongo": 10,
+  "termosUrls": [
+   "https://mestredasmilhas.com/termos-de-uso/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://mestredasmilhas.com/termos-de-uso/",
+    "status": 200,
+    "chars": 2294
+   }
+  ],
+  "termosProibicao": [
+   "A reprodução total ou parcial sem autorização prévia é proibida."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "Todos os direitos reservados",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "pontos-pelo-mundo",
+  "name": "Pontos pelo Mundo",
+  "home": "https://pontospelomundo.com.br/",
+  "kind": "blog",
+  "editorias": [
+   "pontos",
+   "programas",
+   "travel"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 0,
+  "robots": "indisponivel",
+  "bloqueio": "fetch failed"
+ },
+ {
+  "id": "viaje-na-viagem",
+  "name": "Viaje na Viagem",
+  "home": "https://viajenaviagem.com/",
+  "kind": "blog",
+  "editorias": [
+   "travel"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.viajenaviagem.com/",
+  "feedsAnunciados": [
+   "https://www.viajenaviagem.com/feed/",
+   "https://www.viajenaviagem.com/comments/feed/"
+  ],
+  "feedUrl": "https://www.viajenaviagem.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-09-17T10:32:27.000Z",
+  "feedAmostraLinks": [
+   "https://www.viajenaviagem.com/novas-regras-da-anac-para-passageiros-indisciplinados/",
+   "https://www.viajenaviagem.com/low-cost-na-europa/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://www.viajenaviagem.com/termos-de-uso/?utm_source=menusite&utm_medium=termos"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.viajenaviagem.com/termos-de-uso/?utm_source=menusite&utm_medium=termos",
+    "status": 200,
+    "chars": 8689
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "passagens-promo",
+  "name": "Passagens Promo",
+  "home": "https://passagenspromo.com.br/",
+  "kind": "blog",
+  "editorias": [
+   "travel",
+   "pontos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://passagenspromo.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://passagenspromo.com.br/",
+  "feedsAnunciados": [
+   "https://passagenspromo.com.br/feed/",
+   "https://passagenspromo.com.br/comments/feed/"
+  ],
+  "feedTentativa": "https://passagenspromo.com.br/comments/feed/ → 200 sem itens",
+  "termosUrls": [
+   "https://passagenspromo.com.br/termos-de-uso"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://passagenspromo.com.br/termos-de-uso/",
+    "status": 200,
+    "chars": 23528
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© ONER TRAVEL | CNPJ: 40",
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "melhores-cartoes",
+  "name": "Melhores Cartões",
+  "home": "https://www.melhorescartoes.com.br/",
+  "kind": "blog",
+  "editorias": [
+   "bancos",
+   "pontos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.melhorescartoes.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.melhorescartoes.com.br/",
+  "feedsAnunciados": [
+   "https://www.melhorescartoes.com.br/rss.xml"
+  ],
+  "feedUrl": "https://www.melhorescartoes.com.br/rss.xml",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:06:57.000Z",
+  "feedAmostraLinks": [
+   "https://www.melhoresdestinos.com.br/promocao/nomad-oferta-bf-23nov26",
+   "https://www.melhorescartoes.com.br/resumo-promocoes-cartoes-credito-milhas-pontos-cashback.html"
+  ],
+  "feedComTextoLongo": 2,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 · Melhores Cartões · Todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "dinheirama",
+  "name": "Dinheirama",
+  "home": "https://dinheirama.com/",
+  "kind": "blog",
+  "editorias": [
+   "bancos",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 404,
+  "robots": "ausente (404): sem restrição declarada",
+  "homeStatus": 200,
+  "homeFinalUrl": "https://investimentos.com.br/",
+  "redirecionou": "investimentos.com.br",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://investimentos.com.br/rss.xml → HTTP 404",
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Investimentos",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "seu-dinheiro",
+  "name": "Seu Dinheiro",
+  "home": "https://www.seudinheiro.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "bancos",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.seudinheiro.com/sitemap_index.xml",
+   "https://www.seudinheiro.com/news-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.seudinheiro.com/",
+  "feedsAnunciados": [
+   "https://www.seudinheiro.com/feed/"
+  ],
+  "feedUrl": "https://www.seudinheiro.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:26:45.000Z",
+  "feedAmostraLinks": [
+   "https://www.seudinheiro.com/2026/colunistas/a-alegria-do-clt-a-estrategia-do-totalpass-e-uma-semana-mais-curta-de-aversao-a-risco-julw/",
+   "https://www.seudinheiro.com/2026/lifestyle/premium-usado-quais-carros-de-luxo-o-mercado-mais-disputa-edvl/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://www.seudinheiro.com/2026/internacional/trump-fala-de-tudo-e-nem-o-brasil-escapa-o-que-voce-precisa-saber-sobre-as-novas-ameacas-do-republicano-ccgg/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.seudinheiro.com/2026/internacional/trump-fala-de-tudo-e-nem-o-brasil-escapa-o-que-voce-precisa-saber-sobre-as-novas-ameacas-do-republicano-ccgg/",
+    "status": 200,
+    "chars": 14138
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Seu Dinheiro",
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "infomoney",
+  "name": "InfoMoney",
+  "home": "https://www.infomoney.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "bancos",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.infomoney.com.br/sitemap_index.xml",
+   "https://www.infomoney.com.br/simulador-xp/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.infomoney.com.br/",
+  "feedsAnunciados": [
+   "https://www.infomoney.com.br/feed/",
+   "https://www.infomoney.com.br/comments/feed/",
+   "https://www.infomoney.com.br/web-stories/feed/"
+  ],
+  "feedUrl": "https://www.infomoney.com.br/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:33:34.000Z",
+  "feedAmostraLinks": [
+   "https://www.infomoney.com.br/mercados/tempestade-perfeita-cambio-goldman-ve-real-atrativo-mas-recomenda-cautela-no-curto-prazo/",
+   "https://www.infomoney.com.br/mercados/boletim-focus-projecoes-23112026/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://www.infomoney.com.br/economia/condicoes-de-credito-ficaram-mais-restritivas-no-3o-trimestre-diz-pesquisa-do-bc/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.infomoney.com.br/economia/condicoes-de-credito-ficaram-mais-restritivas-no-3o-trimestre-diz-pesquisa-do-bc/",
+    "status": 200,
+    "chars": 6353
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2000-2026 InfoMoney",
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "exame",
+  "name": "Exame",
+  "home": "https://exame.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "mercado",
+   "varejo",
+   "bancos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://exame.com/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://exame.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://exame.com/feed/",
+  "feedItens": 25,
+  "feedMaisRecente": "2026-11-23T11:30:13.000Z",
+  "feedAmostraLinks": [
+   "https://exame.com/inteligencia-artificial/openai-limite-ia-perplexidade/",
+   "https://exame.com/invest/mercados/do-ipo-da-dona-do-claude-a-crise-da-nvidia-a-correcao-de-wall-street-em-cinco-pontos/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://exame.com/institucional/termos-de-uso/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://exame.com/institucional/termos-de-uso/",
+    "status": 200,
+    "chars": 37850
+   }
+  ],
+  "termosProibicao": [
+   "Copiar, armazenar ou divulgar o Conteúdo para qualquer outra finalidade que não para uso pessoal é estritamente proibido sem a autorização por escrito da exame.",
+   "É proibido usar, reproduzir, modificar, traduzir, publicar, transmitir, distribuir, executar, exibir, licenciar, vender ou explorar, fazer scrapping ou engenharia reversa das Plataformas e do Conteúdo para qualquer finalidade, sem o consentimento prévio e expresso da exame.",
+   "É proibido assumir a identidade de outra pessoa ou se passar por outra pessoa que não Você mesmo."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "brazil-journal",
+  "name": "Brazil Journal",
+  "home": "https://braziljournal.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "mercado",
+   "bancos",
+   "varejo"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://braziljournal.com/sitemap.xml",
+   "https://braziljournal.com/google-news.xml",
+   "https://braziljournal.com/sitemaps/authors-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://braziljournal.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://braziljournal.com/feed",
+  "feedItens": 15,
+  "feedMaisRecente": "2026-11-23T09:50:00.000Z",
+  "feedAmostraLinks": [
+   "https://braziljournal.com/cop31-termina-em-impasse-o-que-fazer-com-o-petroleo",
+   "https://braziljournal.com/opiniao-ainda-da-para-apostar-tudo-no-cdi"
+  ],
+  "feedComTextoLongo": 8,
+  "termosUrls": [
+   "https://braziljournal.com/termos-de-uso"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://braziljournal.com/termos-de-uso",
+    "status": 200,
+    "chars": 3312
+   }
+  ],
+  "termosProibicao": [
+   "Condições de uso É proibido usar, reproduzir, modificar, traduzir, publicar, transmitir, distribuir, executar, exibir, licenciar, vender, fazer scrapping ou engenharia reversa do site e do conteúdo para qualquer finalidade, sem o consentimento prévio e expresso do Brazil Journal."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2016-2026 Brazil Journal - Todos os direitos reservados",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "panrotas",
+  "name": "Panrotas",
+  "home": "https://www.panrotas.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "travel",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.panrotas.com.br/sitemap-news.xml",
+   "https://www.panrotas.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.panrotas.com.br/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://www.panrotas.com.br/feed/",
+  "feedItens": 500,
+  "feedMaisRecente": "2026-11-22T18:40:00.000Z",
+  "feedAmostraLinks": [
+   "https://www.panrotas.com.br/aviacao/empresas/2026/11/falha-em-sistema-da-delta-atrasa-voos-nos-eua-neste-domingo-22_233837.html",
+   "https://www.panrotas.com.br/mercado/feiras/2026/11/iaapa-expo-mistura-negocios-e-diversao-em-laboratorio-de-atracoes-em-orlando-fotos_233836.html"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "Todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "aeroin",
+  "name": "AEROIN",
+  "home": "https://www.aeroin.net/",
+  "kind": "trade_media",
+  "editorias": [
+   "travel",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": 900,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [],
+  "homeStatus": 0,
+  "homeFinalUrl": "https://www.aeroin.net/",
+  "bloqueio": "terminated"
+ },
+ {
+  "id": "aeroflap",
+  "name": "Aeroflap",
+  "home": "https://aeroflap.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "travel"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "PerplexityBot"
+  ],
+  "sitemaps": [
+   "https://www.aeroflap.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 403,
+  "homeFinalUrl": "https://aeroflap.com.br/",
+  "bloqueio": "home HTTP 403 (bloqueio/desafio)"
+ },
+ {
+  "id": "mobills-blog",
+  "name": "Mobills (blog)",
+  "home": "https://blog.mobills.com.br/",
+  "kind": "company_blog",
+  "editorias": [
+   "bancos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 0,
+  "robots": "indisponivel",
+  "bloqueio": "fetch failed"
+ },
+ {
+  "id": "guia-bolso-blog",
+  "name": "Meu Bolso em Dia / Educação financeira",
+  "home": "https://www.meubolsoemdia.com.br/",
+  "kind": "blog",
+  "editorias": [
+   "bancos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://meubolsoemdia.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.meubolsoemdia.com.br/",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://www.meubolsoemdia.com.br/rss.xml → HTTP 404",
+  "termosUrls": [
+   "https://pefmbddiag.blob.core.windows.net/cdn-pi/termos_consentimento.pdf"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://pefmbddiag.blob.core.windows.net/cdn-pi/termos_consentimento.pdf",
+    "status": 200,
+    "chars": 105750
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "meio-e-mensagem",
+  "name": "Meio & Mensagem",
+  "home": "https://www.meioemensagem.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "mercado",
+   "crm",
+   "varejo"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.meioemensagem.com.br/sitemap_index.xml",
+   "https://www.meioemensagem.com.br/post-news.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.meioemensagem.com.br/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://www.meioemensagem.com.br/feed",
+  "feedItens": 30,
+  "feedMaisRecente": "2026-11-23T10:00:22.000Z",
+  "feedAmostraLinks": [
+   "https://www.meioemensagem.com.br/gente/propeg-reforca-time-com-diretor-de-planejamento1",
+   "https://www.meioemensagem.com.br/comunicacao/como-looks-de-tapete-vermelho-viram-ativos-de-comunicacao"
+  ],
+  "feedComTextoLongo": 30,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "Todos os direitos Reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "mercado-e-consumo",
+  "name": "Mercado & Consumo",
+  "home": "https://mercadoeconsumo.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "varejo",
+   "crm",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://mercadoeconsumo.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://mercadoeconsumo.com.br/",
+  "feedsAnunciados": [
+   "https://mercadoeconsumo.com.br/feed/",
+   "https://mercadoeconsumo.com.br/web-stories/feed/"
+  ],
+  "feedUrl": "https://mercadoeconsumo.com.br/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T06:04:46.000Z",
+  "feedAmostraLinks": [
+   "https://mercadoeconsumo.com.br/23/11/2026/noticias/vendedor-de-loja-fazendo-live-a-china-ja-testou-e-a-licao-vai-alem-da-camera/",
+   "https://mercadoeconsumo.com.br/23/11/2026/artigos/varejo-e-consumo-no-japao-servem-de-inspiracao/"
+  ],
+  "feedComTextoLongo": 10,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Gouvea Ecosystem",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "proxxima",
+  "name": "Propmark / Proxxima",
+  "home": "https://propmark.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "crm",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://propmark.com.br/wp-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://propmark.com.br/",
+  "feedsAnunciados": [
+   "https://propmark.com.br/feed/",
+   "https://propmark.com.br/comments/feed/"
+  ],
+  "feedUrl": "https://propmark.com.br/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:05:00.000Z",
+  "feedAmostraLinks": [
+   "https://propmark.com.br/artigos/quando-o-incomodo-se-transforma-em-proposito/",
+   "https://propmark.com.br/artigos/quanto-custa-ganhar-uma-conta/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 propmark – todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "ecommerce-brasil",
+  "name": "E-Commerce Brasil",
+  "home": "https://www.ecommercebrasil.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "varejo",
+   "crm",
+   "tech"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.ecommercebrasil.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.ecommercebrasil.com.br/",
+  "feedsAnunciados": [
+   "https://www.ecommercebrasil.com.br/feed/"
+  ],
+  "feedTentativa": "https://www.ecommercebrasil.com.br/feed/ → HTTP 404",
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© Copyright 2026, E-Commerce Brasil | Política de Privacidade Uma empresa",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "mundo-do-marketing",
+  "name": "Mundo do Marketing",
+  "home": "https://mundodomarketing.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "crm",
+   "mercado",
+   "varejo"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://mundodomarketing.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://mundodomarketing.com.br/",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://mundodomarketing.com.br/rss.xml → HTTP 404",
+  "termosUrls": [
+   "https://mundodomarketing.com.br/termos-de-uso"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://mundodomarketing.com.br/termos-de-uso",
+    "status": 200,
+    "chars": 5539
+   }
+  ],
+  "termosProibicao": [
+   "Se você não concordar com algum desses termos, está proibido de usar ou acessar este site."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [
+   "Uso de Licença É concedida permissão para baixar temporariamente uma cópia dos materiais (informações ou software) no site www.mundodomarketing.com.br, apenas para visualização transitória pessoal e não comercial.",
+   "Usar os materiais para qualquer finalidade comercial ou para exibição pública (comercial ou não comercial);"
+  ],
+  "rodapeDireitos": "© mundo do marketing - todos direitos reservados Home NOTÍCIAS Especiais ANUNCIE ",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "consumidor-moderno",
+  "name": "Consumidor Moderno",
+  "home": "https://www.consumidormoderno.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "crm",
+   "varejo"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://consumidormoderno.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://consumidormoderno.com.br/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://consumidormoderno.com.br/feed/",
+  "feedItens": 12,
+  "feedMaisRecente": "2026-11-19T20:53:35.000Z",
+  "feedAmostraLinks": [
+   "https://consumidormoderno.com.br/economia-criadores-conteudo-brasil/",
+   "https://consumidormoderno.com.br/inteligencia-artificial-produtividade-valor-economico/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Grupo Padrão",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "mobile-time",
+  "name": "Mobile Time",
+  "home": "https://www.mobiletime.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "tech",
+   "crm",
+   "bancos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.mobiletime.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.mobiletime.com.br/",
+  "feedsAnunciados": [
+   "https://www.mobiletime.com.br/feed/"
+  ],
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "Todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "supermercado-moderno",
+  "name": "Supermercado Moderno",
+  "home": "https://www.supermercadomoderno.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "varejo"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 0,
+  "robots": "indisponivel",
+  "bloqueio": "fetch failed"
+ },
+ {
+  "id": "startse",
+  "name": "StartSe",
+  "home": "https://www.startse.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "tech",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.startse.com/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.startse.com/",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://www.startse.com/feed → 200 sem itens",
+  "feedUrl": "https://www.startse.com/rss.xml",
+  "feedItens": 40,
+  "feedMaisRecente": "2026-11-20T11:00:00.000Z",
+  "feedAmostraLinks": [
+   "https://www.startse.com/artigos/nesta-black-friday-o-cliente-vai-chegar-tambem-pela-ia/",
+   "https://www.startse.com/artigos/bancos-americanos-avisam-se-o-agente-de-ia-errar-ou-for-hackeado-o-prejuizo-e-do-cliente/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://docs.startse.com/politica-de-privacidade"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://docs.startse.com/politica-de-privacidade",
+    "status": 200,
+    "chars": 14
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "Todos os direitos reservados",
+  "classe": "E",
+  "classeMotivo": "página de termos sem texto no HTML (provável JavaScript)",
+  "classeMecanica": true
+ },
+ {
+  "id": "rd-station-blog",
+  "name": "RD Station (blog)",
+  "home": "https://www.rdstation.com/blog/",
+  "kind": "company_blog",
+  "editorias": [
+   "crm"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.rdstation.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.rdstation.com/blog/",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://www.rdstation.com/rss.xml → 200 sem itens",
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 RD Station",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "rock-content-blog",
+  "name": "Rock Content (blog)",
+  "home": "https://rockcontent.com/br/blog/",
+  "kind": "company_blog",
+  "editorias": [
+   "crm"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 402,
+  "robots": "indisponivel",
+  "bloqueio": "robots.txt HTTP 402"
+ },
+ {
+  "id": "opinion-box-blog",
+  "name": "Opinion Box (blog)",
+  "home": "https://blog.opinionbox.com/",
+  "kind": "company_blog",
+  "editorias": [
+   "crm"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://blog.opinionbox.com/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://blog.opinionbox.com/",
+  "feedsAnunciados": [
+   "https://blog.opinionbox.com/feed/",
+   "https://blog.opinionbox.com/comments/feed/"
+  ],
+  "feedUrl": "https://blog.opinionbox.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-10-20T18:00:19.000Z",
+  "feedAmostraLinks": [
+   "https://blog.opinionbox.com/como-administrar-uma-pequena-empresa/",
+   "https://blog.opinionbox.com/melhor-horario-para-postar-no-instagram/"
+  ],
+  "feedComTextoLongo": 2,
+  "termosUrls": [
+   "https://www.opinionbox.com/termo-de-uso/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.opinionbox.com/termo-de-uso/",
+    "status": 200,
+    "chars": 15922
+   }
+  ],
+  "termosProibicao": [
+   "A marca ou o nome do Opinion Box não poderá ser utilizado para divulgar resultados de pesquisa ou para qualquer outra finalidade sem autorização por escrito."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "take-blip-blog",
+  "name": "Blip (blog)",
+  "home": "https://www.take.net/blog/",
+  "kind": "company_blog",
+  "editorias": [
+   "crm",
+   "tech"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.blip.ai/sitemap_index.xml",
+   "https://www.blip.ai/blog/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.blip.ai/blog/",
+  "redirecionou": "www.blip.ai",
+  "feedsAnunciados": [
+   "https://www.blip.ai/blog/feed/",
+   "https://www.blip.ai/blog/comments/feed/"
+  ],
+  "feedUrl": "https://www.blip.ai/blog/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-10-27T21:23:08.000Z",
+  "feedAmostraLinks": [
+   "https://www.blip.ai/blog/resultado-de-negocio/retencao-clientes-black-friday/",
+   "https://www.blip.ai/blog/inteligencia-conversacional/disparo-mensagens-black-friday/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "sebrae-noticias",
+  "name": "Sebrae (notícias)",
+  "home": "https://sebrae.com.br/sites/PortalSebrae/ufs/sp/noticias",
+  "kind": "association",
+  "editorias": [
+   "varejo",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://sebrae.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://sebrae.com.br/empreendedores/conteudos",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://sebrae.com.br/rss.xml → HTTP 404",
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "loyalty-brasil-blog",
+  "name": "Zeta / Eloyalty & fidelidade (busca)",
+  "home": "https://www.clubedofidelidade.com.br/",
+  "kind": "blog",
+  "editorias": [
+   "programas",
+   "crm"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 0,
+  "robots": "indisponivel",
+  "bloqueio": "fetch failed"
+ },
+ {
+  "id": "tecmundo-negocios",
+  "name": "Canaltech",
+  "home": "https://canaltech.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "tech"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://static.canaltech.com.br/smap/geral.xml",
+   "https://canaltech.com.br/smap/sitemap.xml",
+   "https://canaltech.com.br/smap/sitemap-news.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://canaltech.com.br/",
+  "feedsAnunciados": [
+   "https://canaltech.com.br/rss/",
+   "https://feeds2.feedburner.com/canaltechbr"
+  ],
+  "feedUrl": "https://feeds2.feedburner.com/canaltechbr",
+  "feedItens": 50,
+  "feedMaisRecente": "2026-11-23T10:33:00.000Z",
+  "feedAmostraLinks": [
+   "https://canaltech.com.br/smartwatch/samsung-pode-acabar-com-lancamentos-anuais-do-galaxy-watch-em-2027-entenda/",
+   "https://canaltech.com.br/smartphone/qual-iphone-comprar-na-black-friday-2026-7-modelos-que-valem-a-pena/"
+  ],
+  "feedComTextoLongo": 50,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "tiinside",
+  "name": "TI Inside",
+  "home": "https://tiinside.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "tech",
+   "bancos"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "Google-Extended",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://tiinside.com.br/sitemap.xml",
+   "https://tiinside.com.br/sitemap-news.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://tiinside.com.br/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://tiinside.com.br/feed/",
+  "feedItens": 30,
+  "feedMaisRecente": "2026-11-19T21:27:18.000Z",
+  "feedAmostraLinks": [
+   "https://tiinside.com.br/19/11/2026/anthropic-desbanca-spacex-como-maior-ipo-da-historia-e-estreia-na-nasdaq-com-us-81-bilhoes/",
+   "https://tiinside.com.br/19/11/2026/ataque-cibernetico-a-comissao-europeia-pode-ter-exposto-dados-pessoais-de-funcionarios/"
+  ],
+  "feedComTextoLongo": 30,
+  "termosUrls": [
+   "https://tiinside.com.br/politica-de-uso-e-privacidade/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://tiinside.com.br/politica-de-uso-e-privacidade/",
+    "status": 200,
+    "chars": 13231
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "finsiders",
+  "name": "Finsiders Brasil",
+  "home": "https://finsidersbrasil.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "bancos",
+   "tech"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "ClaudeBot",
+   "anthropic-ai",
+   "CCBot",
+   "PerplexityBot"
+  ],
+  "sitemaps": [
+   "https://finsidersbrasil.com.br/news-sitemap.xml",
+   "https://finsidersbrasil.com.br/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://finsidersbrasil.com.br/",
+  "feedsAnunciados": [
+   "https://finsidersbrasil.com.br/feed/",
+   "https://finsidersbrasil.com.br/web-stories/feed/"
+  ],
+  "feedUrl": "https://finsidersbrasil.com.br/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-20T18:32:00.000Z",
+  "feedAmostraLinks": [
+   "https://finsidersbrasil.com.br/ia/precisao-da-ia-sobe-e-bancos-usam-em-seguranca-digital/",
+   "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/"
+  ],
+  "feedComTextoLongo": 1,
+  "termosUrls": [
+   "https://finsidersbrasil.com.br/termos-de-uso",
+   "https://policies.google.com/terms"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://finsidersbrasil.com.br/termos-de-uso/",
+    "status": 200,
+    "chars": 7689
+   },
+   {
+    "url": "https://policies.google.com/terms",
+    "status": 200,
+    "chars": 34131
+   }
+  ],
+  "termosProibicao": [
+   "Isso significa que você precisa seguir estas regras básicas de conduta: Obedecer às leis aplicáveis, incluindo controle de exportação, sanções e tráfico humano Respeitar os direitos de terceiros, incluindo direitos de privacidade e de propriedade intelectual Não prejudicar nem abusar de outras pessoas ou de si mesmo (n",
+   "Não copie, modifique, distribua, venda ou alugue qualquer parte dos nossos serviços ou softwares."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [
+   "Utilização deste Website De acordo com estes termos e condições, Finsiders Brasil garante, sob direitos de propriedade intelectual do Brasil, uma licença exclusiva Finsiders Brasil, não transferível, mundial para a utilização deste website e o conteúdo aqui incluído (conforme definido na seção 2) apenas para uso pessoa",
+   "Usando os serviços do Google em nome de uma organização ou empresa Muitas organizações , como empresas, organizações sem fins lucrativos e escolas, beneficiam-se dos nossos serviços ."
+  ],
+  "rodapeDireitos": "© 2026 Todos os direitos reservados",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "mobile-marketing-br",
+  "name": "Startups.com.br",
+  "home": "https://startups.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "tech",
+   "mercado"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "ClaudeBot",
+   "anthropic-ai",
+   "CCBot",
+   "PerplexityBot"
+  ],
+  "sitemaps": [
+   "https://startups.com.br/wp-content/sitemaps/news-sitemap.xml",
+   "https://startups.com.br/wp-content/sitemaps/posts/page-sitemap-index.xml",
+   "https://startups.com.br/wp-content/sitemaps/posts/post-sitemap-index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://startups.com.br/",
+  "feedsAnunciados": [
+   "https://startups.com.br/feed/",
+   "https://startups.com.br/web-stories/feed/"
+  ],
+  "feedUrl": "https://startups.com.br/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:07:03.000Z",
+  "feedAmostraLinks": [
+   "https://startups.com.br/negocios/inteligencia-artificial/nada-melhor-do-que-bater-os-grandes-a-aposta-da-sueca-strawberry/",
+   "https://startups.com.br/danca-das-cadeiras/jota-anuncia-novos-cto-cfo-e-chro/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://startups.com.br/negocios/legaltech/",
+   "https://startups.com.br/termos-de-uso"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://startups.com.br/negocios/legaltech/",
+    "status": 200,
+    "chars": 4104
+   },
+   {
+    "url": "https://startups.com.br/termos-de-uso/",
+    "status": 200,
+    "chars": 8031
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [
+   "Utilização deste Website oDe acordo com estes termos e condições, a Startups.com.br garante, sob direitos de propriedade intelectual do Brasil, uma licença exclusiva Startups.com.br, não transferível, mundial para a utilização deste website e o conteúdo aqui incluído (conforme definido na seção 2) apenas para uso pesso"
+  ],
+  "rodapeDireitos": "© 2026 Todos os direitos reservados",
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "administradores",
+  "name": "Administradores.com",
+  "home": "https://administradores.com.br/",
+  "kind": "trade_media",
+  "editorias": [
+   "mercado",
+   "crm"
+  ],
+  "lang": "pt",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://administradores.com.br/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.administradores.com.br/",
+  "feedsAnunciados": [
+   "https://cms-prd.administradores.dev/feed/custom-feed/"
+  ],
+  "feedTentativa": "https://cms-prd.administradores.dev/feed/custom-feed/ → HTTP 403",
+  "termosUrls": [
+   "https://app.administradores.com.br/termos-de-uso"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://app.administradores.com.br/termos-de-uso",
+    "status": 200,
+    "chars": 23
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2000– 2026 Redes sociais Seguir no Google",
+  "classe": "E",
+  "classeMotivo": "página de termos sem texto no HTML (provável JavaScript)",
+  "classeMecanica": true
+ },
+ {
+  "id": "one-mile-at-a-time",
+  "name": "One Mile at a Time",
+  "home": "https://onemileatatime.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://onemileatatime.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://onemileatatime.com/",
+  "feedsAnunciados": [
+   "https://onemileatatime.com/feed/"
+  ],
+  "termosUrls": [
+   "https://onemileatatime.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://onemileatatime.com/terms-of-use/",
+    "status": 200,
+    "chars": 15479
+   }
+  ],
+  "termosProibicao": [
+   "content or information, or otherwise access the Site, using automated means (such as harvesting bots, robots, spiders, or scrapers) without our prior permission;",
+   "No Solicitation You shall not distribute on or through this Site any postings containing any advertising, promotion, solicitation for goods, services or funds or solicitation for others to become members of any enterprise or organization without the express written permission of PointsPros, Inc."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "the-points-guy",
+  "name": "The Points Guy",
+  "home": "https://thepointsguy.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://thepointsguy.com/wp-sitemap.xml",
+   "https://thepointsguy.com/sitemap_cards.xml",
+   "https://thepointsguy.com/news-sitemap.xml/"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://thepointsguy.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://thepointsguy.com/feed",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-23T11:00:54.000Z",
+  "feedAmostraLinks": [
+   "https://thepointsguy.com/news/rove-elite-status/",
+   "https://thepointsguy.com/credit-cards/best-credit-cards-vacation-travel/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://thepointsguy.com/terms-of-use"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://thepointsguy.com/legal/terms-of-use",
+    "status": 200,
+    "chars": 64313
+   }
+  ],
+  "termosProibicao": [
+   "Using any of the services or information provided for commercial uses is strictly prohibited.",
+   "This law prohibits deceptive practices by credit repair organizations.",
+   "Prohibited Use of the Service You may not access or use the Services in violation of applicable laws, including export controls and sanctions, or in violation of our or any third party&#x27;s intellectual property or other proprietary or legal rights."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [
+   "Subject to the terms of this Agreement, we grant you a non-transferable, non-exclusive, revocable license to: (a) use the Site and Services for your personal, non-commercial use;",
+   "and (b) install and use the Apps, in executable object code format only, solely on your own mobile or portable device and for your personal, non-commercial use."
+  ],
+  "rodapeDireitos": null,
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "view-from-the-wing",
+  "name": "View from the Wing",
+  "home": "https://viewfromthewing.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://viewfromthewing.com/sitemap_index.xml",
+   "https://viewfromthewing.com/news-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://viewfromthewing.com/",
+  "feedsAnunciados": [
+   "https://viewfromthewing.com/feed/",
+   "https://viewfromthewing.com/comments/feed/"
+  ],
+  "feedUrl": "https://viewfromthewing.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:00:20.000Z",
+  "feedAmostraLinks": [
+   "https://viewfromthewing.com/rove-launches-elite-status-with-third-night-free-hotel-awards-will-this-turn-deal-chasers-into-loyal-customers/",
+   "https://viewfromthewing.com/rove-gives-you-1500-free-miles-just-for-signing-up-plus-5000-more-on-your-first-500-hotel-booking/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All Rights Reserved",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "upgraded-points",
+  "name": "Upgraded Points",
+  "home": "https://upgradedpoints.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://upgradedpoints.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://upgradedpoints.com/",
+  "feedsAnunciados": [
+   "https://upgradedpoints.com/feed/"
+  ],
+  "termosUrls": [
+   "https://upgradedpoints.com/terms-and-conditions/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://upgradedpoints.com/terms-and-conditions/",
+    "status": 200,
+    "chars": 55287
+   }
+  ],
+  "termosProibicao": [
+   "Except for this limited license, you may not copy, reproduce, distribute, modify, perform, display, publish, create derivative works from, sell, or otherwise exploit any Content or the Collective Work without our prior written permission.",
+   "Any use of the Content, the Collective Work, or the Services not expressly permitted by this Agreement is prohibited.",
+   "Access and Interference You agree not to use any robot, spider, scraper, deep‑linking technology, or other automated data‑gathering or extraction tools, algorithms, or programs to access, acquire, copy, or monitor the Services or any portion of the Services without our prior written permission."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Upgraded Points™, LLC",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "frequent-miler",
+  "name": "Frequent Miler",
+  "home": "https://frequentmiler.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": 10,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://frequentmiler.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://frequentmiler.com/",
+  "feedsAnunciados": [
+   "https://frequentmiler.com/feed/",
+   "https://frequentmiler.com/comments/feed/"
+  ],
+  "feedUrl": "https://frequentmiler.com/feed/",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-23T11:00:58.000Z",
+  "feedAmostraLinks": [
+   "https://frequentmiler.com/rove-elite-status-personalized-offers/",
+   "https://frequentmiler.com/office-depot-officemax-buy-300-mastercard-gift-cards-save-15/"
+  ],
+  "feedComTextoLongo": 20,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "doctor-of-credit",
+  "name": "Doctor of Credit",
+  "home": "https://www.doctorofcredit.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "bancos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 403,
+  "robots": "bloqueado",
+  "bloqueio": "robots.txt HTTP 403"
+ },
+ {
+  "id": "head-for-points",
+  "name": "Head for Points",
+  "home": "https://www.headforpoints.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 403,
+  "robots": "bloqueado",
+  "bloqueio": "robots.txt HTTP 403"
+ },
+ {
+  "id": "point-hacks",
+  "name": "Point Hacks",
+  "home": "https://www.pointhacks.com.au/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.pointhacks.com.au/sitemap_index.xml",
+   "https://www.pointhacks.com.au/news-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.pointhacks.com.au/",
+  "feedsAnunciados": [
+   "https://www.pointhacks.com.au/feed/"
+  ],
+  "feedUrl": "https://www.pointhacks.com.au/feed/",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-19T07:20:53.000Z",
+  "feedAmostraLinks": [
+   "https://www.pointhacks.com.au/photo-tour-western-sydney-international-airport-the-rayleigh-lounge/",
+   "https://www.pointhacks.com.au/weekly-gift-card-offers/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://www.pointhacks.com.au/terms-conditions/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.pointhacks.com.au/terms-conditions/",
+    "status": 200,
+    "chars": 27140
+   }
+  ],
+  "termosProibicao": [
+   "Except as permitted by the Copyright Act 1968, you may not reproduce, transmit, disseminate, sell, or publish information on this Website without our prior written permission, provided that you may use the information for your private or internal purposes."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Point Hacks Australia Pty Ltd",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "executive-traveller",
+  "name": "Executive Traveller",
+  "home": "https://www.executivetraveller.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot"
+  ],
+  "sitemaps": [
+   "https://www.executivetraveller.com/sitemaps/index.xml"
+  ],
+  "homeStatus": 403,
+  "homeFinalUrl": "https://www.executivetraveller.com/",
+  "bloqueio": "home HTTP 403 (bloqueio/desafio)"
+ },
+ {
+  "id": "loyalty-lobby",
+  "name": "Loyalty Lobby",
+  "home": "https://loyaltylobby.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "Google-Extended",
+   "CCBot",
+   "PerplexityBot",
+   "ChatGPT-User",
+   "OAI-SearchBot"
+  ],
+  "sitemaps": [],
+  "homeStatus": 403,
+  "homeFinalUrl": "https://loyaltylobby.com/",
+  "bloqueio": "home HTTP 403 (bloqueio/desafio)"
+ },
+ {
+  "id": "million-mile-secrets",
+  "name": "Million Mile Secrets",
+  "home": "https://millionmilesecrets.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://millionmilesecrets.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://millionmilesecrets.com/",
+  "feedsAnunciados": [
+   "https://millionmilesecrets.com/feed/",
+   "https://millionmilesecrets.com/comments/feed/"
+  ],
+  "feedUrl": "https://millionmilesecrets.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2024-07-25T15:57:35.000Z",
+  "feedAmostraLinks": [
+   "https://millionmilesecrets.com/uncategorized/explore-american-express-hilton-credit-cards-and-hilton-hotel-brands/",
+   "https://millionmilesecrets.com/uncategorized/unlocking-the-value-of-marriott-bonvoy-points-a-comprehensive-guide/"
+  ],
+  "feedComTextoLongo": 8,
+  "termosUrls": [
+   "https://millionmilesecrets.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://millionmilesecrets.com/terms-of-use/",
+    "status": 200,
+    "chars": 61227
+   }
+  ],
+  "termosProibicao": [
+   "Using any of the services or information provided for commercial uses is strictly prohibited.",
+   "This law prohibits deceptive practices by credit repair organizations.",
+   "In addition, you are prohibited from: (z) licensing, selling, renting, leasing, transferring, assigning, distributing, hosting, or otherwise commercially exploiting the Site, Apps, or Services;"
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [
+   "Subject to the terms of this Agreement, we grant you a non-transferable, non-exclusive, revocable license to: (a) use the Site and Services for your personal, non-commercial use;",
+   "and (b) install and use the Apps, in executable object code format only, solely on your own mobile or portable device and for your personal, non-commercial use."
+  ],
+  "rodapeDireitos": "© 2026 MillionMileSecrets",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "skift",
+  "name": "Skift",
+  "home": "https://skift.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "travel",
+   "mercado"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "Google-Extended",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://skift.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://skift.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://skift.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T10:02:05.000Z",
+  "feedAmostraLinks": [
+   "https://skift.com/2026/11/23/radissons-first-paid-membership-targets-diners-not-guests-exclusive/",
+   "https://skift.com/2026/11/23/mr-mrs-smith-booked-more-under-hyatt-but-earned-less-on-each-stay/"
+  ],
+  "feedComTextoLongo": 1,
+  "termosUrls": [
+   "https://skift.com/terms/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://skift.com/terms/",
+    "status": 200,
+    "chars": 16516
+   }
+  ],
+  "termosProibicao": [
+   "Prohibited Usage You may not access or use, or attempt to access or use, Skift content or services to take any action that could harm us or a third party.",
+   "This section applies to ordinary browsing, standard search-engine indexing, and other routine automated access;",
+   "it targets the uses listed below, not automated access in general."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 Skift Inc",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "phocuswire",
+  "name": "PhocusWire",
+  "home": "https://www.phocuswire.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "travel",
+   "tech"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 403,
+  "robots": "bloqueado",
+  "bloqueio": "robots.txt HTTP 403"
+ },
+ {
+  "id": "travel-weekly",
+  "name": "Travel Weekly",
+  "home": "https://www.travelweekly.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 403,
+  "robots": "bloqueado",
+  "bloqueio": "robots.txt HTTP 403"
+ },
+ {
+  "id": "simple-flying",
+  "name": "Simple Flying",
+  "home": "https://simpleflying.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "Google-Extended",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://simpleflying.com/sitemap.xml",
+   "https://simpleflying.com/post_google_news.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://simpleflying.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://simpleflying.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T09:59:52.000Z",
+  "feedAmostraLinks": [
+   "https://simpleflying.com/airline-premium-seats-selling-out-faster-than-economy/",
+   "https://simpleflying.com/endeavor-air-first-officers-reach-delta-air-lines-24-months-captain-no-extra-interview/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://simpleflying.com/boeing-built-737-max-ability-take-off-overweight-cant-legally-operationally/",
+   "https://www.valnetinc.com/en/terms-of-use"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://simpleflying.com/boeing-built-737-max-ability-take-off-overweight-cant-legally-operationally/",
+    "status": 200,
+    "chars": 13559
+   },
+   {
+    "url": "https://www.valnetinc.com/en/terms-of-use",
+    "status": 200,
+    "chars": 67103
+   }
+  ],
+  "termosProibicao": [
+   "YOU MAY NOT USE THE SITES IF YOU (A) DO NOT AGREE TO THESE TERMS, (B) ARE NOT AT LEAST 18 YEARS OF AGE OR OF LEGAL AGE TO FORM A BINDING CONTRACT OR DO NOT HAVE PARENTAL AUTHORIZATION TO USE OUR SITES, OR (C) ARE PROHIBITED FROM ACCESSING OR USING THE SITES BY APPLICABLE LAW.",
+   "Unless expressly prohibited by applicable local law, payments are non-refundable, and there are no refunds or credits for partially used subscription periods.",
+   "If you believe any such image is under your copyright and was used without permission, then please email us at legal@valnetinc.com with sufficient written evidence."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [
+   "Grant of Limited License On condition of your acceptance of these Terms, we grant you a non-exclusive, limited, non-transferrable, non-sub-licensable, freely revocable license to use the Sites for your personal, non-commercial use only.",
+   "Use of Content The Sites are intended solely for your personal and non-commercial use, and not for the use or benefit of any third party."
+  ],
+  "rodapeDireitos": null,
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "loyalty360",
+  "name": "Loyalty360",
+  "home": "https://loyalty360.org/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "programas",
+   "crm"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 403,
+  "robots": "bloqueado",
+  "bloqueio": "robots.txt HTTP 403"
+ },
+ {
+  "id": "loyalty-magazine",
+  "name": "Loyalty Magazine",
+  "home": "https://www.loyaltymagazine.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "programas",
+   "crm"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "http://www.loyaltymagazine.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.loyaltymagazine.com/",
+  "feedsAnunciados": [
+   "https://www.loyaltymagazine.com/feed/",
+   "https://www.loyaltymagazine.com/comments/feed/"
+  ],
+  "feedUrl": "https://www.loyaltymagazine.com/feed/",
+  "feedItens": 30,
+  "feedMaisRecente": "2026-10-30T12:26:06.000Z",
+  "feedAmostraLinks": [
+   "https://www.loyaltymagazine.com/what-does-a-loyalty-card-do-between-visits/",
+   "https://www.loyaltymagazine.com/new-ai-category-for-international-loyalty-awards-2027/"
+  ],
+  "feedComTextoLongo": 28,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "wise-marketer",
+  "name": "The Wise Marketer",
+  "home": "https://www.thewisemarketer.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "programas",
+   "crm"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://thewisemarketer.com/sitemap_index.xml",
+   "https://thewisemarketer.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://thewisemarketer.com/",
+  "feedsAnunciados": [
+   "https://thewisemarketer.com/feed/",
+   "https://thewisemarketer.com/comments/feed/"
+  ],
+  "termosUrls": [
+   "https://thewisemarketer.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://thewisemarketer.com/terms-of-use/",
+    "status": 200,
+    "chars": 16301
+   }
+  ],
+  "termosProibicao": [
+   "Prohibited Activities With regards to our Websites, you may not: copy, distribute or otherwise remove or make available material from our Websites without the express written permission of WMG;",
+   "You may not use, copy or reproduce material from our Websites without written permission from WMG."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "retail-dive",
+  "name": "Retail Dive",
+  "home": "https://www.retaildive.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "varejo"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": 5,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.retaildive.com/",
+  "feedsAnunciados": [
+   "https://www.retaildive.com/feeds/news/"
+  ],
+  "feedUrl": "https://www.retaildive.com/feeds/news/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T10:00:00.000Z",
+  "feedAmostraLinks": [
+   "https://www.retaildive.com/spons/retails-fastest-ai-return-right-now-sits-behind-the-storefront/875359/",
+   "https://www.retaildive.com/spons/why-retailers-prefer-real-human-expertise-over-automated-payment-support/875272/"
+  ],
+  "feedComTextoLongo": 1,
+  "termosUrls": [
+   "https://www.informatechtarget.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": "by",
+  "termosDocs": [
+   {
+    "url": "https://www.informatechtarget.com/terms-of-use/",
+    "status": 200,
+    "chars": 58998
+   }
+  ],
+  "termosProibicao": [
+   "(b) reverse engineer, decompile, modify, translate, disassemble (except to the extent that this restriction is expressly prohibited by law) or create derivative works based upon the Services, including the content or the underlying technology;",
+   "(c) use any data mining, robots or similar data gathering or extraction methods or (d) use any of the Services other than for its intended purpose.",
+   "Ownership Unless explicitly stated otherwise, the contents and underlying technology of the Services are the exclusive property of TechTarget, and may not be copied, distributed, displayed, altered or modified, or reproduced or transmitted, in any form or by any means including, but not limited to, electronic, photocop"
+  ],
+  "termosPermissao": [
+   "Terms of Use | Informa TechTarget Here’s Why Back Here’s Why Our Audiences Cybersecurity Customer Experience Healthcare and Life Sciences Our Audiences Global Execution EMEA APAC LATAM Global Execution Why Informa TechTarget Solutions Back Solutions Product Teams Go-to-Market & Product Strategy Positioning and Buyer In",
+   "Learn More Demand Content Syndication Highly Qualified Leads Always-On Buying Groups BrightTALK Channel Lead Generation More About Demand Close Content Syndication Intent-driven leads that build pipeline Learn More Making Sense of B2B Purchase Intent Data and Putting It to Use Download the E-book Close Highly Qualified"
+  ],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "modern-retail",
+  "name": "Modern Retail",
+  "home": "https://www.modernretail.co/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "varejo"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.modernretail.co/sitemap_index.xml",
+   "https://digiday.com/sitemap_index.xml",
+   "https://www.glossy.co/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.modernretail.co/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://www.modernretail.co/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T05:00:00.000Z",
+  "feedAmostraLinks": [
+   "https://www.modernretail.co/marketing/sweetgreen-cooking-pop-ups/?utm_campaign=modernretaildis&#038;utm_medium=rss&#038;utm_source=general-rss",
+   "https://www.modernretail.co/podcasts/2026-artificial-dye-removal-from-food/?utm_campaign=modernretaildis&#038;utm_medium=rss&#038;utm_source=general-rss"
+  ],
+  "feedComTextoLongo": 1,
+  "termosUrls": [
+   "https://www.modernretail.co/terms-conditions/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.modernretail.co/terms-conditions/",
+    "status": 200,
+    "chars": 2290
+   }
+  ],
+  "termosProibicao": [
+   "If you do not agree with any of these terms, you are prohibited from using or accessing this site."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "payments-dive",
+  "name": "Payments Dive",
+  "home": "https://www.paymentsdive.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "bancos",
+   "tech"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": 5,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.paymentsdive.com/",
+  "feedsAnunciados": [
+   "https://www.paymentsdive.com/feeds/news/"
+  ],
+  "feedUrl": "https://www.paymentsdive.com/feeds/news/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T10:00:00.000Z",
+  "feedAmostraLinks": [
+   "https://www.paymentsdive.com/spons/travel-brands-arent-the-only-ones-that-benefit-from-non-prime-credit-card/875363/",
+   "https://www.paymentsdive.com/spons/how-digital-dollars-improve-cross-border-payment-management/874849/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://www.informatechtarget.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": "by-sa",
+  "termosDocs": [
+   {
+    "url": "https://www.informatechtarget.com/terms-of-use/",
+    "status": 200,
+    "chars": 58998
+   }
+  ],
+  "termosProibicao": [
+   "(b) reverse engineer, decompile, modify, translate, disassemble (except to the extent that this restriction is expressly prohibited by law) or create derivative works based upon the Services, including the content or the underlying technology;",
+   "(c) use any data mining, robots or similar data gathering or extraction methods or (d) use any of the Services other than for its intended purpose.",
+   "Ownership Unless explicitly stated otherwise, the contents and underlying technology of the Services are the exclusive property of TechTarget, and may not be copied, distributed, displayed, altered or modified, or reproduced or transmitted, in any form or by any means including, but not limited to, electronic, photocop"
+  ],
+  "termosPermissao": [
+   "Terms of Use | Informa TechTarget Here’s Why Back Here’s Why Our Audiences Cybersecurity Customer Experience Healthcare and Life Sciences Our Audiences Global Execution EMEA APAC LATAM Global Execution Why Informa TechTarget Solutions Back Solutions Product Teams Go-to-Market & Product Strategy Positioning and Buyer In",
+   "Learn More Demand Content Syndication Highly Qualified Leads Always-On Buying Groups BrightTALK Channel Lead Generation More About Demand Close Content Syndication Intent-driven leads that build pipeline Learn More Making Sense of B2B Purchase Intent Data and Putting It to Use Download the E-book Close Highly Qualified"
+  ],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "banking-dive",
+  "name": "Banking Dive",
+  "home": "https://www.bankingdive.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "bancos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": 5,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.bankingdive.com/",
+  "feedsAnunciados": [
+   "https://www.bankingdive.com/feeds/news/"
+  ],
+  "feedUrl": "https://www.bankingdive.com/feeds/news/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-20T17:21:54.000Z",
+  "feedAmostraLinks": [
+   "https://www.bankingdive.com/news/oaknorth-fed-occ-approve-charter-application-michigan-bank-acquisition-digital-uk/875357/",
+   "https://www.bankingdive.com/news/paypal-ceo-remakes-team-cfo-coo-venmo/875355/"
+  ],
+  "feedComTextoLongo": 3,
+  "termosUrls": [
+   "https://www.informatechtarget.com/terms-of-use/",
+   "https://cfodive.tradepub.com/c/pubRD.mpl?secure=1&sr=pp&_t=pp%3A&qf=w_defa12137&ch=Library&utm_source=BD&utm_medium=Library&utm_campaign=Citi"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.informatechtarget.com/terms-of-use/",
+    "status": 200,
+    "chars": 58998
+   },
+   {
+    "url": "https://cfodive.tradepub.com/c/pubRD.mpl?secure=1&sr=pp&_t=pp%3A&qf=w_defa12137&ch=Library&utm_source=BD&utm_medium=Library&utm_campaign=Citi",
+    "status": 403,
+    "chars": 16
+   }
+  ],
+  "termosProibicao": [
+   "(b) reverse engineer, decompile, modify, translate, disassemble (except to the extent that this restriction is expressly prohibited by law) or create derivative works based upon the Services, including the content or the underlying technology;",
+   "(c) use any data mining, robots or similar data gathering or extraction methods or (d) use any of the Services other than for its intended purpose.",
+   "Ownership Unless explicitly stated otherwise, the contents and underlying technology of the Services are the exclusive property of TechTarget, and may not be copied, distributed, displayed, altered or modified, or reproduced or transmitted, in any form or by any means including, but not limited to, electronic, photocop"
+  ],
+  "termosPermissao": [
+   "Terms of Use | Informa TechTarget Here’s Why Back Here’s Why Our Audiences Cybersecurity Customer Experience Healthcare and Life Sciences Our Audiences Global Execution EMEA APAC LATAM Global Execution Why Informa TechTarget Solutions Back Solutions Product Teams Go-to-Market & Product Strategy Positioning and Buyer In",
+   "Learn More Demand Content Syndication Highly Qualified Leads Always-On Buying Groups BrightTALK Channel Lead Generation More About Demand Close Content Syndication Intent-driven leads that build pipeline Learn More Making Sense of B2B Purchase Intent Data and Putting It to Use Download the E-book Close Highly Qualified"
+  ],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "marketing-dive",
+  "name": "Marketing Dive",
+  "home": "https://www.marketingdive.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "crm",
+   "mercado"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": 5,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.marketingdive.com/",
+  "feedsAnunciados": [
+   "https://www.marketingdive.com/feeds/news/"
+  ],
+  "feedUrl": "https://www.marketingdive.com/feeds/news/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T11:05:00.000Z",
+  "feedAmostraLinks": [
+   "https://www.marketingdive.com/news/philadelphia-whips-up-bigger-holiday-marketing-spend-amid-brand-revamp/875325/",
+   "https://www.marketingdive.com/news/how-jell-o-new-creative-platform-looks-to-shift-consumer-perceptions/875220/"
+  ],
+  "feedComTextoLongo": 1,
+  "termosUrls": [
+   "https://www.informatechtarget.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.informatechtarget.com/terms-of-use/",
+    "status": 200,
+    "chars": 58998
+   }
+  ],
+  "termosProibicao": [
+   "(b) reverse engineer, decompile, modify, translate, disassemble (except to the extent that this restriction is expressly prohibited by law) or create derivative works based upon the Services, including the content or the underlying technology;",
+   "(c) use any data mining, robots or similar data gathering or extraction methods or (d) use any of the Services other than for its intended purpose.",
+   "Ownership Unless explicitly stated otherwise, the contents and underlying technology of the Services are the exclusive property of TechTarget, and may not be copied, distributed, displayed, altered or modified, or reproduced or transmitted, in any form or by any means including, but not limited to, electronic, photocop"
+  ],
+  "termosPermissao": [
+   "Terms of Use | Informa TechTarget Here’s Why Back Here’s Why Our Audiences Cybersecurity Customer Experience Healthcare and Life Sciences Our Audiences Global Execution EMEA APAC LATAM Global Execution Why Informa TechTarget Solutions Back Solutions Product Teams Go-to-Market & Product Strategy Positioning and Buyer In",
+   "Learn More Demand Content Syndication Highly Qualified Leads Always-On Buying Groups BrightTALK Channel Lead Generation More About Demand Close Content Syndication Intent-driven leads that build pipeline Learn More Making Sense of B2B Purchase Intent Data and Putting It to Use Download the E-book Close Highly Qualified"
+  ],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "finextra",
+  "name": "Finextra",
+  "home": "https://www.finextra.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "bancos",
+   "tech"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "anthropic-ai",
+   "Google-Extended",
+   "CCBot"
+  ],
+  "sitemaps": [],
+  "homeStatus": 403,
+  "homeFinalUrl": "https://www.finextra.com/",
+  "bloqueio": "home HTTP 403 (bloqueio/desafio)"
+ },
+ {
+  "id": "pymnts",
+  "name": "PYMNTS",
+  "home": "https://www.pymnts.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "bancos",
+   "varejo"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.pymnts.com/sitemap-news.xml",
+   "https://www.pymnts.com/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.pymnts.com/",
+  "feedsAnunciados": [
+   "https://www.pymnts.com/feed/",
+   "https://www.pymnts.com/feed/atom/"
+  ],
+  "feedUrl": "https://www.pymnts.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-23T09:03:14.000Z",
+  "feedAmostraLinks": [
+   "https://www.pymnts.com/commerce/ecommerce/2026/croissant-uses-remy-ai-to-match-luxury-shoppers-with-new-brands/",
+   "https://www.pymnts.com/news/banking/2026/mastercard-targets-the-trust-gap-in-open-finance/"
+  ],
+  "feedComTextoLongo": 10,
+  "termosUrls": [
+   "https://www.pymnts.com/news/artificial-intelligence/2026/ai-copyright-rulings-put-data-governance-on-the-institutional-agenda/",
+   "https://www.pymnts.com/legal/2026/sec-investigating-whether-nvidia-misled-investors/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.pymnts.com/news/artificial-intelligence/2026/ai-copyright-rulings-put-data-governance-on-the-institutional-agenda/",
+    "status": 200,
+    "chars": 7399
+   },
+   {
+    "url": "https://www.pymnts.com/legal/2026/sec-investigating-whether-nvidia-misled-investors/",
+    "status": 200,
+    "chars": 6222
+   }
+  ],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 PYMNTS",
+  "classe": "D",
+  "classeMotivo": "termos lidos, sem vedação nem permissão sobre reprodução de conteúdo",
+  "classeMecanica": true
+ },
+ {
+  "id": "the-paypers",
+  "name": "The Paypers",
+  "home": "https://thepaypers.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "bancos",
+   "tech"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://thepaypers.com/sitemap_index.xml",
+   "https://www.thepaypers.com/sitemap_index.xml",
+   "https://thepaypers.com/__sitemap__/news.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://thepaypers.com/",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://thepaypers.com/rss.xml → 200 sem itens",
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "customerthink",
+  "name": "CustomerThink",
+  "home": "https://customerthink.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "crm"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://customerthink.com/sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://customerthink.com/",
+  "feedsAnunciados": [
+   "https://customerthink.com/feed/",
+   "https://customerthink.com/comments/feed/"
+  ],
+  "feedUrl": "https://customerthink.com/feed/",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-21T17:40:59.000Z",
+  "feedAmostraLinks": [
+   "https://customerthink.com/observe-ai-introduces-agent-overwatch-bringing-real-time-supervision-to-any-ai-agent-and-human-contact-center-team/",
+   "https://customerthink.com/surveymonkey-brings-real-human-feedback-into-google-gemini-to-ground-decisions-in-what-people-actually-think/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://customerthink.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://customerthink.com/terms-of-use/",
+    "status": 200,
+    "chars": 18811
+   }
+  ],
+  "termosProibicao": [
+   "Paid backlinks are strictly prohibited."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "cmswire",
+  "name": "CMSWire",
+  "home": "https://www.cmswire.com/",
+  "kind": "trade_media",
+  "editorias": [
+   "global",
+   "crm",
+   "tech"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://www.cmswire.com/sitemap.xml",
+   "https://www.cmswire.com/d/sitemap.xml",
+   "https://www.cmswire.com/sitemap-gnews.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.cmswire.com/",
+  "feedsAnunciados": [
+   "https://feeds2.feedburner.com/CMSWire",
+   "https://feeds2.feedburner.com/CMSWire-Events"
+  ],
+  "feedUrl": "https://feeds2.feedburner.com/CMSWire",
+  "feedItens": 25,
+  "feedMaisRecente": "2026-11-20T17:49:37.000Z",
+  "feedAmostraLinks": [
+   "https://www.cmswire.com/customer-experience/your-support-agent-isnt-breaking-any-rules-that-is-the-problem/?utm_source=cmswire.com&amp;utm_medium=web&amp;utm_campaign=cm&amp;utm_content=all-articles-rss",
+   "https://www.cmswire.com/digital-experience/eight-thoughts-on-anthropics-ipo-and-what-comes-next/?utm_source=cmswire.com&amp;utm_medium=web&amp;utm_campaign=cm&amp;utm_content=all-articles-rss"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://www.simplermedia.com/policies/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.simplermedia.com/policies/terms-of-use/",
+    "status": 200,
+    "chars": 5157
+   }
+  ],
+  "termosProibicao": [
+   "General Terms of Use The RSS feeds may not be spliced into or otherwise redistributed by third-party RSS providers."
+  ],
+  "termosPermissao": [
+   "Web Syndication Terms of Use The Site logo and URL must appear prominently at the top of each page displaying site content.",
+   "Print Syndication Terms of Use The Site logo and URL must appear prominently at the top of each section displaying site content.",
+   "Images must be removed from open syndication feeds and commercial feeds (please contact SMG for more details) SMG reserves the right to object to presentation of RSS feeds and the right to require you to cease using the RSS feeds at any time."
+  ],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": null,
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "simple-flying-2",
+  "name": "Airline Geeks",
+  "home": "https://airlinegeeks.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://airlinegeeks.com/sitemap.xml",
+   "https://airlinegeeks.com/sitemap.rss"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://airlinegeeks.com/",
+  "feedsAnunciados": [],
+  "feedUrl": "https://airlinegeeks.com/feed/",
+  "feedItens": 10,
+  "feedMaisRecente": "2026-11-20T19:00:00.000Z",
+  "feedAmostraLinks": [
+   "https://airlinegeeks.com/2026/11/20/american-grows-maintenance-footprint-in-miami/",
+   "https://airlinegeeks.com/2026/11/20/livery-of-the-week-iberias-red-and-yellow-design/"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://airlinegeeks.com/terms-of-use/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://airlinegeeks.com/terms-of-use/",
+    "status": 200,
+    "chars": 3862
+   }
+  ],
+  "termosProibicao": [
+   "Nothing on the Site may be copied, reproduced, uploaded, publicly displayed, republished, translated, or distributed in anyway without the express written authorization of AG.",
+   "Reproduction in whole or in part without permission is prohibited."
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "points-miles-martinis",
+  "name": "Points, Miles & Martinis",
+  "home": "https://www.pointsmilesandmartinis.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 0,
+  "robots": "indisponivel",
+  "bloqueio": "fetch failed"
+ },
+ {
+  "id": "nerdwallet-travel",
+  "name": "NerdWallet (viagens e cartões)",
+  "home": "https://www.nerdwallet.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "bancos",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [],
+  "sitemaps": [
+   "https://www.nerdwallet.com/sitemaps/us/wp-sitemap.xml",
+   "https://www.nerdwallet.com/sitemaps/us/wp-sitemap-news-articles-1.xml",
+   "https://www.nerdwallet.com/sitemaps/ca/wp-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.nerdwallet.com/",
+  "feedsAnunciados": [],
+  "feedTentativa": "https://www.nerdwallet.com/rss.xml → HTTP 404",
+  "termosUrls": [
+   "https://www.nerdwallet.com/terms-of-use",
+   "https://legal.atomicvest.com/usa.broker.disclosures.003464f3-f6bd-41c3-bbdf-7050e50b43a2.pdf"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://www.nerdwallet.com/terms-of-use",
+    "status": 200,
+    "chars": 55883
+   },
+   {
+    "url": "https://legal.atomicvest.com/usa.broker.disclosures.003464f3-f6bd-41c3-bbdf-7050e50b43a2.pdf",
+    "status": 200,
+    "chars": 173678
+   }
+  ],
+  "termosProibicao": [
+   "f) Access, monitor or copy any content or information of the Site using any robot, scripts, spider, scraper, or other automated means or for any purpose or any manual process to collect information or content, or use the Services as part of any machine learning or similar algorithmic activity without NerdWallet’s expre",
+   "g) Perform any fraudulent activity, including impersonating any person or entity, claiming false affiliations, accessing the accounts of other users without permission, or falsifying your identity or any information about you, including age or date of birth;",
+   "i) Except to the extent permitted by applicable law and except to the extent expressly permitted in these Terms, reverse engineer, disassemble, or decompile the Services, including any corresponding source code, without prior written consent from us;"
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "© 2026 NerdWallet, Inc",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "boarding-area",
+  "name": "BoardingArea",
+  "home": "https://boardingarea.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas",
+   "travel"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://boardingarea.com/wp-sitemap.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://boardingarea.com/",
+  "feedsAnunciados": [
+   "https://boardingarea.com/feed/",
+   "https://boardingarea.com/comments/feed/"
+  ],
+  "feedUrl": "https://boardingarea.com/feed/",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-23T06:00:58.000Z",
+  "feedAmostraLinks": [
+   "https://boardingarea.com/?blog-post=rove-has-launched-a-generous-elite-status-program-personalized-offers",
+   "https://boardingarea.com/?blog-post=rove-launches-elite-status-with-third-night-free-hotel-awards-will-this-turn-deal-chasers-into-loyal-customers"
+  ],
+  "feedComTextoLongo": 0,
+  "termosUrls": [
+   "https://boardingarea.com/terms-legal/"
+  ],
+  "licencaCCNaHome": null,
+  "termosDocs": [
+   {
+    "url": "https://boardingarea.com/terms-legal/",
+    "status": 200,
+    "chars": 10540
+   }
+  ],
+  "termosProibicao": [
+   "Your Use of Our Content is Restricted: (a) Unless expressly permitted, you may not copy, reproduce, distribute, publish, enter into a database, display, perform, modify, create derivative works from, transmit or in any way exploit any part of our site or any content thereon, except as permitted under the last sentence "
+  ],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All rights reserved",
+  "classe": "C",
+  "classeMotivo": "o texto dos termos contém vedação (reprodução/cópia/automação)",
+  "classeMecanica": true
+ },
+ {
+  "id": "travel-codex",
+  "name": "Travel Codex",
+  "home": "https://travelcodex.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "programas"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 200,
+  "robots": "lido",
+  "crawlDelaySec": null,
+  "agentesDeIABloqueados": [
+   "GPTBot",
+   "ClaudeBot",
+   "CCBot"
+  ],
+  "sitemaps": [
+   "https://www.travelcodex.com/sitemap_index.xml"
+  ],
+  "homeStatus": 200,
+  "homeFinalUrl": "https://www.travelcodex.com/",
+  "feedsAnunciados": [
+   "http://feeds.feedburner.com/travelcodex",
+   "https://www.travelcodex.com/comments/feed/"
+  ],
+  "feedUrl": "http://www.travelcodex.com/feed/",
+  "feedItens": 20,
+  "feedMaisRecente": "2026-11-16T15:22:25.000Z",
+  "feedAmostraLinks": [
+   "https://www.travelcodex.com/argentina-requires-travelers-health-insurance-for-visitors/",
+   "https://www.travelcodex.com/hx-expeditions-cancels-antarctica/"
+  ],
+  "feedComTextoLongo": 19,
+  "termosUrls": [],
+  "licencaCCNaHome": null,
+  "termosDocs": [],
+  "termosProibicao": [],
+  "termosPermissao": [],
+  "termosRestricaoLicenca": [],
+  "rodapeDireitos": "All Rights Reserved",
+  "classe": "D",
+  "classeMotivo": "nenhum link de termos de uso de conteúdo encontrado na home",
+  "classeMecanica": true
+ },
+ {
+  "id": "mile-high-pass",
+  "name": "Mile Value",
+  "home": "https://milevalue.com/",
+  "kind": "blog",
+  "editorias": [
+   "global",
+   "pontos"
+  ],
+  "lang": "en",
+  "consultedAt": "2026-11-23",
+  "robotsStatus": 403,
+  "robots": "bloqueado",
+  "bloqueio": "robots.txt HTTP 403"
+ }
+]

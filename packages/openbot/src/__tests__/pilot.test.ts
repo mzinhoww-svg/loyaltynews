@@ -2,8 +2,8 @@ import { beforeEach, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 import type { ApiError } from '@ln/contracts';
 import {
-  adapterReport, dispatchTask, getOpenBotStatus, handleCallback, handlePull, InMemoryCallbackStore, InMemoryCostLedger, InMemoryHealthStore,
-  InMemoryLeaseQueue, InMemoryPilotRowStore, InMemoryPilotState, OPENBOT_PERMISSIONS, PILOT_CSV_COLUMNS, PILOT_PERMISSIONS, pilotCsv, redactText,
+  adapterReport, awaitingEditorialGate, DP41_ACCOUNTS, dispatchTask, getOpenBotStatus, handleCallback, handlePull, InMemoryCallbackStore, InMemoryCostLedger, InMemoryHealthStore,
+  InMemoryLeaseQueue, InMemoryPilotRowStore, InMemoryPilotState, OpenBotModelGateway, OPENBOT_PERMISSIONS, PILOT_CSV_COLUMNS, PILOT_PERMISSIONS, pilotCsv, redactText,
   resumePilot, signBody, STOP, type CallbackResult, type Caller, type OpenBotDeps, type PilotGate, type PilotRow, type PullResult, type SignedRequest,
 } from '../index';
 
@@ -55,7 +55,8 @@ beforeEach(() => {
     secrets: () => [SECRET],
     flags: () => ({ dispatchEnabled: true, kill: false }),
     now: () => clock,
-    pilot: { enabled: true, rows, state, gate: (r) => gateImpl(r) },
+    // a mecânica genérica (rotas, troca de via, limite) é testada com as 4 contas; a DP-41 (só claude e codex) tem a suíte própria abaixo
+    pilot: { enabled: true, allowedAccounts: ['claude', 'codex', 'opencode', 'antigravity'], rows, state, gate: (r) => gateImpl(r) },
   };
 });
 
@@ -281,11 +282,32 @@ describe('planilha e relatório', () => {
     const csv = pilotCsv([row({ notes: '=HYPERLINK("http://x")', gate_reasons: ['a', 'b'], limit_message: 'disse "oi", ok' })]);
     const [head, line] = csv.trim().split('\n');
     assert.equal(head, PILOT_CSV_COLUMNS.join(','));
-    assert.equal(PILOT_CSV_COLUMNS.length, 28);
+    assert.equal(PILOT_CSV_COLUMNS.length, 31);
     assert.ok(line!.includes("\"'=HYPERLINK(\"\"http://x\"\")\""));
     assert.ok(line!.includes('a | b'));
     assert.ok(line!.includes('"disse ""oi"", ok"'));
     assert.ok(line!.includes(',false,'));
+  });
+
+  test('gravidade dos fatos não suportados (ft/agents 041a74f): as 3 colunas vêm logo depois de unsupported_facts, na ordem do AgentOps, com os valores', () => {
+    const cols = [...PILOT_CSV_COLUMNS];
+    const i = cols.indexOf('unsupported_facts');
+    assert.deepEqual(cols.slice(i, i + 5), ['unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low', 'published_attempt']);
+    const [head, line] = pilotCsv([row({ unsupported_facts: 3, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 2 })]).trim().split('\n');
+    const h = head!.split(',');
+    const v = line!.split(',');
+    assert.deepEqual(['unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low'].map((c) => v[h.indexOf(c)]), ['3', '0', '1', '2']);
+    // sem gravidade informada, as células ficam vazias (nunca 0 inventado)
+    const [, none] = pilotCsv([row({ unsupported_facts: 2 })]).trim().split('\n');
+    assert.deepEqual(['unsupported_high', 'unsupported_medium', 'unsupported_low'].map((c) => none!.split(',')[h.indexOf(c)]), ['', '', '']);
+  });
+
+  test('o patch da Editorial com a gravidade é gravado e relido (campos opcionais do PilotRow)', async () => {
+    const store = new InMemoryPilotRowStore();
+    await store.upsert(row({ task_id: 'p1', stage: 'review', account: 'codex', declared_model: 'gpt-5.1-codex' }));
+    assert.equal(await store.patch('p1', 1, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true, unsupported_facts: 3, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 2 }), true);
+    const [r] = await store.all();
+    assert.deepEqual([r!.unsupported_facts, r!.unsupported_high, r!.unsupported_medium, r!.unsupported_low], [3, 0, 1, 2]);
   });
 
   test('relatório do adaptador: contas, limites e janelas, independência por modelo declarado (Claude via Antigravity não é independente do redator Claude)', () => {
@@ -316,5 +338,167 @@ describe('planilha e relatório', () => {
     const r = redactText(`fale com a@b.com; ${sk}; ${gh}; ${pem}; ${pass}`);
     assert.equal(r.secretFound, true);
     for (const s of ['a@b.com', sk, gh, 'BEGIN RSA', 'h'.repeat(16)]) assert.equal(r.text.includes(s), false, s.slice(0, 8));
+  });
+});
+
+describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do piloto)', () => {
+  beforeEach(() => {
+    deps = { ...deps, pilot: { enabled: true, rows, state, gate: (r) => gateImpl(r) } }; // sem allowedAccounts: vale a DP-41
+  });
+  const routeOf = async (kind: string, extra: Record<string, unknown> = {}) => {
+    const r = await dispatch({ kind, ...extra });
+    return r.status < 300 ? (ok<{ task: { route: string[] } }>(r).task.route) : code(r.body);
+  };
+
+  test('o padrão é claude e codex', () => {
+    assert.deepEqual([...DP41_ACCOUNTS], ['claude', 'codex']);
+  });
+
+  test('as rotas padrão perdem opencode e antigravity: pauta só claude; checagem e revisão só codex; redação e social só claude', async () => {
+    assert.deepEqual(await routeOf('classification', { idempotencyKey: 'a' }), ['claude']);
+    assert.deepEqual(await routeOf('fact_check', { idempotencyKey: 'b' }), ['codex']);
+    assert.deepEqual(await routeOf('editorial_review', { idempotencyKey: 'c' }), ['codex']);
+    assert.deepEqual(await routeOf('editorial_draft', { idempotencyKey: 'd' }), ['claude']);
+    assert.deepEqual(await routeOf('social_copy', { idempotencyKey: 'e' }), ['claude']);
+  });
+
+  test('rota pedida com opencode ou antigravity é recusada (422 ROUTE_INVALID) e nada entra na fila', async () => {
+    for (const route of [['opencode'], ['opencode', 'claude'], ['claude', 'antigravity']]) {
+      assert.equal(await routeOf('classification', { route, idempotencyKey: `r-${route.join('')}` }), 'ROUTE_INVALID', route.join('+'));
+    }
+    assert.equal(await routeOf('fact_check', { route: ['codex', 'antigravity'], idempotencyKey: 'x' }), 'ROUTE_INVALID');
+    assert.equal((await deps.queue.counts()).pending, 0);
+  });
+
+  test('pull como opencode ou antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e o piloto PARA (503 até o resumePilot); nada é entregue nem a saúde marcada', async () => {
+    for (const account of ['opencode', 'antigravity']) {
+      state = new InMemoryPilotState();
+      rows = new InMemoryPilotRowStore();
+      deps = { ...deps, pilot: { ...deps.pilot!, state, rows }, queue: new InMemoryLeaseQueue(() => `lease-${++n}`), health: new InMemoryHealthStore() };
+      await dispatch({ idempotencyKey: `p-${account}` });
+      const r = await handlePull(deps, signed({ workerId: `agent-${account}`, account }));
+      assert.deepEqual([r.status, code(r.body)], [422, 'ACCOUNT_OUT_OF_ROUTE'], account);
+      assert.deepEqual((await state.get())?.reasons, [STOP.route], account);
+      assert.equal((await rows.all())[0]?.article_id, `conta-${account}`);
+      assert.equal(code((await handlePull(deps, signed({ workerId: 'agent-claude', account: 'claude' }))).body), 'PILOT_STOPPED', 'o piloto parado não entrega nem para a via certa');
+      assert.equal((await deps.health.last()), null, 'a saúde não foi marcada');
+      assert.equal((await deps.queue.counts()).leased, 0);
+    }
+  });
+
+  test('claude e codex puxam normalmente com o piloto ativo', async () => {
+    await dispatch({ idempotencyKey: 'ok-c' });
+    await dispatch({ kind: 'fact_check', idempotencyKey: 'ok-f' });
+    assert.equal((await pull('claude'))?.kind, 'classification');
+    assert.equal((await pull('codex'))?.kind, 'fact_check');
+    assert.equal(await state.get(), null);
+  });
+
+  test('checagem e revisão só na codex, SEM reserva: no limite a tarefa fica pendente (nextAccount null) e só a codex a retoma depois da janela; nunca claude', async () => {
+    for (const kind of ['fact_check', 'editorial_review']) {
+      const stage = kind === 'fact_check' ? 'factcheck' : 'review';
+      await dispatch({ kind, idempotencyKey: `lim-${kind}` });
+      const a = (await pull('codex'))!;
+      const r = ok<CallbackResult>(await callback(a, {
+        outcome: 'failed', usage: free(a, 'codex', 'gpt-5.1-codex'),
+        trace: trace(stage, 'codex', { reviewedDraftTaskId: 'task-rascunho-1', limit: { message: 'limite da codex', at: iso(), resumeAt: iso(600_000) } }),
+      }));
+      assert.equal(r.nextAccount, null, kind);
+      assert.equal(await pull('claude', [kind]), undefined, `${kind}: a claude não herda a checagem`);
+      assert.equal(await pull('codex', [kind]), undefined, `${kind}: ainda dentro da janela`);
+      tick(601_000);
+      const b = (await pull('codex', [kind]))!;
+      assert.deepEqual([b.id === a.id, b.attempt, b.account], [true, 2, 'codex'], kind);
+      ok(await callback(b, { outcome: 'completed', resultRef: `res-${b.id}-a2`, usage: free(b, 'codex', 'gpt-5.1-codex'), trace: trace(stage, 'codex', { reviewedDraftTaskId: 'task-rascunho-1' }) }));
+    }
+    assert.equal(await state.get(), null, 'o limite não é violação: o piloto não parou');
+  });
+
+  test('allowedAccounts pode ESTREITAR (só claude): a checagem, que é do codex, não tem via e é recusada', async () => {
+    deps = { ...deps, pilot: { ...deps.pilot!, allowedAccounts: ['claude'] } };
+    assert.equal(await routeOf('fact_check', { idempotencyKey: 'n' }), 'ROUTE_INVALID');
+    assert.deepEqual(await routeOf('classification', { idempotencyKey: 'm' }), ['claude']);
+  });
+
+  test('sem piloto, nada muda: as rotas padrão continuam com opencode e antigravity (a restrição é só do piloto)', async () => {
+    deps = { ...deps, pilot: { ...deps.pilot!, enabled: false } };
+    assert.deepEqual(await routeOf('classification', { idempotencyKey: 'z' }), ['opencode', 'claude', 'antigravity']);
+  });
+
+  test('gateway no piloto: a checagem vai só ao codex (sem antigravity), a pauta só ao claude; o limite do codex ESPERA (não há via de reserva)', async () => {
+    const io = { putInput: async () => undefined, getResult: async () => null };
+    const gw = new OpenBotModelGateway({
+      deps, io, caller: ADMIN, timeoutMs: 10, pollMs: 1,
+      profiles: { triage: 'a', context: 'a', draft: 'a', factcheck: 'a', review: 'a', social_pack: 'a', roles: 'a' },
+    });
+    const req = (taskClass: 'factcheck' | 'triage', idempotencyKey: string) => ({
+      taskClass, route: taskClass, workflow: 'WF02', idempotencyKey, promptVersion: 'p', dataClass: 'public' as const, excludeProviders: [] as string[], input: {},
+    });
+    await gw.invoke(req('factcheck', 'g1'));
+    await gw.invoke(req('triage', 'g2'));
+    const claimed = async (account: 'codex' | 'claude' | 'antigravity') => deps.queue.claim({ workerId: 'w', now: clock, leaseMs: 60_000, limit: 5, account });
+    const [byCodex, byClaude, byAntigravity] = [await claimed('codex'), await claimed('claude'), await claimed('antigravity')];
+    assert.deepEqual([byCodex.map((t) => t.kind), byClaude.map((t) => t.kind), byAntigravity], [['fact_check'], ['classification'], []]);
+    assert.deepEqual([(await deps.queue.get(byCodex[0]!.id))?.route, (await deps.queue.get(byClaude[0]!.id))?.route], [['codex'], ['claude']]);
+  });
+});
+
+describe('a linha do piloto agrupa as etapas pela MATÉRIA (trace.articleId)', () => {
+  test('article_id vem do trace.articleId; sem ele cai no refId; checagem e rascunho da mesma matéria entram na mesma verificação de independência', async () => {
+    await dispatch({ kind: 'editorial_draft', refId: 'gw-d', idempotencyKey: 'k-d', route: ['claude'] });
+    const d = (await pull('claude'))!;
+    ok(await callback(d, { outcome: 'completed', resultRef: `res-${d.id}-a1`, usage: free(d, 'claude', 'claude-sonnet-5-5'), trace: trace('draft', 'claude', { articleId: 'art-1' }) }));
+    await dispatch({ kind: 'fact_check', refId: 'gw-f', idempotencyKey: 'k-f' });
+    const f = (await pull('codex'))!;
+    ok(await callback(f, { outcome: 'completed', resultRef: `res-${f.id}-a1`, usage: free(f, 'codex', 'gpt-5.1-codex'), trace: trace('factcheck', 'codex', { articleId: 'art-1', reviewedDraftTaskId: d.id }) }));
+    const all = await rows.all();
+    assert.deepEqual(all.map((r) => r.article_id), ['art-1', 'art-1']);
+    const rep = adapterReport(all);
+    assert.deepEqual([rep.articles, rep.independence.checked, rep.independence.independent, rep.independence.violations], [1, 1, 1, []]);
+    await dispatch({ kind: 'classification', refId: 'gw-sem', idempotencyKey: 'k-s', route: ['claude'] });
+    const s2 = (await pull('claude'))!;
+    ok(await callback(s2, { outcome: 'completed', resultRef: `res-${s2.id}-a1`, usage: free(s2, 'claude', 'claude-haiku-5-5'), trace: trace('triage', 'claude') }));
+    assert.equal((await rows.all()).at(-1)!.article_id, 'gw-sem');
+  });
+});
+
+describe('linha concluída que ainda espera o veredito da Editorial não para o piloto', () => {
+  // gate com a regra REAL do AgentOps (validatePilotRow): checagem/revisão concluída exige gate_verdict e reviewed_draft_task_id
+  const strictGate: PilotGate = (rows) => {
+    const reasons = rows.flatMap((r, i) => (['factcheck', 'review', 'check_edit'].includes(r.stage) && r.outcome === 'completed' && !r.gate_verdict ? [`linha ${i + 1} inválida: ${r.stage} concluído exige gate_verdict`] : []));
+    return { allowed: reasons.length === 0, reasons };
+  };
+
+  test('o callback da checagem grava a linha sem veredito; o pull e o despacho seguintes continuam (nada de parada); depois do patch a linha entra no gate', async () => {
+    gateImpl = strictGate;
+    await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-1' });
+    const a = (await pull('codex'))!;
+    const r = ok<CallbackResult>(await callback(a, {
+      outcome: 'completed', resultRef: `res-${a.id}-a1`, usage: free(a, 'codex', 'gpt-5.1-codex'),
+      trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', promptVersion: 'editorial-0.3', outputValid: true }),
+    }));
+    assert.equal(r.pilotStopped, undefined);
+    const [row] = await rows.all();
+    assert.equal(awaitingEditorialGate(row!), true, 'a linha espera o veredito');
+    assert.equal(await state.get(), null);
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-2' })); // o despacho seguinte NÃO é bloqueado
+    assert.equal(await state.get(), null);
+    await rows.patch(row!.task_id, row!.attempt, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true, unsupported_facts: 0 });
+    assert.equal(awaitingEditorialGate((await rows.all())[0]!), false);
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-3' })); // linha completa e válida: segue
+  });
+
+  test('a espera NÃO esconde paradas: segredo no texto da mesma linha para o piloto no callback, e linha de triagem concluída nunca "espera"', async () => {
+    gateImpl = strictGate;
+    assert.equal(awaitingEditorialGate({ stage: 'triage', outcome: 'completed', gate_verdict: undefined }), false);
+    assert.equal(awaitingEditorialGate({ stage: 'review', outcome: 'failed', gate_verdict: undefined }), false);
+    await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-9' });
+    const a = (await pull('codex'))!;
+    const r = ok<CallbackResult>(await callback(a, {
+      outcome: 'completed', resultRef: `res-${a.id}-a1`, usage: free(a, 'codex', 'gpt-5.1-codex'),
+      trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', notes: `chave ${'sk-' + 'A'.repeat(32)}` }),
+    }));
+    assert.deepEqual(r.pilotStopped, [STOP.secret]);
+    assert.equal((await handlePull(deps, signed({ workerId: 'w', account: 'codex' }))).status, 503);
   });
 });

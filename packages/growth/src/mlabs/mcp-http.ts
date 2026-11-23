@@ -67,15 +67,16 @@ function build(o: McpHttpOptions): McpTransport {
   const doFetch = o.fetchImpl ?? fetch;
   const timeout = o.timeoutMs ?? 20_000;
   const token = o.token; // só neste fechamento
-  let session: string | undefined;
   let rpcId = 0;
-  let ready = false;
+  /** Uma sessão MCP por vez: `current` é a inicialização em curso OU concluída. Só vale se a confirmação (`initialized`) deu certo. */
+  interface Session { id: string | undefined }
+  let current: Promise<Session> | null = null;
 
-  const post = async (body: unknown): Promise<Response> => {
+  const post = async (body: unknown, sessionId?: string): Promise<Response> => {
     try {
       return await doFetch(u.toString(), {
         method: 'POST', redirect: 'error', signal: AbortSignal.timeout(timeout),
-        headers: { ...REQ_HEADERS, authorization: `Bearer ${token}`, ...(session ? { 'mcp-session-id': session } : {}) },
+        headers: { ...REQ_HEADERS, authorization: `Bearer ${token}`, ...(sessionId ? { 'mcp-session-id': sessionId } : {}) },
         body: JSON.stringify(body),
       });
     } catch (e) {
@@ -83,27 +84,47 @@ function build(o: McpHttpOptions): McpTransport {
     }
   };
 
-  async function init(): Promise<void> {
+  async function init(): Promise<Session> {
     const id = ++rpcId;
     const res = await post({ jsonrpc: '2.0', id, method: 'initialize', params: { protocolVersion: o.protocolVersion ?? '2025-06-18', capabilities: {}, clientInfo: { name: 'ln-growth-metrics', version: '0.1.0' } } });
     if (!res.ok) throw new McpHttpError('http');
-    const sid = res.headers.get('mcp-session-id');
-    if (sid) session = sid;
+    const sid = res.headers.get('mcp-session-id') ?? undefined;
     const m = await readRpc(res, id);
     if (m.error) throw new McpHttpError('protocolo');
-    const note = await post({ jsonrpc: '2.0', method: 'notifications/initialized' });
+    // a confirmação TEM de dar certo (2xx): sem ela a sessão não está pronta e nada é reaproveitado
+    const note = await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, sid);
     await note.text().catch(() => undefined);
-    ready = true;
+    if (!note.ok) throw new McpHttpError('http');
+    return { id: sid };
+  }
+
+  /** Inicialização compartilhada: chamadas simultâneas esperam a MESMA; falha não fica guardada (a próxima recomeça). */
+  function ensure(): Promise<Session> {
+    if (!current) {
+      const p: Promise<Session> = init().catch((e: unknown) => {
+        if (current === p) current = null;
+        throw e;
+      });
+      current = p;
+    }
+    return current;
+  }
+
+  class SessionExpired extends McpHttpError {
+    constructor() {
+      super('protocolo');
+    }
   }
 
   async function callOnce(tool: string, args: Record<string, unknown>): Promise<unknown> {
-    if (!ready) await init();
+    const pending = ensure();
+    const s = await pending;
     const id = ++rpcId;
-    const res = await post({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: tool, arguments: args } });
-    if (res.status === 404 && session) {
-      session = undefined;
-      ready = false;
-      throw new McpHttpError('protocolo'); // sessão expirada: a próxima chamada recomeça
+    const res = await post({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: tool, arguments: args } }, s.id);
+    if (res.status === 404 && s.id) {
+      // sessão expirada: descarta SÓ se ainda for a atual (outra chamada pode já ter aberto uma nova)
+      if (current === pending) current = null;
+      throw new SessionExpired();
     }
     if (!res.ok) throw new McpHttpError('http');
     const m = await readRpc(res, id);
@@ -125,7 +146,7 @@ function build(o: McpHttpOptions): McpTransport {
         return await callOnce(tool, args);
       } catch (e) {
         // sessão que expirou: UMA nova tentativa com sessão nova (sempre só leitura)
-        if (e instanceof McpHttpError && e.reason === 'protocolo' && !ready) return callOnce(tool, args);
+        if (e instanceof SessionExpired) return callOnce(tool, args);
         throw e;
       }
     },

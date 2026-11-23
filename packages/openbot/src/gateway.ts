@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { dispatchTask, routeFor, type Caller, type OpenBotDeps } from './handlers';
-import { ID_RE, providerOfModel, PROVIDER_OF_ACCOUNT, type Account } from './types';
+import { dispatchTask, effectiveRoute, type Caller, type OpenBotDeps } from './handlers';
+import { ID_RE, providerOfModel, PROVIDER_OF_ACCOUNT, type Account, type Task } from './types';
 
 // Gateway SÍNCRONO sobre o adaptador OpenBot. A Fábrica editorial chama `ModelGateway.invoke` e espera a resposta; este
 // gateway despacha a tarefa (por pull com lease), espera o callback com tempo-limite e devolve o resultado. No tempo-limite a
@@ -26,8 +26,12 @@ export type GatewayRefusal =
   | 'budget_exhausted' | 'budget_step_blocked' | 'kill_switch' | 'unknown_rate' | 'model_disabled' | 'no_independent_provider' | 'restricted_data';
 
 export type GatewayResponseLike =
-  | { ok: true; provider: string; model: string; output: unknown; usage: { inputTokens: number; outputTokens: number; costMicrosUsd: number } }
-  | { ok: false; refusal: GatewayRefusal; detail?: string };
+  | {
+    ok: true; provider: string; model: string; output: unknown; usage: { inputTokens: number; outputTokens: number; costMicrosUsd: number };
+    /** Tarefa e tentativa que concluíram: a Editorial usa `taskId` como `reviewedDraftTaskId` e (taskId, attempt) para achar a linha do piloto. */
+    taskId: string; attempt: number;
+  }
+  | { ok: false; refusal: GatewayRefusal; detail?: string; /** a tarefa, quando já existe (ex.: `pending_timeout`: repetir a chamada retoma a mesma). */ taskId?: string };
 
 /** Tipo de tarefa do adaptador que carrega cada classe da Fábrica. */
 export const KIND_OF_CLASS: Record<GatewayTaskClass, string> = {
@@ -55,6 +59,8 @@ export interface TaskInputMeta {
   promptVersion: string;
   /** Id da tarefa do rascunho que esta checagem/revisão recebe (prova de independência). Lido de `input.reviewedDraftTaskId`, se houver. */
   reviewedDraftTaskId?: string;
+  /** Id da matéria (da chave de idempotência `<articleId>:<etapa>:<tentativa>` ou de `input.articleId`): agrupa as etapas na planilha do piloto. */
+  articleId?: string;
 }
 
 /** O armazém recusou: já existe entrada com este refId e conteúdo diferente. */
@@ -81,6 +87,15 @@ export interface OpenBotGatewayConfig {
   clock?: () => number;
 }
 
+/** Id da matéria: a Editorial usa a chave `<articleId>:<classe>:<tentativa>`; senão `input.articleId`. Só vale no formato de id. */
+export function articleIdOf(req: Pick<GatewayRequestLike, 'idempotencyKey' | 'input' | 'taskClass'>): string | undefined {
+  const m = /^(.+):(triage|context|draft|factcheck|review|social_pack|roles):\d+$/.exec(req.idempotencyKey);
+  const fromKey = m?.[1];
+  if (fromKey && ID_RE.test(fromKey)) return fromKey;
+  const fromInput = (req.input as { articleId?: unknown } | null)?.articleId;
+  return typeof fromInput === 'string' && ID_RE.test(fromInput) ? fromInput : undefined;
+}
+
 const hex = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 32);
 
 export class OpenBotModelGateway {
@@ -99,7 +114,7 @@ export class OpenBotModelGateway {
     // Independência: tira da rota as vias cujo provedor é conhecido e proibido. Via de provedor incerto (antigravity) fica e é
     // conferida DEPOIS, pelo modelo declarado no custo.
     const excluded = new Set(req.excludeProviders);
-    const full = routeFor(c.deps, kind);
+    const full = effectiveRoute(c.deps, kind); // no piloto, já sem as contas fora da DP-41
     const route = full.filter((a) => a === 'antigravity' || !excluded.has(PROVIDER_OF_ACCOUNT[a]));
     if (route.length === 0) return { ok: false, refusal: 'no_independent_provider', detail: `nenhuma via de ${kind} fora de ${[...excluded].join(', ')}` };
 
@@ -110,11 +125,13 @@ export class OpenBotModelGateway {
 
     const key = `gw-${hex(req.idempotencyKey)}`;
     const reviewed = (req.input as { reviewedDraftTaskId?: unknown } | null)?.reviewedDraftTaskId;
+    const articleId = articleIdOf(req);
     try {
       await c.io.putInput(key, req.input, {
         taskClass: req.taskClass,
         promptVersion: req.promptVersion,
         ...(typeof reviewed === 'string' && ID_RE.test(reviewed) ? { reviewedDraftTaskId: reviewed } : {}),
+        ...(articleId ? { articleId } : {}),
       });
     } catch (e) {
       if (e instanceof InputConflict) return { ok: false, refusal: 'model_disabled', detail: 'input_divergente: a entrada desta chave já foi gravada com outro conteúdo' };
@@ -132,32 +149,42 @@ export class OpenBotModelGateway {
     for (;;) {
       const t = await c.deps.queue.get(taskId);
       if (!t) return { ok: false, refusal: 'model_disabled', detail: `tarefa ${taskId} sumiu da fila` };
-      if (t.status === 'completed') return this.result(taskId, t.resultRef, excluded);
-      if (t.status === 'failed' || t.status === 'dead') {
-        return { ok: false, refusal: 'model_disabled', detail: `falha: ${t.status}${t.lastError ? ` (${t.lastError})` : ''}` };
-      }
-      if (clock() >= deadline) {
+      if (t.status === 'completed') {
+        // O callback conclui a tarefa e SÓ DEPOIS grava o custo e a linha do piloto (etapas separadas, às vezes em outro processo): espera por
+        // eles até o prazo antes de responder, para o chamador achar a linha (patch do veredito) e o custo (modelo declarado).
+        const r = await this.result(t, excluded, clock() >= deadline);
+        if (r !== 'not_ready') return r;
+      } else if (t.status === 'failed' || t.status === 'dead') {
+        return { ok: false, refusal: 'model_disabled', detail: `falha: ${t.status}${t.lastError ? ` (${t.lastError})` : ''}`, taskId };
+      } else if (clock() >= deadline) {
         // Fica pending: nada de API, nada de cancelamento. Repetir a chamada com a mesma chave retoma a espera.
-        return { ok: false, refusal: 'model_disabled', detail: `pending_timeout: tarefa ${taskId} segue na fila (${t.status}, via ${t.route[t.routeIndex] ?? '?'})` };
+        return { ok: false, refusal: 'model_disabled', detail: `pending_timeout: tarefa ${taskId} segue na fila (${t.status}, via ${t.route[t.routeIndex] ?? '?'})`, taskId };
       }
       await sleep(c.pollMs ?? 250);
     }
   }
 
-  private async result(taskId: string, resultRef: string | undefined, excluded: Set<string>): Promise<GatewayResponseLike> {
+  /** `not_ready`: a tarefa já concluiu mas o custo (ou a linha do piloto) ainda não foi gravado; só devolve isso antes do prazo (`final`). */
+  private async result(t: Task, excluded: Set<string>, final: boolean): Promise<GatewayResponseLike | 'not_ready'> {
     const c = this.c;
-    if (!resultRef) return { ok: false, refusal: 'model_disabled', detail: 'tarefa concluída sem resultRef' };
-    const entry = (await c.deps.ledger.entries()).find((e) => e.taskId === taskId);
-    if (!entry) return { ok: false, refusal: 'unknown_rate', detail: 'tarefa concluída sem relato de custo' };
+    const taskId = t.id;
+    const resultRef = t.resultRef;
+    if (!resultRef) return { ok: false, refusal: 'model_disabled', detail: 'tarefa concluída sem resultRef', taskId };
+    // o relato da execução que CONCLUIU (mesmo lease); com troca de via pode haver relatos de tentativas anteriores
+    const mine = (await c.deps.ledger.entries()).filter((e) => e.taskId === taskId);
+    const entry = mine.find((e) => e.leaseId === t.leaseId) ?? mine[mine.length - 1];
+    if (!entry) return final ? { ok: false, refusal: 'unknown_rate', detail: 'tarefa concluída sem relato de custo', taskId } : 'not_ready';
+    const pilot = c.deps.pilot;
+    if (pilot?.enabled && !final && !(await pilot.rows.all()).some((r) => r.task_id === taskId && r.attempt === t.attempts)) return 'not_ready';
     const account = (entry.account ?? 'claude') as Account;
     const provider = providerOfModel(entry.model, account);
     if (excluded.has(provider)) {
-      return { ok: false, refusal: 'no_independent_provider', detail: `o modelo declarado (${entry.model}) é do provedor ${provider}, que está excluído` };
+      return { ok: false, refusal: 'no_independent_provider', detail: `o modelo declarado (${entry.model}) é do provedor ${provider}, que está excluído`, taskId };
     }
     const output = await c.io.getResult(resultRef);
-    if (output === null || output === undefined) return { ok: false, refusal: 'model_disabled', detail: 'resultado não encontrado' };
+    if (output === null || output === undefined) return { ok: false, refusal: 'model_disabled', detail: 'resultado não encontrado', taskId };
     return {
-      ok: true, provider, model: entry.model, output,
+      ok: true, provider, model: entry.model, output, taskId, attempt: t.attempts,
       usage: { inputTokens: entry.promptTokens ?? 0, outputTokens: entry.completionTokens ?? 0, costMicrosUsd: entry.costMicro },
     };
   }

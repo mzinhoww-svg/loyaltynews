@@ -1,0 +1,2492 @@
+{
+  "schema": "ln.agents.organization-profiles-draft/1",
+  "status": "RASCUNHO",
+  "created": false,
+  "approval_required_from": "Program Manager",
+  "review_by": "QA 3",
+  "policy": {
+    "version": "2.1-dp02-v7-dp27",
+    "file": "r0-preparacao/arquitetura/model.policy.proposto-DP02-v7.json",
+    "also_at": "governanca-runtime/loyaltynews/packages/contracts/fixtures/model.policy.dp02-v7.json",
+    "sha256": "52377930d5cd9d50846209316fa2824fdc9d392e4d1424f62799fd98f0bb8fb6",
+    "status": "proposta; contrato protegido sem a v7 até a cerimônia (commit raiz da v7 e baseline do trust.json)"
+  },
+  "basis": [
+    "model.policy 2.1-dp02-v7-dp27 (canal primário = assinatura OpenBot; complemento pela API dentro do teto de US$ 50)",
+    "DP-27 (assinaturas como canal primário), DP-30 (risco dos termos aceito), DP-41 (piloto no staging só com Claude e Codex, sem API tarifada, sem publicação), DP-26 (b)(c)",
+    "ADR-003 (adaptador pull com lease), ADR-004 (perfis = contratos sob demanda), ADR-015 (ordem de corte 35/40/42), ADR-021",
+    "agents.registry.json: 64 perfis (copiado byte a byte em packages/agents/data)"
+  ],
+  "counts": {
+    "profiles": 64,
+    "claude": 46,
+    "codex": 12,
+    "deterministic": 5,
+    "no_model_available": 1,
+    "with_blockers": 8
+  },
+  "open_decisions": [
+    "A rota `image_fast` da v7 não tem modelo: o perfil `image` fica sem canal até a política habilitar imagem.",
+    "Perfis com insumo pessoal ou comercial confidencial ficam bloqueados até o operador ser aprovado (v7, classes de dado).",
+    "Volume de uso da assinatura por perfil e por ritual NÃO foi medido: a organização completa só liga depois de o piloto medir janelas e limites de Claude e Codex (uma conta por provedor, sem separar produto e implementação).",
+    "Hipótese de 8 agentes OpenBot (um por diretoria mais Publisher) segue sem medição; ver `openbot-profiles.draft.json`."
+  ],
+  "not_verified": [
+    "id exato do modelo de cada assinatura e capacidades (declarados pelo OpenBot no UsageReport)",
+    "limites reais de Claude e Codex e a hora de retomada informada pelo OpenBot",
+    "termos das assinaturas para uso automatizado (risco aceito na DP-30, não verificado)",
+    "qualidade dos 64 perfis em PT-BR (nenhuma chamada de modelo foi feita)"
+  ],
+  "profiles": [
+    {
+      "id": "publisher",
+      "name": "Publisher / CEO",
+      "department": "executivo",
+      "reports_to": null,
+      "scope": "internal",
+      "hosted_by": "ln_executivo",
+      "mission": "Estratégia, arbitragem, limites de orçamento e escalonamento por alçada automática e exceções reservadas ao responsável",
+      "default_route_hint": "strategic",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "strategic",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-sync",
+        "W-cross",
+        "M-board",
+        "X-incident"
+      ],
+      "participates_in_rituals": [
+        "D-sync",
+        "W-cross",
+        "W-finops",
+        "M-board",
+        "M-commercial",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF12",
+        "WF15",
+        "WF16"
+      ],
+      "first_needed_in_phase": "F4",
+      "enabled": false
+    },
+    {
+      "id": "director_editorial",
+      "name": "Editor-chefe",
+      "department": "editorial",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_editorial",
+      "mission": "Política editorial, pauta transversal, exceções e qualidade",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-editorial",
+        "W-pautas"
+      ],
+      "participates_in_rituals": [
+        "D-editorial",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "W-trust",
+        "M-board",
+        "M-model",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF02",
+        "WF03"
+      ],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "director_creative",
+      "name": "Diretor criativo",
+      "department": "creative",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_creative",
+      "mission": "Brand system, padrões, auditoria de arte",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-creative"
+      ],
+      "participates_in_rituals": [
+        "D-creative",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "M-board",
+        "M-model"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "director_growth",
+      "name": "Diretor de Growth",
+      "department": "growth",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Aquisição, retenção, distribuição e experimentos",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-growth",
+        "W-performance"
+      ],
+      "participates_in_rituals": [
+        "D-growth",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "M-board",
+        "M-model",
+        "M-commercial"
+      ],
+      "owns_workflows": [
+        "WF04",
+        "WF05",
+        "WF09"
+      ],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "director_intelligence",
+      "name": "Diretor de Intelligence",
+      "department": "intelligence",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Grafo, organogramas, dados e produto B2B",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "W-intel",
+        "M-board",
+        "M-model"
+      ],
+      "owns_workflows": [
+        "WF06",
+        "WF07",
+        "WF14"
+      ],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "director_commercial",
+      "name": "Diretor comercial",
+      "department": "commercial",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_commercial",
+      "mission": "Inventário, propostas e receita; sem ingerência editorial",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-commercial",
+        "M-commercial"
+      ],
+      "participates_in_rituals": [
+        "D-commercial",
+        "W-cross",
+        "M-board",
+        "M-commercial"
+      ],
+      "owns_workflows": [
+        "WF10"
+      ],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "director_technology",
+      "name": "Diretor de tecnologia",
+      "department": "technology",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_technology",
+      "mission": "Plataforma, segurança, confiabilidade e FinOps",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-technology",
+        "W-finops",
+        "M-model"
+      ],
+      "participates_in_rituals": [
+        "D-technology",
+        "W-cross",
+        "W-finops",
+        "M-board",
+        "M-model",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF11",
+        "WF13",
+        "WF17"
+      ],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "director_trust",
+      "name": "Diretor de Trust & Quality",
+      "department": "trust",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "hosted_by": "ln_trust",
+      "mission": "Políticas, privacidade, direitos e controles independentes",
+      "default_route_hint": "premium",
+      "task_kind": "ritual",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-trust",
+        "W-trust"
+      ],
+      "participates_in_rituals": [
+        "D-trust",
+        "D-sync",
+        "W-cross",
+        "W-finops",
+        "W-trust",
+        "M-board",
+        "M-model",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF08",
+        "WF18",
+        "WF19"
+      ],
+      "first_needed_in_phase": "F4",
+      "enabled": false
+    },
+    {
+      "id": "editor_mercado",
+      "name": "Editor de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "mercado",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Resultados, M&A, breakage, novos negócios",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-mercado"
+      ],
+      "participates_in_rituals": [
+        "D-mercado",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_mercado",
+      "name": "Redator de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "editor_mercado",
+      "scope": "mercado",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, ABEMF, CVM, comunicados",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-mercado"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_programas",
+      "name": "Editor de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "programas",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Tiers, clubes, parcerias, liability",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-programas"
+      ],
+      "participates_in_rituals": [
+        "D-programas",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_programas",
+      "name": "Redator de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "editor_programas",
+      "scope": "programas",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: LATAM Pass, Smiles, Azul, Livelo, Esfera",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-programas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_pontos",
+      "name": "Editor de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "pontos",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Acúmulo, resgate, preço efetivo, validade",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-pontos"
+      ],
+      "participates_in_rituals": [
+        "D-pontos",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_pontos",
+      "name": "Redator de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "editor_pontos",
+      "scope": "pontos",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Regulamentos oficiais, tabelas e ofertas públicas",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-pontos"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_bancos",
+      "name": "Editor de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "bancos",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Rewards, co-branded, pagamentos, interchange",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-bancos"
+      ],
+      "participates_in_rituals": [
+        "D-bancos",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_bancos",
+      "name": "Redator de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "editor_bancos",
+      "scope": "bancos",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI e imprensa oficial, BCB, bandeiras",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-bancos"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_varejo",
+      "name": "Editor de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "varejo",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Incentivos, recorrência, marketplaces",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-varejo"
+      ],
+      "participates_in_rituals": [
+        "D-varejo",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_varejo",
+      "name": "Redator de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "editor_varejo",
+      "scope": "varejo",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, newsletters oficiais e releases",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-varejo"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_travel",
+      "name": "Editor de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "travel",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Aéreo, hotéis, OTAs, experiências",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-travel"
+      ],
+      "participates_in_rituals": [
+        "D-travel",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_travel",
+      "name": "Redator de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "editor_travel",
+      "scope": "travel",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, PANROTAS, programas hoteleiros",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-travel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_tech",
+      "name": "Editor de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "tech",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. CDP, antifraude, APIs, IA e infraestrutura",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-tech"
+      ],
+      "participates_in_rituals": [
+        "D-tech",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_tech",
+      "name": "Redator de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "editor_tech",
+      "scope": "tech",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Documentação técnica e fornecedores",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-tech"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_crm",
+      "name": "Editor de CRM & CX",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "crm",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. CLV, retenção, personalização, omnichannel",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-crm"
+      ],
+      "participates_in_rituals": [
+        "D-crm",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_crm",
+      "name": "Redator de CRM & CX",
+      "department": "editorial",
+      "reports_to": "editor_crm",
+      "scope": "crm",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Estudos e publicações de primeira parte",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-crm"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_global",
+      "name": "Editor de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "global",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Benchmarks e aplicabilidade ao Brasil",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-global"
+      ],
+      "participates_in_rituals": [
+        "D-global",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_global",
+      "name": "Redator de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "editor_global",
+      "scope": "global",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: The Wise Marketer, RI global, programas",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-global"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "editor_regulacao",
+      "name": "Editor de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "regulacao",
+      "hosted_by": "ln_editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. LGPD, consumidor, dados e normas",
+      "default_route_hint": "review",
+      "task_kind": "editorial_review",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [
+        "D-regulacao"
+      ],
+      "participates_in_rituals": [
+        "D-regulacao",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "writer_regulacao",
+      "name": "Redator de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "editor_regulacao",
+      "scope": "regulacao",
+      "hosted_by": "ln_editorial",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: ANPD, Senacon, BCB, CVM, Cade",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-regulacao"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "newsdesk",
+      "name": "Newsdesk / Radar",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "internal",
+      "hosted_by": "ln_editorial",
+      "mission": "Desduplicar, atribuir editoria e formar clusters",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-editorial",
+        "W-pautas"
+      ],
+      "owns_workflows": [
+        "WF01"
+      ],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "agenda",
+      "name": "Editor de Agenda",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "internal",
+      "hosted_by": "ln_editorial",
+      "mission": "Eventos confirmados e cobertura",
+      "default_route_hint": "economy",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "talks",
+      "name": "Editor de Entrevistas e Talks",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "internal",
+      "hosted_by": "ln_editorial",
+      "mission": "Organizar entrevistas reais; nunca inventar respostas",
+      "default_route_hint": "review",
+      "task_kind": "editorial_draft",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": false
+      },
+      "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F2",
+      "enabled": false
+    },
+    {
+      "id": "art",
+      "name": "Diretor de arte",
+      "department": "creative",
+      "reports_to": "director_creative",
+      "scope": "internal",
+      "hosted_by": "ln_creative",
+      "mission": "Templates, conceito de campanha e revisão visual",
+      "default_route_hint": "review",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-creative"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "designer",
+      "name": "Designer editorial",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "hosted_by": "ln_creative",
+      "mission": "Composição determinística de imagens e carrosséis",
+      "default_route_hint": "deterministic",
+      "task_kind": "deterministic",
+      "execution": {
+        "channel": "deterministic",
+        "account": null,
+        "provider": null,
+        "model": "nenhum (determinístico)"
+      },
+      "complement_api": null,
+      "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-creative"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "media",
+      "name": "Pesquisador de mídia",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "hosted_by": "ln_creative",
+      "mission": "Seleção licenciada; direitos e créditos",
+      "default_route_hint": "economy",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-creative"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "image",
+      "name": "Criador de ilustrações",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "hosted_by": "ln_creative",
+      "mission": "Ilustrações conceituais autorizadas, sem falsa fotografia",
+      "default_route_hint": "image_fast",
+      "task_kind": "concept_image",
+      "execution": {
+        "channel": "none",
+        "account": null,
+        "provider": null,
+        "model": "nenhum (sem modelo de imagem na v7)"
+      },
+      "complement_api": null,
+      "backup": "nenhum: sem modelo de imagem na v7",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "a rota `image_fast` da v7 não tem modelo (lista vazia): o perfil fica desligado até a política habilitar imagem"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-creative"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "visualqa",
+      "name": "QA visual",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "hosted_by": "ln_creative",
+      "mission": "Conferir legibilidade, fatos, dimensão e licença",
+      "default_route_hint": "economy",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-creative"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "social",
+      "name": "Editor de social",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Estratégia e calendário de canal",
+      "default_route_hint": "review",
+      "task_kind": "social_copy",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "linkedin",
+      "name": "Redator LinkedIn",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Copy B2B, menções verificadas e link com UTM",
+      "default_route_hint": "economy",
+      "task_kind": "social_copy",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "instagram",
+      "name": "Redator Instagram",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Copy, stories, carrosséis e link na bio",
+      "default_route_hint": "economy",
+      "task_kind": "social_copy",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "seo",
+      "name": "Especialista SEO",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Metadados, sitemap, links e qualidade de indexação",
+      "default_route_hint": "economy",
+      "task_kind": "social_copy",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth",
+        "W-performance"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "newsletter",
+      "name": "Editor The Loyal",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Curadoria e montagem das edições",
+      "default_route_hint": "review",
+      "task_kind": "social_copy",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth",
+        "W-performance"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "publisher_social",
+      "name": "Operador de distribuição",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Agendar e reconciliar recibos aprovados",
+      "default_route_hint": "deterministic",
+      "task_kind": "deterministic",
+      "execution": {
+        "channel": "deterministic",
+        "account": null,
+        "provider": null,
+        "model": "nenhum (determinístico)"
+      },
+      "complement_api": null,
+      "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "growth_analytics",
+      "name": "Analista Growth",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Métricas e experimentos, sem inferir alcance ausente",
+      "default_route_hint": "review",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth",
+        "W-performance"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "community",
+      "name": "Community manager",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "hosted_by": "ln_growth",
+      "mission": "Triar comentários, rascunhar respostas, escalonar",
+      "default_route_hint": "economy",
+      "task_kind": "social_copy",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-growth"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "discovery",
+      "name": "Entity Discovery",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Identificar pessoas, empresas e marcas",
+      "default_route_hint": "economy",
+      "task_kind": "entity_extraction",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "people",
+      "name": "People Intelligence",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Vínculos profissionais públicos e datados",
+      "default_route_hint": "economy",
+      "task_kind": "entity_extraction",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "dado pessoal além de nome, cargo e empresa de fonte pública: bloqueado até operador aprovado (exceção P4/DP-11)"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "company",
+      "name": "Company Intelligence",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Grupos, marcas, produtos e parceiros",
+      "default_route_hint": "economy",
+      "task_kind": "entity_extraction",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "orgchart",
+      "name": "Org Chart Builder",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Consolidar hierarquia apenas sustentada por evidência",
+      "default_route_hint": "review",
+      "task_kind": "entity_extraction",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "só nome, cargo e empresa de fonte pública (exceção P4/DP-11); o resto é dado pessoal bloqueado"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "moves",
+      "name": "Loyalty Moves",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Identificar e validar mudanças profissionais",
+      "default_route_hint": "review",
+      "task_kind": "entity_extraction",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "só nome, cargo e empresa de fonte pública (exceção P4/DP-11); o resto é dado pessoal bloqueado"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "graph",
+      "name": "Relationship Mapper",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Relações tipadas e resolução de conflitos",
+      "default_route_hint": "economy",
+      "task_kind": "entity_extraction",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "marketdata",
+      "name": "Analista Market Data",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Indicadores com unidade, período e metodologia",
+      "default_route_hint": "review",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "dataqa",
+      "name": "Data Quality Auditor",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "hosted_by": "ln_intelligence",
+      "mission": "Auditar identidade, proveniência e atualidade",
+      "default_route_hint": "review",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "W-trust",
+        "W-intel"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F3",
+      "enabled": false
+    },
+    {
+      "id": "adops",
+      "name": "Ad Operations",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "hosted_by": "ln_commercial",
+      "mission": "Reservas, conflitos, pacing, criativos, entregas",
+      "default_route_hint": "deterministic",
+      "task_kind": "deterministic",
+      "execution": {
+        "channel": "deterministic",
+        "account": null,
+        "provider": null,
+        "model": "nenhum (determinístico)"
+      },
+      "complement_api": null,
+      "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-commercial"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "sales",
+      "name": "Executivo comercial",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "hosted_by": "ln_commercial",
+      "mission": "Qualificar leads e elaborar proposta; envio aprovado",
+      "default_route_hint": "economy",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "insumo comercial confidencial: bloqueado até operador aprovado (v7, classes de dado)"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-commercial",
+        "M-commercial"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "pricing",
+      "name": "Analista Pricing",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "hosted_by": "ln_commercial",
+      "mission": "Catálogo, pacotes e receita, sem falsa audiência",
+      "default_route_hint": "review",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "insumo comercial confidencial: bloqueado até operador aprovado (v7, classes de dado)"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-commercial",
+        "M-commercial"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "account",
+      "name": "Customer Success",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "hosted_by": "ln_commercial",
+      "mission": "Relatórios e renovações, rascunhos",
+      "default_route_hint": "economy",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "insumo comercial confidencial: bloqueado até operador aprovado (v7, classes de dado)"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-commercial",
+        "M-commercial"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "sre",
+      "name": "SRE / Observabilidade",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "hosted_by": "ln_technology",
+      "mission": "Alertas, capacidade, recuperação e backups",
+      "default_route_hint": "deterministic",
+      "task_kind": "deterministic",
+      "execution": {
+        "channel": "deterministic",
+        "account": null,
+        "provider": null,
+        "model": "nenhum (determinístico)"
+      },
+      "complement_api": null,
+      "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-technology"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "finops",
+      "name": "FinOps AI",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "hosted_by": "ln_technology",
+      "mission": "Rate cards, budgets, custo por unidade e alertas",
+      "default_route_hint": "deterministic",
+      "task_kind": "deterministic",
+      "execution": {
+        "channel": "deterministic",
+        "account": null,
+        "provider": null,
+        "model": "nenhum (determinístico)"
+      },
+      "complement_api": null,
+      "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-technology",
+        "W-finops",
+        "M-model"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "platform",
+      "name": "Engenheiro de plataforma",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "hosted_by": "ln_technology",
+      "mission": "Mudanças técnicas em branch e testes; deploy humano",
+      "default_route_hint": "premium",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-technology"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "security",
+      "name": "Security Engineer",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "hosted_by": "ln_technology",
+      "mission": "Auditar privilégios, riscos e segredos",
+      "default_route_hint": "review",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "claude-sonnet-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-technology",
+        "W-finops"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F5",
+      "enabled": false
+    },
+    {
+      "id": "factcheck",
+      "name": "Fact Checker",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "hosted_by": "ln_trust",
+      "mission": "Claims, fonte primária e contradições independentes",
+      "default_route_hint": "review",
+      "task_kind": "fact_check",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-trust",
+        "W-trust"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F4",
+      "enabled": false
+    },
+    {
+      "id": "rights",
+      "name": "Direitos de conteúdo",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "hosted_by": "ln_trust",
+      "mission": "Licenças, autorização, créditos e expiração",
+      "default_route_hint": "economy",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "economy",
+        "models": [
+          "claude-haiku-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-trust",
+        "W-trust"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F4",
+      "enabled": false
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy / LGPD",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "hosted_by": "ln_trust",
+      "mission": "Minimização, solicitações de titular e retenção",
+      "default_route_hint": "premium",
+      "task_kind": "analysis",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "claude",
+        "provider": "anthropic",
+        "model": "Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "premium",
+        "models": [
+          "claude-opus-5-5"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "independence": null,
+      "data_class_allowed": "public",
+      "blocked_until": [
+        "dado pessoal: bloqueado até base legal e operador aprovados (v7, classes de dado)"
+      ],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-trust",
+        "W-trust"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F4",
+      "enabled": false
+    },
+    {
+      "id": "audit",
+      "name": "Auditor editorial",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "hosted_by": "ln_trust",
+      "mission": "Amostragem e avaliação cega; não aprova o próprio texto",
+      "default_route_hint": "review",
+      "task_kind": "postpublication_audit",
+      "execution": {
+        "channel": "openbot_subscription",
+        "account": "codex",
+        "provider": "openai",
+        "model": "Codex/OpenAI pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)"
+      },
+      "complement_api": {
+        "enabled": false,
+        "route": "review",
+        "models": [
+          "openai-text-review",
+          "openai-text-review-alt"
+        ],
+        "alternative_model_allowed": true
+      },
+      "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "independence": "autor do modelo diferente do autor do conteúdo auditado; verba só da reserva de auditoria e erratas",
+      "data_class_allowed": "public",
+      "blocked_until": [],
+      "chairs_rituals": [],
+      "participates_in_rituals": [
+        "D-trust",
+        "W-trust",
+        "M-model"
+      ],
+      "owns_workflows": [],
+      "first_needed_in_phase": "F4",
+      "enabled": false
+    }
+  ]
+}
