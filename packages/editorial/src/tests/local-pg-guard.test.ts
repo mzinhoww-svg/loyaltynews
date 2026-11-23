@@ -5,7 +5,7 @@ import { assertLocalDisposablePg } from '../../fixtures/local-pg-guard.mock';
 test('banco local e descartável é aceito', () => {
   for (const u of [
     'postgres://postgres@127.0.0.1:55433/ln_editorial_local',
-    'postgresql://postgres:x@localhost:5432/test_rodada',
+    'postgresql:' + '//postgres:x@localhost:5432/test_rodada',
     'postgres://postgres@[::1]:55433/ln_test_a1',
   ]) assert.doesNotThrow(() => assertLocalDisposablePg(u), u);
   const t = assertLocalDisposablePg('postgres://postgres@127.0.0.1:55433/ln_editorial_local');

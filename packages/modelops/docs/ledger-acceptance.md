@@ -23,7 +23,7 @@ A13 (opcional) exige que o histórico de pendência sobreviva ao commit; no dese
 Nunca contra o banco de staging ou compartilhado: o teste **recusa** qualquer host que não seja loopback, cria um banco próprio (`ln_g4_<pid>_<hora>`) e o apaga no fim.
 
 1. Suba um PostgreSQL descartável em 127.0.0.1 (ex.: `embedded-postgres`, fora do repositório; script de exemplo em `r0-preparacao/g4/harness/start-pg.mjs`, com senha aleatória a cada execução).
-2. `LN_G4_REAL=1 LN_G4_PG_URL=postgres://usuario:senha@127.0.0.1:PORTA/postgres npx vitest run packages/modelops/src/ledger-acceptance`
+2. `LN_G4_REAL=1 LN_G4_PG_URL=postgres://<usuario>:<senha>@127.0.0.1:PORTA/postgres npx vitest run packages/modelops/src/ledger-acceptance`
 
 ## Resultado medido (23/11/2026, PostgreSQL 18.7 local, Windows)
 
