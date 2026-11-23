@@ -180,6 +180,20 @@ test.describe('honestidade de dados', () => {
     await expect(page.getByTestId('coverage-editorias')).toHaveAttribute('data-mock', 'false');
   });
 
+  test('V-13: mídia kit tem o mapa visual das posições, em texto acessível e sem sair da tela no celular', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const mapa = page.getByTestId('mk-mapa');
+    await expect(mapa).toBeVisible();
+    await expect(mapa.locator('svg')).toHaveAttribute('role', 'img');
+    await expect(mapa.locator('[data-position="TOP"]')).toHaveCount(1);
+    await expect(page.getByTestId('mk-mapa-lista')).toContainText('Banner topo');
+    const box = await mapa.boundingBox();
+    const vw = page.viewportSize()!.width;
+    expect(box!.x + box!.width).toBeLessThanOrEqual(vw + 1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await mapa.innerText()).not.toMatch(/R$/);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');

@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { isUpcoming } from '../_lib/events';
 import { formatDateTime } from '../_lib/format';
+import { PositionMap } from '../_components/PositionMap';
 import { MockTag } from '../_components/ui';
-import { apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
+import { PUBLIC_POSITIONS, apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
 import { getSource } from '../_lib/source';
 import type { MetricValue } from '../_lib/types';
 
@@ -136,6 +137,7 @@ export default async function MidiaKitPage() {
 
       <section id="formatos" className="pt-section" aria-labelledby="mk-for">
         <h2 id="mk-for">04 · Formatos e posições</h2>
+        <PositionMap positions={kit?.positions.length ? kit.positions : PUBLIC_POSITIONS} />
         <div className="pt-scroll">
           <table className="pt-table">
             <thead><tr><th>Formato</th><th>Dimensão</th><th>Onde aparece</th></tr></thead>
