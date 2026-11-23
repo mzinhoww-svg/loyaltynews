@@ -8,6 +8,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
+import { PortalAgora } from '../../_components/PortalAgora';
 import { adicionarLinkAction, alternarRedirectAction, criarRedirectAction, removerLinkAction, removerRedirectAction, salvarSeoAction } from './actions';
 
 export const metadata: Metadata = { title: 'SEO' };
@@ -119,6 +120,9 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
       <div style={{ marginTop: 14 }}>
         <SiteDocPainel tipo="seo_global" estado={seoEstado} podePublicar={chefia} retorno="/studio/seo" />
       </div>
+      <div style={{ marginTop: 14 }}>
+        <PortalAgora parte="seo" />
+      </div>
 
       <h2 style={{ marginTop: 24 }}>Links internos</h2>
       <p className="st-hint">Termo que vira link para um caminho do portal (um termo por regra, sem repetir).</p>
@@ -176,6 +180,9 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
       ) : null}
       <div style={{ marginTop: 14 }}>
         <SiteDocPainel tipo="links_internos" estado={linksEstado} podePublicar={chefia} retorno="/studio/seo" />
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <PortalAgora parte="links" />
       </div>
 
       <h2 style={{ marginTop: 24 }}>Redirecionamentos</h2>

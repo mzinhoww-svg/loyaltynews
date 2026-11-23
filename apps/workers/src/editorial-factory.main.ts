@@ -11,7 +11,7 @@ import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
-import { parseFactoryFlags, runEditorialFactory } from './editorial-factory';
+import { parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
 
 async function main() {
   const { DATABASE_URL, LN_FACTORY_FLAGS, LN_MODEL_POLICY } = process.env;
@@ -41,6 +41,12 @@ async function main() {
     // Os valores vêm do cofre do OpenBot pelo operador e NUNCA são impressos nem gravados.
     const tavilyKeys = parseTavilyKeys(process.env);
     const reader = tavilyKeys.length ? new TavilyReader({ apiKeys: tavilyKeys }) : undefined;
+    if (args.includes('--autoral')) {
+      // pautas autorais pendentes (DP-29): exige --run --simulate enquanto não houver chamada real de modelo autorizada
+      if (!gateway) { console.error('[fábrica] --autoral chama modelo: use --run --simulate'); process.exit(1); }
+      console.log(JSON.stringify(await runEditorialAutoral({ db, flags, gateway, ...(reader ? { reader } : {}), ...(max ? { max } : {}) }), null, 2));
+      return;
+    }
     const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(reader ? { reader } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
     console.log(JSON.stringify(report, null, 2));
   } finally {

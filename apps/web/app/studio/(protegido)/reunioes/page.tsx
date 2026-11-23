@@ -6,6 +6,7 @@ import { hojeSP } from '@/lib/studio/datas';
 import { findModule } from '@/lib/studio/modules';
 import { getCalendarioBr, getOrganizacao, getStoreAgentes } from '@/lib/studio/agentes';
 import { requireModule } from '../../_lib/guard';
+import { SemRotaBackend } from '../../_components/SemBanco';
 
 export const metadata: Metadata = { title: 'Calendário de reuniões' };
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <h1>Calendário de reuniões</h1>
+      <SemRotaBackend o_que="Rituais vêm da configuração; reuniões agendadas aqui são registros do Studio." />
       <p>
         Rituais no fuso America/Sao_Paulo, com feriados nacionais. Execução dos rituais: <strong>{isEnabled('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais, ativa só após o gate R4).
       </p>

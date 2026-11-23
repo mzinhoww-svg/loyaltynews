@@ -4,6 +4,7 @@ import { TASK_CATALOG, route } from '@ln/modelops';
 import { findModule } from '@/lib/studio/modules';
 import { POLITICA_ROTULO, carregarPolitica } from '@/lib/studio/modelops';
 import { requireModule } from '../../_lib/guard';
+import { SemRotaBackend } from '../../_components/SemBanco';
 
 export const metadata: Metadata = { title: 'ModelOps' };
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <h1>ModelOps</h1>
+      <SemRotaBackend o_que="O catálogo de modelos e as rotas vêm da configuração (@ln/modelops)." />
       <p>Catálogo, roteamento por tarefa e classe de dado. Nenhuma chamada de modelo sai do Studio.</p>
       <div className="st-alert" role="status">
         <strong>{POLITICA_ROTULO}.</strong> Versão {policy.version}, preços de {policy.rate_card_as_of}. Chamadas reais:{' '}

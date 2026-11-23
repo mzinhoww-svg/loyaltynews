@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro } from '@/lib/studio/backend';
 import {
-  HOME_PADRAO, MENU_PADRAO, mover, novoBloco, remover,
+  HOME_PADRAO, MENU_PADRAO, editarBloco, editarItem, mover, novoBloco, remover, removerFilho,
   type HomeConteudo, type MenuConteudo, type TipoDoc,
 } from '@/lib/studio/site-docs';
 import { requireStudio } from '../../_lib/guard';
@@ -40,7 +40,12 @@ export async function editarDocAction(fd: FormData): Promise<void> {
     const h = atual as HomeConteudo;
     if (op === 'mover') novo = { blocos: mover(h.blocos, i, dir) };
     else if (op === 'remover') novo = { blocos: remover(h.blocos, i) };
-    else if (op === 'adicionar') {
+    else if (op === 'editar-bloco') {
+      const campos: Record<string, string> = {};
+      for (const k of ['titulo', 'materiaSlugs', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
+      novo = { blocos: h.blocos.map((b, k) => (k === i ? editarBloco(b, campos) : b)) };
+      msg = 'Bloco alterado no rascunho (ainda não publicado).';
+    } else if (op === 'adicionar') {
       const campos: Record<string, string> = {};
       for (const k of ['id', 'titulo', 'materiaSlugs', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
       novo = { blocos: [...h.blocos, novoBloco(t(fd, 'blocoTipo'), campos, h.blocos.map((b) => b.id))] };
@@ -50,6 +55,10 @@ export async function editarDocAction(fd: FormData): Promise<void> {
     if (op === 'mover') novo = { itens: mover(m.itens, i, dir) };
     else if (op === 'remover') novo = { itens: remover(m.itens, i) };
     else if (op === 'adicionar') novo = { itens: [...m.itens, { rotulo: t(fd, 'rotulo'), destino: t(fd, 'destino'), filhos: [] }] };
+    else if (op === 'editar-item') {
+      novo = { itens: editarItem(m.itens, i, { rotulo: t(fd, 'rotulo'), destino: t(fd, 'destino') }) };
+      msg = 'Item alterado no rascunho (ainda não publicado).';
+    } else if (op === 'remover-filho') novo = { itens: removerFilho(m.itens, i, Number(t(fd, 'filho'))) };
     else if (op === 'adicionar-filho') novo = { itens: m.itens.map((it, k) => (k === i ? { ...it, filhos: [...it.filhos, { rotulo: t(fd, 'rotulo'), destino: t(fd, 'destino') }] } : it)) };
     else if (op === 'iniciar') msg = 'Rascunho criado a partir do conteúdo atual.';
   }
