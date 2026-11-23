@@ -68,7 +68,13 @@ try {
   step(`condição da Vertra: HOME ${homeFora ? 'FORA' : 'DENTRO'} da pasta do app`, true, homeDir.replace(work, '<app>'));
 
   let r = sh('npm install --no-audit --no-fund', { cwd: work, env: clean });
-  if (!step('npm install a partir do pacote', r.status === 0)) throw new Error('install falhou');
+  // Se a instalação falhar (ou estourar o tempo), mostra o PORQUE: código/sinal e a cauda de stderr/stdout (QA 2 viu a etapa parar sem mensagem).
+  const motivoInstall = r.status === 0 ? '' : [
+    r.error ? `erro: ${r.error.code || r.error.message}` : '',
+    r.status === null ? `sem código de saída (sinal ${r.signal || 'desconhecido'}; possível timeout de 15 min)` : `código ${r.status}`,
+    `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(-6).join(' | '),
+  ].filter(Boolean).join(' · ').slice(0, 600);
+  if (!step('npm install a partir do pacote', r.status === 0, motivoInstall)) throw new Error('install falhou');
 
   // guard falha fechado (no build e no start)
   r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, LN_STUDIO_TEST_SESSION: '1' } });
