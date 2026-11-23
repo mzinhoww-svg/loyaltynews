@@ -6,6 +6,7 @@ export * from './mlabs/create-post-draft';
 export * from './mlabs/errors';
 export * from './copy/engine';
 export * from './creative/post';
+export * from './creative/social-cards';
 export * from './publisher/publisher';
 export * from './package/linkedin';
 export * from './package/instagram';
