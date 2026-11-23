@@ -128,3 +128,15 @@
   .pt-chip { min-height: var(--ln-touch-target); }
   .pt-table a.pt-tap { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); }
 }
+
+/* Mapa visual das posições de anúncio do mídia kit (auditoria V-13): esquema em proporção das dimensões do inventário. */
+.pt-map { margin: var(--ln-space-4) 0; }
+.pt-map svg { display: block; width: 100%; max-width: 760px; height: auto; }
+.pt-map .pt-map-page { fill: var(--ln-color-white); stroke: var(--ln-color-border); stroke-width: 1.5; }
+.pt-map .pt-map-slot { fill: var(--ln-color-mint); stroke: var(--ln-color-primary); stroke-width: 2; }
+.pt-map .pt-map-editorial { fill: var(--ln-color-white); stroke: var(--ln-color-border); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.pt-map .pt-map-text { fill: var(--ln-color-primary); font-size: 20px; font-weight: 700; font-family: inherit; }
+.pt-map .pt-map-small { fill: var(--ln-color-primary); font-size: 17px; font-family: inherit; }
+.pt-map .pt-map-cap { fill: var(--ln-color-primary); font-size: 15px; font-family: inherit; }
+.pt-map figcaption { margin-top: var(--ln-space-2); font-size: var(--ln-text-sm); }
+.pt-map-list { margin: var(--ln-space-2) 0 0; padding-left: 1.2em; font-size: var(--ln-text-sm); }

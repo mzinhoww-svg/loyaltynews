@@ -131,6 +131,17 @@ test.describe('mídia kit via API comercial', () => {
     expect(await page.locator('main').innerText()).not.toMatch(/\bflag\b|P-0[12]|adServerVendas/i);
   });
 
+  test('V-13: mapa de posições vem da API (3 desenhadas, a sem dimensão só na lista como "em definição")', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const mapa = page.getByTestId('mk-mapa');
+    await expect(mapa.locator('[data-position]')).toHaveCount(3);
+    for (const id of ['TOP', 'SIDEBAR_1', 'FOOTER']) await expect(mapa.locator(`[data-position="${id}"]`)).toHaveCount(1);
+    await expect(mapa.locator('[data-position="SIDEBAR_2"]')).toHaveCount(0);
+    const lista = page.getByTestId('mk-mapa-lista');
+    await expect(lista.locator('li')).toHaveCount(4);
+    await expect(lista.locator('[data-position-item="AGENDA"]')).toContainText('dimensões em definição');
+  });
+
   test('cobertura: só a coleta da API (origem, janela e data); métrica de demonstração (seed) vira "—" e "sem dado real"', async ({ page }) => {
     await page.goto('/midia-kit');
     const real = page.getByTestId('coverage-articles');
