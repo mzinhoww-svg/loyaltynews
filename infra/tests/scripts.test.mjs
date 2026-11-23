@@ -164,6 +164,36 @@ test('healthcheck --noindex: reprova staging indexável; aprova robots fechado +
   } finally { s.closeAllConnections?.(); s.close(); }
 });
 
+test('build-web: checkHome aprova canonical do ambiente + noindex e reprova localhost, outra URL e falta de noindex', async () => {
+  const { checkHome } = await import('../scripts/build-web.mjs');
+  const url = 'https://loyaltynews-stg.vertraweb.app';
+  const ok = `<html><head><link rel="canonical" href="${url}"/><meta name="robots" content="noindex, nofollow, nocache"/></head></html>`;
+  assert.deepEqual(checkHome(ok, url, 'staging'), []);
+  assert.deepEqual(checkHome(`<link href="${url}/x" rel="canonical"/><meta content="noindex" name="robots"/>`, url, 'staging'), [], 'ordem dos atributos não importa');
+  assert.match(checkHome(ok.replace(url, 'http://localhost:3000'), url, 'staging').join('|'), /canonical da home é "http:\/\/localhost:3000"/);
+  assert.match(checkHome(ok.replace(url, 'https://loyaltynews-staging.vertraweb.app'), url, 'staging').join('|'), /esperado começar com/);
+  assert.match(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'staging').join('|'), /sem meta robots noindex/);
+  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production'), [], 'em produção não exige noindex');
+  assert.match(checkHome('<html></html>', url, 'staging').join('|'), /sem link canonical/);
+});
+
+test('healthcheck --canonical: reprova localhost e URL errada, aprova a URL do ambiente', async () => {
+  let canon = 'http://localhost:3000';
+  const s = await server((req, res) => {
+    if (req.url === '/api/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"status":"ok"}'); }
+    if (req.url === '/') { res.writeHead(200); return res.end(`<html><head><link rel="canonical" href="${canon}"/></head></html>`); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  try {
+    const want = 'https://loyaltynews-stg.vertraweb.app';
+    let r = await hc(port, ['--canonical', want]); assert.equal(r.status, 1); assert.match(r.stdout, /NEXT_PUBLIC_SITE_URL não entrou no build/);
+    canon = 'https://outro.vertraweb.app'; assert.equal((await hc(port, ['--canonical', want])).status, 1);
+    canon = want; assert.equal((await hc(port, ['--canonical', want])).status, 0);
+    canon = `${want}/`; assert.equal((await hc(port, ['--canonical', `${want}/`])).status, 0);
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
 test('compareStats detecta divergência, ausência e tabela inesperada', () => {
   const a = { 'public.a': { rows: 2, md5: 'aaaaaaaa11' }, 'public.b': { rows: 1, md5: 'bbbbbbbb22' } };
   assert.deepEqual(compareStats(a, a), []);

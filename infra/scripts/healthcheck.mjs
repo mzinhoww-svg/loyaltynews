@@ -7,6 +7,7 @@
 // Sondas de SEGURANÇA de runtime (alerta do PM): provam que variáveis só de teste não estão ativas no ambiente implantado.
 //   --denied <caminho>   o caminho (ex.: /studio) NÃO pode abrir sem login: exige 301/302/303/307/308/401/403, nunca 200
 //   --no-mock <caminho>  o caminho (ex.: / ou /noticias) deve responder 200 e NÃO conter a faixa/texto "MOCK"
+//   --canonical <url>    o link canonical da home precisa começar com <url> (e não conter localhost): prova que NEXT_PUBLIC_SITE_URL entrou no build
 //   --noindex <caminho>  staging NÃO pode ser indexado: robots.txt com Disallow: / (e sem Allow: /), sitemap sem URLs e o caminho com
 //                        X-Robots-Tag ou meta robots contendo noindex
 // Uso: node infra/scripts/healthcheck.mjs --url https://host [--ready] [--expect-commit <sha>] [--timeout 5000] [--retries 2]
@@ -69,6 +70,17 @@ if (args['no-mock']) {
     if (r.status !== 200) failures.push(`${p} respondeu ${r.status} (esperado 200)`);
     else if (/\bMOCK\b/.test(r.body ?? '')) failures.push(`${p} contém "MOCK": fixtures ativas em ambiente implantado (PORTAL_SOURCE/PORTAL_MODE=mock só em teste)`);
   } catch (e) { failures.push(`${p}: ${e.message}`); }
+}
+if (args.canonical) {
+  const want = String(args.canonical).replace(/\/$/, '');
+  try {
+    const r = await get('/');
+    const body = String(r.body ?? '');
+    const canon = (body.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']+)["']/i) || body.match(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["']canonical["']/i) || [])[1];
+    out.canonical = { esperado: want, encontrado: canon ?? null };
+    if (!canon) failures.push('home sem link canonical');
+    else if (!canon.startsWith(want) || /localhost/i.test(canon)) failures.push(`canonical da home é "${canon}", esperado ${want} (NEXT_PUBLIC_SITE_URL não entrou no build)`);
+  } catch (e) { failures.push(`canonical: ${e.message}`); }
 }
 if (args.noindex) {
   const p = String(args.noindex);

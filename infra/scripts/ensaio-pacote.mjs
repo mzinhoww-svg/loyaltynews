@@ -82,9 +82,10 @@ try {
   r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_SOURCE: 'mock' } });
   step('start RECUSADO com PORTAL_SOURCE=mock em staging', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
 
-  r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv } });
+  // o "painel" aqui traz NEXT_PUBLIC_SITE_URL=localhost (pior caso, como na Vertra em 22/11): o build_command do pacote tem de sobrescrever
+  r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' } });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
-  if (!step('build com o build_command do manifesto', r.status === 0, motivoBuild)) throw new Error('build falhou');
+  if (!step('build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost)', r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
   server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });

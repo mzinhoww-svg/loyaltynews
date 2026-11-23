@@ -44,31 +44,35 @@ try { spec = JSON.parse(gitText(['show', `${sha}:infra/vertra/environments.json`
 const env = spec.ambientes?.[profile];
 const web = env?.recursos?.web;
 if (!web) fail(`perfil "${profile}" sem recurso web em environments.json`);
+// `--subdomain` troca o subdomínio do pacote (a URL entra no build): usado quando o proprietário escolhe outro endereço no painel.
+const sub = args.subdomain && args.subdomain !== true ? String(args.subdomain) : web.subdominio;
 // NEXT_PUBLIC_SITE_URL é lida no BUILD (o portal embute no sitemap e no canonical; padrão localhost). A Vertra constrói na criação, antes de
 // qualquer variável, e mudar variável depois não reconstrói: por isso a URL do ambiente entra no próprio build_command.
-const siteUrl = web.subdominio ? `https://${web.subdominio}.vertraweb.app` : null;
+const siteUrl = sub ? `https://${sub}.vertraweb.app` : null;
 // O portal também decide noindex NO BUILD (meta robots das páginas estáticas): o build precisa ver APP_ENV, não só o runtime.
 const appEnvBuild = web.env?.APP_ENV ?? (profile === 'production' ? 'production' : 'staging');
-const buildCmd = siteUrl ? web.build_command.replace('npm run build', `APP_ENV=${appEnvBuild} NEXT_PUBLIC_SITE_URL=${siteUrl} npm run build`) : web.build_command;
+// O build_command NÃO usa atribuição inline (na Vertra a URL não chegou ao next build): build-web.mjs lê siteUrl/appEnv do release.json,
+// põe no ambiente do processo filho, verifica o HTML da home e falha se o canonical não for a URL do ambiente.
+const buildCmd = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs' : web.build_command;
 
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
-  'infra/scripts/guard-env.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs'];
+  'infra/scripts/guard-env.mjs', 'infra/scripts/build-web.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs'];
 const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts']; // a sessão simulada do Studio só existe em teste
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${web.start_command}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
-if (web.subdominio) cfgLines.push(`SUBDOMAIN=${web.subdominio}`);
+if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
 const vArgs = Object.entries(virtuals).map(([p, c]) => `--add-virtual-file=${p}:${c}`);
 
 // 5. destino (nunca sobrescreve sem --force)
 const out = resolve(String(args.out));
-const name = `ln-web-${profile}-${sha12}`;
+const name = `ln-web-${profile}-${sha12}${args.subdomain && args.subdomain !== true ? `-${sub}` : ''}`;
 const folder = join(out, name);
 const zip = join(out, `${name}.zip`);
 const manifestPath = join(out, `${name}.manifest.json`);
@@ -111,12 +115,12 @@ try {
     { nome: 'NODE_ENV', valor: web.env?.NODE_ENV ?? 'production' },
     { nome: 'APP_COMMIT', valor: sha },
     ...(web.env?.APP_MODE ? [{ nome: 'APP_MODE', valor: web.env.APP_MODE }] : []),
-    { nome: 'APP_URL', valor: web.subdominio ? `https://${web.subdominio}.vertraweb.app` : '(definir)' },
-    { nome: 'BETTER_AUTH_URL', valor: web.subdominio ? `https://${web.subdominio}.vertraweb.app` : '(definir)' },
+    { nome: 'APP_URL', valor: siteUrl ?? '(definir)' },
+    { nome: 'BETTER_AUTH_URL', valor: siteUrl ?? '(definir)' },
   ];
   const manifest = {
     schema: 1, perfil: profile, app: web.nome, siteUrl, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
-    ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: web.start_command, subdomain: web.subdominio, version: spec.runtime?.node } },
+    ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: web.start_command, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [
       { nome: 'BETTER_AUTH_SECRET', quando: 'staging COM banco (ft/backend); aleatório, ao menos 32 caracteres, distinto por ambiente; o proprietário define pelo painel para não passar pelo chat' },
@@ -127,7 +131,7 @@ try {
       { nome: 'TRUSTED_PROXY_HOPS', como: 'contar as entradas de X-Forwarded-For que o app recebe de uma requisição de teste com UMA entrada falsa injetada (TEST-NET 203.0.113.9); hops = total de entradas menos 1; exige o diagnóstico DIAG_XFF=1 do Backend (só contagem, nunca IPs); sem medição o limite por IP fica inativo e vale só o limite por conta (padrão seguro)' },
     ],
     sondas: ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock /'],
-    garantias: ['APP_ENV e NEXT_PUBLIC_SITE_URL embutidas no build_command (o portal decide noindex e URLs no build)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
+    garantias: ['build_command = guard-env + build-web.mjs: APP_ENV e NEXT_PUBLIC_SITE_URL vêm do release.json e entram no ambiente do build (sem atribuição inline); o build falha se o canonical da home não for a URL do ambiente', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(JSON.stringify({ ok: true, commit: sha12, perfil: profile, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length, manifesto: manifestPath }, null, 2));
