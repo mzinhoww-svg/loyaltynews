@@ -22,10 +22,12 @@ const apiDown = mode === 'api' ? (process.env.PORTAL_API_DOWN ?? '') : '';
 // Configuração do site publicada no Studio (/api/publico/site) no servidor MOCK: full (padrão) | vazio | noindex | invalido | malicioso.
 const apiSite = mode === 'api' && !process.env.PORTAL_API_DOWN ? (process.env.PORTAL_API_SITE ?? '') : '';
 const SITE_PORT: Record<string, number> = { vazio: 8, noindex: 9, invalido: 10, malicioso: 11 };
+// Intelligence (pessoas e Moves) no servidor MOCK: full (padrão) | vazio | sem-flag (intelligencePessoas desligada). Porta própria (base+12).
+const apiIntel = mode === 'api' && !apiDown && !apiSite ? (process.env.PORTAL_API_INTEL ?? '') : '';
 const prodSemInterruptor = appEnv === 'production' && !indexavel;
 const port = base
-  ? base + (mode === 'mock' ? 1 : mode === 'api' ? (apiDown === '503' ? 7 : apiDown ? 6 : (SITE_PORT[apiSite] ?? 2)) : prodSemInterruptor ? 5 : appEnv === 'production' ? 0 : 3)
-  : mode === 'mock' ? 3102 : mode === 'api' ? 3105 : prodSemInterruptor ? 3106 : appEnv === 'production' ? 3101 : 3103;
+  ? base + (mode === 'mock' ? 1 : mode === 'api' ? (apiDown === '503' ? 7 : apiDown ? 6 : apiIntel ? 12 : (SITE_PORT[apiSite] ?? 2)) : prodSemInterruptor ? 5 : appEnv === 'production' ? 0 : 3)
+  : mode === 'mock' ? 3102 : mode === 'api' ? (apiIntel ? 3112 : 3105) : prodSemInterruptor ? 3106 : appEnv === 'production' ? 3101 : 3103;
 
 
 export default defineConfig({
@@ -37,6 +39,8 @@ export default defineConfig({
         ? /(api-down|env)\.spec\.ts/
         : apiSite
           ? /api-site\.spec\.ts/
+          : apiIntel
+            ? /intelligence\.spec\.ts/
           : /(api|api-site|api-agenda|env|intelligence)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
@@ -61,7 +65,7 @@ export default defineConfig({
                 url: `http://localhost:${fakeApiPort}/health`,
                 reuseExistingServer: !base,
                 timeout: 30_000,
-                env: { FAKE_API_PORT: String(fakeApiPort), ...(apiDown === '503' ? { FAKE_API_STATUS: '503' } : {}), ...(apiSite ? { FAKE_API_SITE: apiSite } : {}) },
+                env: { FAKE_API_PORT: String(fakeApiPort), ...(apiDown === '503' ? { FAKE_API_STATUS: '503' } : {}), ...(apiSite ? { FAKE_API_SITE: apiSite } : {}), ...(apiIntel ? { FAKE_API_INTEL: apiIntel } : {}) },
               },
             ]
           : []),

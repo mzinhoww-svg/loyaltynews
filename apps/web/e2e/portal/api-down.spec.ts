@@ -64,10 +64,13 @@ test.describe(`API indisponível (PORTAL_API_DOWN=${down})`, () => {
   });
 
   test('Intelligence: diretório e perfil dizem "indisponível" (role=alert), sem fingir vazio, sem 500 nem MOCK', async ({ page }) => {
-    for (const rota of ['/intelligence/empresas', '/intelligence/empresas/10000000-0000-4000-8000-000000000001']) {
+    for (const rota of [
+      '/intelligence/empresas', '/intelligence/empresas/10000000-0000-4000-8000-000000000001', '/intelligence/pessoas',
+      '/intelligence/pessoas/10000000-0000-4000-8000-000000000201', '/moves', '/moves/10000000-0000-4000-8000-000000000401',
+    ]) {
       const res = await page.goto(rota);
       expect(res?.status(), rota).toBe(200);
-      await expect(page.getByRole('alert').filter({ hasText: /temporariamente indisponível/ }), rota).toBeVisible();
+      await expect(page.getByRole('alert').filter({ hasText: /temporariamente indispon/ }), rota).toBeVisible();
       await expect(page.getByText('Em breve: primeiros perfis verificados'), rota).toHaveCount(0);
       expect(await page.locator('main').innerText(), rota).not.toMatch(/MOCK|Internal Server Error|Application error/i);
     }

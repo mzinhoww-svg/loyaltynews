@@ -68,4 +68,16 @@ export const emptySource: PortalSource = {
   async getCompany() {
     return { status: 'not_found' };
   },
+  async getPeopleDirectory() {
+    return { status: 'ok', items: [], total: 0, available: false };
+  },
+  async getPerson() {
+    return { status: 'not_found' };
+  },
+  async getMovesFeed() {
+    return { status: 'ok', items: [], total: 0, available: false };
+  },
+  async getMove() {
+    return { status: 'not_found' };
+  },
 };

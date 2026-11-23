@@ -7,6 +7,7 @@ import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { formatDate } from '../../../_lib/format';
 import { KIND_LABEL, relationLabel } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
+import { MoveCard, RolesTable } from '../../_components/intel';
 
 export const revalidate = 60;
 
@@ -41,6 +42,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
   }
 
   const c = r.company;
+  const [people, moves] = await Promise.all([getSource().getPeopleDirectory({ companyId: c.id }), getSource().getMovesFeed({ companyId: c.id })]);
   return (
     <>
       <PageHead title={c.name} crumbs={[...crumbs, { label: c.name }]} />
@@ -89,10 +91,30 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
 
       <section className="pt-section" aria-labelledby="pes-t">
         <div className="pt-section-head"><h2 id="pes-t">Pessoas e cargos</h2></div>
-        <EmptyState title="Em breve: executivos verificados">
-          Pessoas e cargos só são publicados com identidade e vínculo verificáveis por fonte pública, após a avaliação de privacidade.
-        </EmptyState>
+        {people.status === 'unavailable' ? (
+          <ErrorState title="Pessoas temporariamente indisponíveis" appearance="inline" retryHref={`/intelligence/empresas/${c.id}`} />
+        ) : people.available && people.items.length ? (
+          <RolesTable
+            showPerson
+            testId="company-people"
+            caption="Cargos vigentes declarados em fonte pública oficial; nenhum cargo é inferido."
+            roles={people.items.flatMap((p) => p.roles.filter((r) => r.company.id === c.id).map((r) => ({ ...r, personId: p.id, personName: p.name })))}
+          />
+        ) : (
+          <EmptyState title="Em breve: executivos verificados">
+            Pessoas e cargos só são publicados com identidade e vínculo verificáveis por fonte pública, após a avaliação de privacidade.
+          </EmptyState>
+        )}
       </section>
+
+      {moves.status === 'ok' && moves.items.length > 0 && (
+        <section className="pt-section" aria-labelledby="mov-t">
+          <div className="pt-section-head"><h2 id="mov-t">Movimentações confirmadas</h2></div>
+          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 16 }}>
+            {moves.items.map((m) => <li key={m.id}><MoveCard m={m} headingLevel={3} /></li>)}
+          </ul>
+        </section>
+      )}
 
       <p className="pt-meta" style={{ marginTop: 18 }}>
         Informação profissional de fonte pública, com data de validação. Para correção, veja a{' '}

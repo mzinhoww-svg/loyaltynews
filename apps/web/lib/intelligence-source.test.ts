@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createIntelligenceSlice, filterDirectory, mapCompany, mapCompanyItem, mapRelation, relationLabel,
+  createIntelligenceSlice, filterDirectory, mapCompany, mapCompanyItem, mapMove, mapPerson, mapPersonItem, mapRelation, mapRole, relationLabel, sortMoves,
 } from '../app/(portal)/_lib/intelligence-source';
 import { emptySource } from '../app/(portal)/_lib/empty-source';
 import { mockSource } from '../app/(portal)/_lib/fixtures/portal.mock';
@@ -99,7 +99,108 @@ describe('createIntelligenceSlice (HTTP)', () => {
   });
 });
 
+const cargo = (over: Record<string, unknown> = {}) => ({
+  id: ID(50), titulo: 'CEO', empresa: { id: ID(1), nome: 'Livelo' }, vigenteDesde: '2026-11-01', vigenteAte: null,
+  validadoEm: '2026-11-23T00:00:00.000Z', fonte, mock: false, quote: 'trecho literal', ...over,
+});
+const leitura = (titulo: string) => ({ titulo, empresa: { id: ID(1), nome: 'Livelo' }, vigenteDesde: '2026-11-01', vigenteAte: null, validadoEm: '2026-11-23T00:00:00.000Z', fonte });
+const move = (over: Record<string, unknown> = {}) => ({
+  id: ID(60), tipo: 'title_change', base: 'observed_diff', pessoa: { id: ID(70), nome: 'Ana' }, dataEfetiva: null, observadoEm: '2026-11-20',
+  antes: leitura('Diretora'), depois: leitura('CEO'), mock: false, ...over,
+});
+
+describe('pessoas, cargos e Moves', () => {
+  it('cargo exige fonte e datas válidas; nunca copia o trecho', () => {
+    const r = mapRole(cargo());
+    expect(r).toMatchObject({ title: 'CEO', company: { name: 'Livelo' }, validTo: null });
+    expect(JSON.stringify(r)).not.toContain('trecho literal');
+    expect(mapRole(cargo({ fonte: undefined }))).toBeNull();
+    expect(mapRole(cargo({ vigenteDesde: '23/11/2026' }))).toBeNull();
+  });
+
+  it('Move precisa da evidência de cada lado que o tipo exige (Move = duas leituras)', () => {
+    expect(mapMove(move())).toMatchObject({ kind: 'title_change', before: { title: 'Diretora' }, after: { title: 'CEO' } });
+    expect(mapMove(move({ antes: null }))).toBeNull(); // mudança sem "antes"
+    expect(mapMove(move({ tipo: 'org_change', depois: null }))).toBeNull();
+    expect(mapMove(move({ tipo: 'departure', depois: null }))).toMatchObject({ after: null });
+    expect(mapMove(move({ tipo: 'departure', antes: null, depois: null }))).toBeNull();
+    expect(mapMove(move({ tipo: 'appointment', antes: null }))).toMatchObject({ before: null });
+    expect(mapMove(move({ antes: { ...leitura('X'), fonte: null } }))).toBeNull(); // leitura sem fonte não vale
+    expect(mapMove(move({ tipo: 'promoção' }))).toBeNull();
+    expect(mapMove(move({ dataEfetiva: 'ontem' }))?.effectiveDate).toBeNull();
+  });
+
+  it('lista de pessoas mostra só cargos vigentes; perfil separa atuais e histórico', () => {
+    const p = mapPersonItem({ id: ID(70), nome: 'Ana', cargos: [cargo(), cargo({ id: ID(51), vigenteAte: '2026-11-10' })] });
+    expect(p?.roles).toHaveLength(1);
+    const prof = mapPerson({ id: ID(70), nome: 'Ana', fonte, perfilPublico: 'javascript:alert(1)', cargosAtuais: [cargo()], historico: [cargo({ vigenteAte: '2026-11-10' })], moves: [move(), move({ antes: null })] });
+    expect(prof).toMatchObject({ profileUrl: null, currentRoles: [{ title: 'CEO' }], history: [{ validTo: '2026-11-10' }] });
+    expect(prof?.moves).toHaveLength(1);
+  });
+
+  it('Moves em ordem do mais recente', () => {
+    const a = mapMove(move({ id: ID(61), observadoEm: '2026-11-01' }))!;
+    const b = mapMove(move({ id: ID(62), observadoEm: '2026-11-21' }))!;
+    expect(sortMoves([a, b]).map((m) => m.id)).toEqual([ID(62), ID(61)]);
+  });
+
+  describe('HTTP', () => {
+    let err: ReturnType<typeof vi.spyOn>;
+    beforeEach(() => {
+      err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+    afterEach(() => err.mockRestore());
+
+    it('flag desligada: vazio honesto (available=false), mesmo se a resposta trouxer itens', async () => {
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move()], total: 1, disponivel: false })) as unknown as typeof fetch);
+      expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    });
+
+    it('envelope sem `disponivel` é inválido; 503 é indisponível; 404 é não encontrado', async () => {
+      const bad = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [] })) as unknown as typeof fetch);
+      expect(await bad.getPeopleDirectory()).toEqual({ status: 'unavailable' });
+      const down = createIntelligenceSlice('http://api.test', (async () => json(503, {})) as unknown as typeof fetch);
+      expect(await down.getMovesFeed()).toEqual({ status: 'unavailable' });
+      expect(await down.getPerson(ID(70))).toEqual({ status: 'unavailable' });
+      const nf = createIntelligenceSlice('http://api.test', (async () => json(404, {})) as unknown as typeof fetch);
+      expect(await nf.getMove(ID(60))).toEqual({ status: 'not_found' });
+      // Move com id certo mas fora do modelo (sem "antes"): 404, não "indisponível".
+      const fora = createIntelligenceSlice('http://api.test', (async () => json(200, { data: move({ antes: null }) })) as unknown as typeof fetch);
+      expect(await fora.getMove(ID(60))).toEqual({ status: 'not_found' });
+    });
+
+    it('filtros vão na query só quando são UUID; descarta Move inválido', async () => {
+      const f = vi.fn(async () => json(200, { data: [move(), move({ id: ID(63), antes: null })], total: 2, disponivel: true }));
+      const s = createIntelligenceSlice('http://api.test', f as unknown as typeof fetch);
+      const r = await s.getMovesFeed({ companyId: ID(1), personId: 'x' });
+      expect(f).toHaveBeenCalledWith(`http://api.test/api/publico/intelligence/moves?limit=100&empresa=${ID(1)}`, expect.anything());
+      expect(r).toMatchObject({ status: 'ok', total: 1, available: true });
+    });
+  });
+});
+
 describe('fontes vazia e MOCK', () => {
+  it('vazia: pessoas e Moves vazios e indisponíveis por flag; perfis inexistentes', async () => {
+    expect(await emptySource.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    expect(await emptySource.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    expect(await emptySource.getPerson(ID(1))).toEqual({ status: 'not_found' });
+    expect(await emptySource.getMove(ID(1))).toEqual({ status: 'not_found' });
+  });
+
+  it('MOCK: Moves e pessoas rotulados, com antes e depois e links para entidades existentes', async () => {
+    const feed = await mockSource.getMovesFeed();
+    if (feed.status !== 'ok') throw new Error('mock');
+    for (const m of feed.items) {
+      expect(m.mock).toBe(true);
+      expect(m.before && m.after).toBeTruthy();
+      expect((await mockSource.getPerson(m.person.id)).status).toBe('ok');
+      expect((await mockSource.getCompany(m.after!.company.id)).status).toBe('ok');
+    }
+    const people = await mockSource.getPeopleDirectory();
+    if (people.status !== 'ok') throw new Error('mock');
+    expect(people.items.every((p) => p.mock && p.name.includes('MOCK'))).toBe(true);
+  });
+
   it('vazia: diretório vazio honesto e empresa inexistente', async () => {
     expect(await emptySource.getCompanyDirectory()).toEqual({ status: 'ok', items: [], total: 0, kinds: [] });
     expect(await emptySource.getCompany(ID(1))).toEqual({ status: 'not_found' });

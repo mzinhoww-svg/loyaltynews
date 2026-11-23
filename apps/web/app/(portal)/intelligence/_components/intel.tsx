@@ -1,0 +1,105 @@
+import Link from 'next/link';
+import { MockTag } from '../../_components/ui';
+import { formatDate } from '../../_lib/format';
+import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
+import type { EvidenceSource, MoveEntry, MoveReading, PersonRole } from '../../_lib/types';
+
+/** Fonte pública: nome com link (nova aba) e data de coleta. Nunca o trecho da página. */
+export function SourceLink({ source, verb = 'coletada em' }: { source: EvidenceSource; verb?: string }) {
+  return (
+    <>
+      <a href={source.url} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>
+        {source.name}
+        <span className="pt-sr"> (abre em nova aba)</span>
+      </a>
+      {`, ${verb} `}
+      <time dateTime={source.retrievedAt}>{formatDate(source.retrievedAt)}</time>
+    </>
+  );
+}
+
+const day = (d: string) => formatDate(`${d}T12:00:00Z`);
+
+/** Tabela de cargos (atuais ou histórico) com empresa, período, fonte e validação. */
+export function RolesTable({ roles, caption, testId, showPerson }: { roles: (PersonRole & { personName?: string; personId?: string })[]; caption: string; testId: string; showPerson?: boolean }) {
+  return (
+    <div className="pt-scroll">
+      <table className="pt-table" data-testid={testId}>
+        <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>{caption}</caption>
+        <thead>
+          <tr>
+            {showPerson && <th scope="col">Pessoa</th>}
+            <th scope="col">Cargo</th>
+            {!showPerson && <th scope="col">Organização</th>}
+            <th scope="col">Período</th>
+            <th scope="col">Fonte</th>
+            <th scope="col">Validado em</th>
+          </tr>
+        </thead>
+        <tbody>
+          {roles.map((r) => (
+            <tr key={`${r.id}-${r.personId ?? ''}`}>
+              {showPerson && (
+                <td>{r.mock && <MockTag />}<Link href={`/intelligence/pessoas/${r.personId}`} style={{ textDecoration: 'underline' }}>{r.personName}</Link></td>
+              )}
+              <td>{!showPerson && r.mock && <MockTag />}{r.title}</td>
+              {!showPerson && (
+                <td><Link href={`/intelligence/empresas/${r.company.id}`} style={{ textDecoration: 'underline' }}>{r.company.name}</Link></td>
+              )}
+              <td>{r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`}</td>
+              <td>
+                <a href={r.source.url} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>{r.source.name}</a>
+                <span className="pt-sr"> (abre em nova aba)</span>
+              </td>
+              <td><time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Reading({ label, r, testId }: { label: string; r: MoveReading | null; testId: string }) {
+  return (
+    <div data-testid={testId} style={{ flex: '1 1 240px' }}>
+      <p className="pt-kicker">{label}</p>
+      {r ? (
+        <>
+          <p style={{ margin: '4px 0' }}>
+            <strong>{r.title}</strong>{' — '}
+            <Link href={`/intelligence/empresas/${r.company.id}`} style={{ textDecoration: 'underline' }}>{r.company.name}</Link>
+          </p>
+          <p className="pt-meta">Fonte: <SourceLink source={r.source} /> · validado em <time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time></p>
+        </>
+      ) : (
+        <p className="pt-meta">{label === 'Antes' ? 'Sem cargo anterior registrado.' : 'Sem cargo novo: saída.'}</p>
+      )}
+    </div>
+  );
+}
+
+/** Move confirmado: tipo, pessoa, data da leitura e as duas leituras (antes e depois) com a fonte de cada lado. */
+export function MoveCard({ m, headingLevel = 2, link = true }: { m: MoveEntry; headingLevel?: 2 | 3; link?: boolean }) {
+  const H = headingLevel === 2 ? 'h2' : 'h3';
+  return (
+    <article className="pt-panel" data-testid="move-card">
+      <p className="pt-kicker">{m.mock && <MockTag />}{MOVE_KIND_LABEL[m.kind]}{m.basis === 'announcement' ? ' · anunciada pela fonte' : ''}</p>
+      <H style={{ fontSize: 20, margin: '4px 0' }}>
+        {link ? <Link href={`/moves/${m.id}`}>{m.person.name}</Link> : m.person.name}
+      </H>
+      <p className="pt-meta">
+        Observado em <time dateTime={m.observedOn}>{day(m.observedOn)}</time>
+        {m.effectiveDate ? <> · vigente desde <time dateTime={m.effectiveDate}>{day(m.effectiveDate)}</time></> : ' · data efetiva não declarada pela fonte'}
+        {' · '}<Link href={`/intelligence/pessoas/${m.person.id}`} style={{ textDecoration: 'underline' }}>perfil</Link>
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 8 }}>
+        <Reading label="Antes" r={m.before} testId="move-before" />
+        <Reading label="Depois" r={m.after} testId="move-after" />
+      </div>
+    </article>
+  );
+}
+
+export const MOVES_EMPTY = 'O Loyalty Moves detecta candidatos, confirma com fonte primária e só então publica. Nada é publicado como fato antes da confirmação.';
+export const PEOPLE_EMPTY = 'Perfis de pessoas só são publicados com identidade e vínculo verificáveis por fonte pública. Titulares podem solicitar correção ou remoção.';

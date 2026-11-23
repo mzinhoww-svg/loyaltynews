@@ -231,14 +231,15 @@ test.describe('conteúdo MOCK', () => {
   test('Moves e Intelligence mostram itens marcados MOCK', async ({ page }) => {
     await page.goto('/moves');
     // Selo compacto visível "MOCK" + texto completo para leitor de tela.
-    const cell = page.getByRole('table').locator('td', { has: page.locator('[data-testid="mock-badge"]') }).first();
+    // Moves em cartões (antes/depois): o selo fica no rótulo do tipo de cada cartão.
+    const cell = page.getByTestId('move-card').locator('.pt-kicker', { has: page.locator('[data-testid="mock-badge"]') }).first();
     await expect(cell).toContainText('MOCK');
     const txt = (await cell.evaluate((e) => e.textContent)) ?? '';
     expect(txt).toContain('MOCK · dados de exemplo');
     // O texto para leitor de tela vem só do DS: nunca duplicado.
     expect(txt.split('dados de exemplo').length - 1).toBe(1);
     await expect(cell.locator('.ln-sr-only')).toHaveCount(1);
-    await expect(page.getByRole('table')).toBeVisible();
+    await expect(page.getByTestId('move-card').first()).toBeVisible();
     await expect(page.locator('[data-testid="mock-badge"]').first()).toBeVisible();
     await page.goto('/intelligence/empresas');
     await expect(page.getByText('Empresa de Teste (MOCK)')).toBeVisible();

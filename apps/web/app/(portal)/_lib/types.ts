@@ -190,6 +190,63 @@ export type CompanyDirectory =
   | { status: 'unavailable' };
 export type CompanyLookup = { status: 'ok'; company: CompanyProfile } | { status: 'not_found' } | { status: 'unavailable' };
 
+/** Cargo público declarado (nunca inferido no portal). */
+export interface PersonRole {
+  id: string;
+  title: string;
+  company: { id: string; name: string };
+  validFrom: string;
+  validTo: string | null;
+  validatedAt: string;
+  source: EvidenceSource;
+  mock?: boolean;
+}
+export interface PersonListItem {
+  id: string;
+  name: string;
+  /** Só cargos vigentes. */
+  roles: PersonRole[];
+  mock?: boolean;
+}
+/** Uma leitura de fonte pública num Move (antes ou depois). */
+export interface MoveReading {
+  title: string;
+  company: { id: string; name: string };
+  validFrom: string;
+  validTo: string | null;
+  validatedAt: string;
+  source: EvidenceSource;
+}
+export type MoveKind = 'appointment' | 'departure' | 'title_change' | 'org_change';
+/** Move confirmado por revisão (o portal nunca recebe outro status). */
+export interface MoveEntry {
+  id: string;
+  kind: MoveKind;
+  basis: 'announcement' | 'observed_diff';
+  person: { id: string; name: string };
+  /** Só quando a fonte declara; senão null (não inventamos a data). */
+  effectiveDate: string | null;
+  observedOn: string;
+  before: MoveReading | null;
+  after: MoveReading | null;
+  mock?: boolean;
+}
+export interface PersonProfile {
+  id: string;
+  name: string;
+  profileUrl: string | null;
+  source: EvidenceSource;
+  currentRoles: PersonRole[];
+  history: PersonRole[];
+  moves: MoveEntry[];
+  mock?: boolean;
+}
+/** `available: false` = dados de pessoas desligados (flag `intelligencePessoas`, J-01): não é falha nem "sem registro". */
+export type PeopleDirectory = { status: 'ok'; items: PersonListItem[]; total: number; available: boolean } | { status: 'unavailable' };
+export type PersonLookup = { status: 'ok'; person: PersonProfile } | { status: 'not_found' } | { status: 'unavailable' };
+export type MovesFeed = { status: 'ok'; items: MoveEntry[]; total: number; available: boolean } | { status: 'unavailable' };
+export type MoveLookup = { status: 'ok'; move: MoveEntry } | { status: 'not_found' } | { status: 'unavailable' };
+
 export type MetricState = 'ok' | 'unavailable' | 'stale';
 export interface MetricValue {
   label: string;
@@ -280,4 +337,10 @@ export interface PortalSource {
   getCompanyDirectory(filter?: { kind?: CompanyKind; q?: string }): Promise<CompanyDirectory>;
   /** Empresa com relações declaradas e a fonte de cada uma. */
   getCompany(id: string): Promise<CompanyLookup>;
+  /** Pessoas com cargos públicos vigentes (filtro por texto e empresa). */
+  getPeopleDirectory(filter?: { q?: string; companyId?: string }): Promise<PeopleDirectory>;
+  getPerson(id: string): Promise<PersonLookup>;
+  /** Moves confirmados, do mais recente para o mais antigo. */
+  getMovesFeed(filter?: { companyId?: string; personId?: string }): Promise<MovesFeed>;
+  getMove(id: string): Promise<MoveLookup>;
 }
