@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FLAG_DEFAULTS } from '@ln/contracts';
 import { sampleArticle } from '@ln/editorial/testing';
-import type { ArticleRecord } from '@ln/editorial';
+import { articleContentSha256, type ArticleRecord } from '@ln/editorial';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { call, makeApp } from '../_lib/testkit';
@@ -29,10 +29,10 @@ function approved(id: string, over: Partial<ArticleRecord> = {}): ArticleRecord 
   return a;
 }
 
-async function seed(id: string, publisher = chefe.id, rec: ArticleRecord = approved(id)) {
+async function seed(id: string, publisher = chefe.id, rec: ArticleRecord = approved(id), receiptSha?: string) {
   await app.db.insert(schema.articles).values({ id, slug: id, titulo: 'Título', editoria: 'pontos', corpo: 'Corpo', resumo: 'Resumo' });
   await app.db.insert(schema.publicationReceipts).values({
-    id: `rc-${id}`, articleId: id, versao: 1, conteudoSha256: sha, checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: publisher,
+    id: `rc-${id}`, articleId: id, versao: 1, conteudoSha256: receiptSha ?? articleContentSha256(rec.draft!.body), checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: publisher,
   });
   await store.putArticle(rec);
 }
@@ -119,6 +119,56 @@ describe('registro da publicação: portões', () => {
     expect(g.body.error.details.length).toBeGreaterThan(0);
     await nothingPublished('p-gate');
     expect((await store.getArticle('p-draft'))?.status).toBe('em_checagem');
+  });
+});
+
+describe('recibo prova a versão e o conteúdo aprovados (achado do QA 2 em 283e1e6)', () => {
+  it('recibo de versão antiga: 409 RECEIPT_STALE, nada gravado; o recibo da versão atual publica', async () => {
+    await seed('p-ver');
+    await app.db.update(schema.articles).set({ versao: 2 }).where(eq(schema.articles.id, 'p-ver')); // matéria seguiu para a versão 2
+    const old = await call(d, 'POST', { path: P('p-ver'), body: body('p-ver'), as: chefe });
+    expect(old.status).toBe(409);
+    expect(old.body.error.code).toBe('RECEIPT_STALE');
+    expect(old.body.error.details).toEqual({ versaoDoRecibo: 1, versaoDaMateria: 2 });
+    await nothingPublished('p-ver');
+    await app.db.insert(schema.publicationReceipts).values({
+      id: 'rc-p-ver-2', articleId: 'p-ver', versao: 2, conteudoSha256: articleContentSha256((await store.getArticle('p-ver'))!.draft!.body),
+      checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: chefe.id,
+    });
+    const ok = await call(d, 'POST', { path: P('p-ver'), body: body('p-ver', { receiptId: 'rc-p-ver-2' }), as: chefe });
+    expect(ok.status).toBe(201);
+    expect((await store.getArticle('p-ver'))?.publication?.receiptId).toBe('rc-p-ver-2');
+  });
+
+  it('sha divergente (recibo de outro conteúdo): 409 RECEIPT_CONTENT_MISMATCH, nada gravado', async () => {
+    await seed('p-sha', chefe.id, approved('p-sha'), 'c'.repeat(64));
+    const r = await call(d, 'POST', { path: P('p-sha'), body: body('p-sha'), as: chefe });
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe('RECEIPT_CONTENT_MISMATCH');
+    expect(JSON.stringify(r.body)).not.toContain('c'.repeat(64)); // não devolve hash
+    await nothingPublished('p-sha');
+  });
+
+  it('corpo alterado depois do recibo: 409 RECEIPT_CONTENT_MISMATCH (o recibo era do texto antigo)', async () => {
+    await seed('p-edit');
+    const rec = (await store.getArticle('p-edit'))!;
+    await store.putArticle({ ...rec, draft: { ...rec.draft!, body: `${rec.draft!.body}
+
+Trecho acrescentado depois da aprovação.` } });
+    const r = await call(d, 'POST', { path: P('p-edit'), body: body('p-edit'), as: chefe });
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe('RECEIPT_CONTENT_MISMATCH');
+    await nothingPublished('p-edit');
+  });
+
+  it('caso válido: versão e sha batem com a chave do outbox article.published:{id}:{sha}', async () => {
+    await seed('p-valid');
+    const sha256 = articleContentSha256((await store.getArticle('p-valid'))!.draft!.body);
+    const r = await call(d, 'POST', { path: P('p-valid'), body: body('p-valid'), as: chefe });
+    expect(r.status).toBe(201);
+    const [rcpt] = await app.db.select().from(schema.publicationReceipts).where(eq(schema.publicationReceipts.id, 'rc-p-valid'));
+    expect(rcpt).toMatchObject({ versao: 1, conteudoSha256: sha256 });
+    expect((await store.listOutbox()).find((o) => o.refId === 'p-valid')?.idempotencyKey).toBe(`article.published:p-valid:${sha256}`);
   });
 });
 
