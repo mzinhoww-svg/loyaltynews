@@ -5,8 +5,9 @@ Preparado para a decisão do proprietário. **Não é parecer jurídico e não c
 Consulta: 23/11/2026 (horários aproximados dentro da sessão). Fontes: as 40 pesquisadas em `docs/fontes-verificacao.md` + as fontes públicas das 20 organizações da carga do Intelligence (`packages/intelligence/data/seed.public.v2.json`: Livelo, Bradesco, LATAM Pass, ABEMF e Dotz).
 
 ## Como foi lido (limites)
-- **Quem leu:** a leitura dos documentos foi feita por leitores automatizados (3 agentes de pesquisa) com a ferramenta de leitura de páginas, que devolve texto resumido. Eu NÃO li cada página pessoalmente. Para não depender do resumo, **conferi cada trecho citado contra o HTML bruto da página** (uma leitura por documento, sem contornar nenhum bloqueio): ✓ = o trecho existe literalmente no texto bruto; ✗ = não confere; ◐ = parte confere; — = trecho curto demais para conferir. Dos 129 trechos, 123 conferem; os 6 restantes estão marcados abaixo (não conferem, parciais, curtos demais ou em página não verificável).
+- **Quem leu:** a leitura dos documentos foi feita por leitores automatizados (3 agentes de pesquisa) com a ferramenta de leitura de páginas, que devolve texto resumido. Eu NÃO li cada página pessoalmente. Para não depender do resumo, **conferi cada trecho citado contra o HTML bruto da página** (uma leitura por documento, sem contornar nenhum bloqueio): ✓ = o trecho existe literalmente no texto bruto; ✗ = não confere; ◐ = parte confere; — = trecho curto demais para conferir. Dos 135 trechos, 133 conferem; os 2 restantes estão marcados abaixo (não conferem, parciais, curtos demais ou em página não verificável).
 - Páginas que só carregam por JavaScript, PDFs e respostas 403 **não puderam ser conferidas** e aparecem como tal. Nada foi deduzido do que não foi lido.
+- **Releitura dos 403 (23/11):** os 403 da primeira leitura vinham, em boa parte, do cliente genérico dos leitores. Com um User-Agent identificado ("LoyaltyNewsSourceVerifier/1.0 — verificação pontual de fonte pública; sem coleta em massa", uma leitura por URL, sem contornar nada), Livelo, LATAM, LATAM Pass, Magalu RI, Itaú e Santander passaram a responder 200 e foram relidos (lote 4). Seguem bloqueados, e NÃO foram contornados: a home do Magalu (www), Star Alliance e ICO.
 - Termos mudam. Cada trecho vale para a data da consulta; qualquer habilitação deve reabrir a página (a revisão humana da fonte no Studio já é o ponto para isso).
 
 ## Uso que o portal pretende fazer (é contra isso que se lê cada termo)
@@ -25,7 +26,7 @@ Consulta: 23/11/2026 (horários aproximados dentro da sessão). Fontes: as 40 pe
 | **E** — inacessível / não lido | 403, bloqueio ou página vazia: nada lido | NÃO habilitar até leitura manual dos termos (leitura manual no navegador) |
 
 ## Resumo para decisão
-Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Senado, Câmara, EDPB)**; 1 com licença restritiva (gov.br); 12 que proíbem ou condicionam; 11 sem termos de conteúdo; 6 inacessíveis.
+Domínios lidos: 33 (+ 2 que seguem bloqueados). **3 com reuso autorizado no texto (Senado, Câmara, EDPB)**; 1 com licença restritiva (gov.br); 13 que proíbem ou condicionam; 14 sem termos de conteúdo; 2 inacessíveis.
 
 **Leitura prática:** só três domínios têm texto oficial que autoriza expressamente a reutilização — Agência Senado, Câmara dos Deputados e EDPB —, todos institucionais e naturais para **Regulação & Dados** (e para o que o Legislativo trate de consumo, cartões e tecnologia). Para as editorias de mercado (programas, milhas, bancos, varejo, viagem, CRM) não há, hoje, fonte com autorização textual: a decisão do proprietário é (a) pedir autorização escrita aos titulares (associações e empresas), (b) obter o parecer R0-10 sobre o caso gov.br/BCB, ou (c) aceitar o risco por escrito. **Recomendação operacional (sujeita à decisão do proprietário): a primeira matéria real deve sair de Senado ou Câmara** (feeds confirmados).
 
@@ -47,6 +48,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Zendesk (newsroom) | C | [www.zendesk.com.br/company/agreements-and-terms/](https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/) | Exibir/copiar/baixar "exclusivamente para seu uso pessoal e não comercial" | NÃO habilitar |
 | ABAV | C | — (nenhum documento de termos lido) | Rodapé: "Proibida reprodução ou utilização a qualquer título, sob as penas da lei" | NÃO habilitar |
 | oneworld | C | [www.oneworld.com/privacy-policy](https://www.oneworld.com/privacy-policy) | "No such materials may be reproduced without the prior written consent"; "No information provided via this website may be republished in any fashion i | NÃO habilitar |
+| Itaú (Sites e Aplicativos) | C | [www.itau.com.br/termos-de-uso](https://www.itau.com.br/termos-de-uso) | Item 8: softwares, identidade visual e conteúdo "somente podem ser usados com sua prévia e expressa autorização" | NÃO habilitar |
 | Banco do Brasil (RI e site) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
 | FEBRABAN | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
 | Bradesco (RI e hotsite Fidelidade/Livelo) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
@@ -58,14 +60,13 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | ABRAREC | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
 | Procon-SP | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
 | Airlines for America (A4A) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
+| Livelo (site e /imprensa) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
+| Magazine Luiza (RI) | D | [ri.magazineluiza.com.br/show.aspx](https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==) | Não informado (o texto só afirma titularidade: o conteúdo pertence "a nós ou a terceiros que licitamente cederam seu direito de uso") | NÃO habilitar |
+| Santander Brasil (RI) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
 | Banco Central do Brasil | E | [www.flickr.com/photos/bancocentralbr/sets/72](https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251) | NÃO LIDO no site oficial | NÃO habilitar até leitura manual dos termos |
-| LATAM (RI) e LATAM Pass | E | — (nenhum documento de termos lido) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
-| Magazine Luiza (RI e site) | E | — (nenhum documento de termos lido) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
-| Livelo (site e /imprensa) | E | — (nenhum documento de termos lido) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
-| Itaú (site e RI) | E | — (nenhum documento de termos lido) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
-| Santander Brasil (site e RI) | E | — (nenhum documento de termos lido) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
-| Star Alliance (`star-alliance`) | E | — | inacessível na pesquisa anterior (403); não retentado | NÃO habilitar até leitura manual dos termos |
-| ICO (Reino Unido) (`ico-uk`) | E | — | inacessível na pesquisa anterior (403, desafio Cloudflare); não retentado | NÃO habilitar até leitura manual dos termos |
+| LATAM (RI) e LATAM Pass | E | [www.latamairlines.com/us/en/legal/terms-of-use](https://www.latamairlines.com/us/en/legal/terms-of-use) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
+| Star Alliance (`star-alliance`) | E | — | robots.txt e site seguem 403 com User-Agent identificado (reconfirmado em 23/11; não contornado) | NÃO habilitar até leitura manual dos termos |
+| ICO (Reino Unido) (`ico-uk`) | E | — | desafio Cloudflare ("Just a moment...") com User-Agent identificado (reconfirmado em 23/11; não contornado) | NÃO habilitar até leitura manual dos termos |
 
 ## Fonte por fonte
 
@@ -111,7 +112,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | "mediante a citação da Agência Senado e do autor"; áudio: créditos à Rádio Senado |
 
 **Documentos:**
-- [politica_de_conteudo] https://www12.senado.leg.br/noticias/politica-de-uso — leitor: lido; bruto: texto bruto lido (3141 caracteres)
+- [politica_de_conteudo] https://www12.senado.leg.br/noticias/politica-de-uso — leitor: lido; bruto: texto bruto lido (3135 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _reproducao_texto_: “A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo”
@@ -263,7 +264,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Exige manter avisos e citar IATA como fonte |
 
 **Documentos:**
-- [termos_de_uso] https://www.iata.org/en/terms/ — leitor: lido; bruto: texto bruto lido (20455 caracteres)
+- [termos_de_uso] https://www.iata.org/en/terms/ — leitor: lido; bruto: texto bruto lido (20433 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _reproducao de texto (secao 3)_: “IATA authorizes you to download or reproduce selected materials from this Website only for your personal, non-commercial use”
@@ -326,7 +327,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Cópias autorizadas devem trazer "©Copyright Accor SA" |
 
 **Documentos:**
-- [termos_de_uso] https://group.accor.com/en/legal-terms — leitor: lido; bruto: texto bruto lido (13904 caracteres)
+- [termos_de_uso] https://group.accor.com/en/legal-terms — leitor: lido; bruto: texto bruto lido (13889 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _reprodução de texto_: “No material from the www.group.accor.com site may be copied, reproduced, modified, republished, uploaded, distorted, transmitted or distributed in any way whatsoever, on any medium whatsoever, in part or in full,”
@@ -443,7 +444,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Não remover avisos de direitos autorais |
 
 **Documentos:**
-- [termos_de_uso] https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/ — leitor: lido; bruto: texto bruto lido (27687 caracteres)
+- [termos_de_uso] https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/ — leitor: lido; bruto: texto bruto lido (27682 caracteres)
 - [outro] https://web-assets.zendesk.com/zendesk/pdf/Zendesk_Media_Kit_2026_V1.1.pdf — leitor: parcial; bruto: nao_verificavel (PDF)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
@@ -496,7 +497,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Não informado |
 
 **Documentos:**
-- [termos_de_uso] https://www.oneworld.com/privacy-policy — leitor: lido; bruto: texto bruto lido (18189 caracteres)
+- [termos_de_uso] https://www.oneworld.com/privacy-policy — leitor: lido; bruto: texto bruto lido (18184 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _reproducao_texto_: “No such materials may be reproduced without the prior written consent of the applicable owners”
@@ -507,6 +508,30 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 - ✓ _licenca (somente conteudo enviado por usuarios)_: “a worldwide, perpetual, royalty-free, non-exclusive, irrevocable, transferable, sublicensable license”
 
 **robots.txt:** lido
+
+### Itaú (Sites e Aplicativos)
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: itau-ri · **NÃO habilitar**
+- **Por quê:** Releitura de 23/11 com User-Agent identificado: 200. Os termos lidos são dos "Sites e Aplicativos do Itaú Unibanco"; o site de RI do Itaú é outro host e não foi aberto. O robots.txt convida LLMs e buscadores e traz Crawl-delay: 10.
+
+| Tópico | O que o texto diz |
+|---|---|
+| Citar/reproduzir texto | Item 8: softwares, identidade visual e conteúdo "somente podem ser usados com sua prévia e expressa autorização" |
+| Resumir/derivar | Não informado |
+| Linkar | Links para terceiros apenas |
+| Imagens/imprensa | Identidade visual e marcas só com autorização |
+| Automação, raspagem, IA | Item 6: veda "qualquer sistema/aplicação automatizada para realizar consultas, acessos ou qualquer outra operação massificada... sem autorização" |
+| Atribuição | Não informado |
+
+**Documentos:**
+- [termos_de_uso] https://www.itau.com.br/termos-de-uso — leitor: lido; bruto: texto bruto lido (15397 caracteres)
+
+**Trechos literais citados (✓ conferido no HTML bruto):**
+- ✓ _automação/raspagem_: “Usar qualquer sistema/aplicação automatizada para realizar consultas, acessos ou qualquer outra operação massificada, para qualquer finalidade, sem autorização do Itaú Unibanco”
+- ✓ _reprodução/uso de conteúdo (item 8)_: “Os seguintes itens pertencem ao Itaú Unibanco e somente podem ser usados com sua prévia e expressa autorização”
+- ✓ _conteúdo e identidade visual (item 8)_: “assim como sua identidade visual e conteúdo”
+- ✓ _links (para terceiros)_: “Nossos Sites e Aplicativos podem conter links para sites e aplicativos de terceiros.”
+
+**robots.txt:** lido — comentário "Permitir indexação e leitura por LLMs e buscadores"; lista agentes de IA (Google-Extended, ClaudeBot, PerplexityBot, CCBot) e há "Crawl-delay: 10"
 
 ### Banco do Brasil (RI e site)
 - **Classe D — sem termos de conteúdo** · fontes cadastradas: bb-ri · **NÃO habilitar**
@@ -546,14 +571,14 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 
 **Documentos:**
 - [outro] https://portal.febraban.org.br/ — leitor: lido; bruto: texto bruto lido (10206 caracteres)
-- [privacidade_apenas] https://portal.febraban.org.br/privacidade?idioma=pt-br — leitor: lido; bruto: texto bruto lido (25063 caracteres)
+- [privacidade_apenas] https://portal.febraban.org.br/privacidade?idioma=pt-br — leitor: lido; bruto: texto bruto lido (21081 caracteres)
 - [outro] https://portal.febraban.org.br/termos-de-uso — leitor: nao_encontrado; bruto: texto bruto lido (10206 caracteres)
 - [outro] https://febrabantech.febraban.org.br/termos-privacidade — leitor: parcial; bruto: nao_verificavel (página sem texto no HTML: 85 caracteres; provável JavaScript)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _aviso de copyright (único aviso encontrado no portal)_: “© 2026 FEBRABAN Todos os direitos reservados.”
-- ✗ _referência a Termos e Condições de Uso (documento em si não localizado)_: “ou prática de atividade contrárias à presente Política, aos Termos e Condições de Uso ou à legislação vigente,” (NÃO confere com o texto bruto: não usar como literal)
-- ✗ _links (para sites de terceiros, na política de privacidade)_: “poderá conter links para outros sites” (NÃO confere com o texto bruto: não usar como literal)
+- ✓ _referência a Termos e Condições de Uso (documento em si não localizado)_: “ou prática de atividade contrárias à presente Política, aos Termos e Condições de Uso ou à legislação vigente,”
+- ✓ _links (para sites de terceiros, na política de privacidade)_: “poderá conter links para outros sites”
 
 **robots.txt:** lido
 
@@ -642,7 +667,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Não informado |
 
 **Documentos:**
-- [outro] https://www.idv.org.br/ — leitor: lido; bruto: texto bruto lido (3976 caracteres)
+- [outro] https://www.idv.org.br/ — leitor: lido; bruto: texto bruto lido (3956 caracteres)
 - [privacidade_apenas] https://www.idv.org.br/politica-de-privacidade — leitor: lido; bruto: texto bruto lido (9910 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
@@ -666,8 +691,8 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 
 **Documentos:**
 - [outro] https://www.abras.com.br/ — leitor: lido; bruto: texto bruto lido (3168 caracteres)
-- [privacidade_apenas] https://www.abras.com.br/abras/politica-de-privacidade — leitor: lido; bruto: texto bruto lido (6706 caracteres)
-- [outro] https://www.abras.com.br/abras/expediente — leitor: lido; bruto: texto bruto lido (2710 caracteres)
+- [privacidade_apenas] https://www.abras.com.br/abras/politica-de-privacidade — leitor: lido; bruto: texto bruto lido (5818 caracteres)
+- [outro] https://www.abras.com.br/abras/expediente — leitor: lido; bruto: texto bruto lido (2656 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _aviso de copyright (rodapé)_: “Todos os direitos reservados.”
@@ -711,7 +736,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Não informado |
 
 **Documentos:**
-- [outro] https://abrarec.com.br/ — leitor: lido; bruto: texto bruto lido (5773 caracteres)
+- [outro] https://abrarec.com.br/ — leitor: lido; bruto: texto bruto lido (5758 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _aviso_de_copyright (rodape)_: “© ABRAREC Todos os direitos reservados 2026 | Desenvolvido por Navegar Marketing Digital”
@@ -753,17 +778,79 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | Não informado |
 
 **Documentos:**
-- [privacidade_apenas] https://www.airlines.org/privacy/ — leitor: lido; bruto: texto bruto lido (13536 caracteres)
-- [outro] https://www.airlines.org/ — leitor: lido; bruto: texto bruto lido (3944 caracteres)
+- [privacidade_apenas] https://www.airlines.org/privacy/ — leitor: lido; bruto: texto bruto lido (13526 caracteres)
+- [outro] https://www.airlines.org/ — leitor: lido; bruto: texto bruto lido (3934 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
-- ✗ _aviso_de_copyright (rodape)_: “© 2026 Airlines for America (A4A). All rights reserved.” (NÃO confere com o texto bruto: não usar como literal)
+- ✓ _aviso_de_copyright (rodape)_: “© 2026 Airlines for America (A4A). All rights reserved.”
+
+**robots.txt:** lido
+
+### Livelo (site e /imprensa)
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: livelo-imprensa (também fonte do Intelligence) · **NÃO habilitar**
+- **Por quê:** Releitura de 23/11 com User-Agent identificado: site e /imprensa respondem 200 (o 403 de 22/11 era do cliente genérico; o Data Engineer chegou à mesma conclusão). O rodapé só leva a Regulamentos (regras do programa) e à Política de privacidade; não há termos de uso do site, só "Livelo S.A. Todos os direitos reservados". O robots.txt permite /imprensa.
+
+| Tópico | O que o texto diz |
+|---|---|
+| Citar/reproduzir texto | Não informado |
+| Resumir/derivar | Não informado |
+| Linkar | Não informado |
+| Imagens/imprensa | Não informado |
+| Automação, raspagem, IA | Não informado |
+| Atribuição | Não informado |
+
+**Documentos:**
+- [privacidade_apenas] https://www.livelo.com.br/politica-de-privacidade — leitor: lido; bruto: texto bruto lido (21547 caracteres)
+- [outro] https://www.livelo.com.br/regulamentos — leitor: parcial; bruto: texto bruto lido (1325 caracteres)
+
+**Trechos literais citados (✓ conferido no HTML bruto):**
+- ✓ _aviso de copyright (rodapé)_: “Livelo S.A. Todos os direitos reservados”
+
+**robots.txt:** lido
+
+### Magazine Luiza (RI)
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: magalu-ri · **NÃO habilitar**
+- **Por quê:** Releitura de 23/11 com User-Agent identificado: o RI responde 200 (a home www.magazineluiza.com.br segue 403 e não foi lida). Os Termos e Condições do RI afirmam titularidade, mas, ao contrário de Azul e GOL, não trazem vedação expressa de reprodução; também não autorizam.
+
+| Tópico | O que o texto diz |
+|---|---|
+| Citar/reproduzir texto | Não informado (o texto só afirma titularidade: o conteúdo pertence "a nós ou a terceiros que licitamente cederam seu direito de uso") |
+| Resumir/derivar | Não informado |
+| Linkar | Não informado |
+| Imagens/imprensa | Não informado |
+| Automação, raspagem, IA | Não informado |
+| Atribuição | Não informado |
+
+**Documentos:**
+- [termos_de_uso] https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw== — leitor: lido; bruto: texto bruto lido (8626 caracteres)
+
+**Trechos literais citados (✓ conferido no HTML bruto):**
+- ✓ _titularidade do conteúdo (direitos de autor)_: “Salvo disposição em contrário, todo o conteúdo das páginas deste website, tais como informações, materiais, instrumentos, organização da página, gráficos e desenhos, pertencem a nós ou a terceiros que licitamente cederam seu direito de uso.”
+- ✓ _aceitação dos termos_: “o usuário terá aceito automaticamente todos os Termos e Condições aqui estabelecidos”
+
+**robots.txt:** lido
+
+### Santander Brasil (RI)
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: santander-ri · **NÃO habilitar**
+- **Por quê:** Releitura de 23/11 com User-Agent identificado: ri.santander.com.br responde 200, mas só traz política de privacidade e estatutos/códigos; termos de uso do site não localizados (a home do www não foi lida).
+
+| Tópico | O que o texto diz |
+|---|---|
+| Citar/reproduzir texto | Não informado |
+| Resumir/derivar | Não informado |
+| Linkar | Não informado |
+| Imagens/imprensa | Não informado |
+| Automação, raspagem, IA | Não informado |
+| Atribuição | Não informado |
+
+**Documentos:**
+- [privacidade_apenas] https://ri.santander.com.br/ri/politica-de-privacidade/ — leitor: lido; bruto: texto bruto lido (2307 caracteres)
 
 **robots.txt:** lido
 
 ### Banco Central do Brasil
 - **Classe E — inacessível / não lido** · fontes cadastradas: bcb · **NÃO habilitar até leitura manual dos termos**
-- **Por quê:** O site bcb.gov.br renderizou só o título e /acessoinformacao/termosdeuso não existe. O único aviso de reprodução ("reprodução total ou parcial sem fins lucrativos... citada a fonte") está numa página do BCB no Flickr: NÃO é o termo oficial do site. Se for confirmado no site, ainda traz a condição "sem fins lucrativos", e o portal vende publicidade: ponto jurídico.
+- **Por quê:** Releitura de 23/11 com User-Agent identificado: a home responde 200, mas o conteúdo é JavaScript (2.866 caracteres) e /acessoinformacao/termosdeuso não existe: o termo oficial NÃO foi lido. O único aviso de reprodução ("reprodução total ou parcial sem fins lucrativos... citada a fonte") está numa página do BCB no Flickr, que NÃO é o termo oficial do site. Se for confirmado no site, ainda traz a condição "sem fins lucrativos", e o portal vende publicidade: ponto jurídico.
 
 | Tópico | O que o texto diz |
 |---|---|
@@ -777,7 +864,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 **Documentos:**
 - [outro] https://www.bcb.gov.br/ — leitor: inacessivel; bruto: nao_verificavel (página sem texto no HTML: 114 caracteres; provável JavaScript)
 - [termos_de_uso] https://www.bcb.gov.br/acessoinformacao/termosdeuso — leitor: nao_encontrado; bruto: nao_verificavel (página sem texto no HTML: 114 caracteres; provável JavaScript)
-- [direitos_autorais] https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251 — leitor: parcial; bruto: texto bruto lido (1747 caracteres)
+- [direitos_autorais] https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251 — leitor: parcial; bruto: texto bruto lido (1740 caracteres)
 
 **Trechos literais citados (✓ conferido no HTML bruto):**
 - ✓ _reproducao de texto / atribuicao / uso comercial (aviso em pagina do Flickr do BCB, nao no site bcb.gov.br)_: “É permitida a reprodução total ou parcial sem fins lucrativos do conteúdo deste site,”
@@ -788,7 +875,7 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 
 ### LATAM (RI) e LATAM Pass
 - **Classe E — inacessível / não lido** · fontes cadastradas: latam-ir · **NÃO habilitar até leitura manual dos termos**
-- **Por quê:** Termos em latamairlines.com e latampass.latam.com e robots.txt responderam 403; ir.latam.com só tem rodapé de copyright. Nada a registrar além do bloqueio (não contornado). O robots de ir.latam.com pediu Crawl-delay de 10 s na pesquisa anterior.
+- **Por quê:** Releitura de 23/11 com User-Agent identificado: as páginas de termos (latamairlines.com e LATAM Pass) respondem 200, mas só renderizam por JavaScript (texto bruto de 29 e 3.107 caracteres): nada de termos lido. Precisa de leitura manual no navegador. O robots.txt lista agentes de IA com Allow: /llms.txt.
 
 | Tópico | O que o texto diz |
 |---|---|
@@ -800,89 +887,10 @@ Domínios lidos: 33 (+ 2 não retentados). **3 com reuso autorizado no texto (Se
 | Atribuição | NÃO LIDO |
 
 **Documentos:**
-- [termos_de_uso] https://www.latamairlines.com/us/en/legal/terms-of-use — leitor: inacessivel; bruto: nao_verificavel (página sem texto no HTML: 29 caracteres; provável JavaScript)
-- [outro] https://ir.latam.com/ — leitor: parcial; bruto: inacessivel (HTTP 403)
-- [outro] https://latampass.latam.com/ — leitor: inacessivel; bruto: texto bruto lido (5603 caracteres)
-- [outro] https://latampass.latam.com/pt_br/descubra-latam-pass/termos-e-condicoes-2025 — leitor: inacessivel; bruto: texto bruto lido (3107 caracteres)
+- [termos_de_uso] https://www.latamairlines.com/us/en/legal/terms-of-use — leitor: parcial; bruto: nao_verificavel (página sem texto no HTML: 29 caracteres; provável JavaScript)
+- [outro] https://latampass.latam.com/br/pt/regulamentos-gerais/termos-e-condicoes — leitor: parcial; bruto: texto bruto lido (3107 caracteres)
 
-**Trechos literais citados (✓ conferido no HTML bruto):**
-- ○ _copyright (rodape de ir.latam.com; nao e clausula de uso de conteudo)_: “© 2026 LATAM Airlines Group S.A. - All rights reserved” (não conferido: inacessivel (HTTP 403))
-
-**robots.txt:** lido
-
-### Magazine Luiza (RI e site)
-- **Classe E — inacessível / não lido** · fontes cadastradas: magalu-ri · **NÃO habilitar até leitura manual dos termos**
-- **Por quê:** Home, RI e robots.txt responderam 403. Nada lido.
-
-| Tópico | O que o texto diz |
-|---|---|
-| Citar/reproduzir texto | NÃO LIDO (403) |
-| Resumir/derivar | NÃO LIDO |
-| Linkar | NÃO LIDO |
-| Imagens/imprensa | NÃO LIDO |
-| Automação, raspagem, IA | NÃO LIDO (robots 403) |
-| Atribuição | NÃO LIDO |
-
-**Documentos:**
-- [outro] https://ri.magazineluiza.com.br/ — leitor: inacessivel; bruto: texto bruto lido (5739 caracteres)
-- [outro] https://www.magazineluiza.com.br/ — leitor: inacessivel; bruto: inacessivel (HTTP 403)
-
-**robots.txt:** inacessivel
-
-### Livelo (site e /imprensa)
-- **Classe E — inacessível / não lido** · fontes cadastradas: livelo-imprensa (também fonte do Intelligence) · **NÃO habilitar até leitura manual dos termos**
-- **Por quê:** Home e robots.txt responderam 403; a busca só achou cópias de terceiros, não usadas.
-
-| Tópico | O que o texto diz |
-|---|---|
-| Citar/reproduzir texto | NÃO LIDO (403) |
-| Resumir/derivar | NÃO LIDO |
-| Linkar | NÃO LIDO |
-| Imagens/imprensa | NÃO LIDO |
-| Automação, raspagem, IA | NÃO LIDO (robots 403) |
-| Atribuição | NÃO LIDO |
-
-**Documentos:**
-- [outro] https://www.livelo.com.br/ — leitor: inacessivel; bruto: texto bruto lido (17961 caracteres)
-
-**robots.txt:** inacessivel
-
-### Itaú (site e RI)
-- **Classe E — inacessível / não lido** · fontes cadastradas: itau-ri · **NÃO habilitar até leitura manual dos termos**
-- **Por quê:** Home e robots.txt responderam 403.
-
-| Tópico | O que o texto diz |
-|---|---|
-| Citar/reproduzir texto | NÃO LIDO (403) |
-| Resumir/derivar | NÃO LIDO |
-| Linkar | NÃO LIDO |
-| Imagens/imprensa | NÃO LIDO |
-| Automação, raspagem, IA | NÃO LIDO (robots 403) |
-| Atribuição | NÃO LIDO |
-
-**Documentos:**
-- [outro] https://www.itau.com.br/ — leitor: inacessivel; bruto: texto bruto lido (8032 caracteres)
-
-**robots.txt:** inacessivel
-
-### Santander Brasil (site e RI)
-- **Classe E — inacessível / não lido** · fontes cadastradas: santander-ri · **NÃO habilitar até leitura manual dos termos**
-- **Por quê:** Todos os acessos responderam 403.
-
-| Tópico | O que o texto diz |
-|---|---|
-| Citar/reproduzir texto | NÃO LIDO (403) |
-| Resumir/derivar | NÃO LIDO |
-| Linkar | NÃO LIDO |
-| Imagens/imprensa | NÃO LIDO |
-| Automação, raspagem, IA | NÃO LIDO (robots 403) |
-| Atribuição | NÃO LIDO |
-
-**Documentos:**
-- [outro] https://www.santander.com.br/ — leitor: inacessivel; bruto: texto bruto lido (8465 caracteres)
-- [outro] https://ri.santander.com.br/ — leitor: inacessivel; bruto: texto bruto lido (2307 caracteres)
-
-**robots.txt:** inacessivel
+**robots.txt:** lido — aponta llms.txt e lista GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot com Allow: /llms.txt (sem bloqueio total)
 
 ## Fontes do Intelligence (carga `seed.public.v2`) — situação
 A carga usa 6 páginas públicas como evidência de vínculos entre organizações, com **citação literal curta** por registro. Situação dos termos de cada uma:

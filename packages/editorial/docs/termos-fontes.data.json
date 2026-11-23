@@ -241,72 +241,6 @@
       "observacoes": "Trechos limitados a ~125 caracteres pela ferramenta; a segunda parte da clausula foi apresentada separadamente (resumo menciona 'pertencem à GOL ou a terceiros que licitamente cederam seu direito de uso'; esse fragmento veio entre aspas na primeira resposta, nao reproduzido aqui por vir incompleto). Termos do site www.voegol.com.br nao acessados."
     },
     {
-      "dominio": "ir.latam.com / www.latamairlines.com / latampass.latam.com",
-      "fontes": [
-        "latam-ir"
-      ],
-      "documentos": [
-        {
-          "url": "https://www.latamairlines.com/us/en/legal/terms-of-use",
-          "titulo": "Terms of Use (LATAM Airlines) - nao lido",
-          "tipo": "termos_de_uso",
-          "consultadoEm": "2026-11-23T07:30:00-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        },
-        {
-          "url": "https://ir.latam.com/",
-          "titulo": "LATAM Investor Relations (home; rodape consultado)",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:34:00-03:00",
-          "status": "parcial",
-          "viaResumoDaFerramenta": true
-        },
-        {
-          "url": "https://latampass.latam.com/",
-          "titulo": "LATAM Pass (home) - nao lido",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:36:00-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        },
-        {
-          "url": "https://latampass.latam.com/pt_br/descubra-latam-pass/termos-e-condicoes-2025",
-          "titulo": "Termos e Condições (LATAM Pass, regulamento do programa) - nao lido",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:40:00-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        }
-      ],
-      "trechos": [
-        {
-          "topico": "copyright (rodape de ir.latam.com; nao e clausula de uso de conteudo)",
-          "trecho": "© 2026 LATAM Airlines Group S.A. - All rights reserved",
-          "url": "https://ir.latam.com/"
-        }
-      ],
-      "topicosNaoInformados": [
-        "reproducao de texto",
-        "citacao",
-        "resumo/obra derivada",
-        "link para o site",
-        "imagens/material de imprensa",
-        "automacao/raspagem/robos/mineracao de texto/IA",
-        "atribuicao/credito",
-        "uso comercial",
-        "licenca"
-      ],
-      "robots": {
-        "url": "https://ir.latam.com/robots.txt",
-        "consultadoEm": "2026-11-23T07:34:00-03:00",
-        "status": "lido",
-        "sinaisDeIA": null,
-        "observacao": "Segundo o resumo da ferramenta: User-agent * (Crawl-delay: 10, Allow: /), Eluta.ca, MS Search 6.0 Robot, gsa-crawler (Crawl-delay: 60, Allow: /); nenhum Disallow, sem ai-train nem User-agent de IA. https://www.latamairlines.com/robots.txt retornou 403 (nao contornado)."
-      },
-      "observacoes": "Terms of Use em www.latamairlines.com retornou HTTP 403; registrado como inacessivel, sem tentativa de contornar. O rodape de ir.latam.com (plataforma Q4 Inc.) lista Privacy Policy, Cookies Policy e Terms of Use apontando para https://www.latamairlines.com/us/en/legal/privacy-policy, .../cookies-policy e .../terms-of-use (links vistos, nao lidos). latampass.latam.com e a pagina de regulamento retornaram 403. Busca web apenas listou paginas de regulamento do programa LATAM Pass por pais (ex.: https://latampass.latam.com/en_us/discover-latam-pass/terms-and-conditions), que sao regras do programa de fidelidade e nao foram abertas; nao e documento de uso de conteudo."
-    },
-    {
       "dominio": "www.abecs.org.br",
       "fontes": [
         "abecs"
@@ -472,42 +406,6 @@
         "observacao": "Segundo o resumo da ferramenta: User-agent * com Disallow /en/search/*, /episerver/, /utils/, /en/customers-tax-faq/, /customers-tax-faq/, /en/store/trainings/*; Sitemap https://www.iata.org/sitemap.xml. Sem ai-train, content-signal nem User-agent de IA."
       },
       "observacoes": "As frases de IA e de atribuicao vieram truncadas pela ferramenta (limite ~125 caracteres); o sentido completo (uso de ferramenta de IA generativa com informacao IATA, analise ou criacao de versoes derivadas, segundo o resumo da ferramenta) nao foi obtido em texto integral literal. Trechos 'atribuicao' sao parte de condicao do uso permitido (reproducao pessoal e nao comercial). O texto da secao 3 refere-se a ferramentas de IA em contexto de informacao confidencial/IATA, conforme resumo."
-    },
-    {
-      "dominio": "ri.magazineluiza.com.br / www.magazineluiza.com.br",
-      "fontes": [
-        "magalu-ri"
-      ],
-      "documentos": [
-        {
-          "url": "https://ri.magazineluiza.com.br/",
-          "titulo": "Magazine Luiza RI (home) - nao lido",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:35:00-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        },
-        {
-          "url": "https://www.magazineluiza.com.br/",
-          "titulo": "Magazine Luiza (home) - nao lido",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:35:00-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        }
-      ],
-      "trechos": [],
-      "topicosNaoInformados": [
-        "todos os topicos (nenhum documento de termos lido)"
-      ],
-      "robots": {
-        "url": "https://www.magazineluiza.com.br/robots.txt",
-        "consultadoEm": "2026-11-23T07:36:00-03:00",
-        "status": "inacessivel",
-        "sinaisDeIA": null,
-        "observacao": "HTTP 403. https://ri.magazineluiza.com.br/robots.txt tambem retornou 403. Nao contornado."
-      },
-      "observacoes": "Home do RI, home do site institucional e robots.txt dos dois hosts retornaram HTTP 403 via WebFetch (sem contornar). Busca web nao localizou termos de uso do site/RI de Magalu (so um termo de entregadores Magalog, nao aberto e nao relacionado ao conteudo). Status geral dos termos: nao_encontrado/inacessivel."
     },
     {
       "dominio": "ri.bb.com.br / www.bb.com.br",
@@ -800,34 +698,6 @@
       "observacoes": "Nenhum Termos de Uso/Direitos autorais geral do site foi localizado nos rodapés abertos. O PDF de Condições do Internet Banking foi baixado, mas o texto (streams comprimidos) não pôde ser lido: nada registrado do seu conteúdo. Uma busca (snippet NÃO lido por mim) sugere que termos de produtos Bradesco existem em PDFs (Bia, Pix, Internet Banking), sem termo geral do site. O hotsite lista Regulamento Programa de Fidelidade Bradesco Cartões (https://assets.bradesco/content/dam/portal-bradesco/assets/common/pdf/hotsite/regulamento-programa-fidelidade-cartoes.pdf), que é regulamento de programa, NÃO aberto. Horários aproximados."
     },
     {
-      "dominio": "www.livelo.com.br",
-      "fontes": [
-        "livelo-imprensa"
-      ],
-      "documentos": [
-        {
-          "url": "https://www.livelo.com.br/",
-          "titulo": "Home Livelo (HTTP 403 Forbidden)",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:31:15-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        }
-      ],
-      "trechos": [],
-      "topicosNaoInformados": [
-        "todos os tópicos: documento não lido (acesso bloqueado, 403), nada a registrar"
-      ],
-      "robots": {
-        "url": "https://www.livelo.com.br/robots.txt",
-        "consultadoEm": "2026-11-23T07:31:15-03:00",
-        "status": "inacessivel",
-        "sinaisDeIA": null,
-        "observacao": "HTTP 403 Forbidden; robots.txt não lido."
-      },
-      "observacoes": "Home e robots.txt retornaram 403 (resposta incluía bloqueio sem contorno tentado). Uma WebSearch não retornou termos oficiais do site livelo.com.br (só cópias de terceiros/agregadores, que não foram usadas). Não foi tentada nenhuma forma de contornar o bloqueio."
-    },
-    {
       "dominio": "www.dotz.com.br",
       "fontes": [
         "dotz"
@@ -949,70 +819,6 @@
         "observacao": "User-agent: * / Disallow: /wp-admin/ / Allow: /wp-admin/admin-ajax.php / Sitemap: https://web.abemf.com.br/wp-sitemap.xml. Sem User-agent de IA, sem ai-train/Content-Signal."
       },
       "observacoes": "www.abemf.com.br redireciona (302) para web.abemf.com.br. Nenhum link de Termos de uso, Política de privacidade ou Direitos autorais no rodapé da página de associados nem na navegação (lista de navegação obtida da mesma página). Uma WebSearch também não achou termos (apenas rodapés de copyright de páginas antigas de www.abemf.com.br, não abertas). Status do documento de termos: nao_encontrado. Horários aproximados."
-    },
-    {
-      "dominio": "www.itau.com.br (Itaú, RI)",
-      "fontes": [
-        "itau-ri"
-      ],
-      "documentos": [
-        {
-          "url": "https://www.itau.com.br/",
-          "titulo": "Home Itaú (HTTP 403 Forbidden)",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:31:15-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        }
-      ],
-      "trechos": [],
-      "topicosNaoInformados": [
-        "todos os tópicos: documento não lido (403), nada a registrar"
-      ],
-      "robots": {
-        "url": "https://www.itau.com.br/robots.txt",
-        "consultadoEm": "2026-11-23T07:31:15-03:00",
-        "status": "inacessivel",
-        "sinaisDeIA": null,
-        "observacao": "HTTP 403 Forbidden; robots.txt não lido."
-      },
-      "observacoes": "Home e robots.txt do Itaú retornaram 403; sem tentativa de contorno. Não foi aberta nenhuma outra URL de RI do Itaú."
-    },
-    {
-      "dominio": "www.santander.com.br e ri.santander.com.br",
-      "fontes": [
-        "santander-ri"
-      ],
-      "documentos": [
-        {
-          "url": "https://www.santander.com.br/",
-          "titulo": "Home Santander Brasil (HTTP 403 Forbidden)",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:31:15-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        },
-        {
-          "url": "https://ri.santander.com.br/",
-          "titulo": "RI Santander Brasil (HTTP 403 Forbidden)",
-          "tipo": "outro",
-          "consultadoEm": "2026-11-23T07:31:15-03:00",
-          "status": "inacessivel",
-          "viaResumoDaFerramenta": false
-        }
-      ],
-      "trechos": [],
-      "topicosNaoInformados": [
-        "todos os tópicos: documento não lido (403), nada a registrar"
-      ],
-      "robots": {
-        "url": "https://www.santander.com.br/robots.txt",
-        "consultadoEm": "2026-11-23T07:31:15-03:00",
-        "status": "inacessivel",
-        "sinaisDeIA": null,
-        "observacao": "HTTP 403 Forbidden em www.santander.com.br/robots.txt e em ri.santander.com.br/robots.txt."
-      },
-      "observacoes": "Todos os acessos retornaram 403; sem tentativa de contorno."
     },
     {
       "dominio": "www.idv.org.br",
@@ -2057,6 +1863,212 @@
         "observacao": "Texto devolvido: User-agent: * Disallow /bin/ e /App_Data/; Sitemap https://www.oneworld.com/sitemap_index.xml. Sem IA, ai-train ou Content-Signal."
       },
       "observacoes": "Documento combinado Termos de Uso + Politica de Privacidade, linkado no rodape como 'Privacy Policy'. A frase 'is prohibit' foi devolvida truncada pela ferramenta (texto original provavelmente 'prohibited'; nao verificado). A frase 'Trademarks, brands and copyright material ... belong to' esta cortada pela ferramenta. A primeira citacao ('No such materials') depende de contexto anterior nao visto. A busca (so resumo) indicou outras paginas de condicoes (lounges) nao abertas."
+    },
+    {
+      "dominio": "www.livelo.com.br",
+      "fontes": [
+        "livelo-imprensa"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.livelo.com.br/politica-de-privacidade",
+          "titulo": "Política de privacidade",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://www.livelo.com.br/regulamentos",
+          "titulo": "Regulamentos (programa)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso de copyright (rodapé)",
+          "trecho": "Livelo S.A. Todos os direitos reservados",
+          "url": "https://www.livelo.com.br/politica-de-privacidade"
+        }
+      ],
+      "topicosNaoInformados": [
+        "todos os tópicos de uso de conteúdo (nenhum termo de uso do site localizado)"
+      ],
+      "robots": {
+        "url": "https://www.livelo.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T11:00:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent * com Allow: / e Disallow: /api/, /autologin, /logout, /redirect-login-page; a página /imprensa responde 200."
+      },
+      "observacoes": "Releitura de 23/11 com User-Agent identificado: o 403 anterior era do cliente genérico. O rodapé só leva a Regulamentos (regras do programa) e à Política de privacidade."
+    },
+    {
+      "dominio": "ir.latam.com",
+      "fontes": [
+        "latam-ir"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.latamairlines.com/us/en/legal/terms-of-use",
+          "titulo": "Terms of use",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://latampass.latam.com/br/pt/regulamentos-gerais/termos-e-condicoes",
+          "titulo": "LATAM Pass — Termos e Condições",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [],
+      "topicosNaoInformados": [
+        "todos (as páginas respondem 200 mas o conteúdo só aparece por JavaScript: texto bruto de 29 e 3107 caracteres)"
+      ],
+      "robots": {
+        "url": "https://www.latamairlines.com/robots.txt",
+        "consultadoEm": "2026-11-23T11:00:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": "aponta llms.txt e lista GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot com Allow: /llms.txt (sem bloqueio total)",
+        "observacao": "Releitura com UA identificado: 200. O conteúdo dos termos não renderiza sem JavaScript: leitura manual necessária."
+      },
+      "observacoes": "Termos de uso do LATAM Airlines e termos do LATAM Pass NÃO puderam ser lidos (páginas dependem de JavaScript)."
+    },
+    {
+      "dominio": "ri.magazineluiza.com.br",
+      "fontes": [
+        "magalu-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==",
+          "titulo": "Termos e Condições (RI)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "titularidade do conteúdo (direitos de autor)",
+          "trecho": "Salvo disposição em contrário, todo o conteúdo das páginas deste website, tais como informações, materiais, instrumentos, organização da página, gráficos e desenhos, pertencem a nós ou a terceiros que licitamente cederam seu direito de uso.",
+          "url": "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw=="
+        },
+        {
+          "topico": "aceitação dos termos",
+          "trecho": "o usuário terá aceito automaticamente todos os Termos e Condições aqui estabelecidos",
+          "url": "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw=="
+        }
+      ],
+      "topicosNaoInformados": [
+        "reprodução (não há vedação expressa de reprodução, diferente de Azul/GOL)",
+        "citação",
+        "resumo/derivação",
+        "link",
+        "imagens",
+        "automação/raspagem/IA",
+        "atribuição",
+        "uso comercial"
+      ],
+      "robots": {
+        "url": "https://www.magazineluiza.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T11:00:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "robots do site www (200); o RI é host separado e o robots dele não foi lido. A home www.magazineluiza.com.br segue 403."
+      },
+      "observacoes": "Releitura de 23/11 com UA identificado: o RI responde 200. O texto lido só afirma titularidade; não proíbe nem autoriza expressamente a reprodução."
+    },
+    {
+      "dominio": "www.itau.com.br",
+      "fontes": [
+        "itau-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.itau.com.br/termos-de-uso",
+          "titulo": "Termos de Uso (Sites e Aplicativos do Itaú Unibanco)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "automação/raspagem",
+          "trecho": "Usar qualquer sistema/aplicação automatizada para realizar consultas, acessos ou qualquer outra operação massificada, para qualquer finalidade, sem autorização do Itaú Unibanco",
+          "url": "https://www.itau.com.br/termos-de-uso"
+        },
+        {
+          "topico": "reprodução/uso de conteúdo (item 8)",
+          "trecho": "Os seguintes itens pertencem ao Itaú Unibanco e somente podem ser usados com sua prévia e expressa autorização",
+          "url": "https://www.itau.com.br/termos-de-uso"
+        },
+        {
+          "topico": "conteúdo e identidade visual (item 8)",
+          "trecho": "assim como sua identidade visual e conteúdo",
+          "url": "https://www.itau.com.br/termos-de-uso"
+        },
+        {
+          "topico": "links (para terceiros)",
+          "trecho": "Nossos Sites e Aplicativos podem conter links para sites e aplicativos de terceiros.",
+          "url": "https://www.itau.com.br/termos-de-uso"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citação",
+        "resumo/derivação",
+        "link para o site do Itaú",
+        "imagens de imprensa",
+        "atribuição",
+        "uso comercial"
+      ],
+      "robots": {
+        "url": "https://www.itau.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T11:00:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": "comentário \"Permitir indexação e leitura por LLMs e buscadores\"; lista agentes de IA (Google-Extended, ClaudeBot, PerplexityBot, CCBot) e há \"Crawl-delay: 10\"",
+        "observacao": "Grupo * com Allow: /; Disallow de /mapa-fst/, /xml, /404/, /*.pdf$ e outros."
+      },
+      "observacoes": "Releitura de 23/11 com UA identificado: 200. Os termos são dos \"Sites e Aplicativos do Itaú Unibanco\"; o site de RI do Itaú é outro host e não foi aberto."
+    },
+    {
+      "dominio": "www.santander.com.br",
+      "fontes": [
+        "santander-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://ri.santander.com.br/ri/politica-de-privacidade/",
+          "titulo": "Política de Privacidade (RI)",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T11:00:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [],
+      "topicosNaoInformados": [
+        "todos (só política de privacidade e estatutos/códigos no RI; termos de uso do www.santander.com.br não localizados)"
+      ],
+      "robots": {
+        "url": "https://www.santander.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T11:00:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent * com Allow: /; Disallow de /xml/, /404/, /*.pdf e pastas de hotsite."
+      },
+      "observacoes": "Releitura de 23/11 com UA identificado: ri.santander.com.br e o robots do www respondem 200. A home do www não foi lida."
     }
   ],
   "conferenciaBruta": [
@@ -2095,7 +2107,7 @@
       "documentos": {
         "https://www.bcb.gov.br/": "nao_verificavel (página sem texto no HTML: 114 caracteres; provável JavaScript)",
         "https://www.bcb.gov.br/acessoinformacao/termosdeuso": "nao_verificavel (página sem texto no HTML: 114 caracteres; provável JavaScript)",
-        "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251": "texto bruto lido (1747 caracteres)"
+        "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251": "texto bruto lido (1740 caracteres)"
       },
       "trechos": [
         {
@@ -2179,24 +2191,6 @@
       ]
     },
     {
-      "dominio": "ir.latam.com / www.latamairlines.com / latampass.latam.com",
-      "lote": 1,
-      "documentos": {
-        "https://www.latamairlines.com/us/en/legal/terms-of-use": "nao_verificavel (página sem texto no HTML: 29 caracteres; provável JavaScript)",
-        "https://ir.latam.com/": "inacessivel (HTTP 403)",
-        "https://latampass.latam.com/": "texto bruto lido (5603 caracteres)",
-        "https://latampass.latam.com/pt_br/descubra-latam-pass/termos-e-condicoes-2025": "texto bruto lido (3107 caracteres)"
-      },
-      "trechos": [
-        {
-          "topico": "copyright (rodape de ir.latam.com; nao e clausula de uso de conteudo)",
-          "trecho": "© 2026 LATAM Airlines Group S.A. - All rights reserved",
-          "url": "https://ir.latam.com/",
-          "conferencia": "inacessivel (HTTP 403)"
-        }
-      ]
-    },
-    {
       "dominio": "www.abecs.org.br",
       "lote": 1,
       "documentos": {
@@ -2257,7 +2251,7 @@
       "dominio": "www.iata.org",
       "lote": 1,
       "documentos": {
-        "https://www.iata.org/en/terms/": "texto bruto lido (20455 caracteres)"
+        "https://www.iata.org/en/terms/": "texto bruto lido (20433 caracteres)"
       },
       "trechos": [
         {
@@ -2333,15 +2327,6 @@
           "conferencia": "verificado"
         }
       ]
-    },
-    {
-      "dominio": "ri.magazineluiza.com.br / www.magazineluiza.com.br",
-      "lote": 1,
-      "documentos": {
-        "https://ri.magazineluiza.com.br/": "texto bruto lido (5739 caracteres)",
-        "https://www.magazineluiza.com.br/": "inacessivel (HTTP 403)"
-      },
-      "trechos": []
     },
     {
       "dominio": "ri.bb.com.br / www.bb.com.br",
@@ -2425,7 +2410,7 @@
       "lote": 2,
       "documentos": {
         "https://portal.febraban.org.br/": "texto bruto lido (10206 caracteres)",
-        "https://portal.febraban.org.br/privacidade?idioma=pt-br": "texto bruto lido (25063 caracteres)",
+        "https://portal.febraban.org.br/privacidade?idioma=pt-br": "texto bruto lido (21081 caracteres)",
         "https://portal.febraban.org.br/termos-de-uso": "texto bruto lido (10206 caracteres)",
         "https://febrabantech.febraban.org.br/termos-privacidade": "nao_verificavel (página sem texto no HTML: 85 caracteres; provável JavaScript)"
       },
@@ -2440,13 +2425,13 @@
           "topico": "referência a Termos e Condições de Uso (documento em si não localizado)",
           "trecho": "ou prática de atividade contrárias à presente Política, aos Termos e Condições de Uso ou à legislação vigente,",
           "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br",
-          "conferencia": "nao_confere"
+          "conferencia": "verificado"
         },
         {
           "topico": "links (para sites de terceiros, na política de privacidade)",
           "trecho": "poderá conter links para outros sites",
           "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br",
-          "conferencia": "nao_confere"
+          "conferencia": "verificado"
         }
       ]
     },
@@ -2466,14 +2451,6 @@
           "conferencia": "curto_demais"
         }
       ]
-    },
-    {
-      "dominio": "www.livelo.com.br",
-      "lote": 2,
-      "documentos": {
-        "https://www.livelo.com.br/": "texto bruto lido (17961 caracteres)"
-      },
-      "trechos": []
     },
     {
       "dominio": "www.dotz.com.br",
@@ -2527,27 +2504,10 @@
       ]
     },
     {
-      "dominio": "www.itau.com.br (Itaú, RI)",
-      "lote": 2,
-      "documentos": {
-        "https://www.itau.com.br/": "texto bruto lido (8032 caracteres)"
-      },
-      "trechos": []
-    },
-    {
-      "dominio": "www.santander.com.br e ri.santander.com.br",
-      "lote": 2,
-      "documentos": {
-        "https://www.santander.com.br/": "texto bruto lido (8465 caracteres)",
-        "https://ri.santander.com.br/": "texto bruto lido (2307 caracteres)"
-      },
-      "trechos": []
-    },
-    {
       "dominio": "www.idv.org.br",
       "lote": 2,
       "documentos": {
-        "https://www.idv.org.br/": "texto bruto lido (3976 caracteres)",
+        "https://www.idv.org.br/": "texto bruto lido (3956 caracteres)",
         "https://www.idv.org.br/politica-de-privacidade": "texto bruto lido (9910 caracteres)"
       },
       "trechos": [
@@ -2570,8 +2530,8 @@
       "lote": 2,
       "documentos": {
         "https://www.abras.com.br/": "texto bruto lido (3168 caracteres)",
-        "https://www.abras.com.br/abras/politica-de-privacidade": "texto bruto lido (6706 caracteres)",
-        "https://www.abras.com.br/abras/expediente": "texto bruto lido (2710 caracteres)"
+        "https://www.abras.com.br/abras/politica-de-privacidade": "texto bruto lido (5818 caracteres)",
+        "https://www.abras.com.br/abras/expediente": "texto bruto lido (2656 caracteres)"
       },
       "trechos": [
         {
@@ -2592,7 +2552,7 @@
       "dominio": "group.accor.com",
       "lote": 2,
       "documentos": {
-        "https://group.accor.com/en/legal-terms": "texto bruto lido (13904 caracteres)"
+        "https://group.accor.com/en/legal-terms": "texto bruto lido (13889 caracteres)"
       },
       "trechos": [
         {
@@ -2753,7 +2713,7 @@
       "dominio": "www12.senado.leg.br",
       "lote": 3,
       "documentos": {
-        "https://www12.senado.leg.br/noticias/politica-de-uso": "texto bruto lido (3141 caracteres)"
+        "https://www12.senado.leg.br/noticias/politica-de-uso": "texto bruto lido (3135 caracteres)"
       },
       "trechos": [
         {
@@ -2993,7 +2953,7 @@
       "dominio": "www.zendesk.com / www.zendesk.com.br",
       "lote": 3,
       "documentos": {
-        "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/": "texto bruto lido (27687 caracteres)",
+        "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/": "texto bruto lido (27682 caracteres)",
         "https://web-assets.zendesk.com/zendesk/pdf/Zendesk_Media_Kit_2026_V1.1.pdf": "nao_verificavel (PDF)"
       },
       "trechos": [
@@ -3051,7 +3011,7 @@
       "dominio": "abrarec.com.br",
       "lote": 3,
       "documentos": {
-        "https://abrarec.com.br/": "texto bruto lido (5773 caracteres)"
+        "https://abrarec.com.br/": "texto bruto lido (5758 caracteres)"
       },
       "trechos": [
         {
@@ -3104,15 +3064,15 @@
       "dominio": "www.airlines.org",
       "lote": 3,
       "documentos": {
-        "https://www.airlines.org/privacy/": "texto bruto lido (13536 caracteres)",
-        "https://www.airlines.org/": "texto bruto lido (3944 caracteres)"
+        "https://www.airlines.org/privacy/": "texto bruto lido (13526 caracteres)",
+        "https://www.airlines.org/": "texto bruto lido (3934 caracteres)"
       },
       "trechos": [
         {
           "topico": "aviso_de_copyright (rodape)",
           "trecho": "© 2026 Airlines for America (A4A). All rights reserved.",
           "url": "https://www.airlines.org/",
-          "conferencia": "nao_confere"
+          "conferencia": "verificado"
         }
       ]
     },
@@ -3120,7 +3080,7 @@
       "dominio": "www.oneworld.com",
       "lote": 3,
       "documentos": {
-        "https://www.oneworld.com/privacy-policy": "texto bruto lido (18189 caracteres)"
+        "https://www.oneworld.com/privacy-policy": "texto bruto lido (18184 caracteres)"
       },
       "trechos": [
         {
@@ -3160,6 +3120,93 @@
           "conferencia": "verificado"
         }
       ]
+    },
+    {
+      "dominio": "www.livelo.com.br",
+      "lote": 4,
+      "documentos": {
+        "https://www.livelo.com.br/politica-de-privacidade": "texto bruto lido (21547 caracteres)",
+        "https://www.livelo.com.br/regulamentos": "texto bruto lido (1325 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso de copyright (rodapé)",
+          "trecho": "Livelo S.A. Todos os direitos reservados",
+          "url": "https://www.livelo.com.br/politica-de-privacidade",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "ir.latam.com",
+      "lote": 4,
+      "documentos": {
+        "https://www.latamairlines.com/us/en/legal/terms-of-use": "nao_verificavel (página sem texto no HTML: 29 caracteres; provável JavaScript)",
+        "https://latampass.latam.com/br/pt/regulamentos-gerais/termos-e-condicoes": "texto bruto lido (3107 caracteres)"
+      },
+      "trechos": []
+    },
+    {
+      "dominio": "ri.magazineluiza.com.br",
+      "lote": 4,
+      "documentos": {
+        "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==": "texto bruto lido (8626 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "titularidade do conteúdo (direitos de autor)",
+          "trecho": "Salvo disposição em contrário, todo o conteúdo das páginas deste website, tais como informações, materiais, instrumentos, organização da página, gráficos e desenhos, pertencem a nós ou a terceiros que licitamente cederam seu direito de uso.",
+          "url": "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "aceitação dos termos",
+          "trecho": "o usuário terá aceito automaticamente todos os Termos e Condições aqui estabelecidos",
+          "url": "https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.itau.com.br",
+      "lote": 4,
+      "documentos": {
+        "https://www.itau.com.br/termos-de-uso": "texto bruto lido (15397 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "automação/raspagem",
+          "trecho": "Usar qualquer sistema/aplicação automatizada para realizar consultas, acessos ou qualquer outra operação massificada, para qualquer finalidade, sem autorização do Itaú Unibanco",
+          "url": "https://www.itau.com.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reprodução/uso de conteúdo (item 8)",
+          "trecho": "Os seguintes itens pertencem ao Itaú Unibanco e somente podem ser usados com sua prévia e expressa autorização",
+          "url": "https://www.itau.com.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "conteúdo e identidade visual (item 8)",
+          "trecho": "assim como sua identidade visual e conteúdo",
+          "url": "https://www.itau.com.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "links (para terceiros)",
+          "trecho": "Nossos Sites e Aplicativos podem conter links para sites e aplicativos de terceiros.",
+          "url": "https://www.itau.com.br/termos-de-uso",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.santander.com.br",
+      "lote": 4,
+      "documentos": {
+        "https://ri.santander.com.br/ri/politica-de-privacidade/": "texto bruto lido (2307 caracteres)"
+      },
+      "trechos": []
     }
   ]
 }
