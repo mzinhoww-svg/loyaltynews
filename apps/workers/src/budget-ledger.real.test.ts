@@ -80,6 +80,38 @@ describe.skipIf(!real)('ledger de orçamento em PostgreSQL real, com instâncias
     expect(snap.reserveMicro).toBe(0);
   }, 120_000);
 
+  it('o escritor da parada usa a MESMA trava das reservas: com uma operação do ledger em curso, setKill espera; depois dela, vale', async () => {
+    const fresh = `${DBNAME}_lock`;
+    await admin.query(`create database ${fresh}`);
+    await runMigrations(envFor(fresh));
+    const a = gateOn(fresh);
+    const holder = new pg.Pool(pgPoolConfig(envFor(fresh), { max: 1 }));
+    pools.push(holder);
+    const c = await holder.connect();
+    try {
+      await c.query('BEGIN');
+      await c.query(`SELECT pg_advisory_xact_lock(hashtext('ln_modelops_budget'))`); // uma operação do ledger "em curso"
+      let feito = false;
+      const escrita = a.gate.setKill('global', true, 'parada durante operação em curso', NOW).then(() => { feito = true; });
+      await new Promise((r) => setTimeout(r, 600));
+      expect(feito).toBe(false); // esperou a trava
+      await c.query('COMMIT');
+      await escrita;
+      expect(feito).toBe(true);
+      expect(await a.gate.killState()).toMatchObject({ global: true });
+      // e a auditoria falhando desfaz a parada, também no PostgreSQL real
+      await a.gate.setKill('global', false, 'volta ao normal', NOW);
+      const store = new PostgresLedgerStore(a.db as unknown as SqlDatabase);
+      await expect(store.setKillWith('global', true, 'parada com auditoria que falha', NOW, async () => { throw new Error('auditoria indisponível'); })).rejects.toThrow('auditoria indisponível');
+      expect(await a.gate.killState()).toMatchObject({ global: false });
+    } finally {
+      c.release();
+      await Promise.all(pools.map((p) => p.end().catch(() => undefined)));
+      pools.length = 0;
+      await admin.query(`drop database if exists ${fresh} with (force)`);
+    }
+  }, 120_000);
+
   it('kill switch acionado por uma instância vale para as outras na hora', async () => {
     const a = gateOn(DBNAME);
     const b = gateOn(DBNAME);

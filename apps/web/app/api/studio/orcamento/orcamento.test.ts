@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
 import { callModel, type GatewayCall, SimulatedOpenRouterClient, validatePolicy } from '@ln/modelops';
@@ -99,6 +100,35 @@ describe('POST /api/studio/orcamento/kill-switch', () => {
     // a linha do escopo guarda o estado vigente (e o autor); o histórico completo fica no audit_log, que é append-only
     expect(await app.db.$count(schema.budgetKillSwitch)).toBe(1);
     expect((await app.db.select().from(schema.auditLog)).filter((l) => l.action.startsWith('orcamento.kill_switch')).length).toBe(2);
+  });
+
+  it('SONDA: se a auditoria falha, a parada NÃO muda (mesma transação) e a resposta é um erro claro; sem auditoria não há parada', async () => {
+    await app.db.execute(sql`CREATE FUNCTION ln_teste_falha_auditoria() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'falha simulada da auditoria'; END; $$ LANGUAGE plpgsql`);
+    await app.db.execute(sql`CREATE TRIGGER ln_teste_falha_auditoria BEFORE INSERT ON audit_log FOR EACH ROW WHEN (NEW.action LIKE 'orcamento.kill_switch%') EXECUTE FUNCTION ln_teste_falha_auditoria()`);
+    try {
+      const antes = await app.db.$count(schema.budgetKillSwitch);
+      const r = await post({ acionar: true, motivo: 'parada com auditoria quebrada' }, admin);
+      expect(r.status).toBe(500);
+      expect(r.body.error.code).toBe('KILL_SWITCH_NOT_APPLIED');
+      expect(r.body.error.message).toMatch(/NÃO foi alterada/);
+      expect(await app.db.$count(schema.budgetKillSwitch)).toBe(antes); // nada gravado
+      expect((await get(admin)).body.data.killSwitch.global.engaged).toBe(false);
+      expect((await reserve(1)).ok).toBe(true); // o gateway segue funcionando: a parada não ficou pela metade
+      // desligar também é atômico com a auditoria: com a parada ligada por fora e a auditoria quebrada, desligar falha e a parada continua
+      await app.db.execute(sql`INSERT INTO budget_kill_switch (scope, active, reason) VALUES ('global', true, 'ligada por fora para o teste') ON CONFLICT (scope) DO UPDATE SET active = true`);
+      const off = await post({ acionar: false, motivo: 'tentativa de desligar sem auditoria' }, admin);
+      expect(off.status).toBe(500);
+      expect((await get(admin)).body.data.killSwitch.global.engaged).toBe(true);
+      await app.db.execute(sql`UPDATE budget_kill_switch SET active = false WHERE scope = 'global'`);
+    } finally {
+      await app.db.execute(sql`DROP TRIGGER ln_teste_falha_auditoria ON audit_log`);
+      await app.db.execute(sql`DROP FUNCTION ln_teste_falha_auditoria()`);
+    }
+    // com a auditoria de volta, a mesma chamada funciona e deixa as duas coisas (parada e auditoria)
+    const ok = await post({ acionar: true, motivo: 'parada com auditoria saudável' }, admin);
+    expect(ok.status).toBe(200);
+    expect((await app.db.select().from(schema.auditLog)).filter((l) => l.action === 'orcamento.kill_switch_acionado' && (l.detalhe as { motivo?: string })?.motivo === 'parada com auditoria saudável')).toHaveLength(1);
+    await post({ acionar: false, motivo: 'fim do teste da sonda' }, admin);
   });
 
   it('parada por rota aparece no estado (e o histórico mantém as duas mudanças)', async () => {

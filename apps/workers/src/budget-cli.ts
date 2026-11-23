@@ -12,7 +12,13 @@ import { audit } from '@ln/auth';
 import type { Db } from '@ln/auth';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 
-export async function run(argv: string[], env: Record<string, string | undefined> = process.env, out: (s: string) => void = console.log): Promise<number> {
+export async function run(
+  argv: string[],
+  env: Record<string, string | undefined> = process.env,
+  out: (s: string) => void = console.log,
+  /** Só testes: banco já aberto (sem Pool do ambiente). */
+  injectedDb?: unknown,
+): Promise<number> {
   const [cmd, sub, motivo, ...rest] = argv;
   const opt = (name: string) => {
     const i = rest.indexOf(name);
@@ -26,22 +32,28 @@ export async function run(argv: string[], env: Record<string, string | undefined
     out('informe o motivo (mínimo 5 caracteres) e --actor <seu id>');
     return 2;
   }
-  const pool = new Pool(pgPoolConfig(env, { max: 1 }));
+  const pool = injectedDb ? null : new Pool(pgPoolConfig(env, { max: 1 }));
   try {
-    const db = drizzle(pool, { schema });
+    const db = (injectedDb ?? drizzle(pool!, { schema })) as ReturnType<typeof drizzle<typeof schema>>;
     const store = new PostgresLedgerStore(db as unknown as SqlDatabase);
     if (cmd === 'kill') {
       const route = opt('--route');
       const scope = route ? (`route:${route}` as const) : 'global';
       const at = new Date();
-      await store.setKill(scope, sub === 'on', motivo!, at);
-      // o autor e o histórico ficam no audit_log (append-only); a tabela da parada guarda só o estado vigente
-      await audit(db as unknown as Db, { actorId: opt('--actor'), actorRole: 'cli', action: sub === 'on' ? 'orcamento.kill_switch_acionado' : 'orcamento.kill_switch_desligado', resource: 'orcamento', resourceId: scope, detalhe: { escopo: scope, motivo, via: 'cli' }, at });
+      // parada e auditoria na MESMA transação (o autor e o histórico ficam no audit_log): se a auditoria falhar, a parada é desfeita
+      try {
+        await store.setKillWith(scope, sub === 'on', motivo!, at, (tx) =>
+          audit(tx as unknown as Db, { actorId: opt('--actor'), actorRole: 'cli', action: sub === 'on' ? 'orcamento.kill_switch_acionado' : 'orcamento.kill_switch_desligado', resource: 'orcamento', resourceId: scope, detalhe: { escopo: scope, motivo, via: 'cli' }, at }),
+        );
+      } catch (e) {
+        out(`A parada NÃO foi alterada: a auditoria falhou e a operação foi desfeita (${e instanceof Error ? e.message : 'erro'}).`);
+        return 1;
+      }
     }
     out(JSON.stringify(await store.readKill()));
     return 0;
   } finally {
-    await pool.end();
+    await pool?.end();
   }
 }
 

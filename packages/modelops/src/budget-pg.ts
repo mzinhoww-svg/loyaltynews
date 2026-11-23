@@ -201,16 +201,21 @@ export class PostgresLedgerStore implements LedgerStore {
     this.db = db;
   }
 
-  // Trava de consultoria: uma transação por operação, serializada entre processos.
-  withLock<T>(fn: (io: LedgerIO) => Promise<T>): Promise<T> {
+  // Uma transação com a trava de consultoria do orçamento, serializada também dentro do processo.
+  private withTx<T>(fn: (tx: SqlRunner) => Promise<T>): Promise<T> {
     const go = () =>
       this.db.transaction(async (tx) => {
         await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('ln_modelops_budget'))`);
-        return fn(ioFor(tx));
+        return fn(tx);
       });
     const run = this.chain.then(go, go);
     this.chain = run.catch(() => undefined);
     return run;
+  }
+
+  // Trava de consultoria: uma transação por operação, serializada entre processos.
+  withLock<T>(fn: (io: LedgerIO) => Promise<T>): Promise<T> {
+    return this.withTx((tx) => fn(ioFor(tx)));
   }
 
   append(event: LedgerEvent): Promise<void> {
@@ -225,10 +230,26 @@ export class PostgresLedgerStore implements LedgerStore {
     return killOf(this.db);
   }
 
+  /** Liga ou desliga a parada SOB A MESMA TRAVA das reservas (uma reserva em curso termina antes; a próxima já vê a parada). */
   async setKill(scope: 'global' | `route:${string}`, active: boolean, reason: string, at: Date): Promise<void> {
-    await this.db.execute(sql`
-      INSERT INTO budget_kill_switch (scope, active, reason, at)
-      VALUES (${scope}, ${active}, ${reason}, ${at})
-      ON CONFLICT (scope) DO UPDATE SET active = EXCLUDED.active, reason = EXCLUDED.reason, at = EXCLUDED.at`);
+    await this.withTx((tx) => writeKill(tx, scope, active, reason, at));
   }
+
+  /**
+   * Parada + efeito colateral (ex.: auditoria) na MESMA transação e sob a mesma trava: se `after` lançar, a parada é DESFEITA.
+   * Quem aciona a parada nunca fica com a mudança aplicada sem o registro de auditoria.
+   */
+  async setKillWith(scope: 'global' | `route:${string}`, active: boolean, reason: string, at: Date, after: (tx: SqlRunner) => Promise<void>): Promise<void> {
+    await this.withTx(async (tx) => {
+      await writeKill(tx, scope, active, reason, at);
+      await after(tx);
+    });
+  }
+}
+
+async function writeKill(tx: SqlRunner, scope: string, active: boolean, reason: string, at: Date): Promise<void> {
+  await tx.execute(sql`
+    INSERT INTO budget_kill_switch (scope, active, reason, at)
+    VALUES (${scope}, ${active}, ${reason}, ${at})
+    ON CONFLICT (scope) DO UPDATE SET active = EXCLUDED.active, reason = EXCLUDED.reason, at = EXCLUDED.at`);
 }

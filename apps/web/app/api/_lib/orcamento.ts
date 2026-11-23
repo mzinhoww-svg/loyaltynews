@@ -93,10 +93,17 @@ export const postKillSwitch: RouteFn = async (req, c) => {
   const session = c.session;
   if (!session) throw new HttpError(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
   const now = c.deps.now();
-  await budgetGate(c.deps.db).setKill(b.escopo as 'global' | `route:${string}`, b.acionar, b.motivo, now);
-  await audit(c.deps.db, {
-    actorId: session.userId, actorRole: session.role, action: b.acionar ? 'orcamento.kill_switch_acionado' : 'orcamento.kill_switch_desligado',
-    resource: 'orcamento', resourceId: b.escopo, ip: c.ip, detalhe: { escopo: b.escopo, motivo: b.motivo }, at: now,
-  });
+  try {
+    // parada e auditoria na MESMA transação, sob a trava do ledger: se a auditoria falhar, a parada NÃO muda
+    await budgetStore(c.deps.db).setKillWith(b.escopo as 'global' | `route:${string}`, b.acionar, b.motivo, now, (tx) =>
+      audit(tx as unknown as Db, {
+        actorId: session.userId, actorRole: session.role, action: b.acionar ? 'orcamento.kill_switch_acionado' : 'orcamento.kill_switch_desligado',
+        resource: 'orcamento', resourceId: b.escopo, ip: c.ip, detalhe: { escopo: b.escopo, motivo: b.motivo }, at: now,
+      }),
+    );
+  } catch (e) {
+    console.error(`[orcamento] kill switch NÃO aplicado: ${e instanceof Error ? e.message : 'erro'}`); // sem segredo
+    throw new HttpError(500, 'KILL_SWITCH_NOT_APPLIED', 'A parada NÃO foi alterada: o registro de auditoria falhou e a operação foi desfeita. Tente de novo.');
+  }
   return json({ data: await killDetail(c.deps.db) });
 };
