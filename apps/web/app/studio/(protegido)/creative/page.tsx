@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { can } from '@ln/auth';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
 import { api, type CardPedido, type CardSocial } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -75,7 +75,7 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
         pronto para o pacote de distribuição. Imagens e direitos ficam na <Link href="/studio/midia">Biblioteca de mídia</Link>.
       </p>
       <p className="st-hint" data-testid="distribuicao">
-        Distribuição no Instagram: <strong>{isEnabled('instagram') ? 'ligada' : 'desligada'}</strong> (flag instagram).
+        Distribuição no Instagram: <strong>{flagAtiva('instagram') ? 'ligada' : 'desligada'}</strong> (flag instagram).
       </p>
       <Flash tipo={sp.tipo} aviso={sp.aviso} />
 
