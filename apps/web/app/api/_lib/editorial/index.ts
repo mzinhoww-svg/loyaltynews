@@ -13,6 +13,7 @@ import {
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { registerPublication, type PublicationCtx } from './publication';
 import { articlesPublishedLookup } from './published';
+import { getArticleDraft } from './draft-view';
 import { enqueueOutbox } from '@ln/workers/outbox';
 import type { Action, Db, Resource } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
@@ -33,6 +34,8 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   stu('GET', '/queue', READ, listQueue),
   stu('GET', '/articles/:articleId/review', READ, getArticleReview),
   stu('POST', '/articles/:articleId/review', WRITE, submitReview),
+  // rascunho completo + última checagem (formulário de correção do Studio; ADR-019 §c.5)
+  stu('GET', '/articles/:articleId/draft', READ, getArticleDraft as H),
   stu('GET', '/articles/:articleId/factcheck', READ, getFactcheck),
   stu('POST', '/articles/:articleId/recheck', WRITE, requestRecheck),
   // registro da publicação (flag publicacaoPortal; recibo e identidade de publicação)
