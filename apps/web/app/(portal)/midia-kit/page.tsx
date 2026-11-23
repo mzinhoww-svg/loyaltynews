@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { formatDateTime } from '../_lib/format';
 import { MockTag } from '../_components/ui';
-import { coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
+import { apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
 import { getSource } from '../_lib/source';
 import type { MetricValue } from '../_lib/types';
 
@@ -56,7 +56,9 @@ export default async function MidiaKitPage() {
   const upcoming = events.filter((e) => e.status === 'validado' && new Date(e.startsAt) >= new Date()).length;
   const stamps = [...audience.realtime, ...audience.historical].map((m) => m.collectedAt).filter(Boolean) as string[];
   const last = stamps.sort().at(-1);
-  const cards = coverageCards({ kind: src.kind, articles: latest.total, events: upcoming, editorias: EDITORIAS.length, now: new Date().toISOString() });
+  // Em modo api a cobertura vem SÓ da coleta da API comercial (origem, janela, data); a contagem ao vivo da listagem não entra: em staging
+  // ela inclui o seed de demonstração e métrica comercial só conta conteúdo real.
+  const cards = src.kind === 'api' ? apiCoverageCards(kit, EDITORIAS.length) : coverageCards({ kind: src.kind, articles: latest.total, events: upcoming, editorias: EDITORIAS.length });
 
   return (
     <>
@@ -90,7 +92,9 @@ export default async function MidiaKitPage() {
               </strong>
               <small>
                 {c.origin}
-                {c.checkedAt ? ` · consulta em ${formatDateTime(c.checkedAt)}` : ''}
+                {c.window ? ` · ${c.window}` : ''}
+                {c.checkedAt ? ` · coletado em ${formatDateTime(c.checkedAt)}` : ''}
+                {c.stale ? ' · desatualizado' : ''}
                 {c.value === null && c.key !== 'editorias' ? ' · sem dado real' : ''}
               </small>
             </div>

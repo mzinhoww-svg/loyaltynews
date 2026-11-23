@@ -3,7 +3,7 @@
 import { isEnabled } from '@ln/contracts';
 import { priceLabel } from './catalog';
 import { auditabilityOf, campaignPeriodMs } from './audit';
-import { generateMediaKit, portalAudience, type MediaKit, type PortalAudience } from './mediakit';
+import { generateMediaKit, portalAudience, portalCoverage, type MediaKit, type PortalAudience, type PortalMetric } from './mediakit';
 import { POSITIONS } from './inventory';
 import type { CommercialCtx } from './state';
 import type { FormatStatus } from './types';
@@ -17,6 +17,8 @@ export interface MediaKitPage extends MediaKit {
   /** Integridade da entrega de anúncios: lacunas em que o dedupe perdeu estado. Vazio = nenhuma lacuna registrada. */
   /** Audiência no formato do portal (origem, janela e horário em cada número; sem coleta = indisponível). */
   audience: PortalAudience;
+  /** Cobertura do CMS coletada (matérias em 30/90 dias, eventos futuros), com origem, janela e data; sem coleta = indisponível. */
+  coverage: PortalMetric[];
   deliveryIntegrity: { gaps: readonly import('./audit').AuditGap[]; note: string | null };
 }
 export function mediaKitPage(ctx: CommercialCtx): MediaKitPage {
@@ -27,6 +29,7 @@ export function mediaKitPage(ctx: CommercialCtx): MediaKitPage {
       theLoyal: isEnabled('theLoyal', ctx.flags), retargeting: isEnabled('retargeting', ctx.flags),
     },
     audience: portalAudience(ctx.metrics, ctx.now),
+    coverage: portalCoverage(ctx.metrics, ctx.now),
     deliveryIntegrity: { gaps: ctx.ads.audit.list(), note: ctx.ads.audit.list().length ? 'Há período(s) não auditável(is) na entrega de anúncios: os números desses períodos são mínimos, não totais.' : null },
   };
 }
