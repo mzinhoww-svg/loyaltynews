@@ -433,3 +433,26 @@ describe('QA 3 (ba51ea2), F1: conta × modelo declarado coerentes (sondas A–H)
     expect(contradiz(base({ task_id: 'q', stage: 'rights_seo_qa', account: 'deterministic', declared_model: 'gpt-6.1-terra', prompt_version: null }))).toHaveLength(1);
   });
 });
+
+describe('patch da linha (veredito da Editorial e leitura humana)', () => {
+  const done = base({ task_id: 'f9', kind: 'fact_check', article_id: 'a9', stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', reviewed_draft_task_id: 'd9' });
+  it('sem veredito a linha concluída é inválida; o patch com o veredito a completa', async () => {
+    const { applyRowPatch } = await import('./pilot');
+    expect(validatePilotRow(done)).toEqual(expect.arrayContaining([expect.stringMatching(/gate_verdict/)]));
+    const r = applyRowPatch(done, { gate_verdict: 'approved', cross_provider_ok: true, output_valid: true });
+    expect(r.errors).toEqual([]);
+    expect(validatePilotRow(r.row)).toEqual([]);
+  });
+  it('só campos do patch: conta, modelo, tempo, custo e parada imediata não mudam; patch contraditório é recusado', async () => {
+    const { applyRowPatch, PATCHABLE_ROW_FIELDS } = await import('./pilot');
+    expect(PATCHABLE_ROW_FIELDS).toEqual(['gate_verdict', 'gate_reasons', 'cross_provider_ok', 'output_valid', 'unsupported_facts', 'notes']);
+    for (const bad of [{ account: 'claude' }, { declared_model: 'claude-opus-5-5' }, { tarifada_api_call: false }, { published_attempt: false }, { ended_at: iso(99) }, { secret_in_log: false }]) {
+      const r = applyRowPatch(done, bad);
+      expect(r.errors[0]).toMatch(/não pode ser alterado por patch/);
+      expect(r.row).toBe(done);
+    }
+    const contradictory = applyRowPatch(done, { gate_verdict: 'approved', gate_reasons: ['same_author'] });
+    expect(contradictory.errors[0]).toMatch(/motivo bloqueante/);
+    expect(contradictory.row).toBe(done);
+  });
+});

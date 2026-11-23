@@ -533,3 +533,23 @@ export class PilotSession {
 export function sheetCsvHeader(): string {
   return `${PILOT_SHEET_COLUMNS.join(',')}\n`;
 }
+
+// --- patch da Editorial e da leitura humana sobre a linha do adaptador -------------------------------------------------
+
+/**
+ * Campos que o adaptador NÃO preenche e que chegam depois do callback: veredito do gate (Editorial), motivos, cross-provider,
+ * formato da saída e fatos não suportados (leitura humana). Qualquer outro campo (identidade, tempo, conta, modelo, custo,
+ * parada imediata) é medição do adaptador e NÃO pode ser alterado por patch.
+ */
+export const PATCHABLE_ROW_FIELDS = ['gate_verdict', 'gate_reasons', 'cross_provider_ok', 'output_valid', 'unsupported_facts', 'notes'] as const;
+export type PilotRowPatch = Partial<Pick<PilotRow, (typeof PATCHABLE_ROW_FIELDS)[number]>>;
+
+export function applyRowPatch(row: PilotRow, patch: Record<string, unknown>): { row: PilotRow; errors: string[] } {
+  const errors: string[] = [];
+  const allowed = PATCHABLE_ROW_FIELDS as readonly string[];
+  for (const k of Object.keys(patch)) if (!allowed.includes(k)) errors.push(`campo ${k} não pode ser alterado por patch (medição do adaptador)`);
+  if (errors.length) return { row, errors };
+  const next = { ...row, ...(patch as PilotRowPatch) } as PilotRow;
+  errors.push(...validatePilotRow(next).filter((e) => !validatePilotRow(row).includes(e)));
+  return errors.length ? { row, errors } : { row: next, errors: [] };
+}
