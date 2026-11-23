@@ -5,6 +5,7 @@ import { CampaignError } from '../campaigns';
 import { CrmError } from '../crm';
 import { InventoryError } from '../inventory';
 import { MetricError } from '../metrics';
+import { ReportError } from '../report';
 import type { CommercialCtx } from '../state';
 
 export interface HttpResult<T = unknown> { status: number; body: T | ApiError }
@@ -42,6 +43,7 @@ export function define<S extends z.ZodType, O>(
       if (e instanceof CampaignError) return fail(CAMPAIGN_STATUS[e.code], e.code, e.message);
       if (e instanceof CrmError) return fail(CRM_STATUS[e.code], e.code, e.message);
       if (e instanceof MetricError) return fail(422, e.code, e.message);
+      if (e instanceof ReportError) return fail(422, e.code, e.message);
       return fail(500, 'INTERNAL_ERROR', 'Erro interno no módulo comercial.'); // sem vazar detalhes
     }
   };

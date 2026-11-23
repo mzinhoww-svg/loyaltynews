@@ -5,11 +5,12 @@ import { IsoDate, Id, Lead as LeadContract, isEnabled } from '@ln/contracts';
 import { CATALOG } from '../catalog';
 import { define, fail, ok } from './http';
 import {
-  campaignDetail, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
+  campaignDetail, campaignReport, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
 } from '../queries';
 import type { FormatStatus } from '../types';
 import { adPlan, ALLOWED_MIME, resolveClickDestination, validateCreative } from '../creative';
 import type { ServeResult } from '../rotation';
+import { reportCsv } from '../report';
 
 const formatIds = (ids: string[]) => ids.filter((id) => !CATALOG.some((f) => f.id === id));
 const PositionId = z.enum(['TOP', 'SIDEBAR_1', 'SIDEBAR_2', 'SIDEBAR_3', 'FOOTER', 'ARTICLE_INLINE', 'HOME_BETWEEN', 'AGENDA', 'DATA']);
@@ -205,7 +206,16 @@ export const transitionCampaign = define({
   return ok(c);
 });
 
-export const getCampaignReport = getCampaignDetail;
+const ReportQuery = z.object({ campaignId: Id, from: IsoDate.optional(), to: IsoDate.optional() });
+/**
+ * Relatório do anunciante: impressões visíveis e cliques válidos CONTADOS (nunca estimados), com origem, janela e data da coleta,
+ * série por dia, por criativo e por posição, e a marca de "não auditável" quando houve perda de dedupe. Sem cobrança.
+ */
+export const getCampaignReport = define({ auth: 'studio', schema: ReportQuery }, (ctx, i) => ok(campaignReport(ctx, i)));
+
+/** Exportação CSV do relatório ('diario': uma linha por criativo e dia com registro; 'resumo': campo,valor). O Backend serve como download. */
+export const exportCampaignReportCsv = define({ auth: 'studio', schema: ReportQuery.extend({ kind: z.enum(['diario', 'resumo']).default('diario') }) }, (ctx, i) =>
+  ok(reportCsv(campaignReport(ctx, i), i.kind)));
 
 /** Entrada de métrica real (conectores GA4/ESP/CMS). Recusa valor sem origem, período e horário. */
 export const ingestMetric = define({
