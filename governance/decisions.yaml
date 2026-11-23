@@ -76,5 +76,20 @@
     "status": "registrada",
     "escolha": "Dez editorias preservadas",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "DP-33",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "aprovado, não precisa ter essa trava agora, está tudo rodando com créditos ou no modelo grátis, então não tem problema. Não precisa revisitar isso, apenas se acabar os créditos.",
+    "efeito": "R0-01 aprovada pelo proprietario. O registro do teto de US$ 50 no painel de cada provedor fica dispensado (so cota gratuita e credito pre-pago, sem cobranca recorrente); o teto continua nos controles internos (BalanceGuard, ledger, FinOps). Revisitar quando os creditos acabarem.",
+    "vinculo": [
+      "D11",
+      "DP-04",
+      "DP-21",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-33 (sha256 do arquivo-fonte a537de6db10efb8b0599bb7f52a27d6a781c9cb736c06d86b4bf8382221ae24d)"
   }
 ]
