@@ -82,6 +82,11 @@ export async function post(cfg, path, payload, { fetchImpl = fetch, now = () => 
     }
   })();
   if (!res.ok) {
+    // A borda da Vertra troca o corpo de 502/503/504 por uma página HTML (cabeçalho x-vertra-error): o código da API (DISPATCH_OFF, KILL_SWITCH, PILOT_STOPPED) se perde.
+    // O agente não tenta adivinhar: trata 5xx sem JSON como "despacho parado ou app indisponível", PARA o ciclo e não repete em laço (confira /api/health).
+    if (body === null && res.status >= 502 && res.status <= 504) {
+      throw new CliError(`UPSTREAM_${res.status}`, `${res.status} da borda sem corpo da API: despacho desligado (DISPATCH_OFF), parada (KILL_SWITCH/PILOT_STOPPED) ou app indisponível; pare o ciclo e não repita em laço`, res.status);
+    }
     const code = body?.error?.code ?? 'HTTP';
     throw new CliError(code, `${code}: ${String(body?.error?.message ?? res.status).slice(0, 200)}`, res.status);
   }

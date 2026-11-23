@@ -119,6 +119,22 @@ describe('sonda de assinatura (sem tocar dado)', () => {
   });
 });
 
+describe('borda da Vertra: 5xx sem corpo da API', () => {
+  it('503 em HTML (a borda troca o corpo) vira UPSTREAM_503 com orientação de parar; 401 com JSON da API continua com o código da API', async () => {
+    const edge = (async () => new Response('<!doctype html><html data-kind="502"></html>', { status: 503, headers: { 'content-type': 'text/html', 'x-vertra-error': '1' } })) as unknown as typeof fetch;
+    const e: any = await run(['pull'], env(), { ...io(), fetchImpl: edge }).catch((x) => x);
+    expect([e.code, e.status]).toEqual(['UPSTREAM_503', 503]);
+    expect(e.message).toMatch(/pare o ciclo/);
+    expect(e.message).not.toMatch(/segredo-de-teste/);
+    files['/cofre/errado3'] = 'segredo-errado-3';
+    const e401: any = await run(['pull'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado3' }), io()).catch((x) => x);
+    expect(e401.code).toBe('UNAUTHORIZED');
+    // 503 COM corpo JSON da API (fora da borda, ex. testes locais) mantém o código da API
+    const api = (async () => new Response(JSON.stringify({ error: { code: 'DISPATCH_OFF', message: 'desligado' } }), { status: 503, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
+    expect(((await run(['pull'], env(), { ...io(), fetchImpl: api }).catch((x) => x)) as any).code).toBe('DISPATCH_OFF');
+  });
+});
+
 describe('segurança do cliente', () => {
   it('segredo errado: 401 com o código da API; o segredo e a assinatura nunca aparecem na mensagem', async () => {
     files['/cofre/errado'] = 'outro-segredo-qualquer';
