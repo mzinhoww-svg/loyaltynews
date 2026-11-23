@@ -1,0 +1,51 @@
+import { expect, test, type BrowserContext } from '@playwright/test';
+
+const BASE = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
+
+async function entrar(context: BrowserContext, userId: string, roles: string) {
+  await context.clearCookies();
+  await context.addCookies([{ name: 'ln-test-session', value: `${userId}:${roles}`, url: BASE }]);
+}
+
+test.describe('Social dashboard (@ln/growth)', () => {
+  test('resumo honesto: sem pacotes, canais desligados, métricas indisponíveis, sem publicar', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/social');
+    await expect(page.getByRole('heading', { level: 1, name: 'Social dashboard' })).toBeVisible();
+    await expect(page.getByText('O Studio não publica')).toBeVisible();
+    const resumo = page.getByRole('region', { name: 'Resumo do Social Dashboard' });
+    await expect(resumo.getByText('Modo simulado: nada é enviado ao mLabs.')).toBeVisible();
+    await expect(resumo.locator('[data-channel="instagram"]')).toContainText('Chave desligada');
+    await expect(resumo.locator('[data-channel="the_loyal"]')).toContainText('Chave desligada');
+    await expect(resumo.locator('[data-channel="linkedin"]')).toContainText('0 pacote(s)');
+    await expect(resumo.locator('[data-metrics]')).toContainText('indisponíveis');
+    await expect(page.getByText('Nenhum pacote social gerado ainda.')).toBeVisible();
+    await expect(page.getByText('Flags: linkedinPublicacao desligada · instagram desligada · theLoyal desligada.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /publicar/i })).toHaveCount(0);
+  });
+
+  test('filtros válidos e inválidos; pacote inexistente dá 404', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    await page.goto('/studio/social');
+    await page.getByLabel('Canal').selectOption('instagram');
+    await page.getByLabel('Estado').selectOption('bloqueado');
+    await page.getByRole('button', { name: 'Filtrar' }).click();
+    await expect(page).toHaveURL(/channel=instagram&status=bloqueado/);
+    await expect(page.getByText('Nenhum pacote social gerado ainda.')).toBeVisible();
+    await page.goto('/studio/social?channel=tiktok');
+    await expect(page.getByText('Filtro inválido.')).toBeVisible();
+    const r = await page.goto('/studio/social/materia-x:linkedin:v1');
+    expect(r?.status()).toBe(404);
+    const r2 = await page.goto('/studio/social/id-invalido');
+    expect(r2?.status()).toBe(404);
+  });
+
+  test('papéis: revisor lê, comercial não acessa', async ({ page, context }) => {
+    await entrar(context, 'rui', 'revisor');
+    await page.goto('/studio/social');
+    await expect(page.getByRole('heading', { level: 1, name: 'Social dashboard' })).toBeVisible();
+    await entrar(context, 'caio', 'comercial');
+    await page.goto('/studio/social');
+    await expect(page).toHaveURL(/motivo=FORBIDDEN/);
+  });
+});

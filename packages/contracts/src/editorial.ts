@@ -15,14 +15,21 @@ export const Source = z.object({
 });
 export type Source = z.infer<typeof Source>;
 
-/** Imagem e base de direito (Blueprint §6, D08, V21-08). */
+/** Crédito único da ilustração gerada (ADR-018): institucional, sem nome de ferramenta ou modelo (D09). */
+export const ILLUSTRATION_CREDIT = 'Loyalty News' as const;
+/** Rótulo visível obrigatório da ilustração gerada (ADR-018). Não menciona IA (D09); deixa claro que não é foto. */
+export const ILLUSTRATION_LABEL = 'Ilustração conceitual' as const;
+/** Rótulo com menção a IA, usado só com a flag `rotulagemIa` ligada (D09: pronta e desligada). */
+export const ILLUSTRATION_LABEL_AI = 'Ilustração conceitual gerada por IA' as const;
+
+/** Imagem e base de direito (Blueprint §6, D08, V21-08; ilustração gerada: ADR-018). */
 export const ImageRights = z
   .object({
     url: z.url(),
-    origem: z.enum(['propria', 'licenciada', 'fonte_terceiro', 'dominio_publico', 'composicao_deterministica']),
+    origem: z.enum(['propria', 'licenciada', 'fonte_terceiro', 'dominio_publico', 'composicao_deterministica', 'ilustracao_gerada']),
     credito: z.string().min(1),
     link: z.url().optional(),
-    baseDeDireito: z.enum(['propria', 'licenca', 'autorizacao', 'dominio_publico', 'excecao_validada', 'pendente']),
+    baseDeDireito: z.enum(['propria', 'licenca', 'autorizacao', 'dominio_publico', 'excecao_validada', 'gerada_ia', 'pendente']),
     /** Só enquadramento, tamanho e compressão; marca d'água e crédito embutido nunca são removidos. */
     edicoes: z.array(z.enum(['enquadramento', 'tamanho', 'compressao'])).default([]),
     textoAlternativo: z.string().min(1),
@@ -30,8 +37,25 @@ export const ImageRights = z
   .refine((i) => i.origem !== 'fonte_terceiro' || Boolean(i.link), {
     message: 'imagem de terceiro exige link para a fonte',
     path: ['link'],
+  })
+  .refine((i) => (i.origem === 'ilustracao_gerada') === (i.baseDeDireito === 'gerada_ia'), {
+    message: "ilustração gerada usa base 'gerada_ia', e essa base só vale para ilustração gerada (ADR-018)",
+    path: ['baseDeDireito'],
+  })
+  .refine((i) => i.origem !== 'ilustracao_gerada' || i.credito === ILLUSTRATION_CREDIT, {
+    message: `ilustração gerada leva o crédito institucional '${ILLUSTRATION_CREDIT}' (ADR-018, D09)`,
+    path: ['credito'],
   });
 export type ImageRights = z.infer<typeof ImageRights>;
+
+/**
+ * Rótulo visível que o portal (e o card social) mostra junto da imagem, ou null quando não há rótulo.
+ * Ilustração gerada sempre tem rótulo (ADR-018); a menção a IA só com `rotulagemIa` ligada.
+ */
+export function imageLabel(img: Pick<ImageRights, 'origem'> | null | undefined, opts: { rotulagemIa?: boolean } = {}): string | null {
+  if (!img || img.origem !== 'ilustracao_gerada') return null;
+  return opts.rotulagemIa ? ILLUSTRATION_LABEL_AI : ILLUSTRATION_LABEL;
+}
 
 /** Sem base de utilização demonstrável, a imagem não é publicável (Blueprint §6: na dúvida, não publica). */
 export function isImagePublishable(img: ImageRights): boolean {
@@ -93,6 +117,10 @@ export const Article = z
   })
   .refine((a) => a.status !== 'publicado' || !a.imagem || isImagePublishable(a.imagem), {
     message: 'imagem sem base de direito não pode ser publicada',
+    path: ['imagem'],
+  })
+  .refine((a) => a.imagem?.origem !== 'ilustracao_gerada' || a.tipoConteudo !== 'cobertura_evento', {
+    message: 'cobertura de evento não usa ilustração gerada: sugere registro documental (ADR-018)',
     path: ['imagem'],
   });
 export type Article = z.infer<typeof Article>;

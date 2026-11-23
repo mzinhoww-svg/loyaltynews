@@ -4,6 +4,7 @@ import { EDITORIAS } from '@ln/contracts';
 import { checkAccess } from '@/lib/studio/modules';
 import { currentVersion, editoriaNome, getCmsService, STATUS_LABEL } from '@/lib/studio/cms/articles';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
+import { StatusArtigo } from '../../_components/StatusArtigo';
 import { requireStudio } from '../../_lib/guard';
 
 export const metadata: Metadata = { title: 'CMS editorial' };
@@ -109,7 +110,7 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
                   </th>
                   <td>{editoriaNome(v.editoria)}</td>
                   <td>
-                    <span className={`st-badge ${a.status}`}>{STATUS_LABEL[a.status]}</span>
+                    <StatusArtigo status={a.status} />
                   </td>
                   <td>v{v.numero}</td>
                   <td>{a.atualizadaEm.slice(0, 16).replace('T', ' ')} UTC</td>

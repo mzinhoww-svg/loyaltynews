@@ -36,8 +36,8 @@ export default tseslint.config(
     },
   },
   {
-    // Tipagens de matchers de teste (augmentation) e testes do UI: tipos amplos são aceitáveis aqui.
-    files: ['**/*.d.ts', 'packages/ui/test/**'],
+    // Tipagens de matchers de teste (augmentation): tipos amplos são aceitáveis aqui.
+    files: ['**/*.d.ts'],
     rules: {
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

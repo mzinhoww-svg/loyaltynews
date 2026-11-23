@@ -35,6 +35,9 @@ const MODULOS: Array<[string, string]> = [
   ['permissoes', 'Permissões'],
 ];
 
+// Módulos com tela própria (os demais mostram o estado vazio genérico).
+const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops'];
+
 test.describe('proteção de rota (negar por padrão)', () => {
   for (const rota of ['/studio', '/studio/cms', '/studio/cms/nova', '/studio/cms/checagem', '/studio/fontes', '/studio/finops', '/studio/nao-existe']) {
     test(`sem sessão ${rota} vai para acesso restrito`, async ({ page }) => {
@@ -79,7 +82,7 @@ test.describe('shell e navegação', () => {
     for (const [slug, nome] of MODULOS) {
       await page.goto(`/studio/${slug}`);
       await expect(page.getByRole('heading', { level: 1, name: nome })).toBeVisible();
-      if (slug !== 'cms') {
+      if (!IMPLEMENTADOS.includes(slug)) {
         await expect(page.getByRole('heading', { name: 'Nenhum dado disponível' })).toBeVisible();
         await expect(nav.getByRole('link', { name: nome })).toHaveAttribute('aria-current', 'page');
       }
@@ -110,7 +113,7 @@ test.describe('shell e navegação', () => {
     await page.goto('/studio');
     const nav = page.getByRole('navigation', { name: 'Módulos do Studio' });
     await expect(nav).toBeHidden();
-    await page.getByRole('button', { name: 'Menu' }).click();
+    await page.getByRole('button', { name: 'Navegação' }).click();
     await expect(nav).toBeVisible();
   });
 });
@@ -168,7 +171,7 @@ test.describe('CMS editorial', () => {
 
     await page.getByRole('button', { name: 'Enviar para checagem' }).click();
     await expect(page.getByText('Enviada para a fila de checagem.')).toBeVisible();
-    await expect(page.locator('.st-badge.em_checagem').first()).toBeVisible();
+    await expect(page.locator('.ln-pill', { hasText: 'Em checagem' }).first()).toBeVisible();
 
     // o autor não aprova a própria versão
     await expect(page.getByRole('button', { name: 'Aprovar v2' })).toHaveCount(0); // editor puro não revisa
@@ -182,7 +185,7 @@ test.describe('CMS editorial', () => {
     await page.goto('/studio/cms/checagem');
     await page.getByRole('button', { name: 'Aprovar v2' }).click();
     await expect(page.getByText('Versão v2 aprovada por rui.')).toBeVisible();
-    await expect(page.locator('.st-badge.aprovado').first()).toBeVisible();
+    await expect(page.locator('.ln-pill', { hasText: 'Aprovado' }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
     await expect(page.getByText('Publicar não está disponível')).toBeVisible();
     await expect(page.getByText(/rui · aprovada/)).toBeVisible();
@@ -198,7 +201,7 @@ test.describe('CMS editorial', () => {
     await page.getByLabel('Corpo da matéria', { exact: true }).fill('Texto revisado depois da aprovação.');
     await page.getByRole('button', { name: 'Salvar como nova versão' }).click();
     await expect(page.getByText('Nova versão v3 salva.')).toBeVisible();
-    await expect(page.locator('.st-badge.rascunho').first()).toBeVisible();
+    await expect(page.locator('.ln-pill', { hasText: 'Rascunho' }).first()).toBeVisible();
   });
 
   test('imagem sem base de direito e conteúdo pago sem rótulo bloqueiam a checagem; bloqueio exige motivo', async ({ page, context }) => {
