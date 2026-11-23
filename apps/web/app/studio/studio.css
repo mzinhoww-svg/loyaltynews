@@ -70,6 +70,9 @@
 
 /* P2-11: título da tela não encosta nos botões logo abaixo */
 .studio h1 { line-height: 1.25; margin: 0 0 var(--ln-space-3); }
+/* revisão visual P2-3: subtítulo respira acima e abaixo; no topo de cartão e de quadro vazio não sobra espaço */
+.studio h2 { margin: var(--ln-space-4) 0 var(--ln-space-2); }
+.studio .st-card > h2:first-child, .studio .st-empty > h2:first-child, .studio aside > h2:first-child { margin-top: 0; }
 /* P2-01: campo travado parece travado (fundo neutro, cursor de bloqueio) */
 .studio fieldset:disabled input, .studio fieldset:disabled textarea, .studio fieldset:disabled select, .studio input[readonly], .studio textarea[readonly] { background: var(--ln-color-neutral-bg); color: var(--st-muted); cursor: not-allowed; }
 /* P2-08: o formulário de bloco mostra só os campos do tipo escolhido (sem JS) */
@@ -81,7 +84,8 @@
 
 @media (max-width: 860px) {
   /* P2-10: alvos de toque de pelo menos 44 px no celular */
-  .studio .st-btn, .studio select, .studio input[type='text'], .studio input[type='url'], .studio input[type='search'], .studio input[type='date'] { min-height: 44px; }
+  /* revisão visual P2-4: todo botão e campo (qualquer tipo de input) tem 44 px, não só os de classe st-btn */
+  .studio .st-btn, .studio button, .studio select, .studio textarea, .studio input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file']) { min-height: var(--ln-touch-target); }
   .studio .st-table a, .studio .st-issues a, .studio .st-actions a { display: inline-block; min-height: 44px; line-height: 44px; }
   /* abrir e fechar seção (details/summary) também é alvo de toque */
   .studio summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
