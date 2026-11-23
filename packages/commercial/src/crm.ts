@@ -1,4 +1,4 @@
-import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone, maxSeq } from './snapshot';
+import { SNAPSHOT_VERSION, SnapshotError, assertSnapshot, assertUnique, clone, maxSeq } from './snapshot';
 
 // CRM comercial: leads (do mídia kit), contas, oportunidades.
 // Fluxo: lead -> qualificação -> oportunidade (novo, qualificado, proposta, negociação, ganho/perdido, motivo, próxima ação).
@@ -22,12 +22,29 @@ export interface Opportunity {
   amountBRL: number | null; proposalVersions: number;
   history: { from: OpportunityStage | null; to: OpportunityStage; at: string }[];
 }
-export interface CrmSnapshot { version: typeof SNAPSHOT_VERSION; seq: number; leads: Lead[]; accounts: Account[]; opportunities: Opportunity[] }
+/** Base legal do tratamento do contato comercial (LGPD). Registrada junto com a data, no servidor. */
+export const CONTACT_BASES = ['consentimento', 'legitimo_interesse', 'execucao_de_contrato'] as const;
+export type ContactBasis = (typeof CONTACT_BASES)[number];
+/** Pessoa de contato de uma conta (anunciante). Dado pessoal (classe 'personal'): nunca sai em rota pública nem em lista de conta. */
+export interface Contact {
+  id: string; accountId: string; name: string; email: string; whatsapp: string | null; role: string | null;
+  /** Base legal e momento do registro: gravados pelo servidor, nunca vindos do cliente. */
+  basis: ContactBasis; consentAt: string;
+  /** Quem registrou (id do ator do Studio); null se desconhecido. */
+  registeredBy: string | null;
+  classeDeDado: 'personal';
+  createdAt: string;
+}
+export interface CrmSnapshot { version: typeof SNAPSHOT_VERSION; seq: number; leads: Lead[]; accounts: Account[]; opportunities: Opportunity[]; /** Opcional: snapshot anterior não tinha contatos. */ contacts?: Contact[] }
 export class CrmError extends Error {
-  code: 'INVALID_LEAD' | 'NOT_FOUND' | 'BAD_STAGE' | 'LOST_REASON_REQUIRED';
+  code: 'INVALID_LEAD' | 'NOT_FOUND' | 'BAD_STAGE' | 'LOST_REASON_REQUIRED' | 'INVALID_ACCOUNT' | 'DUPLICATE_ACCOUNT' | 'INVALID_CONTACT' | 'DUPLICATE_CONTACT';
   constructor(code: CrmError['code'], msg: string) { super(msg); this.code = code; }
 }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Caractere de controle (0x00-0x1F e 0x7F)? Conferido pelo código do caractere (sem regex com caracteres de controle). */
+const hasControl = (s: string): boolean => [...s].some((ch) => { const c = ch.charCodeAt(0); return c < 32 || c === 127; });
+const normalizeName = (s: string): string => (s ?? '').normalize('NFC').trim().replace(/\s+/g, ' ');
+const nameKey = (s: string): string => normalizeName(s).toLowerCase();
 const FLOW: Record<OpportunityStage, OpportunityStage[]> = {
   novo: ['qualificado', 'perdido'],
   qualificado: ['proposta', 'perdido'],
@@ -40,19 +57,23 @@ export class Crm {
   leads = new Map<string, Lead>();
   accounts = new Map<string, Account>();
   opportunities = new Map<string, Opportunity>();
+  contacts = new Map<string, Contact>();
   private seq = 0;
 
   // ---------- hidratação e persistência ----------
   snapshot(): CrmSnapshot {
-    return { version: SNAPSHOT_VERSION, seq: this.seq, leads: clone([...this.leads.values()]), accounts: clone([...this.accounts.values()]), opportunities: clone([...this.opportunities.values()]) };
+    return { version: SNAPSHOT_VERSION, seq: this.seq, leads: clone([...this.leads.values()]), accounts: clone([...this.accounts.values()]), opportunities: clone([...this.opportunities.values()]), contacts: clone([...this.contacts.values()]) };
   }
   /** Substitui todo o estado. Recalcula o contador de ids a partir dos ids carregados (nunca reutiliza um id existente). */
   load(s: CrmSnapshot): void {
     assertSnapshot(s, 'Crm', ['leads', 'accounts', 'opportunities']);
     assertUnique(s.leads.map((x) => x.id), 'Crm.leads'); assertUnique(s.accounts.map((x) => x.id), 'Crm.accounts'); assertUnique(s.opportunities.map((x) => x.id), 'Crm.opportunities');
+    if (s.contacts !== undefined && !Array.isArray(s.contacts)) throw new SnapshotError('Crm: campo "contacts" deve ser lista.');
+    assertUnique((s.contacts ?? []).map((x) => x.id), 'Crm.contacts');
     const c = clone(s);
     this.leads = new Map(c.leads.map((x) => [x.id, x])); this.accounts = new Map(c.accounts.map((x) => [x.id, x])); this.opportunities = new Map(c.opportunities.map((x) => [x.id, x]));
-    this.seq = Math.max(s.seq ?? 0, maxSeq([...this.leads.keys(), ...this.accounts.keys(), ...this.opportunities.keys()]));
+    this.contacts = new Map((c.contacts ?? []).map((x) => [x.id, x]));
+    this.seq = Math.max(s.seq ?? 0, maxSeq([...this.leads.keys(), ...this.accounts.keys(), ...this.opportunities.keys(), ...this.contacts.keys()]));
   }
 
   /** Captura do formulário do mídia kit. Não cria reserva de inventário. */
@@ -86,9 +107,42 @@ export class Crm {
     this.opportunities.set(opportunity.id, opportunity);
     return { account, opportunity };
   }
+  /** Conta (anunciante) criada direto pelo comercial. Nome normalizado; repetido (sem diferenciar maiúsculas) => DUPLICATE_ACCOUNT. */
   createAccount(name: string, now: string): Account {
-    const a: Account = { id: `acc-${++this.seq}`, name, leadIds: [], createdAt: now };
+    const clean = normalizeName(name);
+    if (!clean || clean.length > 120 || hasControl(clean)) throw new CrmError('INVALID_ACCOUNT', 'Nome da conta obrigatório (1 a 120 caracteres, sem caracteres de controle).');
+    if ([...this.accounts.values()].some((a) => nameKey(a.name) === nameKey(clean))) throw new CrmError('DUPLICATE_ACCOUNT', 'Já existe uma conta com este nome.');
+    const a: Account = { id: `acc-${++this.seq}`, name: clean, leadIds: [], createdAt: now };
     this.accounts.set(a.id, a); return a;
+  }
+
+  /**
+   * Contato direto de uma conta. A base legal vem de quem registra; a DATA e o autor são gravados aqui (nunca do cliente).
+   * Regras: conta existe (NOT_FOUND); nome, e-mail e WhatsApp válidos (INVALID_CONTACT); e-mail único dentro da conta (DUPLICATE_CONTACT).
+   */
+  addContact(input: { accountId: string; name: string; email: string; whatsapp?: string | null; role?: string | null; basis: ContactBasis }, now: string, registeredBy: string | null = null): Contact {
+    if (!this.accounts.has(input.accountId)) throw new CrmError('NOT_FOUND', `Conta ${input.accountId} não existe.`);
+    const name = normalizeName(input.name);
+    if (!name || name.length > 120 || hasControl(name)) throw new CrmError('INVALID_CONTACT', 'Nome do contato obrigatório (1 a 120 caracteres, sem caracteres de controle).');
+    const email = (input.email ?? '').trim().toLowerCase();
+    if (email.length > 254 || !EMAIL.test(email)) throw new CrmError('INVALID_CONTACT', 'E-mail do contato inválido.');
+    let whatsapp: string | null = null;
+    if (input.whatsapp !== undefined && input.whatsapp !== null && input.whatsapp.trim() !== '') {
+      const w = input.whatsapp.replace(/[\s().-]/g, '');
+      if (!/^\+?\d{8,15}$/.test(w)) throw new CrmError('INVALID_CONTACT', 'WhatsApp inválido (8 a 15 dígitos, com + opcional).');
+      whatsapp = w;
+    }
+    const role = input.role === undefined || input.role === null ? null : normalizeName(input.role);
+    if (role !== null && (role.length > 80 || hasControl(role))) throw new CrmError('INVALID_CONTACT', 'Cargo inválido (até 80 caracteres, sem caracteres de controle).');
+    if (!(CONTACT_BASES as readonly string[]).includes(input.basis)) throw new CrmError('INVALID_CONTACT', 'Base legal inválida.');
+    if ([...this.contacts.values()].some((c) => c.accountId === input.accountId && c.email === email)) throw new CrmError('DUPLICATE_CONTACT', 'Já existe contato com este e-mail nesta conta.');
+    const c: Contact = { id: `ctt-${++this.seq}`, accountId: input.accountId, name, email, whatsapp, role: role === '' ? null : role, basis: input.basis, consentAt: now, registeredBy, classeDeDado: 'personal', createdAt: now };
+    this.contacts.set(c.id, c); return c;
+  }
+  /** Contatos da conta, do mais antigo ao mais novo. Conta inexistente => NOT_FOUND. */
+  listContacts(accountId: string): Contact[] {
+    if (!this.accounts.has(accountId)) throw new CrmError('NOT_FOUND', `Conta ${accountId} não existe.`);
+    return [...this.contacts.values()].filter((c) => c.accountId === accountId).sort((a, b) => (a.createdAt === b.createdAt ? a.id.localeCompare(b.id, 'en', { numeric: true }) : a.createdAt < b.createdAt ? -1 : 1));
   }
   moveStage(id: string, to: OpportunityStage, now: string, opts: { lostReason?: string; nextAction?: string; nextActionDue?: string; amountBRL?: number } = {}): Opportunity {
     const o = this.opportunities.get(id);

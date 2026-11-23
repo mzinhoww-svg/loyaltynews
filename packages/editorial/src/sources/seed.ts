@@ -1,5 +1,6 @@
 import type { Source } from '../types';
 import { SEED_BLOG_SOURCES } from './seed-blogs';
+import { SEED_EMPRESA_SOURCES } from './seed-empresas';
 
 /**
  * Registro de fontes primárias (Frente 06). GERADO da pesquisa somente-leitura de 22/11/2026 (docs/fontes-pesquisa.json,
@@ -599,8 +600,10 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:47:55-03:00",
       "consultedAt": "2026-11-22T18:47:35-03:00",
       "imageRightsNote": "não informado",
-      "notes": "Site se apresenta como RI do Banco Bradesco S.A. (CNPJ e logos B3/NYSE no rodape; propriedade do dominio nao verificada alem da pagina). Listagem sem itens no fetch (dinamico). Outras paginas: https://www.bradescori.com.br/o-bradesco/midia/ (midia/imprensa). Sem RSS visivel. A pagina de privacidade (banco.bradesco) nao foi aberta."
-    }
+      "notes": "Site se apresenta como RI do Banco Bradesco S.A. (CNPJ e logos B3/NYSE no rodape; propriedade do dominio nao verificada alem da pagina). Listagem sem itens no fetch (dinamico). Outras paginas: https://www.bradescori.com.br/o-bradesco/midia/ (midia/imprensa). Sem RSS visivel. A pagina de privacidade (banco.bradesco) nao foi aberta. Sitemap de notícias conferido em 2026-11-23 (1 leitura): 50 páginas em /noticias/, a mais recente de 2026-11-23; o índice é https://www.bradescori.com.br/sitemap_index.xml."
+    },
+    "sitemapUrl": "https://www.bradescori.com.br/noticias-sitemap.xml",
+    "sitemapPathPrefix": "/noticias/"
   },
   {
     "id": "nubank-newsroom",
@@ -1301,4 +1304,4 @@ export const SEED_BASE_SOURCES: Source[] = [
 ] as unknown as Source[];
 
 /** Cadastro completo: fontes primárias da pesquisa de 22/11 + blogs e imprensa de nicho da DP-29 (todas desabilitadas até a revisão humana). */
-export const SEED_SOURCES: Source[] = [...SEED_BASE_SOURCES, ...SEED_BLOG_SOURCES];
+export const SEED_SOURCES: Source[] = [...SEED_BASE_SOURCES, ...SEED_EMPRESA_SOURCES, ...SEED_BLOG_SOURCES];

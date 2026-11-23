@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { EDITORIAS, FLAG_DEFAULTS } from '@ln/contracts';
-import { getDeps } from '@/app/api/_lib/deps';
+import { EDITORIAS } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { checkAccess } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -38,8 +38,8 @@ export default async function Materia({ params, searchParams }: { params: Promis
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
   const editavel = STATUS_EDITAVEIS.includes(m.status);
-  // mesma leitura de flags das rotas do Backend (getDeps); sem banco configurado cai no padrão (tudo desligado)
-  const publicacaoLigada = (getDeps()?.flags ?? FLAG_DEFAULTS).publicacaoPortal === true;
+  // flag pelo resolvedor de runtime (ADR-022): o mesmo da API e do /api/health
+  const publicacaoLigada = flagAtiva('publicacaoPortal');
   const podePublicar = checkAccess(session, ['admin', 'editor_chefe']).ok;
   const base = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   // URL pública canônica da matéria no Portal: /noticia/{slug}

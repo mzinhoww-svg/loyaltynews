@@ -42,6 +42,20 @@ export function htmlToText(html) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+/** Entidades HTML nomeadas comuns em português (texto de capturas por provedor pode vir sem decodificar). */
+const NAMED = { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', hellip: '…' };
+for (const [base, accents] of Object.entries({ a: 'acute:á grave:à circ:â tilde:ã uml:ä', e: 'acute:é grave:è circ:ê uml:ë', i: 'acute:í grave:ì circ:î uml:ï', o: 'acute:ó grave:ò circ:ô tilde:õ uml:ö', u: 'acute:ú grave:ù circ:û uml:ü' })) {
+  for (const pair of accents.split(' ')) { const [k, ch] = pair.split(':'); NAMED[base + k] = ch; NAMED[base.toUpperCase() + k] = ch.toUpperCase(); }
+}
+Object.assign(NAMED, { ccedil: 'ç', Ccedil: 'Ç', ntilde: 'ñ', Ntilde: 'Ñ' });
+export function decodeEntities(s) {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (m, k) => NAMED[k] ?? m);
+}
+/** Cargo: a citação (nome + cargo literais) pode ser curta (ex.: "Eros Canedo CFO"); o mínimo da relação/organização (20) continua valendo para elas. Mesmo valor do validador (seed-load). */
+const MIN_ROLE_QUOTE = 12;
 const norm = (s) => s.normalize('NFC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
 
 /**
@@ -109,11 +123,11 @@ async function probe(url, word) {
 
 async function verify(path) {
   const ds = JSON.parse(readFileSync(path, 'utf8'));
-  if (ds.schemaVersion !== 'intelligence-seed/1') throw new Error('schemaVersion deve ser intelligence-seed/1');
+  if (ds.schemaVersion !== 'intelligence-seed/1' && ds.schemaVersion !== 'intelligence-seed/2') throw new Error('schemaVersion deve ser intelligence-seed/1 ou intelligence-seed/2');
   const out = { datasetId: ds.datasetId, verifiedAt: new Date().toISOString(), verifier: UA, sources: [], records: [] };
   const texts = new Map();
   for (const s of ds.sources) {
-    if (s.method === 'browser') {
+    if (s.method === 'browser' || s.method === 'capture') {
       // Página que só renderiza com JavaScript: texto capturado pelo navegador do OpenBot (data/captures/<id>.json).
       // O verificador NÃO acessa a rede aqui: recalcula o sha256 do texto e compara com o calculado dentro do navegador.
       const e = { id: s.id, url: s.url, method: 'openbot_browser', status: 'unverified', http_status: null, fetched_at: null, content_sha256: null, text_length: 0, robots: null, note: '' };
@@ -126,7 +140,8 @@ async function verify(path) {
         else if (cap.text.length < 200) e.note = 'texto da captura muito curto';
         else {
           Object.assign(e, { status: 'fetched', http_status: 200, fetched_at: cap.capturedAt, content_sha256: sha, text_length: cap.text.length, robots: cap.robots, final_url: cap.finalUrl });
-          texts.set(s.id, norm(cap.text));
+          // a captura guarda o texto como veio (pode trazer entidades HTML, ex.: &ocirc;); a comparação usa o texto decodificado
+          texts.set(s.id, norm(decodeEntities(cap.text)));
         }
       } catch (err) {
         e.note = `captura ilegível: ${err.message}`.slice(0, 200);
@@ -162,14 +177,16 @@ async function verify(path) {
     ...ds.organizations.map((o) => ({ ref: `organization:${o.key}`, sourceId: o.sourceId, quote: o.quote, contextQuote: o.contextQuote })),
     ...ds.relations.map((r) => ({ ref: `relation:${r.from}>${r.type}>${r.to}`, sourceId: r.sourceId, quote: r.quote, contextQuote: r.contextQuote })),
     ...(ds.persons ?? []).map((p) => ({ ref: `person:${p.key}`, sourceId: p.sourceId, quote: p.quote })),
+    // cargos públicos (intelligence-seed/2): a citação (nome + cargo) precisa estar literalmente na página; a mesma referência que o carregador monta (roleRef)
+    ...(ds.roles ?? []).map((r) => ({ ref: `role:${r.orgKey}>${r.personName}>${r.title}`, sourceId: r.sourceId, quote: r.quote, minLen: MIN_ROLE_QUOTE })),
     // achados sobre termos de uso/direitos (revisão J-14): também exigem citação literal na página indicada
     ...(ds.termsFindings ?? []).map((f) => ({ ref: `terms:${f.id}`, sourceId: f.sourceId, quote: f.quote })),
   ];
   for (const rec of all) {
     const t = texts.get(rec.sourceId);
-    const has = (q) => t !== undefined && typeof q === 'string' && q.length >= 20 && t.includes(norm(q));
+    const has = (q, min = 20) => t !== undefined && typeof q === 'string' && q.length >= min && t.includes(norm(q));
     // contextQuote (opcional) também precisa estar literalmente na página: é o que dá sentido à lista (ex.: título "Empresas Associadas")
-    const found = has(rec.quote) && (rec.contextQuote === undefined || has(rec.contextQuote));
+    const found = has(rec.quote, rec.minLen) && (rec.contextQuote === undefined || has(rec.contextQuote));
     out.records.push({ ref: rec.ref, source_id: rec.sourceId, quote_found: found });
   }
   for (const s of out.sources) if (s.status === 'fetched') s.status = out.records.filter((r) => r.source_id === s.id).every((r) => r.quote_found) ? 'verified' : 'partial';
@@ -182,7 +199,8 @@ async function verify(path) {
 }
 
 // Só executa quando chamado direto (scripts/probe-sources.mjs importa as funções acima sem disparar nada).
-const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+// Só executa quando o PRÓPRIO arquivo é o ponto de entrada (num bundle do esbuild import.meta.url é o do bundle; o nome do arquivo evita falso positivo).
+const isMain = Boolean(process.argv[1]) && /verify-dataset\.mjs$/.test(process.argv[1]) && fileURLToPath(import.meta.url) === process.argv[1];
 const [a, b, c] = isMain ? process.argv.slice(2) : [];
 if (!isMain) {
   /* importado como módulo */

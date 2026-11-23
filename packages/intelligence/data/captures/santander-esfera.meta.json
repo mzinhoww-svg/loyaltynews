@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "santander-esfera",
+  "url": "https://www.santander.com.br/blog/para-voce/programa-esfera/",
+  "finalUrl": "https://www.santander.com.br/blog/para-voce/programa-esfera/",
+  "capturedAt": "2026-11-23T16:46:39.571Z",
+  "robots": "robots.txt permite",
+  "length": 9040,
+  "sha256Claimed": "73a7e019b6bfdbe405a9788c12a91e8220177b19d86e6006996e86b0960057a9"
+}

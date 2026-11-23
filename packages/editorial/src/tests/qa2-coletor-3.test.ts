@@ -51,7 +51,9 @@ test('(1) nenhum código de produção (worker incluído) injeta intervalo zero;
   const col = readFileSync(join(root, 'packages/editorial/src/collector/collector.ts'), 'utf8');
   assert.match(col, /opts\.minSpacingMs \?\? 3000/); assert.match(col, /opts\.dp31SpacingMs \?\? 10_000/); assert.match(col, /opts\.dp31MaxPagesPerDay \?\? 5/);
   const worker = readFileSync(join(root, 'apps/workers/src/editorial-factory.ts'), 'utf8');
-  assert.match(worker, /new Collector\(createNodeFetcher\(\), \{ now, resolver: systemResolver, flags, readBudget: new StoreReadBudget\(store\)/, 'o worker usa o padrão (sem override) e o orçamento global');
+  assert.match(worker, /new Collector\(i\.fetcher \?\? createNodeFetcher\(\), \{ now, resolver: i\.resolver \?\? systemResolver, flags, readBudget: new StoreReadBudget\(store\)/, 'o worker usa o padrão (sem override) e o orçamento global');
+  // só o chamador (teste) pode passar collectorOptions; o main de produção nunca o faz
+  assert.ok(!/collectorOptions/.test(readFileSync(join(root, 'apps/workers/src/editorial-factory.main.ts'), 'utf8')), 'o main não sobrescreve opções do coletor');
 });
 
 test('(2) robots.ts não tem mais parser/comparador próprio: tudo decide pelo módulo comum, inclusive no redirecionamento; Crawl-delay pelo token exato', async () => {

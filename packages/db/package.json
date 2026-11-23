@@ -9,7 +9,8 @@
     "./schema": "./src/schema.ts",
     "./testing": "./src/testing.ts",
     "./migrate": "./src/migrate.ts",
-    "./tls": "./src/tls.ts"
+    "./tls": "./src/tls.ts",
+    "./safe-log": "./src/safe-log.ts"
   },
   "types": "./src/index.ts",
   "scripts": {

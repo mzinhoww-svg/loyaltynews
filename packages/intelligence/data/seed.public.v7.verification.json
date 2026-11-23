@@ -1,0 +1,1010 @@
+{
+  "datasetId": "seed.public.v7",
+  "verifiedAt": "2026-11-23T16:50:23.531Z",
+  "verifier": "LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "url": "https://www.livelo.com.br/imprensa",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:50:25.975Z",
+      "content_sha256": "4450396c90bcb12f33f0f210ffc338883c7b9f90e2578cea2bf8ccf542ca65c5",
+      "text_length": 13339,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-livelo",
+      "url": "https://banco.bradesco/cartoes/hotsitefidelidade/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:50:29.213Z",
+      "content_sha256": "832b2e38af37fca6a49c9434386848c07534c4b025e1416af5d8259f5fe17882",
+      "text_length": 21183,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://banco.bradesco/cartoes/hotsitefidelidade/"
+    },
+    {
+      "id": "latampass-conheca",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:50:33.349Z",
+      "content_sha256": "ab12e961fb809d0a6f4c3b5e1129514fb6a820cd337a64edbc03e1463ca1c772",
+      "text_length": 4642,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "url": "https://web.abemf.com.br/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:50:38.932Z",
+      "content_sha256": "c303f7984b0b16306098e10c040570a4154f56018568bc3cd2cc17269f9307b3",
+      "text_length": 4260,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/"
+    },
+    {
+      "id": "abemf-associados",
+      "url": "https://web.abemf.com.br/associados/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:50:46.207Z",
+      "content_sha256": "c9119986bb5f6db6dd00fb298f03dbcd9184ea234f97501d6b37925c967aa395",
+      "text_length": 3658,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/associados/"
+    },
+    {
+      "id": "dotz-home",
+      "url": "https://www.dotz.com.br/home",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:20:17.138Z",
+      "content_sha256": "4b67a99bdcf38e115d7df5cfaa46f29fe5f4f53584b49f18862fd26ebee84360",
+      "text_length": 3890,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.dotz.com.br/home"
+    },
+    {
+      "id": "santander-ri",
+      "url": "https://www.santander.com.br/ri/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:50:50.056Z",
+      "content_sha256": "d4624fdd52e7065a965d0640d10d9c629113f769f7721e9ab4e7d536d671d8b9",
+      "text_length": 2307,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.santander.com.br/ri/"
+    },
+    {
+      "id": "bradesco-diretoria",
+      "url": "https://www.bradescori.com.br/o-bradesco/governanca-corporativa/conselhos-e-diretoria/diretoria-executiva/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:06:16.013Z",
+      "content_sha256": "f4cd9db73a2dbe65614dc83adb238563be9880412d20b44c90301f8e1acd9e24",
+      "text_length": 31316,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.bradescori.com.br/o-bradesco/governanca-corporativa/conselhos-e-diretoria/diretoria-executiva/"
+    },
+    {
+      "id": "bb-diretor",
+      "url": "https://ri.bb.com.br/governanca-e-sustentabilidade/conselho-diretor/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:06:21.337Z",
+      "content_sha256": "f6085b6b445b4f8b364a8218c7f0edc3b217033104e02d71fc68c38e2c76d63d",
+      "text_length": 10788,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ri.bb.com.br/governanca-e-sustentabilidade/conselho-diretor/"
+    },
+    {
+      "id": "santander-diretoria",
+      "url": "https://www.santander.com.br/ri/en/about-santander-brasil/administration-and-corporate-governance/management-board/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:08:20.590Z",
+      "content_sha256": "51e2133a47276d8def1ec5eff33c815a5bb99457d3400db1b2e8390593bff032",
+      "text_length": 18671,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.santander.com.br/ri/en/about-santander-brasil/administration-and-corporate-governance/management-board/"
+    },
+    {
+      "id": "dotz-adm",
+      "url": "https://ri.dotz.com.br/governanca/administracao/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:08:26.541Z",
+      "content_sha256": "8d57d5f69d5c641ab549d3ee8807e519620d5b8c1d67f7e09baae3fc5289db77",
+      "text_length": 13414,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ri.dotz.com.br/governanca/administracao/"
+    },
+    {
+      "id": "brb-adm",
+      "url": "https://ri.brb.com.br/pt/administracao",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:08:30.373Z",
+      "content_sha256": "6817bd8f03036d80fce4cbd7a2b50049010fe29b8caddd45c0cd4417fdd2f917",
+      "text_length": 86476,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ri.brb.com.br/pt/administracao"
+    },
+    {
+      "id": "bv-diretoria",
+      "url": "https://ri.bv.com.br/governanca-corporativa/diretoria-conselhos-e-comites/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:08:35.972Z",
+      "content_sha256": "ccba1cf59deca34b8a3b0fa980e27637db23a1a1b511f9dedcc6265ee8871ee2",
+      "text_length": 35643,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ri.bv.com.br/governanca-corporativa/diretoria-conselhos-e-comites/"
+    },
+    {
+      "id": "gpa-adm",
+      "url": "https://www.gpari.com.br/governanca-corporativa/administracao/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:08:41.086Z",
+      "content_sha256": "637a61131eda33de244720da542f093f92d83f4c86c7702db60da1ae7f07c0b0",
+      "text_length": 28606,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.gpari.com.br/governanca-corporativa/administracao/"
+    },
+    {
+      "id": "latam-alta-adm",
+      "url": "https://ir.latam.com/Portuguese/governan-a/alta-administra-o/default.aspx",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:09:56.360Z",
+      "content_sha256": "aa7cc6fbfe6e917f5b067bb1ad618dc35d180e617688f7be33177ec20f4d5af1",
+      "text_length": 12977,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ir.latam.com/Portuguese/governan-a/alta-administra-o/default.aspx"
+    },
+    {
+      "id": "uber-gov",
+      "url": "https://investor.uber.com/governance/default.aspx",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:36:50.281Z",
+      "content_sha256": "7b3beae51f4e971046fd11008a60c5ca0f7429a92140713e35658a8f469971bf",
+      "text_length": 4184,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://investor.uber.com/governance/default.aspx"
+    },
+    {
+      "id": "rd-governanca",
+      "url": "https://ri.rdsaude.com.br/governanca-corporativa",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T13:10:00.696Z",
+      "content_sha256": "b208cd8d3fc353fa16e7edef5b7095dd9bdf82fefd1ebbaec3e50b2607338846",
+      "text_length": 45067,
+      "robots": "robots.txt ausente",
+      "note": "",
+      "final_url": "https://ri.rdsaude.com.br/governanca-corporativa"
+    },
+    {
+      "id": "livelo-imp",
+      "url": "https://www.livelo.com.br/imprensa/balanco-livelo-2025",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:53:04.830Z",
+      "content_sha256": "7656419dc4885b7f4e0ebc480812a904f94e30ef008b159a059fb6e1077cb71f",
+      "text_length": 6768,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/imprensa/balanco-livelo-2025"
+    },
+    {
+      "id": "mastercard-exec",
+      "url": "https://www.mastercard.com/news/latin-america/pt-br/noticias/biografias/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:51:57.558Z",
+      "content_sha256": "5577f079b036eed724fc8b3a65305689603fce2b84457a23707cecdade9050e2",
+      "text_length": 13015,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.mastercard.com/news/latin-america/pt-br/noticias/biografias/"
+    },
+    {
+      "id": "orbia-lider",
+      "url": "https://www.orbia.com/es/esto-es-orbia/equipo-de-liderazgo/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:51:49.807Z",
+      "content_sha256": "0e45dc3efd2f9fd99d4c28de0a81250427d3665c2ac98c99b6610cd81728201f",
+      "text_length": 48381,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.orbia.com/es/esto-es-orbia/equipo-de-liderazgo/"
+    },
+    {
+      "id": "bradseg-exec",
+      "url": "https://www.bradescoseguros.com.br/clientes/atendimento/assessoria-de-imprensa/executivos-grupo-segurador",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:51:54.304Z",
+      "content_sha256": "f3079b3d8858cba0e2d7c80e18b5410555fdb23465f23a2914ada02cd011e757",
+      "text_length": 9932,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.bradescoseguros.com.br/clientes/atendimento/assessoria-de-imprensa/executivos-grupo-segurador"
+    },
+    {
+      "id": "santander-grupo",
+      "url": "https://www.santander.com/es/accionistas-e-inversores/gobierno-corporativo/consejo-de-administracion",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:52:05.148Z",
+      "content_sha256": "3c7eb88b7cee2561a9313170540c5a08610b66b7bf7c5d9fbfc33f9544ddd6a7",
+      "text_length": 9517,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.santander.com/es/accionistas-e-inversores/gobierno-corporativo/consejo-de-administracion"
+    },
+    {
+      "id": "madero-dir",
+      "url": "https://ri.grupomadero.com.br/governanca-corporativa/diretoria-e-conselho-de-administracao/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:52:10.252Z",
+      "content_sha256": "91d7bd469a7094677f5dd473fe6928f705f392869a8949d832675acdc63d2b6c",
+      "text_length": 13960,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ri.grupomadero.com.br/governanca-corporativa/diretoria-e-conselho-de-administracao/"
+    },
+    {
+      "id": "sea-lider",
+      "url": "https://www.sea.com/aboutus/leadership",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T14:52:46.990Z",
+      "content_sha256": "d0208e33d72399a7158ea23610933c5590a20bd5e184daa207bd763dd20e1afc",
+      "text_length": 1089,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.sea.com/aboutus/leadership"
+    },
+    {
+      "id": "theorg-genial",
+      "url": "https://theorg.com/org/genial-investimentos/teams/leadership",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T15:20:25.030Z",
+      "content_sha256": "4b7a91dea9b27af43253a7ffc83b37f79507c9ab4ba2b0edcaaaaa963331ccb5",
+      "text_length": 1511,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://theorg.com/org/genial-investimentos/teams/leadership"
+    },
+    {
+      "id": "theorg-esfera",
+      "url": "https://theorg.com/org/sphere-1",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T15:20:28.354Z",
+      "content_sha256": "396274d7030304eccc63bdb33936963a78ed666d5bdadc6e8422f29147341555",
+      "text_length": 1975,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://theorg.com/org/sphere-1"
+    },
+    {
+      "id": "theorg-stix",
+      "url": "https://theorg.com/org/soustix",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T15:20:31.680Z",
+      "content_sha256": "f59a30a6cc83f5674b62803af1861a53d18da6d3f2ca2c5b700acf03615271b6",
+      "text_length": 1297,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://theorg.com/org/soustix"
+    },
+    {
+      "id": "theorg-jsm",
+      "url": "https://theorg.com/org/juntos-somos-mais",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T15:20:34.972Z",
+      "content_sha256": "34c4909ab4cccdd52556095b8b0b0bca15ecacd599b9a3c49de03003f552628c",
+      "text_length": 2239,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://theorg.com/org/juntos-somos-mais"
+    },
+    {
+      "id": "theorg-bravium",
+      "url": "https://theorg.com/org/bravium",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T15:20:38.272Z",
+      "content_sha256": "937e05c90c6e154e81b12267d6d1c872d82ceaff2482f8ef1c8bfad6abdc10b7",
+      "text_length": 2402,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://theorg.com/org/bravium"
+    },
+    {
+      "id": "lp-banco-do-brasil",
+      "url": "https://latampass.latam.com/br/pt/parceiros/banco-do-brasil",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:47:10.811Z",
+      "content_sha256": "e29b0d220dcaea41af62bd0dc7ce47b4fac8422a13f3753acaebb3370f624237",
+      "text_length": 4433,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/parceiros/banco-do-brasil"
+    },
+    {
+      "id": "lp-bradesco",
+      "url": "https://latampass.latam.com/br/pt/parceiros/bradesco",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:47:14.745Z",
+      "content_sha256": "b8509c28ebdefacb30dc0f6646472330721694907e68ba1f75f2adb74c2cf167",
+      "text_length": 4001,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/parceiros/bradesco"
+    },
+    {
+      "id": "lp-livelo",
+      "url": "https://latampass.latam.com/br/pt/parceiros/livelo",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:47:32.190Z",
+      "content_sha256": "413158af31c6ffe9bfcd20f92a3d6eda4ccc3d2eb5b03ad7f548aab70488a68e",
+      "text_length": 4242,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/parceiros/livelo"
+    },
+    {
+      "id": "lp-esfera",
+      "url": "https://latampass.latam.com/br/pt/parceiros/esfera",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:47:46.711Z",
+      "content_sha256": "40e4d73fafd603e14aded70cfb2e039d0dd6c6cc92d97050602a0247fea65d91",
+      "text_length": 4297,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/parceiros/esfera"
+    },
+    {
+      "id": "bv-acionaria",
+      "url": "https://ri.bv.com.br/governanca-corporativa/composicao-acionaria/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:46:10.338Z",
+      "content_sha256": "18f89dcbdd8d85c4ef404db8a9dcfe96c8bc32576fc73b731267e56b6c7d1cc8",
+      "text_length": 2023,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://ri.bv.com.br/governanca-corporativa/composicao-acionaria/"
+    },
+    {
+      "id": "santander-esfera",
+      "url": "https://www.santander.com.br/blog/para-voce/programa-esfera/",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:46:39.571Z",
+      "content_sha256": "73a7e019b6bfdbe405a9788c12a91e8220177b19d86e6006996e86b0960057a9",
+      "text_length": 9040,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.santander.com.br/blog/para-voce/programa-esfera/"
+    },
+    {
+      "id": "livelo-dotz",
+      "url": "https://www.livelo.com.br/trocar-pontos/parceiros/dotz",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:48:59.068Z",
+      "content_sha256": "1c9b433b0167a3d832528bb4bfa6ac33aa4bc8571492e1d82f93ea3ac98788b6",
+      "text_length": 3862,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/trocar-pontos/parceiros/dotz"
+    },
+    {
+      "id": "mc-emissores",
+      "url": "https://www.mastercard.com/br/pt/personal/find-a-card/emissores-parceiros.html",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T16:49:09.748Z",
+      "content_sha256": "3f2a7bbf04c082b4ed93a40ab3b489d5b5c237b256ece911853d6e2a309b29be",
+      "text_length": 27232,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.mastercard.com/br/pt/personal/find-a-card/emissores-parceiros.html"
+    }
+  ],
+  "records": [
+    {
+      "ref": "organization:livelo",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bradesco",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:abemf",
+      "source_id": "abemf-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:azul",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bravium",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:clube-giro",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:dotz",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:esfera",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:juntos-somos-mais",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:mastercard",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:orbia",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:smiles",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:stix",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-do-brasil",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-bv",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:uber",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:brb",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:km-de-vantagens",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-santander-brasil",
+      "source_id": "santander-ri",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:grupo-santander",
+      "source_id": "santander-ri",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:madero",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:shopee",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bradesco-seguros",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:genial",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:gpa",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:raia-drogasil",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:santander",
+      "source_id": "santander-esfera",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bradesco>other>livelo",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam>other>latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:azul>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bravium>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:clube-giro>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:esfera>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:juntos-somos-mais>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:mastercard>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:orbia>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:smiles>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:stix>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>partner_of>banco-do-brasil",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>partner_of>banco-bv",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>uber",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>brb",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>km-de-vantagens",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:banco-santander-brasil>other>grupo-santander",
+      "source_id": "santander-ri",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>madero",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>shopee",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>bradesco-seguros",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>genial",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:gpa>other>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:raia-drogasil>other>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>partner_of>banco-do-brasil",
+      "source_id": "lp-banco-do-brasil",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>partner_of>bradesco",
+      "source_id": "lp-bradesco",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>partner_of>livelo",
+      "source_id": "lp-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>partner_of>esfera",
+      "source_id": "lp-esfera",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:banco-do-brasil>other>livelo",
+      "source_id": "lp-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:banco-do-brasil>other>banco-bv",
+      "source_id": "bv-acionaria",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:santander>other>esfera",
+      "source_id": "santander-esfera",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>dotz",
+      "source_id": "livelo-dotz",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:mastercard>partner_of>bradesco",
+      "source_id": "mc-emissores",
+      "quote_found": true
+    },
+    {
+      "ref": "role:bradesco>Marcelo de Araújo Noronha>Diretor-Presidente",
+      "source_id": "bradesco-diretoria",
+      "quote_found": true
+    },
+    {
+      "ref": "role:bradesco>Cassiano Ricardo Scarpelli>Vice-Presidente",
+      "source_id": "bradesco-diretoria",
+      "quote_found": true
+    },
+    {
+      "ref": "role:bradesco>José Ramos Rocha Neto>Vice-Presidente",
+      "source_id": "bradesco-diretoria",
+      "quote_found": true
+    },
+    {
+      "ref": "role:banco-do-brasil>Tarciana Paula Gomes Medeiros>Presidente",
+      "source_id": "bb-diretor",
+      "quote_found": true
+    },
+    {
+      "ref": "role:banco-do-brasil>Ana Cristina Rosa Garcia>Vice-presidente Corporativo",
+      "source_id": "bb-diretor",
+      "quote_found": true
+    },
+    {
+      "ref": "role:banco-do-brasil>Felipe Guimarães Geissler Prince>Vice-presidente de Controles Internos e Gestão de Risco",
+      "source_id": "bb-diretor",
+      "quote_found": true
+    },
+    {
+      "ref": "role:banco-santander-brasil>Gilson Finkelsztain>Chief Executive Officer",
+      "source_id": "santander-diretoria",
+      "quote_found": true
+    },
+    {
+      "ref": "role:banco-santander-brasil>Carlos Ignacio Muñiz Gonzalez Blanch>Vice President Executive and Investor Relations Officer",
+      "source_id": "santander-diretoria",
+      "quote_found": true
+    },
+    {
+      "ref": "role:dotz>Otávio Araujo>Diretor Presidente",
+      "source_id": "dotz-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:dotz>Murilo Oranges>Diretor Financeiro",
+      "source_id": "dotz-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:brb>Nelson Antônio de Souza>Presidente",
+      "source_id": "brb-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:brb>Ana Paula Teixeira>Diretora Executiva de Controles e Riscos",
+      "source_id": "brb-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:brb>Antônio José Barreto de Araújo Júnior>Diretor Executivo de Finanças, Controladoria e Relações com Investidores",
+      "source_id": "brb-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:banco-bv>Gustavo Henrique Santos de Sousa>Diretor Presidente",
+      "source_id": "bv-diretoria",
+      "quote_found": true
+    },
+    {
+      "ref": "role:gpa>Alexandre de Jesus Santoro>Diretor Presidente",
+      "source_id": "gpa-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:latam>Roberto Alvo>CEO LATAM Airlines Group",
+      "source_id": "latam-alta-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:latam>Andres Bianchi>CEO LATAM Cargo Group",
+      "source_id": "latam-alta-adm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:uber>Dara Khosrowshahi>Chief Executive Officer",
+      "source_id": "uber-gov",
+      "quote_found": true
+    },
+    {
+      "ref": "role:uber>Andrew Macdonald>President and Chief Operating Officer",
+      "source_id": "uber-gov",
+      "quote_found": true
+    },
+    {
+      "ref": "role:raia-drogasil>Marcílio D’Amico Pousada>Presidente",
+      "source_id": "rd-governanca",
+      "quote_found": true
+    },
+    {
+      "ref": "role:livelo>André Fehlauer>CEO",
+      "source_id": "livelo-imp",
+      "quote_found": true
+    },
+    {
+      "ref": "role:mastercard>Andrea Scerch>Presidente Mastercard América Latina e Caribe",
+      "source_id": "mastercard-exec",
+      "quote_found": true
+    },
+    {
+      "ref": "role:mastercard>Walter Pimenta>Vice-Presidente Executivo de Produtos e Engenharia para a América Latina e Caribe",
+      "source_id": "mastercard-exec",
+      "quote_found": true
+    },
+    {
+      "ref": "role:orbia>Sameer S. Bharadwaj>CEO",
+      "source_id": "orbia-lider",
+      "quote_found": true
+    },
+    {
+      "ref": "role:bradesco-seguros>Ney Ferraz Dias>Diretor-Presidente",
+      "source_id": "bradseg-exec",
+      "quote_found": true
+    },
+    {
+      "ref": "role:bradesco-seguros>Edilson Dias dos Reis>Diretor-Gerente",
+      "source_id": "bradseg-exec",
+      "quote_found": true
+    },
+    {
+      "ref": "role:grupo-santander>Ana Botín>Presidenta ejecutiva",
+      "source_id": "santander-grupo",
+      "quote_found": true
+    },
+    {
+      "ref": "role:grupo-santander>Héctor Grisi>Consejero delegado",
+      "source_id": "santander-grupo",
+      "quote_found": true
+    },
+    {
+      "ref": "role:madero>Luiz Renato Durski Junior>Diretor Presidente e Fundador",
+      "source_id": "madero-dir",
+      "quote_found": true
+    },
+    {
+      "ref": "role:madero>Rafael de Oliveira Mello>Diretor Vice-Presidente Operacional",
+      "source_id": "madero-dir",
+      "quote_found": true
+    },
+    {
+      "ref": "role:madero>Laércio José Brunetto>Diretor Vice-Presidente Industrial",
+      "source_id": "madero-dir",
+      "quote_found": true
+    },
+    {
+      "ref": "role:shopee>David Chen>Chief Product Officer",
+      "source_id": "sea-lider",
+      "quote_found": true
+    },
+    {
+      "ref": "role:genial>Rodolfo Riechert>CEO",
+      "source_id": "theorg-genial",
+      "quote_found": true
+    },
+    {
+      "ref": "role:esfera>Caroline Sobreira Ricciardi>Superintendente De Marketing E Parcerias",
+      "source_id": "theorg-esfera",
+      "quote_found": true
+    },
+    {
+      "ref": "role:stix>Eduardo Leonidas>Founder & Chief Executive Officer",
+      "source_id": "theorg-stix",
+      "quote_found": true
+    },
+    {
+      "ref": "role:stix>David Alves>Chief Financial Officer",
+      "source_id": "theorg-stix",
+      "quote_found": true
+    },
+    {
+      "ref": "role:juntos-somos-mais>Fernando Dutra>Diretor Executivo",
+      "source_id": "theorg-jsm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:juntos-somos-mais>Eros Canedo>CFO",
+      "source_id": "theorg-jsm",
+      "quote_found": true
+    },
+    {
+      "ref": "role:bravium>Eduardo F. Telles Filho>Chief Executive Officer",
+      "source_id": "theorg-bravium",
+      "quote_found": true
+    }
+  ]
+}

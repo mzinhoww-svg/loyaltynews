@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { gateConfigFromPolicy, microToUsd, type BudgetGate } from '@ln/modelops';
 import { findModule } from '@/lib/studio/modules';
 import { POLITICA_ROTULO, carregarPolitica, getPortao } from '@/lib/studio/modelops';
 import { requireModule } from '../../_lib/guard';
+import { SemRotaBackend } from '../../_components/SemBanco';
 
 export const metadata: Metadata = { title: 'FinOps' };
 export const dynamic = 'force-dynamic';
@@ -39,9 +40,10 @@ export default async function FinOpsPage() {
   return (
     <>
       <h1>FinOps</h1>
+      <SemRotaBackend o_que="Orçamento e teto vêm da configuração (@ln/modelops); o consumo é o livro-razão do gateway." />
       <p>Orçamento, consumo e degraus do mês (America/Sao_Paulo). Só o admin altera limites; agentes não alteram o teto mensal.</p>
       <div className="st-alert" role="status">
-        {POLITICA_ROTULO}. Chamadas de modelo: <strong>{isEnabled('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong> (flag modelosHabilitados).
+        {POLITICA_ROTULO}. Chamadas de modelo: <strong>{flagAtiva('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong> (flag modelosHabilitados).
       </div>
       {falha && (
         <div className="st-alert err" role="alert">

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
 import { getStoreAgentes } from '@/lib/studio/agentes';
 import { requireModule } from '../../_lib/guard';
+import { SemRotaBackend } from '../../_components/SemBanco';
 
 export const metadata: Metadata = { title: 'Decisões e atas' };
 export const dynamic = 'force-dynamic';
@@ -20,8 +21,9 @@ export default async function DecisoesPage({ searchParams }: { searchParams: Pro
   return (
     <>
       <h1>Decisões e atas</h1>
+      <SemRotaBackend o_que="Decisões, atas e ações registradas aqui são do Studio." />
       <p>
-        Action tracker persistente e auditável. Atas e decisões nascem da execução dos rituais, hoje <strong>{isEnabled('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais). Decisão de ato reservado vai ao responsável humano; nada é aprovado automaticamente.
+        Action tracker persistente e auditável. Atas e decisões nascem da execução dos rituais, hoje <strong>{flagAtiva('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais). Decisão de ato reservado vai ao responsável humano; nada é aprovado automaticamente.
       </p>
       <form className="st-filters" method="get" role="search" aria-label="Filtrar ações">
         <div className="st-field">

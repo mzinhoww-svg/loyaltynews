@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import type { MediaKitPage } from '@ln/commercial';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
 import { periodo30 } from '@/lib/studio/comercial';
 import { hojeSP } from '@/lib/studio/datas';
@@ -36,7 +36,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
   const filtroOk = view !== null && Array.isArray(view.formats);
   const kitRes = await api.comercial.midiaKit();
   const kit = (ehErro(kitRes) ? null : kitRes.body) as unknown as MediaKitPage | null;
-  const vendas = isEnabled('adServerVendas');
+  const vendas = flagAtiva('adServerVendas');
   return (
     <>
       <h1>Inventário</h1>

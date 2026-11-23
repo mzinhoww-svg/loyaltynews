@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { KpiCard } from '@ln/ui';
 import { GRUPOS, visibleModules } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
@@ -47,7 +47,7 @@ export default async function StudioHome() {
             <p>{m.descricao}</p>
             <p>
               <span className="st-badge">{m.implementado ? 'em uso' : 'estado vazio'}</span>{' '}
-              {m.flag ? <span className="st-badge">{isEnabled(m.flag) ? `flag ${m.flag} ligada` : `flag ${m.flag} desligada`}</span> : null}
+              {m.flag ? <span className="st-badge">{flagAtiva(m.flag) ? `flag ${m.flag} ligada` : `flag ${m.flag} desligada`}</span> : null}
             </p>
           </div>
         ))}

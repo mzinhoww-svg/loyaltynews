@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "abemf-quem",
+  "url": "https://web.abemf.com.br/abemf/",
+  "finalUrl": "https://web.abemf.com.br/abemf/",
+  "capturedAt": "2026-11-23T14:52:21.706Z",
+  "robots": "robots.txt permite",
+  "length": 4839,
+  "sha256Claimed": "13d4ad4722ffa4ca7d4ea7677dcee16991cd1ccd5a04a3e08e4c1c753ee98ac5"
+}

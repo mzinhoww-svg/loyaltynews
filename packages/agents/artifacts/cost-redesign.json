@@ -1,0 +1,1093 @@
+{
+  "schema": "ln.agents.cost-redesign/1",
+  "nota": "GERADO. Modelo PARAMÉTRICO sem chamadas: perfis de tokens por etapa, frações de economia e volume são PREMISSAS da Frente 07; os limites das assinaturas (Claude, Codex) e dos modelos gratuitos NÃO foram verificados. Base: DP-27 (ZDR não exigido; OpenBot nas assinaturas como via principal; API tarifada como complemento dentro de US$ 50).",
+  "dias_uteis_por_mes": 22,
+  "cenarios_materias_por_dia": [
+    15,
+    30,
+    60
+  ],
+  "etapas": [
+    {
+      "id": "triage",
+      "label": "Triagem/relevância dos itens de fonte (WF01)",
+      "callsPerArticle": 6,
+      "profile": {
+        "promptTokens": 800,
+        "cacheReadTokens": 2000,
+        "maxOutputTokens": 150
+      },
+      "apiModel": "claude-haiku-5-5",
+      "lane": "any",
+      "deterministicShare": 0.7
+    },
+    {
+      "id": "draft",
+      "label": "Redação (writer_*; WF02)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 2500,
+        "cacheReadTokens": 6000,
+        "maxOutputTokens": 1800
+      },
+      "apiModel": "claude-haiku-5-5",
+      "lane": "claude",
+      "deterministicShare": 0
+    },
+    {
+      "id": "rights",
+      "label": "Direitos e fontes (rights; WF02)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 1500,
+        "cacheReadTokens": 4000,
+        "maxOutputTokens": 400
+      },
+      "apiModel": "claude-haiku-5-5",
+      "lane": "any",
+      "deterministicShare": 0.8
+    },
+    {
+      "id": "factcheck",
+      "label": "Checagem de fatos em autor distinto (factcheck; WF02)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 4000,
+        "cacheReadTokens": 5000,
+        "maxOutputTokens": 1200
+      },
+      "apiModel": "openai-text-review",
+      "lane": "codex",
+      "deterministicShare": 0
+    },
+    {
+      "id": "review",
+      "label": "Revisão independente do editor (gate WF02)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 4000,
+        "cacheReadTokens": 5000,
+        "maxOutputTokens": 1000
+      },
+      "apiModel": "openai-text-review",
+      "lane": "codex",
+      "deterministicShare": 0
+    },
+    {
+      "id": "social",
+      "label": "Pacote social: texto de LinkedIn (WF04)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 1500,
+        "cacheReadTokens": 3000,
+        "maxOutputTokens": 600
+      },
+      "apiModel": "claude-haiku-5-5",
+      "lane": "any",
+      "deterministicShare": 0
+    },
+    {
+      "id": "entity",
+      "label": "Entidades e relações a partir de fonte pública (WF06)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 2500,
+        "cacheReadTokens": 4000,
+        "maxOutputTokens": 700
+      },
+      "apiModel": "claude-haiku-5-5",
+      "lane": "any",
+      "deterministicShare": 0
+    },
+    {
+      "id": "audit",
+      "label": "Auditoria pós-publicação por amostragem (reserva de auditoria)",
+      "callsPerArticle": 1,
+      "profile": {
+        "promptTokens": 5000,
+        "cacheReadTokens": 4000,
+        "maxOutputTokens": 1500
+      },
+      "apiModel": "openai-text-review",
+      "lane": "codex",
+      "deterministicShare": 0,
+      "apiOnly": true,
+      "coverage": 0.1
+    }
+  ],
+  "custos_rituais_na_api_usd": {
+    "conservador": "6.66",
+    "digest": "2.33"
+  },
+  "combinacoes": [
+    {
+      "id": "A",
+      "titulo": "A. Base DP-26: tudo na API tarifada (como no desenho atual)",
+      "api_usd_por_materia": "0.0190",
+      "assinatura_tokens_por_materia": {
+        "claude": 0,
+        "codex": 0,
+        "any": 0,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 0,
+      "custo_fixo_mensal_api_usd": "7.16",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "13.42",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "19.68",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "32.19",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 102,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "api",
+          "callsPerArticle": 6,
+          "apiMicroPerArticle": 870,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 850,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 310,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 7850,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 7250,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 360,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 500,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 970,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "A0",
+      "titulo": "A0. Base DP-26 com falha de cache (referência de risco)",
+      "api_usd_por_materia": "0.0314",
+      "assinatura_tokens_por_materia": {
+        "claude": 0,
+        "codex": 0,
+        "any": 0,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 0,
+      "custo_fixo_mensal_api_usd": "7.16",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "17.54",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "27.92",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "48.68",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 61,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "api",
+          "callsPerArticle": 6,
+          "apiMicroPerArticle": 1950,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 1390,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 670,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 12600,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 12000,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 630,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 860,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 1350,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "titulo": "B. OpenBot nas assinaturas como via principal (DP-27); API só na auditoria",
+      "api_usd_por_materia": "0.0010",
+      "assinatura_tokens_por_materia": {
+        "claude": 9580,
+        "codex": 19320,
+        "any": 34860,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 12,
+      "custo_fixo_mensal_api_usd": "0.50",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "0.82",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 143700,
+            "codex": 289800,
+            "any": 522900,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "1.14",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 287400,
+            "codex": 579600,
+            "any": 1045800,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "1.78",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 574800,
+            "codex": 1159200,
+            "any": 2091600,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 2319,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "openbot",
+          "callsPerArticle": 6,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 17340,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9580,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 5740,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9720,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9600,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 4860,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 6920,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 970,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "titulo": "C. B + etapas determinísticas no lugar de modelo (coleta, dedupe, whitelist de fontes, números/fontes)",
+      "api_usd_por_materia": "0.0010",
+      "assinatura_tokens_por_materia": {
+        "claude": 9580,
+        "codex": 19320,
+        "any": 18130,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 7,
+      "custo_fixo_mensal_api_usd": "0.50",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "0.82",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 143700,
+            "codex": 289800,
+            "any": 271950,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "1.14",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 287400,
+            "codex": 579600,
+            "any": 543900,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "1.78",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 574800,
+            "codex": 1159200,
+            "any": 1087800,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 2319,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "openbot",
+          "callsPerArticle": 1.8000000000000003,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 5202.000000000001,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9580,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "openbot",
+          "callsPerArticle": 0.19999999999999996,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 1147.9999999999998,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9720,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9600,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 4860,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 6920,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 970,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "titulo": "D. B + checagem de fatos por modelo só nas de maior risco (30%)",
+      "api_usd_por_materia": "0.0010",
+      "assinatura_tokens_por_materia": {
+        "claude": 9580,
+        "codex": 12516,
+        "any": 34860,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 11.3,
+      "custo_fixo_mensal_api_usd": "0.50",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "0.82",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 143700,
+            "codex": 187740,
+            "any": 522900,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "1.14",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 287400,
+            "codex": 375480,
+            "any": 1045800,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "1.78",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 574800,
+            "codex": 750960,
+            "any": 2091600,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 2319,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "openbot",
+          "callsPerArticle": 6,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 17340,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9580,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 5740,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "openbot",
+          "callsPerArticle": 0.3,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 2916,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9600,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 4860,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 6920,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 970,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "E",
+      "titulo": "E. Só API, otimizada: determinístico + amostragem + prompts 25% menores + digest nos rituais",
+      "api_usd_por_materia": "0.0109",
+      "assinatura_tokens_por_materia": {
+        "claude": 0,
+        "codex": 0,
+        "any": 0,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 0,
+      "custo_fixo_mensal_api_usd": "2.83",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "6.41",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "9.99",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "17.16",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 0,
+            "codex": 0,
+            "any": 0,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 197,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "api",
+          "callsPerArticle": 1.8000000000000003,
+          "apiMicroPerArticle": 216.00000000000003,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 773,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "api",
+          "callsPerArticle": 0.19999999999999996,
+          "apiMicroPerArticle": 52.59999999999999,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "api",
+          "callsPerArticle": 0.3,
+          "apiMicroPerArticle": 2036.3999999999999,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 6188,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 316,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "api",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 428,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 840,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "F",
+      "titulo": "F. C + modelos gratuitos (OpenCode free) em triagem, social e entidades (qualidade NÃO verificada)",
+      "api_usd_por_materia": "0.0010",
+      "assinatura_tokens_por_materia": {
+        "claude": 9580,
+        "codex": 19320,
+        "any": 1147.9999999999998,
+        "free": 16982
+      },
+      "assinatura_chamadas_por_materia": 3.2,
+      "custo_fixo_mensal_api_usd": "0.50",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "0.82",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 143700,
+            "codex": 289800,
+            "any": 17220,
+            "free": 254730
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "1.14",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 287400,
+            "codex": 579600,
+            "any": 34440,
+            "free": 509460
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "1.78",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 574800,
+            "codex": 1159200,
+            "any": 68880,
+            "free": 1018920
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 2319,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "free",
+          "callsPerArticle": 1.8000000000000003,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 5202.000000000001,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9580,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "openbot",
+          "callsPerArticle": 0.19999999999999996,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 1147.9999999999998,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9720,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 9600,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "free",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 4860,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "free",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 6920,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 970,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    },
+    {
+      "id": "G",
+      "titulo": "G. RECOMENDADA: OpenBot principal + determinístico + checagem por risco + prompts menores; API só auditoria, verificador e excedente",
+      "api_usd_por_materia": "0.0008",
+      "assinatura_tokens_por_materia": {
+        "claude": 7455,
+        "codex": 9591,
+        "any": 13845,
+        "free": 0
+      },
+      "assinatura_chamadas_por_materia": 6.3,
+      "custo_fixo_mensal_api_usd": "0.50",
+      "cenarios": {
+        "15": {
+          "materias_por_mes": 330,
+          "api_mensal_usd": "0.78",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 111825,
+            "codex": 143865,
+            "any": 207675,
+            "free": 0
+          }
+        },
+        "30": {
+          "materias_por_mes": 660,
+          "api_mensal_usd": "1.05",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 223650,
+            "codex": 287730,
+            "any": 415350,
+            "free": 0
+          }
+        },
+        "60": {
+          "materias_por_mes": 1320,
+          "api_mensal_usd": "1.61",
+          "cabe_em_50": true,
+          "assinatura_tokens_por_dia": {
+            "claude": 447300,
+            "codex": 575460,
+            "any": 830700,
+            "free": 0
+          }
+        }
+      },
+      "materias_por_dia_que_cabem_so_na_api": 2678,
+      "etapas": [
+        {
+          "step": "triage",
+          "executor": "openbot",
+          "callsPerArticle": 1.8000000000000003,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 3942.0000000000005,
+          "lane": "any"
+        },
+        {
+          "step": "draft",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 7455,
+          "lane": "claude"
+        },
+        {
+          "step": "rights",
+          "executor": "openbot",
+          "callsPerArticle": 0.19999999999999996,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 872.9999999999998,
+          "lane": "any"
+        },
+        {
+          "step": "factcheck",
+          "executor": "openbot",
+          "callsPerArticle": 0.3,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 2241,
+          "lane": "codex"
+        },
+        {
+          "step": "review",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 7350,
+          "lane": "codex"
+        },
+        {
+          "step": "social",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 3735,
+          "lane": "any"
+        },
+        {
+          "step": "entity",
+          "executor": "openbot",
+          "callsPerArticle": 1,
+          "apiMicroPerArticle": 0,
+          "subscriptionTokensPerArticle": 5295,
+          "lane": "any"
+        },
+        {
+          "step": "audit",
+          "executor": "api",
+          "callsPerArticle": 0.1,
+          "apiMicroPerArticle": 840,
+          "subscriptionTokensPerArticle": 0,
+          "lane": "codex"
+        }
+      ]
+    }
+  ],
+  "sensibilidade_escala_de_tokens_ate_estourar_50": {
+    "A": {
+      "15": 6.85,
+      "30": 3.42,
+      "60": 1.71
+    },
+    "A0": {
+      "15": 4.13,
+      "30": 2.06,
+      "60": 1.03
+    },
+    "E": {
+      "15": 13.17,
+      "30": 6.59,
+      "60": 3.29
+    }
+  },
+  "cobertura_minima_da_assinatura_na_recomendada": {
+    "15": 0,
+    "30": 0,
+    "60": 0
+  },
+  "limites_das_assinaturas": {
+    "claude": "limite de uso do plano Claude contratado (janelas de uso e teto semanal): NÃO verificado",
+    "codex": "limite de uso do plano Codex contratado (janelas de uso e teto semanal): NÃO verificado",
+    "free": "limites e política de dados dos modelos gratuitos (OpenCode free): NÃO verificados"
+  },
+  "degraus_no_limite": [
+    {
+      "level": 1,
+      "trigger": "a assinatura de uma via (Claude ou Codex) devolve limite de uso ou aviso de janela",
+      "action": "o adaptador marca a via como esgotada até o reinício informado e para de despachar a ela; etapas de baixa prioridade (social, entidades, triagem extra) ficam em fila"
+    },
+    {
+      "level": 2,
+      "trigger": "a via esgotada é a de redação ou a de verificação, e há matéria na fila",
+      "action": "a etapa passa à API tarifada pelo gateway, dentro do orçamento (degraus 35/40/42 da política); a checagem de fatos NUNCA é pulada nem feita pelo mesmo autor do redator"
+    },
+    {
+      "level": 3,
+      "trigger": "a API também atinge o degrau não essencial (US$ 40) ou o teto",
+      "action": "só o que é essencial continua (redação com checagem independente de matérias de alto risco); o resto espera a próxima janela"
+    },
+    {
+      "level": 4,
+      "trigger": "não há via disponível para a checagem independente",
+      "action": "falha fechada: a matéria não é publicada; fica em fila com aviso (a publicação pausa, como no ADR-003)"
+    }
+  ]
+}

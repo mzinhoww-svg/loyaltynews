@@ -7,6 +7,7 @@ import type {
   PublishReceipt,
 } from './port';
 import type { MlabsAdapter } from './adapter-types.internal';
+import type { MediaUploadPort } from '../pipeline/raster-upload';
 import { WriteGate, type WriteCapability } from './write-gate.internal';
 
 export class SimulatedMlabsAdapter implements MlabsAdapter {
@@ -37,6 +38,17 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
     return [];
   }
 
+  /** Mídia simulada: nada sai do processo; devolve ids `SIM-IMG-…`. */
+  mediaUploadPort(cap: WriteCapability): MediaUploadPort {
+    this.#gate.assert(cap);
+    let n = 0;
+    return {
+      prepare: async () => ({ uploadId: `SIM-UP-${++n}`, uploadUrl: 'https://simulado.invalid/upload', method: 'PUT', headers: {} }),
+      put: async () => 200,
+      status: async (uploadId) => ({ state: 'completed', imageId: `SIM-IMG-${uploadId}` }),
+    };
+  }
+
   async createPost(cap: WriteCapability, payload: PostPayload, idempotencyKey: string): Promise<PublishReceipt> {
     this.#gate.assert(cap);
     this.seq += 1;
@@ -46,7 +58,7 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
       mode: 'simulated',
       simulated: true,
       createdAt: this.now(),
-      status: 'scheduled',
+      status: 'draft', // o fluxo é só rascunho: nada agenda nem publica
       idempotencyKey,
     };
     this.posts.set(receipt.id, { payload: structuredClone(payload), receipt });

@@ -125,3 +125,16 @@ export const SEO_PADRAO: SeoConteudo = {
   sitemap: { incluirMaterias: true },
   dadosEstruturados: { organizacao: { nome: 'Loyalty News', url: '', sameAs: [] } },
 };
+
+/** Edita um bloco no lugar: mantém o tipo e o id, troca os campos do formulário. Valores inválidos passam adiante: o Backend decide. */
+export function editarBloco(b: Bloco, campos: Record<string, string>): Bloco {
+  return novoBloco(b.tipo, { ...campos, id: b.id }, []);
+}
+
+export function editarItem(itens: readonly MenuItem[], i: number, campos: { rotulo: string; destino: string }): MenuItem[] {
+  return itens.map((it, k) => (k === i ? { ...it, rotulo: campos.rotulo, destino: campos.destino } : it));
+}
+
+export function removerFilho(itens: readonly MenuItem[], i: number, j: number): MenuItem[] {
+  return itens.map((it, k) => (k === i ? { ...it, filhos: it.filhos.filter((_, n) => n !== j) } : it));
+}

@@ -25,9 +25,37 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }
   }
+  if (q.get('seed') === 'intelligence') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedIntelligence()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
+  if (q.get('seed') === 'pautas') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedPautasProcessadas()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
   if (q.get('seed') === 'editorial-aprovada') {
     try {
       return Response.json({ ok: true, ...(await (await e2eBackend()).seedEditorialAprovada()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
+  if (q.get('seed') === 'alertas-watchlist') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedAlertasWatchlist()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
+  if (q.get('seed') === 'piloto') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedPilotoArtigos()) });
     } catch (e) {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }

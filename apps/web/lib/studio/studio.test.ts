@@ -10,9 +10,9 @@ const sess = (roles: Session['roles'], mfa = true): Session => ({ userId: 'u', e
 
 
 describe('módulos do Studio', () => {
-  it('cobre os 25 módulos pedidos, com slugs únicos', () => {
-    expect(MODULES).toHaveLength(25);
-    expect(new Set(MODULES.map((m) => m.slug)).size).toBe(25);
+  it('cobre os 27 módulos (25 + Pedidos do titular e Leitura do piloto, Studio 2) pedidos, com slugs únicos', () => {
+    expect(MODULES).toHaveLength(27);
+    expect(new Set(MODULES.map((m) => m.slug)).size).toBe(27);
     for (const slug of ['cms', 'fontes', 'publicacoes', 'agenda', 'editorias', 'home-menus', 'seo', 'midia', 'social', 'creative', 'entidades', 'organogramas', 'watchlists', 'crm', 'inventario', 'campanhas', 'analytics', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria', 'configuracoes', 'permissoes']) {
       expect(findModule(slug), slug).toBeDefined();
     }
@@ -32,7 +32,7 @@ describe('módulos do Studio', () => {
     expect(com).toContain('crm');
     expect(com).not.toContain('cms');
     expect(com).not.toContain('finops');
-    expect(visibleModules(sess(['admin']))).toHaveLength(25);
+    expect(visibleModules(sess(['admin']))).toHaveLength(27);
   });
 });
 

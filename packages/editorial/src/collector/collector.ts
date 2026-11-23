@@ -129,6 +129,7 @@ export class StopGuard {
   }
 }
 
+export interface DirectReadEvent { url: string; sourceId: string; status: number; body?: string; ms: number }
 export interface Skip {
   url: string; code: SkipCode; detail: string;
   /** A leitura passou por provedor com desbloqueio (DP-32): desafio/CAPTCHA aqui é falha do provedor nessa URL, não recusa da fonte ao nosso coletor. */
@@ -144,6 +145,12 @@ export interface CollectorOptions {
   maxCrawlDelaySec?: number;
   /** Intervalo mínimo entre requisições ao MESMO host, mesmo sem Crawl-delay (ms). Padrão 3000. Os testes passam 0. */
   minSpacingMs?: number;
+  /**
+   * Observador das leituras DIRETAS de página (shadow ao vivo do roteador de scraping, só medição). Chamado depois de cada GET de matéria
+   * (não de robots.txt, feed nem sitemap) com status, corpo (efêmero: o observador só pode medir tamanho/hash) e latência. Nunca altera o
+   * resultado do coletor: erro do observador é engolido e o retorno não é aguardado.
+   */
+  onDirectRead?: (e: DirectReadEvent) => void;
   /** DP-31: serviço de leitura das fontes com acesso 'via-provedor'. Sem ele, essas fontes são puladas ('reader_unavailable'). */
   reader?: ReaderPort;
   /** DP-31: contador GLOBAL de leituras por host (ex.: StoreReadBudget, no banco). Padrão: em memória (por instância; só para testes/dev). */
@@ -173,6 +180,7 @@ export class Collector {
   private readonly maxCrawlDelaySec: number;
   private readonly minSpacingMs: number;
   private readonly reader: ReaderPort | undefined;
+  private readonly onDirectRead: ((e: DirectReadEvent) => void) | undefined;
   private readonly dp31SpacingMs: number;
   private readonly dp31MaxPagesPerDay: number;
   private readonly dp31MaxStoredChars: number;
@@ -191,6 +199,7 @@ export class Collector {
     this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
     this.minSpacingMs = opts.minSpacingMs ?? 3000;
     this.reader = opts.reader;
+    this.onDirectRead = opts.onDirectRead;
     this.readBudget = opts.readBudget ?? new MemoryReadBudget();
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
@@ -294,9 +303,12 @@ export class Collector {
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     let r: HttpResponse;
+    const t0 = Date.now();
     try { r = await this.safeGet(u.toString(), source); } catch (e) {
+      this.notifyDirect({ url, sourceId: source.id, status: 0, ms: Date.now() - t0 });
       return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
+    this.notifyDirect({ url, sourceId: source.id, status: r.status, body: r.body, ms: Date.now() - t0 });
     // Ordem importa: 429 e erros HTTP vêm ANTES de paywall/desafio (uma página de erro com "faça login" não pode esconder o 429 e manter a coleta insistindo).
     if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
@@ -306,6 +318,12 @@ export class Collector {
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
     return this.toEvidence(source, u, r.body, hint);
+  }
+
+  /** Aviso ao observador (shadow). Nunca lança e nunca é aguardado: o coletor não depende dele. */
+  private notifyDirect(e: DirectReadEvent): void {
+    if (!this.onDirectRead) return;
+    try { this.onDirectRead(e); } catch { /* medição não pode afetar a coleta */ }
   }
 
   /** Do corpo HTML ao Evidence (parse, saneamento, injeção em comentário, hash). `acesso`/`maxChars` só no caminho DP-31. */
@@ -426,6 +444,8 @@ export class Collector {
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
     if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
+    // Sem prefixo de caminho verificado para a seção de notícias, o sitemap traria páginas quaisquer (produtos, institucional): não coletar.
+    if (!source.sitemapPathPrefix) { out.skipped.push({ url: source.sitemapUrl, code: 'empty_content', detail: 'sitemap sem sitemapPathPrefix verificado (seção de notícias não identificada)' }); return out; }
     const top = await this.collectRaw(source, source.sitemapUrl);
     if (top.skip) { out.skipped.push(top.skip); return out; }
     const parsed = parseSitemap(top.body!);
@@ -439,7 +459,7 @@ export class Collector {
         pages.push(...parseSitemap(sub.body!).entries);
       }
     }
-    const prefix = source.sitemapPathPrefix ?? '/';
+    const prefix = source.sitemapPathPrefix;
     const chosen = pages
       .filter((e) => { try { return new URL(e.loc).pathname.startsWith(prefix); } catch { return false; } })
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))

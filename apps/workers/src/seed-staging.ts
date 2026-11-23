@@ -162,6 +162,11 @@ export async function checkStagingSeed(db: Db): Promise<SeedCheck> {
   const arts = await db.select().from(schema.articles).where(like(schema.articles.id, `${SEED_PREFIX}%`));
   linhas.articles = arts.length;
   for (const a of arts) if (!rotulado(a.titulo, a.subtitulo, a.resumo, a.corpo)) problemas.push(`matéria ${a.id} sem rótulo em título/subtítulo/resumo/corpo`);
+  // O seed NÃO inventa fonte: matéria do seed com fonte/evidência ligada (alguém acrescentou depois) faz a conferência falhar.
+  if (arts.length > 0) {
+    const ligadas = await db.select({ articleId: schema.articleSources.articleId }).from(schema.articleSources).where(inArray(schema.articleSources.articleId, arts.map((a) => a.id)));
+    for (const id of new Set(ligadas.map((l) => l.articleId))) problemas.push(`matéria ${id} do seed tem fonte/evidência ligada (o seed não inventa fonte)`);
+  }
 
   const evs = await db.select().from(schema.agendaEvents).where(like(schema.agendaEvents.id, `${SEED_PREFIX}%`));
   linhas.agenda_events = evs.length;
@@ -216,6 +221,7 @@ export async function run(
     }
   }
   const pool = injectedDb ? null : new Pool(pgPoolConfig(env, { max: 1 }));
+  pool?.on('error', () => undefined); // C1
   try {
     const db = (injectedDb ?? drizzle(pool!, { schema })) as unknown as Db;
     if (cmd === 'apply') out(JSON.stringify(await applyStagingSeed(db, env)));

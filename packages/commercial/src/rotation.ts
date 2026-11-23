@@ -3,6 +3,8 @@
 import { ImpressionLedger, viewKey, type LedgerSnapshot } from './ledger';
 import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone } from './snapshot';
 import { DeliveryAudit, type AuditSnapshot } from './audit';
+import { DEFAULT_AD_URLS, isRealCreative, toPublicAd, type AdUrls, type CreativeAsset, type PublicAd } from './creative';
+import { POSITIONS, type BannerPosition } from './inventory';
 
 export interface Creative {
   id: string; campaignId: string; positionId: string;
@@ -12,6 +14,11 @@ export interface Creative {
   /** Somente criativos aprovados e de campanha ativa são elegíveis. */
   approved: boolean; campaignActive: boolean;
   label?: 'publicidade'; // publieditoriais sempre rotulados
+  /** Arquivo, texto alternativo, anunciante e destino: sem eles o criativo não é "real" e não é elegível (ver creative.ts). */
+  asset?: CreativeAsset;
+  altText?: string;
+  advertiserName?: string;
+  destinationUrl?: string;
 }
 export interface ServeRequest {
   positionId: string; today: string; pageViewId: string;
@@ -19,7 +26,11 @@ export interface ServeRequest {
   /** Instante da requisição (epoch ms). Padrão: relógio do ledger. Usado para a janela de suspensão por perda de dedupe. */
   nowMs?: number;
 }
-export interface ServeResult { kind: 'creative' | 'house' | 'ignored'; creativeId: string | null; impressionId: string | null; counted: boolean; reason?: string }
+export interface ServeResult {
+  kind: 'creative' | 'house' | 'ignored'; creativeId: string | null; impressionId: string | null; counted: boolean; reason?: string;
+  /** Visão pública do criativo servido (sem campos internos). Ausente em house; sem ela a posição fica oculta no portal. */
+  ad?: PublicAd;
+}
 
 export interface DeliveryCounters { served: number; visible: number; clicks: number; ignoredBotOrInternal: number; refreshSuppressed: number }
 const ZERO = (): DeliveryCounters => ({ served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 });
@@ -60,7 +71,18 @@ export class AdServer {
   /** Lacunas de auditabilidade: perda/regressão do armazenamento de dedupe suspende a contagem (ver audit.ts). */
   readonly audit: DeliveryAudit;
 
-  constructor(ledger: ImpressionLedger = new ImpressionLedger(), audit: DeliveryAudit = new DeliveryAudit()) { this.ledger = ledger; this.audit = audit; }
+  private positions: readonly BannerPosition[];
+  private urls: AdUrls;
+
+  constructor(ledger: ImpressionLedger = new ImpressionLedger(), audit: DeliveryAudit = new DeliveryAudit(), opts: { positions?: readonly BannerPosition[]; urls?: AdUrls } = {}) {
+    this.ledger = ledger; this.audit = audit; this.positions = opts.positions ?? POSITIONS; this.urls = opts.urls ?? DEFAULT_AD_URLS;
+  }
+
+  /** Visão pública de um criativo (para quem monta a resposta por fora, ex.: vencedor da corrida no Redis). Null se não for criativo real. */
+  publicAdFor(creativeId: string, impressionId: string | null): PublicAd | null {
+    const c = this.creatives.find((x) => x.id === creativeId);
+    return c ? toPublicAd(c, impressionId, this.urls, this.positions) : null;
+  }
 
   addCreative(c: Creative): void {
     if (!(c.weight > 0)) throw new Error('weight deve ser > 0');
@@ -78,7 +100,7 @@ export class AdServer {
   creativesOf(campaignId: string): readonly Creative[] { return this.creatives.filter((c) => c.campaignId === campaignId); }
   listCreatives(): readonly Creative[] { return this.creatives; }
   eligible(positionId: string, today: string): Creative[] {
-    return this.creatives.filter((c) => c.positionId === positionId && c.approved && c.campaignActive && c.startDate <= today && today <= c.endDate);
+    return this.creatives.filter((c) => c.positionId === positionId && c.approved && c.campaignActive && c.startDate <= today && today <= c.endDate && isRealCreative(c, this.positions));
   }
 
   serve(req: ServeRequest): ServeResult {
@@ -87,7 +109,7 @@ export class AdServer {
       // Serve o anúncio normalmente mas não conta como entrega faturável.
       const pick = this.pick(elig, req.positionId, false);
       if (pick) this.counter(pick.id).ignoredBotOrInternal++;
-      return { kind: 'ignored', creativeId: pick?.id ?? null, impressionId: null, counted: false, reason: req.isBot ? 'bot' : 'interno' };
+      return { kind: 'ignored', creativeId: pick?.id ?? null, impressionId: null, counted: false, reason: req.isBot ? 'bot' : 'interno', ...this.adOf(pick, null) };
     }
     const now = req.nowMs ?? this.ledger.now();
     if (this.audit.servingSuspended(now)) {
@@ -95,19 +117,24 @@ export class AdServer {
       const pick = this.pick(elig, req.positionId, true);
       if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo elegível; house ad' };
       this.audit.noteUncountedServe(now);
-      return { kind: 'creative', creativeId: pick.id, impressionId: null, counted: false, reason: 'dedupe_suspenso' };
+      return { kind: 'creative', creativeId: pick.id, impressionId: null, counted: false, reason: 'dedupe_suspenso', ...this.adOf(pick, null) };
     }
     const key = viewKey(req.pageViewId, req.positionId);
     const existing = this.ledger.byViewKey(key);
     if (existing) { // auto-refresh/reuso da mesma visualização de página: não infla
       this.counter(existing.creativeId).refreshSuppressed++;
-      return { kind: 'creative', creativeId: existing.creativeId, impressionId: existing.impressionId, counted: false, reason: 'refresh' };
+      return { kind: 'creative', creativeId: existing.creativeId, impressionId: existing.impressionId, counted: false, reason: 'refresh', ...this.adOf(this.creatives.find((x) => x.id === existing.creativeId), existing.impressionId) };
     }
     const pick = this.pick(elig, req.positionId, true);
     if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo elegível; house ad' };
     const e = this.ledger.register(key, pick.id);
     this.counter(pick.id).served++;
-    return { kind: 'creative', creativeId: pick.id, impressionId: e.impressionId, counted: true };
+    return { kind: 'creative', creativeId: pick.id, impressionId: e.impressionId, counted: true, ...this.adOf(pick, e.impressionId) };
+  }
+
+  private adOf(c: Creative | undefined, impressionId: string | null): { ad?: PublicAd } {
+    const ad = c ? toPublicAd(c, impressionId, this.urls, this.positions) : null;
+    return ad ? { ad } : {};
   }
 
   /** Smooth weighted round-robin (determinístico). */

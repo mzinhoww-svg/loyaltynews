@@ -15,6 +15,16 @@ export async function watch(db: Db, watchlistId: Uuid, entityType: 'organization
   );
 }
 
+export async function unwatch(db: Db, watchlistId: Uuid, entityType: 'organization' | 'person', entityId: Uuid): Promise<boolean> {
+  const r = await db.query(`DELETE FROM ${S}.watchlist_item WHERE watchlist_id = $1 AND entity_type = $2 AND entity_id = $3 RETURNING 1`, [watchlistId, entityType, entityId]);
+  return r.rows.length > 0;
+}
+
+/** Apaga a lista, os itens e os alertas dela (cascata). Os Moves não são tocados. */
+export async function deleteWatchlist(db: Db, watchlistId: Uuid): Promise<void> {
+  await db.query(`DELETE FROM ${S}.watchlist WHERE id = $1`, [watchlistId]);
+}
+
 /**
  * Gera alertas para Moves que tocam entidades observadas (a pessoa, ou a organização de origem/destino).
  * Todo alerta nasce 'pending_review': nada sai sem revisão humana/agente revisor registrada. Idempotente.
@@ -49,10 +59,10 @@ export async function reviewAlert(db: Db, alertId: Uuid, status: 'approved' | 'r
 
 export async function listAlerts(db: Db, filter: { status?: 'pending_review' | 'approved' | 'rejected'; watchlistId?: Uuid } = {}) {
   const r = await db.query<{
-    id: Uuid; watchlist_id: Uuid; status: string; kind: string; person_name: string; basis: string; evidence_id: Uuid;
+    id: Uuid; watchlist_id: Uuid; move_id: Uuid; status: string; kind: string; person_name: string; basis: string; evidence_id: Uuid;
     observed_on: string; reviewed_by: string | null;
   }>(
-    `SELECT a.id, a.watchlist_id, a.status, m.kind, p.full_name AS person_name, m.basis, m.evidence_id, m.observed_on::text, a.reviewed_by
+    `SELECT a.id, a.watchlist_id, a.move_id, a.status, m.kind, p.full_name AS person_name, m.basis, m.evidence_id, m.observed_on::text, a.reviewed_by
        FROM ${S}.alert a
        JOIN ${S}.move m ON m.id = a.move_id
        JOIN ${S}.person p ON p.id = m.person_id AND p.suppressed_at IS NULL

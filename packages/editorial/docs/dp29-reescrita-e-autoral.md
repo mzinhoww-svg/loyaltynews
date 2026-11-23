@@ -25,9 +25,14 @@ Diretriz do proprietário (DP-29, 23/11/2026): maximizar fontes; nunca reproduzi
 - **Gate autoral:** ≥ 2 páginas primárias distintas realmente usadas (blog não conta), aviso presente, tipo `analise`, **nenhuma citação/fala** (não há entrevista). Valem também todos os gates comuns: números e datas nas evidências, nenhuma apuração/entrevista inventada, assinatura institucional, cópia.
 - Não faz: previsão, ranking sem critério, recomendação (o prompt proíbe; o gate cobre fala, número, data e cópia, não "opinião" em geral: a revisão humana segue necessária).
 
+### Entrada da pauta (API + worker)
+- **Rotas** (Backend, `apps/web/app/api/_lib/editorial/index.ts`): `POST /api/studio/editorial/pautas` (papéis admin, editor-chefe ou editor; MFA) registra a pauta e responde 201 `{ id, estado: 'pendente' }` (400 se o formato/âncora for inválido ou a âncora não cair numa fonte **primária** do cadastro; 409 se o id já existir); `GET /api/studio/editorial/pautas` lista (inclui revisor) com `estado` (`pendente`/`processada`) e o `resultado` (status, matéria, bloqueios).
+- **Fila:** sem tabela nova: a pauta fica na trilha de auditoria do banco (`pauta.submitted`; o worker grava `pauta.processed`).
+- **Worker:** `runEditorialAutoral` (`apps/workers/src/editorial-factory.ts`; CLI `--autoral --run --simulate`) processa as pendentes (3 por execução), usa as mesmas flags, gateway, leitor e orçamento da fábrica e termina cada matéria em `aprovado`/`bloqueado`; a matéria aparece na fila de revisão comum. Sem publicação.
+
 ## 4. O que não está feito (para o PM decidir)
 
-- Ainda não há tela do Studio nem entrada no worker para **propor pautas autorais**; `runAutoral` é função testada (a integração fica com Backend/Studio).
+- Falta a **tela do Studio** para propor/listar pautas (as rotas e o worker existem e estão testados).
 - O tom `tom-0.1` e o aviso autoral precisam de validação editorial.
 - Nenhum modelo real foi chamado: a qualidade da reescrita no tom e a taxa de reprovação nos gates (`copy_literal` 6/20% para blog) só aparecem na primeira rodada real em staging.
 - A pesquisa dos blogs é mecânica (ver `fontes-blogs.md`); a habilitação é humana.

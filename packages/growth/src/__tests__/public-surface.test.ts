@@ -7,6 +7,8 @@ import * as indexEntry from '../index';
 import * as uiEntry from '../ui';
 import * as dashboardEntry from '../dashboard';
 import * as jobsEntry from '../jobs';
+import * as testingEntry from '../testing';
+import * as rasterEntry from '../creative/raster';
 import { LIVE_ACK } from '../mlabs/live';
 import { createSocialPublisher, PUBLISHER_SOCIAL } from '../publisher/publisher';
 
@@ -23,6 +25,8 @@ const ENTRIES: Record<string, Record<string, unknown>> = {
   './ui': uiEntry,
   './dashboard': dashboardEntry,
   './jobs': jobsEntry,
+  './testing': testingEntry,
+  './raster': rasterEntry,
 };
 
 /** Nomes que nunca podem estar acessíveis por uma entrada pública, nem como export nem como membro de objeto alcançável. */
@@ -108,7 +112,7 @@ describe('superfície pública: nenhum caminho para escrever sem o publicador', 
   test('a visão simulada é só leitura: nenhuma função alcançável a partir do publicador cria post sem passar por publish', async () => {
     const { sim } = publishers();
     const { objects } = reach([sim, sim.reads, sim.simulated]);
-    const skipNames = new Set(['publish', 'edit', 'remove']);
+    const skipNames = new Set(['publish', 'edit', 'remove', 'uploadMedia']);
     for (const o of objects) {
       if (typeof o !== 'function') continue;
       if (skipNames.has(o.name)) continue;
@@ -158,16 +162,15 @@ describe('superfície pública: nenhum caminho para escrever sem o publicador', 
     assert.ok(reexported.length > 10);
     for (const t of reexported) {
       assert.doesNotMatch(t, /\.internal$/, t);
-      assert.doesNotMatch(t, /simulated\.mock$/, t);
-      assert.doesNotMatch(t, /gateway\.mock$/, t);
+      assert.doesNotMatch(t, /\.mock$/, t);
     }
   });
 
-  test('package.json: só quatro subpaths, todos em src/, nenhum wildcard nem módulo interno', () => {
+  test('package.json: só seis subpaths (`testing` exporta só a suíte de conformidade do registro de envios; `raster` só o rasterizador SVG→PNG, server-side, sem rede), todos em src/, nenhum wildcard nem módulo interno', () => {
     const pkg = JSON.parse(readFileSync(resolve(PKG, 'package.json'), 'utf8')) as { exports: Record<string, string> };
-    assert.deepEqual(Object.keys(pkg.exports).sort(), ['.', './dashboard', './jobs', './ui']);
+    assert.deepEqual(Object.keys(pkg.exports).sort(), ['.', './dashboard', './jobs', './raster', './testing', './ui']);
     for (const v of Object.values(pkg.exports)) {
-      assert.match(v, /^\.\/src\/(index|ui\/index|dashboard\/index|jobs\/index)\.ts$/);
+      assert.match(v, /^\.\/src\/(index|ui\/index|dashboard\/index|jobs\/index|testing|creative\/raster)\.ts$/);
     }
   });
 

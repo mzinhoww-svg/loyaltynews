@@ -44,3 +44,24 @@ describe('edição de documentos do site', () => {
     expect(linhasParaLista(undefined)).toEqual([]);
   });
 });
+
+describe('edição no lugar', () => {
+  it('editarBloco mantém tipo e id e troca os campos', async () => {
+    const { editarBloco } = await import('./site-docs');
+    const b = editarBloco({ tipo: 'lista_editoria', id: 'pontos', editoria: 'pontos', limite: 6 }, { titulo: 'Pontos', editoria: 'milhas', limite: '4' });
+    expect(b).toEqual({ tipo: 'lista_editoria', id: 'pontos', titulo: 'Pontos', editoria: 'milhas', limite: 4 });
+    const d = editarBloco({ tipo: 'destaque', id: 'topo', materiaSlugs: ['a'] }, { materiaSlugs: 'x, y' });
+    expect(d).toEqual({ tipo: 'destaque', id: 'topo', materiaSlugs: ['x', 'y'] });
+  });
+  it('editarItem e removerFilho mexem só no item pedido', async () => {
+    const { editarItem, removerFilho } = await import('./site-docs');
+    const itens = [
+      { rotulo: 'A', destino: '/a', filhos: [{ rotulo: 'a1', destino: '/a/1' }, { rotulo: 'a2', destino: '/a/2' }] },
+      { rotulo: 'B', destino: '/b', filhos: [] },
+    ];
+    expect(editarItem(itens, 1, { rotulo: 'B2', destino: '/b2' })[1]).toMatchObject({ rotulo: 'B2', destino: '/b2' });
+    expect(editarItem(itens, 1, { rotulo: 'B2', destino: '/b2' })[0]).toBe(itens[0]);
+    expect(removerFilho(itens, 0, 0)[0]!.filhos).toEqual([{ rotulo: 'a2', destino: '/a/2' }]);
+    expect(removerFilho(itens, 0, 0)[1]).toBe(itens[1]);
+  });
+});

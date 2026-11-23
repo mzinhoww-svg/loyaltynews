@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Adaptador OpenBot (ADR-003): disparo de tarefas por pull com lease, callback assinado e idempotente, custos e conciliação. Dono: Frente 09 — LN Integration Engineer. Sem conexão de entrada e sem segredo no código.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "bullmq": "6.7.8",
-    "ioredis": "5.11.1"
+    "ioredis": "5.11.1",
+    "@ln/editorial": "0.0.0"
   }
 }

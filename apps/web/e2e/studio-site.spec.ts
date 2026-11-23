@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enviar, entrar } from './helpers';
+import { api, enviar, entrar } from './helpers';
 
 // Home, menus, SEO, links internos e redirects: documentos versionados do Backend (/api/site/**), sessão real.
 const ok = (page: import('@playwright/test').Page, texto: string | RegExp) => page.locator('main .st-alert.ok').filter({ hasText: texto }).first();
@@ -116,9 +116,16 @@ test.describe('SEO, links internos e redirecionamentos', () => {
   test('a redação grava o rascunho do SEO; só a chefia publica', async ({ page, context }) => {
     await entrar(context, 'bia', 'editor');
     await page.goto('/studio/seo');
+    // URL do site já vem sugerida pelo ambiente (P1-03) e os obrigatórios estão marcados
+    await expect(page.locator('#orgUrl')).toHaveValue(/^https:\/\/portal\.example\.test/);
+    await expect(page.getByLabel(/Descrição padrão \(obrigatória/)).toBeVisible();
     await page.locator('#descricaoPadrao').fill('');
     await enviar(page, page.getByRole('button', { name: 'Salvar rascunho do SEO' }));
     await expect(erro(page, /.+/)).toBeVisible();
+    // P1-02: o erro sai em português, com o nome do campo da tela, sem texto cru do validador
+    const msg = (await erro(page, /.+/).textContent()) ?? '';
+    expect(msg).toContain('Descrição padrão');
+    expect(msg).not.toMatch(/Too small|Invalid|dadosEstruturados|expected string/i);
 
     await page.locator('#tituloPadrao').fill('Loyalty News');
     await page.locator('#descricaoPadrao').fill('Notícias de fidelidade.');
@@ -201,3 +208,94 @@ test.describe('SEO, links internos e redirecionamentos', () => {
   });
 });
 
+
+// O que o Studio publica é o que o Portal lê: GET /api/publico/site (rota real do Backend) e a caixa "O que o Portal lê agora".
+test.describe('Portal lê o que o Studio publica', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  const publico = async (context: import('@playwright/test').BrowserContext) => (await api(context, 'GET', '/api/publico/site')).body.data as {
+    home: { versao: number; blocos: { id: string; tipo: string; limite?: number; titulo?: string }[] } | null;
+    menus: { principal: { itens: { rotulo: string; destino: string; filhos?: { rotulo: string }[] }[] } | null };
+    seo: { tituloPadrao: string; indexacao: string } | null;
+    linksInternos: { termo: string; destino: string }[];
+  };
+
+  test('home: editar bloco no lugar grava rascunho; só a publicação chega ao Portal', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    const antes = await publico(context);
+    expect(antes.home?.blocos[0]).toMatchObject({ tipo: 'agenda' });
+    await page.goto('/studio/home-menus');
+    await expect(page.locator('[data-portal="home"][data-estado="ok"]')).toBeVisible();
+    await page.getByText('Editar bloco 1').click();
+    await page.getByLabel('Título do bloco 1').fill('Próximos eventos');
+    await page.getByLabel('Limite de itens do bloco 1').fill('3');
+    await enviar(page, page.getByRole('button', { name: 'Salvar bloco 1' }));
+    await expect(ok(page, 'Bloco alterado no rascunho')).toBeVisible();
+    await expect(page.locator('[data-situacao="rascunho"]')).toContainText('em edição');
+    // rascunho não vaza para o Portal
+    expect((await publico(context)).home?.blocos[0]).toEqual(antes.home?.blocos[0]);
+
+    // limite inválido: o Backend recusa e o rascunho segue como estava
+    await page.getByText('Editar bloco 1').click();
+    await page.getByLabel('Limite de itens do bloco 1').fill('99');
+    await enviar(page, page.getByRole('button', { name: 'Salvar bloco 1' }));
+    await expect(erro(page, /.+/)).toBeVisible();
+
+    await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+    await expect(ok(page, 'Documento publicado.')).toBeVisible();
+    const depois = await publico(context);
+    expect(depois.home?.blocos[0]).toMatchObject({ tipo: 'agenda', limite: 3, titulo: 'Próximos eventos' });
+    expect(depois.home!.versao).toBeGreaterThan(antes.home!.versao);
+    await expect(page.locator('[data-portal="home"] [data-bloco-portal]').first()).toContainText('Próximos eventos');
+    await expect(page.locator('[data-portal="home"] [data-versao]')).toContainText(`v${depois.home!.versao}`);
+  });
+
+  test('menu: editar item, subitem e remover subitem; o Portal lê o menu publicado', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/home-menus?tipo=menu_principal');
+    await expect(page.locator('[data-portal="menus"]')).toBeVisible();
+    await page.getByText('Editar item Programas').click();
+    await page.getByLabel('Rótulo de Programas', { exact: true }).fill('Programas e milhas');
+    await enviar(page, page.getByRole('button', { name: 'Salvar item Programas' }));
+    await expect(ok(page, 'Item alterado no rascunho')).toBeVisible();
+
+    await page.getByLabel('Rótulo do subitem de Programas e milhas').fill('Cartões');
+    await page.getByLabel('Destino do subitem de Programas e milhas').fill('/editoria/bancos');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar subitem a Programas e milhas' }));
+    await expect(page.locator('[data-filho="Cartões"]')).toBeVisible();
+    await page.getByLabel('Rótulo do subitem de Programas e milhas').fill('Temporário');
+    await page.getByLabel('Destino do subitem de Programas e milhas').fill('/editoria/pontos');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar subitem a Programas e milhas' }));
+    await enviar(page, page.getByRole('button', { name: 'Remover subitem Temporário de Programas e milhas' }));
+    await expect(page.locator('[data-filho="Temporário"]')).toHaveCount(0);
+
+    await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+    await expect(ok(page, 'Documento publicado.')).toBeVisible();
+    const itens = (await publico(context)).menus.principal!.itens;
+    const item = itens.find((i) => i.rotulo === 'Programas e milhas')!;
+    expect(item.destino).toBe('/programas');
+    expect(item.filhos?.map((f) => f.rotulo)).toEqual(['Cartões']);
+    await expect(page.locator('[data-portal="menus"]')).toContainText('Programas e milhas');
+  });
+
+  test('SEO e links internos publicados aparecem na caixa do Portal e na rota pública', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    const site = await publico(context);
+    expect(site.seo).toMatchObject({ tituloPadrao: 'Loyalty News', indexacao: 'indexar' });
+    expect(site.linksInternos).toEqual([{ termo: 'milhas', destino: '/editoria/milhas' }]);
+    await page.goto('/studio/seo');
+    await expect(page.locator('[data-portal="seo"] [data-seo="titulo"]')).toHaveText('Loyalty News');
+    await expect(page.locator('[data-portal="seo"] [data-seo="indexacao"]')).toHaveText('indexar');
+    await expect(page.locator('[data-portal="links"]')).toContainText('milhas');
+  });
+
+  test('agenda: a caixa do Portal bate com GET /api/publico/agenda (vazio honesto ou contagem)', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    const publica = (await api(context, 'GET', '/api/publico/agenda')).body.data as unknown[];
+    await page.goto('/studio/agenda');
+    const caixa = page.locator('[data-portal="agenda"]');
+    await expect(caixa).toBeVisible();
+    if (publica.length === 0) await expect(caixa.locator('[data-vazio="portal"]')).toBeVisible();
+    else await expect(caixa.locator('[data-total]')).toHaveAttribute('data-total', String(publica.length));
+  });
+});
