@@ -98,3 +98,6 @@
   /* F-27: toda tabela larga (inclusive as dos pacotes @ln/*) rola dentro do próprio quadro, não a página inteira */
   .studio table { display: block; max-width: 100%; overflow-x: auto; }
 }
+
+/* revisão visual P2-6 (decisão PM-2026-11-23-H): títulos do Studio em Inter (fonte de interface), mesmos tamanhos e pesos; o portal não muda */
+.studio :is(h1, h2, h3, h4, h5, h6) { font-family: var(--ln-font-ui); }

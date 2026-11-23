@@ -36,6 +36,16 @@ test.describe('Studio no celular (390 px)', () => {
     expect(m.h2).toBeGreaterThanOrEqual(8);
   });
 
+  // revisão visual P2-6: títulos do Studio em Inter (fonte de interface), não em serifa
+  test('títulos h1, h2 e h3 usam a fonte de interface (Inter)', async ({ page, context }) => {
+    await entrar(context, 'ana', 'admin');
+    await page.goto('/studio/cms/nova');
+    const f = await page.evaluate(() => ['h1', 'h2', 'h3'].map((t) => { const el = document.querySelector('main ' + t); return el ? t + ':' + getComputedStyle(el).fontFamily : null; }).filter(Boolean));
+    expect(f.length).toBeGreaterThanOrEqual(2);
+    for (const x of f) expect(x, x).toMatch(/Inter/i);
+    for (const x of f) expect(x, x).not.toMatch(/Georgia|serif(?!,? ?$)/i);
+  });
+
   for (const slug of MODULOS) {
     test(`/studio/${slug} não rola na horizontal`, async ({ page, context }) => {
       await entrar(context, 'ana', 'admin');
