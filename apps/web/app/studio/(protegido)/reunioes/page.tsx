@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { addDays, isRescheduled, occurrencesOn } from '@ln/agents';
 import { isEnabled } from '@ln/contracts';
-import { hojeSP } from '@/lib/studio/agenda';
+import { hojeSP } from '@/lib/studio/datas';
 import { findModule } from '@/lib/studio/modules';
 import { getCalendarioBr, getOrganizacao, getStoreAgentes } from '@/lib/studio/agentes';
 import { requireModule } from '../../_lib/guard';

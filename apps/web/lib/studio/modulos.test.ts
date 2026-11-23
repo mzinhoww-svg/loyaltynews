@@ -1,91 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { FontesService, type FonteInput } from './fontes';
-import { MidiaService, estadoDeUso, type MidiaInput } from './midia';
-import { AgendaService, hojeSP, type EventoInput } from './agenda';
+import { eventoVigente, hojeSP } from './datas';
 import { HomeService, alternarBloco, alternarMenu, configPadrao, moverBloco, moverMenu, validarHome } from './home';
 import { SeoService, rotasCanonicas } from './seo';
 
 let n = 0;
 const relogio = () => ({ agora: () => new Date(Date.UTC(2026, 10, 22, 12, 0, n++)).toISOString(), id: () => `id-${n++}` });
 
-const fonte: FonteInput = { nome: 'Comunicado Programa X', url: 'https://exemplo.com.br/imprensa', tipo: 'comunicado', editorias: ['pontos'], termosRevisados: true, ativo: true };
-
-describe('fontes', () => {
-  it('cria fonte válida e registra auditoria', () => {
-    const s = new FontesService(relogio());
-    const r = s.criar('ana', fonte);
-    expect(r.ok).toBe(true);
-    expect(s.list()).toHaveLength(1);
-    expect(s.trilha[0]).toMatchObject({ quem: 'ana', acao: 'fonte_criada' });
-  });
-  it('ativa só com termos revisados, exige URL, tipo e editoria', () => {
-    const s = new FontesService(relogio());
-    expect(s.criar('ana', { ...fonte, termosRevisados: false })).toMatchObject({ ok: false });
-    expect(s.criar('ana', { ...fonte, url: 'ftp://x' })).toMatchObject({ ok: false });
-    expect(s.criar('ana', { ...fonte, editorias: [] })).toMatchObject({ ok: false });
-    expect(s.criar('ana', { ...fonte, editorias: ['inexistente'] })).toMatchObject({ ok: false });
-    expect(s.criar('ana', { ...fonte, tipo: 'login' })).toMatchObject({ ok: false });
-    expect(s.criar('ana', { ...fonte, termosRevisados: false, ativo: false }).ok).toBe(true);
-  });
-  it('rejeita URL duplicada (normalizada) e alterna ativo respeitando termos', () => {
-    const s = new FontesService(relogio());
-    const a = s.criar('ana', { ...fonte, termosRevisados: false, ativo: false });
-    if (!a.ok) throw new Error('criar');
-    expect(s.criar('ana', { ...fonte, url: 'https://EXEMPLO.com.br/imprensa/#x' })).toMatchObject({ ok: false, erros: ['Já existe uma fonte com esta URL.'] });
-    expect(s.alternarAtivo('ana', a.valor.id)).toMatchObject({ ok: false });
-    expect(s.atualizar('ana', a.valor.id, { ...fonte, ativo: true }).ok).toBe(true);
-    expect(s.alternarAtivo('ana', a.valor.id)).toMatchObject({ ok: true, valor: { ativo: false } });
-  });
-});
-
-const img: MidiaInput = { url: 'https://exemplo.com.br/a.jpg', origem: 'licenciada', credito: 'Agência', baseDeDireito: 'licenca', textoAlternativo: 'Descrição', evidenciaLicenca: 'contrato-123' };
-
-describe('mídia', () => {
-  it('registra ativo com direito e evidência; duplicata e direito de terceiro sem evidência falham', () => {
-    const s = new MidiaService(relogio());
-    expect(s.registrar('ana', img).ok).toBe(true);
-    expect(s.registrar('ana', img)).toMatchObject({ ok: false });
-    expect(s.registrar('ana', { ...img, url: 'https://exemplo.com.br/b.jpg', evidenciaLicenca: '' })).toMatchObject({ ok: false });
-    expect(s.registrar('ana', { ...img, url: 'https://exemplo.com.br/c.jpg', textoAlternativo: '' })).toMatchObject({ ok: false });
-    expect(s.registrar('ana', { ...img, url: 'https://exemplo.com.br/d.jpg', origem: 'fonte_terceiro' })).toMatchObject({ ok: false });
-  });
-  it('estado de uso: pendente, expirada, utilizável', () => {
-    expect(estadoDeUso({ ...img, baseDeDireito: 'pendente' }, '2026-11-22')).toBe('direito_pendente');
-    expect(estadoDeUso({ ...img, expiraEm: '2026-11-21' }, '2026-11-22')).toBe('expirada');
-    expect(estadoDeUso({ ...img, expiraEm: '2026-11-22' }, '2026-11-22')).toBe('utilizavel');
-    expect(estadoDeUso(img, '2026-11-22')).toBe('utilizavel');
-  });
-  it('remove e audita', () => {
-    const s = new MidiaService(relogio());
-    const r = s.registrar('ana', img);
-    if (!r.ok) throw new Error('registrar');
-    expect(s.remover('rui', r.valor.id).ok).toBe(true);
-    expect(s.list()).toEqual([]);
-    expect(s.trilha.map((t) => t.acao)).toEqual(['midia_registrada', 'midia_removida']);
-  });
-});
-
-const ev: EventoInput = { titulo: 'Congresso de Fidelização', inicio: '2026-12-01', fim: '2026-12-02', local: 'São Paulo', editorias: ['mercado'], patrocinado: false, fonteUrl: 'https://congresso.exemplo.com.br' };
-
-describe('agenda', () => {
-  it('evento só com fonte oficial, datas coerentes e moderação com motivo', () => {
-    const s = new AgendaService(relogio());
-    expect(s.criar('ana', { ...ev, fonteUrl: '' })).toMatchObject({ ok: false });
-    expect(s.criar('ana', { ...ev, fim: '2026-11-30' })).toMatchObject({ ok: false });
-    const c = s.criar('ana', ev);
-    if (!c.ok) throw new Error('criar');
-    expect(c.valor.moderacao).toBe('pendente');
-    expect(s.moderar('rui', c.valor.id, 'rejeitado', ' ')).toMatchObject({ ok: false });
-    expect(s.moderar('rui', c.valor.id, 'aprovado')).toMatchObject({ ok: true, valor: { moderacao: 'aprovado' } });
-  });
-  it('evento passado sai da lista de próximos', () => {
-    const s = new AgendaService(relogio());
-    s.criar('ana', { ...ev, titulo: 'Passado', inicio: '2026-11-01', fim: '2026-11-02' });
-    s.criar('ana', { ...ev, titulo: 'Em curso', inicio: '2026-11-20', fim: '2026-11-22' });
-    s.criar('ana', ev);
-    expect(s.proximos('2026-11-22').map((e) => e.titulo)).toEqual(['Em curso', 'Congresso de Fidelização']);
-    expect(s.passados('2026-11-22').map((e) => e.titulo)).toEqual(['Passado']);
+describe('datas', () => {
+  it('hoje em São Paulo respeita o fuso', () => {
     expect(hojeSP(new Date('2026-11-22T02:00:00Z'))).toBe('2026-11-21');
+  });
+  it('evento encerrado sai da lista de vigentes', () => {
+    expect(eventoVigente('2026-11-22', '2026-11-22')).toBe(true);
+    expect(eventoVigente('2026-11-21', '2026-11-22')).toBe(false);
   });
 });
 

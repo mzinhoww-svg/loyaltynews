@@ -3,7 +3,7 @@
 import type { Session } from '@ln/auth';
 import { createCommercialState, makeCtx, type CommercialCtx, type CommercialState } from '@ln/commercial';
 import type { HttpResult } from '@ln/commercial/api';
-import { hojeSP } from './agenda';
+import { hojeSP } from './datas';
 import { singleton, type Resultado } from './registros';
 
 export const getComercialState = (): CommercialState => singleton('comercial', () => createCommercialState());

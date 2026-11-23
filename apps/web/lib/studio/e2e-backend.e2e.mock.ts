@@ -9,6 +9,7 @@ import { EDITORIAS } from '@ln/contracts';
 import { createAuth, createAuthHandler, createStaffUser, isRole, type Db, type Role } from '@ln/auth';
 import { setRuntimeForTest } from '@ln/auth/runtime';
 import { schema } from '@ln/db';
+import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { criarClientePglite } from './dev-db.e2e.mock';
 import type { E2eBackend } from './e2e-backend.types';
 
@@ -59,6 +60,24 @@ async function montar() {
   }
 
   const backend: E2eBackend = {
+    async seedEditorial() {
+      const articleId = 'fabrica-e2e-1';
+      const agora = new Date().toISOString();
+      const evidencia = { id: 'ev-fabrica-1', sourceId: 'fonte-e2e', url: 'https://exemplo.com.br/fonte-oficial', canonicalUrl: 'https://exemplo.com.br/fonte-oficial', fetchedAt: agora, contentSha256: 'a'.repeat(64), title: 'Comunicado oficial', text: 'O Programa Alfa alterou a regra de pontos.', publishedAt: null, suspicious: false, suspiciousReasons: [] };
+      await new PgEditorialStore(db).putArticle({
+        articleId,
+        editoria: 'pontos',
+        status: 'em_checagem',
+        draft: { id: 'rascunho-fabrica-1', editoria: 'pontos', headline: 'Programa Alfa altera regra de pontos (Fábrica)', body: 'O Programa Alfa alterou a regra de pontos.', claims: [{ id: 'c1', text: 'O Programa Alfa alterou a regra de pontos.', kind: 'fact', evidenceIds: [evidencia.id] }], evidenceIds: [evidencia.id], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem imagem' }, modelProvider: 'openai', promptVersion: 'e2e' },
+        evidences: [evidencia],
+        blockers: [],
+        findings: [],
+        reviews: [],
+        recheckCount: 0,
+        updatedAt: agora,
+      });
+      return { articleId };
+    },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
       const key = `${user}:${role}:${mfa ? 'mfa' : 'nomfa'}`;
