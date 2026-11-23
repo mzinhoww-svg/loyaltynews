@@ -262,6 +262,12 @@
     "nota": "disponibilidade só se confirma ao definir o subdomínio (escrita); se ocupado, usar variante (ex.: ln-news-staging). Domínio próprio depois: pro-8 permite 2 por app, com SSL automático. Não verifiquei disponibilidade.",
     "variavel": "APP_URL"
   },
+  "variaveis_somente_staging": {
+    "lista": [
+      { "nome": "PORTAL_VITRINE", "regra": "so o valor 1 e so com APP_ENV=staging; production definida = reprovado (guard-env no build e no start; ci-checks reprova atribuicao em configuracao de producao); temporaria (R9)" }
+    ],
+    "referencia": "r0-preparacao/seguranca/10_decisao-vitrine-staging.md"
+  },
   "variaveis_proibidas_em_staging_e_producao": {
     "lista": [
       {

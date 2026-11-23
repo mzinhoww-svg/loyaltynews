@@ -333,3 +333,108 @@ test('arquivos-orfaos: ignora next-env.d.ts (gerado pelo Next)', async () => {
   const { orfaos } = await import('../scripts/arquivos-orfaos.mjs');
   assert.deepEqual(orfaos(['package.json', 'apps/web/next-env.d.ts', 'apps/web/velho.ts'], ['package.json']), ['apps/web/velho.ts']);
 });
+
+// ---------- Vitrine do staging (Security 23/11/2026, R1-R3 e R8) ----------
+test('vitrine R1/R2: guard aceita só PORTAL_VITRINE=1 com APP_ENV=staging; production/producao/homologacao e outros valores reprovam; PORTAL_SOURCE=mock segue proibido', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (env) => envProblems(env, { deploy: true }).join('|');
+  assert.equal(p({ APP_ENV: 'staging', PORTAL_VITRINE: '1' }), '');
+  assert.equal(p({ APP_ENV: 'staging' }), '', 'sem vitrine passa');
+  assert.equal(p({ APP_ENV: 'staging', PORTAL_VITRINE: '' }), '', 'vazia = ausente');
+  for (const e of ['production', 'producao', 'homologacao', '', 'dev']) assert.match(p({ APP_ENV: e, PORTAL_VITRINE: '1' }), /vitrine de demonstração só existe no staging/, e || '(vazio)');
+  for (const v of ['0', 'true', 'yes', '2', 'on']) assert.match(p({ APP_ENV: 'staging', PORTAL_VITRINE: v }), /só o valor 1 é aceito/, v);
+  assert.match(p({ APP_ENV: 'production', PORTAL_VITRINE: '0' }), /só o valor 1/);
+  assert.match(p({ APP_ENV: 'staging', PORTAL_SOURCE: 'mock', PORTAL_VITRINE: '1' }), /PORTAL_SOURCE=mock em ambiente de deploy/, 'a vitrine não reabilita PORTAL_SOURCE=mock');
+  assert.match(p({ APP_ENV: 'staging', PORTAL_MODE: 'mock', PORTAL_VITRINE: '1' }), /PORTAL_MODE=mock/);
+  assert.equal(envProblems({ PORTAL_VITRINE: '1' }, { deploy: false }).length, 0, 'fora de deploy (dev local) não bloqueia');
+});
+
+test('vitrine: guard-env recusa (código 1) em production e aceita em staging', () => {
+  const run = (env) => node('guard-env.mjs', [], { env: { ...cleanEnv(), ...env } });
+  assert.equal(run({ APP_ENV: 'staging', PORTAL_VITRINE: '1' }).status, 0);
+  const x = run({ APP_ENV: 'production', PORTAL_VITRINE: '1' });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /guard-env REPROVADO/);
+});
+
+test('vitrine R5/R8: checkHome exige a faixa COM vitrine e proíbe qualquer marcador SEM vitrine', async () => {
+  const { checkHome } = await import('../scripts/build-web.mjs');
+  const url = 'https://x.vertraweb.app';
+  const base = `<link rel="canonical" href="${url}"/><meta name="robots" content="noindex"/>`;
+  const faixa = '<div>Conteúdo de demonstração — não publicado</div>';
+  assert.deepEqual(checkHome(base + faixa, url, 'staging', true), []);
+  assert.match(checkHome(base, url, 'staging', true).join('|'), /não tem a faixa/);
+  assert.deepEqual(checkHome(base, url, 'staging', false), []);
+  assert.deepEqual(checkHome(base, url, 'staging'), [], 'padrão = sem vitrine');
+  for (const m of ['Conteúdo de demonstração', 'MOCK · dados de exemplo', '[MOCK] Matéria de teste']) assert.match(checkHome(base + m, url, 'staging', false).join('|'), /contém marcador/, m);
+  assert.match(checkHome(base + faixa, url, 'production', false).join('|'), /contém marcador/, 'produção nunca com marcador');
+});
+
+test('vitrine R3: startProblems exige PORTAL_VITRINE igual ao release.json (1 com vitrine; ausente sem)', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'a'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'staging' };
+  const env = { APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl };
+  assert.deepEqual(startProblems(env, rel), [], 'release sem campo vitrine = sem vitrine');
+  assert.deepEqual(startProblems(env, { ...rel, vitrine: false }), []);
+  assert.match(startProblems({ ...env, PORTAL_VITRINE: '1' }, { ...rel, vitrine: false }).join('|'), /pacote NÃO é de vitrine/);
+  assert.deepEqual(startProblems({ ...env, PORTAL_VITRINE: '1' }, { ...rel, vitrine: true }), []);
+  assert.match(startProblems(env, { ...rel, vitrine: true }).join('|'), /PORTAL_VITRINE ausente em execução/);
+  assert.match(startProblems({ ...env, PORTAL_VITRINE: '0' }, { ...rel, vitrine: true }).join('|'), /só o valor 1/);
+  assert.match(startProblems({ ...env, APP_ENV: 'production', PORTAL_VITRINE: '1' }, { ...rel, appEnv: 'production', vitrine: true }).join('|'), /só existe no staging/);
+});
+
+test('vitrine R3: package-web recusa --vitrine com perfil production (antes de tocar no repositório)', () => {
+  const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--profile', 'production', '--vitrine']);
+  assert.equal(x.status, 2);
+  assert.match(x.stderr, /vitrine recusado/);
+});
+
+test('vitrine R8: ci-checks reprova PORTAL_VITRINE atribuída na produção (environments.json) e em workflows/Dockerfile/next.config; citar, ler e staging passam', () => {
+  const ok = tmp();
+  put(ok, 'infra/vertra/environments.json', JSON.stringify({ ambientes: { staging: { recursos: { web: { env: { PORTAL_VITRINE: '1' } } } }, production: { recursos: { web: { env: { APP_ENV: 'production' } } } } }, regras: 'PORTAL_VITRINE=1 só no staging' }));
+  put(ok, 'infra/vertra/env-contract.json', '{"regra":"PORTAL_VITRINE=1 só no staging; nunca em produção"}');
+  put(ok, 'apps/web/next.config.ts', "// vitrine (PORTAL_VITRINE=1 com APP_ENV=staging)\nconst portalDemo = process.env.PORTAL_VITRINE === '1' && process.env.APP_ENV === 'staging' ? '1' : '0';\nexport default { env: { NEXT_PUBLIC_PORTAL_DEMO: portalDemo } };");
+  put(ok, '.github/workflows/ci.yml', '# a vitrine (PORTAL_VITRINE=1) não entra aqui\nname: ci\n');
+  put(ok, 'apps/web/package.json', JSON.stringify({ scripts: { 'verify:no-mock': 'node scripts/verify-no-mock.mjs', 'test:portal': 'PORTAL_VITRINE=1 vitest' } }));
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0, node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).stderr);
+  rmSync(ok, { recursive: true, force: true });
+  const bad = tmp();
+  put(bad, 'infra/vertra/environments.json', JSON.stringify({ ambientes: { production: { recursos: { web: { env: { PORTAL_VITRINE: '1' } } } } } }));
+  put(bad, '.github/workflows/deploy.yml', 'env:\n  PORTAL_VITRINE: 1\n');
+  put(bad, 'Dockerfile', 'ENV PORTAL_VITRINE=1\n');
+  put(bad, 'apps/web/package.json', JSON.stringify({ scripts: { start: 'PORTAL_VITRINE=1 next start' } }));
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  for (const s of ['configuração de produção de infra/vertra/environments.json', 'deploy.yml', 'Dockerfile', 'script "start"']) assert.match(x.stderr, new RegExp(s));
+  rmSync(bad, { recursive: true, force: true });
+  const env = tmp();
+  put(env, 'package.json', '{"name":"x"}');
+  const e = node('ci-checks.mjs', ['--root', env, '--deploy'], { env: { ...cleanEnv(), APP_ENV: 'production', PORTAL_VITRINE: '1' } });
+  assert.equal(e.status, 1);
+  assert.match(e.stderr, /vitrine de demonstração só existe no staging/);
+  rmSync(env, { recursive: true, force: true });
+});
+
+test('vitrine R8: healthcheck --no-mock reprova marcadores da vitrine (produção); --vitrine exige a faixa (staging com vitrine)', async () => {
+  let home = '<h1>Loyalty News</h1>';
+  const s = await server((req, res) => {
+    if (req.url === '/api/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"status":"ok"}'); }
+    if (req.url === '/') { res.writeHead(200); return res.end(home); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  try {
+    assert.equal((await hc(port, ['--no-mock', '/'])).status, 0, 'home limpa');
+    const v = await hc(port, ['--vitrine', '/']);
+    assert.equal(v.status, 1);
+    assert.match(v.stdout, /sem a faixa/);
+    home = '<div>Conteúdo de demonstração — não publicado</div>';
+    const a = await hc(port, ['--no-mock', '/']);
+    assert.equal(a.status, 1);
+    assert.match(a.stdout, /marcador\(es\) da vitrine/);
+    assert.equal((await hc(port, ['--vitrine', '/'])).status, 0);
+    home = '<span>MOCK · dados de exemplo</span>';
+    assert.equal((await hc(port, ['--no-mock', '/'])).status, 1);
+  } finally { s.closeAllConnections?.(); s.close(); }
+});

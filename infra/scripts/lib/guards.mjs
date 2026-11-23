@@ -18,6 +18,14 @@ export function envProblems(env = process.env, { deploy = false } = {}) {
       const v = String(env[k] ?? '').trim().toLowerCase();
       if (v !== '' && v !== 'empty') p.push(`${k}=${env[k]} em ambiente de deploy: deve ficar vazio (fixtures MOCK e fontes experimentais só em teste)`);
     }
+    // Vitrine do portal no STAGING (decisão do Security 23/11/2026, R1/R2): interruptor próprio PORTAL_VITRINE=1, exatamente `1`, e só com APP_ENV=staging.
+    // PORTAL_SOURCE=mock continua proibido acima. Com production/producao/homologacao a variável DEFINIDA (qualquer valor) reprova.
+    const vit = String(env.PORTAL_VITRINE ?? '').trim();
+    if (vit !== '') {
+      const appEnvVit = String(env.APP_ENV ?? '').trim().toLowerCase();
+      if (vit !== '1') p.push(`PORTAL_VITRINE=${env.PORTAL_VITRINE}: só o valor 1 é aceito (e só no staging)`);
+      else if (appEnvVit !== 'staging') p.push(`PORTAL_VITRINE=1 com APP_ENV=${env.APP_ENV || '(vazio)'}: a vitrine de demonstração só existe no staging`);
+    }
     if (String(env.DB_SSL_MODE ?? '').toLowerCase() === 'disable') p.push('DB_SSL_MODE=disable em ambiente de deploy: TLS com certificado de cliente é obrigatório na Vertra (disable é só do CI)');
     if (String(env.CI ?? '').toLowerCase() === 'true') p.push('CI=true em ambiente de deploy: essa variável libera DB_SSL_MODE=disable e é só do CI');
   }
@@ -30,3 +38,9 @@ export function envProblems(env = process.env, { deploy = false } = {}) {
 // Atribuições em arquivos de deploy/IaC/scripts de produção. Citar o NOME (ex.: no contrato de variáveis, como proibida) não reprova.
 export const ASSIGN_STUDIO = /LN_STUDIO_TEST_SESSION["']?\s*[=:]/;
 export const ASSIGN_PORTAL_MOCK = /PORTAL_(?:SOURCE|MODE)["']?\s*[=:]\s*["']?(?:mock|intelligence)\b/i;
+
+// Vitrine (R8): ATRIBUIÇÃO de PORTAL_VITRINE (`PORTAL_VITRINE=1`, `PORTAL_VITRINE: '1'`, `"PORTAL_VITRINE": "1"`); LER (`process.env.PORTAL_VITRINE === '1'`) ou citar o nome não conta.
+export const ASSIGN_VITRINE = /PORTAL_VITRINE["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
+// Marcadores que só existem com a vitrine ligada (Security R5/R8): a home de produção, e de staging sem vitrine, não pode conter nenhum.
+export const VITRINE_MARCADORES = ['Conteúdo de demonstração', 'MOCK · dados de exemplo', '[MOCK]'];
+export const VITRINE_BANNER = 'Conteúdo de demonstração';

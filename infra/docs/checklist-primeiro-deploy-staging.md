@@ -40,3 +40,8 @@ Parar a app (`stop_app`) e, se preciso, despublicar; **não** deletar sem autori
 
 ## E. Depois do staging-min (resto do staging, mesma disciplina de homologação e ok do PM)
 Criar `ln-staging-db` (PostgreSQL 18, 1024 MB), `ln-staging-redis` (8.2, 512 MB), `ln-staging-workers` (256 MB), pasta Blob; definir as variáveis `DB_*`/`REDIS_*` (certificados PEM do banco, lidos com a chave `ln-provision`), remover `APP_MODE=nodb`; aplicar migrações com `node infra/scripts/migrate.mjs --env staging`; ligar backup (`backup-pg.mjs --stats`) e fazer o ensaio de restauração (`backup-restore.md`). **Produção** (`ln-prod-*`, 2432 MB; cabe junto com o staging completo, sobram 384 MB): só com backup fresco, `migrate.mjs --confirm-production` e `zero_downtime` conforme o resultado do passo 7. Banco compartilhado em schemas fica só como reserva se faltar RAM.
+
+## F. Vitrine do portal (R9, temporária)
+- [ ] Antes do go-live: `PORTAL_VITRINE` **removida** do app de staging (variável ausente) e pacote reconstruído **sem** `--vitrine` (`release.json.vitrine=false`).
+- [ ] `healthcheck.mjs --no-mock /` sem marcadores ("Conteúdo de demonstração", "MOCK · dados de exemplo", "[MOCK]") em staging e produção.
+- [ ] Nenhuma configuração de produção atribui `PORTAL_VITRINE` (`ci-checks` aprovado).
