@@ -102,6 +102,18 @@ async function main() {
     check('noticias: 200', r.status === 200, `HTTP ${r.status}`);
     if (seed) check('noticias: lista o seed', r.body.includes(ROTULO_SEED));
   });
+  // Portal int/009: página de matéria e de editoria (provam portal-materia e portal-editorias). Só com --expect-seed (precisa de matéria rotulada); matéria inexistente = 404.
+  if (seed) await tentar('materia-editoria', async () => {
+    const api = JSON.parse((await get('/api/publico/materias')).body);
+    const m = (api.data ?? []).find((x) => String(x.titulo ?? '').includes(ROTULO_SEED));
+    if (!m) { check('materia: seed com slug e editoria na API', false, 'nenhuma matéria rotulada'); return; }
+    const rm = await get(`/noticia/${encodeURIComponent(m.slug)}`);
+    check('materia: página da matéria do seed (200, rotulada, sem MOCK)', rm.status === 200 && rm.body.includes(ROTULO_SEED) && !/MOCK/.test(rm.body), `HTTP ${rm.status}`);
+    const re = await get(`/editoria/${encodeURIComponent(m.editoria)}`);
+    check('editoria: página da editoria da matéria do seed (200, lista o seed, sem MOCK)', re.status === 200 && re.body.includes(ROTULO_SEED) && !/MOCK/.test(re.body), `HTTP ${re.status}`);
+    const r404 = await get('/noticia/materia-que-nao-existe-smoke');
+    check('materia: slug inexistente = 404', r404.status === 404, `HTTP ${r404.status}`);
+  });
   await tentar('feed', async () => {
     const r = await get('/feed.xml');
     // Staging NÃO é indexável: por desenho (Security R6) o feed é um canal RSS válido SEM itens, igual ao sitemap. Item no feed de staging seria vazamento de conteúdo para agregadores.

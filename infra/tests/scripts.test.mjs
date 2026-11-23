@@ -726,7 +726,7 @@ test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /inte
     const u = req.url.split('?')[0];
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
     const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...h }); res.end(b); };
-    const itensSeed = estado.semSeed ? [] : [1, 2, 3, 4, 5].map((n) => ({ slug: 'a' + n, titulo: '[' + R + '] Matéria ' + n }));
+    const itensSeed = estado.semSeed ? [] : [1, 2, 3, 4, 5].map((n) => ({ slug: 'a' + n, editoria: 'e0', titulo: '[' + R + '] Matéria ' + n }));
     if (u === '/api/health') return json(200, { status: 'ok', version: 'abc' });
     if (u === '/api/ready') return json(200, estado.mode === 'nodb' ? { status: 'ok', mode: 'nodb', db: 'n/a', redis: 'n/a' } : { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' });
     if (u === '/api/publico/site') return json(200, { nome: 'Loyalty News' });
@@ -735,6 +735,7 @@ test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /inte
     if (u === '/api/publico/agenda') return json(200, { data: [{ titulo: '[' + R + '] Evento' }] });
     if (u === '/') return html(200, '<meta name="robots" content="noindex, nofollow"/>' + (estado.semSeed ? '' : '[' + R + '] Matéria 1'));
     if (u === '/noticias') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
+    if (u === '/noticia/a1' || u === '/editoria/e0') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
     if (u === '/midia-kit') return html(200, '<title>Mídia kit — Anuncie | Loyalty News</title><meta name="robots" content="noindex, nofollow"/>');
     if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.feedComItem ? '<item><title>x</title></item>' : '') + '</rss>'); }
     if (u === '/intelligence') return html(200, estado.orgs ? '<p data-testid="count-empresas">' + estado.orgs + ' cadastrado(s) e verificado(s)</p>' : '<p data-testid="count-empresas">Cadastros verificados: em breve</p>');
