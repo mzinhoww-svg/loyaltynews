@@ -237,7 +237,7 @@ describe('piloto: parada imediata', () => {
     await dispatch();
     await rows.upsert({ task_id: 'x', kind: 'classification', article_id: 'a', source_id: 's', stage: 'triage', account: 'opencode', declared_model: 'm', prompt_version: null, started_at: iso(), ended_at: iso(), attempt: 1, outcome: 'completed', packet_chars: 1, tokens_measured: false, published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: true });
     const r = await handlePull(deps, signed({ workerId: 'w', account: 'opencode' }));
-    assert.equal(r.status, 503);
+    assert.equal(r.status, 423);
     assert.equal(code(r.body), 'PILOT_STOPPED');
     assert.ok((await state.get())?.reasons.some((m) => m.startsWith(STOP.gate)));
     assert.equal(code((await dispatch({ refId: 'b' })).body), 'PILOT_STOPPED');
@@ -370,7 +370,7 @@ describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do pilo
     assert.equal((await deps.queue.counts()).pending, 0);
   });
 
-  test('pull como opencode ou antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e o piloto PARA (503 até o resumePilot); nada é entregue nem a saúde marcada', async () => {
+  test('pull como opencode ou antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e o piloto PARA (423 até o resumePilot); nada é entregue nem a saúde marcada', async () => {
     for (const account of ['opencode', 'antigravity']) {
       state = new InMemoryPilotState();
       rows = new InMemoryPilotRowStore();
@@ -499,6 +499,6 @@ describe('linha concluída que ainda espera o veredito da Editorial não para o 
       trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', notes: `chave ${'sk-' + 'A'.repeat(32)}` }),
     }));
     assert.deepEqual(r.pilotStopped, [STOP.secret]);
-    assert.equal((await handlePull(deps, signed({ workerId: 'w', account: 'codex' }))).status, 503);
+    assert.equal((await handlePull(deps, signed({ workerId: 'w', account: 'codex' }))).status, 423);
   });
 });

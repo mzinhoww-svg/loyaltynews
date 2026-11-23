@@ -68,11 +68,11 @@ describe('disparo (lado LN)', () => {
     assert.equal(code(r.body), 'DISPATCH_OFF');
   });
 
-  test('sem permissão: 403; kill switch: 503', async () => {
+  test('sem permissão: 403; kill switch: 423', async () => {
     assert.equal((await dispatchTask(deps, { id: 'x', permissions: [] }, task())).status, 403);
     flags = { dispatchEnabled: true, kill: true };
     const r = await dispatchTask(deps, ADMIN, task());
-    assert.equal(r.status, 503);
+    assert.equal(r.status, 423);
     assert.equal(code(r.body), 'KILL_SWITCH');
   });
 
@@ -160,11 +160,11 @@ describe('pull do OpenBot (assinado, só saída)', () => {
     assert.equal((await handlePull(deps, signed({ workerId: 'w' }, OLD))).status, 401);
   });
 
-  test('kill switch: 503 e nada é entregue', async () => {
+  test('kill switch: 423 e nada é entregue', async () => {
     await dispatchTask(deps, ADMIN, task());
     flags = { dispatchEnabled: true, kill: true };
     const r = await handlePull(deps, signed({ workerId: 'w' }));
-    assert.equal(r.status, 503);
+    assert.equal(r.status, 423);
     assert.equal((await deps.queue.counts()).leased, 0);
   });
 
