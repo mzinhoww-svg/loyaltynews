@@ -152,11 +152,16 @@ export class Collector {
     }
     const gate = detectGate(r);
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
+    if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
     const meta = parseHtml(r.body);
     const san = sanitize(meta.bodyHtml);
     if (!san.text) return { skip: { url, code: 'empty_content', detail: '' } };
+    // A extração por parágrafos descarta comentários HTML: confere-os na página inteira (onde se esconde instrução para modelos).
+    const comments = [...r.body.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]!).join('\n');
+    const csan = comments ? sanitize(comments) : { suspicious: false, reasons: [] as string[] };
+    if (csan.suspicious) { san.suspicious = true; san.reasons = [...new Set([...san.reasons, ...csan.reasons])]; }
     let canon: string;
     try { canon = canonicalUrl(meta.canonical ? new URL(meta.canonical, u).toString() : u.toString()); } catch { canon = canonicalUrl(u.toString()); }
     const hash = sha256(r.body);
@@ -203,6 +208,7 @@ export class Collector {
       const r = await this.safeGet(u.toString(), source);
       const gate = detectGate(r);
       if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
+      if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
       if (r.status !== 200) return { skip: { url, code: 'http_error', detail: String(r.status) } };
       return { body: r.body };
     } catch (e) {

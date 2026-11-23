@@ -143,3 +143,18 @@ test('flag editorialCollector desligada (padrão do contrato): coletor recusa ex
   await assert.rejects(c.collectFeed(MOCK_SOURCE), /flag desligada/);
   assert.equal(f.calls.length, 0);
 });
+
+test('feed RSS sem <link>: o permalink vem no <guid> (formato real da Agência Senado); guid não-URL ou isPermaLink=false é descartado', async () => {
+  const { parseFeed } = await import('../collector/parse');
+  const xml = `<?xml version="1.0"?><rss version="2.0"><channel><title>MOCK</title>
+<item><title>MOCK A</title><description></description><pubDate>Thu, 19 Nov 2026 20:34:19 -0300</pubDate><guid>https://www12.senado.leg.br/noticias/materias/2026/11/19/mock-a</guid></item>
+<item><title>MOCK B</title><guid isPermaLink="false">id-interno-123</guid></item>
+<item><title>MOCK C</title><guid isPermaLink="false">https://exemplo.invalid/c</guid></item>
+<item><title>MOCK D</title><link>https://exemplo.invalid/d</link><guid>https://exemplo.invalid/outro</guid></item>
+<item><title>MOCK E</title><guid><![CDATA[https://exemplo.invalid/e]]></guid></item></channel></rss>`;
+  const items = parseFeed(xml);
+  assert.deepEqual(items.map((i) => [i.title, i.link]), [
+    ['MOCK A', 'https://www12.senado.leg.br/noticias/materias/2026/11/19/mock-a'], ['MOCK D', 'https://exemplo.invalid/d'], ['MOCK E', 'https://exemplo.invalid/e'],
+  ]);
+  assert.equal(items[0]!.publishedAt, '2026-11-19T23:34:19.000Z');
+});

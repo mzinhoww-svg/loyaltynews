@@ -3,7 +3,8 @@ import { stripHtml } from './sanitize';
 export interface FeedItem { title: string; link: string; publishedAt: string | null; summary: string }
 
 function tag(block: string, name: string): string | null {
-  const m = new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)</${name}>`, 'i').exec(block);
+  // (?=[\s>]) em vez de \b: "<article-card>" e "<main-menu>" não são <article>/<main>
+  const m = new RegExp(`<${name}(?=[\\s>])[^>]*>([\\s\\S]*?)</${name}>`, 'i').exec(block);
   if (!m) return null;
   return m[1]!.replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, '$1').trim();
 }
@@ -14,7 +15,7 @@ function isoOrNull(s: string | null): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-/** RSS 2.0 e Atom, sem dependências. Itens sem link são descartados. */
+/** RSS 2.0 e Atom, sem dependências. Link do item = <link>, href do Atom ou <guid> permalink http(s); itens sem endereço são descartados. */
 export function parseFeed(xml: string): FeedItem[] {
   const items: FeedItem[] = [];
   const blocks = xml.match(/<(item|entry)\b[\s\S]*?<\/\1>/gi) ?? [];
@@ -23,6 +24,12 @@ export function parseFeed(xml: string): FeedItem[] {
     if (!link || !/^https?:/i.test(link)) {
       const m = /<link\b[^>]*\bhref=["']([^"']+)["']/i.exec(b);
       link = m ? m[1]! : null;
+    }
+    // RSS sem <link>: o endereço da matéria vem no <guid> (ex.: Agência Senado). Só vale se for http(s) e não marcado isPermaLink="false".
+    if (!link) {
+      const g = /<guid\b([^>]*)>([\s\S]*?)<\/guid>/i.exec(b);
+      const val = g ? g[2]!.replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, '$1').trim() : '';
+      if (g && !/isPermaLink=["']false["']/i.test(g[1]!) && /^https?:\/\//i.test(val)) link = val;
     }
     if (!link) continue;
     const title = stripHtml(tag(b, 'title') ?? '');
@@ -37,6 +44,35 @@ export function parseFeed(xml: string): FeedItem[] {
 
 export interface HtmlMeta { title: string; canonical: string | null; publishedAt: string | null; bodyHtml: string }
 
+/** Blocos que nunca são conteúdo da matéria (menus, rodapé, avisos, formulários, mídia embutida). */
+const CHROME = /<(script|style|noscript|template|svg|iframe|nav|header|footer|aside|form|dialog|button|select)\b[\s\S]*?<\/\1>/gi;
+
+/**
+ * Texto da matéria por PARÁGRAFOS: <p>, <h2>, <h3>, <blockquote> fora de menus/rodapé/avisos, sem repetição.
+ * Serve de alternativa quando a página não tem <article>/<main> utilizável (ex.: Agência Senado), onde o primeiro bloco
+ * achado era um aviso de notificações em vez da matéria.
+ */
+/** id/class de parágrafos que são avisos da página, não matéria. */
+const NOT_CONTENT_ATTR = /\b(?:id|class)\s*=\s*["'][^"']*(?:modal|cookie|consent|popup|newsletter|banner|notif)/i;
+
+export function paragraphsHtml(html: string): string {
+  const clean = html.replace(/<!--[\s\S]*?-->/g, ' ').replace(CHROME, ' ');
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of clean.matchAll(/<(p|h2|h3|blockquote)(?=[\s>])([^>]*)>([\s\S]*?)<\/\1>/gi)) {
+    if (NOT_CONTENT_ATTR.test(m[2]!)) continue; // parágrafo de aviso (modal, cookies, newsletter...) pelo id/class
+    const text = stripHtml(m[3]!).replace(/\s+/g, ' ').trim();
+    const min = m[1]!.toLowerCase() === 'p' ? 40 : 20;
+    if (text.length < min || seen.has(text)) continue;
+    seen.add(text);
+    out.push(`<p>${text.replace(/</g, '&lt;')}</p>`);
+  }
+  return out.join('\n');
+}
+
+const MIN_BLOCK = 400;
+const textLen = (h: string) => stripHtml(h).replace(/\s+/g, ' ').trim().length;
+
 export function parseHtml(html: string): HtmlMeta {
   const og = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1];
   const t = tag(html, 'title');
@@ -44,6 +80,14 @@ export function parseHtml(html: string): HtmlMeta {
   const canonical = /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i.exec(html)?.[1] ?? null;
   const pub = /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i.exec(html)?.[1]
     ?? /<time[^>]+datetime=["']([^"']+)["']/i.exec(html)?.[1] ?? null;
-  const main = tag(html, 'article') ?? tag(html, 'main') ?? tag(html, 'body') ?? html;
-  return { title: stripHtml(og ?? h1 ?? t ?? ''), canonical, publishedAt: isoOrNull(pub), bodyHtml: main };
+  const main = tag(html, 'article') ?? tag(html, 'main');
+  const block = main ?? tag(html, 'body') ?? html;
+  // Sem <article>/<main> (o <body> inteiro traz avisos, menus e rodapé) ou com bloco curto (< 400 caracteres): usa os
+  // parágrafos da página quando eles trazem mais conteúdo.
+  let bodyHtml = block;
+  if (main === null || textLen(block) < MIN_BLOCK) {
+    const paras = paragraphsHtml(html);
+    if (main === null ? textLen(paras) >= MIN_BLOCK / 2 || textLen(paras) > textLen(block) : textLen(paras) > textLen(block)) bodyHtml = paras;
+  }
+  return { title: stripHtml(og ?? h1 ?? t ?? ''), canonical, publishedAt: isoOrNull(pub), bodyHtml };
 }

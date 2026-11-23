@@ -35,6 +35,13 @@ function result(findings: Finding[]): CheckResult {
   return { verdict: findings.length ? 'fail' : 'pass', findings };
 }
 
+/**
+ * Conteúdo SIMULADO (ensaio com modelo simulado) nunca é publicável: o marcador "SIMULADO" no título, resumo ou texto bloqueia a
+ * PUBLICAÇÃO (não a aprovação, que o ensaio local precisa exercitar). Usado por applyPublication e publishApproved.
+ */
+export const SIMULATED_MARKER = /\bSIMULADO\b/;
+export const isSimulatedContent = (d: Pick<Draft, 'headline' | 'resumo' | 'body'>): boolean => SIMULATED_MARKER.test(`${d.headline}\n${d.resumo ?? ''}\n${d.body}`);
+
 export function checkSignature(d: Draft): CheckResult {
   const out: Finding[] = [];
   if (d.signature !== SIGNATURE) out.push(f('bad_signature', `assinatura deve ser exatamente "${SIGNATURE}"`));
