@@ -6,7 +6,9 @@ export const revalidate = 300;
 const x = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export async function GET() {
-  const { items } = await getSource().getLatest({ pageSize: 30 });
+  const src = getSource();
+  // Vitrine/mock (Security R6): o canal RSS existe, mas NUNCA publica itens de demonstração.
+  const items = src.kind === 'mock' ? [] : (await src.getLatest({ pageSize: 30 })).items;
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
 <title>${x(SITE_NAME)}</title><link>${SITE_URL}</link><description>${x(SITE_DESCRIPTION)}</description><language>pt-BR</language>

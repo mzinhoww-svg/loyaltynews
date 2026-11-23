@@ -106,7 +106,10 @@ test.describe('SEO básico', () => {
     }
     const feed = await request.get('/feed.xml');
     expect(feed.status()).toBe(200);
-    expect(await feed.text()).toContain('<rss');
+    const feedBody = await feed.text();
+    expect(feedBody).toContain('<rss');
+    // Vitrine/mock nunca publica itens no feed (Security R6).
+    if (mode === 'mock') expect(feedBody).not.toContain('<item>');
   });
 
   test('busca não é indexável', async ({ page }) => {
