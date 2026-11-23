@@ -157,5 +157,6 @@ describe('v7: reconferência do QA 2 (conta amarra o provedor; teto de cada etap
     expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: { '1': 5, '3': 1 } })).success).toBe(false);
     expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: undefined, cap_usd: 5 })).success).toBe(false);
     expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: { '1': 5 } })).success).toBe(true);
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: {}, cap_usd: 5 })).success).toBe(false); // mapa vazio + legado na v7
   });
 });

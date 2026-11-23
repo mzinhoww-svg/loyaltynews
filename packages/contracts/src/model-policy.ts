@@ -123,7 +123,7 @@ export const ModelPolicy = z
       for (const [etapa, v] of Object.entries(mode.stage_caps_usd ?? {}))
         if (v > TETO_DA_ETAPA[etapa as '1' | '2'])
           ctx.addIssue({ code: 'custom', message: `etapa ${etapa} acima de US$ ${TETO_DA_ETAPA[etapa as '1' | '2']}`, path: ['qualification', 'mode', 'stage_caps_usd', etapa] });
-      if (p.execution && !mode.stage_caps_usd)
+      if (p.execution && Object.keys(mode.stage_caps_usd ?? {}).length === 0)
         ctx.addIssue({ code: 'custom', message: 'política v7 exige teto por etapa (stage_caps_usd), não só o teto único', path: ['qualification', 'mode', 'stage_caps_usd'] });
       const byId = new Map(p.models.map((m) => [m.id, m]));
       for (const id of mode.candidates) {
