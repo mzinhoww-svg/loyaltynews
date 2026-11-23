@@ -1,0 +1,14 @@
+{
+  "name": "@ln/scraping-benchmark",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Benchmark de descoberta e extração de notícias (RSS/Sitemap, Zyte, Bright Data, Scrapfly, Apify, Exa, Firecrawl) e roteador multiprovedor com fallback por domínio. Dono: loyalty-news-scraping-benchmark. Desligado por padrão (flags SCRAPING_*).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/intelligence": "0.0.0"
+  }
+}
