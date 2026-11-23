@@ -82,13 +82,22 @@ try {
   step('build RECUSADO com LN_STUDIO_TEST_SESSION definida', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
   r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_SOURCE: 'mock' } });
   step('start RECUSADO com PORTAL_SOURCE=mock em staging', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
+  if (/start-web.mjs/.test(ca.start)) {
+    // start-web.mjs: o ambiente de EXECUÇÃO errado impede o start (APP_COMMIT corrompido, URL ausente ou localhost, APP_ENV trocado)
+    const recusa = (nome, over, re) => { const x = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, ...over } }); step(nome, x.status !== 0 && re.test(`${x.stdout}${x.stderr}`)); };
+    recusa('start RECUSADO com APP_COMMIT corrompido (valor novo colado no antigo)', { APP_COMMIT: `460e59662459303d${man.commit}3230dda8` }, /APP_COMMIT/);
+    recusa('start RECUSADO com APP_COMMIT diferente do release.json', { APP_COMMIT: 'a'.repeat(40) }, /difere do release.json/);
+    recusa('start RECUSADO sem NEXT_PUBLIC_SITE_URL em execução', { NEXT_PUBLIC_SITE_URL: '' }, /NEXT_PUBLIC_SITE_URL ausente/);
+    recusa('start RECUSADO com NEXT_PUBLIC_SITE_URL=localhost', { NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' }, /NEXT_PUBLIC_SITE_URL/);
+    recusa('start RECUSADO com APP_ENV diferente do release.json', { APP_ENV: 'production' }, /APP_ENV/);
+  }
 
   // o "painel" aqui traz NEXT_PUBLIC_SITE_URL=localhost (pior caso, como na Vertra em 22/11): o build_command do pacote tem de sobrescrever
   r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' } });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
   if (!step('build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost)', r.status === 0, motivoBuild)) throw new Error('build falhou');
 
-  const start = ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
+  const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
   server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });
   let up = false;
   for (let i = 0; i < 60 && !up; i++) {

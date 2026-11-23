@@ -263,3 +263,34 @@ test('ci.yml: migrations sem --if-present, com verify-migrations e travado por L
   const b = readFileSync(join(S, '..', '..', '.github', 'workflows', 'backup.yml'), 'utf8');
   assert.match(b, /vars\.LN_ACTIONS_ENABLED == 'true'/);
 });
+
+test('start-web: startProblems aprova o ambiente do release.json e reprova APP_COMMIT corrompido, URL ausente/localhost/barra, APP_ENV trocado e variáveis de teste', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'aa0fa89cfbf3c33db3603fd4b42ff4729e036a7c';
+  const rel = { commit: sha, siteUrl: 'https://loyaltynews-stg.vertraweb.app', appEnv: 'staging' };
+  const env = { APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl, APP_MODE: 'nodb' };
+  assert.deepEqual(startProblems(env, rel), []);
+  assert.match(startProblems({ ...env, APP_COMMIT: `460e59662459303d${sha}3230dda8` }, rel).join('|'), /APP_COMMIT não é um SHA de 40/);
+  assert.match(startProblems({ ...env, APP_COMMIT: 'b'.repeat(40) }, rel).join('|'), /APP_COMMIT=b+ difere do release\.json/);
+  assert.match(startProblems({ ...env, APP_COMMIT: undefined }, rel).join('|'), /APP_COMMIT não é um SHA/);
+  assert.match(startProblems({ ...env, NEXT_PUBLIC_SITE_URL: '' }, rel).join('|'), /NEXT_PUBLIC_SITE_URL ausente em execução/);
+  assert.match(startProblems({ ...env, NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' }, rel).join('|'), /difere do release\.json/);
+  assert.match(startProblems({ ...env, NEXT_PUBLIC_SITE_URL: `${rel.siteUrl}/` }, rel).join('|'), /difere do release\.json/);
+  assert.match(startProblems({ ...env, APP_ENV: 'production' }, rel).join('|'), /APP_ENV="production" difere/);
+  assert.match(startProblems({ ...env, LN_STUDIO_TEST_SESSION: '1' }, rel).join('|'), /LN_STUDIO_TEST_SESSION/);
+  assert.match(startProblems({ ...env, PORTAL_SOURCE: 'mock' }, rel).join('|'), /PORTAL_SOURCE=mock/);
+  assert.match(startProblems(env, { commit: sha }).join('|'), /release\.json sem commit\/siteUrl\/appEnv/);
+});
+
+test('start-web: sem release.json recusa (código 2); com ambiente errado recusa (código 1) e não imprime segredos', () => {
+  const dir = tmp();
+  try {
+    let r = spawnSync(process.execPath, [join(S, 'start-web.mjs')], { cwd: dir, encoding: 'utf8', env: { ...process.env } });
+    assert.equal(r.status, 2);
+    put(dir, 'release.json', JSON.stringify({ commit: 'a'.repeat(40), siteUrl: 'https://x.vertraweb.app', appEnv: 'staging' }));
+    r = spawnSync(process.execPath, [join(S, 'start-web.mjs')], { cwd: dir, encoding: 'utf8', env: { ...process.env, APP_ENV: 'staging', APP_COMMIT: 'curto', NEXT_PUBLIC_SITE_URL: 'https://x.vertraweb.app', BETTER_AUTH_SECRET: 'segredo-que-nao-pode-vazar-0123456789' } });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /AMBIENTE DE EXECUÇÃO REPROVADO/);
+    assert.doesNotMatch(r.stdout + r.stderr, /segredo-que-nao-pode-vazar/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
