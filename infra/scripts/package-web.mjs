@@ -114,6 +114,8 @@ const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig
   'infra/scripts/guard-env.mjs', 'infra/scripts/build-web.mjs', 'infra/scripts/start-web.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs', 'infra/scripts/lib/typecheck-report.mjs'];
 // a sessão simulada do Studio só existe em teste; a rota de login de e2e (app/api/e2e) vem no código do Studio desde a int/003: em produção responde 404 e exige
 // LN_STUDIO_TEST_SESSION=1 (que o guard proíbe), mas não há motivo para ela existir num app implantado, então fica fora do pacote
+// --prova-png: o comando de build/start chama infra/scripts/prova-png.mjs, que precisa estar no pacote (ele só importa lib/util.mjs, que já entra)
+if (provaPng) INCLUDE.push('infra/scripts/prova-png.mjs');
 const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e'];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
@@ -154,6 +156,7 @@ try {
       if (statSync(p).isDirectory()) walk(p); else files.push(relative(folder, p).split(sep).join('/'));
     }
   })(folder);
+  if (provaPng && !files.includes('infra/scripts/prova-png.mjs')) fail('--prova-png: infra/scripts/prova-png.mjs não entrou no pacote (o build e o start do worker o chamam)');
   const bad = files.filter((f) => /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f) || /(^|\/)(node_modules|\.next|\.git)\//.test(f) || /playwright\.config\./.test(f) || /(^|\/)e2e\//.test(f));
   if (bad.length) fail(`arquivos proibidos no pacote: ${bad.slice(0, 5).join(', ')}`);
   const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8' });
