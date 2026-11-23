@@ -1,0 +1,398 @@
+{
+  "datasetId": "seed.public.v3",
+  "verifiedAt": "2026-11-23T11:50:40.721Z",
+  "verifier": "LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)",
+  "sources": [
+    {
+      "id": "livelo-imprensa",
+      "url": "https://www.livelo.com.br/imprensa",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:50:43.650Z",
+      "content_sha256": "4450396c90bcb12f33f0f210ffc338883c7b9f90e2578cea2bf8ccf542ca65c5",
+      "text_length": 13339,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.livelo.com.br/imprensa"
+    },
+    {
+      "id": "bradesco-livelo",
+      "url": "https://banco.bradesco/cartoes/hotsitefidelidade/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:50:46.781Z",
+      "content_sha256": "832b2e38af37fca6a49c9434386848c07534c4b025e1416af5d8259f5fe17882",
+      "text_length": 21183,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://banco.bradesco/cartoes/hotsitefidelidade/"
+    },
+    {
+      "id": "latampass-conheca",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:50:50.733Z",
+      "content_sha256": "ab12e961fb809d0a6f4c3b5e1129514fb6a820cd337a64edbc03e1463ca1c772",
+      "text_length": 4642,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://latampass.latam.com/br/pt/conheca-latampass"
+    },
+    {
+      "id": "abemf-home",
+      "url": "https://web.abemf.com.br/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:50:57.270Z",
+      "content_sha256": "c303f7984b0b16306098e10c040570a4154f56018568bc3cd2cc17269f9307b3",
+      "text_length": 4260,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/"
+    },
+    {
+      "id": "abemf-associados",
+      "url": "https://web.abemf.com.br/associados/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:51:02.327Z",
+      "content_sha256": "c9119986bb5f6db6dd00fb298f03dbcd9184ea234f97501d6b37925c967aa395",
+      "text_length": 3658,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://web.abemf.com.br/associados/"
+    },
+    {
+      "id": "dotz-home",
+      "url": "https://www.dotz.com.br/home",
+      "method": "openbot_browser",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T10:22:26.774Z",
+      "content_sha256": "36695375a23ee6353ac117012e778d2f2709a5a9574c4934a6aec283ed0f3ddd",
+      "text_length": 3677,
+      "robots": "robots.txt permite (conferido com scripts/verify-dataset.mjs --robots antes da captura)",
+      "note": "",
+      "final_url": "https://www.dotz.com.br/home"
+    },
+    {
+      "id": "esfera-site",
+      "url": "https://www.esfera.com.vc/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:51:05.831Z",
+      "content_sha256": "dcbb6a2e95dbd8d7f36b8831e714aaaf7df2113e90e14c14feb9af7c8d8f5fa6",
+      "text_length": 858,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.esfera.com.vc/"
+    },
+    {
+      "id": "santander-ri",
+      "url": "https://www.santander.com.br/ri/",
+      "method": "http",
+      "status": "verified",
+      "http_status": 200,
+      "fetched_at": "2026-11-23T11:51:11.268Z",
+      "content_sha256": "d4624fdd52e7065a965d0640d10d9c629113f769f7721e9ab4e7d536d671d8b9",
+      "text_length": 2307,
+      "robots": "robots.txt permite",
+      "note": "",
+      "final_url": "https://www.santander.com.br/ri/"
+    }
+  ],
+  "records": [
+    {
+      "ref": "organization:livelo",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bradesco",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:latam",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:abemf",
+      "source_id": "abemf-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:azul",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bravium",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:clube-giro",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:dotz",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:esfera",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:juntos-somos-mais",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:mastercard",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:orbia",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:smiles",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:stix",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-do-brasil",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-bv",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:uber",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:brb",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:km-de-vantagens",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:santander",
+      "source_id": "esfera-site",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:banco-santander-brasil",
+      "source_id": "santander-ri",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:grupo-santander",
+      "source_id": "santander-ri",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:madero",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:shopee",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:bradesco-seguros",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:genial",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:gpa",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "organization:raia-drogasil",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bradesco>other>livelo",
+      "source_id": "bradesco-livelo",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam>other>latam-pass",
+      "source_id": "latampass-conheca",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:azul>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:bravium>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:clube-giro>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:esfera>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:juntos-somos-mais>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:latam-pass>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:mastercard>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:orbia>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:smiles>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:stix>other>abemf",
+      "source_id": "abemf-associados",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>partner_of>banco-do-brasil",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:dotz>partner_of>banco-bv",
+      "source_id": "dotz-home",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>uber",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>brb",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>km-de-vantagens",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:santander>other>esfera",
+      "source_id": "esfera-site",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:banco-santander-brasil>other>grupo-santander",
+      "source_id": "santander-ri",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>madero",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>shopee",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>bradesco-seguros",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:livelo>partner_of>genial",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:gpa>other>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    },
+    {
+      "ref": "relation:raia-drogasil>other>stix",
+      "source_id": "livelo-imprensa",
+      "quote_found": true
+    }
+  ]
+}

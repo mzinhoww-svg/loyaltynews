@@ -15,8 +15,10 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { classifyResponse, detectChallenge, parseRobots, robotsDecision } from './crawl-guards.mjs';
 
-const UA = 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)';
+export const UA = 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)';
 const PAUSE_MS = 1500;
 const TIMEOUT_MS = 20000;
 
@@ -42,46 +44,51 @@ export function htmlToText(html) {
 }
 const norm = (s) => s.normalize('NFC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
 
-async function robotsAllows(url) {
+/**
+ * Consulta o robots.txt do HOST da URL (RFC 9309, ver crawl-guards.mjs) e decide para o CAMINHO da URL.
+ * robots.txt ausente (404/410) = permitido; qualquer outro erro/status = não busca (precaução). `fetchImpl` injetável para teste.
+ */
+export async function robotsAllows(url, fetchImpl = fetch) {
   const u = new URL(url);
   try {
-    const r = await fetch(`${u.origin}/robots.txt`, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(TIMEOUT_MS) });
-    if (r.status === 404 || r.status === 410) return { allowed: true, note: 'robots.txt ausente' };
-    if (!r.ok) return { allowed: false, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca` };
-    const lines = (await r.text()).split(/\r?\n/).map((l) => l.replace(/#.*/, '').trim()).filter(Boolean);
-    let applies = false;
-    let sawGroup = false;
-    const disallow = [];
-    const allow = [];
-    for (const l of lines) {
-      const m = /^([a-z-]+)\s*:\s*(.*)$/i.exec(l);
-      if (!m) continue;
-      const k = m[1].toLowerCase();
-      const v = m[2].trim();
-      if (k === 'user-agent') {
-        if (sawGroup && !applies) { /* novo grupo */ }
-        applies = v === '*' || UA.toLowerCase().includes(v.toLowerCase());
-        sawGroup = true;
-      } else if (applies && k === 'disallow' && v) disallow.push(v);
-      else if (applies && k === 'allow' && v) allow.push(v);
-    }
-    const path = u.pathname + u.search;
-    const longest = (arr) => arr.filter((p) => path.startsWith(p.replace(/\*$/, ''))).sort((a, b) => b.length - a.length)[0];
-    const d = longest(disallow);
-    const a = longest(allow);
-    if (d && (!a || a.length < d.length)) return { allowed: false, note: `robots.txt proibe ${d}` };
-    return { allowed: true, note: 'robots.txt permite' };
+    // robots.txt pode redirecionar (RFC 9309 manda seguir até 5): é o arquivo que o próprio host publica.
+    const r = await fetchImpl(`${u.origin}/robots.txt`, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (r.status === 404 || r.status === 410) return { allowed: true, note: 'robots.txt ausente', sitemaps: [] };
+    if (!r.ok) return { allowed: false, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca`, sitemaps: [] };
+    const body = await r.text();
+    // robots.txt que responde 200 com PÁGINA DE DESAFIO/BLOQUEIO não é "sem regras": é inacessível e a página NÃO é buscada.
+    const headers = Object.fromEntries(r.headers.entries());
+    const looksHtml = /html/i.test(r.headers.get('content-type') ?? '') || /^\s*<(?:!doctype|html|head|body|script|meta|title)/i.test(body);
+    const challenge = detectChallenge({ status: r.status, headers, html: looksHtml ? body : '', text: looksHtml ? htmlToText(body) : '' });
+    if (challenge) return { allowed: false, note: `robots.txt inacessivel (resposta de desafio/bloqueio com HTTP ${r.status}: ${challenge}); por precaucao nao busca`, sitemaps: [] };
+    const parsed = parseRobots(body);
+    const sitemaps = parsed.sitemaps.slice(0, 5);
+    const d = robotsDecision(parsed, UA, u.pathname + u.search);
+    if (!d.allowed) return { allowed: false, note: `robots.txt proibe (${d.rule})`, sitemaps };
+    return { allowed: true, note: 'robots.txt permite', sitemaps };
   } catch (e) {
-    return { allowed: false, note: `robots.txt inacessivel (${e.name}); por precaucao nao busca` };
+    return { allowed: false, note: `robots.txt inacessivel (${e.name}); por precaucao nao busca`, sitemaps: [] };
   }
 }
 
-async function fetchText(url) {
-  const r = await fetch(url, { headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' }, redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) });
+/**
+ * UMA requisição à URL, SEM seguir redirecionamento: 3xx volta com `location` (URL absoluta do destino), que deve virar
+ * outra candidata com o próprio robots.txt. Devolve também cabeçalhos e a classificação (ok, redirecionada, bloqueada_http,
+ * bloqueada_desafio, indisponivel). `fetchImpl` injetável para teste.
+ */
+export async function fetchText(url, fetchImpl = fetch) {
+  const r = await fetchImpl(url, { headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' }, redirect: 'manual', signal: AbortSignal.timeout(TIMEOUT_MS) });
   const ct = r.headers.get('content-type') ?? '';
-  const body = await r.text();
-  return { status: r.status, finalUrl: r.url, contentType: ct, text: /html|xml|text/i.test(ct) ? htmlToText(body) : '' };
+  const headers = Object.fromEntries(r.headers.entries());
+  const loc = r.headers.get('location');
+  const body = r.status >= 300 && r.status < 400 ? '' : await r.text();
+  const textual = /html|xml|text/i.test(ct);
+  const html = textual ? body : '';
+  const text = textual ? htmlToText(body) : '';
+  const location = loc ? new URL(loc, url).href : null;
+  return { status: r.status, finalUrl: url, location, contentType: ct, headers, html, text, ...classifyResponse({ status: r.status, headers, html, text }) };
 }
+
 
 async function probe(url, word) {
   const rb = await robotsAllows(url);
@@ -89,6 +96,7 @@ async function probe(url, word) {
   if (!rb.allowed) return;
   const f = await fetchText(url);
   console.log(`HTTP ${f.status} ${f.contentType} ${f.finalUrl} texto=${f.text.length} caracteres`);
+  if (f.estado !== 'ok') { console.log(`  ${f.estado}: ${f.observacao}${f.location ? ` -> ${f.location}` : ''}`); return; }
   const re = new RegExp(word, 'gi');
   let m;
   let n = 0;
@@ -136,7 +144,9 @@ async function verify(path) {
       const f = await fetchText(s.url);
       entry.http_status = f.status;
       entry.fetched_at = new Date().toISOString();
-      if (f.status !== 200) { entry.note = `HTTP ${f.status}`; continue; }
+      // redirecionamento não é seguido (o destino é OUTRA fonte, com robots próprio); desafio/bloqueio nunca é contornado
+      if (f.estado === 'redirecionada') { entry.note = `${f.observacao} -> ${f.location ?? '(sem Location)'}; cadastre o destino como fonte própria`; continue; }
+      if (f.estado !== 'ok') { entry.note = f.observacao; continue; }
       entry.final_url = f.finalUrl;
       entry.text_length = f.text.length;
       entry.content_sha256 = sha256(f.text);
@@ -152,6 +162,8 @@ async function verify(path) {
     ...ds.organizations.map((o) => ({ ref: `organization:${o.key}`, sourceId: o.sourceId, quote: o.quote, contextQuote: o.contextQuote })),
     ...ds.relations.map((r) => ({ ref: `relation:${r.from}>${r.type}>${r.to}`, sourceId: r.sourceId, quote: r.quote, contextQuote: r.contextQuote })),
     ...(ds.persons ?? []).map((p) => ({ ref: `person:${p.key}`, sourceId: p.sourceId, quote: p.quote })),
+    // achados sobre termos de uso/direitos (revisão J-14): também exigem citação literal na página indicada
+    ...(ds.termsFindings ?? []).map((f) => ({ ref: `terms:${f.id}`, sourceId: f.sourceId, quote: f.quote })),
   ];
   for (const rec of all) {
     const t = texts.get(rec.sourceId);
@@ -169,8 +181,12 @@ async function verify(path) {
   for (const s of out.sources) if (s.status === 'unverified') console.log(`  fonte ${s.id} não verificada: ${s.note}`);
 }
 
-const [a, b, c] = process.argv.slice(2);
-if (a === '--robots') {
+// Só executa quando chamado direto (scripts/probe-sources.mjs importa as funções acima sem disparar nada).
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+const [a, b, c] = isMain ? process.argv.slice(2) : [];
+if (!isMain) {
+  /* importado como módulo */
+} else if (a === '--robots') {
   for (const u of process.argv.slice(3)) {
     const r = await robotsAllows(u);
     console.log(`${r.allowed ? 'PERMITIDO' : 'BLOQUEADO'}  ${u}  (${r.note})`);

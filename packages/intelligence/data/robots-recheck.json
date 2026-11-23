@@ -1,0 +1,247 @@
+{
+  "gerado_em": "2026-11-23T12:01:24.846Z",
+  "analisador": "scripts/crawl-guards.mjs (RFC 9309: normalização §2.2.2, token do agente, desafio no próprio robots.txt)",
+  "nota": "Só robots.txt (nenhuma página buscada).",
+  "total": 34,
+  "bloqueadas": [],
+  "fontes": [
+    {
+      "id": "livelo-imprensa",
+      "grupo": "candidata",
+      "url": "https://www.livelo.com.br/imprensa",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "magalu-ri",
+      "grupo": "candidata",
+      "url": "https://ri.magazineluiza.com.br/",
+      "permitido": true,
+      "nota": "robots.txt ausente"
+    },
+    {
+      "id": "santander-ri",
+      "grupo": "candidata",
+      "url": "https://ri.santander.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "itau-ri",
+      "grupo": "candidata",
+      "url": "https://www.itau.com.br/relacoes-com-investidores/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "bradesco-ri",
+      "grupo": "candidata",
+      "url": "https://www.bradescori.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "bb-ri",
+      "grupo": "candidata",
+      "url": "https://ri.bb.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "latam-ir",
+      "grupo": "candidata",
+      "url": "https://ir.latam.com/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "dotz-ri",
+      "grupo": "candidata",
+      "url": "https://ri.dotz.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "gpa-ri",
+      "grupo": "candidata",
+      "url": "https://www.gpari.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "rd-ri",
+      "grupo": "candidata",
+      "url": "https://ri.rd.com.br/",
+      "permitido": true,
+      "nota": "robots.txt ausente"
+    },
+    {
+      "id": "natura-ri",
+      "grupo": "candidata",
+      "url": "https://ri.natura.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "inter-ri",
+      "grupo": "candidata",
+      "url": "https://investors.inter.co/en/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "xp-ri",
+      "grupo": "candidata",
+      "url": "https://investors.xpinc.com/en/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "brb-ri",
+      "grupo": "candidata",
+      "url": "https://ri.brb.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "bv-ri",
+      "grupo": "candidata",
+      "url": "https://ri.bv.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "vibra-ri",
+      "grupo": "candidata",
+      "url": "https://ri.vibraenergia.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "americanas-ri",
+      "grupo": "candidata",
+      "url": "https://ri.americanas.io/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "mastercard-newsroom",
+      "grupo": "candidata",
+      "url": "https://www.mastercard.com/news/latin-america/pt-br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "uber-newsroom",
+      "grupo": "candidata",
+      "url": "https://www.uber.com/pt-BR/newsroom/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "stix-site",
+      "grupo": "candidata",
+      "url": "https://www.stix.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "esfera-site",
+      "grupo": "candidata",
+      "url": "https://www.esfera.com.vc/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "dotz-site",
+      "grupo": "candidata",
+      "url": "https://www.dotz.com.br/home",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "latampass-site",
+      "grupo": "candidata",
+      "url": "https://latampass.latam.com/br/pt/conheca-latampass",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "smiles-site",
+      "grupo": "candidata",
+      "url": "https://www.smiles.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "santander-ri-destino",
+      "grupo": "candidata",
+      "url": "https://www.santander.com.br/ri/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "rd-ri-destino",
+      "grupo": "candidata",
+      "url": "https://ri.rdsaude.com.br/default.aspx",
+      "permitido": true,
+      "nota": "robots.txt ausente"
+    },
+    {
+      "id": "uber-newsroom-destino",
+      "grupo": "candidata",
+      "url": "https://www.uber.com/br/pt-br/newsroom/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "smiles-site-destino",
+      "grupo": "candidata",
+      "url": "https://www.smiles.com.br/portal/home",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "bradesco-livelo",
+      "grupo": "seed",
+      "url": "https://banco.bradesco/cartoes/hotsitefidelidade/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "abemf-home",
+      "grupo": "seed",
+      "url": "https://www.abemf.com.br/",
+      "permitido": true,
+      "nota": "robots.txt ausente"
+    },
+    {
+      "id": "abemf-associados",
+      "grupo": "seed",
+      "url": "https://web.abemf.com.br/associados/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "abemf-home-destino",
+      "grupo": "seed-v3",
+      "url": "https://web.abemf.com.br/",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    },
+    {
+      "id": "dotz-conta-termos",
+      "grupo": "termos",
+      "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/",
+      "permitido": true,
+      "nota": "robots.txt ausente"
+    },
+    {
+      "id": "bradesco-app-termos",
+      "grupo": "termos",
+      "url": "https://banco.bradesco/assets/common/inc/termo-de-uso-bradesco-celular.shtm",
+      "permitido": true,
+      "nota": "robots.txt permite"
+    }
+  ]
+}
