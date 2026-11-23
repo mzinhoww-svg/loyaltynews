@@ -508,3 +508,30 @@ describe('códigos de barreira da Editorial como motivo bloqueante (tone_lint e 
     expect(validatePilotRow(rev({ gate_verdict: 'approved', gate_reasons: [] }))).toEqual([]);
   });
 });
+
+describe('PM-2026-11-23-K: stale_approval e invalid_model_output também são motivos bloqueantes', () => {
+  const rev = (over: Partial<PilotRow> = {}) =>
+    base({ task_id: 'r1', kind: 'editorial_review', article_id: 'a1', stage: 'review', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', started_at: iso(3), ended_at: iso(5), reviewed_draft_task_id: 'd1', cross_provider_ok: true, ...over });
+
+  it('a lista inclui os dois novos e os anteriores', () => {
+    expect(BLOCKING_GATE_REASONS).toEqual(expect.arrayContaining(['stale_approval', 'invalid_model_output', 'tone_lint', 'autoral_invalid', 'same_author', 'unsupported_claim']));
+  });
+
+  it.each(['stale_approval', 'invalid_model_output'])('approved com %s é registro contraditório (linha inválida; amostra inválida)', (reason) => {
+    expect(validatePilotRow(rev({ gate_verdict: 'approved', gate_reasons: [reason] }))).toEqual(expect.arrayContaining([expect.stringMatching(new RegExp(`approved com motivo bloqueante \\(${reason}\\)`))]));
+    expect(evaluatePilot([draft(1, 0), rev({ gate_verdict: 'approved', gate_reasons: [reason] })]).exit.overall).toBe('invalid');
+  });
+
+  it.each(['stale_approval', 'invalid_model_output'])('blocked com %s é válido e não conta como aprovada', (reason) => {
+    const row = rev({ gate_verdict: 'blocked', gate_reasons: [reason] });
+    expect(validatePilotRow(row)).toEqual([]);
+    const e = evaluatePilot([draft(1, 0), row]);
+    expect(e.exit.overall).not.toBe('invalid');
+    expect(e.quality.approvedWithEvaluation + e.quality.approvedWithoutEvaluation).toBe(0);
+  });
+
+  it.each(['duplicate', 'suspicious_evidence', 'not_relevant', 'budget_blocked', 'max_attempts', 'no_image', 'not_published'])('%s continua FORA da lista (bloqueio operacional): com blocked é válido e a lista não o contém', (reason) => {
+    expect(BLOCKING_GATE_REASONS as readonly string[]).not.toContain(reason);
+    expect(validatePilotRow(rev({ gate_verdict: 'blocked', gate_reasons: [reason] }))).toEqual([]);
+  });
+});
