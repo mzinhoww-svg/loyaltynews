@@ -17,8 +17,8 @@ export default async function FlashPage({ searchParams }: { searchParams: Promis
       basePath="/flash"
       page={parsePage(sp.page)}
       contentType="flash"
-      emptyTitle="Loyalty Flash em breve"
-      emptyText="As primeiras notas curtas aparecerão aqui assim que forem publicadas e verificadas."
+      emptyTitle="Nenhuma nota do Loyalty Flash publicada"
+      emptyText="Quando houver notas curtas publicadas e verificadas, elas aparecem aqui, da mais recente para a mais antiga."
     />
   );
 }

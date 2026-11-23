@@ -286,11 +286,17 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
     const pageNo = Math.max(1, q.page ?? 1);
     const size = q.pageSize ?? 12;
     if (q.contentType) {
-      // A API filtra por editoria e texto, não por tipo: filtra aqui (até 100 itens recentes) e pagina localmente.
-      const r = await list({ limit: 100, offset: 0, editoria: q.editoriaSlug, q: q.q });
-      const all = r.items.filter((i) => asContentType(i.tipoConteudo) === q.contentType);
+      // Filtro por tipo no servidor (`tipo`, contrato pedido ao Backend). Se a API o ignorar (itens de outro tipo na resposta),
+      // cai no filtro local sobre as 100 matérias mais recentes, para nunca listar um tipo errado.
+      const r = await list({ limit: size, offset: (pageNo - 1) * size, editoria: q.editoriaSlug, q: q.q, tipo: q.contentType });
       if (r.unavailable) return emptyPage(pageNo, size, true);
-      return { items: all.slice((pageNo - 1) * size, pageNo * size).map(mapListItem), page: pageNo, pageSize: size, total: all.length };
+      if (r.items.every((i) => asContentType(i.tipoConteudo) === q.contentType)) {
+        return { items: r.items.map(mapListItem), page: pageNo, pageSize: size, total: r.total };
+      }
+      const all = await list({ limit: 100, offset: 0, editoria: q.editoriaSlug, q: q.q });
+      if (all.unavailable) return emptyPage(pageNo, size, true);
+      const mine = all.items.filter((i) => asContentType(i.tipoConteudo) === q.contentType);
+      return { items: mine.slice((pageNo - 1) * size, pageNo * size).map(mapListItem), page: pageNo, pageSize: size, total: mine.length };
     }
     const r = await list({ limit: size, offset: (pageNo - 1) * size, editoria: q.editoriaSlug, q: q.q });
     if (r.unavailable) return emptyPage(pageNo, size, true);
@@ -349,7 +355,7 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
       return r.items.filter((a) => a.slug !== article.slug).slice(0, limit);
     },
     async search(q, pageNo = 1) {
-      const term = q.trim().slice(0, 120);
+      const term = q.trim().slice(0, 100);
       return term ? page({ q: term, page: pageNo }) : emptyPage(pageNo, 12);
     },
   };

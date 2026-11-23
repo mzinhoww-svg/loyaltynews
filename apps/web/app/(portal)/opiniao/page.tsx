@@ -17,8 +17,8 @@ export default async function OpiniaoPage({ searchParams }: { searchParams: Prom
       basePath="/opiniao"
       page={parsePage(sp.page)}
       contentType="opiniao"
-      emptyTitle="Opinião em breve"
-      emptyText="Os primeiros artigos de opinião serão publicados aqui, sempre com autoria identificada."
+      emptyTitle="Nenhum artigo de opinião publicado"
+      emptyText="Artigos de opinião publicados aparecem aqui, sempre com autoria identificada."
     />
   );
 }
