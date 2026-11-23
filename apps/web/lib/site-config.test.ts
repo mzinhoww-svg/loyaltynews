@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prepareHome } from '../app/(portal)/_lib/home';
+import { jsonLdString } from '../app/(portal)/_lib/jsonld';
 import { createSiteSlice, linkTerms, parseSiteConfig, safeDestino } from '../app/(portal)/_lib/site-config';
 import type { Article, HomeBlock } from '../app/(portal)/_lib/types';
 
@@ -135,7 +136,7 @@ describe('parseSiteConfig (payload não confiável)', () => {
   it('JSON-LD: só URLs http(s) em sameAs/logo; organização sem nome/url válidos é ignorada', () => {
     const ld = { name: 'N', url: 'https://n.example', logo: 'javascript:1', sameAs: ['javascript:1', 'https://ok.example', '/interno'] };
     const c = parseSiteConfig({ data: { seo: { ...FULL.data.seo, jsonLd: ld } } });
-    expect(c?.seo?.organization).toEqual({ name: 'N', url: 'https://n.example', logo: undefined, sameAs: ['https://ok.example'] });
+    expect(c?.seo?.organization).toEqual({ name: 'N', url: 'https://n.example/', logo: undefined, sameAs: ['https://ok.example/'] });
     const sem = parseSiteConfig({ data: { seo: { ...FULL.data.seo, jsonLd: { name: 'N', url: 'javascript:1' } } } });
     expect(sem?.seo?.organization).toBeUndefined();
   });
@@ -146,6 +147,34 @@ describe('safeDestino', () => {
     expect(safeDestino('/editoria/bancos?x=1#a')).toBe('/editoria/bancos?x=1#a');
     expect(safeDestino('https://a.example/p')).toBe('https://a.example/p');
     for (const v of ['/api', '/api/x', '/STUDIO', '//a.example', 'mailto:a@b', 'javascript:1', ' ', 'sem-barra']) expect(safeDestino(v), v).toBeNull();
+  });
+
+  it('dot-segments são resolvidos ANTES do teste das rotas reservadas (achado do QA 4)', () => {
+    for (const v of ['/../studio/x', '/%2e%2e/api/x', '/%2E%2E/studio', '/a/../../api/x', '/a/%2e%2e/%2e%2e/_next/x', '/./api/x', '/%61pi/x', '/%73tudio']) {
+      expect(safeDestino(v), v).toBeNull();
+    }
+    // Caminhos legítimos com ponto continuam valendo e saem normalizados.
+    expect(safeDestino('/a/./b/../c')).toBe('/a/c');
+    expect(safeDestino('/metodologia')).toBe('/metodologia');
+    expect(safeDestino('/%zz')).toBeNull();
+  });
+
+  it('URL externa sai normalizada pelo parser (nunca o texto cru): < e > viram %3C e %3E', () => {
+    const out = safeDestino('https://x.example/p?q=</script><script>window.__xss=1</script>#</script>');
+    expect(out).not.toMatch(/[<>]/);
+    expect(out).toContain('%3C/script%3E');
+    expect(safeDestino('https://n.example')).toBe('https://n.example/');
+  });
+});
+
+describe('jsonLdString', () => {
+  it('escapa <, > e & (não fecha o <script>) e preserva o valor ao ser lido de volta', () => {
+    const v = { name: '</script><script>window.__xss=1</script> & "ok" \u2028 \u2029', n: 1 };
+    const out = jsonLdString(v);
+    expect(out).not.toMatch(/[<>&]/);
+    expect(out).not.toContain('</script');
+    expect(out).toContain('\\u003c/script\\u003e');
+    expect(JSON.parse(out)).toEqual(v);
   });
 });
 

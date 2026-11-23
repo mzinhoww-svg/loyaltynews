@@ -76,6 +76,9 @@ const articles = [
   },
 ];
 
+// Matéria com título/resumo hostis: só existe na rota de detalhe (não aparece nas listagens).
+const hostil = { ...base, slug: 'api-xss', titulo: '[MOCK API] </script><script>window.__xss_titulo=1</script> Matéria hostil', resumo: 'Resumo </script><script>window.__xss_resumo=1</script> (MOCK).', tipoConteudo: 'noticia', tempoLeituraMin: 1, editoria: 'global', corpo: 'Texto de teste (MOCK).\n\nFontes:\n- https://fonte.example/mock', imagem: { url: '/api/publico/midia/xss-1', origem: 'fonte_terceiro', credito: '</script><script>window.__xss_credito=1</script>', baseDeDireito: 'licenca', edicoes: [], textoAlternativo: 'Foto </script><script>window.__xss_alt=1</script>' }, publicadoEm: '2026-11-17T10:00:00-03:00' };
+
 const listItem = (a) => ({
   slug: a.slug, titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo,
   tempoLeituraMin: a.tempoLeituraMin, editoria: a.editoria, assinatura: a.assinatura, patrocinado: a.patrocinado,
@@ -93,7 +96,7 @@ const agendaEvents = [
 const eventoPassado = { id: 'ev-passado', titulo: '[MOCK] Evento encerrado', inicio: day(-30), fim: day(-29), local: 'Belo Horizonte (MOCK)', url: 'https://evento.example/passado', editorias: [], patrocinado: false, fonteUrl: 'https://fonte.example/passado-mock' };
 const agendaMode = process.env.FAKE_API_AGENDA ?? 'ok'; // ok | vazia
 
-// GET /api/publico/site (formato de apps/web/app/api/_lib/site/index.ts). FAKE_API_SITE: full (padrão) | vazio | noindex | invalido.
+// GET /api/publico/site (formato de apps/web/app/api/_lib/site/index.ts). FAKE_API_SITE: full (padrão) | vazio | noindex | invalido | malicioso.
 const siteMode = process.env.FAKE_API_SITE ?? 'full';
 const siteFull = () => ({
   home: {
@@ -130,8 +133,24 @@ const siteFull = () => ({
   },
   linksInternos: [{ termo: 'matéria corrigida', destino: '/correcoes' }],
 });
+// Conteúdo HOSTIL (achado do QA 4 em 4bc0f69): texto do Studio com </script> e destinos que tentam sair do portal.
+// O portal nunca pode executar script nem aceitar os destinos reservados. Nenhum valor aqui é real.
+const XSS = (n) => `</script><script>window.__xss_${n}=1</script>`;
+const siteMalicioso = () => {
+  const base = siteFull();
+  return {
+    ...base,
+    seo: { ...base.seo, tituloPadrao: `Loyalty News ${XSS('titulo')}`.slice(0, 70), jsonLd: { '@context': 'https://schema.org', '@type': 'Organization', name: XSS('name'), url: `https://x.example/?q=${XSS('url')}#${XSS('hash')}`, logo: `https://x.example/l.png?a=${XSS('logo')}`, sameAs: [`https://y.example/?q=${XSS('sameas')}`] } },
+    menus: {
+      principal: { itens: [{ rotulo: 'Bom MOCK', destino: '/agenda', filhos: [] }, { rotulo: 'Dots studio', destino: '/../studio/x', filhos: [] }, { rotulo: 'Dots api', destino: '/%2e%2e/api/x', filhos: [] }, { rotulo: 'Dots next', destino: '/a/../_next/x', filhos: [] }, { rotulo: 'Cru', destino: `https://z.example/?q=${XSS('menu')}`, filhos: [{ rotulo: 'Filho dots', destino: '/%2E%2E/studio', filhos: [] }] }] },
+      rodape: { itens: [{ rotulo: 'Grupo MOCK', destino: '/sobre', filhos: [{ rotulo: 'Sobre MOCK', destino: '/sobre' }, { rotulo: 'Filho studio', destino: '/./studio/y' }] }, { rotulo: 'Rodapé api', destino: '/api/x', filhos: [] }] },
+    },
+  };
+};
 const sitePayload = () =>
-  siteMode === 'vazio'
+  siteMode === 'malicioso'
+    ? { data: siteMalicioso() }
+    : siteMode === 'vazio'
     ? { data: { home: null, menus: { principal: null, rodape: null }, seo: null, linksInternos: [] } }
     : siteMode === 'invalido'
       ? { data: 'isto não é a configuração do site' }
@@ -174,7 +193,7 @@ http
     const m = /^\/api\/publico\/materias\/([^/]+)$/.exec(u.pathname);
     if (m) {
       if (decodeURIComponent(m[1]) === 'api-falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'detalhe interno de teste' } });
-      const a = articles.find((x) => x.slug === decodeURIComponent(m[1]));
+      const a = [...articles, hostil].find((x) => x.slug === decodeURIComponent(m[1]));
       if (!a) return send(res, 404, { error: { code: 'NOT_FOUND', message: 'Matéria não encontrada.' } });
       const pub = { ...a };
       delete pub.corrigida;
