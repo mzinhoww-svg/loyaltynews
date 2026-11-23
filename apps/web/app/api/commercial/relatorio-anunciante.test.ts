@@ -5,7 +5,7 @@ import { call, makeApp, type Actor } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 import { seedCommercial } from '../_lib/commercial/repo';
 
-// Relatório do ANUNCIANTE (todas as campanhas da conta), com as linhas reais de ad_delivery_daily: soma só o que foi contado, nunca estima.
+// Integração (Backend 3) do relatório do ANUNCIANTE do Commercial (ft/commercial 3f0dc35) com o banco: as linhas reais de ad_delivery_daily: soma só o que foi contado, nunca estima.
 const SHA = 'a'.repeat(64);
 const ARQ = { arquivoRef: `anuncios/${SHA}.png`, arquivoMime: 'image/png', largura: 1280, altura: 150, tamanhoKb: 100, arquivoSha256: SHA, textoAlternativo: 'Oferta', destinoUrl: 'https://anunciante.example/x' };
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -59,14 +59,14 @@ describe('GET /api/commercial/studio/accounts/report', () => {
     expect(nov.body.totals).toMatchObject({ served: 350, visible: 190, clicks: 15 });
     const dez = await rel({ accountId: 'acc-a', from: '2026-12-01', to: '2026-12-31' });
     expect(dez.body.campaigns.map((c: any) => c.id)).toEqual(['cmp-2']);
-    expect(dez.body.notes.join(' ')).toMatch(/1 campanha\(s\) do anunciante fora da janela/);
+    expect(dez.body.totals).toMatchObject({ served: 400, visible: 200, clicks: 20 }); // só o dia de dezembro da cmp-2
     const nada = await rel({ accountId: 'acc-a', from: '2026-11-01', to: '2026-11-05' });
     expect([nada.body.totals, nada.body.emptyState]).toEqual([null, 'Sem entrega registrada na janela.']); // sem linha = null, nunca zero
   });
 
   it('estados vazios honestos: conta sem campanha; janela sem campanha', async () => {
     const v = await rel({ accountId: 'acc-vazia' });
-    expect([v.status, v.body.window, v.body.totals, v.body.emptyState]).toEqual([200, null, null, 'O anunciante ainda não tem campanha.']);
+    expect([v.status, v.body.campaigns, v.body.totals, v.body.emptyState]).toEqual([200, [], null, 'O anunciante ainda não tem campanhas.']);
     const fora = await rel({ accountId: 'acc-a', from: '2027-06-01', to: '2027-06-30' });
     expect([fora.body.campaigns, fora.body.totals, fora.body.emptyState]).toEqual([[], null, 'Nenhuma campanha do anunciante toca a janela.']);
   });
@@ -90,7 +90,7 @@ describe('GET /api/commercial/studio/accounts/report-csv', () => {
     expect(r.body.csv.charCodeAt(0)).toBe(0xfeff); // BOM: o Excel lê os acentos
     expect(r.body.filename).toBe('relatorio-anunciante-diario-acc-a-2026-11-01-2026-12-31.csv');
     const linhas = r.body.csv.replace(/^\uFEFF/, '').trim().split('\r\n');
-    expect(linhas[0]).toMatch(/^campanha_id,campanha,anunciante,data,/);
+    expect(linhas[0]).toMatch(/^anunciante_id,anunciante,campanha_id,campanha,data,/);
     expect(linhas).toHaveLength(5);
     expect(linhas.some((l: string) => l.includes('cmp-b') || l.includes('9999'))).toBe(false);
     expect(linhas[1]).toContain('2026-11-10T20:00:00.000Z');
@@ -101,7 +101,9 @@ describe('GET /api/commercial/studio/accounts/report-csv', () => {
     const t = r.body.csv.replace(/^\uFEFF/, '');
     expect(t).toContain('impressoes_servidas,750');
     expect(t).toContain('estimado,nao');
-    expect(t).toMatch(/\r\ncmp-1,Campanha cmp-1,active,2026-11-01,2026-11-30,TOP,150,90,5,/);
+    expect(t).toContain('campanha_cmp-1_impressoes_servidas,150');
+    expect(t).toContain('campanha_cmp-2_impressoes_servidas,600');
+    expect(t).not.toContain('cmp-b');
     const vazio = (await csv({ accountId: 'acc-a', kind: 'resumo', from: '2026-11-01', to: '2026-11-05' })).body.csv;
     expect(vazio).toContain('impressoes_servidas,\r\n');
   });
