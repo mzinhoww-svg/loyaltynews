@@ -12,6 +12,10 @@ export interface ReadyReport {
   redis: 'ok' | 'falha' | 'nao_configurado' | 'n/a';
   /** TLS dos certificados lidos do ambiente (sem abrir conexão): só um estado por grupo, sem nome de variável, código do OpenSSL nem formato (o detalhe vai ao log do processo). */
   tls: { db: TlsState; redis: TlsState };
+  /** Só quando o banco respondeu e as migrações aplicadas batem com o journal embarcado no build. */
+  migracoes?: 'ok';
+  /** Motivo da indisponibilidade por migração (sem nome de tabela nem SQL). */
+  motivo?: 'migracoes_pendentes' | 'migracoes_divergentes' | 'migracoes_falha';
 }
 
 export type TlsState = 'ok' | 'invalido' | 'nao_configurado' | 'n/a';
@@ -19,7 +23,11 @@ export type TlsState = 'ok' | 'invalido' | 'nao_configurado' | 'n/a';
 export interface ReadyProbes {
   db?: () => Promise<void>;
   redis?: () => Promise<void>;
+  /** Estado das migrações (só roda se o banco respondeu). */
+  migrations?: () => Promise<MigrationState>;
 }
+
+export type MigrationState = 'ok' | 'pendentes' | 'divergentes' | 'falha';
 
 async function probe(fn: (() => Promise<void>) | undefined): Promise<'ok' | 'falha' | 'nao_configurado'> {
   if (!fn) return 'nao_configurado';
@@ -73,8 +81,58 @@ export async function readiness(env: Record<string, string | undefined>, probes:
   const [db, redis] = await Promise.all([probe(probes.db), probe(probes.redis)]);
   // TLS inválido derruba a prontidão (503), com ou sem sonda: o processo não está apto a falar com o banco/Redis
   const tlsRuim = tls.db === 'invalido' || tls.redis === 'invalido';
-  return { status: db === 'ok' && redis === 'ok' && !tlsRuim ? 'ok' : 'indisponivel', mode: 'completo', db, redis, tls };
+  // Migrações: só com o banco ok (sem banco, a prontidão já cai e a consulta não teria como rodar).
+  let mig: MigrationState | undefined;
+  if (db === 'ok' && probes.migrations) {
+    try {
+      mig = await probes.migrations();
+    } catch {
+      mig = 'falha';
+    }
+  }
+  const migRuim = mig !== undefined && mig !== 'ok';
+  const status = db === 'ok' && redis === 'ok' && !tlsRuim && !migRuim ? 'ok' : 'indisponivel';
+  const base: ReadyReport = { status, mode: 'completo', db, redis, tls };
+  if (mig === 'ok') return { ...base, migracoes: 'ok' };
+  if (mig === 'pendentes') return { ...base, motivo: 'migracoes_pendentes' };
+  if (mig === 'divergentes') return { ...base, motivo: 'migracoes_divergentes' };
+  if (mig === 'falha') return { ...base, motivo: 'migracoes_falha' };
+  return base;
 }
+
+/** Número de migrações do journal embarcado no build (packages/db/drizzle/meta/_journal.json). */
+export function journalCount(journal: { entries?: unknown[] }): number {
+  return Array.isArray(journal.entries) ? journal.entries.length : 0;
+}
+
+const MIG_TTL_MS = 30_000;
+let migCache: { at: number; expected: number; value: MigrationState } | null = null;
+
+export function resetMigrationCacheForTest(): void {
+  migCache = null;
+}
+
+/**
+ * Compara as linhas de drizzle.__drizzle_migrations com o journal do build. UMA consulta, com cache de 30 s.
+ * Aplicadas < journal: `pendentes`; aplicadas > journal (banco à frente do build): `divergentes`; tabela ausente: `pendentes` (nada aplicado).
+ */
+export const migrationProbe = (db: Db, expected: number, now: () => number = Date.now) => async (): Promise<MigrationState> => {
+  const t = now();
+  if (migCache && migCache.expected === expected && t - migCache.at < MIG_TTL_MS) return migCache.value;
+  let applied: number;
+  try {
+    const r = (await db.execute(sql`select count(*)::int as n from drizzle.__drizzle_migrations`)) as unknown as { rows?: Array<{ n: number }> } | Array<{ n: number }>;
+    const rows = Array.isArray(r) ? r : (r.rows ?? []);
+    applied = Number(rows[0]?.n ?? 0);
+  } catch (e) {
+    const code = (e as { code?: string; cause?: { code?: string } } | null)?.cause?.code ?? (e as { code?: string } | null)?.code;
+    if (code !== '42P01' && code !== '3F000') throw e; // undefined_table / invalid_schema_name ⇒ nada aplicado
+    applied = 0;
+  }
+  const value: MigrationState = applied === expected ? 'ok' : applied < expected ? 'pendentes' : 'divergentes';
+  migCache = { at: t, expected, value };
+  return value;
+};
 
 export const dbProbe = (db: Db) => async () => {
   await db.execute(sql`select 1`);

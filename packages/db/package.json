@@ -10,7 +10,8 @@
     "./testing": "./src/testing.ts",
     "./migrate": "./src/migrate.ts",
     "./tls": "./src/tls.ts",
-    "./safe-log": "./src/safe-log.ts"
+    "./safe-log": "./src/safe-log.ts",
+    "./journal": "./drizzle/meta/_journal.json"
   },
   "types": "./src/index.ts",
   "scripts": {
