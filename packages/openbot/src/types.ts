@@ -148,3 +148,11 @@ export interface UsageReport {
 }
 
 export const ID_RE = /^[A-Za-z0-9_.-]{1,128}$/;
+
+/**
+ * Referência do resultado de uma execução: derivada, nunca escolhida pelo agente. `res-<taskId>-a<tentativa>` é idempotente por
+ * tentativa (a segunda tentativa não sobrescreve a primeira). Com `requireDerivedResultRef`, o callback só aceita esta forma.
+ */
+export function resultRefFor(taskId: string, attempt: number): string {
+  return `res-${taskId}-a${attempt}`;
+}

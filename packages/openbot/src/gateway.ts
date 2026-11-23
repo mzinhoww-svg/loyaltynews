@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { dispatchTask, routeFor, type Caller, type OpenBotDeps } from './handlers';
-import { providerOfModel, PROVIDER_OF_ACCOUNT, type Account } from './types';
+import { ID_RE, providerOfModel, PROVIDER_OF_ACCOUNT, type Account } from './types';
 
 // Gateway SÍNCRONO sobre o adaptador OpenBot. A Fábrica editorial chama `ModelGateway.invoke` e espera a resposta; este
 // gateway despacha a tarefa (por pull com lease), espera o callback com tempo-limite e devolve o resultado. No tempo-limite a
@@ -42,8 +42,27 @@ export const KIND_OF_CLASS: Record<GatewayTaskClass, string> = {
 
 /** Armazém do CONTEÚDO (o fio e a fila só levam IDs): o agente lê a entrada por `refId` e grava o resultado sob `resultRef`. */
 export interface TaskIo {
-  putInput(refId: string, input: unknown, meta: { taskClass: GatewayTaskClass; promptVersion: string }): Promise<void>;
+  /**
+   * Chamado pela Fábrica, no mesmo processo, a CADA `invoke` (inclusive ao retomar a espera). Tem de ser idempotente: mesmo `refId`
+   * com o mesmo conteúdo não faz nada; com conteúdo DIFERENTE lança `InputConflict` (a entrada de uma tarefa em andamento não muda).
+   */
+  putInput(refId: string, input: unknown, meta: TaskInputMeta): Promise<void>;
   getResult(resultRef: string): Promise<unknown | null>;
+}
+
+export interface TaskInputMeta {
+  taskClass: GatewayTaskClass;
+  promptVersion: string;
+  /** Id da tarefa do rascunho que esta checagem/revisão recebe (prova de independência). Lido de `input.reviewedDraftTaskId`, se houver. */
+  reviewedDraftTaskId?: string;
+}
+
+/** O armazém recusou: já existe entrada com este refId e conteúdo diferente. */
+export class InputConflict extends Error {
+  constructor(refId: string) {
+    super(`entrada divergente para ${refId}`);
+    this.name = 'InputConflict';
+  }
 }
 
 export interface OpenBotGatewayConfig {
@@ -85,7 +104,17 @@ export class OpenBotModelGateway {
     if (route.length === 0) return { ok: false, refusal: 'no_independent_provider', detail: `nenhuma via de ${kind} fora de ${[...excluded].join(', ')}` };
 
     const key = `gw-${hex(req.idempotencyKey)}`;
-    await c.io.putInput(key, req.input, { taskClass: req.taskClass, promptVersion: req.promptVersion });
+    const reviewed = (req.input as { reviewedDraftTaskId?: unknown } | null)?.reviewedDraftTaskId;
+    try {
+      await c.io.putInput(key, req.input, {
+        taskClass: req.taskClass,
+        promptVersion: req.promptVersion,
+        ...(typeof reviewed === 'string' && ID_RE.test(reviewed) ? { reviewedDraftTaskId: reviewed } : {}),
+      });
+    } catch (e) {
+      if (e instanceof InputConflict) return { ok: false, refusal: 'model_disabled', detail: 'input_divergente: a entrada desta chave já foi gravada com outro conteúdo' };
+      return { ok: false, refusal: 'model_disabled', detail: 'armazem_de_conteudo_indisponivel' };
+    }
     const d = await dispatchTask(c.deps, c.caller, {
       kind, profileId: c.profiles[req.taskClass], refId: key, idempotencyKey: key, dataClass: 'public', maxCostMicro: c.maxCostMicro ?? 1_000_000, route,
     });

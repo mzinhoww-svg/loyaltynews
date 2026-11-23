@@ -8,7 +8,7 @@ import {
 } from './pilot';
 import { verifySignature } from './signing';
 import {
-  ACCOUNTS, ALLOWED_DATA_CLASSES, DEFAULT_ROUTES, DISPATCHABLE_KINDS, FALLBACK_ROUTE, ID_RE, NEVER_DISPATCH_KINDS, NEVER_SWITCH_KINDS,
+  ACCOUNTS, ALLOWED_DATA_CLASSES, DEFAULT_ROUTES, resultRefFor, DISPATCHABLE_KINDS, FALLBACK_ROUTE, ID_RE, NEVER_DISPATCH_KINDS, NEVER_SWITCH_KINDS,
   type Account, type LeasedTask, type Task, type UsageReport,
 } from './types';
 
@@ -55,6 +55,8 @@ export interface OpenBotDeps {
   pilot?: PilotControl;
   /** Espera padrão quando todas as vias da rota bateram o limite (ou a rota é de uma só via) e o OpenBot não informa a retomada. Padrão: 30 min. */
   limitHoldMs?: number;
+  /** Exige que `resultRef` do callback seja exatamente `resultRefFor(taskId, tentativa)`: o agente não aponta para resultado de outra tarefa. */
+  requireDerivedResultRef?: boolean;
   /** Rotas de contas por tipo de tarefa (substitui as padrão, com as mesmas invariantes: sem repetição; redação com uma só via). */
   routes?: Record<string, readonly Account[]>;
 }
@@ -293,6 +295,11 @@ export async function handleCallback(deps: OpenBotDeps, req: SignedRequest): Pro
   if (cb.trace && cb.trace.account !== assigned) {
     if (pilotOn) await pilotViolation(deps, STOP.route, { kind: before.kind, refId: before.refId });
     return fail(422, 'ACCOUNT_OUT_OF_ROUTE', 'a execução usou uma via diferente da atribuída pela rota', { assigned });
+  }
+
+  // O resultado apontado tem de ser o desta tarefa e desta tentativa (quando exigido). Callback recusado não consome o callbackId.
+  if (deps.requireDerivedResultRef && cb.outcome === 'completed' && cb.resultRef !== resultRefFor(before.id, before.attempts)) {
+    return fail(422, 'RESULT_REF_MISMATCH', 'resultRef deve ser o derivado da tarefa e da tentativa', { expected: resultRefFor(before.id, before.attempts) });
   }
 
   // Replay: mesma resposta, nenhum efeito. Só chega aqui um callback válido, assinado e com tarefa existente; callback
