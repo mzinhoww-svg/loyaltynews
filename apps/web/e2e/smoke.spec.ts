@@ -3,7 +3,12 @@ import { expect, test } from '@playwright/test';
 test('home responde e lista as 10 editorias', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1, name: 'Loyalty News' })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Editorias' }).getByRole('listitem')).toHaveCount(10);
+  // A home real pode repetir o menu (cabeçalho e rodapé/mobile): confere as 10 editorias, não a contagem de itens.
+  const nav = page.getByRole('navigation', { name: 'Editorias' }).first();
+  for (const nome of ['Mercado & Negócios', 'Programas de Fidelidade', 'Pontos & Milhas', 'Bancos & Cartões', 'Varejo & Cashback',
+    'Travel & Hospitality', 'LoyaltyTech & IA', 'CRM & CX', 'Global Loyalty', 'Regulação & Dados']) {
+    await expect(nav.getByText(nome, { exact: true }).first()).toBeVisible();
+  }
 });
 
 test('studio nega por padrão sem sessão', async ({ page }) => {
