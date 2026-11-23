@@ -8,3 +8,17 @@
   }
 }
 
+/* Texto do estado vazio em linha própria: o título em negrito não cola na explicação. */
+.emptyText {
+  display: block;
+  margin-top: var(--ln-space-2, 8px);
+}
+
+/* Bloco "Enquanto isso" do /moves vazio. */
+.meanwhile {
+  margin-top: var(--ln-space-5, 24px);
+}
+.meanwhile ul {
+  margin: var(--ln-space-2, 8px) 0 0;
+  padding-left: 1.2em;
+}

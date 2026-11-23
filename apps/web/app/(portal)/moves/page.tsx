@@ -35,7 +35,18 @@ export default async function MovesPage() {
           ))}
         </ul>
       ) : (
-        <EmptyState title="Em breve: primeiras movimentações confirmadas">{MOVES_EMPTY}</EmptyState>
+        <>
+          <EmptyState title="Em breve: primeiras movimentações confirmadas">
+            <span className={s.emptyText} data-testid="moves-empty-text">{MOVES_EMPTY}</span>
+          </EmptyState>
+          <section className={s.meanwhile} aria-labelledby="moves-meanwhile" data-testid="moves-meanwhile">
+            <h2 id="moves-meanwhile" style={{ fontSize: 18 }}>Enquanto isso</h2>
+            <ul>
+              <li><Link href="/intelligence/empresas" className={s.touch} style={{ textDecoration: 'underline' }}>Diretório de empresas e programas, com a fonte de cada vínculo</Link></li>
+              <li><Link href="/intelligence/pessoas" className={s.touch} style={{ textDecoration: 'underline' }}>Pessoas e cargos de fonte pública</Link></li>
+            </ul>
+          </section>
+        </>
       )}
       <p className="pt-meta" style={{ marginTop: 18 }}>
         Veja a <Link href="/privacidade" className={s.touch} style={{ textDecoration: 'underline' }} data-testid="moves-privacy">política de privacidade e LGPD</Link> para pedidos de correção ou remoção de dados profissionais.

@@ -44,4 +44,18 @@ test.describe('revisão visual int/012 — Frontend 2', () => {
       expect(await altura(form.locator('label').filter({ hasText: nome })), nome).toBeGreaterThanOrEqual(44);
     }
   });
+
+  test('P3-3 /moves vazio: texto do aviso em linha própria e bloco "Enquanto isso"', async ({ page }) => {
+    test.skip(mode !== 'empty', 'o estado vazio só aparece com a fonte vazia');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/moves');
+    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const texto = page.getByTestId('moves-empty-text');
+    const bt = (await titulo.boundingBox())!;
+    const bx = (await texto.boundingBox())!;
+    expect(bx.y, 'o texto começa abaixo do título').toBeGreaterThanOrEqual(bt.y + bt.height - 1);
+    const meanwhile = page.getByTestId('moves-meanwhile');
+    await expect(meanwhile.getByRole('link', { name: /Diretório de empresas/ })).toHaveAttribute('href', '/intelligence/empresas');
+    await expect(meanwhile.getByRole('link', { name: /Pessoas e cargos/ })).toHaveAttribute('href', '/intelligence/pessoas');
+  });
 });
