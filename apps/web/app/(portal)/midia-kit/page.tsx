@@ -64,7 +64,7 @@ export default async function MidiaKitPage() {
 
   return (
     <>
-      <section className="pt-hero-band" aria-labelledby="mk-h">
+      <section className="pt-hero-band pt-hero-band--mk" aria-labelledby="mk-h">
         <p className="pt-kicker pt-kicker--signal">Mídia kit · Proposta comercial</p>
         <h1 id="mk-h">Quem decide o futuro da fidelidade precisa estar bem informado.</h1>
         <p>Conecte sua marca ao público que acompanha programas de fidelidade, bancos, varejo, companhias aéreas e tecnologia.</p>

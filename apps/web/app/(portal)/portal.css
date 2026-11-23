@@ -158,3 +158,6 @@
 
 /* P3-a (UI/UX): kicker do bloco de abertura em verde de destaque do design system (antes: var(--pt-signal), que não existe) */
 .pt-hero-band .pt-kicker--signal { color: var(--ln-color-signal); }
+
+/* P3-b (UI/UX): título de abertura do mídia kit com escala de exibição (só esta página): 28 px no celular, 44 px no desktop largo */
+.pt .pt-hero-band--mk h1 { font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem); line-height: 1.15; }

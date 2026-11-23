@@ -270,6 +270,20 @@ test.describe('honestidade de dados', () => {
     expect(await kicker.getAttribute('style')).toBeNull();
   });
 
+  test('P3-b: título de abertura do mídia kit em escala de exibição (≥ 28 px no celular, 44 px no desktop) e sem estourar a tela', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    const h1 = page.locator('.pt-hero-band--mk h1');
+    const size = parseFloat(await h1.evaluate((el) => getComputedStyle(el).fontSize));
+    if (info.project.name === 'desktop') expect(size).toBeCloseTo(44, 0); else expect(size).toBeGreaterThanOrEqual(28);
+    const lh = parseFloat(await h1.evaluate((el) => getComputedStyle(el).lineHeight)) / size;
+    expect(lh).toBeCloseTo(1.15, 2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    // outros h1 do portal não mudam de escala
+    await page.goto('/contato');
+    const outro = parseFloat(await page.locator('main h1').first().evaluate((el) => getComputedStyle(el).fontSize));
+    expect(outro).toBeLessThanOrEqual(36);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');
