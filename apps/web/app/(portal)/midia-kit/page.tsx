@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { isUpcoming } from '../_lib/events';
 import { formatDateTime } from '../_lib/format';
+import { MockTag } from '../_components/ui';
+import { coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
 import { getSource } from '../_lib/source';
 import type { MetricValue } from '../_lib/types';
 
@@ -14,6 +16,13 @@ export const metadata: Metadata = {
 };
 
 const STATE_LABEL = { ok: 'Atualizado', unavailable: 'Indisponível', stale: 'Desatualizado' } as const;
+const STATUS_LABEL = { disponivel: 'Disponível', sob_consulta: 'Sob consulta', indisponivel: 'Indisponível' } as const;
+
+function bySection(formats: MediaKitFormat[]): [string, MediaKitFormat[]][] {
+  const m = new Map<string, MediaKitFormat[]>();
+  for (const f of formats) m.set(f.section, [...(m.get(f.section) ?? []), f]);
+  return [...m.entries()];
+}
 
 function Metric({ m }: { m: MetricValue }) {
   return (
@@ -42,10 +51,13 @@ const FORMATS = [
 
 export default async function MidiaKitPage() {
   const src = getSource();
-  const [audience, latest, events] = await Promise.all([src.getAudience(), src.getLatest({ pageSize: 1 }), src.listEvents()]);
+  // Em modo api, audiência e catálogo vêm da API comercial (origem, janela e data em cada número). Falha => estado vazio honesto.
+  const kit = src.kind === 'api' ? await fetchMediaKit(portalApiBase()) : null;
+  const [audience, latest, events] = await Promise.all([kit ? Promise.resolve(kit.audience) : src.getAudience(), src.getLatest({ pageSize: 1 }), src.listEvents()]);
   const upcoming = events.items.filter((e) => e.status === 'validado' && isUpcoming(e, new Date())).length;
   const stamps = [...audience.realtime, ...audience.historical].map((m) => m.collectedAt).filter(Boolean) as string[];
   const last = stamps.sort().at(-1);
+  const cards = coverageCards({ kind: src.kind, articles: latest.total, events: upcoming, editorias: EDITORIAS.length, now: new Date().toISOString() });
 
   return (
     <>
@@ -54,8 +66,8 @@ export default async function MidiaKitPage() {
         <h1 id="mk-h">Quem decide o futuro da fidelidade precisa estar bem informado.</h1>
         <p>Conecte sua marca ao público que acompanha programas de fidelidade, bancos, varejo, companhias aéreas e tecnologia.</p>
         <p>
-          <Link href="/contato" className="ln-btn ln-btn--primary">Solicitar proposta</Link>{' '}
-          <a href="#audiencia" className="ln-btn ln-btn--ghost">Ver audiência ↓</a>
+          <Link href="/contato" className="ln-btn ln-btn--primary" data-testid="mk-cta-primary">Solicitar proposta</Link>{' '}
+          <a href="#audiencia" className="ln-btn ln-btn--ghost" data-testid="mk-cta-secondary">Ver audiência ↓</a>
         </p>
         <p style={{ fontSize: 13 }}>Dados de audiência só aparecem quando medidos, com origem, período e data de coleta. Sem métricas inventadas.</p>
       </section>
@@ -70,9 +82,20 @@ export default async function MidiaKitPage() {
       <section id="cobertura" className="pt-section" aria-labelledby="mk-cob">
         <h2 id="mk-cob">01 · Cobertura</h2>
         <div className="pt-metrics">
-          <div className="pt-metric"><small>Matérias publicadas (acervo)</small><strong>{latest.total || '—'}</strong><small>CMS</small></div>
-          <div className="pt-metric"><small>Eventos futuros verificados</small><strong>{upcoming || '—'}</strong><small>Agenda</small></div>
-          <div className="pt-metric"><small>Editorias</small><strong>{EDITORIAS.length}</strong><small>Taxonomia do portal</small></div>
+          {cards.map((c) => (
+            <div className="pt-metric" key={c.key} data-testid={`coverage-${c.key}`} data-mock={c.mock ? 'true' : 'false'}>
+              <small>{c.label}</small>
+              <strong>
+                {c.value ?? '—'}
+                {c.mock && <> <MockTag /></>}
+              </strong>
+              <small>
+                {c.origin}
+                {c.checkedAt ? ` · consulta em ${formatDateTime(c.checkedAt)}` : ''}
+                {c.value === null && c.key !== 'editorias' ? ' · sem dado real' : ''}
+              </small>
+            </div>
+          ))}
         </div>
         <div className="pt-scroll">
           <table className="pt-table">
@@ -126,6 +149,25 @@ export default async function MidiaKitPage() {
           Preços de referência e disponibilidade de inventário são informados na proposta. Um formato só é vendido quando há capacidade operacional para entregá-lo.{' '}
           <Link href="/contato" style={{ textDecoration: 'underline', fontWeight: 700 }}>Fale com o comercial</Link>.
         </p>
+        {kit && kit.formats.length > 0 && (
+          <div data-testid="mk-precos">
+            <p className="pt-meta">Valores de referência por formato, ajustáveis; confirmados na proposta. Um formato só é vendido quando está disponível.</p>
+            {bySection(kit.formats).map(([section, rows]) => (
+              <div className="pt-scroll" key={section}>
+                <table className="pt-table">
+                  <caption>{section}</caption>
+                  <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
+                  <tbody>
+                    {rows.map((f) => (
+                      <tr key={f.id}><td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td><td>{STATUS_LABEL[f.status]}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            {kit.integrityNote && <p className="pt-meta" role="note" data-testid="mk-integridade">{kit.integrityNote}</p>}
+          </div>
+        )}
       </section>
     </>
   );
