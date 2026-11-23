@@ -1,0 +1,100 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import path from 'node:path';
+
+/**
+ * PORTAL_MODE=api: o portal lê as rotas públicas de um servidor MOCK (e2e/fake-api.mjs) no formato real do Backend.
+ * Cobre imagem pela URL pública com rótulo/crédito, imagem: null e o aviso de correção em /noticia/{slug}.
+ */
+const mode = process.env.PORTAL_MODE ?? 'empty';
+const SHOTS = path.resolve(import.meta.dirname, '..', 'screenshots', 'api');
+const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675"><rect width="1200" height="675" fill="#34877a"/></svg>';
+
+test.describe('matéria via API pública', () => {
+  test.skip(mode !== 'api', 'somente no modo api');
+
+  test.beforeEach(async ({ page }) => {
+    // A rota pública de mídia é do Backend (com banco); aqui devolve um SVG só para a imagem carregar.
+    await page.route('**/api/publico/midia/**', (r) => r.fulfill({ status: 200, contentType: 'image/svg+xml', body: SVG }));
+  });
+
+  test('ilustração conceitual: URL pública, rótulo, crédito institucional, texto alternativo e aviso de correção', async ({ page }, info) => {
+    await page.goto('/noticia/api-ilustracao-corrigida');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('ilustração conceitual e errata');
+    const fig = page.getByTestId('article-image');
+    await expect(fig.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
+    await expect(fig.locator('img')).toHaveAttribute('alt', /^Ilustração conceitual/);
+    await expect(page.getByTestId('image-label')).toHaveText('Ilustração conceitual');
+    await expect(fig.locator('figcaption')).toContainText('Crédito: Loyalty News');
+    // D09: nada sobre IA, modelo ou ferramenta na página.
+    expect(await page.locator('main').innerText()).not.toMatch(/gerad[ao] por IA|modelo|provider|prompt/i);
+    // Imagem realmente carregada pela URL pública.
+    await expect.poll(() => fig.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+
+    const notice = page.getByTestId('correction-notice');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('Matéria corrigida');
+    await expect(notice).toContainText('Corrigimos o valor citado (MOCK).');
+    await expect(notice).toContainText('Segunda linha do aviso.');
+    // Blocos Avisos/Fontes do corpo não aparecem duplicados no texto corrido.
+    await expect(page.locator('.pt-body')).not.toContainText('Avisos:');
+    await expect(page.locator('.pt-body')).not.toContainText('Fontes:');
+    await expect(page.getByRole('heading', { name: 'Subtítulo de teste' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'fonte.example' })).toHaveAttribute('href', 'https://www.fonte.example/mock');
+    await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-materia-ilustracao.png`), fullPage: true });
+  });
+
+  test('imagem: null não quebra a página: sem figura, sem aviso de correção', async ({ page }) => {
+    await page.goto('/noticia/api-sem-imagem');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('imagem venceu');
+    await expect(page.getByTestId('article-image')).toHaveCount(0);
+    await expect(page.locator('main img')).toHaveCount(0);
+    await expect(page.getByTestId('correction-notice')).toHaveCount(0);
+    await expect(page.getByText('Nenhuma correção registrada')).toBeVisible();
+  });
+
+  test('foto de terceiro: crédito e link da fonte, sem rótulo de ilustração', async ({ page }) => {
+    await page.goto('/noticia/api-foto-terceiro');
+    const fig = page.getByTestId('article-image');
+    await expect(fig.locator('figcaption')).toContainText('Crédito: Agência de teste (MOCK)');
+    await expect(fig.getByRole('link', { name: 'fonte da imagem' })).toHaveAttribute('href', 'https://agencia.example/mock');
+    await expect(page.getByTestId('image-label')).toHaveCount(0);
+  });
+
+  test('axe (WCAG A/AA, contraste) na matéria com errata, ilustração e card', async ({ page }) => {
+    for (const p of ['/noticia/api-ilustracao-corrigida', '/noticia/api-sem-imagem', '/noticias']) {
+      await page.goto(p);
+      await page.waitForLoadState('networkidle');
+      const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      const summary = r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`);
+      expect(summary, `${p}: ${summary.join(' ; ')}`).toEqual([]);
+    }
+  });
+
+  test('matéria inexistente dá 404 do portal', async ({ page }) => {
+    expect((await page.goto('/noticia/nao-existe'))?.status()).toBe(404);
+    await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();
+  });
+
+  test('listagens e home usam a API; "em alta" fica vazio e honesto', async ({ page }) => {
+    await page.goto('/noticias');
+    await expect(page.getByRole('link', { name: /Matéria com ilustração conceitual e errata/ })).toBeVisible();
+    await page.goto('/editoria/pontos');
+    await expect(page.getByRole('link', { name: /imagem venceu/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /ilustração conceitual e errata/ })).toHaveCount(0);
+    await page.goto('/flash');
+    await expect(page.getByRole('link', { name: /foto de terceiro/ })).toBeVisible();
+    await page.goto('/em-alta');
+    await expect(page.getByText('Ranking em formação')).toBeVisible();
+    await page.goto('/busca?q=venceu');
+    await expect(page.getByTestId('result-count')).toContainText('1 resultado');
+  });
+
+  test('o noindex do ambiente continua valendo na página da notícia', async ({ request }) => {
+    const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
+    const r = await request.get('/noticia/api-ilustracao-corrigida');
+    expect(r.status()).toBe(200);
+    if (appEnv === 'production') expect(r.headers()['x-robots-tag']).toBeUndefined();
+    else expect(r.headers()['x-robots-tag']).toBe('noindex, nofollow');
+  });
+});

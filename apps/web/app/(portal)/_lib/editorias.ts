@@ -40,4 +40,7 @@ export const CONTENT_TYPE_LABEL = {
   analise: 'Análise',
   entrevista: 'Entrevista',
   opiniao: 'Opinião',
+  estudo: 'Estudo',
+  patrocinado: 'Conteúdo patrocinado',
+  cobertura_evento: 'Cobertura de evento',
 } as const;
