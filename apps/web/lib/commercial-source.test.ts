@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { MetricStore, createCommercialState, makeCtx, mediaKitPage } from '@ln/commercial';
-import { coverageCards, fetchMediaKit, parseMediaKit, portalApiBase } from '../app/(portal)/_lib/commercial-source';
+import { apiCoverageCards, coverageCards, fetchMediaKit, isDemoMarked, parseMediaKit, portalApiBase } from '../app/(portal)/_lib/commercial-source';
 
 const NOW = '2026-12-05T12:00:00-03:00';
 const wire = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -21,6 +21,8 @@ describe('parseMediaKit: contrato com a API comercial', () => {
     for (const m of [...kit!.audience.realtime, ...kit!.audience.historical]) expect(m).toMatchObject({ value: null, state: 'unavailable' });
     expect(kit!.integrityNote).toBeNull();
     expect(kit!.generatedAt).toBe(NOW);
+    expect(kit!.coverage.map((m) => m.id)).toEqual(['articles_published_30d', 'articles_published_90d', 'upcoming_events']);
+    for (const m of kit!.coverage) expect(m).toMatchObject({ value: null, state: 'unavailable' });
   });
   it('métrica real chega com valor, origem, janela e data da coleta', () => {
     const store = new MetricStore();
@@ -53,7 +55,7 @@ describe('parseMediaKit: contrato com a API comercial', () => {
   });
   it('não repassa campos internos da API (motivo de status, capacidade, posições)', () => {
     const kit = parseMediaKit(realPayload())!;
-    expect(Object.keys(kit).sort()).toEqual(['audience', 'formats', 'generatedAt', 'integrityNote']);
+    expect(Object.keys(kit).sort()).toEqual(['audience', 'coverage', 'formats', 'generatedAt', 'integrityNote']);
     expect(Object.keys(kit.formats[0]!).sort()).toEqual(['id', 'name', 'price', 'scope', 'section', 'status']);
   });
 });
@@ -78,35 +80,94 @@ describe('fetchMediaKit', () => {
   });
 });
 
-describe('coverageCards (auditoria V-05)', () => {
-  const base = { articles: 20, events: 2, editorias: 10, now: NOW };
+describe('coverageCards: fontes que não são a API (auditoria V-05)', () => {
+  const base = { articles: 20, events: 2, editorias: 10 };
   const by = (cards: ReturnType<typeof coverageCards>, key: string) => cards.find((c) => c.key === key)!;
-  it('fonte de demonstração: número com selo MOCK e origem "Demonstração", sem data de consulta', () => {
+  it('fonte de demonstração: número com selo MOCK e origem "Demonstração", sem data de coleta', () => {
     const cards = coverageCards({ kind: 'mock', ...base });
     expect(by(cards, 'articles')).toMatchObject({ value: '20', mock: true, origin: 'Demonstração', checkedAt: null });
     expect(by(cards, 'events')).toMatchObject({ value: '2', mock: true, origin: 'Demonstração', checkedAt: null });
   });
-  it('fonte real com contagem: número com origem e horário da consulta, sem selo MOCK', () => {
-    const cards = coverageCards({ kind: 'api', ...base });
-    expect(by(cards, 'articles')).toMatchObject({ value: '20', mock: false, origin: 'CMS', checkedAt: NOW });
-    expect(by(cards, 'events')).toMatchObject({ value: '2', mock: false, origin: 'Agenda', checkedAt: NOW });
-  });
-  it('sem dado real: "—" (value null), sem data, sem selo (estado vazio honesto)', () => {
-    for (const kind of ['empty', 'api', 'mock'] as const) {
-      const cards = coverageCards({ kind, ...base, articles: 0, events: 0 });
+  it('fonte vazia (ou api, por engano): nunca mostra a contagem ao vivo, só "—" (em staging ela inclui o seed)', () => {
+    for (const kind of ['empty', 'api'] as const) {
+      const cards = coverageCards({ kind, ...base });
       for (const k of ['articles', 'events']) expect(by(cards, k)).toMatchObject({ value: null, mock: false, checkedAt: null });
     }
+  });
+  it('sem dado: "—" e sem selo, também na vitrine', () => {
+    const cards = coverageCards({ kind: 'mock', ...base, articles: 0, events: 0 });
+    for (const k of ['articles', 'events']) expect(by(cards, k)).toMatchObject({ value: null, mock: false });
   });
   it('editorias é taxonomia do projeto: sempre o número do portal, nunca marcada como mock', () => {
     for (const kind of ['empty', 'mock', 'api'] as const) expect(by(coverageCards({ kind, ...base }), 'editorias')).toMatchObject({ value: '10', mock: false, origin: 'Taxonomia do portal' });
   });
-  it('nenhum cartão mostra número de demonstração sem selo, em nenhuma combinação', () => {
-    for (const kind of ['empty', 'mock', 'api'] as const) for (const n of [0, 1, 20]) {
-      for (const c of coverageCards({ kind, articles: n, events: n, editorias: 10, now: NOW })) {
-        if (kind === 'mock' && c.value !== null && c.key !== 'editorias') expect(c.mock).toBe(true);
-        if (kind !== 'mock') expect(c.mock).toBe(false);
-      }
+});
+
+describe('demonstração na resposta da API: "—" e "sem dado real"', () => {
+  const metric = (over: Record<string, unknown> = {}) => ({ id: 'articles_published_30d', label: 'Matérias publicadas (30 dias)', value: '12', state: 'ok', source: 'CMS', window: '05/11/2026 a 04/12/2026', collectedAt: NOW, ...over });
+  const withCoverage = (m: Record<string, unknown>[]) => { const p = wire(realPayload()) as any; p.coverage = m; return p; }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  it('detecta a marca em id, rótulo, origem, janela e nos campos booleanos', () => {
+    for (const over of [{ id: 'seed-stg-metric' }, { label: '[DEMO · staging] Matérias' }, { source: 'CMS [DEMO · staging]' }, { window: 'seed-stg-2026' }, { label: 'Dados de demonstração' }, { demo: true }, { mock: true }, { isMock: true }, { isDemo: true }]) {
+      expect(isDemoMarked(metric(over)), JSON.stringify(over)).toBe(true);
     }
+    expect(isDemoMarked(metric())).toBe(false);
+    expect(isDemoMarked(metric({ label: 'Matérias publicadas', source: 'CMS' }))).toBe(false);
+  });
+  it('métrica marcada como demo perde o número, a janela e a data: vira indisponível, e o rótulo sai limpo', () => {
+    const kit = parseMediaKit(withCoverage([metric({ label: '[DEMO · staging] Matérias publicadas (30 dias)', value: '20' })]))!;
+    expect(kit.coverage).toEqual([{ id: 'articles_published_30d', label: 'Matérias publicadas (30 dias)', value: null, state: 'unavailable', source: 'CMS' }]);
+    expect(JSON.stringify(kit)).not.toMatch(/DEMO|seed-stg/);
+  });
+  it('vale para qualquer marca e também na audiência', () => {
+    for (const over of [{ demo: true }, { mock: true }, { id: 'seed-stg-x' }, { source: 'seed-stg-ga4' }]) {
+      const kit = parseMediaKit(withCoverage([metric(over)]))!;
+      expect(kit.coverage[0]).toMatchObject({ value: null, state: 'unavailable' });
+      expect(kit.coverage[0]!.collectedAt).toBeUndefined(); expect(kit.coverage[0]!.window).toBeUndefined();
+    }
+    const p = withCoverage([]);
+    p.audience.historical[0] = { label: 'Sessões (30 dias)', value: '999', state: 'ok', source: 'GA4', window: 'x', collectedAt: NOW, demo: true };
+    expect(parseMediaKit(p)!.audience.historical[0]).toMatchObject({ value: null, state: 'unavailable' });
+  });
+  it('uma métrica real ao lado da demo continua real', () => {
+    const kit = parseMediaKit(withCoverage([metric(), metric({ id: 'articles_published_90d', label: 'Matérias publicadas (90 dias)', value: '40', demo: true })]))!;
+    expect(kit.coverage[0]).toMatchObject({ value: '12', state: 'ok' });
+    expect(kit.coverage[1]).toMatchObject({ value: null, state: 'unavailable' });
+  });
+  it('métrica demo sem origem/rótulo válidos ainda derruba a leitura (formato inválido)', () => {
+    expect(parseMediaKit(withCoverage([{ id: 'x', demo: true }]))).toBeNull();
+  });
+});
+
+describe('apiCoverageCards: cobertura só da coleta da API', () => {
+  const metric = (over: Record<string, unknown> = {}) => ({ id: 'articles_published_30d', label: 'Matérias publicadas (30 dias)', value: '12', state: 'ok', source: 'CMS', window: '05/11/2026 a 04/12/2026', collectedAt: NOW, ...over });
+  const kitWith = (m: Record<string, unknown>[]) => { const p = wire(realPayload()) as any; p.coverage = m; return parseMediaKit(p); }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const by = (cards: ReturnType<typeof apiCoverageCards>, key: string) => cards.find((c) => c.key === key)!;
+
+  it('métrica coletada: valor com origem, janela e data da coleta, sem selo', () => {
+    const c = by(apiCoverageCards(kitWith([metric()]), 10), 'articles');
+    expect(c).toMatchObject({ label: 'Matérias publicadas (30 dias)', value: '12', origin: 'CMS', window: '05/11/2026 a 04/12/2026', checkedAt: NOW, mock: false });
+    expect(c.stale).toBeUndefined();
+  });
+  it('desatualizada: aparece marcada como tal', () => {
+    expect(by(apiCoverageCards(kitWith([metric({ state: 'stale' })]), 10), 'articles').stale).toBe(true);
+  });
+  it('sem coleta, sem API (null) ou sem a métrica: "—", sem data e sem janela', () => {
+    for (const kit of [null, kitWith([]), kitWith([metric({ value: null, state: 'unavailable', window: undefined, collectedAt: undefined })])]) {
+      const cards = apiCoverageCards(kit, 10);
+      for (const k of ['articles', 'articles90', 'events']) expect(by(cards, k)).toMatchObject({ value: null, checkedAt: null, mock: false });
+      expect(by(cards, 'articles').window).toBeUndefined();
+    }
+  });
+  it('métrica marcada como demo (seed de staging): "—" mesmo que a API mande um número', () => {
+    const kit = kitWith([metric({ value: '20', label: '[DEMO · staging] Matérias publicadas (30 dias)' })]);
+    expect(by(apiCoverageCards(kit, 10), 'articles')).toMatchObject({ value: null, checkedAt: null, mock: false });
+  });
+  it('a contagem ao vivo da listagem pública não entra: a função nem a recebe', () => {
+    expect(apiCoverageCards.length).toBe(2);
+  });
+  it('editorias é sempre a taxonomia do portal', () => {
+    expect(by(apiCoverageCards(null, 10), 'editorias')).toMatchObject({ value: '10', origin: 'Taxonomia do portal', mock: false });
   });
 });
 

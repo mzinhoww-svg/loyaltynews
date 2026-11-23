@@ -175,6 +175,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
 const MEDIAKIT = {
   generatedAt: '2026-12-05T12:00:00-03:00',
+  // cobertura coletada: a de 30 dias é real; a de 90 dias vem marcada como demonstração (seed de staging) e NUNCA pode virar número
+  coverage: [
+    { id: 'articles_published_30d', label: 'Matérias publicadas (30 dias)', value: '12', state: 'ok', source: 'CMS', window: '05/11/2026 a 04/12/2026', collectedAt: '2026-12-05T08:00:00-03:00' },
+    { id: 'articles_published_90d', label: '[DEMO · staging] Matérias publicadas (90 dias)', value: '20', state: 'ok', source: 'CMS', window: '05/09/2026 a 04/12/2026', collectedAt: '2026-12-05T08:00:00-03:00', demo: true },
+    unavailable('Eventos futuros', 'CMS'),
+  ],
   audience: {
     realtime: [unavailable('Usuários ativos agora (últimos 30 min)', 'GA4 (tempo real)')],
     historical: [
