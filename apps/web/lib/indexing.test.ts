@@ -1,22 +1,59 @@
 import { describe, expect, it } from 'vitest';
-import { NOINDEX_HEADER, assertVitrineEnv, indexingBlocked, isProductionEnv, resolveSiteUrl, resolveSourceKind, robotsTxt } from '../app/(portal)/_lib/indexing';
+import { NOINDEX_HEADER, assertIndexavelEnv, assertVitrineEnv, indexavelFlag, indexingBlocked, isProductionEnv, resolveSiteUrl, resolveSourceKind, robotsTxt } from '../app/(portal)/_lib/indexing';
 
-describe('política de indexação por APP_ENV', () => {
-  it('só production libera indexação', () => {
-    expect(isProductionEnv({ APP_ENV: 'production' })).toBe(true);
+describe('política de indexação (APP_ENV + interruptor PORTAL_INDEXAVEL, DP-24)', () => {
+  const prod = { APP_ENV: 'production' };
+  it('só production COM PORTAL_INDEXAVEL=1 libera indexação', () => {
+    expect(isProductionEnv(prod)).toBe(true);
+    expect(indexingBlocked({ ...prod, PORTAL_INDEXAVEL: '1' })).toBe(false);
+  });
+  it('produção sem o interruptor (ou com valor que não seja exatamente 1) é NÃO indexável', () => {
+    expect(indexingBlocked(prod)).toBe(true);
+    for (const v of ['', '0', 'true', 'yes', ' 1', '1 ', 'TRUE']) {
+      expect(indexingBlocked({ ...prod, PORTAL_INDEXAVEL: v }), `valor "${v}"`).toBe(true);
+    }
+  });
+  it('o interruptor nunca afrouxa staging, homologação, dev nem ausência de APP_ENV', () => {
     for (const e of ['staging', 'homologacao', 'development', 'test', '', undefined]) {
       expect(indexingBlocked({ APP_ENV: e })).toBe(true);
+      expect(indexingBlocked({ APP_ENV: e, PORTAL_INDEXAVEL: '1' }), `APP_ENV=${e}`).toBe(true);
     }
-    expect(indexingBlocked({ APP_ENV: 'production' })).toBe(false);
   });
-  it('fonte MOCK bloqueia mesmo em production', () => {
-    expect(indexingBlocked({ APP_ENV: 'production', PORTAL_SOURCE: 'mock' })).toBe(true);
+  it('fonte MOCK e vitrine bloqueiam mesmo em production com o interruptor', () => {
+    expect(indexingBlocked({ ...prod, PORTAL_INDEXAVEL: '1', PORTAL_SOURCE: 'mock' })).toBe(true);
+    expect(indexingBlocked({ ...prod, PORTAL_INDEXAVEL: '1', PORTAL_VITRINE: '1' })).toBe(true);
   });
   it('sem APP_ENV o padrão é bloquear', () => {
     expect(indexingBlocked({})).toBe(true);
   });
+  it('indexavelFlag só aceita o valor exato 1', () => {
+    expect(indexavelFlag({ PORTAL_INDEXAVEL: '1' })).toBe(true);
+    for (const v of [undefined, '', '0', 'true', 'yes']) expect(indexavelFlag({ PORTAL_INDEXAVEL: v })).toBe(false);
+  });
   it('cabeçalho', () => {
     expect(NOINDEX_HEADER).toBe('noindex, nofollow');
+  });
+});
+
+describe('build do interruptor de indexação (DP-24)', () => {
+  const build = { NEXT_PHASE: 'phase-production-build' };
+  it('production com PORTAL_INDEXAVEL=1 e sem a variável passam', () => {
+    expect(() => assertIndexavelEnv({ ...build, APP_ENV: 'production', PORTAL_INDEXAVEL: '1' })).not.toThrow();
+    expect(() => assertIndexavelEnv({ ...build, APP_ENV: 'production' })).not.toThrow();
+    expect(() => assertIndexavelEnv({ ...build, APP_ENV: 'production', PORTAL_INDEXAVEL: '' })).not.toThrow();
+  });
+  it('staging, homologação ou sem APP_ENV com a variável recusam o build', () => {
+    for (const APP_ENV of ['staging', 'homologacao', 'development', undefined]) {
+      expect(() => assertIndexavelEnv({ ...build, APP_ENV, PORTAL_INDEXAVEL: '1' })).toThrow(/Build recusado/);
+    }
+  });
+  it('valor diferente de 1 recusa o build mesmo em production (erro de digitação não vira indexação)', () => {
+    for (const v of ['0', 'true', 'yes', ' 1']) {
+      expect(() => assertIndexavelEnv({ ...build, APP_ENV: 'production', PORTAL_INDEXAVEL: v })).toThrow(/Build recusado/);
+    }
+  });
+  it('fora da fase de build não lança', () => {
+    expect(() => assertIndexavelEnv({ APP_ENV: 'staging', PORTAL_INDEXAVEL: '1' })).not.toThrow();
   });
 });
 

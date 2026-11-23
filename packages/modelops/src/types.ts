@@ -8,7 +8,8 @@ export type Provider = 'anthropic' | 'openai' | 'deepseek';
 export type TaskClass = 'essential' | 'non_essential' | 'premium' | 'reserve';
 
 // Bolsa de gasto: 'allocation' = verbas dos provedores (42); 'reserve' = reserva de 8 (exclusiva).
-export type Pool = 'allocation' | 'reserve';
+// 'qualification' = pool próprio do modo de qualificação (ADR-021): teto de US$ 5, sem a reserva de auditoria; conta no teto de US$ 50.
+export type Pool = 'allocation' | 'reserve' | 'qualification';
 
 export type DataClass =
   | 'public'
@@ -87,10 +88,33 @@ export interface PolicyRules {
 export interface BudgetAllocation {
   openai: number;
   anthropic: number;
-  anthropic_escalation_opus_fable_included: number;
+  /** v5 (Opus e Fable). */
+  anthropic_escalation_opus_fable_included?: number;
+  /** v6/DP-26 (só Opus; Fable fora). */
+  anthropic_escalation_opus_included?: number;
   images: number;
-  deepseek: number;
+  /** Só na v5: a v6 (DP-26) remove o DeepSeek da divisão (ausente = 0). */
+  deepseek?: number;
   audit_errata_reserve: number;
+}
+
+/** Modo de qualificação (T6, ADR-021). Desligado por padrão; exige production_enabled=false. */
+export interface QualificationModeCfg {
+  name: 'qualification';
+  enabled: boolean;
+  requires_production_enabled: false;
+  task: 'model_qualification';
+  data_class: 'public';
+  candidates: string[];
+  excluded: string[];
+  provider_zdr_per_call: boolean; // v6: true (DP-26); v7: false = ZDR é preferência (DP-27)
+  allow_fallbacks: false;
+  /** v6: teto único do pool. */
+  cap_usd?: number;
+  /** v7 (DP-27/T10): teto POR ETAPA (1 = US$ 5, 2 = US$ 10). */
+  stage_caps_usd?: Partial<Record<'1' | '2', number>>;
+  uses_audit_reserve: false;
+  [key: string]: unknown;
 }
 
 export interface ModelPolicy {
@@ -101,6 +125,7 @@ export interface ModelPolicy {
   rules: PolicyRules;
   routing_by_task: Record<string, string>;
   data_classes: Record<string, unknown>;
+  qualification?: { mode?: QualificationModeCfg; [key: string]: unknown };
   [key: string]: unknown;
 }
 

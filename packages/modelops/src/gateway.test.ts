@@ -140,7 +140,7 @@ test('reconciliação com cobrança confirmada fecha pelo custo real', async () 
   const { deps, gate } = setup(base, { failFirst: 1 });
   const out = await callModel(deps, call());
   if (out.status !== 'blocked' || !out.reservationId) throw new Error('esperava pendente');
-  const outcome = await reconcilePending(deps, out.reservationId, async () => ({ kind: 'charged', costUsd: 0.3 }), NOW);
+  const outcome = await reconcilePending(deps, out.reservationId, async () => ({ kind: 'charged', costUsd: 0.3, generationId: 'gen-test' }), NOW);
   assert.equal(outcome, 'committed');
   assert.equal((await gate.snapshot(NOW)).totalMicro, 300_000);
 });
@@ -209,7 +209,7 @@ test('política com produção ligada e qualificação: a chamada passa; sem qua
   assert.equal(none.status, 'blocked');
   assert.equal(off.client.calls.length, 0);
 
-  const on = setup(p);
+  const on = setup(p, {}, new BalanceGuard(async () => 10, 10));
   const yes = await callModel(
     { ...on.deps, flags: { modelosHabilitados: true } },
     call({ mode: 'production', qualifiedModelIds: ['claude-haiku-5-5'] }),
@@ -227,6 +227,34 @@ test('produção com política habilitada mas flag desligada: nenhuma chamada sa
   if (out.status === 'blocked') assert.equal(out.reason, 'model_calls_disabled');
   assert.equal(client.calls.length, 0);
   assert.equal((await store.readAll()).length, 0);
+});
+
+// G4.3: produção sem portão de saldo é recusada antes de qualquer reserva ou chamada.
+test('G4.3: produção sem portão de saldo é recusada; com o portão, lê o saldo antes da primeira chamada', async () => {
+  const p = policyClone();
+  p.rules.production_enabled = true;
+  const off = setup(p);
+  const noBalance = await callModel(
+    { ...off.deps, flags: { modelosHabilitados: true } },
+    call({ mode: 'production', qualifiedModelIds: ['claude-haiku-5-5'] }),
+  );
+  assert.equal(noBalance.status, 'blocked');
+  if (noBalance.status === 'blocked') assert.equal(noBalance.reason, 'balance_guard_missing');
+  assert.equal(off.client.calls.length, 0);
+  assert.equal((await off.store.readAll()).length, 0, 'nada reservado');
+
+  let reads = 0;
+  const balance = new BalanceGuard(async () => {
+    reads += 1;
+    return 10;
+  }, 10);
+  const on = setup(p, {}, balance);
+  const withBalance = await callModel(
+    { ...on.deps, flags: { modelosHabilitados: true } },
+    call({ mode: 'production', qualifiedModelIds: ['claude-haiku-5-5'] }),
+  );
+  assert.equal(withBalance.status, 'ok');
+  assert.equal(reads, 1, 'saldo lido uma vez antes da primeira chamada');
 });
 
 // Portão de saldo (DP-14): saldo real é limite além do teto de US$ 50.

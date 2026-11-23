@@ -47,3 +47,21 @@ test('home compacta: altura dentro dos limites do critério de aceite', async ({
   const limit = info.project.name === 'mobile' ? (mock ? 9000 : 3000) : mock ? 5500 : 1600;
   expect(h, `altura da home: ${h}px (limite ${limit})`).toBeLessThanOrEqual(limit);
 });
+
+// Menus abertos também precisam passar no axe (mega-menu no desktop; painel no mobile).
+test('axe com o menu aberto (mega-menu em 1280; painel em 768 e 375)', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop');
+  for (const w of [1280, 768, 375]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const btn = page.locator(w >= 1024 ? '.ln-header__menu-btn' : '.ln-header__toggle');
+    await expect(async () => {
+      if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+      await expect(btn).toHaveAttribute('aria-expanded', 'true', { timeout: 500 });
+    }).toPass({ timeout: 10_000 });
+    const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    const summary = r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`);
+    expect(summary, `menu aberto @${w}: ${summary.join(' ; ')}`).toEqual([]);
+  }
+});

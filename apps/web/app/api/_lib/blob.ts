@@ -1,6 +1,6 @@
 // Porta de armazenamento de arquivos (Blob S3 compatível da Vertra, ADR-001) e adaptador S3 com assinatura SigV4.
-// Sem credencial no repositório: tudo vem do ambiente (S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID,
-// S3_SECRET_ACCESS_KEY). Sem a configuração completa, getBlobStore() devolve null e as rotas de arquivo respondem
+// Sem credencial no repositório: tudo vem do ambiente (BLOB_S3_ENDPOINT, BLOB_S3_BUCKET, BLOB_S3_REGION, BLOB_S3_ACCESS_KEY_ID,
+// BLOB_S3_SECRET_ACCESS_KEY; os mesmos nomes sem o prefixo BLOB_ também valem). Sem a configuração completa, getBlobStore() devolve null e as rotas de arquivo respondem
 // 503 NOT_CONFIGURED: nunca há armazenamento em memória ou em disco "de mentira" em produção.
 import { createHash, createHmac } from 'node:crypto';
 
@@ -120,7 +120,12 @@ export class S3BlobStore implements BlobStore {
 
 /** Armazenamento do ambiente, ou null se a configuração S3 não está completa. */
 export function getBlobStore(env: Record<string, string | undefined> = process.env): BlobStore | null {
-  const { S3_ENDPOINT, S3_BUCKET, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = env;
+  // Nomes do contrato de ambiente (infra/vertra/env-contract.json): BLOB_S3_*; os S3_* seguem aceitos (ambiente local e testes).
+  const S3_ENDPOINT = env.BLOB_S3_ENDPOINT || env.S3_ENDPOINT;
+  const S3_BUCKET = env.BLOB_S3_BUCKET || env.S3_BUCKET;
+  const S3_REGION = env.BLOB_S3_REGION || env.S3_REGION;
+  const S3_ACCESS_KEY_ID = env.BLOB_S3_ACCESS_KEY_ID || env.S3_ACCESS_KEY_ID;
+  const S3_SECRET_ACCESS_KEY = env.BLOB_S3_SECRET_ACCESS_KEY || env.S3_SECRET_ACCESS_KEY;
   if (!S3_ENDPOINT || !S3_BUCKET || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) return null;
   if (!/^https?:\/\//i.test(S3_ENDPOINT)) return null;
   return new S3BlobStore({ endpoint: S3_ENDPOINT, bucket: S3_BUCKET, region: S3_REGION || 'us-east-1', accessKeyId: S3_ACCESS_KEY_ID, secretAccessKey: S3_SECRET_ACCESS_KEY });

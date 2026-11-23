@@ -1,6 +1,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { vi } from 'vitest';
-import { createTestDb } from '@ln/db/testing';
+import { afterEach } from 'vitest';
+import { createTestDb, isRealTestDb } from '@ln/db/testing';
 import { addEvidence } from '../repo';
 import type { Db } from '../db';
 import type { IntelligenceConfig } from '../config';
@@ -15,7 +16,17 @@ vi.setConfig({ testTimeout: 180_000, hookTimeout: 180_000 });
 // As migrações OFICIAIS são as do @ln/db (0006_intelligence); aqui só se aplica via createTestDb (nunca packages/intelligence/migrations).
 // Migra uma vez por arquivo de teste e reaproveita o banco pronto (dump) em cada teste: bem mais rápido que migrar de novo.
 let template: Blob | File | undefined;
+// Modo PostgreSQL real (LN_TEST_PG_URL): cada teste ganha um banco clonado do modelo e o apaga no fim.
+const abertos: Array<() => Promise<void>> = [];
+afterEach(async () => {
+  while (abertos.length) await abertos.pop()!();
+});
 export async function newDb(): Promise<{ db: Db; pg: PGlite }> {
+  if (isRealTestDb()) {
+    const t = await createTestDb();
+    abertos.push(t.close);
+    return { db: t.client as unknown as Db, pg: t.client as unknown as PGlite };
+  }
   if (!template) {
     const base = await createTestDb(); // PostgreSQL real em memória (WASM); sem rede, sem serviço externo
     template = await base.client.dumpDataDir('none');
