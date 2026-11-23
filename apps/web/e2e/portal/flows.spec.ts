@@ -262,6 +262,14 @@ test.describe('honestidade de dados', () => {
     expect(r.fora).toEqual([]);
   });
 
+  test('P3-a: kicker do bloco de abertura usa o verde de destaque (#A7DDC9), não branco, e sem estilo inline', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const kicker = page.locator('.pt-hero-band .pt-kicker');
+    await expect(kicker).toHaveText(/Mídia kit · Proposta comercial/i);
+    await expect(kicker).toHaveCSS('color', 'rgb(167, 221, 201)');
+    expect(await kicker.getAttribute('style')).toBeNull();
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');

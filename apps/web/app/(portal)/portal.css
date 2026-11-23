@@ -155,3 +155,6 @@
   .pt-map .pt-map-small { font-size: 22px; }
   .pt-map .pt-map-cap { font-size: 20px; }
 }
+
+/* P3-a (UI/UX): kicker do bloco de abertura em verde de destaque do design system (antes: var(--pt-signal), que não existe) */
+.pt-hero-band .pt-kicker--signal { color: var(--ln-color-signal); }
