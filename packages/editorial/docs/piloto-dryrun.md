@@ -49,7 +49,7 @@ No Senado havia um item do feed em área que o `robots.txt` do ensaio proíbe: o
 | a3 | `camara-noticias` | limpa | aprovado | **aprovado** | — | — | ✓ |
 | a4 | `camara-noticias` | numero_sem_fonte | bloqueado (`unsupported_metric`) | **bloqueado** | `unsupported_claim` | afirmacoes_nas_evidencias | ✓ |
 | a5 | `abemf` | limpa | aprovado | **aprovado** | — | — | ✓ |
-| a6 | `abemf` | tom_exclamacao | bloqueado (`tone_title_exclamation`) | **bloqueado** | `unsupported_claim` | tom_lint | ✓ |
+| a6 | `abemf` | tom_exclamacao | bloqueado (`tone_title_exclamation`) | **bloqueado** | `tone_lint` | tom_lint | ✓ |
 | a7 | `livelo-imprensa` | limpa | aprovado | **aprovado** | — | — | ✓ |
 | a8 | `livelo-imprensa` | checagem_reprova | bloqueado (`unsupported_claim`) | **bloqueado** | `unsupported_claim` | checagem_de_fatos (veredito do checador) | ✓ |
 | a9 | `abrarec` | limpa | aprovado | **aprovado** | — | — | ✓ |
@@ -92,7 +92,7 @@ Checagem em provedor distinto nas aprovadas: sim, todas (`simulado-checador` ≠
 | a3 | 5/5 válidas | approved | approved | approved | true / true |
 | a4 | 3/3 válidas | blocked (unsupported_claim) | — | — | — |
 | a5 | 5/5 válidas | approved | approved | approved | true / true |
-| a6 | 3/3 válidas | blocked (unsupported_claim) | — | — | — |
+| a6 | 3/3 válidas | blocked (tone_lint) | — | — | — |
 | a7 | 5/5 válidas | approved | approved | approved | true / true |
 | a8 | 4/4 válidas | approved | blocked | — | true |
 | a9 | 5/5 válidas | approved | approved | approved | true / true |
@@ -102,7 +102,7 @@ Checagem em provedor distinto nas aprovadas: sim, todas (`simulado-checador` ≠
 
 1. **Redação barrada por gate NÃO é refeita** (corrigido nesta rodada). Cópia literal, número fora da fonte, tom, resumo etc. são barreiras determinísticas: a matéria bloqueia na 1ª redação, com 1 chamada de redação (antes eram 3 por matéria barrada, `max_attempts`). Nova tentativa fica só para falha transitória (fila/gateway).
 2. **O gate da redação grava `gate_verdict` e `gate_reasons` na planilha** (corrigido nesta rodada): matéria barrada na redação sai com `blocked` e os motivos na linha da tarefa de redação; aprovada, com `approved` e motivos vazios. A checagem e a revisão seguem como antes.
-3. **Rótulo do bloqueio de tom.** O tom lint bloqueante (a6) sai com o código `unsupported_claim` (padrão de `FINDING_TO_BLOCKER`; não existe código próprio de tom); o achado `tone_title_exclamation` identifica o motivo. Não mudei isso (mexe no contrato dos códigos de bloqueio); fica para decisão do PM.
+3. **O tom lint tem código de bloqueio próprio** (corrigido nesta rodada): a6 sai com `tone_lint` (antes `unsupported_claim`); o achado `tone_title_exclamation` diz o motivo. Matéria barrada por tom não se confunde mais com fato sem suporte.
 4. **Fonte com paywall `unknown` (Livelo)** só coleta depois que a revisão humana marca `paywall = none`; o ensaio simula essa revisão em memória.
 
 ## O que este ensaio NÃO prova

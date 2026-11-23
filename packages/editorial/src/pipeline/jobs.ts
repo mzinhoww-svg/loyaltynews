@@ -38,7 +38,9 @@ export type BlockerCode =
   | 'duplicate' | 'rights_unknown' | 'suspicious_evidence' | 'not_relevant'
   | 'unsupported_claim' | 'copy_literal' | 'cross_provider_check_failed' | 'approval_missing'
   | 'rights_basis_unresolved' | 'budget_blocked' | 'invalid_model_output' | 'max_attempts' | 'no_image'
-  | 'not_published' | 'stale_approval' | 'unanchored' | 'autoral_invalid';
+  | 'not_published' | 'stale_approval' | 'unanchored' | 'autoral_invalid'
+  /** Tom lint bloqueante (guia de tom v0.2: emoji, "!" no título, título > 90, veja/saiba/confira, frase do rodapé em inglês). */
+  | 'tone_lint';
 
 export interface Blocked { articleId: string; stage: Stage; blockers: BlockerCode[]; findings: Finding[] }
 

@@ -27,7 +27,7 @@ export const EXPECTED: Record<ScenarioKind, { status: 'aprovado' | 'bloqueado'; 
   limpa: { status: 'aprovado', blockers: [], finding: null },
   copia_literal: { status: 'bloqueado', blockers: ['copy_literal'], finding: 'copy_literal' },
   numero_sem_fonte: { status: 'bloqueado', blockers: ['unsupported_claim'], finding: 'unsupported_metric' },
-  tom_exclamacao: { status: 'bloqueado', blockers: ['unsupported_claim'], finding: 'tone_title_exclamation' },
+  tom_exclamacao: { status: 'bloqueado', blockers: ['tone_lint'], finding: 'tone_title_exclamation' },
   checagem_reprova: { status: 'bloqueado', blockers: ['unsupported_claim'], finding: 'unsupported_claim' },
   mesmo_provedor: { status: 'bloqueado', blockers: ['cross_provider_check_failed'], finding: 'same_provider' },
 };

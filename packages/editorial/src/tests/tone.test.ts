@@ -90,10 +90,10 @@ test('estágio de redação: título com "!" ou emoji bloqueia na 1ª redação 
   const excl = new MockGateway(ev.id, { draft: (r) => { seen.push(r); return resp(goodDraftOutput(ev.id, { headline: 'Programa Alfa fecha acordo com a Varejista Beta!' })); } });
   const o1 = await draftStage(deps(excl), job);
   assert.equal(o1.kind, 'blocked'); assert.equal(seen.length, 1, 'uma chamada só');
-  if (o1.kind === 'blocked') { assert.ok(o1.blocked.findings.some((f) => f.code === 'tone_title_exclamation')); assert.ok(!o1.blocked.blockers.includes('max_attempts')); }
+  if (o1.kind === 'blocked') { assert.ok(o1.blocked.findings.some((f) => f.code === 'tone_title_exclamation')); assert.deepEqual(o1.blocked.blockers, ['tone_lint']); }
   const emoji = new MockGateway(ev.id, { draft: () => resp(goodDraftOutput(ev.id, { headline: '🔥 Programa Alfa fecha acordo com a Varejista Beta' })) });
   const o2 = await draftStage(deps(emoji), job);
-  assert.equal(o2.kind, 'blocked'); if (o2.kind === 'blocked') assert.ok(o2.blocked.findings.some((f) => f.code === 'tone_emoji'));
+  assert.equal(o2.kind, 'blocked'); if (o2.kind === 'blocked') { assert.ok(o2.blocked.findings.some((f) => f.code === 'tone_emoji')); assert.deepEqual(o2.blocked.blockers, ['tone_lint'], 'tom lint tem código próprio; não é unsupported_claim'); }
   const fixed = new MockGateway(ev.id, { draft: () => resp(goodDraftOutput(ev.id)) });
   const o3 = await draftStage(deps(fixed), job);
   assert.equal(o3.kind, 'next'); if (o3.kind === 'next') assert.equal(o3.next.stage, 'factcheck');

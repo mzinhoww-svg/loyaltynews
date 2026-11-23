@@ -596,7 +596,7 @@
       "esperado": {
         "status": "bloqueado",
         "bloqueios": [
-          "unsupported_claim"
+          "tone_lint"
         ],
         "achado": "tone_title_exclamation"
       },
@@ -610,7 +610,7 @@
         "draft"
       ],
       "bloqueios": [
-        "unsupported_claim"
+        "tone_lint"
       ],
       "achados": [
         "tone_title_exclamation: ponto de exclamação no título"
@@ -635,7 +635,7 @@
           "etapa": "draft",
           "gate_verdict": "blocked",
           "gate_reasons": [
-            "unsupported_claim"
+            "tone_lint"
           ]
         }
       ],
@@ -1183,7 +1183,8 @@
     "conformes": 10,
     "porBloqueio": {
       "copy_literal": 1,
-      "unsupported_claim": 3,
+      "unsupported_claim": 2,
+      "tone_lint": 1,
       "cross_provider_check_failed": 1
     },
     "publicadas": 0,
