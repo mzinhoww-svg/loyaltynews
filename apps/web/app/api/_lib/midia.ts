@@ -239,13 +239,26 @@ async function referencedByPublicArticle(db: Db, id: string): Promise<boolean> {
  * URL que não é do acervo (imagem externa) segue como está.
  */
 export async function publicImageOf(db: Db, img: unknown, now: Date): Promise<unknown> {
-  if (img == null || typeof img !== 'object') return img ?? null;
-  const url = (img as { url?: unknown }).url;
-  const m = typeof url === 'string' ? INTERNAL_URL.exec(url) : null;
-  if (!m) return img;
-  const [row] = await db.select().from(schema.media).where(eq(schema.media.id, m[1]!));
-  if (!row || !publicMedia(row, hoje(now))) return null;
-  return { ...(img as object), url: (url as string).replace(INTERNAL_URL, '/api/publico/midia/$1') };
+  return (await publicImagesOf(db, [img], now))[0] ?? null;
+}
+
+/** Mesma regra de `publicImageOf` para vários itens, com UMA consulta ao acervo (listagens). */
+export async function publicImagesOf(db: Db, imgs: readonly unknown[], now: Date): Promise<unknown[]> {
+  const idOf = (img: unknown): string | null => {
+    const url = img != null && typeof img === 'object' ? (img as { url?: unknown }).url : null;
+    return typeof url === 'string' ? (INTERNAL_URL.exec(url)?.[1] ?? null) : null;
+  };
+  const ids = [...new Set(imgs.map(idOf).filter((x): x is string => x !== null))];
+  const rows = ids.length ? await db.select().from(schema.media).where(inArray(schema.media.id, ids)) : [];
+  const today = hoje(now);
+  const ok = new Map(rows.map((r) => [r.id, publicMedia(r, today)]));
+  return imgs.map((img) => {
+    if (img == null || typeof img !== 'object') return img ?? null;
+    const id = idOf(img);
+    if (!id) return img; // imagem externa: segue como está
+    if (!ok.get(id)) return null;
+    return { ...(img as object), url: ((img as { url: string }).url).replace(INTERNAL_URL, '/api/publico/midia/$1') };
+  });
 }
 
 /**

@@ -197,6 +197,36 @@ test.describe('conteúdo MOCK', () => {
     await expect(page.getByText('Empresa de Teste (MOCK)')).toBeVisible();
   });
 
+  test('matéria com ilustração conceitual: rótulo visível, crédito institucional e aviso de correção', async ({ page }, info) => {
+    await page.goto('/noticia/mock-mercado-1');
+    await expect(page.getByTestId('image-label')).toHaveText('Ilustração conceitual');
+    await expect(page.getByTestId('article-image').locator('figcaption')).toContainText('Crédito: Loyalty News');
+    await expect(page.getByTestId('correction-notice')).toContainText('Correção de teste (MOCK).');
+    const w = await page.getByTestId('article-image').locator('img').evaluate((i: HTMLImageElement) => i.getBoundingClientRect().width);
+    const col = await page.locator('.pt-article').evaluate((e) => e.getBoundingClientRect().width);
+    expect(w).toBeLessThanOrEqual(col + 1);
+    await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-materia-ilustracao.png`), fullPage: true });
+  });
+
+  test('foto com crédito não leva rótulo de ilustração; matéria sem imagem não quebra', async ({ page }) => {
+    await page.goto('/noticia/mock-programas-1');
+    await expect(page.getByTestId('article-image').locator('figcaption')).toContainText('Crédito: Fotógrafo de teste (MOCK)');
+    await expect(page.getByTestId('image-label')).toHaveCount(0);
+    await page.goto('/noticia/mock-mercado-2');
+    await expect(page.getByTestId('article-image')).toHaveCount(0);
+    await expect(page.getByTestId('correction-notice')).toHaveCount(0);
+  });
+
+  test('cards com ilustração mostram o rótulo visível (home, mobile incluso)', async ({ page }, info) => {
+    await page.goto('/');
+    const labels = page.getByTestId('card-image-label');
+    await expect(labels.first()).toBeVisible();
+    await expect(labels.first()).toHaveText('Ilustração conceitual');
+    await page.goto('/editoria/mercado');
+    await expect(page.getByTestId('card-image-label').first()).toBeVisible();
+    await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-card-rotulo.png`) });
+  });
+
   test('editoria mostra somente matérias da editoria', async ({ page }) => {
     await page.goto('/editoria/bancos');
     const cards = page.locator('#conteudo .pt-grid article.ln-card');

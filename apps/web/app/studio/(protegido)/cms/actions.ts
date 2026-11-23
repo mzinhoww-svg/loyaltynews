@@ -5,7 +5,8 @@ import { api, type MateriaDetalhe } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, type ErroApi, type RespostaApi } from '@/lib/studio/backend';
 import { corpoAtualizacao, corpoCriacao, lerCampos, mesmasEvidencias } from '@/lib/studio/cms/materia-form';
 import { CMS_EDIT, CMS_REVIEW } from '@/lib/studio/cms/roles';
-import { montarCorrecao } from '@/lib/studio/cms/fabrica-correcao';
+import { montarCorrecao, type EdicaoFabrica } from '@/lib/studio/cms/fabrica-correcao';
+import { checkAccess } from '@/lib/studio/modules';
 import { requireStudio } from '../../_lib/guard';
 
 export interface FormState {
@@ -84,7 +85,7 @@ export async function bloquearAction(fd: FormData): Promise<void> {
 }
 
 /**
- * Publicar só pela rota oficial de publicação (recibo da versão + identidade de publicação + flag publicacaoPortal). Serve à primeira
+ * Publicar só pela rota oficial de publicação (recibo válido da versão + flag publicacaoPortal + permissão materias:publish; a identidade de publicação é fixada pelo servidor). Serve à primeira
  * publicação e à correção (recibo da revisão aprovada ⇒ a matéria vira 'corrigido'). A transição genérica NÃO publica nem corrige.
  * As recusas aparecem como vêm.
  */
@@ -145,24 +146,41 @@ export interface EstadoCorrecao {
   mensagem?: string;
   reciboId?: string;
   publicado?: boolean;
-  valores: { casoId: string; draft: string; factcheck: string; url: string };
+  valores: EdicaoFabrica & { url: string };
 }
 
-const bruto = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string) : '');
+// o navegador envia quebras de linha de <textarea> como CRLF; o Backend separa Fontes:/Avisos: por LF
+const lf = (x: string): string => x.replace(/\r\n?/g, '\n');
+const bruto = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? lf(fd.get(k) as string) : '');
 
 /**
  * Correção de matéria da FÁBRICA: o MESMO `correcao: {casoId, draft (sem bloco Avisos:), factcheck de outro provedor}` vai ao recibo
- * (POST /api/materias/{id}/recibos) e à publicação oficial. O hash depende do dia do aviso: recibo e publicação no mesmo dia
- * (senão RECEIPT_CONTENT_MISMATCH e é preciso reemitir). As recusas do Backend aparecem como vêm; o formulário mantém o que foi digitado.
+ * (POST /api/materias/{id}/recibos) e à publicação oficial. O rascunho completo é relido do Backend a cada passo (GET .../draft) e só os
+ * textos editados são trocados; o hash depende do dia do aviso: recibo e publicação no mesmo dia (senão RECEIPT_CONTENT_MISMATCH e
+ * é preciso reemitir). As recusas do Backend aparecem como vêm; o formulário mantém o que foi digitado.
  */
 export async function corrigirFabricaAction(_prev: EstadoCorrecao, fd: FormData): Promise<EstadoCorrecao> {
-  await requireStudio(['admin', 'editor_chefe']);
+  // recibo: quem tem materias:transition (revisor, chefia, admin); publicar: materias:publish (chefia, admin), seja quem for o emissor do recibo
+  const { session } = await requireStudio(CMS_REVIEW);
   const id = t(fd, 'id');
   const op = t(fd, 'op');
-  const valores = { casoId: t(fd, 'casoId'), draft: bruto(fd, 'draft'), factcheck: bruto(fd, 'factcheck'), url: t(fd, 'url') };
+  const valores: EstadoCorrecao['valores'] = {
+    casoId: t(fd, 'casoId'),
+    url: t(fd, 'url'),
+    headline: bruto(fd, 'headline'),
+    subtitulo: bruto(fd, 'subtitulo'),
+    resumo: bruto(fd, 'resumo'),
+    body: bruto(fd, 'body'),
+    claimTexts: fd.getAll('claimText').map((x) => lf(String(x))),
+    provider: t(fd, 'provider'),
+    model: t(fd, 'model'),
+    verdicts: fd.getAll('verdict').map(String),
+  };
   const reciboAnterior = t(fd, 'recibo') || undefined;
   const falha = (mensagem: string): EstadoCorrecao => ({ tipo: 'err', mensagem, valores, ...(reciboAnterior ? { reciboId: reciboAnterior } : {}) });
-  const c = montarCorrecao(valores.casoId, valores.draft, valores.factcheck);
+  const base = await api.editorial.rascunho(id);
+  if (ehErro(base)) return falha(mensagemErro(base));
+  const c = montarCorrecao(base.body, valores);
   if (!c.ok) return falha(c.erro);
   if (op === 'recibo') {
     const checagens = fd.getAll('checagem').map((x) => ({ tipo: String(x), resultado: 'aprovado' as const }));
@@ -173,7 +191,8 @@ export async function corrigirFabricaAction(_prev: EstadoCorrecao, fd: FormData)
     return { tipo: 'ok', mensagem: `Recibo da versão corrigida (v${rec.versao}) emitido. Publique no mesmo dia: o hash depende do dia do aviso.`, reciboId: rec.id, valores };
   }
   if (op === 'publicar') {
-    if (!reciboAnterior) return falha('Emita o recibo da correção antes de publicar.');
+    if (!checkAccess(session, ['admin', 'editor_chefe']).ok) return falha('Publicar é do editor-chefe ou do admin; o recibo emitido por outra pessoa vale.');
+    if (!reciboAnterior) return falha('Emita o recibo da correção (ou informe o id do recibo) antes de publicar.');
     const r = await api.editorial.publicar(id, { receiptId: reciboAnterior, url: valores.url, correcao: c.correcao });
     if (ehErro(r)) return falha(mensagemErro(r));
     return { tipo: 'ok', mensagem: 'Correção publicada: a matéria agora está corrigida.', publicado: true, reciboId: reciboAnterior, valores };

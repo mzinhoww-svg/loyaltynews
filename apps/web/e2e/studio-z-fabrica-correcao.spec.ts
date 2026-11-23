@@ -61,31 +61,54 @@ test('a tela leva ao fluxo recibo + publicação com correcao; publica como corr
   await expect(page.getByRole('button', { name: 'Salvar revisão' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Corrigir pela Fábrica' }).click();
   await expect(page.getByRole('heading', { name: 'Correção de matéria da Fábrica' })).toBeVisible();
-  // o modelo traz só o que as rotas de leitura expõem; os campos técnicos ficam em branco
-  const modelo = JSON.parse(await page.locator('#draft').inputValue()) as Record<string, unknown>;
-  expect(modelo.slug).toBe('banco-gama-reduz-anuidade-fabrica');
-  expect(modelo.modelProvider).toBe('');
+  // ADR-017 §5: o REVISOR emite o recibo (materias:transition) e a chefia publica
+  const urlForm = page.url();
+  await entrar(context, 'rui', 'revisor');
+  await page.goto(urlForm);
+  await expect(page.getByText(/identidade de publicação do recibo publica/)).toHaveCount(0);
+  await expect(page.getByText('Seu papel emite o recibo; publicar é do editor-chefe ou do admin.')).toBeVisible();
+  // formulário estruturado sobre GET .../draft: o texto e a última checagem já vêm preenchidos; o resto do rascunho é só leitura
+  await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Banco Gama reduz anuidade do cartão (Fábrica)');
+  await expect(page.getByLabel('Provedor da checagem')).toHaveValue('anthropic');
+  await expect(page.getByLabel('Veredito da afirmação 1')).toHaveValue('pass');
+  await page.getByText('Campos do rascunho que seguem como estão').click();
+  await expect(page.getByText('banco-gama-reduz-anuidade-fabrica')).toBeVisible();
+  await expect(page.getByText('openai (prompt e2e)')).toBeVisible();
 
-  // sem preencher o que falta, o Backend recusa e o botão de publicar segue desligado
+  // validações locais dizem o campo; o Backend recusa checagem do MESMO provedor do redator
+  await page.getByLabel('fatos').check();
+  await page.getByLabel('Provedor da checagem').fill('');
+  await enviar(page, page.getByRole('button', { name: 'Emitir recibo da correção' }));
+  await expect(page.locator('main .st-alert.err').filter({ hasText: 'provedor' }).first()).toBeVisible();
+  await page.getByLabel('Provedor da checagem').fill('openai');
   await page.getByLabel('fatos').check();
   await enviar(page, page.getByRole('button', { name: 'Emitir recibo da correção' }));
   await expect(page.locator('main .st-alert.err').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Publicar correção' })).toBeDisabled();
 
-  const corrigido = {
-    ...draft,
-    headline: 'Banco Gama reduz anuidade do cartão de crédito (Fábrica)',
-    body: String(draft.body).replace('O Banco Gama reduziu a anuidade do cartão.', 'O Banco Gama reduziu a anuidade do cartão de crédito.'),
-    claims: [{ id: 'c1', text: 'O Banco Gama reduziu a anuidade do cartão de crédito.', kind: 'fact', evidenceIds: ['ev-fabrica-2'] }],
-  };
-  await page.locator('#draft').fill(JSON.stringify(corrigido, null, 2));
-  await page.locator('#factcheck').fill(JSON.stringify({ provider: 'anthropic', model: 'e2e', verdicts: [{ claimId: 'c1', verdict: 'pass' }] }));
+  // texto corrigido + checagem de outro provedor
+  await page.getByLabel('Título', { exact: true }).fill('Banco Gama reduz anuidade do cartão de crédito (Fábrica)');
+  await page.getByLabel('Corpo (sem o bloco').fill(String(draft.body).replace('O Banco Gama reduziu a anuidade do cartão.', 'O Banco Gama reduziu a anuidade do cartão de crédito.'));
+  await page.getByLabel('Texto da afirmação 1').fill('O Banco Gama reduziu a anuidade do cartão de crédito.');
+  await expect(page.locator('[data-afirmacao="c1"]')).toHaveAttribute('data-alterada', 'sim');
+  await page.getByLabel('Provedor da checagem').fill('anthropic');
+  await page.getByLabel('Veredito da afirmação 1').selectOption('pass');
   await page.getByLabel('fatos').check();
   await enviar(page, page.getByRole('button', { name: 'Emitir recibo da correção' }));
   await sucesso(page, 'Recibo da versão corrigida');
-  await expect(page.getByRole('button', { name: 'Publicar correção' })).toBeEnabled();
-  await expect(page.locator('#draft')).toHaveValue(/cartão de crédito/); // o que foi digitado fica entre os passos
+  await expect(page.getByRole('button', { name: 'Publicar correção' })).toBeDisabled(); // revisor não publica
+  const reciboId = (await page.locator('form[data-recibo]').getAttribute('data-recibo'))!;
+  expect(reciboId).not.toBe('');
 
+  // a chefia publica o recibo emitido pelo revisor: refaz o mesmo texto, informa o id do recibo e publica
+  await entrar(context, 'ana', 'editor_chefe');
+  await page.goto(urlForm);
+  await page.getByLabel('Título', { exact: true }).fill('Banco Gama reduz anuidade do cartão de crédito (Fábrica)');
+  await page.getByLabel('Corpo (sem o bloco').fill(String(draft.body).replace('O Banco Gama reduziu a anuidade do cartão.', 'O Banco Gama reduziu a anuidade do cartão de crédito.'));
+  await page.getByLabel('Texto da afirmação 1').fill('O Banco Gama reduziu a anuidade do cartão de crédito.');
+  await expect(page.getByRole('button', { name: 'Publicar correção' })).toBeDisabled(); // sem recibo informado
+  await page.getByLabel('Recibo da correção').fill(reciboId);
+  await expect(page.getByRole('button', { name: 'Publicar correção' })).toBeEnabled();
   await enviar(page, page.getByRole('button', { name: 'Publicar correção' }));
   await sucesso(page, 'Correção publicada');
   await expect(page.locator('form[data-publicado="sim"]')).toBeVisible();

@@ -31,6 +31,9 @@ test('publica a matéria só do CMS pela rota oficial, com a URL pública /notic
   await page.waitForURL(/\/studio\/cms\/[0-9a-f-]{36}/);
   materiaId = page.url().split('/studio/cms/')[1]!.split('?')[0]!;
   await expect(page.getByLabel('URL pública da matéria')).toHaveValue(/^https:\/\/portal\.example\.test\/noticia\/.+/);
+  // quem aprovou aparece; sem o aviso "só a identidade do recibo publica"; a chefia publica o recibo emitido por outra pessoa
+  await expect(page.locator('[data-aprovador]')).toContainText('Aprovado por');
+  await expect(page.getByText(/identidade de publicação do recibo publica/)).toHaveCount(0);
   await enviar(page, page.getByRole('button', { name: 'Publicar', exact: true }));
   await sucesso(page, 'Publicação registrada.');
   await expect(page.locator('[data-publicado="sim"]')).toBeVisible();
@@ -92,11 +95,16 @@ test('revisão de correção: a página publicada não muda até a publicação 
   expect(durante.versao).toBe(antes.versao);
   expect(durante.status).toBe('publicado');
 
-  // o recibo guarda a identidade de publicação de quem o emite: só ela publica (ADR-008); quem emite o recibo da correção é quem a publica
+  // ADR-017 §5: o revisor emite o recibo da revisão (materias:transition) e a chefia publica; revisor não publica
+  await entrar(context, 'rui', 'revisor');
+  await page.goto(`/studio/cms/${materiaId}`);
   await page.getByRole('form', { name: 'Recibo da revisão' }).getByLabel('fatos').check();
   await enviar(page, page.getByRole('button', { name: 'Emitir recibo da revisão' }));
   await sucesso(page, 'Recibo da versão emitido.');
   await expect(page.locator('[data-revisao="aprovada"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Publicar correção' })).toHaveCount(0);
+  await entrar(context, 'ana', 'editor_chefe');
+  await page.goto(`/studio/cms/${materiaId}`);
   await expect(page.getByLabel('URL pública da matéria').last()).toHaveValue(/\/noticia\//);
   await enviar(page, page.getByRole('button', { name: 'Publicar correção' }));
   await sucesso(page, 'Correção publicada');

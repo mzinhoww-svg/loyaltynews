@@ -56,7 +56,7 @@ export default async function ArticlePage({ params }: Props) {
     author: { '@type': 'Organization', name: a.authorLabel },
     publisher: { '@type': 'Organization', name: SITE_NAME },
     mainEntityOfPage: `${SITE_URL}/noticia/${a.slug}`,
-    image: a.image ? [a.image.src] : undefined,
+    image: a.image ? [new URL(a.image.src, SITE_URL).toString()] : undefined,
   };
 
   return (
@@ -90,10 +90,37 @@ export default async function ArticlePage({ params }: Props) {
             )}
             <span>{a.readingMinutes} min de leitura</span>
           </div>
+          {a.corrections.length > 0 && (
+            <aside className="pt-correction" role="note" aria-labelledby="aviso-correcao" data-testid="correction-notice">
+              <h2 id="aviso-correcao">Matéria corrigida</h2>
+              {a.corrections.map((c) => (
+                <p key={c.at + c.text}>
+                  <time dateTime={c.at}>{formatDate(c.at)}</time>: {c.text}
+                </p>
+              ))}
+              <p className="pt-meta">
+                Veja a <Link href="/correcoes" style={{ textDecoration: 'underline' }}>política de correções</Link>.
+              </p>
+            </aside>
+          )}
           {a.image && (
-            <figure className="pt-figure">
+            <figure className="pt-figure" data-testid="article-image">
               <img src={a.image.src} alt={a.image.alt} />
-              <figcaption>Crédito: {a.image.credit}</figcaption>
+              <figcaption>
+                {a.image.label && (
+                  <strong className="pt-img-label" data-testid="image-label">
+                    {a.image.label}
+                  </strong>
+                )}
+                {a.image.label ? ' · ' : ''}
+                Crédito: {a.image.credit}
+                {a.image.link && (
+                  <>
+                    {' · '}
+                    <a href={a.image.link} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>fonte da imagem</a>
+                  </>
+                )}
+              </figcaption>
             </figure>
           )}
           <div className="pt-body">

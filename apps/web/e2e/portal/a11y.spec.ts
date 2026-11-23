@@ -5,6 +5,7 @@ import { expect, test } from '@playwright/test';
 const PAGES = [
   '/', '/contato', '/midia-kit', '/noticias', '/editoria/bancos', '/busca', '/busca?q=bancos', '/agenda', '/em-alta',
   '/moves', '/intelligence', '/intelligence/empresas', '/sobre', '/metodologia', '/privacidade', '/the-loyal',
+  ...(process.env.PORTAL_MODE === 'mock' ? ['/noticia/mock-mercado-1', '/noticia/mock-mercado-2', '/editoria/mercado'] : []),
 ];
 
 for (const path of PAGES) {

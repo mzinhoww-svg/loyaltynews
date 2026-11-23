@@ -6,8 +6,9 @@
 // - o recibo precisa existir em publication_receipts para ESTA matéria, ser da VERSÃO atual da matéria e carregar o
 //   sha do conteúdo aprovado (ADR-017: `draftContentSha256` = publishedContentSha256 do RASCUNHO do CMS; o mesmo valor vai na
 //   chave `article.published:{id}:{sha}` e em publication.contentSha256);
-//   recibo de versão antiga ou de outro conteúdo ⇒ 409 sem efeito; e a identidade de publicação do recibo precisa ser a
-//   de quem chama (ADR-008);
+//   recibo de versão antiga ou de outro conteúdo ⇒ 409 sem efeito; a identidade de publicação do recibo é a do CANAL
+//   ('portal', ADR-017 §5), não a de uma pessoa: qualquer usuário com `materias:publish` publica, seja quem for o aprovador;
+//   recibo no formato antigo ⇒ 409. `publicadoPor` e `aprovador` vão à auditoria, ao outbox (`meta`) e ao histórico;
 // - a data da publicação é a do servidor; `isMock`, `publishedAt` e qualquer campo extra são RECUSADOS (sem mock em produção);
 // - idempotente pela chave do outbox do produtor (`article.published:{id}:{sha}`): repetir devolve 200, sem novos efeitos;
 // - a gravação é UMA transação (matéria publicada + auditoria + outbox) ou nada.
@@ -20,6 +21,8 @@ import { applyPublication, draftContentSha256, type ApiResponse, type HandlerCtx
 import type { Db } from '@ln/auth';
 import { HttpUrl } from '../schemas';
 import { HttpError, newId } from '../http';
+import { PUBLISH_IDENTITY } from '../article-core';
+import { recordPublisher } from './publisher-trail';
 import { publishFromCms } from './cms-publication';
 import { applyFabricaCorrection } from './fabrica-correction';
 import { CorrecaoIn } from './correcao-schema';
@@ -49,22 +52,25 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   const [receipt] = await ctx.db
     .select({
       identidade: schema.publicationReceipts.identidadePublicacao,
+      aprovador: schema.publicationReceipts.aprovador,
       versao: schema.publicationReceipts.versao,
       sha: schema.publicationReceipts.conteudoSha256,
     })
     .from(schema.publicationReceipts)
     .where(and(eq(schema.publicationReceipts.id, receiptId), eq(schema.publicationReceipts.articleId, articleId)));
   if (!receipt) return err(409, 'RECEIPT_NOT_FOUND', 'Recibo inexistente para esta matéria.');
-  if (receipt.identidade !== actor.userId) return err(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo registra esta publicação.');
+  // ADR-017 §5: a identidade de publicação é a do CANAL ('portal', fixada pelo servidor), não a de uma pessoa. Recibo no formato antigo
+  // (identidade = usuário) ⇒ 409 sem efeito: reemita. Quem publica pode ser outra pessoa que não o aprovador, desde que tenha materias:publish.
+  if (receipt.identidade !== PUBLISH_IDENTITY) return err(409, 'RECEIPT_STALE', 'Recibo em formato antigo (identidade de publicação diferente do canal portal): reemita o recibo.');
 
   if (correcao) {
     const recAny = await ctx.store.getArticle(articleId);
     if (!recAny) return err(409, 'NOT_FACTORY_ARTICLE', 'correcao só vale para matéria da Fábrica; a do CMS é publicada pela revisão (PATCH com casoCorrecaoId).');
-    return applyFabricaCorrection(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url, correcao });
+    return applyFabricaCorrection(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha, aprovador: receipt.aprovador }, articleId, url, correcao });
   }
   // Matéria que existe só no CMS (sem registro no Editorial): publicação e correção oficiais sobre `articles` (ADR-019 §c.5).
   const rec = await ctx.store.getArticle(articleId);
-  if (!rec) return publishFromCms(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url });
+  if (!rec) return publishFromCms(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha, aprovador: receipt.aprovador }, articleId, url });
 
   // O recibo tem de provar ESTA versão e ESTE conteúdo (um recibo antigo da mesma matéria não registra conteúdo novo).
   const [art] = await ctx.db.select({ versao: schema.articles.versao }).from(schema.articles).where(eq(schema.articles.id, articleId));
@@ -100,6 +106,12 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
       .where(and(eq(schema.articles.id, articleId), inArray(schema.articles.status, ['aprovado'])));
     await ctx.db.insert(schema.articleTransitions).values({
       id: newId(), articleId, de: 'aprovado', para: 'publicado', actorId: actor.userId, nota: null, receiptId, at: new Date(pub.publishedAt),
+    });
+  }
+  if (!r.alreadyPublished && pub) {
+    await recordPublisher(ctx.db, {
+      publicadoPor: actor.userId, role: actor.roles[0], aprovador: receipt.aprovador, receiptId, articleId, action: 'materia.publicada', sha: pub.contentSha256,
+      outboxKey: `article.published:${articleId}:${pub.contentSha256}`, at: ctx.now(), store: ctx.store,
     });
   }
   return {
