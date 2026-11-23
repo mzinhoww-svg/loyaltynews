@@ -10,7 +10,8 @@ import { adCall, isAdRoute } from './ads';
 import { listAccounts, listCampaigns } from './lists';
 import { COMMERCIAL_LOCK, hydrate, loadDelivery, persist, seedCommercial } from './repo';
 
-const isReportRoute = (path: string): boolean => path.endsWith('/campaigns/report') || path.endsWith('/campaigns/report-csv');
+// relatório de campanha (campaignId) e do anunciante (accountId, contrato do Commercial): só eles recebem as linhas de ad_delivery_daily
+const isReportRoute = (path: string): boolean => /\/(campaigns|accounts)\/report(-csv)?$/.test(path);
 
 /** Data de calendário em America/Sao_Paulo (YYYY-MM-DD). */
 export const saoPauloDate = (d: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);

@@ -107,7 +107,7 @@ export function buildCampaignReport(i: ReportInput): CampaignReport {
   const ownIds = new Map(own.map((x) => [x.id, x]));
   const approved = own.filter((x) => x.approved);
   const resv = i.reservations.filter((r) => r.campaignId === c.id && r.status !== 'cancelled');
-  const posIds = [...new Set([...(c.positionId ? [c.positionId] : []), ...own.map((x) => x.positionId), ...resv.map((r) => r.positionId)])].sort();
+  const posIds = [...new Set([...c.positionIds, ...own.map((x) => x.positionId), ...resv.map((r) => r.positionId)])].sort();
   const positions = posIds.map((id) => {
     const spec = positionsSpec.find((p) => p.id === id);
     return {
@@ -233,3 +233,6 @@ export function reportCsv(r: CampaignReport, kind: ReportCsvKind): { filename: s
     csv: kind === 'diario' ? reportDailyCsv(r) : reportSummaryCsv(r),
   };
 }
+
+/** Utilitários compartilhados com o relatório do anunciante (advertiser-report.ts). Uso interno do pacote. */
+export const reportInternals = { DAY_MS, parseDay, isDay, rate, spDate, line, BOM, EOL };
