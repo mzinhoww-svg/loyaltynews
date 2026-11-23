@@ -37,7 +37,8 @@ Decide: Backend + FinOps (pacote modelops)
 
 | Critério | Como medir | Limiar | Dono | Hoje |
 |---|---|---|---|---|
-| G4.1 LedgerStore em PostgreSQL com transação e bloqueio de linha | teste de concorrência: N reservas paralelas não ultrapassam o teto | 0 estouros em 1000 reservas concorrentes (proposta) (proposta) | Backend | externo — pacote modelops (Backend + FinOps): fora desta frente |
+| G4.0 O armazenamento PostgreSQL implementa AtomicLedgerStore e passa a suíte de aceitação do contrato (A01–A12, incluindo A10 com SQL cru) | defineLedgerAcceptance sobre o PgLedgerStore (ledger-contract.md) | 12 de 12 casos passando, nenhum "skipped" | Backend | externo — a suíte existe (ledger-contract) e passa na implementação de referência; falta o PgLedgerStore do Backend |
+| G4.1 Transação por mês com exclusão mútua entre processos | caso A07: 200 reservas concorrentes por dois handles contra teto de US$ 10 | exatamente 100 aceitas e 0 estouros; mais um teste de estresse de 1000 (proposta) (proposta) | Backend | externo — pacote modelops (Backend + FinOps): fora desta frente |
 | G4.2 Replay do ledger reproduz o gasto | replay == soma das gerações conciliadas | diferença ≤ 1% (limite proposto no modelops) | FinOps | externo — pacote modelops (Backend + FinOps): fora desta frente |
 | G4.3 Saldo do provedor lido antes da primeira chamada | BalanceGuard injetado na composição do produto | leitura obrigatória; falha de leitura bloqueia | Backend | externo — pacote modelops (Backend + FinOps): fora desta frente |
 
@@ -51,6 +52,7 @@ Decide: Integration + Program Manager (aval para criar agentes)
 | G5.3 Adaptador por pull com lease, só conexão de saída, callback assinado e idempotente (R2-10, testes 2, 3, 6 e 7) | suíte do adaptador | 100% | Integration | externo — depende de aval, adaptador e agentes que não existem |
 | G5.4 Teste negativo por agente: nenhum agente lê credencial ou memória de produção que não é sua (R2-09, teste 11) | teste por agente criado | 8 de 8 agentes negam | Security | externo — depende de aval, adaptador e agentes que não existem |
 | G5.5 Nenhuma credencial de provedor na configuração dos agentes | varredura da configuração (ADR-003) | 0 ocorrências | Security | externo — depende de aval, adaptador e agentes que não existem |
+| G5.6 Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas | editorial_split_criteria do rascunho + harness de tokens/latência | S1, S2 e S3 dentro do limiar; senão dividir (proposta) | AgentOps + PM | externo — depende de aval, adaptador e agentes que não existem |
 
 ## G6 — Insumos dos rituais: digest determinístico e coletor
 Decide: Backend + Editorial

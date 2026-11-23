@@ -88,7 +88,8 @@ export const GATES: Gate[] = [
     name: 'Ledger de orçamento e saldo persistidos em PostgreSQL',
     decidedBy: 'Backend + FinOps (pacote modelops)',
     criteria: [
-      { id: 'G4.1', text: 'LedgerStore em PostgreSQL com transação e bloqueio de linha', measure: 'teste de concorrência: N reservas paralelas não ultrapassam o teto', threshold: '0 estouros em 1000 reservas concorrentes (proposta)', owner: 'Backend', proposedThreshold: true },
+      { id: 'G4.0', text: 'O armazenamento PostgreSQL implementa AtomicLedgerStore e passa a suíte de aceitação do contrato (A01–A12, incluindo A10 com SQL cru)', measure: 'defineLedgerAcceptance sobre o PgLedgerStore (ledger-contract.md)', threshold: '12 de 12 casos passando, nenhum "skipped"', owner: 'Backend' },
+      { id: 'G4.1', text: 'Transação por mês com exclusão mútua entre processos', measure: 'caso A07: 200 reservas concorrentes por dois handles contra teto de US$ 10', threshold: 'exatamente 100 aceitas e 0 estouros; mais um teste de estresse de 1000 (proposta)', owner: 'Backend', proposedThreshold: true },
       { id: 'G4.2', text: 'Replay do ledger reproduz o gasto', measure: 'replay == soma das gerações conciliadas', threshold: 'diferença ≤ 1% (limite proposto no modelops)', owner: 'FinOps' },
       { id: 'G4.3', text: 'Saldo do provedor lido antes da primeira chamada', measure: 'BalanceGuard injetado na composição do produto', threshold: 'leitura obrigatória; falha de leitura bloqueia', owner: 'Backend' },
     ],
@@ -103,6 +104,7 @@ export const GATES: Gate[] = [
       { id: 'G5.3', text: 'Adaptador por pull com lease, só conexão de saída, callback assinado e idempotente (R2-10, testes 2, 3, 6 e 7)', measure: 'suíte do adaptador', threshold: '100%', owner: 'Integration' },
       { id: 'G5.4', text: 'Teste negativo por agente: nenhum agente lê credencial ou memória de produção que não é sua (R2-09, teste 11)', measure: 'teste por agente criado', threshold: '8 de 8 agentes negam', owner: 'Security' },
       { id: 'G5.5', text: 'Nenhuma credencial de provedor na configuração dos agentes', measure: 'varredura da configuração (ADR-003)', threshold: '0 ocorrências', owner: 'Security' },
+      { id: 'G5.6', text: 'Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas', measure: 'editorial_split_criteria do rascunho + harness de tokens/latência', threshold: 'S1, S2 e S3 dentro do limiar; senão dividir', owner: 'AgentOps + PM', proposedThreshold: true },
     ],
   },
   {
@@ -157,12 +159,13 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   set('G3.2', pgTest.includes('PgStore sobre as migrações oficiais'), 'pg.test.ts presente (execução verde é de `npm test`)');
   external('G3.3', 'não existe banco de staging');
 
+  external('G4.0', 'a suíte existe (ledger-contract) e passa na implementação de referência; falta o PgLedgerStore do Backend');
   for (const id of ['G4.1', 'G4.2', 'G4.3']) external(id, 'pacote modelops (Backend + FinOps): fora desta frente');
 
   const draft = buildOpenBotDraft(reg);
   const issues = validateOpenBotDraft(draft, reg);
   set('G5.1', issues.length === 0, issues.length ? issues.map((i) => i.code).join(', ') : '8 agentes cobrem 64 perfis, 28 rituais e 19 workflows; created=false');
-  for (const id of ['G5.2', 'G5.3', 'G5.4', 'G5.5']) external(id, 'depende de aval, adaptador e agentes que não existem');
+  for (const id of ['G5.2', 'G5.3', 'G5.4', 'G5.5', 'G5.6']) external(id, 'depende de aval, adaptador e agentes que não existem');
 
   const schemas = read(join(PKG_DIR, 'src/schemas.ts'));
   const sched = read(join(PKG_DIR, 'src/scheduler.ts'));

@@ -153,7 +153,9 @@ Premissas de tokens **não medidas** (medir em R4): insumo de participante ${c.a
 - O teto é de reserva (faixa de preço mais cara, saída máxima); a cobrança real é conciliada pelo gateway. Degraus 35/40/42/50 e rituais essenciais até 42 seguem ADR-015.
 
 ## 5. Mapeamento para o OpenBot (PROPOSTA; nada foi criado)
-Pelo ADR-004 os perfis são contratos executados sob demanda, não processos residentes. Hipótese inicial a medir em R4: um agente OpenBot por diretoria (7) mais o Publisher (1), cada um carregando o perfil, o glossário e a memória setorial pedidos pelo disparo. **Requer aval do Program Manager** antes de qualquer criação; o tamanho ideal do conjunto ainda não foi medido.
+Pelo ADR-004 os perfis são contratos executados sob demanda, não processos residentes. Hipótese inicial a medir em R4: um agente OpenBot por diretoria (7) mais o Publisher (1), cada um carregando o perfil, o glossário e a memória setorial pedidos pelo disparo. **Requer aval do Program Manager** antes de qualquer criação (G1–G6 atendidos e aval explícito); o tamanho ideal do conjunto ainda não foi medido.
+
+Decisões do PM (23/11/2026): nomes e títulos dos 8 perfis aprovados **como proposta**; a Diretoria Editorial (24 perfis) fica em **1 agente** até a medição real de R4 (menos custo e coordenação). **Critério para dividir a Editorial** (qualquer um, em 30+ execuções medidas; limiares são proposta da Frente 07, a ratificar pelo PM): S1 — p95 do total de entrada por chamada acima de 50% da janela de contexto do menor modelo elegível da rota (a janela não consta da política: verificar em G2); S2 — p95 do tempo do D-editorial (primeiro disparo → ata) acima de 30 min, pois o D-sync das 07:25 depende dele; S3 — p95 da espera do agente editorial pelo lease acima de 5 min, com os 10 dailies das 06:00 e o D-editorial das 06:20 concorrendo. Sem medição, não se divide.
 
 ## 6. Riscos e pendências conhecidas
 - Rituais dependem do PC ligado de madrugada (DP-03); a janela de recuperação é de 120 min inclusive, depois vira registro de status.

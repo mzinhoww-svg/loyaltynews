@@ -34,7 +34,7 @@ describe('gates G1–G6', () => {
 
   it('o que depende de staging, ratificação, medição real ou terceiros NUNCA sai como atendido', () => {
     const ev = new Map(evaluateGatesOffline().map((e) => [e.criterion, e]));
-    for (const id of ['G1.4', 'G2.1', 'G2.2', 'G2.3', 'G2.4', 'G2.5', 'G3.3', 'G4.1', 'G4.2', 'G4.3', 'G5.2', 'G5.3', 'G5.4', 'G5.5', 'G6.2']) {
+    for (const id of ['G1.4', 'G2.1', 'G2.2', 'G2.3', 'G2.4', 'G2.5', 'G3.3', 'G4.0', 'G4.1', 'G4.2', 'G4.3', 'G5.2', 'G5.3', 'G5.4', 'G5.5', 'G5.6', 'G6.2']) {
       expect(ev.get(id)!.status, id).toBe('external');
     }
     expect(ev.size).toBe(GATES.flatMap((g) => g.criteria).length);

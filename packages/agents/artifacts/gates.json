@@ -179,10 +179,22 @@
       "atendido": false,
       "criterios": [
         {
+          "id": "G4.0",
+          "text": "O armazenamento PostgreSQL implementa AtomicLedgerStore e passa a suíte de aceitação do contrato (A01–A12, incluindo A10 com SQL cru)",
+          "measure": "defineLedgerAcceptance sobre o PgLedgerStore (ledger-contract.md)",
+          "threshold": "12 de 12 casos passando, nenhum \"skipped\"",
+          "owner": "Backend",
+          "avaliacao_offline": {
+            "criterion": "G4.0",
+            "status": "external",
+            "evidence": "a suíte existe (ledger-contract) e passa na implementação de referência; falta o PgLedgerStore do Backend"
+          }
+        },
+        {
           "id": "G4.1",
-          "text": "LedgerStore em PostgreSQL com transação e bloqueio de linha",
-          "measure": "teste de concorrência: N reservas paralelas não ultrapassam o teto",
-          "threshold": "0 estouros em 1000 reservas concorrentes (proposta)",
+          "text": "Transação por mês com exclusão mútua entre processos",
+          "measure": "caso A07: 200 reservas concorrentes por dois handles contra teto de US$ 10",
+          "threshold": "exatamente 100 aceitas e 0 estouros; mais um teste de estresse de 1000 (proposta)",
           "owner": "Backend",
           "proposedThreshold": true,
           "avaliacao_offline": {
@@ -279,6 +291,19 @@
           "owner": "Security",
           "avaliacao_offline": {
             "criterion": "G5.5",
+            "status": "external",
+            "evidence": "depende de aval, adaptador e agentes que não existem"
+          }
+        },
+        {
+          "id": "G5.6",
+          "text": "Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas",
+          "measure": "editorial_split_criteria do rascunho + harness de tokens/latência",
+          "threshold": "S1, S2 e S3 dentro do limiar; senão dividir",
+          "owner": "AgentOps + PM",
+          "proposedThreshold": true,
+          "avaliacao_offline": {
+            "criterion": "G5.6",
             "status": "external",
             "evidence": "depende de aval, adaptador e agentes que não existem"
           }

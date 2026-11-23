@@ -39,6 +39,13 @@ export interface OpenBotDraft {
   approval_required_from: 'Program Manager';
   basis: string[];
   hypothesis: string;
+  /** Decisões já tomadas pelo Program Manager (registradas aqui para rastreio). */
+  pm_decisions: { date: string; decision: string }[];
+  /**
+   * Critérios para dividir a Diretoria Editorial em mais de um agente. Só valem com medição REAL de R4
+   * (30+ execuções). Limiares = proposta da Frente 07, a ratificar pelo PM.
+   */
+  editorial_split_criteria: { id: string; metric: string; threshold: string; proposed: true }[];
   open_decisions: string[];
   agents: OpenBotAgentDraft[];
 }
@@ -114,10 +121,18 @@ export function buildOpenBotDraft(registries: Pick<LoadedRegistries, 'agents' | 
     approval_required_from: 'Program Manager',
     basis: ['ADR-003 (OpenBot executa e coordena; pull com lease; gateway)', 'ADR-004 (64 perfis = contratos sob demanda, memória no PostgreSQL)', 'model.policy v5 (acesso medido só via OpenRouter; OpenBot sem assinatura para chamada de modelo do produto)'],
     hypothesis: 'Um agente OpenBot por diretoria mais o Publisher (8) é hipótese inicial; o tamanho ideal do conjunto não foi medido (ADR-004, "Não verificado") e deve ser medido em R4.',
+    pm_decisions: [
+      { date: '2026-11-23', decision: 'Nomes e títulos dos 8 perfis aprovados COMO PROPOSTA (nada criado; a criação exige G1–G6 e aval explícito do PM).' },
+      { date: '2026-11-23', decision: 'A Diretoria Editorial (24 perfis) fica em 1 agente até a medição real de R4 (menos custo e coordenação); só divide se a medição ultrapassar um dos critérios abaixo.' },
+    ],
+    editorial_split_criteria: [
+      { id: 'S1', metric: 'p95 do total de entrada por chamada (sem cache + cache) nas chamadas dos perfis editoriais, em 30+ execuções medidas', threshold: '> 50% da janela de contexto do menor modelo elegível da rota (a janela não consta da política: verificar em G2)', proposed: true },
+      { id: 'S2', metric: 'p95 do tempo do D-editorial, do primeiro disparo à ata, em 30+ execuções medidas', threshold: '> 30 min (o D-editorial é às 06:20 e o D-sync às 07:25 depende dele)', proposed: true },
+      { id: 'S3', metric: 'p95 da espera do agente editorial pelo lease, com os 10 dailies de redação (06:00) e o D-editorial (06:20) concorrendo', threshold: '> 5 min', proposed: true },
+    ],
     open_decisions: [
-      'A Diretoria Editorial hospeda 24 perfis (10 redações): manter 1 agente ou dividir (ex.: redações + núcleo editorial) se o contexto ficar largo? Medir em R4.',
-      'Nome e título definitivos dos agentes no OpenBot (os nomes aqui são propostos).',
       'Se o Publisher e a Diretoria Technology (finops, sre, security) devem ser agentes separados do executor de implantação, por separação de funções (teste de identidade do executor no mesmo host, ADR-003).',
+      'Nome e título definitivos no OpenBot só são fixados na criação (aprovados agora como proposta).',
     ],
     agents,
   };
