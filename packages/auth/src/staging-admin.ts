@@ -29,6 +29,9 @@ export interface StagingAdminDeps {
 
 export interface StagingAdminOptions {
   email?: string;
+  /** Vai para a auditoria (sem segredo): como o segredo foi entregue e o commit da CLI. */
+  entrega?: 'tty' | 'arquivo';
+  commit?: string | null;
   /** Apaga o administrador de staging existente (só ele) e cria de novo, com segredos novos. */
   recreate?: boolean;
   /** Só testes. */
@@ -37,10 +40,10 @@ export interface StagingAdminOptions {
 
 const randomPassword = () => randomBytes(24).toString('base64url'); // 32 caracteres, mínimo do Better Auth é 12
 
-/** Só e-mail de teste: domínio `.invalid` (reservado pela RFC 2606, nunca entrega mensagem). */
+/** Só e-mail de teste: domínio `.invalid` (reservado pela RFC 2606, nunca entrega mensagem). Formato fixo da decisão de segurança (L3). */
 export function assertStagingEmail(email: string): string {
   const e = email.trim().toLowerCase();
-  if (!/^[a-z0-9._+-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)*\.invalid$/.test(e)) throw new Error('e-mail do administrador de staging precisa ser de domínio .invalid');
+  if (!/^[a-z0-9._-]+@[a-z0-9.-]+\.invalid$/.test(e)) throw new Error('e-mail do administrador de staging precisa ser de domínio .invalid');
   return e;
 }
 
@@ -60,7 +63,7 @@ export async function bootstrapStagingAdmin(deps: StagingAdminDeps, opts: Stagin
   if (existing) await removeUser(db, existing.user.id);
 
   const password = (opts.generatePassword ?? randomPassword)();
-  const { id } = await createStaffUser(auth, { email, name: 'Administrador de staging', password, role: 'admin' });
+  const { id } = await createStaffUser(auth, { email, name: 'Admin de staging', password, role: 'admin' });
   try {
     const req = (path: string, body: unknown, cookie?: string) =>
       new Request(`${origin}/api/auth${path}`, {
@@ -95,7 +98,14 @@ export async function bootstrapStagingAdmin(deps: StagingAdminDeps, opts: Stagin
     await db.delete(schema.session).where(eq(schema.session.userId, id));
 
     // Auditoria SEM segredo: só quem (e-mail de teste) e o quê.
-    await audit(db, { actorId: null, actorRole: 'cli', action: 'staging.admin_bootstrap', resource: 'usuarios', resourceId: id, detalhe: { email, recreate: Boolean(existing) } });
+    await audit(db, {
+      actorId: null,
+      actorRole: 'cli',
+      action: 'bootstrap_admin_staging',
+      resource: 'usuarios',
+      resourceId: id,
+      detalhe: { email, recreate: Boolean(existing), entrega: opts.entrega ?? null, commit: opts.commit ?? null },
+    });
     return { status: 'created', email, password, totpSecret: secret, totpUri: totpURI, backupCodes: backupCodes ?? [] };
   } catch (e) {
     await removeUser(db, id); // nada de administrador pela metade: se o enrolamento falhou, o usuário some
