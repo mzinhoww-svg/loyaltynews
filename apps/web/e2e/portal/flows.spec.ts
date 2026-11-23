@@ -13,14 +13,26 @@ async function expand(button: import('@playwright/test').Locator) {
 }
 
 test.describe('navegação e menu', () => {
-  test('desktop: Header do DS lista as 10 editorias e a navegação de utilidade os formatos', async ({ page }, info) => {
+  test('desktop: menu de editorias em uma linha (6 + Mais) e atalhos do portal na barra superior', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');
     const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
+    // ≥1280px: 6 editorias fixas + botão "Mais" (as outras 4 ficam no painel)
+    await expect(nav.getByRole('link')).toHaveCount(6);
+    const mais = nav.getByRole('button', { name: /Mais/ });
+    await expect(mais).toHaveAttribute('aria-expanded', 'false');
+    await mais.click();
+    await expect(mais).toHaveAttribute('aria-expanded', 'true');
     await expect(nav.getByRole('link')).toHaveCount(10);
-    await expect(nav.getByRole('link', { name: 'Bancos & Cartões' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Regulação & Dados' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(mais).toHaveAttribute('aria-expanded', 'false');
+    await expect(nav.getByRole('link')).toHaveCount(6);
+    // menu numa única linha: todas as editorias visíveis têm o mesmo topo
+    const tops = await nav.getByRole('link').evaluateAll((els) => [...new Set(els.map((e) => Math.round(e.getBoundingClientRect().top)))]);
+    expect(tops.length, 'menu deve ficar em uma linha').toBe(1);
     const util = page.getByRole('navigation', { name: 'Seções do portal' });
-    for (const l of ['Todas as notícias', 'Loyalty Flash', 'Análises', 'Em alta', 'Agenda', 'Entrevistas', 'Moves', 'Intelligence', 'Contato']) {
+    for (const l of ['Últimas', 'Em alta', 'Agenda', 'Anuncie']) {
       await expect(util.getByRole('link', { name: l, exact: true })).toBeVisible();
     }
     await page.screenshot({ path: path.join(SHOTS, 'desktop-menu.png') });
@@ -143,7 +155,7 @@ test.describe('conteúdo MOCK', () => {
 
   test('home mostra destaques, em alta, últimas, agenda e editorias, com faixa MOCK', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/MOCK — conteúdo sintético/)).toBeVisible();
+    await expect(page.getByText(/Conteúdo de demonstração — não publicado/)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Destaques' })).toBeVisible();
     await expect(page.locator('#destaques article')).not.toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Em alta' }).first()).toBeVisible();

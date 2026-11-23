@@ -17,9 +17,9 @@ export function MockTag() {
   return <MockBadge label="" />;
 }
 
-/** Estado vazio honesto (DS `EmptyState`). */
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
-  return <DsEmptyState title={title} description={children} />;
+/** Estado vazio honesto (DS `EmptyState`), discreto por padrão: uma linha, sem caixa. */
+export function EmptyState({ title, children, appearance = 'inline' }: { title: string; children?: ReactNode; appearance?: 'inline' | 'box' }) {
+  return <DsEmptyState title={title} description={children} appearance={appearance} />;
 }
 
 export function PageHead({
@@ -103,22 +103,23 @@ export function ArticleCard({
   );
 }
 
-export function ArticleGrid({ items, cols = 4 }: { items: Article[]; cols?: 3 | 4 }) {
+/** `headingLevel`: use 2 quando a grade vem logo abaixo do h1 (listagens); 3 dentro de uma Section (h2). */
+export function ArticleGrid({ items, cols = 4, headingLevel = 3 }: { items: Article[]; cols?: 3 | 4; headingLevel?: 2 | 3 | 4 }) {
   return (
     <div className={cols === 3 ? 'pt-grid pt-grid-3' : 'pt-grid'}>
       {items.map((a) => (
-        <ArticleCard key={a.slug} article={a} />
+        <ArticleCard key={a.slug} article={a} headingLevel={headingLevel} />
       ))}
     </div>
   );
 }
 
-export function RankedList({ items }: { items: Article[] }) {
+export function RankedList({ items, headingLevel = 3 }: { items: Article[]; headingLevel?: 2 | 3 | 4 }) {
   return (
     <ol className="pt-list">
       {items.map((a, i) => (
         <li key={a.slug}>
-          <ArticleCard article={a} size="compact" rank={i + 1} />
+          <ArticleCard article={a} size="compact" rank={i + 1} headingLevel={headingLevel} />
         </li>
       ))}
     </ol>

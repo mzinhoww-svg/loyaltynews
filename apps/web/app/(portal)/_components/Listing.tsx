@@ -51,7 +51,7 @@ export async function Listing(p: ListingProps) {
         <div>
           {data.items.length ? (
             <>
-              <ArticleGrid items={data.items} cols={3} />
+              <ArticleGrid items={data.items} cols={3} headingLevel={2} />
               <Pager page={data} basePath={p.basePath} />
             </>
           ) : (
