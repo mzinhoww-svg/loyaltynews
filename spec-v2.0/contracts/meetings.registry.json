@@ -1,0 +1,772 @@
+{
+  "version": "2.0",
+  "format": "logical contracts, not native scheduler import",
+  "meetings": [
+    {
+      "id": "D-mercado",
+      "title": "Daily: Mercado & Negócios",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_mercado",
+      "participants": [
+        "editor_mercado",
+        "writer_mercado"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-programas",
+      "title": "Daily: Programas de Fidelidade",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_programas",
+      "participants": [
+        "editor_programas",
+        "writer_programas"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-pontos",
+      "title": "Daily: Pontos & Milhas",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_pontos",
+      "participants": [
+        "editor_pontos",
+        "writer_pontos"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-bancos",
+      "title": "Daily: Bancos & Cartões",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_bancos",
+      "participants": [
+        "editor_bancos",
+        "writer_bancos"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-varejo",
+      "title": "Daily: Varejo & Cashback",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_varejo",
+      "participants": [
+        "editor_varejo",
+        "writer_varejo"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-travel",
+      "title": "Daily: Travel & Hospitality",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_travel",
+      "participants": [
+        "editor_travel",
+        "writer_travel"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-tech",
+      "title": "Daily: LoyaltyTech & IA",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_tech",
+      "participants": [
+        "editor_tech",
+        "writer_tech"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-crm",
+      "title": "Daily: CRM & CX",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_crm",
+      "participants": [
+        "editor_crm",
+        "writer_crm"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-global",
+      "title": "Daily: Global Loyalty",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_global",
+      "participants": [
+        "editor_global",
+        "writer_global"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-regulacao",
+      "title": "Daily: Regulação & Dados",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:00",
+      "chair": "editor_regulacao",
+      "participants": [
+        "editor_regulacao",
+        "writer_regulacao"
+      ],
+      "purpose": "Pautas, evidências, bloqueios e atribuição",
+      "outputs": [
+        "pauta priorizada",
+        "tarefas",
+        "bloqueios"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-editorial",
+      "title": "Daily editorial",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:20",
+      "chair": "editorial",
+      "participants": [
+        "editorial",
+        "newsdesk",
+        "editor_mercado",
+        "editor_programas",
+        "editor_pontos",
+        "editor_bancos",
+        "editor_varejo",
+        "editor_travel",
+        "editor_tech",
+        "editor_crm",
+        "editor_global",
+        "editor_regulacao"
+      ],
+      "purpose": "Agenda do dia, concorrência de pautas, notícia urgente",
+      "outputs": [
+        "daily brief",
+        "decisões",
+        "tarefas"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.2,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-creative",
+      "title": "Daily Criação",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:40",
+      "chair": "creative",
+      "participants": [
+        "creative",
+        "art",
+        "designer",
+        "media",
+        "image",
+        "visualqa"
+      ],
+      "purpose": "Revisar fila, entregas, riscos e impedimentos",
+      "outputs": [
+        "status",
+        "tarefas",
+        "escalonamentos"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-growth",
+      "title": "Daily Growth",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:45",
+      "chair": "growth",
+      "participants": [
+        "growth",
+        "social",
+        "linkedin",
+        "instagram",
+        "seo",
+        "newsletter",
+        "publisher_social",
+        "growth_analytics",
+        "community"
+      ],
+      "purpose": "Revisar fila, entregas, riscos e impedimentos",
+      "outputs": [
+        "status",
+        "tarefas",
+        "escalonamentos"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-intelligence",
+      "title": "Daily Intelligence",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "06:10",
+      "chair": "intelligence",
+      "participants": [
+        "intelligence",
+        "discovery",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "marketdata",
+        "dataqa"
+      ],
+      "purpose": "Revisar fila, entregas, riscos e impedimentos",
+      "outputs": [
+        "status",
+        "tarefas",
+        "escalonamentos"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-commercial",
+      "title": "Daily Comercial",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "08:30",
+      "chair": "commercial",
+      "participants": [
+        "commercial",
+        "adops",
+        "sales",
+        "pricing",
+        "account"
+      ],
+      "purpose": "Revisar fila, entregas, riscos e impedimentos",
+      "outputs": [
+        "status",
+        "tarefas",
+        "escalonamentos"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-technology",
+      "title": "Daily Tecnologia",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "08:15",
+      "chair": "technology",
+      "participants": [
+        "technology",
+        "sre",
+        "finops",
+        "platform",
+        "security"
+      ],
+      "purpose": "Revisar fila, entregas, riscos e impedimentos",
+      "outputs": [
+        "status",
+        "tarefas",
+        "escalonamentos"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-trust",
+      "title": "Daily Trust & Quality",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "07:15",
+      "chair": "trust",
+      "participants": [
+        "trust",
+        "factcheck",
+        "rights",
+        "privacy",
+        "audit"
+      ],
+      "purpose": "Revisar fila, entregas, riscos e impedimentos",
+      "outputs": [
+        "status",
+        "tarefas",
+        "escalonamentos"
+      ],
+      "route": "economy",
+      "max_cost_usd_example": 0.1,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "D-sync",
+      "title": "Sincronização de diretorias",
+      "cycle": "weekday",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "07:00",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "editorial",
+        "creative",
+        "growth",
+        "intelligence",
+        "trust"
+      ],
+      "purpose": "Resolver dependências e arbitrar prioridades do dia",
+      "outputs": [
+        "prioridade aprovada",
+        "dependências",
+        "impedimentos"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.2,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "W-pautas",
+      "title": "Conselho editorial semanal",
+      "cycle": "weekly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "MON 08:00",
+      "chair": "editorial",
+      "participants": [
+        "editorial",
+        "newsdesk",
+        "editor_mercado",
+        "editor_programas",
+        "editor_pontos",
+        "editor_bancos",
+        "editor_varejo",
+        "editor_travel",
+        "editor_tech",
+        "editor_crm",
+        "editor_global",
+        "editor_regulacao",
+        "intelligence",
+        "growth",
+        "creative"
+      ],
+      "purpose": "Planejar cobertura e investigações",
+      "outputs": [
+        "calendário",
+        "pautas",
+        "hipóteses"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "W-cross",
+      "title": "Weekly interdiretorias",
+      "cycle": "weekly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "MON 09:00",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "editorial",
+        "creative",
+        "growth",
+        "intelligence",
+        "commercial",
+        "technology",
+        "trust"
+      ],
+      "purpose": "Estratégia, prioridades e capacidade",
+      "outputs": [
+        "OKRs",
+        "decisões",
+        "alocação proposta"
+      ],
+      "route": "premium",
+      "max_cost_usd_example": 1.0,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "W-performance",
+      "title": "Performance e experimentos",
+      "cycle": "weekly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "FRI 15:00",
+      "chair": "growth",
+      "participants": [
+        "growth",
+        "growth_analytics",
+        "editorial",
+        "creative",
+        "intelligence",
+        "seo",
+        "newsletter"
+      ],
+      "purpose": "Avaliar coortes, distribuição e conversão",
+      "outputs": [
+        "experimentos",
+        "aprendizados",
+        "tarefas"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "W-finops",
+      "title": "FinOps & Model Council",
+      "cycle": "weekly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "FRI 14:00",
+      "chair": "technology",
+      "participants": [
+        "technology",
+        "finops",
+        "security",
+        "publisher",
+        "trust"
+      ],
+      "purpose": "Custos, qualidade, fallback, rate cards e evals",
+      "outputs": [
+        "recomendações de routing",
+        "riscos",
+        "orçamento proposto"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "W-trust",
+      "title": "Auditoria editorial e dados",
+      "cycle": "weekly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "THU 14:00",
+      "chair": "trust",
+      "participants": [
+        "trust",
+        "audit",
+        "factcheck",
+        "rights",
+        "privacy",
+        "editorial",
+        "dataqa"
+      ],
+      "purpose": "Amostras, reclamações, correções e privacidade",
+      "outputs": [
+        "achados",
+        "ações corretivas"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "W-intel",
+      "title": "Intelligence Research Council",
+      "cycle": "weekly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "WED 14:00",
+      "chair": "intelligence",
+      "participants": [
+        "intelligence",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "dataqa",
+        "marketdata"
+      ],
+      "purpose": "Cobertura, qualidade de organogramas e prioridades",
+      "outputs": [
+        "plano de enriquecimento",
+        "casos inconclusivos"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "M-board",
+      "title": "Monthly Executive Board",
+      "cycle": "monthly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "FIRST_BUSINESS_DAY 10:00",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "editorial",
+        "creative",
+        "growth",
+        "intelligence",
+        "commercial",
+        "technology",
+        "trust"
+      ],
+      "purpose": "P&L, OKRs, estratégia e riscos com responsável humano",
+      "outputs": [
+        "ata",
+        "decisões sujeitas a aprovação humana",
+        "plano mensal"
+      ],
+      "route": "strategic",
+      "max_cost_usd_example": 3.0,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "M-model",
+      "title": "Model & Quality Review",
+      "cycle": "monthly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "FIRST_BUSINESS_DAY 14:00",
+      "chair": "technology",
+      "participants": [
+        "technology",
+        "finops",
+        "trust",
+        "audit",
+        "editorial",
+        "creative",
+        "growth",
+        "intelligence"
+      ],
+      "purpose": "Benchmark e mudanças de modelos em sandbox",
+      "outputs": [
+        "evals",
+        "proposta de promoção ou rollback"
+      ],
+      "route": "premium",
+      "max_cost_usd_example": 2.0,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "M-commercial",
+      "title": "Revisão comercial",
+      "cycle": "monthly",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "FIRST_BUSINESS_DAY 15:00",
+      "chair": "commercial",
+      "participants": [
+        "commercial",
+        "sales",
+        "pricing",
+        "account",
+        "growth",
+        "publisher"
+      ],
+      "purpose": "Inventário, pipeline, receita e renovação",
+      "outputs": [
+        "forecast",
+        "propostas",
+        "ações"
+      ],
+      "route": "review",
+      "max_cost_usd_example": 0.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    },
+    {
+      "id": "X-incident",
+      "title": "Comitê extraordinário",
+      "cycle": "event",
+      "timezone": "America/Sao_Paulo",
+      "schedule_local": "incident / breaking / dependency",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "trust",
+        "technology",
+        "editorial"
+      ],
+      "purpose": "Tratar incidente ou decisão acima da alçada",
+      "outputs": [
+        "contenção",
+        "decisão",
+        "responsáveis"
+      ],
+      "route": "premium",
+      "max_cost_usd_example": 1.5,
+      "enabled": false,
+      "mode": "async_structured_first",
+      "quorum": "chair + relevant owners; human approval for protected decisions",
+      "max_rounds": 2
+    }
+  ]
+}

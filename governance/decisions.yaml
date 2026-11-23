@@ -76,5 +76,650 @@
     "status": "registrada",
     "escolha": "Dez editorias preservadas",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+  },
+  {
+    "id": "DP-01",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Sem GitHub Pro e sem conta executora nova: a integracao GitHub do OpenBot segue na conta do proprietario (admin). Revisao da primeira resposta ('siga'), substituida por 'nao quero criar github pro, use o que ja esta conectado e siga'",
+    "efeito": "SG-01 risco aceito; controle principal = tag assinada pela chave do verificador fora desta maquina; delta em R0-03, F-120 e V21-07",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-02",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Aprovar OpenAI para texto: modelo de texto da OpenAI na rota de revisao/checagem de fatos (provedor distinto do redator)",
+    "efeito": "Mudanca protegida em contracts/model.policy.json (proposta v3); qualificacao em R2-07",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-03",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "OpenBot de producao nesta maquina Windows; licenca comercial declarada sem conflito; nada fica bloqueado por host ou licenca",
+    "efeito": "Licenca fechada por declaracao (evidencia nao anexada); riscos aceitos RA-01 a RA-11; delta em R2-09 e R2-10",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-04",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Orcamento: assinaturas do OpenBot fora do teto (custo fixo); ao atingir US$ 50 para ate o mes virar; divisao OpenAI 20 / Anthropic 22 (5 de escalonamento) / imagens 0 / reserva de auditoria e errata 8; degraus 35/40/42/50",
+    "efeito": "Aplicacao em contracts/model.policy.json (proposta v3); divisao refeita em R2-07",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-05",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Acesso unico as APIs tarifadas pela conta OpenRouter do proprietario; barreira do provedor = saldo pre-pago",
+    "efeito": "Teto agregado e divisao impostos pelo gateway do LN; criterio de R0-01 'teto em cada provedor' vira delta; OpenRouter como processador fica a ratificar",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-06",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Tornar publico o repositorio do verificador (loyaltynews-governance-verifier) para ter rulesets, branches protegidas e ambientes no plano gratuito",
+    "efeito": "Ato do proprietario; nada sensivel no repositorio; ledger publico so com metadados e hashes",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-07",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Gerar e guardar a chave raiz GPG neste PC",
+    "efeito": "Risco aceito: agentes com acesso total alcancam o arquivo; protecao = senha digitada so pelo proprietario e certificado de revogacao fora da maquina; delta em R0-01 e no criterio 'raiz fora do alcance do executor'",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "V21-01",
+    "status": "proposta",
+    "severidade": "P0",
+    "recomendacao": "Aceite intraonda por tags task/<id>/accepted; gate/Rn/accepted agrega",
+    "gate": "R0-11",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-02",
+    "status": "proposta",
+    "severidade": "P0",
+    "recomendacao": "Alcada de bootstrap R0-01..07 para F-055/F-120; gate R0 so com ambos comprovados",
+    "gate": "R0",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-03",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Bootstrap administrativo do verificador nao e aceite; aceites retroativos em ordem DAG",
+    "gate": "R0-03",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-04",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "R0 barreira global; depois DAG por tarefa (R1-03 depende de R2-01)",
+    "gate": "R0-11",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-05",
+    "status": "proposta",
+    "severidade": "P0",
+    "recomendacao": "Separar gate R6 de autorizacao pre-deploy e release/R6/deployed com smoke",
+    "gate": "R0-11/R6",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-06",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Registro de aceite na mensagem da tag assinada; espelho opcional no repo do verificador",
+    "gate": "R0-05/06",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-07",
+    "status": "proposta",
+    "severidade": "P0",
+    "recomendacao": "Testes reais no GitHub: rulesets, check de fonte confiavel, token sem bypass, negativas reais",
+    "gate": "R0-03/06",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-08",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Fundamento juridico documentado antes de uso de imagem; parecer antes do lancamento",
+    "gate": "R0-10/R4",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-09",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Teto agregado USD 50; console por provedor como segunda barreira; recarga nao aumenta teto",
+    "gate": "R0-01/R2-08",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-10",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Review runner independente com logs de provider/model/request ID",
+    "gate": "R0-06",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-11",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Checks executaveis por requisito, versionados pela raiz; falha fechada se ausentes",
+    "gate": "R0-06",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-12",
+    "status": "proposta",
+    "severidade": "P2",
+    "recomendacao": "Liberacao de claim orfa e mudanca de criterio por procedimento root/verifier externo",
+    "gate": "R0-05/06",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-13",
+    "status": "proposta",
+    "severidade": "P2",
+    "recomendacao": "Homologar o MCP stdio no cliente real",
+    "gate": "R0-05",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-14",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Registrar referencia, titular/controlador e escopo do parecer F-090; sem ingestao pessoal sem base",
+    "gate": "R0-10/R1-01",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-15",
+    "status": "proposta",
+    "severidade": "P2",
+    "recomendacao": "R3-01 redesenha wireframes e corrige 15 inconsistencias",
+    "gate": "R3-01",
+    "referencia": "docs/Divergencias_e_achados.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "V21-16",
+    "status": "proposta",
+    "severidade": "P1",
+    "recomendacao": "Governanca nao reconhece aceites no Windows: patch POSIX + UTF-8/LF + .gitattributes protegido (proposto pelo PM em 22/11)",
+    "gate": "R0-05/R0-11",
+    "referencia": "r0-preparacao/achado-V21-16-portabilidade-windows.md",
+    "nota": "proposta, nao ratificada; ratificacao so por regra protegida"
+  },
+  {
+    "id": "DP-08",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "O Program Manager gera nesta maquina a chave raiz (senha digitada pelo proprietario em formulario seguro) e as chaves do verificador e do revisor, torna o repositorio do verificador publico, grava os segredos no GitHub pelo navegador com o login do proprietario e apaga as copias locais",
+    "efeito": "Risco aceito: o executor toca a chave do verificador durante a configuracao; segregacao executor x verificador enfraquecida (diverge do README, de V21-03 e do kit). Custodia: registrar custodiante, limites da sessao, revogacao fora do PC, limpeza verificavel. Rotacao antes do gate R2 (DP-11/P6)",
+    "vinculo": [
+      "DP-07",
+      "DP-06",
+      "DP-11"
+    ],
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-09",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "O Program Manager envia, em nome do proprietario, as 7 perguntas de R0-07 ao suporte da Vertra pelo painel, com o login do proprietario",
+    "efeito": "Responde ao bloqueio externo de R0-07; nao altera arquivo protegido",
+    "requer_mudanca_protegida": false,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-10",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "originals/ (brandkit, wireframes, dossie da auditoria, v1.0, v2.0) e audit-output/ entram no repositorio publico do produto",
+    "efeito": "Marca, wireframes e auditoria ficam publicos; varredura de segredos e dados pessoais obrigatoria antes do push; entra na demonstracao de R0-03",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-11",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Aceitas P1-P7: P1 OpenRouter processador so de public com data_collection=deny; P2 ZDR obrigatorio para editorial nao publicado; P3 taxa de compra de creditos fora do teto; P4 nome, cargo e empresa de executivo de fonte publica em rascunho public, nada alem; P5 janela de 2 h para rituais, lote separado apos R4-11; P6 rotacao das chaves de DP-08 antes do gate R2; P7 F-120 e V21-07 abertos, risco aceito, ate provas negativas e rotacao",
+    "efeito": "model.policy proposta v4; meetings.registry proposta P5; textos de R0-01 e R0-03 na lista v3. Constatado: repositorio do verificador ja publico (DP-06 cumprida)",
+    "requer_mudanca_protegida": true,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-12",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Publicar tudo: originals/ entram no repositorio publico como estao, inclusive o zip do dossie com 5 capturas do LinkedIn 'Fidc News' (foto e nome de pessoas, primeiro nome de um contato do proprietario, artes de terceiros)",
+    "efeito": "Risco aceito: exposicao de imagem e nome de terceiros (LGPD) e de conteudo com direito autoral; ponto juridico J-18 em R0-10; retirada imediata se houver pedido do titular. Contraria a recomendacao do PM/DevOps (retirar)",
+    "vinculo": [
+      "DP-10"
+    ],
+    "requer_mudanca_protegida": false,
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  },
+  {
+    "id": "DP-13",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "Founder (ordem executiva), registro do Program Manager",
+    "escolha": "Ordem executiva do Founder \"LOYALTY NEWS FAST-TRACK DEPLOYMENT\": aceleração máxima; produção até 24/11/2026 23:59; 12 frentes paralelas; antecipação de ondas com mocks rotulados e feature flags; deploy incremental de módulos homologados em staging na Vertra; sem reduzir escopo, sem modificar gates, sem ultrapassar US$ 50/mês, sem contratar serviços.",
+    "efeito": "Execução pelo fast-track (fast-track/README.md, status.json), Deployment Controller reportando ao Founder, checkpoints de 6 h. Não altera gates nem o teto; os aceites formais continuam pela governança (R0-12, R1–R6).",
+    "vinculo": [
+      "D04",
+      "D11"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-13 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-14",
+    "status": "registrada",
+    "data": "2026-11-22",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "\"vertra ok, e tive que rotacionar a key da openrounter, me manda o card novamente e sobre o dominio, use o da vertra por hora, depois resolvo\"",
+    "efeito": "Vertra no plano pro-8 (8192 MB; 5120 MB livres em 22/11); chave OpenRouter rotacionada no cofre (LN_OPENROUTER_API_KEY) com limite de US$ 50 na própria chave, segunda barreira do teto; domínio provisório *.vertraweb.app até o proprietário resolver loyaltynews.com.br.",
+    "vinculo": [
+      "DP-05",
+      "D11"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-14 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-15",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Preços e cotas dos 47 formatos do mídia kit mantidos como estão (tabela de referência do Blueprint), ciente de que é o benchmark público do FIDC News.",
+    "efeito": "Mídia kit sem alteração de preços; disponibilidade por formato segue o estado por formato (CP-12/F-101).",
+    "vinculo": [
+      "CP-12"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-16",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Cabeçalho do portal = opção B (\"Notícias ▾\" com Conteúdo + Editorias, mais Agenda, Entrevistas, Moves, Intelligence); a faixa das 10 editorias sai do topo. Liberado aplicar já (exceção à pausa do redesign).",
+    "efeito": "Navegação do portal conforme a opção B (ft/portal-polish-fe, homologado e no main).",
+    "vinculo": [],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-17",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Dossiê da auditoria de design (LOYALTY_NEWS_DESIGN_AUDIT_FULL.zip, rev. 3, sha fd1cb9f9…) enviado pelo proprietário ao ChatGPT; demais correções visuais aguardam a priorização.",
+    "efeito": "Correções visuais além das já liberadas ficam pendentes de priorização do proprietário.",
+    "vinculo": [
+      "DP-16"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-18",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Troca do servidor MCP loyalty-governance para o runtime correto (governanca-runtime, trust externo) autorizada.",
+    "efeito": "MCP de governança roda do governanca-runtime com trust externo (13 ferramentas conferidas pelo PM).",
+    "vinculo": [
+      "D02"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-19",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Não criar chave OpenRouter separada para o revisor; o revisor usa a chave OpenRouter existente.",
+    "efeito": "Risco aceito: gasto do revisor não separado por chave; a separação fica no ledger do gateway; barreira = saldo pré-pago (corrigido na DP-25).",
+    "vinculo": [
+      "DP-05",
+      "DP-14"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-20",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Manter o servidor vertra remoto (OAuth) disponível para os agentes; risco F-055 aceito pelo proprietário.",
+    "efeito": "Mitigação: equipe usa vertra-ln-leitura e a chave de deploy limitada do PM. Ato raiz de findings.csv (a4af617) já no main.",
+    "vinculo": [
+      "F-055"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-21",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Proprietário confirmou a R0-01: inventário de credenciais sem valores (01_matriz_credenciais_R0-01_v2.md, ajustado por DP-19/DP-20) e teto de US$ 50/mês.",
+    "efeito": "Evidência para a R0-01; a aprovação formal está na DP-33.",
+    "vinculo": [
+      "DP-19",
+      "DP-20",
+      "D11",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-22",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Manter o plano Vertra pro-8.",
+    "efeito": "Ordem de provisionamento apertada; o build exige liberar memória antes (build leve da int/008).",
+    "vinculo": [
+      "DP-14"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-23",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Backup externo de produção decidido depois do lançamento; lançar com o backup diário da Vertra (30 dias).",
+    "efeito": "Até existir o backup externo, RPO de até 24 h e RTO não medido; a ADR-012 (pg_dump a cada 6 h fora da Vertra) fica adiada.",
+    "vinculo": [
+      "ADR-012"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-24",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Produção sobe sem indexação até o go-live oficial.",
+    "efeito": "Portal de produção não indexável sem PORTAL_INDEXAVEL=1 (no main desde a int/007).",
+    "vinculo": [],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-25",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "DEEPSEEK_API_KEY mantida no cofre como risco aceito (gasto máximo = saldo pré-pago, contado na reserva de US$ 8). Correção: saldo OpenRouter real = US$ 4,23 com limite de US$ 50 na chave (DP-14), não US$ 0,32.",
+    "efeito": "Risco aceito da chave DeepSeek; corrige o saldo citado na DP-19.",
+    "vinculo": [
+      "DP-04",
+      "DP-14",
+      "DP-19"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-26",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Política de modelos de produção = proposta do FinOps, com: (a) critério de privacidade = ZDR listado no OpenRouter + política de dados arquivada; (b) sem reserva para a redação (DeepSeek fora; reserva de US$ 8 só auditoria); (c) Fable fora de todo trabalho não publicado. Ativação condicionada à qualificação (R2-07/08).",
+    "efeito": "Item (a) revogado pela DP-27; (b) e (c) seguem. Proposta de política v6/v7 (ADR-021); contracts/model.policy.json só muda por ato raiz.",
+    "vinculo": [
+      "DP-02",
+      "DP-04",
+      "DP-11",
+      "DP-27"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-27",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Proprietário dispensa a exigência de retenção zero (ZDR): a máquina e as assinaturas são exclusivas do projeto. Prioridade = executar via agentes do OpenBot nas assinaturas já pagas (Claude, Codex), fora do teto; API tarifada só como complemento, dentro dos US$ 50.",
+    "efeito": "Revoga o item (a) da DP-26 e a exigência de ZDR do P2 da DP-11; (b) e (c) da DP-26 seguem. Política v7 proposta (execution: openbot_subscription principal, openrouter_metered complemento).",
+    "vinculo": [
+      "DP-11",
+      "DP-26",
+      "D11"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-28",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Fontes da fábrica editorial: incluir também as fontes de mercado (programas, milhas, bancos, varejo, viagem, CRM), com risco aceito pelo proprietário, citando e linkando a fonte.",
+    "efeito": "Mantidos: sem reproduzir texto/imagem além do necessário; fontes classe C (proibição expressa) só caso a caso; dados de empresas como fato+fonte+link+data. As restrições de robots e bloqueio foram alteradas depois pela DP-32.",
+    "vinculo": [
+      "DP-29",
+      "DP-32"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-29",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Diretriz editorial: buscar o maior número de fontes possível; nunca reproduzir (a IA lê a fonte e redige com outras palavras, no tom de voz do projeto); priorizar blogs especializados ancorados nas fontes oficiais; gerar conteúdo autoral próprio sempre que houver espaço.",
+    "efeito": "Pauta autoral (Studio e editorial) e tom de voz v0.2. O limite do PM sobre bloqueios técnicos foi alterado pelo proprietário na DP-32.",
+    "vinculo": [
+      "DP-28",
+      "DP-32"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-30",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Proprietário aceita o risco dos termos de uso das assinaturas Anthropic (Claude) e OpenAI (ChatGPT/Codex) para uso automatizado do produto (parecer FinOps: risco alto Anthropic, médio-alto OpenAI).",
+    "efeito": "Mantém a DP-27: assinaturas via OpenBot como canal principal; API tarifada como complemento dentro de US$ 50.",
+    "vinculo": [
+      "DP-27"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao Decisões de 23/11/2026 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-31",
+    "status": "substituida",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "\"quero que contorne, aceito o risco, são imprescindíveis pra mim vários sites que vão ser bloqueados\"",
+    "efeito": "Substituída pela DP-32. Previa ignorar robots.txt e recusa por UA em páginas públicas, em ritmo baixo, sem CAPTCHA, proxies ou evasão.",
+    "vinculo": [
+      "DP-32"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-31 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-32",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "\"ignore o dp-31, seja o mais eficiente possível, use as ferramentas ao nosso favor\"",
+    "efeito": "Liberado em páginas públicas: provedores de scraping com desbloqueio (Bright Data, Tavily, Firecrawl e similares), inclusive CAPTCHA e proxies feitos pelo próprio provedor; ignorar robots.txt e recusa por UA. Mantido: sem login nem paywall; ritmo baixo; nunca reproduzir texto (DP-29); nada pago sem aprovação do proprietário. Risco jurídico e de termos de uso aceito.",
+    "vinculo": [
+      "DP-28",
+      "DP-29",
+      "DP-31",
+      "DP-36"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-32 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-33",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "aprovado, não precisa ter essa trava agora, está tudo rodando com créditos ou no modelo grátis, então não tem problema. Não precisa revisitar isso, apenas se acabar os créditos.",
+    "efeito": "R0-01 aprovada pelo proprietario. O registro do teto de US$ 50 no painel de cada provedor fica dispensado (so cota gratuita e credito pre-pago, sem cobranca recorrente); o teto continua nos controles internos (BalanceGuard, ledger, FinOps). Revisitar quando os creditos acabarem.",
+    "vinculo": [
+      "D11",
+      "DP-04",
+      "DP-21",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-33 (sha256 do arquivo-fonte a537de6db10efb8b0599bb7f52a27d6a781c9cb736c06d86b4bf8382221ae24d)"
+  },
+  {
+    "id": "DP-34",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Assinar o OpenCode Go (plano pago) para os modelos dos revisores (QA), independentes do Claude dos autores.",
+    "efeito": "Exceção aprovada ao teto de despesa nova US$ 0 (V3), só para esse fim. Vale para os revisores do Implementation Office; a DP-26 trata só da política de modelos do produto.",
+    "vinculo": [
+      "DP-13",
+      "DP-26"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-34 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-35",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Proprietário aprovou (\"pode\") carregar no staging os 20 cargos públicos da seed v4 (ft/intelligence 5074064, homologada pelo QA 3).",
+    "efeito": "Só nome, cargo, empresa e período, de páginas oficiais de RI e governança, com fonte, link e data; fonte secundária (LinkedIn, The Org) fica \"a confirmar\" e nunca vira fato; nada além do dado profissional (LGPD).",
+    "vinculo": [
+      "D07",
+      "J-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-35 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-36",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Bright Data com uma conta só (a conta 2, com web_unlocker1 e scraping_browser1); frase-senha da raiz (9 caracteres) não será trocada.",
+    "efeito": "A \"conta 1\" do cofre é cópia da 2, sem troca automática. Risco aceito RA-09 registrado.",
+    "vinculo": [
+      "DP-32",
+      "DP-07",
+      "DP-08"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-36 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-37",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Entregas que só mudam documentação ou testes, sem mudar o comportamento do site, entram com revisão por amostragem.",
+    "efeito": "Autor declara \"escopo: docs/testes\"; QA confere no mínimo 1 em cada 3 e toda entrega que mexa em teste de segurança, registrando lote e SHA em r0-preparacao/qa/amostragem.md. Código de produto, migrações, segurança, caminhos protegidos e evidências de governança seguem com parecer completo; os aceites no verificador não mudam.",
+    "vinculo": [],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-37 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-38",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Abrir ao público a exibição de pessoas, cargos e Moves no portal (flag intelligencePessoas ligada).",
+    "efeito": "Só cargos de fonte oficial e Moves confirmados; \"a confirmar\" nunca como fato; só nome, cargo, empresa e período (LGPD); remoção/correção pelo fluxo de direito de resposta. Liga no staging no próximo pacote e na produção no go-live, pelo mecanismo da ADR-022 (fast-track).",
+    "vinculo": [
+      "DP-35",
+      "D07",
+      "J-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-38 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-39",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Revisores (QA 1 a 7) passam a usar a API do DeepSeek (deepseek-v4-pro) ou um modelo gratuito indicado pelo PM; modelos gratuitos fracos (GPT-OSS, OpenCode free) proibidos em QA.",
+    "efeito": "Gasto tarifado: conta no teto de US$ 50/mês, com acompanhamento do FinOps.",
+    "vinculo": [
+      "DP-34",
+      "D11"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-39 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-40",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Recarga de US$ 10 na DeepSeek, feita pelo proprietário na conta DeepSeek (saldo esgotado às 12:41 de 23/11, US$ 3,22 consumidos).",
+    "efeito": "QAs voltam ao deepseek-v4-pro quando o FinOps confirmar o saldo; o Codex fica de reserva. Conta no teto de US$ 50/mês (mês em US$ 3,99 antes da recarga).",
+    "vinculo": [
+      "DP-39",
+      "D11"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-40 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-41",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Ligar o piloto de 10 matérias no staging: openbotDispatch NO STAGING quando o piloto estiver pronto (revisão, integração, fontes habilitadas). Agentes do OpenBot só nas assinaturas já pagas (Claude e Codex), sem API tarifada, sem publicação: tudo em rascunho para leitura do editor-chefe.",
+    "efeito": "FLAG_RELEASES.openbotDispatch = { staging: DP-41, production: null } pelo mecanismo da ADR-022 (fast-track). Produção continua desligada até nova decisão registrada.",
+    "vinculo": [
+      "DP-27",
+      "DP-30",
+      "DP-38"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-41 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
   }
 ]

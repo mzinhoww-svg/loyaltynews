@@ -109,7 +109,7 @@ describe('fila do titular no Studio (DP-38)', () => {
       const id = await novo();
       const r = await postar('POST', [id, 'decidir'], chefe, body);
       expect(r.status, JSON.stringify(body)).toBe(200);
-      expect(r.body).toMatchObject({ estado, decidido_por: chefe.id, efeitoPublico: 'pendente', decisao: { acao: body.acao } });
+      expect(r.body).toMatchObject({ estado, decidido_por: chefe.id, efeitoPublico: 'aplicado', decisao: { acao: body.acao } });
       const again = await postar('POST', [id, 'decidir'], admin, { acao: 'negar', motivo: 'tarde demais' });
       expect(again.status).toBe(409);
       expect(again.body.error.code).toBe('ALREADY_DECIDED');

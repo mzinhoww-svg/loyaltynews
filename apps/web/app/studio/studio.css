@@ -1,69 +1,96 @@
-/* LN Studio — estilos próprios do painel (escopo .studio). Migrar para tokens de @ln/ui quando o Design System entrar no scaffold. */
+/* LN Studio — estilos próprios do painel (escopo .studio), SOBRE os tokens do Brandkit (@ln/ui/tokens: --ln-*).
+ * Sem cor literal aqui (F-26): toda cor vem de um token; o layout segue o mesmo. */
 .studio {
-  --st-bg: #f5f6f8;
-  --st-panel: #ffffff;
-  --st-ink: #14181f;
-  --st-muted: #4b5563;
-  --st-line: #d6dae1;
-  --st-accent: #0b3d91;
-  --st-accent-ink: #ffffff;
-  --st-warn-bg: #fff4d6;
-  --st-warn-ink: #5c3d00;
-  --st-danger: #9b1c1c;
-  --st-ok: #0f6b3a;
+  --st-bg: var(--ln-color-surface-subtle);
+  --st-panel: var(--ln-color-white);
+  --st-ink: var(--ln-color-black);
+  --st-muted: var(--ln-color-text-muted);
+  --st-line: var(--ln-color-border);
+  --st-line-strong: var(--ln-color-border-strong);
+  --st-accent: var(--ln-color-primary);
+  --st-accent-ink: var(--ln-color-white);
+  --st-warn-bg: var(--ln-color-warning-bg);
+  --st-warn-ink: var(--ln-color-warning-fg);
+  --st-danger: var(--ln-color-danger);
+  --st-ok: var(--ln-color-success-fg);
   min-height: 100vh;
   background: var(--st-bg);
   color: var(--st-ink);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--ln-font-ui);
   font-size: 15px;
   line-height: 1.5;
 }
 .studio *, .studio *::before, .studio *::after { box-sizing: border-box; }
-.studio a { color: var(--st-accent); }
-.studio :focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
-.studio .skip { position: absolute; left: -999px; top: 0; background: #fff; padding: 8px 12px; z-index: 10; }
+.studio a { color: var(--ln-role-link); }
+.studio a.st-btn { color: var(--st-accent-ink); }
+.studio a.st-btn.sec { color: var(--st-accent); }
+.studio :focus-visible { outline: var(--ln-focus-width) solid var(--ln-color-focus); outline-offset: var(--ln-focus-offset); }
+.studio .skip { position: absolute; left: -999px; top: 0; background: var(--ln-color-white); padding: 8px 12px; z-index: 10; }
 .studio .skip:focus { left: 8px; top: 8px; }
 
 
-.st-card { background: var(--st-panel); border: 1px solid var(--st-line); border-radius: 10px; padding: 16px 18px; }
+.st-card { background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); padding: 16px 18px; }
 .st-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .st-stat { font-size: 28px; font-weight: 700; margin: 0; }
-.st-empty { border: 2px dashed var(--st-line); border-radius: 10px; padding: 24px; background: var(--st-panel); }
+.st-empty { border: 2px dashed var(--st-line); border-radius: var(--ln-radius-lg); padding: 24px; background: var(--st-panel); }
 .st-empty h2 { margin-top: 0; }
-.st-badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #e8ecf4; color: #1f2a44; font-weight: 600; }
-.st-badge.rascunho { background: #e8ecf4; }
-.st-badge.em_checagem { background: #fff1c2; color: #5c3d00; }
-.st-badge.bloqueado { background: #fbd5d5; color: var(--st-danger); }
-.st-badge.aprovado { background: #cdeedb; color: var(--st-ok); }
-.st-badge.publicado { background: #cfe3ff; color: #0b3d91; }
+.st-badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: var(--ln-radius-pill); background: var(--ln-color-neutral-bg); color: var(--ln-color-neutral-fg); font-weight: 600; }
+.st-badge.rascunho { background: var(--ln-color-neutral-bg); color: var(--ln-color-neutral-fg); }
+.st-badge.em_checagem { background: var(--ln-color-warning-bg); color: var(--ln-color-warning-fg); }
+.st-badge.bloqueado { background: var(--ln-color-danger-bg); color: var(--ln-color-danger-fg); }
+.st-badge.aprovado { background: var(--ln-color-success-bg); color: var(--ln-color-success-fg); }
+.st-badge.publicado { background: var(--ln-color-info-bg); color: var(--ln-color-info-fg); }
 
-.st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: 10px; overflow: hidden; }
+.st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); overflow: hidden; }
 .st-table th, .st-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--st-line); vertical-align: top; }
-.st-table th { background: #eef1f6; font-size: 13px; }
+.st-table th { background: var(--ln-color-neutral-bg); font-size: 13px; }
 .st-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 14px; }
-.st-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.st-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; min-width: 0; }
 .st-field label, .st-field legend { font-weight: 600; font-size: 14px; }
-.st-field input[type='text'], .st-field input[type='url'], .st-field input[type='search'], .st-field select, .st-field textarea { font: inherit; padding: 8px 10px; border: 1px solid #8b93a3; border-radius: 6px; background: #fff; color: var(--st-ink); }
+.st-field input[type='text'], .st-field input[type='url'], .st-field input[type='search'], .st-field select, .st-field textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--st-line-strong); border-radius: var(--ln-radius-sm); background: var(--ln-color-white); color: var(--st-ink); width: 100%; min-width: 0; }
 .st-field textarea { min-height: 220px; }
 .st-field .err { color: var(--st-danger); font-size: 13px; }
 .st-hint { color: var(--st-muted); font-size: 13px; }
 .st-row { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
-.st-btn { font: inherit; border: 1px solid var(--st-accent); background: var(--st-accent); color: var(--st-accent-ink); padding: 8px 14px; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-.st-btn.sec { background: #fff; color: var(--st-accent); }
+.st-row > * { min-width: 0; }
+.st-btn { font: inherit; border: 1px solid var(--st-accent); background: var(--st-accent); color: var(--st-accent-ink); padding: 8px 14px; border-radius: var(--ln-radius-sm); cursor: pointer; text-decoration: none; display: inline-block; }
+.st-btn.sec { background: var(--ln-color-white); color: var(--st-accent); }
 .st-btn.danger { background: var(--st-danger); border-color: var(--st-danger); }
 .st-btn[disabled], .st-btn[aria-disabled='true'] { opacity: 0.55; cursor: not-allowed; }
 .st-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .st-two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 18px; align-items: start; }
 .st-issues { list-style: none; padding: 0; margin: 0; }
-.st-issues li { padding: 6px 0; border-bottom: 1px solid var(--st-line); }
+.st-issues li { padding: 6px 0; border-bottom: 1px solid var(--st-line); overflow-wrap: anywhere; }
 .st-issues .bloqueio::before { content: 'Bloqueio: '; font-weight: 700; color: var(--st-danger); }
 .st-issues .aviso::before { content: 'Aviso: '; font-weight: 700; color: var(--st-warn-ink); }
-.st-alert { padding: 10px 12px; border-radius: 6px; border: 1px solid var(--st-line); background: #fff; margin-bottom: 12px; }
-.st-alert.err { border-color: var(--st-danger); background: #fdecec; }
-.st-alert.ok { border-color: var(--st-ok); background: #e6f6ee; }
+.st-alert { padding: 10px 12px; border-radius: var(--ln-radius-sm); border: 1px solid var(--st-line); background: var(--ln-color-white); margin-bottom: 12px; overflow-wrap: anywhere; }
+.st-alert.err { border-color: var(--st-danger); background: var(--ln-color-danger-bg); color: var(--ln-color-danger-fg); }
+.st-alert.ok { border-color: var(--st-ok); background: var(--ln-color-success-bg); color: var(--ln-color-success-fg); }
 .st-center { max-width: 560px; margin: 12vh auto; padding: 0 16px; }
 
+/* P2-11: título da tela não encosta nos botões logo abaixo */
+.studio h1 { line-height: 1.25; margin: 0 0 var(--ln-space-3); }
+/* P2-01: campo travado parece travado (fundo neutro, cursor de bloqueio) */
+.studio fieldset:disabled input, .studio fieldset:disabled textarea, .studio fieldset:disabled select, .studio input[readonly], .studio textarea[readonly] { background: var(--ln-color-neutral-bg); color: var(--st-muted); cursor: not-allowed; }
+/* P2-08: o formulário de bloco mostra só os campos do tipo escolhido (sem JS) */
+.bloco-form:has(#blocoTipo option[value='destaque']:checked) [data-nao~='destaque'],
+.bloco-form:has(#blocoTipo option[value='lista_editoria']:checked) [data-nao~='lista_editoria'],
+.bloco-form:has(#blocoTipo option[value='ultimas']:checked) [data-nao~='ultimas'],
+.bloco-form:has(#blocoTipo option[value='agenda']:checked) [data-nao~='agenda'],
+.bloco-form:has(#blocoTipo option[value='publicidade']:checked) [data-nao~='publicidade'] { display: none; }
+
 @media (max-width: 860px) {
-  .st-two, .st-row { grid-template-columns: 1fr; }
+  /* P2-10: alvos de toque de pelo menos 44 px no celular */
+  .studio .st-btn, .studio select, .studio input[type='text'], .studio input[type='url'], .studio input[type='search'], .studio input[type='date'] { min-height: 44px; }
+  .studio .st-table a, .studio .st-issues a, .studio .st-actions a { display: inline-block; min-height: 44px; line-height: 44px; }
+  /* abrir e fechar seção (details/summary) também é alvo de toque */
+  .studio summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
+  /* link sozinho no seu bloco (voltar, cartões de módulo, itens de lista); link no meio de uma frase é exceção de tamanho */
+  .studio main a:only-child { display: inline-block; min-height: 44px; line-height: 44px; }
+  .studio label:has(input[type='checkbox']), .studio label:has(input[type='radio']) { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+  .studio input[type='checkbox'], .studio input[type='radio'] { width: 44px; height: 44px; }
+  .st-two, .st-row { grid-template-columns: minmax(0, 1fr); }
   .st-main { padding: 14px; }
+  /* F-27: toda tabela larga (inclusive as dos pacotes @ln/*) rola dentro do próprio quadro, não a página inteira */
+  .studio table { display: block; max-width: 100%; overflow-x: auto; }
 }

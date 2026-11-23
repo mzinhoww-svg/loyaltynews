@@ -18,7 +18,7 @@ export const emptySource: PortalSource = {
     return emptyPage(q?.page, q?.pageSize);
   },
   async getArticle() {
-    return null;
+    return { article: null };
   },
   async getRelated() {
     return [];
@@ -27,10 +27,10 @@ export const emptySource: PortalSource = {
     return emptyPage(page);
   },
   async listEvents() {
-    return [];
+    return { items: [] };
   },
   async getEvent() {
-    return null;
+    return { event: null };
   },
   async listMoves() {
     return [];
@@ -58,5 +58,26 @@ export const emptySource: PortalSource = {
   },
   async getAd() {
     return null;
+  },
+  async getSiteConfig() {
+    return null;
+  },
+  async getCompanyDirectory() {
+    return { status: 'ok', items: [], total: 0, kinds: [] };
+  },
+  async getCompany() {
+    return { status: 'not_found' };
+  },
+  async getPeopleDirectory() {
+    return { status: 'ok', items: [], total: 0, available: false };
+  },
+  async getPerson() {
+    return { status: 'not_found' };
+  },
+  async getMovesFeed() {
+    return { status: 'ok', items: [], total: 0, available: false };
+  },
+  async getMove() {
+    return { status: 'not_found' };
   },
 };

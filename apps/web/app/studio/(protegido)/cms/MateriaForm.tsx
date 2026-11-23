@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { EDITORIAS } from '@ln/contracts';
 import { salvarMateriaAction, type FormState } from './actions';
 
@@ -62,10 +62,20 @@ function Err({ erros, campo }: { erros: Record<string, string>; campo: string })
 
 export function MateriaForm({ id, valor, evidencias, somenteLeitura }: { id?: string; valor?: ValorMateria; evidencias: EvidenciaOpcao[]; somenteLeitura?: boolean }) {
   const [state, action, pending] = useActionState(salvarMateriaAction, inicial);
-  const e = state.erros;
   const v = valor;
+  // campos editados depois do último envio deixam de mostrar o erro antigo (P2-06); um novo envio traz erros novos
+  const [edicao, setEdicao] = useState<{ para: unknown; nomes: ReadonlySet<string> }>({ para: null, nomes: new Set() });
+  const editados = edicao.para === state ? edicao.nomes : new Set<string>();
+  const e = Object.fromEntries(Object.entries(state.erros).filter(([campo]) => !editados.has(campo)));
   return (
-    <form action={action} noValidate>
+    <form
+      action={action}
+      noValidate
+      onChange={(ev) => {
+        const nome = (ev.target as unknown as HTMLInputElement).name;
+        if (nome) setEdicao((p) => ({ para: state, nomes: new Set([...(p.para === state ? p.nomes : []), nome]) }));
+      }}
+    >
       {id ? <input type="hidden" name="id" value={id} /> : null}
       {state.mensagem ? (
         <div className="st-alert err" role="alert">

@@ -10,7 +10,8 @@ export async function GET() {
   const src = getSource();
   // Sem itens quando a indexação está bloqueada (produção pré-go-live sem PORTAL_INDEXAVEL=1, staging, vitrine; igual ao sitemap)
   // e com fonte MOCK/vitrine (Security R6): o canal RSS existe, mas não publica itens.
-  const items = src.kind === 'mock' || indexingBlocked() ? [] : (await src.getLatest({ pageSize: 30 })).items;
+  const noindexPublicado = (await src.getSiteConfig())?.seo?.noindex === true;
+  const items = src.kind === 'mock' || indexingBlocked() || noindexPublicado ? [] : (await src.getLatest({ pageSize: 30 })).items;
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
 <title>${x(SITE_NAME)}</title><link>${SITE_URL}</link><description>${x(SITE_DESCRIPTION)}</description><language>pt-BR</language>

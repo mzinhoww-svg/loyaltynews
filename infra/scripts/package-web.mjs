@@ -23,11 +23,19 @@ for (const k of ['repo', 'commit', 'out']) if (!args[k] || args[k] === true) fai
 const repo = resolve(String(args.repo));
 const profile = String(args.profile || 'staging-min');
 const vitrine = Boolean(args.vitrine);
+// --flags nome1,nome2 (ADR-022, DP-38): flags de produto ligadas por variável LN_FLAGS_ON, SÓ no staging (web e worker). Grava flagsLigadas no release.json e a variável nos
+//   passos set_env; o guard-env (build e start) recusa LN_FLAGS_ON diferente do release.json. Produção nunca: lá a flag liga por commit revisado (FLAG_RELEASES).
+const flagsLigadas = args.flags === undefined ? [] : [...new Set(String(args.flags === true ? '' : args.flags).split(',').map((s) => s.trim()).filter(Boolean))].sort();
+if (args.flags !== undefined && flagsLigadas.length === 0) fail('--flags exige nomes de flag separados por vírgula (ex.: --flags intelligencePessoas)', 2);
+for (const n of flagsLigadas) if (!/^[A-Za-z][A-Za-z0-9]*$/.test(n)) fail(`--flags: nome inválido "${n}" (só letras e números, como em FLAG_DEFAULTS)`, 2);
 // --indexavel (DP-24): so o web de PRODUCAO, no go-live. Sem ele a producao e NAO indexavel (noindex, robots Disallow: /, sem sitemap).
 const indexavel = Boolean(args.indexavel);
 // --sem-typecheck-no-build --typecheck-report <relatorio.json> (opcao e do PM): o build da Vertra pula o typecheck do Next (RAM do ambiente de build); so com o relatorio de
 // integracao com typecheck VERDE do MESMO commit. Sem o relatorio recusa; o pacote registra isso no release.json (semTypecheckNoBuild).
 const semTypecheck = Boolean(args['sem-typecheck-no-build']);
+// --build-leve: o next build roda com 1 worker (CIRCLE_NODE_TOTAL=2 pelo build-web); so web. Para o app de 512 MB (ambiente de build de 1024 MB).
+const buildLeve = Boolean(args['build-leve']);
+if (buildLeve && args.app === 'workers') fail('--build-leve so vale para o web (o worker nao usa o Next)', 2);
 if (semTypecheck && (args.app === 'workers')) fail('--sem-typecheck-no-build so vale para o web (o worker nao usa o Next)', 2);
 if (semTypecheck && (!args['typecheck-report'] || args['typecheck-report'] === true)) fail('--sem-typecheck-no-build exige --typecheck-report <relatorio de integracao.mjs --verify>', 2);
 if (indexavel && (profile !== 'production' || args.app === 'workers')) fail('--indexavel so vale para o web do perfil production (staging nunca e indexavel)', 2);
@@ -38,6 +46,7 @@ if (!['web', 'workers'].includes(appKey)) fail('--app deve ser web ou workers', 
 if (vitrine && appKey !== 'web') fail('--vitrine só vale para o web', 2);
 const SELF = dirname(fileURLToPath(import.meta.url));
 // Vitrine só no staging (Security R2/R3): recusa ANTES de tocar no repositório.
+if (flagsLigadas.length && (profile === 'production' || /^prod/i.test(profile))) fail('--flags recusado: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES', 2);
 if (vitrine && (profile === 'production' || /^prod/i.test(profile))) fail('--vitrine recusado: a vitrine de demonstração do portal só existe no staging (perfil production nunca leva PORTAL_VITRINE)', 2);
 
 function git(a, { input } = {}) {
@@ -80,6 +89,7 @@ const siteUrl = sub ? `https://${sub}.vertraweb.app` : null;
 const appEnvBuild = web.env?.APP_ENV ?? (profile === 'production' ? 'production' : 'staging');
 // O build_command NÃO usa atribuição inline (na Vertra a URL não chegou ao next build): build-web.mjs lê siteUrl/appEnv do release.json,
 // põe no ambiente do processo filho, verifica o HTML da home e falha se o canonical não for a URL do ambiente.
+if (flagsLigadas.length && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--flags recusado: APP_ENV do perfil é "${appEnvBuild}"; flags por variável só com APP_ENV=staging`, 2);
 if (vitrine && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--vitrine recusado: APP_ENV do perfil é "${appEnvBuild}"; a vitrine só vale com APP_ENV=staging`, 2);
 if (vitrine && !siteUrl) fail('--vitrine exige --subdomain (o build_command com build-web.mjs/release.json é o que liga e confere a vitrine)', 2);
 const buildCmd = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs' : web.build_command;
@@ -97,7 +107,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -105,7 +115,7 @@ const vArgs = Object.entries(virtuals).map(([p, c]) => `--add-virtual-file=${p}:
 
 // 5. destino (nunca sobrescreve sem --force)
 const out = resolve(String(args.out));
-const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}`;
+const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}`;
 const folder = join(out, name);
 const zip = join(out, `${name}.zip`);
 const manifestPath = join(out, `${name}.manifest.json`);
@@ -136,7 +146,7 @@ try {
   const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8' });
   const zipEntries = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
   if (zipEntries.length !== files.length) fail(`pasta (${files.length} arquivos) e ZIP (${zipEntries.length}) divergem`);
-  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy'], { encoding: 'utf8' });
+  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(profile === 'production' ? ['--producao'] : [])], { encoding: 'utf8' });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote:\n${ck.stderr}`);
   const bytes = statSync(zip).size;
   if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
@@ -160,9 +170,11 @@ try {
     ...(vitrine ? [{ nome: 'PORTAL_VITRINE', valor: '1' }] : []),
     // Producao indexavel (go-live): tambem em EXECUCAO; start-web compara com release.json.indexavel. Sem --indexavel a variavel NAO deve existir.
     ...(indexavel ? [{ nome: 'PORTAL_INDEXAVEL', valor: '1' }] : []),
+    // ADR-022: flags de produto ligadas por variável (só staging); também em EXECUÇÃO o guard-env compara com release.json.flagsLigadas. Sem --flags a variável NÃO deve existir.
+    ...(flagsLigadas.length ? [{ nome: 'LN_FLAGS_ON', valor: flagsLigadas.join(',') }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [

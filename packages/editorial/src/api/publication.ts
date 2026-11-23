@@ -1,5 +1,5 @@
 import { canTransition } from '@ln/contracts';
-import { runDeterministicChecks } from '../rules/rules';
+import { isSimulatedContent, runDeterministicChecks } from '../rules/rules';
 import { draftContentSha256 } from '../intelligence/published';
 import type { ArticleRecord, EditorialStore, OutboxItem } from './store';
 
@@ -25,7 +25,7 @@ export interface PublicationInput {
    */
   expectedContentSha256?: string;
 }
-export type PublicationCode = 'not_found' | 'invalid_input' | 'not_approved' | 'gate_failed' | 'no_draft' | 'receipt_stale' | 'slug_immutable' | 'slug_taken';
+export type PublicationCode = 'not_found' | 'invalid_input' | 'not_approved' | 'gate_failed' | 'no_draft' | 'receipt_stale' | 'slug_immutable' | 'slug_taken' | 'simulated_content';
 export type PublicationResult =
   | { ok: true; record: ArticleRecord; outbox: 'enqueued' | 'duplicate'; alreadyPublished: boolean }
   | { ok: false; code: PublicationCode; message: string; findings?: Array<{ code: string; message: string }> };
@@ -39,6 +39,7 @@ export async function applyPublication(store: EditorialStore, input: Publication
   const rec = await store.getArticle(input.articleId);
   if (!rec) return { ok: false, code: 'not_found', message: 'matéria não encontrada' };
   if (!rec.draft) return { ok: false, code: 'no_draft', message: 'matéria sem rascunho' };
+  if (isSimulatedContent(rec.draft)) return { ok: false, code: 'simulated_content', message: 'conteúdo SIMULADO (ensaio com modelo simulado) nunca é publicado' };
   if (input.expectedContentSha256 && input.expectedContentSha256 !== draftContentSha256(rec.draft)) {
     return { ok: false, code: 'receipt_stale', message: 'o conteúdo do rascunho mudou depois do recibo: o hash do recibo não corresponde mais' };
   }

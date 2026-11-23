@@ -131,6 +131,18 @@ export const campaigns = pgTable('campaigns', {
   index('campaigns_status_idx').on(t.status),
 ]);
 
+/** Posições da campanha (várias por campanha; ordem = a do domínio). `campaigns.slot_id` continua = a PRIMEIRA, para leitores antigos.
+ *  Backend 3, a pedido do Commercial (ft/commercial 4ea7404). Linha legada sem posições aqui: a posição é a de `campaigns.slot_id`. */
+export const campaignPositions = pgTable('campaign_positions', {
+  campanhaId: text('campanha_id').notNull().references(() => campaigns.id),
+  slotId: text('slot_id').notNull().references(() => adSlots.id),
+  ordem: integer('ordem').notNull(),
+}, (t) => [
+  uniqueIndex('campaign_positions_pk').on(t.campanhaId, t.slotId),
+  uniqueIndex('campaign_positions_ordem_uq').on(t.campanhaId, t.ordem),
+  check('campaign_positions_ordem', sql`${t.ordem} >= 0`),
+]);
+
 export const adReservations = pgTable('ad_reservations', {
   id: text('id').primaryKey(),
   slotId: text('slot_id').notNull().references(() => adSlots.id),
@@ -240,4 +252,28 @@ export const adDeliveryGaps = pgTable('ad_delivery_gaps', {
   check('ad_delivery_gaps_ordem', sql`${t.from} <= ${t.servedUntil} AND ${t.servedUntil} <= ${t.to}`),
   check('ad_delivery_gaps_contadores', sql`${t.uncountedServes} >= 0 AND ${t.ignoredEvents} >= 0`),
   index('ad_delivery_gaps_periodo_idx').on(t.from, t.to),
+]);
+
+/** Contato de uma conta do CRM (dado pessoal). Só nasce por ato explícito no Studio; base legal, data e autor gravados pelo servidor.
+ *  Backend 3, a pedido do Commercial (ft/commercial 4ea7404). Nunca sai em rota pública nem no mídia kit. */
+export const crmContacts = pgTable('crm_contacts', {
+  id: text('id').primaryKey(),
+  contaId: text('conta_id').notNull().references(() => crmAccounts.id),
+  nome: text('nome').notNull(),
+  email: text('email').notNull(),
+  whatsapp: text('whatsapp'),
+  cargo: text('cargo'),
+  baseLegal: text('base_legal').notNull(),
+  consentimentoEm: timestamp('consentimento_em', { withTimezone: true, precision: 3 }).notNull(),
+  registradoPor: text('registrado_por'),
+  classeDeDado: text('classe_de_dado').notNull().default('personal'),
+  criadoEm: timestamp('criado_em', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('crm_contacts_email_uq').on(t.contaId, sql`lower(${t.email})`),
+  index('crm_contacts_conta_idx').on(t.contaId, t.criadoEm),
+  check('crm_contacts_base_legal', sql`${t.baseLegal} in ('consentimento', 'legitimo_interesse', 'execucao_de_contrato')`),
+  check('crm_contacts_classe', sql`${t.classeDeDado} = 'personal'`),
+  check('crm_contacts_nome', sql`char_length(btrim(${t.nome})) BETWEEN 1 AND 120`),
+  check('crm_contacts_email', sql`char_length(${t.email}) BETWEEN 3 AND 254 AND ${t.email} LIKE '%_@_%'`),
+  check('crm_contacts_cargo', sql`${t.cargo} IS NULL OR char_length(${t.cargo}) <= 80`),
 ]);

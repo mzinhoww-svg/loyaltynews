@@ -30,6 +30,16 @@ describe('rascunho dos perfis OpenBot (nada é criado)', () => {
     expect(draft.agents.find((a) => a.department === 'executivo')!.chairs_rituals).toEqual(expect.arrayContaining(['D-sync', 'W-cross', 'M-board', 'X-incident']));
   });
 
+  it('registra as decisões do PM e os critérios de divisão da Editorial (S1–S3, só com medição real)', () => {
+    expect(draft.pm_decisions.map((d) => d.date)).toEqual(['2026-11-23', '2026-11-23']);
+    expect(JSON.stringify(draft.pm_decisions)).toMatch(/1 agente até a medição real de R4/);
+    expect(draft.editorial_split_criteria.map((c) => c.id)).toEqual(['S1', 'S2', 'S3']);
+    expect(draft.editorial_split_criteria.every((c) => c.proposed === true)).toBe(true);
+    // a divisão deixou de ser decisão em aberto
+    expect(draft.open_decisions.join(' ')).not.toMatch(/24 perfis|dividir/);
+    expect(draft.agents.find((a) => a.department === 'editorial')).toBeDefined();
+  });
+
   it('restrições de segurança em todos: gateway, não publicar, não criar agentes, sem credencial de provedor', () => {
     for (const a of draft.agents) {
       const must = a.must_not.join(' | ');

@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { EDITORIAS, FLAG_DEFAULTS } from '@ln/contracts';
-import { getDeps } from '@/app/api/_lib/deps';
+import { EDITORIAS } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
+import { urlPublicaDaMateria } from '@/lib/studio/cms/url-publica';
 import { checkAccess } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { evidenciasDisponiveis } from '@/lib/studio/cms/evidencias';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
-import { STATUS_EDITAVEIS, TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
+import { STATUS_EDITAVEIS, STATUS_LABEL, TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
 import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
@@ -38,12 +39,11 @@ export default async function Materia({ params, searchParams }: { params: Promis
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
   const editavel = STATUS_EDITAVEIS.includes(m.status);
-  // mesma leitura de flags das rotas do Backend (getDeps); sem banco configurado cai no padrão (tudo desligado)
-  const publicacaoLigada = (getDeps()?.flags ?? FLAG_DEFAULTS).publicacaoPortal === true;
+  // flag pelo resolvedor de runtime (ADR-022): o mesmo da API e do /api/health
+  const publicacaoLigada = flagAtiva('publicacaoPortal');
   const podePublicar = checkAccess(session, ['admin', 'editor_chefe']).ok;
-  const base = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
-  // URL pública canônica da matéria no Portal: /noticia/{slug}
-  const urlPublica = base ? `${base}/noticia/${m.slug}` : '';
+  // URL pública canônica da matéria no Portal: /noticia/{slug} (não se digita)
+  const urlPublica = urlPublicaDaMateria(m.slug);
   const publicada = m.status === 'publicado' || m.status === 'corrigido';
   // correção: revisão em aberto (404 = não há) e casos desta matéria (o Backend confere se o caso é aceito, no PATCH)
   const revisao = publicada ? await api.materias.revisao(m.id) : null;
@@ -65,7 +65,11 @@ export default async function Materia({ params, searchParams }: { params: Promis
       <Flash tipo={tipo} aviso={aviso} />
       <div className="st-two">
         <section aria-label="Editor">
-          {!editavel ? <p className="st-hint">Só rascunho e bloqueado são editáveis; para alterar, volte a matéria a rascunho.</p> : null}
+          {!editavel ? (
+            <div className="st-alert" role="note" data-travada="sim">
+              Esta matéria está em <strong>{STATUS_LABEL[m.status as keyof typeof STATUS_LABEL] ?? m.status}</strong>: os campos abaixo ficam travados. Só rascunho e bloqueado são editáveis; para alterar, volte a matéria a rascunho.
+            </div>
+          ) : null}
           <MateriaForm
             key={`${m.id}-${m.versao}`}
             id={m.id}
@@ -149,7 +153,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
 
             {m.recibo ? (
               <p className="st-hint">
-                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador}>Aprovado por {m.recibo.aprovador}.</span>
+                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador} title={m.recibo.aprovador}>Aprovado por {m.recibo.aprovador === session.userId ? 'você' : `outro usuário (${m.recibo.aprovador.slice(0, 8)}…)`}.</span>
               </p>
             ) : null}
             <section aria-labelledby="pub-titulo" style={{ marginTop: 12 }}>
@@ -167,7 +171,8 @@ export default async function Materia({ params, searchParams }: { params: Promis
                   <input type="hidden" name="recibo" value={m.recibo.id} />
                   <div className="st-field">
                     <label htmlFor="url-publica">URL pública da matéria</label>
-                    <input id="url-publica" name="url" type="url" defaultValue={urlPublica} />
+                    <input id="url-publica" name="url" type="url" defaultValue={urlPublica} readOnly={Boolean(urlPublica)} />
+                    {urlPublica ? <span className="st-hint">É a URL da matéria no Portal; não se digita.</span> : null}
                   </div>
                   <button className="st-btn" type="submit" disabled={!publicacaoLigada} aria-describedby="pub-hint">
                     Publicar
@@ -264,7 +269,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
                         <input type="hidden" name="correcao" value="1" />
                         <div className="st-field">
                           <label htmlFor="url-correcao">URL pública da matéria</label>
-                          <input id="url-correcao" name="url" type="url" defaultValue={urlPublica} />
+                          <input id="url-correcao" name="url" type="url" defaultValue={urlPublica} readOnly={Boolean(urlPublica)} />
                         </div>
                         <button className="st-btn" type="submit" disabled={!publicacaoLigada}>
                           Publicar correção

@@ -21,9 +21,9 @@ describe('fonte vazia (padrão)', () => {
     expect(await emptySource.getHighlights()).toEqual([]);
     expect(await emptySource.getTrending('24h')).toEqual([]);
     expect((await emptySource.getLatest()).total).toBe(0);
-    expect(await emptySource.getArticle('x')).toBeNull();
+    expect(await emptySource.getArticle('x')).toEqual({ article: null });
     expect((await emptySource.search('loyalty')).items).toEqual([]);
-    expect(await emptySource.listEvents()).toEqual([]);
+    expect(await emptySource.listEvents()).toEqual({ items: [] });
     expect(await emptySource.listMoves()).toEqual([]);
     expect(await emptySource.getAd('topo')).toBeNull();
   });
@@ -41,7 +41,7 @@ describe('fonte MOCK', () => {
     const all = (await mockSource.getLatest({ pageSize: 100 })).items;
     expect(all.length).toBe(20);
     expect(all.every((a) => a.mock && a.title.includes('MOCK'))).toBe(true);
-    expect((await mockSource.listEvents()).every((e) => e.mock)).toBe(true);
+    expect((await mockSource.listEvents()).items.every((e) => e.mock)).toBe(true);
     const a = await mockSource.getAudience();
     expect([...a.realtime, ...a.historical].every((m) => m.value === null)).toBe(true);
   });
@@ -59,7 +59,7 @@ describe('fonte MOCK', () => {
     expect((await mockSource.search('zzzz-nada')).total).toBe(0);
   });
   it('relacionadas não incluem a própria matéria', async () => {
-    const a = (await mockSource.getArticle('mock-bancos-1'))!;
+    const a = (await mockSource.getArticle('mock-bancos-1')).article!;
     const rel = await mockSource.getRelated(a, 3);
     expect(rel).toHaveLength(3);
     expect(rel.some((r) => r.slug === a.slug)).toBe(false);

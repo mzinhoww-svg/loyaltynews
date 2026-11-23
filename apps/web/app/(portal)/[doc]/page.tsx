@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHead } from '../_components/ui';
 import { INFO_DOCS, INFO_SLUGS } from '../_lib/institutional';
+import { PedidoTitularForm } from '../_titular/PedidoTitularForm';
 
 type Props = { params: Promise<{ doc: string }> };
 
@@ -47,6 +48,13 @@ export default async function InfoPage({ params }: Props) {
           <Link href="/politica-editorial" className="pt-more">Política editorial →</Link>{' '}
           <Link href="/correcoes" className="pt-more">Correções →</Link>
         </p>
+      )}
+      {d.slug === 'correcoes' && (
+        <section id="pedido" className="pt-section" aria-labelledby="pedido-t" style={{ margin: '24px 0' }}>
+          <h2 id="pedido-t">Pedir correção ou remoção de um dado</h2>
+          <PedidoTitularForm />
+          <noscript><p>Este formulário precisa de JavaScript ligado no navegador.</p></noscript>
+        </section>
       )}
       {d.slug === 'publicidade' && (
         <p><Link href="/midia-kit" className="ln-btn ln-btn--primary">Ver mídia kit</Link></p>

@@ -11,7 +11,7 @@ import { makeIllustration } from '../publishable';
 import { SIGNATURE } from '../types';
 import type { Draft, Evidence } from '../types';
 
-const col = new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver(), flags: COLLECT_ON });
+const col = new Collector(mockWeb(), { minSpacingMs: 0, now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver(), flags: COLLECT_ON });
 const ev: Evidence = (await col.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 
 function mk(over: Partial<Draft> & { body?: string } = {}): Draft {

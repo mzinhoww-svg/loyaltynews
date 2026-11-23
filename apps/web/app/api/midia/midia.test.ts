@@ -130,6 +130,40 @@ describe('metadados, licença e deduplicação', () => {
     expect((await call(midiaUma.PATCH, 'PATCH', { params: { id: vencidaId }, body: {}, as: editor })).status).toBe(400);
     expect((await call(midiaUma.PATCH, 'PATCH', { params: { id: 'nao-existe' }, body: { licencaExpiraEm: null }, as: editor })).status).toBe(404);
   });
+
+  it('filtros licencaStatus, publicavel e q usam a MESMA régua dos campos da resposta; total reflete o filtro; inválidos 400', async () => {
+    const mk = async (n: string, over: Record<string, unknown>) => {
+      const r = await call(midia.POST, 'POST', { body: { tipo: 'imagem', direitos, sha256: sha(n), licencaEvidencia: evid, ...over }, as: editor });
+      expect(r.status).toBe(201);
+      return r.body.data.id as string;
+    };
+    const pendente = await mk('flt-pend', { direitos: { ...direitos, baseDeDireito: 'pendente', credito: 'Fotógrafo 100%_raro' }, licencaEvidencia: undefined });
+    const venc = await mk('flt-venc', { licencaExpiraEm: '2026-12-02', direitos: { ...direitos, textoAlternativo: 'Avião da companhia Zeta' } });
+    await app.db.update(schema.media).set({ licencaExpiraEm: '2026-10-01' }).where(eq(schema.media.id, venc));
+    const list = (query: Record<string, string>) => call(midia.GET, 'GET', { query: { limit: '100', ...query }, as: editor });
+    // cada filtro de status devolve só itens com aquele status, e o total bate com os itens (todos cabem em 100)
+    for (const st of ['sem_expiracao', 'valida', 'vence_em_breve', 'vencida']) {
+      const r = await list({ licencaStatus: st });
+      expect(r.status).toBe(200);
+      expect(r.body.data.every((m: any) => m.licencaStatus === st)).toBe(true);
+      expect(r.body.total).toBe(r.body.data.length);
+    }
+    expect((await list({ licencaStatus: 'vencida' })).body.data.map((m: any) => m.id)).toContain(venc);
+    const naoPub = await list({ publicavel: 'false' });
+    expect(naoPub.body.data.every((m: any) => m.publicavel === false)).toBe(true);
+    expect(naoPub.body.data.map((m: any) => m.id)).toEqual(expect.arrayContaining([pendente, venc]));
+    const pub = await list({ publicavel: 'true' });
+    expect(pub.body.data.every((m: any) => m.publicavel === true)).toBe(true);
+    const todos = await list({});
+    expect(pub.body.total + naoPub.body.total).toBe(todos.body.total); // partição exata
+    // q: crédito ou texto alternativo, sem diferenciar caixa; % e _ literais; espaços nas pontas ignorados
+    expect((await list({ q: '  avião da companhia zeta ' })).body.data.map((m: any) => m.id)).toEqual([venc]);
+    expect((await list({ q: '100%_raro' })).body.data.map((m: any) => m.id)).toEqual([pendente]);
+    expect((await list({ q: '%' })).body.data.map((m: any) => m.id)).toEqual([pendente]); // só o crédito com % literal
+    expect((await list({ q: 'nada-casa-isto' })).body).toMatchObject({ data: [], total: 0 });
+    const invalidos: Record<string, string>[] = [{ licencaStatus: 'x' }, { publicavel: 'sim' }, { q: '   ' }, { q: 'x'.repeat(101) }];
+    for (const bad of invalidos) expect((await list(bad)).status).toBe(400);
+  });
 });
 
 describe('upload do arquivo', () => {

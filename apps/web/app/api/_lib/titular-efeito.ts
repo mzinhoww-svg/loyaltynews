@@ -38,4 +38,4 @@ export async function efeitosTitular(db: Db): Promise<EfeitosTitular> {
 }
 
 /** Um pedido específico já tem efeito aplicado pelas rotas públicas? Liga quando o Backend 1 entregar o consumo (EFEITO_APLICADO). */
-export const EFEITO_APLICADO = false;
+export const EFEITO_APLICADO = true;

@@ -125,6 +125,31 @@
             "status": "external",
             "evidence": "sampleFromResponse existe; falta rodar em staging com chamadas reais"
           }
+        },
+        {
+          "id": "G2.6",
+          "text": "Orçamento da qualificação em etapas cabe na DP-04: etapa 1 ≤ US$ 5, etapa 2 ≤ US$ 10, total de novembro ≤ US$ 15, sem Opus/GPT-6.2-sol, sem DeepSeek/Fable, sem a reserva de auditoria",
+          "measure": "buildQualificationPlan(política).ok (model-qualification-protocol.md, seções 2 e 8)",
+          "threshold": "todas as verificações de erro do plano OK (avisos viram decisão pendente)",
+          "owner": "AgentOps + FinOps",
+          "proposedThreshold": true,
+          "avaliacao_offline": {
+            "criterion": "G2.6",
+            "status": "met_offline",
+            "evidence": "plano de qualificação OK: etapa 1 US$ 1.66, etapa 2 US$ 5.71 (teto com reexecução; total de novembro ≤ US$ 15)"
+          }
+        },
+        {
+          "id": "G2.7",
+          "text": "Travas do protocolo resolvidas antes de qualquer chamada: T1–T3 decididas (DP-26) e T6 decidida (ADR-021) mais T4, T5 (efetividade), T6 (implementação e homologação do modo), T7 (G4 fechado), T8, T9 (recarga), T10 (cap por etapa) e T11 (fonte de verba da rotulagem)",
+          "measure": "registro de cada trava em model-qualification-protocol.md, seção 1",
+          "threshold": "todas resolvidas; qualificação real só depois do G4 fechado e do modo qualification homologado",
+          "owner": "Proprietário + PM + Arquiteto + Backend + FinOps + Security + Editorial",
+          "avaliacao_offline": {
+            "criterion": "G2.7",
+            "status": "external",
+            "evidence": "DP-26 e ADR-021 decidiram T1–T3 e T6; faltam o G4 fechado (L5), a implementação e homologação do modo, a recarga, o cap por etapa (T10), a fonte de verba da rotulagem (T11) e o golden set humano: nada roda"
+          }
         }
       ]
     },
@@ -179,16 +204,27 @@
       "atendido": false,
       "criterios": [
         {
+          "id": "G4.0",
+          "text": "O PostgresLedgerStore passa a suíte de aceitação do ledger (A01–A12 obrigatórios, A10 com SQL cru; A13 opcional)",
+          "measure": "packages/modelops/src/ledger-acceptance (já no canônico, ft/modelops c354b89): PGlite no npm test e PostgreSQL local real com LN_G4_REAL=1",
+          "threshold": "12 de 12 obrigatórios passando, nenhum \"skipped\"",
+          "owner": "Backend + AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G4.0",
+            "status": "external",
+            "evidence": "passou 12 de 12 obrigatórios em PostgreSQL 18.7 local no ft/modelops c354b89 (suíte já no canônico); falta rodar no staging, só com banco de teste próprio (G3)"
+          }
+        },
+        {
           "id": "G4.1",
-          "text": "LedgerStore em PostgreSQL com transação e bloqueio de linha",
-          "measure": "teste de concorrência: N reservas paralelas não ultrapassam o teto",
-          "threshold": "0 estouros em 1000 reservas concorrentes (proposta)",
-          "owner": "Backend",
-          "proposedThreshold": true,
+          "text": "Exclusão mútua entre conexões e processos",
+          "measure": "caso A07 + estresse de 1.000 reservas em 4 conexões + dois processos de SO contra PostgreSQL local (real-pg.test.ts)",
+          "threshold": "exatamente 440 aceitas de 1.000 (verba de US$ 22 a US$ 0,05), 0 estouros, ids únicos; dois processos: 220 + 220 = 440",
+          "owner": "Backend + AgentOps",
           "avaliacao_offline": {
             "criterion": "G4.1",
             "status": "external",
-            "evidence": "pacote modelops (Backend + FinOps): fora desta frente"
+            "evidence": "passou em PostgreSQL 18.7 local no c354b89: estresse de 1.000 reservas → 440 aceitas e dois processos de SO → 220 + 220; falta o staging (G3)"
           }
         },
         {
@@ -200,7 +236,7 @@
           "avaliacao_offline": {
             "criterion": "G4.2",
             "status": "external",
-            "evidence": "pacote modelops (Backend + FinOps): fora desta frente"
+            "evidence": "pendência do Backend: exige gerações reais (chamadas pagas) e a conciliação com /generation"
           }
         },
         {
@@ -212,7 +248,7 @@
           "avaliacao_offline": {
             "criterion": "G4.3",
             "status": "external",
-            "evidence": "pacote modelops (Backend + FinOps): fora desta frente"
+            "evidence": "fechado pelo Backend no ft/modelops c354b89 (balance_guard_missing antes de qualquer reserva; saldo lido antes da 1ª retenção); a evidência é do Backend, não repetida aqui"
           }
         }
       ]
@@ -279,6 +315,19 @@
           "owner": "Security",
           "avaliacao_offline": {
             "criterion": "G5.5",
+            "status": "external",
+            "evidence": "depende de aval, adaptador e agentes que não existem"
+          }
+        },
+        {
+          "id": "G5.6",
+          "text": "Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas",
+          "measure": "editorial_split_criteria do rascunho + harness de tokens/latência",
+          "threshold": "S1, S2 e S3 dentro do limiar; senão dividir",
+          "owner": "AgentOps + PM",
+          "proposedThreshold": true,
+          "avaliacao_offline": {
+            "criterion": "G5.6",
             "status": "external",
             "evidence": "depende de aval, adaptador e agentes que não existem"
           }

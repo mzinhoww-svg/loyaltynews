@@ -5,11 +5,15 @@
 //   3. Segredos: nada que pareça chave privada, token ou string de conexão com senha; nenhum .env versionado (exceto *.example).
 //   4. Variáveis só de teste: LN_STUDIO_TEST_SESSION não pode existir no ambiente nem no build nem em arquivos de deploy;
 //      PORTAL_SOURCE/PORTAL_MODE=mock só em teste (modo estrito com --deploy ou APP_ENV=staging|production).
-// Uso: node infra/scripts/ci-checks.mjs [--root <pasta>] [--deploy]   (código 1 = reprovado)
+//   5. Segredo em log de erro (incidente 23/11/2026, Security 17): conexão (pg, ioredis, BullMQ) sem .on('error') no arquivo e console.* com o erro inteiro,
+//      em apps/ e packages/ fora de teste. REPROVA com --producao (o pacote de produção) ou --logs-estritos; nos demais casos imprime AVISO e segue.
+// Uso: node infra/scripts/ci-checks.mjs [--root <pasta>] [--deploy] [--producao] [--logs-estritos]   (código 1 = reprovado)
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER } from './lib/guards.mjs';
+import { conexoesComSenhaReais } from './lib/segredos.mjs';
+import { achadosDoArquivo, ehCodigoDeProduto } from './lib/erros-log.mjs';
+import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER, ASSIGN_FLAGS } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', 'dist', 'build', 'coverage']);
@@ -78,7 +82,11 @@ for (const f of all) {
   if (statSync(f).size > 2 * 1024 * 1024 || /\.(png|jpe?g|gif|webp|pdf|zip|gz|woff2?|ttf|otf|mp4|xlsx)$/i.test(r)) continue;
   if (r === 'infra/scripts/ci-checks.mjs' || r.startsWith('infra/tests/')) continue; // padrões e fixtures de teste
   const txt = readFileSync(f, 'utf8');
-  for (const [nome, re] of SECRET_PATTERNS) if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
+  for (const [nome, re] of SECRET_PATTERNS) {
+    if (nome === 'string de conexão com senha') {
+      if (conexoesComSenhaReais(txt, r).length) problems.push(`segredo: ${nome} em ${r}`);
+    } else if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
+  }
 }
 
 /** Texto sem comentários (comentário que CITA `PORTAL_VITRINE=1` não é atribuição). Só para a checagem da vitrine. */
@@ -103,12 +111,14 @@ for (const f of all) {
     for (const [nome, cmd] of Object.entries(scripts)) {
       if (/e2e|test/i.test(nome)) continue; // scripts de teste podem usar as variáveis
       if (ASSIGN_STUDIO.test(String(cmd)) || ASSIGN_PORTAL_MOCK.test(String(cmd))) problems.push(`variável só de teste no script "${nome}" de ${r}`);
+      if (ASSIGN_FLAGS.test(String(cmd))) problems.push(`LN_FLAGS_ON atribuída no script "${nome}" de ${r}: flags de produto por variável só no staging, no set_env do pedido de deploy (ADR-022)`);
       if (ASSIGN_VITRINE.test(String(cmd))) problems.push(`PORTAL_VITRINE atribuída no script "${nome}" de ${r}: a vitrine do staging liga-se só pelo release.json do pacote (package-web --vitrine)`);
     }
     continue;
   }
   if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
-  if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE/PORTAL_MODE=mock atribuído em ${r}`);
+  if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE ou PORTAL_MODE com valor mock atribuído em ${r}`);
+  if (ASSIGN_FLAGS.test(semComentarios(txt, r))) problems.push(`LN_FLAGS_ON atribuída em ${r} (configuração de deploy): a variável só existe no staging, no set_env do pedido de deploy (ADR-022); produção liga a flag por commit revisado`);
   if (ASSIGN_WAIVER.test(semComentarios(txt, r))) problems.push(`variável da dispensa de backup (DP-23) atribuída em ${r}: ela vale só no processo da migração`);
   // Vitrine (Security R8): nunca atribuída em configuração de deploy de PRODUÇÃO. Em environments.json vale só a subárvore ambientes.production
   // (o texto de regras e o contrato citam o nome); em workflows, Dockerfile e next.config qualquer atribuição reprova (a vitrine entra pelo release.json).
@@ -120,6 +130,13 @@ for (const f of all) {
   // next.config pode LER a variável para RECUSAR o build (padrão do Studio); o que reprova é injetá-la no build via `env:`/define
   if (/next\.config/.test(r) && /\b(?:env|define)\s*:\s*\{[^}]*(?:LN_STUDIO_TEST_SESSION|PORTAL_(?:SOURCE|MODE))/s.test(txt)) problems.push(`next.config injeta variável só de teste no build: ${r}`);
 }
+
+// 5. segredo em log de erro: reprova no pacote de produção; fora dele avisa (o Backend ainda precisa entregar C1 a C5 da decisão 17 da Security)
+const achadosLog = [];
+for (const f of all) { const r = rel(f); if (ehCodigoDeProduto(r)) achadosLog.push(...achadosDoArquivo(r, readFileSync(f, 'utf8'))); }
+const linhasLog = achadosLog.map((a) => `${a.arquivo}:${a.linha} [${a.regra}] ${a.motivo}`);
+if (argv.producao || argv['logs-estritos']) for (const l of linhasLog) problems.push(`segredo em log de erro: ${l}`);
+else if (linhasLog.length) console.warn(`ci-checks AVISO (vira REPROVAÇÃO com --producao): ${linhasLog.length} ocorrência(s) de segredo possível em log de erro:\n - ${linhasLog.join('\n - ')}`);
 
 if (problems.length) {
   console.error('ci-checks REPROVADO:\n - ' + problems.join('\n - '));

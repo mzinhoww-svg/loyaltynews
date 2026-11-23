@@ -1,0 +1,77 @@
+{
+  "AVISO": "SIMULADO — ensaio local. Conteúdo gerado por modelo simulado; NÃO é matéria; NÃO publicar. A publicação é recusada por regra (simulated_content).",
+  "fonte": {
+    "id": "senado-noticias",
+    "nome": "Agencia Senado / Senado Federal (noticias)",
+    "host": "www12.senado.leg.br",
+    "feedUrl": "https://www12.senado.leg.br/noticias/rss.xml",
+    "termos": "docs/termos-fontes.md (classe A: reuso autorizado no texto, com atribuição)",
+    "habilitacao": "revisão e habilitação registradas pelo roteiro de ensaio (simulado)"
+  },
+  "evidencia": {
+    "id": "ev_aeffa9315b649806",
+    "url": "https://www12.senado.leg.br/noticias/infomaterias/2026/11/autodeclaracao-racial-revela-preconceitos-e-combate-desigualdades",
+    "canonicalUrl": "https://www12.senado.leg.br/noticias/infomaterias/2026/11/autodeclaracao-racial-revela-preconceitos-e-combate-desigualdades",
+    "capturadaEm": "2026-11-23T11:06:12.666Z",
+    "sha256": "aeffa9315b649806e8f19f909763d728257ac68cf5839c65a6ed6961372a1349",
+    "titulo": "Autodeclaração racial revela preconceitos e combate desigualdades",
+    "textoInicio": "Autodeclaração racial ajuda a revelar preconceitos e combater desigualdades\nA classificação racial utilizada pelo Instituto Brasileiro de Geografia e Estatística (IBGE) é necessária, segundo especialistas ouvidos pela Agência Senado , porque ajuda a mapear as desigualdades sociais entre negros e brancos e a orientar as leis e políticas públicas que buscam mudar essa realidade.\nDe acordo com o Censo de 2022, os brasileiros são majoritariamente negros – 55,5% da população, sendo 45,3% pardos (com a pele negra mais clara) e 10,2% pretos (com a pele negra mais escura). Os brancos correspondem a 43",
+    "caracteresDoTexto": 7754,
+    "suspeita": false
+  },
+  "rascunho": {
+    "slug": "simulado-autodeclaracao-racial-revela-preconceitos-e-combate-desigualdades",
+    "titulo": "SIMULADO: Autodeclaração racial revela preconceitos e combate desigualdades",
+    "resumo": "SIMULADO — ensaio local com modelo simulado; este texto não é matéria jornalística e não pode ser publicado.",
+    "corpo": "SIMULADO — texto de ensaio gerado por modelo simulado, sem apuração e sem redação real. A fonte oficial publicou a matéria “Autodeclaração racial revela preconceitos e combate desigualdades”. O conteúdo completo está na fonte citada ao final.\n\nFontes:\n- Agencia Senado / Senado Federal (noticias): https://www12.senado.leg.br/noticias/infomaterias/2026/11/autodeclaracao-racial-revela-preconceitos-e-combate-desigualdades (acessado em 2026-11-23)",
+    "assinatura": "Redação Loyalty News",
+    "editoria": "regulacao",
+    "claims": [
+      {
+        "id": "c1",
+        "text": "A fonte oficial publicou matéria com o título citado.",
+        "kind": "fact",
+        "evidenceIds": [
+          "ev_aeffa9315b649806"
+        ]
+      }
+    ],
+    "imagem": {
+      "mode": "none",
+      "reason": "sem imagem candidata"
+    },
+    "provedorDoRedator": "simulado-redator"
+  },
+  "checagem": {
+    "provedor": "simulado-checador",
+    "modelo": "simulado-review",
+    "veredictos": [
+      {
+        "claimId": "c1",
+        "verdict": "pass"
+      }
+    ],
+    "independente": true
+  },
+  "gate": {
+    "passou": true,
+    "achados": []
+  },
+  "recibo": {
+    "id": "3319ddfc-07f3-4dfd-a637-b837a97c989c",
+    "versao": 1,
+    "conteudoSha256": "f5d358d9b278fbe96595bfe9b3ebb6fd4b0eae35ebdbcee94f8bb511a415be9d",
+    "identidadeDePublicacao": "portal",
+    "igualAoHashDoRascunho": true
+  },
+  "articles": {
+    "id": "art_d2e07e4baae810ccd42e",
+    "status": "aprovado",
+    "slug": "simulado-autodeclaracao-racial-revela-preconceitos-e-combate-desigualdades",
+    "fontesLigadas": 1
+  },
+  "publicacao": {
+    "realizada": false,
+    "motivo": "flag publicacaoPortal desligada; conteúdo SIMULADO é recusado por regra"
+  }
+}

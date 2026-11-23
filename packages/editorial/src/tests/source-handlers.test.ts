@@ -50,7 +50,7 @@ test('revisão: pesquisador não revisa a própria fonte; inacessível, paywall 
   assert.equal((await reviewSource(c, { ...REVIEW, urlVerified: false })).status, 409);
   assert.equal((await reviewSource(c, { ...REVIEW, robotsChecked: false })).status, 409);
   assert.equal((await reviewSource(c, { ...REVIEW, paywall: 'login' })).status, 409);
-  assert.equal((await reviewSource(c, { ...REVIEW, sourceId: 'magalu-ri' })).status, 409); // inacessível na pesquisa
+  assert.equal((await reviewSource(c, { ...REVIEW, sourceId: 'santander-ri' })).status, 409); // inacessível na pesquisa
   assert.equal((await reviewSource(c, { ...REVIEW, termsNote: 'ok' })).status, 400);
   assert.equal((await reviewSource(c, { ...REVIEW, sourceId: 'nao-existe' })).status, 404);
   // fonte sem pesquisador registrado: não há como garantir independência

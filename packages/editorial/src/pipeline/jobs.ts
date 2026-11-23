@@ -1,6 +1,6 @@
 import type { IntelligenceHandoff } from '../intelligence/types';
 import type { Draft, Evidence, Finding } from '../types';
-import type { Editoria } from '../types';
+import type { AutoralFormat, Editoria } from '../types';
 
 export const STAGES = ['triage', 'context', 'draft', 'factcheck', 'review', 'social_pack', 'roles'] as const;
 export type Stage = (typeof STAGES)[number];
@@ -18,12 +18,18 @@ export interface ArticleJob {
   duplicateOf?: string | null;
   context?: ContextNote[];
   draft?: Draft;
+  /** Id da TAREFA (no gateway) que produziu o rascunho atual, se o gateway informou: é o `reviewedDraftTaskId` das etapas seguintes. */
+  draftTaskId?: string;
   /** Slug gerado na 1ª redação e mantido nas seguintes (muda livremente até a 1ª publicação; depois é imutável). */
   slug?: string;
   attempt: number;           // redações tentadas (máx. 3, model.policy rules.max_attempts)
   feedback?: Finding[];      // achados que motivaram nova redação
-  factcheck?: { provider: string; model: string; verdicts: FactVerdict[] };
+  factcheck?: { provider: string; model: string; verdicts: FactVerdict[]; reviewedDraftTaskId?: string; reviewedDraftSha256?: string };
+  /** Resultado da revisão final (qual revisão do rascunho avaliou e por qual modelo). */
+  review?: { provider: string; model: string; reviewedDraftTaskId: string; reviewedDraftSha256: string };
   approved?: boolean;
+  /** Pauta AUTORAL (DP-29): presente só no conteúdo próprio da redação; ausente = matéria de reescrita de fonte. */
+  autoral?: { pautaId: string; formato: AutoralFormat; titulo: string; angulo: string };
 }
 
 export interface JobSpec { stage: Stage; jobId: string; data: ArticleJob }
@@ -32,7 +38,7 @@ export type BlockerCode =
   | 'duplicate' | 'rights_unknown' | 'suspicious_evidence' | 'not_relevant'
   | 'unsupported_claim' | 'copy_literal' | 'cross_provider_check_failed' | 'approval_missing'
   | 'rights_basis_unresolved' | 'budget_blocked' | 'invalid_model_output' | 'max_attempts' | 'no_image'
-  | 'not_published' | 'stale_approval';
+  | 'not_published' | 'stale_approval' | 'unanchored' | 'autoral_invalid';
 
 export interface Blocked { articleId: string; stage: Stage; blockers: BlockerCode[]; findings: Finding[] }
 

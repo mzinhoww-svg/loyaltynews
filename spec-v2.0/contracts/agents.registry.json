@@ -1,0 +1,1024 @@
+{
+  "schema_version": "2.0",
+  "format": "Loyalty News logical registry; not native OpenBot import",
+  "agents": [
+    {
+      "id": "publisher",
+      "name": "Publisher / CEO",
+      "department": "executivo",
+      "reports_to": null,
+      "mission": "Estratégia, arbitragem, limites de orçamento e escalonamento humano",
+      "default_route": "strategic",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy"
+      ],
+      "kpi": "receita, qualidade, orçamento",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "editorial",
+      "name": "Editor-chefe",
+      "department": "editorial",
+      "reports_to": "publisher",
+      "mission": "Política editorial, pauta transversal, exceções e qualidade",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " correções, qualidade e SLA",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "creative",
+      "name": "Diretor criativo",
+      "department": "creative",
+      "reports_to": "publisher",
+      "mission": "Brand system, padrões, auditoria de arte",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " aprovação visual e custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "growth",
+      "name": "Diretor de Growth",
+      "department": "growth",
+      "reports_to": "publisher",
+      "mission": "Aquisição, retenção, distribuição e experimentos",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " tráfego qualificado e opt-ins",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "intelligence",
+      "name": "Diretor de Intelligence",
+      "department": "intelligence",
+      "reports_to": "publisher",
+      "mission": "Grafo, organogramas, dados e produto B2B",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " cobertura e precisão",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "commercial",
+      "name": "Diretor comercial",
+      "department": "commercial",
+      "reports_to": "publisher",
+      "mission": "Inventário, propostas e receita; sem ingerência editorial",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " MRR, ocupação, renovação",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "technology",
+      "name": "Diretor de tecnologia",
+      "department": "technology",
+      "reports_to": "publisher",
+      "mission": "Plataforma, segurança, confiabilidade e FinOps",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " SLO e orçamento",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "trust",
+      "name": "Diretor de Trust & Quality",
+      "department": "trust",
+      "reports_to": "publisher",
+      "mission": "Políticas, privacidade, direitos e controles independentes",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " incidentes e gates",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "editor_mercado",
+      "name": "Editor de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Resultados, M&A, breakage, novos negócios",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "mercado",
+      "enabled": false
+    },
+    {
+      "id": "writer_mercado",
+      "name": "Redator de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "editor_mercado",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, ABEMF, CVM, comunicados",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "mercado",
+      "enabled": false
+    },
+    {
+      "id": "editor_programas",
+      "name": "Editor de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Tiers, clubes, parcerias, liability",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "programas",
+      "enabled": false
+    },
+    {
+      "id": "writer_programas",
+      "name": "Redator de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "editor_programas",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: LATAM Pass, Smiles, Azul, Livelo, Esfera",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "programas",
+      "enabled": false
+    },
+    {
+      "id": "editor_pontos",
+      "name": "Editor de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Acúmulo, resgate, preço efetivo, validade",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "pontos",
+      "enabled": false
+    },
+    {
+      "id": "writer_pontos",
+      "name": "Redator de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "editor_pontos",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Regulamentos oficiais, tabelas e ofertas públicas",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "pontos",
+      "enabled": false
+    },
+    {
+      "id": "editor_bancos",
+      "name": "Editor de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Rewards, co-branded, pagamentos, interchange",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "bancos",
+      "enabled": false
+    },
+    {
+      "id": "writer_bancos",
+      "name": "Redator de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "editor_bancos",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI e imprensa oficial, BCB, bandeiras",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "bancos",
+      "enabled": false
+    },
+    {
+      "id": "editor_varejo",
+      "name": "Editor de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Incentivos, recorrência, marketplaces",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "varejo",
+      "enabled": false
+    },
+    {
+      "id": "writer_varejo",
+      "name": "Redator de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "editor_varejo",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, newsletters oficiais e releases",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "varejo",
+      "enabled": false
+    },
+    {
+      "id": "editor_travel",
+      "name": "Editor de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Aéreo, hotéis, OTAs, experiências",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "travel",
+      "enabled": false
+    },
+    {
+      "id": "writer_travel",
+      "name": "Redator de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "editor_travel",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: RI, PANROTAS, programas hoteleiros",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "travel",
+      "enabled": false
+    },
+    {
+      "id": "editor_tech",
+      "name": "Editor de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. CDP, antifraude, APIs, IA e infraestrutura",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "tech",
+      "enabled": false
+    },
+    {
+      "id": "writer_tech",
+      "name": "Redator de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "editor_tech",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Documentação técnica e fornecedores",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "tech",
+      "enabled": false
+    },
+    {
+      "id": "editor_crm",
+      "name": "Editor de CRM & CX",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. CLV, retenção, personalização, omnichannel",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "crm",
+      "enabled": false
+    },
+    {
+      "id": "writer_crm",
+      "name": "Redator de CRM & CX",
+      "department": "editorial",
+      "reports_to": "editor_crm",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: Estudos e publicações de primeira parte",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "crm",
+      "enabled": false
+    },
+    {
+      "id": "editor_global",
+      "name": "Editor de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. Benchmarks e aplicabilidade ao Brasil",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "global",
+      "enabled": false
+    },
+    {
+      "id": "writer_global",
+      "name": "Redator de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "editor_global",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: The Wise Marketer, RI global, programas",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "global",
+      "enabled": false
+    },
+    {
+      "id": "editor_regulacao",
+      "name": "Editor de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Dono da editoria: pauta, checagem contextual e revisão. LGPD, consumidor, dados e normas",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "qualidade factual e SLA",
+      "scope": "regulacao",
+      "enabled": false
+    },
+    {
+      "id": "writer_regulacao",
+      "name": "Redator de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "editor_regulacao",
+      "mission": "Radar, pesquisa autorizada, apuração e redação. Fontes candidatas: ANPD, Senacon, BCB, CVM, Cade",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "fetch_allowed",
+        "draft"
+      ],
+      "kpi": "pautas úteis e factualidade",
+      "scope": "regulacao",
+      "enabled": false
+    },
+    {
+      "id": "newsdesk",
+      "name": "Newsdesk / Radar",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Desduplicar, atribuir editoria e formar clusters",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "agenda",
+      "name": "Editor de Agenda",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Eventos confirmados e cobertura",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "talks",
+      "name": "Editor de Entrevistas e Talks",
+      "department": "editorial",
+      "reports_to": "editorial",
+      "mission": "Organizar entrevistas reais; nunca inventar respostas",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "art",
+      "name": "Diretor de arte",
+      "department": "creative",
+      "reports_to": "creative",
+      "mission": "Templates, conceito de campanha e revisão visual",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "designer",
+      "name": "Designer editorial",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Composição determinística de imagens e carrosséis",
+      "default_route": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "media",
+      "name": "Pesquisador de mídia",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Seleção licenciada; direitos e créditos",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "image",
+      "name": "Criador de ilustrações",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Ilustrações conceituais autorizadas, sem falsa fotografia",
+      "default_route": "image_fast",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "visualqa",
+      "name": "QA visual",
+      "department": "creative",
+      "reports_to": "art",
+      "mission": "Conferir legibilidade, fatos, dimensão e licença",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "social",
+      "name": "Editor de social",
+      "department": "growth",
+      "reports_to": "growth",
+      "mission": "Estratégia e calendário de canal",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "linkedin",
+      "name": "Redator LinkedIn",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Copy B2B, menções verificadas e link com UTM",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "instagram",
+      "name": "Redator Instagram",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Copy, stories, carrosséis e link na bio",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "seo",
+      "name": "Especialista SEO",
+      "department": "growth",
+      "reports_to": "growth",
+      "mission": "Metadados, sitemap, links e qualidade de indexação",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "newsletter",
+      "name": "Editor The Loyal",
+      "department": "growth",
+      "reports_to": "growth",
+      "mission": "Curadoria e montagem das edições",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "publisher_social",
+      "name": "Operador de distribuição",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Agendar e reconciliar recibos aprovados",
+      "default_route": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "growth_analytics",
+      "name": "Analista Growth",
+      "department": "growth",
+      "reports_to": "growth",
+      "mission": "Métricas e experimentos, sem inferir alcance ausente",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "community",
+      "name": "Community manager",
+      "department": "growth",
+      "reports_to": "social",
+      "mission": "Triar comentários, rascunhar respostas, escalonar",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "discovery",
+      "name": "Entity Discovery",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Identificar pessoas, empresas e marcas",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "people",
+      "name": "People Intelligence",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Vínculos profissionais públicos e datados",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "company",
+      "name": "Company Intelligence",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Grupos, marcas, produtos e parceiros",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "orgchart",
+      "name": "Org Chart Builder",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Consolidar hierarquia apenas sustentada por evidência",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "moves",
+      "name": "Loyalty Moves",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Identificar e validar mudanças profissionais",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "graph",
+      "name": "Relationship Mapper",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Relações tipadas e resolução de conflitos",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "marketdata",
+      "name": "Analista Market Data",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Indicadores com unidade, período e metodologia",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "dataqa",
+      "name": "Data Quality Auditor",
+      "department": "intelligence",
+      "reports_to": "intelligence",
+      "mission": "Auditar identidade, proveniência e atualidade",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "adops",
+      "name": "Ad Operations",
+      "department": "commercial",
+      "reports_to": "commercial",
+      "mission": "Reservas, conflitos, pacing, criativos, entregas",
+      "default_route": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "sales",
+      "name": "Executivo comercial",
+      "department": "commercial",
+      "reports_to": "commercial",
+      "mission": "Qualificar leads e elaborar proposta; envio aprovado",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "pricing",
+      "name": "Analista Pricing",
+      "department": "commercial",
+      "reports_to": "commercial",
+      "mission": "Catálogo, pacotes e receita, sem falsa audiência",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "account",
+      "name": "Customer Success",
+      "department": "commercial",
+      "reports_to": "commercial",
+      "mission": "Relatórios e renovações, rascunhos",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "sre",
+      "name": "SRE / Observabilidade",
+      "department": "technology",
+      "reports_to": "technology",
+      "mission": "Alertas, capacidade, recuperação e backups",
+      "default_route": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "finops",
+      "name": "FinOps AI",
+      "department": "technology",
+      "reports_to": "technology",
+      "mission": "Rate cards, budgets, custo por unidade e alertas",
+      "default_route": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "platform",
+      "name": "Engenheiro de plataforma",
+      "department": "technology",
+      "reports_to": "technology",
+      "mission": "Mudanças técnicas em branch e testes; deploy humano",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "security",
+      "name": "Security Engineer",
+      "department": "technology",
+      "reports_to": "technology",
+      "mission": "Auditar privilégios, riscos e segredos",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "factcheck",
+      "name": "Fact Checker",
+      "department": "trust",
+      "reports_to": "trust",
+      "mission": "Claims, fonte primária e contradições independentes",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "rights",
+      "name": "Direitos de conteúdo",
+      "department": "trust",
+      "reports_to": "trust",
+      "mission": "Licenças, autorização, créditos e expiração",
+      "default_route": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy / LGPD",
+      "department": "trust",
+      "reports_to": "trust",
+      "mission": "Minimização, solicitações de titular e retenção",
+      "default_route": "premium",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    },
+    {
+      "id": "audit",
+      "name": "Auditor editorial",
+      "department": "trust",
+      "reports_to": "trust",
+      "mission": "Amostragem e avaliação cega; não aprova o próprio texto",
+      "default_route": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "scope": "internal",
+      "enabled": false
+    }
+  ]
+}

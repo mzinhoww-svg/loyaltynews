@@ -13,9 +13,9 @@ test.describe('Organização agêntica (@ln/agents)', () => {
     await expect(page.locator('tr[data-agente]')).toHaveCount(64);
     await page.getByLabel('Departamento').selectOption('editorial');
     await page.getByRole('button', { name: 'Filtrar' }).click();
-    const n = await page.locator('tr[data-agente]').count();
-    expect(n).toBeGreaterThan(10);
-    expect(n).toBeLessThan(64);
+    // o filtro navega: espera a lista mudar em vez de contar no meio da navegação
+    await expect.poll(() => page.locator('tr[data-agente]').count()).toBeLessThan(64);
+    expect(await page.locator('tr[data-agente]').count()).toBeGreaterThan(10);
   });
 
   test('perfil do agente: missão, ferramentas, equipe e 404', async ({ page, context }) => {

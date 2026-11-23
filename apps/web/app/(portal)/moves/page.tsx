@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { EmptyState, MockTag, PageHead } from '../_components/ui';
-import { formatDate } from '../_lib/format';
+import { ErrorState } from '../_components/states';
+import { EmptyState, PageHead } from '../_components/ui';
+import { MOVES_EMPTY, MoveCard } from '../intelligence/_components/intel';
 import { getSource } from '../_lib/source';
 
 export const revalidate = 60;
@@ -12,39 +13,26 @@ export const metadata: Metadata = {
 };
 
 export default async function MovesPage() {
-  const moves = (await getSource().listMoves()).sort((a, b) => b.announcedAt.localeCompare(a.announcedAt));
+  const feed = await getSource().getMovesFeed();
   return (
     <>
       <PageHead
         title="Loyalty Moves"
-        lead="Quem mudou de cargo ou de empresa no mercado de fidelização. Só publicamos movimentações confirmadas por fonte primária."
+        lead="Quem mudou de cargo ou de empresa no mercado de fidelização. Só publicamos movimentações confirmadas, com a fonte do antes e do depois."
         crumbs={[{ label: 'Intelligence', href: '/intelligence' }, { label: 'Moves' }]}
       />
-      {moves.length ? (
-        <div className="pt-scroll">
-          <table className="pt-table">
-            <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>Movimentações confirmadas, da mais recente para a mais antiga.</caption>
-            <thead>
-              <tr><th>Pessoa</th><th>Empresa</th><th>De</th><th>Para</th><th>Data</th><th>Fonte</th></tr>
-            </thead>
-            <tbody>
-              {moves.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.mock && <MockTag />}{m.personName}</td>
-                  <td>{m.companyName}</td>
-                  <td>{m.fromRole ?? '—'}</td>
-                  <td>{m.toRole}</td>
-                  <td><time dateTime={m.announcedAt}>{formatDate(m.announcedAt)}</time></td>
-                  <td><a href={m.sourceUrl} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>Fonte</a></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {feed.status === 'unavailable' ? (
+        <ErrorState title="Moves temporariamente indisponíveis" retryHref="/moves">
+          Não conseguimos carregar as movimentações agora. Isso não significa que não existam; tente de novo em instantes.
+        </ErrorState>
+      ) : feed.items.length ? (
+        <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 16 }} data-testid="moves-list">
+          {feed.items.map((m) => (
+            <li key={m.id}><MoveCard m={m} /></li>
+          ))}
+        </ul>
       ) : (
-        <EmptyState title="Em breve: primeiras movimentações confirmadas">
-          O Loyalty Moves detecta candidatos, confirma com fonte primária e só então publica. Nada é publicado como fato antes da confirmação.
-        </EmptyState>
+        <EmptyState title="Em breve: primeiras movimentações confirmadas">{MOVES_EMPTY}</EmptyState>
       )}
       <p className="pt-meta" style={{ marginTop: 18 }}>
         Veja a <Link href="/privacidade" style={{ textDecoration: 'underline' }}>política de privacidade e LGPD</Link> para pedidos de correção ou remoção de dados profissionais.

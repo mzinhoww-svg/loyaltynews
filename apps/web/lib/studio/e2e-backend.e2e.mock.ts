@@ -11,6 +11,8 @@ import { createAuth, createAuthHandler, createStaffUser, isRole, type Db, type R
 import { getRuntime, setRuntimeForTest } from '@ln/auth/runtime';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
+import { sampleArticle } from '@ln/editorial/testing';
+import { DEFAULT_CONFIG, addEvidence, addOrgRelation, processObservation, upsertOrganization, generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 import { criarClientePglite } from './dev-db.e2e.mock';
 import type { E2eBackend } from './e2e-backend.types';
 
@@ -94,6 +96,51 @@ async function montar() {
         .onConflictDoNothing();
       return { articleId };
     },
+    async seedIntelligence() {
+      const idb = (await criarClientePglite()) as unknown as IntelDb;
+      const cfg = { ...DEFAULT_CONFIG, personIngestion: true };
+      const ALFA = 'MOCK Alfa Fidelidade S.A.';
+      const BETA = 'MOCK Beta Cartões Ltda';
+      const existente = await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [ALFA]);
+      const ev = (slug: string, nome: string, quando: string) => addEvidence(idb, { sourceUrl: `https://mock.invalid/${slug}`, sourceName: nome, retrievedAt: quando, isMock: true });
+      if (!existente.rows[0]) {
+        const d1 = '2026-10-01T12:00:00Z';
+        const d2 = '2026-11-05T12:00:00Z';
+        const e1 = await ev('ri-alfa-1', 'MOCK RI Alfa (oficial)', d1);
+        const e2 = await ev('ri-alfa-2', 'MOCK RI Alfa (oficial, nova leitura)', d2);
+        const e3 = await ev('linkedin-alfa', 'MOCK LinkedIn (secundária)', d2);
+        const obs = (personName: string, title: string, evidenceId: string, observedAt: string, sourceLevel: 'oficial' | 'secundaria') => ({
+          personName, publicProfileUrl: `https://mock.invalid/in/${personName.toLowerCase().replace(/[^a-z]+/g, '-')}`, orgName: ALFA, title, kind: 'present' as const, evidenceId, observedAt, sourceLevel,
+        });
+        await processObservation(idb, obs('MOCK Ana Souza', 'Diretora de Marketing', e1, d1, 'oficial'), cfg);
+        await processObservation(idb, obs('MOCK Ana Souza', 'Diretora de CRM', e2, d2, 'oficial'), cfg); // title_change: Move detectado com antes e depois
+        await processObservation(idb, obs('MOCK Bruno Lima', 'Diretor Financeiro', e1, d1, 'oficial'), cfg);
+        await processObservation(idb, obs('MOCK Carla Dias', 'Gerente de Dados', e3, d2, 'secundaria'), cfg); // a confirmar
+        await processObservation(idb, obs('MOCK Eva Rocha', 'Gerente de Parcerias', e3, d2, 'secundaria'), cfg); // a confirmar (será descartada no teste)
+        const alfa = await upsertOrganization(idb, { legalName: ALFA, evidenceId: e1, observedAt: d1 });
+        const beta = await upsertOrganization(idb, { legalName: BETA, evidenceId: e1, observedAt: d1 });
+        await addOrgRelation(idb, { fromOrgId: alfa, toOrgId: beta, type: 'partner_of', validFrom: '2026-01-01', evidenceId: e1, observedAt: d1 });
+      }
+      const alfa = (await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [ALFA])).rows[0]!.id;
+      const beta = (await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [BETA])).rows[0]!.id;
+      // as pessoas são achadas pelo perfil público (estável): o nome muda quando um pedido do titular o corrige, e a pessoa removida continua com o mesmo perfil
+      const idDe = async (slug: string) => (await idb.query<{ id: string }>('SELECT id FROM intelligence.person WHERE public_profile_url = $1', [`https://mock.invalid/in/${slug}`])).rows[0]!.id;
+      return { alfa, beta, pessoa: await idDe('mock-ana-souza'), bruno: await idDe('mock-bruno-lima'), carla: await idDe('mock-carla-dias') };
+    },
+    async seedPautasProcessadas() {
+      const store = new PgEditorialStore(db);
+      const agora = new Date().toISOString();
+      const existentes = new Set((await store.listAudit()).map((a) => a.target));
+      const pauta = (id: string, titulo: string) => ({ id, titulo, angulo: 'Ângulo de teste (MOCK) com mais de vinte caracteres.', formato: 'analise', editoria: 'pontos', ancoras: ['https://exemplo.com.br/a', 'https://exemplo.com.br/b'] });
+      const grava = async (id: string, titulo: string, resultado: Record<string, unknown>) => {
+        if (existentes.has(id)) return;
+        await store.appendAudit({ at: agora, userId: 'redacao-e2e', action: 'pauta.submitted', target: id, detail: JSON.stringify({ pauta: pauta(id, titulo) }) });
+        await store.appendAudit({ at: agora, userId: null, action: 'pauta.processed', target: id, detail: JSON.stringify(resultado) });
+      };
+      await grava('pauta-e2e-aprovada', 'Pauta de teste aprovada (MOCK)', { status: 'aprovado', articleId: 'aut_e2e_aprovada', blockers: [], findings: [] });
+      await grava('pauta-e2e-bloqueada', 'Pauta de teste bloqueada (MOCK)', { status: 'bloqueado', articleId: null, blockers: ['autoral_needs_anchors'], findings: ['âncora sem evidência coletada'] });
+      return { aprovada: 'pauta-e2e-aprovada', bloqueada: 'pauta-e2e-bloqueada' };
+    },
     async seedEditorialAprovada() {
       const articleId = 'fabrica-e2e-2';
       const dia = new Date().toISOString().slice(0, 10);
@@ -117,6 +164,18 @@ Fontes:
         updatedAt: agora,
       } as Parameters<PgEditorialStore['putArticle']>[0]);
       return { articleId, draft };
+    },
+    async seedAlertasWatchlist() {
+      // Studio 2: o worker que gera alertas não roda no e2e; chama a função real do pacote sobre os Moves já semeados (idempotente).
+      const idb = (await criarClientePglite()) as unknown as IntelDb;
+      return { gerados: (await generateAlerts(idb)).length };
+    },
+    async seedPilotoArtigos() {
+      // Studio 2: dois artigos MOCK (sampleArticle da Editorial) para o caminho com dados da leitura do piloto; o mapa é fixado pela tela. Idempotente.
+      const store = new PgEditorialStore(db);
+      const ids = ['piloto-e2e-a1', 'piloto-e2e-a2', 'piloto-e2e-a4'];
+      for (const id of ids) if (!(await store.getArticle(id))) await store.putArticle(sampleArticle(id, { status: 'aprovado' }));
+      return { artigos: ids };
     },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
@@ -149,6 +208,9 @@ export const sincronizarFlagsE2e: (() => void) | null = () => {
   if (!rt || Object.keys(flags).length === 0) return;
   setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState });
 };
+
+/** As mesmas flags de teste que as rotas enxergam (setFlag); o Studio as soma ao resolvedor de runtime SÓ no build de e2e. */
+export const flagsE2e: (() => Record<string, boolean>) | null = () => ({ ...flagsGlobais() });
 
 const KEY = Symbol.for('ln.studio.e2e.backend');
 type G = typeof globalThis & { [KEY]?: Promise<E2eBackend> };

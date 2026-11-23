@@ -1,0 +1,77 @@
+{
+  "AVISO": "SIMULADO — ensaio local. Conteúdo gerado por modelo simulado; NÃO é matéria; NÃO publicar. A publicação é recusada por regra (simulated_content).",
+  "fonte": {
+    "id": "camara-noticias",
+    "nome": "Camara dos Deputados - Camara Noticias",
+    "host": "www.camara.leg.br",
+    "feedUrl": "https://www.camara.leg.br/noticias/rss/ultimas-noticias",
+    "termos": "docs/termos-fontes.md (classe A: reuso autorizado no texto, com atribuição)",
+    "habilitacao": "revisão e habilitação registradas pelo roteiro de ensaio (simulado)"
+  },
+  "evidencia": {
+    "id": "ev_656e3ad32dbf8643",
+    "url": "https://www.camara.leg.br/noticias/1321186-camara-deve-votar-ajuste-fiscal-proposta-do-governo-pretende-economizar-r-70-bilhoes",
+    "canonicalUrl": "https://www.camara.leg.br/noticias/1321186-camara-deve-votar-ajuste-fiscal-proposta-do-governo-pretende-economizar-r-70-bilhoes",
+    "capturadaEm": "2026-11-23T11:06:13.377Z",
+    "sha256": "656e3ad32dbf86434f808039d0f0c0216e62afbad355c650fac40da1e4d31377",
+    "titulo": "Câmara deve votar ajuste fiscal; proposta do governo pretende economizar R$ 70 bilhões",
+    "textoInicio": "Câmara deve votar ajuste fiscal; proposta do governo pretende economizar R$ 70 bilhões\nA Câmara dos Deputados tem sessão marrcada para a noite desta segunda-feira (23) com o objetivo de iniciar a discussão do projeto de ajuste fiscal ( Projeto de Lei Complementar 299/26 ), que já passou no Senado e prevê economia para se atingir superávit primário de cerca de R$ 18,7 bilhões em 2027. A votação depende do término da fase de discussão.\nO presidente da Câmara, Hugo Motta (Republicanos-PB), já destacou a importância de garantir o ajuste econômico . \" Nós precisamos garantir um ajuste econômico e f",
+    "caracteresDoTexto": 3011,
+    "suspeita": false
+  },
+  "rascunho": {
+    "slug": "simulado-camara-deve-votar-ajuste-fiscal-proposta-do-governo-pretende",
+    "titulo": "SIMULADO: Câmara deve votar ajuste fiscal; proposta do governo pretende economizar R$ 70 bilhões",
+    "resumo": "SIMULADO — ensaio local com modelo simulado; este texto não é matéria jornalística e não pode ser publicado.",
+    "corpo": "SIMULADO — texto de ensaio gerado por modelo simulado, sem apuração e sem redação real. A fonte oficial publicou a matéria “Câmara deve votar ajuste fiscal; proposta do governo pretende economizar R$ 70 bilhões”. O conteúdo completo está na fonte citada ao final.\n\nFontes:\n- Camara dos Deputados - Camara Noticias: https://www.camara.leg.br/noticias/1321186-camara-deve-votar-ajuste-fiscal-proposta-do-governo-pretende-economizar-r-70-bilhoes (acessado em 2026-11-23)",
+    "assinatura": "Redação Loyalty News",
+    "editoria": "regulacao",
+    "claims": [
+      {
+        "id": "c1",
+        "text": "A fonte oficial publicou matéria com o título citado.",
+        "kind": "fact",
+        "evidenceIds": [
+          "ev_656e3ad32dbf8643"
+        ]
+      }
+    ],
+    "imagem": {
+      "mode": "none",
+      "reason": "sem imagem candidata"
+    },
+    "provedorDoRedator": "simulado-redator"
+  },
+  "checagem": {
+    "provedor": "simulado-checador",
+    "modelo": "simulado-review",
+    "veredictos": [
+      {
+        "claimId": "c1",
+        "verdict": "pass"
+      }
+    ],
+    "independente": true
+  },
+  "gate": {
+    "passou": true,
+    "achados": []
+  },
+  "recibo": {
+    "id": "3e45f75b-052f-40d8-80ca-bcff847ead54",
+    "versao": 1,
+    "conteudoSha256": "2156acda5f4915ed271f31b75d617dca8f89e27e9d6515c226eea59cb4e9cef9",
+    "identidadeDePublicacao": "portal",
+    "igualAoHashDoRascunho": true
+  },
+  "articles": {
+    "id": "art_db4ec089847f54010f26",
+    "status": "aprovado",
+    "slug": "simulado-camara-deve-votar-ajuste-fiscal-proposta-do-governo-pretende",
+    "fontesLigadas": 1
+  },
+  "publicacao": {
+    "realizada": false,
+    "motivo": "flag publicacaoPortal desligada; conteúdo SIMULADO é recusado por regra"
+  }
+}
