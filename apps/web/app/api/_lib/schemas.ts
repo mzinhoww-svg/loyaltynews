@@ -63,6 +63,8 @@ export const ArticleUpdate = z
     classeDeDado: DataClass.optional(),
     patrocinado: z.boolean().optional(),
     rotuloPublieditorial: z.string().min(1).nullable().optional(),
+    /** Matéria já publicada: id do caso de correção aceito que autoriza a revisão (ADR-019 §c.5). */
+    casoCorrecaoId: z.string().min(1).max(128).optional(),
   })
   .refine((u) => Object.keys(u).some((k) => k !== 'versaoEsperada'), { message: 'nenhum campo para alterar' });
 

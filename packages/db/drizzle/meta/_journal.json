@@ -120,6 +120,13 @@
       "when": 1795396124782,
       "tag": "0016_fontes_origem",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795396427623,
+      "tag": "0017_article_revisions",
+      "breakpoints": true
     }
   ]
 }
