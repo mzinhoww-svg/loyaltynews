@@ -81,7 +81,15 @@ test.describe('CMS editorial (/api/materias)', () => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/cms/nova');
     await enviar(page, page.getByRole('button', { name: 'Criar rascunho' }));
-    await expect(page.getByRole('alert').filter({ hasText: /Entrada inválida|titulo/i }).first()).toBeVisible();
+    // faixa curta + erro por campo em português, sem texto cru do validador nem o slug (que não é campo da tela)
+    await expect(page.getByRole('alert').filter({ hasText: 'Corrija os campos destacados' }).first()).toBeVisible();
+    const erroTitulo = page.locator('.st-field', { has: page.locator('#titulo') }).locator('span.err');
+    await expect(erroTitulo).toContainText('obrigatório');
+    await expect(page.locator('main')).not.toContainText(/Too small|Invalid|Slug:/);
+    // P2-06: o erro de um campo some assim que a pessoa o edita (sem esperar reenviar); os dos outros ficam
+    await page.getByLabel('Título', { exact: true }).fill('Um título qualquer');
+    await expect(erroTitulo).toHaveCount(0);
+    await expect(page.locator('.st-field span.err').first()).toBeVisible();
   });
 
   test('criar, editar (nova versão), enviar sem fonte falha, enviar para checagem', async ({ page, context }) => {
@@ -152,6 +160,22 @@ test.describe('CMS editorial (/api/materias)', () => {
     await expect(page.getByText(/Fonte não confirma o número/)).toBeVisible();
   });
 
+  test('atalhos "para mim": o papel vê o que espera por ele (revisão e publicação)', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/cms');
+    await expect(page.locator('[data-para-mim-revisar]')).toBeVisible();
+    await expect(page.locator('[data-para-mim-publicar]')).toBeVisible();
+    await entrar(context, 'rui', 'revisor');
+    await page.goto('/studio/cms');
+    await expect(page.locator('[data-para-mim-revisar]')).toBeVisible();
+    await expect(page.locator('[data-para-mim-publicar]')).toHaveCount(0);
+    await page.locator('[data-para-mim-revisar]').click();
+    await expect(page).toHaveURL(/status=em_checagem/);
+    await entrar(context, 'ed', 'editor');
+    await page.goto('/studio/cms');
+    await expect(page.locator('[data-para-mim]')).toHaveCount(0);
+  });
+
   test('filtros por estado, editoria e busca; filtro inválido é recusado pela API', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/cms?status=bloqueado');
@@ -220,6 +244,12 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
     await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
     await expect(page.getByText('Publicação desligada neste ambiente (flag publicacaoPortal).')).toBeVisible();
     await expect(page.getByLabel('URL pública da matéria')).toBeVisible();
+    // P2-01: matéria aprovada não é editável e a tela diz isso com clareza (campo travado parece travado)
+    await expect(page.locator('[data-travada="sim"]')).toContainText('ficam travados');
+    const fundo = await page.locator('#titulo').evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(fundo).not.toBe('rgb(255, 255, 255)');
+    // P2-02: quem aprovou aparece como "você" ou "outro usuário", não só um identificador
+    await expect(page.locator('[data-aprovador]')).toContainText(/Aprovado por (você|outro usuário \([0-9a-f]{8}…\))/);
     // a transição genérica não publica nem corrige: a tela não oferece "corrigido"
     await expect(page.getByRole('button', { name: /corrigido|Corrigir/i })).toHaveCount(0);
 
@@ -230,7 +260,7 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
     await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
   });
 
-  test('ligada: o Backend recusa URL inválida e a recusa aparece como veio', async ({ page, context }) => {
+  test('ligada: botão habilitado e a URL pública do Portal é só leitura', async ({ page, context }) => {
     await definirFlag(context, 'publicacaoPortal', true);
     try {
       await entrar(context, 'ana', 'editor_chefe');
@@ -239,9 +269,9 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
       await expect(page.getByRole('button', { name: 'Publicar' })).toBeEnabled();
       await expect(page.getByText('Publicação desligada neste ambiente')).toHaveCount(0);
 
-      await page.getByLabel('URL pública da matéria').fill('ftp://exemplo.com/materia');
-      await enviar(page, page.getByRole('button', { name: 'Publicar' }));
-      await erro(page, /http/i);
+      // P2-03: a URL pública é a do Portal e não se digita (um erro de digitação gravaria no recibo um link que dá 404)
+      await expect(page.getByLabel('URL pública da matéria')).toHaveAttribute('readonly', '');
+      await expect(page.getByLabel('URL pública da matéria')).toHaveValue(/\/noticia\//);
 
       // a publicação que dá certo (matéria só do CMS, rota oficial) é testada em studio-z-correcao-cms.spec.ts, que roda por último
       await expect(page.locator('[data-publicado]')).toHaveCount(0);

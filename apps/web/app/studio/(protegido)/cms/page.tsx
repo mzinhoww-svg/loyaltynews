@@ -29,6 +29,13 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
   }
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
+  // P2-04: o que espera ESTE papel (revisão e publicação), sem filtrar na mão
+  const podePublicar = checkAccess(session, ['admin', 'editor_chefe']).ok;
+  const contar = async (st: 'em_checagem' | 'aprovado') => {
+    const x = await api.materias.listar({ status: st });
+    return ehErro(x) ? null : x.body.total;
+  };
+  const [paraRevisar, paraPublicar] = await Promise.all([podeRevisar ? contar('em_checagem') : null, podePublicar ? contar('aprovado') : null]);
   const filtroInvalido = ehErro(r);
   const lista = filtroInvalido ? [] : r.body.data;
   const total = filtroInvalido ? 0 : r.body.total;
@@ -53,6 +60,21 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           Pauta autoral
         </Link>
       </div>
+
+      {paraRevisar !== null || paraPublicar !== null ? (
+        <nav aria-label="Para mim" className="st-actions" style={{ marginBottom: 14 }} data-para-mim>
+          {paraRevisar !== null ? (
+            <Link className="st-btn sec" href="/studio/cms?status=em_checagem" data-para-mim-revisar={paraRevisar}>
+              Para revisar ({paraRevisar})
+            </Link>
+          ) : null}
+          {paraPublicar !== null ? (
+            <Link className="st-btn sec" href="/studio/cms?status=aprovado" data-para-mim-publicar={paraPublicar}>
+              Para publicar ({paraPublicar})
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
 
       <form className="st-filters" method="get" role="search" aria-label="Filtrar matérias">
         <div className="st-field">

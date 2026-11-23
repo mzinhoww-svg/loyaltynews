@@ -96,6 +96,13 @@ test.describe('shell e navegação', () => {
     expect(sec.texto).not.toBe(sec.fundo);
   });
 
+  test('título da tela tem altura de linha folgada (não encosta nos botões abaixo)', async ({ page, context }) => {
+    await entrar(context, 'ana', 'admin');
+    await page.goto('/studio/cms');
+    const m = await page.locator('main h1').first().evaluate((el) => ({ linha: parseFloat(getComputedStyle(el).lineHeight), fonte: parseFloat(getComputedStyle(el).fontSize) }));
+    expect(m.linha / m.fonte).toBeGreaterThanOrEqual(1.2);
+  });
+
   test('flag desligada aparece no módulo', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio/social');

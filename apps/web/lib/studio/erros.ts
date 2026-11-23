@@ -62,7 +62,7 @@ export function traduzirMensagem(m: string): string {
   const t = m.trim();
   let r: RegExpExecArray | null;
   if (/^Invalid URL$/i.test(t) || /^Invalid url$/i.test(t)) return 'URL inválida (use https://…).';
-  if ((r = /^Too small: expected string to have >=?\s*(\d+) characters?$/i.exec(t))) return `precisa ter pelo menos ${r[1]} caractere(s).`;
+  if ((r = /^Too small: expected string to have >=?\s*(\d+) characters?$/i.exec(t))) return r[1] === '1' ? 'obrigatório.' : `precisa ter pelo menos ${r[1]} caracteres.`;
   if ((r = /^Too big: expected string to have <=?\s*(\d+) characters?$/i.exec(t))) return `pode ter no máximo ${r[1]} caracteres.`;
   if ((r = /^Too small: expected (?:array|number) to have >=?\s*(\d+)/i.exec(t))) return `precisa de pelo menos ${r[1]}.`;
   if ((r = /^Too big: expected (?:array|number) to have <=?\s*(\d+)/i.exec(t))) return `no máximo ${r[1]}.`;

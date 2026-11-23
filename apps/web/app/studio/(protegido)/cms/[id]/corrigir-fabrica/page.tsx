@@ -8,6 +8,7 @@ import { TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
 import { CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { edicaoInicial } from '@/lib/studio/cms/fabrica-correcao';
 import { checkAccess } from '@/lib/studio/modules';
+import { urlPublicaDaMateria } from '@/lib/studio/cms/url-publica';
 import { requireStudio } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
 import { SemBanco } from '../../../../_components/SemBanco';
@@ -61,9 +62,9 @@ export default async function CorrigirFabrica({ params, searchParams }: { params
   const casosResp = await api.editorial.correcoes({});
   const casos = (!ehErro(casosResp) ? ((casosResp.body as { items: { id: string; articleId: string; kind: string; state: string }[] }).items ?? []) : []).filter((c) => c.articleId === id && ACEITOS.includes(c.state));
   const ligada = flagAtiva('publicacaoPortal');
-  const urlBase = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   const d = base.rascunho;
-  const inicial = { ...edicaoInicial(base, casos[0]?.id ?? ''), url: urlBase ? `${urlBase}/noticia/${d.slug}` : (base.publicacao?.url ?? '') };
+  const urlCanonica = urlPublicaDaMateria(String(d.slug));
+  const inicial = { ...edicaoInicial(base, casos[0]?.id ?? ''), url: urlCanonica || (base.publicacao?.url ?? '') };
   const fixos = [
     { rotulo: 'Rascunho', valor: d.id },
     { rotulo: 'Slug (imutável)', valor: String(d.slug) },
@@ -115,6 +116,7 @@ export default async function CorrigirFabrica({ params, searchParams }: { params
         fixos={fixos}
         checagens={TIPOS_CHECAGEM}
         podePublicar={checkAccess(session, ['admin', 'editor_chefe']).ok}
+        urlFixa={Boolean(urlCanonica)}
       />
     </>
   );

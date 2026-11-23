@@ -59,6 +59,11 @@ test('habilitada uma fonte primária: envia a pauta, vê na fila, repetir o id �
   await expect(page.locator('[data-sem-fontes]')).toHaveCount(0);
   const form = page.getByRole('form', { name: 'Nova pauta autoral' });
   await expect(form).toBeVisible();
+  // P2-12: 3 âncoras abertas; as outras 5 ficam sob "Mais âncoras"
+  await expect(page.locator('#url-2')).toBeVisible();
+  await expect(page.locator('#url-3')).toBeHidden();
+  await page.getByText('Mais âncoras (até 8)').click();
+  await expect(page.locator('#url-7')).toBeVisible();
 
   // validação local diz o campo (sem ir ao Backend)
   await enviar(page, form.getByRole('button', { name: 'Registrar pauta na fila' }));

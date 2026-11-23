@@ -17,6 +17,22 @@ test.describe('Home e menus', () => {
     await expect(page.getByText('Sem rascunho: edite o documento')).toBeVisible();
   });
 
+  test('o formulário de bloco mostra só os campos do tipo escolhido e recusa bloco repetido', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/home-menus');
+    const form = page.getByRole('form', { name: 'Adicionar bloco' });
+    await form.getByLabel('Tipo de bloco').selectOption('publicidade');
+    await expect(form.getByLabel('Posição do anúncio')).toBeVisible();
+    await expect(form.getByLabel(/Limite de itens/)).toBeHidden();
+    await expect(form.getByLabel(/Título \(opcional\)/)).toBeHidden();
+    await form.getByLabel('Tipo de bloco').selectOption('lista_editoria');
+    await expect(form.getByLabel('Editoria da lista')).toBeVisible();
+    await expect(form.getByLabel('Posição do anúncio')).toBeHidden();
+    await form.getByLabel('Tipo de bloco').selectOption('ultimas');
+    await expect(form.getByLabel('Editoria da lista')).toBeHidden();
+    await expect(form.getByLabel(/Limite de itens/)).toBeVisible();
+  });
+
   test('editar grava rascunho; pendência impede publicar; publicar e reverter criam versões', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor_chefe');
     await page.goto('/studio/home-menus');
@@ -35,7 +51,7 @@ test.describe('Home e menus', () => {
 
     // posição sem dimensão reservada não publica
     await page.getByLabel('Tipo de bloco').selectOption('publicidade');
-    await page.getByLabel('Publicidade: posição').selectOption('HOME_BETWEEN');
+    await page.getByLabel('Posição do anúncio').selectOption('HOME_BETWEEN');
     await enviar(page, page.getByRole('button', { name: 'Adicionar bloco ao rascunho' }));
     await expect(page.locator('[data-pendencias]')).toContainText('HOME_BETWEEN');
     await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));

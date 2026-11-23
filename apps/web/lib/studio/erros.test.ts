@@ -4,7 +4,8 @@ import { traduzirDetalhe, traduzirMensagem } from './erros';
 describe('traduzirMensagem', () => {
   it('traduz as mensagens comuns do validador', () => {
     expect(traduzirMensagem('Invalid URL')).toBe('URL inválida (use https://…).');
-    expect(traduzirMensagem('Too small: expected string to have >=3 characters')).toBe('precisa ter pelo menos 3 caractere(s).');
+    expect(traduzirMensagem('Too small: expected string to have >=3 characters')).toBe('precisa ter pelo menos 3 caracteres.');
+    expect(traduzirMensagem('Too small: expected string to have >=1 characters')).toBe('obrigatório.');
     expect(traduzirMensagem('Too big: expected string to have <=70 characters')).toBe('pode ter no máximo 70 caracteres.');
     expect(traduzirMensagem('Invalid input: expected string, received undefined')).toBe('obrigatório.');
     expect(traduzirMensagem('Invalid option: expected one of "a"|"b"')).toBe('opção inválida.');
@@ -18,7 +19,7 @@ describe('traduzirMensagem', () => {
 
 describe('traduzirDetalhe', () => {
   it('usa o nome do campo na tela, não o caminho interno', () => {
-    expect(traduzirDetalhe({ path: 'slug', message: 'Too small: expected string to have >=3 characters' })).toBe('Slug: precisa ter pelo menos 3 caractere(s).');
+    expect(traduzirDetalhe({ path: 'slug', message: 'Too small: expected string to have >=3 characters' })).toBe('Slug: precisa ter pelo menos 3 caracteres.');
     expect(traduzirDetalhe({ path: 'dadosEstruturados.organizacao.url', message: 'Invalid URL' })).toBe('Organização: URL do site: URL inválida (use https://…).');
     expect(traduzirDetalhe({ path: 'fonteUrl', message: 'Invalid URL' })).toBe('URL da fonte oficial: URL inválida (use https://…).');
   });
