@@ -36,3 +36,8 @@ export * from './api/illustration';
 export * from './api/published-lookup';
 export * from './api/correction-publication';
 export { NOTICES_MARK, FONTES_MARK, renderNotices, parseNotices, composeBody, fontesPart } from './notices';
+export * from './factory/prompts';
+export * from './factory/llm-gateway';
+export * from './factory/collect';
+export * from './factory/run';
+export * from './factory/publish';

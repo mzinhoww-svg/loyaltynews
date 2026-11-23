@@ -1,4 +1,7 @@
 /* Base mínima do design system. Escopo: elementos dentro de .ln-root (ou body se usado globalmente). */
+/* Sem moldura branca do navegador: faixas de cor vão de ponta a ponta. */
+body { margin: 0; }
+
 .ln-root,
 .ln-root *,
 .ln-root *::before,
@@ -71,3 +74,6 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Faixa de conteúdo de demonstração (vitrine do staging): 28px, largura total, sempre visível. */
+.ln-demo-banner { display: flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 var(--ln-space-3); font-size: 0.75rem; line-height: 1rem; font-weight: var(--ln-weight-bold); letter-spacing: 0.04em; text-align: center; color: var(--ln-color-warning-fg); background: var(--ln-color-warning-bg); border-bottom: 1px solid var(--ln-color-warning-fg); }

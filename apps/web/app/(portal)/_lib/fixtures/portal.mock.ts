@@ -2,6 +2,7 @@
  * MOCK — dados sintéticos só para desenvolvimento e testes visuais.
  * Nunca são notícias, eventos ou pessoas reais. Toda interface que os renderiza exibe "MOCK".
  */
+import { renderThumbnail, svgToDataUri } from '@ln/ui';
 import { EDITORIAS } from '../editorias';
 import { normalize } from '../format';
 import type {
@@ -15,9 +16,8 @@ import type {
   TrendingWindow,
 } from '../types';
 
-/** Imagem SVG sintética (data URI), só para testes visuais. */
-const svg = (fill: string, text: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675"><rect width="1200" height="675" fill="${fill}"/><text x="600" y="350" font-size="64" text-anchor="middle" fill="#ffffff" font-family="Arial">${text}</text></svg>`)}`;
+/** Imagem sintética gerada por código (template do design system, com selo MOCK): nunca foto real (Security R7). */
+const tpl = (title: string, editoria: string) => svgToDataUri(renderThumbnail({ title, editoria, mock: true }).svg);
 
 const TYPES: ContentType[] = ['noticia', 'analise', 'flash', 'entrevista', 'opiniao'];
 
@@ -40,9 +40,9 @@ const articles: Article[] = EDITORIAS.flatMap((ed, i) =>
       // idx 0: ilustração conceitual (rótulo obrigatório); idx 2: foto com crédito; demais: sem imagem.
       image:
         idx === 0
-          ? { src: svg('#34877a', 'MOCK ilustração'), alt: 'Ilustração conceitual: cena abstrata de teste (MOCK)', credit: 'Loyalty News', label: 'Ilustração conceitual' }
+          ? { src: tpl('Ilustração conceitual de teste', ed.name), alt: 'Ilustração conceitual: cena abstrata de teste (MOCK)', credit: 'Loyalty News', label: 'Ilustração conceitual' }
           : idx === 2
-            ? { src: svg('#153c3c', 'MOCK foto'), alt: 'Foto de teste (MOCK)', credit: 'Fotógrafo de teste (MOCK)', label: null }
+            ? { src: tpl('Imagem de teste com crédito', ed.name), alt: 'Imagem de teste (MOCK)', credit: 'Template de teste (MOCK)', label: null }
             : undefined,
       body: [
         { type: 'heading', text: 'O que aconteceu' },

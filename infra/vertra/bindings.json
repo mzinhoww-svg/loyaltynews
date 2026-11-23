@@ -2,7 +2,13 @@
   "$comment": "Vínculo ambiente -> banco (dados NÃO secretos). Preencher no provisionamento, por PR revisado, com o host e o nome do banco criados na Vertra (o host tem a forma <id-do-banco-sem-hifens>.db.usa1.vertraweb.app). Enquanto for null, migrate.mjs e as verificações de backup RECUSAM o ambiente (falha fechada). Nunca colocar senha, porta com credencial ou PEM aqui.",
   "schema": 1,
   "ambientes": {
-    "staging": { "dbHost": null, "dbName": null },
-    "production": { "dbHost": null, "dbName": null }
+    "staging": {
+      "dbHost": "862011ce0c0a4472a2a1dbb341808f00.db.usa1.vertraweb.app",
+      "dbName": "vertracloud"
+    },
+    "production": {
+      "dbHost": null,
+      "dbName": null
+    }
   }
 }

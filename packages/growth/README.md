@@ -17,6 +17,7 @@ Amostras: `node scripts/render-sample.ts` (gera `out/samples/`, ignorado pelo gi
 | `src/mlabs/simulated.mock.ts` | **MOCK** (INTERNO, não exportado) — adaptador simulado (padrão): nada vai ao mLabs; recibos `SIM-…` |
 | `src/mlabs/live.ts`, `live-adapter.internal.ts` | Público: `readOnlyTransport`, `LIVE_ACK`, `LiveAdapterRefused`. O adaptador real (classe e construtor) é INTERNO e só `createSocialPublisher` o cria |
 | `src/mlabs/write-gate.internal.ts`, `adapter-types.internal.ts` | INTERNOS: capability de escrita e tipos do adaptador com escrita (nada disto sai do pacote) |
+| `src/mlabs/create-post-draft.ts` | `linkedinDraftMapper`: `PostPayload` → `create_post` do mLabs **só como rascunho** (`status: draft`, nunca agenda), `requestId` derivado, documento/PDF, recusa menção e mídia sem upload. Esquema lido em 23/11/2026; comportamento real não verificado (R5-02) |
 | `src/mlabs/validate.ts` | Validação de capacidades só por leitura (forma das respostas, sem valores) |
 | `src/publisher/publisher.ts` | `createSocialPublisher(config)`: único caminho de publicação e a única forma de obter um adaptador. Cria o adaptador (simulado ou real) e a capability de escrita no mesmo passo e os mantém em closure; só a identidade `publisher_social`; flags; gates; imagem aprovada; regras de copy; idempotência; auditoria |
 | `src/copy/engine.ts` | Motor de copy LinkedIn + `validateCopy` |

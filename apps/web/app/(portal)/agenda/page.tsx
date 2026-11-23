@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Sidebar } from '../_components/Sidebar';
+import { WithSidebar } from '../_components/Sidebar';
 import { AdSlot, EmptyState, MockTag, PageHead } from '../_components/ui';
 import { dayOf, formatDate, formatDateTime, monthAbbrev } from '../_lib/format';
 import { getSource } from '../_lib/source';
@@ -67,7 +67,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           </li>
         ))}
       </ul>
-      <div className="pt-layout">
+      <WithSidebar>
         <div>
           <section aria-labelledby="proximos">
             <h2 id="proximos">Próximos eventos</h2>
@@ -91,8 +91,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
             </section>
           )}
         </div>
-        <Sidebar />
-      </div>
+        </WithSidebar>
     </>
   );
 }
