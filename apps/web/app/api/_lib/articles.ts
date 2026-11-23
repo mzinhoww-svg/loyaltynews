@@ -4,14 +4,14 @@
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
-import { canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
+import { canTransition, imageLabel, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
 import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { issueFromEditorial } from './editorial/receipt';
 import { issueCorrectionReceipt } from './editorial/fabrica-correction';
 import { evidenceIdsOf, gateFailures, PUBLISH_IDENTITY, rowContentSha, type ArticleRow } from './article-core';
-import { publicImageOf } from './midia';
+import { publicImageOf, publicImagesOf } from './midia';
 import { issueRevisionReceipt, openRevision } from './correcao';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
@@ -54,6 +54,20 @@ function publishableImage(img: unknown): unknown {
   if (img == null) return null;
   const p = ImageRights.safeParse(img);
   return p.success && isImagePublishable(p.data) ? img : null;
+}
+
+/** ADR-018: rótulo visível ("Ilustração conceitual") para ilustração gerada; null nas demais. */
+function withLabel(img: unknown): unknown {
+  if (img == null || typeof img !== 'object') return img ?? null;
+  return { ...(img as object), rotulo: imageLabel(img as { origem: never }) };
+}
+
+/** Imagem da LISTAGEM pública: só o que o card precisa (nada de origem, base de direito, edições ou ids internos). */
+function imageCard(img: unknown) {
+  if (img == null || typeof img !== 'object') return null;
+  const i = img as { url?: string; textoAlternativo?: string; credito?: string; origem?: string };
+  if (!i.url) return null;
+  return { url: i.url, textoAlternativo: i.textoAlternativo ?? '', credito: i.credito ?? '', rotulo: imageLabel({ origem: i.origem as never }) };
 }
 
 function serialize(a: ArticleRow, withBody = true) {
@@ -356,9 +370,10 @@ export const publicListArticles: RouteFn = async (_req, c) => {
     .limit(q.limit)
     .offset(q.offset);
   const [total] = await c.deps.db.select({ n: count() }).from(schema.articles).where(where);
+  const imagens = await publicImagesOf(c.deps.db, rows.map((r) => publishableImage(r.imagem)), c.deps.now());
   return json(
     {
-      data: rows.map((r) => ({
+      data: rows.map((r, i) => ({
         slug: r.slug,
         titulo: r.titulo,
         subtitulo: r.subtitulo,
@@ -371,6 +386,7 @@ export const publicListArticles: RouteFn = async (_req, c) => {
         rotuloPublieditorial: r.rotuloPublieditorial,
         publicadoEm: r.publicadoEm,
         corrigida: r.status === 'corrigido',
+        imagem: imageCard(imagens[i]),
       })),
       total: total?.n ?? 0,
       limit: q.limit,
@@ -406,7 +422,7 @@ export const publicGetArticle: RouteFn = async (_req, c) => {
     editoria: a.editoria,
     assinatura: a.assinatura,
     corpo: a.corpo,
-    imagem: await publicImageOf(c.deps.db, publishableImage(a.imagem), c.deps.now()),
+    imagem: withLabel(await publicImageOf(c.deps.db, publishableImage(a.imagem), c.deps.now())),
     patrocinado: a.patrocinado,
     rotuloPublieditorial: a.rotuloPublieditorial,
     publicadoEm: a.publicadoEm,
