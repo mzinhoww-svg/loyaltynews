@@ -149,7 +149,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
 
             {m.recibo ? (
               <p className="st-hint">
-                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}.
+                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador}>Aprovado por {m.recibo.aprovador}.</span>
               </p>
             ) : null}
             <section aria-labelledby="pub-titulo" style={{ marginTop: 12 }}>
@@ -185,7 +185,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
                   ? 'Publicação desligada neste ambiente (flag publicacaoPortal).'
                   : m.status === 'aprovado' && m.recibo
                     ? podePublicar
-                      ? 'Só a identidade de publicação do recibo publica (ADR-008), com o recibo da versão aprovada.'
+                      ? 'Publica quem tem permissão de publicar (editor-chefe, admin), com o recibo válido da versão aprovada; quem aprovou e quem publica podem ser a mesma pessoa.'
                       : 'Seu papel não publica (exige editor-chefe ou admin).'
                     : 'Publica quando a matéria está aprovada e tem recibo da versão.'}
               </p>
@@ -254,7 +254,6 @@ export default async function Materia({ params, searchParams }: { params: Promis
                       <button className="st-btn" type="submit">
                         Emitir recibo da revisão
                       </button>
-                      <p className="st-hint">A publicação só é aceita da identidade de publicação registrada no recibo (quem o emite).</p>
                     </form>
                   ) : null}
                   {rev.estado === 'aprovada' && rev.receiptId ? (

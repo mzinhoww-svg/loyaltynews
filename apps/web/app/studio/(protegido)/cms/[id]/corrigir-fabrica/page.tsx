@@ -8,6 +8,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
 import { CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { edicaoInicial } from '@/lib/studio/cms/fabrica-correcao';
+import { checkAccess } from '@/lib/studio/modules';
 import { requireStudio } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
 import { SemBanco } from '../../../../_components/SemBanco';
@@ -19,7 +20,7 @@ export const dynamic = 'force-dynamic';
 const ACEITOS = ['accepted', 'escalated_legal', 'notice_published', 'social_reconciled'];
 
 export default async function CorrigirFabrica({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
-  await requireStudio(CMS_REVIEW);
+  const { session } = await requireStudio(CMS_REVIEW);
   const id = decodeURIComponent((await params).id);
   const { tipo, aviso } = await searchParams;
   const volta = (
@@ -114,6 +115,7 @@ export default async function CorrigirFabrica({ params, searchParams }: { params
         afirmacoes={d.claims.map((c) => ({ id: c.id, kind: c.kind, textoOriginal: c.text }))}
         fixos={fixos}
         checagens={TIPOS_CHECAGEM}
+        podePublicar={checkAccess(session, ['admin', 'editor_chefe']).ok}
       />
     </>
   );

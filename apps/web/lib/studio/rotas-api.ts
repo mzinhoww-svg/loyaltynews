@@ -78,7 +78,7 @@ export interface MateriaDetalhe extends MateriaLinha {
   tempoLeituraMin: number;
   fontes: Evidencia[];
   publicadoEm?: string | null;
-  recibo: { id: string; versao: number; identidadePublicacao?: string; aprovador: string; checagens: { tipo: string; resultado: string }[] } | null;
+  recibo: { id: string; versao: number; aprovador: string; checagens: { tipo: string; resultado: string }[] } | null;
   transicoes: Transicao[];
 }
 
