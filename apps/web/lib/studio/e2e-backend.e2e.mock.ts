@@ -115,15 +115,16 @@ async function montar() {
         await processObservation(idb, obs('MOCK Ana Souza', 'Diretora de CRM', e2, d2, 'oficial'), cfg); // title_change: Move detectado com antes e depois
         await processObservation(idb, obs('MOCK Bruno Lima', 'Diretor Financeiro', e1, d1, 'oficial'), cfg);
         await processObservation(idb, obs('MOCK Carla Dias', 'Gerente de Dados', e3, d2, 'secundaria'), cfg); // a confirmar
+        await processObservation(idb, obs('MOCK Eva Rocha', 'Gerente de Parcerias', e3, d2, 'secundaria'), cfg); // a confirmar (será descartada no teste)
         const alfa = await upsertOrganization(idb, { legalName: ALFA, evidenceId: e1, observedAt: d1 });
         const beta = await upsertOrganization(idb, { legalName: BETA, evidenceId: e1, observedAt: d1 });
         await addOrgRelation(idb, { fromOrgId: alfa, toOrgId: beta, type: 'partner_of', validFrom: '2026-01-01', evidenceId: e1, observedAt: d1 });
       }
       const alfa = (await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [ALFA])).rows[0]!.id;
       const beta = (await idb.query<{ id: string }>("SELECT id FROM intelligence.organization WHERE legal_name = $1", [BETA])).rows[0]!.id;
-      const pessoa = (await idb.query<{ id: string }>("SELECT id FROM intelligence.person WHERE full_name = 'MOCK Ana Souza'")).rows[0]!.id;
-      const idDe = async (nome: string) => (await idb.query<{ id: string }>('SELECT id FROM intelligence.person WHERE full_name = $1', [nome])).rows[0]!.id;
-      return { alfa, beta, pessoa, bruno: await idDe('MOCK Bruno Lima'), carla: await idDe('MOCK Carla Dias') };
+      // as pessoas são achadas pelo perfil público (estável): o nome muda quando um pedido do titular o corrige, e a pessoa removida continua com o mesmo perfil
+      const idDe = async (slug: string) => (await idb.query<{ id: string }>('SELECT id FROM intelligence.person WHERE public_profile_url = $1', [`https://mock.invalid/in/${slug}`])).rows[0]!.id;
+      return { alfa, beta, pessoa: await idDe('mock-ana-souza'), bruno: await idDe('mock-bruno-lima'), carla: await idDe('mock-carla-dias') };
     },
     async seedPautasProcessadas() {
       const store = new PgEditorialStore(db);
@@ -194,6 +195,9 @@ export const sincronizarFlagsE2e: (() => void) | null = () => {
   if (!rt || Object.keys(flags).length === 0) return;
   setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState });
 };
+
+/** As mesmas flags de teste que as rotas enxergam (setFlag); o Studio as soma ao resolvedor de runtime SÓ no build de e2e. */
+export const flagsE2e: (() => Record<string, boolean>) | null = () => ({ ...flagsGlobais() });
 
 const KEY = Symbol.for('ln.studio.e2e.backend');
 type G = typeof globalThis & { [KEY]?: Promise<E2eBackend> };

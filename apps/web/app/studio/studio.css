@@ -22,6 +22,8 @@
 }
 .studio *, .studio *::before, .studio *::after { box-sizing: border-box; }
 .studio a { color: var(--ln-role-link); }
+.studio a.st-btn { color: var(--st-accent-ink); }
+.studio a.st-btn.sec { color: var(--st-accent); }
 .studio :focus-visible { outline: var(--ln-focus-width) solid var(--ln-color-focus); outline-offset: var(--ln-focus-offset); }
 .studio .skip { position: absolute; left: -999px; top: 0; background: var(--ln-color-white); padding: 8px 12px; z-index: 10; }
 .studio .skip:focus { left: 8px; top: 8px; }
@@ -66,7 +68,25 @@
 .st-alert.ok { border-color: var(--st-ok); background: var(--ln-color-success-bg); color: var(--ln-color-success-fg); }
 .st-center { max-width: 560px; margin: 12vh auto; padding: 0 16px; }
 
+/* P2-11: título da tela não encosta nos botões logo abaixo */
+.studio h1 { line-height: 1.25; margin: 0 0 var(--ln-space-3); }
+/* P2-01: campo travado parece travado (fundo neutro, cursor de bloqueio) */
+.studio fieldset:disabled input, .studio fieldset:disabled textarea, .studio fieldset:disabled select, .studio input[readonly], .studio textarea[readonly] { background: var(--ln-color-neutral-bg); color: var(--st-muted); cursor: not-allowed; }
+/* P2-08: o formulário de bloco mostra só os campos do tipo escolhido (sem JS) */
+.bloco-form:has(#blocoTipo option[value='destaque']:checked) [data-nao~='destaque'],
+.bloco-form:has(#blocoTipo option[value='lista_editoria']:checked) [data-nao~='lista_editoria'],
+.bloco-form:has(#blocoTipo option[value='ultimas']:checked) [data-nao~='ultimas'],
+.bloco-form:has(#blocoTipo option[value='agenda']:checked) [data-nao~='agenda'],
+.bloco-form:has(#blocoTipo option[value='publicidade']:checked) [data-nao~='publicidade'] { display: none; }
+
 @media (max-width: 860px) {
+  /* P2-10: alvos de toque de pelo menos 44 px no celular */
+  .studio .st-btn, .studio select, .studio input[type='text'], .studio input[type='url'], .studio input[type='search'], .studio input[type='date'] { min-height: 44px; }
+  .studio .st-table a, .studio .st-issues a, .studio .st-actions a { display: inline-block; min-height: 44px; line-height: 44px; }
+  /* link sozinho no seu bloco (voltar, cartões de módulo, itens de lista); link no meio de uma frase é exceção de tamanho */
+  .studio main a:only-child { display: inline-block; min-height: 44px; line-height: 44px; }
+  .studio label:has(input[type='checkbox']), .studio label:has(input[type='radio']) { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+  .studio input[type='checkbox'], .studio input[type='radio'] { width: 44px; height: 44px; }
   .st-two, .st-row { grid-template-columns: minmax(0, 1fr); }
   .st-main { padding: 14px; }
   /* F-27: toda tabela larga (inclusive as dos pacotes @ln/*) rola dentro do próprio quadro, não a página inteira */

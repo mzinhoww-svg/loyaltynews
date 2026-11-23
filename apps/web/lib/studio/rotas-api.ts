@@ -37,7 +37,7 @@ import * as publicoRedirectsRoute from '@/app/api/publico/site/redirects/route';
 import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
-import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha } from '@/lib/studio/intelligence-view';
+import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha, PaginaDeCargos } from '@/lib/studio/intelligence-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -294,6 +294,12 @@ export const api = {
     executivos: (q: string) => chamar<{ items: { id: string; full_name: string }[] }>(dispatchIntelligence, `${I}/executives`, { query: { q } }),
     /** Moves por estado (detected = pendente de revisão), com antes e depois quando o Backend os traz. */
     moves: (query: { status?: 'detected' | 'confirmed' | 'rejected'; organizationId?: string; personId?: string }) => chamar<{ items: MoveLinha[] }>(dispatchIntelligence, `${I}/moves`, { query }),
+    /** Cargos abertos com nível da fonte: a fila "a confirmar" é certainty=inferred (ou source_level=secondary|inferred). */
+    cargos: (query: { certainty?: 'declared' | 'inferred'; source_level?: string; organizationId?: string; q?: string; limit?: number; offset?: number }) =>
+      chamar<PaginaDeCargos>(dispatchIntelligence, `${I}/roles`, { query: Object.fromEntries(Object.entries(query).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])) }),
+    /** Confirma o cargo com a página OFICIAL (https, mesmo site da fonte oficial cadastrada da empresa; nunca LinkedIn/The Org). Editor ou superior. */
+    confirmarCargo: (id: string, officialUrl: string) => chamar<{ id: string; certainty: string; source_level: string; confirmed_by: string }>(dispatchIntelligence, `${I}/roles/${encodeURIComponent(id)}/confirm`, { metodo: 'POST', corpo: { officialUrl } }),
+    descartarCargo: (id: string, motivo: string) => chamar<{ id: string; discarded: boolean; discarded_by: string }>(dispatchIntelligence, `${I}/roles/${encodeURIComponent(id)}/discard`, { metodo: 'POST', corpo: { motivo } }),
     /** Pedido do titular (LGPD / direito de resposta): só admin. kind: access | rectification | suppression. */
     abrirPedido: (corpo: { personId: string; kind: 'access' | 'rectification' | 'suppression'; note?: string }) => chamar<{ id: string; status: string }>(dispatchIntelligence, `${I}/subject-requests`, { metodo: 'POST', corpo }),
     exportarPedido: (requestId: string) => chamar<{ requestId: string; data: { person: Record<string, unknown> | null; roles: Record<string, unknown>[] } }>(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/export`, { metodo: 'POST', corpo: {} }),

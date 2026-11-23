@@ -4,6 +4,8 @@
 // "banco não configurado" (nunca dados falsos). Só para Server Components e server actions.
 import { headers } from 'next/headers';
 
+import { traduzirDetalhe } from './erros';
+
 export type RespostaApi<T = unknown> = { status: number; ok: true; body: T } | { status: number; ok: false; body: ErroApi };
 
 export type Despachante = (req: Request) => Promise<Response>;
@@ -41,6 +43,7 @@ export const naoConfigurado = (r: RespostaApi<unknown>): boolean => r.status ===
 export function mensagemErro(r: RespostaApi<unknown>): string {
   const e = (r.body as ErroApi | null)?.error;
   if (!e) return `Erro ${r.status}`;
-  const det = Array.isArray(e.details) ? ' ' + (e.details as { path?: string; message?: string }[]).map((d) => `${d.path ? d.path + ': ' : ''}${d.message ?? ''}`).join('; ') : '';
+  // detalhes de validação do Backend: nome do campo como na tela e mensagem em português (P1-02 da auditoria de UX)
+  const det = Array.isArray(e.details) ? ' ' + (e.details as { path?: string; message?: string }[]).map((d) => traduzirDetalhe(d)).join('; ') : '';
   return `${e.message}${det}`;
 }

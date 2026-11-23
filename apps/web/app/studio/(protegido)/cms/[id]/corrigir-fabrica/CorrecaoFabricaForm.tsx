@@ -28,6 +28,7 @@ export function CorrecaoFabricaForm({
   fixos,
   checagens,
   podePublicar,
+  urlFixa,
 }: {
   id: string;
   casos: CasoOpcao[];
@@ -36,6 +37,8 @@ export function CorrecaoFabricaForm({
   fixos: { rotulo: string; valor: string }[];
   checagens: readonly string[];
   podePublicar: boolean;
+  /** URL canônica do Portal conhecida: o campo é só leitura. */
+  urlFixa: boolean;
 }) {
   const [estado, acao, pendente] = useActionState(corrigirFabricaAction, { valores: inicial } satisfies EstadoCorrecao);
   const [f, setF] = useState(inicial);
@@ -147,7 +150,7 @@ export function CorrecaoFabricaForm({
       </div>
       <div className="st-field">
         <label htmlFor="url-fabrica">URL pública da matéria</label>
-        <input id="url-fabrica" name="url" type="url" {...campo('url')} />
+        <input id="url-fabrica" name="url" type="url" {...campo('url')} readOnly={urlFixa} />
       </div>
       <div className="st-actions">
         <button className="st-btn" type="submit" name="op" value="recibo" disabled={pendente || estado.publicado === true}>

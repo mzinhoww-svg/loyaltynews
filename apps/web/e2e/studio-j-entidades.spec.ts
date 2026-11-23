@@ -31,7 +31,7 @@ test('só editor ou superior: leitor e comercial não entram', async ({ page, co
 test('busca acha a empresa e o executivo; a empresa mostra pessoas e cargos com nível, fonte, link e data', async ({ page, context }) => {
   await entrar(context, 'ed', 'editor');
   await page.goto('/studio/entidades?q=MOCK');
-  await page.getByRole('link', { name: 'MOCK Alfa Fidelidade S.A.' }).click();
+  await page.getByRole('list', { name: 'Empresas encontradas' }).getByRole('link', { name: 'MOCK Alfa Fidelidade S.A.' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'MOCK Alfa Fidelidade S.A.' })).toBeVisible();
   await expect(page.getByText('Ausência de registro não prova inexistência.').first()).toBeVisible();
 
@@ -46,8 +46,65 @@ test('busca acha a empresa e o executivo; a empresa mostra pessoas e cargos com 
   await expect(fonte).toContainText('· MOCK');
   await expect(page.getByText('MOCK trecho')).toHaveCount(0);
   await expect(tabela.locator('tr[data-cargo="Diretor Financeiro"]')).toHaveAttribute('data-nivel', 'oficial');
-  // ainda não confirmado: a fila de cargos a confirmar diz o que falta, sem inventar
-  await expect(page.locator('[data-vazio="a-confirmar"], [data-lacuna="confirmar-descartar"]').first()).toBeVisible();
+  // o cargo de fonte secundária aparece como a confirmar, nunca como oficial
+  const carlaLinha = tabela.locator('tr[data-cargo="Gerente de Dados"]');
+  await expect(carlaLinha).toHaveAttribute('data-nivel', 'secundaria');
+  await expect(carlaLinha).toContainText('Secundária — a confirmar');
+});
+
+test('lista de cargos com nível da fonte: oficial, secundária e filtro', async ({ page, context }) => {
+  await entrar(context, 'ed', 'editor');
+  await page.goto('/studio/entidades?nivel=secondary');
+  const tabela = page.getByRole('table', { name: 'Cargos' });
+  await expect(tabela.locator('tr[data-nivel="secundaria"]')).toHaveCount(2);
+  await expect(tabela.locator('tr[data-nivel="oficial"]')).toHaveCount(0);
+  await expect(tabela.locator('tr[data-status="to_confirm"]')).toHaveCount(2);
+  await page.goto('/studio/entidades?nivel=official');
+  await expect(page.getByRole('table', { name: 'Cargos' }).locator('tr[data-nivel="oficial"]')).not.toHaveCount(0);
+  await expect(page.getByRole('table', { name: 'Cargos' }).locator('tr[data-nivel="secundaria"]')).toHaveCount(0);
+  await page.goto('/studio/entidades?cq=Diretor%20Financeiro');
+  await expect(page.getByRole('table', { name: 'Cargos' }).locator('tr[data-cargo="Diretor Financeiro"]')).toBeVisible();
+});
+
+test('fila a confirmar: confirmar com a página oficial vira fato; recusa LinkedIn; descartar exige motivo', async ({ page, context }) => {
+  await entrar(context, 'ed', 'editor');
+  await page.goto('/studio/entidades');
+  const fila = page.locator('[data-secao="a-confirmar"]');
+  const carla = () => fila.locator('li[data-a-confirmar="Gerente de Dados"]');
+  const eva = () => fila.locator('li[data-a-confirmar="Gerente de Parcerias"]');
+  await expect(carla()).toContainText('Secundária — a confirmar');
+  await expect(carla().getByRole('link', { name: /MOCK LinkedIn/ })).toHaveAttribute('href', /linkedin-alfa/);
+
+  // LinkedIn nunca confirma; sem https também não
+  await carla().getByLabel(/Página oficial que sustenta/).fill('https://www.linkedin.com/in/carla');
+  await carla().getByRole('button', { name: 'Confirmar com a página oficial' }).click();
+  await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+  await page.goto('/studio/entidades');
+  await carla().getByLabel(/Página oficial que sustenta/).fill('http://mock.invalid/ri-alfa/diretoria');
+  await carla().getByRole('button', { name: 'Confirmar com a página oficial' }).click();
+  await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+
+  // descarte sem motivo suficiente é recusado; com motivo, sai da fila
+  await page.goto('/studio/entidades');
+  await eva().getByLabel(/Motivo do descarte/).fill('x');
+  await eva().getByRole('button', { name: 'Descartar' }).click();
+  await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+  await page.goto('/studio/entidades');
+  await eva().getByLabel(/Motivo do descarte/).fill('Perfil desatualizado: a pessoa saiu da empresa.');
+  await eva().getByRole('button', { name: 'Descartar' }).click();
+  await sucesso(page, 'Cargo descartado');
+  await expect(page.locator('li[data-a-confirmar="Gerente de Parcerias"]')).toHaveCount(0);
+
+  // confirma Carla com a página oficial do mesmo site da fonte oficial cadastrada: vira oficial e deixa a fila
+  await carla().getByLabel(/Página oficial que sustenta/).fill('https://mock.invalid/ri-alfa/diretoria');
+  await carla().getByRole('button', { name: 'Confirmar com a página oficial' }).click();
+  await sucesso(page, 'Cargo confirmado com a página oficial');
+  await expect(page.locator('li[data-a-confirmar="Gerente de Dados"]')).toHaveCount(0);
+  await expect(page.locator('[data-vazio="a-confirmar"]')).toBeVisible();
+  // na empresa ela agora é oficial; confirmar não criou Move
+  await page.goto(`/studio/entidades/${alfa}`);
+  await expect(page.getByRole('table', { name: 'Pessoas e cargos' }).locator('tr[data-cargo="Gerente de Dados"]')).toHaveAttribute('data-nivel', 'oficial');
+  await expect(page.locator('[data-move]')).toHaveCount(1);
 });
 
 test('relações com a evidência de cada uma', async ({ page, context }) => {
