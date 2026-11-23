@@ -276,7 +276,20 @@ function App() {
         <StudioDemo />
         <TemplatesDemo />
       </main>
-      <Footer year={2026} groups={[{ title: "Exemplo", links: [{ label: "Link de exemplo", href: "#exemplo" }] }]} note="Vitrine interna — não é página pública." />
+      <Footer
+        year={2026}
+        social={[
+          { network: "x", href: "#exemplo-x" },
+          { network: "linkedin", href: "#exemplo-linkedin" },
+          { network: "instagram", href: "#exemplo-instagram" },
+          { network: "googlenews", href: "#exemplo-googlenews" },
+          { network: "youtube", href: "#exemplo-youtube" },
+          { network: "rss", href: "#exemplo-rss" },
+          { network: "email", href: "#exemplo-email" },
+        ]}
+        groups={[{ title: "Exemplo", links: [{ label: "Link de exemplo", href: "#exemplo" }] }]}
+        note="Vitrine interna: links de redes são de exemplo, não perfis reais."
+      />
     </div>
   );
 }

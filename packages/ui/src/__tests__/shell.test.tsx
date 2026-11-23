@@ -5,7 +5,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectNoViolations } from "./a11y";
 import { describe, expect, it } from "vitest";
-import { ArticleCard, EDITORIAS, Footer, Header, Logo, MockBadge, Monogram } from "../index";
+import { ArticleCard, EDITORIAS, FOOTER_TAGLINE, Footer, Header, Logo, MockBadge, Monogram, SocialLinks } from "../index";
 
 
 describe("Header", () => {
@@ -72,6 +72,51 @@ describe("Footer", () => {
     expect(within(screen.getByRole("navigation", { name: "Editorias (rodapé)" })).getAllByRole("link")).toHaveLength(10);
     expect(screen.getByRole("link", { name: "Sobre" })).toHaveAttribute("href", "/sobre");
     expect(screen.getByText(/© Loyalty News/)).toBeInTheDocument();
+  });
+  it("mostra a frase institucional sob o logo por padrão e permite ocultar", () => {
+    const { rerender } = render(<Footer />);
+    expect(screen.getByText(FOOTER_TAGLINE)).toBeInTheDocument();
+    expect(FOOTER_TAGLINE).toBe("The global network for board-level loyalty leaders.");
+    rerender(<Footer tagline={null} />);
+    expect(screen.queryByText(FOOTER_TAGLINE)).toBeNull();
+    rerender(<Footer tagline="Outra frase" />);
+    expect(screen.getByText("Outra frase")).toBeInTheDocument();
+  });
+  it("redes sociais: só aparecem as que têm URL; nomes acessíveis; externas abrem com rel seguro", async () => {
+    const { container } = render(
+      <Footer
+        social={[
+          { network: "linkedin", href: "https://exemplo.invalid/ln" },
+          { network: "instagram", href: "" },
+          { network: "email", href: "mailto:alguem@exemplo.invalid" },
+          { network: "rss", href: "/feed.xml" },
+        ]}
+      />,
+    );
+    const nav = screen.getByRole("navigation", { name: "Redes sociais do Loyalty News" });
+    expect(within(nav).getAllByRole("link")).toHaveLength(3);
+    expect(within(nav).queryByRole("link", { name: /Instagram/ })).toBeNull(); // sem URL, sem ícone
+    const ln = within(nav).getByRole("link", { name: "LinkedIn (abre em nova aba)" });
+    expect(ln).toHaveAttribute("target", "_blank");
+    expect(ln).toHaveAttribute("rel", "noopener noreferrer");
+    const mail = within(nav).getByRole("link", { name: "E-mail" });
+    expect(mail).not.toHaveAttribute("target");
+    expect(within(nav).getByRole("link", { name: "Feed RSS" })).toHaveAttribute("href", "/feed.xml");
+    await expectNoViolations(container);
+  });
+  it("sem redes configuradas não renderiza o landmark de redes", () => {
+    render(<Footer />);
+    expect(screen.queryByRole("navigation", { name: "Redes sociais do Loyalty News" })).toBeNull();
+  });
+  it("todos os ícones disponíveis renderizam um SVG decorativo", () => {
+    const all = ["linkedin", "instagram", "x", "youtube", "whatsapp", "googlenews", "rss", "email"] as const;
+    const { container } = render(<SocialLinks links={all.map((n) => ({ network: n, href: `https://exemplo.invalid/${n}` }))} />);
+    const svgs = container.querySelectorAll("svg");
+    expect(svgs).toHaveLength(8);
+    svgs.forEach((svg) => {
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+      expect(svg.querySelector("path,rect,circle")).not.toBeNull();
+    });
   });
   it("renderiza o ano quando informado", () => {
     render(<Footer year={2026} />);
