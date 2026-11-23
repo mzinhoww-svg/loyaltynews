@@ -128,8 +128,9 @@ describe('GET /api/commercial/studio/accounts', () => {
     for (const bad of <Record<string, string>[]>[{ limit: '0' }, { limit: '500' }, { offset: '-3' }, { q: 'x'.repeat(101) }]) expect((await list(bad)).status, JSON.stringify(bad)).toBe(400);
   });
 
-  it('as rotas de escrita de mesmo caminho seguem funcionando (POST /studio/campaigns) e métodos errados não existem', async () => {
-    expect((await call(d, 'POST', { path: P('/studio/accounts'), body: {}, as: comercial })).status).toBeGreaterThanOrEqual(404);
+  it('as rotas de escrita de mesmo caminho seguem funcionando (POST /studio/campaigns) e métodos errados não existem; POST /studio/accounts cria conta', async () => {
+    // POST /studio/accounts passou a existir (criar conta, ft/commercial 4ea7404): corpo vazio é 400, não rota inexistente
+    expect((await call(d, 'POST', { path: P('/studio/accounts'), body: {}, as: comercial })).status).toBe(400);
     expect((await call(d, 'DELETE', { path: P('/studio/campaigns'), as: comercial })).status).toBeGreaterThanOrEqual(404);
   });
 });

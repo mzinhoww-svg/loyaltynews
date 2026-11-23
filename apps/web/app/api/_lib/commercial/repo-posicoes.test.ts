@@ -9,17 +9,24 @@ const nova = (positionIds: string[]) => {
   return { s, c };
 };
 
-describe('gravação de campanha com várias posições (PROVISÓRIO até existir campaign_positions)', () => {
-  it('uma posição: grava slot_id = a posição, como sempre', () => {
+// Gravação de campanha com várias posições: campaigns.slot_id = a primeira; todas, em ordem, em campaign_positions.
+describe('linhas de campanha com várias posições', () => {
+  it('uma posição: slot_id = a posição e uma linha de posição (ordem 0)', () => {
     const { s, c } = nova(['FOOTER']);
-    expect(rowsOf(s).campaigns.find((x) => x.id === c.id)).toMatchObject({ slotId: 'FOOTER' });
+    const r = rowsOf(s);
+    expect(r.campaigns.find((x) => x.id === c.id)).toMatchObject({ slotId: 'FOOTER' });
+    expect(r.campaignPositions.filter((p) => p.campanhaId === c.id)).toEqual([{ id: `${c.id}#FOOTER`, campanhaId: c.id, slotId: 'FOOTER', ordem: 0 }]);
   });
-  it('sem posição: slot_id nulo', () => {
+  it('sem posição: slot_id nulo e nenhuma linha de posição', () => {
     const { s, c } = nova([]);
-    expect(rowsOf(s).campaigns.find((x) => x.id === c.id)).toMatchObject({ slotId: null });
+    const r = rowsOf(s);
+    expect(r.campaigns.find((x) => x.id === c.id)).toMatchObject({ slotId: null });
+    expect(r.campaignPositions.filter((p) => p.campanhaId === c.id)).toEqual([]);
   });
-  it('mais de uma posição: RECUSA com erro claro (nada é gravado), em vez de perder posições em silêncio', () => {
-    const { s, c } = nova(['FOOTER', 'SIDEBAR_1']);
-    expect(() => rowsOf(s)).toThrow(new RegExp(`${c.id}.*2 posições.*campaign_positions`));
+  it('mais de uma posição: TODAS gravadas, na ordem do domínio (nada se perde); slot_id = a primeira', () => {
+    const { s, c } = nova(['FOOTER', 'SIDEBAR_1', 'SIDEBAR_2']);
+    const r = rowsOf(s);
+    expect(r.campaigns.find((x) => x.id === c.id)).toMatchObject({ slotId: 'FOOTER' });
+    expect(r.campaignPositions.filter((p) => p.campanhaId === c.id).map((p) => [p.slotId, p.ordem])).toEqual([['FOOTER', 0], ['SIDEBAR_1', 1], ['SIDEBAR_2', 2]]);
   });
 });

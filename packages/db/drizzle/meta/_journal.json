@@ -176,6 +176,13 @@
       "when": 1795449193143,
       "tag": "0024_creative_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795449579394,
+      "tag": "0025_crm_contatos_posicoes",
+      "breakpoints": true
     }
   ]
 }
