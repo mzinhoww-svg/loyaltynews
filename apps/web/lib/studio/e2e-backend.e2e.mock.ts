@@ -5,9 +5,10 @@
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
 import { drizzle } from 'drizzle-orm/pglite';
-import { EDITORIAS } from '@ln/contracts';
+import { EDITORIAS, FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
+import { setDepsForTest } from '@/app/api/_lib/deps';
 import { createAuth, createAuthHandler, createStaffUser, isRole, type Db, type Role } from '@ln/auth';
-import { setRuntimeForTest } from '@ln/auth/runtime';
+import { getRuntime, setRuntimeForTest } from '@ln/auth/runtime';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { criarClientePglite } from './dev-db.e2e.mock';
@@ -59,7 +60,16 @@ async function montar() {
     return { id, setCookies: v.headers.getSetCookie() };
   }
 
+  // Flags de e2e ficam numa global compartilhada: o Next carrega uma instância de deps.ts por rota/página, então cada
+  // camada sincroniza a sua a partir daqui (sincronizar()), chamado na leitura da sessão do Studio e ao ligar uma flag.
+  const aplicar = () => setDepsForTest({ db, auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flagsGlobais() } as FlagState });
+
   const backend: E2eBackend = {
+    setFlag(nome, ligada) {
+      if (!(nome in FLAG_DEFAULTS)) throw new Error(`flag desconhecida: ${nome}`);
+      flagsGlobais()[nome] = ligada;
+      aplicar();
+    },
     async seedEditorial() {
       const articleId = 'fabrica-e2e-1';
       const agora = new Date().toISOString();
@@ -68,7 +78,7 @@ async function montar() {
         articleId,
         editoria: 'pontos',
         status: 'em_checagem',
-        draft: { id: 'rascunho-fabrica-1', editoria: 'pontos', headline: 'Programa Alfa altera regra de pontos (Fábrica)', body: 'O Programa Alfa alterou a regra de pontos.', claims: [{ id: 'c1', text: 'O Programa Alfa alterou a regra de pontos.', kind: 'fact', evidenceIds: [evidencia.id] }], evidenceIds: [evidencia.id], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem imagem' }, modelProvider: 'openai', promptVersion: 'e2e' },
+        draft: { id: 'rascunho-fabrica-1', editoria: 'pontos', headline: 'Programa Alfa altera regra de pontos (Fábrica)', slug: 'programa-alfa-altera-regra-de-pontos-fabrica', resumo: 'O Programa Alfa alterou a regra de pontos.', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, body: 'O Programa Alfa alterou a regra de pontos.', claims: [{ id: 'c1', text: 'O Programa Alfa alterou a regra de pontos.', kind: 'fact', evidenceIds: [evidencia.id] }], evidenceIds: [evidencia.id], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem imagem' }, modelProvider: 'openai', promptVersion: 'e2e' },
         evidences: [evidencia],
         blockers: [],
         findings: [],
@@ -93,6 +103,23 @@ async function montar() {
 }
 
 // Uma única montagem por processo (promessa memorizada na global: vale entre chunks do bundle).
+const FLAGS_KEY = Symbol.for('ln.studio.e2e.flags');
+const flagsGlobais = (): Record<string, boolean> => {
+  const g = globalThis as unknown as Record<symbol, Record<string, boolean> | undefined>;
+  return (g[FLAGS_KEY] ??= {});
+};
+
+/**
+ * Aplica as flags de e2e à instância de deps DESTA camada do bundle (a função roda no módulo da camada que a chama; o runtime
+ * de auth/banco vem da global compartilhada). No-op enquanto nenhuma flag foi alterada.
+ */
+export const sincronizarFlagsE2e: (() => void) | null = () => {
+  const flags = flagsGlobais();
+  const rt = getRuntime();
+  if (!rt || Object.keys(flags).length === 0) return;
+  setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState });
+};
+
 const KEY = Symbol.for('ln.studio.e2e.backend');
 type G = typeof globalThis & { [KEY]?: Promise<E2eBackend> };
 

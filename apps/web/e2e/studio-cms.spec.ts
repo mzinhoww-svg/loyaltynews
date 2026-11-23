@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { entrar, enviar } from './helpers';
+import { definirFlag, entrar, enviar } from './helpers';
 
 // CMS editorial, Fontes e Social sobre as ROTAS REAIS do Backend (PostgreSQL de e2e = PGlite, só no build de e2e).
 // O banco é compartilhado e começa vazio; os testes rodam em série e em ordem.
@@ -208,5 +208,49 @@ test.describe('Social dashboard gerando pacote de matéria real (/api/studio/soc
     await linha.getByRole('link').click();
     await expect(page.getByRole('button', { name: 'Pedir publicação simulada' })).toHaveCount(0); // só pacote "gerado" pode ser pedido
     await expect(page.getByRole('button', { name: /publicar/i }).filter({ hasNotText: 'simulada' })).toHaveCount(0);
+  });
+});
+
+test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:id/publication)', () => {
+  test('desligada por flag: botão desabilitado com a razão; chefia vê o formulário, outros papéis não', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/cms?status=aprovado');
+    await page.getByRole('link', { name: TITULO2 }).click();
+    await expect(page.getByRole('heading', { name: 'Publicação' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
+    await expect(page.getByText('Publicação desligada neste ambiente (flag publicacaoPortal).')).toBeVisible();
+    await expect(page.getByLabel('URL pública da matéria')).toBeVisible();
+    // a transição genérica não publica nem corrige: a tela não oferece "corrigido"
+    await expect(page.getByRole('button', { name: /corrigido|Corrigir/i })).toHaveCount(0);
+
+    await entrar(context, 'rui', 'revisor');
+    await page.goto('/studio/cms?status=aprovado');
+    await page.getByRole('link', { name: TITULO2 }).click();
+    await expect(page.getByLabel('URL pública da matéria')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
+  });
+
+  test('ligada: o Backend recusa o que não é publicável e a recusa aparece como veio', async ({ page, context }) => {
+    await definirFlag(context, 'publicacaoPortal', true);
+    try {
+      await entrar(context, 'ana', 'editor_chefe');
+      await page.goto('/studio/cms?status=aprovado');
+      await page.getByRole('link', { name: TITULO2 }).click();
+      await expect(page.getByRole('button', { name: 'Publicar' })).toBeEnabled();
+      await expect(page.getByText('Publicação desligada neste ambiente')).toHaveCount(0);
+
+      await page.getByLabel('URL pública da matéria').fill('ftp://exemplo.com/materia');
+      await enviar(page, page.getByRole('button', { name: 'Publicar' }));
+      await erro(page, /http/i);
+
+      await page.getByLabel('URL pública da matéria').fill('https://portal.example.test/materias/banco-beta');
+      await enviar(page, page.getByRole('button', { name: 'Publicar' }));
+      // matéria do CMS não está no store editorial: o Backend responde (404/409) e o Studio mostra a mensagem, sem declarar sucesso
+      await erro(page, 'matéria não encontrada');
+      await expect(page.locator('.ln-pill', { hasText: 'Publicado' })).toHaveCount(0);
+      await expect(page.locator('[data-publicado="sim"]')).toHaveCount(0);
+    } finally {
+      await definirFlag(context, 'publicacaoPortal', false);
+    }
   });
 });

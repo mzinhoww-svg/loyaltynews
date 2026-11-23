@@ -82,6 +82,14 @@ export async function bloquearAction(fd: FormData): Promise<void> {
   await transicionar(t(fd, 'id'), 'bloqueado', t(fd, 'nota'), 'Matéria bloqueada.');
 }
 
+/** Publicar só pela rota oficial de publicação (recibo da versão + identidade de publicação + flag publicacaoPortal). As recusas aparecem como vêm. */
+export async function publicarAction(fd: FormData): Promise<void> {
+  await requireStudio(['admin', 'editor_chefe']);
+  const id = t(fd, 'id');
+  const r = await api.editorial.publicar(id, { receiptId: t(fd, 'recibo'), url: t(fd, 'url') });
+  ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : 'Publicação registrada.');
+}
+
 // ---------- fila da Fábrica editorial (revisão humana) ----------
 const REVISAO = ['admin', 'editor_chefe', 'revisor'] as const;
 

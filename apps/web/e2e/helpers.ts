@@ -39,3 +39,9 @@ export async function enviar(page: Page, botao: Locator): Promise<void> {
     await Promise.all([page.waitForLoadState('load'), botao.click()]);
   }
 }
+
+/** Liga/desliga uma flag no backend de e2e (rota só existe no build de e2e). */
+export async function definirFlag(context: BrowserContext, nome: string, ligada: boolean): Promise<void> {
+  const r = await context.request.get(`/api/e2e/login?flag=${encodeURIComponent(nome)}&on=${ligada ? 1 : 0}`);
+  expect(r.ok(), `flag ${nome}: ${r.status()}`).toBe(true);
+}

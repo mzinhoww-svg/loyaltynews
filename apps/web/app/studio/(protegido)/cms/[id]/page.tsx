@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { EDITORIAS } from '@ln/contracts';
+import { EDITORIAS, FLAG_DEFAULTS } from '@ln/contracts';
+import { getDeps } from '@/app/api/_lib/deps';
 import { checkAccess } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -13,7 +14,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
 import { MateriaForm } from '../MateriaForm';
-import { aprovarAction, bloquearAction, emitirReciboAction, enviarChecagemAction, voltarRascunhoAction } from '../actions';
+import { aprovarAction, bloquearAction, emitirReciboAction, enviarChecagemAction, publicarAction, voltarRascunhoAction } from '../actions';
 
 export const metadata: Metadata = { title: 'Matéria' };
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,10 @@ export default async function Materia({ params, searchParams }: { params: Promis
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
   const editavel = STATUS_EDITAVEIS.includes(m.status);
+  // mesma leitura de flags das rotas do Backend (getDeps); sem banco configurado cai no padrão (tudo desligado)
+  const publicacaoLigada = (getDeps()?.flags ?? FLAG_DEFAULTS).publicacaoPortal === true;
+  const podePublicar = checkAccess(session, ['admin', 'editor_chefe']).ok;
+  const base = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   return (
     <>
       <p>
@@ -135,14 +140,41 @@ export default async function Materia({ params, searchParams }: { params: Promis
                 Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}.
               </p>
             ) : null}
-            <p style={{ marginTop: 12 }}>
-              <button className="st-btn" type="button" disabled aria-disabled="true" aria-describedby="pub-hint">
-                Publicar
-              </button>
-            </p>
-            <p className="st-hint" id="pub-hint">
-              Publicar não está no Studio: só a identidade de publicação do recibo publica (ADR-008), com a versão aprovada.
-            </p>
+            <section aria-labelledby="pub-titulo" style={{ marginTop: 12 }}>
+              <h3 id="pub-titulo" style={{ margin: 0 }}>
+                Publicação
+              </h3>
+              {m.status === 'publicado' ? (
+                <p data-publicado="sim">Publicada{m.publicadoEm ? ` em ${m.publicadoEm.slice(0, 16).replace('T', ' ')} UTC` : ''}. Conteúdo publicado é imutável; correção segue o fluxo de correções.</p>
+              ) : m.status === 'aprovado' && m.recibo && podePublicar ? (
+                <form action={publicarAction}>
+                  <input type="hidden" name="id" value={m.id} />
+                  <input type="hidden" name="recibo" value={m.recibo.id} />
+                  <div className="st-field">
+                    <label htmlFor="url-publica">URL pública da matéria</label>
+                    <input id="url-publica" name="url" type="url" defaultValue={base ? `${base}/materias/${m.slug}` : ''} />
+                  </div>
+                  <button className="st-btn" type="submit" disabled={!publicacaoLigada} aria-describedby="pub-hint">
+                    Publicar
+                  </button>
+                </form>
+              ) : (
+                <p>
+                  <button className="st-btn" type="button" disabled aria-disabled="true" aria-describedby="pub-hint">
+                    Publicar
+                  </button>
+                </p>
+              )}
+              <p className="st-hint" id="pub-hint">
+                {!publicacaoLigada
+                  ? 'Publicação desligada neste ambiente (flag publicacaoPortal).'
+                  : m.status === 'aprovado' && m.recibo
+                    ? podePublicar
+                      ? 'Só a identidade de publicação do recibo publica (ADR-008), com o recibo da versão aprovada.'
+                      : 'Seu papel não publica (exige editor-chefe ou admin).'
+                    : 'Publica quando a matéria está aprovada e tem recibo da versão.'}
+              </p>
+            </section>
           </div>
 
           <div className="st-card" style={{ marginTop: 14 }}>
