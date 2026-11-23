@@ -1,0 +1,128 @@
+{
+  "version": "2.0",
+  "rate_card_as_of": "2026-11-21",
+  "currency": "USD",
+  "models": [
+    {
+      "id": "deepseek-flash",
+      "provider": "deepseek",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 0.3,
+      "output_peak": 1.2,
+      "input_offpeak": 0.15,
+      "output_offpeak": 0.6,
+      "cache_hit_peak": 0.006,
+      "cache_hit_offpeak": 0.003
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "input_peak": 1.32,
+      "output_peak": 3.96,
+      "input_offpeak": 0.66,
+      "output_offpeak": 1.98,
+      "cache_hit_peak": 0.044,
+      "cache_hit_offpeak": 0.022
+    },
+    {
+      "id": "claude-opus-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 4,
+      "output_peak": 20
+    },
+    {
+      "id": "claude-fable-5-2",
+      "provider": "anthropic",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 8,
+      "output_peak": 40
+    },
+    {
+      "id": "gpt-image-2.6-flare",
+      "provider": "openai",
+      "capabilities": [
+        "image_generation"
+      ],
+      "input_peak": null,
+      "output_peak": null
+    },
+    {
+      "id": "gpt-image-2.6-sunburst",
+      "provider": "openai",
+      "capabilities": [
+        "image_generation"
+      ],
+      "input_peak": null,
+      "output_peak": null
+    }
+  ],
+  "routes": {
+    "deterministic": [],
+    "economy": [
+      "deepseek-flash",
+      "deepseek-v4-pro",
+      "claude-opus-5-5"
+    ],
+    "review": [
+      "deepseek-v4-pro",
+      "claude-opus-5-5"
+    ],
+    "premium": [
+      "claude-opus-5-5",
+      "claude-fable-5-2"
+    ],
+    "strategic": [
+      "claude-fable-5-2",
+      "claude-opus-5-5"
+    ],
+    "image_fast": [
+      "gpt-image-2.6-flare",
+      "gpt-image-2.6-sunburst"
+    ],
+    "image_premium": [
+      "gpt-image-2.6-sunburst"
+    ]
+  },
+  "rules": {
+    "production_enabled": false,
+    "block_unknown_cost": true,
+    "human_approval_for_premium_over_budget": true,
+    "no_cross_provider_for_restricted_data": true,
+    "max_attempts": 3,
+    "max_escalations": 2,
+    "hard_monthly_budget_usd_example": 300,
+    "soft_budget_fraction": 0.8,
+    "price_expiry_days": 7,
+    "human_review_mvp": true
+  },
+  "sources": [
+    "https://api-docs.deepseek.com/quick_start/pricing/",
+    "https://platform.claude.com/docs/en/models/overview",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://developers.openai.com/api/reference/resources/images/methods/generate"
+  ],
+  "qualification": {
+    "status": "unverified_in_runtime",
+    "require_provider_discovery": true,
+    "require_exact_model_id_and_capabilities": true,
+    "require_price_for_image_units": true,
+    "routing_notes": "Model identifiers are candidate aliases; bind to verified API identifiers before activation. Do not route private data without approved processor. Budget includes no images until price verified."
+  }
+}

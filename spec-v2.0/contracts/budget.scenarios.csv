@@ -1,0 +1,28 @@
+cenario,tarefa,modelo,chamadas_equivalentes,tokens_entrada_por_unidade,tokens_saida_por_unidade,usd_entrada_milhao,usd_saida_milhao,usd_total
+Enxuto,Triagem/produção/social/entidades,Flash,88,30000,6000,0.3,1.2,1.4256
+Enxuto,Revisão independente,Pro,88,12000,1800,1.32,3.96,2.0212
+Enxuto,Escalonamentos complexos,Opus,13,20000,3000,4,20,1.82
+Enxuto,Conselho estratégico,Fable,4,40000,5000,8,40,2.08
+Base,Triagem/produção/social/entidades,Flash,132,30000,6000,0.3,1.2,2.1384
+Base,Revisão independente,Pro,132,12000,1800,1.32,3.96,3.0318
+Base,Escalonamentos complexos,Opus,20,20000,3000,4,20,2.8
+Base,Conselho estratégico,Fable,4,40000,5000,8,40,2.08
+Expansão,Triagem/produção/social/entidades,Flash,264,30000,6000,0.3,1.2,4.2768
+Expansão,Revisão independente,Pro,264,12000,1800,1.32,3.96,6.0636
+Expansão,Escalonamentos complexos,Opus,40,20000,3000,4,20,5.6
+Expansão,Conselho estratégico,Fable,4,40000,5000,8,40,2.08
+Enxuto,Daily: contribuições compactas,Flash,1232,1200,250,0.3,1.2,0.8131
+Enxuto,Daily: síntese por ritual,Flash,352,4000,700,0.3,1.2,0.7181
+Enxuto,Daily: sincronização e editorial,Pro,44,7000,1000,1.32,3.96,0.5808
+Enxuto,Weekly: contribuições e sínteses,Pro,24,18000,3000,1.32,3.96,0.8554
+Enxuto,Monthly: conselho e revisão,Opus,3,30000,4000,4,20,0.6
+Base,Daily: contribuições compactas,Flash,1232,1200,250,0.3,1.2,0.8131
+Base,Daily: síntese por ritual,Flash,352,4000,700,0.3,1.2,0.7181
+Base,Daily: sincronização e editorial,Pro,44,7000,1000,1.32,3.96,0.5808
+Base,Weekly: contribuições e sínteses,Pro,24,18000,3000,1.32,3.96,0.8554
+Base,Monthly: conselho e revisão,Opus,3,30000,4000,4,20,0.6
+Expansão,Daily: contribuições compactas,Flash,1232,1200,250,0.3,1.2,0.8131
+Expansão,Daily: síntese por ritual,Flash,352,4000,700,0.3,1.2,0.7181
+Expansão,Daily: sincronização e editorial,Pro,44,7000,1000,1.32,3.96,0.5808
+Expansão,Weekly: contribuições e sínteses,Pro,24,18000,3000,1.32,3.96,0.8554
+Expansão,Monthly: conselho e revisão,Opus,3,30000,4000,4,20,0.6

@@ -36,6 +36,10 @@ const config = (phase: string): NextConfig => {
   // exatamente '1', passada pelo build-web.mjs a partir do release.json. O pacote só sai com relatório de typecheck verde do
   // MESMO commit (build-web/package-web, DevOps). Qualquer outro valor ou ausência = typecheck no build (padrão seguro).
   const skipTypecheck = process.env.LN_BUILD_SKIP_TYPECHECK === '1';
+  // Build "leve" na Vertra (app de 512 MB => ambiente de build de 1024 MB): v7 morreu (Killed, 137) em "Generating static pages using 1 worker (0/39)".
+  // Com LN_BUILD_LEVE exatamente '1' (passada pelo build-web.mjs a partir do release.json, nunca pelo painel) a geração estática roda uma página por vez e
+  // o Turbopack não grava o cache de arquivos do build (container novo a cada build: o cache não é reaproveitado e custa memória). Não muda o que é gerado.
+  const buildLeve = process.env.LN_BUILD_LEVE === '1';
   return {
     // Pacotes do monorepo são TypeScript-fonte (sem build próprio).
     transpilePackages: [
@@ -54,7 +58,10 @@ const config = (phase: string): NextConfig => {
     env: { NEXT_PUBLIC_PORTAL_DEMO: portalDemo },
     typescript: { ignoreBuildErrors: skipTypecheck },
     // Upload de mídia pelo Studio (server action multipart): PDF até 10 MB + metadados.
-    experimental: { serverActions: { bodySizeLimit: '11mb' } },
+    experimental: {
+      serverActions: { bodySizeLimit: '11mb' },
+      ...(buildLeve ? { staticGenerationMaxConcurrency: 1, turbopackFileSystemCacheForBuild: false } : {}),
+    },
     // Bancos nativos/WASM ficam fora do bundle (pg em produção; PGlite só em dev/e2e: nem a lista de externos o cita em produção).
     serverExternalPackages: devDbSeam.includes('.e2e.') ? ['pg', '@electric-sql/pglite'] : ['pg'],
     // Mesma raiz para o rastreamento de arquivos do build (evita aviso de múltiplos lockfiles e inferência por HOME).
