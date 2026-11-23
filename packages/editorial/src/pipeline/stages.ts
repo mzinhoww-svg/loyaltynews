@@ -8,7 +8,11 @@ import { eligibility } from '../sources/registry';
 import {
   buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
 } from '../rules/rules';
-import { normalizeText } from '../dedupe/dedupe';
+import { normalizeText, sha256 } from '../dedupe/dedupe';
+import { PORTAL_SOURCE_NAME } from '../intelligence/published';
+import type { DroppedMention, IntelligenceHandoff, PublishedArticle, RoleMention } from '../intelligence/types';
+import { extractRoleMentionsDeterministic, mentionKey, minimizeToOrganizations, validateMention } from '../intelligence/roles';
+import { isEnabled } from '../flags';
 import type { ArticleJob, BlockerCode, FactVerdict, JobSpec, SocialPack, StageOutcome } from './jobs';
 
 export const MAX_ATTEMPTS = 3; // model.policy.json rules.max_attempts
@@ -212,7 +216,8 @@ export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOut
 }
 
 // ---------------- 6. pacote social (WF04; só após article.published) ----------------
-export interface PublishedInfo { url: string }
+/** Dados da publicação (recibo do WF03). `contentSha256` = sha256 do corpo publicado, quando o Backend o informa. */
+export interface PublishedInfo { url: string; publishedAt?: string; contentSha256?: string; isMock?: boolean }
 
 export function utm(articleId: string, channel: string) { return { source: channel, medium: 'social', campaign: `materia-${articleId}` }; }
 
@@ -259,8 +264,73 @@ export async function runStage(deps: StageDeps, spec: JobSpec, published?: Publi
     case 'draft': return draft(deps, spec.data);
     case 'factcheck': return factcheck(deps, spec.data);
     case 'review': return review(deps, spec.data);
+    case 'roles':
+      if (!published) return blocked(spec.data, 'roles', ['not_published'], [{ code: 'not_published', message: 'extração de cargos só após article.published' }]);
+      return extractRoles(deps, spec.data, published);
     case 'social_pack':
       if (!published) return blocked(spec.data, 'social_pack', ['approval_missing'], [{ code: 'not_published', message: 'pacote social só após article.published' }]);
       return socialPack(deps, spec.data, published);
   }
+}
+
+// ---------------- 7. cargos citados na matéria PUBLICADA (WF06 → Intelligence) ----------------
+
+/**
+ * Extrai menções de cargo (nome, cargo, empresa) da matéria já publicada e monta o pacote para `consumeArticle`.
+ * - Nunca de rascunho: exige aprovação, recibo de publicação e (se informado) hash igual ao do corpo aprovado.
+ * - Determinístico primeiro; o modelo (gateway, só com a flag `intelligencePessoas` ligada) apenas PROPÕE e tudo passa
+ *   por validateMention (trecho literal da matéria, nome/empresa/cargo no trecho e nas fontes primárias).
+ * - Flag desligada (padrão): só organizações; sem nome de pessoa no pacote e sem chamada de modelo.
+ */
+export async function extractRoles(deps: StageDeps, job: ArticleJob, published: PublishedInfo): Promise<StageOutcome> {
+  requireFlag(deps.flags, 'editorialPipeline');
+  const d = job.draft;
+  if (!job.approved || !d) return blocked(job, 'roles', ['approval_missing'], [{ code: 'not_approved', message: 'matéria não aprovada: não há texto publicável' }]);
+  if (!/^https?:\/\/\S+$/i.test(published.url)) return blocked(job, 'roles', ['not_published'], [{ code: 'no_public_url', message: 'sem URL pública da matéria publicada' }]);
+  const bodySha = sha256(d.body);
+  if (published.contentSha256 && published.contentSha256 !== bodySha) {
+    return blocked(job, 'roles', ['stale_approval'], [{ code: 'content_mismatch', message: 'o texto publicado não é o texto aprovado deste job' }]);
+  }
+  const text = mainBody(d.body);
+  const used = job.evidences.filter((e) => d.evidenceIds.includes(e.id));
+  if (used.some((e) => e.suspicious)) return blocked(job, 'roles', ['suspicious_evidence'], [{ code: 'suspicious_evidence', message: 'evidência suspeita: sem extração' }]);
+  const sourceTexts = used.map((e) => `${e.title}\n${e.text}`);
+  const persons = isEnabled('intelligencePessoas', deps.flags);
+
+  const kept: RoleMention[] = []; const origins: Array<'rule' | 'model'> = []; const dropped: DroppedMention[] = [];
+  const seen = new Set<string>();
+  const accept = (raw: unknown, origin: 'rule' | 'model') => {
+    const v = validateMention(raw, text, sourceTexts);
+    if (!v.ok) { dropped.push(v.drop); return; }
+    const k = mentionKey(v.mention);
+    if (seen.has(k)) { if (origin === 'model') dropped.push({ reason: 'duplicate', personName: v.mention.personName, orgName: v.mention.orgName }); return; }
+    seen.add(k); kept.push(v.mention); origins.push(origin);
+  };
+  for (const m of extractRoleMentionsDeterministic(text)) accept(m, 'rule');
+
+  if (persons) {
+    const r = await call(deps, job, 'roles', 'roles', 'economy', 'WF06', {
+      task: 'propor menções de cargo (nome, cargo, empresa) citadas NO TEXTO; cada uma com o trecho literal; não inferir nada',
+      text, knownMentions: kept.map((m) => ({ personName: m.personName, orgName: m.orgName, kind: m.kind })),
+    });
+    if (!r.ok) return refused(job, 'roles', r);
+    if (!isObj(r.output) || !Array.isArray(r.output['mentions'])) return bad(job, 'roles', 'roles: esperado {mentions:[]}');
+    for (const raw of r.output['mentions'].slice(0, 50)) accept(raw, 'model');
+  }
+
+  const article: PublishedArticle = {
+    id: job.articleId, status: 'published', url: published.url, sourceName: PORTAL_SOURCE_NAME,
+    fetchedAt: published.publishedAt ?? (deps.now?.() ?? new Date()).toISOString(), contentSha256: bodySha,
+    ...(published.publishedAt ? { publishedAt: published.publishedAt } : {}), ...(published.isMock ? { isMock: true } : {}),
+    // Com a flag desligada o pacote não carrega texto nem título (poderiam conter nomes de pessoas).
+    ...(persons ? { headline: d.headline, text } : {}),
+  };
+  const handoff: IntelligenceHandoff = persons
+    ? { article, mentions: kept, personsIncluded: true, dropped, origins }
+    : { article, mentions: minimizeToOrganizations(kept), personsIncluded: false, dropped: dropped.map(({ reason, orgName }) => ({ reason, ...(orgName ? { orgName } : {}) })), origins };
+  deps.audit.record({
+    at: (deps.now?.() ?? new Date()).toISOString(), articleId: job.articleId, stage: 'roles', event: 'roles_extracted',
+    detail: `${kept.length} menções (${origins.filter((o) => o === 'model').length} por modelo); ${dropped.length} descartadas; pessoas=${persons}`,
+  });
+  return { kind: 'done', event: 'roles.extracted', data: job, handoff };
 }
