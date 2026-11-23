@@ -62,7 +62,7 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
           ) : null}
         </section>
       ) : null}
-      <table className="st-table" aria-label="Matérias do piloto" style={{ marginTop: 14 }}>
+      <table className="st-table" tabIndex={0} aria-label="Matérias do piloto" style={{ marginTop: 14 }}>
         <thead>
           <tr>
             <th scope="col">Matéria</th>

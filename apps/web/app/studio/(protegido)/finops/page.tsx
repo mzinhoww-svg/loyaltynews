@@ -73,7 +73,7 @@ export default async function FinOpsPage() {
       </div>
 
       <h2>Verbas por provedor</h2>
-      <table className="st-table">
+      <table className="st-table" tabIndex={0} aria-label="Verbas por provedor">
         <thead>
           <tr>
             <th scope="col">Provedor</th>

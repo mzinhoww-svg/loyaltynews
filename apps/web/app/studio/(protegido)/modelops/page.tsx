@@ -53,7 +53,7 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
       </div>
 
       <h2>Catálogo de modelos ({policy.models.length})</h2>
-      <table className="st-table">
+      <table className="st-table" tabIndex={0} aria-label="Catálogo de modelos">
         <thead>
           <tr>
             <th scope="col">Modelo</th>

@@ -180,7 +180,7 @@ function MetricasMlabs({ metricas }: { metricas: DashboardSummary['metrics'] }) 
               Nenhum post publicado no período, segundo o mLabs.
             </p>
           ) : (
-            <table className="st-table">
+            <table className="st-table" tabIndex={0} aria-label="Posts publicados no mLabs">
               <caption>Posts publicados (mLabs){v.cortada ? ' — lista cortada; o total está acima' : ''}</caption>
               <thead>
                 <tr>

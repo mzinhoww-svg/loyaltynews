@@ -57,7 +57,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
           <p>Fim de semana, feriado ou nenhum ritual agendado para {dia}.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <table className="st-table" tabIndex={0} aria-label="Rituais do dia">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {ocorrencias.length} ritual(is) em {dia}
           </caption>
@@ -90,7 +90,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
       )}
 
       <h2 style={{ marginTop: 24 }}>Todos os rituais ({org.registries.meetings.length})</h2>
-      <table className="st-table">
+      <table className="st-table" tabIndex={0} aria-label="Todos os rituais">
         <thead>
           <tr>
             <th scope="col">Ritual</th>

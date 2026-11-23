@@ -26,7 +26,7 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
       </p>
 
       <h2>Diretorias</h2>
-      <table className="st-table">
+      <table className="st-table" tabIndex={0} aria-label="Diretorias">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
           {org.directorates.length} diretorias, todas reportam ao publisher
         </caption>
@@ -53,7 +53,7 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
       </table>
 
       <h2 style={{ marginTop: 24 }}>Redações especializadas</h2>
-      <table className="st-table">
+      <table className="st-table" tabIndex={0} aria-label="Redações especializadas">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
           {org.newsrooms.length} redações, cada uma com editor, redator e memória própria
         </caption>
@@ -94,7 +94,7 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
           Filtrar
         </button>
       </form>
-      <table className="st-table">
+      <table className="st-table" tabIndex={0} aria-label="Agentes">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
           {lista.length} agente(s)
         </caption>

@@ -41,7 +41,7 @@ export default async function ImportarFolhaPage({ searchParams }: { searchParams
         </div>
       ) : (
         <>
-          <table className="st-table" aria-label="Matérias com leitor 2" style={{ marginTop: 14 }}>
+          <table className="st-table" tabIndex={0} aria-label="Matérias com leitor 2" style={{ marginTop: 14 }}>
             <thead>
               <tr>
                 <th scope="col">Matéria</th>

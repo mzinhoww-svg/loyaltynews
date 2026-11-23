@@ -64,7 +64,7 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
           <p>{estado || meus ? 'Nenhum pedido com estes filtros.' : 'Nenhum pedido do titular recebido até agora.'}</p>
         </section>
       ) : (
-        <table className="st-table" aria-label="Fila de pedidos do titular">
+        <table className="st-table" tabIndex={0} aria-label="Fila de pedidos do titular">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {r.body.items.length} {r.body.items.length === 1 ? 'pedido' : 'pedidos'}, do prazo mais próximo ao mais distante
           </caption>
