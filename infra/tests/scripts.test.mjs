@@ -438,3 +438,43 @@ test('vitrine R8: healthcheck --no-mock reprova marcadores da vitrine (produçã
     assert.equal((await hc(port, ['--no-mock', '/'])).status, 1);
   } finally { s.closeAllConnections?.(); s.close(); }
 });
+
+// ---------- Provisionamento completo (staging com banco e produção) ----------
+test('guard: PORTAL_SOURCE=api é aceito em deploy (dados reais); mock, intelligence e outros seguem reprovados; PORTAL_MODE só vazio/empty', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (env) => envProblems({ APP_ENV: 'production', ...env }, { deploy: true }).join('|');
+  assert.equal(p({ PORTAL_SOURCE: 'api' }), '');
+  assert.equal(p({ PORTAL_SOURCE: 'API' }), '', 'caixa não importa');
+  assert.equal(p({ PORTAL_SOURCE: 'empty' }), '');
+  assert.equal(p({}), '');
+  for (const v of ['mock', 'intelligence', 'real', 'apis']) assert.match(p({ PORTAL_SOURCE: v }), /PORTAL_SOURCE=.* deve ficar vazio ou api/, v);
+  assert.match(p({ PORTAL_MODE: 'api' }), /PORTAL_MODE=api/);
+  assert.match(p({ PORTAL_MODE: 'mock' }), /PORTAL_MODE=mock/);
+});
+
+test('pg: parseUserTables lê a saída do psql (vazio = banco novo; uma linha por tabela)', async () => {
+  const { parseUserTables } = await import('../scripts/lib/pg.mjs');
+  assert.deepEqual(parseUserTables(''), []);
+  assert.deepEqual(parseUserTables('\n'), []);
+  assert.deepEqual(parseUserTables('public.users\npublic.articles\n'), ['public.users', 'public.articles']);
+});
+
+test('package-web: --app só aceita web ou workers; --vitrine não vale para workers', () => {
+  const dir = join(tmp(), 'nada');
+  const a = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--app', 'banco']);
+  assert.equal(a.status, 2);
+  assert.match(a.stderr, /--app deve ser web ou workers/);
+  const b = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--app', 'workers', '--vitrine']);
+  assert.equal(b.status, 2);
+  assert.match(b.stderr, /--vitrine só vale para o web/);
+});
+
+test('migrate: produção exige --confirm-production e vínculo; --first-run-empty não contorna o vínculo nem o ambiente', () => {
+  const base = { ...cleanEnv(), APP_ENV: 'production', DATABASE_URL: 'postgres://u:p@abc.db.usa1.vertraweb.app:1/vertracloud', DB_SSL_CA_PEM: 'x', DB_SSL_CERT_PEM: 'x', DB_SSL_KEY_PEM: 'x' };
+  const sem = node('migrate.mjs', ['--env', 'production', '--first-run-empty'], { env: base });
+  assert.notEqual(sem.status, 0);
+  assert.match(sem.stderr, /sem vínculo|NÃO corresponde|bindings/, 'o vínculo com bindings.json vem antes de qualquer outra coisa');
+  const errado = node('migrate.mjs', ['--env', 'production', '--first-run-empty'], { env: { ...base, APP_ENV: 'staging' } });
+  assert.notEqual(errado.status, 0);
+  assert.match(errado.stderr, /não corresponde a --env production/);
+});

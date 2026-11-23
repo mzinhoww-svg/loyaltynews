@@ -35,6 +35,17 @@ export function pgEnv({ urlVar, pemPrefix }, tmpDir, env = process.env) {
 
 const q = (id) => '"' + String(id).replace(/"/g, '""') + '"';
 
+/** Tabelas de usuário a partir da saída de `psql -At` (schema.tabela por linha). Função pura (testada sem banco). */
+export function parseUserTables(stdout) {
+  return String(stdout).split('\n').map((s) => s.trim()).filter(Boolean);
+}
+
+/** Tabelas de usuário do banco (ignora catálogos do PostgreSQL e o schema `drizzle`, que só guarda o controle das migrações). Vazio = banco novo. */
+export function userTables(env, psql = process.env.PSQL_BIN || 'psql') {
+  const sql = "select table_schema||'.'||table_name from information_schema.tables where table_type='BASE TABLE' and table_schema not in ('pg_catalog','information_schema','drizzle') order by 1";
+  return parseUserTables(must(psql, ['-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c', sql], { env, capture: true }).stdout);
+}
+
 /** Contagem e checksum por tabela (ADR-012: "contagens e checksums por tabela iguais"). */
 export function tableStats(env, psql = process.env.PSQL_BIN || 'psql') {
   const list = must(psql, ['-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c',

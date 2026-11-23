@@ -22,6 +22,10 @@ for (const k of ['repo', 'commit', 'out']) if (!args[k] || args[k] === true) fai
 const repo = resolve(String(args.repo));
 const profile = String(args.profile || 'staging-min');
 const vitrine = Boolean(args.vitrine);
+// --app web (padrão) | workers: o worker é um app Vertra separado (tipo Bot, sem porta), do mesmo commit; sem subdomínio, sem build-web/start-web
+const appKey = args.app === undefined ? 'web' : String(args.app);
+if (!['web', 'workers'].includes(appKey)) fail('--app deve ser web ou workers', 2);
+if (vitrine && appKey !== 'web') fail('--vitrine só vale para o web', 2);
 const SELF = dirname(fileURLToPath(import.meta.url));
 // Vitrine só no staging (Security R2/R3): recusa ANTES de tocar no repositório.
 if (vitrine && (profile === 'production' || /^prod/i.test(profile))) fail('--vitrine recusado: a vitrine de demonstração do portal só existe no staging (perfil production nunca leva PORTAL_VITRINE)', 2);
@@ -47,10 +51,10 @@ if (args['expect-branch']) {
 let spec;
 try { spec = JSON.parse(gitText(['show', `${sha}:infra/vertra/environments.json`])); } catch { fail('infra/vertra/environments.json ausente neste commit (integre ft/infra)'); }
 const env = spec.ambientes?.[profile];
-const web = env?.recursos?.web;
-if (!web) fail(`perfil "${profile}" sem recurso web em environments.json`);
+const web = env?.recursos?.[appKey];
+if (!web) fail(`perfil "${profile}" sem recurso ${appKey} em environments.json`);
 // `--subdomain` troca o subdomínio do pacote (a URL entra no build): usado quando o proprietário escolhe outro endereço no painel.
-const sub = args.subdomain && args.subdomain !== true ? String(args.subdomain) : web.subdominio;
+const sub = appKey === 'workers' ? null : (args.subdomain && args.subdomain !== true ? String(args.subdomain) : web.subdominio);
 // NEXT_PUBLIC_SITE_URL é lida no BUILD (o portal embute no sitemap e no canonical; padrão localhost). A Vertra constrói na criação, antes de
 // qualquer variável, e mudar variável depois não reconstrói: por isso a URL do ambiente entra no próprio build_command.
 const siteUrl = sub ? `https://${sub}.vertraweb.app` : null;
@@ -75,7 +79,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -83,7 +87,7 @@ const vArgs = Object.entries(virtuals).map(([p, c]) => `--add-virtual-file=${p}:
 
 // 5. destino (nunca sobrescreve sem --force)
 const out = resolve(String(args.out));
-const name = `ln-web-${profile}-${sha12}${args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}`;
+const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}`;
 const folder = join(out, name);
 const zip = join(out, `${name}.zip`);
 const manifestPath = join(out, `${name}.manifest.json`);
@@ -126,15 +130,19 @@ try {
     { nome: 'NODE_ENV', valor: web.env?.NODE_ENV ?? 'production' },
     { nome: 'APP_COMMIT', valor: sha },
     ...(web.env?.APP_MODE ? [{ nome: 'APP_MODE', valor: web.env.APP_MODE }] : []),
+    // Staging completo e produção (web): o portal lê dados reais pela API (indexing.ts); sem esta variável a fonte é VAZIA mesmo com banco.
+    ...(appKey === 'web' && profile !== 'staging-min' ? [{ nome: 'PORTAL_SOURCE', valor: 'api' }] : []),
     // Obrigatória em EXECUÇÃO também: páginas dinâmicas e a revalidação da home leem a variável no servidor (experimento 22/11/2026: sem ela, localhost).
-    { nome: 'NEXT_PUBLIC_SITE_URL', valor: siteUrl ?? '(definir)' },
-    { nome: 'APP_URL', valor: siteUrl ?? '(definir)' },
-    { nome: 'BETTER_AUTH_URL', valor: siteUrl ?? '(definir)' },
+    ...(appKey === 'web' ? [
+      { nome: 'NEXT_PUBLIC_SITE_URL', valor: siteUrl ?? '(definir)' },
+      { nome: 'APP_URL', valor: siteUrl ?? '(definir)' },
+      { nome: 'BETTER_AUTH_URL', valor: siteUrl ?? '(definir)' },
+    ] : []),
     // Vitrine: também em EXECUÇÃO (start-web.mjs compara com release.json.vitrine e recusa se divergir). Sem vitrine, a variável NÃO deve existir.
     ...(vitrine ? [{ nome: 'PORTAL_VITRINE', valor: '1' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, siteUrl, vitrine, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [
@@ -145,9 +153,11 @@ try {
     medir_apos_o_deploy: [
       { nome: 'TRUSTED_PROXY_HOPS', como: 'contar as entradas de X-Forwarded-For que o app recebe de uma requisição de teste com UMA entrada falsa injetada (TEST-NET 203.0.113.9); hops = total de entradas menos 1; exige o diagnóstico DIAG_XFF=1 do Backend (só contagem, nunca IPs); sem medição o limite por IP fica inativo e vale só o limite por conta (padrão seguro)' },
     ],
-    sondas: vitrine
-      ? ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --vitrine / --noindex / --canonical <URL>']
-      : ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock /'],
+    sondas: appKey === 'workers'
+      ? ['get_logs do app: [workers] no ar; filas com handler: N (sem porta nem health check HTTP)']
+      : vitrine
+        ? ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --vitrine / --noindex / --canonical <URL>']
+        : ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock / --ready'],
     garantias: [...(vitrine ? ['VITRINE (staging): release.json.vitrine=true; o build liga a vitrine a partir do release.json (não do painel) e falha se a home sair sem a faixa de demonstração; o start recusa se PORTAL_VITRINE em execução ≠ release.vitrine; production + PORTAL_VITRINE reprova no guard-env (build e start); Security R1–R3'] : ['SEM vitrine: release.vitrine=false; o build ignora PORTAL_VITRINE do painel e falha se a home tiver marcador de demonstração; o start recusa se PORTAL_VITRINE existir']), 'build_command = guard-env + build-web.mjs: APP_ENV e NEXT_PUBLIC_SITE_URL vêm do release.json e entram no ambiente do build (sem atribuição inline); o build falha se o canonical da home não for a URL do ambiente', 'start_command = guard-env + start-web.mjs: o app NÃO sobe se APP_COMMIT não for o SHA de 40 hex do release.json, se NEXT_PUBLIC_SITE_URL faltar/divergir ou se APP_ENV divergir (com zero downtime e rollback automático a versão anterior deve continuar no ar; comportamento na Vertra ainda não testado)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e (inclui a rota app/api/e2e) nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');

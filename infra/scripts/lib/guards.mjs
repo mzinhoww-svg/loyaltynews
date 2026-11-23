@@ -14,9 +14,12 @@ export function envProblems(env = process.env, { deploy = false } = {}) {
   const strict = deploy || DEPLOY_ENVS.includes(String(env.APP_ENV ?? '').toLowerCase());
   if (strict) {
     // Alerta do PM: no staging/produção PORTAL_SOURCE fica VAZIO (nem mock nem intelligence). Só 'empty' explícito é aceito.
+    // Com banco, o portal lê dados reais por PORTAL_SOURCE=api (apps/web/app/(portal)/_lib/indexing.ts: `api` vale em qualquer ambiente). Só `api` e `empty`/vazio passam;
+    // mock, intelligence e qualquer outro valor continuam reprovados. PORTAL_MODE segue só vazio/empty.
     for (const k of ['PORTAL_SOURCE', 'PORTAL_MODE']) {
       const v = String(env[k] ?? '').trim().toLowerCase();
-      if (v !== '' && v !== 'empty') p.push(`${k}=${env[k]} em ambiente de deploy: deve ficar vazio (fixtures MOCK e fontes experimentais só em teste)`);
+      if (v === '' || v === 'empty' || (k === 'PORTAL_SOURCE' && v === 'api')) continue;
+      p.push(`${k}=${env[k]} em ambiente de deploy: deve ficar vazio${k === 'PORTAL_SOURCE' ? ' ou api' : ''} (fixtures MOCK e fontes experimentais só em teste)`);
     }
     // Vitrine do portal no STAGING (decisão do Security 23/11/2026, R1/R2): interruptor próprio PORTAL_VITRINE=1, exatamente `1`, e só com APP_ENV=staging.
     // PORTAL_SOURCE=mock continua proibido acima. Com production/producao/homologacao a variável DEFINIDA (qualquer valor) reprova.
