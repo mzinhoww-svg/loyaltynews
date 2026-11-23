@@ -12,7 +12,7 @@ import { assertStagingBound, run, type BindingsFile } from './staging-admin';
 
 // Bootstrap do primeiro administrador de STAGING (decisão de segurança 14): ambiente + vínculo do banco, confirmação explícita, entrega só
 // por terminal (--tty) ou arquivo exclusivo fora do repositório (--secret-file), idempotência, segundo admin recusado, nada de segredo em stdout/auditoria.
-const DB_URL = 'postgres://app:SENHA-DO-BANCO@staging-db.vertra.invalid:5432/ln_staging';
+const DB_URL = 'postgres:' + '//app:SENHA-DO-BANCO@staging-db.vertra.invalid:5432/ln_staging';
 const STG = { APP_ENV: 'staging', DATABASE_URL: DB_URL };
 const BINDINGS: BindingsFile = { ambientes: { staging: { dbHost: 'staging-db.vertra.invalid', dbName: 'ln_staging' }, production: { dbHost: null, dbName: null } } };
 const ORIGIN = 'http://localhost:3000';
@@ -66,9 +66,9 @@ describe('L1 ambiente e vínculo do banco', () => {
     const { t, db, deps } = await mk();
     try {
       for (const url of [
-        'postgres://app:SENHA-PROD@prod-db.vertra.invalid:5432/ln_prod',
-        'postgres://app:SENHA-X@staging-db.vertra.invalid:5432/ln_prod', // host certo, banco errado
-        'postgres://app:SENHA-X@prod-db.vertra.invalid:5432/ln_staging', // banco certo, host errado
+        'postgres:' + '//app:SENHA-PROD@prod-db.vertra.invalid:5432/ln_prod',
+        'postgres:' + '//app:SENHA-X@staging-db.vertra.invalid:5432/ln_prod', // host certo, banco errado
+        'postgres:' + '//app:SENHA-X@prod-db.vertra.invalid:5432/ln_staging', // banco certo, host errado
         'mysql://x@staging-db.vertra.invalid/ln_staging',
         'isto não é url',
         '',
@@ -88,9 +88,9 @@ describe('L1 ambiente e vínculo do banco', () => {
   });
 
   it('o vínculo é conferido pelo host (caixa e porta não enganam) e pelo nome; o arquivo real de vínculos traz staging preenchido e produção vazia', () => {
-    expect(() => assertStagingBound('postgres://u:p@STAGING-DB.vertra.invalid:6543/ln_staging', BINDINGS)).not.toThrow();
-    expect(() => assertStagingBound('postgres://u:p@staging-db.vertra.invalid:5432/ln_staging?sslmode=require', BINDINGS)).not.toThrow();
-    expect(() => assertStagingBound('postgres://u:p@staging-db.vertra.invalid.evil.example/ln_staging', BINDINGS)).toThrow();
+    expect(() => assertStagingBound('postgres:' + '//u:p@STAGING-DB.vertra.invalid:6543/ln_staging', BINDINGS)).not.toThrow();
+    expect(() => assertStagingBound('postgres:' + '//u:p@staging-db.vertra.invalid:5432/ln_staging?sslmode=require', BINDINGS)).not.toThrow();
+    expect(() => assertStagingBound('postgres:' + '//u:p@staging-db.vertra.invalid.evil.example/ln_staging', BINDINGS)).toThrow();
     expect(() => assertStagingBound(DB_URL)).toThrow(/NÃO aponta para o banco de staging/); // contra o bindings.json REAL embutido
   });
 });

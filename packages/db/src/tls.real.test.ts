@@ -1,5 +1,5 @@
 // Conexão REAL com PostgreSQL por TLS + certificado de cliente (como a Vertra). Só roda com LN_TEST_REAL_TLS=1:
-//   LN_TEST_CERTS_DIR (ca.crt, client.crt, client.pk8.key), LN_TEST_PG_URL (ex.: postgres://postgres:senha@127.0.0.1:55432/postgres).
+//   LN_TEST_CERTS_DIR (ca.crt, client.crt, client.pk8.key), LN_TEST_PG_URL (ex.: postgres://<usuario>:<senha>@127.0.0.1:55432/postgres).
 // O servidor de teste exige `hostssl ... scram-sha-256 clientcert=verify-full`. Sem as variáveis, o arquivo é ignorado.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

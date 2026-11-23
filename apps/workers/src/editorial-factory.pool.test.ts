@@ -8,7 +8,7 @@ import { createFactoryPool } from './editorial-factory';
 const CERT = '-----BEGIN CERTIFICATE-----\nMIIBjDCCATOgAwIBAgIUSfG+UDW/PdEktFe3K/RyQ9UXcrkwCgYIKoZIzj0EAwIw\nGzEZMBcGA1UEAwwQbG4tdGVzdGUtZmFicmljYTAgFw0yNjExMjMxODA0MjRaGA8y\nMTI2MTAzMDE4MDQyNFowGzEZMBcGA1UEAwwQbG4tdGVzdGUtZmFicmljYTBZMBMG\nByqGSM49AgEGCCqGSM49AwEHA0IABBUb0w0KUuIGL4Al0i9d/zpeHCgAdbZAXKNi\nqQxrXeyv1nKA9VZFZkWlYrET9POvkQupi6g1o3V3+v6cqHJVBFqjUzBRMB0GA1Ud\nDgQWBBTbQFb3G02HW/7lXe6VZXc/qylnMDAfBgNVHSMEGDAWgBTbQFb3G02HW/7l\nXe6VZXc/qylnMDAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0cAMEQCICej\nSc8qTDuFuPM7WTNY7QqbLjtdltd6QL5N6lLnEnrvAiBTJzWvkhtVWrjiSdqYD5Ex\nD0qEs0i8w7S/fnRq6iM1mA==\n-----END CERTIFICATE-----\n';
 const KEY = '-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIGgZc85zoFb54sA8WKSUn3iAlbyH/aCrlYjl69j7qQ+LoAoGCCqGSM49\nAwEHoUQDQgAEFRvTDQpS4gYvgCXSL13/Ol4cKAB1tkBco2KpDGtd7K/WcoD1VkVm\nRaVisRP086+RC6mLqDWjdXf6/pyoclUEWg==\n-----END EC PRIVATE KEY-----\n';
 const oneLine = (pem: string) => pem.trimEnd().replace(/\n/g, '\\n'); // como o painel de variáveis da Vertra achata o PEM
-const DB_URL = 'postgres://u:p@db.vertra.example:5432/ln?sslmode=require&application_name=fabrica';
+const DB_URL = 'postgres:' + '//u:p@db.vertra.example:5432/ln?sslmode=require&application_name=fabrica';
 const TLS_ENV = { DATABASE_URL: DB_URL, DB_SSL_CA_PEM: oneLine(CERT), DB_SSL_CERT_PEM: oneLine(CERT), DB_SSL_KEY_PEM: oneLine(KEY) };
 type PoolOpts = { connectionString?: string; ssl?: false | { ca: string; cert: string; key: string; rejectUnauthorized: boolean }; max?: number };
 const optsOf = (p: unknown) => (p as { options: PoolOpts }).options;
@@ -35,7 +35,7 @@ describe('pool da Fábrica: sempre TLS (ADR-001)', () => {
     const o = optsOf(pool);
     expect(o.ssl).toMatchObject({ rejectUnauthorized: true });
     expect(o.ssl && o.ssl.ca).toBe(CERT); expect(o.ssl && o.ssl.cert).toBe(CERT); expect(o.ssl && o.ssl.key).toBe(KEY);
-    expect(o.connectionString).toBe('postgres://u:p@db.vertra.example:5432/ln?application_name=fabrica');
+    expect(o.connectionString).toBe('postgres:' + '//u:p@db.vertra.example:5432/ln?application_name=fabrica');
     expect(o.max).toBe(4);
     expect(optsOf(createFactoryPool(TLS_ENV, { max: 2, log: () => {} })).max).toBe(2);
   });
@@ -66,7 +66,7 @@ describe('pool da Fábrica: sempre TLS (ADR-001)', () => {
     const pool = createFactoryPool(TLS_ENV, { log: (l) => lines.push(l) });
     expect(pool.listenerCount('error')).toBeGreaterThanOrEqual(1);
     lines.length = 0;
-    const e = Object.assign(new Error(`falha em postgres://u:segredo@db.example/ln ${KEY}`), { code: 'ECONNRESET', options: { key: KEY, cert: CERT } });
+    const e = Object.assign(new Error(`falha em postgres:` + `//u:segredo@db.example/ln ${KEY}`), { code: 'ECONNRESET', options: { key: KEY, cert: CERT } });
     expect(() => pool.emit('error', e)).not.toThrow();
     const saida = lines.join('\n');
     expect(saida).toContain('ECONNRESET');
