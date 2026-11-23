@@ -1,0 +1,12 @@
+{
+  "method": "openbot_browser",
+  "url": "https://www.dotz.com.br/home",
+  "finalUrl": "https://www.dotz.com.br/home",
+  "capturedAt": "2026-11-23T10:22:26.774Z",
+  "robots": "robots.txt permite (conferido com scripts/verify-dataset.mjs --robots antes da captura)",
+  "note": "Metadados SEM texto (o texto integral da página de terceiros não é guardado no git; DP-28/29 e repositório público). Para reverificar é preciso recapturar com o navegador do OpenBot e conferir o sha256.",
+  "length": 3677,
+  "sha256Claimed": "36695375a23ee6353ac117012e778d2f2709a5a9574c4934a6aec283ed0f3ddd",
+  "id": "dotz-home",
+  "visitas": "2 (1 exploração + 1 captura)"
+}

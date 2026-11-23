@@ -42,6 +42,7 @@ Um lote por **fonte coletada** (uma página/comunicado), com a evidência uma ve
 | `kind` | `present` = a fonte mostra a pessoa neste cargo; `left` = a fonte diz que saiu. |
 | `announcement` | **Só** se a própria fonte anuncia a mudança (nomeação, saída, troca). Sem anúncio, uma pessoa nova é linha de base. `effectiveDate` só se a fonte traz a data. |
 | `publicProfileUrl` | Opcional; desambigua homônimos. Sem ele, a pessoa só é reconhecida por nome **dentro da mesma empresa**. |
+| `sourceLevel` | **Opcional** (adição compatível; a versão continua `role-observation/1`). `oficial` (padrão): página da própria empresa, RI, comunicado. `secundaria`: LinkedIn/The Org (só página pública, sem login; DP-32): o cargo entra como **inferido, "a confirmar"**, nunca vira fato no portal, **nunca gera Move nem fecha cargo**; leitura `oficial` do mesmo cargo o confirma (sem Move). Resultado `ignored` com motivo `secondary_source_unconfirmed` quando a leitura secundária contradiz um cargo oficial aberto ou diz que a pessoa saiu. Nunca copiar texto de perfil: só nome, cargo, empresa, período, fonte, link, data. |
 | `extra` | Reservado. **Recusado** enquanto a flag de dado pessoal ampliado estiver desligada (default). |
 
 Escopo de dado de pessoa (DP-11 P4): nome, cargo e empresa de fonte pública. Nada além: sem e-mail, telefone, endereço, documento, idade, família, redes pessoais.

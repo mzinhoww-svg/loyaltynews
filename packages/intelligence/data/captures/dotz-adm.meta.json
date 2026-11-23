@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "dotz-adm",
+  "url": "https://ri.dotz.com.br/governanca/administracao/",
+  "finalUrl": "https://ri.dotz.com.br/governanca/administracao/",
+  "capturedAt": "2026-11-23T13:08:26.541Z",
+  "robots": "robots.txt permite",
+  "length": 13414,
+  "sha256Claimed": "8d57d5f69d5c641ab549d3ee8807e519620d5b8c1d67f7e09baae3fc5289db77"
+}

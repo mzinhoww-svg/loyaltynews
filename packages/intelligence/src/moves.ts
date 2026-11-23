@@ -13,7 +13,10 @@ export type ObservationResult =
   | { outcome: 'baseline'; personId: Uuid; roleId: Uuid }
   | { outcome: 'unchanged'; personId: Uuid; roleId: Uuid }
   | { outcome: 'move'; personId: Uuid; move: MoveRow }
-  | { outcome: 'ignored'; reason: 'stale_observation' | 'no_open_role_to_close' | 'subject_suppressed' };
+  | { outcome: 'ignored'; reason: 'stale_observation' | 'no_open_role_to_close' | 'subject_suppressed' | 'secondary_source_unconfirmed' };
+
+/** Base gravada nos cargos vindos de fonte secundária (LinkedIn/The Org): "a confirmar", nunca fato. */
+export const SECONDARY_BASIS = 'a confirmar: fonte secundária (rede profissional/organograma público), sem confirmação em página oficial';
 
 /**
  * Loyalty Moves — detecção de mudança de cargo a partir de uma observação de fonte pública.
@@ -49,6 +52,25 @@ export async function processObservation(
   ).rows;
   const nTitle = normalizeTitle(obs.title);
 
+  // Fonte SECUNDÁRIA (LinkedIn/The Org, só página pública): nunca gera Move, nunca fecha cargo, nunca vira fato. Só registra "a confirmar".
+  if (obs.sourceLevel === 'secundaria') {
+    if (obs.kind === 'left') return { outcome: 'ignored', reason: 'secondary_source_unconfirmed' };
+    const anyOpen = (
+      await db.query<{ id: Uuid; normalized_title: string; certainty: string }>(
+        `SELECT id, normalized_title, certainty FROM ${S}.role_assignment WHERE person_id = $1 AND organization_id = $2 AND valid_to IS NULL`,
+        [person.id, orgId],
+      )
+    ).rows;
+    const same2 = anyOpen.find((r) => r.normalized_title === normalizeTitle(obs.title));
+    if (same2) return { outcome: 'unchanged', personId: person.id, roleId: same2.id };
+    if (anyOpen.some((r) => r.certainty === 'declared')) return { outcome: 'ignored', reason: 'secondary_source_unconfirmed' };
+    const roleId = await addRole(db, {
+      personId: person.id, organizationId: orgId, title: obs.title, validFrom: observedOn, certainty: 'inferred', inferenceBasis: SECONDARY_BASIS,
+      evidenceId: obs.evidenceId, observedAt: obs.observedAt,
+    });
+    return { outcome: 'baseline', personId: person.id, roleId };
+  }
+
   if (obs.kind === 'left') {
     const cur = open.find((r) => r.organization_id === orgId);
     if (!cur) return { outcome: 'ignored', reason: 'no_open_role_to_close' };
@@ -62,6 +84,22 @@ export async function processObservation(
     return { outcome: 'move', personId: person.id, move };
   }
 
+  // Cargo "a confirmar" (inferido, de fonte secundária) + leitura oficial do MESMO cargo = confirmação: passa a declarado com a nova
+  // evidência. Não é Move (nada mudou, só ganhou prova). Nunca o contrário.
+  const pending = (
+    await db.query<{ id: Uuid; valid_from: string }>(
+      `SELECT id, valid_from::text FROM ${S}.role_assignment
+        WHERE person_id = $1 AND organization_id = $2 AND normalized_title = $3 AND valid_to IS NULL AND certainty = 'inferred'`,
+      [person.id, orgId, nTitle],
+    )
+  ).rows[0];
+  if (pending) {
+    await db.query(
+      `UPDATE ${S}.role_assignment SET certainty = 'declared', inference_basis = NULL, evidence_id = $2, validated_at = $3 WHERE id = $1`,
+      [pending.id, obs.evidenceId, obs.observedAt],
+    );
+    return { outcome: 'unchanged', personId: person.id, roleId: pending.id };
+  }
   const same = open.find((r) => r.organization_id === orgId && r.normalized_title === nTitle);
   if (same) {
     if (observedOn >= same.valid_from) await revalidateRole(db, same.id, obs.observedAt, obs.evidenceId);
