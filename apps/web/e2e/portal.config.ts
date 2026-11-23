@@ -14,13 +14,18 @@ const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
 // (evita testar, sem querer, o código de outro worktree/agente que ocupe as portas padrão).
 const base = Number(process.env.PORTAL_PORT_BASE) || 0;
 const fakeApiPort = base ? base + 4 : 3104;
-const port = base ? base + (mode === 'mock' ? 1 : mode === 'api' ? 2 : appEnv === 'production' ? 0 : 3) : mode === 'mock' ? 3102 : mode === 'api' ? 3105 : appEnv === 'production' ? 3101 : 3103;
+// DP-24: produção só é indexável com PORTAL_INDEXAVEL=1. PORTAL_INDEXAVEL_E2E=0 sobe a produção SEM o interruptor (padrão do go-live).
+const indexavel = appEnv === 'production' && (process.env.PORTAL_INDEXAVEL_E2E ?? '1') === '1';
+const prodSemInterruptor = appEnv === 'production' && !indexavel;
+const port = base
+  ? base + (mode === 'mock' ? 1 : mode === 'api' ? 2 : prodSemInterruptor ? 5 : appEnv === 'production' ? 0 : 3)
+  : mode === 'mock' ? 3102 : mode === 'api' ? 3105 : prodSemInterruptor ? 3106 : appEnv === 'production' ? 3101 : 3103;
 
 
 export default defineConfig({
   testDir: './portal',
   // Em staging só a suíte de ambiente (as demais assumem indexação de produção).
-  testMatch: mode === 'api' ? /(api|env)\.spec\.ts/ : appEnv === 'production' ? /.*\.spec\.ts/ : /env\.spec\.ts/,
+  testMatch: mode === 'api' ? /(api|env)\.spec\.ts/ : indexavel ? /.*\.spec\.ts/ : /env\.spec\.ts/,
   outputDir: '../.test-results/portal',
   fullyParallel: true,
   retries: 0,
@@ -56,6 +61,8 @@ export default defineConfig({
             ...(mode === 'api' ? { PORTAL_API_BASE_URL: `http://localhost:${fakeApiPort}`, PORT: String(port) } : {}),
             // Mock nunca roda com APP_ENV=production (resolveSourceKind recusa): o servidor de mock usa staging.
             APP_ENV: mode === 'mock' ? 'staging' : appEnv,
+            // Interruptor de indexação de produção (DP-24); em staging/mock nunca é definido.
+            ...(indexavel && mode !== 'mock' ? { PORTAL_INDEXAVEL: '1' } : {}),
             NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
             NEXT_TELEMETRY_DISABLED: '1',
           },

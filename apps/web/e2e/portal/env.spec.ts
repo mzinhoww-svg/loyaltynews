@@ -6,11 +6,13 @@ import { expect, test } from '@playwright/test';
  */
 const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
 const mode = process.env.PORTAL_MODE ?? 'empty';
-const blocked = appEnv !== 'production' || mode === 'mock';
+// DP-24: produção só é indexável com PORTAL_INDEXAVEL=1; PORTAL_INDEXAVEL_E2E=0 testa a produção SEM o interruptor.
+const semInterruptor = process.env.PORTAL_INDEXAVEL_E2E === '0';
+const blocked = appEnv !== 'production' || mode === 'mock' || semInterruptor;
 
 const URLS = ['/', '/noticias', '/editoria/bancos', '/sobre', '/busca', '/robots.txt', '/sitemap.xml', '/feed.xml', '/api/health'];
 
-test.describe(`indexação com APP_ENV=${appEnv} (${mode})`, () => {
+test.describe(`indexação com APP_ENV=${appEnv}${semInterruptor ? ' sem PORTAL_INDEXAVEL' : ''} (${mode})`, () => {
   test('robots.txt', async ({ request }) => {
     const r = await request.get('/robots.txt');
     expect(r.status()).toBe(200);
