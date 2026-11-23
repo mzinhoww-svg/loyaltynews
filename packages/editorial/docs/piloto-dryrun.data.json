@@ -1,0 +1,1154 @@
+{
+  "versao": "2026-11-23",
+  "relogioDoEnsaio": "2026-11-26T12:00:00.000Z",
+  "prompt": "editorial-0.3",
+  "chamadasModeloReal": 0,
+  "chamadasSimuladas": 48,
+  "chamadasSimuladasPorClasse": {
+    "triage": 10,
+    "context": 10,
+    "draft": 16,
+    "factcheck": 7,
+    "review": 5
+  },
+  "fontes": [
+    {
+      "id": "abemf",
+      "coleta": "collected",
+      "evidencias": 2,
+      "recusadas": []
+    },
+    {
+      "id": "livelo-imprensa",
+      "coleta": "collected",
+      "evidencias": 2,
+      "recusadas": []
+    },
+    {
+      "id": "senado-noticias",
+      "coleta": "collected",
+      "evidencias": 2,
+      "recusadas": [
+        {
+          "codigo": "robots_disallow",
+          "url": "https://www12.senado.leg.br/noticias/interno/ensaio-fora-do-robots"
+        }
+      ]
+    },
+    {
+      "id": "camara-noticias",
+      "coleta": "collected",
+      "evidencias": 2,
+      "recusadas": []
+    },
+    {
+      "id": "abrarec",
+      "coleta": "collected",
+      "evidencias": 2,
+      "recusadas": []
+    }
+  ],
+  "espacamento": [
+    {
+      "host": "abrarec.com.br",
+      "requisicoes": 4,
+      "menorIntervaloSeg": 3
+    },
+    {
+      "host": "web.abemf.com.br",
+      "requisicoes": 4,
+      "menorIntervaloSeg": 3
+    },
+    {
+      "host": "www.camara.leg.br",
+      "requisicoes": 4,
+      "menorIntervaloSeg": 3
+    },
+    {
+      "host": "www.livelo.com.br",
+      "requisicoes": 4,
+      "menorIntervaloSeg": 3
+    },
+    {
+      "host": "www12.senado.leg.br",
+      "requisicoes": 4,
+      "menorIntervaloSeg": 3
+    }
+  ],
+  "requisicoesProibidas": [],
+  "habilitacao": "SIMULADA em memória (atores de ensaio); nenhuma fonte foi habilitada no cadastro real nem no banco",
+  "materias": [
+    {
+      "slot": "a1",
+      "fonte": "senado-noticias",
+      "cenario": "limpa",
+      "titulo": "ENSAIO: comissão fictícia aprova relatório sobre programas de fidelidade",
+      "esperado": {
+        "status": "aprovado",
+        "bloqueios": [],
+        "achado": null
+      },
+      "gatesQueBarraram": [],
+      "status": "aprovado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck",
+        "review"
+      ],
+      "bloqueios": [],
+      "achados": [],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-checador",
+        "independente": true
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        },
+        {
+          "etapa": "review",
+          "output_valid": true
+        },
+        {
+          "etapa": "review",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a2",
+      "fonte": "senado-noticias",
+      "cenario": "copia_literal",
+      "titulo": "ENSAIO: plenário fictício debate regras de cashback",
+      "esperado": {
+        "status": "bloqueado",
+        "bloqueios": [
+          "copy_literal"
+        ],
+        "achado": "copy_literal"
+      },
+      "gatesQueBarraram": [
+        "copy_literal"
+      ],
+      "status": "bloqueado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "draft",
+        "draft"
+      ],
+      "bloqueios": [
+        "max_attempts",
+        "copy_literal"
+      ],
+      "achados": [
+        "copy_literal: 29 palavras consecutivas idênticas à fonte senado-noticias",
+        "copy_literal: 78% dos 5-gramas coincidem com a fonte senado-noticias"
+      ],
+      "gates": null,
+      "checagem": null,
+      "publicacao": "sem rascunho",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a3",
+      "fonte": "camara-noticias",
+      "cenario": "limpa",
+      "titulo": "ENSAIO: comissão fictícia ouve associação sobre uso de dados em programas de pontos",
+      "esperado": {
+        "status": "aprovado",
+        "bloqueios": [],
+        "achado": null
+      },
+      "gatesQueBarraram": [],
+      "status": "aprovado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck",
+        "review"
+      ],
+      "bloqueios": [],
+      "achados": [],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-checador",
+        "independente": true
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        },
+        {
+          "etapa": "review",
+          "output_valid": true
+        },
+        {
+          "etapa": "review",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a4",
+      "fonte": "camara-noticias",
+      "cenario": "numero_sem_fonte",
+      "titulo": "ENSAIO: projeto fictício trata de prazo para uso de milhas",
+      "esperado": {
+        "status": "bloqueado",
+        "bloqueios": [
+          "unsupported_claim"
+        ],
+        "achado": "unsupported_metric"
+      },
+      "gatesQueBarraram": [
+        "afirmacoes_nas_evidencias"
+      ],
+      "status": "bloqueado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "draft",
+        "draft"
+      ],
+      "bloqueios": [
+        "max_attempts",
+        "unsupported_claim"
+      ],
+      "achados": [
+        "unsupported_metric: número \"35\" não consta na evidência",
+        "unsupported_metric: número \"35\" no texto não consta nas evidências"
+      ],
+      "gates": null,
+      "checagem": null,
+      "publicacao": "sem rascunho",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a5",
+      "fonte": "abemf",
+      "cenario": "limpa",
+      "titulo": "ENSAIO: associação fictícia publica guia de boas práticas para programas de fidelidade",
+      "esperado": {
+        "status": "aprovado",
+        "bloqueios": [],
+        "achado": null
+      },
+      "gatesQueBarraram": [],
+      "status": "aprovado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck",
+        "review"
+      ],
+      "bloqueios": [],
+      "achados": [],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-checador",
+        "independente": true
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        },
+        {
+          "etapa": "review",
+          "output_valid": true
+        },
+        {
+          "etapa": "review",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a6",
+      "fonte": "abemf",
+      "cenario": "tom_exclamacao",
+      "titulo": "ENSAIO: evento fictício reúne empresas de fidelidade",
+      "esperado": {
+        "status": "bloqueado",
+        "bloqueios": [
+          "unsupported_claim"
+        ],
+        "achado": "tone_title_exclamation"
+      },
+      "gatesQueBarraram": [
+        "tom_lint"
+      ],
+      "status": "bloqueado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "draft",
+        "draft"
+      ],
+      "bloqueios": [
+        "max_attempts",
+        "unsupported_claim"
+      ],
+      "achados": [
+        "tone_title_exclamation: ponto de exclamação no título"
+      ],
+      "gates": null,
+      "checagem": null,
+      "publicacao": "sem rascunho",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a7",
+      "fonte": "livelo-imprensa",
+      "cenario": "limpa",
+      "titulo": "ENSAIO: programa fictício anuncia parceria com plataforma de viagens",
+      "esperado": {
+        "status": "aprovado",
+        "bloqueios": [],
+        "achado": null
+      },
+      "gatesQueBarraram": [],
+      "status": "aprovado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck",
+        "review"
+      ],
+      "bloqueios": [],
+      "achados": [],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-checador",
+        "independente": true
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        },
+        {
+          "etapa": "review",
+          "output_valid": true
+        },
+        {
+          "etapa": "review",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a8",
+      "fonte": "livelo-imprensa",
+      "cenario": "checagem_reprova",
+      "titulo": "ENSAIO: campanha fictícia oferece bônus em compras selecionadas",
+      "esperado": {
+        "status": "bloqueado",
+        "bloqueios": [
+          "unsupported_claim"
+        ],
+        "achado": "unsupported_claim"
+      },
+      "gatesQueBarraram": [
+        "checagem_de_fatos (veredito do checador)"
+      ],
+      "status": "bloqueado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck"
+      ],
+      "bloqueios": [
+        "unsupported_claim"
+      ],
+      "achados": [
+        "unsupported_claim: veredito fail"
+      ],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-checador",
+        "independente": true
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "blocked",
+          "cross_provider_ok": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a9",
+      "fonte": "abrarec",
+      "cenario": "limpa",
+      "titulo": "ENSAIO: associação fictícia divulga pesquisa sobre recompensas",
+      "esperado": {
+        "status": "aprovado",
+        "bloqueios": [],
+        "achado": null
+      },
+      "gatesQueBarraram": [],
+      "status": "aprovado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck",
+        "review"
+      ],
+      "bloqueios": [],
+      "achados": [],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-checador",
+        "independente": true
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        },
+        {
+          "etapa": "review",
+          "output_valid": true
+        },
+        {
+          "etapa": "review",
+          "gate_verdict": "approved",
+          "cross_provider_ok": true
+        }
+      ],
+      "conforme": true
+    },
+    {
+      "slot": "a10",
+      "fonte": "abrarec",
+      "cenario": "mesmo_provedor",
+      "titulo": "ENSAIO: webinar fictício discute relacionamento com o cliente",
+      "esperado": {
+        "status": "bloqueado",
+        "bloqueios": [
+          "cross_provider_check_failed"
+        ],
+        "achado": "same_provider"
+      },
+      "gatesQueBarraram": [
+        "checagem_em_provedor_distinto"
+      ],
+      "status": "bloqueado",
+      "estagios": [
+        "triage",
+        "context",
+        "draft",
+        "factcheck"
+      ],
+      "bloqueios": [
+        "cross_provider_check_failed"
+      ],
+      "achados": [
+        "same_provider: checagem veio do mesmo provedor do redator (simulado-redator)"
+      ],
+      "gates": [
+        {
+          "gate": "assinatura",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "sem_apuracao_inventada",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "evidencia_confiavel",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "afirmacoes_nas_evidencias",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "corpo_ancorado",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "copy_literal",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "ancora_primaria",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "autoral",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "atribuicao_fontes",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "imagem_direitos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "publicavel_slug_resumo",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "avisos",
+          "verdict": "pass",
+          "codes": []
+        },
+        {
+          "gate": "tom_lint",
+          "verdict": "pass",
+          "codes": []
+        }
+      ],
+      "checagem": {
+        "provedor": "simulado-redator",
+        "independente": false
+      },
+      "publicacao": "recusada: simulated_content",
+      "linhasPiloto": [
+        {
+          "etapa": "triage",
+          "output_valid": true
+        },
+        {
+          "etapa": "context",
+          "output_valid": true
+        },
+        {
+          "etapa": "draft",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "output_valid": true
+        },
+        {
+          "etapa": "factcheck",
+          "gate_verdict": "blocked",
+          "cross_provider_ok": false
+        }
+      ],
+      "conforme": true
+    }
+  ],
+  "resumo": {
+    "total": 10,
+    "aprovadas": 5,
+    "bloqueadas": 5,
+    "conformes": 10,
+    "porBloqueio": {
+      "max_attempts": 3,
+      "copy_literal": 1,
+      "unsupported_claim": 3,
+      "cross_provider_check_failed": 1
+    },
+    "publicadas": 0,
+    "recusadasPorSimulado": 7
+  }
+}
