@@ -9,7 +9,8 @@ import { dayOf, monthAbbrev } from '../_lib/format';
 import { getSource } from '../_lib/source';
 import type { EventItem } from '../_lib/types';
 
-export const revalidate = 60;
+// Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Agenda',
   description: 'Eventos do mercado de fidelização: congressos, webinars e fóruns verificados.',

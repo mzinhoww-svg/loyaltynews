@@ -14,7 +14,8 @@ import { getSource } from './_lib/source';
 import { flags } from './_lib/flags';
 import type { Article, SiteConfig, SiteEvent } from './_lib/types';
 
-export const revalidate = 60;
+// Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
+export const dynamic = 'force-dynamic';
 
 /** Título e descrição da home vêm do SEO publicado no Studio (fonte api); sem ele valem os padrões. */
 export async function generateMetadata(): Promise<Metadata> {
