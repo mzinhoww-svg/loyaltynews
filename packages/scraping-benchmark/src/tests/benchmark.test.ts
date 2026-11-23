@@ -19,6 +19,7 @@ import type { DatasetEntry, AttemptRecord } from '../types';
 import { shadowRun } from '../shadow';
 import { FirecrawlReader } from '../firecrawl';
 import { LiveShadow } from '../live-shadow';
+import { createLiveShadowFromEnv, ShadowHostGate } from '../live-shadow-env';
 
 const LONG = 'Lorem ipsum dolor sit amet. '.repeat(60);
 const article = (title: string, date = '2026-11-20T10:00:00Z') =>
@@ -396,5 +397,43 @@ describe('critério v2 reaplicado a registro gravado', () => {
     expect(rejudgeRecord({ ...base, title: 'pixel.gif' }, 'Azul anuncia nova rota para Lisboa')).toMatchObject({ editorialSuccess: false, errorClass: 'title_mismatch', criterion: 'v2' });
     expect(rejudgeRecord({ ...base, title: 'Azul anuncia nova rota para Lisboa | Portal' }, 'Azul anuncia nova rota para Lisboa')).toMatchObject({ editorialSuccess: true, errorClass: 'none' });
     expect(rejudgeRecord({ ...base, textLength: 100, title: 'Azul anuncia nova rota para Lisboa' }, 'Azul anuncia nova rota para Lisboa').errorClass).toBe('empty_content');
+  });
+});
+
+describe('createLiveShadowFromEnv e ritmo por host (sem rede)', () => {
+  it('desligado por padrão; sem chave no ambiente, o provedor fica fora; só direct sobra sem chaves', () => {
+    const h = createLiveShadowFromEnv({});
+    expect(h.enabled).toBe(false);
+    expect(h.providers).toEqual(['direct']);
+    expect(createLiveShadowFromEnv({ SCRAPING_SHADOW_MODE: 'true', LN_ZYTE_API_KEY: 'x' }).providers).toEqual(['direct', 'zyte-http']);
+  });
+  it('gate: ≥ 10 s por host, teto diário, 429 suspende o host no dia', () => {
+    let t = Date.parse('2026-11-24T10:00:00Z');
+    const g = new ShadowHostGate(10_000, 2, () => t);
+    expect(g.reserve('a.com')).toBe(0);
+    expect(g.reserve('a.com')).toBe(10_000);
+    expect(g.reserve('a.com')).toBeNull(); // teto do dia
+    expect(g.reserve('b.com')).toBe(0);
+    g.suspend('b.com');
+    t += 60_000;
+    expect(g.reserve('b.com')).toBeNull();
+    t += 24 * 3600_000;
+    expect(g.reserve('a.com')).toBe(0); // novo dia
+  });
+  it('wrap preserva discover', async () => {
+    const r = new MockReader('z', (q) => ok('z', q.url));
+    const sh = new LiveShadow({ router: new AdaptiveRouter([{ name: 'z', reader: r, worstCaseCredits: 0, usdPerCredit: 0 }], { env: {} }), env: { SCRAPING_SHADOW_MODE: 'true' }, maxUrlsPerRun: 0 });
+    const prim = { name: 'p', read: async () => ({ status: 200, body: 'x' }), discover: async () => [{ url: 'https://a.com/n' }] };
+    const w = sh.wrap(prim);
+    expect(await w.discover()).toEqual([{ url: 'https://a.com/n' }]);
+  });
+  it('ritmo negado registra skipped e não chama o roteador', async () => {
+    const r = new MockReader('z', (q) => ok('z', q.url));
+    const seen: unknown[] = [];
+    const sh = new LiveShadow({ router: new AdaptiveRouter([{ name: 'z', reader: r, worstCaseCredits: 0, usdPerCredit: 0 }], { env: {} }), env: { SCRAPING_SHADOW_MODE: 'true' }, beforeShadow: async () => false, onComparison: (c) => seen.push(c.shadow) });
+    sh.observe('https://a.com/1', { name: 'direct', status: 200, body: 'x', ms: 1 });
+    await sh.drain();
+    expect(r.calls).toBe(0);
+    expect(seen).toEqual([{ skipped: 'ritmo' }]);
   });
 });

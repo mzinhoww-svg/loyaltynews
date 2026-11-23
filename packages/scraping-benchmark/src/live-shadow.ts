@@ -18,7 +18,7 @@ export interface ShadowComparison {
   at: string;
   url: string;
   primary: { name: string; status: number; ok: boolean; bodyLength: number; hash?: string; ms: number };
-  shadow: { provider?: string; ok: boolean; textLength: number; hash?: string; ms: number; credits: number; steps: string[] } | { error: string };
+  shadow: { provider?: string; ok: boolean; failure?: string; textLength: number; hash?: string; ms: number; credits: number; steps: string[] } | { error: string } | { skipped: 'ritmo' };
   divergent: boolean;
 }
 
@@ -29,6 +29,10 @@ export interface LiveShadowOptions {
   env?: Record<string, string | undefined>;
   maxUrlsPerRun?: number; // teto de leituras sombra por processo (padrão 200)
   now?: () => number;
+  /** Antes de cada leitura sombra (ritmo por host): false = não lê (registra 'skipped'). */
+  beforeShadow?: (url: string) => Promise<boolean>;
+  /** Depois de cada comparação (ex.: suspender host após 429). */
+  afterShadow?: (url: string, c: ShadowComparison) => void;
 }
 
 export class LiveShadow {
@@ -43,9 +47,10 @@ export class LiveShadow {
   }
 
   /** Envolve o leitor do coletor. Desligado = devolve o próprio `primary` (nenhum custo, nenhum efeito). */
-  wrap(primary: EditorialReaderPort): EditorialReaderPort {
+  wrap<T extends EditorialReaderPort & { discover?: unknown }>(primary: T): T {
     if (!this.enabled) return primary;
     return {
+      ...primary, // preserva discover e demais membros (pedido da Editorial)
       name: primary.name,
       unlocks: primary.unlocks,
       read: async (url: string): Promise<EditorialReaderResult> => {
@@ -54,7 +59,8 @@ export class LiveShadow {
         this.observe(url, { name: primary.name, status: res.status, body: res.body, ms: this.now() - t0 });
         return res; // o coletor recebe exatamente o resultado do caminho atual
       },
-    };
+      ...(typeof primary.discover === 'function' ? { discover: (primary.discover as (...a: unknown[]) => unknown).bind(primary) } : {}),
+    } as T;
   }
 
   /** Registra o resultado do caminho atual (corpo efêmero: só tamanho e hash) e agenda a leitura sombra. Nunca lança. */
@@ -73,11 +79,20 @@ export class LiveShadow {
 
   private async runShadow(url: string, p: ShadowComparison['primary']): Promise<void> {
     let c: ShadowComparison;
+    if (this.o.beforeShadow && !(await this.o.beforeShadow(url).catch(() => false))) {
+      c = { at: new Date(this.now()).toISOString(), url, primary: p, shadow: { skipped: 'ritmo' }, divergent: false };
+      if (this.o.sinkPath) {
+        mkdirSync(dirname(this.o.sinkPath), { recursive: true });
+        appendFileSync(this.o.sinkPath, JSON.stringify(c) + '\n');
+      }
+      this.o.onComparison?.(c);
+      return;
+    }
     const t0 = this.now();
     try {
       const out = await this.o.router.route(url);
       const text = out.result?.ok ? (out.result.text ?? '') : '';
-      const s = { provider: out.provider, ok: !!out.result?.ok, textLength: text.length, hash: text ? sha256(text) : undefined, ms: this.now() - t0, credits: out.creditsUsed, steps: out.decisions.map((d) => `${d.step}${d.provider ? ':' + d.provider : ''}`) };
+      const s = { provider: out.provider, ok: !!out.result?.ok, failure: out.result?.ok ? undefined : out.result?.failure, textLength: text.length, hash: text ? sha256(text) : undefined, ms: this.now() - t0, credits: out.creditsUsed, steps: out.decisions.map((d) => `${d.step}${d.provider ? ':' + d.provider : ''}`) };
       c = { at: new Date(t0).toISOString(), url, primary: p, shadow: s, divergent: p.ok !== s.ok };
     } catch (e) {
       c = { at: new Date(t0).toISOString(), url, primary: p, shadow: { error: String((e as Error)?.message ?? e).slice(0, 200) }, divergent: true };
@@ -87,5 +102,10 @@ export class LiveShadow {
       appendFileSync(this.o.sinkPath, JSON.stringify(c) + '\n');
     }
     this.o.onComparison?.(c);
+    try {
+      this.o.afterShadow?.(url, c);
+    } catch {
+      /* gancho nunca derruba a fila */
+    }
   }
 }
