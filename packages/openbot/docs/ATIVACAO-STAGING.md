@@ -22,7 +22,7 @@ Estado: **pronto para o staging, desligado.** Nada foi ativado, criado ou chamad
 | 4 | Política v7 (DP-27) no contrato | Chief Architect | Fora deste pacote |
 | 5 | Agentes OpenBot (redator, checador, extrator, pauta) configurados, prompts versionados | AgentOps, **só com OK do PM** | Rascunho em `pilot-agents.draft.json`; nada criado |
 | 6 | Complemento OpenRouter **desligado** | DevOps/FinOps | O adaptador trata faixa `api` no piloto como **parada imediata** (§6) |
-| + | Armazém do conteúdo (`TaskIo`): o agente lê a entrada por `refId` e grava o resultado sob `resultRef` por API autenticada | Backend | **Não existe.** A fila só leva IDs; sem isto o gateway síncrono não fecha o ciclo |
+| + | Armazém do conteúdo (`TaskIo`/`PgTaskIo`) e as rotas `io/input` e `io/result` do agente (contrato em `PROTOCOL.md`, combinado com o Backend) | Backend | Em implementação pelo Backend (informado por ele); a fila PostgreSQL deve passar `@ln/openbot/testing` |
 | + | Segredo HMAC no cofre (atual e anterior) | Proprietário/DevOps | **Não criado.** O adaptador recebe os segredos por `deps.secrets()`; nenhum valor foi gerado ou gravado |
 
 ## 3. Etapas, vias e rotas do piloto
