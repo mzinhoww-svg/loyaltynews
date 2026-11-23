@@ -8,7 +8,7 @@ import {
   acknowledgeLegalCase, closeCorrection, getArticleReview, getCorrection, getFactcheck, intakeRightOfReply, listCorrections, listQueue,
   listSources, markCorrectionEntitiesRebuilt, openCorrection, preserveCorrectionEvidence, publishCorrectionNotice, reconcileCorrectionSocial,
   requestRecheck, reviewSource, setSourceEnabled, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
-  type ApiResponse, type HandlerCtx, type JobQueue,
+  type ApiResponse, type JobQueue,
 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { registerPublication, type PublicationCtx } from './publication';
