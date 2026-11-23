@@ -15,7 +15,7 @@ let ipSeq = 10;
 async function pedir(req: APIRequestContext, chave: keyof typeof ids, url: string, tipo: 'correcao' | 'remocao') {
   const r = await req.post('/api/publico/correcoes', {
     headers: { 'x-forwarded-for': `203.0.113.${ipSeq++}` },
-    data: { nome: `MOCK Titular ${chave}`, contato: `${chave}.${MARCA}@example.org`, url, tipo, texto: `${MARCA} ${chave}: o cargo exibido está desatualizado.` },
+    data: { nome: `MOCK Titular ${chave}`, contato: `${chave}.${MARCA}@example.org`, url, tipo, texto: `${MARCA} ${chave}: o cargo exibido está desatualizado. Falar com fulano.vazado.${chave}@example.org ou (11) 99999-0000.` },
   });
   expect(r.status(), `entrada pública ${chave}`).toBe(202);
 }
@@ -23,15 +23,22 @@ async function pedir(req: APIRequestContext, chave: keyof typeof ids, url: strin
 test.beforeAll(async ({ browser }) => {
   const ctx = await browser.newContext();
   await entrar(ctx, 'tit-chefe', 'editor_chefe'); // o login monta o backend de e2e (sem ele a entrada pública responde 503)
-  await pedir(ctx.request, 'pessoa', 'https://loyalty.example/intelligence/pessoas/p-e2e-1', 'remocao');
-  await pedir(ctx.request, 'cargo', 'https://loyalty.example/intelligence/pessoas/p-e2e-1?cargo=c-e2e-9', 'correcao');
-  await pedir(ctx.request, 'move', 'https://loyalty.example/intelligence/moves/m-e2e-2', 'correcao');
+  await pedir(ctx.request, 'pessoa', `https://loyalty.example/intelligence/pessoas/p-${MARCA}`, 'remocao');
+  await pedir(ctx.request, 'cargo', `https://loyalty.example/intelligence/pessoas/p-${MARCA}?cargo=c-${MARCA}`, 'correcao');
+  await pedir(ctx.request, 'move', `https://loyalty.example/intelligence/moves/m-${MARCA}`, 'correcao');
   await pedir(ctx.request, 'solto', 'https://loyalty.example/noticia/qualquer', 'correcao');
   await entrar(ctx, 'tit-chefe', 'editor_chefe');
-  const lista = await api(ctx as never, 'GET', '/api/studio/correcoes');
+  const lista = await api(ctx, 'GET', '/api/studio/correcoes');
   expect(lista.status).toBe(200);
-  for (const it of (lista.body as { items: { id: string; resumo: string }[] }).items) {
-    for (const k of Object.keys(ids) as (keyof typeof ids)[]) if (it.resumo.includes(`${MARCA} ${k}:`)) ids[k] = it.id;
+  // A lista não deve ser lida pelo texto livre: ids pelo alvo (único por execução); sem alvo, pelo texto do DETALHE (consulta auditada).
+  for (const it of (lista.body as { items: { id: string; alvo: { id: string } | null }[] }).items) {
+    if (it.alvo?.id === `c-${MARCA}`) ids.cargo = it.id;
+    else if (it.alvo?.id === `p-${MARCA}`) ids.pessoa = it.id;
+    else if (it.alvo?.id === `m-${MARCA}`) ids.move = it.id;
+    else if (!it.alvo && !ids.solto) {
+      const d = await api(ctx, 'GET', `/api/studio/correcoes/${it.id}`);
+      if (String((d.body as { texto?: string } | null)?.texto).includes(`${MARCA} solto:`)) ids.solto = it.id;
+    }
   }
   expect(Object.values(ids).every(Boolean), JSON.stringify(ids)).toBe(true);
   await ctx.close();
@@ -53,12 +60,16 @@ test('fila: prazo interno, alvo da URL, estado e responsável; sem dado pessoal 
   await expect(page.getByRole('heading', { level: 1, name: 'Pedidos do titular' })).toBeVisible();
   await expect(page.locator('[data-aviso="prazo-interno"]')).toContainText('não um prazo legal');
   const linha = page.locator(`[data-pedido="${ids.cargo}"]`);
-  await expect(linha).toContainText('Cargo c-e2e-9');
+  await expect(linha).toContainText(`Cargo c-${MARCA}`);
   await expect(linha).toContainText('Recebido');
   await expect(linha).toContainText('sem responsável');
   await expect(linha).toHaveAttribute('data-prazo', 'no_prazo');
   await expect(page.locator(`[data-pedido="${ids.solto}"]`)).toContainText('não identificado na URL');
-  await expect(page.getByText(`cargo.${MARCA}@example.org`)).toHaveCount(0); // contato só no detalhe
+  // QA 7: texto livre (com e-mail e telefone escritos pelo titular), contato e URL ficam só no detalhe auditado
+  const main = page.locator('main');
+  for (const vazado of [`${MARCA} cargo:`, 'fulano.vazado', '99999-0000', `cargo.${MARCA}@example.org`, 'loyalty.example']) {
+    await expect(main).not.toContainText(vazado);
+  }
   const r = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
 });
@@ -69,7 +80,7 @@ test('detalhe: nome, contato e texto; a consulta entra na trilha; atribuir a mim
   await expect(page.locator('[data-titular-nome]')).toHaveText('MOCK Titular pessoa');
   await expect(page.getByText(`pessoa.${MARCA}@example.org`)).toBeVisible();
   await expect(page.locator('[data-texto]')).toContainText(MARCA);
-  await expect(page.getByRole('link', { name: 'conferir no Entity Intelligence' })).toHaveAttribute('href', '/studio/entidades/pessoa/p-e2e-1');
+  await expect(page.getByRole('link', { name: 'conferir no Entity Intelligence' })).toHaveAttribute('href', `/studio/entidades/pessoa/p-${MARCA}`);
   await expect(page.locator('[data-auditoria]')).toContainText('pedido consultado');
   await enviar(page, page.getByRole('button', { name: 'Atribuir a mim' }));
   await sucesso(page, 'atribuído a você');
@@ -113,7 +124,8 @@ test('corrigir com campos e negar com motivo (admin)', async ({ page, context })
   await page.goto(`/studio/correcoes-titular/${ids.move}`);
   await page.getByLabel('Motivo (obrigatório)').fill('O Move tem fonte oficial e está correto.');
   await enviar(page, page.getByRole('button', { name: 'Negar pedido' }));
-  await sucesso(page, 'Decisão registrada');
+  await sucesso(page, 'Pedido negado');
+  await expect(page.getByText('efeito na exibição pública ainda está pendente')).toHaveCount(0); // QA 7 item 4
   await expect(page.locator('[data-decisao="negado"]')).toContainText('nada muda na exibição pública');
   await expect(page.locator('[data-efeito="pendente"]')).toHaveCount(0);
   await expect(page.locator('[data-auditoria]')).toContainText('O Move tem fonte oficial');

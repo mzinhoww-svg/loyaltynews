@@ -18,8 +18,9 @@ export interface PedidoLinha {
   responsavel: string | null;
   alvo: AlvoPedido | null;
   pedido: 'correcao' | 'remocao';
-  url: string;
-  resumo: string;
+  /** Texto livre (url, resumo, decisão): o Studio NÃO os exibe na lista (QA 7); o Backend 2 vai tirá-los da projeção da lista. */
+  url?: string;
+  resumo?: string;
   decisao?: unknown;
   decidido_por?: string;
   decidido_em?: string;
@@ -32,6 +33,7 @@ export interface EventoAuditoria {
   motivo: string | null;
 }
 export interface PedidoDetalhe extends PedidoLinha {
+  url: string;
   texto: string;
   nome: string;
   contato: string;

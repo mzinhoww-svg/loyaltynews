@@ -36,12 +36,24 @@ export function metricasVista(m: Metricas): MetricasVista {
   const d = m.data;
   const p = d.published;
   const f = d.followers;
+  // Lista completa = não cortada e com tantos posts quanto o total informado. Fora disso, somas são parciais e não aparecem como total.
+  const lidos = p.items.length;
+  const completa = p.status === 'ok' && !p.truncated && (p.count === null || p.count === lidos);
+  // Cortada e com total igual ao lido: o mLabs pode ter omitido totalCount (o adaptador cai em items.length) — é só um mínimo.
+  const totalEhMinimo = p.status === 'ok' && p.truncated && p.count === lidos;
   const celulas: CelulaMetrica[] = [
     {
       rotulo: 'Posts publicados no período',
       estado: p.status,
-      valor: p.status === 'ok' ? fmt(p.count) : '—',
-      nota: p.status === 'ok' ? (p.truncated ? 'Total informado pelo mLabs; a lista abaixo foi cortada.' : null) : (p.reason ?? null),
+      valor: p.status === 'ok' ? (totalEhMinimo ? `≥ ${fmt(p.count)}` : fmt(p.count)) : '—',
+      nota:
+        p.status !== 'ok'
+          ? (p.reason ?? null)
+          : totalEhMinimo
+            ? 'Lista cortada e o mLabs não informou o total: é o mínimo lido, não o total.'
+            : !completa
+              ? `Total informado pelo mLabs; foram lidos ${fmt(lidos)} posts.`
+              : null,
     },
     {
       rotulo: 'Seguidores',
@@ -62,12 +74,19 @@ export function metricasVista(m: Metricas): MetricasVista {
     },
   ];
   for (const [k, rot] of [['likes', 'Curtidas'], ['comments', 'Comentários'], ['views', 'Visualizações']] as const) {
-    const v = p.status === 'ok' ? p.totals[k] : null;
+    const v = completa ? p.totals[k] : null;
     celulas.push({
       rotulo: `${rot} (soma dos posts)`,
       estado: p.status,
       valor: fmt(v),
-      nota: p.status === 'ok' && v === null && p.items.length > 0 ? 'Algum post veio sem este campo: não somamos parcial.' : null,
+      nota:
+        p.status !== 'ok'
+          ? null
+          : !completa
+            ? `Soma não mostrada: só ${fmt(lidos)} posts foram lidos${p.truncated ? ' (lista cortada)' : ''}, e soma parcial não é total.`
+            : v === null && lidos > 0
+              ? 'Algum post veio sem este campo: não somamos parcial.'
+              : null,
     });
   }
   return {
