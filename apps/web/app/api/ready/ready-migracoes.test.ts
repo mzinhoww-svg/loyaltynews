@@ -72,3 +72,21 @@ describe('/api/ready: migrações', () => {
     expect(n).toBe(2);
   });
 });
+
+describe('/api/ready: prazo da sonda de migrações', () => {
+  it('consulta que não responde: expira em PROBE_TIMEOUT_MS e devolve 503 migracoes_falha (sem pendurar o healthcheck)', async () => {
+    const { vi } = await import('vitest');
+    const { PROBE_TIMEOUT_MS } = await import('../_lib/ready');
+    vi.useFakeTimers();
+    try {
+      const pendurado = { execute: () => new Promise(() => undefined) } as unknown as Db;
+      const p = readiness(ENV, { db: ok, redis: ok, migrations: migrationProbe(pendurado, N) });
+      await vi.advanceTimersByTimeAsync(PROBE_TIMEOUT_MS + 1);
+      const r = await p;
+      expect(r).toMatchObject({ status: 'indisponivel', motivo: 'migracoes_falha' });
+      expect(PROBE_TIMEOUT_MS).toBeLessThanOrEqual(2000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

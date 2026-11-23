@@ -29,10 +29,21 @@ export interface ReadyProbes {
 
 export type MigrationState = 'ok' | 'pendentes' | 'divergentes' | 'falha';
 
+/** Prazo de cada sonda (dentro do prazo do healthcheck do monitor). */
+export const PROBE_TIMEOUT_MS = 2000;
+
+function withTimeout<T>(p: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const t = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new Error('timeout')), PROBE_TIMEOUT_MS);
+  });
+  return Promise.race([p, t]).finally(() => clearTimeout(timer));
+}
+
 async function probe(fn: (() => Promise<void>) | undefined): Promise<'ok' | 'falha' | 'nao_configurado'> {
   if (!fn) return 'nao_configurado';
   try {
-    await Promise.race([fn(), new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 2000))]);
+    await withTimeout(fn());
     return 'ok';
   } catch {
     return 'falha';
@@ -85,7 +96,7 @@ export async function readiness(env: Record<string, string | undefined>, probes:
   let mig: MigrationState | undefined;
   if (db === 'ok' && probes.migrations) {
     try {
-      mig = await probes.migrations();
+      mig = await withTimeout(probes.migrations()); // expirou: falha (503 migracoes_falha)
     } catch {
       mig = 'falha';
     }
