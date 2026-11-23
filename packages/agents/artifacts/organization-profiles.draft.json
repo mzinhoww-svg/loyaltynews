@@ -26,7 +26,6 @@
     "with_blockers": 8
   },
   "open_decisions": [
-    "Piloto × DP-41: o kit do piloto prevê backups no Gemini (Antigravity) e na pauta no OpenCode (DeepSeek gratuito), por decisão do PM de 23/11; a DP-41 fala em \"Claude e Codex\" e a v7 lista DeepSeek em `never`. Decidir se esses backups valem no piloto e, se valerem, se entram na política (mudança protegida) antes da organização completa.",
     "A rota `image_fast` da v7 não tem modelo: o perfil `image` fica sem canal até a política habilitar imagem.",
     "Perfis com insumo pessoal ou comercial confidencial ficam bloqueados até o operador ser aprovado (v7, classes de dado).",
     "Volume de uso da assinatura por perfil e por ritual NÃO foi medido: a organização completa só liga depois de o piloto medir janelas e limites de Claude e Codex (uma conta por provedor, sem separar produto e implementação).",

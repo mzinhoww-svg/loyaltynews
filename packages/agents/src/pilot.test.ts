@@ -42,26 +42,30 @@ describe('agentes do piloto (rascunho, nada criado): pauta, redação, checagem 
     }
   });
 
-  it('contas: pauta no OpenCode grátis, redação em Claude, checagem e revisão em Codex (autor distinto)', () => {
-    expect(by('ln_pilot_pauta').primary.account).toBe('opencode');
-    expect(by('ln_pilot_pauta').primary.model).toMatch(/DeepSeek/);
+  it('contas (DP-41): pauta no Claude Haiku, redação em Claude, checagem e revisão em Codex (autor distinto); só Claude e Codex', () => {
+    expect(by('ln_pilot_pauta').primary.account).toBe('claude');
+    expect(by('ln_pilot_pauta').primary.model).toMatch(/Haiku/);
     expect(by('ln_pilot_redator').primary.account).toBe('claude');
     expect(by('ln_pilot_checador').primary.account).toBe('codex');
     expect(by('ln_pilot_revisor').primary.account).toBe('codex');
     expect(by('ln_pilot_checador').independence).toMatch(/autor diferente do redator/);
     expect(by('ln_pilot_revisor').independence).toMatch(/Claude nunca revisa rascunho de Claude/);
+    const all = JSON.stringify(agents.map((a) => ({ p: a.primary, b: a.backups, d: a.description, t: a.title })));
+    expect(all).not.toMatch(/antigravity|gemini via|opencode via|DeepSeek via/i);
+    expect(new Set(agents.flatMap((a) => [a.primary.account, ...a.backups.map((b) => b.account)]))).toEqual(new Set(['claude', 'codex']));
   });
 
-  it('backups: pauta OpenCode → Claude → Gemini; checagem e revisão Codex → Gemini; redação sem backup (DP-26 b)', () => {
-    expect(by('ln_pilot_pauta').backups.map((b) => b.account)).toEqual(['claude', 'antigravity']);
-    expect(by('ln_pilot_pauta').description).toMatch(/COMPARTILHADO/);
-    for (const id of ['ln_pilot_checador', 'ln_pilot_revisor']) {
-      expect(by(id).backups.map((b) => b.account), id).toEqual(['antigravity']);
-      expect(by(id).on_limit, id).toMatch(/falha|pending/);
+  it('backups: pauta Haiku → Sonnet (mesma conta Claude); checagem, revisão e redação SEM backup; limite = pending (DP-26 b, DP-41)', () => {
+    expect(by('ln_pilot_pauta').backups).toHaveLength(1);
+    expect(by('ln_pilot_pauta').backups[0]).toMatchObject({ account: 'claude' });
+    expect(by('ln_pilot_pauta').backups[0]!.model).toMatch(/Sonnet/);
+    expect(by('ln_pilot_pauta').on_limit).toMatch(/pending/);
+    for (const id of ['ln_pilot_checador', 'ln_pilot_revisor', 'ln_pilot_redator']) {
+      expect(by(id).backups, id).toEqual([]);
+      expect(by(id).on_limit, id).toMatch(/SEM backup/);
     }
-    expect(by('ln_pilot_redator').backups).toEqual([]);
-    expect(by('ln_pilot_redator').on_limit).toMatch(/SEM backup/);
     expect(by('ln_pilot_redator').on_limit).toMatch(/DP-26 b/);
+    expect(by('ln_pilot_checador').on_limit).toMatch(/pending/);
     // nenhum backup é API tarifada
     expect(JSON.stringify(agents.flatMap((a) => a.backups))).not.toMatch(/openrouter|api tarifada|gpt-6\.1-terra/i);
   });
@@ -313,45 +317,39 @@ describe('sondas do QA 1 sobre o avaliador (f5c7b08)', () => {
 
 describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados SIMULADOS', () => {
   const triage = (n: number, at: number, over: Partial<PilotRow> = {}) =>
-    base({ task_id: `t${n}`, kind: 'classification', article_id: `a${n}`, stage: 'triage', account: 'opencode', declared_model: 'deepseek-chat (opencode)', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 1), output_valid: true, ...over });
+    base({ task_id: `t${n}`, kind: 'classification', article_id: `a${n}`, stage: 'triage', account: 'claude', declared_model: 'claude-haiku-5-5', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 1), output_valid: true, ...over });
   const factcheck = (n: number, at: number, over: Partial<PilotRow> = {}) =>
     base({ task_id: `f${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 2), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, ...over });
   const review = (n: number, at: number, over: Partial<PilotRow> = {}) =>
     base({ task_id: `r${n}`, kind: 'editorial_review', article_id: `a${n}`, stage: 'review', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.2', started_at: iso(at), ended_at: iso(at + 2), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, unsupported_facts: 0, ...over });
 
-  it('pauta no OpenCode, backup Claude aceito; qualquer outra conta é inválida', () => {
+  it('pauta: Claude Haiku ou Sonnet; Opus, Codex e contas fora do piloto são inválidos', () => {
     expect(validatePilotRow(triage(1, 0))).toEqual([]);
-    expect(validatePilotRow(triage(1, 0, { account: 'claude', declared_model: 'claude-sonnet-5-5' }))).toEqual([]); // backup permitido
-    expect(validatePilotRow(triage(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/opencode ou claude ou antigravity/)]));
-    // redação não tem backup: conta de backup é inválida; checagem aceita Gemini mas não Claude
-    expect(validatePilotRow(draft(1, 0, { account: 'opencode' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+    expect(validatePilotRow(triage(1, 0, { declared_model: 'claude-sonnet-5-5' }))).toEqual([]); // backup permitido
+    expect(validatePilotRow(triage(1, 0, { declared_model: 'claude-opus-5-5' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em modelo haiku ou sonnet/)]));
+    expect(validatePilotRow(triage(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/etapa triage deve rodar em claude/)]));
+    // redação não tem backup; checagem não aceita Claude; contas fora da DP-41 (Gemini, OpenCode) não existem no piloto
+    expect(validatePilotRow(draft(1, 0, { account: 'opencode' as never, declared_model: 'deepseek-chat' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+    expect(validatePilotRow(factcheck(1, 3, { account: 'antigravity' as never, declared_model: 'gemini-3-pro' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em codex/)]));
+    expect(validatePilotRow(triage(1, 0, { account: 'opencode' as never, declared_model: 'deepseek-chat (opencode)' }))).toEqual(expect.arrayContaining([expect.stringMatching(/etapa triage deve rodar em claude/)]));
     expect(validatePilotRow(factcheck(1, 3, { account: 'claude' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em codex/)]));
   });
 
-  it('backup Gemini: pauta, checagem e revisão aceitam antigravity; independência vale com Gemini; backupsUsed conta o uso', () => {
-    expect(validatePilotRow(triage(1, 0, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual([]);
-    expect(validatePilotRow(factcheck(1, 3, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual([]);
-    expect(validatePilotRow(draft(1, 0, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+  it('backupsUsed conta o uso do Sonnet na pauta; checagem e revisão no Codex não têm backup; Claude checando Claude continua bloqueado', () => {
     const rows = [
-      triage(1, 0, { account: 'claude', declared_model: 'claude-sonnet-5-5' }),
-      triage(2, 0, { account: 'antigravity', declared_model: 'gemini-3-pro' }),
+      triage(1, 0),
+      triage(2, 0, { declared_model: 'claude-sonnet-5-5' }),
       draft(1, 1),
-      factcheck(1, 4, { account: 'antigravity', declared_model: 'gemini-3-pro' }),
-      review(1, 7, { account: 'antigravity', declared_model: 'gemini-3-pro' }),
+      factcheck(1, 4),
+      review(1, 7),
     ];
     const ev = evaluatePilot(rows);
     expect(ev.independence).toMatchObject({ checked: 2, ok: 2, failures: [] });
-    expect(ev.backupsUsed).toEqual(expect.arrayContaining([
-      { stage: 'triage', account: 'claude', tasks: 1 },
-      { stage: 'triage', account: 'antigravity', tasks: 1 },
-      { stage: 'factcheck', account: 'antigravity', tasks: 1 },
-      { stage: 'review', account: 'antigravity', tasks: 1 },
-    ]));
-    expect(ev.backupsUsed).toHaveLength(4);
+    expect(ev.backupsUsed).toEqual([{ stage: 'triage', account: 'claude', model: 'sonnet', tasks: 1 }]);
     expect(evaluatePilot([draft(1, 0), factcheck(1, 3)]).backupsUsed).toEqual([]);
-    // Claude como checador de rascunho de Claude continua bloqueado
     const same = evaluatePilot([draft(1, 0), factcheck(1, 3, { account: 'claude', declared_model: 'claude-opus-5-5' })]);
     expect(same.exit.independence).not.toBe('pass');
+    expect(same.exit.overall).toBe('invalid');
   });
 
   it('checagem e revisão separadas: as duas precisam ser de autor diferente do redator e apontar o mesmo rascunho', () => {
@@ -374,15 +372,16 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
     expect(evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { unsupported_facts: 2 })]).exit.quality).toBe('fail');
   });
 
-  it('janela do OpenCode é contada à parte; a pauta no backup Claude entra na janela do Claude', () => {
+  it('janela da conta Claude conta Haiku e Sonnet juntos; a do Codex é separada', () => {
     const rows = [
-      triage(1, 0), triage(2, 2), triage(3, 4, { outcome: 'pending_limit', limit_message: 'limite da camada gratuita (SIMULADO)', limit_at: iso(5), account_resumed_at: iso(60) }),
-      triage(3, 61, { task_id: 't3b', account: 'claude', declared_model: 'claude-sonnet-5-5', attempt: 2 }),
+      triage(1, 0), triage(2, 2), triage(3, 4, { outcome: 'pending_limit', limit_message: 'limite do Claude (SIMULADO)', limit_at: iso(5), account_resumed_at: iso(60) }),
+      triage(3, 61, { task_id: 't3b', declared_model: 'claude-sonnet-5-5', attempt: 2 }),
+      draft(4, 62), factcheck(4, 65),
     ];
     const e = evaluatePilot(rows);
-    expect(e.limitHits).toEqual([{ account: 'opencode', at: iso(5), message: 'limite da camada gratuita (SIMULADO)', resumedAt: iso(60) }]);
-    expect(e.windows.find((w) => w.account === 'opencode')).toMatchObject({ completedTasks: 2, articles: 2, endedByLimit: true });
-    expect(e.windows.find((w) => w.account === 'claude')).toMatchObject({ completedTasks: 1, articles: 1, endedByLimit: false });
+    expect(e.limitHits).toEqual([{ account: 'claude', at: iso(5), message: 'limite do Claude (SIMULADO)', resumedAt: iso(60) }]);
+    expect(e.windows.find((w) => w.account === 'claude')).toMatchObject({ endedByLimit: true });
+    expect(e.windows.find((w) => w.account === 'codex')).toBeDefined();
   });
 
   it('formato da saída: conta os JSON válidos e a taxa; etapa determinística não entra', () => {
@@ -409,31 +408,27 @@ describe('QA 3 (ba51ea2), F1: conta × modelo declarado coerentes (sondas A–H)
     expect(contradiz(check(1, 3, { declared_model: 'deepseek-chat' }))).toHaveLength(1);
     expect(pass([draft(1, 0), check(1, 3, { declared_model: 'deepseek-chat' })]).exit.overall).toBe('invalid');
   });
-  it('B. antigravity com modelo GPT e codex com modelo Gemini são inválidos', () => {
-    expect(contradiz(check(1, 3, { account: 'antigravity', declared_model: 'gpt-6.1-terra' }))).toHaveLength(1);
+  it('B/C. codex com modelo Gemini, claude com modelo Gemini e redação em claude com modelo Gemini são inválidos', () => {
     expect(contradiz(check(1, 3, { account: 'codex', declared_model: 'gemini-3-pro' }))).toHaveLength(1);
-    expect(pass([draft(1, 0), check(1, 3, { account: 'antigravity', declared_model: 'gpt-6.1-terra' })]).exit.overall).toBe('invalid');
-  });
-  it('C. redação em claude com modelo Gemini declarado é inválida', () => {
     expect(contradiz(draft(1, 0, { declared_model: 'gemini-3-pro' }))).toHaveLength(1);
     expect(pass([draft(1, 0, { declared_model: 'gemini-3-pro' }), check(1, 3)]).exit.overall).toBe('invalid');
   });
-  it('D/G. pauta em opencode com modelo Claude e pauta em claude com modelo Gemini são inválidas', () => {
-    const t = (over: Partial<PilotRow>) => base({ task_id: 't1', kind: 'classification', stage: 'triage', account: 'opencode', declared_model: 'deepseek-chat (opencode)', prompt_version: 'editorial-0.2', output_valid: true, ...over });
+  it('D/G. pauta em claude com modelo DeepSeek, GPT ou Gemini é inválida; Haiku e Sonnet são coerentes', () => {
+    const t = (over: Partial<PilotRow>) => base({ task_id: 't1', kind: 'classification', stage: 'triage', account: 'claude', declared_model: 'claude-haiku-5-5', prompt_version: 'editorial-0.2', output_valid: true, ...over });
     expect(contradiz(t({}))).toEqual([]);
-    expect(contradiz(t({ declared_model: 'claude-sonnet-5-5' }))).toHaveLength(1);
-    expect(contradiz(t({ account: 'claude', declared_model: 'gemini-3-pro' }))).toHaveLength(1);
-    expect(contradiz(t({ account: 'antigravity', declared_model: 'claude-sonnet-5-5' }))).toHaveLength(1); // Claude via Antigravity não vale como Gemini
+    expect(contradiz(t({ declared_model: 'claude-sonnet-5-5' }))).toEqual([]);
+    expect(contradiz(t({ declared_model: 'deepseek-chat (opencode)' }))).toHaveLength(1);
+    expect(contradiz(t({ declared_model: 'gpt-6.1-terra' }))).toHaveLength(1);
+    expect(contradiz(t({ declared_model: 'gemini-3-pro' }))).toHaveLength(1);
   });
   it('E/H. codex com modelo Claude ou com autor desconhecido não passa', () => {
     expect(contradiz(check(1, 3, { declared_model: 'claude-opus-5-5' }))).toHaveLength(1);
     expect(contradiz(check(1, 3, { declared_model: 'modelo-x' }))).toHaveLength(1);
     expect(pass([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.overall).toBe('invalid');
   });
-  it('pares coerentes continuam válidos (Claude↔Anthropic, Codex↔OpenAI, Antigravity↔Google, OpenCode↔DeepSeek)', () => {
+  it('pares coerentes continuam válidos (Claude↔Anthropic, Codex↔OpenAI)', () => {
     expect(contradiz(draft(1, 0))).toEqual([]);
     expect(contradiz(check(1, 3))).toEqual([]);
-    expect(contradiz(check(1, 3, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual([]);
     expect(contradiz(base({ task_id: 'q', stage: 'rights_seo_qa', account: 'deterministic', declared_model: null, prompt_version: null, output_valid: true }))).toEqual([]);
     expect(contradiz(base({ task_id: 'q', stage: 'rights_seo_qa', account: 'deterministic', declared_model: 'gpt-6.1-terra', prompt_version: null }))).toHaveLength(1);
   });

@@ -1,5 +1,5 @@
 /**
- * Kit do PILOTO de 10 matérias pelo canal OpenBot (assinaturas Claude e Codex; DeepSeek grátis via OpenCode para tarefa simples;
+ * Kit do PILOTO de 10 matérias pelo canal OpenBot (SÓ as assinaturas Claude e Codex, como diz a DP-41; sem Gemini, sem OpenCode/DeepSeek;
  * OpenRouter só como complemento, DESLIGADO no piloto). Desenho: `fast-track/custo/piloto-10-materias-openbot.md` (Arquiteto).
  *
  * Esta frente entrega os perfis dos agentes (NÃO criados), o roteiro, os critérios, a planilha de medição e o avaliador.
@@ -52,8 +52,8 @@ export const EDITORIAL_PROMPTS_REF = {
 
 // --- etapas, contas e perfis dos agentes -------------------------------------------------------------------------------
 
-/** `antigravity` = Gemini (Google) pela conta Antigravity do OpenBot; uma conta conectada por provedor, sem separar produto e implementação */
-export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'antigravity' | 'deterministic';
+/** Só Claude e Codex (DP-41; decisão do PM: Gemini/Antigravity e OpenCode/DeepSeek saíram do piloto). Uma conta por provedor, sem separar produto e implementação. */
+export type PilotAccount = 'claude' | 'codex' | 'deterministic';
 export type PilotStage = 'triage' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
 export type EditorialTaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack' | 'roles';
 
@@ -62,6 +62,11 @@ export interface StageSpec {
   account: PilotAccount;
   /** contas aceitas como backup (linha com conta fora de `account` + `backups` é inválida) */
   backups: PilotAccount[];
+  /**
+   * Backup/principal por MODELO dentro da mesma conta (trechos de `declared_model`, sem diferenciar maiúsculas). Se existir, o modelo
+   * declarado da linha precisa casar com um deles; o que casa com `backups` conta em `backupsUsed`.
+   */
+  models?: { primary: string; backups: string[] };
   label: string;
   /** classe de tarefa da fábrica (`editorial-0.3`); `check_edit` é a chamada única opcional factcheck + review */
   taskClass: EditorialTaskClass | 'factcheck+review' | null;
@@ -70,11 +75,11 @@ export interface StageSpec {
 }
 
 export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
-  triage: { account: 'opencode', backups: ['claude', 'antigravity'], label: 'Pauta/triagem (DeepSeek grátis via OpenCode; backup automático Claude ou Gemini)', taskClass: 'triage', adapterKind: 'classification' },
+  triage: { account: 'claude', backups: [], models: { primary: 'haiku', backups: ['sonnet'] }, label: 'Pauta/triagem (Claude Haiku; backup Claude Sonnet na mesma conta)', taskClass: 'triage', adapterKind: 'classification' },
   draft: { account: 'claude', backups: [], label: 'Redação (Claude); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
-  factcheck: { account: 'codex', backups: ['antigravity'], label: 'Checagem de fatos independente (Codex; backup Gemini; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
-  review: { account: 'codex', backups: ['antigravity'], label: 'Revisão editorial independente (Codex; backup Gemini; gate WF02)', taskClass: 'review', adapterKind: 'editorial_review' },
-  check_edit: { account: 'codex', backups: ['antigravity'], label: 'Checagem + revisão numa chamada só (opção do Arquiteto, −24%; backup Gemini)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
+  factcheck: { account: 'codex', backups: [], label: 'Checagem de fatos independente (Codex; sem backup; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
+  review: { account: 'codex', backups: [], label: 'Revisão editorial independente (Codex; sem backup; gate WF02)', taskClass: 'review', adapterKind: 'editorial_review' },
+  check_edit: { account: 'codex', backups: [], label: 'Checagem + revisão numa chamada só (adiada: a classe não existe na Fábrica)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
   social_pack: { account: 'claude', backups: [], label: 'Texto social de LinkedIn como rascunho (Claude)', taskClass: 'social_pack', adapterKind: 'social_copy' },
   roles: { account: 'claude', backups: [], label: 'Entidades e cargos citados no texto (Claude)', taskClass: 'roles', adapterKind: 'entity_resolution' },
   rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO mínimo (slug e resumo); QA visual fora', taskClass: null, adapterKind: null },
@@ -125,15 +130,12 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
   const promptRef = (c: string) => `${EDITORIAL_PROMPTS_REF.version} / classe ${c} / ${EDITORIAL_PROMPTS_REF.file}@${EDITORIAL_PROMPTS_REF.commit}`;
   return [
     {
-      draft_id: 'ln_pilot_pauta', name: 'LN Piloto — Pauta', title: 'Pauta e triagem do piloto (OpenBot; DeepSeek grátis via OpenCode, backup Claude)', stage: 'triage', required: true,
-      description: 'Decide se o item de fonte é relevante e em qual editoria (`{"relevant", "editoria"}`). Tarefa simples e barata: roda no DeepSeek grátis via OpenCode. O limite dos modelos grátis é COMPARTILHADO e já se esgotou (o QA 2 foi travado por ele): por isso a pauta NÃO depende só do grátis e tem backup AUTOMÁTICO (assinatura, nunca API).',
+      draft_id: 'ln_pilot_pauta', name: 'LN Piloto — Pauta', title: 'Pauta e triagem do piloto (OpenBot, assinatura Claude: Haiku, backup Sonnet)', stage: 'triage', required: true,
+      description: 'Decide se o item de fonte é relevante e em qual editoria (`{"relevant", "editoria"}`). Tarefa simples e barata: roda no Claude Haiku pela assinatura Claude (decisão do PM, 23/11: sem DeepSeek/OpenCode, cujo limite grátis é compartilhado e que a política v7 lista em `never`; sem Gemini, cuja cota está esgotada até ~29/11). Backup: Claude Sonnet na mesma conta, automático; nunca API.',
       editorial_task_class: 'triage', prompt_ref: promptRef('triage'), adapter_kind: 'classification',
-      primary: { account: 'opencode', model: `DeepSeek via OpenCode, camada gratuita (o QA 2 usou opencode/deepseek-v4.1-flash-free): ${MODEL_DECLARED}` },
-      backups: [
-        { account: 'claude', model: `Claude (assinatura): ${MODEL_DECLARED}`, when: '1º backup, automático: OpenCode esgotado, indisponível ou com erro' },
-        { account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: '2º backup, automático: Claude também com limite; preserva a quota do Claude para a redação' },
-      ],
-      on_limit: 'se os dois backups também baterem o limite: a pauta fica pending; sem API',
+      primary: { account: 'claude', model: `Claude Haiku (assinatura Claude): ${MODEL_DECLARED}` },
+      backups: [{ account: 'claude', model: `Claude Sonnet (assinatura Claude): ${MODEL_DECLARED}`, when: 'Haiku indisponível, com erro ou com limite próprio do modelo; mesma conta, outro modelo' }],
+      on_limit: 'se a conta Claude bater o limite (vale para Haiku e Sonnet) a pauta fica pending e espera a janela; sem API',
       independence: 'não se aplica (não redige nem checa)',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
@@ -149,22 +151,22 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
     },
     {
       draft_id: 'ln_pilot_checador', name: 'LN Piloto — Checagem', title: 'Checagem de fatos do piloto (OpenBot, assinatura Codex)', stage: 'factcheck', required: true,
-      description: 'Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve. Se o Codex bater o limite, o backup é o Gemini (outro provedor, independente do redator Claude).',
+      description: 'Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve. Sem backup: se o Codex bater o limite, a etapa fica pending e espera a janela.',
       editorial_task_class: 'factcheck', prompt_ref: promptRef('factcheck'), adapter_kind: 'fact_check',
       primary: { account: 'codex', model: `Codex/OpenAI (assinatura): ${MODEL_DECLARED}` },
-      backups: [{ account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: 'Codex com limite ou indisponível; Google é outro autor, independente do redator Claude' }],
-      on_limit: 'se o Gemini também bater o limite: a tarefa fica pending e a matéria não é publicada (falha fechada); sem API (a GPT-6.1-terra pelo OpenRouter fica desligada)',
-      independence: 'autor diferente do redator, provado pelo `model` declarado (Claude × OpenAI ou Claude × Google); a Editorial passa `excludeProviders: [anthropic]`; mesmo autor = bloqueio',
+      backups: [],
+      on_limit: 'SEM backup (decisão do PM, DP-41): a tarefa fica pending, espera a janela do Codex e a matéria não é publicada (falha fechada); sem API tarifada (a GPT-6.1-terra pelo OpenRouter fica desligada)',
+      independence: 'autor diferente do redator, provado pelo `model` declarado (Claude × OpenAI); a Editorial passa `excludeProviders: [anthropic]`; mesmo autor = bloqueio',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
       draft_id: 'ln_pilot_revisor', name: 'LN Piloto — Revisão', title: 'Revisão editorial independente do piloto (OpenBot, assinatura Codex)', stage: 'review', required: true,
-      description: 'Revisão final (clareza, tom `tom-0.2` (com o tom lint da Editorial), ausência de invenção, coerência título-texto): `{"approve", "issues"}`. Não reescreve. Pode ser fundida com a checagem numa chamada só (`check_edit`), conforme o Arquiteto; o piloto mede as duas formas.',
+      description: 'Revisão final (clareza, tom `tom-0.2` (com o tom lint da Editorial), ausência de invenção, coerência título-texto): `{"approve", "issues"}`. Não reescreve. Checagem e revisão são duas etapas separadas (a chamada única `check_edit` não existe na Fábrica; decisão do PM: não criar `factcheck_review` agora).',
       editorial_task_class: 'review', prompt_ref: promptRef('review'), adapter_kind: null,
       primary: { account: 'codex', model: `Codex/OpenAI (assinatura): ${MODEL_DECLARED}` },
-      backups: [{ account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: 'Codex com limite ou indisponível; Google é outro autor, independente do redator Claude' }],
-      on_limit: 'se o Gemini também bater o limite: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API',
-      independence: 'autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude; Gemini ou Codex valem',
+      backups: [],
+      on_limit: 'SEM backup (decisão do PM, DP-41): a tarefa fica pending e espera a janela do Codex (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API',
+      independence: 'autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude; só o Codex revisa no piloto',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
@@ -247,7 +249,7 @@ export const BLOCKING_GATE_REASONS = [
 
 /** Autor do modelo que cada conta serve no piloto (QA 3, F1): conta e modelo declarado que divergem são um registro contraditório. */
 export const ACCOUNT_AUTHOR: Record<Exclude<PilotAccount, 'deterministic'>, ReturnType<typeof authorOfDeclaredModel>> = {
-  claude: 'anthropic', codex: 'openai', antigravity: 'google', opencode: 'deepseek',
+  claude: 'anthropic', codex: 'openai',
 };
 
 const isoOk = (s: string) => !Number.isNaN(Date.parse(s));
@@ -265,6 +267,10 @@ export function validatePilotRow(r: PilotRow): string[] {
     const expected = ACCOUNT_AUTHOR[r.account];
     const got = authorOfDeclaredModel(r.declared_model);
     if (expected && got !== expected) e.push(`conta ${r.account} serve modelo de autor ${expected}, mas o modelo declarado (${r.declared_model}) é de autor ${got}: registro contraditório`);
+  }
+  if (spec?.models && r.account !== 'deterministic' && r.declared_model) {
+    const fams = [spec.models.primary, ...spec.models.backups];
+    if (!fams.some((f) => r.declared_model!.toLowerCase().includes(f))) e.push(`etapa ${r.stage} deve rodar em modelo ${fams.join(' ou ')}, mas o declarado é ${r.declared_model}`);
   }
   if (r.account === 'deterministic' && r.declared_model) e.push('etapa determinística não declara modelo (registro contraditório)');
   if (r.account !== 'deterministic' && !r.prompt_version) e.push('prompt_version obrigatório');
@@ -284,7 +290,7 @@ export function validatePilotRow(r: PilotRow): string[] {
 // --- avaliação dos critérios de saída -----------------------------------------------------------------------------------
 
 export interface WindowStat {
-  account: 'claude' | 'codex' | 'opencode' | 'antigravity';
+  account: 'claude' | 'codex';
   from: string;
   to: string | null;
   completedTasks: number;
@@ -304,13 +310,13 @@ export interface PilotEvaluation {
   /** parada imediata: qualquer item aqui para o piloto; cada item traz a posição (1-based) da linha que a causou */
   stop: string[];
   windows: WindowStat[];
-  limitHits: { account: 'claude' | 'codex' | 'opencode' | 'antigravity'; at: string; message: string; resumedAt: string | null }[];
+  limitHits: { account: 'claude' | 'codex'; at: string; message: string; resumedAt: string | null }[];
   independence: { checked: number; ok: number; rate: number | null; failures: string[]; uncheckedFinalDrafts: string[] };
   latencyMsByStage: Partial<Record<PilotStage, Stat>>;
   retries: { tasksWithRetry: number; failed: number; pendingLimit: number };
   quality: { approvedWithEvaluation: number; approvedWithoutEvaluation: number; unsupportedFacts: number };
   /** execuções que rodaram num backup (conta diferente da principal da etapa): mede o quanto o backup foi usado */
-  backupsUsed: { stage: PilotStage; account: PilotAccount; tasks: number }[];
+  backupsUsed: { stage: PilotStage; account: PilotAccount; /** família do modelo de backup dentro da mesma conta, ou null se o backup é outra conta */ model: string | null; tasks: number }[];
   /** custo tarifado: o piloto exige ZERO chamadas à API tarifada */
   tariffed: { apiCalls: number };
   /** saída no formato da classe de tarefa (G2.2): contagem informativa; o limiar é do protocolo */
@@ -344,7 +350,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
   // janelas por conta: abre na primeira atividade (ou na retomada) e fecha na tarefa que bateu o limite
   const windows: WindowStat[] = [];
   const limitHits: PilotEvaluation['limitHits'] = [];
-  for (const account of ['claude', 'codex', 'opencode', 'antigravity'] as const) {
+  for (const account of ['claude', 'codex'] as const) {
     const mine = rows.filter((r) => r.account === account).sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
     let cur: { from: string; tasks: number; articles: Set<string> } | null = null;
     for (const r of mine) {
@@ -455,11 +461,14 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
     retries: { tasksWithRetry: rows.filter((r) => r.attempt > 1).length, failed: rows.filter((r) => r.outcome === 'failed').length, pendingLimit: rows.filter((r) => r.outcome === 'pending_limit').length },
     quality: { approvedWithEvaluation: withEval.length, approvedWithoutEvaluation: approved.length - withEval.length, unsupportedFacts: unsupported },
     backupsUsed: (() => {
-      const m = new Map<string, { stage: PilotStage; account: PilotAccount; tasks: number }>();
+      const m = new Map<string, { stage: PilotStage; account: PilotAccount; model: string | null; tasks: number }>();
       for (const r of rows) {
-        if (!PILOT_STAGES[r.stage] || r.account === PILOT_STAGES[r.stage].account || r.outcome !== 'completed') continue;
-        const k = `${r.stage}|${r.account}`;
-        m.set(k, { stage: r.stage, account: r.account, tasks: (m.get(k)?.tasks ?? 0) + 1 });
+        const spec = PILOT_STAGES[r.stage];
+        if (!spec || r.outcome !== 'completed') continue;
+        const family = spec.models?.backups.find((f) => (r.declared_model ?? '').toLowerCase().includes(f)) ?? null;
+        if (r.account === spec.account && !family) continue;
+        const k = `${r.stage}|${r.account}|${family ?? ''}`;
+        m.set(k, { stage: r.stage, account: r.account, model: family, tasks: (m.get(k)?.tasks ?? 0) + 1 });
       }
       return [...m.values()];
     })(),

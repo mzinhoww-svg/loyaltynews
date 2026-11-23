@@ -38,7 +38,7 @@ export function buildOrgProfileArtifacts(registries: Pick<LoadedRegistries, 'age
     '- Canal primário de todos: assinatura pelo adaptador OpenBot (ADR-003), fora do teto (DP-27). **Claude** para redação, entidades, social, rituais, dailies e análises; **Codex** só para checagem, revisão editorial e auditoria pós-publicação (OpenAI só na rota de revisão; autor distinto do redator).',
     '- Backup: no limite da assinatura a tarefa volta a `pending` e espera a janela. O complemento pela API tarifada (rotas da v7: economy = claude-haiku-5-5, review = claude-sonnet-5-5 ou openai-text-review, premium e strategic = claude-opus-5-5) existe só dentro do teto de US$ 50, na ordem de corte da ADR-015 (degraus 35/40/42), e está **desligado** no piloto (DP-41). A redação não tem modelo alternativo (DP-26 b).',
     '- Nunca: publicar sem checagem por provedor distinto do redator; DeepSeek; Fable em trabalho não publicado; checagem por amostragem.',
-    '- Este rascunho **não inclui** Gemini (Antigravity) nem OpenCode: eles são backups do PILOTO (decisão do PM, 23/11) e não constam da v7 nem da DP-41.',
+    '- Sem Gemini (Antigravity) nem OpenCode: o piloto e a organização completa usam só Claude e Codex (DP-41; decisão do PM, 23/11).',
     '- A hipótese de 8 agentes OpenBot (um por diretoria mais o Publisher) vem de `openbot-profiles.draft.json`; cada execução carrega um perfil sob demanda (ADR-004).',
     '',
     '## 2. Perfis por diretoria',

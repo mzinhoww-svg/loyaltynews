@@ -1,15 +1,15 @@
 # Piloto de 10 matérias pelo OpenBot — perfis, roteiro, critérios e custo zero tarifado
 
-> GERADO por `packages/agents/src/pilot-doc.ts`; não editar. Complementa `fast-track/custo/piloto-10-materias-openbot.md` (Arquiteto). **Nenhum agente foi criado e nenhum modelo foi chamado**: tudo aqui espera o OK explícito do PM. Os dados dos testes do avaliador são SIMULADOS. Os limites das assinaturas e do OpenCode grátis NÃO são conhecidos: medi-los é o objetivo do piloto.
+> GERADO por `packages/agents/src/pilot-doc.ts`; não editar. Complementa `fast-track/custo/piloto-10-materias-openbot.md` (Arquiteto). **Nenhum agente foi criado e nenhum modelo foi chamado**: tudo aqui espera o OK explícito do PM. Os dados dos testes do avaliador são SIMULADOS. Os limites das assinaturas Claude e Codex NÃO são conhecidos: medi-los é o objetivo do piloto.
 
 ## 1. Decisões que valem
 
-- **DP-27:** canal principal = agentes OpenBot nas assinaturas (Claude redige, Codex confere), fora do teto; API tarifada só como complemento dentro de US$ 50 e **desligada no piloto**. O piloto vem **antes** da etapa 1 paga da qualificação; se o canal cobrir redação e checagem, a etapa 1 encolhe.
+- **DP-27:** canal principal = agentes OpenBot nas assinaturas (Claude redige, Codex confere; **só Claude e Codex no piloto, DP-41**), fora do teto; API tarifada só como complemento dentro de US$ 50 e **desligada no piloto**. O piloto vem **antes** da etapa 1 paga da qualificação; se o canal cobrir redação e checagem, a etapa 1 encolhe.
 - **DP-26 (b) e (c):** sem reserva (nem fallback) na redação; Fable fora do trabalho não publicado. **DP-26 (a) revogada pela DP-27:** ZDR não é exigido. Dado pessoal continua fora.
 - **DP-28:** fontes de mercado autorizadas com risco aceito; citar e linkar, sem reproduzir além do necessário; robots respeitado; nunca contornar 403/429; classe C fora (Azul, GOL, ABECS, IATA, Nubank, Accor, Marriott, Salesforce, HubSpot, Zendesk, oneworld, ABAV). **DP-29:** a IA lê e reescreve com palavras próprias (a Editorial aplica `copy_literal` de forma determinística).
 - **DP-30:** o proprietário aceita o risco dos termos das assinaturas Anthropic e OpenAI. A mitigação recomendada (contas de produto separadas das de implementação) **não é possível hoje**: ver a premissa abaixo. Rota de complemento pela API pronta e desligada.
 
-**Premissa registrada (PM, 23/11):** há UMA conta conectada por provedor no OpenBot (Claude, Codex, Antigravity/Gemini, OpenCode) e **não existe separação entre conta de produto e de implementação**; o proprietário aceitou esse risco (DP-27 e DP-30). Consequências: (1) a equipe de implementação e o piloto **disputam a mesma quota**; os limites medidos ficam contaminados pelo uso da implementação, então o relatório anota quem mais usou a conta na janela; (2) uma suspensão de conta pararia produto e implementação juntos; (3) o limite dos modelos GRÁTIS do OpenCode é compartilhado e se esgotou no mesmo dia em que o QA 2 o usou: a pauta não pode depender só dele.
+**Premissa registrada (PM, 23/11):** há UMA conta conectada por provedor no OpenBot (o piloto usa só Claude e Codex, DP-41) e **não existe separação entre conta de produto e de implementação**; o proprietário aceitou esse risco (DP-27 e DP-30). Consequências: (1) a equipe de implementação e o piloto **disputam a mesma quota**; os limites medidos ficam contaminados pelo uso da implementação, então o relatório anota quem mais usou a conta na janela; (2) uma suspensão de conta pararia produto e implementação juntos; (3) a conta Claude também faz a pauta (Haiku e Sonnet), então a pauta consome a mesma quota da redação.
 
 ## 2. Fontes e volume (10 matérias, NÃO publicadas)
 
@@ -29,15 +29,15 @@ Os prompts são os da Editorial: versão `editorial-0.3` (tom `tom-0.2`, provis�
 
 | Agente | Etapa | Classe da fábrica | Tipo no adaptador | Modelo principal | Backups | Se o limite bater |
 |---|---|---|---|---|---|---|
-| ln_pilot_pauta | triage | `triage` | classification | opencode: DeepSeek via OpenCode, camada gratuita (o QA 2 usou opencode/deepseek-v4.1-flash-free): declarado no UsageReport (id exato não verificado) | claude (1º backup, automático: OpenCode esgotado, indisponível ou com erro); antigravity (2º backup, automático: Claude também com limite; preserva a quota do Claude para a redação) | se os dois backups também baterem o limite: a pauta fica pending; sem API |
+| ln_pilot_pauta | triage | `triage` | classification | claude: Claude Haiku (assinatura Claude): declarado no UsageReport (id exato não verificado) | claude (Haiku indisponível, com erro ou com limite próprio do modelo; mesma conta, outro modelo) | se a conta Claude bater o limite (vale para Haiku e Sonnet) a pauta fica pending e espera a janela; sem API |
 | ln_pilot_redator | draft | `draft` | editorial_draft | claude: Claude (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido |
-| ln_pilot_checador | factcheck | `factcheck` | fact_check | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | antigravity (Codex com limite ou indisponível; Google é outro autor, independente do redator Claude) | se o Gemini também bater o limite: a tarefa fica pending e a matéria não é publicada (falha fechada); sem API (a GPT-6.1-terra pelo OpenRouter fica desligada) |
-| ln_pilot_revisor | review | `review` | **lacuna** | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | antigravity (Codex com limite ou indisponível; Google é outro autor, independente do redator Claude) | se o Gemini também bater o limite: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API |
+| ln_pilot_checador | factcheck | `factcheck` | fact_check | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | SEM backup (decisão do PM, DP-41): a tarefa fica pending, espera a janela do Codex e a matéria não é publicada (falha fechada); sem API tarifada (a GPT-6.1-terra pelo OpenRouter fica desligada) |
+| ln_pilot_revisor | review | `review` | **lacuna** | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | SEM backup (decisão do PM, DP-41): a tarefa fica pending e espera a janela do Codex (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API |
 | ln_pilot_social (opcional) | social_pack | `social_pack` | **lacuna** | claude: Claude (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | adiar: etapa de baixa prioridade; fica pending e não conta contra os critérios de saída |
 
-**Regras de backup (decisão do PM, 23/11):** a **pauta** tem backup AUTOMÁTICO em cadeia (OpenCode grátis → Claude → Gemini via Antigravity), porque o grátis se esgota; a **checagem e a revisão** têm backup no **Gemini (Antigravity)**, outro provedor independente do redator Claude, em vez de ficar pending. A **redação não tem backup**: a política não admite fallback na redação (DP-26 b). Quando todas as vias de uma etapa estão no limite, a tarefa fica `pending` e a matéria **não** é publicada (falha fechada). Todo backup precisa respeitar a independência: o checador e o revisor **nunca** são do mesmo autor do redator (Claude × OpenAI ou Claude × Google); a Editorial passa `excludeProviders: [anthropic]`. O avaliador aceita só as contas previstas por etapa e mostra quanto cada backup foi usado (`backupsUsed`). Todos os backups são assinaturas ou camada gratuita: **nenhum é API tarifada**.
+**Regras de backup (decisão do PM, 23/11, DP-41: só Claude e Codex):** a **pauta** roda no **Claude Haiku**, com backup no **Claude Sonnet** (mesma conta, outro modelo, automático); a **checagem e a revisão** ficam no **Codex, SEM backup tarifado e sem backup em outro provedor**; a **redação** fica no Claude, **sem modelo alternativo** (DP-26 b). Se o Codex (ou a conta Claude) bater o limite, a etapa fica `pending` e espera a janela; a matéria **não** é publicada (falha fechada). O checador e o revisor **nunca** são do mesmo autor do redator (Claude × OpenAI); a Editorial passa `excludeProviders: [anthropic]`. **Saíram do kit por decisão do PM:** o Gemini/Antigravity (cota da conta esgotada até cerca de 29/11) e o OpenCode/DeepSeek grátis (limite compartilhado; a política v7 lista DeepSeek em `never`). O avaliador aceita só a conta e o modelo previstos por etapa e mostra o uso do backup (`backupsUsed`). **Nenhum backup é API tarifada.**
 
-**DeepSeek grátis via OpenCode:** só para a pauta (tarefa simples, saída de 200 tokens). **Confirmado pelo PM:** o OpenBot roda agentes com o provedor OpenCode (o QA 2 rodou em `opencode/deepseek-v4.1-flash-free`), mas o limite dos modelos grátis é compartilhado e se esgotou no mesmo dia; por isso o backup automático. Entrada só de item de fonte pública; a política de dados da camada gratuita NÃO foi verificada; a DP-27 aceita a retenção; dado pessoal nunca. Se a pauta no grátis falhar com frequência ou a qualidade ficar abaixo da Claude, trocar a principal por Claude (decisão registrada).
+**Pauta no Claude Haiku:** tarefa simples, saída de 200 tokens, entrada só de item de fonte público (dado pessoal nunca). Como a pauta usa a mesma conta Claude da redação, o piloto mede quanto da quota ela consome; se pesar demais, a pauta pode ser determinística por regra de fonte e editoria (decisão futura do PM).
 
 ## 4. Roteiro de execução
 
@@ -45,7 +45,7 @@ Os prompts são os da Editorial: versão `editorial-0.3` (tom `tom-0.2`, provis�
 
 **Por matéria (ordem fixa):**
 1. **Coleta determinística** pela Fábrica (robots, ritmo, anti-SSRF; fonte habilitada pelo Editorial). Sem modelo.
-2. **Pauta** (`triage`, OpenCode grátis; backup Claude). Item irrelevante termina aqui.
+2. **Pauta** (`triage`, Claude Haiku; backup Claude Sonnet). Item irrelevante termina aqui.
 3. **Redação** (`draft`, Claude). Saída = rascunho com claims ancoradas em evidências; fonte `secondary` só com âncora primária (a Fábrica bloqueia sem âncora, antes de gastar modelo).
 4. **Gates determinísticos** da Fábrica (`copy_literal`, números e datas nas evidências, assinatura institucional, direitos).
 5. **Checagem** (`factcheck`, Codex) com o rascunho exato da etapa 3 (`reviewed_draft_task_id`).
@@ -62,7 +62,7 @@ Os prompts são os da Editorial: versão `editorial-0.3` (tom `tom-0.2`, provis�
 
 | Critério do piloto | Como se mede | Limiar | Gate que alimenta |
 |---|---|---|---|
-| PC-01 Janelas de limite | matérias e tarefas por janela, por conta (Claude, Codex, Gemini via Antigravity, OpenCode), mensagem e hora do limite, hora da retomada | medir; sem limite nas 10 → repetir com 30 | decide volume e etapa 1; G5.6 (S3, espera de lease) |
+| PC-01 Janelas de limite | matérias e tarefas por janela, por conta (Claude e Codex) e por modelo (Haiku, Sonnet), mensagem e hora do limite, hora da retomada | medir; sem limite nas 10 → repetir com 30 | decide volume e etapa 1; G5.6 (S3, espera de lease) |
 | PC-02 Independência | 100% dos pares redator→checador e redator→revisor da MESMA revisão com autor declarado diferente; nenhum `same_author`; rascunho final sempre checado | 100% | G2.5 (evidência de identidade do modelo, parcial: sem `generation id`) e G5 (independência em ação) |
 | PC-03 Qualidade | **Critério aprovado pelo PM (23/11):** 0 fatos de gravidade ALTA nas 10 matérias e no máximo 1 de gravidade MÉDIA (baixas só anotadas), pela rubrica da Editorial e leitura humana; sem avaliação de todos os aprovados = inconclusivo | 0 alta, ≤ 1 média | G2.3 (parcial; o golden set completo não é exigido no piloto) |
 | PC-04 Formato da saída | saída no formato da classe da fábrica (JSON + esquema) | ≥ 95% (proposta) | G2.2 (parcial) |
@@ -78,13 +78,13 @@ Os prompts são os da Editorial: versão `editorial-0.3` (tom `tom-0.2`, provis�
 | Camada | Controle | Como se prova |
 |---|---|---|
 | Preventivo | o OpenRouter e qualquer chave de provedor **não existem** na configuração dos agentes do piloto; a flag `modelosHabilitados` e o complemento ficam desligados; o gateway recusa sem portão de saldo (`balance_guard_missing`) antes de qualquer reserva | varredura da configuração (0 ocorrências); teste negativo por agente |
-| Preventivo | limite atingido = backup por assinatura ou camada gratuita (pauta: OpenCode → Claude → Gemini; checagem e revisão: Codex → Gemini) ou `pending`; **nunca fallback para API** | linhas `pending_limit` e `backupsUsed` sem `tarifada_api_call` |
+| Preventivo | limite atingido = a etapa fica `pending` e espera a janela (pauta: Haiku → Sonnet na mesma conta; checagem, revisão e redação sem backup); **nunca fallback para API nem para outro provedor** | linhas `pending_limit` e `backupsUsed` sem `tarifada_api_call` |
 | Preventivo | o despachante só envia tarefa se `canDispatchNext` permitir; `tarifada_api_call` é parada imediata | `PilotSession` fecha a sessão na linha ofensiva |
 | Detectivo | cada linha da planilha traz `tarifada_api_call`; o relatório mostra `tariffed.apiCalls` | `evaluatePilot().tariffed.apiCalls === 0` |
 | Detectivo | o verificador lê o saldo do OpenRouter antes e depois do piloto e confere o ledger de orçamento (`budget_ledger`) sem linha nova | diferença de saldo = 0; 0 linhas novas |
 | Corretivo | qualquer chamada tarifada encerra o piloto, aciona o kill switch e abre incidente no FinOps | registro da parada |
 
-**Custo esperado: US$ 0,00 tarifado.** Só se paga em quota das assinaturas (limite desconhecido, medido aqui) e, se existir, na camada gratuita do OpenCode. Risco residual: bater limite antes de terminar (as tarefas ficam `pending`, o piloto simplesmente demora); suspensão de assinatura por termos (risco aceito, DP-30); mudança unilateral do plano gratuito do OpenCode.
+**Custo esperado: US$ 0,00 tarifado.** Só se paga em quota das assinaturas Claude e Codex (limite desconhecido, medido aqui). Risco residual: bater limite antes de terminar (as tarefas ficam `pending`, o piloto simplesmente demora); suspensão de assinatura por termos (risco aceito, DP-30).
 
 ## 7. Parada imediata (avaliada a cada linha)
 
@@ -93,14 +93,14 @@ Qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segre
 ## 8. Pré-condições e pedidos às frentes (a combinar)
 
 **Com a Integration (adaptador OpenBot): respondido em 23/11 (ft/growth f09f356, código e testes locais; nada ativado, criado ou chamado; não verificado por mim, são relatos da Integration):**
-1. **Backup automático: feito.** Rotas padrão: `classification` opencode → claude → antigravity; `fact_check` e `editorial_review` codex → antigravity; `editorial_draft` só claude e NUNCA troca de via (no limite espera a janela, a retomada informada ou 30 min, e a mesma via retoma); `social_copy` e `entity_resolution` via única claude. O limite não consome tentativa; a conta usada fica na linha (`account` e `declared_model`). Executar por outra via é 422 `ACCOUNT_OUT_OF_ROUTE` e PARA o piloto.
-2. **`UsageReport` por via: feito.** Lanes `api` (tarifada, exige geração), `subscription` (claude e codex), `opencode` e `antigravity`; nas gratuitas `costMicro` é exatamente 0, sem `generationIds`; custo maior que 0 é recusado (422) e, no piloto, faixa `api` é parada imediata.
+1. **Rotas por tipo: feito pela Integration, com AJUSTE PEDIDO (decisão do PM, DP-41).** Ela implementou `classification` opencode → claude → antigravity e `fact_check`/`editorial_review` codex → antigravity; o piloto passa a usar só `classification` em claude (Haiku, backup Sonnet na mesma conta), `fact_check` e `editorial_review` só em codex (sem backup) e `editorial_draft` só claude e NUNCA troca de via (no limite espera a janela, a retomada informada ou 30 min, e a mesma via retoma); `social_copy` e `entity_resolution` via única claude. O limite não consome tentativa; a conta usada fica na linha (`account` e `declared_model`). Executar por outra via é 422 `ACCOUNT_OUT_OF_ROUTE` e PARA o piloto.
+2. **`UsageReport` por via: feito.** Lanes `api` (tarifada, exige geração), `subscription` (claude e codex; as únicas do piloto), `opencode` e `antigravity` (ficam sem uso); nas gratuitas `costMicro` é exatamente 0, sem `generationIds`; custo maior que 0 é recusado (422) e, no piloto, faixa `api` é parada imediata.
 3. **Tipos despacháveis: feito.** `editorial_review` e `social_copy` entram em `DISPATCHABLE_KINDS` (publicar continua proibido). A chamada única `check_edit` fica fora (decisão do PM): o kit usa `fact_check` e `editorial_review` separados. O kit foi alinhado: `review` = `editorial_review`, `social_pack` = `social_copy`.
 4. **Gateway que espera o callback: feito pela Integration** (`OpenBotModelGateway`, `packages/openbot/src/gateway.ts`): despacha, espera com tempo-limite e devolve a resposta; no tempo-limite a tarefa fica pendente (sem API) e repetir com a mesma `idempotencyKey` retoma a mesma tarefa. **Falta do Backend:** armazém de conteúdo (o agente lê a entrada por `refId` e grava o resultado sob `resultRef`) e as rotas.
 5. `canDispatchNext` entra como `pilot.gate`, consultado em todo pull, heartbeat e despacho; recusa = 503 e o piloto fica parado até `resumePilot`. Parada imediata a cada linha: publicar, API tarifada, segredo em texto (mascarado), ferramenta fora do contrato (se o agente relatar) e conta fora da rota.
-6. **Independência pelo MODELO declarado, não pela via:** a via Antigravity hospeda várias famílias, então um Claude rodando via Antigravity NÃO é independente de um redator Claude. O avaliador deste kit já decide pelo `declared_model`.
+6. **Independência pelo MODELO declarado, não pela via:** um modelo Claude, por qualquer via, NÃO é independente de um redator Claude. O avaliador deste kit decide pelo `declared_model`, e conta e modelo que se contradizem tornam a linha inválida.
 7. **Do lado dos agentes do piloto:** mandar `trace.reviewedDraftTaskId` nas etapas de checagem e revisão (sem isso a independência não se prova); `gate_verdict`, `gate_reasons`, `cross_provider_ok` e `unsupported_facts` NÃO são preenchidos pelo adaptador: vêm da Editorial e da leitura humana, e entram na linha por patch. O espelho `PilotRow` da Integration tem os mesmos campos deste kit (conferido) e a conferência de tipos entra quando `ft/agents` for integrado.
-8. Confirmado pela Integration (leitura do OpenBot desta máquina, 23/11): existem as contas claude, codex, antigravity (conta padrão) e opencode (inclui `opencode/deepseek-v4.1-flash-free`). **Não verificado:** o OpenBot real enviando os cabeçalhos assinados e o trace, a hora de retomada que ele informa, tabelas e rotas reais, os limites das contas.
+8. Confirmado pela Integration (leitura do OpenBot desta máquina, 23/11): existem as contas claude, codex, antigravity (conta padrão) e opencode; o piloto usa só claude e codex. **Não verificado:** o OpenBot real enviando os cabeçalhos assinados e o trace, a hora de retomada que ele informa, tabelas e rotas reais, os limites das contas.
 
 **Com a Editorial (Fábrica e prompts `editorial-0.3`):**
 **Respondido pela Editorial (23/11; ft/editorial b1a6fe3, `docs/piloto-10-materias-editorial.md`, sem push):**
@@ -123,19 +123,19 @@ Qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segre
 
 ## 10. Não verificado
 
-- Limites e janelas de uso do Claude, do Codex, do Gemini (Antigravity) e do OpenCode grátis; se o OpenBot devolve a hora de retomada e o texto do limite; o id exato do modelo de cada conta.
-- Se o OpenBot envia os cabeçalhos assinados do adaptador. (Respondido pelo PM: roda agente OpenCode; não separa contas de produto e implementação.)
-- Termos das assinaturas: risco aceito (DP-30), não verificado em documento dos provedores. Política de dados do OpenCode grátis.
+- Limites e janelas de uso do Claude (Haiku e Sonnet) e do Codex; se o OpenBot devolve a hora de retomada e o texto do limite; o id exato do modelo de cada conta.
+- Se o OpenBot envia os cabeçalhos assinados do adaptador. (Respondido pelo PM: não separa contas de produto e implementação.)
+- Termos das assinaturas: risco aceito (DP-30), não verificado em documento dos provedores.
 - As fontes de mercado de classe D são proposta até a Editorial confirmar; Senado e Câmara estão desabilitadas hoje.
 - Nada foi executado: nenhum agente criado, nenhuma chamada de modelo. **OK para criar os agentes (PM):** só depois do parecer do QA 1 e com o staging na Fase 3 (persistência); até lá fecham-se as lacunas com a Integration e a Editorial.
 
 ## Etapas do avaliador
 
-- `triage`: Pauta/triagem (DeepSeek grátis via OpenCode; backup automático Claude ou Gemini) (conta opencode; backup claude, antigravity)
+- `triage`: Pauta/triagem (Claude Haiku; backup Claude Sonnet na mesma conta) (conta claude)
 - `draft`: Redação (Claude); sem fallback (DP-26 b) (conta claude)
-- `factcheck`: Checagem de fatos independente (Codex; backup Gemini; autor distinto do redator) (conta codex; backup antigravity)
-- `review`: Revisão editorial independente (Codex; backup Gemini; gate WF02) (conta codex; backup antigravity)
-- `check_edit`: Checagem + revisão numa chamada só (opção do Arquiteto, −24%; backup Gemini) (conta codex; backup antigravity)
+- `factcheck`: Checagem de fatos independente (Codex; sem backup; autor distinto do redator) (conta codex)
+- `review`: Revisão editorial independente (Codex; sem backup; gate WF02) (conta codex)
+- `check_edit`: Checagem + revisão numa chamada só (adiada: a classe não existe na Fábrica) (conta codex)
 - `social_pack`: Texto social de LinkedIn como rascunho (Claude) (conta claude)
 - `roles`: Entidades e cargos citados no texto (Claude) (conta claude)
 - `rights_seo_qa`: Gates determinísticos: direitos, cópia literal, SEO mínimo (slug e resumo); QA visual fora (conta deterministic)

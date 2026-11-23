@@ -66,11 +66,10 @@ describe('perfis da organização completa (rascunho, política v7)', () => {
     expect(by('director_editorial').hosted_by).toBe('ln_editorial');
   });
 
-  it('fixa a política v7 por hash e registra a decisão em aberto sobre o piloto', () => {
+  it('fixa a política v7 por hash; sem decisão pendente sobre Gemini/OpenCode (o PM os tirou do piloto, DP-41)', () => {
     expect(draft.policy).toBe(POLICY_V7_REF);
     expect(POLICY_V7_REF.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(draft.open_decisions[0]).toMatch(/DP-41/);
-    expect(draft.open_decisions[0]).toMatch(/Gemini/);
+    expect(JSON.stringify(draft.open_decisions)).not.toMatch(/Gemini|OpenCode/);
   });
 
   it('falha fechada: o validador pega conta fora da política, OpenAI fora da revisão, complemento ligado e perfil ligado', () => {

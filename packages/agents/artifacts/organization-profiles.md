@@ -10,7 +10,7 @@ Política: `2.1-dp02-v7-dp27` (r0-preparacao/arquitetura/model.policy.proposto-D
 - Canal primário de todos: assinatura pelo adaptador OpenBot (ADR-003), fora do teto (DP-27). **Claude** para redação, entidades, social, rituais, dailies e análises; **Codex** só para checagem, revisão editorial e auditoria pós-publicação (OpenAI só na rota de revisão; autor distinto do redator).
 - Backup: no limite da assinatura a tarefa volta a `pending` e espera a janela. O complemento pela API tarifada (rotas da v7: economy = claude-haiku-5-5, review = claude-sonnet-5-5 ou openai-text-review, premium e strategic = claude-opus-5-5) existe só dentro do teto de US$ 50, na ordem de corte da ADR-015 (degraus 35/40/42), e está **desligado** no piloto (DP-41). A redação não tem modelo alternativo (DP-26 b).
 - Nunca: publicar sem checagem por provedor distinto do redator; DeepSeek; Fable em trabalho não publicado; checagem por amostragem.
-- Este rascunho **não inclui** Gemini (Antigravity) nem OpenCode: eles são backups do PILOTO (decisão do PM, 23/11) e não constam da v7 nem da DP-41.
+- Sem Gemini (Antigravity) nem OpenCode: o piloto e a organização completa usam só Claude e Codex (DP-41; decisão do PM, 23/11).
 - A hipótese de 8 agentes OpenBot (um por diretoria mais o Publisher) vem de `openbot-profiles.draft.json`; cada execução carrega um perfil sob demanda (ADR-004).
 
 ## 2. Perfis por diretoria
@@ -121,11 +121,10 @@ Política: `2.1-dp02-v7-dp27` (r0-preparacao/arquitetura/model.policy.proposto-D
 
 ## 3. Decisões em aberto
 
-1. Piloto × DP-41: o kit do piloto prevê backups no Gemini (Antigravity) e na pauta no OpenCode (DeepSeek gratuito), por decisão do PM de 23/11; a DP-41 fala em "Claude e Codex" e a v7 lista DeepSeek em `never`. Decidir se esses backups valem no piloto e, se valerem, se entram na política (mudança protegida) antes da organização completa.
-2. A rota `image_fast` da v7 não tem modelo: o perfil `image` fica sem canal até a política habilitar imagem.
-3. Perfis com insumo pessoal ou comercial confidencial ficam bloqueados até o operador ser aprovado (v7, classes de dado).
-4. Volume de uso da assinatura por perfil e por ritual NÃO foi medido: a organização completa só liga depois de o piloto medir janelas e limites de Claude e Codex (uma conta por provedor, sem separar produto e implementação).
-5. Hipótese de 8 agentes OpenBot (um por diretoria mais Publisher) segue sem medição; ver `openbot-profiles.draft.json`.
+1. A rota `image_fast` da v7 não tem modelo: o perfil `image` fica sem canal até a política habilitar imagem.
+2. Perfis com insumo pessoal ou comercial confidencial ficam bloqueados até o operador ser aprovado (v7, classes de dado).
+3. Volume de uso da assinatura por perfil e por ritual NÃO foi medido: a organização completa só liga depois de o piloto medir janelas e limites de Claude e Codex (uma conta por provedor, sem separar produto e implementação).
+4. Hipótese de 8 agentes OpenBot (um por diretoria mais Publisher) segue sem medição; ver `openbot-profiles.draft.json`.
 
 ## 4. Não verificado
 

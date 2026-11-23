@@ -8,7 +8,7 @@
  * - redação sem modelo ALTERNATIVO (DP-26 b); o complemento pela API tarifada é só "complemento de canal" dentro do teto de US$ 50,
  *   na ordem da ADR-015, e fica DESLIGADO no piloto (DP-41);
  * - nunca: publicar sem checagem por provedor distinto do redator, DeepSeek, Fable em trabalho não publicado, checagem por amostragem.
- * Não inclui Gemini (Antigravity) nem OpenCode: esses backups são do PILOTO (decisão do PM, 23/11) e não constam da v7 nem da DP-41.
+ * Sem Gemini (Antigravity) nem OpenCode: o PM os tirou também do piloto (DP-41: só Claude e Codex).
  */
 import type { LoadedRegistries } from './config';
 import type { AgentProfile, Department } from './schemas';
@@ -183,7 +183,6 @@ export function buildOrgProfiles(registries: Pick<LoadedRegistries, 'agents' | '
       with_blockers: count((p) => p.blocked_until.length > 0),
     },
     open_decisions: [
-      'Piloto × DP-41: o kit do piloto prevê backups no Gemini (Antigravity) e na pauta no OpenCode (DeepSeek gratuito), por decisão do PM de 23/11; a DP-41 fala em "Claude e Codex" e a v7 lista DeepSeek em `never`. Decidir se esses backups valem no piloto e, se valerem, se entram na política (mudança protegida) antes da organização completa.',
       'A rota `image_fast` da v7 não tem modelo: o perfil `image` fica sem canal até a política habilitar imagem.',
       'Perfis com insumo pessoal ou comercial confidencial ficam bloqueados até o operador ser aprovado (v7, classes de dado).',
       'Volume de uso da assinatura por perfil e por ritual NÃO foi medido: a organização completa só liga depois de o piloto medir janelas e limites de Claude e Codex (uma conta por provedor, sem separar produto e implementação).',
