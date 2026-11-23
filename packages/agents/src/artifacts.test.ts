@@ -46,6 +46,19 @@ describe('artefatos versionados (artifacts/)', () => {
     expect(md).toMatch(/aval do Program Manager/);
     expect(md).toMatch(/G1.*P5 v2/);
   });
+
+  it('o protocolo de qualificação declara que nada roda sem decisão do proprietário e traz as travas, o orçamento e o teste de cache', () => {
+    const md = generated['model-qualification-protocol.md'];
+    expect(md).toMatch(/Nada roda até o proprietário decidir a política/);
+    expect(md).toMatch(/cached_tokens > 0/);
+    expect(md).toMatch(/Teto proposto: US\$ 5/);
+    expect(md).toMatch(/T6 \| \*\*Modo de qualificação no gateway\*\*/);
+    expect(md).toMatch(/não qualifica Fable|\*\*não\*\* qualifica Fable/);
+    const plan = JSON.parse(generated['model-qualification-plan.json']);
+    expect(plan.plano.ok).toBe(true);
+    expect(plan.plano.totals.calls).toBe(187);
+    expect(JSON.stringify(plan)).not.toMatch(/api[_-]?key|password|secret/i);
+  });
 });
 
 describe('plano de roteamento dentro do teto de US$ 50', () => {

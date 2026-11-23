@@ -20,12 +20,13 @@ import { buildRoutingPlan, CONSOLIDATION_RITUAL_IDS, DEFAULT_ASSUMPTIONS, type R
 import { validateOrganization } from './validator';
 import { PKG_DIR, POLICY_FIXTURE } from './paths';
 import { buildGateAndDraftArtifacts, type ExtraArtifacts } from './artifacts-extra';
+import { buildQualificationArtifacts, type QualificationArtifacts } from './qualification-doc';
 
 export { PKG_DIR, POLICY_FIXTURE };
 
 const usd = (micro: number) => (micro / 1_000_000).toFixed(2);
 
-export interface Artifacts extends ExtraArtifacts {
+export interface Artifacts extends ExtraArtifacts, QualificationArtifacts {
   'organization.manifest.json': string;
   'routing-plan.json': string;
   'activation-plan.md': string;
@@ -101,6 +102,7 @@ export function generateArtifacts(): Artifacts {
     'routing-plan.json': `${JSON.stringify(routing, null, 2)}\n`,
     'activation-plan.md': renderActivationPlan(validation.counts, conservative, digest, policySha),
     ...buildGateAndDraftArtifacts(registries, conservative),
+    ...buildQualificationArtifacts(check.policy, policySha),
   };
 }
 

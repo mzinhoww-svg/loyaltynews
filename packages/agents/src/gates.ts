@@ -8,8 +8,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildOpenBotDraft, validateOpenBotDraft } from './openbot-profiles';
+import { loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { loadRegistries } from './config';
-import { PKG_DIR } from './paths';
+import { buildQualificationPlan } from './qualification';
+import { PKG_DIR, POLICY_FIXTURE } from './paths';
 
 export type CriterionStatus = 'met_offline' | 'unmet' | 'external';
 
@@ -71,6 +73,8 @@ export const GATES: Gate[] = [
       { id: 'G2.3', text: 'Qualidade PT-BR frente ao golden set', measure: 'avaliação cega comparando o modelo candidato com a referência (claude-sonnet-5-5)', threshold: 'não pior que a referência em fidelidade factual; limiar numérico a definir com a Editorial', owner: 'Editorial + QA' },
       { id: 'G2.4', text: 'ZDR / data_collection=deny disponível por modelo', measure: 'consulta ao endpoint do provedor no OpenRouter', threshold: 'confirmado para 100% dos modelos usados', owner: 'Security' },
       { id: 'G2.5', text: 'Resposta traz usage e evidência de geração (custo conciliável)', measure: 'sampleFromResponse(resposta) != null em 100% das chamadas de teste em staging', threshold: '100%', owner: 'AgentOps + Backend' },
+      { id: 'G2.6', text: 'Orçamento da qualificação cabe na DP-04 (teto proposto de US$ 5, verbas por provedor, 20% do sublimite do Opus, sem reserva de auditoria)', measure: 'buildQualificationPlan(política v5).ok (model-qualification-protocol.md, seção 7)', threshold: 'todas as verificações do plano OK', owner: 'AgentOps + FinOps', proposedThreshold: true },
+      { id: 'G2.7', text: 'Política decidida pelo proprietário e travas T1–T8 do protocolo resolvidas antes de qualquer chamada', measure: 'registro das decisões T1–T3, retenção T4, processador T5, modo de qualificação T6, ledger T7, golden set T8', threshold: '8 de 8 travas resolvidas', owner: 'Proprietário + Backend + FinOps + Security + Editorial' },
     ],
   },
   {
@@ -150,6 +154,10 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   const outTest = read(join(PKG_DIR, 'src/output.test.ts'));
   out.push({ criterion: 'G2.2', status: 'external', evidence: outTest ? 'o validador por perfil existe (output.test.ts, 64 perfis); falta o golden set real e a taxa por modelo' : 'validador ausente' });
   for (const id of ['G2.3', 'G2.4']) external(id, 'exige medição/consulta real fora deste pacote');
+  const qualSrc = read(join(PKG_DIR, 'src/qualification.ts'));
+  const qualPlan = buildQualificationPlan(loadPolicyFile(POLICY_FIXTURE).policy as ModelPolicy);
+  set('G2.6', qualSrc.includes('buildQualificationPlan') && qualPlan.ok, qualPlan.ok ? `plano de qualificação OK: ${qualPlan.totals.calls} chamadas, teto com reexecução US$ ${(qualPlan.totals.ceilingWithRetriesMicro / 1_000_000).toFixed(2)}` : `plano reprovado: ${qualPlan.checks.filter((c) => !c.ok).map((c) => c.id).join(', ')}`);
+  external('G2.7', 'o protocolo existe; as decisões do proprietário e as travas T1–T8 não estão resolvidas (nada roda)');
   const measureSrc = read(join(PKG_DIR, 'src/measure.ts'));
   out.push({ criterion: 'G2.5', status: 'external', evidence: measureSrc.includes('sampleFromResponse') ? 'sampleFromResponse existe; falta rodar em staging com chamadas reais' : 'harness ausente' });
 

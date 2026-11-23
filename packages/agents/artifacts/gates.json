@@ -125,6 +125,31 @@
             "status": "external",
             "evidence": "sampleFromResponse existe; falta rodar em staging com chamadas reais"
           }
+        },
+        {
+          "id": "G2.6",
+          "text": "Orçamento da qualificação cabe na DP-04 (teto proposto de US$ 5, verbas por provedor, 20% do sublimite do Opus, sem reserva de auditoria)",
+          "measure": "buildQualificationPlan(política v5).ok (model-qualification-protocol.md, seção 7)",
+          "threshold": "todas as verificações do plano OK",
+          "owner": "AgentOps + FinOps",
+          "proposedThreshold": true,
+          "avaliacao_offline": {
+            "criterion": "G2.6",
+            "status": "met_offline",
+            "evidence": "plano de qualificação OK: 187 chamadas, teto com reexecução US$ 4.46"
+          }
+        },
+        {
+          "id": "G2.7",
+          "text": "Política decidida pelo proprietário e travas T1–T8 do protocolo resolvidas antes de qualquer chamada",
+          "measure": "registro das decisões T1–T3, retenção T4, processador T5, modo de qualificação T6, ledger T7, golden set T8",
+          "threshold": "8 de 8 travas resolvidas",
+          "owner": "Proprietário + Backend + FinOps + Security + Editorial",
+          "avaliacao_offline": {
+            "criterion": "G2.7",
+            "status": "external",
+            "evidence": "o protocolo existe; as decisões do proprietário e as travas T1–T8 não estão resolvidas (nada roda)"
+          }
         }
       ]
     },

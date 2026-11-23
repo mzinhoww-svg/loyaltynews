@@ -22,6 +22,8 @@ Decide: Verificador independente / FinOps
 | G2.3 Qualidade PT-BR frente ao golden set | avaliação cega comparando o modelo candidato com a referência (claude-sonnet-5-5) | não pior que a referência em fidelidade factual; limiar numérico a definir com a Editorial | Editorial + QA | externo — exige medição/consulta real fora deste pacote |
 | G2.4 ZDR / data_collection=deny disponível por modelo | consulta ao endpoint do provedor no OpenRouter | confirmado para 100% dos modelos usados | Security | externo — exige medição/consulta real fora deste pacote |
 | G2.5 Resposta traz usage e evidência de geração (custo conciliável) | sampleFromResponse(resposta) != null em 100% das chamadas de teste em staging | 100% | AgentOps + Backend | externo — sampleFromResponse existe; falta rodar em staging com chamadas reais |
+| G2.6 Orçamento da qualificação cabe na DP-04 (teto proposto de US$ 5, verbas por provedor, 20% do sublimite do Opus, sem reserva de auditoria) | buildQualificationPlan(política v5).ok (model-qualification-protocol.md, seção 7) | todas as verificações do plano OK (proposta) | AgentOps + FinOps | OK offline — plano de qualificação OK: 187 chamadas, teto com reexecução US$ 4.46 |
+| G2.7 Política decidida pelo proprietário e travas T1–T8 do protocolo resolvidas antes de qualquer chamada | registro das decisões T1–T3, retenção T4, processador T5, modo de qualificação T6, ledger T7, golden set T8 | 8 de 8 travas resolvidas | Proprietário + Backend + FinOps + Security + Editorial | externo — o protocolo existe; as decisões do proprietário e as travas T1–T8 não estão resolvidas (nada roda) |
 
 ## G3 — Banco de staging com as migrações da organização
 Decide: DevOps
