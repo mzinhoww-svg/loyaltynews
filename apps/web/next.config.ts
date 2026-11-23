@@ -42,6 +42,8 @@ const config = (phase: string): NextConfig => {
       '@ln/db',
     ],
     poweredByHeader: false,
+    // Upload de mídia pelo Studio (server action multipart): PDF até 10 MB + metadados.
+    experimental: { serverActions: { bodySizeLimit: '11mb' } },
     // Bancos nativos/WASM ficam fora do bundle (pg em produção; PGlite só em dev/e2e: nem a lista de externos o cita em produção).
     serverExternalPackages: devDbSeam.includes('.e2e.') ? ['pg', '@electric-sql/pglite'] : ['pg'],
     // Mesma raiz para o rastreamento de arquivos do build (evita aviso de múltiplos lockfiles e inferência por HOME).

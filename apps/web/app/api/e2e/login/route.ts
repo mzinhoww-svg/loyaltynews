@@ -10,9 +10,24 @@ const naoEncontrada = () => Response.json({ error: { code: 'NOT_FOUND', message:
 export async function GET(req: Request): Promise<Response> {
   if (!e2eBackend || process.env.LN_STUDIO_TEST_SESSION !== '1') return naoEncontrada();
   const q = new URL(req.url).searchParams;
+  if (q.get('flag')) {
+    try {
+      (await e2eBackend()).setFlag(q.get('flag')!, q.get('on') === '1');
+      return Response.json({ ok: true });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
   if (q.get('seed') === 'editorial') {
     try {
       return Response.json({ ok: true, ...(await (await e2eBackend()).seedEditorial()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
+  if (q.get('seed') === 'editorial-aprovada') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedEditorialAprovada()) });
     } catch (e) {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }

@@ -104,6 +104,19 @@ test.describe('Comercial (@ln/commercial)', () => {
     await page.goto('/studio/campanhas');
     await expect(page.locator('[data-estado="cancelled"]')).toContainText('cancelled: 1');
     await expect(page.locator('[data-estado="draft"]')).toContainText('draft: 0');
+    // lista do Backend (GET /api/commercial/studio/campaigns): linha com estado, formato, período e anunciante; filtros e recusa de filtro
+    const linha = page.locator('tr[data-campanha]').filter({ hasText: 'Cartão Verão' });
+    await expect(linha).toHaveAttribute('data-status', 'cancelled');
+    await expect(linha).toContainText('2099-01-10 → 2099-01-20');
+    await expect(page.getByText('1 campanha(s) · página 1 de 1')).toBeVisible();
+    await page.getByLabel('Estado', { exact: true }).selectOption('active');
+    await enviar(page, page.getByRole('button', { name: 'Filtrar' }));
+    await expect(page.locator('[data-vazio="filtro"]')).toBeVisible();
+    await page.goto('/studio/campanhas?status=cancelled&q=verao');
+    await expect(page.locator('[data-vazio="filtro"]')).toBeVisible(); // 'verao' sem acento não casa com 'Verão': busca é por nome contém
+    await page.goto('/studio/campanhas?status=cancelled&q=Cartão');
+    await expect(page.locator('tr[data-campanha]')).toHaveCount(1);
+    await page.goto('/studio/campanhas');
     await page.getByLabel('ID da campanha').fill('campanha-que-nao-existe');
     await enviar(page, page.getByRole('button', { name: 'Abrir' }));
     await expect(page).toHaveURL(/campanhas[/]campanha-que-nao-existe/);
