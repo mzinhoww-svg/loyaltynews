@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { WithSidebar } from '../../_components/Sidebar';
 import { MockTag, PageHead } from '../../_components/ui';
 import { formatDateTime } from '../../_lib/format';
+import { jsonLdString } from '../../_lib/jsonld';
 import { getSource } from '../../_lib/source';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -39,7 +40,7 @@ export default async function EventPage({ params }: Props) {
   };
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <PageHead title={ev.title} crumbs={[{ label: 'Agenda', href: '/agenda' }, { label: ev.title }]} />
       <WithSidebar>
         <div>
