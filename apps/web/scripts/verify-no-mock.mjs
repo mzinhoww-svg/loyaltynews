@@ -8,6 +8,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { ENV_PROIBIDAS_EM_PRODUCAO } from './fixtures/flags-proibidas.mjs';
+import { marcadoresEm } from './scan-marcadores.mjs';
 
 const MARKERS = ['senha-longa-de-teste-1', 'electric-sql/pglite'];
 // Marcadores da vitrine do portal (fixtures MOCK e faixa de demonstração; Security R8): só podem existir no build de vitrine do staging.
@@ -55,7 +56,7 @@ function scan(dir, markers = MARKERS, skipMaps = false) {
       if (st.isDirectory()) walk(p);
       else if (/\.(js|mjs|cjs|json|html|rsc|map|txt|css)$/.test(nome) && !(skipMaps && nome.endsWith('.map'))) {
         const txt = readFileSync(p, 'utf8');
-        for (const m of markers) if (txt.includes(m)) achados.add(m);
+        for (const m of marcadoresEm(txt, markers)) achados.add(m);
       }
     }
   };
