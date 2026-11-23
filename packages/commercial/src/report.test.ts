@@ -25,7 +25,7 @@ const build = (delivery: DeliveryRow[], over: Partial<Parameters<typeof buildCam
 
 /** Parser CSV mínimo (aspas duplas, vírgula, CRLF) para provar que o arquivo é estruturalmente válido. */
 function parseCsv(text: string): string[][] {
-  const t = text.replace(/^﻿/, '');
+  const t = text.replace(/^\uFEFF/, '');
   const rows: string[][] = []; let cur: string[] = []; let cell = ''; let q = false;
   for (let i = 0; i < t.length; i++) {
     const ch = t[i]!;
