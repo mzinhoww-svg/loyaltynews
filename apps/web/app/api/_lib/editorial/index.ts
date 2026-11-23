@@ -11,16 +11,18 @@ import {
   type ApiResponse, type HandlerCtx, type JobQueue,
 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
+import { registerPublication, type PublicationCtx } from './publication';
 import { enqueueOutbox } from '@ln/workers/outbox';
 import type { Action, Db, Resource } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
 
-type H = (ctx: HandlerCtx, input: unknown) => Promise<ApiResponse<unknown>>;
+type H = (ctx: PublicationCtx, input: unknown) => Promise<ApiResponse<unknown>>;
 const STU = '/api/studio/editorial';
 const PUB = '/api/editorial';
 // RBAC grosso na borda (quem nem é da redação nunca chega ao handler); o fino é ACTION_ROLES do domínio.
 const READ: readonly [Resource, Action] = ['materias', 'read'];
 const WRITE: readonly [Resource, Action] = ['materias', 'transition'];
+const PUBLISH: readonly [Resource, Action] = ['materias', 'publish'];
 const LOCK = 7_010_002;
 
 const stu = (method: 'GET' | 'POST', path: string, perm: readonly [Resource, Action], handler: H): PureRoute<H> => ({ method, path: STU + path, auth: 'studio', perm, handler });
@@ -32,6 +34,8 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   stu('POST', '/articles/:articleId/review', WRITE, submitReview),
   stu('GET', '/articles/:articleId/factcheck', READ, getFactcheck),
   stu('POST', '/articles/:articleId/recheck', WRITE, requestRecheck),
+  // registro da publicação (flag publicacaoAutonoma; recibo e identidade de publicação)
+  stu('POST', '/articles/:articleId/publication', PUBLISH, registerPublication),
   // correções e direito de resposta
   stu('GET', '/corrections', READ, listCorrections),
   stu('GET', '/corrections/:correctionId', READ, getCorrection),
@@ -79,6 +83,12 @@ export function coerceQuery(input: unknown): unknown {
   return out;
 }
 
+/** Só para teste: troca a fábrica da loja (ex.: para armar a falha injetada). null restaura a padrão. */
+let storeFactory = (db: Db): PgEditorialStore => new PgEditorialStore(db);
+export function setStoreFactoryForTest(f: ((db: Db) => PgEditorialStore) | null): void {
+  storeFactory = f ?? ((db) => new PgEditorialStore(db));
+}
+
 export const dispatchEditorial = createDispatcher<H>({
   routes: EDITORIAL_ROUTES,
   studioPerm: READ,
@@ -86,13 +96,13 @@ export const dispatchEditorial = createDispatcher<H>({
   limitPublicPosts: true,
   async call(route, input, c) {
     const actor = c.session ? { userId: c.session.userId, roles: [c.session.role], mfa: c.session.mfa } : null;
-    const base = { actor, now: c.deps.now, newId: () => crypto.randomUUID(), sources: sourceRegistry };
+    const base = { actor, now: c.deps.now, newId: () => crypto.randomUUID(), sources: sourceRegistry, flags: c.deps.flags, db: c.deps.db };
     const data = route.method === 'GET' ? coerceQuery(input) : input;
-    if (route.method === 'GET') return route.handler({ ...base, store: new PgEditorialStore(c.deps.db) }, data);
+    if (route.method === 'GET') return route.handler({ ...base, store: storeFactory(c.deps.db) }, data);
     return c.deps.db.transaction(async (tx) => {
       const db = tx as unknown as Db;
       await db.execute(sql`select pg_advisory_xact_lock(${LOCK})`);
-      return route.handler({ ...base, store: new PgEditorialStore(db), queue: outboxQueue(db) }, data);
+      return route.handler({ ...base, db, store: storeFactory(db), queue: outboxQueue(db) }, data);
     });
   },
 });
