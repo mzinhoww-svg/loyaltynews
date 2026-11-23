@@ -5,50 +5,93 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectNoViolations } from "./a11y";
 import { describe, expect, it } from "vitest";
-import { ArticleCard, DEMO_BANNER_TEXT, DemoBanner, EDITORIAS, FOOTER_TAGLINE, Footer, Header, Logo, MockBadge, Monogram, SocialLinks } from "../index";
+import { ArticleCard, DEMO_BANNER_TEXT, DemoBanner, EDITORIAS, FOOTER_TAGLINE, Footer, Header, Logo, MockBadge, Monogram, SearchIconLink, SocialLinks } from "../index";
 
 
-describe("Header", () => {
-  it("lista as 10 editorias em <nav aria-label='Editorias'> e marca a atual", () => {
-    render(<Header currentSlug="pontos" />);
-    const nav = screen.getByRole("navigation", { name: "Editorias" });
-    const links = within(nav).getAllByRole("link");
-    expect(links).toHaveLength(10);
-    expect(within(nav).getByRole("link", { name: "Pontos & Milhas" })).toHaveAttribute("aria-current", "page");
-    expect(within(nav).getByRole("link", { name: "CRM & CX" })).not.toHaveAttribute("aria-current");
+const LINKS = [
+  { label: "Agenda", href: "/agenda" },
+  { label: "Intelligence", href: "/intelligence", current: true },
+];
+const MENU = { label: "Editorias", position: 1 };
+
+describe("Header (barra enxuta + menu de editorias)", () => {
+  it("a barra tem poucas entradas fixas e NÃO lista as 10 editorias fora do menu", () => {
+    render(<Header links={LINKS} menu={MENU} />);
+    const bar = within(screen.getByRole("navigation", { name: "Seções do portal" }));
+    // 2 links fixos + botão do menu: as editorias só existem dentro do menu (fechado = escondido)
+    expect(bar.getAllByRole("link")).toHaveLength(2);
+    expect(bar.getByRole("button", { name: /Editorias/ })).toHaveAttribute("aria-expanded", "false");
+    expect(bar.getByRole("link", { name: "Intelligence" })).toHaveAttribute("aria-current", "page");
   });
-  it("utilityLinks: segundo landmark nomeado, com aria-current, sem misturar com as editorias", async () => {
-    const { container } = render(
-      <Header
-        utilityLinks={[
-          { label: "Em alta", href: "/em-alta", current: true },
-          { label: "Agenda", href: "/agenda" },
-        ]}
-      />,
+  it("respeita a posição do menu entre os links", () => {
+    render(<Header links={LINKS} menu={MENU} />);
+    const items = [...screen.getByRole("navigation", { name: "Seções do portal" }).querySelectorAll(".ln-header__main-list > li")].map((li) => li.textContent?.trim());
+    expect(items[0]).toBe("Agenda");
+    expect(items[1]).toMatch(/^Editorias/);
+    expect(items[2]).toBe("Intelligence");
+  });
+  it("mega-menu abre com as 10 editorias, marca a atual, fecha com Esc devolvendo o foco", async () => {
+    const user = userEvent.setup();
+    render(<Header links={LINKS} menu={{ ...MENU, allLink: { label: "Ver todas", href: "/noticias" } }} currentSlug="pontos" />);
+    const btn = screen.getByRole("button", { name: /Editorias/ });
+    const mega = document.getElementById(btn.getAttribute("aria-controls")!)!;
+    expect(mega).toHaveAttribute("hidden");
+    await user.click(btn);
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    expect(mega).not.toHaveAttribute("hidden");
+    expect(within(mega).getAllByRole("link").filter((l) => !/Ver todas/.test(l.textContent ?? ""))).toHaveLength(10);
+    expect(within(mega).getByRole("link", { name: "Pontos & Milhas" })).toHaveAttribute("aria-current", "page");
+    expect(btn).toHaveAttribute("data-current", "true");
+    expect(within(mega).getByRole("link", { name: "Ver todas" })).toHaveAttribute("href", "/noticias");
+    await user.keyboard("{Escape}");
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    expect(btn).toHaveFocus();
+  });
+  it("menu com coluna de conteúdo (opção Notícias ▾)", async () => {
+    const user = userEvent.setup();
+    render(<Header menu={{ label: "Notícias", contentLinks: [{ label: "Todas as notícias", href: "/noticias" }, { label: "Loyalty Flash", href: "/flash" }] }} />);
+    await user.click(screen.getByRole("button", { name: /Notícias/ }));
+    const mega = document.querySelector(".ln-header__mega")!;
+    expect(within(mega as HTMLElement).getByText("Conteúdo")).toBeInTheDocument();
+    expect(within(mega as HTMLElement).getByRole("link", { name: "Loyalty Flash" })).toHaveAttribute("href", "/flash");
+    expect(mega.querySelector(".ln-header__mega-grid--single")).toBeNull();
+  });
+  it("clique fora fecha o mega-menu", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button>fora</button>
+        <Header menu={MENU} />
+      </>,
     );
-    const util = screen.getByRole("navigation", { name: "Atalhos do portal" });
-    expect(within(util).getAllByRole("link")).toHaveLength(2);
-    expect(within(util).getByRole("link", { name: "Em alta" })).toHaveAttribute("aria-current", "page");
-    // No mobile os atalhos também entram no menu de editorias (10 editorias + 2 atalhos)
-    const ed = within(screen.getByRole("navigation", { name: "Editorias" }));
-    expect(ed.getAllByRole("link")).toHaveLength(12);
-    expect(ed.getByRole("link", { name: "Bancos & Cartões" })).toBeInTheDocument();
-    await expectNoViolations(container);
+    const btn = screen.getByRole("button", { name: /Editorias/ });
+    await user.click(btn);
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByRole("button", { name: "fora" }));
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+  });
+  it("painel móvel: Menu abre com links, editorias e CTA; Esc fecha devolvendo o foco", async () => {
+    const user = userEvent.setup();
+    render(<Header links={LINKS} menu={MENU} cta={{ label: "Anuncie", href: "/midia-kit" }} />);
+    const toggle = screen.getByRole("button", { name: "Menu" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await user.click(toggle);
+    expect(screen.getByRole("button", { name: "Fechar" })).toHaveAttribute("aria-expanded", "true");
+    const panel = within(screen.getByRole("navigation", { name: "Menu e editorias" }));
+    expect(panel.getByRole("link", { name: "Agenda" })).toBeInTheDocument();
+    expect(panel.getByRole("link", { name: "Bancos & Cartões" })).toBeInTheDocument();
+    expect(panel.getByRole("link", { name: "Anuncie" })).toHaveAttribute("href", "/midia-kit");
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
+  });
+  it("CTA aparece na barra e actions ficam sempre visíveis", () => {
+    render(<Header cta={{ label: "Anuncie", href: "/midia-kit" }} actions={<span>ações</span>} />);
+    expect(screen.getAllByRole("link", { name: "Anuncie" }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("ações")).toBeInTheDocument();
   });
   it("tem link 'Pular para o conteúdo' apontando para o main", () => {
     render(<Header mainId="principal" />);
     expect(screen.getByRole("link", { name: "Pular para o conteúdo" })).toHaveAttribute("href", "#principal");
-  });
-  it("botão de menu alterna aria-expanded e Escape fecha devolvendo o foco", async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-    const btn = screen.getByRole("button", { name: "Menu" });
-    expect(btn).toHaveAttribute("aria-expanded", "false");
-    await user.click(btn);
-    expect(screen.getByRole("button", { name: "Fechar" })).toHaveAttribute("aria-expanded", "true");
-    await user.keyboard("{Escape}");
-    expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
   });
   it("usa o linkAs injetado", () => {
     const Custom = ({ href, children, ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
@@ -56,66 +99,19 @@ describe("Header", () => {
         {children}
       </a>
     );
-    const { container } = render(<Header linkAs={Custom} />);
-    // logo + 10 editorias + 5 repetidas no painel "Mais" (fechado, escondido; só um dos dois aparece por largura)
-    expect(container.querySelectorAll("[data-custom='1']").length).toBe(16);
+    const { container } = render(<Header linkAs={Custom} links={LINKS} menu={MENU} cta={{ label: "Anuncie", href: "/m" }} />);
+    // logo + 2 links + 10 editorias no mega + CTA + 2 links e 10 editorias no painel móvel + CTA do painel
+    expect(container.querySelectorAll("[data-custom='1']").length).toBe(1 + 2 + 10 + 1 + 2 + 10 + 1);
   });
-  it("sem violações axe", async () => {
+  it("sem violações axe (barra, mega-menu aberto e painel)", async () => {
+    const user = userEvent.setup();
     const { container } = render(
       <main id="conteudo">
-        <Header currentSlug="crm" />
+        <Header links={[{ label: "Agenda", href: "/agenda" }, { label: "Intelligence", href: "/intelligence", current: true }]} menu={MENU} currentSlug="crm" cta={{ label: "Anuncie", href: "/m" }} actions={<SearchIconLink />} />
       </main>,
     );
+    await user.click(screen.getByRole("button", { name: /Editorias/ }));
     await expectNoViolations(container);
-  });
-});
-
-describe("Header: menu de uma linha com Mais", () => {
-  it("botão Mais divulga as editorias que não cabem; Esc fecha e devolve o foco", async () => {
-    const user = userEvent.setup();
-    render(<Header />);
-    const more = screen.getByRole("button", { name: /Mais/ });
-    expect(more).toHaveAttribute("aria-expanded", "false");
-    const panel = document.getElementById(more.getAttribute("aria-controls")!)!;
-    expect(panel).toHaveAttribute("hidden");
-    await user.click(more);
-    expect(more).toHaveAttribute("aria-expanded", "true");
-    expect(panel).not.toHaveAttribute("hidden");
-    // do 6º item em diante (índices 5..9 = 5 editorias)
-    expect(within(panel).getAllByRole("link")).toHaveLength(5);
-    expect(within(panel).getByRole("link", { name: "Regulação & Dados" })).toBeInTheDocument();
-    await user.keyboard("{Escape}");
-    expect(more).toHaveAttribute("aria-expanded", "false");
-    expect(more).toHaveFocus();
-  });
-  it("clique fora fecha o painel", async () => {
-    const user = userEvent.setup();
-    render(
-      <>
-        <button>fora</button>
-        <Header />
-      </>,
-    );
-    const more = screen.getByRole("button", { name: /Mais/ });
-    await user.click(more);
-    expect(more).toHaveAttribute("aria-expanded", "true");
-    await user.click(screen.getByRole("button", { name: "fora" }));
-    expect(more).toHaveAttribute("aria-expanded", "false");
-  });
-  it("editoria atual dentro de Mais marca o botão", () => {
-    render(<Header currentSlug="regulacao" />);
-    expect(screen.getByRole("button", { name: /Mais/ })).toHaveAttribute("data-current", "true");
-  });
-  it("com 5 editorias ou menos não há botão Mais", () => {
-    render(<Header editorias={EDITORIAS.slice(0, 5)} />);
-    expect(screen.queryByRole("button", { name: /Mais/ })).toBeNull();
-  });
-  it("itens além do 5º recebem classes de prioridade por largura", () => {
-    const { container } = render(<Header visibleEditorias={6} />);
-    const items = [...container.querySelectorAll(".ln-header__list > li")].slice(0, 10);
-    expect(items[4]!.className).toBe("");
-    expect(items[5]!.className).toContain("ln-header__item--wide");
-    expect(items[6]!.className).toContain("ln-header__item--more");
   });
 });
 

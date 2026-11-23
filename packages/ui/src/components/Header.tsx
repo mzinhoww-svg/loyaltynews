@@ -10,42 +10,46 @@ export interface HeaderLink {
   label: string;
   href: string;
   current?: boolean;
-  /** Não aparece na barra superior do desktop; só no menu recolhível (mobile). */
-  barHidden?: boolean;
+}
+
+export interface HeaderMenu {
+  /** Rótulo do botão do menu, ex.: "Editorias" ou "Notícias". */
+  label: string;
+  /** Posição do botão entre os links fixos (0 = primeiro). Padrão: 0. */
+  position?: number;
+  /** Links da coluna "Conteúdo" do menu (ex.: Todas as notícias, Loyalty Flash, Análises). Opcional. */
+  contentLinks?: readonly HeaderLink[];
+  /** Título da coluna de conteúdo. Padrão "Conteúdo". */
+  contentTitle?: string;
+  /** Título da coluna de editorias. Padrão "Editorias". */
+  editoriasTitle?: string;
+  /** Link "Ver todas" ao pé da coluna de editorias. */
+  allLink?: { label: string; href: string };
 }
 
 export interface HeaderProps {
-  /** Padrão: as 10 editorias oficiais. */
+  /** Padrão: as 10 editorias oficiais (ficam dentro do menu, não na barra). */
   editorias?: readonly EditoriaLike[];
-  /** Slug da editoria atual (marca `aria-current="page"`). */
+  /** Slug da editoria atual (marca `aria-current="page"` no menu). */
   currentSlug?: string;
   hrefFor?: (slug: string) => string;
   homeHref?: string;
   /** `next/link` ou similar. */
   linkAs?: LinkAs;
-  /** Ex.: <SearchInput />. Renderizado uma vez: inline no desktop, em linha própria no mobile. */
-  searchSlot?: ReactNode;
-  /** Ações à direita (busca, The Loyal…). Visíveis também no mobile: use poucas. */
+  /** Entradas fixas da barra (poucas): ex.: Notícias, Análises, Agenda, Intelligence. */
+  links?: readonly HeaderLink[];
+  /** Menu "Editorias ▾" / "Notícias ▾" com as editorias (mega-menu no desktop, grupo no menu móvel). */
+  menu?: HeaderMenu;
+  /** Nome do landmark da barra de links. */
+  navLabel?: string;
+  /** Ações à direita, sempre visíveis (ícone de busca, The Loyal…). Use poucas. */
   actions?: ReactNode;
-  /**
-   * Atalhos do portal além das editorias (ex.: Em alta, Agenda, Anuncie). No desktop ficam na barra
-   * superior, à direita do logo; no mobile entram no menu, abaixo das editorias.
-   */
-  utilityLinks?: readonly HeaderLink[];
-  /** Nome do landmark dos atalhos. */
-  utilityLabel?: string;
-  /**
-   * Quantas editorias aparecem fixas no menu de uma linha em ≥1280px; as demais vão para "Mais".
-   * Em 1024–1279px aparecem `wideFrom` itens a menos (ver CSS: sempre 5). Padrão 6.
-   */
-  visibleEditorias?: number;
+  /** Chamada principal (ex.: Anuncie): botão na barra a partir de 768px; no mobile entra no menu. */
+  cta?: HeaderLink;
   /** id do <main> para o link "Pular para o conteúdo". */
   mainId?: string;
   className?: string;
 }
-
-/** Em 1024–1279px só os 5 primeiros cabem; do 6º em diante o item só aparece em ≥1280px. */
-const ALWAYS_VISIBLE = 5;
 
 export function Header({
   editorias = EDITORIAS,
@@ -53,37 +57,37 @@ export function Header({
   hrefFor = defaultEditoriaHref,
   homeHref = "/",
   linkAs,
-  searchSlot,
+  links = [],
+  menu,
+  navLabel = "Seções do portal",
   actions,
-  utilityLinks,
-  utilityLabel = "Atalhos do portal",
-  visibleEditorias = 6,
+  cta,
   mainId = "conteudo",
   className,
 }: HeaderProps) {
   const Link = linkAs ?? "a";
-  const [open, setOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const navId = useId();
-  const moreId = useId();
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const moreRef = useRef<HTMLButtonElement>(null);
-  const moreWrap = useRef<HTMLLIElement>(null);
+  const [open, setOpen] = useState(false); // painel móvel
+  const [megaOpen, setMegaOpen] = useState(false); // mega-menu desktop
+  const panelId = useId();
+  const megaId = useId();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const megaBtnRef = useRef<HTMLButtonElement>(null);
+  const megaWrap = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
-    if (!open && !moreOpen) return;
+    if (!open && !megaOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (moreOpen) {
-        setMoreOpen(false);
-        moreRef.current?.focus();
+      if (megaOpen) {
+        setMegaOpen(false);
+        megaBtnRef.current?.focus();
       } else {
         setOpen(false);
-        buttonRef.current?.focus();
+        toggleRef.current?.focus();
       }
     };
     const onClick = (e: MouseEvent) => {
-      if (moreOpen && moreWrap.current && !moreWrap.current.contains(e.target as Node)) setMoreOpen(false);
+      if (megaOpen && megaWrap.current && !megaWrap.current.contains(e.target as Node)) setMegaOpen(false);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
@@ -91,16 +95,80 @@ export function Header({
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onClick);
     };
-  }, [open, moreOpen]);
-
-  const visible = Math.max(ALWAYS_VISIBLE, Math.min(visibleEditorias, editorias.length));
-  const hasMore = editorias.length > ALWAYS_VISIBLE;
-  const moreCurrent = editorias.slice(ALWAYS_VISIBLE).some((e) => e.slug === currentSlug);
+  }, [open, megaOpen]);
 
   const close = () => {
     setOpen(false);
-    setMoreOpen(false);
+    setMegaOpen(false);
   };
+  const menuCurrent = Boolean(menu && (editorias.some((e) => e.slug === currentSlug) || menu.contentLinks?.some((l) => l.current)));
+  const pos = menu ? Math.max(0, Math.min(menu.position ?? 0, links.length)) : 0;
+
+  const editoriasList = (cls: string) => (
+    <ul className={cls}>
+      {editorias.map((e) => (
+        <li key={e.slug}>
+          <Link href={hrefFor(e.slug)} aria-current={e.slug === currentSlug ? "page" : undefined} onClick={close}>
+            {e.nome}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const barItems: ReactNode[] = links.map((l) => (
+    <li key={l.href}>
+      <Link href={l.href} className="ln-header__item" aria-current={l.current ? "page" : undefined}>
+        {l.label}
+      </Link>
+    </li>
+  ));
+  if (menu) {
+    barItems.splice(
+      pos,
+      0,
+      <li key="__menu" ref={megaWrap} className="ln-header__menu">
+        <button
+          ref={megaBtnRef}
+          type="button"
+          className="ln-header__item ln-header__menu-btn"
+          aria-expanded={megaOpen}
+          aria-controls={megaId}
+          data-current={menuCurrent ? "true" : undefined}
+          onClick={() => setMegaOpen((v) => !v)}
+        >
+          {menu.label} <span aria-hidden="true" className="ln-header__chevron" />
+        </button>
+        <div id={megaId} className="ln-header__mega" hidden={!megaOpen}>
+          <div className={cx("ln-header__mega-grid", !menu.contentLinks?.length && "ln-header__mega-grid--single")}>
+            {menu.contentLinks?.length ? (
+              <div className="ln-header__mega-col">
+                <p className="ln-header__mega-title">{menu.contentTitle ?? "Conteúdo"}</p>
+                <ul className="ln-header__mega-list">
+                  {menu.contentLinks.map((l) => (
+                    <li key={l.href}>
+                      <Link href={l.href} aria-current={l.current ? "page" : undefined} onClick={close}>
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <div className="ln-header__mega-col">
+              <p className="ln-header__mega-title">{menu.editoriasTitle ?? "Editorias"}</p>
+              {editoriasList("ln-header__mega-list ln-header__mega-list--cols")}
+              {menu.allLink ? (
+                <Link href={menu.allLink.href} className="ln-header__mega-all" onClick={close}>
+                  {menu.allLink.label}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </li>,
+    );
+  }
 
   return (
     <header className={cx("ln-header", className)}>
@@ -112,29 +180,23 @@ export function Header({
           <Link href={homeHref} className="ln-header__brand" aria-label="Loyalty News — página inicial">
             <Logo variant="primary" height={36} decorative />
           </Link>
-          {searchSlot ? <div className="ln-header__search">{searchSlot}</div> : null}
-          {utilityLinks && utilityLinks.some((l) => !l.barHidden) ? (
-            <nav aria-label={utilityLabel} className="ln-header__utility">
-              <ul className="ln-header__utility-list">
-                {utilityLinks
-                  .filter((l) => !l.barHidden)
-                  .map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href} aria-current={l.current ? "page" : undefined}>
-                      {l.label}
-                    </Link>
-                  </li>
-                  ))}
-              </ul>
+          {barItems.length > 0 ? (
+            <nav aria-label={navLabel} className="ln-header__main">
+              <ul className="ln-header__main-list">{barItems}</ul>
             </nav>
           ) : null}
           {actions ? <div className="ln-header__actions">{actions}</div> : null}
+          {cta ? (
+            <Link href={cta.href} className="ln-btn ln-btn--primary ln-header__cta" aria-current={cta.current ? "page" : undefined}>
+              {cta.label}
+            </Link>
+          ) : null}
           <button
-            ref={buttonRef}
+            ref={toggleRef}
             type="button"
             className="ln-header__toggle"
             aria-expanded={open}
-            aria-controls={navId}
+            aria-controls={panelId}
             onClick={() => setOpen((v) => !v)}
           >
             <span className="ln-header__toggle-icon" aria-hidden="true" />
@@ -142,61 +204,36 @@ export function Header({
           </button>
         </Container>
       </div>
-      <nav id={navId} aria-label="Editorias" className="ln-header__nav" data-open={open ? "true" : "false"}>
+      {/* Painel do menu móvel (<1024px): links, conteúdo e editorias */}
+      <nav id={panelId} aria-label="Menu e editorias" className="ln-header__panel" data-open={open ? "true" : "false"}>
         <Container>
-          <ul className="ln-header__list">
-            {editorias.map((e, i) => (
-              <li
-                key={e.slug}
-                // ≥1280px: fixos até `visible`; 1024–1279px: só os 5 primeiros; o resto vive em "Mais" (desktop) e no painel (mobile)
-                className={cx(i >= visible && "ln-header__item--more", i >= ALWAYS_VISIBLE && i < visible && "ln-header__item--wide")}
-              >
-                <Link
-                  href={hrefFor(e.slug)}
-                  className="ln-header__link"
-                  aria-current={e.slug === currentSlug ? "page" : undefined}
-                  onClick={close}
-                >
-                  {e.nome}
+          <ul className="ln-header__panel-list">
+            {links.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} aria-current={l.current ? "page" : undefined} onClick={close}>
+                  {l.label}
                 </Link>
               </li>
             ))}
-            {hasMore ? (
-              <li ref={moreWrap} className="ln-header__more">
-                <button
-                  ref={moreRef}
-                  type="button"
-                  className="ln-header__link ln-header__more-btn"
-                  aria-expanded={moreOpen}
-                  aria-controls={moreId}
-                  data-current={moreCurrent ? "true" : undefined}
-                  onClick={() => setMoreOpen((v) => !v)}
-                >
-                  Mais <span aria-hidden="true">▾</span>
-                </button>
-                <ul id={moreId} className="ln-header__more-panel" hidden={!moreOpen}>
-                  {editorias.map((e, i) =>
-                    i >= ALWAYS_VISIBLE ? (
-                      <li key={e.slug} className={cx(i < visible && "ln-header__more-item--narrow")}>
-                        <Link href={hrefFor(e.slug)} aria-current={e.slug === currentSlug ? "page" : undefined} onClick={close}>
-                          {e.nome}
-                        </Link>
-                      </li>
-                    ) : null,
-                  )}
-                </ul>
+            {menu?.contentLinks?.map((l) => (
+              <li key={`c-${l.href}`}>
+                <Link href={l.href} aria-current={l.current ? "page" : undefined} onClick={close}>
+                  {l.label}
+                </Link>
               </li>
-            ) : null}
-            {utilityLinks && utilityLinks.length > 0
-              ? utilityLinks.map((l, i) => (
-                  <li key={`u-${l.href}`} className={cx("ln-header__item--utility", i === 0 && "ln-header__item--utility-first")}>
-                    <Link href={l.href} className="ln-header__link" aria-current={l.current ? "page" : undefined} onClick={close}>
-                      {l.label}
-                    </Link>
-                  </li>
-                ))
-              : null}
+            ))}
           </ul>
+          {menu ? (
+            <>
+              <p className="ln-header__panel-title">{menu.editoriasTitle ?? "Editorias"}</p>
+              {editoriasList("ln-header__panel-list ln-header__panel-list--cols")}
+            </>
+          ) : null}
+          {cta ? (
+            <Link href={cta.href} className="ln-btn ln-btn--primary ln-header__panel-cta" onClick={close}>
+              {cta.label}
+            </Link>
+          ) : null}
         </Container>
       </nav>
     </header>

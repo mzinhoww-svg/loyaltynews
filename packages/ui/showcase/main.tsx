@@ -27,6 +27,7 @@ import {
   MockFrame,
   Monogram,
   Pagination,
+  SearchIconLink,
   SearchInput,
   SectionHeading,
   Sidebar,
@@ -164,7 +165,7 @@ function TemplatesDemo() {
 function App() {
   return (
     <div className="ln-root">
-      <Header currentSlug="pontos-e-milhas" searchSlot={<SearchInput action="#busca" />} />
+      <Header currentSlug="pontos" links={[{ label: "Notícias", href: "#noticias" }, { label: "Análises", href: "#analises" }, { label: "Agenda", href: "#agenda" }, { label: "Intelligence", href: "#intelligence" }]} menu={{ label: "Editorias", position: 3 }} cta={{ label: "Anuncie", href: "#anuncie" }} actions={<SearchIconLink href="#busca" />} />
       <main id="conteudo">
         <Container as="section" style={{ paddingBlock: 32 }}>
           <Breadcrumb items={[{ label: "Início", href: "#" }, { label: "Design System" }]} />

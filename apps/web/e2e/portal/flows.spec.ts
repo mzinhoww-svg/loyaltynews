@@ -13,39 +13,56 @@ async function expand(button: import('@playwright/test').Locator) {
 }
 
 test.describe('navegação e menu', () => {
-  test('desktop: menu de editorias em uma linha (6 + Mais) e atalhos do portal na barra superior', async ({ page }, info) => {
+  test('desktop: barra enxuta (poucas entradas) e as 10 editorias dentro do menu, não na barra', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');
-    const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
-    // ≥1280px: 6 editorias fixas + botão "Mais" (as outras 4 ficam no painel)
-    await expect(nav.getByRole('link')).toHaveCount(6);
-    const mais = nav.getByRole('button', { name: /Mais/ });
-    await expect(mais).toHaveAttribute('aria-expanded', 'false');
-    await mais.click();
-    await expect(mais).toHaveAttribute('aria-expanded', 'true');
-    await expect(nav.getByRole('link')).toHaveCount(10);
-    await expect(nav.getByRole('link', { name: 'Regulação & Dados' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(mais).toHaveAttribute('aria-expanded', 'false');
-    await expect(nav.getByRole('link')).toHaveCount(6);
-    // menu numa única linha: todas as editorias visíveis têm o mesmo topo
-    const tops = await nav.getByRole('link').evaluateAll((els) => [...new Set(els.map((e) => Math.round(e.getBoundingClientRect().top)))]);
-    expect(tops.length, 'menu deve ficar em uma linha').toBe(1);
-    const util = page.getByRole('navigation', { name: 'Seções do portal' });
-    for (const l of ['Últimas', 'Em alta', 'Agenda', 'Anuncie']) {
-      await expect(util.getByRole('link', { name: l, exact: true })).toBeVisible();
+    const bar = page.getByRole('navigation', { name: 'Seções do portal' });
+    // Barra: o botão do menu + 4 links fixos (a opção de navegação pode variar; o contrato é "poucas entradas")
+    const fixos = await bar.getByRole('link').count();
+    expect(fixos, 'barra deve ter poucas entradas fixas').toBeLessThanOrEqual(5);
+    // As editorias NÃO aparecem na barra com o menu fechado
+    await expect(bar.getByRole('link', { name: 'Bancos & Cartões' })).toHaveCount(0);
+    const menu = bar.locator('.ln-header__menu-btn');
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    const mega = page.locator('.ln-header__mega');
+    for (const nome of ['Mercado & Negócios', 'Programas de Fidelidade', 'Pontos & Milhas', 'Bancos & Cartões', 'Varejo & Cashback',
+      'Travel & Hospitality', 'LoyaltyTech & IA', 'CRM & CX', 'Global Loyalty', 'Regulação & Dados']) {
+      await expect(mega.getByRole('link', { name: nome, exact: true })).toBeVisible();
     }
     await page.screenshot({ path: path.join(SHOTS, 'desktop-menu.png') });
-    await nav.getByRole('link', { name: 'Bancos & Cartões' }).click();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(mega).toBeHidden();
+    // Cabeçalho enxuto: uma única barra
+    const h = await page.locator('header').boundingBox();
+    expect(h?.height ?? 0, 'altura do cabeçalho').toBeLessThanOrEqual(72);
+    // Navega por uma editoria pelo menu
+    await menu.click();
+    await mega.getByRole('link', { name: 'Bancos & Cartões', exact: true }).click();
     await expect(page).toHaveURL(/\/editoria\/bancos$/);
-    await expect(page.getByRole('link', { name: 'Bancos & Cartões' }).first()).toHaveAttribute('aria-current', 'page');
+    await menu.click();
+    await expect(mega.getByRole('link', { name: 'Bancos & Cartões', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('desktop: clique fora fecha o menu e o CTA Anuncie leva ao mídia kit', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop');
+    await page.goto('/');
+    const menu = page.locator('.ln-header__menu-btn');
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    await page.mouse.click(8, 600); // margem da página, fora do menu (a home vazia é curta: não depende de `main`)
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await page.locator('header').getByRole('link', { name: 'Anuncie' }).click();
+    await expect(page).toHaveURL(/\/midia-kit$/);
   });
 
   test('mobile: menu colapsável abre, navega e fecha com ESC', async ({ page }, info) => {
     test.skip(info.project.name !== 'mobile');
     await page.goto('/');
     const toggle = page.locator('.ln-header__toggle');
-    const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
+    const nav = page.getByRole('navigation', { name: 'Menu e editorias' });
     await expect(nav).toBeHidden();
     await expand(toggle);
     await expect(nav).toBeVisible();

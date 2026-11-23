@@ -7,6 +7,7 @@ export * from "./components/MockBadge";
 export * from "./components/Tag";
 export * from "./components/Header";
 export * from "./components/DemoBanner";
+export * from "./components/SearchIconLink";
 export * from "./components/Footer";
 export * from "./components/SocialLinks";
 export * from "./components/ArticleCard";
