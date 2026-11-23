@@ -148,7 +148,9 @@ test('destaque da home: seletor de matérias publicadas com busca, sem digitar s
   // sem resultado para o que não existe
   await page.getByLabel('Buscar matéria publicada para o destaque (por título)').fill('Zzz sem materia');
   await page.getByRole('button', { name: 'Buscar matéria' }).click();
-  await expect(page.locator('[data-vazio="materias"]').first()).toBeVisible();
+  // o seletor só aparece para o tipo destaque (o formulário mostra os campos do tipo escolhido)
+  await page.getByRole('form', { name: 'Adicionar bloco' }).getByLabel('Tipo de bloco').selectOption('destaque');
+  await expect(page.getByRole('form', { name: 'Adicionar bloco' }).locator('[data-vazio="materias"]')).toBeVisible();
   // busca por título acha a matéria publicada (e corrigida) e a fixa no destaque
   await page.goto('/studio/home-menus?tipo=home&busca=Banco%20Beta');
   await page.getByLabel('Tipo de bloco').selectOption('destaque');
