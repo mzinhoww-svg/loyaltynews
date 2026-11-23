@@ -315,3 +315,33 @@ describe('robots.txt que responde 200 com PÁGINA DE DESAFIO não é "sem regras
     expect(fetchFn).not.toHaveBeenCalled();
   });
 });
+
+describe('robots.txt — precedência pelo comprimento do padrão NORMALIZADO (não do texto bruto)', () => {
+  const dec = (robots: string, path: string) => robotsDecision(parseRobots(robots), UA, path);
+
+  it('exemplo do QA: Disallow /%7Efoo/bar contra Allow /~foo bloqueia /~foo/bar', () => {
+    expect(dec('User-agent: *\nDisallow: /%7Efoo/bar\nAllow: /~foo\n', '/~foo/bar')).toMatchObject({ allowed: false, rule: 'Disallow: /%7Efoo/bar' });
+    expect(dec('User-agent: *\nDisallow: /%7Efoo/bar\nAllow: /~foo\n', '/~foo/outra')).toMatchObject({ allowed: true });
+  });
+
+  it('o texto bruto enganaria: regra codificada LONGA no bruto, curta normalizada, perde para a mais específica de verdade', () => {
+    // Allow "/%7Efoo/" tem 8 caracteres brutos mas 6 normalizados; Disallow "/~foo/b" tem 7 nos dois: Disallow é mais específica
+    expect(dec('User-agent: *\nAllow: /%7Efoo/\nDisallow: /~foo/b\n', '/~foo/b')).toMatchObject({ allowed: false });
+    // e o inverso: Disallow codificado longo no bruto perde para o Allow normalizado mais específico
+    expect(dec('User-agent: *\nDisallow: /%7Efoo/\nAllow: /~foo/b\n', '/~foo/b')).toMatchObject({ allowed: true });
+    // com caracteres não ASCII (cada um vira 6 caracteres normalizados): Allow curto no bruto, mas mais específico normalizado
+    expect(dec('User-agent: *\nDisallow: /a%C3%A7%C3%A3o/\nAllow: /ação/pub\n', '/ação/pub')).toMatchObject({ allowed: true });
+    expect(dec('User-agent: *\nDisallow: /a%C3%A7%C3%A3o/\nAllow: /ação/pub\n', '/ação/outra')).toMatchObject({ allowed: false });
+  });
+
+  it('empate DEPOIS de normalizar favorece Allow (/%7Efoo e /~foo são a mesma regra)', () => {
+    expect(dec('User-agent: *\nDisallow: /%7Efoo\nAllow: /~foo\n', '/~foo/x')).toMatchObject({ allowed: true });
+    expect(dec('User-agent: *\nAllow: /%7efoo\nDisallow: /~foo\n', '/%7Efoo/x')).toMatchObject({ allowed: true });
+  });
+
+  it('fim a fim com robotsAllows (URL codificada, regras em formas diferentes)', async () => {
+    const make = (body: string) => (async () => new Response(body, { status: 200, headers: { 'content-type': 'text/plain' } })) as unknown as typeof fetch;
+    expect((await robotsAllows('https://h.invalid/%7Efoo/b', make('User-agent: *\nAllow: /%7Efoo/\nDisallow: /~foo/b\n'))).allowed).toBe(false);
+    expect((await robotsAllows('https://h.invalid/~foo/b', make('User-agent: *\nDisallow: /%7Efoo/\nAllow: /~foo/b\n'))).allowed).toBe(true);
+  });
+});
