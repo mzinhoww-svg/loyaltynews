@@ -3,7 +3,7 @@
 // mudou (diferença linha a linha). Leituras: sem lock. Escritas: uma transação com lock consultivo
 // (pg_advisory_xact_lock), então reservas e transições se serializam. Carrega as tabelas inteiras por requisição
 // (volume pequeno; otimizar depois). O ad server público NÃO passa por aqui: ver ads.ts (Redis).
-import { getTableColumns, sql, type SQL } from 'drizzle-orm';
+import { and, getTableColumns, gte, inArray, like, not, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
   AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION,
@@ -59,15 +59,69 @@ async function loadCatalog(db: Db): Promise<CommercialFormat[]> {
 
 /** Criativos do ad server com `campaignActive` derivado do status da campanha. */
 export async function loadCreatives(db: Db): Promise<Creative[]> {
-  const [crs, camps] = await Promise.all([db.select().from(schema.adCreatives), db.select({ id: schema.campaigns.id, status: schema.campaigns.status }).from(schema.campaigns)]);
+  const [crs, camps, accs] = await Promise.all([
+    db.select().from(schema.adCreatives),
+    db.select({ id: schema.campaigns.id, status: schema.campaigns.status, contaId: schema.campaigns.contaId }).from(schema.campaigns),
+    db.select({ id: schema.crmAccounts.id, nome: schema.crmAccounts.nome }).from(schema.crmAccounts),
+  ]);
   const active = new Set(camps.filter((c) => c.status === 'active').map((c) => c.id));
-  return crs.map((c): Creative => ({
-    id: c.id, campaignId: c.campanhaId, positionId: c.slotId, weight: c.peso, startDate: c.inicio, endDate: c.fim,
-    approved: c.aprovado, campaignActive: active.has(c.campanhaId), label: 'publicidade',
-  }));
+  const accountOfCampaign = new Map(camps.map((c) => [c.id, c.contaId]));
+  const accountName = new Map(accs.map((a) => [a.id, a.nome]));
+  return crs.map((c): Creative => {
+    const complete = c.arquivoRef && c.arquivoMime && c.largura && c.altura && c.tamanhoKb && c.arquivoSha256;
+    const advertiser = accountName.get(accountOfCampaign.get(c.campanhaId) ?? '');
+    return {
+      id: c.id, campaignId: c.campanhaId, positionId: c.slotId, weight: c.peso, startDate: c.inicio, endDate: c.fim,
+      approved: c.aprovado, campaignActive: active.has(c.campanhaId), label: 'publicidade',
+      // criativo "real" = arquivo MEDIDO NO SERVIDOR + texto alternativo + anunciante (nome da conta da campanha) + destino https; sem isso o domínio não o serve
+      ...(complete ? { asset: { key: c.arquivoRef!, mime: c.arquivoMime as 'image/jpeg' | 'image/png' | 'image/gif', width: c.largura!, height: c.altura!, sizeKB: c.tamanhoKb!, sha256: c.arquivoSha256! } } : {}),
+      ...(c.textoAlternativo ? { altText: c.textoAlternativo } : {}),
+      ...(advertiser ? { advertiserName: advertiser } : {}),
+      ...(c.destinoUrl ? { destinationUrl: c.destinoUrl } : {}),
+    };
+  });
 }
 
-export async function hydrate(db: Db): Promise<Hydrated> {
+/** Marcas do seed de staging (apps/workers/src/seed-staging.ts; um teste confere que não divergem). Métrica comercial só conta conteúdo REAL. */
+export const SEED_ID_PREFIX = 'seed-stg-';
+export const SEED_DEMO_LABEL = '[DEMO';
+
+const DIA = 86_400_000;
+const CMS_METHODOLOGY = 'cms-1';
+
+/**
+ * Cobertura do mídia kit (fonte `cms`): matérias publicadas nos últimos 30/90 dias e eventos futuros aprovados, contando SÓ conteúdo real: fora o seed de
+ * staging (id `seed-stg-*` ou rótulo `[DEMO…`), rascunhos e o que não é público. Sem contagem real (zero), a métrica NÃO existe ("—" no portal): nunca um zero
+ * que pareça medição. Período e `fetched_at` reais (o instante da contagem).
+ */
+export async function cmsCoverageMetrics(db: Db, now: Date): Promise<MetricRecord[]> {
+  const a = schema.articles;
+  const real = (idCol: AnyPgColumn, title: AnyPgColumn) => and(not(like(idCol, `${SEED_ID_PREFIX}%`)), not(like(title, `${SEED_DEMO_LABEL}%`)));
+  const countArticles = async (days: number): Promise<number> => {
+    const since = new Date(now.getTime() - days * DIA);
+    const [r] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(a)
+      .where(and(inArray(a.status, ['publicado', 'corrigido']), sql`${a.classeDeDado} = 'public'`, gte(a.publicadoEm, since), sql`${a.publicadoEm} <= ${now}`, real(a.id, a.titulo)));
+    return r?.n ?? 0;
+  };
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(now);
+  const ev = schema.agendaEvents;
+  const [evs] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(ev)
+    .where(and(sql`${ev.moderacao} = 'aprovado'`, gte(ev.inicio, today), real(ev.id, ev.titulo)));
+  const at = now.toISOString();
+  const rec = (metric: string, value: number, start: Date, end: Date): MetricRecord[] =>
+    value > 0 ? [{ source: 'cms', metric, value, period_start: start.toISOString(), period_end: end.toISOString(), fetched_at: at, status: 'available', methodology_version: CMS_METHODOLOGY }] : [];
+  return [
+    ...rec('articles_published_30d', await countArticles(30), new Date(now.getTime() - 30 * DIA), now),
+    ...rec('articles_published_90d', await countArticles(90), new Date(now.getTime() - 90 * DIA), now),
+    ...rec('upcoming_events', evs?.n ?? 0, now, new Date(now.getTime() + 730 * DIA)),
+  ];
+}
+
+export async function hydrate(db: Db, now: Date = new Date()): Promise<Hydrated> {
   const [catalog, slots, accs, leads, opps, hist, camps, ress, tkos, creatives, deliv, mets] = await Promise.all([
     loadCatalog(db), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
     db.select().from(schema.crmLeads), db.select().from(schema.crmOpportunities),
@@ -135,14 +189,21 @@ export async function hydrate(db: Db): Promise<Hydrated> {
   server.loadCounters(counters);
 
   const metrics = new MetricStore();
+  // a cobertura `cms` é CONTADA agora, só com conteúdo real (nunca o seed); o que estiver gravado para essas três métricas não vale mais
+  const cmsNow = await cmsCoverageMetrics(db, now);
+  const CMS_KEYS = new Set(['articles_published_30d', 'articles_published_90d', 'upcoming_events']);
   metrics.load({
     version: SNAPSHOT_VERSION,
-    records: mets
-      .filter((m) => m.status !== 'unavailable' && m.valor !== null && m.periodoInicio && m.periodoFim && m.coletadoEm)
-      .map((m): MetricRecord => ({
-        source: m.origem, metric: m.metrica, value: Number(m.valor), period_start: iso(m.periodoInicio!), period_end: iso(m.periodoFim!),
-        fetched_at: iso(m.coletadoEm!), status: m.status, methodology_version: m.versaoMetodologia,
-      })),
+    records: [
+      ...mets
+        .filter((m) => m.status !== 'unavailable' && m.valor !== null && m.periodoInicio && m.periodoFim && m.coletadoEm)
+        .filter((m) => !(m.origem === 'cms' && CMS_KEYS.has(m.metrica)))
+        .map((m): MetricRecord => ({
+          source: m.origem, metric: m.metrica, value: Number(m.valor), period_start: iso(m.periodoInicio!), period_end: iso(m.periodoFim!),
+          fetched_at: iso(m.coletadoEm!), status: m.status, methodology_version: m.versaoMetodologia,
+        })),
+      ...cmsNow,
+    ],
   });
 
   const state: CommercialState = { catalog, crm, inventory, campaigns, ads: server, metrics };
@@ -178,6 +239,8 @@ export function rowsOf(s: CommercialState): Rows {
     creatives: s.ads.listCreatives().map((c) => ({
       id: c.id, campanhaId: c.campaignId, slotId: c.positionId, peso: Math.max(1, Math.round(c.weight)), inicio: c.startDate, fim: c.endDate,
       aprovado: c.approved,
+      arquivoRef: c.asset?.key ?? null, arquivoMime: c.asset?.mime ?? null, largura: c.asset?.width ?? null, altura: c.asset?.height ?? null,
+      tamanhoKb: c.asset?.sizeKB ?? null, arquivoSha256: c.asset?.sha256 ?? null, textoAlternativo: c.altText ?? null, destinoUrl: c.destinationUrl ?? null,
     })),
     metrics: s.metrics.all().map((m) => ({
       id: `${m.source}::${m.metric}`, origem: m.source, metrica: m.metric, valor: m.value === null ? null : String(m.value),

@@ -162,6 +162,13 @@
       "when": 1795441681286,
       "tag": "0022_openbot_fila_custos",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795443792109,
+      "tag": "0023_ad_creatives_arquivo",
+      "breakpoints": true
     }
   ]
 }

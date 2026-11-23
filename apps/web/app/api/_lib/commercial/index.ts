@@ -1,10 +1,11 @@
 // Rotas /api/commercial/** a partir da tabela ROUTES do módulo comercial (@ln/commercial/api).
 import { sql } from 'drizzle-orm';
 import { can } from '@ln/auth';
-import { makeCtx } from '@ln/commercial';
+import { makeCtx, type CommercialCtx } from '@ln/commercial';
 import { ROUTES, type Route } from '@ln/commercial/api';
 import type { Db } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
+import type { RouteCtx } from '../http';
 import { adCall, isAdRoute } from './ads';
 import { listAccounts, listCampaigns } from './lists';
 import { COMMERCIAL_LOCK, hydrate, persist, seedCommercial } from './repo';
@@ -35,17 +36,27 @@ export const dispatchCommercial = createDispatcher({
     // anúncios públicos: Redis, sem hidratar o banco inteiro e sem lock
     if (isAdRoute(route.path)) return adCall(route as Route, input, c, extra);
     if (route.method === 'GET') {
-      const h = await hydrate(c.deps.db);
+      const h = await hydrate(c.deps.db, now);
       return route.handler(makeCtx(h.state, extra), input);
     }
-    return c.deps.db.transaction(async (tx) => {
-      const db = tx as unknown as Db;
-      await db.execute(sql`select pg_advisory_xact_lock(${COMMERCIAL_LOCK})`);
-      await seedCommercial(db);
-      const h = await hydrate(db);
-      const res = route.handler(makeCtx(h.state, extra), input);
-      if (res.status < 400) await persist(db, h, h.state);
-      return res;
-    });
+    return runCommercialWrite(route as Route, input, c, extra);
   },
 });
+
+/** Escrita do comercial: uma transação com a trava do módulo, hidratar → handler → persistir. Usada pelo despachante e pelo upload do criativo. */
+export async function runCommercialWrite(
+  route: Pick<Route, 'handler'>,
+  input: unknown,
+  c: RouteCtx,
+  extra: { now: string; today: string; flags: CommercialCtx['flags']; actor?: CommercialCtx['actor'] },
+): Promise<{ status: number; body: unknown }> {
+  return c.deps.db.transaction(async (tx) => {
+    const db = tx as unknown as Db;
+    await db.execute(sql`select pg_advisory_xact_lock(${COMMERCIAL_LOCK})`);
+    await seedCommercial(db);
+    const h = await hydrate(db, new Date(extra.now));
+    const res = route.handler(makeCtx(h.state, extra), input);
+    if (res.status < 400) await persist(db, h, h.state);
+    return res;
+  });
+}
