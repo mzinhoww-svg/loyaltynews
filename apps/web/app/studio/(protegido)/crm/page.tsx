@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { getLeadInbox, getOpportunityBoard } from '@ln/commercial/api';
 import { findModule } from '@/lib/studio/modules';
-import { comercialCtx } from '@/lib/studio/comercial';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
-import { Flash, SemBackend } from '../../_components/Flash';
+import { Flash } from '../../_components/Flash';
+import { SemBanco } from '../../_components/SemBanco';
 import { leadAction, moverEstagioAction, registrarLeadAction } from './actions';
 
 export const metadata: Metadata = { title: 'CRM' };
@@ -22,19 +23,26 @@ type Lead = { id: string; name: string; company: string; email: string; objectiv
 type Coluna = { stage: string; items: { id: string; title: string; accountName: string | null; overdue: boolean }[] };
 
 export default async function CrmPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; status?: string }> }) {
-  const { session } = await requireModule(findModule('crm')!);
+  await requireModule(findModule('crm')!);
   const { tipo, aviso, status } = await searchParams;
-  const ctx = comercialCtx(session);
-  const resLeads = getLeadInbox(ctx, status ? { status } : {});
-  const leads = (Array.isArray(resLeads.body) ? resLeads.body : []) as unknown as Lead[];
-  const resQuadro = getOpportunityBoard(ctx, {});
-  const colunas = (Array.isArray(resQuadro.body) ? resQuadro.body : []) as unknown as Coluna[];
+  const resLeads = await api.comercial.leads(status);
+  if (naoConfigurado(resLeads)) {
+    return (
+      <>
+        <h1>CRM</h1>
+        <SemBanco modulo="O CRM" />
+      </>
+    );
+  }
+  const leads = (ehErro(resLeads) ? [] : resLeads.body) as unknown as Lead[];
+  const resQuadro = await api.comercial.oportunidades();
+  const colunas = (ehErro(resQuadro) ? [] : resQuadro.body) as unknown as Coluna[];
   return (
     <>
       <h1>CRM</h1>
       <p>Leads do mídia kit e oportunidades. Lead é dado pessoal (LGPD): só o comercial vê. O consentimento é gravado com o horário do servidor e o opt-in da newsletter nunca vem marcado.</p>
       <Flash tipo={tipo} aviso={aviso} />
-      {resLeads.status >= 400 ? (
+      {ehErro(resLeads) ? (
         <div className="st-alert err" role="alert">
           Filtro inválido.
         </div>
@@ -183,7 +191,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           </div>
         ))}
       </div>
-      <SemBackend>Proposta versionada em PDF e documentos dependem de armazenamento.</SemBackend>
+      <p className="st-hint">Proposta versionada em PDF e documentos dependem de armazenamento (ainda não ligado).</p>
     </>
   );
 }
