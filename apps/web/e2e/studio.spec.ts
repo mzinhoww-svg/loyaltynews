@@ -32,7 +32,7 @@ const MODULOS: Array<[string, string]> = [
 ];
 
 // Módulos com tela própria (os demais mostram o estado vazio genérico).
-const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'correcoes-titular', 'piloto', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria'];
+const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'creative', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'correcoes-titular', 'piloto', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria'];
 
 test.describe('proteção de rota (negar por padrão)', () => {
   for (const rota of ['/studio', '/studio/cms', '/studio/cms/nova', '/studio/cms/checagem', '/studio/fontes', '/studio/finops', '/studio/nao-existe']) {
