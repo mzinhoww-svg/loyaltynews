@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
+import IORedis from 'ioredis';
 import RedisMock from 'ioredis-mock';
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
 import { adKeys, flushAdDelivery, readCounters, type AdRedis } from '@ln/workers/ad-redis';
 import { call, makeApp } from '../_lib/testkit';
@@ -9,6 +10,8 @@ import { dispatchCommercial as d } from '../_lib/commercial';
 import { seedCommercial } from '../_lib/commercial/repo';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
+// Padrão: ioredis-mock. Com LN_TEST_REDIS_URL (ex.: redis://127.0.0.1:56379, um Redis LOCAL de teste: o teste faz flushall) usa Redis REAL.
+const REAL_REDIS_URL = process.env.LN_TEST_REDIS_URL;
 let redis: InstanceType<typeof RedisMock>;
 const R = () => redis as unknown as AdRedis;
 const DAY = '2026-11-22'; // relógio do testkit (12:00Z) em America/Sao_Paulo
@@ -27,10 +30,13 @@ beforeAll(async () => {
   await app.db.insert(schema.adCreatives).values({ id: 'cr-1', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true });
 }, 120_000);
 beforeEach(async () => {
-  redis = new RedisMock();
+  redis = (REAL_REDIS_URL ? new IORedis(REAL_REDIS_URL, { maxRetriesPerRequest: 2 }) : new RedisMock()) as unknown as InstanceType<typeof RedisMock>;
   await redis.flushall();
   app.deps.redis = R();
   app.deps.flags.adServerVendas = true;
+});
+afterEach(async () => {
+  if (REAL_REDIS_URL) await (redis as unknown as { quit: () => Promise<unknown> }).quit().catch(() => undefined);
 });
 afterAll(async () => {
   await app.close();
