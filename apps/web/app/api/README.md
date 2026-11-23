@@ -37,6 +37,22 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 
 Matéria: `resumo` (até 300, obrigatório para aprovar/publicar), `tipoConteudo` (padrão `noticia`; `patrocinado` exige `patrocinado=true` + rótulo) e `tempoLeituraMin` derivado do corpo.
 
+### Home, menus, SEO e links internos (`/api/site/**`)
+Documentos versionados por tipo: `home`, `menu_principal`, `menu_rodape`, `seo_global`, `links_internos`. Um rascunho por tipo; publicar cria a próxima versão e marca a anterior `substituido`; agendar guarda a versão com `publicarEm` (um agendamento por tipo, 1 min a 365 dias à frente) e ela entra em vigor sozinha na hora marcada. Rollback = NOVA versão com o conteúdo de uma anterior (o histórico não é reescrito). Conteúdo é só dado (rótulos, caminhos internos, URLs http/https, slugs, ids de posição): validação estrita, sem HTML, sem `/api`, `/studio`, `/_next` nos destinos.
+
+| Rota | Permissão | Nota |
+|---|---|---|
+| `GET /api/site/documentos?tipo=` | site:read | versões (metadados) |
+| `GET /api/site/documentos/{tipo}` | site:read | `vigente`, `rascunho`, `agendado` |
+| `PUT /api/site/documentos/{tipo}/rascunho` `{conteudo}` | site:update; home e menus só chefia/admin | substitui o rascunho |
+| `GET /api/site/documentos/{tipo}/preview` | site:read | pendências + home com matérias/dimensões resolvidas |
+| `POST /api/site/documentos/{tipo}/publicar` `{agendarPara?}` | site:publish (chefia, admin) | 422 `PENDENCIAS` (matéria fixada inexistente/não publicada; posição publicitária sem dimensão); 409 `AGENDAMENTO_EXISTENTE`/`AGENDAMENTO_PENDENTE`; 202 ao agendar |
+| `DELETE /api/site/documentos/{tipo}/agendamento` | site:publish | volta a rascunho; 409 se já há rascunho |
+| `POST /api/site/documentos/{tipo}/rollback` `{versao}` | site:publish | revalida pendências |
+| `GET/POST /api/site/redirects`, `PATCH/DELETE /api/site/redirects/{id}` | leitura site:read; criar/alterar site:publish; excluir só admin | origem única; 409 `REDIRECT_LOOP` (laço ou cadeia > 10); teto 2000 |
+
+Público: `GET /api/publico/site` (versão em vigor: home com destaques resolvidos e `dimensao` reservada por posição, menus, SEO + JSON-LD Organization, links internos; cache 60 s), `GET /api/publico/site/redirects` (ativos), `GET /api/publico/site/sitemap` (sem SEO publicado ou `noindex` ⇒ lista vazia; senão matérias `publicado`/`corrigido` de classe `public`). Posição publicitária sem dimensão desktop (ex.: `HOME_BETWEEN` hoje) não publica: não reserva espaço. Tudo auditado (`site.*`).
+
 ## Público (Portal, sem login)
 `GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`, `GET /api/publico/agenda` (só eventos APROVADOS que ainda não terminaram; sem campos de moderação), `POST /api/publico/agenda/sugestoes` (sugestão pública: entra PENDENTE, resposta 202 sem id; sem dado pessoal; campo armadilha `site`; 5 por 15 min por IP com `TRUSTED_PROXY_HOPS`; teto de 200 pendentes ⇒ 429 `FILA_CHEIA`; sem link no título, datas em janela, duração ≤ 30 dias; idêntica pendente não duplica).
 
