@@ -15,3 +15,13 @@ export function typecheckReportProblem(report, sha) {
 export function typecheckEnv(release) {
   return release && release.semTypecheckNoBuild === true ? { LN_BUILD_SKIP_TYPECHECK: '1' } : {};
 }
+
+/**
+ * Build "leve" (release.json.buildLeve): limita os workers do next build a 1. Na Vertra o ambiente de build é 2x a RAM do app (1024 MB para 512) e o Next
+ * (16.4.6, config-shared.js) usa max(1, (CIRCLE_NODE_TOTAL || núcleos) - 1) workers: 3 na Vertra, e o build morreu (Killed, 137) em "Collecting page data using 3 workers".
+ * CIRCLE_NODE_TOTAL=2 => 1 worker (confirmado: "Collecting page data using 1 worker"). Só variável do build; nenhum código de produto muda.
+ */
+export function buildLeveEnv(release) {
+  // LN_BUILD_LEVE: lida por apps/web/next.config.ts (staticGenerationMaxConcurrency=1 e sem cache de arquivos do Turbopack no build); sem essa linha no config e no-op.
+  return release && release.buildLeve === true ? { CIRCLE_NODE_TOTAL: '2', LN_BUILD_LEVE: '1' } : {};
+}

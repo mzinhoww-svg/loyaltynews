@@ -690,3 +690,18 @@ test('opção (e): start-web reprova LN_BUILD_SKIP_TYPECHECK em execução (a va
   assert.deepEqual(startProblems(env, rel), []);
   assert.match(startProblems({ ...env, LN_BUILD_SKIP_TYPECHECK: '1' }, rel).join('|'), /LN_BUILD_SKIP_TYPECHECK definida em execução/);
 });
+
+test('build leve: buildLeveEnv só liga CIRCLE_NODE_TOTAL=2 (1 worker do Next) quando o release.json pede', async () => {
+  const { buildLeveEnv } = await import('../scripts/lib/typecheck-report.mjs');
+  assert.deepEqual(buildLeveEnv({ buildLeve: true }), { CIRCLE_NODE_TOTAL: '2', LN_BUILD_LEVE: '1' });
+  assert.deepEqual(buildLeveEnv({ buildLeve: false }), {});
+  assert.deepEqual(buildLeveEnv({}), {});
+  assert.deepEqual(buildLeveEnv(null), {});
+  assert.deepEqual(buildLeveEnv({ buildLeve: 'true' }), {}, 'só o booleano true');
+});
+
+test('build leve: package-web --build-leve recusa worker', () => {
+  const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--app', 'workers', '--build-leve']);
+  assert.equal(x.status, 2);
+  assert.match(x.stderr, /--build-leve so vale para o web/);
+});

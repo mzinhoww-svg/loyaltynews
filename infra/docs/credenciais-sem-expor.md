@@ -7,7 +7,7 @@ Para `check-conexoes.mjs` e `migrate.mjs` o processo precisa de `DATABASE_URL`, 
 - `GET /v1/databases/{id}/credentials/certificate` → CA do servidor, certificado e chave de cliente. **Repetível**: ler de novo não muda nada.
 - `POST /v1/databases/{id}/credentials/reset` (ferramenta `reset_credentials`) → gera uma **senha nova** e a devolve; **a anterior para de valer** na hora (quem estiver conectado cai). A API nunca devolve a senha atual.
 - `POST /v1/apps/{id}/envs` (ferramenta `set_env`) e `DELETE /v1/apps/{id}/envs/{env_id}` (`delete_env`).
-- Formato exato das respostas de certificado e de `reset`: **não verificado** (não documentado e a chave de leitura não alcança esses endpoints). Na primeira execução o script deve mostrar só os NOMES dos campos da resposta (`Object.keys`), nunca valores, e ajustar o mapeamento.
+- - **Formato verificado pelo PM em 23/11/2026** (execução real do staging): a API envolve as respostas em `{ "response": { ... } }` (ler `.response`); o certificado traz os campos `crt`, `key`, `pem`, `ca` e `p12`; `POST /v1/databases/{id}/credentials/reset` vai **sem corpo** (enviar `content-type: application/json` sem corpo dá HTTP 400). Na primeira execução o script ainda deve mostrar só os NOMES dos campos se algo divergir.
 
 ## Regra da senha (por causa do `reset`)
 A senha só existe se for gerada: cada `reset` invalida a anterior. Portanto:
