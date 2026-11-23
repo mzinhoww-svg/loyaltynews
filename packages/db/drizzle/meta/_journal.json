@@ -148,6 +148,13 @@
       "when": 1795432130072,
       "tag": "0020_budget_custo_nao_negativo",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795432592877,
+      "tag": "0021_budget_pool_qualificacao",
+      "breakpoints": true
     }
   ]
 }

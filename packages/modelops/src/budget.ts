@@ -14,6 +14,7 @@ export interface GateConfig {
   reserveMicro: number; // 8, exclusiva de auditoria e errata
   reserveTaskIds: readonly string[];
   ceilingMicro: Record<TaskClass, number>; // degraus: premium 35, não essencial 40, essencial 42, reserva 50
+  qualificationCapMicro: number; // teto próprio do modo qualification (ADR-021): até 5; 0 = sem modo
 }
 
 export interface ReserveInput {
@@ -24,6 +25,8 @@ export interface ReserveInput {
   provider: string;
   model: string;
   escalation: boolean;
+  /** Modo qualification (ADR-021): pool `qualification`, dentro do teto próprio; sem verba de provedor, degrau nem reserva de auditoria. */
+  qualification?: boolean;
   amountUsd: number | null; // teto superior estimado; null = custo desconhecido
   at: Date;
 }
@@ -38,7 +41,8 @@ export type ReserveRefusal =
   | 'escalation_sublimit'
   | 'step_ceiling'
   | 'hard_cap'
-  | 'kill_switch';
+  | 'kill_switch'
+  | 'qualification_cap';
 
 export type ReserveResult =
   | { ok: true; reservationId: string; amountMicro: number }
@@ -51,6 +55,8 @@ export interface Snapshot {
   reserveMicro: number;
   providerMicro: Record<string, number>;
   escalationMicro: number;
+  /** Gasto do pool `qualification` (conta no total e no teto de US$ 50; fora das verbas de produção). */
+  qualificationMicro: number;
   openReservations: number;
   pendingReservations: number;
 }
@@ -70,15 +76,18 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
   const providerAllocationMicro: Record<string, number> = {
     openai: usdToMicro(alloc.openai),
     anthropic: usdToMicro(alloc.anthropic),
-    deepseek: usdToMicro(alloc.deepseek),
   };
+  // v5 ainda traz DeepSeek (verba 0); a v6/DP-26 o remove: sem entrada, o provedor cai em `zero_allocation`
+  if (alloc.deepseek !== undefined) providerAllocationMicro.deepseek = usdToMicro(alloc.deepseek);
   return {
     capMicro: usdToMicro(rules.hard_monthly_budget_usd),
     providerAllocationMicro,
     imageAllocationMicro: usdToMicro(alloc.images),
-    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
+    // v5: `..._opus_fable_included`; v6: `..._opus_included` (só Opus)
+    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_included ?? alloc.anthropic_escalation_opus_fable_included ?? 0),
     reserveMicro: usdToMicro(alloc.audit_errata_reserve),
     reserveTaskIds: AUDIT_RESERVE_TASK_KEYS,
+    qualificationCapMicro: policy.qualification?.mode ? usdToMicro(policy.qualification.mode.cap_usd) : 0,
     ceilingMicro: {
       premium: usdToMicro(Number(findStep(steps, '35'))),
       non_essential: usdToMicro(Number(findStep(steps, '40'))),
@@ -119,6 +128,7 @@ export class BudgetGate {
       reserveMicro: 0,
       providerMicro: {},
       escalationMicro: 0,
+      qualificationMicro: 0,
       openReservations: 0,
       pendingReservations: 0,
     };
@@ -127,7 +137,9 @@ export class BudgetGate {
       const spent = spentMicro(s);
       if (s.status === 'open') snap.openReservations += 1;
       if (s.status === 'pending') snap.pendingReservations += 1;
-      if (s.pool === 'reserve') {
+      if (s.pool === 'qualification') {
+        snap.qualificationMicro += spent;
+      } else if (s.pool === 'reserve') {
         snap.reserveMicro += spent;
       } else {
         snap.allocationMicro += spent;
@@ -155,6 +167,35 @@ export class BudgetGate {
         return refuse('unknown_cost', 'custo máximo não estimado');
       }
       const amountMicro = usdToMicro(input.amountUsd);
+
+      // 1b. Modo qualification (ADR-021): pool próprio. Só tem teto próprio (cap_usd) e o teto mensal de US$ 50 (o gasto de qualificação conta
+      //     nele); NÃO usa verba de provedor, degrau nem a reserva de auditoria. Teto 0 = modo ausente.
+      if (input.qualification) {
+        if (this.config.qualificationCapMicro <= 0) return refuse('qualification_cap', 'modo de qualificação sem teto configurado');
+        const snapQ = this.computeSnapshot(await this.states(io), month);
+        if (snapQ.qualificationMicro + amountMicro > this.config.qualificationCapMicro) {
+          return refuse('qualification_cap', `teto de qualificação de US$ ${microToUsd(this.config.qualificationCapMicro)} atingido`);
+        }
+        if (snapQ.totalMicro + amountMicro > this.config.capMicro) return refuse('hard_cap', 'teto mensal de US$ 50 atingido');
+        const qid = await io.nextReservationId();
+        await io.append({
+          seq: (await io.readAll()).length + 1,
+          at: input.at.toISOString(),
+          monthKey: month,
+          type: 'reserve',
+          reservationId: qid,
+          taskId: input.taskId,
+          taskClass: 'non_essential',
+          pool: 'qualification',
+          lane: input.lane,
+          ...(input.route ? { route: input.route } : {}),
+          provider: input.provider,
+          model: input.model,
+          escalation: false,
+          amountMicro,
+        });
+        return { ok: true, reservationId: qid, amountMicro };
+      }
 
       // 2. Reserva exclusiva: só tarefas de auditoria podem tocar a reserva de 8.
       const isAudit = this.config.reserveTaskIds.includes(input.taskId);

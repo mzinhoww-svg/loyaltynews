@@ -35,7 +35,7 @@ export const budgetReservations = pgTable(
     check('budget_reservations_month', sql`${t.monthKey} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check('budget_reservations_max', sql`${t.maxEstimatedMicrousd} >= 0`),
     check('budget_reservations_provider', sql`${t.provider} IN ('anthropic', 'openai', 'deepseek')`),
-    check('budget_reservations_pool', sql`${t.pool} IN ('allocation', 'reserve')`),
+    check('budget_reservations_pool', sql`${t.pool} IN ('allocation', 'reserve', 'qualification')`),
     check('budget_reservations_task_class', sql`${t.taskClass} IN ('essential', 'non_essential', 'premium', 'reserve')`),
     check('budget_reservations_lane', sql`${t.lane} IN ('text', 'image')`),
     check('budget_reservations_actual', sql`${t.actualMicrousd} IS NULL OR ${t.actualMicrousd} >= 0`),

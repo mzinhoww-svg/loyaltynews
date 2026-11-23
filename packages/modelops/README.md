@@ -49,3 +49,6 @@ Testes do pacote: `packages/modelops/src/*.test.ts`. Cobrem a regressão de falh
 - Kill switch: persistido em `budget_kill_switch` e lido a cada chamada. Acionamento sem agente (R2-14) ainda não tem interface própria.
 - Tipos da política: a estrutura é validada pelo schema de `@ln/contracts` (`ModelPolicy`). Os tipos de trabalho (`types.ts`) continuam locais porque o contrato não modela campos como verbas e degraus como objeto tipado. Pedir ao Chief Architect para ampliar o schema, se quiser eliminar a duplicação.
 - A chamada real ao OpenRouter não foi exercitada: os testes usam fetch injetado.
+
+## Modo `qualification` (T6, ADR-021)
+`callModel` com `mode: 'qualification'` e `candidate`: só os candidatos da política (`qualification.mode.candidates`; Fable e DeepSeek excluídos), tarefa `model_qualification`, classe `public`, ZDR e `allow_fallbacks=false` em toda chamada, sem fallback, reserva no pool `qualification` dentro de `cap_usd` (US$ 5), kill switch (global e rota `qualification`) e evidência por chamada. Conta no teto de US$ 50 e não usa verba de provedor, degrau nem a reserva de auditoria. Exige `production_enabled=false`, `qualification.mode.enabled=true` (mudança protegida da política) e a flag `modelosHabilitados`. O validador aceita a política v6 (DP-26). Testes: `src/qualification.test.ts`.
