@@ -66,8 +66,8 @@ const FIRST_PHASE: Record<Department, string> = {
 };
 
 const MUST_NOT = [
-  'chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)',
-  'usar assinatura do OpenBot para chamada de modelo do produto',
+  'chamar provedor de modelo fora dos dois canais da política v7: a assinatura pelo adaptador OpenBot (DP-27; Claude e Codex) ou o complemento pelo gateway do LN (OpenRouter, dentro do teto); nunca chave de provedor direta',
+  'usar API tarifada no piloto (DP-41), DeepSeek ou Fable em trabalho não publicado, ou checagem por amostragem (política v7, `never`)',
   'publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente',
   'guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)',
   'aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos',
@@ -119,7 +119,7 @@ export function buildOpenBotDraft(registries: Pick<LoadedRegistries, 'agents' | 
     status: 'RASCUNHO',
     created: false,
     approval_required_from: 'Program Manager',
-    basis: ['ADR-003 (OpenBot executa e coordena; pull com lease; gateway)', 'ADR-004 (64 perfis = contratos sob demanda, memória no PostgreSQL)', 'model.policy v5 (acesso medido só via OpenRouter; OpenBot sem assinatura para chamada de modelo do produto)'],
+    basis: ['ADR-003 (OpenBot executa e coordena; pull com lease; gateway)', 'ADR-004 (64 perfis = contratos sob demanda, memória no PostgreSQL)', 'model.policy v7 (DP-27: assinatura pelo adaptador OpenBot como canal primário; complemento pela API dentro do teto de US$ 50) e DP-41'],
     hypothesis: 'Um agente OpenBot por diretoria mais o Publisher (8) é hipótese inicial; o tamanho ideal do conjunto não foi medido (ADR-004, "Não verificado") e deve ser medido em R4.',
     pm_decisions: [
       { date: '2026-11-23', decision: 'Nomes e títulos dos 8 perfis aprovados COMO PROPOSTA (nada criado; a criação exige G1–G6 e aval explícito do PM).' },
