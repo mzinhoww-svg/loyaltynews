@@ -1,0 +1,203 @@
+import { expect, test } from '@playwright/test';
+import { enviar, entrar } from './helpers';
+
+// Home, menus, SEO, links internos e redirects: documentos versionados do Backend (/api/site/**), sessão real.
+const ok = (page: import('@playwright/test').Page, texto: string | RegExp) => page.locator('main .st-alert.ok').filter({ hasText: texto }).first();
+const erro = (page: import('@playwright/test').Page, texto: string | RegExp) => page.locator('main .st-alert.err').filter({ hasText: texto }).first();
+
+test.describe('Home e menus', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test('sem nada publicado mostra o padrão mínimo e diz que não há versão em vigor', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/home-menus');
+    await expect(page.getByText('padrão mínimo (nada publicado ainda)')).toBeVisible();
+    await expect(page.getByRole('list', { name: 'Blocos da home em ordem' }).getByRole('listitem')).toHaveCount(1);
+    await expect(page.locator('[data-situacao="vigente"]')).toContainText('nenhuma versão publicada');
+    await expect(page.getByText('Sem rascunho: edite o documento')).toBeVisible();
+  });
+
+  test('editar grava rascunho; pendência impede publicar; publicar e reverter criam versões', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/home-menus');
+    const blocos = page.getByRole('list', { name: 'Blocos da home em ordem' }).getByRole('listitem');
+
+    await page.getByLabel('Tipo de bloco').selectOption('agenda');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar bloco ao rascunho' }));
+    await expect(ok(page, 'Rascunho salvo (ainda não publicado).')).toBeVisible();
+    await expect(page.locator('[data-situacao="rascunho"]')).toContainText('em edição');
+    await expect(blocos).toHaveCount(2);
+    await expect(page.locator('[data-situacao="vigente"]')).toContainText('nenhuma versão publicada');
+
+    // sobe a agenda para o topo
+    await enviar(page, page.getByRole('button', { name: 'Subir item 2' }));
+    await expect(blocos.nth(0)).toContainText('Agenda');
+
+    // posição sem dimensão reservada não publica
+    await page.getByLabel('Tipo de bloco').selectOption('publicidade');
+    await page.getByLabel('Publicidade: posição').selectOption('HOME_BETWEEN');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar bloco ao rascunho' }));
+    await expect(page.locator('[data-pendencias]')).toContainText('HOME_BETWEEN');
+    await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+    await expect(erro(page, /pend|dimens|HOME_BETWEEN/i)).toBeVisible();
+    await expect(page.locator('[data-situacao="vigente"]')).toContainText('nenhuma versão publicada');
+
+    // remove o bloco problemático e publica
+    await enviar(page, page.locator('[data-bloco="publicidade"]').getByRole('button', { name: /Remover item/ }));
+    await expect(blocos).toHaveCount(2);
+    await expect(page.locator('[data-pendencias="0"]')).toBeVisible();
+    await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+    await expect(ok(page, 'Documento publicado.')).toBeVisible();
+    await expect(page.locator('[data-situacao="vigente"]')).toContainText('v1');
+    await expect(page.locator('[data-situacao="rascunho"]')).toContainText('nenhum');
+
+    // nova edição + publicação = v2; reverter para v1 = v3 com o conteúdo da v1
+    await enviar(page, page.getByRole('button', { name: 'Remover item 1' }));
+    await expect(blocos).toHaveCount(1);
+    await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+    await expect(page.locator('[data-situacao="vigente"]')).toContainText('v2');
+    await enviar(page, page.getByRole('button', { name: 'Reverter Home para v1' }));
+    await expect(ok(page, 'nova versão com o conteúdo da v1'.replace('nova versão com o conteúdo da v1', 'Rollback concluído'))).toBeVisible();
+    await expect(page.locator('[data-situacao="vigente"]')).toContainText('v3');
+    await expect(blocos).toHaveCount(2);
+    await expect(blocos.nth(0)).toContainText('Agenda');
+    await expect(page.locator('[data-versao="1"]')).toBeVisible();
+    await expect(page.locator('[data-versao="2"]')).toBeVisible();
+  });
+
+  test('menu: item válido entra no rascunho; destino proibido é recusado pelo Backend', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/home-menus?tipo=menu_principal');
+    await page.locator('#rotulo-item').fill('Programas');
+    await page.locator('#destino-item').fill('/programas');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar item ao rascunho' }));
+    await expect(ok(page, 'Rascunho salvo')).toBeVisible();
+    await expect(page.locator('[data-item="Programas"]')).toContainText('/programas');
+
+    await page.locator('#rotulo-item').fill('Interno');
+    await page.locator('#destino-item').fill('/api/segredo');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar item ao rascunho' }));
+    await expect(erro(page, /.+/)).toBeVisible();
+    await expect(page.locator('[data-item="Interno"]')).toHaveCount(0);
+
+    await enviar(page, page.getByRole('button', { name: 'Publicar agora' }));
+    await expect(ok(page, 'Documento publicado.')).toBeVisible();
+    await expect(page.locator('[data-versao="1"]')).toBeVisible();
+  });
+
+  test('agendar, ver o agendamento e cancelar', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/home-menus?tipo=menu_rodape');
+    await page.locator('#rotulo-item').fill('Contato');
+    await page.locator('#destino-item').fill('/contato');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar item ao rascunho' }));
+    await expect(ok(page, 'Rascunho salvo')).toBeVisible();
+    const futuro = new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString().slice(0, 16);
+    await page.getByLabel('Agendar para (Brasília)').fill(futuro);
+    await enviar(page, page.getByRole('button', { name: 'Agendar' }));
+    await expect(ok(page, 'Publicação agendada.')).toBeVisible();
+    await expect(page.locator('[data-situacao="agendado"]')).toContainText('para');
+    await enviar(page, page.getByRole('button', { name: 'Cancelar agendamento' }));
+    await expect(ok(page, 'Agendamento cancelado')).toBeVisible();
+    await expect(page.locator('[data-situacao="agendado"]')).toContainText('nenhum');
+    await expect(page.locator('[data-situacao="rascunho"]')).toContainText('em edição');
+  });
+
+  test('editor sem chefia não acessa a home e os menus', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    await page.goto('/studio/home-menus');
+    await expect(page).toHaveURL(/motivo=FORBIDDEN/);
+  });
+});
+
+test.describe('SEO, links internos e redirecionamentos', () => {
+  test.describe.configure({ mode: 'serial' });
+
+  test('a redação grava o rascunho do SEO; só a chefia publica', async ({ page, context }) => {
+    await entrar(context, 'bia', 'editor');
+    await page.goto('/studio/seo');
+    await page.locator('#descricaoPadrao').fill('');
+    await enviar(page, page.getByRole('button', { name: 'Salvar rascunho do SEO' }));
+    await expect(erro(page, /.+/)).toBeVisible();
+
+    await page.locator('#tituloPadrao').fill('Loyalty News');
+    await page.locator('#descricaoPadrao').fill('Notícias de fidelidade.');
+    await page.locator('#orgUrl').fill('https://portal.example.test');
+    await enviar(page, page.getByRole('button', { name: 'Salvar rascunho do SEO' }));
+    await expect(ok(page, 'Rascunho do SEO salvo (ainda não publicado).')).toBeVisible();
+    await expect(page.locator('[data-doc="seo_global"] [data-situacao="rascunho"]')).toContainText('em edição');
+    await expect(page.getByText('só editor-chefe e admin publicam').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Publicar agora' })).toHaveCount(0);
+
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/seo');
+    await enviar(page, page.locator('[data-doc="seo_global"]').getByRole('button', { name: 'Publicar agora' }));
+    await expect(ok(page, 'Documento publicado.')).toBeVisible();
+    await expect(page.locator('[data-doc="seo_global"] [data-situacao="vigente"]')).toContainText('v1');
+  });
+
+  test('links internos: adiciona, recusa termo repetido, remove e publica', async ({ page, context }) => {
+    await entrar(context, 'bia', 'editor');
+    await page.goto('/studio/seo');
+    await page.locator('#termo').fill('milhas');
+    await page.locator('#destino-link').fill('/editoria/milhas');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar regra ao rascunho' }));
+    await expect(ok(page, 'Regra de link interno adicionada')).toBeVisible();
+    await expect(page.locator('[data-termo="milhas"]')).toContainText('/editoria/milhas');
+
+    await page.locator('#termo').fill('Milhas');
+    await page.locator('#destino-link').fill('/editoria/pontos');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar regra ao rascunho' }));
+    await expect(erro(page, /.+/)).toBeVisible();
+
+    await page.locator('#termo').fill('cartoes');
+    await page.locator('#destino-link').fill('/editoria/cartoes');
+    await enviar(page, page.getByRole('button', { name: 'Adicionar regra ao rascunho' }));
+    await expect(page.locator('[data-termo="cartoes"]')).toBeVisible();
+    await enviar(page, page.getByRole('button', { name: 'Remover regra cartoes' }));
+    await expect(page.locator('[data-termo="cartoes"]')).toHaveCount(0);
+
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/seo');
+    await enviar(page, page.locator('[data-doc="links_internos"]').getByRole('button', { name: 'Publicar agora' }));
+    await expect(ok(page, 'Documento publicado.')).toBeVisible();
+  });
+
+  test('redirecionamentos: cria, recusa laço, desativa; só admin exclui', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/seo');
+    await expect(page.getByRole('heading', { name: 'Nenhum redirecionamento' })).toBeVisible();
+    const criar = async (origem: string, destino: string) => {
+      await page.locator('#origem').fill(origem);
+      await page.locator('#destino').fill(destino);
+      await enviar(page, page.getByRole('button', { name: 'Criar redirecionamento' }));
+    };
+    await criar('/noticia-antiga', '/noticia/nova');
+    await expect(ok(page, 'Redirecionamento criado.')).toBeVisible();
+    await expect(page.locator('[data-origem="/noticia-antiga"]')).toContainText('301');
+
+    await criar('/noticia/nova', '/noticia-antiga');
+    await expect(erro(page, /laço|cadeia|loop/i)).toBeVisible();
+    await criar('/api/x', '/y');
+    await expect(erro(page, /.+/)).toBeVisible();
+
+    await enviar(page, page.getByRole('button', { name: 'Desativar redirecionamento de /noticia-antiga' }));
+    await expect(page.locator('[data-origem="/noticia-antiga"]')).toHaveAttribute('data-ativo', 'false');
+    await expect(page.getByRole('button', { name: 'Remover redirecionamento de /noticia-antiga' })).toHaveCount(0);
+
+    await entrar(context, 'adm', 'admin');
+    await page.goto('/studio/seo');
+    await enviar(page, page.getByRole('button', { name: 'Remover redirecionamento de /noticia-antiga' }));
+    await expect(ok(page, 'Redirecionamento removido.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nenhum redirecionamento' })).toBeVisible();
+  });
+
+  test('revisor só lê: sem formulários de escrita', async ({ page, context }) => {
+    await entrar(context, 'rui', 'revisor');
+    await page.goto('/studio/seo');
+    await expect(page.getByRole('button', { name: 'Salvar rascunho do SEO' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Criar redirecionamento' })).toHaveCount(0);
+    await expect(page.getByText('Seu papel só lê as configurações de SEO.')).toBeVisible();
+  });
+});
+

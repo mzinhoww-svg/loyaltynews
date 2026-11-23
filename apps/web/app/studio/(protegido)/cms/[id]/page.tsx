@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { EDITORIAS } from '@ln/contracts';
+import { EDITORIAS, FLAG_DEFAULTS } from '@ln/contracts';
+import { getDeps } from '@/app/api/_lib/deps';
 import { checkAccess } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -13,18 +14,19 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
 import { MateriaForm } from '../MateriaForm';
-import { aprovarAction, bloquearAction, emitirReciboAction, enviarChecagemAction, voltarRascunhoAction } from '../actions';
+import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
 
 export const metadata: Metadata = { title: 'Matéria' };
 export const dynamic = 'force-dynamic';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// ids do CMS são UUID; ids de matéria da Fábrica não têm formato fixo: aceita só caracteres seguros e deixa a API dizer se existe
+const ID_SEGURO = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
 
 export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
   const { session } = await requireStudio(CMS_READ);
   const { id } = await params;
   const { tipo, aviso } = await searchParams;
-  if (!UUID.test(id)) notFound();
+  if (!ID_SEGURO.test(id)) notFound();
   const r = await api.materias.obter(id);
   if (naoConfigurado(r)) return <SemBanco modulo="O CMS editorial" />;
   if (r.status === 404) notFound();
@@ -36,6 +38,21 @@ export default async function Materia({ params, searchParams }: { params: Promis
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
   const editavel = STATUS_EDITAVEIS.includes(m.status);
+  // mesma leitura de flags das rotas do Backend (getDeps); sem banco configurado cai no padrão (tudo desligado)
+  const publicacaoLigada = (getDeps()?.flags ?? FLAG_DEFAULTS).publicacaoPortal === true;
+  const podePublicar = checkAccess(session, ['admin', 'editor_chefe']).ok;
+  const base = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
+  // URL pública canônica da matéria no Portal: /noticia/{slug}
+  const urlPublica = base ? `${base}/noticia/${m.slug}` : '';
+  const publicada = m.status === 'publicado' || m.status === 'corrigido';
+  // correção: revisão em aberto (404 = não há) e casos desta matéria (o Backend confere se o caso é aceito, no PATCH)
+  const revisao = publicada ? await api.materias.revisao(m.id) : null;
+  const rev = revisao && !ehErro(revisao) ? revisao.body.data : null;
+  // matéria da Fábrica = existe registro editorial com este id: a correção segue o recibo + publicação com `correcao`, não a revisão do CMS
+  const ehFabrica = publicada ? !ehErro(await api.editorial.revisao(m.id)) : false;
+  const casosResp = publicada ? await api.editorial.correcoes({}) : null;
+  const casos = casosResp && !ehErro(casosResp) ? ((casosResp.body as { items: { id: string; articleId: string; kind: string; state: string }[] }).items ?? []).filter((c) => c.articleId === m.id) : [];
+  const casosAceitos = casos.filter((c) => ['accepted', 'escalated_legal', 'notice_published', 'social_reconciled'].includes(c.state));
   return (
     <>
       <p>
@@ -135,15 +152,172 @@ export default async function Materia({ params, searchParams }: { params: Promis
                 Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}.
               </p>
             ) : null}
-            <p style={{ marginTop: 12 }}>
-              <button className="st-btn" type="button" disabled aria-disabled="true" aria-describedby="pub-hint">
-                Publicar
-              </button>
-            </p>
-            <p className="st-hint" id="pub-hint">
-              Publicar não está no Studio: só a identidade de publicação do recibo publica (ADR-008), com a versão aprovada.
-            </p>
+            <section aria-labelledby="pub-titulo" style={{ marginTop: 12 }}>
+              <h3 id="pub-titulo" style={{ margin: 0 }}>
+                Publicação
+              </h3>
+              {publicada ? (
+                <p data-publicado={m.status === 'corrigido' ? 'corrigido' : 'sim'}>
+                  {m.status === 'corrigido' ? 'Publicada e corrigida' : 'Publicada'}
+                  {m.publicadoEm ? ` em ${m.publicadoEm.slice(0, 16).replace('T', ' ')} UTC` : ''}. Conteúdo publicado é imutável; só muda por uma correção aceita (seção Correção).
+                </p>
+              ) : m.status === 'aprovado' && m.recibo && podePublicar ? (
+                <form action={publicarAction}>
+                  <input type="hidden" name="id" value={m.id} />
+                  <input type="hidden" name="recibo" value={m.recibo.id} />
+                  <div className="st-field">
+                    <label htmlFor="url-publica">URL pública da matéria</label>
+                    <input id="url-publica" name="url" type="url" defaultValue={urlPublica} />
+                  </div>
+                  <button className="st-btn" type="submit" disabled={!publicacaoLigada} aria-describedby="pub-hint">
+                    Publicar
+                  </button>
+                </form>
+              ) : (
+                <p>
+                  <button className="st-btn" type="button" disabled aria-disabled="true" aria-describedby="pub-hint">
+                    Publicar
+                  </button>
+                </p>
+              )}
+              <p className="st-hint" id="pub-hint">
+                {!publicacaoLigada
+                  ? 'Publicação desligada neste ambiente (flag publicacaoPortal).'
+                  : m.status === 'aprovado' && m.recibo
+                    ? podePublicar
+                      ? 'Só a identidade de publicação do recibo publica (ADR-008), com o recibo da versão aprovada.'
+                      : 'Seu papel não publica (exige editor-chefe ou admin).'
+                    : 'Publica quando a matéria está aprovada e tem recibo da versão.'}
+              </p>
+            </section>
           </div>
+
+          {publicada ? (
+            <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="corr-titulo" data-correcao={rev ? rev.estado : 'nenhuma'}>
+              <h2 id="corr-titulo" style={{ marginTop: 0 }}>
+                Correção
+              </h2>
+              <p className="st-hint">
+                Corrigir matéria publicada exige um caso de correção ACEITO sobre ela. A revisão não altera a página pública: só a publicação oficial da revisão (com recibo) gera a nova versão, marcada como corrigida, com o aviso no fim do corpo. Matéria da Fábrica segue outro caminho (recibo e publicação com `correcao`).
+              </p>
+              {casos.length === 0 ? (
+                <p className="st-hint" data-casos="0">
+                  Nenhum caso de correção para esta matéria. <Link href="/studio/cms/correcoes">Abra um caso em Correções.</Link>
+                </p>
+              ) : (
+                <ul className="st-issues" aria-label="Casos desta matéria">
+                  {casos.map((c) => (
+                    <li key={c.id}>
+                      <Link href={`/studio/cms/correcoes/${encodeURIComponent(c.id)}`}>{c.id}</Link> · {c.kind} · {c.state}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {ehFabrica ? (
+                <div data-origem="fabrica">
+                  <p>
+                    Matéria da Fábrica: o texto corrigido é um novo rascunho editorial com checagem de outro provedor, e o recibo e a publicação levam o mesmo <code>correcao</code>.
+                  </p>
+                  <Link className="st-btn" href={`/studio/cms/${encodeURIComponent(m.id)}/corrigir-fabrica`}>
+                    Corrigir pela Fábrica
+                  </Link>
+                </div>
+              ) : null}
+
+              {!ehFabrica && rev ? (
+                <div data-revisao={rev.estado}>
+                  <h3>
+                    Revisão v{rev.versao} <span className="st-badge">{rev.estado}</span>
+                  </h3>
+                  <p className="st-hint">Aviso que entra no fim do corpo (e no hash): {rev.aviso}</p>
+                  {podeEditar ? (
+                    <form action={descartarRevisaoAction} style={{ display: 'inline' }}>
+                      <input type="hidden" name="id" value={m.id} />
+                      <button className="st-btn danger" type="submit">
+                        Descartar revisão
+                      </button>
+                    </form>
+                  ) : null}
+                  {rev.estado === 'rascunho' && podeRevisar ? (
+                    <form action={emitirReciboAction} style={{ marginTop: 10 }} aria-label="Recibo da revisão">
+                      <input type="hidden" name="id" value={m.id} />
+                      <input type="hidden" name="versao" value={rev.versao} />
+                      <fieldset className="st-field">
+                        <legend>Checagens aprovadas (recibo da revisão v{rev.versao})</legend>
+                        {TIPOS_CHECAGEM.map((c) => (
+                          <label key={c}>
+                            <input type="checkbox" name="checagem" value={c} /> {c}
+                          </label>
+                        ))}
+                      </fieldset>
+                      <button className="st-btn" type="submit">
+                        Emitir recibo da revisão
+                      </button>
+                      <p className="st-hint">A publicação só é aceita da identidade de publicação registrada no recibo (quem o emite).</p>
+                    </form>
+                  ) : null}
+                  {rev.estado === 'aprovada' && rev.receiptId ? (
+                    podePublicar ? (
+                      <form action={publicarAction} style={{ marginTop: 10 }} aria-label="Publicar correção">
+                        <input type="hidden" name="id" value={m.id} />
+                        <input type="hidden" name="recibo" value={rev.receiptId} />
+                        <input type="hidden" name="correcao" value="1" />
+                        <div className="st-field">
+                          <label htmlFor="url-correcao">URL pública da matéria</label>
+                          <input id="url-correcao" name="url" type="url" defaultValue={urlPublica} />
+                        </div>
+                        <button className="st-btn" type="submit" disabled={!publicacaoLigada}>
+                          Publicar correção
+                        </button>
+                        {!publicacaoLigada ? <p className="st-hint">Publicação desligada neste ambiente (flag publicacaoPortal).</p> : null}
+                      </form>
+                    ) : (
+                      <p className="st-hint">Revisão com recibo: a publicação é do editor-chefe ou do admin.</p>
+                    )
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!ehFabrica && podeEditar && (!rev || rev.estado === 'rascunho') ? (
+                <form action={salvarRevisaoAction} style={{ marginTop: 12 }} aria-label="Revisão de correção">
+                  <h3 style={{ marginTop: 0 }}>{rev ? 'Refazer a revisão' : 'Nova revisão de correção'}</h3>
+                  <input type="hidden" name="id" value={m.id} />
+                  <input type="hidden" name="versaoEsperada" value={m.versao} />
+                  <div className="st-field">
+                    <label htmlFor="casoCorrecaoId">Caso de correção aceito</label>
+                    <select id="casoCorrecaoId" name="casoCorrecaoId" defaultValue={rev?.casoId ?? casosAceitos[0]?.id ?? ''}>
+                      {casosAceitos.length === 0 ? <option value="">(nenhum caso aceito)</option> : null}
+                      {casosAceitos.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.id} ({c.kind}, {c.state})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="st-field">
+                    <label htmlFor="rev-titulo">Título</label>
+                    <input id="rev-titulo" name="titulo" type="text" defaultValue={rev?.titulo ?? m.titulo} />
+                  </div>
+                  <div className="st-field">
+                    <label htmlFor="rev-subtitulo">Subtítulo</label>
+                    <input id="rev-subtitulo" name="subtitulo" type="text" defaultValue={(rev ? rev.subtitulo : m.subtitulo) ?? ''} />
+                  </div>
+                  <div className="st-field">
+                    <label htmlFor="rev-resumo">Resumo</label>
+                    <textarea id="rev-resumo" name="resumo" rows={2} defaultValue={(rev ? rev.resumo : m.resumo) ?? ''} />
+                  </div>
+                  <div className="st-field">
+                    <label htmlFor="rev-corpo">Corpo (sem o aviso: o Backend o acrescenta no fim)</label>
+                    <textarea id="rev-corpo" name="corpo" rows={8} defaultValue={rev?.corpo ?? m.corpo} />
+                  </div>
+                  <button className="st-btn" type="submit">
+                    Salvar revisão
+                  </button>
+                </form>
+              ) : null}
+            </section>
+          ) : null}
 
           <div className="st-card" style={{ marginTop: 14 }}>
             <h2 style={{ marginTop: 0 }}>Fontes ({m.fontes.length})</h2>

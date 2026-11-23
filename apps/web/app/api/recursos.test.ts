@@ -3,8 +3,6 @@ import { call, makeApp } from './_lib/testkit';
 import * as fontes from './fontes/route';
 import * as fonte from './fontes/[id]/route';
 import * as evidencias from './fontes/[id]/evidencias/route';
-import * as midia from './midia/route';
-import * as midiaUma from './midia/[id]/route';
 import * as agenda from './agenda/route';
 import * as agendaUma from './agenda/[id]/route';
 import * as pubAgenda from './publico/agenda/route';
@@ -28,14 +26,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await app.close();
 });
-
-const direitos = {
-  url: 'https://example.org/foto.jpg',
-  origem: 'licenciada',
-  credito: 'Agência X',
-  baseDeDireito: 'licenca',
-  textoAlternativo: 'Descrição da foto',
-};
 
 describe('fontes e evidências', () => {
   const body = { id: 'fonte-gov', nome: 'Diário Oficial', url: 'https://example.org/do', tipo: 'site', editorias: ['regulacao', 'mercado'] };
@@ -68,24 +58,6 @@ describe('fontes e evidências', () => {
   });
 });
 
-describe('mídia', () => {
-  it('registra metadados com base de direito; pendente = não publicável; URL insegura recusada', async () => {
-    const ok = await call(midia.POST, 'POST', { body: { tipo: 'imagem', direitos, sha256: 'e'.repeat(64) }, as: editor });
-    expect(ok.status).toBe(201);
-    expect(ok.body.data.publicavel).toBe(true);
-    const pend = await call(midia.POST, 'POST', { body: { tipo: 'imagem', direitos: { ...direitos, baseDeDireito: 'pendente' }, sha256: 'e'.repeat(64) }, as: editor });
-    expect(pend.body.data.publicavel).toBe(false);
-    expect((await call(midia.POST, 'POST', { body: { tipo: 'imagem', direitos: { ...direitos, url: 'data:text/html,x' }, sha256: 'e'.repeat(64) }, as: editor })).status).toBe(400);
-    expect((await call(midia.POST, 'POST', { body: { tipo: 'imagem', direitos: { ...direitos, origem: 'fonte_terceiro' }, sha256: 'e'.repeat(64) }, as: editor })).status).toBe(400); // terceiro sem link
-    const list = await call(midia.GET, 'GET', { query: { tipo: 'imagem' }, as: leitor });
-    expect(list.body.total).toBe(2);
-    expect((await call(midiaUma.GET, 'GET', { params: { id: ok.body.data.id }, as: leitor })).status).toBe(200);
-    expect((await call(midiaUma.DELETE, 'DELETE', { params: { id: ok.body.data.id }, as: editor })).status).toBe(403);
-    expect((await call(midiaUma.DELETE, 'DELETE', { params: { id: ok.body.data.id }, as: chefe })).status).toBe(204);
-    expect((await call(midiaUma.GET, 'GET', { params: { id: ok.body.data.id }, as: leitor })).status).toBe(404);
-  });
-});
-
 describe('agenda', () => {
   const ev = { titulo: 'Congresso de Fidelidade', inicio: '2026-12-02', fim: '2026-12-03', local: 'São Paulo', fonteUrl: 'https://example.org/evento' };
 
@@ -111,7 +83,7 @@ describe('agenda', () => {
 
 describe('sessão e papel valem em todas as rotas novas', () => {
   it('sem login 401; comercial não escreve em matérias/fontes', async () => {
-    for (const h of [fontes.GET, midia.GET, agenda.GET]) expect((await call(h, 'GET', {})).status).toBe(401);
+    for (const h of [fontes.GET, agenda.GET]) expect((await call(h, 'GET', {})).status).toBe(401);
     expect((await call(fontes.POST, 'POST', { body: {}, as: comercial })).status).toBe(403);
     expect((await call(materias.POST, 'POST', { body: {}, as: comercial })).status).toBe(403);
   });

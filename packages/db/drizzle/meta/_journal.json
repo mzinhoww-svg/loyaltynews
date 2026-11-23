@@ -92,6 +92,41 @@
       "when": 1795393788112,
       "tag": "0012_backend_social_ad_flush",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1795394618134,
+      "tag": "0013_midia_arquivo_licenca",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795395028190,
+      "tag": "0014_agenda_moderacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1795395357916,
+      "tag": "0015_site_documentos_redirects",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795396124782,
+      "tag": "0016_fontes_origem",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795396427623,
+      "tag": "0017_article_revisions",
+      "breakpoints": true
     }
   ]
 }

@@ -53,6 +53,17 @@ const receipt = (id: string, versao: number, as = chefe, extra: Record<string, u
     as,
   });
 
+/**
+ * Estado que o fluxo OFICIAL de publicação deixa (articles publicado/corrigido + histórico). A rota genérica de transição não
+ * publica nem corrige (achado do QA 2 em 0edb1ac); o fluxo oficial real é testado em editorial/publication.test.ts.
+ */
+async function markPublished(id: string, para: 'publicado' | 'corrigido' = 'publicado', nota: string | null = null) {
+  const [cur] = await app.db.select().from(schema.articles).where(eq(schema.articles.id, id));
+  const now = app.deps.now();
+  await app.db.update(schema.articles).set({ status: para, ...(para === 'publicado' ? { publicadoEm: now } : {}) }).where(eq(schema.articles.id, id));
+  await app.db.insert(schema.articleTransitions).values({ id: `tr-${id}-${para}`, articleId: id, de: cur!.status, para, actorId: chefe.id, nota, receiptId: null, at: now });
+}
+
 /** rascunho → em_checagem → recibo → aprovado. */
 async function toApproved(over: Record<string, unknown> = {}) {
   const a = await create(over);
@@ -160,43 +171,55 @@ describe('matérias: CRUD e validação', () => {
 });
 
 describe('publicação só com recibo (ADR-008)', () => {
-  it('fluxo completo: checagem → recibo → aprovado → publicado → errata → despublicado, com histórico', async () => {
+  it('fluxo: checagem → recibo → aprovado; a rota genérica NÃO publica nem corrige (flag desligada: 403; ligada: 409), sem efeito; despublicar segue com nota e histórico', async () => {
     const a = await toApproved();
-    const p = await go(a.id, 'publicado', chefe);
-    expect(p.status).toBe(200);
-    expect(p.body.data.status).toBe('publicado');
-    expect(p.body.data.publicadoEm).toBe('2026-11-22T12:00:00.000Z');
-    const c = await go(a.id, 'corrigido', chefe, { nota: 'Corrigido o prazo de validade citado.' });
-    expect(c.body.data.status).toBe('corrigido');
+    for (const para of ['publicado', 'corrigido']) {
+      const off = await go(a.id, para, chefe, { nota: 'x'.repeat(10) });
+      expect(off.status, para).toBe(para === 'publicado' ? 403 : 409); // corrigido a partir de aprovado nem é transição válida
+    }
+    const off = await go(a.id, 'publicado');
+    expect(off.status).toBe(403);
+    expect(off.body.error.code).toBe('FEATURE_DISABLED');
+    app.deps.flags.publicacaoPortal = true;
+    try {
+      const on = await go(a.id, 'publicado');
+      expect(on.status).toBe(409);
+      expect(on.body.error.code).toBe('USE_PUBLICATION_ROUTE');
+      expect(on.body.error.details.rota).toBe(`/api/studio/editorial/articles/${a.id}/publication`);
+      expect((await go(a.id, 'publicado', editor)).body.error.code).toBe('FORBIDDEN'); // a autorização vem antes
+    } finally {
+      app.deps.flags.publicacaoPortal = false;
+    }
+    const [row] = await app.db.select().from(schema.articles).where(eq(schema.articles.id, a.id));
+    expect(row).toMatchObject({ status: 'aprovado', publicadoEm: null });
+    expect((await call(pubOne.GET, 'GET', { params: { slug: a.slug } })).status).toBe(404);
+
+    await markPublished(a.id);
+    for (const flag of [false, true]) {
+      app.deps.flags.publicacaoPortal = flag;
+      try {
+        const c = await go(a.id, 'corrigido', chefe, { nota: 'Corrigido o prazo de validade citado.' });
+        expect(c.status).toBe(flag ? 409 : 403);
+      } finally {
+        app.deps.flags.publicacaoPortal = false;
+      }
+    }
+    expect((await call(materia.GET, 'GET', { params: { id: a.id }, as: leitor })).body.data.status).toBe('publicado');
     const d = await go(a.id, 'despublicado', chefe, { nota: 'Retirada a pedido da fonte.' });
     expect(d.body.data.status).toBe('despublicado');
     const g = await call(materia.GET, 'GET', { params: { id: a.id }, as: leitor });
-    expect(g.body.data.transicoes.map((t: { para: string }) => t.para)).toEqual(['em_checagem', 'aprovado', 'publicado', 'corrigido', 'despublicado']);
+    expect(g.body.data.transicoes.map((t: { para: string }) => t.para)).toEqual(['em_checagem', 'aprovado', 'publicado', 'despublicado']);
     expect(g.body.data.recibo.conteudoSha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('sem recibo não aprova nem publica; conteúdo adulterado invalida o recibo', async () => {
+  it('sem recibo não aprova; só quem tem materias:publish chega sequer à recusa de publicar', async () => {
     const a = await create();
     await go(a.id, 'em_checagem');
     expect((await go(a.id, 'aprovado')).body.error.code).toBe('RECEIPT_REQUIRED');
     await receipt(a.id, a.versao);
     await go(a.id, 'aprovado');
-    await app.db.update(schema.articles).set({ corpo: 'texto trocado por fora do fluxo' }).where(eq(schema.articles.id, a.id));
-    const p = await go(a.id, 'publicado');
-    expect(p.status).toBe(409);
-    expect(p.body.error.code).toBe('RECEIPT_REQUIRED');
-  });
-
-  it('só a identidade de publicação do recibo publica; editor não tem permissão publish', async () => {
-    const a = await create();
-    await go(a.id, 'em_checagem');
-    await receipt(a.id, a.versao, chefe, { identidadePublicacao: admin.id });
-    await go(a.id, 'aprovado');
-    const other = await go(a.id, 'publicado', chefe);
-    expect(other.status).toBe(403);
-    expect(other.body.error.code).toBe('NOT_PUBLISHER_IDENTITY');
+    for (const quem of [chefe, admin]) expect((await go(a.id, 'publicado', quem)).status).toBe(403); // flag desligada
     expect((await go(a.id, 'publicado', editor)).body.error.code).toBe('FORBIDDEN');
-    expect((await go(a.id, 'publicado', admin)).status).toBe(200);
   });
 
   it('voltar a rascunho e editar gera nova versão: o recibo antigo não vale', async () => {
@@ -260,13 +283,14 @@ describe('publicação só com recibo (ADR-008)', () => {
     expect((await go(a.id, 'bloqueado', chefe, { nota: 'Fonte não confirma o número.' })).status).toBe(200);
     expect((await go(a.id, 'rascunho')).status).toBe(200);
     const b = await toApproved();
-    await go(b.id, 'publicado');
+    await markPublished(b.id);
     expect((await go(b.id, 'despublicado')).body.error.code).toBe('NOTE_REQUIRED');
   });
 
   it('transição concorrente: só uma vence', async () => {
     const a = await toApproved();
-    const [x, y] = await Promise.all([go(a.id, 'publicado'), go(a.id, 'publicado')]);
+    await markPublished(a.id);
+    const [x, y] = await Promise.all([go(a.id, 'despublicado', chefe, { nota: 'Retirada.' }), go(a.id, 'despublicado', chefe, { nota: 'Retirada.' })]);
     expect([x.status, y.status].sort()).toEqual([200, 409]);
   });
 });
@@ -275,10 +299,10 @@ describe('API pública: só publicado e corrigido, com errata', () => {
   it('rascunho, aprovado e despublicado ficam fora; publicado e corrigido aparecem sem campos internos', async () => {
     const draftOnly = await create({ titulo: 'Rascunho secreto' });
     const pub = await toApproved({ titulo: 'Matéria pública' });
-    await go(pub.id, 'publicado');
-    await go(pub.id, 'corrigido', chefe, { nota: 'Errata: data ajustada.' });
+    await markPublished(pub.id);
+    await markPublished(pub.id, 'corrigido', 'Errata: data ajustada.');
     const gone = await toApproved({ titulo: 'Matéria retirada' });
-    await go(gone.id, 'publicado');
+    await markPublished(gone.id);
     await go(gone.id, 'despublicado', chefe, { nota: 'Retirada.' });
 
     const list = await call(pubList.GET, 'GET', { path: '/api/publico/materias' });

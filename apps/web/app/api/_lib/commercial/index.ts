@@ -6,12 +6,19 @@ import { ROUTES, type Route } from '@ln/commercial/api';
 import type { Db } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
 import { adCall, isAdRoute } from './ads';
+import { listAccounts, listCampaigns } from './lists';
 import { COMMERCIAL_LOCK, hydrate, persist, seedCommercial } from './repo';
 
 /** Data de calendário em America/Sao_Paulo (YYYY-MM-DD). */
 export const saoPauloDate = (d: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
 
-const routes: readonly PureRoute<Route['handler']>[] = ROUTES.map((r) => ({ method: r.method, path: r.path, auth: r.auth, handler: r.handler }));
+/** Listas pedidas pelo Studio (aec1612), do adaptador do Backend: somente leitura, mesmo contexto hidratado das demais GET. */
+const EXTRA: readonly Route[] = [
+  { method: 'GET', path: '/api/commercial/studio/campaigns', auth: 'studio', handler: listCampaigns },
+  { method: 'GET', path: '/api/commercial/studio/accounts', auth: 'studio', handler: listAccounts },
+];
+
+const routes: readonly PureRoute<Route['handler']>[] = [...ROUTES, ...EXTRA].map((r) => ({ method: r.method, path: r.path, auth: r.auth, handler: r.handler }));
 
 export const dispatchCommercial = createDispatcher({
   routes,

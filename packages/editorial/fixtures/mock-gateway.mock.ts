@@ -6,6 +6,7 @@ export const MOCK_EVIDENCE_QUOTE = 'a parceria amplia as opções de acúmulo pa
 export function goodDraftOutput(evidenceId: string, over: Record<string, unknown> = {}) {
   return {
     headline: 'MOCK: Programa Alfa fecha acordo com a Varejista Beta',
+    resumo: 'Programa fictício de teste fecha acordo de acúmulo com uma varejista.',
     body:
       'O Programa Alfa, empresa fictícia usada em testes, fechou acordo com a Varejista Beta. ' +
       'A regra passa a valer em 1º de dezembro de 2026 e prevê 2 pontos para cada real gasto. ' +

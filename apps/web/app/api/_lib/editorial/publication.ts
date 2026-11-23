@@ -11,7 +11,7 @@
 // - a data da publicação é a do servidor; `isMock`, `publishedAt` e qualquer campo extra são RECUSADOS (sem mock em produção);
 // - idempotente pela chave do outbox do produtor (`article.published:{id}:{sha}`): repetir devolve 200, sem novos efeitos;
 // - a gravação é UMA transação (matéria publicada + auditoria + outbox) ou nada.
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { apiError } from '@ln/contracts';
 import type { FlagState } from '@ln/contracts';
@@ -19,6 +19,10 @@ import { schema } from '@ln/db';
 import { applyPublication, draftContentSha256, type ApiResponse, type HandlerCtx } from '@ln/editorial';
 import type { Db } from '@ln/auth';
 import { HttpUrl } from '../schemas';
+import { HttpError, newId } from '../http';
+import { publishFromCms } from './cms-publication';
+import { applyFabricaCorrection } from './fabrica-correction';
+import { CorrecaoIn } from './correcao-schema';
 
 export type PublicationCtx = HandlerCtx & { flags: FlagState; db: Db };
 
@@ -26,6 +30,8 @@ const Input = z.strictObject({
   articleId: z.string().min(1).max(128),
   receiptId: z.string().trim().min(1).max(128),
   url: HttpUrl,
+  /** Matéria da Fábrica já publicada: aplica a correção aceita (rascunho corrigido + checagem + caso). */
+  correcao: CorrecaoIn.optional(),
 });
 
 const err = (status: number, code: string, message: string, details?: unknown): ApiResponse<never> => ({ status, body: apiError(code, message, details) });
@@ -38,7 +44,7 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   if (!actor) return err(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
   const p = Input.safeParse(input);
   if (!p.success) return err(400, 'VALIDATION_ERROR', 'Entrada inválida.', p.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
-  const { articleId, receiptId, url } = p.data;
+  const { articleId, receiptId, url, correcao } = p.data;
 
   const [receipt] = await ctx.db
     .select({
@@ -51,13 +57,21 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   if (!receipt) return err(409, 'RECEIPT_NOT_FOUND', 'Recibo inexistente para esta matéria.');
   if (receipt.identidade !== actor.userId) return err(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo registra esta publicação.');
 
+  if (correcao) {
+    const recAny = await ctx.store.getArticle(articleId);
+    if (!recAny) return err(409, 'NOT_FACTORY_ARTICLE', 'correcao só vale para matéria da Fábrica; a do CMS é publicada pela revisão (PATCH com casoCorrecaoId).');
+    return applyFabricaCorrection(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url, correcao });
+  }
+  // Matéria que existe só no CMS (sem registro no Editorial): publicação e correção oficiais sobre `articles` (ADR-019 §c.5).
+  const rec = await ctx.store.getArticle(articleId);
+  if (!rec) return publishFromCms(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url });
+
   // O recibo tem de provar ESTA versão e ESTE conteúdo (um recibo antigo da mesma matéria não registra conteúdo novo).
   const [art] = await ctx.db.select({ versao: schema.articles.versao }).from(schema.articles).where(eq(schema.articles.id, articleId));
   if (!art || receipt.versao !== art.versao) {
     return err(409, 'RECEIPT_STALE', 'O recibo é de outra versão da matéria.', { versaoDoRecibo: receipt.versao, versaoDaMateria: art?.versao ?? null });
   }
-  const rec = await ctx.store.getArticle(articleId);
-  if (rec?.draft) {
+  if (rec.draft) {
     // já publicada com este recibo: vale o hash gravado na publicação; senão, o do corpo aprovado agora
     const approvedSha = rec.status === 'publicado' && rec.publication ? rec.publication.contentSha256 : draftContentSha256(rec.draft);
     if (receipt.sha !== approvedSha) return err(409, 'RECEIPT_CONTENT_MISMATCH', 'O recibo não corresponde ao conteúdo aprovado da matéria.');
@@ -65,9 +79,28 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
 
   const r = await applyPublication(ctx.store, { articleId, receiptId, url, publishedAt: ctx.now().toISOString(), expectedContentSha256: receipt.sha });
   if (!r.ok) {
-    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409 }[r.code];
+    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409, slug_immutable: 409, slug_taken: 409 }[r.code];
     const code = r.code === 'receipt_stale' ? 'RECEIPT_CONTENT_MISMATCH' : r.code.toUpperCase();
     return err(status, code, r.message, r.findings);
+  }
+  // A projeção em `articles` passa a 'publicado' NA MESMA transação do commitPublication (o dispatcher abre a transação
+  // e a loja está ligada a ela). Sem linha aprovada/publicada, a publicação inteira é desfeita (lança ⇒ rollback).
+  const pub = r.record.publication;
+  const [proj] = await ctx.db
+    .select({ status: schema.articles.status, slug: schema.articles.slug })
+    .from(schema.articles)
+    .where(eq(schema.articles.id, articleId));
+  if (!proj || (proj.status !== 'aprovado' && proj.status !== 'publicado')) {
+    throw new HttpError(409, 'PROJECTION_NOT_APPROVED', 'A projeção em articles não está aprovada para este id; emita o recibo antes.');
+  }
+  if (proj.status === 'aprovado' && pub) {
+    await ctx.db
+      .update(schema.articles)
+      .set({ status: 'publicado', publicadoEm: new Date(pub.publishedAt) })
+      .where(and(eq(schema.articles.id, articleId), inArray(schema.articles.status, ['aprovado'])));
+    await ctx.db.insert(schema.articleTransitions).values({
+      id: newId(), articleId, de: 'aprovado', para: 'publicado', actorId: actor.userId, nota: null, receiptId, at: new Date(pub.publishedAt),
+    });
   }
   return {
     status: r.alreadyPublished ? 200 : 201,

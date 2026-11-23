@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { entrar } from './helpers';
+import { definirFlag, entrar, enviar } from './helpers';
 
 // CMS editorial, Fontes e Social sobre as ROTAS REAIS do Backend (PostgreSQL de e2e = PGlite, só no build de e2e).
 // O banco é compartilhado e começa vazio; os testes rodam em série e em ordem.
@@ -18,7 +18,7 @@ async function criarMateria(page: Page, titulo: string, opts: { evidencia?: bool
   await page.getByLabel('Editoria', { exact: true }).selectOption('pontos');
   await page.getByLabel('Corpo da matéria').fill('Texto completo da matéria de teste.');
   if (opts.evidencia !== false) await page.getByLabel(/Comunicado Programa X:/).check();
-  await page.getByRole('button', { name: 'Criar rascunho' }).click();
+  await enviar(page, page.getByRole('button', { name: 'Criar rascunho' }));
   await expect(page.getByRole('heading', { level: 1, name: titulo })).toBeVisible();
 }
 
@@ -34,29 +34,29 @@ test.describe('Fontes e evidências (/api/fontes)', () => {
   test('valida, cadastra inativa, exige termos para ativar e registra evidência com hash calculado', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/fontes');
-    await page.getByRole('button', { name: 'Cadastrar fonte' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Cadastrar fonte' }));
     await erro(page, /Entrada inválida|nome|url/i);
 
     await page.getByLabel('Nome', { exact: true }).fill('Comunicado Programa X');
     await page.getByLabel('URL pública').fill('https://exemplo.com.br/imprensa');
     await page.getByLabel('Pontos & Milhas').check();
-    await page.getByRole('button', { name: 'Cadastrar fonte' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Cadastrar fonte' }));
     await sucesso(page, 'Fonte cadastrada');
     const linha = page.locator('tr[data-fonte]').filter({ hasText: 'Comunicado Programa X' });
     await expect(linha).toContainText('Inativa');
     await expect(linha).toContainText('Pendentes');
 
-    await page.getByRole('button', { name: 'Ativar: Comunicado Programa X' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Ativar: Comunicado Programa X' }));
     await erro(page, /termos/i);
-    await page.getByRole('button', { name: 'Marcar termos revisados: Comunicado Programa X' }).click();
-    await page.getByRole('button', { name: 'Ativar: Comunicado Programa X' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Marcar termos revisados: Comunicado Programa X' }));
+    await enviar(page, page.getByRole('button', { name: 'Ativar: Comunicado Programa X' }));
     await expect(page.locator('tr[data-fonte]').filter({ hasText: 'Comunicado Programa X' })).toContainText('Ativa');
 
     await page.getByRole('link', { name: 'Comunicado Programa X' }).click();
     await expect(page.locator('[data-vazio="evidencias"]')).toBeVisible();
     await page.getByLabel('URL da página').fill('https://exemplo.com.br/imprensa/regra-nova');
     await page.getByLabel('Texto capturado').fill('Texto oficial capturado da página de imprensa.');
-    await page.getByRole('button', { name: 'Registrar evidência' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Registrar evidência' }));
     await sucesso(page, 'Evidência registrada.');
     await expect(page.getByRole('row', { name: /regra-nova/ })).toContainText('…');
   });
@@ -80,7 +80,7 @@ test.describe('CMS editorial (/api/materias)', () => {
   test('a API valida o formulário e o editor mostra o erro por campo', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/cms/nova');
-    await page.getByRole('button', { name: 'Criar rascunho' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Criar rascunho' }));
     await expect(page.getByRole('alert').filter({ hasText: /Entrada inválida|titulo/i }).first()).toBeVisible();
   });
 
@@ -92,10 +92,10 @@ test.describe('CMS editorial (/api/materias)', () => {
     await expect(page.locator('.ln-pill', { hasText: 'Rascunho' }).first()).toBeVisible();
 
     await page.getByLabel('Corpo da matéria').fill('Texto revisado pela redação, versão dois.');
-    await page.getByRole('button', { name: 'Salvar como nova versão' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Salvar como nova versão' }));
     await expect(page.getByText('Nova versão v2 salva.')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Enviar para checagem' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Enviar para checagem' }));
     await sucesso(page, 'Enviada para checagem.');
     await expect(page.locator('.ln-pill', { hasText: 'Em checagem' }).first()).toBeVisible();
     await expect(page.getByText('Só rascunho e bloqueado são editáveis')).toBeVisible();
@@ -104,7 +104,7 @@ test.describe('CMS editorial (/api/materias)', () => {
 
     // matéria sem fontes não vai à checagem (regra do Backend)
     await criarMateria(page, 'Matéria sem fonte para teste', { evidencia: false });
-    await page.getByRole('button', { name: 'Enviar para checagem' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Enviar para checagem' }));
     await erro(page, /sem fontes/i);
   });
 
@@ -112,14 +112,14 @@ test.describe('CMS editorial (/api/materias)', () => {
     await entrar(context, 'rui', 'revisor');
     await page.goto('/studio/cms?status=em_checagem');
     await page.getByRole('link', { name: TITULO }).click();
-    await page.getByRole('button', { name: 'Emitir recibo da versão' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Emitir recibo da versão' }));
     await erro(page, 'Marque ao menos uma checagem aprovada.');
     await page.getByLabel('editor', { exact: true }).check();
     await page.getByLabel('direitos', { exact: true }).check();
-    await page.getByRole('button', { name: 'Emitir recibo da versão' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Emitir recibo da versão' }));
     await sucesso(page, 'Recibo da versão emitido.');
     await expect(page.getByText(/Recibo da v2: .*(direitos|editor).*(direitos|editor)/)).toBeVisible();
-    await page.getByRole('button', { name: 'Aprovar v2' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Aprovar v2' }));
     await sucesso(page, 'Matéria aprovada.');
     await expect(page.locator('.ln-pill', { hasText: 'Aprovado' }).first()).toBeVisible();
     const hist = page.locator('aside').getByText(/em_checagem → aprovado/);
@@ -131,22 +131,22 @@ test.describe('CMS editorial (/api/materias)', () => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/cms?status=aprovado');
     await page.getByRole('link', { name: TITULO }).click();
-    await page.getByRole('button', { name: 'Voltar a rascunho' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Voltar a rascunho' }));
     await sucesso(page, 'Matéria voltou a rascunho.');
     await page.getByLabel('Corpo da matéria').fill('Texto da versão três após a aprovação.');
-    await page.getByRole('button', { name: 'Salvar como nova versão' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Salvar como nova versão' }));
     await expect(page.getByText('Nova versão v3 salva.')).toBeVisible();
 
     await criarMateria(page, TITULO2);
-    await page.getByRole('button', { name: 'Enviar para checagem' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Enviar para checagem' }));
     await sucesso(page, 'Enviada para checagem.');
     await entrar(context, 'rui', 'revisor');
     await page.goto('/studio/cms?status=em_checagem');
     await page.getByRole('link', { name: TITULO2 }).click();
-    await page.getByRole('button', { name: 'Bloquear' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Bloquear' }));
     await erro(page, /nota|motivo/i);
     await page.getByLabel('Motivo do bloqueio').fill('Fonte não confirma o número');
-    await page.getByRole('button', { name: 'Bloquear' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Bloquear' }));
     await sucesso(page, 'Matéria bloqueada.');
     await expect(page.locator('.ln-pill', { hasText: 'Bloqueado' }).first()).toBeVisible();
     await expect(page.getByText(/Fonte não confirma o número/)).toBeVisible();
@@ -161,7 +161,7 @@ test.describe('CMS editorial (/api/materias)', () => {
     await expect(page.getByRole('heading', { name: 'Nenhuma matéria com esses filtros' })).toBeVisible();
     await page.goto('/studio/cms');
     await page.getByLabel('Buscar no título').fill('alfa');
-    await page.getByRole('button', { name: 'Filtrar' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Filtrar' }));
     await expect(page.getByRole('link', { name: TITULO })).toBeVisible();
     await expect(page.getByRole('link', { name: TITULO2 })).toHaveCount(0);
     await page.goto('/studio/cms?status=inexistente');
@@ -186,20 +186,20 @@ test.describe('Social dashboard gerando pacote de matéria real (/api/studio/soc
     await page.goto('/studio/cms');
     await page.getByRole('link', { name: TITULO2 }).click();
     // aprova a matéria 2 para torná-la elegível: volta a rascunho, envia, recibo e aprovação
-    await page.getByRole('button', { name: 'Voltar a rascunho' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Voltar a rascunho' }));
     await sucesso(page, 'voltou a rascunho');
-    await page.getByRole('button', { name: 'Enviar para checagem' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Enviar para checagem' }));
     await sucesso(page, 'Enviada para checagem.');
     await page.getByLabel('editor', { exact: true }).check();
-    await page.getByRole('button', { name: 'Emitir recibo da versão' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Emitir recibo da versão' }));
     await sucesso(page, 'Recibo da versão emitido.');
-    await page.getByRole('button', { name: /^Aprovar v/ }).click();
+    await enviar(page, page.getByRole('button', { name: /^Aprovar v/ }));
     await sucesso(page, 'Matéria aprovada.');
 
     await page.goto('/studio/social');
     await expect(page.getByText('Nenhum pacote social gerado ainda.')).toBeVisible();
     await page.getByLabel('Matéria aprovada').selectOption({ label: TITULO2 });
-    await page.getByRole('button', { name: 'Gerar pacote' }).click();
+    await enviar(page, page.getByRole('button', { name: 'Gerar pacote' }));
     await sucesso(page, 'Pacote gerado');
     const linha = page.locator('tr[data-package]').first();
     await expect(linha).toBeVisible();
@@ -208,5 +208,45 @@ test.describe('Social dashboard gerando pacote de matéria real (/api/studio/soc
     await linha.getByRole('link').click();
     await expect(page.getByRole('button', { name: 'Pedir publicação simulada' })).toHaveCount(0); // só pacote "gerado" pode ser pedido
     await expect(page.getByRole('button', { name: /publicar/i }).filter({ hasNotText: 'simulada' })).toHaveCount(0);
+  });
+});
+
+test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:id/publication)', () => {
+  test('desligada por flag: botão desabilitado com a razão; chefia vê o formulário, outros papéis não', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor_chefe');
+    await page.goto('/studio/cms?status=aprovado');
+    await page.getByRole('link', { name: TITULO2 }).click();
+    await expect(page.getByRole('heading', { name: 'Publicação' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
+    await expect(page.getByText('Publicação desligada neste ambiente (flag publicacaoPortal).')).toBeVisible();
+    await expect(page.getByLabel('URL pública da matéria')).toBeVisible();
+    // a transição genérica não publica nem corrige: a tela não oferece "corrigido"
+    await expect(page.getByRole('button', { name: /corrigido|Corrigir/i })).toHaveCount(0);
+
+    await entrar(context, 'rui', 'revisor');
+    await page.goto('/studio/cms?status=aprovado');
+    await page.getByRole('link', { name: TITULO2 }).click();
+    await expect(page.getByLabel('URL pública da matéria')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
+  });
+
+  test('ligada: o Backend recusa URL inválida e a recusa aparece como veio', async ({ page, context }) => {
+    await definirFlag(context, 'publicacaoPortal', true);
+    try {
+      await entrar(context, 'ana', 'editor_chefe');
+      await page.goto('/studio/cms?status=aprovado');
+      await page.getByRole('link', { name: TITULO2 }).click();
+      await expect(page.getByRole('button', { name: 'Publicar' })).toBeEnabled();
+      await expect(page.getByText('Publicação desligada neste ambiente')).toHaveCount(0);
+
+      await page.getByLabel('URL pública da matéria').fill('ftp://exemplo.com/materia');
+      await enviar(page, page.getByRole('button', { name: 'Publicar' }));
+      await erro(page, /http/i);
+
+      // a publicação que dá certo (matéria só do CMS, rota oficial) é testada em studio-z-correcao-cms.spec.ts, que roda por último
+      await expect(page.locator('[data-publicado]')).toHaveCount(0);
+    } finally {
+      await definirFlag(context, 'publicacaoPortal', false);
+    }
   });
 });

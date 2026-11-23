@@ -20,6 +20,7 @@ export function mockWebRoles(): MockFetcher {
 export function rolesDraftOutput(evidenceId: string, extraSentence = '') {
   return {
     headline: 'MOCK: Alfa muda a diretoria',
+    resumo: 'Empresa fictícia muda a diretoria com uma nomeação e uma saída.',
     body:
       'Maria Teste foi nomeada diretora de Marketing da Empresa Fictícia Alfa, com início em 1º de dezembro de 2026. ' +
       'João Exemplo sai do cargo de diretor comercial na Empresa Fictícia Alfa. ' +

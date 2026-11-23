@@ -42,7 +42,7 @@ export function sampleArticle(id: string, over: Partial<ArticleRecord> = {}): Ar
   return {
     articleId: id, editoria: 'pontos', status: 'em_checagem',
     draft: {
-      id: `${id}:d0`, editoria: 'pontos', headline: 'MOCK: título com acentuação, “aspas” e emoji 🚀', body: 'Corpo MOCK.\n\nFontes:\n- MOCK: https://ri.mock.example/a (acessado em 2026-11-23)',
+      id: `${id}:d0`, editoria: 'pontos', slug: `materia-${id}`, resumo: 'Resumo MOCK', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, headline: 'MOCK: título com acentuação, “aspas” e emoji 🚀', body: 'Corpo MOCK.\n\nFontes:\n- MOCK: https://ri.mock.example/a (acessado em 2026-11-23)',
       claims: [{ id: 'c1', kind: 'fact', text: 'afirmação MOCK', evidenceIds: ['ev_1'] }, { id: 'c2', kind: 'quote', text: 'fala', evidenceIds: ['ev_1'], quote: { text: 'texto literal', speaker: 'Pessoa MOCK' } }],
       evidenceIds: ['ev_1'], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem base de direito' }, modelProvider: 'deepseek', promptVersion: 'editorial-0.1',
     },
@@ -64,7 +64,7 @@ export function sampleSourceState(id: string, over: Partial<SourceState> = {}): 
   return { sourceId: id, enabled: false, termsStatus: 'pending', urlVerified: false, paywall: 'unknown', review: null, updatedAt: '2026-11-23T12:00:00.000Z', updatedBy: 'u1', ...over };
 }
 
-export function sampleCommit(id: string, over: { receiptId?: string } = {}): PublicationCommit {
+export function sampleCommit(id: string, over: { receiptId?: string; withCorrection?: boolean } = {}): PublicationCommit {
   const publishedAt = '2026-11-24T13:00:00.000Z';
   const article = sampleArticle(id, {
     status: 'publicado', updatedAt: publishedAt,
@@ -74,6 +74,7 @@ export function sampleCommit(id: string, over: { receiptId?: string } = {}): Pub
     article,
     audit: { at: publishedAt, userId: null, action: 'article.published', target: id, detail: `recibo ${over.receiptId ?? 'rcpt-1'}` },
     outbox: { queue: 'intelligence-ingest', refId: id, idempotencyKey: `article.published:${id}:${'b'.repeat(64)}` },
+    ...(over.withCorrection ? { correction: sampleCorrection(`k-${id}`, id) } : {}),
   };
 }
 
@@ -233,11 +234,37 @@ export const EDITORIAL_STORE_CONTRACT: ContractCase[] = [
       await assert.rejects(s.commitPublication(sampleCommit('f1')), /falha injetada|injected/i);
       await assertNothingCommitted(s, 'f1');
     }
+    for (const step of ['after_article', 'after_audit', 'after_outbox'] as const) {
+      h.armFault(step);
+      await assert.rejects(s.commitPublication(sampleCommit('f2', { withCorrection: true })), /falha injetada|injected/i);
+      assert.equal(await s.getCorrection('k-f2'), undefined, `${step}: o caso de correção também não pode ficar gravado`);
+      assert.equal(await s.getArticle('f2'), undefined);
+    }
     h.armFault(null);
     assert.deepEqual(await s.commitPublication(sampleCommit('f1')), { outbox: 'enqueued' });
     assert.equal((await s.listAudit()).length, 1);
     assert.equal((await s.listOutbox()).length, 1);
     assert.equal((await s.getArticle('f1'))?.status, 'publicado');
+  }) },
+  { name: 'publicação atômica: matéria corrigida + caso de correção + auditoria + outbox no MESMO commit (status corrigido aceito)', run: (f) => withStore(f, async (s) => {
+    const c = sampleCommit('cor1', { withCorrection: true });
+    c.article.status = 'corrigido';
+    c.audit.action = 'article.corrected';
+    c.outbox = { queue: 'article-corrected', refId: 'cor1', idempotencyKey: `article.corrected:cor1:${'c'.repeat(64)}` };
+    assert.deepEqual(await s.commitPublication(c), { outbox: 'enqueued' });
+    assert.deepEqual(await s.getArticle('cor1'), json(c.article));
+    assert.deepEqual(await s.getCorrection('k-cor1'), json(c.correction));
+    assert.deepEqual(await s.listOutbox(), [c.outbox]);
+    assert.equal((await s.listAudit()).length, 1);
+    // repetição: idempotente, sem tocar no caso nem duplicar nada
+    assert.deepEqual(await s.commitPublication(c), { outbox: 'duplicate' });
+    assert.equal((await s.listAudit()).length, 1);
+    // caso inválido rejeita sem efeito
+    const bad = sampleCommit('cor2', { withCorrection: true });
+    bad.correction!.case.id = '';
+    await assert.rejects(s.commitPublication(bad));
+    assert.equal(await s.getArticle('cor2'), undefined);
+    assert.equal((await s.listOutbox()).length, 1);
   }) },
   { name: 'handlers sobre a loja: fila e visão de revisão leem o que foi gravado', run: (f) => withStore(f, async (s) => {
     await s.putArticle(sampleArticle('h1', { status: 'bloqueado', blockers: ['duplicate'] }));

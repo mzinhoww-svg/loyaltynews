@@ -15,9 +15,9 @@ const ID_RE = /^[A-Za-z0-9_.-]{1,128}$/;
 
 /**
  * Nomes de fila gravados por outros módulos que se mapeiam para uma fila BullMQ do ADR-002.
- * `intelligence-ingest` (publicação → Intelligence) roda na fila `entidades`.
+ * `intelligence-ingest` (publicação → Intelligence) e `article-corrected` (correção publicada: ADR-019 §c.5) rodam na fila `entidades`.
  */
-export const QUEUE_ALIASES: Readonly<Record<string, QueueName>> = { 'intelligence-ingest': 'entidades' };
+export const QUEUE_ALIASES: Readonly<Record<string, QueueName>> = { 'intelligence-ingest': 'entidades', 'article-corrected': 'entidades' };
 
 /** Fila BullMQ para o nome gravado no outbox, ou null se desconhecido. */
 export function resolveQueue(name: string): QueueName | null {
