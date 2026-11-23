@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { isEnabled } from '@ln/contracts';
+import { KpiCard } from '@ln/ui';
 import { GRUPOS, visibleModules } from '@/lib/studio/modules';
 import { getCmsService, STATUS_LABEL } from '@/lib/studio/cms/articles';
 import { requireStudio } from '../_lib/guard';
@@ -21,10 +22,7 @@ export default async function StudioHome() {
       <h2>Fila editorial</h2>
       <div className="st-grid" aria-label="Contagem da fila editorial">
         {porStatus.map(({ s, n }) => (
-          <div className="st-card" key={s}>
-            <p className="st-hint">{STATUS_LABEL[s]}</p>
-            <p className="st-stat">{n}</p>
-          </div>
+          <KpiCard key={s} label={STATUS_LABEL[s]} value={n} source="CMS do Studio (armazenamento temporário)" period="estado atual" headingLevel={3} />
         ))}
       </div>
       <p className="st-hint">Armazenamento temporário do CMS (sem backend): os dados somem ao reiniciar o servidor. Audiência, receita e custos: não disponível.</p>

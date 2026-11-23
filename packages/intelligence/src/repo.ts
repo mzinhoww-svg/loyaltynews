@@ -195,10 +195,10 @@ export async function addOrgChartEdge(
 /** Organograma de uma organização numa data, com rótulo de certeza. Inferidas só se solicitado (e sempre rotuladas). */
 export async function getOrgChart(db: Db, organizationId: Uuid, asOf: string, opts: { includeInferred?: boolean } = {}) {
   const r = await db.query<{
-    superior_name: string; superior_title: string; subordinate_name: string; subordinate_title: string;
-    certainty: Certainty; display_label: string; evidence_id: Uuid; validated_at: string; observed_at: string;
+    id: Uuid; superior_person_id: Uuid; superior_name: string; superior_title: string; subordinate_person_id: Uuid; subordinate_name: string; subordinate_title: string;
+    certainty: Certainty; display_label: string; inference_basis: string | null; evidence_id: Uuid; validated_at: string; observed_at: string;
   }>(
-    `SELECT superior_name, superior_title, subordinate_name, subordinate_title, certainty, display_label, evidence_id, observed_at, validated_at
+    `SELECT id, superior_person_id, superior_name, superior_title, subordinate_person_id, subordinate_name, subordinate_title, certainty, display_label, inference_basis, evidence_id, observed_at, validated_at
        FROM ${S}.org_chart_view
       WHERE organization_id = $1 AND valid_from <= $2 AND (valid_to IS NULL OR valid_to > $2)
         AND ($3 OR certainty = 'declared')

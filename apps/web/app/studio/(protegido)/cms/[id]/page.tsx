@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { checkAccess } from '@/lib/studio/modules';
-import { checkVersion, currentVersion, editoriaNome, getCmsService, STATUS_LABEL } from '@/lib/studio/cms/articles';
+import { checkVersion, currentVersion, editoriaNome, getCmsService } from '@/lib/studio/cms/articles';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
+import { StatusArtigo } from '../../../_components/StatusArtigo';
 import { requireStudio } from '../../../_lib/guard';
 import { ArticleForm } from '../ArticleForm';
 import { approveAction, blockAction, reopenAction, submitReviewAction } from '../actions';
@@ -35,7 +36,7 @@ export default async function Materia({
       </p>
       <h1>{v.titulo}</h1>
       <p>
-        <span className={`st-badge ${rec.status}`}>{STATUS_LABEL[rec.status]}</span> · v{v.numero} · {editoriaNome(v.editoria)} · assinatura {rec.assinatura}
+        <StatusArtigo status={rec.status} /> · v{v.numero} · {editoriaNome(v.editoria)} · assinatura {rec.assinatura}
       </p>
       {aviso ? (
         <div className={`st-alert ${tipo === 'err' ? 'err' : 'ok'}`} role={tipo === 'err' ? 'alert' : 'status'}>
