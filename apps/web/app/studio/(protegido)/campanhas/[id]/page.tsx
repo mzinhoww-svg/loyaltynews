@@ -11,7 +11,7 @@ import { transicaoAction } from '../actions';
 import type { CampaignReport } from '@ln/commercial';
 import { Relatorio } from './_components/Relatorio';
 import { PosicoesCriativos, type CriativoLinha, type ReservaLinha } from './_components/PosicoesCriativos';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 
 export const metadata: Metadata = { title: 'Campanha' };
 export const dynamic = 'force-dynamic';
@@ -75,7 +75,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
           <p className="st-hint">
             Visitas por UTM: {d.report.utmVisits === null ? 'não disponível (sem analytics)' : d.report.utmVisits}
           </p>
-          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={isEnabled('adServerVendas')} />
+          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={flagAtiva('adServerVendas')} />
         </div>
         <aside>
           <div className="st-card">
