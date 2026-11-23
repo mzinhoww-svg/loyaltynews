@@ -478,3 +478,24 @@ test('migrate: produção exige --confirm-production e vínculo; --first-run-emp
   assert.notEqual(errado.status, 0);
   assert.match(errado.stderr, /não corresponde a --env production/);
 });
+
+test('check-conexoes: redisTlsFromEnv exige rediss://, as 3 variáveis PEM e devolve o servername; sem env recusa', async () => {
+  const { redisTlsFromEnv } = await import('../scripts/check-conexoes.mjs');
+  const pem = '-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----\n';
+  const env = { REDIS_URL: 'rediss://vertracloud:senha@abc.db.usa1.vertraweb.app:12345', REDIS_SSL_CA_PEM: pem, REDIS_SSL_CERT_PEM: pem, REDIS_SSL_KEY_PEM: pem };
+  const ok = redisTlsFromEnv(env);
+  assert.equal(ok.host, 'abc.db.usa1.vertraweb.app');
+  assert.equal(ok.tls.servername, 'abc.db.usa1.vertraweb.app');
+  assert.equal(ok.tls.rejectUnauthorized, true);
+  assert.throws(() => redisTlsFromEnv({ ...env, REDIS_URL: 'redis://x:y@h:1' }), /rediss/);
+  assert.throws(() => redisTlsFromEnv({ ...env, REDIS_SSL_KEY_PEM: undefined }), /ausentes: REDIS_SSL_KEY_PEM/);
+  assert.throws(() => redisTlsFromEnv({ ...env, REDIS_SSL_CA_PEM: 'texto' }), /não parece PEM/);
+});
+
+test('check-conexoes: sem --env recusa (código 2) e sem vínculo em bindings.json o postgres falha fechado sem imprimir segredo', () => {
+  assert.equal(node('check-conexoes.mjs', []).status, 2);
+  const x = node('check-conexoes.mjs', ['--env', 'staging', '--pg'], { env: { ...cleanEnv(), DATABASE_URL: 'postgres://vertracloud:SEGREDO123@abc.db.usa1.vertraweb.app:1/vertracloud', DB_SSL_CA_PEM: 'x', DB_SSL_CERT_PEM: 'x', DB_SSL_KEY_PEM: 'x' } });
+  assert.equal(x.status, 1);
+  assert.match(x.stdout, /postgres FALHOU/);
+  assert.doesNotMatch(x.stdout + x.stderr, /SEGREDO123/);
+});
