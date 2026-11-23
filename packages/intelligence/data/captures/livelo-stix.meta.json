@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "livelo-stix",
+  "url": "https://www.livelo.com.br/trocar-pontos/parceiros/stix",
+  "finalUrl": "https://www.livelo.com.br/trocar-pontos/parceiros/stix",
+  "capturedAt": "2026-11-23T16:49:02.833Z",
+  "robots": "robots.txt permite",
+  "length": 9418,
+  "sha256Claimed": "d2c4a05166570bf0e9b0550f2467d184116e46b1ba91b87c9a93aa93f5acf5cb"
+}

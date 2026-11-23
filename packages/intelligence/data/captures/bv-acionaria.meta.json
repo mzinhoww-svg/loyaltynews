@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "bv-acionaria",
+  "url": "https://ri.bv.com.br/governanca-corporativa/composicao-acionaria/",
+  "finalUrl": "https://ri.bv.com.br/governanca-corporativa/composicao-acionaria/",
+  "capturedAt": "2026-11-23T16:46:10.338Z",
+  "robots": "robots.txt permite",
+  "length": 2023,
+  "sha256Claimed": "18f89dcbdd8d85c4ef404db8a9dcfe96c8bc32576fc73b731267e56b6c7d1cc8"
+}

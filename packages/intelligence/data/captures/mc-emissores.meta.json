@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "mc-emissores",
+  "url": "https://www.mastercard.com/br/pt/personal/find-a-card/emissores-parceiros.html",
+  "finalUrl": "https://www.mastercard.com/br/pt/personal/find-a-card/emissores-parceiros.html",
+  "capturedAt": "2026-11-23T16:49:09.748Z",
+  "robots": "robots.txt permite",
+  "length": 27232,
+  "sha256Claimed": "3f2a7bbf04c082b4ed93a40ab3b489d5b5c237b256ece911853d6e2a309b29be"
+}
