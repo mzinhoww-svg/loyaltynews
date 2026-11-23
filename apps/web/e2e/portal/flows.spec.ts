@@ -222,7 +222,7 @@ test.describe('conteúdo MOCK', () => {
 
   test('foto com crédito não leva rótulo de ilustração; matéria sem imagem não quebra', async ({ page }) => {
     await page.goto('/noticia/mock-programas-1');
-    await expect(page.getByTestId('article-image').locator('figcaption')).toContainText('Crédito: Fotógrafo de teste (MOCK)');
+    await expect(page.getByTestId('article-image').locator('figcaption')).toContainText('Crédito: Template de teste (MOCK)');
     await expect(page.getByTestId('image-label')).toHaveCount(0);
     await page.goto('/noticia/mock-mercado-2');
     await expect(page.getByTestId('article-image')).toHaveCount(0);
