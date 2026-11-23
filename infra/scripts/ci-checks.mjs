@@ -34,7 +34,7 @@ for (const f of all) {
   const r = rel(f);
   const isLock = /(^|\/)package-lock\.json$/.test(r);
   const isDep = /(^|\/)package\.json$/.test(r);
-  const isIac = r.startsWith('infra/vertra/') || r.startsWith('.github/workflows/');
+  const isIac = r.startsWith('infra/vertra/') || r.startsWith('infra/github-workflows/') || r.startsWith('.github/workflows/');
   if (!isDep && !isIac && !isLock) continue;
   const txt = readFileSync(f, 'utf8');
   if (isLock) {
@@ -87,7 +87,7 @@ for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy) })) pr
 for (const f of all) {
   const r = rel(f);
   if (r.startsWith('infra/tests/') || r === 'infra/scripts/lib/guards.mjs') continue; // fixtures e definições dos próprios padrões
-  const isDeployCfg = r.startsWith('infra/vertra/') || r.startsWith('.github/workflows/') || /(^|\/)next\.config\.[cm]?[jt]s$/.test(r) || /(^|\/)Dockerfile/.test(r);
+  const isDeployCfg = r.startsWith('infra/vertra/') || r.startsWith('infra/github-workflows/') || r.startsWith('.github/workflows/') || /(^|\/)next\.config\.[cm]?[jt]s$/.test(r) || /(^|\/)Dockerfile/.test(r);
   const isPkg = /(^|\/)package\.json$/.test(r);
   if (!isDeployCfg && !isPkg) continue;
   const txt = readFileSync(f, 'utf8');

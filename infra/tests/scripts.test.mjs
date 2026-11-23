@@ -255,12 +255,12 @@ test('verify-migrations: journal vs aplicadas (CI não pode ficar verde sem migr
 
 test('ci.yml: migrations sem --if-present, com verify-migrations e travado por LN_ACTIONS_ENABLED', async () => {
   const { readFileSync } = await import('node:fs');
-  const y = readFileSync(join(S, '..', '..', '.github', 'workflows', 'ci.yml'), 'utf8');
+  const y = readFileSync(join(S, '..', 'github-workflows', 'ci.yml'), 'utf8');
   assert.match(y, /npm run migrate -w @ln\/db\s*$/m);
   assert.doesNotMatch(y, /run:.*--if-present/);
   assert.match(y, /verify-migrations\.mjs/);
   assert.equal((y.match(/vars\.LN_ACTIONS_ENABLED == 'true'/g) || []).length, 2, 'os dois jobs precisam da trava');
-  const b = readFileSync(join(S, '..', '..', '.github', 'workflows', 'backup.yml'), 'utf8');
+  const b = readFileSync(join(S, '..', 'github-workflows', 'backup.yml'), 'utf8');
   assert.match(b, /vars\.LN_ACTIONS_ENABLED == 'true'/);
 });
 

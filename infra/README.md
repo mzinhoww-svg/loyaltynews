@@ -15,7 +15,7 @@ Preparado em 22/11/2026 no fast-track. **Nada foi aplicado na Vertra nem no GitH
 | `vertra/bindings.json` | vínculo ambiente -> banco (host/nome, não secretos): migração e backup recusam sem ele |
 | `scripts/` | `build.mjs`, `test.mjs`, `migrate.mjs`, `ci-checks.mjs`, `backup-pg.mjs`, `restore-check.mjs`, `backup-freshness.mjs`, `healthcheck.mjs`, `guard-env.mjs`, `verify-migrations.mjs`, `package-web.mjs`, `ensaio-pacote.mjs`, `integracao.mjs` (Node ≥ 24, sem dependências) |
 | `tests/` | testes `node:test` dos scripts |
-| `../.github/workflows/` | `ci.yml` e `backup.yml` (preparados, **inativos**; ações fixadas por SHA) |
+| `github-workflows/` | `ci.yml` e `backup.yml` como **modelos** (inativos; ações fixadas por SHA). Ficam fora de `.github/`, que é caminho protegido do verificador (`trust.json`); ativar = copiar para `.github/workflows/` por mudança protegida |
 
 Testes: `node --test infra/tests/` (22 testes; usam chave GPG descartável e dump simulado; **não** há PostgreSQL real). Tudo junto: `node infra/scripts/test.mjs` (ci-checks + testes de infra + `npm test`). Verificações de CI: `node infra/scripts/ci-checks.mjs` (ADR-001: zero supabase/vercel/pgvector em dependências instaladas e IaC; `CREATE EXTENSION` só da lista *trusted*; guarda básica de segredos).
 Ensaio local no scaffold (`ft/scaffold` 78a271c): `npm install`, `npm run lint`, `typecheck`, `test`, `npm run build -w apps/web` e `npx next start apps/web` + `healthcheck.mjs` passaram. **Nada rodou na Vertra.**
