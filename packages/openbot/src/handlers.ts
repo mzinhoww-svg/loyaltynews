@@ -4,7 +4,7 @@ import { budgetStatus, isApiLane, MONTHLY_CAP_MICRO, validateUsage, type CostLed
 import { evaluateHealth, type HealthStore, type OpenBotHealth } from './health';
 import { LeaseError, type LeaseQueue } from './lease-queue';
 import {
-  DP41_ACCOUNTS, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
+  awaitingEditorialGate, DP41_ACCOUNTS, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
 } from './pilot';
 import { verifySignature } from './signing';
 import {
@@ -139,7 +139,7 @@ async function pilotBlock(deps: OpenBotDeps): Promise<HandlerResult<never> | nul
   if (!p?.enabled) return null;
   const st = await p.state.get();
   if (st) return fail(503, 'PILOT_STOPPED', 'piloto em parada imediata', st.reasons);
-  const gate = p.gate(await p.rows.all());
+  const gate = p.gate((await p.rows.all()).filter((r) => !awaitingEditorialGate(r)));
   if (!gate.allowed) {
     for (const r of gate.reasons) await p.state.stop(`${STOP.gate}: ${r}`, deps.now().toISOString());
     return fail(503, 'PILOT_STOPPED', 'o canDispatchNext recusou: piloto parado', gate.reasons);

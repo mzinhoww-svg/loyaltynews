@@ -2,7 +2,7 @@ import { beforeEach, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 import type { ApiError } from '@ln/contracts';
 import {
-  adapterReport, DP41_ACCOUNTS, dispatchTask, getOpenBotStatus, handleCallback, handlePull, InMemoryCallbackStore, InMemoryCostLedger, InMemoryHealthStore,
+  adapterReport, awaitingEditorialGate, DP41_ACCOUNTS, dispatchTask, getOpenBotStatus, handleCallback, handlePull, InMemoryCallbackStore, InMemoryCostLedger, InMemoryHealthStore,
   InMemoryLeaseQueue, InMemoryPilotRowStore, InMemoryPilotState, OpenBotModelGateway, OPENBOT_PERMISSIONS, PILOT_CSV_COLUMNS, PILOT_PERMISSIONS, pilotCsv, redactText,
   resumePilot, signBody, STOP, type CallbackResult, type Caller, type OpenBotDeps, type PilotGate, type PilotRow, type PullResult, type SignedRequest,
 } from '../index';
@@ -385,5 +385,46 @@ describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do pilo
     const [byCodex, byClaude, byAntigravity] = [await claimed('codex'), await claimed('claude'), await claimed('antigravity')];
     assert.deepEqual([byCodex.map((t) => t.kind), byClaude.map((t) => t.kind), byAntigravity], [['fact_check'], ['classification'], []]);
     assert.deepEqual([(await deps.queue.get(byCodex[0]!.id))?.route, (await deps.queue.get(byClaude[0]!.id))?.route], [['codex'], ['claude']]);
+  });
+});
+
+describe('linha concluída que ainda espera o veredito da Editorial não para o piloto', () => {
+  // gate com a regra REAL do AgentOps (validatePilotRow): checagem/revisão concluída exige gate_verdict e reviewed_draft_task_id
+  const strictGate: PilotGate = (rows) => {
+    const reasons = rows.flatMap((r, i) => (['factcheck', 'review', 'check_edit'].includes(r.stage) && r.outcome === 'completed' && !r.gate_verdict ? [`linha ${i + 1} inválida: ${r.stage} concluído exige gate_verdict`] : []));
+    return { allowed: reasons.length === 0, reasons };
+  };
+
+  test('o callback da checagem grava a linha sem veredito; o pull e o despacho seguintes continuam (nada de parada); depois do patch a linha entra no gate', async () => {
+    gateImpl = strictGate;
+    await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-1' });
+    const a = (await pull('codex'))!;
+    const r = ok<CallbackResult>(await callback(a, {
+      outcome: 'completed', resultRef: `res-${a.id}-a1`, usage: free(a, 'codex', 'gpt-5.1-codex'),
+      trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', promptVersion: 'editorial-0.3', outputValid: true }),
+    }));
+    assert.equal(r.pilotStopped, undefined);
+    const [row] = await rows.all();
+    assert.equal(awaitingEditorialGate(row!), true, 'a linha espera o veredito');
+    assert.equal(await state.get(), null);
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-2' })); // o despacho seguinte NÃO é bloqueado
+    assert.equal(await state.get(), null);
+    await rows.patch(row!.task_id, row!.attempt, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true, unsupported_facts: 0 });
+    assert.equal(awaitingEditorialGate((await rows.all())[0]!), false);
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-3' })); // linha completa e válida: segue
+  });
+
+  test('a espera NÃO esconde paradas: segredo no texto da mesma linha para o piloto no callback, e linha de triagem concluída nunca "espera"', async () => {
+    gateImpl = strictGate;
+    assert.equal(awaitingEditorialGate({ stage: 'triage', outcome: 'completed', gate_verdict: undefined }), false);
+    assert.equal(awaitingEditorialGate({ stage: 'review', outcome: 'failed', gate_verdict: undefined }), false);
+    await dispatch({ kind: 'fact_check', idempotencyKey: 'fc-9' });
+    const a = (await pull('codex'))!;
+    const r = ok<CallbackResult>(await callback(a, {
+      outcome: 'completed', resultRef: `res-${a.id}-a1`, usage: free(a, 'codex', 'gpt-5.1-codex'),
+      trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', notes: `chave ${'sk-' + 'A'.repeat(32)}` }),
+    }));
+    assert.deepEqual(r.pilotStopped, [STOP.secret]);
+    assert.equal((await handlePull(deps, signed({ workerId: 'w', account: 'codex' }))).status, 503);
   });
 });

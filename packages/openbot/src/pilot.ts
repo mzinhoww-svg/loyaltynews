@@ -113,6 +113,19 @@ export interface PilotControl {
   gate: PilotGate;
 }
 
+/** Etapas de independência: a linha só fica completa quando a Editorial grava `gate_verdict` (por `patch`), depois do callback. */
+export const INDEPENDENT_STAGES: readonly string[] = ['factcheck', 'review', 'check_edit'];
+
+/**
+ * Linha concluída de uma etapa de independência que ainda NÃO recebeu o veredito do gate da Editorial. O `canDispatchNext` do AgentOps
+ * a considera inválida (`gate_verdict` obrigatório), o que PARARIA o piloto no intervalo entre o callback e o `patch`. Por isso ela não
+ * entra na consulta do gate: as paradas imediatas já foram registradas pelo próprio adaptador no callback, e a linha continua na
+ * planilha, pendente, até a Editorial completá-la (a avaliação final do piloto exige todas completas).
+ */
+export function awaitingEditorialGate(r: Pick<PilotRow, 'stage' | 'outcome' | 'gate_verdict'>): boolean {
+  return INDEPENDENT_STAGES.includes(r.stage) && r.outcome === 'completed' && r.gate_verdict === undefined;
+}
+
 export const STOP = {
   api: 'api_tarifada',
   publish: 'tentativa_de_publicar',
