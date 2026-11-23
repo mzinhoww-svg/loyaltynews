@@ -11,7 +11,9 @@ import { texto } from '../../_lib/flash';
 
 const BASE = '/studio/watchlists';
 const ESCRITA = ['admin', 'editor_chefe', 'editor'] as const; // entidades:create/update
-const REVISAO = ['admin', 'editor_chefe', 'editor', 'revisor'] as const; // materias:transition
+// Decisão do PM (23/11): o alerta é revisado pelo DONO da lista. Dono só pode ser quem cria lista (admin, editor-chefe, editor);
+// a rota já entrega só os alertas das listas do próprio usuário, então o revisor nunca revisa alerta de outro.
+const REVISAO = ESCRITA;
 
 /** Volta para a lista aberta (se houver) com o aviso; id só de UUID para não montar URL com texto do formulário. */
 function voltar(lista: string, ok: boolean, msg: string): never {

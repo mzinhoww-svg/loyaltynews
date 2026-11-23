@@ -26,14 +26,14 @@ export default async function WatchlistsPage({ searchParams }: { searchParams: P
   const { session } = await requireModule(findModule('watchlists')!);
   const b = await searchParams;
   const podeEscrever = checkAccess(session, ['admin', 'editor_chefe', 'editor']).ok;
-  const podeRevisar = checkAccess(session, ['admin', 'editor_chefe', 'editor', 'revisor']).ok;
+  const podeRevisar = podeEscrever; // revisão do alerta é do dono da lista (decisão do PM); só quem cria lista é dono
   const r = await api.intelligence.watchlists();
   return (
     <>
       <h1>Watchlists</h1>
       <p>
-        Suas listas de empresas e executivos acompanhados. Cada watchlist é só de quem a criou. Todo alerta nasce &quot;pendente de revisão&quot; e nada sai sem
-        revisão humana. Watchlists e alertas existem só no Studio, nunca no portal.
+        Suas listas de empresas e executivos acompanhados. Cada watchlist é só de quem a criou. Todo alerta nasce &quot;pendente de revisão&quot; e só o dono da lista o revisa:
+        nada sai sem revisão humana. Watchlists e alertas existem só no Studio, nunca no portal.
       </p>
       <Flash tipo={b.tipo} aviso={b.aviso} />
       {naoConfigurado(r) ? (

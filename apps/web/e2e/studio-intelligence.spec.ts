@@ -4,7 +4,6 @@ import { entrar } from './helpers';
 const UUID_INEXISTENTE = '11111111-1111-4111-8111-111111111111';
 
 const erro = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.err').filter({ hasText: txt }).first()).toBeVisible();
-const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
 
 test.describe('Entity intelligence (@ln/intelligence)', () => {
   test('entidades: banco temporário declarado, flag desligada, busca sem inventar resultado, fila vazia', async ({ page, context }) => {
