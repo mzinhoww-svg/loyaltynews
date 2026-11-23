@@ -64,7 +64,13 @@ export async function callModel(deps: GatewayDeps, call: GatewayCall): Promise<G
     };
   }
 
-  const decision = route(deps.policy, call);
+  // Parada persistida (global e por rota), lida a cada chamada.
+  const kill = await deps.gate.killState();
+  const decision = route(deps.policy, {
+    ...call,
+    killGlobal: call.killGlobal === true || kill.global,
+    killedRoutes: [...(call.killedRoutes ?? []), ...kill.routes],
+  });
   if (decision.status === 'deterministic') return { status: 'deterministic' };
   if (decision.status === 'blocked') return { status: 'blocked', reason: decision.reason, detail: decision.detail };
 
@@ -106,6 +112,7 @@ export async function callModel(deps: GatewayDeps, call: GatewayCall): Promise<G
       taskId: call.task,
       taskClass: decision.taskClass,
       lane: decision.lane,
+      route: decision.route,
       provider: model.provider,
       model: binding.openrouter_id,
       escalation: isEscalation(id, decision.taskClass),
@@ -151,7 +158,7 @@ export async function callModel(deps: GatewayDeps, call: GatewayCall): Promise<G
     // 4. Conciliação: custo real do provedor. Sem custo informado, a reserva fica como custo (conservador).
     const reportedUsd = response.usage?.cost;
     const costUsd = typeof reportedUsd === 'number' && Number.isFinite(reportedUsd) ? reportedUsd : amountUsd;
-    const commit = await deps.gate.commit(reserve.reservationId, costUsd, call.now);
+    const commit = await deps.gate.commit(reserve.reservationId, costUsd, call.now, response.id);
     if (guard) await guard.settle(amountUsd, costUsd);
 
     // 5. Evidência incompleta: a chamada custou e conta no teto, mas a saída não é aceita.
@@ -201,7 +208,9 @@ export async function callModel(deps: GatewayDeps, call: GatewayCall): Promise<G
 
 // Resultado da consulta de conciliação de uma reserva pendente.
 export type ReconcileProbe = () => Promise<
-  { kind: 'charged'; costUsd: number } | { kind: 'not_charged'; evidence: string } | { kind: 'unknown' }
+  | { kind: 'charged'; costUsd: number; generationId: string }
+  | { kind: 'not_charged'; evidence: string }
+  | { kind: 'unknown' }
 >;
 
 export type ReconcileOutcome = 'committed' | 'released' | 'still_pending' | 'refused';
@@ -220,7 +229,7 @@ export async function reconcilePending(
   const heldUsd = microToUsd(state.reservedMicro);
   const result = await probe();
   if (result.kind === 'charged') {
-    await deps.gate.commit(reservationId, result.costUsd, at);
+    await deps.gate.commit(reservationId, result.costUsd, at, result.generationId);
     if (deps.balance) await deps.balance.settle(heldUsd, result.costUsd);
     return 'committed';
   }

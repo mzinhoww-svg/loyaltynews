@@ -9,6 +9,7 @@
   },
   "types": "./src/index.ts",
   "dependencies": {
-    "@ln/contracts": "0.0.0"
+    "@ln/contracts": "0.0.0",
+    "@ln/db": "0.0.0"
   }
 }

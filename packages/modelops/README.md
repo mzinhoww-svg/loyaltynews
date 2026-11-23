@@ -40,12 +40,12 @@ Testes do pacote: `packages/modelops/src/*.test.ts`. Cobrem a regressão de falh
 ## Não feito neste pacote (fica para R2-07/08 ou para o verificador)
 
 - **Saldo do OpenRouter:** `GET /api/v1/credits` responde à chave comum de API (confirmado pelo PM em 22/11, DP-05 e DP-14). O leitor (`createOpenRouterCreditsReader`) usa essa chave. Pendente: quem constrói o `BalanceGuard` na composição do produto precisa injetar esse leitor; o pacote não faz isso sozinho.
-- Persistência em PostgreSQL: a interface `LedgerStore` existe; a transação com bloqueio de linha ainda não. A exclusão mútua atual vale só dentro de um processo.
+- Persistência: `PostgresLedgerStore` (`budget-pg.ts`) grava nas tabelas de orçamento de `@ln/db` (migração `0005_budget_pendente_killswitch.sql`, gerada a partir do schema e pendente de revisão do arquiteto no merge). Cada operação roda numa transação com `pg_advisory_xact_lock`, então processos diferentes não estouram o teto. Testado em PGlite, incluindo restart. A conexão de produção (node-postgres, TLS) não está configurada aqui.
 - Consulta de conciliação real: `reconcilePending` recebe uma sonda. Não há sonda implementada contra `/generation`; para falha incerta sem identificador de geração, a prova de não cobrança ainda não existe.
 - Conciliação mensal com as gerações do OpenRouter (limite proposto de 1%).
 - Evidência completa de geração: o endpoint de chat não traz `generation`; é preciso consultar `/generation`. Sem isso, a saída é bloqueada (falha fechada).
 - Qualificação de modelos: nenhum modelo está qualificado por padrão. ZDR por modelo não verificado.
 - Auditoria (`wf08_correction`, `wf18_response_retraction`, `postpublication_audit`) e `editorial_review` seguem a v5: rota `review`, autor diferente do conteúdo, reserva de 8 só acima de 42. Com redator Anthropic, a revisora é OpenAI. A despublicação é determinística e não passa pelo gateway.
-- Kill switch persistido no banco e acionável sem agente (R2-14).
+- Kill switch: persistido em `budget_kill_switch` e lido a cada chamada. Acionamento sem agente (R2-14) ainda não tem interface própria.
 - Tipos da política: a estrutura é validada pelo schema de `@ln/contracts` (`ModelPolicy`). Os tipos de trabalho (`types.ts`) continuam locais porque o contrato não modela campos como verbas e degraus como objeto tipado. Pedir ao Chief Architect para ampliar o schema, se quiser eliminar a duplicação.
 - A chamada real ao OpenRouter não foi exercitada: os testes usam fetch injetado.

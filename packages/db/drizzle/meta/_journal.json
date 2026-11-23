@@ -134,6 +134,13 @@
       "when": 1795399208189,
       "tag": "0018_outbox_meta",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795431067224,
+      "tag": "0019_budget_pendente_killswitch",
+      "breakpoints": true
     }
   ]
 }
