@@ -163,3 +163,22 @@ describe('efeitosTitular (contrato com as rotas públicas)', () => {
     expect(e.pessoasOcultas.has('ef-p4')).toBe(false);
   });
 });
+
+describe('lista sem texto livre (achado 3 do QA 7)', () => {
+  it('GET da lista não traz resumo, texto, url nem decisão, nem de pedido decidido; o detalhe auditado traz', async () => {
+    const marca = 'MARCA-LIVRE-QA7 texto pessoal do titular';
+    const url = 'https://ln.example/intelligence/pessoas/qa7-p1';
+    const id = await novo({ url, texto: marca });
+    const motivo = 'MOTIVO-LIVRE-QA7 confirmado';
+    expect((await postar('POST', [id, 'decidir'], chefe, { acao: 'negar', motivo })).status).toBe(200);
+    const l = await req('GET', [], chefe);
+    const it = l.body.items.find((x: { id: string }) => x.id === id);
+    expect(it).toBeDefined();
+    for (const k of ['resumo', 'texto', 'url', 'decisao', 'nome', 'contato']) expect(it).not.toHaveProperty(k);
+    const txt = JSON.stringify(l.body);
+    for (const v of ['MARCA-LIVRE-QA7', 'MOTIVO-LIVRE-QA7', url]) expect(txt).not.toContain(v);
+    expect(it).toMatchObject({ estado: 'negado', alvo: { tipo: 'pessoa', id: 'qa7-p1' }, decidido_por: chefe.id });
+    const d = await req('GET', [id], chefe);
+    expect(d.body).toMatchObject({ url, texto: marca, decisao: { acao: 'negar', motivo } });
+  });
+});
