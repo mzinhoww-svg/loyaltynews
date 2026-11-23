@@ -116,7 +116,10 @@ export async function hydrate(db: Db): Promise<Hydrated> {
   campaigns.load({
     version: SNAPSHOT_VERSION, seq: 0,
     campaigns: camps.map((c): Campaign => ({
-      id: c.id, name: c.nome, accountId: c.contaId, opportunityId: c.oportunidadeId, formatId: c.formatoId, positionId: c.slotId,
+      id: c.id, name: c.nome, accountId: c.contaId, opportunityId: c.oportunidadeId, formatId: c.formatoId,
+      // PROVISÓRIO (ft/commercial, várias posições): enquanto não existir a tabela campaign_positions (Backend/Arquiteto), a campanha lida do banco
+      // tem a única posição de campaigns.slot_id. A gravação abaixo recusa campanha com mais de uma posição para NUNCA perder posições em silêncio.
+      positionIds: c.slotId ? [c.slotId] : [], positionId: c.slotId,
       startDate: c.inicio, endDate: c.fim, status: c.status, sponsoredLabel: true, // F-074: o banco só aceita campanha rotulada
       reservationIds: inventory.list().filter((r) => r.campaignId === c.id && r.status !== 'cancelled').map((r) => r.id),
       history: c.historico as Campaign['history'],
@@ -167,10 +170,13 @@ export function rowsOf(s: CommercialState): Rows {
       versoesProposta: o.proposalVersions,
     })),
     history: crm.opportunities.flatMap((o) => o.history.map((h, i) => ({ id: `${o.id}#${i}`, oportunidadeId: o.id, de: h.from, para: h.to, em: new Date(h.at) }))),
-    campaigns: camps.map((c) => ({
+    campaigns: camps.map((c) => {
+      if (c.positionIds.length > 1) throw new Error(`Campanha ${c.id} com ${c.positionIds.length} posições: a gravação exige a tabela campaign_positions (ainda não existe). Nada foi gravado, para não perder posições.`);
+      return {
       id: c.id, nome: c.name, contaId: c.accountId, oportunidadeId: c.opportunityId, formatoId: c.formatId, slotId: c.positionId,
       inicio: c.startDate, fim: c.endDate, status: c.status, rotulada: true, historico: c.history,
-    })),
+      };
+    }),
     reservations: inv.reservations.map((r) => ({
       id: r.id, slotId: r.positionId, contaId: r.advertiserId, campanhaId: r.campaignId, inicio: r.startDate, fim: r.endDate, status: r.status,
     })),

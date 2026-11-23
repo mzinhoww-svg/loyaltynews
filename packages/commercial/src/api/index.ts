@@ -34,6 +34,7 @@ export const ROUTES: readonly Route[] = [
   { method: 'GET', path: '/api/commercial/studio/campaigns/detail', auth: 'studio', handler: h.getCampaignDetail },
   { method: 'GET', path: '/api/commercial/studio/campaigns/report', auth: 'studio', handler: h.getCampaignReport },
   { method: 'GET', path: '/api/commercial/studio/campaigns/report-csv', auth: 'studio', handler: h.exportCampaignReportCsv },
+  { method: 'POST', path: '/api/commercial/studio/campaigns/positions', auth: 'studio', handler: h.setCampaignPositions },
   { method: 'POST', path: '/api/commercial/studio/campaigns/transition', auth: 'studio', handler: h.transitionCampaign },
   { method: 'POST', path: '/api/commercial/studio/creatives', auth: 'studio', handler: h.addCreative },
   { method: 'POST', path: '/api/commercial/studio/creatives/content', auth: 'studio', handler: h.setCreativeContent },

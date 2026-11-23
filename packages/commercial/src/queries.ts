@@ -89,7 +89,8 @@ export function campaignDetail(ctx: CommercialCtx, campaignId: string) {
   return {
     campaign: c,
     format: ctx.catalog.find((f) => f.id === c.formatId) ?? null,
-    position: c.positionId ? ctx.inventory.position(c.positionId) : null,
+    position: c.positionId ? ctx.inventory.position(c.positionId) : null, // compatibilidade: a primeira posição
+    positions: c.positionIds.map((id) => ctx.inventory.position(id)),
     reservations: ctx.inventory.list().filter((r) => r.campaignId === campaignId),
     creatives: ctx.ads.creativesOf(campaignId),
     report: {

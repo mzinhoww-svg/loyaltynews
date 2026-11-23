@@ -6,7 +6,7 @@ import { Relatorio, csvHref } from '../app/studio/(protegido)/campanhas/[id]/_co
 
 const NOW = '2026-12-20T12:00:00-03:00';
 const camp: Campaign = {
-  id: 'cmp-1', name: 'Acme Rodapé', accountId: 'acc-1', opportunityId: null, formatId: 'banners--banner-rodape', positionId: 'FOOTER',
+  id: 'cmp-1', name: 'Acme Rodapé', accountId: 'acc-1', opportunityId: null, formatId: 'banners--banner-rodape', positionIds: ['FOOTER'], positionId: 'FOOTER',
   startDate: '2026-12-01', endDate: '2027-01-31', status: 'active', reservationIds: [], sponsoredLabel: true, history: [],
 };
 const creative = (id: string, positionId: string, over: Partial<Creative> = {}): Creative => ({

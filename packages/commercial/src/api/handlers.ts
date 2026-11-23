@@ -106,6 +106,8 @@ export const createReservation = define({
   const slot = ctx.inventory.position(i.positionId);
   const fmt = ctx.catalog.find((f) => f.id === slot.formatId);
   if (!fmt || fmt.status === 'indisponivel') return fail(422, 'FORMAT_UNAVAILABLE', `Formato de ${i.positionId} indisponível: ${fmt?.statusReason ?? 'desconhecido'}`);
+  const owner = i.campaignId ? ctx.campaigns.list().find((x) => x.id === i.campaignId) : undefined;
+  if (owner && owner.positionIds.length > 0 && !owner.positionIds.includes(i.positionId)) return fail(422, 'POSITION_NOT_IN_CAMPAIGN', `${i.positionId} não é posição da campanha ${owner.id}.`);
   // Confirmar reserva (venda) só com formato disponível e ad server liberado (CP-12). Sem isso, apenas pré-reserva (held).
   if (i.confirm && (fmt.status !== 'disponivel' || !isEnabled('adServerVendas', ctx.flags))) {
     return fail(409, 'SALE_NOT_ENABLED', 'Confirmação exige formato disponível e flag adServerVendas ligada; use pré-reserva.');
@@ -131,14 +133,37 @@ export const reserveTakeover = define({ auth: 'studio', schema: z.object({ date:
 
 export const createCampaign = define({
   auth: 'studio',
-  schema: z.object({ name: z.string().min(1), accountId: Id, opportunityId: Id.optional(), formatId: z.string().min(1), positionId: PositionId.optional(), startDate: IsoDate, endDate: IsoDate, sponsoredLabel: z.boolean().optional() })
+  schema: z.object({ name: z.string().min(1), accountId: Id, opportunityId: Id.optional(), formatId: z.string().min(1), positionId: PositionId.optional(), positionIds: z.array(PositionId).min(1).max(9).optional(), startDate: IsoDate, endDate: IsoDate, sponsoredLabel: z.boolean().optional() })
     .refine((c) => c.endDate >= c.startDate, { message: 'endDate anterior a startDate', path: ['endDate'] }),
 }, (ctx, i) => {
   const fmt = ctx.catalog.find((f) => f.id === i.formatId);
   if (!fmt) return fail(422, 'UNKNOWN_FORMAT', 'Formato desconhecido.');
   if (fmt.status === 'indisponivel') return fail(422, 'FORMAT_UNAVAILABLE', fmt.statusReason);
   if (!ctx.crm.accounts.has(i.accountId)) return fail(422, 'UNKNOWN_ACCOUNT', 'Conta inexistente.');
-  return ok(ctx.campaigns.create(i, ctx.now), 201);
+  const positionIds = [...new Set(i.positionIds ?? (i.positionId ? [i.positionId] : []))];
+  const bad = badPositions(ctx, positionIds);
+  if (bad) return bad;
+  return ok(ctx.campaigns.create({ ...i, positionIds }, ctx.now), 201);
+});
+
+/** Posições da campanha: cada uma precisa estar configurada (limite e dimensão) e ter formato que não seja 'indisponivel'. */
+function badPositions(ctx: Parameters<Parameters<typeof define>[1]>[0], ids: readonly string[]) {
+  for (const id of ids) {
+    const p = ctx.inventory.position(id);
+    if (p.slotLimit === null || p.desktop === null) return fail(422, 'POSITION_NOT_CONFIGURED', `${id} ainda não tem dimensões e limite configurados.`);
+    const f = ctx.catalog.find((x) => x.id === p.formatId);
+    if (!f || f.status === 'indisponivel') return fail(422, 'FORMAT_UNAVAILABLE', `Formato de ${id} indisponível.`);
+  }
+  return null;
+}
+
+/** Troca as posições da campanha (só em rascunho; ao menos uma). */
+export const setCampaignPositions = define({ auth: 'studio', schema: z.object({ campaignId: Id, positionIds: z.array(PositionId).min(1).max(9) }) }, (ctx, i) => {
+  const ids = [...new Set(i.positionIds)];
+  ctx.campaigns.get(i.campaignId);
+  const bad = badPositions(ctx, ids);
+  if (bad) return bad;
+  return ok(ctx.campaigns.setPositions(i.campaignId, ids, ctx.now));
 });
 
 const AssetSchema = z.object({ key: z.string().min(1).max(300), mime: z.enum(ALLOWED_MIME), width: z.number().int().positive(), height: z.number().int().positive(), sizeKB: z.number().positive().finite(), sha256: z.string().regex(/^[0-9a-f]{64}$/) });
@@ -149,6 +174,7 @@ export const addCreative = define({
   schema: z.object({ campaignId: Id, positionId: PositionId, weight: z.number().positive().finite().default(1), startDate: IsoDate, endDate: IsoDate, ...CreativeContent }),
 }, (ctx, i) => {
   const c = ctx.campaigns.get(i.campaignId);
+  if (!c.positionIds.includes(i.positionId)) return fail(422, 'POSITION_NOT_IN_CAMPAIGN', c.positionIds.length ? `${i.positionId} não é posição da campanha (posições: ${c.positionIds.join(', ')}).` : 'Defina as posições da campanha antes de criar criativos.');
   const id = `cr-${ctx.ads.listCreatives().length + 1}`;
   const advertiserName = i.advertiserName ?? ctx.crm.accounts.get(c.accountId)?.name;
   ctx.ads.addCreative({
@@ -178,6 +204,8 @@ export const approveCreative = define({ auth: 'studio', schema: z.object({ creat
 });
 
 const ACTIVE_LIKE = new Set(['active']);
+const RANK: Record<FormatStatus, number> = { disponivel: 0, sob_consulta: 1, indisponivel: 2 };
+const worstStatus = (xs: FormatStatus[]): FormatStatus => xs.reduce((w, s) => (RANK[s] > RANK[w] ? s : w), 'disponivel' as FormatStatus);
 /**
  * Transição de campanha. Para 'reserved' as reservas informadas são resolvidas no inventário (devem existir, não canceladas e ser desta campanha).
  * Para 'active' (inclusive retomar de 'paused') a evidência é montada do estado real: flag adServerVendas, estado do formato no catálogo,
@@ -197,9 +225,11 @@ export const transitionCampaign = define({
   }
   const activation = i.to === 'active' ? {
     saleEnabled: isEnabled('adServerVendas', ctx.flags),
-    formatStatus: ctx.catalog.find((f) => f.id === camp.formatId)?.status ?? 'indisponivel',
+    // o pior estado entre o formato da campanha e o formato de CADA posição (só 'disponivel' ativa)
+    formatStatus: worstStatus([camp.formatId, ...camp.positionIds.map((pid) => ctx.inventory.position(pid).formatId)].map((fid) => ctx.catalog.find((f) => f.id === fid)?.status ?? 'indisponivel')),
     reservations: all.filter((r) => r.campaignId === camp.id),
     approvedCreativeCount: ctx.ads.creativesOf(camp.id).filter((c) => c.approved).length,
+    creativePositions: ctx.ads.creativesOf(camp.id).filter((c) => c.approved).map((c) => c.positionId),
   } : undefined;
   const c = ctx.campaigns.transition(i.campaignId, i.to, ctx.now, { reservations, activation, note: i.note });
   for (const cr of ctx.ads.creativesOf(c.id)) ctx.ads.setCreative(cr.id, { campaignActive: ACTIVE_LIKE.has(c.status) });
