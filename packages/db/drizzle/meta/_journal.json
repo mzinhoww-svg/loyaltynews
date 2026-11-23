@@ -176,20 +176,6 @@
       "when": 1795448461583,
       "tag": "0024_growth_media_uploads",
       "breakpoints": true
-    },
-    {
-      "idx": 25,
-      "version": "7",
-      "when": 1795450168743,
-      "tag": "0025_creative_cards",
-      "breakpoints": true
-    },
-    {
-      "idx": 26,
-      "version": "7",
-      "when": 1795450171063,
-      "tag": "0026_crm_contatos_posicoes",
-      "breakpoints": true
     }
   ]
 }
