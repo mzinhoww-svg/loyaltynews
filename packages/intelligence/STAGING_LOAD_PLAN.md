@@ -4,12 +4,15 @@ Estado: **plano pronto; nada foi carregado** (não existe banco de staging ainda
 Dono: Frente 08 (LN Data Engineer). Execução: DevOps, com o banco e a `DATABASE_URL` do staging. Sem Vertra de escrita por este plano.
 
 ## Ordem de execução quando a J-01 sair (resumo para o PM)
-1. **Pré-condições** (todas): decisão J-01 registrada pelo proprietário; OK do PM sobre o dry-run; snapshot do banco; `ln-staging-db` com a migração 0006; janela única (o script de credenciais gira a senha a cada execução).
+1. **Pré-condições** (todas): decisão J-01 registrada pelo proprietário; OK do PM sobre o dry-run; snapshot do banco; `ln-staging-db` com a migração 0006; janela sem deploy. **Atualização do PM (23/11, depois do incidente das 15:14): o `ln-com-credenciais.mjs` NÃO gira mais a senha; ele lê a credencial do app web** (as menções a "girar a senha" mais abaixo são históricas).
 2. **Carga v4** (homologada pelo QA 3 no commit 5074064) — seção abaixo: check → dry-run `--with-persons` → apply `--with-persons --manifest …intelligence-seed-v4.manifest.json` → check.
 3. **Carga v5** (12 cargos a mais; **só depois do parecer do QA 3 sobre o v5**) — seção "Carga v5".
 4. Conferir no Studio (fila "a confirmar" vazia; cargos com nível oficial) e **manter a exibição pública de pessoas desligada** até a decisão de produto; flag `intelligencePessoas` do produto continua desligada (o `--with-persons` liga só o carregador, só naquela execução).
 5. Só então, se decidido, ligar o job de releitura (`REREAD_JOB.md`: `LN_INTELLIGENCE_REREAD=on`, `LN_REREAD_SEED=<seed v7>` e a flag `intelligencePessoas` pelo resolvedor do ADR-022 (`LN_FLAGS_ON`, staging); a reserva por provedor só com a flag `leitorViaProvedor`).
 Parada: dry-run com qualquer `rejected` (exit 1) ⇒ não aplicar. Sem o manifesto não há desfazer automático (plano B: snapshot).
+
+## Pré-voo da carga v7 (logo depois do deploy da int/012 no staging)
+Ensaio com os arquivos reais e o caminho de produção do carregador (`runSeedCli`), reproduzindo a ordem do staging (v2 → v3 → v4 → v5 → v6) e conferindo os números abaixo: `src/tests/seed-cli-staging-chain.test.ts` (passa). Ordem na janela (PM): **(0)** recompilar o carregador do commit atual de `ft/intelligence` (comando 0 da seção v7: o `load-seed.mjs` antigo não conhece `expiredRelations`/`relationsStaleRestored` nem `roles`); **(1)** `--check` e comparar com a linha "esperado"; **(2)** dry-run com `--with-persons` e **só seguir se** `ok: true`, `create 9`, `exists 95`, `rejected 0` (exit 0); **(3)** aplicar com o manifesto em `releases/staging/intelligence-seed-v7.manifest.json`; **(4)** `--check` final e comparar; **(5)** repetir o dry-run: tudo deve voltar `exists 104`, `create 0` (idempotência). Qualquer número diferente ⇒ **parar e me chamar** (não repetir em laço). Se a carga falhar no meio, a transação desfaz tudo (nada parcial).
 
 ## Carga v7 — relações entre organizações de fontes oficiais (sobre a v6 JÁ carregada)
 Conjunto `data/seed.public.v7.json` + `seed.public.v7.verification.json` (**104/104** citações literais, 37 fontes): v6 + **9 relações** de páginas oficiais e a **correção da citação do Eros Canedo** ("Eros Canedo CFO", sem o rótulo "Collapse" da The Org; cargo segue "a confirmar"). Relações novas: LATAM Pass ↔ Banco do Brasil, Bradesco, Livelo e Esfera (`partner_of`; páginas de parceiros do próprio LATAM Pass); Banco do Brasil → Livelo (`other`: "criado pelo Banco do Brasil e Bradesco", LATAM Pass); Banco do Brasil → Banco BV (`other`: acionista, "base acionária… Grupo Votorantim… e Banco do Brasil", RI do BV); Livelo → Dotz (`partner_of`, página da Livelo); Mastercard → Bradesco (`partner_of`: emissor listado na página de emissores da Mastercard); **Santander → Esfera confirmada por nova fonte oficial** (blog do Santander: "Esfera: conheça o programa de pontos do Santander"): a relação "validação vencida" do v5 volta a declarada e a organização Santander volta ao conjunto (o v7 não tem mais `expiredRelations`). Só o que a página afirma: nenhum controle societário presumido (não há `parent_of` novo); Azul/Smiles fora (classe C).
@@ -163,7 +166,7 @@ O manifesto (só IDs, nenhum segredo) fica com o DevOps; sem ele não há desfaz
 ### Critérios de parada
 - Dry-run com qualquer `rejected` (exit 1) ⇒ **não aplicar**; reverificar as fontes (`verify-dataset.mjs`) e investigar.
 - `--check` antes com contagens diferentes de 0 ⇒ alguém já carregou: rodar o dry-run e ler `exists` (a carga é idempotente, mas confirmar com o PM).
-- Qualquer falha de conexão/TLS ⇒ o carregador imprime só tipo e código do erro; **não** repetir em laço (cada tentativa gira a senha); chamar o DevOps.
+- Qualquer falha de conexão/TLS ⇒ o carregador imprime só tipo e código do erro; **não** repetir em laço; chamar o DevOps.
 - Depois da carga: conferir no portal de staging (quando existir) a página da Livelo: relações com fonte e data, **sem o trecho literal** (ver `termos-fontes.md`).
 
 ### Desfazer
