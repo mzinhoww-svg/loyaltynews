@@ -23,6 +23,7 @@ export * from './rules/rules';
 export * from './pipeline/jobs';
 export { runStage, triage, context, draft, factcheck, review, socialPack, InMemoryAuditLog, MAX_ATTEMPTS, draftRevision } from './pipeline/stages';
 export type { DraftRevision } from './pipeline/stages';
+export * from './pipeline/pilot-sink';
 export * from './factory/output-schemas';
 export type { StageDeps, AuditLog, AuditEntry } from './pipeline/stages';
 export { InMemoryQueue, createBullmqPipeline, makeProcessor, jobOptions } from './pipeline/queue';

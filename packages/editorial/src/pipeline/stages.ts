@@ -17,6 +17,8 @@ import type { DroppedMention, IntelligenceHandoff, PublishedArticle, RoleMention
 import { extractRoleMentionsDeterministic, mentionKey, minimizeToOrganizations, validateMention } from '../intelligence/roles';
 import { isEnabled } from '../flags';
 import type { ArticleJob, BlockerCode, FactVerdict, JobSpec, SocialPack, StageOutcome } from './jobs';
+import type { PilotRowPatch, PilotRowSink } from './pilot-sink';
+import { validateModelOutput } from '../factory/output-schemas';
 
 export const MAX_ATTEMPTS = 3; // model.policy.json rules.max_attempts
 
@@ -42,6 +44,8 @@ export interface StageDeps {
   siteBaseUrl?: string;
   /** Consulta de slug ocupado (o worker liga ao store); a unicidade definitiva é do banco. */
   slugExists?: (slug: string) => Promise<boolean>;
+  /** Linha do piloto (planilha): veredito do gate e `output_valid` por tarefa. Ausente = nada é gravado. */
+  pilotSink?: PilotRowSink;
 }
 
 const PROMPT_VERSION = 'editorial-0.3';
@@ -58,7 +62,25 @@ const next = (stage: JobSpec['stage'], data: ArticleJob): StageOutcome => ({ kin
  */
 export interface DraftRevision { taskId: string; draftId: string; sha256: string }
 export function draftRevision(job: ArticleJob, d: Draft): DraftRevision {
-  return { taskId: `${job.articleId}:draft:${job.attempt}`, draftId: d.id, sha256: draftContentSha256(d) };
+  // `taskId` = id da TAREFA de redação no gateway quando ele informou (OpenBot); senão o derivado `<matéria>:draft:<tentativa>`
+  return { taskId: job.draftTaskId ?? `${job.articleId}:draft:${job.attempt}`, draftId: d.id, sha256: draftContentSha256(d) };
+}
+
+/** `input.reviewedDraftTaskId` (o campo que o adaptador do OpenBot lê): só com o id REAL da tarefa de redação. */
+const reviewedRef = (job: ArticleJob): { reviewedDraftTaskId?: string } => (job.draftTaskId ? { reviewedDraftTaskId: job.draftTaskId } : {});
+
+/** Grava na linha do piloto (melhor esforço): falha vira auditoria e nunca altera o gate. */
+async function patchRow(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], r: { taskId?: string; attempt?: number }, patch: PilotRowPatch): Promise<void> {
+  if (!deps.pilotSink || !r.taskId) return;
+  try { await deps.pilotSink.patch({ taskId: r.taskId, attempt: r.attempt ?? 1, stage: stage as never, patch }); } catch (e) {
+    deps.audit.record({ at: (deps.now?.() ?? new Date()).toISOString(), articleId: job.articleId, stage, event: 'pilot_row_patch_failed', detail: String((e as Error).message ?? e).slice(0, 240) });
+  }
+}
+
+/** `output_valid` da tarefa: o formato da saída bate com o esquema da classe (e só cita evidências/claims da entrada). */
+async function markOutput(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], taskClass: TaskClass, r: Extract<GatewayResponse, { ok: true }>, ctx: { claimIds?: string[] } = {}): Promise<void> {
+  const v = validateModelOutput(taskClass, r.output, { evidenceIds: job.evidences.map((e) => e.id), ...ctx });
+  await patchRow(deps, job, stage, r, { output_valid: v.valid });
 }
 
 async function call(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], taskClass: TaskClass, route: RouteClass, workflow: WorkflowId,
@@ -105,6 +127,7 @@ export async function triage(deps: StageDeps, job: ArticleJob): Promise<StageOut
   }
   const r = await call(deps, job, 'triage', 'triage', 'economy', 'WF01', { editorias: EDITORIAS, evidences: untrusted(job.evidences) });
   if (!r.ok) return refused(job, 'triage', r);
+  await markOutput(deps, job, 'triage', 'triage', r);
   if (!isObj(r.output) || typeof r.output['relevant'] !== 'boolean') return bad(job, 'triage', 'triage: esperado {relevant:boolean}');
   if (!r.output['relevant']) return blocked(job, 'triage', ['not_relevant'], [{ code: 'not_relevant', message: 'triagem descartou a pauta' }]);
   const ed = r.output['editoria'];
@@ -117,6 +140,7 @@ export async function context(deps: StageDeps, job: ArticleJob): Promise<StageOu
   requireFlag(deps.flags, 'editorialPipeline');
   const r = await call(deps, job, 'context', 'context', 'economy', 'WF02', { editoria: job.editoria, evidences: untrusted(job.evidences) });
   if (!r.ok) return refused(job, 'context', r);
+  await markOutput(deps, job, 'context', 'context', r);
   if (!isObj(r.output) || !Array.isArray(r.output['notes'])) return bad(job, 'context', 'context: esperado {notes:[]}');
   const ids = new Set(job.evidences.map((e) => e.id));
   const notes = [];
@@ -161,6 +185,7 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
     rules: ['usar somente fatos das evidências', 'não inventar falas, fontes, entrevistas ou métricas', 'não copiar trechos da fonte', `resumo obrigatório de até ${RESUMO_MAX} caracteres, sem números ou citações fora da fonte`, `não assinar com nome de pessoa; assinatura é ${SIGNATURE}`],
   });
   if (!r.ok) return refused(job, 'draft', r);
+  await markOutput(deps, job, 'draft', 'draft', r);
   const o = r.output;
   const claims = isObj(o) ? parseClaims(o['claims']) : null;
   if (!isObj(o) || typeof o['headline'] !== 'string' || typeof o['body'] !== 'string' || !claims) {
@@ -194,7 +219,7 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
     if (job.attempt + 1 >= MAX_ATTEMPTS) return blocked(job, 'draft', ['max_attempts', ...toBlockers(chk.findings)], chk.findings);
     return next('draft', { ...job, slug, attempt: job.attempt + 1, feedback: chk.findings });
   }
-  return next('factcheck', { ...job, slug, draft: d, feedback: undefined });
+  return next('factcheck', { ...job, slug, draft: d, feedback: undefined, ...(r.taskId ? { draftTaskId: r.taskId } : { draftTaskId: undefined }) });
 }
 
 // ---------------- 4. checagem em provedor distinto ----------------
@@ -205,9 +230,11 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
   const used = job.evidences.filter((e) => d.evidenceIds.includes(e.id));
   const rev = draftRevision(job, d);
   const r = await call(deps, job, 'factcheck', 'factcheck', 'review', 'WF02',
-    { reviewedDraft: rev, claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, [d.modelProvider], rev);
+    { reviewedDraft: rev, ...reviewedRef(job), claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, [d.modelProvider], rev);
   if (!r.ok) return refused(job, 'factcheck', r);
+  await markOutput(deps, job, 'factcheck', 'factcheck', r, { claimIds: d.claims.map((c) => c.id) });
   if (r.provider === d.modelProvider) {
+    await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['cross_provider_check_failed'], cross_provider_ok: false });
     return blocked(job, 'factcheck', ['cross_provider_check_failed'], [{ code: 'same_provider', message: `checagem veio do mesmo provedor do redator (${r.provider})` }]);
   }
   const vs = isObj(r.output) && Array.isArray(r.output['verdicts']) ? r.output['verdicts'] : null;
@@ -223,7 +250,11 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
     if (!v) findings.push({ code: 'unsupported_claim', message: 'claim sem veredito', claimId: c.id });
     else if (v.verdict !== 'pass') findings.push({ code: 'unsupported_claim', message: `veredito ${v.verdict}`, claimId: c.id });
   }
-  if (findings.length) return blocked(job, 'factcheck', ['unsupported_claim'], findings);
+  if (findings.length) {
+    await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['unsupported_claim'], cross_provider_ok: true });
+    return blocked(job, 'factcheck', ['unsupported_claim'], findings);
+  }
+  await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true });
   return next('review', { ...job, factcheck: { provider: r.provider, model: r.model, verdicts, reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } });
 }
 
@@ -243,13 +274,17 @@ export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOut
   if (fc.reviewedDraftSha256 !== undefined && fc.reviewedDraftSha256 !== rev.sha256) {
     return blocked(job, 'review', ['stale_approval'], [{ code: 'factcheck_for_other_draft', message: 'a checagem avaliou outra revisão do rascunho' }]);
   }
-  const r = await call(deps, job, 'review', 'review', 'economy', 'WF02', { reviewedDraft: rev, headline: d.headline, body: d.body, editoria: d.editoria }, [], rev);
+  const r = await call(deps, job, 'review', 'review', 'economy', 'WF02', { reviewedDraft: rev, ...reviewedRef(job), headline: d.headline, body: d.body, editoria: d.editoria }, [], rev);
   if (!r.ok) return refused(job, 'review', r);
+  await markOutput(deps, job, 'review', 'review', r);
+  const crossOk = fc.provider !== d.modelProvider && r.provider !== d.modelProvider;
   if (!isObj(r.output) || typeof r.output['approve'] !== 'boolean') return bad(job, 'review', 'review: esperado {approve:boolean}');
   if (!r.output['approve']) {
     const issues = Array.isArray(r.output['issues']) ? r.output['issues'].map(String) : [];
+    await patchRow(deps, job, 'review', r, { gate_verdict: 'blocked', gate_reasons: ['approval_missing'], cross_provider_ok: crossOk });
     return blocked(job, 'review', ['approval_missing'], issues.map((m) => ({ code: 'editor_rejected', message: m })));
   }
+  await patchRow(deps, job, 'review', r, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: crossOk });
   return { kind: 'done', event: 'article.approved', data: { ...job, approved: true, review: { provider: r.provider, model: r.model, reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } } };
 }
 
