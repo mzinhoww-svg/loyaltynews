@@ -2,6 +2,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
 import { PgLeaseQueue, PgTaskIo } from '@ln/workers/openbot-pg';
+import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import { makeApp } from '../_lib/testkit';
 import * as pull from './pull/route';
 import * as heartbeat from './heartbeat/route';
@@ -116,6 +117,72 @@ describe('sonda de assinatura (sem tocar dado)', () => {
     files['/cofre/errado2'] = 'segredo-errado';
     expect(await refusal(cli(['heartbeat', '--task', 'sonda-inexistente', '--lease', 'sonda'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado2' })))).toBe('UNAUTHORIZED:401');
     expect(await app.db.select().from(schema.openbotTasks)).toHaveLength(0);
+  });
+});
+
+describe('borda da Vertra: 5xx sem corpo da API', () => {
+  it('503 em HTML (a borda troca o corpo) vira UPSTREAM_503 com orientação de parar; 401 com JSON da API continua com o código da API', async () => {
+    const edge = (async () => new Response('<!doctype html><html data-kind="502"></html>', { status: 503, headers: { 'content-type': 'text/html', 'x-vertra-error': '1' } })) as unknown as typeof fetch;
+    const e: any = await run(['pull'], env(), { ...io(), fetchImpl: edge }).catch((x) => x);
+    expect([e.code, e.status]).toEqual(['UPSTREAM_503', 503]);
+    expect(e.message).toMatch(/pare o ciclo/);
+    expect(e.stop).toBe(true);
+    expect(e.message).not.toMatch(/segredo-de-teste/);
+    files['/cofre/errado3'] = 'segredo-errado-3';
+    const e401: any = await run(['pull'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado3' }), io()).catch((x) => x);
+    expect(e401.code).toBe('UNAUTHORIZED');
+    // 503 COM corpo JSON da API (fora da borda, ex. testes locais) mantém o código da API
+    const api = (async () => new Response(JSON.stringify({ error: { code: 'DISPATCH_OFF', message: 'desligado' } }), { status: 503, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
+    expect(((await run(['pull'], env(), { ...io(), fetchImpl: api }).catch((x) => x)) as any).code).toBe('DISPATCH_OFF');
+  });
+});
+
+describe('423 Locked (PM-2026-11-23-I): o LN travado de propósito', () => {
+  it('DISPATCH_OFF, KILL_SWITCH e PILOT_STOPPED em 423 com corpo JSON mantêm o código da API e mandam PARAR o ciclo (stop), sem repetir em laço', async () => {
+    for (const code of ['DISPATCH_OFF', 'KILL_SWITCH', 'PILOT_STOPPED']) {
+      let calls = 0;
+      const locked = (async () => {
+        calls++;
+        return new Response(JSON.stringify({ error: { code, message: 'travado de propósito' } }), { status: 423, headers: { 'content-type': 'application/json' } });
+      }) as unknown as typeof fetch;
+      const e: any = await run(['pull'], env(), { ...io(), fetchImpl: locked }).catch((x) => x);
+      expect([e.code, e.status, e.stop], code).toEqual([code, 423, true]);
+      expect(e.message).toMatch(/423 Locked: pare o ciclo e não repita em laço/);
+      expect(calls, 'uma só chamada: o cliente nunca repete sozinho').toBe(1);
+    }
+    // 423 sem corpo da API (não deveria acontecer): ainda para o ciclo
+    const bare = (async () => new Response('', { status: 423 })) as unknown as typeof fetch;
+    const e2: any = await run(['pull'], env(), { ...io(), fetchImpl: bare }).catch((x) => x);
+    expect([e2.code, e2.stop]).toEqual(['LOCKED', true]);
+  });
+
+  it('erros que NÃO são travamento (401, 409) não mandam parar: o agente decide pelo código', async () => {
+    files['/cofre/errado4'] = 'segredo-errado-4';
+    const e: any = await run(['pull'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado4' }), io()).catch((x) => x);
+    expect([e.code, e.stop]).toEqual(['UNAUTHORIZED', false]);
+  });
+});
+
+describe('423 Locked pelas rotas REAIS (ft/backend 0a2e2c8): o código chega ao agente, que para o ciclo', () => {
+  it('despacho desligado: pull = 423 DISPATCH_OFF com stop; a sonda de assinatura (heartbeat) continua passando', async () => {
+    app.deps.flags.openbotDispatch = false;
+    const e: any = await cli(['pull']).catch((x) => x);
+    expect([e.code, e.status, e.stop]).toEqual(['DISPATCH_OFF', 423, true]);
+    expect(await refusal(cli(['heartbeat', '--task', 'sonda-inexistente', '--lease', 'sonda']))).toBe('LEASE_ERROR:404');
+  });
+
+  it('kill switch (route:openbot): pull, heartbeat, input e result = 423 KILL_SWITCH com stop; soltando o kill o pull volta', async () => {
+    await seed(9);
+    const t = (await cli(['pull'])).tasks[0];
+    const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
+    await store.setKill('route:openbot', true, 'ensaio do 423', app.clock.now);
+    const lease = ['--task', t.id, '--lease', t.leaseId];
+    for (const argv of [['pull'], ['heartbeat', ...lease], ['input', ...lease], ['result', ...lease, '--file', '/tmp/result.json']]) {
+      const e: any = await cli(argv).catch((x) => x);
+      expect([e.code, e.status, e.stop], argv[0]).toEqual(['KILL_SWITCH', 423, true]);
+    }
+    await store.setKill('route:openbot', false, 'soltar', app.clock.now);
+    expect((await cli(['heartbeat', ...lease])).leaseExpiresAt).toBeTruthy();
   });
 });
 
