@@ -308,6 +308,15 @@ export const transitionArticle: RouteFn = async (req, c) => {
   if (PUBLISH_SET.includes(b.para) && !can(session.role, 'materias', 'publish')) {
     throw new HttpError(403, 'FORBIDDEN', 'Sem permissão para publicar, despublicar ou corrigir.');
   }
+  // Publicar e corrigir só pelo fluxo oficial (POST /api/studio/editorial/articles/{id}/publication): lá a flag, o recibo, o hash do
+  // conteúdo, a projeção, a auditoria e o outbox (`article.published`/`article.corrected`) saem na MESMA transação. Esta rota genérica
+  // nunca muda a matéria para 'publicado' nem 'corrigido' (nem com a flag ligada): recusa sem efeito algum.
+  if (b.para === 'publicado' || b.para === 'corrigido') {
+    if (!c.deps.flags.publicacaoPortal) throw new HttpError(403, 'FEATURE_DISABLED', 'Publicação desligada (flag publicacaoPortal).');
+    throw new HttpError(409, 'USE_PUBLICATION_ROUTE', 'Publique pela rota de publicação do Editorial; esta rota não publica nem corrige.', {
+      rota: `/api/studio/editorial/articles/${a.id}/publication`,
+    });
+  }
   if (NOTE_SET.includes(b.para) && !b.nota) throw new HttpError(422, 'NOTE_REQUIRED', 'Esta transição exige uma nota.');
 
   const evIds = await evidenceIdsOf(c.deps.db, a.id);
@@ -315,22 +324,19 @@ export const transitionArticle: RouteFn = async (req, c) => {
   if (b.para === 'em_checagem' && evIds.length < 1) {
     throw new HttpError(422, 'GATES_FAILED', 'Matéria sem fontes não vai para checagem.', ['fontes: ao menos uma evidência']);
   }
-  if (b.para === 'aprovado' || b.para === 'publicado' || b.para === 'corrigido') {
+  if (b.para === 'aprovado') {
     const failures = gateFailures(a, evIds.length);
     if (failures.length) throw new HttpError(422, 'GATES_FAILED', 'A matéria não passa nas regras determinísticas.', failures);
     const receipt = await validReceipt(c.deps.db, a);
     if (!receipt) throw new HttpError(409, 'RECEIPT_REQUIRED', 'Exige recibo válido da versão atual.');
     receiptId = receipt.id;
-    if (b.para === 'publicado' && receipt.identidadePublicacao !== session.userId) {
-      throw new HttpError(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo publica esta matéria.');
-    }
   }
 
   const now = c.deps.now();
   const updated = await c.deps.db.transaction(async (tx) => {
     const upd = await tx
       .update(schema.articles)
-      .set({ status: b.para, ...(b.para === 'publicado' ? { publicadoEm: now } : {}) })
+      .set({ status: b.para })
       .where(and(eq(schema.articles.id, a.id), eq(schema.articles.status, a.status), eq(schema.articles.versao, a.versao)))
       .returning();
     if (!upd[0]) throw new HttpError(409, 'STATE_CONFLICT', 'A matéria mudou durante a operação; tente de novo.');

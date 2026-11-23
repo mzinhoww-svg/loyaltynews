@@ -430,6 +430,56 @@ describe('ADR-017 §4: articles é a projeção do conteúdo APROVADO (recibo �
     expect((await articleRow(id))?.status).toBe('publicado');
   });
 
+  it('a rota genérica de transição NÃO publica nem corrige (achado do QA 2 em 0edb1ac): recusa com a flag desligada e ligada, sem efeito; só o fluxo oficial publica', async () => {
+    const id = 'proj-bypass';
+    await store.putArticle(approved(id));
+    const r = await rcpt(id);
+    const slug = (await draftOf(id)).slug;
+    const generic = (para: string, extra: Record<string, unknown> = {}) => call(transicaoRoute.POST, 'POST', { params: { id }, body: { para, ...extra }, as: chefe });
+    const semEfeito = async () => {
+      expect((await articleRow(id))?.status).toBe('aprovado');
+      expect(await app.db.$count(schema.articleTransitions, eq(schema.articleTransitions.articleId, id))).toBe(0);
+      await nothingPublished(id);
+      expect((await call(pubOne.GET, 'GET', { params: { slug } })).status).toBe(404);
+      expect((await call(pubList.GET, 'GET', { path: '/api/publico/materias' })).body.data.map((m: { slug: string }) => m.slug)).not.toContain(slug);
+    };
+    // flag ligada: o recibo é válido e a identidade de publicação é a de quem chama, e mesmo assim a rota genérica não publica
+    const on = await generic('publicado');
+    expect(on.status).toBe(409);
+    expect(on.body.error.code).toBe('USE_PUBLICATION_ROUTE');
+    expect(on.body.error.details.rota).toBe(P(id));
+    await semEfeito();
+    // flag desligada: 403, também sem efeito
+    app.deps.flags.publicacaoPortal = false;
+    try {
+      const off = await generic('publicado');
+      expect(off.status).toBe(403);
+      expect(off.body.error.code).toBe('FEATURE_DISABLED');
+    } finally {
+      app.deps.flags.publicacaoPortal = true;
+    }
+    await semEfeito();
+    // quem não tem permissão continua recebendo 403 FORBIDDEN (a autorização vem antes)
+    expect((await call(transicaoRoute.POST, 'POST', { params: { id }, body: { para: 'publicado' }, as: editor })).status).toBe(403);
+    await semEfeito();
+    // o fluxo oficial segue funcionando e é o que torna a matéria pública
+    expect((await publish(id, r.body.data.id)).status).toBe(201);
+    expect((await articleRow(id))?.status).toBe('publicado');
+    expect((await call(pubOne.GET, 'GET', { params: { slug } })).status).toBe(200);
+    // depois de publicada: 'corrigido' pela rota genérica também é recusado, o estado e o histórico não mudam
+    for (const flag of [true, false]) {
+      app.deps.flags.publicacaoPortal = flag;
+      try {
+        const c = await generic('corrigido', { nota: 'Errata fora do fluxo oficial.' });
+        expect(c.status).toBe(flag ? 409 : 403);
+      } finally {
+        app.deps.flags.publicacaoPortal = true;
+      }
+    }
+    expect((await articleRow(id))?.status).toBe('publicado');
+    expect(await app.db.$count(schema.articleTransitions, eq(schema.articleTransitions.articleId, id))).toBe(1);
+  });
+
   it('rotas públicas só leem publicado: aprovado dá 404 e fica fora da lista; depois de publicar aparece, com fontes e sem campos internos', async () => {
     const id = 'proj-public';
     await store.putArticle(approved(id));

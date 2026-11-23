@@ -25,7 +25,7 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 | `PUT /api/materias/{id}/fontes` | materias:update | `{versaoEsperada, evidenceIds[]}` |
 | `DELETE /api/materias/{id}` | materias:delete | só rascunho |
 | `POST /api/materias/{id}/recibos` | materias:transition | só em `em_checagem`; `{versao, checagens[], identidadePublicacao?}`; 422 `GATES_FAILED` se falhar regra determinística; reenvio idêntico devolve 200 |
-| `POST /api/materias/{id}/transicao` | materias:transition (+`publish` p/ publicado, corrigido, despublicado) | `{para, nota?, versaoEsperada?}`; aprovar/publicar/corrigir exigem recibo válido (versão e hash do conteúdo); publicar só pela `identidadePublicacao` do recibo |
+| `POST /api/materias/{id}/transicao` | materias:transition (+`publish` p/ despublicado) | `{para, nota?, versaoEsperada?}`; aprovar exige recibo válido (versão e hash do conteúdo). **NÃO publica nem corrige**: `publicado`/`corrigido` ⇒ 403 `FEATURE_DISABLED` (flag `publicacaoPortal` desligada) ou 409 `USE_PUBLICATION_ROUTE` (ligada), sem efeito; a publicação é só `POST /api/studio/editorial/articles/{id}/publication` (flag, recibo, identidade, projeção, auditoria e outbox na mesma transação) |
 
 | `GET/POST /api/fontes`, `GET/PATCH/DELETE /api/fontes/{id}` | fontes:* | fonte nasce inativa; ativar exige `termosRevisados`; só `acesso: publico`; URL só http(s) |
 | `GET/POST /api/fontes/{id}/evidencias` | fontes:read/create | evidência só de fonte ativa |
