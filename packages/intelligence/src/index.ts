@@ -12,6 +12,8 @@ export * from './queries';
 export * from './api';
 export * from './views';
 export * from './roles';
+export * from './reread';
+export * from './readers/direct-page';
 export * from './ingest';
 export * from './org-layout';
 export * from './editorial-consumer';

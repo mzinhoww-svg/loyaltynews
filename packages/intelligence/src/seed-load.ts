@@ -206,7 +206,8 @@ const excerptOf = (q: { quote: string; contextQuote?: string }) => (q.contextQuo
 const orgRef = (key: string) => `organization:${key}`;
 /** Referência do cargo no relatório de verificação (o verificador monta a mesma string). */
 export const roleRef = (r: Pick<SeedRole, 'orgKey' | 'personName' | 'title'>) => `role:${r.orgKey}>${r.personName}>${r.title}`;
-const roleTitle = (r: SeedRole) => (r.body === 'conselho' ? `${r.title} (Conselho de Administração)` : r.title);
+/** Cargo como é gravado no cadastro (cargo do conselho leva o órgão). */
+export const roleTitle = (r: SeedRole) => (r.body === 'conselho' ? `${r.title} (Conselho de Administração)` : r.title);
 const relRef = (r: SeedRelation) => `relation:${r.from}>${r.type}>${r.to}`;
 
 function recordReason(ds: SeedDataset, ver: VerificationReport, ref: string, sourceId: string): string | null {

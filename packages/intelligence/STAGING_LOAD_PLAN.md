@@ -3,6 +3,29 @@
 Estado: **plano pronto; nada foi carregado** (não existe banco de staging ainda). Código testado só em PGlite.
 Dono: Frente 08 (LN Data Engineer). Execução: DevOps, com o banco e a `DATABASE_URL` do staging. Sem Vertra de escrita por este plano.
 
+## Ordem de execução quando a J-01 sair (resumo para o PM)
+1. **Pré-condições** (todas): decisão J-01 registrada pelo proprietário; OK do PM sobre o dry-run; snapshot do banco; `ln-staging-db` com a migração 0006; janela única (o script de credenciais gira a senha a cada execução).
+2. **Carga v4** (homologada pelo QA 3 no commit 5074064) — seção abaixo: check → dry-run `--with-persons` → apply `--with-persons --manifest …intelligence-seed-v4.manifest.json` → check.
+3. **Carga v5** (12 cargos a mais; **só depois do parecer do QA 3 sobre o v5**) — seção "Carga v5".
+4. Conferir no Studio (fila "a confirmar" vazia; cargos com nível oficial) e **manter a exibição pública de pessoas desligada** até a decisão de produto; flag `intelligencePessoas` do produto continua desligada (o `--with-persons` liga só o carregador, só naquela execução).
+5. Só então, se decidido, ligar o job de releitura (`REREAD_JOB.md`: `LN_INTELLIGENCE_REREAD=on`, `LN_INTELLIGENCE_PESSOAS=on`, `LN_REREAD_SEED=<seed v5>`).
+Parada: dry-run com qualquer `rejected` (exit 1) ⇒ não aplicar. Sem o manifesto não há desfazer automático (plano B: snapshot).
+
+## Carga v5 — cargos públicos de 17 organizações (sobre a v4 JÁ carregada)
+Conjunto `data/seed.public.v5.json` + `seed.public.v5.verification.json` (**87/87** citações literais em 24 fontes): v4 + **12 cargos de 7 organizações** (Livelo, Mastercard, Orbia, Bradesco Seguros, Grupo Santander, Madero, Shopee) = **32 cargos em 17 organizações**. **Retira Santander→Esfera** (a página da Esfera mudou e a citação do v3 deixou de existir; a relação e a organização "Santander" continuam no banco com a validação antiga — o v5 não as renova nem apaga). Cobertura e motivos das 12 organizações sem cargos (Azul/Smiles = classe C; sem página oficial): `CARGOS_COBERTURA.md`.
+```
+# 0) compilar (igual à v4) e 1) --check: esperado organizations 29, org_relations 28, persons 20, role_assignments 20, evidence 125, moves 0
+
+# 2) DRY-RUN: esperado create 12, exists 75, rejected 0 (exit 0). (Se a v4 NÃO tiver sido carregada: create 32, exists 55.)
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.verification.json --with-persons
+
+# 3) APLICAR (OK do PM + J-01)
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.verification.json --with-persons --apply --manifest C:/Users/mazin/OpenBot/Shared/loyalty-news/releases/staging/intelligence-seed-v5.manifest.json
+
+# 4) --check: esperado persons 32, role_assignments 32, role_assignments_inferred 0, role_assignments_without_evidence 0, moves 0, evidence 184 (125 + 27 relações e 20 cargos revalidados + 12 novos), organizations 29, org_relations 28
+```
+Desfazer o v5: `rollbackSeed` com o manifesto remove os 12 cargos e as 12 pessoas e restaura a evidência/validação anteriores das relações e dos 20 cargos revalidados. O arquivo do v5 também é o conjunto que o job de releitura usa.
+
 ## Carga v4 — cargos públicos de 10 organizações (sobre a v3 JÁ carregada no ln-staging-db)
 Conjunto `data/seed.public.v4.json` (formato `intelligence-seed/2`) + `seed.public.v4.verification.json`: v3 inteira (29 organizações, 28 relações) **+ 20 cargos públicos** (CEO e diretoria; nome, cargo, empresa) de **10 organizações** — Bradesco, Banco do Brasil, Banco Santander (Brasil), Dotz, BRB, Banco BV, GPA, LATAM, Uber e Raia Drogasil (aqui só o presidente do **Conselho de Administração**; a página de RI não traz a diretoria executiva em texto). Verificador: **77/77 citações literais encontradas em 18 fontes** (8 do v3 + 10 páginas oficiais de RI/governança). **Fora dos 10, de propósito:** a ABEMF (a página capturada não nomeia dirigentes) e a **Azul** (classe C da DP-28: só com revisão caso a caso; a página do RI dela foi lida na triagem e **descartada**, nada dela está no conjunto).
 Cada cargo traz: fonte oficial (RI da própria empresa), link, data de coleta/validação, citação literal (nome + cargo; **nunca exibida ao público**), certeza `declared`. A vigência começa na data da verificação (GPA: 05/01/2026, data de eleição que a própria página declara). Nada além de nome, cargo e empresa: o formato **recusa** qualquer outro campo (contato, foto, perfil, biografia), nome com dígito/e-mail/link e citação que não contenha o nome e o cargo. **Fontes secundárias** (LinkedIn/The Org, só página pública, sem login): nível `secundaria`, carga como **inferido** ("a confirmar"), que o portal nunca mostra como fato; vira declarado só com leitura oficial (ver `termos-fontes.md`). Este conjunto não tem nenhuma.

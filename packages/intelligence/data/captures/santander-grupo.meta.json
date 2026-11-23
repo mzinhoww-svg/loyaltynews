@@ -1,0 +1,10 @@
+{
+  "method": "zyte-http",
+  "id": "santander-grupo",
+  "url": "https://www.santander.com/es/accionistas-e-inversores/gobierno-corporativo/consejo-de-administracion",
+  "finalUrl": "https://www.santander.com/es/accionistas-e-inversores/gobierno-corporativo/consejo-de-administracion",
+  "capturedAt": "2026-11-23T14:52:05.148Z",
+  "robots": "robots.txt permite",
+  "length": 9517,
+  "sha256Claimed": "3c7eb88b7cee2561a9313170540c5a08610b66b7bf7c5d9fbfc33f9544ddd6a7"
+}

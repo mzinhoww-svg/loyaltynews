@@ -5,7 +5,9 @@ import { Pool } from 'pg';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
+import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
+import { startIntelligenceReread } from './intelligence-reread';
 import { BullQueueSink, startReconciler, startWorkers } from './runtime';
 
 async function main() {
@@ -32,10 +34,13 @@ async function main() {
       .then((r) => { if (r.rows) console.log('[workers] entrega de anúncios gravada', JSON.stringify(r)); })
       .catch((e) => console.error('[workers] flush de anúncios falhou:', e instanceof Error ? e.message : 'erro'));
   }, 60_000);
+  // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on e LN_INTELLIGENCE_PESSOAS=on
+  const reread = startIntelligenceReread({ db: { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb });
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {
     reconciler.stop();
+    reread?.stop();
     clearInterval(adFlush);
     await workers.close();
     await sink.close();
