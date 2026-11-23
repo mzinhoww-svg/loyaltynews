@@ -25,7 +25,8 @@ export type ReaderFailure =
   | 'captcha_unsolved' // o provedor devolveu o próprio desafio (não o conteúdo)
   | 'not_found'
   | 'timeout'
-  | 'provider_error';
+  | 'provider_error'
+  | 'auth_failed'; // chave recusada pelo provedor (inválida/revogada): a chave sai de uso e a próxima é tentada
 
 export interface ReadRequest {
   url: string;
@@ -35,7 +36,7 @@ export interface ReadRequest {
 
 /** O que um adaptador de provedor devolve para UMA chamada com UMA chave. */
 export interface ProviderResponse {
-  status: 'ok' | 'quota_exhausted' | 'rate_limited' | 'captcha_unsolved' | 'not_found' | 'timeout' | 'provider_error';
+  status: 'ok' | 'quota_exhausted' | 'rate_limited' | 'captcha_unsolved' | 'not_found' | 'timeout' | 'provider_error' | 'auth_failed';
   /** Créditos que a chamada consumiu segundo o provedor (ex.: Bright Data Web Unlocker = 1; Firecrawl scrape = 1). */
   credits?: number;
   /** Se 'rate_limited': segundos até tentar de novo. */
@@ -54,6 +55,10 @@ export interface KeyedReader {
   readonly provider: string;
   /** Créditos que uma leitura deve custar no pior caso (para checar o teto ANTES de chamar). */
   readonly creditsPerRead: number;
+  /** O provedor faz desbloqueio (CAPTCHA/proxy próprios, DP-32). Informativo. */
+  readonly unlocks?: boolean;
+  /** Fração da cota gratuita mensal que UMA leitura consome (para ordenar a cascata por custo). */
+  readonly freeQuotaFractionPerRead?: number;
   read(req: ReadRequest, apiKey: string): Promise<ProviderResponse>;
 }
 
@@ -68,8 +73,11 @@ export interface ReadResult {
   retryAfterSeconds?: number;
   finalUrl?: string;
   providerSolvedCaptcha?: boolean;
-  /** EFÊMERO: extrair o fato e descartar. Nunca persistir (DP-29). Ausente em qualquer falha. */
+  /** Status HTTP da PÁGINA de destino (quando o provedor informa). */
+  httpStatus?: number;
+  /** EFÊMEROS: extrair o fato e descartar. Nunca persistir (DP-29). Ausentes em qualquer falha. */
   text?: string;
+  html?: string;
 }
 
 export interface ReaderPort {
@@ -104,6 +112,7 @@ interface KeyState {
   month: string;
   exhaustedUntil: Date | null;
   cooldownUntil: Date | null;
+  invalid?: boolean;
 }
 
 /** Pool de chaves de UM provedor: escolhe a primeira chave com saldo; esgotada vira indisponível até a renovação. */
@@ -151,6 +160,13 @@ export class QuotaKeyPool {
     s.usedInMonth = s.cfg.monthlyCreditCap;
   }
 
+  /** Chave recusada (401): sai de uso até reiniciar o processo (marcada como esgotada por 10 anos) e aparece no relatório. */
+  markInvalid(label: string): void {
+    const s = this.find(label);
+    s.exhaustedUntil = new Date(this.clock.now().getTime() + 10 * 365 * 24 * 3600 * 1000);
+    s.invalid = true;
+  }
+
   /** Limite de taxa do provedor: espera `seconds` antes de reutilizar a chave (não é esgotamento). */
   cooldown(label: string, seconds: number): void {
     const s = this.find(label);
@@ -158,10 +174,10 @@ export class QuotaKeyPool {
   }
 
   /** Relatório sem segredos: saldo local por chave. */
-  report(): { label: string; usedInMonth: number; cap: number; exhaustedUntil: string | null; cooldownUntil: string | null }[] {
+  report(): { label: string; usedInMonth: number; cap: number; exhaustedUntil: string | null; cooldownUntil: string | null; invalid?: boolean }[] {
     return this.states.map((s) => {
       this.refresh(s);
-      return { label: s.cfg.label, usedInMonth: s.usedInMonth, cap: s.cfg.monthlyCreditCap, exhaustedUntil: s.exhaustedUntil?.toISOString() ?? null, cooldownUntil: s.cooldownUntil?.toISOString() ?? null };
+      return { label: s.cfg.label, usedInMonth: s.usedInMonth, cap: s.cfg.monthlyCreditCap, exhaustedUntil: s.exhaustedUntil?.toISOString() ?? null, cooldownUntil: s.cooldownUntil?.toISOString() ?? null, ...(s.invalid ? { invalid: true } : {}) };
     });
   }
 
@@ -243,7 +259,8 @@ export function detectLoginOrPaywall(r: { text?: string; html?: string; httpStat
 export interface ReaderConfig {
   /** Padrão false. Ligar é decisão registrada (flag própria em @ln/contracts, desligada por padrão). */
   enabled?: boolean;
-  pace?: PaceConfig;
+  /** `false` desliga o ritmo interno (o chamador, ex.: Editorial, já controla ≥ 10 s por host e o teto diário). */
+  pace?: PaceConfig | false;
 }
 
 export interface ReaderDeps {
@@ -263,14 +280,18 @@ class DisabledReader implements ReaderPort {
 
 class PooledReader implements ReaderPort {
   readonly provider: string;
+  readonly unlocks?: boolean;
+  readonly freeQuotaFractionPerRead?: number;
   readonly pool: QuotaKeyPool;
-  private readonly pacer: HostPacer;
+  private readonly pacer: HostPacer | null;
 
-  constructor(private readonly deps: ReaderDeps, pace: PaceConfig) {
+  constructor(private readonly deps: ReaderDeps, pace: PaceConfig | false) {
     this.provider = deps.keyed.provider;
+    this.unlocks = deps.keyed.unlocks;
+    this.freeQuotaFractionPerRead = deps.keyed.freeQuotaFractionPerRead;
     const clock = deps.clock ?? { now: () => new Date() };
     this.pool = new QuotaKeyPool(deps.keys, clock);
-    this.pacer = new HostPacer(clock, pace);
+    this.pacer = pace === false ? null : new HostPacer(clock, pace);
   }
 
   async read(req: ReadRequest): Promise<ReadResult> {
@@ -283,18 +304,20 @@ class PooledReader implements ReaderPort {
     } catch {
       return { ...base, ok: false, failure: 'provider_error' };
     }
-    const wait = this.pacer.check(host);
+    const wait = this.pacer?.check(host) ?? null;
     if (wait !== null) return { ...base, ok: false, failure: 'host_paced', retryAfterSeconds: wait === Infinity ? undefined : wait };
 
     const cost = this.deps.keyed.creditsPerRead;
     let sawRateLimit: number | undefined;
+    let sawAuthFailure = false;
     for (const key of this.pool.candidates(cost)) {
       const secret = this.deps.resolveSecret(key.secretRef);
       if (!secret) continue; // chave sem segredo configurado: tenta a próxima (nunca falha por vazio)
-      this.pacer.record(host);
+      this.pacer?.record(host);
       const resp = await this.deps.keyed.read(req, secret);
       if (resp.credits) this.pool.charge(key.label, resp.credits);
 
+      if (resp.status === 'auth_failed') { this.pool.markInvalid(key.label); sawAuthFailure = true; continue; } // chave inválida: tenta a próxima
       if (resp.status === 'quota_exhausted') { this.pool.markExhausted(key.label); continue; } // troca automática para a próxima chave
       if (resp.status === 'rate_limited') { this.pool.cooldown(key.label, resp.retryAfterSeconds ?? 30); sawRateLimit = resp.retryAfterSeconds ?? 30; continue; }
       if (resp.status === 'captcha_unsolved') return { ...base, ok: false, keyLabel: key.label, creditsUsed: resp.credits, failure: 'captcha_unsolved' };
@@ -302,17 +325,18 @@ class PooledReader implements ReaderPort {
 
       const wall = detectLoginOrPaywall(resp);
       if (wall) return { ...base, ok: false, keyLabel: key.label, creditsUsed: resp.credits, failure: wall }; // texto descartado
-      return { ...base, ok: true, keyLabel: key.label, creditsUsed: resp.credits, finalUrl: resp.finalUrl, providerSolvedCaptcha: resp.providerSolvedCaptcha, text: resp.text };
+      return { ...base, ok: true, keyLabel: key.label, creditsUsed: resp.credits, finalUrl: resp.finalUrl, providerSolvedCaptcha: resp.providerSolvedCaptcha, httpStatus: resp.httpStatus, text: resp.text, html: resp.html };
     }
     if (sawRateLimit !== undefined) return { ...base, ok: false, failure: 'rate_limited', retryAfterSeconds: sawRateLimit };
+    if (sawAuthFailure && this.pool.candidates(0).length === 0) return { ...base, ok: false, failure: 'auth_failed' };
     return { ...base, ok: false, failure: 'quota_exhausted' };
   }
 }
 
 /** Fábrica: DESLIGADA a menos que `enabled: true`. */
-export function createReader(deps: ReaderDeps, config: ReaderConfig = {}): ReaderPort & { pool?: QuotaKeyPool } {
+export function createReader(deps: ReaderDeps, config: ReaderConfig = {}): ReaderPort & { pool?: QuotaKeyPool; unlocks?: boolean; freeQuotaFractionPerRead?: number } {
   if (config.enabled !== true) return new DisabledReader(deps.keyed.provider);
-  return new PooledReader(deps, config.pace ?? DEFAULT_PACE);
+  return new PooledReader(deps, config.pace === undefined ? DEFAULT_PACE : config.pace);
 }
 
 // ------------------------------------------------------------------------------------------------

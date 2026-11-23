@@ -17,3 +17,6 @@ export * from './editorial-consumer';
 export * from './seed-load';
 export * from './seed-cli';
 export * from './reader-port';
+export * from './readers/providers';
+export * from './readers/editorial-adapter';
+export * from './readers/exa';
