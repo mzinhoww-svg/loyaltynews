@@ -7,6 +7,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { shadowRun } from '../src/shadow.ts';
+import { rejudgeRecord } from '../src/quality.ts';
+const CRITERION = (process.argv[3] ?? 'v2') as 'v1' | 'v2';
 import type { AttemptRecord, DatasetEntry } from '../src/types.ts';
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,7 +20,8 @@ const recs: AttemptRecord[] = readFileSync(join(dir, 'attempts.jsonl'), 'utf8').
 // último registro por par (o complemento do Scrapfly substitui o corte por orçamento)
 const last = new Map<string, AttemptRecord>();
 for (const r of recs) if (r.errorClass !== 'budget_blocked' || !last.has(`${r.urlId}|${r.provider}`)) last.set(`${r.urlId}|${r.provider}`, r);
-const R = [...last.values()];
+const refOf = new Map(ds.map((d) => [d.id, d.referenceTitle]));
+const R = [...last.values()].map((r) => (CRITERION === 'v2' && r.errorClass !== 'budget_blocked' ? rejudgeRecord(r, refOf.get(r.urlId)!) : r));
 const USD: Record<string, number> = { direct: 0, 'scrapfly-basic': 30 / 200_000, 'zyte-http': 0.0001, 'exa-contents': 0.001, 'tavily-extract': 0.008, 'brightdata-unlocker': 0.0015, 'apify-rag-web-browser': 0.001, 'firecrawl-scrape': 19 / 5000 };
 const ALL = Object.keys(USD);
 const eligible = ds.filter((d) => !d.paywall);
@@ -40,7 +43,7 @@ results.push({ ...adaptive, perUrl: adPer, latencyP50Ms: qa(0.5), latencyP95Ms: 
 // divergências por URL entre o caminho atual e o adaptativo (o que muda para o pipeline)
 const cur = new Map((results[0]!.perUrl ?? []).map((p) => [p.url, p]));
 const divergences = ([...(a1.perUrl ?? []), ...(a2.perUrl ?? [])]).filter((p) => cur.get(p.url)?.valid !== p.valid || cur.get(p.url)?.provider !== p.provider).map((p) => ({ url: p.url, atual: cur.get(p.url)?.valid ? cur.get(p.url)?.provider : 'falha', adaptativo: p.valid ? p.provider : 'falha', latAtualMs: cur.get(p.url)?.latencyMs, latAdaptMs: p.latencyMs }));
-writeFileSync(join(dir, 'shadow.json'), JSON.stringify({ runId, note: 'replay das respostas reais medidas; nenhuma chamada nova; nada publicado', eligible: eligible.length, results, divergences }, null, 2));
+writeFileSync(join(dir, CRITERION === 'v2' ? 'shadow.json' : 'shadow-v1-historico.json'), JSON.stringify({ runId, criterion: CRITERION, note: 'replay das respostas reais medidas; nenhuma chamada nova; nada publicado', eligible: eligible.length, results, divergences }, null, 2));
 console.log(`divergências atual × adaptativo: ${divergences.length}`);
 for (const r of results) console.log(`latência ${r.path}: p50 ${r.latencyP50Ms} ms, p95 ${r.latencyP95Ms} ms`);
 for (const r of results) console.log(`${r.path}: válidos ${r.valid}/${r.urls} (${((100 * r.valid) / r.urls).toFixed(1)}%), tentativas ${r.attempts}, fallbacks ${r.fallbacks}, US$ ${r.creditsUsdEquiv} (US$/válido ${r.usdPerValid})`);

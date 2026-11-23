@@ -8,6 +8,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computeMetrics, rank, projectMonthly, type ProviderMetrics } from '../src/metrics.ts';
 import { AdaptiveRouter } from '../src/router.ts';
+import { rejudgeRecord } from '../src/quality.ts';
+const CRITERION = (process.argv[3] ?? 'v2') as 'v1' | 'v2'; // v1 = vereditos gravados (histórico); v2 = regra estrita reaplicada
 import type { AttemptRecord, DatasetEntry } from '../src/types.ts';
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,6 +27,7 @@ const real = recs
   // registros gravados antes da correção marcavam fonte correta sem URL final: sem URL final = não verificável
   .map((r) => (r.finalUrl ? r : { ...r, sourceMatch: undefined }))
   .map((r) => (PRICE[r.provider] !== undefined ? { ...r, costEstimatedUsd: +(r.creditsUsed * PRICE[r.provider]!).toFixed(6) } : r))
+  .map((r) => (CRITERION === 'v2' ? rejudgeRecord(r, byId.get(r.urlId)!.referenceTitle) : r))
   .map((r) => (r.errorClass === 'empty_content' && r.technicalSuccess && r.textLength >= 600 && (r.titleMatch ?? 0) < 0.5 ? { ...r, errorClass: 'title_mismatch' as const } : r));
 const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${(x * 100).toFixed(1)}%`);
 
@@ -95,11 +98,11 @@ const failedUrls = eligible.filter((d) => !real.some((r) => r.urlId === d.id && 
 
 const projections = Object.fromEntries(metrics.map((m) => [m.provider, projectMonthly(m.costPerValidArticleUsd)]));
 const report = { runId, generatedAt: new Date().toISOString(), attempts: recs.length, realAttempts: real.length, excludedReplaced: recs.filter((r) => !byId.has(r.urlId)).length, mockAttempts: recs.filter((r) => r.mock).length, metrics, ranking, byCategory, byRecency, domainMatrix, routingMatrix, combined, failedUrls, projections };
-writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2));
+writeFileSync(join(dir, CRITERION === 'v2' ? 'report.json' : 'report-v1-historico.json'), JSON.stringify(report, null, 2));
 
 // markdown
 const L: string[] = [];
-L.push(`# Resultados — ${runId}`, '', `Tentativas reais (com chamada) no dataset vigente: ${real.length} — ${new Set(real.map((r) => r.urlId + '|' + r.provider)).size} pares URL × provedor (fora do dataset v1.2, de URLs trocadas: ${recs.filter((r) => !byId.has(r.urlId)).length}; bloqueios por teto sem chamada, depois refeitos: ${recs.filter((r) => byId.has(r.urlId) && r.errorClass === 'budget_blocked').length}; mock: ${recs.filter((r) => r.mock).length}). Gerado em ${report.generatedAt}.`, '');
+L.push(`# Resultados — ${runId} — critério ${CRITERION === 'v2' ? 'v2 (estrito, reaplicado aos campos gravados; estimativa)' : 'v1 (vereditos gravados na rodada; HISTÓRICO)'}`, '', `Tentativas reais (com chamada) no dataset vigente: ${real.length} — ${new Set(real.map((r) => r.urlId + '|' + r.provider)).size} pares URL × provedor (fora do dataset v1.2, de URLs trocadas: ${recs.filter((r) => !byId.has(r.urlId)).length}; bloqueios por teto sem chamada, depois refeitos: ${recs.filter((r) => byId.has(r.urlId) && r.errorClass === 'budget_blocked').length}; mock: ${recs.filter((r) => r.mock).length}). Gerado em ${report.generatedAt}.`, '');
 L.push('## Métricas por provedor', '', '| Provedor | n | Técnico | Editorial | Título | Data (verif.) | p50 ms | p95 ms | p99 ms | 403 | 429 | Timeout | Créditos | US$ equiv. | US$/artigo válido |', '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
 for (const m of [...metrics].sort((a, b) => b.editorialSuccessRate - a.editorialSuccessRate))
   L.push(`| ${m.provider} | ${m.n} | ${pct(m.technicalSuccessRate)} | ${pct(m.editorialSuccessRate)} | ${pct(m.titleAccuracy)} | ${pct(m.dateAccuracy)} (${m.dateVerifiable}) | ${m.p50 ?? '—'} | ${m.p95 ?? '—'} | ${m.p99 ?? '—'} | ${pct(m.rate403)} | ${pct(m.rate429)} | ${pct(m.timeoutRate)} | ${+m.creditsUsed.toFixed(2)} | ${m.costEstimatedUsd.toFixed(4)} | ${m.costPerValidArticleUsd?.toFixed(5) ?? '—'} |`);
@@ -114,5 +117,5 @@ L.push('### URLs elegíveis sem extração válida', '', ...failedUrls.map((f) =
 L.push('## Matriz por domínio (válidos/tentativas)', '', `| Domínio | ${providers.join(' | ')} |`, `|---|${providers.map(() => '---:').join('|')}|`, ...domainMatrix.map((r) => `| ${r.domain} | ${providers.map((p) => r[p]).join(' | ')} |`));
 L.push('', '## Matriz de roteamento recomendada (menor custo esperado por artigo válido)', '', '| Domínio | 1º | 2º | 3º |', '|---|---|---|---|', ...routingMatrix.map((m) => `| ${m.domain} | ${m.order.map((o) => `${o.provider} (${o.expectedUsdPerValid})`).join(' | ')} |`));
 L.push('', '## Projeção mensal (US$ equivalentes, preço de lista; hoje só cota gratuita)', '', '| Provedor | 1.000 | 10.000 | 50.000 | 100.000 |', '|---|---:|---:|---:|---:|', ...Object.entries(projections).map(([p, v]) => `| ${p} | ${v['1000'] ?? '—'} | ${v['10000'] ?? '—'} | ${v['50000'] ?? '—'} | ${v['100000'] ?? '—'} |`));
-writeFileSync(join(dir, 'report.md'), L.join('\n') + '\n');
+writeFileSync(join(dir, CRITERION === 'v2' ? 'report.md' : 'report-v1-historico.md'), L.join('\n') + '\n');
 console.log(L.slice(0, 40).join('\n'));

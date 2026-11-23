@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReaderPort, ReadResult, ReadRequest } from '@ln/intelligence';
 import { createReader, ScrapflyReader } from '@ln/intelligence';
-import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS } from '../quality';
+import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord } from '../quality';
 import { BudgetGuard } from '../budget';
 import { AdaptiveRouter } from '../router';
 import { computeMetrics, rank, percentile, projectMonthly } from '../metrics';
@@ -387,5 +387,14 @@ describe('shadow ao vivo (MOCK de leitores)', () => {
     const res = await sh.wrap(primaryOk).read('https://a.com/3');
     expect(res.status).toBe(200);
     await expect(sh.drain()).resolves.toBeUndefined();
+  });
+});
+
+describe('critério v2 reaplicado a registro gravado', () => {
+  it('título gravado ruim (pixel, e-mail) reprova mesmo com veredito histórico aprovado; bom continua aprovado', () => {
+    const base = { technicalSuccess: true, editorialSuccess: true, textLength: 3000, titleMatch: 0.8, errorClass: 'none' };
+    expect(rejudgeRecord({ ...base, title: 'pixel.gif' }, 'Azul anuncia nova rota para Lisboa')).toMatchObject({ editorialSuccess: false, errorClass: 'title_mismatch', criterion: 'v2' });
+    expect(rejudgeRecord({ ...base, title: 'Azul anuncia nova rota para Lisboa | Portal' }, 'Azul anuncia nova rota para Lisboa')).toMatchObject({ editorialSuccess: true, errorClass: 'none' });
+    expect(rejudgeRecord({ ...base, textLength: 100, title: 'Azul anuncia nova rota para Lisboa' }, 'Azul anuncia nova rota para Lisboa').errorClass).toBe('empty_content');
   });
 });

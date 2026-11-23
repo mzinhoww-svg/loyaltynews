@@ -1,6 +1,6 @@
 {
   "runId": "run-20261123-01",
-  "generatedAt": "2026-11-23T16:25:29.206Z",
+  "generatedAt": "2026-11-23T16:33:07.989Z",
   "attempts": 1112,
   "realAttempts": 800,
   "excludedReplaced": 182,
@@ -10,12 +10,12 @@
       "provider": "direct",
       "n": 100,
       "technicalSuccessRate": 0.93,
-      "editorialSuccessRate": 0.88,
+      "editorialSuccessRate": 0.87,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.978494623655914,
+      "titleAccuracy": 0.967741935483871,
       "sourceAccuracy": 1,
       "dateAccuracy": 1,
-      "dateVerifiable": 72,
+      "dateVerifiable": 71,
       "p50": 400,
       "p95": 3461,
       "p99": 30566,
@@ -28,19 +28,19 @@
       "creditsUsed": 0,
       "costEstimatedUsd": 0,
       "costPerValidArticleUsd": 0,
-      "freshness": 0.5568181818181818,
+      "freshness": 0.5517241379310345,
       "eligible": true
     },
     {
       "provider": "scrapfly-basic",
       "n": 100,
       "technicalSuccessRate": 0.99,
-      "editorialSuccessRate": 0.94,
+      "editorialSuccessRate": 0.93,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.9797979797979798,
+      "titleAccuracy": 0.9696969696969697,
       "sourceAccuracy": null,
       "dateAccuracy": 1,
-      "dateVerifiable": 78,
+      "dateVerifiable": 77,
       "p50": 2377,
       "p95": 6010,
       "p99": 8958,
@@ -52,20 +52,20 @@
       "cacheHitRate": 0,
       "creditsUsed": 171,
       "costEstimatedUsd": 0.02565,
-      "costPerValidArticleUsd": 0.000273,
-      "freshness": 0.5638297872340425,
+      "costPerValidArticleUsd": 0.000276,
+      "freshness": 0.5591397849462365,
       "eligible": true
     },
     {
       "provider": "zyte-http",
       "n": 100,
       "technicalSuccessRate": 1,
-      "editorialSuccessRate": 0.95,
+      "editorialSuccessRate": 0.94,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.98,
+      "titleAccuracy": 0.97,
       "sourceAccuracy": 1,
       "dateAccuracy": 1,
-      "dateVerifiable": 79,
+      "dateVerifiable": 78,
       "p50": 1249,
       "p95": 7578,
       "p99": 23842,
@@ -77,17 +77,17 @@
       "cacheHitRate": 0,
       "creditsUsed": 200,
       "costEstimatedUsd": 0.02,
-      "costPerValidArticleUsd": 0.000211,
-      "freshness": 0.5684210526315789,
+      "costPerValidArticleUsd": 0.000213,
+      "freshness": 0.5638297872340425,
       "eligible": true
     },
     {
       "provider": "exa-contents",
       "n": 100,
       "technicalSuccessRate": 1,
-      "editorialSuccessRate": 0.9,
+      "editorialSuccessRate": 0.88,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.95,
+      "titleAccuracy": 0.93,
       "sourceAccuracy": 1,
       "dateAccuracy": null,
       "dateVerifiable": 0,
@@ -102,17 +102,17 @@
       "cacheHitRate": 0,
       "creditsUsed": 100,
       "costEstimatedUsd": 0.1,
-      "costPerValidArticleUsd": 0.001111,
-      "freshness": 0.5333333333333333,
+      "costPerValidArticleUsd": 0.001136,
+      "freshness": 0.5227272727272727,
       "eligible": true
     },
     {
       "provider": "tavily-extract",
       "n": 100,
       "technicalSuccessRate": 0.93,
-      "editorialSuccessRate": 0.8,
+      "editorialSuccessRate": 0.17,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.8924731182795699,
+      "titleAccuracy": 0.1935483870967742,
       "sourceAccuracy": 1,
       "dateAccuracy": null,
       "dateVerifiable": 0,
@@ -127,20 +127,20 @@
       "cacheHitRate": 0,
       "creditsUsed": 18.599999999999966,
       "costEstimatedUsd": 0.1488,
-      "costPerValidArticleUsd": 0.00186,
-      "freshness": 0.575,
+      "costPerValidArticleUsd": 0.008753,
+      "freshness": 0.7647058823529411,
       "eligible": true
     },
     {
       "provider": "brightdata-unlocker",
       "n": 100,
       "technicalSuccessRate": 0.94,
-      "editorialSuccessRate": 0.9,
+      "editorialSuccessRate": 0.89,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.9893617021276596,
+      "titleAccuracy": 0.9787234042553191,
       "sourceAccuracy": null,
       "dateAccuracy": 1,
-      "dateVerifiable": 76,
+      "dateVerifiable": 75,
       "p50": 2360,
       "p95": 17375,
       "p99": 42819,
@@ -152,17 +152,17 @@
       "cacheHitRate": 0,
       "creditsUsed": 94,
       "costEstimatedUsd": 0.141,
-      "costPerValidArticleUsd": 0.001567,
-      "freshness": 0.6,
+      "costPerValidArticleUsd": 0.001584,
+      "freshness": 0.5955056179775281,
       "eligible": true
     },
     {
       "provider": "apify-rag-web-browser",
       "n": 100,
       "technicalSuccessRate": 0.9,
-      "editorialSuccessRate": 0.87,
+      "editorialSuccessRate": 0.86,
       "contentCompleteness": 1,
-      "titleAccuracy": 1,
+      "titleAccuracy": 0.9888888888888889,
       "sourceAccuracy": 1,
       "dateAccuracy": null,
       "dateVerifiable": 0,
@@ -177,20 +177,20 @@
       "cacheHitRate": 0,
       "creditsUsed": 360,
       "costEstimatedUsd": 0.36,
-      "costPerValidArticleUsd": 0.004138,
-      "freshness": 0.5287356321839081,
+      "costPerValidArticleUsd": 0.004186,
+      "freshness": 0.5232558139534884,
       "eligible": true
     },
     {
       "provider": "firecrawl-scrape",
       "n": 100,
       "technicalSuccessRate": 1,
-      "editorialSuccessRate": 0.96,
+      "editorialSuccessRate": 0.95,
       "contentCompleteness": 1,
-      "titleAccuracy": 0.99,
+      "titleAccuracy": 0.98,
       "sourceAccuracy": 1,
       "dateAccuracy": 1,
-      "dateVerifiable": 60,
+      "dateVerifiable": 59,
       "p50": 5668,
       "p95": 9425,
       "p99": 11506,
@@ -202,112 +202,112 @@
       "cacheHitRate": 0,
       "creditsUsed": 100,
       "costEstimatedUsd": 0.38,
-      "costPerValidArticleUsd": 0.003958,
-      "freshness": 0.5625,
+      "costPerValidArticleUsd": 0.004,
+      "freshness": 0.5578947368421052,
       "eligible": true
     }
   ],
   "ranking": [
     {
       "provider": "direct",
-      "score": 0.8872,
+      "score": 0.8851,
       "parts": {
-        "quality": 0.9646236559139785,
+        "quality": 0.9594354838709678,
         "success": 0.93,
         "cost": 1,
         "latency": 0.595,
-        "freshness": 0.5568181818181818
+        "freshness": 0.5517241379310345
       },
       "n": 100,
       "lowSample": false
     },
     {
       "provider": "zyte-http",
-      "score": 0.8509,
+      "score": 0.8489,
       "parts": {
-        "quality": 0.9824999999999999,
+        "quality": 0.9775,
         "success": 1,
         "cost": 1,
         "latency": 0.19055244195356286,
-        "freshness": 0.5684210526315789
-      },
-      "n": 100,
-      "lowSample": false
-    },
-    {
-      "provider": "exa-contents",
-      "score": 0.7972,
-      "parts": {
-        "quality": 0.95,
-        "success": 1,
-        "cost": 0.18991899189918993,
-        "latency": 1,
-        "freshness": 0.5333333333333333
-      },
-      "n": 100,
-      "lowSample": false
-    },
-    {
-      "provider": "scrapfly-basic",
-      "score": 0.7883,
-      "parts": {
-        "quality": 0.9799494949494949,
-        "success": 0.99,
-        "cost": 0.7728937728937728,
-        "latency": 0.10012620950778292,
         "freshness": 0.5638297872340425
       },
       "n": 100,
       "lowSample": false
     },
     {
-      "provider": "brightdata-unlocker",
-      "score": 0.6474,
+      "provider": "exa-contents",
+      "score": 0.7909,
       "parts": {
-        "quality": 0.9723404255319149,
+        "quality": 0.935,
+        "success": 1,
+        "cost": 0.1875,
+        "latency": 1,
+        "freshness": 0.5227272727272727
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "scrapfly-basic",
+      "score": 0.786,
+      "parts": {
+        "quality": 0.9749242424242425,
+        "success": 0.99,
+        "cost": 0.7717391304347826,
+        "latency": 0.10012620950778292,
+        "freshness": 0.5591397849462365
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "brightdata-unlocker",
+      "score": 0.6453,
+      "parts": {
+        "quality": 0.9671808510638298,
         "success": 0.94,
-        "cost": 0.13465220165922145,
+        "cost": 0.134469696969697,
         "latency": 0.10084745762711865,
-        "freshness": 0.6
+        "freshness": 0.5955056179775281
       },
       "n": 100,
       "lowSample": false
     },
     {
       "provider": "firecrawl-scrape",
-      "score": 0.6407,
+      "score": 0.6387,
       "parts": {
-        "quality": 0.9875,
+        "quality": 0.9824999999999999,
         "success": 1,
-        "cost": 0.05330975240020213,
+        "cost": 0.05325,
         "latency": 0.04199011997177135,
-        "freshness": 0.5625
-      },
-      "n": 100,
-      "lowSample": false
-    },
-    {
-      "provider": "tavily-extract",
-      "score": 0.6358,
-      "parts": {
-        "quality": 0.896236559139785,
-        "success": 0.93,
-        "cost": 0.11344086021505376,
-        "latency": 0.25481798715203424,
-        "freshness": 0.575
+        "freshness": 0.5578947368421052
       },
       "n": 100,
       "lowSample": false
     },
     {
       "provider": "apify-rag-web-browser",
-      "score": 0.6047,
+      "score": 0.6016,
       "parts": {
-        "quality": 0.9675,
+        "quality": 0.9594444444444444,
         "success": 0.9,
-        "cost": 0.05099081681971967,
+        "cost": 0.05088389870998567,
         "latency": 0.029910770390850824,
-        "freshness": 0.5287356321839081
+        "freshness": 0.5232558139534884
+      },
+      "n": 100,
+      "lowSample": false
+    },
+    {
+      "provider": "tavily-extract",
+      "score": 0.4501,
+      "parts": {
+        "quality": 0.3892741935483871,
+        "success": 0.93,
+        "cost": 0.0243345138809551,
+        "latency": 0.25481798715203424,
+        "freshness": 0.7647058823529411
       },
       "n": 100,
       "lowSample": false
@@ -419,9 +419,9 @@
         "provider": "tavily-extract",
         "n": 25,
         "technicalSuccessRate": 0.96,
-        "editorialSuccessRate": 0.92,
+        "editorialSuccessRate": 0.28,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9583333333333334,
+        "titleAccuracy": 0.2916666666666667,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -436,8 +436,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 4.800000000000002,
         "costEstimatedUsd": 0.0384,
-        "costPerValidArticleUsd": 0.00167,
-        "freshness": 0.6086956521739131,
+        "costPerValidArticleUsd": 0.005486,
+        "freshness": 0.8571428571428571,
         "eligible": true
       },
       {
@@ -521,12 +521,12 @@
         "provider": "direct",
         "n": 20,
         "technicalSuccessRate": 0.95,
-        "editorialSuccessRate": 0.95,
+        "editorialSuccessRate": 0.9,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.9473684210526315,
         "sourceAccuracy": 1,
         "dateAccuracy": 1,
-        "dateVerifiable": 17,
+        "dateVerifiable": 16,
         "p50": 209,
         "p95": 3215,
         "p99": 3461,
@@ -539,19 +539,19 @@
         "creditsUsed": 0,
         "costEstimatedUsd": 0,
         "costPerValidArticleUsd": 0,
-        "freshness": 0.5789473684210527,
+        "freshness": 0.5555555555555556,
         "eligible": true
       },
       {
         "provider": "zyte-http",
         "n": 20,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 1,
+        "editorialSuccessRate": 0.95,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.95,
         "sourceAccuracy": 1,
         "dateAccuracy": 1,
-        "dateVerifiable": 18,
+        "dateVerifiable": 17,
         "p50": 1449,
         "p95": 7578,
         "p99": 34897,
@@ -563,8 +563,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 40,
         "costEstimatedUsd": 0.004,
-        "costPerValidArticleUsd": 0.0002,
-        "freshness": 0.6,
+        "costPerValidArticleUsd": 0.000211,
+        "freshness": 0.5789473684210527,
         "eligible": true
       },
       {
@@ -596,9 +596,9 @@
         "provider": "tavily-extract",
         "n": 20,
         "technicalSuccessRate": 0.9,
-        "editorialSuccessRate": 0.65,
+        "editorialSuccessRate": 0.25,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.7777777777777778,
+        "titleAccuracy": 0.3333333333333333,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -613,20 +613,20 @@
         "cacheHitRate": 0,
         "creditsUsed": 3.600000000000001,
         "costEstimatedUsd": 0.0288,
-        "costPerValidArticleUsd": 0.002215,
-        "freshness": 0.5384615384615384,
+        "costPerValidArticleUsd": 0.00576,
+        "freshness": 0.8,
         "eligible": true
       },
       {
         "provider": "brightdata-unlocker",
         "n": 20,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 1,
+        "editorialSuccessRate": 0.95,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.95,
         "sourceAccuracy": null,
         "dateAccuracy": 1,
-        "dateVerifiable": 18,
+        "dateVerifiable": 17,
         "p50": 3887,
         "p95": 15200,
         "p99": 16194,
@@ -638,8 +638,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 20,
         "costEstimatedUsd": 0.03,
-        "costPerValidArticleUsd": 0.0015,
-        "freshness": 0.6,
+        "costPerValidArticleUsd": 0.001579,
+        "freshness": 0.5789473684210527,
         "eligible": true
       },
       {
@@ -671,12 +671,12 @@
         "provider": "scrapfly-basic",
         "n": 20,
         "technicalSuccessRate": 0.95,
-        "editorialSuccessRate": 0.95,
+        "editorialSuccessRate": 0.9,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.9473684210526315,
         "sourceAccuracy": null,
         "dateAccuracy": 1,
-        "dateVerifiable": 17,
+        "dateVerifiable": 16,
         "p50": 2173,
         "p95": 8958,
         "p99": 14309,
@@ -688,20 +688,20 @@
         "cacheHitRate": 0,
         "creditsUsed": 19,
         "costEstimatedUsd": 0.00285,
-        "costPerValidArticleUsd": 0.00015,
-        "freshness": 0.5789473684210527,
+        "costPerValidArticleUsd": 0.000158,
+        "freshness": 0.5555555555555556,
         "eligible": true
       },
       {
         "provider": "firecrawl-scrape",
         "n": 20,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 1,
+        "editorialSuccessRate": 0.95,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.95,
         "sourceAccuracy": 1,
         "dateAccuracy": 1,
-        "dateVerifiable": 13,
+        "dateVerifiable": 12,
         "p50": 5290,
         "p95": 11506,
         "p99": 14748,
@@ -713,8 +713,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 20,
         "costEstimatedUsd": 0.076,
-        "costPerValidArticleUsd": 0.0038,
-        "freshness": 0.6,
+        "costPerValidArticleUsd": 0.004,
+        "freshness": 0.5789473684210527,
         "eligible": true
       }
     ],
@@ -798,10 +798,10 @@
         "provider": "tavily-extract",
         "n": 20,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.95,
-        "contentCompleteness": 1,
-        "titleAccuracy": 0.95,
-        "sourceAccuracy": 1,
+        "editorialSuccessRate": 0,
+        "contentCompleteness": 0,
+        "titleAccuracy": 0,
+        "sourceAccuracy": null,
         "dateAccuracy": null,
         "dateVerifiable": 0,
         "p50": 846,
@@ -815,8 +815,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 4.000000000000001,
         "costEstimatedUsd": 0.032,
-        "costPerValidArticleUsd": 0.001684,
-        "freshness": 0.5263157894736842,
+        "costPerValidArticleUsd": null,
+        "freshness": null,
         "eligible": true
       },
       {
@@ -975,9 +975,9 @@
         "provider": "exa-contents",
         "n": 15,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.7333333333333333,
+        "editorialSuccessRate": 0.6666666666666666,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.7333333333333333,
+        "titleAccuracy": 0.6666666666666666,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -992,17 +992,17 @@
         "cacheHitRate": 0,
         "creditsUsed": 15,
         "costEstimatedUsd": 0.015,
-        "costPerValidArticleUsd": 0.001364,
-        "freshness": 0.6363636363636364,
+        "costPerValidArticleUsd": 0.0015,
+        "freshness": 0.6,
         "eligible": true
       },
       {
         "provider": "tavily-extract",
         "n": 15,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 1,
-        "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "editorialSuccessRate": 0.2,
+        "contentCompleteness": 0.839,
+        "titleAccuracy": 0.2,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1017,8 +1017,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 3.0000000000000004,
         "costEstimatedUsd": 0.024,
-        "costPerValidArticleUsd": 0.0016,
-        "freshness": 0.7333333333333333,
+        "costPerValidArticleUsd": 0.008,
+        "freshness": 1,
         "eligible": true
       },
       {
@@ -1202,9 +1202,9 @@
         "provider": "tavily-extract",
         "n": 15,
         "technicalSuccessRate": 0.7333333333333333,
-        "editorialSuccessRate": 0.4,
+        "editorialSuccessRate": 0.13333333333333333,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.7272727272727273,
+        "titleAccuracy": 0.18181818181818182,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1219,7 +1219,7 @@
         "cacheHitRate": 0,
         "creditsUsed": 2.1999999999999997,
         "costEstimatedUsd": 0.0176,
-        "costPerValidArticleUsd": 0.002933,
+        "costPerValidArticleUsd": 0.0088,
         "freshness": 0,
         "eligible": true
       },
@@ -1379,9 +1379,9 @@
         "provider": "exa-contents",
         "n": 5,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.8,
+        "editorialSuccessRate": 0.6,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.8,
+        "titleAccuracy": 0.6,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1396,7 +1396,7 @@
         "cacheHitRate": 0,
         "creditsUsed": 5,
         "costEstimatedUsd": 0.005,
-        "costPerValidArticleUsd": 0.00125,
+        "costPerValidArticleUsd": 0.001667,
         "freshness": 1,
         "eligible": true
       },
@@ -1404,10 +1404,10 @@
         "provider": "tavily-extract",
         "n": 5,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.8,
-        "contentCompleteness": 1,
-        "titleAccuracy": 0.8,
-        "sourceAccuracy": 1,
+        "editorialSuccessRate": 0,
+        "contentCompleteness": 0,
+        "titleAccuracy": 0,
+        "sourceAccuracy": null,
         "dateAccuracy": null,
         "dateVerifiable": 0,
         "p50": 776,
@@ -1421,8 +1421,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 1,
         "costEstimatedUsd": 0.008,
-        "costPerValidArticleUsd": 0.002,
-        "freshness": 1,
+        "costPerValidArticleUsd": null,
+        "freshness": null,
         "eligible": true
       },
       {
@@ -1454,9 +1454,9 @@
         "provider": "apify-rag-web-browser",
         "n": 5,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 1,
+        "editorialSuccessRate": 0.8,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.8,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1471,7 +1471,7 @@
         "cacheHitRate": 0,
         "creditsUsed": 20,
         "costEstimatedUsd": 0.02,
-        "costPerValidArticleUsd": 0.004,
+        "costPerValidArticleUsd": 0.005,
         "freshness": 1,
         "eligible": true
       },
@@ -1633,9 +1633,9 @@
         "provider": "tavily-extract",
         "n": 20,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 1,
+        "editorialSuccessRate": 0.05,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.05,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1650,7 +1650,7 @@
         "cacheHitRate": 0,
         "creditsUsed": 4.000000000000001,
         "costEstimatedUsd": 0.032,
-        "costPerValidArticleUsd": 0.0016,
+        "costPerValidArticleUsd": 0.032,
         "freshness": 0,
         "eligible": true
       },
@@ -1735,12 +1735,12 @@
         "provider": "direct",
         "n": 60,
         "technicalSuccessRate": 0.9333333333333333,
-        "editorialSuccessRate": 0.9166666666666666,
+        "editorialSuccessRate": 0.9,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9821428571428571,
+        "titleAccuracy": 0.9642857142857143,
         "sourceAccuracy": 1,
         "dateAccuracy": 1,
-        "dateVerifiable": 52,
+        "dateVerifiable": 51,
         "p50": 179,
         "p95": 1793,
         "p99": 31324,
@@ -1753,19 +1753,19 @@
         "creditsUsed": 0,
         "costEstimatedUsd": 0,
         "costPerValidArticleUsd": 0,
-        "freshness": 0.8909090909090909,
+        "freshness": 0.8888888888888888,
         "eligible": true
       },
       {
         "provider": "scrapfly-basic",
         "n": 60,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.9833333333333333,
+        "editorialSuccessRate": 0.9666666666666667,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9833333333333333,
+        "titleAccuracy": 0.9666666666666667,
         "sourceAccuracy": null,
         "dateAccuracy": 1,
-        "dateVerifiable": 56,
+        "dateVerifiable": 55,
         "p50": 2272,
         "p95": 5024,
         "p99": 8958,
@@ -1777,20 +1777,20 @@
         "cacheHitRate": 0,
         "creditsUsed": 108,
         "costEstimatedUsd": 0.0162,
-        "costPerValidArticleUsd": 0.000275,
-        "freshness": 0.8983050847457628,
+        "costPerValidArticleUsd": 0.000279,
+        "freshness": 0.896551724137931,
         "eligible": true
       },
       {
         "provider": "zyte-http",
         "n": 60,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.9833333333333333,
+        "editorialSuccessRate": 0.9666666666666667,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9833333333333333,
+        "titleAccuracy": 0.9666666666666667,
         "sourceAccuracy": 1,
         "dateAccuracy": 1,
-        "dateVerifiable": 56,
+        "dateVerifiable": 55,
         "p50": 1249,
         "p95": 11417,
         "p99": 34897,
@@ -1802,17 +1802,17 @@
         "cacheHitRate": 0,
         "creditsUsed": 120,
         "costEstimatedUsd": 0.012,
-        "costPerValidArticleUsd": 0.000203,
-        "freshness": 0.8983050847457628,
+        "costPerValidArticleUsd": 0.000207,
+        "freshness": 0.896551724137931,
         "eligible": true
       },
       {
         "provider": "exa-contents",
         "n": 60,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.8833333333333333,
+        "editorialSuccessRate": 0.85,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9166666666666666,
+        "titleAccuracy": 0.8833333333333333,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1827,17 +1827,17 @@
         "cacheHitRate": 0,
         "creditsUsed": 60,
         "costEstimatedUsd": 0.06,
-        "costPerValidArticleUsd": 0.001132,
-        "freshness": 0.8867924528301887,
+        "costPerValidArticleUsd": 0.001176,
+        "freshness": 0.8823529411764706,
         "eligible": true
       },
       {
         "provider": "tavily-extract",
         "n": 60,
         "technicalSuccessRate": 0.9666666666666667,
-        "editorialSuccessRate": 0.85,
+        "editorialSuccessRate": 0.21666666666666667,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.896551724137931,
+        "titleAccuracy": 0.2413793103448276,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1852,20 +1852,20 @@
         "cacheHitRate": 0,
         "creditsUsed": 11.59999999999999,
         "costEstimatedUsd": 0.0928,
-        "costPerValidArticleUsd": 0.00182,
-        "freshness": 0.8823529411764706,
+        "costPerValidArticleUsd": 0.007138,
+        "freshness": 1,
         "eligible": true
       },
       {
         "provider": "brightdata-unlocker",
         "n": 60,
         "technicalSuccessRate": 0.9666666666666667,
-        "editorialSuccessRate": 0.95,
+        "editorialSuccessRate": 0.9333333333333333,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9827586206896551,
+        "titleAccuracy": 0.9655172413793104,
         "sourceAccuracy": null,
         "dateAccuracy": 1,
-        "dateVerifiable": 54,
+        "dateVerifiable": 53,
         "p50": 1881,
         "p95": 10057,
         "p99": 17375,
@@ -1877,17 +1877,17 @@
         "cacheHitRate": 0,
         "creditsUsed": 58,
         "costEstimatedUsd": 0.087,
-        "costPerValidArticleUsd": 0.001526,
-        "freshness": 0.9298245614035088,
+        "costPerValidArticleUsd": 0.001554,
+        "freshness": 0.9285714285714286,
         "eligible": true
       },
       {
         "provider": "apify-rag-web-browser",
         "n": 60,
         "technicalSuccessRate": 0.8666666666666667,
-        "editorialSuccessRate": 0.8666666666666667,
+        "editorialSuccessRate": 0.85,
         "contentCompleteness": 1,
-        "titleAccuracy": 1,
+        "titleAccuracy": 0.9807692307692307,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -1902,20 +1902,20 @@
         "cacheHitRate": 0,
         "creditsUsed": 208,
         "costEstimatedUsd": 0.208,
-        "costPerValidArticleUsd": 0.004,
-        "freshness": 0.8846153846153846,
+        "costPerValidArticleUsd": 0.004078,
+        "freshness": 0.8823529411764706,
         "eligible": true
       },
       {
         "provider": "firecrawl-scrape",
         "n": 60,
         "technicalSuccessRate": 1,
-        "editorialSuccessRate": 0.9833333333333333,
+        "editorialSuccessRate": 0.9666666666666667,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.9833333333333333,
+        "titleAccuracy": 0.9666666666666667,
         "sourceAccuracy": 1,
         "dateAccuracy": 1,
-        "dateVerifiable": 43,
+        "dateVerifiable": 42,
         "p50": 6252,
         "p95": 9244,
         "p99": 10141,
@@ -1927,8 +1927,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 60,
         "costEstimatedUsd": 0.228,
-        "costPerValidArticleUsd": 0.003864,
-        "freshness": 0.8983050847457628,
+        "costPerValidArticleUsd": 0.003931,
+        "freshness": 0.896551724137931,
         "eligible": true
       }
     ],
@@ -2012,9 +2012,9 @@
         "provider": "tavily-extract",
         "n": 20,
         "technicalSuccessRate": 0.75,
-        "editorialSuccessRate": 0.45,
+        "editorialSuccessRate": 0.15,
         "contentCompleteness": 1,
-        "titleAccuracy": 0.7333333333333333,
+        "titleAccuracy": 0.2,
         "sourceAccuracy": 1,
         "dateAccuracy": null,
         "dateVerifiable": 0,
@@ -2029,8 +2029,8 @@
         "cacheHitRate": 0,
         "creditsUsed": 3.0000000000000004,
         "costEstimatedUsd": 0.024,
-        "costPerValidArticleUsd": 0.002667,
-        "freshness": 0.1111111111111111,
+        "costPerValidArticleUsd": 0.008,
+        "freshness": 0,
         "eligible": true
       },
       {
@@ -2155,7 +2155,7 @@
       "exa-contents": "4/4",
       "firecrawl-scrape": "4/4",
       "scrapfly-basic": "4/4",
-      "tavily-extract": "4/4",
+      "tavily-extract": "0/4",
       "zyte-http": "4/4"
     },
     {
@@ -2166,7 +2166,7 @@
       "exa-contents": "0/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2177,7 +2177,7 @@
       "exa-contents": "4/4",
       "firecrawl-scrape": "4/4",
       "scrapfly-basic": "4/4",
-      "tavily-extract": "4/4",
+      "tavily-extract": "0/4",
       "zyte-http": "4/4"
     },
     {
@@ -2188,7 +2188,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2199,7 +2199,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "1/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2210,7 +2210,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "2/3",
       "zyte-http": "3/3"
     },
     {
@@ -2221,19 +2221,19 @@
       "exa-contents": "1/1",
       "firecrawl-scrape": "1/1",
       "scrapfly-basic": "0/1",
-      "tavily-extract": "1/1",
+      "tavily-extract": "0/1",
       "zyte-http": "1/1"
     },
     {
       "domain": "finsidersbrasil.com.br",
       "apify-rag-web-browser": "2/2",
-      "brightdata-unlocker": "2/2",
-      "direct": "2/2",
+      "brightdata-unlocker": "1/2",
+      "direct": "1/2",
       "exa-contents": "2/2",
-      "firecrawl-scrape": "2/2",
-      "scrapfly-basic": "2/2",
+      "firecrawl-scrape": "1/2",
+      "scrapfly-basic": "1/2",
       "tavily-extract": "0/2",
-      "zyte-http": "2/2"
+      "zyte-http": "1/2"
     },
     {
       "domain": "gov.br",
@@ -2243,7 +2243,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2254,7 +2254,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "2/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2265,7 +2265,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "2/3",
       "zyte-http": "3/3"
     },
     {
@@ -2276,7 +2276,7 @@
       "exa-contents": "1/1",
       "firecrawl-scrape": "1/1",
       "scrapfly-basic": "1/1",
-      "tavily-extract": "1/1",
+      "tavily-extract": "0/1",
       "zyte-http": "1/1"
     },
     {
@@ -2309,7 +2309,7 @@
       "exa-contents": "2/2",
       "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
-      "tavily-extract": "2/2",
+      "tavily-extract": "0/2",
       "zyte-http": "2/2"
     },
     {
@@ -2320,7 +2320,7 @@
       "exa-contents": "5/5",
       "firecrawl-scrape": "5/5",
       "scrapfly-basic": "5/5",
-      "tavily-extract": "4/5",
+      "tavily-extract": "1/5",
       "zyte-http": "5/5"
     },
     {
@@ -2331,7 +2331,7 @@
       "exa-contents": "7/7",
       "firecrawl-scrape": "7/7",
       "scrapfly-basic": "7/7",
-      "tavily-extract": "7/7",
+      "tavily-extract": "1/7",
       "zyte-http": "7/7"
     },
     {
@@ -2342,7 +2342,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "1/3",
       "zyte-http": "3/3"
     },
     {
@@ -2364,7 +2364,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2375,7 +2375,7 @@
       "exa-contents": "1/2",
       "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
-      "tavily-extract": "1/2",
+      "tavily-extract": "0/2",
       "zyte-http": "2/2"
     },
     {
@@ -2397,7 +2397,7 @@
       "exa-contents": "8/8",
       "firecrawl-scrape": "8/8",
       "scrapfly-basic": "8/8",
-      "tavily-extract": "8/8",
+      "tavily-extract": "0/8",
       "zyte-http": "8/8"
     },
     {
@@ -2419,7 +2419,7 @@
       "exa-contents": "3/3",
       "firecrawl-scrape": "3/3",
       "scrapfly-basic": "3/3",
-      "tavily-extract": "3/3",
+      "tavily-extract": "0/3",
       "zyte-http": "3/3"
     },
     {
@@ -2463,7 +2463,7 @@
       "exa-contents": "6/6",
       "firecrawl-scrape": "6/6",
       "scrapfly-basic": "6/6",
-      "tavily-extract": "5/6",
+      "tavily-extract": "1/6",
       "zyte-http": "6/6"
     },
     {
@@ -2474,7 +2474,7 @@
       "exa-contents": "2/2",
       "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
-      "tavily-extract": "2/2",
+      "tavily-extract": "0/2",
       "zyte-http": "2/2"
     },
     {
@@ -2482,21 +2482,21 @@
       "apify-rag-web-browser": "0/5",
       "brightdata-unlocker": "5/5",
       "direct": "2/5",
-      "exa-contents": "1/5",
+      "exa-contents": "0/5",
       "firecrawl-scrape": "5/5",
       "scrapfly-basic": "5/5",
-      "tavily-extract": "5/5",
+      "tavily-extract": "3/5",
       "zyte-http": "5/5"
     },
     {
       "domain": "thepointsguy.com",
-      "apify-rag-web-browser": "1/1",
+      "apify-rag-web-browser": "0/1",
       "brightdata-unlocker": "0/1",
       "direct": "0/1",
-      "exa-contents": "1/1",
+      "exa-contents": "0/1",
       "firecrawl-scrape": "0/1",
       "scrapfly-basic": "0/1",
-      "tavily-extract": "1/1",
+      "tavily-extract": "0/1",
       "zyte-http": "0/1"
     },
     {
@@ -2507,7 +2507,7 @@
       "exa-contents": "0/2",
       "firecrawl-scrape": "2/2",
       "scrapfly-basic": "2/2",
-      "tavily-extract": "2/2",
+      "tavily-extract": "0/2",
       "zyte-http": "2/2"
     }
   ],
@@ -2653,15 +2653,15 @@
       "order": [
         {
           "provider": "direct",
-          "expectedUsdPerValid": 0.000267
+          "expectedUsdPerValid": 0.0004
         },
         {
           "provider": "scrapfly-basic",
-          "expectedUsdPerValid": 0.000467
+          "expectedUsdPerValid": 0.0007
         },
         {
           "provider": "zyte-http",
-          "expectedUsdPerValid": 0.000533
+          "expectedUsdPerValid": 0.0008
         }
       ]
     },
@@ -3094,15 +3094,31 @@
   "combined": {
     "eligibleUrls": 100,
     "technical": 100,
-    "editorial": 100,
+    "editorial": 99,
     "allUrls": 100,
-    "editorialAll": 100,
-    "titleOk": 98,
+    "editorialAll": 99,
+    "titleOk": 97,
     "titleBase": 100,
-    "dateVerifiable": 79,
-    "dateOk": 79
+    "dateVerifiable": 78,
+    "dateOk": 78
   },
-  "failedUrls": [],
+  "failedUrls": [
+    {
+      "id": "u098",
+      "domain": "thepointsguy.com",
+      "category": "internacional",
+      "errors": [
+        "direct:title_mismatch/200",
+        "zyte-http:title_mismatch/200",
+        "exa-contents:title_mismatch/200",
+        "tavily-extract:title_mismatch/200",
+        "brightdata-unlocker:title_mismatch/200",
+        "apify-rag-web-browser:title_mismatch/200",
+        "scrapfly-basic:title_mismatch/200",
+        "firecrawl-scrape:title_mismatch/200"
+      ]
+    }
+  ],
   "projections": {
     "direct": {
       "1000": 0,
@@ -3111,46 +3127,46 @@
       "100000": 0
     },
     "scrapfly-basic": {
-      "1000": 0.27,
-      "10000": 2.73,
-      "50000": 13.65,
-      "100000": 27.3
+      "1000": 0.28,
+      "10000": 2.76,
+      "50000": 13.8,
+      "100000": 27.6
     },
     "zyte-http": {
       "1000": 0.21,
-      "10000": 2.11,
-      "50000": 10.55,
-      "100000": 21.1
+      "10000": 2.13,
+      "50000": 10.65,
+      "100000": 21.3
     },
     "exa-contents": {
-      "1000": 1.11,
-      "10000": 11.11,
-      "50000": 55.55,
-      "100000": 111.1
+      "1000": 1.14,
+      "10000": 11.36,
+      "50000": 56.8,
+      "100000": 113.6
     },
     "tavily-extract": {
-      "1000": 1.86,
-      "10000": 18.6,
-      "50000": 93,
-      "100000": 186
+      "1000": 8.75,
+      "10000": 87.53,
+      "50000": 437.65,
+      "100000": 875.3
     },
     "brightdata-unlocker": {
-      "1000": 1.57,
-      "10000": 15.67,
-      "50000": 78.35,
-      "100000": 156.7
+      "1000": 1.58,
+      "10000": 15.84,
+      "50000": 79.2,
+      "100000": 158.4
     },
     "apify-rag-web-browser": {
-      "1000": 4.14,
-      "10000": 41.38,
-      "50000": 206.9,
-      "100000": 413.8
+      "1000": 4.19,
+      "10000": 41.86,
+      "50000": 209.3,
+      "100000": 418.6
     },
     "firecrawl-scrape": {
-      "1000": 3.96,
-      "10000": 39.58,
-      "50000": 197.9,
-      "100000": 395.8
+      "1000": 4,
+      "10000": 40,
+      "50000": 200,
+      "100000": 400
     }
   }
 }

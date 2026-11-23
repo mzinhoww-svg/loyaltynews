@@ -1,25 +1,25 @@
 {
   "runId": "run-20261123-01",
+  "criterion": "v2",
   "note": "replay das respostas reais medidas; nenhuma chamada nova; nada publicado",
   "eligible": 100,
   "results": [
     {
       "path": "atual: direct → tavily",
       "urls": 100,
-      "valid": 96,
-      "attempts": 112,
-      "fallbacks": 12,
-      "creditsUsdEquiv": 0.0144,
-      "usdPerValid": 0.00015,
+      "valid": 89,
+      "attempts": 113,
+      "fallbacks": 13,
+      "creditsUsdEquiv": 0.016,
+      "usdPerValid": 0.00018,
       "stopsByRestriction": 0,
-      "decisions": 213,
-      "latencyP50Ms": 460,
+      "decisions": 214,
+      "latencyP50Ms": 534,
       "latencyP95Ms": 10363,
       "perUrl": [
         {
           "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
-          "valid": true,
-          "provider": "tavily-extract",
+          "valid": false,
           "latencyMs": 34875,
           "attempts": 2
         },
@@ -32,8 +32,7 @@
         },
         {
           "url": "https://www.seudinheiro.com/2026/carreiras/premio-leva-5-universitarios-brasileiros-a-china-o-que-eles-fizeram-para-ganhar-a-viagem-miql/",
-          "valid": true,
-          "provider": "tavily-extract",
+          "valid": false,
           "latencyMs": 33587,
           "attempts": 2
         },
@@ -214,8 +213,7 @@
         },
         {
           "url": "https://www.finextra.com/pressarticle/111734/alipay-connects-global-e-wallets-with-brazils-pix",
-          "valid": true,
-          "provider": "tavily-extract",
+          "valid": false,
           "latencyMs": 197,
           "attempts": 2
         },
@@ -298,10 +296,9 @@
         },
         {
           "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
-          "valid": true,
-          "provider": "direct",
-          "latencyMs": 101,
-          "attempts": 1
+          "valid": false,
+          "latencyMs": 736,
+          "attempts": 2
         },
         {
           "url": "https://www.mobiletime.com.br/noticias/19/11/2026/motorola-lanca-qira-ia/",
@@ -417,8 +414,7 @@
         },
         {
           "url": "https://pontospravoar.com/turkish-airlines-oferece-20-de-desconto-em-voos-internacionais/",
-          "valid": true,
-          "provider": "tavily-extract",
+          "valid": false,
           "latencyMs": 32170,
           "attempts": 2
         },
@@ -480,8 +476,7 @@
         },
         {
           "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
-          "valid": true,
-          "provider": "tavily-extract",
+          "valid": false,
           "latencyMs": 1804,
           "attempts": 2
         },
@@ -693,8 +688,7 @@
         },
         {
           "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
-          "valid": true,
-          "provider": "tavily-extract",
+          "valid": false,
           "latencyMs": 1952,
           "attempts": 2
         },
@@ -717,15 +711,15 @@
     {
       "path": "cascata fixa por preço: direct → zyte → scrapfly → brightdata → exa → tavily → apify",
       "urls": 100,
-      "valid": 100,
-      "attempts": 126,
-      "fallbacks": 26,
-      "creditsUsdEquiv": 0.01485,
-      "usdPerValid": 0.000149,
+      "valid": 99,
+      "attempts": 132,
+      "fallbacks": 32,
+      "creditsUsdEquiv": 0.0233,
+      "usdPerValid": 0.000235,
       "stopsByRestriction": 0,
-      "decisions": 227,
-      "latencyP50Ms": 549,
-      "latencyP95Ms": 10113,
+      "decisions": 233,
+      "latencyP50Ms": 574,
+      "latencyP95Ms": 15691,
       "perUrl": [
         {
           "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
@@ -1010,9 +1004,9 @@
         {
           "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
           "valid": true,
-          "provider": "direct",
-          "latencyMs": 101,
-          "attempts": 1
+          "provider": "exa-contents",
+          "latencyMs": 20553,
+          "attempts": 5
         },
         {
           "url": "https://www.mobiletime.com.br/noticias/19/11/2026/motorola-lanca-qira-ia/",
@@ -1408,10 +1402,9 @@
         },
         {
           "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
-          "valid": true,
-          "provider": "exa-contents",
-          "latencyMs": 8242,
-          "attempts": 5
+          "valid": false,
+          "latencyMs": 12420,
+          "attempts": 7
         },
         {
           "url": "https://onemileatatime.com/news/dozens-fall-ill-condor-flights-frankfurt-mass-casualty-response/",
@@ -1432,13 +1425,13 @@
     {
       "path": "adaptativo (validação cruzada 2 dobras)",
       "urls": 100,
-      "valid": 100,
-      "attempts": 116,
-      "fallbacks": 16,
-      "creditsUsdEquiv": 0.00745,
-      "usdPerValid": 0.000074,
+      "valid": 99,
+      "attempts": 123,
+      "fallbacks": 23,
+      "creditsUsdEquiv": 0.0197,
+      "usdPerValid": 0.000199,
       "stopsByRestriction": 0,
-      "decisions": 216,
+      "decisions": 223,
       "perUrl": [
         {
           "url": "https://mercadoeconsumo.com.br/20/10/2026/gestao/renata-araujo-e-a-nova-secretaria-geral-da-aneel-e-a-primeira-mulher-a-ocupar-o-cargo/",
@@ -1778,10 +1771,9 @@
         },
         {
           "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
-          "valid": true,
-          "provider": "exa-contents",
-          "latencyMs": 6744,
-          "attempts": 4
+          "valid": false,
+          "latencyMs": 19771,
+          "attempts": 8
         },
         {
           "url": "https://simpleflying.com/qatar-airways-adds-1st-ever-airbus-a321lr-routes/",
@@ -1933,9 +1925,9 @@
         {
           "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
           "valid": true,
-          "provider": "direct",
-          "latencyMs": 101,
-          "attempts": 1
+          "provider": "exa-contents",
+          "latencyMs": 4359,
+          "attempts": 4
         },
         {
           "url": "https://www.paymentsdive.com/news/paypal-ceo-remakes-team/875344/",
@@ -2141,14 +2133,14 @@
           "attempts": 1
         }
       ],
-      "latencyP50Ms": 534,
-      "latencyP95Ms": 7626
+      "latencyP50Ms": 549,
+      "latencyP95Ms": 10065
     }
   ],
   "divergences": [
     {
       "url": "https://pontospravoar.com/turkish-airlines-oferece-20-de-desconto-em-voos-internacionais/",
-      "atual": "tavily-extract",
+      "atual": "falha",
       "adaptativo": "scrapfly-basic",
       "latAtualMs": 32170,
       "latAdaptMs": 33333
@@ -2189,36 +2181,36 @@
       "latAdaptMs": 258
     },
     {
-      "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
-      "atual": "tavily-extract",
-      "adaptativo": "exa-contents",
-      "latAtualMs": 1952,
-      "latAdaptMs": 6744
-    },
-    {
       "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
-      "atual": "tavily-extract",
+      "atual": "falha",
       "adaptativo": "scrapfly-basic",
       "latAtualMs": 34875,
       "latAdaptMs": 34107
     },
     {
       "url": "https://www.seudinheiro.com/2026/carreiras/premio-leva-5-universitarios-brasileiros-a-china-o-que-eles-fizeram-para-ganhar-a-viagem-miql/",
-      "atual": "tavily-extract",
+      "atual": "falha",
       "adaptativo": "scrapfly-basic",
       "latAtualMs": 33587,
       "latAdaptMs": 32413
     },
     {
       "url": "https://www.finextra.com/pressarticle/111734/alipay-connects-global-e-wallets-with-brazils-pix",
-      "atual": "tavily-extract",
+      "atual": "falha",
       "adaptativo": "zyte-http",
       "latAtualMs": 197,
       "latAdaptMs": 7626
     },
     {
+      "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
+      "atual": "falha",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 736,
+      "latAdaptMs": 4359
+    },
+    {
       "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
-      "atual": "tavily-extract",
+      "atual": "falha",
       "adaptativo": "scrapfly-basic",
       "latAtualMs": 1804,
       "latAdaptMs": 3077

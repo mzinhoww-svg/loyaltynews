@@ -134,3 +134,17 @@ export function evaluate(text: string | undefined, html: string | undefined, ref
   if (tm < 0.5) return { ...base, editorialSuccess: false, reason: 'title_mismatch' };
   return { ...base, editorialSuccess: true, reason: 'ok' };
 }
+
+/**
+ * Critério v2 (estrito) reaplicado a um registro JÁ GRAVADO (parecer QA 3, reavaliação M2): título recalculado só a partir do
+ * título extraído e gravado (sem o atalho pelo corpo), contra o título de referência. O corpo integral não é guardado, então
+ * a presença/qualidade do texto continua aproximada pelo tamanho e pela classe de erro original. Estimativa: o título gravado
+ * pode estar truncado (≤ 300 caracteres).
+ */
+export function rejudgeRecord<T extends { technicalSuccess: boolean; editorialSuccess: boolean; textLength: number; title?: string; titleMatch?: number; errorClass: string }>(r: T, referenceTitle: string): T & { criterion: 'v2' } {
+  const tm = titleSimilarity(r.title, referenceTitle);
+  const blocked = ['login_required', 'paywall', 'captcha'].includes(r.errorClass);
+  const ok = r.technicalSuccess && !blocked && r.textLength >= MIN_EDITORIAL_CHARS && tm >= 0.5;
+  const errorClass = ok ? 'none' : blocked || !r.technicalSuccess ? r.errorClass : r.textLength < MIN_EDITORIAL_CHARS ? (r.errorClass === 'captcha' ? 'captcha' : 'empty_content') : 'title_mismatch';
+  return { ...r, titleMatch: +tm.toFixed(3), editorialSuccess: ok, errorClass, criterion: 'v2' };
+}
