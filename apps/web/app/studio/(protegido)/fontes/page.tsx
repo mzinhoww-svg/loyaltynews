@@ -49,7 +49,7 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
       {fontes.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">
           <h2 id="vazio">Nenhuma fonte cadastrada</h2>
-          <p>O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial (flag editorialCollector desligada).</p>
+          <p>O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial e está desligada nesta fase.</p>
         </section>
       ) : (
         <table className="st-table">

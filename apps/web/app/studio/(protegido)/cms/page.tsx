@@ -153,7 +153,7 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           </tbody>
         </table>
       )}
-      <p className="st-hint">Publicação no portal: pela rota oficial, com recibo válido da versão e a flag publicacaoPortal ligada, para quem tem permissão de publicar (editor-chefe, admin). Quem aprova e quem publica podem ser a mesma pessoa.</p>
+      <p className="st-hint">Publicação no portal: pela rota oficial, com recibo válido da versão e a publicação no portal ligada nesta fase, para quem tem permissão de publicar (editor-chefe, admin). Quem aprova e quem publica podem ser a mesma pessoa.</p>
     </>
   );
 }

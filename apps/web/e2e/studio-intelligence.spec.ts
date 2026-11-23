@@ -12,7 +12,7 @@ test.describe('Entity intelligence (@ln/intelligence)', () => {
     await page.goto('/studio/entidades');
     await expect(page.getByRole('heading', { level: 1, name: 'Entity intelligence' })).toBeVisible();
     await expect(page.getByRole('note')).toContainText('Banco temporário em memória');
-    await expect(page.getByText('Ingestão de pessoas (flag intelligencePessoas):')).toContainText('desligada');
+    await expect(page.getByText('Ingestão de pessoas:')).toContainText('desligada');
     await expect(page.locator('[data-vazio="moves"]')).toBeVisible();
     await page.getByLabel('Buscar empresa ou executivo').fill('Banco Inexistente');
     await page.getByRole('button', { name: 'Buscar' }).click();

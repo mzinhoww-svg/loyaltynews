@@ -242,7 +242,7 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
     await page.getByRole('link', { name: TITULO2 }).click();
     await expect(page.getByRole('heading', { name: 'Publicação' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
-    await expect(page.getByText('Publicação desligada neste ambiente (flag publicacaoPortal).')).toBeVisible();
+    await expect(page.getByText('Publicação desligada nesta fase.')).toBeVisible();
     await expect(page.getByLabel('URL pública da matéria')).toBeVisible();
     // P2-01: matéria aprovada não é editável e a tela diz isso com clareza (campo travado parece travado)
     await expect(page.locator('[data-travada="sim"]')).toContainText('ficam travados');
@@ -267,7 +267,7 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
       await page.goto('/studio/cms?status=aprovado');
       await page.getByRole('link', { name: TITULO2 }).click();
       await expect(page.getByRole('button', { name: 'Publicar' })).toBeEnabled();
-      await expect(page.getByText('Publicação desligada neste ambiente')).toHaveCount(0);
+      await expect(page.getByText('Publicação desligada nesta fase')).toHaveCount(0);
 
       // P2-03: a URL pública é a do Portal e não se digita (um erro de digitação gravaria no recibo um link que dá 404)
       await expect(page.getByLabel('URL pública da matéria')).toHaveAttribute('readonly', '');

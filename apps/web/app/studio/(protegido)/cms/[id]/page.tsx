@@ -195,7 +195,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
               )}
               <p className="st-hint" id="pub-hint">
                 {!publicacaoLigada
-                  ? 'Publicação desligada neste ambiente (flag publicacaoPortal).'
+                  ? 'Publicação desligada nesta fase.'
                   : m.status === 'aprovado' && m.recibo
                     ? podePublicar
                       ? 'Publica quem tem permissão de publicar (editor-chefe, admin), com o recibo válido da versão aprovada; quem aprovou e quem publica podem ser a mesma pessoa.'
@@ -284,7 +284,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
                         <button className="st-btn" type="submit" disabled={!publicacaoLigada}>
                           Publicar correção
                         </button>
-                        {!publicacaoLigada ? <p className="st-hint">Publicação desligada neste ambiente (flag publicacaoPortal).</p> : null}
+                        {!publicacaoLigada ? <p className="st-hint">Publicação desligada nesta fase.</p> : null}
                       </form>
                     ) : (
                       <p className="st-hint">Revisão com recibo: a publicação é do editor-chefe ou do admin.</p>
