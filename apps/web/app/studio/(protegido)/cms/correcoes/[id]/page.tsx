@@ -56,6 +56,12 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
   const c = r.body as Caso;
   const podeGerir = checkAccess(session, ['admin', 'editor_chefe']).ok;
   const ehAdmin = checkAccess(session, ['admin']).ok;
+  // URL pública canônica da página contestada: /noticia/{slug} (a matéria pode ser só do CMS ou da Fábrica; sem slug o campo fica vazio)
+  const materia = await api.materias.obter(c.articleId);
+  const slug = !ehErro(materia) ? materia.body.data.slug : null;
+  const base = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
+  const urlPublica = base && slug ? base + '/noticia/' + slug : '';
+  const aceito = ['accepted', 'escalated_legal', 'notice_published', 'social_reconciled'].includes(c.state);
   return (
     <>
       <p>
@@ -66,6 +72,10 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
         {c.kind} · estado <strong>{c.state}</strong> · matéria {c.articleId} · recebido {c.receivedAt.slice(0, 16).replace('T', ' ')} · prazo {c.deadlineAt ? c.deadlineAt.slice(0, 10) : 'sem prazo'}
       </p>
       <Flash tipo={tipo} aviso={aviso} />
+      <p>
+        <Link href={`/studio/cms/${encodeURIComponent(c.articleId)}`}>Abrir a matéria</Link>
+        {aceito ? ' para registrar a revisão de correção (seção Correção).' : '.'}
+      </p>
       <h2>Contestação</h2>
       <p>{c.contested}</p>
       <p>
@@ -105,7 +115,7 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
             <Passo op="preserve-evidence" id={c.id} rotulo="Preservar evidência">
               <div className="st-field">
                 <label htmlFor="url">URL da página contestada</label>
-                <input id="url" name="url" type="url" />
+                <input id="url" name="url" type="url" defaultValue={urlPublica} />
               </div>
               <div className="st-field">
                 <label htmlFor="corpo">Conteúdo capturado da página</label>

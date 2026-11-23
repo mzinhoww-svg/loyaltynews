@@ -29,3 +29,12 @@ export async function removerEventoAction(fd: FormData): Promise<void> {
   const r = await api.agenda.excluir(texto(fd, 'id'));
   voltar(BASE, ehErro(r) ? falha(r) : { ok: true }, 'Evento removido.');
 }
+
+/** Moderação (editor-chefe e admin): aprovar publica no portal; rejeitar exige motivo e fica auditado. */
+export async function moderarEventoAction(fd: FormData): Promise<void> {
+  await requireStudio(['admin', 'editor_chefe']);
+  const estado = texto(fd, 'estado') === 'aprovado' ? 'aprovado' : 'rejeitado';
+  const motivo = texto(fd, 'motivo');
+  const r = await api.agenda.moderar(texto(fd, 'id'), { estado, ...(motivo ? { motivo } : {}) });
+  voltar(BASE, ehErro(r) ? falha(r) : { ok: true }, estado === 'aprovado' ? 'Evento aprovado.' : 'Evento rejeitado.');
+}

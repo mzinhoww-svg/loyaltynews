@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { isEnabled } from '@ln/contracts';
 import { findModule } from '@/lib/studio/modules';
@@ -17,12 +18,12 @@ export const dynamic = 'force-dynamic';
 const ESTADOS = ['draft', 'reserved', 'approved', 'active', 'paused', 'completed', 'cancelled'] as const;
 
 type Painel = { campaignsByStatus: Record<string, number>; attention: { kind: string; ref: string; message: string }[]; sellingEnabled: boolean };
-type Coluna = { stage: string; items: { accountId: string; accountName: string | null }[] };
+const POR_PAGINA = 20;
 type Formato = { id: string; name: string; status: string };
 
-export default async function CampanhasPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; id?: string }> }) {
+export default async function CampanhasPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; id?: string; status?: string; conta?: string; q?: string; pagina?: string }> }) {
   await requireModule(findModule('campanhas')!);
-  const { tipo, aviso, id } = await searchParams;
+  const { tipo, aviso, id, status = '', conta: contaFiltro = '', q = '', pagina = '1' } = await searchParams;
   if (id?.trim()) redirect(`/studio/campanhas/${encodeURIComponent(id.trim())}`);
   const { from, to } = periodo30(hojeSP());
   const painelRes = await api.comercial.painel(from, to);
@@ -45,10 +46,15 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
     );
   }
   const painel = painelRes.body as unknown as Painel;
-  const quadro = await api.comercial.oportunidades();
-  const contasMap = new Map<string, string>();
-  for (const col of (ehErro(quadro) ? [] : quadro.body) as unknown as Coluna[]) for (const o of col.items) contasMap.set(o.accountId, o.accountName ?? o.accountId);
-  const contas = [...contasMap.entries()];
+  // anunciantes: as contas do CRM, pela lista do Backend (sem dado pessoal; só nome e contagens)
+  const contasRes = await api.comercial.contas({ limit: '100' });
+  const contas = ehErro(contasRes) ? [] : contasRes.body.data;
+  const pag = Math.max(1, Math.floor(Number(pagina)) || 1);
+  const lista = await api.comercial.campanhas({ ...(status ? { status } : {}), ...(contaFiltro ? { accountId: contaFiltro } : {}), ...(q.trim() ? { q: q.trim() } : {}), limit: String(POR_PAGINA), offset: String((pag - 1) * POR_PAGINA) });
+  const campanhas = ehErro(lista) ? [] : lista.body.data;
+  const totalFiltrado = ehErro(lista) ? 0 : lista.body.total;
+  const paginas = Math.max(1, Math.ceil(totalFiltrado / POR_PAGINA));
+  const filtroQuery = (n: number) => '?' + new URLSearchParams({ ...(status ? { status } : {}), ...(contaFiltro ? { conta: contaFiltro } : {}), ...(q.trim() ? { q: q.trim() } : {}), pagina: String(n) }).toString();
   const fmt = await api.comercial.formatos();
   const formatos = (ehErro(fmt) ? [] : (fmt.body as unknown as { formats: Formato[] }).formats).filter((f) => f.status !== 'indisponivel');
   const total = Object.values(painel.campaignsByStatus).reduce((a, b) => a + b, 0);
@@ -76,7 +82,85 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
           <p>Nenhuma campanha criada. Campanhas nascem de uma conta do CRM (lead convertido) e de um formato do catálogo.</p>
         </section>
       ) : (
-        <p className="st-hint">A API ainda não tem listagem de campanhas: abra uma campanha pelo ID (mostrado ao criar) ou pela busca abaixo.</p>
+        <>
+          <h2>Lista de campanhas</h2>
+          <form className="st-filters" method="get" role="search" aria-label="Filtrar campanhas">
+            <div className="st-field">
+              <label htmlFor="f-status">Estado</label>
+              <select id="f-status" name="status" defaultValue={status}>
+                <option value="">Todos</option>
+                {ESTADOS.map((e) => (
+                  <option key={e} value={e}>
+                    {e}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="st-field">
+              <label htmlFor="f-conta">Anunciante</label>
+              <select id="f-conta" name="conta" defaultValue={contaFiltro}>
+                <option value="">Todos</option>
+                {contas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="st-field">
+              <label htmlFor="f-q">Nome contém</label>
+              <input id="f-q" name="q" type="text" defaultValue={q} />
+            </div>
+            <button className="st-btn sec" type="submit">
+              Filtrar
+            </button>
+          </form>
+          {ehErro(lista) ? (
+            <div className="st-alert err" role="alert">
+              {mensagemErro(lista)}
+            </div>
+          ) : campanhas.length === 0 ? (
+            <p className="st-hint" data-vazio="filtro">
+              Nenhuma campanha com esses filtros.
+            </p>
+          ) : (
+            <table className="st-table">
+              <caption className="st-hint" style={{ textAlign: 'left' }}>
+                {totalFiltrado} campanha(s) · página {pag} de {paginas}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Campanha</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Formato</th>
+                  <th scope="col">Período</th>
+                  <th scope="col">Anunciante</th>
+                </tr>
+              </thead>
+              <tbody>
+                {campanhas.map((c) => (
+                  <tr key={c.id} data-campanha={c.id} data-status={c.status}>
+                    <th scope="row">
+                      <Link href={`/studio/campanhas/${encodeURIComponent(c.id)}`}>{c.name}</Link>
+                    </th>
+                    <td>{c.status}</td>
+                    <td>{c.formatName ?? c.formatId}</td>
+                    <td>
+                      {c.startDate} → {c.endDate}
+                    </td>
+                    <td>{c.accountName ?? c.accountId}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {paginas > 1 ? (
+            <nav aria-label="Paginação de campanhas" className="st-actions">
+              {pag > 1 ? <Link className="st-btn sec" href={filtroQuery(pag - 1)}>Anterior</Link> : null}
+              {pag < paginas ? <Link className="st-btn sec" href={filtroQuery(pag + 1)}>Próxima</Link> : null}
+            </nav>
+          ) : null}
+        </>
       )}
       {painel.attention.length > 0 ? (
         <ul aria-label="Pontos de atenção">
@@ -111,9 +195,9 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
               <div className="st-field">
                 <label htmlFor="conta">Anunciante (conta)</label>
                 <select id="conta" name="conta">
-                  {contas.map(([cid, nome]) => (
-                    <option key={cid} value={cid}>
-                      {nome}
+                  {contas.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
                 </select>
