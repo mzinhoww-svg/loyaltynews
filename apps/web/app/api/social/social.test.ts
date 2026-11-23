@@ -35,7 +35,7 @@ beforeAll(async () => {
   await mk('art-s1', 'programa-muda-regra');
   await mk('art-s2', 'sem-checagem');
   await app.db.insert(schema.publicationReceipts).values({
-    id: 'rc-s1', articleId: 'art-s1', versao: 1, conteudoSha256: sha, checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: chefe.id,
+    id: 'rc-s1', articleId: 'art-s1', versao: 1, conteudoSha256: sha, checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: 'portal',
   });
   // checagem editorial aprovada de art-s1 (fatos com fonte); art-s2 não tem registro editorial
   await new PgEditorialStore(app.db).putArticle(sampleArticle('art-s1', { status: 'aprovado' }));

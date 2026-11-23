@@ -11,11 +11,11 @@ import { draftContentSha256, toPublishableContent, type ArticleRecord } from '@l
 import { sourceRegistry } from './index';
 import type { Db } from '@ln/auth';
 import { HttpError, json, newId, type RouteCtx } from '../http';
+import { PUBLISH_IDENTITY } from '../article-core';
 
 export interface EditorialReceiptInput {
   versao?: number;
   checagens: unknown;
-  identidadePublicacao?: string;
 }
 
 /** Regras determinísticas do conteúdo projetado (as de matéria, sobre o conteúdo publicável). */
@@ -109,7 +109,7 @@ export async function issueFromEditorial(c: RouteCtx, id: string, body: Editoria
       .insert(schema.publicationReceipts)
       .values({
         id: newId(), articleId: id, versao, conteudoSha256: sha, checagens: body.checagens, aprovador: session.userId,
-        identidadePublicacao: body.identidadePublicacao ?? session.userId, emitidoEm: c.deps.now(),
+        identidadePublicacao: PUBLISH_IDENTITY, emitidoEm: c.deps.now(),
       })
       .returning();
     return json({ data: receipt }, 201);

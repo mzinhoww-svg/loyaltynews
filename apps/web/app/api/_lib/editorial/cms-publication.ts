@@ -7,7 +7,6 @@
 // A flag `publicacaoPortal`, a sessão com MFA, o papel `materias:publish` e a identidade de publicação do recibo já foram
 // conferidos por registerPublication antes de chegar aqui.
 import { and, eq } from 'drizzle-orm';
-import { audit } from '@ln/auth';
 import { apiError } from '@ln/contracts';
 import { schema } from '@ln/db';
 import { buildReplyNotice, CORRECTION_QUEUE, INTELLIGENCE_QUEUE, publishNotice, type ApiResponse } from '@ln/editorial';
@@ -16,13 +15,14 @@ import { evidenceIdsOf, gateFailures, rowContentSha } from '../article-core';
 import { withRevision, type Revision } from '../correcao';
 import { newId } from '../http';
 import type { PublicationCtx } from './publication';
+import { recordPublisher } from './publisher-trail';
 
 const err = (status: number, code: string, message: string, details?: unknown): ApiResponse<never> => ({ status, body: apiError(code, message, details) });
 
 export interface CmsPublicationInput {
   userId: string;
   role: string | undefined;
-  receipt: { id: string; versao: number; sha: string };
+  receipt: { id: string; versao: number; sha: string; aprovador: string };
   articleId: string;
   url: string;
 }
@@ -42,7 +42,10 @@ export async function publishFromCms(ctx: PublicationCtx, p: CmsPublicationInput
     },
   });
   const log = (action: string, detalhe: Record<string, unknown>) =>
-    audit(db, { actorId: p.userId, actorRole: p.role, action, resource: 'materias', resourceId: a.id, detalhe: { receiptId: p.receipt.id, contentSha256: sha, ...detalhe }, at: now });
+    recordPublisher(db, {
+      publicadoPor: p.userId, role: p.role, aprovador: p.receipt.aprovador, receiptId: p.receipt.id, articleId: a.id, action, sha,
+      outboxKey: `${action === 'materia.corrigida' ? 'article.corrected' : 'article.published'}:${a.id}:${sha}`, at: now, extra: detalhe,
+    });
 
   // repetição do MESMO recibo: já registrado; só garante que o outbox existe (idempotente)
   const [prev] = await db

@@ -7,6 +7,7 @@ import { call, makeApp, MemoryBlobStore } from '../_lib/testkit';
 import * as publica from '../publico/midia/[id]/route';
 import * as arquivoStudio from './[id]/arquivo/route';
 import * as pubOne from '../publico/materias/[slug]/route';
+import * as pubList from '../publico/materias/route';
 
 // Entrega pública de mídia: só imagem citada por matéria publicada/corrigida; nada de listar o acervo.
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -144,5 +145,61 @@ describe('leituras públicas usam a entrega pública', () => {
     expect((await call(pubOne.GET, 'GET', { params: { slug: b } })).body.data.imagem).toBeNull();
     const c = await materia('publicado', { url: 'http://localhost:3000/api/midia/inexistente/arquivo', origem: 'propria', credito: 'X', baseDeDireito: 'propria', textoAlternativo: 'x', edicoes: [] });
     expect((await call(pubOne.GET, 'GET', { params: { slug: c } })).body.data.imagem).toBeNull();
+  });
+});
+
+describe('imagem na listagem pública (GET /api/publico/materias)', () => {
+  const item = async (slug: string) => {
+    const r = await call(pubList.GET, 'GET', { query: { limit: '100' } });
+    expect(r.status).toBe(200);
+    return r.body.data.find((x: any) => x.slug === slug);
+  };
+
+  it('item com imagem do acervo: só {url pública, textoAlternativo, credito, rotulo}; a URL carrega; nada interno', async () => {
+    const m = await midia();
+    const slug = await materia('publicado', m.direitos);
+    const it_ = await item(slug);
+    expect(it_.imagem).toEqual({ url: `http://localhost:3000/api/publico/midia/${m.id}`, textoAlternativo: 'Ilustração', credito: 'Loyalty News', rotulo: null });
+    expect((await get(m.id)).status).toBe(200);
+    const raw = JSON.stringify(it_);
+    for (const interno of ['origem', 'baseDeDireito', 'edicoes', 'sha256', 'blobKey', 'licenca', m.sha256, '/api/midia/', 'bytes', 'mime']) expect(raw).not.toContain(interno);
+    expect(Object.keys(it_.imagem).sort()).toEqual(['credito', 'rotulo', 'textoAlternativo', 'url']);
+  });
+
+  it('ilustração gerada leva o rótulo "Ilustração conceitual" e nenhum dado de geração', async () => {
+    const ilus = { url: 'x', origem: 'ilustracao_gerada', credito: 'Loyalty News', baseDeDireito: 'gerada_ia', textoAlternativo: 'Ilustração conceitual: cartões e gráfico', edicoes: [] };
+    const m = await midia({ direitos: ilus });
+    const slug = await materia('publicado', { ...ilus, url: `http://localhost:3000/api/midia/${m.id}/arquivo`, generatedBy: 'modelo-x', promptSha256: 'f'.repeat(64) });
+    const it_ = await item(slug);
+    expect(it_.imagem).toMatchObject({ rotulo: 'Ilustração conceitual', credito: 'Loyalty News', textoAlternativo: 'Ilustração conceitual: cartões e gráfico' });
+    const raw = JSON.stringify(it_);
+    for (const proibido of ['generatedBy', 'modelo-x', 'promptSha256', 'ilustracao_gerada', 'gerada_ia']) expect(raw).not.toContain(proibido);
+    // a leitura da matéria também traz o rótulo
+    const one = await call(pubOne.GET, 'GET', { params: { slug } });
+    expect(one.body.data.imagem.rotulo).toBe('Ilustração conceitual');
+  });
+
+  it('licença vencida, sem arquivo, mídia inexistente, base pendente e sem imagem: imagem null (o item continua na lista)', async () => {
+    const venc = await midia({ licencaExpiraEm: '2020-01-01' });
+    const a = await materia('publicado', venc.direitos);
+    const semArq = await midia({ blobKey: null, mime: null, bytes: null });
+    const b = await materia('publicado', semArq.direitos);
+    const c = await materia('publicado', { url: 'http://localhost:3000/api/midia/inexistente/arquivo', origem: 'propria', credito: 'X', baseDeDireito: 'propria', textoAlternativo: 'x', edicoes: [] });
+    const pend = { url: 'http://localhost:3000/api/midia/zz/arquivo', origem: 'propria', credito: 'X', baseDeDireito: 'pendente', textoAlternativo: 'x', edicoes: [] };
+    const d = await materia('publicado', pend);
+    const e = await materia('publicado', null);
+    for (const slug of [a, b, c, d, e]) {
+      const it_ = await item(slug);
+      expect(it_, slug).toBeTruthy();
+      expect(it_.imagem, slug).toBeNull();
+    }
+  });
+
+  it('imagem externa aparece como card (sem campos internos); itens só públicos continuam valendo (rascunho fora da lista)', async () => {
+    const ext = await materia('publicado', { url: 'https://cdn.example.org/foto.jpg', origem: 'licenciada', credito: 'Agência X', baseDeDireito: 'licenca', textoAlternativo: 'Foto', edicoes: [] });
+    expect((await item(ext)).imagem).toEqual({ url: 'https://cdn.example.org/foto.jpg', textoAlternativo: 'Foto', credito: 'Agência X', rotulo: null });
+    const m = await midia();
+    const rasc = await materia('rascunho', m.direitos);
+    expect(await item(rasc)).toBeUndefined();
   });
 });
