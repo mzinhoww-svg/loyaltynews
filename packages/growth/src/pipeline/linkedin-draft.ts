@@ -1,6 +1,7 @@
 import { EDITORIAS, ILLUSTRATION_CREDIT } from '@ln/contracts';
 import { CopyRefusal } from '../copy/engine';
 import { CreativeRefusal } from '../creative/post';
+import type { SocialCardInput } from '../creative/social-cards';
 import type { GrowthFlags } from '../flags';
 import { linkedinDraftMapper, type UploadedMedia } from '../mlabs/create-post-draft';
 import type { McpTransport } from '../mlabs/live';
@@ -9,7 +10,7 @@ import type { PublishReceipt } from '../mlabs/port';
 import { buildLinkedInPackage, type LinkedInPackage } from '../package/linkedin';
 import { createSocialPublisher, PUBLISHER_SOCIAL, PublishRefused } from '../publisher/publisher';
 import type { Article, Fact } from '../types';
-import type { MediaUploader } from './media';
+import type { PutBytes, RasterizerPort, UploadLedger } from './raster-upload';
 
 // Pipeline de ponta a ponta: matéria APROVADA e PUBLICADA na Fábrica editorial → rascunho LinkedIn no mLabs.
 // DESLIGADO por padrão: sem a flag `growth_linkedin_live` (ou sem a configuração `live`) é só um ensaio no adaptador simulado.
@@ -33,6 +34,8 @@ export interface PipelineArticleRecord {
     editoria: string;
     patrocinado: boolean;
     rotuloPublieditorial?: string;
+    /** Tipo do conteúdo na Fábrica; `analise` é conteúdo autoral (card de análise com selo). Ausente = matéria comum. */
+    tipoConteudo?: string;
     claims: { id: string; text: string; kind: string; evidenceIds: string[] }[];
     image: PipelineImage;
   };
@@ -86,7 +89,12 @@ export interface LiveDraftConfig {
   transport: McpTransport;
   /** Id opaco do perfil (`ext_…`, de list_profiles). */
   profileId: string;
-  uploader: MediaUploader;
+  /** Rasterizador SVG→PNG (UI/UX). A mídia só sobe pelo publicador (`publisher.uploadMedia`): não há outro caminho. */
+  rasterizer: RasterizerPort;
+  /** PUT dos bytes: só testes injetam; o modo real usa `fetch`. */
+  putBytes?: PutBytes;
+  /** Registro durável dos envios de mídia (chave = hash do SVG): sem ele, reexecutar sem o registro local sobe a imagem de novo. */
+  uploadLedger?: UploadLedger;
 }
 
 export interface DraftPipelineDeps {
@@ -139,7 +147,7 @@ export function approvedFacts(rec: PipelineArticleRecord): Fact[] {
 }
 
 /** Projeta a matéria publicada para a entrada do Growth. `null` e blockers explicam o que falta. */
-export function toGrowthArticle(rec: PipelineArticleRecord, pack: PipelineSocialPack): { article: Article } | { blockers: DraftBlocker[]; detail: string[] } {
+export function toGrowthArticle(rec: PipelineArticleRecord, pack: PipelineSocialPack): { article: SocialCardInput } | { blockers: DraftBlocker[]; detail: string[] } {
   const blockers: DraftBlocker[] = [];
   const detail: string[] = [];
   const d = rec.draft;
@@ -179,6 +187,7 @@ export function toGrowthArticle(rec: PipelineArticleRecord, pack: PipelineSocial
       gatesPassed: true, // aprovada (WF02) e publicada (WF03) pela Fábrica
       mock: rec.publication.isMock === true,
       sponsored: d.patrocinado ? { label: d.rotuloPublieditorial ?? '' } : undefined,
+      ...(d.tipoConteudo === 'analise' ? { autoral: { formato: 'analise' as const } } : {}),
     },
   };
 }
@@ -217,15 +226,9 @@ export async function runLinkedInDraftPipeline(
   const base = { articleId: rec.articleId, idempotencyKey: key, creativeSha256: pkg.creativeSha256, imageRef: pkg.imageRef, warnings };
   if (prior) return { ok: true, summary: { ...base, mode: live ? 'live' : 'simulated', receipt: prior, existing: true } };
 
-  // Mídia e publicador: só no modo real. No ensaio, o adaptador simulado do próprio publicador.
-  let uploads: Record<string, UploadedMedia> = {};
-  if (live) {
-    try {
-      uploads = { [pkg.imageRef]: await live.uploader.upload(pkg.creative, pkg.imageRef) };
-    } catch (e) {
-      return { ok: false, blockers: ['midia_nao_enviada'], detail: [e instanceof Error ? e.message : 'falha no envio da mídia'] };
-    }
-  }
+  // Mídia e publicador: só no modo real. No ensaio, o adaptador simulado do próprio publicador. A mídia sobe PELO publicador
+  // (identidade, flag e capability dele; auditada): o mapeador lê `uploads` só na hora do create_post.
+  const uploads: Record<string, UploadedMedia> = {};
   const publisher = live
     ? createSocialPublisher({
         mode: 'live',
@@ -234,9 +237,17 @@ export async function runLinkedInDraftPipeline(
         actor: PUBLISHER_SOCIAL,
         flags: deps.flags,
         payloadMapper: linkedinDraftMapper({ profileId: live.profileId, uploads, now: deps.now }),
+        media: { rasterizer: live.rasterizer, putBytes: live.putBytes, ledger: live.uploadLedger },
         now: deps.now,
       })
     : createSocialPublisher({ mode: 'simulated', flags: deps.flags, now: deps.now });
+  if (live) {
+    try {
+      uploads[pkg.imageRef] = await publisher.uploadMedia(PUBLISHER_SOCIAL, pkg.creative, pkg.imageRef);
+    } catch (e) {
+      return { ok: false, blockers: ['midia_nao_enviada'], detail: [e instanceof Error ? e.message : 'falha no envio da mídia'] };
+    }
+  }
 
   let receipt: PublishReceipt;
   try {

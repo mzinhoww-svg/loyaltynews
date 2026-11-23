@@ -103,6 +103,11 @@ export class OpenBotModelGateway {
     const route = full.filter((a) => a === 'antigravity' || !excluded.has(PROVIDER_OF_ACCOUNT[a]));
     if (route.length === 0) return { ok: false, refusal: 'no_independent_provider', detail: `nenhuma via de ${kind} fora de ${[...excluded].join(', ')}` };
 
+    // Despacho desligado ou parado: nada vai ao armazém (nenhuma entrada órfã) e nenhuma tarefa é criada.
+    const fl = c.deps.flags();
+    if (fl.kill) return { ok: false, refusal: 'kill_switch', detail: 'KILL_SWITCH' };
+    if (!fl.dispatchEnabled) return { ok: false, refusal: 'model_disabled', detail: 'DISPATCH_OFF' };
+
     const key = `gw-${hex(req.idempotencyKey)}`;
     const reviewed = (req.input as { reviewedDraftTaskId?: unknown } | null)?.reviewedDraftTaskId;
     try {
