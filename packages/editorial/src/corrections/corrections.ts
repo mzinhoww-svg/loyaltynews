@@ -111,7 +111,7 @@ export function buildReplyNotice(c: CorrectionCase, replyText: string, at: strin
 /** A correção em si é checada como qualquer afirmação: cada claim precisa constar nas evidências. */
 export function verifyCorrectionClaims(claims: Claim[], evidences: Evidence[]): Finding[] {
   const pseudo: Draft = {
-    id: 'correction', editoria: 'regulacao', headline: '', body: '', claims, evidenceIds: [...new Set(claims.flatMap((c) => c.evidenceIds))],
+    id: 'correction', editoria: 'regulacao', headline: '', body: '', slug: 'correction', resumo: 'n/a', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, claims, evidenceIds: [...new Set(claims.flatMap((c) => c.evidenceIds))],
     signature: SIGNATURE, image: { mode: 'none', reason: 'n/a' }, modelProvider: 'n/a', promptVersion: 'n/a',
   };
   return checkClaims(pseudo, evidences).findings;

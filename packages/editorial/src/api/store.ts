@@ -32,7 +32,7 @@ export interface ArticleRecord {
   recheckCount: number;
   updatedAt: string;
   /** Preenchido por `applyPublication` quando o Backend publica (WF03) e devolve o recibo. */
-  publication?: { receiptId: string; url: string; publishedAt: string; contentSha256: string; isMock?: boolean };
+  publication?: { receiptId: string; url: string; publishedAt: string; contentSha256: string; slug?: string; isMock?: boolean };
 }
 
 /** Caso de correção/resposta + dados que o fluxo precisa guardar e que não pertencem à máquina de estados. */
