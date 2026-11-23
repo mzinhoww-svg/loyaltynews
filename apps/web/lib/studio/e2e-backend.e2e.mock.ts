@@ -196,6 +196,8 @@ export const sincronizarFlagsE2e: (() => void) | null = () => {
   setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState });
 };
 
+export { despacharFonteRapida as despachoFonteRapidaE2e } from './fonte-rapida.e2e.mock';
+
 /** As mesmas flags de teste que as rotas enxergam (setFlag); o Studio as soma ao resolvedor de runtime SÓ no build de e2e. */
 export const flagsE2e: (() => Record<string, boolean>) | null = () => ({ ...flagsGlobais() });
 

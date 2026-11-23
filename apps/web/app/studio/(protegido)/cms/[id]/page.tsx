@@ -14,6 +14,7 @@ import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
+import { FonteRapidaPainel } from '../../../_components/FonteRapidaPainel';
 import { MateriaForm } from '../MateriaForm';
 import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
 
@@ -23,10 +24,12 @@ export const dynamic = 'force-dynamic';
 // ids do CMS são UUID; ids de matéria da Fábrica não têm formato fixo: aceita só caracteres seguros e deixa a API dizer se existe
 const ID_SEGURO = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
 
-export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
+export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { session } = await requireStudio(CMS_READ);
   const { id } = await params;
-  const { tipo, aviso } = await searchParams;
+  const qs = await searchParams;
+  const { tipo, aviso, fonte } = qs;
+  const valoresRapida = Object.fromEntries(Object.entries(qs).filter(([k, v]) => /^(fr|ev)_/.test(k) && typeof v === 'string')) as Record<string, string>;
   if (!ID_SEGURO.test(id)) notFound();
   const r = await api.materias.obter(id);
   if (naoConfigurado(r)) return <SemBanco modulo="O CMS editorial" />;
@@ -196,6 +199,8 @@ export default async function Materia({ params, searchParams }: { params: Promis
               </p>
             </section>
           </div>
+
+          {podeEditar && !publicada ? <FonteRapidaPainel articleId={m.id} status={m.status} retorno={`/studio/cms/${m.id}`} valores={valoresRapida} {...(fonte ? { fonteNova: fonte } : {})} /> : null}
 
           {publicada ? (
             <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="corr-titulo" data-correcao={rev ? rev.estado : 'nenhuma'}>
