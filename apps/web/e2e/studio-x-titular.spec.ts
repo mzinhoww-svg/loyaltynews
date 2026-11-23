@@ -100,7 +100,8 @@ test('remover a pessoa: pede confirmação; registra a decisão e diz que o efei
   await page.getByRole('form', { name: 'Remover a pessoa da exibição' }).getByLabel('Motivo (opcional)').fill('Titular comprovou que deixou a empresa.');
   await enviar(page, page.getByRole('form', { name: 'Remover a pessoa da exibição' }).getByRole('button', { name: 'Registrar remoção' }));
   await sucesso(page, 'Decisão registrada e auditada');
-  await expect(page.locator('[data-efeito="pendente"]')).toContainText('Efeito na exibição pública: pendente.');
+  // o Backend declara o efeito (ft/backend 37dd430: aplicado); a tela mostra o que vier e nunca diz "removido do portal"
+  await expect(page.locator('[data-efeito="aplicado"]')).toContainText('Efeito na exibição pública: aplicado.');
   await expect(page.getByText(/removido do portal/i)).toHaveCount(0);
   await expect(page.getByRole('form', { name: 'Negar' })).toHaveCount(0); // decidido: sem novas ações
   // segunda decisão pela rota: 409
@@ -119,7 +120,7 @@ test('corrigir com campos e negar com motivo (admin)', async ({ page, context })
   await enviar(page, page.getByRole('form', { name: 'Corrigir' }).getByRole('button', { name: 'Registrar correção' }));
   await sucesso(page, 'Decisão registrada');
   await expect(page.getByRole('heading', { level: 2, name: 'Corrigido (decisão registrada)' })).toBeVisible();
-  await expect(page.locator('[data-efeito="pendente"]')).toBeVisible();
+  await expect(page.locator('[data-efeito="aplicado"]')).toBeVisible();
 
   await page.goto(`/studio/correcoes-titular/${ids.move}`);
   await page.getByLabel('Motivo (obrigatório)').fill('O Move tem fonte oficial e está correto.');
@@ -127,7 +128,7 @@ test('corrigir com campos e negar com motivo (admin)', async ({ page, context })
   await sucesso(page, 'Pedido negado');
   await expect(page.getByText('efeito na exibição pública ainda está pendente')).toHaveCount(0); // QA 7 item 4
   await expect(page.locator('[data-decisao="negado"]')).toContainText('nada muda na exibição pública');
-  await expect(page.locator('[data-efeito="pendente"]')).toHaveCount(0);
+  await expect(page.locator('[data-efeito]')).toHaveCount(0);
   await expect(page.locator('[data-auditoria]')).toContainText('O Move tem fonte oficial');
 });
 
