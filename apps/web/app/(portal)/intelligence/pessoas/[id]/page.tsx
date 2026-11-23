@@ -40,6 +40,11 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
   return (
     <>
       <PageHead title={p.name} crumbs={[...crumbs, { label: p.name }]} />
+      <p style={{ margin: '0 0 8px' }}>
+        <Link href="/correcoes" className="ln-btn ln-btn--ghost" data-testid="request-correction">
+          Solicitar correção ou remoção
+        </Link>
+      </p>
       <p className="pt-meta" data-testid="person-meta">
         {p.mock && <MockTag />}Fonte: <SourceLink source={p.source} />
         {p.profileUrl && (

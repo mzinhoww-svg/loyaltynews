@@ -151,6 +151,8 @@ test.describe('api', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste');
     await expect(page.getByTestId('current-roles')).toContainText('CEO (MOCK)');
     await expect(page.getByTestId('history-roles')).toContainText('Diretora Comercial (MOCK)');
+    // DP-38: todo perfil público de pessoa tem o caminho de correção ou remoção (direito de resposta / LGPD).
+    await expect(page.getByTestId('request-correction')).toHaveAttribute('href', '/correcoes');
     await expect(page.getByTestId('move-card')).toHaveCount(1);
     await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
     await axe(page);
@@ -205,6 +207,7 @@ test.describe('mock: pessoas e Moves', () => {
     await card.getByRole('link', { name: 'perfil' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pessoa de Teste Um (MOCK)');
     await expect(page.getByTestId('history-roles')).toContainText('Diretora de Parcerias (MOCK)');
+    await expect(page.getByTestId('request-correction')).toBeVisible();
     await axe(page);
     await page.goto('/intelligence/pessoas');
     await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(2);
