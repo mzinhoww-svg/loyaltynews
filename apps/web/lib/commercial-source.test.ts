@@ -55,7 +55,7 @@ describe('parseMediaKit: contrato com a API comercial', () => {
   });
   it('não repassa campos internos da API (motivo de status, capacidade, posições)', () => {
     const kit = parseMediaKit(realPayload())!;
-    expect(Object.keys(kit).sort()).toEqual(['audience', 'coverage', 'formats', 'generatedAt', 'integrityNote']);
+    expect(Object.keys(kit).sort()).toEqual(['audience', 'coverage', 'formats', 'generatedAt', 'integrityNote', 'positions']);
     expect(Object.keys(kit.formats[0]!).sort()).toEqual(['id', 'name', 'price', 'scope', 'section', 'status']);
   });
 });

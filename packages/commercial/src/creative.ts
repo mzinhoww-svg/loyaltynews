@@ -39,8 +39,12 @@ export function validateCreative(c: Creative, positions: readonly BannerPosition
     if (!/^[0-9a-f]{64}$/.test(a.sha256 ?? '')) out.push({ code: 'NO_HASH', message: 'Hash sha256 do arquivo ausente ou inválido (64 hex minúsculos).' });
     if (!(ALLOWED_MIME as readonly string[]).includes(a.mime)) out.push({ code: 'BAD_MIME', message: `Tipo ${a.mime} não aceito (JPG, PNG ou GIF).` });
     if (p.desktop !== null) {
-      const [w, h] = p.desktop.split('x').map(Number);
-      if (a.width !== w || a.height !== h) out.push({ code: 'BAD_DIMENSIONS', message: `Dimensão ${a.width}x${a.height}; ${p.id} exige ${p.desktop}.` });
+      // Aceita a dimensão desktop da posição OU uma das variantes mobile dela (ex.: 320x100, 300x250). Qualquer outra recusa.
+      const allowed = [p.desktop, ...p.mobile];
+      if (!allowed.includes(`${a.width}x${a.height}`)) {
+        const mob = p.mobile.length ? ` ou, no mobile, ${p.mobile.join(' ou ')}` : '';
+        out.push({ code: 'BAD_DIMENSIONS', message: `Dimensão ${a.width}x${a.height}; ${p.id} exige ${p.desktop}${mob}.` });
+      }
     }
     if (p.maxWeightKB !== null && !(a.sizeKB > 0 && a.sizeKB <= p.maxWeightKB)) out.push({ code: 'TOO_HEAVY', message: `Peso ${a.sizeKB} KB; máximo de ${p.id}: ${p.maxWeightKB} KB.` });
     if (!p.allowedTypes.includes(MIME_TO_TYPE[a.mime] ?? '')) out.push({ code: 'BAD_MIME', message: `${MIME_TO_TYPE[a.mime] ?? a.mime} não permitido em ${p.id}.` });
@@ -63,6 +67,21 @@ export function isSafeDestination(raw: string): boolean {
 }
 
 export const isRealCreative = (c: Creative, positions: readonly BannerPosition[] = POSITIONS): boolean => validateCreative(c, positions).length === 0;
+
+/** Dispositivo para o qual o criativo serve. Sem `device` no pedido, vale 'desktop' (comportamento de antes). */
+export type AdDevice = 'desktop' | 'mobile';
+/**
+ * Variante do criativo pela DIMENSÃO REAL do arquivo: igual à desktop da posição => 'desktop'; igual a uma mobile da posição => 'mobile';
+ * qualquer outra coisa (ou posição sem dimensão) => null. Nunca se estica um criativo: o desktop não vai ao mobile nem o contrário.
+ */
+export function creativeVariant(c: Pick<Creative, 'positionId' | 'asset'>, positions: readonly BannerPosition[] = POSITIONS): AdDevice | null {
+  const p = positions.find((x) => x.id === c.positionId);
+  const a = c.asset;
+  if (!p || !a || p.desktop === null) return null;
+  const dim = `${a.width}x${a.height}`;
+  if (dim === p.desktop) return 'desktop';
+  return p.mobile.includes(dim) ? 'mobile' : null;
+}
 
 // ---------- visão pública ----------
 export interface AdUrls {
@@ -120,7 +139,11 @@ export function resolveClickDestination(
 }
 
 // ---------- plano das posições (sem contar nada) ----------
-export interface AdPlanSlot { positionId: string; available: boolean; width: number | null; height: number | null }
+export interface AdPlanSlot {
+  positionId: string; available: boolean; width: number | null; height: number | null;
+  /** Dimensões mobile que têm criativo real elegível hoje (vazio = nenhuma; o mobile recolhe a posição). `available`/width/height falam só do desktop. */
+  mobile: { width: number; height: number }[];
+}
 /**
  * Para cada posição: há algum criativo real elegível hoje? Serve para o portal decidir, ao renderizar, se reserva o espaço
  * (evita deslocamento de layout) ou oculta a posição. NÃO registra impressão. Posição sem criativo real => `available:false`.
@@ -130,6 +153,9 @@ export function adPlan(creatives: readonly Creative[], today: string, positionId
     const p = positions.find((x) => x.id === id);
     const live = creatives.filter((c) => c.positionId === id && c.approved && c.campaignActive && c.startDate <= today && today <= c.endDate && isRealCreative(c, positions));
     const dims = p?.desktop ? p.desktop.split('x').map(Number) : null;
-    return live.length && dims ? { positionId: id, available: true, width: dims[0]!, height: dims[1]! } : { positionId: id, available: false, width: null, height: null };
+    const hasDesktop = live.some((c) => creativeVariant(c, positions) === 'desktop');
+    const mobile = [...new Set(live.filter((c) => creativeVariant(c, positions) === 'mobile').map((c) => `${c.asset!.width}x${c.asset!.height}`))]
+      .sort().map((d) => { const [w, h] = d.split('x').map(Number); return { width: w!, height: h! }; });
+    return hasDesktop && dims ? { positionId: id, available: true, width: dims[0]!, height: dims[1]!, mobile } : { positionId: id, available: false, width: null, height: null, mobile };
   });
 }

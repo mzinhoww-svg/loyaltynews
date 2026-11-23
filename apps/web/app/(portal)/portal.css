@@ -128,3 +128,41 @@
   .pt-chip { min-height: var(--ln-touch-target); }
   .pt-table a.pt-tap { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); }
 }
+
+/* Mapa visual das posições de anúncio do mídia kit (auditoria V-13): esquema em proporção das dimensões do inventário. */
+.pt-map { margin: var(--ln-space-4) 0; }
+.pt-map svg { display: block; width: 100%; max-width: 760px; height: auto; }
+.pt-map .pt-map-page { fill: var(--ln-color-white); stroke: var(--ln-color-border); stroke-width: 1.5; }
+.pt-map .pt-map-slot { fill: var(--ln-color-mint); stroke: var(--ln-color-primary); stroke-width: 2; }
+.pt-map .pt-map-editorial { fill: var(--ln-color-white); stroke: var(--ln-color-border); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.pt-map .pt-map-text { fill: var(--ln-color-primary); font-size: 20px; font-weight: 700; font-family: inherit; }
+.pt-map .pt-map-small { fill: var(--ln-color-primary); font-size: 17px; font-family: inherit; }
+.pt-map .pt-map-cap { fill: var(--ln-color-primary); font-size: 15px; font-family: inherit; }
+.pt-map figcaption { margin-top: var(--ln-space-2); font-size: var(--ln-text-sm); }
+.pt-map-list { margin: var(--ln-space-2) 0 0; padding-left: 1.2em; font-size: var(--ln-text-sm); }
+
+/* P3-5 (UI/UX): no desktop o mapa fica à esquerda e a lista de posições à direita (a página perde ~370 px); no mobile segue empilhado */
+@media (min-width: 1024px) {
+  .pt-map { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--ln-space-5); align-items: start; }
+  .pt-map svg { grid-column: 1; grid-row: 1; max-width: 520px; }
+  .pt-map figcaption { grid-column: 1; grid-row: 2; }
+  .pt-map-list { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+}
+
+/* P2-a (UI/UX): o viewBox (672 unidades) vai a ~380 px no celular, escala ~0,56; sobe as fontes (unidades do viewBox) para o texto render >= 11 px */
+@media (max-width: 639px) {
+  .pt-map .pt-map-text { font-size: 26px; }
+  .pt-map .pt-map-small { font-size: 22px; }
+  .pt-map .pt-map-cap { font-size: 20px; }
+}
+
+/* P3-a (UI/UX): kicker do bloco de abertura em verde de destaque do design system (antes: var(--pt-signal), que não existe) */
+.pt-hero-band .pt-kicker--signal { color: var(--ln-color-signal); }
+
+/* P3-b (UI/UX): título de abertura do mídia kit com escala de exibição (só esta página): 28 px no celular, 44 px no desktop largo */
+.pt .pt-hero-band--mk h1 { font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem); line-height: 1.15; }
+
+/* P3-d (UI/UX): Audiência em duas colunas no desktop (tempo real | histórico), cada métrica em cartão de largura natural; empilha no celular */
+.pt-audience { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-2) var(--ln-space-5); }
+.pt-audience .pt-metrics { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+@media (min-width: 768px) { .pt-audience { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
