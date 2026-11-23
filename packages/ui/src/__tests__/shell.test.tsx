@@ -139,6 +139,12 @@ describe("Footer", () => {
     rerender(<Footer tagline="Outra frase" />);
     expect(screen.getByText("Outra frase")).toBeInTheDocument();
   });
+  it("V-12: a frase institucional padrão (em inglês) é marcada com lang=en; frases customizadas não herdam o idioma", () => {
+    const { rerender } = render(<Footer />);
+    expect(screen.getByText(FOOTER_TAGLINE)).toHaveAttribute("lang", "en");
+    rerender(<Footer tagline="Outra frase" />);
+    expect(screen.getByText("Outra frase")).not.toHaveAttribute("lang");
+  });
   it("redes sociais: só aparecem as que têm URL; nomes acessíveis; externas abrem com rel seguro", async () => {
     const { container } = render(
       <Footer

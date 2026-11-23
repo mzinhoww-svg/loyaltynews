@@ -139,3 +139,21 @@
 .pt-grid--n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pt-grid--n1 .ln-card--noimg { max-width: 640px; }
 @media (max-width: 639px) { .pt-grid--n2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* V-10: escala de espaço do DS entre blocos (breadcrumb longe do cabeçalho; busca separada do resultado) */
+.pt-pagehead { padding-top: var(--ln-space-5); }
+.pt-layout:has(> .pt-col > .pt-article) { padding-top: var(--ln-space-5); }
+.pt-main .ln-search { margin-bottom: var(--ln-space-5); }
+
+/* V-11: alvos de toque >= 44px e mais manchetes na primeira dobra do mobile */
+@media (max-width: 767px) {
+  .pt-more { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
+  .pt-event-title, .pt-event h3 a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
+  .pt-chip { min-height: var(--ln-touch-target); }
+  .pt-article li > a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
+}
+@media (max-width: 639px) {
+  /* destaque da home no mobile: sem resumo (a manchete e a autoria bastam), para caber ao menos 4 manchetes na 1ª dobra */
+  .pt-hero-main .ln-card--lg .ln-card__excerpt { display: none; }
+  .pt-section { margin: var(--ln-space-4) 0; }
+}

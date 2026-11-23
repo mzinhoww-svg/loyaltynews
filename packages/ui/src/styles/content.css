@@ -72,8 +72,9 @@
 .ln-card--md .ln-card__title { font-size: var(--ln-text-lg); line-height: 1.33; }
 /* sm: miniatura ao lado (se houver foto) */
 .ln-card--sm { gap: var(--ln-space-3); }
-.ln-card--sm:not(.ln-card--noimg) { grid-template-columns: 96px minmax(0, 1fr); align-items: start; }
-.ln-card--sm .ln-card__media { aspect-ratio: 3 / 2; }
+.ln-card--sm:not(.ln-card--noimg) { grid-template-columns: 112px minmax(0, 1fr); align-items: start; }
+/* V-07: 16:9 como o criativo (1280×720): em 3:2 o object-fit cortava as laterais e os rótulos da arte saíam das bordas */
+.ln-card--sm .ln-card__media { aspect-ratio: 16 / 9; }
 .ln-card--sm .ln-card__title { font-size: var(--ln-text-md); line-height: 1.33; }
 /* compact: só texto (listas Últimas / Em Alta) */
 .ln-card--compact { padding-block: var(--ln-space-2); border-bottom: 1px solid var(--ln-color-border); }
@@ -89,3 +90,12 @@
 .ln-card--ranked .ln-card__meta { grid-area: meta; }
 .ln-card--ranked .ln-card__meta .ln-badge { display: none; }
 .ln-card--ranked .ln-card__byline > span { display: none; } /* no ranking só a data; o tempo de leitura fica nas páginas */
+
+/* V-08: selos do card (editoria + MOCK) sempre na mesma linha; MOCK menor; se faltar largura, o nome da editoria reticencia (o aviso de demonstração nunca quebra para baixo) */
+.ln-card__meta { flex-wrap: nowrap; }
+.ln-card__meta .ln-badge { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ln-card .ln-mock-badge { flex: none; white-space: nowrap; padding: 1px 6px; font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.04em; }
+
+/* V-11: tags/links de editoria com alvo de toque de 44px no mobile */
+@media (max-width: 767px) { .ln-root a.ln-tag--link { min-height: var(--ln-touch-target); } }
+.ln-card .ln-badge { font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.03em; padding: 1px 6px; }

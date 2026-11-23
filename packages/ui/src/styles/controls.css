@@ -88,3 +88,6 @@
   .ln-section-heading__title { font-size: var(--ln-text-3xl); line-height: var(--ln-leading-3xl); }
   .ln-section-heading--page .ln-section-heading__title { font-size: var(--ln-text-4xl); line-height: var(--ln-leading-4xl); }
 }
+
+/* V-11: em telas de toque o link do breadcrumb tem alvo de 44px (WCAG 2.5.5/2.5.8 recomendado) */
+@media (max-width: 767px) { .ln-breadcrumb__item a { min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); } }
