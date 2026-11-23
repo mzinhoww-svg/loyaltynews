@@ -913,3 +913,61 @@ test('memoria-build: CLI plano/conferir (códigos de saída, sem e-mail nem nome
   assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil.json'), '--app', 'prod-web']).status, 2);
   rmSync(r, { recursive: true, force: true });
 });
+
+// ---- erros-log.mjs: segredo em log de erro (incidente 23/11/2026; decisão 17 da Security)
+test('erros-log R1: conexão sem .on(error) no arquivo reprova; com ouvinte, em teste ou em comentário passa', async () => {
+  const { conexoesSemOuvinteDeErro, ehCodigoDeProduto } = await import('../scripts/lib/erros-log.mjs');
+  const sem = "import { Pool } from 'pg';\nimport IORedis from 'ioredis';\nconst pool = new Pool(cfg);\nconst r = new IORedis(url);\n";
+  assert.deepEqual(conexoesSemOuvinteDeErro(sem).map((a) => [a.construtor, a.linha]), [['new Pool', 3], ['new IORedis', 4]]);
+  assert.deepEqual(conexoesSemOuvinteDeErro(sem + "pool.on('error', (e) => log(safeErr(e)));\n"), []);
+  assert.deepEqual(conexoesSemOuvinteDeErro(sem + 'r.once("error", h);\n'), []);
+  assert.equal(conexoesSemOuvinteDeErro("import { Queue, Worker } from 'bullmq';\nnew Queue('a');\nnew Worker('a', fn);\n").length, 2);
+  // sem importar a biblioteca, `new Client`/`new Queue` são outra coisa
+  assert.deepEqual(conexoesSemOuvinteDeErro("class Client {}\nconst c = new Client();\nconst q = new Queue();\n"), []);
+  // comentário não conta, nem como conexão nem como ouvinte
+  assert.deepEqual(conexoesSemOuvinteDeErro("import { Pool } from 'pg';\n// new Pool(x)\n/* pool.on('error', h) */\n"), []);
+  assert.equal(conexoesSemOuvinteDeErro("import { Pool } from 'pg';\nconst p = new Pool(c);\n// pool.on('error', h)\n").length, 1);
+  // escopo: só apps/ e packages/, fora de teste
+  assert.equal(ehCodigoDeProduto('apps/workers/src/main.ts'), true);
+  assert.equal(ehCodigoDeProduto('packages/auth/src/runtime.ts'), true);
+  for (const r of ['apps/workers/src/main.test.ts', 'apps/web/e2e/x.ts', 'packages/db/src/__tests__/a.ts', 'apps/web/scripts/build.mjs', 'infra/scripts/check-conexoes.mjs', 'packages/db/src/x.d.ts', 'apps/web/app/page.css']) assert.equal(ehCodigoDeProduto(r), false, r);
+});
+
+test('erros-log R2: console.* com o erro inteiro reprova; {name, code, message} e e.message passam', async () => {
+  const { logsDeErroBruto } = await import('../scripts/lib/erros-log.mjs');
+  const ruins = [
+    "console.error(e);", "console.error('falhou', err);", "console.warn(error)", "console.log('x', { err });", "console.error({ error: e, id });",
+    "console.error('x', util.inspect(err, { depth: 5 }));", "console.error(JSON.stringify(e));", "console.error('x', e.cause);", "console.error(err.options)",
+    "client.on('error', console.error);", "console.error(`${id}`, dbError);", "console.error(...err);",
+  ];
+  for (const c of ruins) assert.equal(logsDeErroBruto(c).length, 1, c);
+  const boas = [
+    "console.error('falhou', e.message);", "console.error(safeErr(e));", "console.error({ name: e.name, code: e.code, message: e.message });",
+    "console.error(`[workers] falhou: ${String(e)}`);", "console.log('ok', id, total);", "console.error('x', (e as Error).message);",
+    "// console.error(e)", "/* console.error(err) */ console.log('a');", "const s = \"console.error(e)\";", "console.error('erro:', errors.length);",
+  ];
+  for (const c of boas) assert.equal(logsDeErroBruto(c).length, 0, c);
+  assert.equal(logsDeErroBruto("a();\nb();\nconsole.error(e);\n")[0].linha, 3);
+});
+
+test('ci-checks: segredo em log de erro avisa por padrão e REPROVA com --producao (e package-web production usa --producao)', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  put(r, 'apps/workers/src/main.ts', "import { Pool } from 'pg';\nconst pool = new Pool(cfg);\ntry { await pool.query('select 1'); } catch (e) { console.error(e); }\n");
+  put(r, 'apps/workers/src/main.test.ts', "import { Pool } from 'pg';\nnew Pool(cfg);\nconsole.error(e);\n");
+  put(r, 'packages/auth/src/ok.ts', "import { Pool } from 'pg';\nconst p = new Pool(cfg);\np.on('error', (e) => console.error(safeErr(e)));\n");
+  const aviso = node('ci-checks.mjs', ['--root', r]);
+  assert.equal(aviso.status, 0, aviso.stderr);
+  assert.match(aviso.stderr, /AVISO.*2 ocorrência/s);
+  assert.match(aviso.stderr, /apps\/workers\/src\/main\.ts:2 \[R1\]/);
+  assert.match(aviso.stderr, /apps\/workers\/src\/main\.ts:3 \[R2\]/);
+  assert.doesNotMatch(aviso.stderr, /main\.test\.ts|ok\.ts/);
+  for (const flag of ['--producao', '--logs-estritos']) {
+    const x = node('ci-checks.mjs', ['--root', r, flag]);
+    assert.equal(x.status, 1, flag);
+    assert.match(x.stderr, /segredo em log de erro: apps\/workers\/src\/main\.ts:2 \[R1\]/);
+  }
+  put(r, 'apps/workers/src/main.ts', "import { Pool } from 'pg';\nconst pool = new Pool(cfg);\npool.on('error', (e) => console.error(safeErr(e)));\n");
+  assert.equal(node('ci-checks.mjs', ['--root', r, '--producao']).status, 0);
+  rmSync(r, { recursive: true, force: true });
+});

@@ -5,11 +5,14 @@
 //   3. Segredos: nada que pareça chave privada, token ou string de conexão com senha; nenhum .env versionado (exceto *.example).
 //   4. Variáveis só de teste: LN_STUDIO_TEST_SESSION não pode existir no ambiente nem no build nem em arquivos de deploy;
 //      PORTAL_SOURCE/PORTAL_MODE=mock só em teste (modo estrito com --deploy ou APP_ENV=staging|production).
-// Uso: node infra/scripts/ci-checks.mjs [--root <pasta>] [--deploy]   (código 1 = reprovado)
+//   5. Segredo em log de erro (incidente 23/11/2026, Security 17): conexão (pg, ioredis, BullMQ) sem .on('error') no arquivo e console.* com o erro inteiro,
+//      em apps/ e packages/ fora de teste. REPROVA com --producao (o pacote de produção) ou --logs-estritos; nos demais casos imprime AVISO e segue.
+// Uso: node infra/scripts/ci-checks.mjs [--root <pasta>] [--deploy] [--producao] [--logs-estritos]   (código 1 = reprovado)
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
 import { conexoesComSenhaReais } from './lib/segredos.mjs';
+import { achadosDoArquivo, ehCodigoDeProduto } from './lib/erros-log.mjs';
 import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
@@ -125,6 +128,13 @@ for (const f of all) {
   // next.config pode LER a variável para RECUSAR o build (padrão do Studio); o que reprova é injetá-la no build via `env:`/define
   if (/next\.config/.test(r) && /\b(?:env|define)\s*:\s*\{[^}]*(?:LN_STUDIO_TEST_SESSION|PORTAL_(?:SOURCE|MODE))/s.test(txt)) problems.push(`next.config injeta variável só de teste no build: ${r}`);
 }
+
+// 5. segredo em log de erro: reprova no pacote de produção; fora dele avisa (o Backend ainda precisa entregar C1 a C5 da decisão 17 da Security)
+const achadosLog = [];
+for (const f of all) { const r = rel(f); if (ehCodigoDeProduto(r)) achadosLog.push(...achadosDoArquivo(r, readFileSync(f, 'utf8'))); }
+const linhasLog = achadosLog.map((a) => `${a.arquivo}:${a.linha} [${a.regra}] ${a.motivo}`);
+if (argv.producao || argv['logs-estritos']) for (const l of linhasLog) problems.push(`segredo em log de erro: ${l}`);
+else if (linhasLog.length) console.warn(`ci-checks AVISO (vira REPROVAÇÃO com --producao): ${linhasLog.length} ocorrência(s) de segredo possível em log de erro:\n - ${linhasLog.join('\n - ')}`);
 
 if (problems.length) {
   console.error('ci-checks REPROVADO:\n - ' + problems.join('\n - '));

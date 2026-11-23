@@ -139,7 +139,7 @@ try {
   const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8' });
   const zipEntries = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
   if (zipEntries.length !== files.length) fail(`pasta (${files.length} arquivos) e ZIP (${zipEntries.length}) divergem`);
-  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy'], { encoding: 'utf8' });
+  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(profile === 'production' ? ['--producao'] : [])], { encoding: 'utf8' });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote:\n${ck.stderr}`);
   const bytes = statSync(zip).size;
   if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
