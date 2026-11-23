@@ -24,9 +24,9 @@ describe('normalizePem', () => {
     expect(normalizePem(CA.replace(/\n/g, '\r\n'))).toBe(CA);
     expect(normalizePem(oneLine(CA).replace(/\\n/g, '\\r\\n'))).toBe(CA);
   });
-  it('PEM multilinha que contém barra-n literal NÃO é alterado (só se converte quando não há quebra real)', () => {
+  it('forma MISTURADA (quebras reais e `\\n` escapado no meio do corpo) é limpa: o corpo base64 nunca carrega barra-n literal', () => {
     const odd = '-----BEGIN CERTIFICATE-----\nabc\\ndef\n-----END CERTIFICATE-----\n';
-    expect(normalizePem(odd)).toBe(odd);
+    expect(normalizePem(odd)).toBe('-----BEGIN CERTIFICATE-----\nabcdef\n-----END CERTIFICATE-----\n');
   });
 });
 

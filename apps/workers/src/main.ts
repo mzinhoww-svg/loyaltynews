@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import IORedis from 'ioredis';
 import { Pool } from 'pg';
 import { schema } from '@ln/db';
-import { pgPoolConfig } from '@ln/db/tls';
+import { anyPemSet, pgPoolConfig, selfCheckPemSet } from '@ln/db/tls';
 import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { handlers } from './handlers';
@@ -14,6 +14,19 @@ async function main() {
   const { DATABASE_URL, REDIS_URL } = process.env;
   if (!DATABASE_URL || !REDIS_URL) {
     console.error('[workers] DATABASE_URL e REDIS_URL são obrigatórios');
+    process.exit(1);
+  }
+  // Confere os PEM de verdade ANTES de conectar e diz QUAL variável falhou (só nomes, classes de erro e fatos estruturais; nunca o conteúdo).
+  // Falha = o processo sai com a causa clara em vez de repetir "no start line" a cada tentativa de conexão.
+  let tlsOk = true;
+  for (const [prefix, active] of [['DB_SSL', anyPemSet(process.env, 'DB_SSL')], ['REDIS_SSL', anyPemSet(process.env, 'REDIS_SSL') || REDIS_URL.startsWith('rediss:')]] as const) {
+    if (!active) continue;
+    const r = selfCheckPemSet(process.env, prefix);
+    for (const l of r.lines) console.log(`[workers] TLS ${r.ok ? '' : 'PROBLEMA: '}${l}`);
+    if (!r.ok) tlsOk = false;
+  }
+  if (!tlsOk) {
+    console.error('[workers] TLS inválido: veja as linhas "TLS PROBLEMA" acima (variável, erro e formato recebido)');
     process.exit(1);
   }
   let poolConfig: ReturnType<typeof pgPoolConfig>;
