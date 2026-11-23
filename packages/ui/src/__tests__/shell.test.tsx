@@ -246,6 +246,20 @@ describe("Logo e MockBadge", () => {
     const { container } = render(<Monogram variant="dark" />);
     expect(container.querySelectorAll("path").length).toBe(3);
   });
+  it("MockBadge compacto (label vazio): visível só 'MOCK', leitor de tela lê o texto completo", () => {
+    render(<MockBadge label="" />);
+    const badge = screen.getByTestId("mock-badge");
+    expect(badge).toHaveTextContent("MOCK · dados de exemplo");
+    expect(badge.querySelector("strong")).toHaveTextContent("MOCK");
+    expect(badge.querySelector(".ln-sr-only")).toHaveTextContent("· dados de exemplo");
+    expect(badge.querySelector(":scope > span:not(.ln-sr-only)")).toBeNull(); // nada extra visível
+  });
+  it("MockBadge com rótulo próprio mostra o rótulo visível e não duplica o texto oculto", () => {
+    render(<MockBadge label="exemplo de bloco" />);
+    const badge = screen.getByTestId("mock-badge");
+    expect(badge).toHaveTextContent("MOCK · exemplo de bloco");
+    expect(badge.querySelector(".ln-sr-only")).toBeNull();
+  });
   it("MockBadge sempre contém a palavra MOCK", () => {
     render(<MockBadge />);
     expect(screen.getByTestId("mock-badge")).toHaveTextContent(/MOCK/);
