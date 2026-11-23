@@ -1,8 +1,9 @@
 // Portão de orçamento: reserva atômica em micro-USD contra o teto agregado de US$ 50 (DP-04, ADR-015).
-// Cada reserva é checada e gravada dentro de um lock; sem isso, chamadas concorrentes poderiam estourar o teto.
+// Cada operação roda dentro de store.withLock: no banco, uma transação com trava de consultoria, então
+// processos diferentes não estouram o teto. O estado vem do log (replay), então sobrevive a restart.
 import { usdToMicro, microToUsd } from './money';
 import { monthKey } from './month';
-import { replay, spentMicro, type LedgerStore, type Lane, type ReservationState } from './ledger';
+import { replay, spentMicro, type KillState, type LedgerIO, type LedgerStore, type Lane, type ReservationState } from './ledger';
 import { AUDIT_RESERVE_TASK_KEYS, type ModelPolicy, type Pool, type TaskClass } from './types';
 
 export interface GateConfig {
@@ -19,6 +20,7 @@ export interface ReserveInput {
   taskId: string;
   taskClass: TaskClass;
   lane: Lane;
+  route?: string; // rota da política (ex.: review); registrada para auditoria
   provider: string;
   model: string;
   escalation: boolean;
@@ -94,26 +96,18 @@ function findStep(steps: Record<string, string>, key: string): number {
 export class BudgetGate {
   private readonly config: GateConfig;
   private readonly store: LedgerStore;
-  private chain: Promise<unknown> = Promise.resolve();
 
   constructor(config: GateConfig, store: LedgerStore) {
     this.config = config;
     this.store = store;
   }
 
-  // Serializa operações: cada uma começa depois que a anterior terminou.
-  private locked<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.chain.then(fn, fn);
-    this.chain = run.catch(() => undefined);
-    return run;
-  }
-
-  private async states(): Promise<Map<string, ReservationState>> {
-    return replay(await this.store.readAll());
+  private async states(io: LedgerIO): Promise<Map<string, ReservationState>> {
+    return replay(await io.readAll());
   }
 
   async snapshot(at: Date): Promise<Snapshot> {
-    return this.locked(async () => this.computeSnapshot(await this.states(), monthKey(at)));
+    return this.store.withLock(async (io) => this.computeSnapshot(await this.states(io), monthKey(at)));
   }
 
   private computeSnapshot(states: Map<string, ReservationState>, month: string): Snapshot {
@@ -145,7 +139,7 @@ export class BudgetGate {
   }
 
   async reserve(input: ReserveInput): Promise<ReserveResult> {
-    return this.locked(async () => {
+    return this.store.withLock(async (io) => {
       const month = monthKey(input.at);
       const refuse = (reason: ReserveRefusal, detail: string): ReserveResult => ({ ok: false, reason, detail });
 
@@ -170,7 +164,7 @@ export class BudgetGate {
         return refuse('image_allocation_zero', 'verba de imagens é zero até o preço ser verificado');
       }
 
-      const snap = this.computeSnapshot(await this.states(), month);
+      const snap = this.computeSnapshot(await this.states(io), month);
 
       // 4. Bolsa. Auditoria usa a verba do provedor até 42 e a reserva de 8 acima de 42 (DP-02 v5).
       //    Demais tarefas nunca tocam a reserva.
@@ -204,10 +198,10 @@ export class BudgetGate {
         return refuse('hard_cap', 'teto mensal de US$ 50 atingido');
       }
 
-      // Id derivado do próprio log: sem contador em memória, não colide após reinício.
-      const seq = (await this.store.readAll()).length + 1;
-      const id = `r-${seq}`;
-      await this.store.append({
+      // Id vem do armazenamento (UUID), não da contagem de eventos: sem colisão entre processos.
+      const id = await io.nextReservationId();
+      const seq = (await io.readAll()).length + 1; // ordem informativa do log; não identifica a reserva
+      await io.append({
         seq,
         at: input.at.toISOString(),
         monthKey: month,
@@ -217,6 +211,7 @@ export class BudgetGate {
         taskClass: input.taskClass,
         pool,
         lane: input.lane,
+        route: input.route ?? '',
         provider: input.provider,
         model: input.model,
         escalation: input.escalation,
@@ -228,17 +223,17 @@ export class BudgetGate {
 
   // Estado atual de uma reserva (ou undefined se não existe).
   async statusOf(reservationId: string): Promise<ReservationState | undefined> {
-    return this.locked(async () => (await this.states()).get(reservationId));
+    return this.store.withLock(async (io) => (await this.states(io)).get(reservationId));
   }
 
   // Resultado incerto depois do envio: a reserva continua contando no teto como pendente de conciliação.
   async markPending(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
-      const s = (await this.states()).get(reservationId);
+    return this.store.withLock(async (io) => {
+      const s = (await this.states(io)).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'pending',
@@ -249,9 +244,10 @@ export class BudgetGate {
     });
   }
 
-  async commit(reservationId: string, actualUsd: number, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
-      const states = await this.states();
+  // Conciliação pelo custo real. generationId é a prova da cobrança (id da geração no provedor).
+  async commit(reservationId: string, actualUsd: number, at: Date, generationId?: string): Promise<CommitResult> {
+    return this.store.withLock(async (io) => {
+      const states = await this.states(io);
       const s = states.get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open' && s.status !== 'pending') {
@@ -259,14 +255,15 @@ export class BudgetGate {
       }
       const actualMicro = usdToMicro(actualUsd);
       const overrun = actualMicro > s.reservedMicro;
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'commit',
         reservationId,
         actualMicro,
         overrun,
+        generationId,
       });
       return {
         ok: true,
@@ -279,14 +276,14 @@ export class BudgetGate {
 
   // Libera só reserva que nunca teve resultado incerto (rejeição com status sem cobrança).
   async release(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
-      const s = (await this.states()).get(reservationId);
+    return this.store.withLock(async (io) => {
+      const s = (await this.states(io)).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open') {
         return { ok: false, overrun: false, actualMicro: 0, detail: `reserva ${s.status}: só conciliação libera` };
       }
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'release',
@@ -299,15 +296,15 @@ export class BudgetGate {
 
   // Liberação de reserva pendente, só com evidência de não cobrança (ex.: consulta de geração).
   async releaseConciliated(reservationId: string, evidence: string, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
+    return this.store.withLock(async (io) => {
       if (evidence.trim().length === 0) {
         return { ok: false, overrun: false, actualMicro: 0, detail: 'evidência vazia: liberação recusada' };
       }
-      const s = (await this.states()).get(reservationId);
+      const s = (await this.states(io)).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'pending') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva ${s.status}: não está pendente` };
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'release',
@@ -319,11 +316,21 @@ export class BudgetGate {
     });
   }
 
+  // Estado da parada (global e por rota), lido a cada chamada.
+  async killState(): Promise<KillState> {
+    return this.store.readKill();
+  }
+
+  // Liga ou desliga a parada. Escopo 'global' ou 'route:<nome>'.
+  async setKill(scope: 'global' | `route:${string}`, active: boolean, reason: string, at: Date): Promise<void> {
+    await this.store.setKill(scope, active, reason, at);
+  }
+
   // Compra de crédito no OpenRouter: custo registrado à parte e fora do teto (DP-11/P3).
   async recordRefillFee(amountUsd: number, at: Date): Promise<void> {
-    await this.locked(async () => {
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+    await this.store.withLock(async (io) => {
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: monthKey(at),
         type: 'refill_fee',

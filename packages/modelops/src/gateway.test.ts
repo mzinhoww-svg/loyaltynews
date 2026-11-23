@@ -140,7 +140,7 @@ test('reconciliação com cobrança confirmada fecha pelo custo real', async () 
   const { deps, gate } = setup(base, { failFirst: 1 });
   const out = await callModel(deps, call());
   if (out.status !== 'blocked' || !out.reservationId) throw new Error('esperava pendente');
-  const outcome = await reconcilePending(deps, out.reservationId, async () => ({ kind: 'charged', costUsd: 0.3 }), NOW);
+  const outcome = await reconcilePending(deps, out.reservationId, async () => ({ kind: 'charged', costUsd: 0.3, generationId: 'gen-test' }), NOW);
   assert.equal(outcome, 'committed');
   assert.equal((await gate.snapshot(NOW)).totalMicro, 300_000);
 });
