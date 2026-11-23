@@ -1,4 +1,4 @@
-// Social Dashboard (Frente 09, @ln/growth) como rotas do Studio. PUBLICAÇÃO SOMENTE SIMULADA: o publicador é criado
+// Social Dashboard (Frente 09, @ln/growth) como rotas do Studio. As MÉTRICAS vêm do mLabs só por leitura (./metrics). PUBLICAÇÃO SOMENTE SIMULADA: o publicador é criado
 // em modo 'simulated' e não há caminho de configuração para o modo real (nada vai ao mLabs; recibos `SIM-…`).
 // Permissões do Growth derivadas do RBAC: social:read ← social/read, social:generate ← social/create,
 // social:request_publish ← social/publish.
@@ -11,6 +11,7 @@ import {
 } from '@ln/growth/dashboard';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
 import { PgArticleSource } from './articles';
+import { getMetricsSource } from './metrics';
 import { PgPackageStore } from './store';
 
 type H = (d: DashboardDeps, caller: Caller, input: Record<string, unknown>) => Promise<HandlerResult<unknown>>;
@@ -58,6 +59,8 @@ export const dispatchSocial = createDispatcher<H>({
       publisher: getPublisher(),
       flags: growthFlagsFrom(c.deps.flags),
       now: () => c.deps.now().toISOString(),
+      // métricas do canal (mLabs, SÓ LEITURA): só existem com a credencial configurada; sem ela o resumo diz "não configurada"
+      ...(getMetricsSource() ? { metrics: getMetricsSource() } : {}),
     };
     if (deps.publisher.mode !== 'simulated') {
       return { status: 500, body: apiError('INTERNAL_ERROR', 'publicador não está em modo simulado') };

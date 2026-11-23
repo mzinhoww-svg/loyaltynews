@@ -111,8 +111,10 @@ describe('Studio: sessão, RBAC e parâmetros de caminho', () => {
     const add = await call(d, 'POST', { path: STU(`/watchlists/${wid}/items`), body: { entityType: 'organization', entityId: ids.alfa }, as: editor });
     expect(add.status).toBe(201);
     expect((await call(d, 'POST', { path: STU(`/watchlists/${wid}/items`), body: { entityType: 'organization', entityId: '00000000-0000-0000-0000-000000000000' }, as: editor })).status).toBe(404);
-    const get = await call(d, 'GET', { path: STU(`/watchlists/${wid}`), as: leitor });
+    // watchlist é PRIVADA: o dono lê; quem não é o dono recebe 404 (nunca revela que a lista existe)
+    const get = await call(d, 'GET', { path: STU(`/watchlists/${wid}`), as: editor });
     expect(get.body.items).toHaveLength(1);
+    expect((await call(d, 'GET', { path: STU(`/watchlists/${wid}`), as: leitor })).status).toBe(404);
     expect((await call(d, 'GET', { path: STU('/alerts'), as: leitor })).status).toBe(200);
     expect((await call(d, 'GET', { path: STU('/alerts'), query: { status: 'x' }, as: leitor })).status).toBe(400);
   });

@@ -3,6 +3,71 @@
 Estado: **plano pronto; nada foi carregado** (não existe banco de staging ainda). Código testado só em PGlite.
 Dono: Frente 08 (LN Data Engineer). Execução: DevOps, com o banco e a `DATABASE_URL` do staging. Sem Vertra de escrita por este plano.
 
+## Ordem de execução quando a J-01 sair (resumo para o PM)
+1. **Pré-condições** (todas): decisão J-01 registrada pelo proprietário; OK do PM sobre o dry-run; snapshot do banco; `ln-staging-db` com a migração 0006; janela única (o script de credenciais gira a senha a cada execução).
+2. **Carga v4** (homologada pelo QA 3 no commit 5074064) — seção abaixo: check → dry-run `--with-persons` → apply `--with-persons --manifest …intelligence-seed-v4.manifest.json` → check.
+3. **Carga v5** (12 cargos a mais; **só depois do parecer do QA 3 sobre o v5**) — seção "Carga v5".
+4. Conferir no Studio (fila "a confirmar" vazia; cargos com nível oficial) e **manter a exibição pública de pessoas desligada** até a decisão de produto; flag `intelligencePessoas` do produto continua desligada (o `--with-persons` liga só o carregador, só naquela execução).
+5. Só então, se decidido, ligar o job de releitura (`REREAD_JOB.md`: `LN_INTELLIGENCE_REREAD=on`, `LN_INTELLIGENCE_PESSOAS=on`, `LN_REREAD_SEED=<seed v5>`).
+Parada: dry-run com qualquer `rejected` (exit 1) ⇒ não aplicar. Sem o manifesto não há desfazer automático (plano B: snapshot).
+
+## Carga v6 — cargos de FONTE SECUNDÁRIA, "a confirmar" (sobre a v5 JÁ carregada; entrega separada, decisão do PM)
+Conjunto `data/seed.public.v6.json` + `seed.public.v6.verification.json` (**94/94** citações, 29 fontes): v5 inteira + **7 cargos de 5 organizações sem página oficial de diretoria** (Genial, Esfera, Stix, Juntos Somos +, Bravium), lidos de **The Org** (página pública, sem login, ritmo baixo; leitura direta com robots, Zyte só na da Genial). Regras do proprietário: só nome, cargo, empresa; nível **secundária**; entram como **inferidos "a confirmar"** (`role_assignments_inferred 7`): **o portal nunca os mostra como fato**, **nunca geram Move** e a releitura oficial nunca os lê; só a leitura/confirmação de **página oficial** os promove (`confirmRoleHandler` ou `role-observation/1` oficial do mesmo cargo). A citação é só "Nome Cargo" (≤ 80 caracteres), nunca texto de perfil. **Homônimos:** a Stix, a Bravium etc. foram casadas pelo nome da empresa na The Org (páginas "Unverified"): por isso "a confirmar" e o revisor do Studio decide. Cobertura e motivos dos que ficaram de fora (LATAM Pass, Santander marca, Km de Vantagens, Clube Giro, ABEMF): `CARGOS_COBERTURA.md`.
+```
+# 1) --check: esperado (v5 carregada) persons 32, role_assignments 32, role_assignments_inferred 0, evidence 184
+# 2) DRY-RUN: esperado create 7, exists 88, rejected 0 (exit 0)
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v6.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v6.verification.json --with-persons
+
+# 3) APLICAR (OK do PM; só depois do parecer do QA 3 sobre a v6)
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v6.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v6.verification.json --with-persons --apply --manifest C:/Users/mazin/OpenBot/Shared/loyalty-news/releases/staging/intelligence-seed-v6.manifest.json
+
+# 4) --check: esperado persons 39, role_assignments 39, role_assignments_inferred 7, role_assignments_without_evidence 0, moves 0, evidence 250 (184 + 27 relações e 32 cargos revalidados + 7 novos)
+```
+Desfazer o v6: `rollbackSeed` com o manifesto remove os 7 cargos e as 7 pessoas e restaura o resto. A releitura agendada continua lendo só o conjunto oficial (os 32 cargos), mesmo com o v6 como `LN_REREAD_SEED`.
+
+## Carga v5 — cargos públicos de 17 organizações (sobre a v4 JÁ carregada)
+Conjunto `data/seed.public.v5.json` + `seed.public.v5.verification.json` (**87/87** citações literais em 24 fontes): v4 + **12 cargos de 7 organizações** (Livelo, Mastercard, Orbia, Bradesco Seguros, Grupo Santander, Madero, Shopee) = **32 cargos em 17 organizações**. **Santander→Esfera fica "validação vencida"** (a página da Esfera mudou e a citação do v3 deixou de existir em 23/11/2026): o v5 não a apaga nem a renova; marca-a (`expiredRelations`) como inferida com a base "validação vencida em 2026-11-23: …". Efeito: **sai da exibição pública** (o portal só mostra declarada), o Studio a vê com o rótulo `stale_validation: true`; uma nova fonte verificada que a confirme cria a relação declarada e **encerra** a vencida (sem apagar). Desfazer o v5 a devolve a declarada. Cobertura e motivos das 12 organizações sem cargos (Azul/Smiles = classe C; sem página oficial): `CARGOS_COBERTURA.md`.
+```
+# 0) compilar (igual à v4) e 1) --check: esperado organizations 29, org_relations 28, persons 20, role_assignments 20, evidence 125, moves 0
+
+# 2) DRY-RUN: esperado create 13 (12 cargos + a marcação da Santander→Esfera), exists 75, rejected 0 (exit 0). (Se a v4 NÃO tiver sido carregada, mas a v3 sim: create 33, exists 55.)
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.verification.json --with-persons
+
+# 3) APLICAR (OK do PM + J-01)
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v5.verification.json --with-persons --apply --manifest C:/Users/mazin/OpenBot/Shared/loyalty-news/releases/staging/intelligence-seed-v5.manifest.json
+
+# 4) --check: esperado persons 32, role_assignments 32, role_assignments_inferred 0, role_assignments_without_evidence 0, moves 0, evidence 184 (125 + 27 relações e 20 cargos revalidados + 12 novos), organizations 29, org_relations 28 e org_relations_not_declared 1 (a Santander→Esfera "validação vencida")
+```
+Desfazer o v5: `rollbackSeed` com o manifesto remove os 12 cargos e as 12 pessoas, devolve a Santander→Esfera a declarada e restaura a evidência/validação anteriores das relações e dos 20 cargos revalidados. O arquivo do v5 também é o conjunto que o job de releitura usa.
+
+## Carga v4 — cargos públicos de 10 organizações (sobre a v3 JÁ carregada no ln-staging-db)
+Conjunto `data/seed.public.v4.json` (formato `intelligence-seed/2`) + `seed.public.v4.verification.json`: v3 inteira (29 organizações, 28 relações) **+ 20 cargos públicos** (CEO e diretoria; nome, cargo, empresa) de **10 organizações** — Bradesco, Banco do Brasil, Banco Santander (Brasil), Dotz, BRB, Banco BV, GPA, LATAM, Uber e Raia Drogasil (aqui só o presidente do **Conselho de Administração**; a página de RI não traz a diretoria executiva em texto). Verificador: **77/77 citações literais encontradas em 18 fontes** (8 do v3 + 10 páginas oficiais de RI/governança). **Fora dos 10, de propósito:** a ABEMF (a página capturada não nomeia dirigentes) e a **Azul** (classe C da DP-28: só com revisão caso a caso; a página do RI dela foi lida na triagem e **descartada**, nada dela está no conjunto).
+Cada cargo traz: fonte oficial (RI da própria empresa), link, data de coleta/validação, citação literal (nome + cargo; **nunca exibida ao público**), certeza `declared`. A vigência começa na data da verificação (GPA: 05/01/2026, data de eleição que a própria página declara). Nada além de nome, cargo e empresa: o formato **recusa** qualquer outro campo (contato, foto, perfil, biografia), nome com dígito/e-mail/link e citação que não contenha o nome e o cargo. **Fontes secundárias** (LinkedIn/The Org, só página pública, sem login): nível `secundaria`, carga como **inferido** ("a confirmar"), que o portal nunca mostra como fato; vira declarado só com leitura oficial (ver `termos-fontes.md`). Este conjunto não tem nenhuma.
+
+**Pré-condição nova (PM):** carregar pessoas exige o OK do PM e a decisão registrada do J-01. O carregador **recusa por padrão** (dry-run sem `--with-persons` marca os 20 cargos como `rejected: ingestão de pessoas desligada`; exit 1). `--with-persons` liga a ingestão **só nessa execução**; a flag `intelligencePessoas` do produto continua desligada e a exibição pública das pessoas segue a decisão do PM/Frontend.
+
+Leitura das 10 páginas (reprodução): `scripts/capture-leadership.ts` lê a página (HTTP direto, robots respeitado; se recusar, Zyte — DP-32, página pública, ritmo baixo, cota gratuita) e grava o texto em `data/captures/<id>.json` (**local, fora do git**) e só os metadados em `<id>.meta.json` (no git). O verificador recalcula o sha256 desse texto e confere cada citação. Em outra máquina/checkout: recapturar (`node node_modules/.cache/ln-intelligence/capture-leadership.mjs <id>=<url>`) e rodar `node packages/intelligence/scripts/verify-dataset.mjs packages/intelligence/data/seed.public.v4.json`. A página pode ter mudado: citação que sumiu = registro recusado, não carregado.
+
+Roteiro (mesmo formato; cada comando = uma execução do script de credenciais; caminhos absolutos):
+```
+# 0) compilar (sem credenciais)
+cd C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence
+npx esbuild packages/intelligence/scripts/load-seed.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/ln-intelligence/load-seed.mjs
+
+# 1) estado antes (só leitura): esperado organizations 29, org_relations 28, evidence 77, persons 0, role_assignments 0, moves 0
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --check
+
+# 2) DRY-RUN com pessoas (só leitura): esperado create 20, exists 57, rejected 0 (exit 0). Sem --with-persons: rejected 20 (exit 1) = proteção funcionando
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v4.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v4.verification.json --with-persons
+
+# 3) APLICAR (só após o OK do PM sobre o dry-run e a decisão J-01 registrada; APP_ENV=staging). Manifesto na pasta de releases do DevOps
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --dataset C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v4.json --verification C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/data/seed.public.v4.verification.json --with-persons --apply --manifest C:/Users/mazin/OpenBot/Shared/loyalty-news/releases/staging/intelligence-seed-v4.manifest.json
+
+# 4) estado depois: esperado organizations 29, org_relations 28, persons 20, role_assignments 20, role_assignments_inferred 0, role_assignments_without_evidence 0, moves 0, evidence 125, evidence_mock 0
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/load-seed.mjs --check
+```
+Por que `evidence` vai de 77 a 125: +20 dos cargos novos e +28 das relações existentes, que **renovam a validação** (as 29 organizações existentes não ganham evidência). Desfazer a v4: `rollbackSeed` com o manifesto remove os cargos e as pessoas que a carga criou (se não têm outro cargo, Move, pedido de titular ou watchlist) e **restaura a evidência e a data de validação anteriores das 28 relações** (`relationsRevalidatedPrevious`; cargos revalidados voltam por `rolesRevalidatedPrevious`, com a certeza anterior). Pessoa suprimida a pedido do titular **não é recriada** (o plano recusa; o carregador pula). Valem as pré-condições, critérios de parada e a regra da senha das seções abaixo (agrupar check, dry-run, apply e check numa só janela).
+
 ## Carga v3 (sobre a v2 JÁ carregada no ln-staging-db)
 Conjunto `data/seed.public.v3.json` + `seed.public.v3.verification.json`: **29 organizações e 28 relações declaradas** (57/57 citações literais encontradas em 8 fontes). A v3 supera a v2: reconhece o que já está no banco e cria só o novo.
 

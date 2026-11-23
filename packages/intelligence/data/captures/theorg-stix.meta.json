@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "theorg-stix",
+  "url": "https://theorg.com/org/soustix",
+  "finalUrl": "https://theorg.com/org/soustix",
+  "capturedAt": "2026-11-23T15:20:31.680Z",
+  "robots": "robots.txt permite",
+  "length": 1297,
+  "sha256Claimed": "f59a30a6cc83f5674b62803af1861a53d18da6d3f2ca2c5b700acf03615271b6"
+}

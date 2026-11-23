@@ -19,6 +19,9 @@ export const READ_ONLY_TOOLS = Object.freeze([
   'list_workflows',
   'get_workflow_options',
   'get_post_notifications',
+  // métricas do painel social (leitura): posts publicados e evolução de seguidores
+  'list_published_posts',
+  'get_follower_growth',
 ] as const);
 
 /** Ferramentas que alteram estado no mLabs: proibidas fora da identidade de publicação. */

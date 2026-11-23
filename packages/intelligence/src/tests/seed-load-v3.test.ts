@@ -125,16 +125,16 @@ describe('roteiro de carga (STAGING_LOAD_PLAN.md): caminhos utilizáveis', () =>
   const cmds = PLAN.split('\n').filter((l) => l.startsWith('node ln-com-credenciais.mjs staging --'));
 
   it('todo comando traz caminhos com separadores (nada como "C:UsersmazinOpenBot…") e aponta para o carregador compilado', () => {
-    expect(cmds.length).toBeGreaterThanOrEqual(8); // v3 (4) + v2 (4)
+    expect(cmds.length).toBeGreaterThanOrEqual(16); // v4 (4) + v3 (4) + v2 (4)
     for (const c of cmds) {
       expect(c).not.toMatch(/[A-Za-z]:[A-Za-z]/); // unidade seguida de letra = separador perdido
       expect(c).not.toMatch(/OpenBotShared|Sharedloyalty|\.cache[a-z]/);
       expect(c).toContain('/node_modules/.cache/ln-intelligence/load-seed.mjs');
-      expect(c).toMatch(/--check$|--dataset C:\/Users\/mazin\/\S+seed\.public\.v[23]\.json --verification C:\/Users\/mazin\/\S+seed\.public\.v[23]\.verification\.json/);
+      expect(c).toMatch(/--check$|--dataset C:\/Users\/mazin\/\S+seed\.public\.v[23456]\.json --verification C:\/Users\/mazin\/\S+seed\.public\.v[23456]\.verification\.json/);
     }
     const aplicar = cmds.filter((c) => c.includes('--apply'));
-    expect(aplicar).toHaveLength(2);
-    for (const c of aplicar) expect(c).toMatch(/--manifest C:\/Users\/mazin\/\S+\/releases\/staging\/intelligence-seed-v[23]\.manifest\.json$/);
+    expect(aplicar).toHaveLength(5);
+    for (const c of aplicar) expect(c).toMatch(/--manifest C:\/Users\/mazin\/\S+\/releases\/staging\/intelligence-seed-v[23456]\.manifest\.json$/);
   });
 
   it('o documento INTEIRO (não só os comandos) não tem caminho com separador perdido', () => {

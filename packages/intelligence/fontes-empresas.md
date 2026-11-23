@@ -67,3 +67,6 @@ Observação honesta: "acessível" vale para **esta** leitura (uma requisição)
 
 ## Limites
 Uma leitura por URL em 23/11/2026; não é verificação de conteúdo; termos de uso de cada fonte **não** foram lidos aqui (a DP-28 aceita o risco, mas a revisão caso a caso vale para qualquer fonte com proibição expressa); "tipo" das candidatas é triagem, não fato.
+
+## Adendo (fase 2): páginas de diretoria/administração lidas para cargos (seed v4)
+10 organizações, páginas oficiais de RI/governança (ver `STAGING_LOAD_PLAN.md`, "Carga v4", e `data/captures/*.meta.json` para URL, data, método e sha256): Bradesco (`bradescori.com.br`), Banco do Brasil (`ri.bb.com.br`), Banco Santander (Brasil) (`santander.com.br/ri`), Dotz (`ri.dotz.com.br`), BRB (`ri.brb.com.br`), Banco BV (`ri.bv.com.br`), GPA (`gpari.com.br`), LATAM (`ir.latam.com`, só pelo leitor em modo navegador do provedor: HTTP direto dá 403), Raia Drogasil (`ri.rdsaude.com.br`) e Uber (`investor.uber.com`). Descobertas por busca restrita ao domínio (Exa, só links). **Fora:** ABEMF (página sem dirigentes nomeados) e Azul (classe C da DP-28; não usada).

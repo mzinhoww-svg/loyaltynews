@@ -5,3 +5,6 @@ export * from './costs';
 export * from './health';
 export * from './handlers';
 export * from './redis-stores';
+export * from './pilot';
+export * from './gateway';
+export * from './routes';

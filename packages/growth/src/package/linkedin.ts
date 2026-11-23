@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { generateLinkedInCopy, type LinkedInCopy } from '../copy/engine';
-import { CreativeRefusal, renderPost, type Format } from '../creative/post';
+import { CreativeRefusal } from '../creative/post';
+import { renderSocialCard, type SocialCardFormat, type SocialCardInput } from '../creative/social-cards';
 import type { PublishRequest } from '../publisher/publisher';
-import type { Article, CreativeAsset } from '../types';
+import type { CreativeAsset } from '../types';
 
 export interface CarouselSlide {
   index: number;
@@ -32,7 +33,7 @@ export interface LinkedInPackage {
 }
 
 export interface LinkedInPackageOptions {
-  format?: Format;
+  format?: SocialCardFormat;
   /** `true` só se a API do mLabs confirmou menção em texto (R1-05/R5-02). Padrão: texto puro. */
   mentionsSupported?: boolean;
   version?: number;
@@ -43,12 +44,12 @@ function sha256(s: string): string {
   return createHash('sha256').update(s).digest('hex');
 }
 
-function buildCarousel(article: Article): LinkedInPackage['carousel'] {
+function buildCarousel(article: SocialCardInput): LinkedInPackage['carousel'] {
   const slides: CarouselSlide[] = [];
   const skipped: number[] = [];
   const add = (kind: CarouselSlide['kind'], headline: string, deck?: string): boolean => {
     try {
-      const a = renderPost(article, { format: 'square', headline, deck: deck ?? '' });
+      const a = renderSocialCard(article, { format: 'square', headline, deck: deck ?? '' });
       slides.push({ index: slides.length + 1, kind, svg: a.svg });
       return true;
     } catch (e) {
@@ -65,9 +66,9 @@ function buildCarousel(article: Article): LinkedInPackage['carousel'] {
 }
 
 /** Pacote LinkedIn de uma matéria: copy validada + criativo + (opcional) carrossel + pedido de publicação. */
-export function buildLinkedInPackage(article: Article, opts: LinkedInPackageOptions = {}): LinkedInPackage {
+export function buildLinkedInPackage(article: SocialCardInput, opts: LinkedInPackageOptions = {}): LinkedInPackage {
   const copy = generateLinkedInCopy(article); // lança CopyRefusal se violar regra
-  const creative = renderPost(article, { format: opts.format ?? 'linkedin_landscape' });
+  const creative = renderSocialCard(article, { format: opts.format ?? 'linkedin_landscape' });
   const creativeSha256 = sha256(creative.svg);
   const imageRef = `creative://${article.id}/${creativeSha256.slice(0, 16)}`;
   const idempotencyKey = `${article.id}:linkedin:v${opts.version ?? 1}`;

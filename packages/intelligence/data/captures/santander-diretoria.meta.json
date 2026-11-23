@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "santander-diretoria",
+  "url": "https://www.santander.com.br/ri/en/about-santander-brasil/administration-and-corporate-governance/management-board/",
+  "finalUrl": "https://www.santander.com.br/ri/en/about-santander-brasil/administration-and-corporate-governance/management-board/",
+  "capturedAt": "2026-11-23T13:08:20.590Z",
+  "robots": "robots.txt permite",
+  "length": 18671,
+  "sha256Claimed": "51e2133a47276d8def1ec5eff33c815a5bb99457d3400db1b2e8390593bff032"
+}

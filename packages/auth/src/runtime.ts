@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { schema } from '@ln/db';
 import { pgPoolConfig } from '@ln/db/tls';
+import { errLine, onClientError } from '@ln/db/safe-log';
 import { createAuthHandler } from './handler';
 import { createAuth, type Auth } from './server';
 import type { Db } from './types';
@@ -30,8 +31,9 @@ export function getRuntime(env: Record<string, string | undefined> = process.env
   try {
     // TLS com certificado de cliente (Vertra, R0-07): DB_SSL_*_PEM. Configuração de TLS inválida = banco não configurado (rotas negam) + log SEM segredo.
     pool = new Pool(pgPoolConfig(env, { max: 5 }));
+    pool.on('error', onClientError('[auth] pg (conexão ociosa)')); // C1: nunca o objeto de erro (traz o TLS com a chave)
   } catch (e) {
-    console.error(`[auth] banco não configurado: ${e instanceof Error ? e.message : 'erro de TLS'}`);
+    console.error(errLine('[auth] banco não configurado', e));
     g[KEY] = null;
     return null;
   }

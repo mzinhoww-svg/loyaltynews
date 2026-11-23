@@ -27,7 +27,7 @@ export interface MediaKit {
     decisores: { available: false; emptyState: string };
     tese: { text: string };
     especificacoes: { positions: typeof POSITIONS; mobileNote: string; formats: string };
-    catalogo: { total: number; byStatus: Record<string, number>; formats: { id: string; section: string; name: string; price: string; scope: string; status: string; statusReason: string }[]; packages: typeof PACKAGES; disclaimer: string; capacityScenario: ReturnType<typeof theoreticalGrossCapacity> };
+    catalogo: { total: number; byStatus: Record<string, number>; formats: { id: string; section: string; name: string; price: string; scope: string; status: string; statusReason?: string }[]; packages: typeof PACKAGES; disclaimer: string; capacityScenario: ReturnType<typeof theoreticalGrossCapacity> | null };
     contratacao: { steps: string[] };
     formulario: { fields: { name: string; required: boolean }[]; newsletterOptInSeparate: true };
   };
@@ -41,7 +41,11 @@ function build(slots: readonly MetricSlot[], store: MetricStore, now: string): {
   return { metrics, allEmpty: metrics.every((m) => m.record.status === 'unavailable') };
 }
 
-export function generateMediaKit(opts: { store: MetricStore; now: string; catalog?: readonly CommercialFormat[] }): MediaKit {
+/**
+ * `internal` (ator do Studio): só então saem o motivo do estado de cada formato (jargão de flags e frentes) e o cenário de capacidade
+ * (potencial de receita). O mídia kit público nunca os traz.
+ */
+export function generateMediaKit(opts: { store: MetricStore; now: string; catalog?: readonly CommercialFormat[]; internal?: boolean }): MediaKit {
   const catalog = opts.catalog ?? CATALOG;
   const cob = build(METRIC_SLOTS.filter((s) => s.block === 'cobertura'), opts.store, opts.now);
   const aud = build(METRIC_SLOTS.filter((s) => s.block === 'audiencia'), opts.store, opts.now);
@@ -62,10 +66,10 @@ export function generateMediaKit(opts: { store: MetricStore; now: string; catalo
       especificacoes: { positions: POSITIONS, mobileNote: 'Mobile sugerido 320x100 e 300x250; variante obrigatória quando aplicável. Formatos: JPG, PNG, GIF e HTML5 em sandbox após análise.', formats: 'Posições sem limite configurado não são reserváveis.' },
       catalogo: {
         total: catalog.length, byStatus,
-        formats: catalog.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status, statusReason: f.statusReason })),
+        formats: catalog.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status, ...(opts.internal ? { statusReason: f.statusReason } : {}) })),
         packages: PACKAGES,
         disclaimer: 'Preços de referência em BRL, ajustáveis; disponibilidade é real. Nenhum formato sem capacidade operacional fica disponível para venda.',
-        capacityScenario: theoreticalGrossCapacity(),
+        capacityScenario: opts.internal ? theoreticalGrossCapacity() : null,
       },
       contratacao: { steps: ['Lead pelo formulário', 'Qualificação no CRM', 'Proposta versionada', 'Aceite/contrato', 'Reserva de inventário', 'Criativo e QA', 'Aprovação do cliente', 'Ativação', 'Monitoramento de entrega', 'Relatório e renovação'] },
       formulario: { fields: [{ name: 'nome', required: true }, { name: 'empresa', required: true }, { name: 'email', required: true }, { name: 'whatsapp', required: false }, { name: 'formatos', required: false }, { name: 'objetivo', required: false }, { name: 'mensagem', required: false }, { name: 'newsletter_opt_in', required: false }], newsletterOptInSeparate: true },

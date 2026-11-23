@@ -10,8 +10,15 @@
  *   GET  /api/intelligence/executives/:id          -> getExecutiveHandler           [portal, studio]
  *   GET  /api/intelligence/companies/:id/org-chart -> getOrgChartHandler            [portal, studio]
  *   GET  /api/intelligence/moves                   -> listMovesHandler              [portal: só confirmados; studio: todos]
+ *   GET  /api/studio/intelligence/roles?certainty=&organizationId=&q=&limit=&offset= -> listRolesHandler [studio] (inclui a fila "a confirmar")
+ *   POST /api/studio/intelligence/roles/:id/confirm {officialUrl} -> confirmRoleHandler [studio, editor+, auditar]
+ *   POST /api/studio/intelligence/roles/:id/discard {motivo}      -> discardRoleHandler [studio, editor+, auditar]
+ *   GET  /api/intelligence/moves/:id               -> getMoveHandler                [portal: só confirmado; studio: todos] (duas leituras: before/after)
  *   POST /api/studio/intelligence/moves/:id/review -> reviewMoveHandler             [studio, papel editor]
  *   GET/POST /api/studio/intelligence/watchlists, POST .../watchlists/:id/items     [studio]
+ *   GET  /api/studio/intelligence/watchlists/:id   -> getWatchlistHandler           [studio]
+ *   DELETE /api/studio/intelligence/watchlists/:id -> deleteWatchlistHandler        [studio, só o dono]
+ *   DELETE /api/studio/intelligence/watchlists/:id/items -> removeWatchlistItemHandler [studio, só o dono]
  *   GET  /api/studio/intelligence/alerts           -> listAlertsHandler             [studio]
  *   POST /api/studio/intelligence/alerts/:id/review-> reviewAlertHandler            [studio, papel revisor]
  *   POST /api/studio/intelligence/subject-requests -> openSubjectRequestHandler     [studio, papel DPO/privacidade]
@@ -26,7 +33,8 @@ import {
 import { currentPeopleAt, neighbors, shortestPath, type NodeRef } from './graph';
 import { getOrgChart } from './repo';
 import { reviewMove } from './moves';
-import { createWatchlist, listAlerts, reviewAlert, watch } from './watchlists';
+import { confirmRole, discardRole, listRoleViews } from './roles';
+import { createWatchlist, deleteWatchlist, listAlerts, reviewAlert, unwatch, watch } from './watchlists';
 import { exportPersonData, openSubjectRequest, rectifyPersonName, suppressPerson } from './subject-requests';
 
 export type Audience = 'public' | 'studio';
@@ -127,6 +135,14 @@ export async function listMovesHandler(db: Db, audience: Audience, input: unknow
   return ok({ items: await listMoveViews(db, f) });
 }
 
+/** Um Move com as DUAS leituras (antes/depois), cada uma com fonte, link e datas. Portal: só Move confirmado (senão 404, sem revelar que existe). */
+export async function getMoveHandler(db: Db, audience: Audience, input: unknown): Promise<ApiResult> {
+  const id = uuid(input, 'id');
+  if (!id.ok) return id.res;
+  const [m] = await listMoveViews(db, { ids: [id.value], status: audience === 'public' ? ['confirmed'] : undefined, limit: 1 });
+  return m ? ok({ move: m }) : fail(404, 'not_found', 'move não encontrado');
+}
+
 export async function graphNeighborsHandler(db: Db, audience: Audience, input: unknown): Promise<ApiResult> {
   const id = uuid(input, 'id'), asOf = optDate(input, 'asOf');
   const type = isObj(input) ? input.type : undefined;
@@ -152,7 +168,42 @@ export async function graphPathHandler(db: Db, audience: Audience, input: unknow
   return ok({ path, max_hops: 3 });
 }
 
-// --------- Studio: revisão, watchlists, alertas ---------
+// --------- Studio: cargos (fila "a confirmar"), revisão, watchlists, alertas ---------
+
+/** Lista de cargos com `source_level` (official | secondary | inferred) e `status` (confirmed | to_confirm). Só Studio: o portal nunca recebe cargo inferido. */
+export async function listRolesHandler(db: Db, input: unknown): Promise<ApiResult> {
+  const f: Parameters<typeof listRoleViews>[1] = { limit: optInt(input, 'limit', 50, 200), offset: optInt(input, 'offset', 0, 100000) };
+  if (isObj(input) && input.certainty !== undefined) {
+    if (input.certainty !== 'declared' && input.certainty !== 'inferred') return fail(400, 'invalid_input', 'certainty deve ser declared ou inferred');
+    f.certainty = input.certainty;
+  }
+  if (isObj(input) && input.organizationId !== undefined) { const o = uuid(input, 'organizationId'); if (!o.ok) return o.res; f.organizationId = o.value; }
+  if (isObj(input) && typeof input.q === 'string' && input.q.trim()) f.q = input.q.slice(0, 100);
+  return ok({ items: await listRoleViews(db, f) });
+}
+
+const roleFail = (code: 'not_found' | 'not_inferred' | 'invalid_source', message: string) =>
+  fail(code === 'not_found' ? 404 : code === 'not_inferred' ? 409 : 400, code === 'invalid_source' ? 'invalid_input' : code, message);
+
+/** Confirma um cargo "a confirmar" com página OFICIAL (https, nunca LinkedIn/The Org). O Backend registra `actor` na auditoria. */
+export async function confirmRoleHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
+  const id = uuid(input, 'id'), url = text(input, 'officialUrl', 500);
+  if (!id.ok) return id.res;
+  if (!url.ok) return url.res;
+  if (!actor.trim()) return fail(401, 'actor_required', 'identidade é obrigatória');
+  const r = await confirmRole(db, id.value, { officialUrl: url.value, sourceName: isObj(input) && typeof input.sourceName === 'string' ? input.sourceName.slice(0, 200) : undefined }, actor);
+  return r.ok ? ok({ id: id.value, certainty: 'declared', source_level: 'official', confirmed_by: actor }) : roleFail(r.code, r.message);
+}
+
+/** Descarta um cargo inferido ("a confirmar"), com motivo. Declarado não se descarta por aqui. */
+export async function discardRoleHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
+  const id = uuid(input, 'id'), why = text(input, 'motivo', 200);
+  if (!id.ok) return id.res;
+  if (!why.ok) return why.res;
+  if (!actor.trim()) return fail(401, 'actor_required', 'identidade é obrigatória');
+  const r = await discardRole(db, id.value, why.value);
+  return r.ok ? ok({ id: id.value, discarded: true, discarded_by: actor }) : roleFail(r.code, r.message);
+}
 
 export async function reviewMoveHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
   const id = uuid(input, 'id');
@@ -179,7 +230,8 @@ export async function createWatchlistHandler(db: Db, actor: string, input: unkno
   return ok({ id: await createWatchlist(db, name.value, actor) }, 201);
 }
 
-export async function addWatchlistItemHandler(db: Db, input: unknown): Promise<ApiResult> {
+/** `actor` (opcional, mas o Backend deve sempre passar): quando informado, só o dono da lista altera; senão 404. */
+export async function addWatchlistItemHandler(db: Db, input: unknown, actor?: string): Promise<ApiResult> {
   const wl = uuid(input, 'watchlistId'), ent = uuid(input, 'entityId');
   const t = isObj(input) ? input.entityType : undefined;
   if (!wl.ok) return wl.res;
@@ -187,17 +239,44 @@ export async function addWatchlistItemHandler(db: Db, input: unknown): Promise<A
   if (t !== 'organization' && t !== 'person') return fail(400, 'invalid_input', 'entityType inválido');
   const exists = t === 'organization' ? await getOrganization(db, ent.value) : await getPerson(db, ent.value);
   if (!exists) return fail(404, 'not_found', 'entidade não encontrada');
-  const w = await db.query(`SELECT 1 FROM intelligence.watchlist WHERE id = $1`, [wl.value]);
-  if (!w.rows[0]) return fail(404, 'not_found', 'watchlist não encontrada');
+  const w = await db.query<{ owner_ref: string }>(`SELECT owner_ref FROM intelligence.watchlist WHERE id = $1`, [wl.value]);
+  if (!w.rows[0] || (actor !== undefined && w.rows[0].owner_ref !== actor)) return fail(404, 'not_found', 'watchlist não encontrada');
   await watch(db, wl.value, t, ent.value);
   return ok({ watchlistId: wl.value, items: await listWatchlistItems(db, wl.value) }, 201);
 }
 
-export async function getWatchlistHandler(db: Db, input: unknown): Promise<ApiResult> {
+/** Quem não é o dono da lista recebe 404 (não revela que existe). `actor` = identidade já autenticada pelo Backend. */
+async function ownedWatchlist(db: Db, id: string, actor: string) {
+  const r = await db.query<{ owner_ref: string }>(`SELECT owner_ref FROM intelligence.watchlist WHERE id = $1`, [id]);
+  return r.rows[0] && r.rows[0].owner_ref === actor ? r.rows[0] : null;
+}
+
+export async function deleteWatchlistHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
+  const id = uuid(input, 'id');
+  if (!id.ok) return id.res;
+  if (!actor.trim()) return fail(401, 'actor_required', 'identidade é obrigatória');
+  if (!(await ownedWatchlist(db, id.value, actor))) return fail(404, 'not_found', 'watchlist não encontrada');
+  await deleteWatchlist(db, id.value);
+  return ok({ id: id.value, deleted: true });
+}
+
+export async function removeWatchlistItemHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
+  const wl = uuid(input, 'watchlistId'), ent = uuid(input, 'entityId');
+  const t = isObj(input) ? input.entityType : undefined;
+  if (!wl.ok) return wl.res;
+  if (!ent.ok) return ent.res;
+  if (t !== 'organization' && t !== 'person') return fail(400, 'invalid_input', 'entityType inválido');
+  if (!actor.trim()) return fail(401, 'actor_required', 'identidade é obrigatória');
+  if (!(await ownedWatchlist(db, wl.value, actor))) return fail(404, 'not_found', 'watchlist não encontrada');
+  if (!(await unwatch(db, wl.value, t, ent.value))) return fail(404, 'not_found', 'a entidade não está nesta watchlist');
+  return ok({ watchlistId: wl.value, items: await listWatchlistItems(db, wl.value) });
+}
+
+export async function getWatchlistHandler(db: Db, input: unknown, actor?: string): Promise<ApiResult> {
   const id = uuid(input, 'id');
   if (!id.ok) return id.res;
   const all = await listWatchlists(db);
-  const w = all.find((x) => x.id === id.value);
+  const w = all.find((x) => x.id === id.value && (actor === undefined || x.owner_ref === actor));
   if (!w) return fail(404, 'not_found', 'watchlist não encontrada');
   return ok({ watchlist: w, items: await listWatchlistItems(db, id.value) });
 }
@@ -209,7 +288,10 @@ export async function listAlertsHandler(db: Db, input: unknown): Promise<ApiResu
     f.status = input.status as 'pending_review' | 'approved' | 'rejected';
   }
   if (isObj(input) && input.watchlistId !== undefined) { const w = uuid(input, 'watchlistId'); if (!w.ok) return w.res; f.watchlistId = w.value; }
-  return ok({ items: await listAlerts(db, f) });
+  const items = await listAlerts(db, f);
+  // cada alerta traz o Move com as duas leituras (antes/depois), para o revisor decidir sem consultar outra rota
+  const moves = new Map((await listMoveViews(db, { ids: [...new Set(items.map((a) => a.move_id))], limit: 200 })).map((m) => [m.id, m]));
+  return ok({ items: items.map((a) => ({ ...a, move: moves.get(a.move_id) ?? null })) });
 }
 
 export async function reviewAlertHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {

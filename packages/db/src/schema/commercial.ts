@@ -163,11 +163,22 @@ export const adCreatives = pgTable('ad_creatives', {
   aprovado: boolean('aprovado').notNull().default(false),
   arquivoRef: text('arquivo_ref'), // chave no Blob S3 da Vertra; nunca URL externa de anunciante
   destinoUrl: text('destino_url'),
+  // Arquivo do criativo, MEDIDO NO SERVIDOR no upload (nunca confiado ao cliente). Nulo até o upload; tudo junto ou nada (ad_creatives_arquivo_coerente).
+  arquivoMime: text('arquivo_mime'),
+  largura: integer('largura'),
+  altura: integer('altura'),
+  tamanhoKb: integer('tamanho_kb'),
+  arquivoSha256: text('arquivo_sha256'),
+  textoAlternativo: text('texto_alternativo'),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   check('ad_creatives_peso', sql`${t.peso} > 0`),
   check('ad_creatives_periodo', sql`${t.fim} >= ${t.inicio}`),
   check('ad_creatives_destino_https', sql`${t.destinoUrl} IS NULL OR ${t.destinoUrl} ~ '^https://'`),
+  check('ad_creatives_arquivo_coerente', sql`(${t.arquivoMime} IS NULL AND ${t.largura} IS NULL AND ${t.altura} IS NULL AND ${t.tamanhoKb} IS NULL AND ${t.arquivoSha256} IS NULL) OR (${t.arquivoRef} IS NOT NULL AND ${t.arquivoMime} IN ('image/jpeg', 'image/png', 'image/gif') AND ${t.largura} > 0 AND ${t.altura} > 0 AND ${t.tamanhoKb} > 0 AND ${t.arquivoSha256} ~ '^[0-9a-f]{64}$')`),
+  check('ad_creatives_alt', sql`${t.textoAlternativo} IS NULL OR char_length(btrim(${t.textoAlternativo})) BETWEEN 1 AND 200`),
+  // Aprovado só com criativo COMPLETO: arquivo válido com hash, texto alternativo e destino https (a regra do PM: só criativo real aparece).
+  check('ad_creatives_aprovado_completo', sql`NOT ${t.aprovado} OR (${t.arquivoRef} IS NOT NULL AND ${t.arquivoMime} IS NOT NULL AND ${t.largura} IS NOT NULL AND ${t.altura} IS NOT NULL AND ${t.tamanhoKb} IS NOT NULL AND ${t.arquivoSha256} IS NOT NULL AND ${t.textoAlternativo} IS NOT NULL AND ${t.destinoUrl} IS NOT NULL)`),
   index('ad_creatives_slot_idx').on(t.slotId, t.aprovado),
 ]);
 

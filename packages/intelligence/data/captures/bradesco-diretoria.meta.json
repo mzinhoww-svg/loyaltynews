@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "bradesco-diretoria",
+  "url": "https://www.bradescori.com.br/o-bradesco/governanca-corporativa/conselhos-e-diretoria/diretoria-executiva/",
+  "finalUrl": "https://www.bradescori.com.br/o-bradesco/governanca-corporativa/conselhos-e-diretoria/diretoria-executiva/",
+  "capturedAt": "2026-11-23T13:06:16.013Z",
+  "robots": "robots.txt permite",
+  "length": 31316,
+  "sha256Claimed": "f4cd9db73a2dbe65614dc83adb238563be9880412d20b44c90301f8e1acd9e24"
+}

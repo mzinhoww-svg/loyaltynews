@@ -26,6 +26,8 @@ export interface RoleObservationInput {
   kind: 'present' | 'left';
   /** ISO 8601 com horário; instante em que a fonte mostrou o fato. */
   observedAt: string;
+  /** 'secundaria' (LinkedIn/The Org, só página pública) = "a confirmar": nunca gera Move nem aparece como fato. Padrão 'oficial'. */
+  sourceLevel?: 'oficial' | 'secundaria';
   /** Só se a própria fonte anuncia a mudança. */
   announcement?: { effectiveDate?: string };
   /** Reservado; recusado enquanto a flag de dado ampliado estiver desligada. */
@@ -65,7 +67,8 @@ const validIso = (v: unknown) => typeof v === 'string' && ISO.test(v) && !Number
 export function validateObservation(x: unknown, path = ''): ValidationIssue[] {
   const out: ValidationIssue[] = [];
   if (!isObj(x)) return [{ path: path || '$', message: 'objeto esperado' }];
-  unknownKeys(x, ['personName', 'publicProfileUrl', 'orgName', 'title', 'kind', 'observedAt', 'announcement', 'extra'], path, out);
+  unknownKeys(x, ['personName', 'publicProfileUrl', 'orgName', 'title', 'kind', 'observedAt', 'announcement', 'extra', 'sourceLevel'], path, out);
+  if (x.sourceLevel !== undefined && x.sourceLevel !== 'oficial' && x.sourceLevel !== 'secundaria') out.push({ path: `${path}sourceLevel`, message: "deve ser 'oficial' ou 'secundaria'" });
   str(x, 'personName', path, out, 200);
   str(x, 'orgName', path, out, 200);
   str(x, 'title', path, out, 200);
@@ -192,7 +195,7 @@ export const ROLE_OBSERVATION_BATCH_JSON_SCHEMA = {
           orgName: { type: 'string', minLength: 1, maxLength: 200 }, title: { type: 'string', minLength: 1, maxLength: 200 },
           kind: { enum: ['present', 'left'] }, observedAt: { type: 'string', format: 'date-time' },
           announcement: { type: 'object', additionalProperties: false, properties: { effectiveDate: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' } } },
-          extra: { type: 'object' },
+          extra: { type: 'object' }, sourceLevel: { enum: ['oficial', 'secundaria'] },
         },
       },
     },

@@ -1,15 +1,17 @@
 // Rotas do Entity Intelligence (@ln/intelligence): handlers puros sobre uma porta SQL `query(sql, params)`.
 // Público (Portal): só dados com pessoas se a flag `intelligencePessoas` estiver ligada (J-01); nunca inferidos.
-// Studio: RBAC por rota; revisão de move/alerta por quem tem `materias:transition`; pedidos do titular (LGPD) só admin.
+// Studio: RBAC por rota; revisão de Move por quem tem `materias:transition`; revisão de ALERTA só pelo dono da lista (pessoal); pedidos do titular (LGPD) só admin.
 import { apiError } from '@ln/contracts';
 import {
-  addWatchlistItemHandler, createWatchlistHandler, exportSubjectDataHandler, getCompanyHandler, getExecutiveHandler, getOrgChartHandler,
+  addWatchlistItemHandler, createWatchlistHandler, deleteWatchlistHandler, listWatchlists, removeWatchlistItemHandler, exportSubjectDataHandler, getCompanyHandler, getExecutiveHandler, getOrgChartHandler,
   getWatchlistHandler, graphNeighborsHandler, graphPathHandler, listAlertsHandler, listMovesHandler, listWatchlistsHandler,
   openSubjectRequestHandler, rectifySubjectHandler, reviewAlertHandler, reviewMoveHandler, searchCompaniesHandler,
   searchExecutivesHandler, suppressSubjectHandler, type ApiResult, type Db as IntelDb,
 } from '@ln/intelligence';
 import type { Action, Db, Resource } from '@ln/auth';
+import { carregarEfeitos, filtrarPortal } from './titular-publico';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
+import { confirmRoleHandler, discardRoleHandler, listRolesHandler } from './cargos';
 
 /** Porta SQL do Intelligence sobre o cliente do driver (pg Pool em produção, PGlite nos testes). */
 export function intelDb(db: Db): IntelDb {
@@ -34,7 +36,7 @@ const REVIEW: readonly [Resource, Action] = ['materias', 'transition'];
 const DPO: readonly [Resource, Action] = ['usuarios', 'update']; // só admin: pedidos do titular
 
 const pub = (path: string, handler: H, people = false): IRoute => ({ method: 'GET', path: PUB + path, auth: 'public', handler, people });
-const stu = (method: 'GET' | 'POST', path: string, perm: readonly [Resource, Action], handler: H): IRoute => ({ method, path: STU + path, auth: 'studio', perm, handler });
+const stu = (method: 'GET' | 'POST' | 'DELETE', path: string, perm: readonly [Resource, Action], handler: H): IRoute => ({ method, path: STU + path, auth: 'studio', perm, handler });
 
 export const INTELLIGENCE_ROUTES: readonly IRoute[] = [
   // ---- Portal (sem login) ----
@@ -54,18 +56,55 @@ export const INTELLIGENCE_ROUTES: readonly IRoute[] = [
   stu('GET', '/moves', READ, (db, _a, i) => listMovesHandler(db, 'studio', i)),
   stu('GET', '/graph/neighbors', READ, (db, _a, i) => graphNeighborsHandler(db, 'studio', i)),
   stu('POST', '/graph/path', READ, (db, _a, i) => graphPathHandler(db, 'studio', i)),
+  // cargos "a confirmar" (fonte secundária): fila, confirmação com a página OFICIAL e descarte (editor ou superior: entidades:update)
+  stu('GET', '/roles', READ, listRolesHandler),
+  stu('POST', '/roles/:id/confirm', WRITE, confirmRoleHandler),
+  stu('POST', '/roles/:id/discard', WRITE, discardRoleHandler),
   stu('POST', '/moves/:id/review', REVIEW, (db, a, i) => reviewMoveHandler(db, a, i)),
-  stu('GET', '/watchlists', READ, (db, _a, i) => listWatchlistsHandler(db, i)),
+  // watchlists são PRIVADAS: o dono é quem criou (`actor`); quem não é o dono recebe 404 (nunca revela que a lista existe), como manda o WATCHLISTS_API.md
+  stu('GET', '/watchlists', READ, (db, a, i) => listWatchlistsHandler(db, { ...(isObj(i) ? i : {}), ownerRef: a })),
   stu('POST', '/watchlists', CREATE, (db, a, i) => createWatchlistHandler(db, a, i)),
-  stu('GET', '/watchlists/:id', READ, (db, _a, i) => getWatchlistHandler(db, i)),
-  stu('POST', '/watchlists/:watchlistId/items', WRITE, (db, _a, i) => addWatchlistItemHandler(db, i)),
-  stu('GET', '/alerts', READ, (db, _a, i) => listAlertsHandler(db, i)),
-  stu('POST', '/alerts/:id/review', REVIEW, (db, a, i) => reviewAlertHandler(db, a, i)),
+  stu('GET', '/watchlists/:id', READ, (db, a, i) => getWatchlistHandler(db, i, a)),
+  stu('DELETE', '/watchlists/:id', WRITE, (db, a, i) => deleteWatchlistHandler(db, a, i)),
+  stu('POST', '/watchlists/:watchlistId/items', WRITE, (db, a, i) => addWatchlistItemHandler(db, i, a)),
+  stu('DELETE', '/watchlists/:watchlistId/items', WRITE, (db, a, i) => removeWatchlistItemHandler(db, a, i)),
+  stu('GET', '/alerts', READ, alertsOfOwner),
+  stu('POST', '/alerts/:id/review', WRITE, reviewOwnAlert), // alerta é PESSOAL: quem revisa é o DONO da lista (não o papel revisor)
   stu('POST', '/subject-requests', DPO, (db, a, i) => openSubjectRequestHandler(db, a, i)),
   stu('POST', '/subject-requests/:requestId/export', DPO, (db, a, i) => exportSubjectDataHandler(db, a, i)),
   stu('POST', '/subject-requests/:requestId/suppress', DPO, (db, a, i) => suppressSubjectHandler(db, a, i)),
   stu('POST', '/subject-requests/:requestId/rectify', DPO, (db, a, i) => rectifySubjectHandler(db, a, i)),
 ];
+
+const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+/** Em GET a query chega como texto: `includeInferred=true` vira o booleano que os handlers esperam (sem isso o cargo inferido nunca aparecia por HTTP). */
+const BOOLEAN_KEYS = ['includeInferred', 'includeClosed'];
+export function normalizeBooleans(input: unknown): unknown {
+  if (!isObj(input)) return input;
+  return Object.fromEntries(Object.entries(input).map(([k, v]) => (BOOLEAN_KEYS.includes(k) && (v === 'true' || v === 'false') ? [k, v === 'true'] : [k, v])));
+}
+
+/** Alertas só das watchlists do próprio `actor` (o dono); watchlistId de outro dono = 404, como nas demais rotas de watchlist. */
+async function alertsOfOwner(db: IntelDb, actor: string, input: unknown): Promise<ApiResult> {
+  const mine = new Set((await listWatchlists(db, actor)).map((w) => w.id));
+  const wid = isObj(input) && typeof input.watchlistId === 'string' ? input.watchlistId : undefined;
+  if (wid && !mine.has(wid)) return { status: 404, body: { error: { code: 'not_found', message: 'watchlist não encontrada' } } };
+  const r = await listAlertsHandler(db, input);
+  if (r.status !== 200) return r;
+  const body = r.body as { items: { watchlist_id: string }[] };
+  return { status: 200, body: { ...body, items: body.items.filter((a) => mine.has(a.watchlist_id)) } };
+}
+
+/** Revisão de alerta só pelo DONO da watchlist do alerta; de outro dono (ou id que não existe) = 404, sem revelar que o alerta existe. */
+async function reviewOwnAlert(db: IntelDb, actor: string, input: unknown): Promise<ApiResult> {
+  const id = isObj(input) && typeof input.id === 'string' ? input.id : '';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    const a = await db.query<{ watchlist_id: string }>(`SELECT watchlist_id FROM intelligence.alert WHERE id = $1`, [id]);
+    const mine = new Set((await listWatchlists(db, actor)).map((w) => w.id));
+    if (!a.rows[0] || !mine.has(a.rows[0].watchlist_id)) return { status: 404, body: { error: { code: 'not_found', message: 'alerta não encontrado' } } };
+  }
+  return reviewAlertHandler(db, actor, input); // id inválido, status inválido, já revisado: as respostas do pacote do Data
+}
 
 export const dispatchIntelligence = createDispatcher<H>({
   routes: INTELLIGENCE_ROUTES,
@@ -76,6 +115,10 @@ export const dispatchIntelligence = createDispatcher<H>({
     if (r.people && !c.deps.flags.intelligencePessoas) {
       return { status: 403, body: apiError('FEATURE_DISABLED', 'Dados de pessoas desligados (flag intelligencePessoas; condições de J-01).') };
     }
-    return r.handler(intelDb(c.deps.db), c.session?.userId ?? '', input);
+    const db = intelDb(c.deps.db);
+    const out = await r.handler(db, c.session?.userId ?? '', normalizeBooleans(input));
+    // Portal (sem login): as decisões da fila do titular (DP-38) valem na resposta; o Studio vê tudo
+    if (r.auth === 'public' && r.people) return filtrarPortal(db, await carregarEfeitos(c.deps.db), r.path, input, out);
+    return out;
   },
 });

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { realContent } from './real-creative.mock';
 import { createCommercialState, makeCtx } from './state';
 import {
   campaignDetail, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
@@ -65,7 +66,7 @@ describe('consultas do Studio comercial', () => {
     const camp = s.campaigns.create({ name: 'X', accountId: 'acc-1', formatId: 'banners--banner-rodape', positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2026-12-31' }, NOW);
     const res = s.inventory.reserve({ positionId: 'FOOTER', advertiserId: 'acc-1', campaignId: camp.id, startDate: '2026-12-01', endDate: '2026-12-31', status: 'confirmed' });
     s.campaigns.transition(camp.id, 'reserved', NOW, { reservations: [res] }); s.campaigns.transition(camp.id, 'approved', NOW);
-    s.ads.addCreative({ id: 'cr1', campaignId: camp.id, positionId: 'FOOTER', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+    s.ads.addCreative({ id: 'cr1', campaignId: camp.id, positionId: 'FOOTER', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent('FOOTER') });
     s.campaigns.transition(camp.id, 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [res], approvedCreativeCount: 1 } });
     s.ads.setCreative('cr1', { approved: false }); // criativo desaprovado depois da ativação => alerta
     const d = studioDashboard(c, '2026-12-01', '2026-12-31');
