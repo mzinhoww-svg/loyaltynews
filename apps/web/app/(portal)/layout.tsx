@@ -30,7 +30,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   return (
     <div className="ln-root pt">
       {/* Faixa fina e fixa quando o conteúdo é de demonstração (fonte MOCK). Nunca em produção real. */}
-      {isMockSource() && <DemoBanner />}
+      {(process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_PORTAL_DEMO === '1') && isMockSource() && <DemoBanner />}
       <SiteHeader flags={{ theLoyal: flags.theLoyal, marketData: flags.marketData, podcast: flags.podcast }} editorias={EDITORIAS} />
       <main id="conteudo" className="pt-main">
         <div className="pt-wrap">{children}</div>

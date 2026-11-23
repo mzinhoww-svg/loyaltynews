@@ -9,11 +9,29 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs
 import { join } from 'node:path';
 
 const MARKERS = ['senha-longa-de-teste-1', 'electric-sql/pglite'];
+// Marcadores da vitrine do portal (fixtures MOCK e faixa de demonstração; Security R8): só podem existir no build de vitrine do staging.
+const VITRINE_MARKERS = ['[MOCK] Matéria de teste', 'Empresa de Teste (MOCK)', 'Conteúdo de demonstração — não publicado'];
 const PORT = Number(process.env.VERIFY_PORT ?? 3190);
 const base = { ...process.env };
 delete base.LN_E2E_BUILD;
 delete base.LN_STUDIO_TEST_SESSION;
 delete base.LN_STUDIO_DEV_DB;
+delete base.PORTAL_VITRINE;
+delete base.PORTAL_SOURCE;
+// Build de produção de verdade: APP_ENV=production e URL pública (o build de produção recusa localhost).
+base.APP_ENV = 'production';
+base.NEXT_PUBLIC_SITE_URL ??= 'https://verify.example.test';
+
+// Servidor de uma rodada anterior ainda vivo (Windows: o taskkill do shell nem sempre mata o node filho) travaria a limpeza de .next e serviria
+// a build antiga. Libera a porta antes de começar e depois do passo 3.
+function liberarPorta(porta) {
+  if (process.platform === 'win32') {
+    spawnSync('powershell', ['-NoProfile', '-Command', `Get-NetTCPConnection -LocalPort ${porta} -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }`], { stdio: 'ignore' });
+  } else {
+    spawnSync(`fuser -k ${porta}/tcp`, { shell: true, stdio: 'ignore' });
+  }
+}
+liberarPorta(PORT);
 
 let falhas = 0;
 const ok = (m) => console.log(`  ok   ${m}`);
@@ -22,7 +40,9 @@ const fail = (m) => {
   console.log(`  FAIL ${m}`);
 };
 
-function scan(dir) {
+// `skipMaps`: ignora source maps. O DemoBanner vem do barrel de @ln/ui e seu código-fonte aparece nos mapas do servidor mesmo quando o módulo é
+// descartado do JS; para a vitrine vale o que vai no JS/HTML que o navegador e o servidor realmente executam.
+function scan(dir, markers = MARKERS, skipMaps = false) {
   const achados = new Set();
   const walk = (d) => {
     for (const nome of readdirSync(d)) {
@@ -30,9 +50,9 @@ function scan(dir) {
       const p = join(d, nome);
       const st = statSync(p);
       if (st.isDirectory()) walk(p);
-      else if (/\.(js|mjs|cjs|json|html|rsc|map|txt|css)$/.test(nome)) {
+      else if (/\.(js|mjs|cjs|json|html|rsc|map|txt|css)$/.test(nome) && !(skipMaps && nome.endsWith('.map'))) {
         const txt = readFileSync(p, 'utf8');
-        for (const m of MARKERS) if (txt.includes(m)) achados.add(m);
+        for (const m of markers) if (txt.includes(m)) achados.add(m);
       }
     }
   };
@@ -58,7 +78,21 @@ ${r.stderr}`;
   else fail(`build de produção deveria ser recusado com PORTAL_VITRINE (status ${r.status})`);
 }
 
-console.log('2) build de produção limpo não contém o código simulado');
+console.log('1b) controle positivo: o build de VITRINE do staging contém os marcadores (a varredura enxerga as fixtures)');
+rmSync('.next', { recursive: true, force: true });
+{
+  const r = spawnSync('npx next build', { shell: true, env: { ...base, APP_ENV: 'staging', PORTAL_VITRINE: '1' }, encoding: 'utf8' });
+  if (r.status !== 0) fail(`build de vitrine (staging) falhou:
+${r.stdout}
+${r.stderr}`);
+  else {
+    const achados = scan('.next', VITRINE_MARKERS, true);
+    if (achados.length === VITRINE_MARKERS.length) ok('marcadores da vitrine presentes no build de vitrine (varredura válida)');
+    else fail(`varredura não achou todos os marcadores no build de vitrine (achou: ${achados.join(' | ') || 'nenhum'})`);
+  }
+}
+
+console.log('2) build de produção limpo não contém o código simulado nem a vitrine');
 rmSync('.next', { recursive: true, force: true });
 {
   const r = spawnSync('npx next build', { shell: true, env: base, encoding: 'utf8' });
@@ -66,8 +100,8 @@ rmSync('.next', { recursive: true, force: true });
     fail(`build de produção falhou:\n${r.stdout}\n${r.stderr}`);
     process.exit(1);
   }
-  const achados = scan('.next');
-  if (achados.length === 0) ok('nenhum marcador do mock em .next');
+  const achados = [...scan('.next', MARKERS), ...scan('.next', VITRINE_MARKERS, true)];
+  if (achados.length === 0) ok('nenhum marcador do mock nem da vitrine em .next');
   else fail(`marcadores encontrados em .next: ${achados.join(', ')}`);
 }
 
@@ -75,7 +109,7 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
 {
   const srv = spawn('npx', ['next', 'start', '--port', String(PORT)], {
     shell: true,
-    env: { ...base, LN_STUDIO_TEST_SESSION: '1', LN_STUDIO_DEV_DB: 'pglite' },
+    env: { ...base, LN_STUDIO_TEST_SESSION: '1', LN_STUDIO_DEV_DB: 'pglite', PORTAL_VITRINE: '1', PORTAL_SOURCE: 'mock' },
     stdio: 'ignore',
   });
   try {
@@ -93,6 +127,13 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
       const login = await fetch(`http://127.0.0.1:${PORT}/api/e2e/login?user=ana&role=admin`);
       if (login.status === 404) ok('/api/e2e/login responde 404 em produção');
       else fail(`/api/e2e/login deveria ser 404; status ${login.status}`);
+      // Vitrine e mock pedidos em EXECUÇÃO de produção: a fonte vazia é usada, sem fixtures e sem a faixa de demonstração.
+      for (const rota of ['/', '/noticias']) {
+        const html = await (await fetch(`http://127.0.0.1:${PORT}${rota}`)).text();
+        const vazou = VITRINE_MARKERS.filter((m) => html.includes(m)).concat(html.includes('data-testid="demo-banner"') ? ['demo-banner'] : []);
+        if (vazou.length === 0) ok(`${rota} em produção com PORTAL_VITRINE=1 e PORTAL_SOURCE=mock não exibe vitrine`);
+        else fail(`${rota} vazou a vitrine em produção: ${vazou.join(', ')}`);
+      }
       for (const rota of ['/studio', '/studio/cms', '/studio/social']) {
         const r = await fetch(`http://127.0.0.1:${PORT}${rota}`, { redirect: 'manual', headers: { cookie: 'better-auth.session_token=forjado' } });
         const loc = r.headers.get('location') ?? '';
@@ -103,6 +144,7 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
   } finally {
     spawnSync(`taskkill /pid ${srv.pid} /T /F`, { shell: true, stdio: 'ignore' });
     srv.kill();
+    liberarPorta(PORT);
   }
 }
 

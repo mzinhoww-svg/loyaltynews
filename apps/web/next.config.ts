@@ -17,6 +17,11 @@ const e2eBackendSeam = e2eBuild ? './lib/studio/e2e-backend.e2e.mock.ts' : './li
 // Variáveis que só existem em dev/e2e: o build de produção as recusa (sessão simulada e banco PGlite em memória).
 const VARIAVEIS_SO_DEV = ['LN_STUDIO_TEST_SESSION', 'LN_STUDIO_DEV_DB'] as const;
 
+// Vitrine do portal em staging (decisão do Security, R8): o código de demonstração (fixtures e faixa) só ENTRA no bundle quando o build é de
+// vitrine (PORTAL_VITRINE=1 com APP_ENV=staging). Vira constante de build (NEXT_PUBLIC_PORTAL_DEMO): no build de produção os ramos que carregam
+// as fixtures são eliminados e nenhum marcador da vitrine fica no .next. Em dev/teste (NODE_ENV diferente de production) o portal as carrega à parte.
+const portalDemo = process.env.PORTAL_VITRINE === '1' && process.env.APP_ENV === 'staging' ? '1' : '0';
+
 const config = (phase: string): NextConfig => {
   // Produção recusa essas variáveis no BUILD. Em runtime, mesmo definidas, o bundle de produção não tem o código (fábricas nulas).
   if (phase === PHASE_PRODUCTION_BUILD && !e2eBuild) {
@@ -42,6 +47,7 @@ const config = (phase: string): NextConfig => {
       '@ln/db',
     ],
     poweredByHeader: false,
+    env: { NEXT_PUBLIC_PORTAL_DEMO: portalDemo },
     // Upload de mídia pelo Studio (server action multipart): PDF até 10 MB + metadados.
     experimental: { serverActions: { bodySizeLimit: '11mb' } },
     // Bancos nativos/WASM ficam fora do bundle (pg em produção; PGlite só em dev/e2e: nem a lista de externos o cita em produção).
