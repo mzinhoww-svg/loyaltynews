@@ -61,18 +61,52 @@ export interface MediaUploadPort {
 /** PUT dos bytes na URL assinada; devolve o status HTTP. Injetável (testes); o padrão do adaptador real usa `fetch`. */
 export type PutBytes = (url: string, method: string, headers: Record<string, string>, bytes: Uint8Array) => Promise<number>;
 
+/** Registro de um envio concluído. `at` é ISO 8601 UTC (instante em que o mLabs devolveu o `imageId`). */
+export interface UploadLedgerEntry {
+  imageId: string;
+  at: string;
+}
+
+/**
+ * Registro dos envios de mídia, chave = `svg:<svgSha256>:<canais>`. Em produção tem de ser DURÁVEL (tabela PostgreSQL, dono: Backend;
+ * ver docs/upload-ledger-pg.md): em memória, uma nova execução sobe a mesma imagem de novo. Contrato testado por
+ * `uploadLedgerConformanceCases` (`@ln/growth/testing`); toda implementação tem de passá-la.
+ */
 export interface UploadLedger {
-  get(key: string): Promise<{ imageId: string } | null>;
-  put(key: string, value: { imageId: string }): Promise<void>;
+  get(key: string): Promise<UploadLedgerEntry | null>;
+  /** Grava só se a chave não existe e devolve a entrada que FICOU: a primeira gravação vence (execuções paralelas convergem no mesmo `imageId`). */
+  putIfAbsent(key: string, entry: UploadLedgerEntry): Promise<UploadLedgerEntry>;
+  /** Remove a entrada (ex.: vencida). Remover o que não existe não é erro. */
+  delete(key: string): Promise<void>;
+}
+
+export const LEDGER_KEY_RE = /^[A-Za-z0-9:_,.-]{1,200}$/;
+
+/** Validação comum (a tabela PostgreSQL tem os mesmos CHECKs). Lança `RangeError`. */
+export function assertLedgerEntry(key: string, entry?: UploadLedgerEntry): void {
+  if (!LEDGER_KEY_RE.test(key)) throw new RangeError('chave do registro de envios inválida');
+  if (!entry) return;
+  if (typeof entry.imageId !== 'string' || entry.imageId.length < 1 || entry.imageId.length > 200) throw new RangeError('imageId inválido');
+  if (typeof entry.at !== 'string' || !Number.isFinite(Date.parse(entry.at))) throw new RangeError('instante inválido');
 }
 
 export class InMemoryUploadLedger implements UploadLedger {
-  private readonly m = new Map<string, { imageId: string }>();
+  private readonly m = new Map<string, UploadLedgerEntry>();
   async get(key: string) {
-    return this.m.get(key) ?? null;
+    assertLedgerEntry(key);
+    const e = this.m.get(key);
+    return e ? { ...e } : null;
   }
-  async put(key: string, value: { imageId: string }) {
-    this.m.set(key, value);
+  async putIfAbsent(key: string, entry: UploadLedgerEntry) {
+    assertLedgerEntry(key, entry);
+    const prior = this.m.get(key);
+    if (prior) return { ...prior };
+    this.m.set(key, { ...entry });
+    return { ...entry };
+  }
+  async delete(key: string) {
+    assertLedgerEntry(key);
+    this.m.delete(key);
   }
 }
 
@@ -98,6 +132,8 @@ export interface MlabsRasterUploaderOptions {
   maxBytes?: number;
   /** Aceita criativo de teste (mock). Padrão false: criativo mock nunca sobe. */
   allowMock?: boolean;
+  /** Idade máxima de uma entrada do registro; acima disso a imagem sobe de novo. Padrão 24 h (conservador: a validade do `imageId` no mLabs NÃO foi verificada). */
+  ledgerMaxAgeMs?: number;
   /** Validade da autorização do mLabs (10 min no esquema), com folga. */
   authorizationMs?: number;
   pollMs?: number;
@@ -118,11 +154,16 @@ export function pngSize(png: Uint8Array): { width: number; height: number } | nu
 }
 
 export class MlabsRasterUploader implements MediaUploader {
-  private readonly o: Required<Pick<MlabsRasterUploaderOptions, 'channels' | 'maxBytes' | 'allowMock' | 'authorizationMs' | 'pollMs' | 'maxPolls'>> & MlabsRasterUploaderOptions;
+  private readonly o: Required<Pick<MlabsRasterUploaderOptions, 'channels' | 'maxBytes' | 'allowMock' | 'authorizationMs' | 'pollMs' | 'maxPolls' | 'ledgerMaxAgeMs'>> & MlabsRasterUploaderOptions;
   private readonly ledger: UploadLedger;
 
   constructor(opts: MlabsRasterUploaderOptions) {
-    this.o = { channels: ['linkedin'], maxBytes: 5 * 1024 * 1024, allowMock: false, authorizationMs: 9 * 60_000, pollMs: 1000, maxPolls: 30, ...opts };
+    // `undefined` explícito (ex.: vindo do publicador) não pode apagar o padrão: cada opção cai no padrão com `??`
+    this.o = {
+      ...opts,
+      channels: opts.channels ?? ['linkedin'], maxBytes: opts.maxBytes ?? 5 * 1024 * 1024, allowMock: opts.allowMock ?? false,
+      authorizationMs: opts.authorizationMs ?? 9 * 60_000, pollMs: opts.pollMs ?? 1000, maxPolls: opts.maxPolls ?? 30, ledgerMaxAgeMs: opts.ledgerMaxAgeMs ?? 24 * 3_600_000,
+    };
     this.ledger = opts.ledger ?? new InMemoryUploadLedger();
   }
 
@@ -135,7 +176,10 @@ export class MlabsRasterUploader implements MediaUploader {
     // idempotência pelo SVG de origem: o mesmo criativo não sobe duas vezes
     const key = `svg:${r.svgSha256}:${o.channels.join(',')}`;
     const done = await this.ledger.get(key);
-    if (done) return { imageIds: [done.imageId] };
+    if (done) {
+      if (o.now().getTime() - Date.parse(done.at) <= o.ledgerMaxAgeMs) return { imageIds: [done.imageId] };
+      await this.ledger.delete(key); // vencida: sobe de novo
+    }
 
     let prepared: PreparedUpload;
     try {
@@ -156,8 +200,9 @@ export class MlabsRasterUploader implements MediaUploader {
       if (s.state === 'failed') throw new MediaUploadError('processamento_falhou');
       if (s.state === 'completed') {
         if (!s.imageId) throw new MediaUploadError('resposta_sem_imageid');
-        await this.ledger.put(key, { imageId: s.imageId });
-        return { imageIds: [s.imageId] };
+        // a primeira gravação vence: execuções paralelas convergem no mesmo imageId
+        const kept = await this.ledger.putIfAbsent(key, { imageId: s.imageId, at: o.now().toISOString() });
+        return { imageIds: [kept.imageId] };
       }
       await sleep(o.pollMs);
     }

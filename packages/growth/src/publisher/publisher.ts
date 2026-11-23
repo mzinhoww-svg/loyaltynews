@@ -54,6 +54,8 @@ export interface MediaConfig {
   /** PUT dos bytes. Só testes injetam; o modo real usa `fetch` (HTTPS público, sem redirecionamento). */
   putBytes?: PutBytes;
   ledger?: UploadLedger;
+  /** Idade máxima de uma entrada do registro de envios (padrão 24 h). */
+  ledgerMaxAgeMs?: number;
   /** Só vale no modo simulado: no modo real, criativo mock nunca sobe. */
   allowMock?: boolean;
 }
@@ -225,6 +227,7 @@ export function createSocialPublisher(config: PublisherConfig): SocialPublisher 
         rasterizer: media.rasterizer,
         port: adapter.mediaUploadPort(cap, media.putBytes),
         ledger: media.ledger,
+        ledgerMaxAgeMs: media.ledgerMaxAgeMs,
         now: () => new Date(now()),
         allowMock: config.mode === 'simulated' && media.allowMock === true,
       });

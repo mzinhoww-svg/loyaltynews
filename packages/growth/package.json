@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./ui": "./src/ui/index.ts",
     "./dashboard": "./src/dashboard/index.ts",
-    "./jobs": "./src/jobs/index.ts"
+    "./jobs": "./src/jobs/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "types": "./src/index.ts",
   "scripts": {

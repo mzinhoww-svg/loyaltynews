@@ -1,6 +1,7 @@
 import { beforeEach, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
-import { MediaUploadError, MlabsRasterUploader, pngSize, type MlabsRasterUploaderOptions } from '../pipeline/raster-upload';
+import { InMemoryUploadLedger, MediaUploadError, MlabsRasterUploader, pngSize, type MlabsRasterUploaderOptions, type UploadLedger } from '../pipeline/raster-upload';
+import { uploadLedgerConformanceCases } from '../testing';
 import { SimulatedMediaUploadPort, SimulatedRasterizer, solidPng } from '../pipeline/raster-upload.mock';
 import type { CreativeAsset } from '../types';
 
@@ -117,5 +118,36 @@ describe('MlabsRasterUploader (portas simuladas; nada vai ao mLabs)', () => {
     port.putStatus = 500;
     const e2 = await mk().upload(asset(), 'r').catch((x: Error) => x);
     assert.doesNotMatch(`${(e2 as Error).message}`, /simulado\.invalid|sig=|if-none-match/);
+  });
+});
+
+describe('registro de envios (UploadLedger): contrato e uso pelo uploader', () => {
+  for (const c of uploadLedgerConformanceCases(() => new InMemoryUploadLedger())) test(`conformidade (em memória): ${c.name}`, c.run);
+
+  test('entrada vencida (acima da idade máxima) é descartada e a imagem sobe de novo; dentro do prazo, reaproveita', async () => {
+    const ledger = new InMemoryUploadLedger();
+    const u = mk({ ledger, ledgerMaxAgeMs: 60_000 });
+    const a = await u.upload(asset(), 'r1');
+    clock.t = new Date(clock.t.getTime() + 30_000);
+    assert.deepEqual(await u.upload(asset(), 'r2'), a);
+    assert.equal(port.prepares.length, 1);
+    clock.t = new Date(clock.t.getTime() + 120_000);
+    const b = await u.upload(asset(), 'r3');
+    assert.equal(port.prepares.length, 2);
+    assert.notDeepEqual(a, b);
+  });
+
+  test('envios paralelos do mesmo criativo convergem no mesmo imageId (a primeira gravação vence)', async () => {
+    const ledger = new InMemoryUploadLedger();
+    const [x, y] = await Promise.all([mk({ ledger }).upload(asset(), 'r'), mk({ ledger }).upload(asset(), 'r')]);
+    assert.deepEqual(x, y);
+  });
+
+  test('a chave do registro é o hash do SVG e segue o formato aceito pela tabela', async () => {
+    const seen: string[] = [];
+    const base = new InMemoryUploadLedger();
+    const spy: UploadLedger = { get: (k) => (seen.push(k), base.get(k)), putIfAbsent: (k, e) => base.putIfAbsent(k, e), delete: (k) => base.delete(k) };
+    await mk({ ledger: spy }).upload(asset(), 'r');
+    assert.match(seen[0]!, /^svg:[0-9a-f]{64}:linkedin$/);
   });
 });
