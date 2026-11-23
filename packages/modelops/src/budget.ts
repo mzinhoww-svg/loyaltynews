@@ -303,14 +303,15 @@ export class BudgetGate {
 
   // Conciliação pelo custo real. generationId é a prova da cobrança (id da geração no provedor).
   async commit(reservationId: string, actualUsd: number, at: Date, generationId?: string): Promise<CommitResult> {
-    // custo real vem do provedor: negativo, infinito ou não numérico nunca é gravado (L5 do G4)
-    if (!Number.isFinite(actualUsd) || actualUsd < 0) return { ok: false, overrun: false, actualMicro: 0, detail: 'custo real inválido (negativo ou não numérico)' };
     return this.store.withLock(async (io) => {
       const states = await this.states(io);
       const s = states.get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open' && s.status !== 'pending') {
         return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
+      }
+      if (!Number.isFinite(actualUsd) || actualUsd < 0) {
+        return { ok: false, overrun: false, actualMicro: 0, detail: 'custo real inválido (negativo ou não numérico): recusado' };
       }
       const actualMicro = usdToMicro(actualUsd);
       const overrun = actualMicro > s.reservedMicro;

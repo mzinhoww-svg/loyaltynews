@@ -1,1 +1,0 @@
-ALTER TABLE "budget_reservations" ADD CONSTRAINT "budget_reservations_actual" CHECK ("budget_reservations"."actual_microusd" IS NULL OR "budget_reservations"."actual_microusd" >= 0);

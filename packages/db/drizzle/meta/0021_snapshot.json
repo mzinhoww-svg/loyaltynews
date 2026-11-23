@@ -1,6 +1,6 @@
 {
-  "id": "e099e1d2-3d43-4cfb-a805-b33012f16cd8",
-  "prevId": "a4e7f854-cafd-45cb-925b-641b123ec12b",
+  "id": "414bdeb3-09c0-45fb-b537-38ee5e929ece",
+  "prevId": "884866d9-19a3-4bd5-8d32-88287e30c0c8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1897,8 +1897,7 @@
           "name": "task_class",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'essential'"
+          "notNull": true
         },
         "lane": {
           "name": "lane",
@@ -1962,6 +1961,10 @@
           "name": "budget_reservations_max",
           "value": "\"budget_reservations\".\"max_estimated_microusd\" >= 0"
         },
+        "budget_reservations_actual_nonneg": {
+          "name": "budget_reservations_actual_nonneg",
+          "value": "\"budget_reservations\".\"actual_microusd\" IS NULL OR \"budget_reservations\".\"actual_microusd\" >= 0"
+        },
         "budget_reservations_provider": {
           "name": "budget_reservations_provider",
           "value": "\"budget_reservations\".\"provider\" IN ('anthropic', 'openai', 'deepseek')"
@@ -1977,10 +1980,6 @@
         "budget_reservations_lane": {
           "name": "budget_reservations_lane",
           "value": "\"budget_reservations\".\"lane\" IN ('text', 'image')"
-        },
-        "budget_reservations_actual": {
-          "name": "budget_reservations_actual",
-          "value": "\"budget_reservations\".\"actual_microusd\" IS NULL OR \"budget_reservations\".\"actual_microusd\" >= 0"
         },
         "budget_reservations_conciliada": {
           "name": "budget_reservations_conciliada",

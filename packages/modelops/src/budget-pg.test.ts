@@ -280,3 +280,41 @@ test('L4: classe de tarefa, pool e faixa inválidos são recusados pelo banco; o
     await close();
   }
 });
+
+// L5 (AgentOps): custo real negativo era aceito e gravava delta negativo. Recusado no gate, no store e no banco.
+// L4b (AgentOps): classe ausente virava 'essential' em silêncio. Agora é recusada no store e no banco.
+test('L5/L4b: custo real negativo e classe ausente são recusados; o banco também recusa', async () => {
+  const { client, close, store } = await setupDb();
+  try {
+    const gate = new BudgetGate(cfg, store);
+    const r = await gate.reserve(req({ amountUsd: 1 }));
+    if (!r.ok) throw new Error('reserva inesperadamente recusada');
+    // Gate: custo negativo não é conciliado e a reserva continua pendente de conciliação correta.
+    const bad = await gate.commit(r.reservationId, -0.000005, NOW, 'gen-neg');
+    assert.equal(bad.ok, false);
+    assert.equal((await gate.statusOf(r.reservationId))?.status, 'open', 'nada foi gravado');
+    // Store: a mesma tentativa direta é recusada.
+    await rejectsWith(
+      store.append({ type: 'commit', monthKey: '2026-11', at: NOW.toISOString(), reservationId: r.reservationId, seq: 0, actualMicro: -5, overrun: false, generationId: 'g' }),
+      /custo real negativo/,
+    );
+    // Banco: UPDATE direto com custo negativo é recusado pela checagem da 0020.
+    await rejectsWith(client.query(`UPDATE budget_reservations SET state='conciliada', actual_microusd=-5, generation_id='g' WHERE id=$1`, [r.reservationId]), /budget_reservations_actual_nonneg/);
+    // L4b: reserva sem classe é recusada pelo store.
+    await rejectsWith(
+      store.append({
+        type: 'reserve', monthKey: '2026-11', at: NOW.toISOString(), reservationId: 'r-sem-classe', seq: 0,
+        taskId: 'x', pool: 'allocation', lane: 'text', route: 'review', provider: 'anthropic', model: 'm', escalation: false, amountMicro: 1,
+      }),
+      /classe da tarefa ausente/,
+    );
+    // L4b no banco: sem default, INSERT sem task_class é recusado.
+    await rejectsWith(
+      client.query(`INSERT INTO budget_reservations (id, task_id, idempotency_key, month_key, route, provider, model, max_estimated_microusd, state, pool, lane, escalation, reserved_at)
+                    VALUES ('r-x', 'x', 'r-x', '2026-11', 'review', 'anthropic', 'm', 1, 'reservada', 'allocation', 'text', false, now())`),
+      /task_class/,
+    );
+  } finally {
+    await close();
+  }
+});

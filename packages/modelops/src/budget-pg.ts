@@ -21,6 +21,12 @@ async function rowsOf(runner: SqlRunner, query: SQL): Promise<Row[]> {
   return res.rows ?? [];
 }
 
+// Classe da tarefa é obrigatória: não há padrão silencioso (gap L4b do G4).
+function requireTaskClass(e: LedgerEvent): string {
+  if (!e.taskClass) throw new Error(`classe da tarefa ausente na reserva ${e.reservationId}: campo obrigatório`);
+  return e.taskClass;
+}
+
 // Mês, valor reservado e estado de uma reserva, lidos do banco (fonte da verdade).
 async function reservationOf(tx: SqlRunner, id: string): Promise<{ month: string; max: number }> {
   const r = await rowsOf(tx, sql`SELECT month_key, max_estimated_microusd FROM budget_reservations WHERE id = ${id}`);
@@ -41,6 +47,7 @@ async function appendEvent(tx: SqlRunner, e: LedgerEvent): Promise<void> {
   const id = e.reservationId;
   switch (e.type) {
     case 'reserve': {
+      requireTaskClass(e);
       // sem padrões silenciosos: classe, bolsa, faixa, provedor, modelo e tarefa vêm do gate; faltando algum, a reserva não nasce
       for (const [k, v] of [['taskId', e.taskId], ['taskClass', e.taskClass], ['pool', e.pool], ['lane', e.lane], ['provider', e.provider], ['model', e.model]] as const) {
         if (v === undefined || v === '') throw new Error(`reserva sem ${k}: campo obrigatório`);
@@ -53,7 +60,7 @@ async function appendEvent(tx: SqlRunner, e: LedgerEvent): Promise<void> {
           (id, task_id, idempotency_key, month_key, route, provider, model, max_estimated_microusd, state, pool, task_class, lane, escalation, reserved_at)
         VALUES
           (${id}, ${e.taskId}, ${id}, ${e.monthKey}, ${e.route ?? ''}, ${e.provider}, ${e.model}, ${max},
-           'reservada', ${e.pool}, ${e.taskClass}, ${e.lane}, ${e.escalation}, ${at})`);
+           'reservada', ${e.pool}, ${requireTaskClass(e)}, ${e.lane}, ${e.escalation}, ${at})`);
       // Linha do ledger logo após a reserva; o guarda do banco confere que a reserva nasceu 'reservada'.
       await tx.execute(sql`
         INSERT INTO budget_ledger (id, month_key, reservation_id, kind, delta_microusd, idempotency_key, at)
@@ -69,6 +76,8 @@ async function appendEvent(tx: SqlRunner, e: LedgerEvent): Promise<void> {
       const res = await reservationOf(tx, id);
       assertSameMonth(e.monthKey, res.month, id);
       const actual = e.actualMicro ?? res.max;
+      // Custo real negativo não existe: recusado aqui e pela checagem da migração 0020.
+      if (actual < 0) throw new Error(`custo real negativo recusado para reserva ${id}`);
       // Ledger primeiro (o guarda confere que a reserva ainda está aberta ou pendente), depois o estado.
       await tx.execute(sql`
         INSERT INTO budget_ledger (id, month_key, reservation_id, kind, delta_microusd, idempotency_key, at)

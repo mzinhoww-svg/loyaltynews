@@ -69,6 +69,15 @@ export async function callModel(deps: GatewayDeps, call: GatewayCall): Promise<G
     };
   }
 
+  // G4.3: em produção, o portão de saldo (BalanceGuard) é obrigatório. Ele lê o saldo antes da primeira retenção.
+  if (call.mode === 'production' && !deps.balance) {
+    return {
+      status: 'blocked',
+      reason: 'balance_guard_missing',
+      detail: 'chamada de produção sem portão de saldo do provedor: saldo precisa ser lido antes da primeira chamada',
+    };
+  }
+
   // Parada persistida (global e por rota), lida a cada chamada.
   const kill = await deps.gate.killState();
   const decision = route(deps.policy, {
