@@ -1072,3 +1072,70 @@ test('ensaio-worker-tls: vazamentoDeChave acha o marcador e trechos do corpo da 
   assert.match(sem.stdout, /sem apps\/workers\/dist\/index\.js/);
   rmSync(r, { recursive: true, force: true });
 });
+
+// ---- ADR-022 N8: /api/health expõe flags (string[]); healthcheck e smoke conferem; --prova-png do worker
+test('healthcheck --expect-flags e --expect-no-flags: conjunto exato, sem ordem; campo ausente reprova (código sem a ADR-022)', async () => {
+  const estado = { flags: ['intelligencePessoas'] };
+  const s = await server((req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: 'abc123', env: 'staging', ...(estado.flags === undefined ? {} : { flags: estado.flags }) }));
+  });
+  const port = s.address().port;
+  try {
+    assert.equal((await hc(port, ['--expect-flags', 'intelligencePessoas'])).status, 0);
+    assert.equal((await hc(port, ['--expect-flags', ' intelligencePessoas , '])).status, 0, 'espaços e vírgula sobrando');
+    const outra = await hc(port, ['--expect-flags', 'openbotDispatch']);
+    assert.equal(outra.status, 1);
+    assert.match(outra.stdout, /flags=\[intelligencePessoas\] != esperado \[openbotDispatch\]/);
+    assert.equal((await hc(port, ['--expect-no-flags'])).status, 1, 'staging com flag ligada reprova a sonda de produção');
+    estado.flags = [];
+    assert.equal((await hc(port, ['--expect-no-flags'])).status, 0);
+    assert.equal((await hc(port, ['--expect-flags', 'intelligencePessoas'])).status, 1);
+    estado.flags = ['b', 'a'];
+    assert.equal((await hc(port, ['--expect-flags', 'a,b'])).status, 0);
+    estado.flags = undefined;
+    const sem = await hc(port, ['--expect-no-flags']);
+    assert.equal(sem.status, 1);
+    assert.match(sem.stdout, /sem o campo flags/);
+    assert.equal((await hc(port)).status, 0, 'sem a opção o campo não é exigido');
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+test('smoke-staging --expect-flags / --expect-no-flags confere o campo flags do /api/health', async () => {
+  const estado = { flags: ['intelligencePessoas'] };
+  const s = await server((req, res) => {
+    res.writeHead(req.url.startsWith('/api/health') ? 200 : 404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: 'abc', ...(estado.flags === undefined ? {} : { flags: estado.flags }) }));
+  });
+  const port = s.address().port;
+  const run = (extra) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-staging.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', 'abc', ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, stdout }));
+  });
+  const flagsCheck = (r) => JSON.parse(r.stdout).checagens.find((c) => /flags ligadas/.test(c.nome));
+  try {
+    assert.equal(flagsCheck(await run(['--expect-flags', 'intelligencePessoas'])).ok, true);
+    const errada = flagsCheck(await run(['--expect-flags', 'openbotDispatch']));
+    assert.equal(errada.ok, false);
+    assert.match(errada.detalhe, /flags=\[intelligencePessoas\]/);
+    assert.equal(flagsCheck(await run(['--expect-no-flags'])).ok, false);
+    estado.flags = [];
+    assert.equal(flagsCheck(await run(['--expect-no-flags'])).ok, true);
+    estado.flags = undefined;
+    assert.match(flagsCheck(await run(['--expect-no-flags'])).detalhe, /não tem o campo flags/);
+    assert.equal((await run([])).stdout.includes('flags ligadas'), false, 'sem a opção não há checagem de flags');
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+test('prova-png --etapa: uma linha [prova-png:<etapa>] {json} para o log do build e do start da Vertra', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const x = node('prova-png.mjs', ['--root', r, '--etapa', 'build']);
+  assert.equal(x.status, 3);
+  const linhas = x.stdout.trim().split('\n');
+  assert.equal(linhas.length, 1);
+  assert.match(linhas[0], /^\[prova-png:build\] \{"etapa":"build","ok":false,"plataforma":"[a-z0-9]+-[a-z0-9]+"/);
+  rmSync(r, { recursive: true, force: true });
+});

@@ -5,6 +5,7 @@
 //        [--expect-seed] [--expect-orgs 29] [--timeout 8000]
 //   --expect-seed   exige o seed de staging (`seed-stg-*`, rótulo "[DEMO · staging]") nas matérias, na agenda e na home (o feed fica SEM itens em staging: R6)
 //   --expect-login-form exige o formulário de e-mail e senha em /studio/entrar (hoje a tela é um aviso fixo; sem a flag vira só uma nota)
+//   --expect-flags a,b  exige que /api/health liste EXATAMENTE essas flags (ADR-022; staging com DP-38: intelligencePessoas); --expect-no-flags exige a lista vazia
 //   --expect-orgs N exige que /intelligence mostre N empresas cadastradas (hoje o adaptador `api` do portal NÃO as lê: só com o adaptador de Intelligence)
 // Login do Studio NÃO é testado aqui (exige usuário e MFA, segredos): só a tela de entrada e a negação sem sessão.
 import { pathToFileURL } from 'node:url';
@@ -38,6 +39,7 @@ async function main() {
   const base = String(args.url).replace(/\/$/, '');
   const timeout = Number(args.timeout ?? 8000);
   const seed = Boolean(args['expect-seed']);
+  const flagsEsp = args['expect-no-flags'] ? [] : args['expect-flags'] && args['expect-flags'] !== true ? String(args['expect-flags']).split(',').map((s) => s.trim()).filter(Boolean).sort() : null;
   const orgs = args['expect-orgs'] && args['expect-orgs'] !== true ? Number(args['expect-orgs']) : null;
   const out = [];
   const notas = [];
@@ -56,6 +58,10 @@ async function main() {
     const r = await get('/api/health', { json: true });
     const ok = r.status === 200 && r.j?.status === 'ok' && (!args['expect-commit'] || r.j?.version === args['expect-commit']);
     check('health: processo vivo' + (args['expect-commit'] ? ' com o commit certo' : ''), ok, ok ? '' : `HTTP ${r.status} version=${r.j?.version}`);
+    if (flagsEsp) {
+      const got = Array.isArray(r.j?.flags) ? [...new Set(r.j.flags.map(String))].sort() : null;
+      check(`health: flags ligadas = [${flagsEsp.join(',')}] (ADR-022)`, got !== null && got.join(',') === flagsEsp.join(','), got === null ? 'o /api/health não tem o campo flags (código sem a ADR-022)' : `flags=[${got.join(',')}]`);
+    }
   });
   await tentar('ready', async () => {
     const r = await get('/api/ready', { json: true });
@@ -123,7 +129,7 @@ async function main() {
   });
 
   const falhas = out.filter((c) => !c.ok);
-  console.log(JSON.stringify({ url: base, exigiu: { seed, orgs, loginForm: Boolean(args['expect-login-form']), commit: args['expect-commit'] ?? null }, total: out.length, falhas: falhas.length, notas, checagens: out }, null, 2));
+  console.log(JSON.stringify({ url: base, exigiu: { seed, orgs, flags: flagsEsp, loginForm: Boolean(args['expect-login-form']), commit: args['expect-commit'] ?? null }, total: out.length, falhas: falhas.length, notas, checagens: out }, null, 2));
   process.exit(falhas.length ? 1 : 0);
 }
 

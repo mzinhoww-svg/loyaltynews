@@ -12,10 +12,21 @@
 //   --canonical <url>    o canonical da home (estática) E de /noticias (dinâmica) precisa começar com <url> (sem localhost): prova que NEXT_PUBLIC_SITE_URL existe no build e em execução
 //   --noindex <caminho>  staging NÃO pode ser indexado: robots.txt com Disallow: / (e sem Allow: /), sitemap sem URLs e o caminho com
 //                        X-Robots-Tag ou meta robots contendo noindex
+//   --expect-flags a,b   o campo `flags` de /api/health (ADR-022, só nomes) tem de ser EXATAMENTE essas flags (staging com DP-38: intelligencePessoas)
+//   --expect-no-flags    o campo `flags` tem de existir e estar vazio (produção: APP_ENV=production e flags:[])
 // Uso: node infra/scripts/healthcheck.mjs --url https://host [--ready] [--expect-commit <sha>] [--timeout 5000] [--retries 2]
 //        [--denied /studio] [--no-mock /] [--noindex /]
 import { parseArgs, fail } from './lib/util.mjs';
 import { VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
+
+/** Compara a lista `flags` do /api/health com a esperada (conjunto exato, sem ordem). Função pura. */
+function flagsProblemas(obtida, esperada) {
+  const esp = [...new Set(esperada.map((s) => String(s).trim()).filter(Boolean))].sort();
+  if (!Array.isArray(obtida)) return [`/api/health sem o campo flags (string[]): o código não tem a ADR-022 (esperado: ${esp.length ? esp.join(',') : 'lista vazia'})`];
+  const got = [...new Set(obtida.map(String))].sort();
+  if (got.join(',') === esp.join(',')) return [];
+  return [`flags=[${got.join(',')}] != esperado [${esp.join(',')}]`];
+}
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.url || args.url === true) fail('use --url https://host', 2);
@@ -44,6 +55,11 @@ for (let i = 0; i <= retries && !healthy; i++) {
     if (!last.body || !['ok', 'degraded'].includes(last.body.status)) problems.push('corpo sem status ok/degraded');
     if (!args.ready && last.body && last.body.status !== 'ok') problems.push(`status=${last.body.status}`);
     if (args['expect-commit'] && last.body?.version !== args['expect-commit']) problems.push(`version=${last.body?.version} != ${args['expect-commit']}`);
+    // ADR-022 (N8 da Security): /api/health expõe `flags: string[]` (só nomes). --expect-flags a,b exige EXATAMENTE essas; --expect-no-flags exige a lista vazia (produção).
+    if (args['expect-flags'] || args['expect-no-flags']) {
+      const problemasFlags = flagsProblemas(last.body?.flags, args['expect-no-flags'] ? [] : String(args['expect-flags']).split(','));
+      problems.push(...problemasFlags);
+    }
     if (problems.length === 0) healthy = true; else last.problems = problems;
   } catch (e) {
     last = { error: e.name === 'TimeoutError' ? `timeout ${timeout} ms` : e.message };
