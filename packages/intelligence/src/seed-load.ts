@@ -67,6 +67,8 @@ export interface LoadManifest {
   organizationsCreated: Uuid[];
   relationsCreated: Uuid[];
   relationsRevalidated: Uuid[];
+  /** Valores que as relações revalidadas tinham ANTES da carga (o desfazer os restaura). Ausente em manifestos antigos (v2: nenhuma relação revalidada). */
+  relationsRevalidatedPrevious?: { id: Uuid; evidence_id: Uuid; validated_at: string }[];
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -218,12 +220,19 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
       if (!from || !to) continue;
       const ev = await evidenceFor(r.sourceId, excerptOf(r));
       if (exists.has(ref)) {
+        // guarda os valores ANTERIORES de evidência e validação: o desfazer os restaura (nada de "só as contagens voltam")
+        const prev = await db.query<{ id: Uuid; evidence_id: Uuid; validated_at: string | Date }>(
+          `SELECT id, evidence_id, validated_at FROM intelligence.org_relation
+            WHERE from_org_id = $1 AND to_org_id = $2 AND relation_type = $3 AND valid_to IS NULL AND certainty = 'declared'`,
+          [from, to, r.type],
+        );
         const upd = await db.query<{ id: Uuid }>(
           `UPDATE intelligence.org_relation SET validated_at = $4, evidence_id = $5
             WHERE from_org_id = $1 AND to_org_id = $2 AND relation_type = $3 AND valid_to IS NULL AND certainty = 'declared' RETURNING id`,
           [from, to, r.type, ev.at, ev.id],
         );
         manifest.relationsRevalidated.push(...upd.rows.map((x) => x.id));
+        (manifest.relationsRevalidatedPrevious ??= []).push(...prev.rows.map((x) => ({ id: x.id, evidence_id: x.evidence_id, validated_at: new Date(x.validated_at).toISOString() })));
       } else {
         manifest.relationsCreated.push(await addOrgRelation(db, {
           fromOrgId: from, toOrgId: to, type: r.type, validFrom: ev.at.slice(0, 10), certainty: 'declared', evidenceId: ev.id, observedAt: ev.at, validatedAt: ev.at,
@@ -243,6 +252,10 @@ export async function rollbackSeed(db: Db, m: LoadManifest): Promise<{ relations
   await db.query('BEGIN');
   try {
     const rel = m.relationsCreated.length ? await db.query(`DELETE FROM intelligence.org_relation WHERE id = ANY($1::uuid[]) RETURNING id`, [m.relationsCreated]) : { rows: [] };
+    // restaura evidência e data de validação que a carga trocou nas relações já existentes (antes de apagar a evidência nova)
+    for (const p of m.relationsRevalidatedPrevious ?? []) {
+      await db.query(`UPDATE intelligence.org_relation SET evidence_id = $2::uuid, validated_at = $3::timestamptz WHERE id = $1::uuid`, [p.id, p.evidence_id, p.validated_at]);
+    }
     let removed = 0;
     for (const id of m.organizationsCreated) {
       const used = await db.query(

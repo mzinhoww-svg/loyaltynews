@@ -28,7 +28,7 @@ const mkctx = (actor: Actor | null, store: InMemoryEditorialStore, queue?: InMem
 
 let ev: Evidence;
 beforeAll(async () => {
-  ev = (await new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  ev = (await new Collector(mockWeb(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 });
 
 /** Matéria aprovada e PUBLICADA (recibo registrado): só de matéria já publicada se abre caso de correção (ADR-019). */

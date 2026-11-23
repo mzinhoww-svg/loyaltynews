@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Db } from '../db';
@@ -33,20 +32,20 @@ describe('seed.public.v2: 20 organizações e 20 relações declaradas, todas ve
     expect(V2_VER.sources.every((s) => s.status === 'verified' && s.http_status === 200 && /^[0-9a-f]{64}$/.test(s.content_sha256!))).toBe(true);
   });
 
-  it('a fonte capturada pelo navegador tem texto cujo sha256 confere com o calculado no navegador e contém a citação', () => {
-    const cap = read<{ url: string; text: string; sha256Claimed: string; length: number; capturedAt: string }>('captures/dotz-home.json');
-    expect(createHash('sha256').update(cap.text).digest('hex')).toBe(cap.sha256Claimed);
-    expect(cap.text.length).toBe(cap.length);
+  it('a fonte capturada pelo navegador tem metadados com sha256 igual ao do relatório; o texto da página NÃO fica no repositório', () => {
+    const meta = read<{ url: string; sha256Claimed: string; length: number; capturedAt: string; text?: string }>('captures/dotz-home.meta.json');
+    expect(meta.text).toBeUndefined(); // DP-28/29: não reproduzir página de terceiros no git
+    expect(JSON.stringify(meta)).not.toContain('Programa Dotz é o programa de fidelidade');
     const ver = V2_VER.sources.find((s) => s.id === 'dotz-home')!;
-    expect(ver).toMatchObject({ method: 'openbot_browser', url: cap.url, content_sha256: cap.sha256Claimed, fetched_at: cap.capturedAt });
-    for (const rec of [...V2.organizations, ...V2.relations].filter((r) => r.sourceId === 'dotz-home')) expect(cap.text).toContain(rec.quote);
+    expect(ver).toMatchObject({ method: 'openbot_browser', url: meta.url, content_sha256: meta.sha256Claimed, fetched_at: meta.capturedAt, text_length: meta.length });
+    expect(meta.sha256Claimed).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('toda citação não vazia aparece nos textos que o verificador conferiu (checagem independente das citações do browser)', () => {
-    const cap = read<{ text: string }>('captures/dotz-home.json');
+  it('as 4 citações da fonte do navegador (Dotz) constam como encontradas no relatório de verificação', () => {
     const dotz = [...V2.organizations, ...V2.relations].filter((r) => r.sourceId === 'dotz-home');
     expect(dotz.length).toBe(4); // Banco do Brasil, Banco BV e as duas relações do Dotz
-    expect(dotz.every((r) => cap.text.includes(r.quote))).toBe(true);
+    const refs = new Set(V2_VER.records.filter((r) => r.source_id === 'dotz-home' && r.quote_found).map((r) => r.ref));
+    expect(refs.size).toBe(4);
   });
 });
 
@@ -78,6 +77,9 @@ describe('carga do v2', () => {
 
   it('v2 sobre v1 já carregado: o que existe é reconhecido, só o novo é criado; nada duplica', async () => {
     await loadSeed(db, V1, V1_VER);
+    const snap = async () => (await db.query<{ id: string; evidence_id: string; validated_at: string }>(`SELECT id, evidence_id, validated_at FROM intelligence.org_relation ORDER BY id`)).rows.map((r) => ({ ...r, validated_at: new Date(r.validated_at).toISOString() }));
+    const antes = await snap();
+    const evidenciasAntes = await count('evidence');
     const plan = await planSeedLoad(db, V2, V2_VER);
     // existentes: 5 organizações do v1 e as 2 relações do v1
     expect(plan.counts).toEqual({ create: 33, exists: 7, rejected: 0 });
@@ -85,9 +87,12 @@ describe('carga do v2', () => {
     expect(manifest!.organizationsCreated).toHaveLength(15);
     expect(manifest!.relationsCreated).toHaveLength(18);
     expect([await count('organization'), await count('org_relation')]).toEqual([20, 20]);
-    // desfazer o v2 deixa o v1 intacto
+    // desfazer o v2 deixa o v1 INTACTO: contagens E também evidência e data de validação das 2 relações que o v2 revalidou
+    expect(manifest!.relationsRevalidatedPrevious).toHaveLength(2);
     await rollbackSeed(db, manifest!);
     expect([await count('organization'), await count('org_relation')]).toEqual([5, 2]);
+    expect(await snap()).toEqual(antes);
+    expect(await count('evidence')).toBe(evidenciasAntes);
   });
 
   it('citação do navegador adulterada é recusada pelo plano (relatório diz não encontrada)', async () => {

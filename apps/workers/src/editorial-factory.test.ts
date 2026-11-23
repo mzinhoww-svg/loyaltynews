@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { describe, expect, it } from 'vitest';
-import { createTestDb } from '@ln/db/testing';
+import { createTestDb, isRealTestDb } from '@ln/db/testing';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { Collector, FlagDisabled, SourceRegistry, reviewSource, setSourceEnabled, type ChatRequest, type Source } from '@ln/editorial';
@@ -15,6 +15,10 @@ import { COLLECT_ON, FakeResolver, MOCK_ARTICLE_ALFA, MOCK_PUBLIC_IP, MOCK_SOURC
 
 let template: Blob | File | undefined;
 async function freshDb(): Promise<{ db: Db; client: PGlite }> {
+  if (isRealTestDb()) {
+    const t = await createTestDb(); // PostgreSQL real: banco clonado do modelo; client.close() apaga o banco
+    return { db: t.db as unknown as Db, client: t.client as unknown as PGlite };
+  }
   if (!template) {
     const base = await createTestDb();
     template = await base.client.dumpDataDir('none');
@@ -98,7 +102,7 @@ describe('execução da fábrica (PostgreSQL de teste)', () => {
   const registry = () => new SourceRegistry([SRC]);
   const collector = () => new Collector(
     new MockFetcher({ 'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:', 'https://ri.mock.example/feed.xml': '<rss><channel><item><title>MOCK</title><link>https://ri.mock.example/noticias/alfa-parceria</link></item></channel></rss>', 'https://ri.mock.example/noticias/alfa-parceria': MOCK_ARTICLE_ALFA }),
-    { now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
+    { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
   );
   async function enable(db: Db) {
     const store = new PgEditorialStore(db);

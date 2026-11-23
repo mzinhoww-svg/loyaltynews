@@ -18,7 +18,7 @@ Estado: implementado em fast-track; **não homologado** (QA) nem operacional (De
 | **Consumidor Editorial → Intelligence** (`consumeArticle`, `extractRoleMentions`) | `src/editorial-consumer.ts` |
 | **Moves no portal** (`/moves`), newsletter e alertas aprovados | `src/views.ts`: `portalMovesPage`, `newsletterMovesDigest`, `studioApprovedAlertsFeed`, `describeMove` |
 | **Layout determinístico de organograma** + SVG | `src/org-layout.ts` (`layoutOrgChart`, `renderOrgChartSvg`) e `orgChartLayoutFor` em `src/views.ts` |
-| **Carga verificada** (organizações e relações com citação literal da fonte pública) | `data/seed.public.v2.json` (20 organizações, 20 relações; v1 é subconjunto) + `.verification.json` + `data/captures/` (páginas só-JavaScript lidas pelo navegador), `scripts/verify-dataset.mjs`, `src/seed-load.ts`, `src/seed-cli.ts`, `scripts/load-seed.ts`; plano em `STAGING_LOAD_PLAN.md` |
+| **Carga verificada** (organizações e relações com citação literal da fonte pública) | `data/seed.public.v3.json` (29 organizações, 28 relações; v2 e v1 são subconjuntos) + `.verification.json` + `data/captures/*.meta.json` (metadados, sem texto, das páginas só-JavaScript lidas pelo navegador), `scripts/verify-dataset.mjs`, `src/seed-load.ts`, `src/seed-cli.ts`, `scripts/load-seed.ts`; plano e roteiro do `ln-staging-db` em `STAGING_LOAD_PLAN.md`; termos das fontes (J-14) em `termos-fontes.md` + `data/terms.review.v1.json` |
 | Benchmark de 100 mil arestas | `bench/perf.perf.ts` → `bench/results/latest.json` |
 | Fixtures MOCK | `fixtures/mock-entities.ts` |
 

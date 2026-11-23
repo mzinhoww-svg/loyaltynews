@@ -21,7 +21,7 @@ const range = (q: { from?: string; to?: string }) =>
 const order = [asc(schema.agendaEvents.inicio), asc(schema.agendaEvents.id)] as const;
 
 /** Visão pública: só o que o leitor precisa (nada de moderação, autor ou chave interna). */
-const publicView = (e: Row) => ({
+export const publicView = (e: Row) => ({
   id: e.id, titulo: e.titulo, inicio: e.inicio, fim: e.fim, local: e.local, url: e.url, editorias: e.editorias, patrocinado: e.patrocinado, fonteUrl: e.fonteUrl,
 });
 

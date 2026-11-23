@@ -28,6 +28,9 @@ const indexavel = Boolean(args.indexavel);
 // --sem-typecheck-no-build --typecheck-report <relatorio.json> (opcao e do PM): o build da Vertra pula o typecheck do Next (RAM do ambiente de build); so com o relatorio de
 // integracao com typecheck VERDE do MESMO commit. Sem o relatorio recusa; o pacote registra isso no release.json (semTypecheckNoBuild).
 const semTypecheck = Boolean(args['sem-typecheck-no-build']);
+// --build-leve: o next build roda com 1 worker (CIRCLE_NODE_TOTAL=2 pelo build-web); so web. Para o app de 512 MB (ambiente de build de 1024 MB).
+const buildLeve = Boolean(args['build-leve']);
+if (buildLeve && args.app === 'workers') fail('--build-leve so vale para o web (o worker nao usa o Next)', 2);
 if (semTypecheck && (args.app === 'workers')) fail('--sem-typecheck-no-build so vale para o web (o worker nao usa o Next)', 2);
 if (semTypecheck && (!args['typecheck-report'] || args['typecheck-report'] === true)) fail('--sem-typecheck-no-build exige --typecheck-report <relatorio de integracao.mjs --verify>', 2);
 if (indexavel && (profile !== 'production' || args.app === 'workers')) fail('--indexavel so vale para o web do perfil production (staging nunca e indexavel)', 2);
@@ -97,7 +100,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -162,7 +165,7 @@ try {
     ...(indexavel ? [{ nome: 'PORTAL_INDEXAVEL', valor: '1' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [
