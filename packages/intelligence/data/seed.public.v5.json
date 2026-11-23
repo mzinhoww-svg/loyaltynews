@@ -1,7 +1,7 @@
 {
   "schemaVersion": "intelligence-seed/2",
   "datasetId": "seed.public.v5",
-  "description": "Conjunto verificável v3 do Entity Intelligence (supera o v2): organizações e relações declaradas, cada registro com citação literal de página pública oficial (HTTP, ou captura pelo navegador do OpenBot com sha256 e SEM o texto no git). Sem pessoas (flag intelligencePessoas desligada, J-01), sem Moves, sem vínculo presumido. O site da Stix NÃO é fonte (página atual não descreve o programa): as relações da Stix vêm das páginas da ABEMF e da Livelo, e a Stix segue marcada para revisão humana. Tipo de organização \"other\" quando a fonte não diz o que a entidade é. v4: v3 + cargos públicos (CEO e diretoria) de 10 organizações, só de páginas oficiais de RI/\"quem somos\", com citação literal. v5: + cargos públicos de mais 7 organizações (Livelo, Mastercard, Orbia, Bradesco Seguros, Grupo Santander, Madero, Shopee). Retirada a relação Santander→Esfera (a fonte mudou).",
+  "description": "Conjunto verificável v3 do Entity Intelligence (supera o v2): organizações e relações declaradas, cada registro com citação literal de página pública oficial (HTTP, ou captura pelo navegador do OpenBot com sha256 e SEM o texto no git). Sem pessoas (flag intelligencePessoas desligada, J-01), sem Moves, sem vínculo presumido. O site da Stix NÃO é fonte (página atual não descreve o programa): as relações da Stix vêm das páginas da ABEMF e da Livelo, e a Stix segue marcada para revisão humana. Tipo de organização \"other\" quando a fonte não diz o que a entidade é. v4: v3 + cargos públicos (CEO e diretoria) de 10 organizações, só de páginas oficiais de RI/\"quem somos\", com citação literal. v5: + cargos públicos de mais 7 organizações (Livelo, Mastercard, Orbia, Bradesco Seguros, Grupo Santander, Madero, Shopee). Santander→Esfera marcada como validação vencida (a fonte mudou), fora da exibição pública até uma nova fonte confirmar.",
   "sources": [
     {
       "id": "livelo-imprensa",
@@ -821,5 +821,14 @@
       "quote": "David Chen Chief Product Officer, Shopee"
     }
   ],
-  "persons": []
+  "persons": [],
+  "expiredRelations": [
+    {
+      "fromName": "Santander",
+      "toName": "Esfera",
+      "type": "other",
+      "expiredOn": "2026-11-23",
+      "reason": "a página inicial da Esfera mudou e o título deixou de afirmar que o programa é do Santander; a citação do v3 não existe mais na fonte"
+    }
+  ]
 }
