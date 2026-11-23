@@ -73,3 +73,13 @@ await setEnv(WEB_ID, 'BETTER_AUTH_SECRET', crypto.randomBytes(48).toString('base
 for (const [k, v] of Object.entries({ APP_ENV: 'staging', NODE_ENV: 'production', APP_COMMIT: COMMIT })) await setEnv(WORKER_ID, k, v);
 ```
 Depois dessa execução a senha existe só no ambiente dos dois apps. **Qualquer acesso posterior do DevOps ao banco** (nova migração, seed) gira de novo e exige atualizar `DATABASE_URL`/`REDIS_URL` no web E no worker e reiniciar os dois (ou o proprietário decide guardar a senha no cofre). Um erro comum a evitar: girar a senha numa execução de teste depois que os apps já têm a senha antiga (derruba os dois apps).
+
+## Depois da Fase 3: acesso ao banco e o BETTER_AUTH_SECRET (CLI de administrador do staging)
+Achado (23/11/2026): o plugin de segundo fator do Better Auth (`twoFactor`, 1.7.27) **cifra o segredo do TOTP com o `BETTER_AUTH_SECRET`** (`symmetricEncrypt`). A CLI `staging-admin` (ft/backend 1a6bb69; Security, decisão 14) cria o administrador JÁ com o TOTP ativo, gravado no banco cifrado com o segredo do processo que a roda. Se ela rodar com um segredo diferente do que o WEB tem, o login com o código do autenticador **falha** (o web não decifra o TOTP).
+Como o segredo foi gerado dentro do script da Fase 3 e só existe no ambiente do web (nenhuma ferramenta lê o valor de uma variável do app), a CLI só funciona assim, numa **única execução** do script do PM (staging, sem sessões a perder):
+1. Gerar um `BETTER_AUTH_SECRET` novo (`crypto.randomBytes(48).toString('base64url')`, só na memória).
+2. Girar a senha do PostgreSQL e atualizar `DATABASE_URL` no web E no worker (regra da senha, acima); gravar o segredo novo no web (`set_env BETTER_AUTH_SECRET`).
+3. Rodar a CLI com o MESMO segredo e a MESMA senha no ambiente do processo filho, dentro de um checkout com `node_modules`: `APP_ENV=staging` `BETTER_AUTH_URL=https://loyaltynews-stg.vertraweb.app` (a origem pública do Studio; o handler confere) `BETTER_AUTH_SECRET`, `DATABASE_URL`, `DB_SSL_*_PEM`; `node apps/workers/dist/staging-admin.js --confirm-staging-bootstrap --secret-file <caminho fora do repositório>` (a CLI exige `--confirm-staging-bootstrap` e entrega os segredos só por `--tty` ou `--secret-file`; nada em stdout; o PM guarda o login no Cofre do OpenBot e apaga o arquivo).
+4. `restart_app` do web e do worker (ambos passam a ter a senha nova do banco e o web, o segredo novo).
+**Guarde o `BETTER_AUTH_SECRET` no cofre do OpenBot** (item `ln-stg-auth-secret`): trocar o segredo sem refazer o administrador invalida o TOTP e as sessões.
+Produção: o 1º administrador NÃO usa essa CLI (cerimônia à parte com o proprietário); o mesmo princípio vale: quem cria o usuário e o web têm de compartilhar o `BETTER_AUTH_SECRET` da produção.
