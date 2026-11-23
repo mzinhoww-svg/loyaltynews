@@ -41,7 +41,8 @@ export function redisProbe(env: Record<string, string | undefined>): (() => Prom
   if (!url) return undefined;
   return async () => {
     const { default: IORedis } = await import('ioredis');
-    const r = new IORedis(url, { lazyConnect: true, maxRetriesPerRequest: 0, connectTimeout: 1500 });
+    const { redisTlsOptions } = await import('@ln/workers/redis-tls');
+    const r = new IORedis(url, { lazyConnect: true, maxRetriesPerRequest: 0, connectTimeout: 1500, ...redisTlsOptions(env) }); // TLS inválido ⇒ a sonda falha (indisponível), sem segredo
     try {
       await r.connect();
       await r.ping();

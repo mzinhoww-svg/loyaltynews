@@ -69,5 +69,8 @@ describe('S3BlobStore', () => {
     expect(getBlobStore({ S3_ENDPOINT: 'https://x', S3_BUCKET: 'b', S3_ACCESS_KEY_ID: 'a' })).toBeNull();
     expect(getBlobStore({ S3_ENDPOINT: 'ftp://x', S3_BUCKET: 'b', S3_ACCESS_KEY_ID: 'a', S3_SECRET_ACCESS_KEY: 's' })).toBeNull();
     expect(getBlobStore({ S3_ENDPOINT: 'https://x', S3_BUCKET: 'b', S3_ACCESS_KEY_ID: 'a', S3_SECRET_ACCESS_KEY: 's' })).toBeInstanceOf(S3BlobStore);
+    // nomes do contrato de ambiente (Vertra)
+    expect(getBlobStore({ BLOB_S3_ENDPOINT: 'https://x', BLOB_S3_BUCKET: 'b', BLOB_S3_ACCESS_KEY_ID: 'a', BLOB_S3_SECRET_ACCESS_KEY: 's' })).toBeInstanceOf(S3BlobStore);
+    expect(getBlobStore({ BLOB_S3_ENDPOINT: 'https://x', BLOB_S3_BUCKET: 'b', BLOB_S3_ACCESS_KEY_ID: 'a' })).toBeNull();
   });
 });

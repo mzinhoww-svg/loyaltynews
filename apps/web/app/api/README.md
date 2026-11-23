@@ -75,6 +75,14 @@ Público: `GET /api/publico/site` (versão em vigor: home com destaques resolvid
 ## Pendente
 Auditoria de perda do Redis do ad server (depende da tabela `ad_redis_watermark`, Arquiteto).
 
+## Conexão com banco, Redis e Blob (Vertra: TLS com certificado de cliente)
+- **PostgreSQL** (web, auth, workers): `DATABASE_URL` + `DB_SSL_CA_PEM`, `DB_SSL_CERT_PEM`, `DB_SSL_KEY_PEM` (mesmo contrato do `migrate.ts`; helper `@ln/db/tls`: `pgPoolConfig`/`pgSslFromEnv`). Verificação completa do servidor (`rejectUnauthorized`) + certificado de cliente; PEM multilinha OU numa linha com `
+` escapado; parâmetros `sslmode`/`sslcert`… da URL são ignorados (manda o ambiente). Sem as três variáveis: erro em `NODE_ENV=production`, sem TLS fora dela (dev local). `DB_SSL_MODE=disable` só com `CI=true`. `getRuntime` continua devolvendo `null` sem `DATABASE_URL`/segredo; TLS inválido também dá `null` (rotas negam, 503) com log SEM URL, senha nem PEM.
+- **Redis** (web e workers): `REDIS_URL=rediss://usuario:senha@host:porta` + `REDIS_SSL_CA_PEM`, `REDIS_SSL_CERT_PEM`, `REDIS_SSL_KEY_PEM` (helper `@ln/workers/redis-tls`: `servername` = host da URL, omitido quando o host é IP; `rejectUnauthorized` sempre). `redis://` sem TLS em produção é erro; `REDIS_SSL_MODE=disable` só com `CI=true`.
+- **Blob S3**: `BLOB_S3_ENDPOINT`, `BLOB_S3_BUCKET`, `BLOB_S3_REGION` (opcional), `BLOB_S3_ACCESS_KEY_ID`, `BLOB_S3_SECRET_ACCESS_KEY` (os nomes sem `BLOB_` também valem).
+- Workers precisam só de `DATABASE_URL`, `REDIS_URL` e os `*_SSL_*_PEM` (nada de `BETTER_AUTH_SECRET`). Tamanho: cada PEM em uma variável de até 3072 caracteres; EC P-256 (cert ≈ 600, chave ≈ 250) e RSA-2048 cabem, chave RSA-4096 (≈ 3240) não.
+- Testes de conexão REAL (Postgres 18 e Redis 8 com `clientcert=verify-full`/`tls-auth-clients yes`): `LN_TEST_REAL_TLS=1 LN_TEST_CERTS_DIR=… LN_TEST_PG_URL=… LN_TEST_REDIS_TLS_URL=… npx vitest run packages/db/src/tls.real.test.ts apps/workers/src/redis-tls.real.test.ts`; sem as variáveis são ignorados.
+
 ## Operação
 `GET /api/health` (processo vivo), `GET /api/ready` (banco e Redis respondem; 503 se não). `APP_MODE=nodb`: sobe sem banco; rotas de dados respondem 503 `NOT_CONFIGURED` e `/api/ready` diz `mode: nodb`.
 Variáveis: `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Blob S3 compatível; só ambiente, nunca no repositório; sem elas o upload responde 503), `DATABASE_URL`, `BETTER_AUTH_SECRET` (≥32 caracteres), `BETTER_AUTH_URL`, `REDIS_URL`. Nenhum segredo no repositório.
