@@ -453,9 +453,14 @@ test('guard: PORTAL_SOURCE=api é aceito em deploy (dados reais); mock, intellig
 
 test('pg: parseUserTables lê a saída do psql (vazio = banco novo; uma linha por tabela)', async () => {
   const { parseUserTables } = await import('../scripts/lib/pg.mjs');
-  assert.deepEqual(parseUserTables(''), []);
-  assert.deepEqual(parseUserTables('\n'), []);
-  assert.deepEqual(parseUserTables('public.users\npublic.articles\n'), ['public.users', 'public.articles']);
+  assert.deepEqual(parseUserTables([]), []);
+  assert.deepEqual(parseUserTables(undefined), []);
+  assert.deepEqual(parseUserTables([{ t: 'public.users' }, { t: ' public.articles ' }, { t: '' }]), ['public.users', 'public.articles']);
+  const { pgClientConfig } = await import('../scripts/lib/pg.mjs');
+  assert.throws(() => pgClientConfig({}), /variáveis ausentes: DATABASE_URL/);
+  const cfg = pgClientConfig({ DATABASE_URL: 'postgres://u:p@h:1/d', DB_SSL_CA_PEM: 'a', DB_SSL_CERT_PEM: 'b', DB_SSL_KEY_PEM: 'c' });
+  assert.equal(cfg.ssl.rejectUnauthorized, true);
+  assert.deepEqual([cfg.ssl.ca, cfg.ssl.cert, cfg.ssl.key], ['a', 'b', 'c']);
 });
 
 test('package-web: --app só aceita web ou workers; --vitrine não vale para workers', () => {

@@ -2,6 +2,7 @@
 // cliente por variável PEM (DB_SSL_CA_PEM, DB_SSL_CERT_PEM, DB_SSL_KEY_PEM). A Vertra exige TLS verify-full; senha sozinha nunca conecta.
 // Os PEM vão para arquivos temporários 0600, apagados ao final. Nada de segredo em argv.
 import { writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { must } from './util.mjs';
 
@@ -35,15 +36,32 @@ export function pgEnv({ urlVar, pemPrefix }, tmpDir, env = process.env) {
 
 const q = (id) => '"' + String(id).replace(/"/g, '""') + '"';
 
-/** Tabelas de usuário a partir da saída de `psql -At` (schema.tabela por linha). Função pura (testada sem banco). */
-export function parseUserTables(stdout) {
-  return String(stdout).split('\n').map((s) => s.trim()).filter(Boolean);
+/** Tabelas de usuário a partir das linhas devolvidas pelo banco (schema.tabela). Função pura (testada sem banco). */
+export function parseUserTables(rows) {
+  return (rows ?? []).map((r) => String(typeof r === 'string' ? r : r.t).trim()).filter(Boolean);
+}
+
+const SQL_USER_TABLES = "select table_schema||'.'||table_name as t from information_schema.tables where table_type='BASE TABLE' and table_schema not in ('pg_catalog','information_schema','drizzle') order by 1";
+
+/** Opções de conexão do módulo pg a partir de DATABASE_URL e DB_SSL_*_PEM (TLS verify-full com certificado de cliente; nunca disable aqui). */
+export function pgClientConfig(env = process.env) {
+  const faltam = ['DATABASE_URL', 'DB_SSL_CA_PEM', 'DB_SSL_CERT_PEM', 'DB_SSL_KEY_PEM'].filter((k) => !env[k]);
+  if (faltam.length) throw new Error(`variáveis ausentes: ${faltam.join(', ')}`);
+  return { connectionString: env.DATABASE_URL, ssl: { ca: env.DB_SSL_CA_PEM, cert: env.DB_SSL_CERT_PEM, key: env.DB_SSL_KEY_PEM, rejectUnauthorized: true }, connectionTimeoutMillis: 10000 };
+}
+
+/** Executa um SQL de leitura com o módulo pg do checkout (precisa de node_modules; não usa psql). Devolve as linhas. */
+export async function pgQuery(sql, env = process.env, root = process.cwd()) {
+  const pg = createRequire(join(root, 'package.json'))('pg');
+  const client = new pg.Client(pgClientConfig(env));
+  client.on('error', () => undefined);
+  await client.connect();
+  try { return (await client.query(sql)).rows; } finally { await client.end(); }
 }
 
 /** Tabelas de usuário do banco (ignora catálogos do PostgreSQL e o schema `drizzle`, que só guarda o controle das migrações). Vazio = banco novo. */
-export function userTables(env, psql = process.env.PSQL_BIN || 'psql') {
-  const sql = "select table_schema||'.'||table_name from information_schema.tables where table_type='BASE TABLE' and table_schema not in ('pg_catalog','information_schema','drizzle') order by 1";
-  return parseUserTables(must(psql, ['-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c', sql], { env, capture: true }).stdout);
+export async function userTablesPg(env = process.env, root = process.cwd()) {
+  return parseUserTables(await pgQuery(SQL_USER_TABLES, env, root));
 }
 
 /** Contagem e checksum por tabela (ADR-012: "contagens e checksums por tabela iguais"). */

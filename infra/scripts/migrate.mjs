@@ -10,11 +10,8 @@
 //   3. Produção exige --confirm-production e um backup do MESMO banco, com manifesto e objeto cifrado ÍNTEGROS (hash conferido) e fresco.
 //   4. Depois de migrar, verify-migrations compara o journal do repositório com as migrações aplicadas (nada de "verde sem migrar").
 // Migração roda enquanto a versão antiga ainda serve (zero downtime): só mudanças compatíveis para trás (expandir -> migrar -> contrair).
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { parseArgs, fail, requireEnv, npm, run } from './lib/util.mjs';
-import { pgEnv, userTables } from './lib/pg.mjs';
+import { userTablesPg } from './lib/pg.mjs';
 import { assertBound, canonEnv } from './lib/binding.mjs';
 import { envProblems } from './lib/guards.mjs';
 
@@ -37,11 +34,9 @@ if (envName === 'production') {
   if (args['first-run-empty']) {
     // Primeira migração de um banco NOVO: não existe backup a exigir. Só vale se o banco não tem NENHUMA tabela de usuário (conferido agora, no banco do vínculo);
     // depois dela o banco deixa de ser vazio e as próximas migrações exigem backup fresco como sempre.
-    const tmp = mkdtempSync(join(tmpdir(), 'ln-first-'));
-    try {
-      const tabelas = userTables(pgEnv({ urlVar: 'DATABASE_URL', pemPrefix: 'DB_SSL' }, tmp));
-      if (tabelas.length) fail(`--first-run-empty recusado: o banco de produção já tem ${tabelas.length} tabela(s) (ex.: ${tabelas.slice(0, 3).join(', ')}); use o fluxo normal com backup fresco`, 2);
-    } finally { rmSync(tmp, { recursive: true, force: true }); }
+    let tabelas;
+    try { tabelas = await userTablesPg(process.env); } catch (e) { fail(`--first-run-empty: não consegui ler o banco (${String(e.message).slice(0, 200)}); recusado`, 2); }
+    if (tabelas.length) fail(`--first-run-empty recusado: o banco de produção já tem ${tabelas.length} tabela(s) (ex.: ${tabelas.slice(0, 3).join(', ')}); use o fluxo normal com backup fresco`, 2);
     console.log('first-run-empty: banco de produção sem tabelas de usuário; backup pré-migração dispensado só desta vez');
   } else {
     requireEnv(['BACKUP_DEST']);

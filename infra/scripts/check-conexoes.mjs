@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 // Prova que as credenciais de um ambiente CONECTAM no PostgreSQL e no Redis da Vertra (TLS verify-full + certificado de cliente), sem imprimir segredo.
-// Só lê: `select 1` no PostgreSQL (via psql) e PING no Redis (via ioredis do node_modules do repositório). Falha fechada: o banco da DATABASE_URL tem de ser
+// Só lê: `select 1` no PostgreSQL (módulo pg do node_modules do repositório; não precisa de psql) e PING no Redis (ioredis do mesmo node_modules). Falha fechada: o banco da DATABASE_URL tem de ser
 // o que o ambiente declara em infra/vertra/bindings.json (mesma barreira do migrate.mjs); o host do Redis nunca é impresso com usuário/senha.
 // Ambiente (vindo do cofre, nunca de arquivo): PG: APP_ENV, DATABASE_URL, DB_SSL_CA_PEM, DB_SSL_CERT_PEM, DB_SSL_KEY_PEM · Redis: REDIS_URL (rediss://), REDIS_SSL_CA_PEM, REDIS_SSL_CERT_PEM, REDIS_SSL_KEY_PEM
 // Uso (na raiz do checkout, com node_modules): node infra/scripts/check-conexoes.mjs --env staging|production [--pg] [--redis]   (sem --pg/--redis testa os dois)
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
-import { parseArgs, fail, must } from './lib/util.mjs';
+import { parseArgs, fail } from './lib/util.mjs';
 import { assertBound, canonEnv } from './lib/binding.mjs';
-import { pgEnv } from './lib/pg.mjs';
+import { pgQuery } from './lib/pg.mjs';
 
 /** Opções TLS do ioredis a partir das variáveis REDIS_SSL_*_PEM e do host da URL. Função pura (testada sem Redis). */
 export function redisTlsFromEnv(env) {
@@ -33,13 +31,11 @@ if (direct) {
   const out = [];
   let ok = true;
   if (doPg) {
-    const tmp = mkdtempSync(join(tmpdir(), 'ln-conn-'));
     try {
       const alvo = assertBound({ env: envName, databaseUrl: process.env.DATABASE_URL ?? '', root: process.cwd() });
-      const pe = pgEnv({ urlVar: 'DATABASE_URL', pemPrefix: 'DB_SSL' }, tmp);
-      const r = must(process.env.PSQL_BIN || 'psql', ['-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c', 'select 1'], { env: pe, capture: true });
-      out.push(`postgres ok (${alvo.host}/${alvo.database}): select 1 = ${String(r.stdout).trim()}`);
-    } catch (e) { ok = false; out.push(`postgres FALHOU: ${String(e.message).slice(0, 300)}`); } finally { rmSync(tmp, { recursive: true, force: true }); }
+      const rows = await pgQuery('select 1 as ok', process.env, process.cwd());
+      out.push(`postgres ok (${alvo.host}/${alvo.database}): select 1 = ${rows[0]?.ok}`);
+    } catch (e) { ok = false; out.push(`postgres FALHOU: ${String(e.message).replace(/postgres(ql)?:\/\/[^\s]+/g, '<url>').slice(0, 300)}`); }
   }
   if (doRedis) {
     let cli;
