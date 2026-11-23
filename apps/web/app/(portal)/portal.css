@@ -156,4 +156,9 @@
   /* destaque da home no mobile: sem resumo (a manchete e a autoria bastam), para caber ao menos 4 manchetes na 1ª dobra */
   .pt-hero-main .ln-card--lg .ln-card__excerpt { display: none; }
   .pt-section { margin: var(--ln-space-4) 0; }
+  /* V-11 (375x812): manchete do destaque em 22/28 e menos respiro interno no mobile; a 4ª manchete inteira cabe na 1ª dobra */
+  .pt-hero-main .ln-card--lg:not(.ln-card--noimg) { gap: var(--ln-space-2); }
+  .pt-hero-main .ln-card--lg .ln-card__title { font-size: 1.375rem; line-height: 1.75rem; }
+  .pt-hero { gap: var(--ln-space-3); }
+  .pt-section-head { margin-bottom: var(--ln-space-2); }
 }
