@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -9,20 +9,25 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { OrigemBanco, SemBanco } from '../../_components/SemBanco';
 import { MovesPendentes } from '../../_components/MovesPendentes';
+import { CargosAConfirmar, CargosLista } from '../../_components/CargosEntidades';
+import type { NivelDaFonte } from '@/lib/studio/intelligence-view';
 
 export const metadata: Metadata = { title: 'Entity intelligence' };
 export const dynamic = 'force-dynamic';
 
-export default async function EntidadesPage({ searchParams }: { searchParams: Promise<{ q?: string; tipo?: string; aviso?: string }> }) {
+export default async function EntidadesPage({ searchParams }: { searchParams: Promise<{ q?: string; tipo?: string; aviso?: string; nivel?: string; cq?: string; pagina?: string }> }) {
   const { session } = await requireModule(findModule('entidades')!);
-  const { q = '', tipo, aviso } = await searchParams;
-  const pessoasLigadas = isEnabled('intelligencePessoas');
+  const { q = '', tipo, aviso, nivel: nivelParam = '', cq = '', pagina: paginaParam = '1' } = await searchParams;
+  const nivel: '' | NivelDaFonte = nivelParam === 'official' || nivelParam === 'secondary' || nivelParam === 'inferred' ? nivelParam : '';
+  const pagina = Math.max(1, Math.floor(Number(paginaParam)) || 1);
+  const pessoasLigadas = flagAtiva('intelligencePessoas');
   // origem do banco só para avisar quando é o temporário de dev/e2e; os DADOS vêm das rotas do Backend
   const banco = await bancoOuNulo();
   const termo = q.trim();
   const [emp, pes] = termo ? await Promise.all([api.intelligence.empresas(termo), api.intelligence.executivos(termo)]) : [null, null];
   const semBanco = (emp && naoConfigurado(emp)) || !banco;
   const podeRevisar = checkAccess(session, ['admin', 'editor_chefe', 'editor', 'revisor']).ok;
+  const podeAgirCargos = checkAccess(session, ['admin', 'editor_chefe', 'editor']).ok;
   return (
     <>
       <h1>Entity intelligence</h1>
@@ -47,12 +52,9 @@ export default async function EntidadesPage({ searchParams }: { searchParams: Pr
           </form>
           {emp && pes ? <Resultados emp={emp} pes={pes} q={termo} /> : <p className="st-hint">Digite um nome para buscar.</p>}
 
-          <section aria-labelledby="a-confirmar" style={{ marginTop: 24 }}>
-            <h2 id="a-confirmar">Cargos a confirmar</h2>
-            <p className="st-hint" data-lacuna="fila-a-confirmar">
-              Cargo vindo de LinkedIn ou de site de organograma fica como <strong>secundária — a confirmar</strong>: nunca vira Move e nunca fecha cargo. Um editor o confirma com a página oficial ou o descarta. Hoje a lista de cargos a confirmar só existe por empresa (abra a empresa para ver os dela): a fila geral e as ações de confirmar e descartar dependem de rotas que o Backend ainda não tem.
-            </p>
-          </section>
+          <CargosAConfirmar podeAgir={podeAgirCargos} retorno="/studio/entidades" />
+
+          <CargosLista nivel={nivel} q={cq} pagina={pagina} base="/studio/entidades" />
 
           <MovesPendentes podeRevisar={podeRevisar} retorno="/studio/entidades" />
         </>

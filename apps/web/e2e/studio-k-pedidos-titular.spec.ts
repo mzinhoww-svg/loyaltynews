@@ -74,3 +74,11 @@ test('remoção: exige confirmação; some do portal, das consultas e a página 
   await page.goto('/studio/entidades?q=Carla');
   await expect(page.getByRole('heading', { name: 'Nenhum resultado' })).toBeVisible();
 });
+
+test('a semente continua idempotente depois de correção de nome e remoção (ids achados pelo perfil público)', async ({ context }) => {
+  const r = await context.request.get('/api/e2e/login?seed=intelligence');
+  expect(r.ok(), `seed após os pedidos: ${r.status()}`).toBe(true);
+  const ids = (await r.json()) as { bruno: string; carla: string };
+  expect(ids.bruno).toBe(bruno);
+  expect(ids.carla).toBe(carla);
+});
