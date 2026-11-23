@@ -5,7 +5,7 @@
 //  - um registro por conteúdo (sha256 único): repetir devolve o existente (deduplicada=true);
 //  - upload: o sha256 e o tipo vêm do CONTEÚDO (assinatura do arquivo), nunca do cliente; SVG e outros tipos são recusados.
 import { createHash } from 'node:crypto';
-import { and, count, desc, eq, gte, inArray, like, lt, lte, or, sql, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gt, gte, inArray, isNull, like, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import { type ImageRights, isImagePublishable } from '@ln/contracts';
 import type { Db } from '@ln/auth';
@@ -67,6 +67,19 @@ export const listMedia: RouteFn = async (_req, c) => {
   const conds: (SQL | undefined)[] = [q.tipo ? eq(schema.media.tipo, q.tipo) : undefined];
   if (q.vencida === 'true') conds.push(lt(schema.media.licencaExpiraEm, today));
   if (q.vencendo) conds.push(and(gte(schema.media.licencaExpiraEm, today), lte(schema.media.licencaExpiraEm, addDays(today, q.vencendo))));
+  const exp = schema.media.licencaExpiraEm;
+  const emBreve = addDays(today, VENCE_EM_BREVE_DIAS);
+  if (q.licencaStatus === 'sem_expiracao') conds.push(isNull(exp));
+  if (q.licencaStatus === 'vencida') conds.push(lt(exp, today));
+  if (q.licencaStatus === 'vence_em_breve') conds.push(and(gte(exp, today), lte(exp, emBreve)));
+  if (q.licencaStatus === 'valida') conds.push(gt(exp, emBreve));
+  // `publicavel` no SQL com a mesma regra do view(): base de direito ≠ pendente e licença não vencida
+  const pub = sql`(${schema.media.direitos}->>'baseDeDireito' IS DISTINCT FROM 'pendente' AND (${exp} IS NULL OR ${exp} >= ${today}))`;
+  if (q.publicavel) conds.push(q.publicavel === 'true' ? pub : sql`NOT ${pub}`);
+  if (q.q) {
+    const pat = `%${q.q.replace(/[%_\\]/g, '\\$&')}%`;
+    conds.push(or(sql`${schema.media.direitos}->>'credito' ILIKE ${pat}`, sql`${schema.media.direitos}->>'textoAlternativo' ILIKE ${pat}`));
+  }
   const where = and(...conds);
   const rows = await c.deps.db.select().from(schema.media).where(where).orderBy(desc(schema.media.criadoEm), schema.media.id).limit(q.limit).offset(q.offset);
   const [total] = await c.deps.db.select({ n: count() }).from(schema.media).where(where);

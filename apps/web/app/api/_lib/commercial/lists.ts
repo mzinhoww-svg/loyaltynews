@@ -12,14 +12,25 @@ const Q = z.string().trim().min(1).max(100);
 
 const page = <T>(all: T[], limit: number, offset: number) => ({ data: all.slice(offset, offset + limit), total: all.length, limit, offset });
 
-/** Campanhas: id, nome, estado, formato, período e conta. Filtros: estado (`status`), `accountId`, `q` (nome contém). Mais recentes primeiro. */
+const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((v) => { const t = new Date(`${v}T00:00:00Z`); return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === v; }, 'data inexistente');
+
+/** Campanhas: id, nome, estado, formato, posições, período e conta. Filtros: estado (`status`), `accountId`, `q` (nome contém),
+ *  período por SOBREPOSIÇÃO (`from`/`to`, AAAA-MM-DD: entra se início ≤ to e fim ≥ from) e `positionId` (uma das posições). Mais recentes primeiro. */
 export const listCampaigns = define(
-  { auth: 'studio', schema: z.object({ status: z.enum(STATUS).optional(), accountId: z.string().min(1).max(64).optional(), q: Q.optional(), ...Paging }) },
+  {
+    auth: 'studio',
+    schema: z
+      .object({ status: z.enum(STATUS).optional(), accountId: z.string().min(1).max(64).optional(), q: Q.optional(), from: Day.optional(), to: Day.optional(), positionId: z.string().min(1).max(32).optional(), ...Paging })
+      .refine((i) => !i.from || !i.to || i.from <= i.to, { message: 'from posterior a to', path: ['to'] }),
+  },
   (ctx, i) => {
     const q = i.q?.toLowerCase();
+    const positionsOf = (c: { positionIds?: string[]; positionId: string | null }) => c.positionIds ?? (c.positionId ? [c.positionId] : []);
     const rows = ctx.campaigns
       .list()
       .filter((c) => (!i.status || c.status === i.status) && (!i.accountId || c.accountId === i.accountId) && (!q || c.name.toLowerCase().includes(q)))
+      .filter((c) => (!i.to || c.startDate <= i.to) && (!i.from || c.endDate >= i.from))
+      .filter((c) => !i.positionId || positionsOf(c).includes(i.positionId))
       .sort((a, b) => (a.startDate < b.startDate ? 1 : a.startDate > b.startDate ? -1 : a.id < b.id ? -1 : 1))
       .map((c) => ({
         id: c.id,
@@ -28,6 +39,7 @@ export const listCampaigns = define(
         formatId: c.formatId,
         formatName: ctx.catalog.find((f) => f.id === c.formatId)?.name ?? null,
         positionId: c.positionId,
+        positions: positionsOf(c),
         startDate: c.startDate,
         endDate: c.endDate,
         accountId: c.accountId,

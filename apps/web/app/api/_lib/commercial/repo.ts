@@ -7,17 +7,18 @@ import { and, eq, getTableColumns, gte, inArray, like, lte, not, sql, type SQL }
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
   AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION,
-  type Account, type BannerPosition, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
+  type Account, type BannerPosition, type Contact, type ContactBasis, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
   type DeliveryRow, type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
 } from '@ln/commercial';
 import { schema } from '@ln/db';
+import { HttpError } from '../http';
 import type { Db } from '@ln/auth';
 
 export const COMMERCIAL_LOCK = 7_010_001;
 
 type Row = Record<string, unknown> & { id: string };
 export interface Rows {
-  accounts: Row[]; leads: Row[]; opportunities: Row[]; history: Row[]; campaigns: Row[];
+  accounts: Row[]; contacts: Row[]; leads: Row[]; opportunities: Row[]; history: Row[]; campaigns: Row[]; campaignPositions: Row[];
   reservations: Row[]; takeovers: Row[]; creatives: Row[]; metrics: Row[];
 }
 export interface Hydrated {
@@ -126,8 +127,11 @@ export async function cmsCoverageMetrics(db: Db, now: Date): Promise<MetricRecor
  * anunciante; sem `campaignId` válido devolve vazio (o handler recusa a entrada). `updatedAt` é a "data do dado" (o flush do Redis é por minuto).
  */
 export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[]> {
-  const i = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; from?: unknown; to?: unknown };
-  if (typeof i.campaignId !== 'string' || !i.campaignId) return [];
+  const i = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; accountId?: unknown; from?: unknown; to?: unknown };
+  // por campanha (relatório de campanha) OU por anunciante (todas as campanhas da conta); sem nenhum dos dois, nada é lido
+  const byCampaign = typeof i.campaignId === 'string' && i.campaignId !== '';
+  const byAccount = !byCampaign && typeof i.accountId === 'string' && i.accountId !== '';
+  if (!byCampaign && !byAccount) return [];
   const d = schema.adDeliveryDaily;
   // só data de calendário REAL (2026-02-30 não vai ao banco: o PostgreSQL a recusaria com erro); o handler responde 400 à entrada inválida
   const day = { test: (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v };
@@ -135,7 +139,8 @@ export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[
     .select({ r: d })
     .from(d)
     .innerJoin(schema.adCreatives, eq(schema.adCreatives.id, d.criativoId))
-    .where(and(eq(schema.adCreatives.campanhaId, i.campaignId), typeof i.from === 'string' && day.test(i.from) ? gte(d.dia, i.from) : undefined, typeof i.to === 'string' && day.test(i.to) ? lte(d.dia, i.to) : undefined));
+    .innerJoin(schema.campaigns, eq(schema.campaigns.id, schema.adCreatives.campanhaId))
+    .where(and(byCampaign ? eq(schema.adCreatives.campanhaId, i.campaignId as string) : eq(schema.campaigns.contaId, i.accountId as string), typeof i.from === 'string' && day.test(i.from) ? gte(d.dia, i.from) : undefined, typeof i.to === 'string' && day.test(i.to) ? lte(d.dia, i.to) : undefined));
   return rows.map(({ r }) => ({
     creativeId: r.criativoId, day: r.dia, served: r.servidas, visible: r.visiveis, clicks: r.cliques,
     ignoredBotInternal: r.ignoradasBotInterno, refreshSuppressed: r.refreshSuprimido, updatedAt: r.atualizadoEm.toISOString(),
@@ -143,12 +148,14 @@ export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[
 }
 
 export async function hydrate(db: Db, now: Date = new Date()): Promise<Hydrated> {
-  const [catalog, slots, accs, leads, opps, hist, camps, ress, tkos, creatives, deliv, mets] = await Promise.all([
+  const [catalog, slots, accs, leads, opps, hist, camps, ress, tkos, creatives, deliv, mets, ctts, cpos] = await Promise.all([
     loadCatalog(db), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
     db.select().from(schema.crmLeads), db.select().from(schema.crmOpportunities),
     db.select().from(schema.crmOpportunityHistory).orderBy(schema.crmOpportunityHistory.em, schema.crmOpportunityHistory.id),
     db.select().from(schema.campaigns), db.select().from(schema.adReservations), db.select().from(schema.adTakeovers),
     loadCreatives(db), db.select().from(schema.adDeliveryDaily), db.select().from(schema.commercialMetrics),
+    db.select().from(schema.crmContacts).orderBy(schema.crmContacts.criadoEm, schema.crmContacts.id),
+    db.select().from(schema.campaignPositions).orderBy(schema.campaignPositions.campanhaId, schema.campaignPositions.ordem),
   ]);
 
   const leadList: Lead[] = leads.map((l) => ({
@@ -166,7 +173,11 @@ export async function hydrate(db: Db, now: Date = new Date()): Promise<Hydrated>
     history: hist.filter((h) => h.oportunidadeId === o.id).map((h) => ({ from: h.de, to: h.para, at: iso(h.em) })),
   }));
   const crm = new Crm();
-  crm.load({ version: SNAPSHOT_VERSION, seq: 0, leads: leadList, accounts: accountList, opportunities: oppList });
+  const contactList: Contact[] = ctts.map((k) => ({
+    id: k.id, accountId: k.contaId, name: k.nome, email: k.email, whatsapp: k.whatsapp, role: k.cargo, basis: k.baseLegal as ContactBasis,
+    consentAt: iso(k.consentimentoEm), registeredBy: k.registradoPor, classeDeDado: 'personal', createdAt: iso(k.criadoEm),
+  }));
+  crm.load({ version: SNAPSHOT_VERSION, seq: 0, leads: leadList, accounts: accountList, opportunities: oppList, contacts: contactList });
 
   const positions: BannerPosition[] = slots.length
     ? slots.map((s) => {
@@ -187,11 +198,16 @@ export async function hydrate(db: Db, now: Date = new Date()): Promise<Hydrated>
     takeovers: tkos.map((t): Takeover => ({ id: t.id, date: t.dia, advertiserId: t.contaId, agreedCampaignIds: t.campanhasAcordadas as string[] })),
   });
 
+  const posBy = new Map<string, string[]>();
+  for (const p of cpos) (posBy.get(p.campanhaId) ?? posBy.set(p.campanhaId, []).get(p.campanhaId)!).push(p.slotId);
+  const posOf = (id: string, slot: string | null): string[] => posBy.get(id) ?? (slot ? [slot] : []);
   const campaigns = new CampaignBook();
   campaigns.load({
     version: SNAPSHOT_VERSION, seq: 0,
     campaigns: camps.map((c): Campaign => ({
-      id: c.id, name: c.nome, accountId: c.contaId, opportunityId: c.oportunidadeId, formatId: c.formatoId, positionId: c.slotId,
+      id: c.id, name: c.nome, accountId: c.contaId, opportunityId: c.oportunidadeId, formatId: c.formatoId,
+      // Posições de campaign_positions (na ordem gravada); linha legada sem posições lá: a de campaigns.slot_id.
+      ...((ids) => ({ positionIds: ids, positionId: ids[0] ?? null }))(posOf(c.id, c.slotId)),
       startDate: c.inicio, endDate: c.fim, status: c.status, sponsoredLabel: true, // F-074: o banco só aceita campanha rotulada
       reservationIds: inventory.list().filter((r) => r.campaignId === c.id && r.status !== 'cancelled').map((r) => r.id),
       history: c.historico as Campaign['history'],
@@ -238,6 +254,10 @@ export function rowsOf(s: CommercialState): Rows {
   const camps = s.campaigns.snapshot().campaigns;
   return {
     accounts: crm.accounts.map((a) => ({ id: a.id, nome: a.name, criadoEm: new Date(a.createdAt) })),
+    contacts: (crm.contacts ?? []).map((k) => ({
+      id: k.id, contaId: k.accountId, nome: k.name, email: k.email, whatsapp: k.whatsapp, cargo: k.role, baseLegal: k.basis,
+      consentimentoEm: new Date(k.consentAt), registradoPor: k.registeredBy, classeDeDado: 'personal', criadoEm: new Date(k.createdAt),
+    })),
     leads: crm.leads.map((l) => ({
       id: l.id, nome: l.name, empresa: l.company, email: l.email, whatsapp: l.whatsapp, formatoIds: l.formatIds, objetivo: l.objective,
       mensagem: l.message || null, optInNewsletter: l.newsletterOptIn, consentimentoEm: new Date(l.consentAt), classeDeDado: 'personal',
@@ -249,10 +269,12 @@ export function rowsOf(s: CommercialState): Rows {
       versoesProposta: o.proposalVersions,
     })),
     history: crm.opportunities.flatMap((o) => o.history.map((h, i) => ({ id: `${o.id}#${i}`, oportunidadeId: o.id, de: h.from, para: h.to, em: new Date(h.at) }))),
+    // slot_id = a PRIMEIRA posição (leitores antigos); todas as posições, em ordem, em campaign_positions
     campaigns: camps.map((c) => ({
-      id: c.id, nome: c.name, contaId: c.accountId, oportunidadeId: c.opportunityId, formatoId: c.formatId, slotId: c.positionId,
+      id: c.id, nome: c.name, contaId: c.accountId, oportunidadeId: c.opportunityId, formatoId: c.formatId, slotId: c.positionIds[0] ?? c.positionId ?? null,
       inicio: c.startDate, fim: c.endDate, status: c.status, rotulada: true, historico: c.history,
     })),
+    campaignPositions: camps.flatMap((c) => c.positionIds.map((slotId, ordem) => ({ id: `${c.id}#${slotId}`, campanhaId: c.id, slotId, ordem }))),
     reservations: inv.reservations.map((r) => ({
       id: r.id, slotId: r.positionId, contaId: r.advertiserId, campanhaId: r.campaignId, inicio: r.startDate, fim: r.endDate, status: r.status,
     })),
@@ -294,12 +316,38 @@ export async function persist(db: Db, h: Hydrated, after: CommercialState): Prom
   const a = rowsOf(after);
   const b = h.before;
   await upsert(db, schema.crmAccounts, changed(a.accounts, b.accounts), [schema.crmAccounts.id]);
+  try {
+    await upsert(db, schema.crmContacts, changed(a.contacts, b.contacts), [schema.crmContacts.id]);
+  } catch (e) {
+    // o domínio já recusa e-mail repetido na conta; o índice único é a segunda barreira (outra instância, banco alterado por fora)
+    if ((e as { code?: string; cause?: { code?: string } }).code === '23505' || (e as { cause?: { code?: string } }).cause?.code === '23505') {
+      throw new HttpError(409, 'DUPLICATE_CONTACT', 'Já existe um contato com este e-mail nesta conta.');
+    }
+    throw e;
+  }
   await upsert(db, schema.crmLeads, changed(a.leads, b.leads), [schema.crmLeads.id]);
   await upsert(db, schema.crmOpportunities, changed(a.opportunities, b.opportunities), [schema.crmOpportunities.id]);
   await upsert(db, schema.crmOpportunityHistory, changed(a.history, b.history), [schema.crmOpportunityHistory.id]);
   await upsert(db, schema.campaigns, changed(a.campaigns, b.campaigns), [schema.campaigns.id]);
+  await syncPositions(db, a.campaignPositions, b.campaignPositions);
   await upsert(db, schema.adReservations, changed(a.reservations, b.reservations), [schema.adReservations.id]);
   await upsert(db, schema.adTakeovers, changed(a.takeovers, b.takeovers), [schema.adTakeovers.id]);
   await upsert(db, schema.adCreatives, changed(a.creatives, b.creatives), [schema.adCreatives.id]);
   await upsert(db, schema.commercialMetrics, changed(a.metrics, b.metrics), [schema.commercialMetrics.origem, schema.commercialMetrics.metrica]);
+}
+
+/** Regrava as posições SÓ das campanhas cuja lista (ou ordem) mudou: apaga as dessa campanha e insere a lista nova. Roda na transação do persist. */
+async function syncPositions(db: Db, after: Row[], before: Row[]): Promise<void> {
+  const key = (rows: Row[]) => {
+    const m = new Map<string, string>();
+    for (const r of rows) m.set(String(r.campanhaId), `${m.get(String(r.campanhaId)) ?? ''}|${String(r.slotId)}`);
+    return m;
+  };
+  const ka = key(after);
+  const kb = key(before);
+  const ids = [...new Set([...ka.keys(), ...kb.keys()])].filter((id) => ka.get(id) !== kb.get(id));
+  if (!ids.length) return;
+  await db.delete(schema.campaignPositions).where(inArray(schema.campaignPositions.campanhaId, ids));
+  const rows = after.filter((r) => ids.includes(String(r.campanhaId))).map(({ campanhaId, slotId, ordem }) => ({ campanhaId, slotId, ordem }));
+  if (rows.length) await db.insert(schema.campaignPositions).values(rows as never);
 }

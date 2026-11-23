@@ -2,8 +2,8 @@ import { beforeEach, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 import { DEFAULT_FLAGS, type GrowthFlags } from '../flags';
 import { SimulatedMlabsTransport } from '../mlabs/transport.mock';
-import { SimulatedMediaUploader } from '../pipeline/media.mock';
-import { unavailableUploader } from '../pipeline/media';
+import { InMemoryUploadLedger } from '../pipeline/raster-upload';
+import { SimulatedRasterizer } from '../pipeline/raster-upload.mock';
 import {
   approvedFacts, InMemoryDraftStore, runLinkedInDraftPipeline, toGrowthArticle, type DraftPipelineDeps, type DraftPipelineResult,
   type DraftPipelineSummary, type PipelineArticleRecord,
@@ -15,16 +15,17 @@ const ON: GrowthFlags = { ...DEFAULT_FLAGS, growth_linkedin_live: true };
 
 let flags: GrowthFlags;
 let transport: SimulatedMlabsTransport;
-let uploader: SimulatedMediaUploader;
+let rasterizer: SimulatedRasterizer;
+const posts = () => transport.calls.filter((c) => c.tool === 'create_post');
 let store: InMemoryDraftStore;
 let deps: DraftPipelineDeps;
 
 beforeEach(() => {
   flags = { ...DEFAULT_FLAGS };
   transport = new SimulatedMlabsTransport(() => NOW);
-  uploader = new SimulatedMediaUploader();
+  rasterizer = new SimulatedRasterizer();
   store = new InMemoryDraftStore();
-  deps = { flags: () => flags, now: () => NOW.toISOString(), store, live: { transport, profileId: 'ext_PERFIL_DE_TESTE', uploader } };
+  deps = { flags: () => flags, now: () => NOW.toISOString(), store, live: { transport, profileId: 'ext_PERFIL_DE_TESTE', rasterizer, putBytes: transport.putBytes, uploadLedger: new InMemoryUploadLedger() } };
 });
 
 /** Matéria de produção (não-mock): o mock nunca vai ao mLabs real/simulado de transporte. */
@@ -60,7 +61,7 @@ describe('ensaio (flag desligada, padrão): nada sai do processo', () => {
     assert.equal(s.receipt.status, 'draft');
     assert.equal(s.receipt.simulated, true);
     assert.equal(transport.calls.length, 0);
-    assert.deepEqual(uploader.uploads, []);
+    assert.deepEqual(transport.media, { prepares: 0, puts: 0, polls: 0 });
   });
 
   test('a matéria MOCK é aceita no ensaio (nada sai) e avisa que o brandkit é proposta', async () => {
@@ -86,8 +87,8 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
     assert.equal(s.mode, 'live');
     assert.equal(s.receipt.status, 'draft');
     assert.equal(s.receipt.simulated, false);
-    assert.equal(transport.calls.length, 1);
-    const { tool, args } = transport.calls[0]!;
+    assert.equal(posts().length, 1);
+    const { tool, args } = posts()[0]!;
     assert.equal(tool, 'create_post');
     assert.equal(args.status, 'draft');
     assert.deepEqual(args.channels, ['linkedin']);
@@ -102,7 +103,7 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
 
   test('o texto do rascunho vem só dos fatos aprovados: sem o fato reprovado, sem citação e sem o texto livre do modelo', async () => {
     await runLinkedInDraftPipeline(deps, real(), mockSocialPack());
-    const content = String(transport.calls[0]!.args.content);
+    const content = String(posts()[0]!.args.content);
     assert.ok(content.includes('24 meses'));
     assert.ok(content.includes('Redação Loyalty News'));
     assert.ok(content.includes('utm_source=linkedin'));
@@ -111,8 +112,12 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
 
   test('a mídia é enviada antes do rascunho e o id vai no create_post', async () => {
     const s = ok(await runLinkedInDraftPipeline(deps, real(), mockSocialPack()));
-    assert.deepEqual(uploader.uploads, [s.imageRef]);
-    assert.deepEqual(transport.calls[0]!.args.imageIds, [`SIM-IMG-${s.imageRef.split('/').pop()}`]);
+    assert.deepEqual([transport.media.prepares, transport.media.puts], [1, 1]);
+    const order = transport.calls.map((c) => c.tool);
+    assert.ok(order.indexOf('prepare_media_upload') < order.indexOf('create_post'), 'mídia antes do rascunho');
+    assert.equal(order.at(-1), 'create_post');
+    assert.deepEqual(posts()[0]!.args.imageIds, ['SIM-IMG-SIM-UP-0001']);
+    assert.equal(s.mode, 'live');
   });
 
   test('reenvio não duplica: segunda execução devolve o rascunho existente e não chama o mLabs de novo', async () => {
@@ -121,7 +126,7 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
     assert.equal(a.existing, false);
     assert.equal(b.existing, true);
     assert.equal(b.receipt.id, a.receipt.id);
-    assert.equal(transport.calls.length, 1);
+    assert.equal(posts().length, 1);
     assert.equal(transport.all.length, 1);
   });
 
@@ -129,7 +134,8 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
     const a = ok(await runLinkedInDraftPipeline(deps, real(), mockSocialPack()));
     const b = ok(await runLinkedInDraftPipeline({ ...deps, store: new InMemoryDraftStore() }, real(), mockSocialPack()));
     assert.equal(b.receipt.id, a.receipt.id);
-    assert.equal(transport.calls.length, 2);
+    assert.equal(posts().length, 2);
+    assert.equal(transport.media.prepares, 1, 'a imagem não sobe de novo: o registro dos envios é pelo hash do SVG');
     assert.equal(transport.all.length, 1);
   });
 
@@ -146,13 +152,24 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
     assert.equal(transport.calls.length, 0);
   });
 
-  test('mídia indisponível: bloqueia sem criar rascunho; uploader real (sem rasterização) recusa com razão clara', async () => {
-    uploader.failNext = true;
+  test('mídia indisponível (preparo, PUT, processamento): bloqueia sem criar rascunho, sem vazar a URL assinada, e a nova tentativa funciona', async () => {
+    for (const fail of [{ prepare: true }, { putStatus: 403 }, { processing: 'failed' as const }]) {
+      transport.mediaFail = fail;
+      const r = await runLinkedInDraftPipeline(deps, real(), mockSocialPack());
+      assert.deepEqual(blockers(r), ['midia_nao_enviada'], JSON.stringify(fail));
+      assert.doesNotMatch(JSON.stringify(r), /sig=|exemplo\.invalid|upload\.simulado/);
+      assert.equal(posts().length, 0, 'sem mídia não há rascunho');
+    }
+    transport.mediaFail = {};
+    ok(await runLinkedInDraftPipeline(deps, real(), mockSocialPack()));
+    assert.equal(posts().length, 1);
+  });
+
+  test('criativo rasterizado inválido (hash do SVG, mock): mídia não sobe e nada é preparado', async () => {
+    rasterizer.tamper = { svgSha256: '0'.repeat(64) };
     assert.deepEqual(blockers(await runLinkedInDraftPipeline(deps, real(), mockSocialPack())), ['midia_nao_enviada']);
-    const r = await runLinkedInDraftPipeline({ ...deps, live: { transport, profileId: 'ext_P', uploader: unavailableUploader } }, real(), mockSocialPack());
-    assert.deepEqual(blockers(r), ['midia_nao_enviada']);
-    assert.match(JSON.stringify(r), /rasterizar/);
-    assert.equal(transport.calls.length, 0);
+    assert.equal(transport.media.prepares, 0);
+    assert.equal(posts().length, 0);
   });
 
   test('mLabs indisponível: o erro sobe, nada é registrado e a nova tentativa funciona', async () => {
@@ -176,7 +193,7 @@ describe('rascunho no mLabs SIMULADO (flag ligada só no teste)', () => {
     const sponsored = (label?: string) => ({ ...real(), draft: { ...real().draft!, patrocinado: true, rotuloPublieditorial: label } });
     const ok1 = await runLinkedInDraftPipeline(deps, sponsored('Publieditorial Marca X'), mockSocialPack());
     assert.equal(ok1.ok, true);
-    assert.ok(String(transport.calls[0]!.args.content).includes('Conteúdo patrocinado: Publieditorial Marca X'));
+    assert.ok(String(posts()[0]!.args.content).includes('Conteúdo patrocinado: Publieditorial Marca X'));
     const bad = await runLinkedInDraftPipeline({ ...deps, store: new InMemoryDraftStore() }, { ...sponsored(undefined), articleId: base.articleId }, mockSocialPack());
     assert.deepEqual(blockers(bad), ['regra_de_copy']);
   });
@@ -200,7 +217,7 @@ describe('bloqueios (sem efeito em lugar nenhum)', () => {
       const r = await runLinkedInDraftPipeline(deps, rec, pack);
       assert.deepEqual(blockers(r), expected);
       assert.equal(transport.calls.length, 0);
-      assert.deepEqual(uploader.uploads, []);
+      assert.deepEqual(transport.media, { prepares: 0, puts: 0, polls: 0 });
       assert.equal(await store.get(`${rec.articleId}:linkedin:draft:${'b'.repeat(16)}`), null);
     });
   }
