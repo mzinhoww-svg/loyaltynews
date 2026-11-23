@@ -15,7 +15,7 @@ Estado: **scripts prontos e testados sem PostgreSQL; ensaio real pendente** (sta
 Segurança: segredos só por variável de ambiente (PEM gravado em arquivo 0600 temporário e apagado); nada em argv; plaintext só em pasta temporária removida ao final; `BACKUP_TEST_DUMP_FILE` (gancho de teste) é proibido com `BACKUP_ENV=production`.
 
 ## Execução
-- Agendamento: `.github/workflows/backup.yml` (cron a cada 6 h, **inativo** enquanto as Actions do produto estiverem desligadas), ou rotina OpenBot local equivalente. O GitHub desativa agendamentos de repositório público após 60 dias sem atividade e pode atrasar: **não confiar só nele**, por isso a sonda de frescor.
+- Agendamento: `infra/github-workflows/backup.yml` (modelo; cron a cada 6 h, **inativo** enquanto as Actions do produto estiverem desligadas), ou rotina OpenBot local equivalente. O GitHub desativa agendamentos de repositório público após 60 dias sem atividade e pode atrasar: **não confiar só nele**, por isso a sonda de frescor.
 - Migração de produção só roda com backup fresco (`migrate.mjs` chama a sonda).
 
 ## Critérios da ADR-012 e situação
