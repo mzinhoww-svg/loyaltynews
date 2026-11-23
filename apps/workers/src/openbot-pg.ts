@@ -375,3 +375,46 @@ export class PgTaskIo implements TaskIo {
     return false;
   }
 }
+
+/** Resolução de uma violação do piloto por um admin (0028, decisão PM-2026-11-23-D). */
+export interface PilotResolution {
+  task_id: string;
+  attempt: number;
+  resolvido_por: string;
+  resolvido_em: string;
+  motivo: string;
+  acao_tomada: string;
+}
+
+function toResolution(r: typeof schema.openbotPilotResolutions.$inferSelect): PilotResolution {
+  return { task_id: r.taskId, attempt: r.attempt, resolvido_por: r.resolvidoPor, resolvido_em: r.resolvidoEm.toISOString(), motivo: r.motivo, acao_tomada: r.acaoTomada };
+}
+
+/**
+ * Violações do piloto TRATADAS por um admin: liberam o despacho e a retomada (o portão `canDispatchNext` e `resumePilot` ignoram a linha), mas a linha da planilha NUNCA é
+ * apagada nem editada e a violação continua contando no critério de 0 violações da avaliação final. Uma resolução por (tarefa, tentativa); a primeira vence.
+ */
+export class PgPilotResolutionStore {
+  constructor(private readonly db: Db, private readonly clock: () => Date = () => new Date()) {}
+
+  /** 'created' = gravada agora; 'exists' = já estava resolvida (devolve a original); 'no_row' = não há linha do piloto com esse (tarefa, tentativa). */
+  async resolve(taskId: string, attempt: number, by: string, motivo: string, acao: string): Promise<{ result: 'created' | 'exists' | 'no_row'; resolution?: PilotResolution }> {
+    const rows = schema.openbotPilotRows;
+    const [row] = await this.db.select({ taskId: rows.taskId }).from(rows).where(and(eq(rows.taskId, taskId), eq(rows.attempt, attempt)));
+    if (!row) return { result: 'no_row' };
+    const t = schema.openbotPilotResolutions;
+    const ins = await this.db.insert(t).values({ taskId, attempt, resolvidoPor: by, resolvidoEm: this.clock(), motivo: motivo.trim(), acaoTomada: acao.trim() }).onConflictDoNothing().returning();
+    const cur = ins[0] ?? (await this.db.select().from(t).where(and(eq(t.taskId, taskId), eq(t.attempt, attempt))))[0]!;
+    return { result: ins[0] ? 'created' : 'exists', resolution: toResolution(cur) };
+  }
+
+  async all(): Promise<PilotResolution[]> {
+    const t = schema.openbotPilotResolutions;
+    return (await this.db.select().from(t).orderBy(asc(t.resolvidoEm), asc(t.taskId), asc(t.attempt))).map(toResolution);
+  }
+
+  /** Chaves `task_id#attempt` (a forma de `pilotRowKey` de @ln/openbot) para o portão de despacho. */
+  async keys(): Promise<ReadonlySet<string>> {
+    return new Set((await this.all()).map((r) => `${r.task_id}#${r.attempt}`));
+  }
+}
