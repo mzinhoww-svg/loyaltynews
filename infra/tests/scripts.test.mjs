@@ -315,3 +315,21 @@ test('arquivos-orfaos: acha as sobras de upload antigo na árvore do app (JSON a
   assert.deepEqual(orfaos(arquivosDaArvore('package.json\napps/web/app/velho.tsx\napps/\n'), pacote), ['apps/web/app/velho.tsx']);
   assert.deepEqual(orfaos(arquivosDaArvore(aninhada), [...pacote, ...esperado]), [], 'sem sobras quando o pacote cobre tudo');
 });
+
+test('arquivos-orfaos: aceita JSON com BOM UTF-8 e arquivo em UTF-16 (saída do PowerShell 5.1)', async () => {
+  const { arquivosDaArvore, orfaos, readTexto } = await import('../scripts/arquivos-orfaos.mjs');
+  const dir = tmp();
+  try {
+    const json = JSON.stringify({ files: ['package.json', 'apps/web/velho.tsx'] });
+    assert.deepEqual(orfaos(arquivosDaArvore('﻿' + json), ['package.json']), ['apps/web/velho.tsx']);
+    writeFileSync(join(dir, 'bom.json'), '﻿' + json);
+    assert.deepEqual(orfaos(arquivosDaArvore(readTexto(join(dir, 'bom.json'))), ['package.json']), ['apps/web/velho.tsx']);
+    writeFileSync(join(dir, 'u16.json'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(json, 'utf16le')]));
+    assert.deepEqual(orfaos(arquivosDaArvore(readTexto(join(dir, 'u16.json'))), ['package.json']), ['apps/web/velho.tsx']);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('arquivos-orfaos: ignora next-env.d.ts (gerado pelo Next)', async () => {
+  const { orfaos } = await import('../scripts/arquivos-orfaos.mjs');
+  assert.deepEqual(orfaos(['package.json', 'apps/web/next-env.d.ts', 'apps/web/velho.ts'], ['package.json']), ['apps/web/velho.ts']);
+});
