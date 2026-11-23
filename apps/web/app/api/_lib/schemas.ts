@@ -84,7 +84,6 @@ export const ReceiptInput = z.strictObject({
   /** Obrigatória para matéria só em `articles`; opcional com rascunho no CMS editorial (a versão da projeção é do servidor). */
   versao: z.number().int().positive().optional(),
   checagens: PublicationReceipt.shape.checagens,
-  identidadePublicacao: z.string().min(1).optional(),
   /** Matéria da Fábrica já publicada: rascunho corrigido + checagem + caso aceito (ADR-019 §c.5). */
   correcao: CorrecaoIn.optional(),
 });

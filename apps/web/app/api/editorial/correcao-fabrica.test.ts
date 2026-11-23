@@ -162,11 +162,11 @@ describe('publicação oficial da correção (applyCorrection + projeção)', ()
     expect((await row(a.id)).versao).toBe(2);
   });
 
-  it('portões: flag desligada 403; identidade do recibo; papel; recibo da versão antiga; hash que não bate; sem correcao a rota normal não corrige — sem efeito', async () => {
+  it('portões: flag desligada 403; papel; recibo da versão antiga; hash que não bate; sem correcao a rota normal não corrige — sem efeito', async () => {
     const a = await publicada();
     const caso = await acceptedCase(a.id);
     const corr = await correcao(a.id, caso);
-    const r = await rcpt(a.id, { correcao: corr, identidadePublicacao: admin.id });
+    const r = await rcpt(a.id, { correcao: corr });
     const semEfeito = async () => {
       expect(await row(a.id)).toMatchObject({ status: 'publicado', versao: 1 });
       expect(await outboxOf(a.id)).toEqual([['intelligence-ingest', `article.published:${a.id}:${a.sha}`]]);
@@ -178,8 +178,9 @@ describe('publicação oficial da correção (applyCorrection + projeção)', ()
     } finally {
       app.deps.flags.publicacaoPortal = true;
     }
-    expect((await publish(a.id, r.body.data.id, corr, chefe)).body.error.code).toBe('NOT_PUBLISHER_IDENTITY');
     expect((await publish(a.id, r.body.data.id, corr, editor)).status).toBe(403);
+    // o cliente não escolhe a identidade do recibo (ADR-017 §5)
+    expect((await rcpt(a.id, { correcao: corr, identidadePublicacao: admin.id })).status).toBe(400);
     // recibo da versão ANTIGA com correcao: não é versão nova
     expect((await publish(a.id, a.receiptId, corr, chefe)).body.error.code).toBe('RECEIPT_STALE');
     // rascunho diferente do que o recibo provou

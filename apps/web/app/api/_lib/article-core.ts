@@ -6,6 +6,12 @@ import { publishedContentSha256 } from '@ln/contracts/hash';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 
+/**
+ * ADR-017 §5: a identidade de publicação é a credencial do CANAL (o serviço do portal), não uma pessoa. Fixada pelo servidor em todo
+ * recibo; o cliente não a envia. Quem aprovou fica em `aprovador` (usuário da sessão) e quem publicou, em `publicadoPor`.
+ */
+export const PUBLISH_IDENTITY = 'portal';
+
 export type ArticleRow = typeof schema.articles.$inferSelect;
 
 /** Campos que formam o conteúdo publicado (e o hash). */

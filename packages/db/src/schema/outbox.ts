@@ -1,6 +1,6 @@
 // Outbox transacional e ledger de efeitos (ADR-002). Dono: Frente 02 — LN Backend Engineer.
 // PostgreSQL é a verdade; o Redis leva só IDs. O reconciliador recria jobs a partir daqui.
-import { index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const outboxStatus = pgEnum('outbox_status', ['pending', 'enqueued', 'done', 'failed']);
 
@@ -15,6 +15,8 @@ export const outbox = pgTable(
     attempts: integer('attempts').notNull().default(0),
     enqueuedAt: timestamp('enqueued_at', { withTimezone: true }),
     lastError: text('last_error'),
+    /** Quem aprovou e quem publicou (ADR-017 §5): `{publicadoPor, aprovador, receiptId}`. Só ids de usuário, nada de conteúdo. */
+    meta: jsonb('meta'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
