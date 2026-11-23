@@ -1198,3 +1198,21 @@ test('guards: LN_OPENBOT_PILOT só no staging; LN_FLAGS_ON=openbotDispatch em pr
   for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT', 'MLABS_MCP_TOKEN', 'MLABS_MCP_URL', 'MLABS_PROFILE_ID', 'MLABS_CHANNEL_ID']) assert.ok(nomes.includes(n), n);
   for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'MLABS_MCP_TOKEN']) assert.equal(c.variaveis.find((v) => v.nome === n).secreto, true, n);
 });
+
+test('guards: jobsProblems da releitura (LN_INTELLIGENCE_REREAD + LN_REREAD_SEED + BRIGHTDATA_API_KEY só staging) e contrato declara as variáveis', async () => {
+  const { jobsProblems } = await import('../scripts/lib/guards.mjs');
+  const ok = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas,leitorViaProvedor', LN_INTELLIGENCE_PESSOAS: 'on', LN_INTELLIGENCE_REREAD: 'on', LN_REREAD_SEED: 'seed.public.v7.json', BRIGHTDATA_API_KEY: 'definida-pelo-pm' };
+  assert.deepEqual(jobsProblems(ok, { jobsIntelligence: ['releitura'] }), []);
+  assert.deepEqual(jobsProblems({ ...ok, LN_INTELLIGENCE_ALERTS: 'on' }, { jobsIntelligence: ['alertas', 'releitura'] }), []);
+  assert.match(jobsProblems({ ...ok, LN_REREAD_SEED: '' }, { jobsIntelligence: ['releitura'] }).join('|'), /exige LN_REREAD_SEED/);
+  assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_REREAD: undefined }, { jobsIntelligence: ['releitura'] }).join('|'), /defina LN_INTELLIGENCE_REREAD=on/);
+  assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_ALERTS: 'on' }, { jobsIntelligence: ['releitura'] }).join('|'), /LN_INTELLIGENCE_ALERTS definida, mas o pacote não liga/);
+  assert.match(jobsProblems({ APP_ENV: 'staging', LN_REREAD_SEED: 'x' }, {}).join('|'), /LN_REREAD_SEED definida, mas o pacote não liga/);
+  assert.match(jobsProblems({ APP_ENV: 'production', BRIGHTDATA_API_KEY: 'x' }, {}).join('|'), /BRIGHTDATA_API_KEY definida fora do staging/);
+  assert.deepEqual(jobsProblems({ APP_ENV: 'staging', BRIGHTDATA_API_KEY: 'x' }, {}), [], 'staging com a chave e sem releitura (leitor por provedor) é permitido');
+  assert.match(jobsProblems({ ...ok, APP_ENV: 'production' }, { jobsIntelligence: ['releitura'] }).join('|'), /só o staging/);
+  assert.match(jobsProblems({ ...ok, LN_FLAGS_ON: '' }, { jobsIntelligence: ['releitura'] }).join('|'), /exige LN_FLAGS_ON com intelligencePessoas/);
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  for (const n of ['LN_INTELLIGENCE_ALERTS', 'LN_INTELLIGENCE_PESSOAS', 'LN_INTELLIGENCE_REREAD', 'LN_REREAD_SEED', 'BRIGHTDATA_API_KEY']) assert.ok(c.variaveis.some((v) => v.nome === n && v.so_staging), n);
+  assert.equal(c.variaveis.find((v) => v.nome === 'BRIGHTDATA_API_KEY').secreto, true);
+});

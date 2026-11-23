@@ -298,6 +298,57 @@
       ],
       "opcional": true,
       "dono_do_codigo": "packages/growth (resumo social)"
+    },
+    {
+      "nome": "LN_INTELLIGENCE_ALERTS",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "so_staging": true,
+      "dono_do_codigo": "apps/workers (ft/backend-2)",
+      "nota": "SO staging, DESLIGADA por padrao (variavel ausente); em production o guard-env reprova se definida e o resolvedor de flags recusa. Job de alertas das watchlists. Exige APP_ENV=staging, LN_FLAGS_ON com intelligencePessoas e LN_INTELLIGENCE_PESSOAS=on. Definida pelo PACOTE (package-web --intelligence-alertas); o guard-env compara com release.json.jobsIntelligence."
+    },
+    {
+      "nome": "LN_INTELLIGENCE_PESSOAS",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "so_staging": true,
+      "dono_do_codigo": "apps/workers (ft/backend-2)",
+      "nota": "SO staging, DESLIGADA por padrao (variavel ausente); em production o guard-env reprova se definida e o resolvedor de flags recusa. Chave operacional do job de pessoas/Move (J-01, flag intelligencePessoas). Vem junto com --intelligence-alertas ou --intelligence-releitura."
+    },
+    {
+      "nome": "LN_INTELLIGENCE_REREAD",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "so_staging": true,
+      "dono_do_codigo": "apps/workers (ft/backend-2 c6aa277)",
+      "nota": "SO staging, DESLIGADA por padrao (variavel ausente); em production o guard-env reprova se definida e o resolvedor de flags recusa. Releitura das paginas oficiais de diretoria do Intelligence. Exige APP_ENV=staging, a flag intelligencePessoas (e leitorViaProvedor, opcional) na lista de LN_FLAGS_ON, LN_INTELLIGENCE_PESSOAS=on e LN_REREAD_SEED. Definida pelo PACOTE (package-web --intelligence-releitura)."
+    },
+    {
+      "nome": "LN_REREAD_SEED",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "so_staging": true,
+      "dono_do_codigo": "apps/workers (ft/backend-2 c6aa277)",
+      "nota": "SO staging, DESLIGADA por padrao (variavel ausente); em production o guard-env reprova se definida e o resolvedor de flags recusa. Conjunto de cargos que a releitura le (seed.public.v5/v7.json). Valor definido pelo PM por set_env (nao vem no pacote); o guard-env exige nao vazio com a releitura e proibe sem ela."
+    },
+    {
+      "nome": "BRIGHTDATA_API_KEY",
+      "secreto": true,
+      "apps": [
+        "workers"
+      ],
+      "so_staging": true,
+      "opcional": true,
+      "dono_do_codigo": "packages/intelligence (leitor por provedor)",
+      "nota": "SO staging, DESLIGADA por padrao (variavel ausente); em production o guard-env reprova se definida e o resolvedor de flags recusa. Reserva por provedor (flag leitorViaProvedor). Do cofre do OpenBot, gravada pelo PM por set_env direto da memoria; nunca em arquivo, chat, log ou commit. O guard-env reprova fora do staging."
     }
   ],
   "so_para_ci_nao_vai_para_a_vertra": [

@@ -94,19 +94,26 @@ export function flagsProblems(env, release) {
     : `LN_FLAGS_ON="${env.LN_FLAGS_ON}" definida, mas o pacote não liga nenhuma flag (release.json.flagsLigadas vazio): apague a variável do app`];
 };
 
-/** Jobs de Intelligence por variável (só staging, só o que o release.json.jobsIntelligence liga). 'alertas' = LN_INTELLIGENCE_ALERTS + LN_INTELLIGENCE_PESSOAS; LN_INTELLIGENCE_REREAD nunca vem de pacote. */
+/** Jobs de Intelligence por variável (só staging, só o que o release.json.jobsIntelligence liga). 'alertas' = LN_INTELLIGENCE_ALERTS + LN_INTELLIGENCE_PESSOAS;
+ *  'releitura' = LN_INTELLIGENCE_REREAD + LN_INTELLIGENCE_PESSOAS + LN_REREAD_SEED (valor definido pelo PM, não vazio). Em produção nada disto liga (nem BRIGHTDATA_API_KEY). */
 export function jobsProblems(env, release) {
   const rel = Array.isArray(release?.jobsIntelligence) ? release.jobsIntelligence : [];
-  const want = { LN_INTELLIGENCE_ALERTS: rel.includes('alertas'), LN_INTELLIGENCE_PESSOAS: rel.includes('alertas'), LN_INTELLIGENCE_REREAD: false };
+  const alertas = rel.includes('alertas'), releitura = rel.includes('releitura');
+  const want = { LN_INTELLIGENCE_ALERTS: alertas, LN_INTELLIGENCE_PESSOAS: alertas || releitura, LN_INTELLIGENCE_REREAD: releitura };
+  const amb = String(env.APP_ENV ?? '').trim().toLowerCase();
   const p = [];
   for (const [nome, ligada] of Object.entries(want)) {
     const cur = String(env[nome] ?? '').trim();
     if (ligada && cur !== 'on') p.push(`${nome}="${env[nome] ?? ''}" difere do release.json (jobsIntelligence=${rel.join(',')}): defina ${nome}=on`);
     else if (!ligada && cur !== '') p.push(`${nome} definida, mas o pacote não liga esse job (release.json.jobsIntelligence=[${rel.join(',')}]): apague a variável do app`);
   }
-  if (rel.includes('alertas')) {
-    if (String(env.APP_ENV ?? '').trim().toLowerCase() !== 'staging') p.push(`jobsIntelligence=alertas com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging`);
-    if (!flagsNormalizadas(env.LN_FLAGS_ON).split(',').includes('intelligencePessoas')) p.push('jobsIntelligence=alertas exige LN_FLAGS_ON com intelligencePessoas (ADR-022)');
+  const seed = String(env.LN_REREAD_SEED ?? '').trim();
+  if (releitura && seed === '') p.push('jobsIntelligence=releitura exige LN_REREAD_SEED (conjunto de cargos a reler; valor definido pelo PM)');
+  else if (!releitura && seed !== '') p.push('LN_REREAD_SEED definida, mas o pacote não liga a releitura: apague a variável do app');
+  if (!releitura && String(env.BRIGHTDATA_API_KEY ?? '').trim() !== '' && amb !== 'staging') p.push('BRIGHTDATA_API_KEY definida fora do staging: a leitura por provedor é só do staging (ADR-022 adendo 2)');
+  if (rel.length) {
+    if (amb !== 'staging') p.push(`jobsIntelligence=${rel.join(',')} com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging`);
+    if (!flagsNormalizadas(env.LN_FLAGS_ON).split(',').includes('intelligencePessoas')) p.push(`jobsIntelligence=${rel.join(',')} exige LN_FLAGS_ON com intelligencePessoas (ADR-022)`);
   }
   return p;
 }
