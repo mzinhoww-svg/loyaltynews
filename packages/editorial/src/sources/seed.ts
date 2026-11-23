@@ -694,8 +694,9 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "não informado",
-      "notes": "Reavaliação de 2026-11-23: segue BLOQUEADA para o nosso coletor (302 → www.santander.com.br/ri/ → 403). Registrada como inacessivel; não tentar outro User-Agent. Caminhos legítimos: o CVM (fatos relevantes), autorização/contato do RI do Santander ou nova sondagem quando o bloqueio mudar. O dossiê de termos (classe D) vale para o texto de privacidade lido na releitura anterior. Destino do redirecionamento cadastrado como a fonte (www.santander.com.br, prefixo /ri), conforme o Data (480250c); o coletor não segue redirecionamento para outro host (url_rejected)."
-    }
+      "notes": "Reavaliação de 2026-11-23: segue BLOQUEADA para o nosso coletor (302 → www.santander.com.br/ri/ → 403). Registrada como inacessivel; não tentar outro User-Agent. Caminhos legítimos: o CVM (fatos relevantes), autorização/contato do RI do Santander ou nova sondagem quando o bloqueio mudar. O dossiê de termos (classe D) vale para o texto de privacidade lido na releitura anterior. Destino do redirecionamento cadastrado como a fonte (www.santander.com.br, prefixo /ri), conforme o Data (480250c); o coletor não segue redirecionamento para outro host (url_rejected). DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31)."
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "idv",

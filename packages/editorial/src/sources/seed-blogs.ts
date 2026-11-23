@@ -479,7 +479,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -490,7 +490,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "guia-bolso-blog",
@@ -862,7 +863,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 402); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 402); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -873,7 +874,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "opinion-box-blog",
@@ -1349,7 +1351,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1360,7 +1362,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "head-for-points",
@@ -1382,7 +1385,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1393,7 +1396,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "point-hacks",
@@ -1450,7 +1454,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1461,7 +1465,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "loyalty-lobby",
@@ -1483,7 +1488,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1494,7 +1499,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "million-mile-secrets",
@@ -1588,7 +1594,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1599,7 +1605,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "travel-weekly",
@@ -1621,7 +1628,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1632,7 +1639,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "simple-flying",
@@ -1690,7 +1698,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1701,7 +1709,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "loyalty-magazine",
@@ -1965,7 +1974,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (home HTTP 403 (bloqueio/desafio)); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -1976,7 +1985,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   },
   {
     "id": "pymnts",
@@ -2283,7 +2293,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
-    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular.",
+    "notes": "Bloqueada para o nosso User-Agent na pesquisa de 2026-11-23 (robots.txt HTTP 403); NÃO contornar. Reavaliar por feed/newsletter pública ou autorização do titular. DP-31 (23/11/2026): risco aceito pelo proprietário; só leitura de página PÚBLICA por serviço de busca/extração (nunca CAPTCHA, login, paywall, falsificação de navegador ou proxy rotativo), ≥ 10 s por host, poucas páginas por dia, parar no 429, guardar só trecho curto + link + data. Continua desabilitada até a revisão humana (nota deve citar a DP-31).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "inacessivel",
@@ -2294,6 +2304,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
       "notes": "classe=E; sem leitura; sem feed identificado"
-    }
+    },
+    "acesso": "risco-aceito-dp31"
   }
 ];

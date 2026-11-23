@@ -1,5 +1,5 @@
 import type { Evidence, Source } from '../types';
-import { sourceTier } from '../types';
+import { ACESSO_DP31, sourceTier } from '../types';
 import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
@@ -21,13 +21,26 @@ export interface HttpResponse { status: number; headers: Record<string, string>;
 export interface FetchOptions { userAgent: string; address: string; family: Family }
 export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpResponse> }
 
+/**
+ * DP-31: leitura de página PÚBLICA por serviço de busca e extração (Tavily ou similar) no lugar da busca direta, só para fontes
+ * com acesso 'risco-aceito-dp31'. O serviço NÃO resolve CAPTCHA, não entra em login/paywall e não falsifica navegador: se a
+ * página vier com desafio, login ou paywall, o coletor para. status = o da leitura (200 ok; 429 pedido de pausa; 403/5xx falha).
+ */
+export interface ReaderResult { status: number; body: string; format?: 'html' | 'text'; retryAfterSec?: number | null }
+export interface ReaderPort {
+  readonly name: string;
+  read(url: string): Promise<ReaderResult>;
+  /** Descoberta de matérias novas da fonte (busca restrita ao domínio). Opcional. */
+  discover?(source: Source, limit: number): Promise<Array<{ url: string; title?: string; publishedAt?: string | null }>>;
+}
+
 export const USER_AGENT = 'LoyaltyNewsBot/0.1 (+coletor determinístico; respeita robots.txt)';
 const MAX_REDIRECTS = 3;
 const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
-  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge';
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable';
 
 /**
  * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
@@ -47,6 +60,14 @@ export interface CollectorOptions {
   maxCrawlDelaySec?: number;
   /** Intervalo mínimo entre requisições ao MESMO host, mesmo sem Crawl-delay (ms). Padrão 3000. Os testes passam 0. */
   minSpacingMs?: number;
+  /** DP-31: serviço de leitura das fontes com acesso 'risco-aceito-dp31'. Sem ele, essas fontes são puladas ('reader_unavailable'). */
+  reader?: ReaderPort;
+  /** DP-31: intervalo mínimo entre leituras do mesmo host (ms). Padrão 10000 (mínimo do proprietário). */
+  dp31SpacingMs?: number;
+  /** DP-31: páginas por host em 24 h ("poucas por dia"). Padrão 5; acima disso, 'rate_limited'. */
+  dp31MaxPagesPerDay?: number;
+  /** DP-31: só se guarda um trecho curto do texto (nunca o texto integral). Padrão 1500 caracteres. */
+  dp31MaxStoredChars?: number;
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -65,6 +86,11 @@ export class Collector {
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly maxCrawlDelaySec: number;
   private readonly minSpacingMs: number;
+  private readonly reader: ReaderPort | undefined;
+  private readonly dp31SpacingMs: number;
+  private readonly dp31MaxPagesPerDay: number;
+  private readonly dp31MaxStoredChars: number;
+  private readonly dp31Reads = new Map<string, number[]>();
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
@@ -78,6 +104,10 @@ export class Collector {
     this.sleep = opts.sleep ?? realSleep;
     this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
     this.minSpacingMs = opts.minSpacingMs ?? 3000;
+    this.reader = opts.reader;
+    this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
+    this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
+    this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
   }
 
   /**
@@ -172,6 +202,7 @@ export class Collector {
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
+    if (source.acesso === ACESSO_DP31) return this.collectUrlViaReader(source, u, hint);
     const rules = await this.robotsFor(source);
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
@@ -187,6 +218,13 @@ export class Collector {
     const gate = detectGate(r);
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
+    return this.toEvidence(source, u, r.body, hint);
+  }
+
+  /** Do corpo HTML ao Evidence (parse, saneamento, injeção em comentário, hash). `acesso`/`maxChars` só no caminho DP-31. */
+  private toEvidence(source: Source, u: URL, body: string, hint: { title?: string; publishedAt?: string | null } | undefined, dp31 = false): { evidence?: Evidence; skip?: Skip } {
+    const url = u.toString();
+    const r = { body };
     const meta = parseHtml(r.body, u.toString());
     const san = sanitize(meta.bodyHtml);
     if (!san.text) return { skip: { url, code: 'empty_content', detail: '' } };
@@ -205,7 +243,9 @@ export class Collector {
       suspicious: san.suspicious, suspiciousReasons: san.reasons,
       sourceTier: sourceTier(source.kind),
       ...(meta.links.length ? { outboundLinks: meta.links } : {}),
+      ...(dp31 ? { acesso: ACESSO_DP31 } : {}),
     };
+    if (dp31) evidence.text = capText(evidence.text, this.dp31MaxStoredChars);
     return { evidence };
   }
 
@@ -215,6 +255,7 @@ export class Collector {
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    if (source.acesso === ACESSO_DP31) return this.collectDp31(source, limit);
     if (!source.feedUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem feedUrl cadastrado' }); return out; }
     const f = await this.collectRaw(source, source.feedUrl);
     if (f.skip) { out.skipped.push(f.skip); return out; }
@@ -226,6 +267,72 @@ export class Collector {
         // sem insistir quando a fonte pede pausa: limite por hora ou Crawl-delay excessivo
         if (stopsCollection(r.skip)) break;
       }
+    }
+    return out;
+  }
+
+  /** Janela de 24 h, espaçamento mínimo e leitura pelo serviço. Nunca repete, nunca tenta outro caminho. */
+  private async readViaReader(source: Source, url: string): Promise<{ r?: ReaderResult; skip?: Skip }> {
+    if (!this.reader) return { skip: { url, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_DP31} e nenhum serviço de leitura configurado` } };
+    const host = source.host;
+    const nowMs = this.now().getTime();
+    const win = (this.dp31Reads.get(host) ?? []).filter((t) => nowMs - t < 86_400_000);
+    if (win.length >= this.dp31MaxPagesPerDay) {
+      this.dp31Reads.set(host, win);
+      return { skip: { url, code: 'rate_limited', detail: `DP-31: limite de ${this.dp31MaxPagesPerDay} páginas por dia atingido para ${host}` } };
+    }
+    const last = win.at(-1);
+    if (last !== undefined) {
+      const wait = last + this.dp31SpacingMs - nowMs;
+      if (wait > 0) await this.sleep(wait);
+    }
+    win.push(this.now().getTime());
+    this.dp31Reads.set(host, win);
+    let r: ReaderResult;
+    try { r = await this.reader.read(url); } catch (e) { return { skip: { url, code: 'http_error', detail: e instanceof Error ? e.message.slice(0, 160) : 'erro do serviço de leitura' } }; }
+    if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 (${this.reader.name})${r.retryAfterSec ? ` (Retry-After: ${r.retryAfterSec})` : ''}` } };
+    if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+    return { r };
+  }
+
+  /** Corpo do serviço → HTML mínimo (o serviço devolve texto/markdown): parágrafos escapados dentro de <article>. */
+  private asHtml(r: ReaderResult): string {
+    if (r.format !== 'text') return r.body;
+    const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const paras = r.body.split(/\n{2,}/).map((x) => x.replace(/^#+\s*/, '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return `<html><head><title>${esc((paras[0] ?? '').slice(0, 160))}</title></head><body><article>${paras.map((x) => `<p>${esc(x)}</p>`).join('')}</article></body></html>`;
+  }
+
+  /** DP-31: ignora robots.txt e a recusa do site; NÃO ignora desafio/CAPTCHA, login/paywall, 429 nem limites de ritmo. */
+  private async collectUrlViaReader(source: Source, u: URL, hint?: { title?: string; publishedAt?: string | null }): Promise<{ evidence?: Evidence; skip?: Skip }> {
+    const url = u.toString();
+    const g = await this.readViaReader(source, url);
+    if (g.skip) return { skip: g.skip };
+    const html = this.asHtml(g.r!);
+    if (html.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(html.length) } };
+    const chal = detectChallenge({ status: g.r!.status, headers: {}, html, text: stripHtml(html) });
+    if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+    const gate = detectGate({ status: g.r!.status, headers: {}, body: html });
+    if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
+    return this.toEvidence(source, u, html, hint, true);
+  }
+
+  /** DP-31: descoberta por busca restrita ao domínio (discover) ou pelo feed lido pelo serviço; depois lê cada página, parando como na coleta normal. */
+  private async collectDp31(source: Source, limit: number): Promise<CollectResult> {
+    const out: CollectResult = { evidences: [], skipped: [] };
+    if (!this.reader) { out.skipped.push({ url: source.host, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_DP31} e nenhum serviço de leitura configurado` }); return out; }
+    let items: Array<{ url: string; title?: string; publishedAt?: string | null }> = [];
+    if (this.reader.discover) {
+      try { items = await this.reader.discover(source, limit); } catch (e) { out.skipped.push({ url: source.host, code: 'http_error', detail: e instanceof Error ? e.message.slice(0, 160) : 'erro na descoberta' }); return out; }
+    } else if (source.feedUrl) {
+      const f = await this.collectRaw(source, source.feedUrl);
+      if (f.skip) { out.skipped.push(f.skip); return out; }
+      items = parseFeed(f.body!).map((i) => ({ url: i.link, title: i.title, publishedAt: i.publishedAt }));
+    }
+    for (const it of items.slice(0, limit)) {
+      const r = await this.collectUrl(source, it.url, { ...(it.title ? { title: it.title } : {}), publishedAt: it.publishedAt ?? null });
+      if (r.evidence) out.evidences.push(r.evidence);
+      else if (r.skip) { out.skipped.push(r.skip); if (stopsCollection(r.skip)) break; }
     }
     return out;
   }
@@ -275,6 +382,12 @@ export class Collector {
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
+    if (source.acesso === ACESSO_DP31) {
+      const g = await this.readViaReader(source, url);
+      if (g.skip) return { skip: g.skip };
+      const chal = detectChallenge({ status: g.r!.status, headers: {}, html: g.r!.body, text: g.r!.body });
+      return chal ? { skip: { url, code: 'challenge', detail: chal } } : { body: g.r!.body };
+    }
     const rules = await this.robotsFor(source);
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
@@ -291,6 +404,14 @@ export class Collector {
       return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
   }
+}
+
+/** Trecho curto (DP-31): corta no fim de frase quando dá, sem passar de `max` caracteres. */
+export function capText(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max);
+  const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('.\n'));
+  return (end > max * 0.5 ? cut.slice(0, end + 1) : cut.trimEnd() + '…');
 }
 
 /** Evidência sem URL, data ou hash é rejeitada (ADR-007). */

@@ -10,6 +10,7 @@ import { Pool } from 'pg';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
+import { TavilyReader } from '@ln/editorial';
 import { parseFactoryFlags, runEditorialFactory } from './editorial-factory';
 
 async function main() {
@@ -36,7 +37,9 @@ async function main() {
         mode: 'simulation' as const, qualifiedModelIds: [] as string[], zdrVerifiedModelIds: [] as string[],
       };
     }
-    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
+    // DP-31 (desligado por padrão): só com LN_TAVILY_API_KEY (chave do plano gratuito, lida do cofre do OpenBot pelo operador; nunca em log).
+    const reader = process.env['LN_TAVILY_API_KEY'] ? new TavilyReader({ apiKey: process.env['LN_TAVILY_API_KEY'] }) : undefined;
+    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(reader ? { reader } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
     console.log(JSON.stringify(report, null, 2));
   } finally {
     await pool.end();
