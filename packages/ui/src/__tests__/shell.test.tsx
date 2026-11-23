@@ -5,7 +5,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expectNoViolations } from "./a11y";
 import { describe, expect, it } from "vitest";
-import { ArticleCard, EDITORIAS, FOOTER_TAGLINE, Footer, Header, Logo, MockBadge, Monogram, SocialLinks } from "../index";
+import { ArticleCard, DEMO_BANNER_TEXT, DemoBanner, EDITORIAS, FOOTER_TAGLINE, Footer, Header, Logo, MockBadge, Monogram, SocialLinks } from "../index";
 
 
 describe("Header", () => {
@@ -29,7 +29,10 @@ describe("Header", () => {
     const util = screen.getByRole("navigation", { name: "Atalhos do portal" });
     expect(within(util).getAllByRole("link")).toHaveLength(2);
     expect(within(util).getByRole("link", { name: "Em alta" })).toHaveAttribute("aria-current", "page");
-    expect(within(screen.getByRole("navigation", { name: "Editorias" })).getAllByRole("link")).toHaveLength(10);
+    // No mobile os atalhos também entram no menu de editorias (10 editorias + 2 atalhos)
+    const ed = within(screen.getByRole("navigation", { name: "Editorias" }));
+    expect(ed.getAllByRole("link")).toHaveLength(12);
+    expect(ed.getByRole("link", { name: "Bancos & Cartões" })).toBeInTheDocument();
     await expectNoViolations(container);
   });
   it("tem link 'Pular para o conteúdo' apontando para o main", () => {
@@ -42,7 +45,7 @@ describe("Header", () => {
     const btn = screen.getByRole("button", { name: "Menu" });
     expect(btn).toHaveAttribute("aria-expanded", "false");
     await user.click(btn);
-    expect(screen.getByRole("button", { name: "Fechar menu" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Fechar" })).toHaveAttribute("aria-expanded", "true");
     await user.keyboard("{Escape}");
     expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: "Menu" })).toHaveFocus();
@@ -54,7 +57,8 @@ describe("Header", () => {
       </a>
     );
     const { container } = render(<Header linkAs={Custom} />);
-    expect(container.querySelectorAll("[data-custom='1']").length).toBe(11); // logo + 10
+    // logo + 10 editorias + 5 repetidas no painel "Mais" (fechado, escondido; só um dos dois aparece por largura)
+    expect(container.querySelectorAll("[data-custom='1']").length).toBe(16);
   });
   it("sem violações axe", async () => {
     const { container } = render(
@@ -63,6 +67,63 @@ describe("Header", () => {
       </main>,
     );
     await expectNoViolations(container);
+  });
+});
+
+describe("Header: menu de uma linha com Mais", () => {
+  it("botão Mais divulga as editorias que não cabem; Esc fecha e devolve o foco", async () => {
+    const user = userEvent.setup();
+    render(<Header />);
+    const more = screen.getByRole("button", { name: /Mais/ });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    const panel = document.getElementById(more.getAttribute("aria-controls")!)!;
+    expect(panel).toHaveAttribute("hidden");
+    await user.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    expect(panel).not.toHaveAttribute("hidden");
+    // do 6º item em diante (índices 5..9 = 5 editorias)
+    expect(within(panel).getAllByRole("link")).toHaveLength(5);
+    expect(within(panel).getByRole("link", { name: "Regulação & Dados" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(more).toHaveFocus();
+  });
+  it("clique fora fecha o painel", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button>fora</button>
+        <Header />
+      </>,
+    );
+    const more = screen.getByRole("button", { name: /Mais/ });
+    await user.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByRole("button", { name: "fora" }));
+    expect(more).toHaveAttribute("aria-expanded", "false");
+  });
+  it("editoria atual dentro de Mais marca o botão", () => {
+    render(<Header currentSlug="regulacao" />);
+    expect(screen.getByRole("button", { name: /Mais/ })).toHaveAttribute("data-current", "true");
+  });
+  it("com 5 editorias ou menos não há botão Mais", () => {
+    render(<Header editorias={EDITORIAS.slice(0, 5)} />);
+    expect(screen.queryByRole("button", { name: /Mais/ })).toBeNull();
+  });
+  it("itens além do 5º recebem classes de prioridade por largura", () => {
+    const { container } = render(<Header visibleEditorias={6} />);
+    const items = [...container.querySelectorAll(".ln-header__list > li")].slice(0, 10);
+    expect(items[4]!.className).toBe("");
+    expect(items[5]!.className).toContain("ln-header__item--wide");
+    expect(items[6]!.className).toContain("ln-header__item--more");
+  });
+});
+
+describe("DemoBanner", () => {
+  it("mostra o texto exato exigido pelo Security, com role note", () => {
+    render(<DemoBanner />);
+    expect(DEMO_BANNER_TEXT).toBe("Conteúdo de demonstração — não publicado");
+    expect(screen.getByRole("note")).toHaveTextContent("Conteúdo de demonstração — não publicado");
   });
 });
 
@@ -143,16 +204,23 @@ describe("ArticleCard", () => {
     expect(container.querySelector(`.ln-card--${size}`)).not.toBeNull();
     await expectNoViolations(container);
   });
-  it("sem imagem usa placeholder decorativo (aria-hidden), nunca imagem inventada", () => {
+  it("sem foto não há caixa de imagem nem imagem inventada; o cartão vira só texto", () => {
     const { container } = render(<ArticleCard {...base} />);
     expect(container.querySelector("img")).toBeNull();
-    expect(container.querySelector(".ln-card__placeholder")).toHaveAttribute("aria-hidden", "true");
+    expect(container.querySelector(".ln-card__media")).toBeNull();
+    expect(container.querySelector(".ln-card")).toHaveClass("ln-card--noimg");
+  });
+  it("com foto mostra a imagem e o rótulo visível (ex.: Ilustração)", () => {
+    const { container } = render(<ArticleCard {...base} imageSrc="data:image/svg+xml;base64,PHN2Zy8+" imageAlt="" imageLabel="Ilustração" />);
+    expect(container.querySelector("img")).not.toBeNull();
+    expect(screen.getByText("Ilustração")).toBeVisible();
+    expect(container.querySelector(".ln-card")).not.toHaveClass("ln-card--noimg");
   });
   it("data em pt-BR com <time dateTime>", () => {
     render(<ArticleCard {...base} publishedAt="2026-11-22T12:00:00-03:00" />);
     const t = document.querySelector("time")!;
     expect(t).toHaveAttribute("datetime", "2026-11-22T12:00:00-03:00");
-    expect(t.textContent).toBe("22 de novembro de 2026");
+    expect(t.textContent).toBe("22 nov 2026");
   });
   it("isMock mostra o selo MOCK visível", () => {
     render(<ArticleCard {...base} isMock />);

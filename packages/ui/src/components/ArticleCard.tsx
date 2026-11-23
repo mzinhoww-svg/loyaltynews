@@ -1,8 +1,7 @@
-import { cx, formatDatePtBR, type LinkAs } from "../utils";
+import { cx, formatDateShortPtBR, type LinkAs } from "../utils";
 import type { EditoriaLike } from "../editorias";
 import { EditoriaBadge } from "./Tag";
 import { MockBadge } from "./MockBadge";
-import { Monogram } from "./Logo";
 
 export type ArticleCardSize = "lg" | "md" | "sm" | "compact";
 
@@ -19,6 +18,8 @@ export interface ArticleCardProps {
   imageSrc?: string;
   /** Obrigatório com `imageSrc`; use "" só se a imagem for puramente decorativa. */
   imageAlt?: string;
+  /** Rótulo visível sobre a imagem, ex.: "Ilustração" (templates por código) ou crédito curto. */
+  imageLabel?: string;
   /** Nível do título (h2–h4) conforme a hierarquia da página. */
   headingLevel?: 2 | 3 | 4;
   /** Posição em listas "Em Alta" (exibe número). */
@@ -44,6 +45,7 @@ export function ArticleCard({
   author,
   imageSrc,
   imageAlt = "",
+  imageLabel,
   headingLevel = 3,
   rank,
   isMock,
@@ -52,28 +54,24 @@ export function ArticleCard({
 }: ArticleCardProps) {
   const Link = linkAs ?? "a";
   const Heading = `h${headingLevel}` as "h2" | "h3" | "h4";
-  const showMedia = size !== "compact";
+  // Sem foto não há caixa de imagem: o cartão fica só com texto (nada de bloco vazio ocupando a página).
+  const showMedia = size !== "compact" && Boolean(imageSrc);
   const showExcerpt = Boolean(excerpt) && (size === "lg" || size === "md");
-  const date = publishedAt ? formatDatePtBR(publishedAt) : "";
+  const date = publishedAt ? formatDateShortPtBR(publishedAt) : "";
 
   return (
-    <article className={cx("ln-card", `ln-card--${size}`, className)}>
+    <article className={cx("ln-card", `ln-card--${size}`, !showMedia && size !== "compact" && "ln-card--noimg", className)}>
       {showMedia ? (
         <div className="ln-card__media">
-          {imageSrc ? (
-            <img src={imageSrc} alt={imageAlt} loading="lazy" decoding="async" />
-          ) : (
-            <div className="ln-card__placeholder" aria-hidden="true">
-              <Monogram variant="light" size={size === "lg" ? 72 : 40} decorative />
-            </div>
-          )}
+          <img src={imageSrc} alt={imageAlt} loading="lazy" decoding="async" />
+          {imageLabel ? <span className="ln-card__imglabel">{imageLabel}</span> : null}
         </div>
       ) : null}
       <div className="ln-card__body">
         <div className="ln-card__meta">
           {rank ? <span className="ln-card__rank"><span className="ln-sr-only">Posição </span>{rank}</span> : null}
           {editoria ? <EditoriaBadge editoria={editoria} /> : null}
-          {isMock ? <MockBadge /> : null}
+          {isMock ? <MockBadge label="" /> : null}
         </div>
         <Heading className="ln-card__title">
           <Link href={href} className="ln-card__link">
@@ -83,7 +81,7 @@ export function ArticleCard({
         {showExcerpt ? <p className="ln-card__excerpt">{excerpt}</p> : null}
         {date || author || readingMinutes ? (
           <p className="ln-card__byline">
-            {author ? <span>{author}</span> : null}
+            {author ? <span className="ln-card__author">{author}</span> : null}
             {date && publishedAt ? <time dateTime={publishedAt}>{date}</time> : null}
             {readingMinutes ? <span>{readingMinutes} min de leitura</span> : null}
           </p>
