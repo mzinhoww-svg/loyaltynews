@@ -5,7 +5,7 @@
 import type { Db } from '@ln/auth';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
-  Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
+  type ModelGateway, type PilotRowSink, Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
   type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
@@ -84,8 +84,15 @@ export interface RunEditorialFactoryInput {
   /** Padrão TRUE: só coleta e relata (sem modelo, sem gravar matéria). */
   dryRun?: boolean;
   options?: Omit<FactoryOptions, 'dryRun'>;
-  /** Deps do gateway de modelos (política, orçamento, cliente). Obrigatório fora do dry-run. */
+  /** Deps do gateway de modelos (política, orçamento, cliente). Obrigatório fora do dry-run, salvo `modelGateway`. */
   gateway?: ModelopsTransportOptions;
+  /**
+   * Gateway de modelos PRONTO (ex.: OpenBotModelGateway do piloto, DP-41, só staging). Quando informado substitui o gateway de modelops;
+   * a chave de idempotência continua `<matéria>:<classe>:<tentativa>` e checagem/revisão recebem `reviewedDraftTaskId`.
+   */
+  modelGateway?: ModelGateway;
+  /** Linha do piloto (planilha de medição): veredito do gate e output_valid gravados por tarefa. */
+  pilotSink?: PilotRowSink;
   /** Orçamento persistido em PostgreSQL? Sem isso, `modelosHabilitados` é recusada (o teto de US$ 50/mês não sobreviveria a um restart). */
   persistentLedger?: boolean;
   registry?: SourceRegistry;
@@ -108,7 +115,7 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   if (!dryRun && flags.modelosHabilitados && !i.persistentLedger) {
     throw new Error('modelosHabilitados exige ledger de orçamento persistente (PostgreSQL); recusado para não perder o teto mensal em um restart');
   }
-  if (!dryRun && !i.gateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos');
+  if (!dryRun && !i.gateway && !i.modelGateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos');
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
@@ -116,8 +123,9 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const observer = shadowObserver(i.shadow);
   const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
+  const modelGateway = i.modelGateway ?? createLlmGateway(llm);
   try {
-    return await runFactory({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
+    return await runFactory({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.options ?? {}), dryRun });
   } finally {
     await drainShadow(i.shadow); // o job só termina quando a fila da sombra termina
   }
@@ -132,19 +140,38 @@ export async function runEditorialAutoral(i: Omit<RunEditorialFactoryInput, 'opt
   if (flags.modelosHabilitados && !i.persistentLedger) {
     throw new Error('modelosHabilitados exige ledger de orçamento persistente (PostgreSQL); recusado para não perder o teto mensal em um restart');
   }
-  if (!i.gateway) throw new Error('a pauta autoral chama modelo: informe o gateway de modelos');
+  if (!i.gateway && !i.modelGateway) throw new Error('a pauta autoral chama modelo: informe o gateway de modelos');
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
   const reader = shadowReader(i.reader, i.shadow);
   const observer = shadowObserver(i.shadow);
   const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
-  const llm: ChatTransport = createModelopsTransport(i.gateway);
+  const modelGateway = i.modelGateway ?? createLlmGateway(createModelopsTransport(i.gateway!));
   try {
-    return await runAutoralQueue({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.max ? { max: i.max } : {}) });
+    return await runAutoralQueue({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.max ? { max: i.max } : {}) });
   } finally {
     await drainShadow(i.shadow);
   }
+}
+
+/**
+ * Piloto de 10 matérias pelo OpenBot (DP-41, SÓ staging): gateway do OpenBot no lugar do de modelops e gravação do veredito na linha do piloto.
+ * Liga só com APP_ENV=staging E LN_OPENBOT_PILOT=1 (as duas; qualquer outra combinação = nada muda e nada é importado). A montagem real
+ * (OpenBotModelGateway com PgTaskIo, fila, ledger e flags + PgPilotRowStore/applyRowPatch) fica no módulo de fiação do Backend/Integration, que
+ * precisa exportar `createPilotWiring(env): Promise<{ gateway: ModelGateway; sink: PilotRowSink }>`; o Editorial não depende desses pacotes.
+ * Ligada e sem o módulo, o job RECUSA começar (não cai em silêncio no gateway de modelops).
+ */
+export async function loadPilotWiring(env: Record<string, string | undefined>, importer: (spec: string) => Promise<Record<string, unknown>> = (s) => import(/* @vite-ignore */ s) as Promise<Record<string, unknown>>): Promise<{ gateway: ModelGateway; sink: PilotRowSink } | undefined> {
+  if (env['LN_OPENBOT_PILOT'] !== '1') return undefined;
+  if (env['APP_ENV'] !== 'staging') throw new Error('LN_OPENBOT_PILOT=1 só vale com APP_ENV=staging (DP-41): recusado');
+  const spec = env['LN_OPENBOT_PILOT_WIRING'] ?? '@ln/openbot-wiring';
+  const mod = await importer(spec).catch(() => null);
+  const make = mod?.['createPilotWiring'];
+  if (typeof make !== 'function') throw new Error(`LN_OPENBOT_PILOT=1, mas ${spec} (createPilotWiring) não está disponível neste ambiente`);
+  const w = (await make(env)) as { gateway?: ModelGateway; sink?: PilotRowSink };
+  if (!w?.gateway || typeof w.gateway.invoke !== 'function') throw new Error('createPilotWiring não devolveu um gateway com invoke()');
+  return { gateway: w.gateway, ...(w.sink ? { sink: w.sink } : {}) } as { gateway: ModelGateway; sink: PilotRowSink };
 }
 
 /**

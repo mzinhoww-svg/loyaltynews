@@ -11,7 +11,7 @@ import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
-import { loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
+import { loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
 
 async function main() {
   const { DATABASE_URL, LN_FACTORY_FLAGS, LN_MODEL_POLICY } = process.env;
@@ -25,8 +25,9 @@ async function main() {
   const pool = new Pool({ connectionString: DATABASE_URL, max: 4 });
   const db = drizzle(pool, { schema }) as unknown as Db;
   try {
+    const pilot = await loadPilotWiring(process.env); // DP-41: só staging (APP_ENV=staging e LN_OPENBOT_PILOT=1); senão undefined
     let gateway;
-    if (run) {
+    if (run && !pilot) {
       if (!simulate) { console.error('[fábrica] --run exige --simulate enquanto não houver chamada real de modelo autorizada'); process.exit(1); }
       const path = LN_MODEL_POLICY ?? resolve(process.cwd(), 'packages/modelops/fixtures/model.policy.proposto-DP02-v5.json');
       const check = loadPolicyFile(path);
@@ -44,11 +45,11 @@ async function main() {
     const reader = tavilyKeys.length ? new TavilyReader({ apiKeys: tavilyKeys }) : undefined;
     if (args.includes('--autoral')) {
       // pautas autorais pendentes (DP-29): exige --run --simulate enquanto não houver chamada real de modelo autorizada
-      if (!gateway) { console.error('[fábrica] --autoral chama modelo: use --run --simulate'); process.exit(1); }
-      console.log(JSON.stringify(await runEditorialAutoral({ db, flags, gateway, ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(max ? { max } : {}) }), null, 2));
+      if (!gateway && !pilot) { console.error('[fábrica] --autoral chama modelo: use --run --simulate'); process.exit(1); }
+      console.log(JSON.stringify(await runEditorialAutoral({ db, flags, ...(gateway ? { gateway } : {}), ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(max ? { max } : {}) }), null, 2));
       return;
     }
-    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
+    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
     console.log(JSON.stringify(report, null, 2));
   } finally {
     await pool.end();
