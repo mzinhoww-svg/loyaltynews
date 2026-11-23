@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadRegistries } from './config';
-import { authorOfDeclaredModel, buildPilotAgents, buildPilotPrompts, CLASS_C_EXCLUDED, evaluatePilot, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, sheetCsvHeader, validatePilotRow, type PilotRow } from './pilot';
+import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, buildPilotPrompts, canDispatchNext, CLASS_C_EXCLUDED, evaluatePilot, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, type PilotRow } from './pilot';
 
 const reg = loadRegistries();
 
@@ -14,7 +14,7 @@ const base = (over: Partial<PilotRow>): PilotRow => ({
 });
 const draft = (n: number, at: number, over: Partial<PilotRow> = {}) => base({ task_id: `d${n}`, article_id: `a${n}`, started_at: iso(at), ended_at: iso(at + 2), ...over });
 const check = (n: number, at: number, over: Partial<PilotRow> = {}) =>
-  base({ task_id: `c${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'check_edit', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'checker_editor-v1+y', started_at: iso(at), ended_at: iso(at + 3), gate_verdict: 'approved', cross_provider_ok: true, unsupported_facts: 0, ...over });
+  base({ task_id: `c${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'check_edit', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'checker_editor-v1+y', started_at: iso(at), ended_at: iso(at + 3), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, unsupported_facts: 0, ...over });
 
 describe('prompts versionados do piloto', () => {
   const prompts = buildPilotPrompts(reg);
@@ -105,6 +105,8 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
     expect(validatePilotRow(draft(1, 0, { outcome: 'pending_limit' }))).toEqual(expect.arrayContaining([expect.stringMatching(/pending_limit exige/)]));
     expect(validatePilotRow(draft(1, 5, { ended_at: iso(1) }))).toEqual(expect.arrayContaining([expect.stringMatching(/ended_at antes/)]));
     expect(validatePilotRow(check(1, 0, { gate_verdict: undefined }))).toEqual(expect.arrayContaining([expect.stringMatching(/gate_verdict/)]));
+    expect(validatePilotRow(check(1, 0, { reviewed_draft_task_id: undefined }))).toEqual(expect.arrayContaining([expect.stringMatching(/reviewed_draft_task_id/)]));
+    expect(validatePilotRow(check(1, 0, { gate_reasons: ['same_author'] }))).toEqual(expect.arrayContaining([expect.stringMatching(/approved com motivo bloqueante \(same_author\)/)]));
   });
 
   it('10 matérias sem bater limite: independência passa, qualidade passa, janelas = "repetir com 30"', () => {
@@ -139,7 +141,7 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
     const same = evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'claude-opus-5-5' })]);
     expect(same.exit.independence).toBe('fail');
     expect(same.exit.overall).toBe('fail');
-    expect(same.independence.failures[0]).toMatch(/a1: redator claude-sonnet-5-5 x checador claude-opus-5-5/);
+    expect(same.independence.failures[0]).toMatch(/a1\/c1: redator claude-sonnet-5-5 x checador claude-opus-5-5/);
     expect(evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.independence).toBe('fail');
     expect(evaluatePilot([draft(1, 0), check(1, 3, { cross_provider_ok: false })]).exit.independence).toBe('fail');
     expect(evaluatePilot([check(1, 3)]).exit.independence).toBe('fail'); // checagem sem rascunho conhecido
@@ -168,5 +170,121 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
   it('sem linhas: tudo inconclusivo (nada é dado como bom)', () => {
     const e = evaluatePilot([]);
     expect(e.exit).toMatchObject({ windowsMeasured: 'inconclusive', independence: 'inconclusive', quality: 'inconclusive', overall: 'inconclusive' });
+  });
+});
+
+describe('sondas do QA 1 sobre o avaliador (f5c7b08)', () => {
+  // (1) independência por par redator→checador da MESMA revisão, sem sobrescrita
+  it('1a. rascunho posterior de outro autor NÃO faz passar uma checagem do mesmo autor (a checagem aponta a revisão que recebeu)', () => {
+    const rows = [
+      draft(1, 0, { task_id: 'd1', declared_model: 'claude-sonnet-5-5' }),
+      check(1, 3, { declared_model: 'claude-opus-5-5' }), // Claude redigiu e outro Claude checou: reprova
+      draft(1, 10, { task_id: 'd1b', declared_model: 'gpt-6.1-terra' }), // revisão posterior de outro autor, depois da checagem
+    ];
+    const e = evaluatePilot(rows);
+    expect(e.exit.independence).toBe('fail');
+    expect(e.exit.overall).toBe('fail');
+    expect(e.independence.failures[0]).toMatch(/redator claude-sonnet-5-5 x checador claude-opus-5-5/);
+    expect(e.independence.uncheckedFinalDrafts).toEqual(['a1/d1b']); // e a revisão final nunca foi checada
+  });
+
+  it('1b. o par correto passa; checagem ligada à revisão errada, ausente, ambígua, de outra matéria ou anterior ao rascunho falha', () => {
+    const d1 = draft(1, 0);
+    expect(evaluatePilot([d1, check(1, 3)]).exit.independence).toBe('pass');
+    // revisão 2 do mesmo artigo, checada de fato: cada par vale por si
+    const d1b = draft(1, 10, { task_id: 'd1b', declared_model: 'claude-opus-5-5' });
+    const rev = evaluatePilot([d1, check(1, 3), d1b, check(1, 13, { task_id: 'c1b', reviewed_draft_task_id: 'd1b' })]);
+    expect(rev.independence).toMatchObject({ checked: 2, ok: 2, uncheckedFinalDrafts: [] });
+    expect(rev.exit.independence).toBe('pass');
+    // sem vínculo
+    expect(evaluatePilot([d1, check(1, 3, { reviewed_draft_task_id: undefined })]).independence.failures[0]).toMatch(/vínculo ausente/);
+    // vínculo para rascunho inexistente
+    expect(evaluatePilot([d1, check(1, 3, { reviewed_draft_task_id: 'nao-existe' })]).independence.failures[0]).toMatch(/não existe ou não está concluído/);
+    // vínculo ambíguo (dois rascunhos concluídos com o mesmo task_id)
+    expect(evaluatePilot([d1, draft(1, 1, { task_id: 'd1' }), check(1, 6)]).independence.failures[0]).toMatch(/vínculo ambíguo/);
+    // rascunho de outra matéria
+    expect(evaluatePilot([draft(2, 0), check(1, 3, { reviewed_draft_task_id: 'd2' })]).independence.failures[0]).toMatch(/é da matéria a2/);
+    // checagem começou antes de o rascunho terminar
+    expect(evaluatePilot([d1, check(1, 1)]).independence.failures[0]).toMatch(/antes de o rascunho/);
+    // checagem aponta um rascunho que não concluiu
+    expect(evaluatePilot([draft(1, 0, { outcome: 'failed' }), check(1, 3)]).independence.failures[0]).toMatch(/não existe ou não está concluído/);
+  });
+
+  // (2) motivo bloqueante
+  it('2. gate_reasons com same_author reprova mesmo com autores declarados diferentes; aprovado + motivo bloqueante é linha inválida', () => {
+    const approvedWithReason = evaluatePilot([draft(1, 0), check(1, 3, { gate_reasons: ['same_author'] })]);
+    expect(approvedWithReason.exit.independence).toBe('fail');
+    expect(approvedWithReason.invalidRows).toHaveLength(1);
+    expect(approvedWithReason.exit.overall).not.toBe('pass');
+    // bloqueado com same_author: o checador reportou o mesmo autor: a independência do par também reprova
+    const blocked = evaluatePilot([draft(1, 0), check(1, 3, { gate_verdict: 'blocked', gate_reasons: ['same_author'], unsupported_facts: undefined })]);
+    expect(blocked.exit.independence).toBe('fail');
+    expect(blocked.exit.overall).toBe('fail');
+    // cada motivo bloqueante com veredito aprovado é contradição
+    for (const reason of BLOCKING_GATE_REASONS) expect(validatePilotRow(check(1, 3, { gate_reasons: [reason] })).join()).toMatch(/motivo bloqueante/);
+    // motivo informativo não bloqueia
+    expect(validatePilotRow(check(1, 3, { gate_reasons: ['titulo_ajustado'] }))).toEqual([]);
+    // aprovado com motivo bloqueante não conta como aprovado para a qualidade
+    expect(evaluatePilot([draft(1, 0), check(1, 3, { gate_reasons: ['unsupported_claim'] })]).quality.approvedWithEvaluation).toBe(0);
+  });
+
+  // (3) linha inválida invalida a amostra
+  it('3. uma linha inválida torna a amostra INVÁLIDA: nunca "pass"', () => {
+    const rows = Array.from({ length: 10 }, (_, i) => [draft(i + 1, i * 10), check(i + 1, i * 10 + 3)]).flat();
+    expect(evaluatePilot(rows).exit.overall).toBe('pass');
+    const bad = rows.map((r) => (r.task_id === 'c5' ? { ...r, started_at: 'ontem' } : r));
+    const e = evaluatePilot(bad);
+    expect(e.invalidRows.map((x) => x.task_id)).toEqual(['c5']);
+    expect(e.exit.sample).toBe('invalid');
+    expect(e.exit.overall).toBe('invalid');
+    // qualquer tipo de erro de validação invalida (modelo declarado ausente, tokens "medidos", conta errada)
+    for (const mutate of [{ declared_model: null }, { account: 'codex' as const }, { tokens_measured: true as never }, { attempt: 0 }]) {
+      expect(evaluatePilot([draft(1, 0, mutate as Partial<PilotRow>), check(1, 3)]).exit.overall, JSON.stringify(mutate)).toBe('invalid');
+    }
+  });
+
+  // (4) parada imediata, linha a linha
+  it('4a. stopReasonsOf avalia UMA linha; evaluatePilot informa a posição da linha que causou a parada', () => {
+    expect(stopReasonsOf(draft(1, 0))).toEqual([]);
+    expect(stopReasonsOf(draft(1, 0, { tarifada_api_call: true, secret_in_log: true }))).toHaveLength(2);
+    const e = evaluatePilot([draft(1, 0), check(1, 3), draft(2, 10, { published_attempt: true })]);
+    expect(e.stop).toEqual(['linha 3: d2: tentativa de publicar']);
+  });
+
+  it('4b. canDispatchNext bloqueia o despacho assim que UMA linha dispara a parada ou é inválida', () => {
+    expect(canDispatchNext([draft(1, 0), check(1, 3)])).toEqual({ allowed: true, reasons: [] });
+    for (const flag of ['published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract'] as const) {
+      const g = canDispatchNext([draft(1, 0), draft(2, 5, { [flag]: true })]);
+      expect(g.allowed, flag).toBe(false);
+      expect(g.reasons[0]).toMatch(/PARADA IMEDIATA, linha 2/);
+    }
+    const inv = canDispatchNext([draft(1, 0, { declared_model: null })]);
+    expect(inv.allowed).toBe(false);
+    expect(inv.reasons[0]).toMatch(/linha 1 inválida/);
+  });
+
+  it('4c. PilotSession: a parada vale NA HORA — depois da linha ofensiva a sessão recusa novas linhas e não despacha', () => {
+    const s = new PilotSession();
+    expect(s.append(draft(1, 0))).toMatchObject({ accepted: true, stopped: false });
+    expect(s.canDispatch()).toBe(true);
+    const r = s.append(draft(2, 5, { tarifada_api_call: true }));
+    expect(r).toMatchObject({ accepted: true, stopped: true });
+    expect(r.reasons[0]).toMatch(/chamada à API tarifada/);
+    expect(s.canDispatch()).toBe(false);
+    // novas linhas são recusadas e não entram na avaliação
+    const later = s.append(check(1, 10));
+    expect(later).toMatchObject({ accepted: false, stopped: true });
+    expect(s.size).toBe(2);
+    expect(s.evaluate().exit.overall).toBe('stopped');
+    expect(s.blockedBecause().join(' ')).toMatch(/API tarifada/);
+  });
+
+  it('4d. PilotSession também fecha a sessão numa linha inválida (a amostra deixou de valer)', () => {
+    const s = new PilotSession();
+    s.append(draft(1, 0));
+    const r = s.append(check(1, 3, { reviewed_draft_task_id: undefined }));
+    expect(r.stopped).toBe(true);
+    expect(s.canDispatch()).toBe(false);
+    expect(s.evaluate().exit.overall).toBe('invalid');
   });
 });

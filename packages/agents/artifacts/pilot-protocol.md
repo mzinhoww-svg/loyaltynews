@@ -46,24 +46,24 @@ O checador é de **autor diferente** do redator (Claude × Codex): o prompt mand
 ## 5. Como executar e registrar
 
 1. Despachar as 10 matérias em ordem, uma de cada vez por etapa, em horário comercial (a janela de limite se mede em horas, não em minutos).
-2. Para cada tarefa, gravar UMA linha na planilha (`pilot-measurement-sheet.csv`; ver colunas na seção 6) logo que o callback chega: nunca de memória.
+2. Para cada tarefa, gravar UMA linha na planilha (`pilot-measurement-sheet.csv`; ver colunas na seção 6) logo que o callback chega, **passando-a a `PilotSession.append(linha)`** (`src/pilot.ts`): ela avalia a parada imediata e a validade A CADA LINHA. **Só despache a próxima tarefa se `session.canDispatch()` for verdadeiro** (ou `canDispatchNext(linhas).allowed`); depois de uma parada ou de uma linha inválida a sessão recusa novas linhas. Nunca grave de memória.
 3. Quando uma conta devolver limite: gravar `pending_limit`, o texto e a hora (`limit_message`, `limit_at`), **não** usar a API, esperar a conta voltar e gravar `account_resumed_at`.
 4. Depois de cada `check_edit`, o Editorial lê o rascunho aprovado e preenche `unsupported_facts` (fatos materiais sem evidência, pela rubrica).
-5. Ao fim, rodar `evaluatePilot(linhas)` (`src/pilot.ts`) e arquivar o relatório com as linhas.
+5. Ao fim, rodar `evaluatePilot(linhas)` e arquivar o relatório com as linhas. **Uma linha inválida invalida a amostra inteira** (`overall: invalid`): corrigir a linha e refazer a avaliação; nunca pontuar uma amostra inválida.
 
 ## 6. Planilha de medição (colunas)
 
-`task_id`, `kind`, `article_id`, `source_id`, `stage`, `account`, `declared_model`, `prompt_version`, `started_at`, `ended_at`, `attempt`, `outcome`, `limit_message`, `limit_at`, `account_resumed_at`, `gate_verdict`, `gate_reasons`, `cross_provider_ok`, `packet_chars`, `tokens_measured`, `unsupported_facts`, `published_attempt`, `tarifada_api_call`, `secret_in_log`, `tool_outside_contract`, `notes`.
+`task_id`, `kind`, `article_id`, `source_id`, `stage`, `account`, `declared_model`, `prompt_version`, `started_at`, `ended_at`, `attempt`, `reviewed_draft_task_id`, `outcome`, `limit_message`, `limit_at`, `account_resumed_at`, `gate_verdict`, `gate_reasons`, `cross_provider_ok`, `packet_chars`, `tokens_measured`, `unsupported_facts`, `published_attempt`, `tarifada_api_call`, `secret_in_log`, `tool_outside_contract`, `notes`.
 
 `tokens_measured` é sempre `false`: o OpenBot não expõe tokens; registrar `packet_chars` (tamanho do pacote) como substituto e anotar "não medido". `declared_model` vem do `UsageReport`. `cross_provider_ok` registra a conferência de autor distinto.
 
 ## 7. Critérios de saída e parada imediata
 
 - **Janelas:** matérias e tarefas por janela de limite, por conta, com o intervalo e a hora de retomada. Se **nenhuma** conta bater o limite nas 10 matérias, registrar isso e **repetir com 30** (`repeat_with_30`).
-- **Independência:** 100% das checagens com o modelo declarado do checador de autor diferente do redator.
+- **Independência:** valida-se cada PAR redator→checador da mesma revisão: cada `check_edit` informa em `reviewed_draft_task_id` o rascunho que recebeu (sem vínculo, vínculo ambíguo, de outra matéria ou anterior ao fim do rascunho = falha); o rascunho FINAL de cada matéria precisa ter checagem vinculada; 100% dos pares com modelo declarado de autor diferente, e `gate_reasons` com `same_author` (ou qualquer motivo bloqueante com veredito `approved`) reprova.
 - **Qualidade:** 0 fato material sem evidência nos rascunhos aprovados (rubrica do Editorial; o golden set completo não é exigido). Sem a avaliação de todos os aprovados, o critério fica **inconclusivo**.
 - **Latência e falhas:** p50/p95 por etapa, tentativas repetidas, tarefas falhas e leases expirados.
-- **PARADA IMEDIATA:** qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segredo em log ou qualquer ferramenta fora do contrato (`evaluatePilot().stop`).
+- **PARADA IMEDIATA, linha a linha:** qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segredo em log ou qualquer ferramenta fora do contrato. Avaliada a cada linha por `PilotSession`/`canDispatchNext`: a linha que dispara a parada fecha a sessão e nenhuma tarefa nova é despachada. Este kit não despacha por conta própria: o despachante (adaptador) tem de consultar `canDispatchNext` antes de cada tarefa.
 
 ## 8. Quem faz
 

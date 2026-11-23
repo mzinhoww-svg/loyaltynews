@@ -155,7 +155,7 @@ export function buildPilotAgents(prompts: readonly PilotPrompt[]): PilotAgentDra
 
 export const PILOT_SHEET_COLUMNS = [
   'task_id', 'kind', 'article_id', 'source_id', 'stage', 'account', 'declared_model', 'prompt_version', 'started_at', 'ended_at', 'attempt',
-  'outcome', 'limit_message', 'limit_at', 'account_resumed_at', 'gate_verdict', 'gate_reasons', 'cross_provider_ok', 'packet_chars',
+  'reviewed_draft_task_id', 'outcome', 'limit_message', 'limit_at', 'account_resumed_at', 'gate_verdict', 'gate_reasons', 'cross_provider_ok', 'packet_chars',
   'tokens_measured', 'unsupported_facts', 'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes',
 ] as const;
 
@@ -172,6 +172,8 @@ export interface PilotRow {
   started_at: string;
   ended_at: string;
   attempt: number;
+  /** só em `check_edit`: `task_id` do rascunho (revisão) que ESTA checagem recebeu; obrigatório, sem ele a independência não é provada */
+  reviewed_draft_task_id?: string;
   /** pending_limit: a tarefa ficou pendente porque a assinatura bateu o limite (sem fallback no piloto) */
   outcome: 'completed' | 'failed' | 'retryable' | 'pending_limit';
   limit_message?: string;
@@ -201,6 +203,15 @@ export function authorOfDeclaredModel(model: string | null): 'anthropic' | 'open
   return 'unknown';
 }
 
+/**
+ * Motivos de gate que BLOQUEIAM (política: WF02 e prompt do checador). Um `gate_verdict: approved` com qualquer um deles é um
+ * registro contraditório (linha inválida). `same_author` além disso reprova a independência mesmo com veredito `blocked`.
+ */
+export const BLOCKING_GATE_REASONS = [
+  'same_author', 'unsupported_claim', 'copy_literal', 'rights_unknown', 'terms_unresolved', 'cross_provider_check_failed',
+  'approval_missing', 'rights_basis_unresolved',
+] as const;
+
 const isoOk = (s: string) => !Number.isNaN(Date.parse(s));
 
 export function validatePilotRow(r: PilotRow): string[] {
@@ -215,6 +226,11 @@ export function validatePilotRow(r: PilotRow): string[] {
   if (!Number.isInteger(r.attempt) || r.attempt < 1) e.push('attempt inteiro >= 1');
   if (r.outcome === 'pending_limit' && (!r.limit_message || !r.limit_at)) e.push('pending_limit exige limit_message e limit_at');
   if (r.stage === 'check_edit' && r.outcome === 'completed' && !r.gate_verdict) e.push('check_edit concluído exige gate_verdict');
+  if (r.stage === 'check_edit' && r.outcome === 'completed' && !r.reviewed_draft_task_id) e.push('check_edit concluído exige reviewed_draft_task_id (a checagem precisa apontar a revisão que recebeu)');
+  if (r.gate_verdict === 'approved') {
+    const blocking = (r.gate_reasons ?? []).filter((x) => (BLOCKING_GATE_REASONS as readonly string[]).includes(x));
+    if (blocking.length) e.push(`veredito approved com motivo bloqueante (${blocking.join(', ')}): registro contraditório`);
+  }
   return e;
 }
 
@@ -238,32 +254,39 @@ const stat = (v: number[]): Stat => {
 
 export interface PilotEvaluation {
   invalidRows: { task_id: string; errors: string[] }[];
-  /** parada imediata: qualquer item aqui para o piloto */
+  /** parada imediata: qualquer item aqui para o piloto; cada item traz a posição (1-based) da linha que a causou */
   stop: string[];
   windows: WindowStat[];
   limitHits: { account: 'claude' | 'codex'; at: string; message: string; resumedAt: string | null }[];
-  independence: { checked: number; ok: number; rate: number | null; failures: string[] };
+  independence: { checked: number; ok: number; rate: number | null; failures: string[]; uncheckedFinalDrafts: string[] };
   latencyMsByStage: Partial<Record<PilotStage, Stat>>;
   retries: { tasksWithRetry: number; failed: number; pendingLimit: number };
   quality: { approvedWithEvaluation: number; approvedWithoutEvaluation: number; unsupportedFacts: number };
   exit: {
+    /** `invalid`: há linha inválida; a amostra inteira deixa de valer */
+    sample: 'valid' | 'invalid';
     windowsMeasured: 'measured' | 'repeat_with_30' | 'inconclusive';
     independence: 'pass' | 'fail' | 'inconclusive';
     quality: 'pass' | 'fail' | 'inconclusive';
     stopped: boolean;
-    overall: 'pass' | 'fail' | 'inconclusive' | 'stopped';
+    overall: 'pass' | 'fail' | 'inconclusive' | 'stopped' | 'invalid';
   };
+}
+
+/** Condições de PARADA IMEDIATA de UMA linha (avaliadas a cada linha gravada, não só no fim). */
+export function stopReasonsOf(r: PilotRow): string[] {
+  const out: string[] = [];
+  if (r.published_attempt) out.push(`${r.task_id}: tentativa de publicar`);
+  if (r.tarifada_api_call) out.push(`${r.task_id}: chamada à API tarifada`);
+  if (r.secret_in_log) out.push(`${r.task_id}: segredo em log`);
+  if (r.tool_outside_contract) out.push(`${r.task_id}: ferramenta fora do contrato`);
+  return out;
 }
 
 export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
   const invalidRows = rows.map((r) => ({ task_id: r.task_id, errors: validatePilotRow(r) })).filter((x) => x.errors.length);
   const stop: string[] = [];
-  for (const r of rows) {
-    if (r.published_attempt) stop.push(`${r.task_id}: tentativa de publicar`);
-    if (r.tarifada_api_call) stop.push(`${r.task_id}: chamada à API tarifada`);
-    if (r.secret_in_log) stop.push(`${r.task_id}: segredo em log`);
-    if (r.tool_outside_contract) stop.push(`${r.task_id}: ferramenta fora do contrato`);
-  }
+  rows.forEach((r, idx) => stopReasonsOf(r).forEach((m) => stop.push(`linha ${idx + 1}: ${m}`)));
 
   // janelas por conta: abre na primeira atividade (ou na retomada) e fecha na tarefa que bateu o limite
   const windows: WindowStat[] = [];
@@ -286,19 +309,61 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
     if (cur) windows.push({ account, from: cur.from, to: null, completedTasks: cur.tasks, articles: cur.articles.size, endedByLimit: false });
   }
 
-  // independência: autor do checador diferente do autor do redator, pelo modelo DECLARADO
-  const draftByArticle = new Map<string, PilotRow>();
-  for (const r of rows) if (r.stage === 'draft' && r.outcome === 'completed') draftByArticle.set(r.article_id, r);
+  // independência por PAR redator→checador da MESMA revisão: cada checagem aponta o rascunho que recebeu (sem sobrescrita)
+  const completedDrafts = rows.filter((r) => r.stage === 'draft' && r.outcome === 'completed');
+  const draftsByTask = new Map<string, PilotRow[]>();
+  for (const d of completedDrafts) draftsByTask.set(d.task_id, [...(draftsByTask.get(d.task_id) ?? []), d]);
   let checked = 0;
   let ok = 0;
   const failures: string[] = [];
+  const checkedDraftIds = new Set<string>();
   for (const r of rows.filter((x) => x.stage === 'check_edit' && x.outcome === 'completed')) {
     checked += 1;
-    const d = draftByArticle.get(r.article_id);
-    const a = authorOfDeclaredModel(d?.declared_model ?? null);
+    const label = `${r.article_id}/${r.task_id}`;
+    const ref = r.reviewed_draft_task_id;
+    const candidates = ref ? (draftsByTask.get(ref) ?? []) : [];
+    if (!ref) {
+      failures.push(`${label}: checagem sem reviewed_draft_task_id (vínculo ausente)`);
+      continue;
+    }
+    if (candidates.length === 0) {
+      failures.push(`${label}: rascunho ${ref} não existe ou não está concluído (vínculo ausente)`);
+      continue;
+    }
+    if (candidates.length > 1) {
+      failures.push(`${label}: rascunho ${ref} aparece ${candidates.length} vezes concluído (vínculo ambíguo)`);
+      continue;
+    }
+    const d = candidates[0]!;
+    if (d.article_id !== r.article_id) {
+      failures.push(`${label}: rascunho ${ref} é da matéria ${d.article_id}`);
+      continue;
+    }
+    if (Date.parse(d.ended_at) > Date.parse(r.started_at)) {
+      failures.push(`${label}: a checagem começou antes de o rascunho ${ref} terminar`);
+      continue;
+    }
+    checkedDraftIds.add(ref);
+    const a = authorOfDeclaredModel(d.declared_model);
     const b = authorOfDeclaredModel(r.declared_model);
-    if (d && a !== 'unknown' && b !== 'unknown' && a !== b && r.cross_provider_ok !== false) ok += 1;
-    else failures.push(`${r.article_id}: redator ${d?.declared_model ?? 'ausente'} x checador ${r.declared_model ?? 'ausente'}`);
+    const reasons = r.gate_reasons ?? [];
+    if (reasons.includes('same_author')) {
+      failures.push(`${label}: gate_reasons contém same_author (o checador relatou o mesmo autor do redator)`);
+      continue;
+    }
+    if (a === 'unknown' || b === 'unknown' || a === b || r.cross_provider_ok === false) {
+      failures.push(`${label}: redator ${d.declared_model ?? 'ausente'} x checador ${r.declared_model ?? 'ausente'}`);
+      continue;
+    }
+    ok += 1;
+  }
+  // o rascunho FINAL de cada matéria (o mais recente concluído) precisa ter uma checagem vinculada a ele
+  const uncheckedFinalDrafts: string[] = [];
+  const byArticle = new Map<string, PilotRow[]>();
+  for (const d of completedDrafts) byArticle.set(d.article_id, [...(byArticle.get(d.article_id) ?? []), d]);
+  for (const [art, ds] of byArticle) {
+    const last = [...ds].sort((x, y) => Date.parse(y.ended_at) - Date.parse(x.ended_at))[0]!;
+    if (!checkedDraftIds.has(last.task_id)) uncheckedFinalDrafts.push(`${art}/${last.task_id}`);
   }
 
   const latencyMsByStage: PilotEvaluation['latencyMsByStage'] = {};
@@ -307,27 +372,84 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
     if (v.length) latencyMsByStage[st] = stat(v);
   }
 
-  const approved = rows.filter((r) => r.stage === 'check_edit' && r.gate_verdict === 'approved');
+  const approved = rows.filter((r) => r.stage === 'check_edit' && r.gate_verdict === 'approved' && !(r.gate_reasons ?? []).some((x) => (BLOCKING_GATE_REASONS as readonly string[]).includes(x)));
   const withEval = approved.filter((r) => r.unsupported_facts !== undefined);
   const unsupported = withEval.reduce((s, r) => s + (r.unsupported_facts ?? 0), 0);
 
+  const sample: PilotEvaluation['exit']['sample'] = invalidRows.length ? 'invalid' : 'valid';
   const windowsMeasured: PilotEvaluation['exit']['windowsMeasured'] = rows.length === 0 ? 'inconclusive' : limitHits.length > 0 ? 'measured' : 'repeat_with_30';
-  const independence: PilotEvaluation['exit']['independence'] = checked === 0 ? 'inconclusive' : ok === checked ? 'pass' : 'fail';
+  const independence: PilotEvaluation['exit']['independence'] = checked === 0 ? 'inconclusive' : failures.length > 0 ? 'fail' : uncheckedFinalDrafts.length > 0 ? 'inconclusive' : 'pass';
   const quality: PilotEvaluation['exit']['quality'] = approved.length === 0 || withEval.length < approved.length ? 'inconclusive' : unsupported === 0 ? 'pass' : 'fail';
   const stopped = stop.length > 0;
-  const overall: PilotEvaluation['exit']['overall'] = stopped ? 'stopped' : independence === 'fail' || quality === 'fail' ? 'fail' : independence === 'pass' && quality === 'pass' && windowsMeasured !== 'inconclusive' ? 'pass' : 'inconclusive';
+  const overall: PilotEvaluation['exit']['overall'] = stopped
+    ? 'stopped'
+    : sample === 'invalid'
+      ? 'invalid'
+      : independence === 'fail' || quality === 'fail'
+        ? 'fail'
+        : independence === 'pass' && quality === 'pass' && windowsMeasured !== 'inconclusive'
+          ? 'pass'
+          : 'inconclusive';
 
   return {
     invalidRows,
     stop,
     windows,
     limitHits,
-    independence: { checked, ok, rate: checked ? ok / checked : null, failures },
+    independence: { checked, ok, rate: checked ? ok / checked : null, failures, uncheckedFinalDrafts },
     latencyMsByStage,
     retries: { tasksWithRetry: rows.filter((r) => r.attempt > 1).length, failed: rows.filter((r) => r.outcome === 'failed').length, pendingLimit: rows.filter((r) => r.outcome === 'pending_limit').length },
     quality: { approvedWithEvaluation: withEval.length, approvedWithoutEvaluation: approved.length - withEval.length, unsupportedFacts: unsupported },
-    exit: { windowsMeasured, independence, quality, stopped, overall },
+    exit: { sample, windowsMeasured, independence, quality, stopped, overall },
   };
+}
+
+/**
+ * PORTÃO DE DESPACHO: o operador/despachante só envia a próxima tarefa se isto permitir. Avalia as linhas já gravadas:
+ * parada imediata (publicar, API tarifada, segredo em log, ferramenta fora do contrato) e linha inválida bloqueiam o despacho.
+ */
+export function canDispatchNext(rows: readonly PilotRow[]): { allowed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  rows.forEach((r, idx) => stopReasonsOf(r).forEach((m) => reasons.push(`PARADA IMEDIATA, linha ${idx + 1}: ${m}`)));
+  rows.forEach((r, idx) => {
+    const errs = validatePilotRow(r);
+    if (errs.length) reasons.push(`linha ${idx + 1} inválida (${r.task_id}): ${errs.join('; ')}`);
+  });
+  return { allowed: reasons.length === 0, reasons };
+}
+
+/**
+ * Sessão do piloto: grave CADA linha logo que o callback chega. A parada é avaliada a cada linha; depois de uma parada ou de
+ * uma linha inválida a sessão recusa novas linhas e `canDispatch()` passa a falso até o operador tratar o problema.
+ */
+export class PilotSession {
+  private readonly rows: PilotRow[] = [];
+  private blocked: string[] = [];
+
+  /** Devolve se a linha foi aceita; uma linha que dispara a parada É guardada (evidência), mas fecha a sessão. */
+  append(row: PilotRow): { accepted: boolean; stopped: boolean; reasons: string[] } {
+    if (this.blocked.length) return { accepted: false, stopped: true, reasons: [`sessão bloqueada: ${this.blocked.join(' | ')}`] };
+    this.rows.push(structuredClone(row));
+    const gate = canDispatchNext(this.rows);
+    if (!gate.allowed) this.blocked = gate.reasons;
+    return { accepted: true, stopped: !gate.allowed, reasons: gate.reasons };
+  }
+
+  canDispatch(): boolean {
+    return this.blocked.length === 0;
+  }
+
+  blockedBecause(): readonly string[] {
+    return this.blocked;
+  }
+
+  evaluate(): PilotEvaluation {
+    return evaluatePilot(this.rows);
+  }
+
+  get size(): number {
+    return this.rows.length;
+  }
 }
 
 export function sheetCsvHeader(): string {
