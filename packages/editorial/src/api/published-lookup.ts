@@ -7,6 +7,10 @@ import type { EditorialStore } from './store';
  * com o mesmo id); `storeBackedPublishedLookup` é a implementação de referência só para matérias da Fábrica.
  */
 
+/** Caminho público da matéria no Portal: `{siteBaseUrl}/noticia/{slug}` (decisão do PM; NÃO /materias/). */
+export const PUBLIC_ARTICLE_PATH = '/noticia/';
+export const publicArticleUrl = (siteBaseUrl: string, slug: string): string => `${siteBaseUrl.replace(/\/+$/, '')}${PUBLIC_ARTICLE_PATH}${slug}`;
+
 /** Status de uma matéria que o leitor já viu: só destas se abre caso de correção. */
 export const CORRECTABLE_STATUSES = ['publicado', 'corrigido', 'despublicado'] as const;
 

@@ -21,6 +21,8 @@ import type { Db } from '@ln/auth';
 import { HttpUrl } from '../schemas';
 import { HttpError, newId } from '../http';
 import { publishFromCms } from './cms-publication';
+import { applyFabricaCorrection } from './fabrica-correction';
+import { CorrecaoIn } from './correcao-schema';
 
 export type PublicationCtx = HandlerCtx & { flags: FlagState; db: Db };
 
@@ -28,6 +30,8 @@ const Input = z.strictObject({
   articleId: z.string().min(1).max(128),
   receiptId: z.string().trim().min(1).max(128),
   url: HttpUrl,
+  /** Matéria da Fábrica já publicada: aplica a correção aceita (rascunho corrigido + checagem + caso). */
+  correcao: CorrecaoIn.optional(),
 });
 
 const err = (status: number, code: string, message: string, details?: unknown): ApiResponse<never> => ({ status, body: apiError(code, message, details) });
@@ -40,7 +44,7 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   if (!actor) return err(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
   const p = Input.safeParse(input);
   if (!p.success) return err(400, 'VALIDATION_ERROR', 'Entrada inválida.', p.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
-  const { articleId, receiptId, url } = p.data;
+  const { articleId, receiptId, url, correcao } = p.data;
 
   const [receipt] = await ctx.db
     .select({
@@ -53,6 +57,11 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   if (!receipt) return err(409, 'RECEIPT_NOT_FOUND', 'Recibo inexistente para esta matéria.');
   if (receipt.identidade !== actor.userId) return err(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo registra esta publicação.');
 
+  if (correcao) {
+    const recAny = await ctx.store.getArticle(articleId);
+    if (!recAny) return err(409, 'NOT_FACTORY_ARTICLE', 'correcao só vale para matéria da Fábrica; a do CMS é publicada pela revisão (PATCH com casoCorrecaoId).');
+    return applyFabricaCorrection(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url, correcao });
+  }
   // Matéria que existe só no CMS (sem registro no Editorial): publicação e correção oficiais sobre `articles` (ADR-019 §c.5).
   const rec = await ctx.store.getArticle(articleId);
   if (!rec) return publishFromCms(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url });

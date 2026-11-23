@@ -5,9 +5,10 @@
 //  - um registro por conteúdo (sha256 único): repetir devolve o existente (deduplicada=true);
 //  - upload: o sha256 e o tipo vêm do CONTEÚDO (assinatura do arquivo), nunca do cliente; SVG e outros tipos são recusados.
 import { createHash } from 'node:crypto';
-import { and, count, desc, eq, gte, lt, lte, type SQL } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, like, lt, lte, or, sql, type SQL } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import { type ImageRights, isImagePublishable } from '@ln/contracts';
+import type { Db } from '@ln/auth';
 import { getBlobStore, type BlobStore } from './blob';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteCtx, type RouteFn } from './http';
 import { MediaCreate, MediaPatch, MediaQuery, SafeImage, UploadMeta } from './schemas';
@@ -210,4 +211,63 @@ export const getMediaFile: RouteFn = async (_req, c) => {
       'cache-control': 'private, max-age=300',
     },
   });
+};
+
+// ---------- entrega PÚBLICA (Portal): só mídia referenciada por matéria publicada ----------
+const MEDIA_ID = /^[A-Za-z0-9-]{1,64}$/;
+const INTERNAL_URL = /\/api\/midia\/([A-Za-z0-9-]{1,64})\/arquivo$/;
+const PUBLIC_STATUS = ['publicado', 'corrigido'] as const;
+
+/** Imagem de mídia que pode sair a um leitor anônimo: imagem com arquivo, base de direito válida e licença não vencida. */
+const publicMedia = (m: Row, today: string): boolean =>
+  m.tipo === 'imagem' && !!m.blobKey && !!m.mime?.startsWith('image/') && isImagePublishable(m.direitos as ImageRights) && licencaStatus(m.licencaExpiraEm, today) !== 'vencida';
+
+/** A matéria PÚBLICA (publicado/corrigido, classe public) cita esta mídia em `imagem.url`? */
+async function referencedByPublicArticle(db: Db, id: string): Promise<boolean> {
+  const url = sql`${schema.articles.imagem}->>'url'`;
+  const [a] = await db
+    .select({ id: schema.articles.id })
+    .from(schema.articles)
+    .where(and(inArray(schema.articles.status, [...PUBLIC_STATUS]), eq(schema.articles.classeDeDado, 'public'), or(like(url, `%/api/midia/${id}/arquivo`), like(url, `%/api/publico/midia/${id}`))))
+    .limit(1);
+  return !!a;
+}
+
+/**
+ * Imagem da matéria para a resposta pública: URL de mídia interna (`/api/midia/{id}/arquivo`, que exige sessão) passa a apontar
+ * para a entrega pública; mídia inexistente, sem arquivo, com licença vencida ou sem base de direito ⇒ sem imagem (null).
+ * URL que não é do acervo (imagem externa) segue como está.
+ */
+export async function publicImageOf(db: Db, img: unknown, now: Date): Promise<unknown> {
+  if (img == null || typeof img !== 'object') return img ?? null;
+  const url = (img as { url?: unknown }).url;
+  const m = typeof url === 'string' ? INTERNAL_URL.exec(url) : null;
+  if (!m) return img;
+  const [row] = await db.select().from(schema.media).where(eq(schema.media.id, m[1]!));
+  if (!row || !publicMedia(row, hoje(now))) return null;
+  return { ...(img as object), url: (url as string).replace(INTERNAL_URL, '/api/publico/midia/$1') };
+}
+
+/**
+ * GET /api/publico/midia/{id} (sem login): os bytes de uma imagem do acervo, SOMENTE se uma matéria publicada/corrigida a cita.
+ * Não lista o acervo; rascunho, mídia órfã, documento, sem base de direito ou com licença vencida respondem o MESMO 404.
+ * Cabeçalhos defensivos (nosniff, CSP sandbox), cache público curto e ETag pelo sha256 (304 em If-None-Match).
+ */
+export const getPublicMediaFile: RouteFn = async (req, c) => {
+  const id = c.params.id ?? '';
+  const nao = () => new HttpError(404, 'NOT_FOUND', 'Mídia não encontrada.');
+  if (!MEDIA_ID.test(id)) throw nao();
+  const [m] = await c.deps.db.select().from(schema.media).where(eq(schema.media.id, id));
+  if (!m || !publicMedia(m, hoje(c.deps.now())) || !(await referencedByPublicArticle(c.deps.db, id))) throw nao();
+  const headers = {
+    etag: `"${m.sha256}"`,
+    'cache-control': 'public, max-age=300, stale-while-revalidate=60',
+    'x-content-type-options': 'nosniff',
+    'content-security-policy': "default-src 'none'; sandbox",
+    'cross-origin-resource-policy': 'cross-origin',
+  };
+  if (req.headers.get('if-none-match') === `"${m.sha256}"`) return new Response(null, { status: 304, headers });
+  const obj = await blobOf(c).get(m.blobKey!);
+  if (!obj) throw nao();
+  return new Response(obj.bytes as BodyInit, { status: 200, headers: { ...headers, 'content-type': m.mime!, 'content-length': String(obj.bytes.length), 'content-disposition': 'inline' } });
 };

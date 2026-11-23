@@ -1,6 +1,7 @@
 // Entradas das rotas de API. Montadas sobre os contratos de @ln/contracts (única fonte dos formatos);
 // aqui só o que é específico do corpo de uma requisição (sem id/estado/recibo preenchidos pelo servidor).
 import { z } from 'zod';
+import { CorrecaoIn } from './editorial/correcao-schema';
 import {
   ArticleStatus,
   ContentType,
@@ -84,6 +85,8 @@ export const ReceiptInput = z.strictObject({
   versao: z.number().int().positive().optional(),
   checagens: PublicationReceipt.shape.checagens,
   identidadePublicacao: z.string().min(1).optional(),
+  /** Matéria da Fábrica já publicada: rascunho corrigido + checagem + caso aceito (ADR-019 §c.5). */
+  correcao: CorrecaoIn.optional(),
 });
 
 export const ArticleQuery = z.object({

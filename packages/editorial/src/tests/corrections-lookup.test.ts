@@ -81,14 +81,14 @@ test('ADR-019: sem a porta de matérias publicadas o caso não abre (503) e a ma
   assert.equal(isCorrectable(undefined), false);
 });
 
-test('ADR-019: preservar evidência usa /materias/{slug} por padrão; a verificação da errata usa as evidências do CMS (article_sources)', async () => {
+test('ADR-019: preservar evidência usa /noticia/{slug} por padrão; a verificação da errata usa as evidências do CMS (article_sources)', async () => {
   const store = new InMemoryEditorialStore();
   const c = mk(chefe, store, cmsLookup([ref()], [ev]));
   await openCorrection(c, { ...OPEN, articleId: 'cms-1' });
   const pre = await preserveCorrectionEvidence(c, { correctionId: 'k1', body: '<html>versão publicada</html>' });
   assert.equal(pre.status, 200);
   const rec = (await store.getCorrection('k1'))!;
-  assert.equal(rec.case.archive?.url, 'https://loyaltynews.example/materias/materia-do-cms');
+  assert.equal(rec.case.archive?.url, 'https://loyaltynews.example/noticia/materia-do-cms');
   // sem siteBaseUrl e sem URL: pede a URL
   const noBase = { ...c, siteBaseUrl: undefined } as HandlerCtx;
   const k2 = await openCorrection({ ...noBase, newId: () => 'k2' }, { ...OPEN, articleId: 'cms-1' });

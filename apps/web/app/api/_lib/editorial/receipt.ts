@@ -9,6 +9,7 @@ import { ImageRights, isImagePublishable } from '@ln/contracts';
 import { schema } from '@ln/db';
 import { draftContentSha256, toPublishableContent, type ArticleRecord } from '@ln/editorial';
 import { sourceRegistry } from './index';
+import type { Db } from '@ln/auth';
 import { HttpError, json, newId, type RouteCtx } from '../http';
 
 export interface EditorialReceiptInput {
@@ -18,7 +19,7 @@ export interface EditorialReceiptInput {
 }
 
 /** Regras determinísticas do conteúdo projetado (as de matéria, sobre o conteúdo publicável). */
-function contentFailures(c: ReturnType<typeof toPublishableContent>): string[] {
+export function contentFailures(c: ReturnType<typeof toPublishableContent>): string[] {
   const f: string[] = [];
   if (c.classeDeDado !== 'public') f.push(`classe de dado ${c.classeDeDado} não é publicável`);
   if (c.patrocinado && !c.rotuloPublieditorial) f.push('conteúdo pago sem rótulo');
@@ -29,6 +30,35 @@ function contentFailures(c: ReturnType<typeof toPublishableContent>): string[] {
     else if (!isImagePublishable(img.data)) f.push('imagem sem base de direito');
   }
   return f;
+}
+
+/**
+ * Fontes do rascunho: projeta as evidências CITADAS (sources/evidences) e refaz os vínculos da matéria (article_sources).
+ * Fonte da Fábrica entra com o MESMO id e origem 'fabrica' (ADR-019 §d); nome e URL vêm do registro a cada projeção; linha 'cms'
+ * com o mesmo id ⇒ 409 SOURCE_ID_CONFLICT e a transação inteira falha.
+ */
+export async function projectSources(tx: Db, id: string, rec: ArticleRecord): Promise<void> {
+  const draft = rec.draft!;
+  const cited = new Set(draft.evidenceIds);
+  for (const e of rec.evidences.filter((x) => cited.has(x.id))) {
+    const src = sourceRegistry.get(e.sourceId);
+    const fonte = { nome: src?.name ?? e.sourceId, url: src ? `https://${src.host}${src.pathPrefix ?? ''}` : e.url };
+    const up = await tx
+      .insert(schema.sources)
+      .values({ id: e.sourceId, ...fonte, tipo: 'site', acesso: 'publico', termosRevisados: false, ativo: false, origem: 'fabrica' })
+      .onConflictDoUpdate({ target: schema.sources.id, set: fonte, setWhere: eq(schema.sources.origem, 'fabrica') })
+      .returning({ id: schema.sources.id });
+    if (up.length === 0) {
+      throw new HttpError(409, 'SOURCE_ID_CONFLICT', 'Já existe uma fonte do CMS com o mesmo id de uma fonte da Fábrica; renomeie ou remova a do CMS.', { sourceId: e.sourceId });
+    }
+    await tx
+      .insert(schema.evidences)
+      .values({ id: e.id, sourceId: e.sourceId, url: e.url, capturadoEm: new Date(e.fetchedAt), sha256: e.contentSha256 })
+      .onConflictDoNothing();
+  }
+  await tx.delete(schema.articleSources).where(eq(schema.articleSources.articleId, id));
+  const links = rec.evidences.filter((x) => cited.has(x.id)).map((e) => ({ articleId: id, evidenceId: e.id }));
+  if (links.length) await tx.insert(schema.articleSources).values(links);
 }
 
 export async function issueFromEditorial(c: RouteCtx, id: string, body: EditorialReceiptInput, rec: ArticleRecord): Promise<Response> {
@@ -73,29 +103,7 @@ export async function issueFromEditorial(c: RouteCtx, id: string, body: Editoria
     };
     await tx.insert(schema.articles).values({ id, ...row }).onConflictDoUpdate({ target: schema.articles.id, set: row });
 
-    // fontes: projeta as evidências do rascunho (sources/evidences) e liga à matéria; só as citadas pelo rascunho
-    const cited = new Set(draft.evidenceIds);
-    for (const e of rec.evidences.filter((x) => cited.has(x.id))) {
-      const src = sourceRegistry.get(e.sourceId);
-      // ADR-019 §d: a fonte da Fábrica entra em `sources` com o MESMO id e origem 'fabrica'. Nome e URL vêm do registro (reescritos
-      // a cada projeção); uma linha 'cms' com o mesmo id NÃO é sobrescrita nem reaproveitada: a transação inteira falha (409).
-      const fonte = { nome: src?.name ?? e.sourceId, url: src ? `https://${src.host}${src.pathPrefix ?? ''}` : e.url };
-      const up = await tx
-        .insert(schema.sources)
-        .values({ id: e.sourceId, ...fonte, tipo: 'site', acesso: 'publico', termosRevisados: false, ativo: false, origem: 'fabrica' })
-        .onConflictDoUpdate({ target: schema.sources.id, set: fonte, setWhere: eq(schema.sources.origem, 'fabrica') })
-        .returning({ id: schema.sources.id });
-      if (up.length === 0) {
-        throw new HttpError(409, 'SOURCE_ID_CONFLICT', 'Já existe uma fonte do CMS com o mesmo id de uma fonte da Fábrica; renomeie ou remova a do CMS.', { sourceId: e.sourceId });
-      }
-      await tx
-        .insert(schema.evidences)
-        .values({ id: e.id, sourceId: e.sourceId, url: e.url, capturadoEm: new Date(e.fetchedAt), sha256: e.contentSha256 })
-        .onConflictDoNothing();
-    }
-    await tx.delete(schema.articleSources).where(eq(schema.articleSources.articleId, id));
-    const links = rec.evidences.filter((x) => cited.has(x.id)).map((e) => ({ articleId: id, evidenceId: e.id }));
-    if (links.length) await tx.insert(schema.articleSources).values(links);
+    await projectSources(tx as unknown as Db, id, rec);
 
     const [receipt] = await tx
       .insert(schema.publicationReceipts)
