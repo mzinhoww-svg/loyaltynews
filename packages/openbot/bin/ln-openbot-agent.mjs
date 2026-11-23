@@ -2,6 +2,7 @@
 // Cliente do AGENTE do OpenBot para o piloto de 10 matérias (DP-41, só staging). O modelo NUNCA toca no segredo nem na assinatura: ele roda estes
 // comandos e só lê/escreve JSON. Sem dependências (Node 20+). Faz exatamente o que PROTOCOL.md descreve:
 //   pull  ->  input  ->  (o agente produz o resultado)  ->  result  ->  done | limit | fail      (+ heartbeat se a tarefa demorar)
+//   smoke: verificação do roteiro (§6) em UM comando, sem efeito (health, sonda de assinatura, pull só com o despacho desligado); recusa produção.
 // Segurança: o segredo HMAC vem de um ARQUIVO (LN_HMAC_SECRET_FILE, o caminho que o cofre do OpenBot entrega) ou, menos recomendado, de LN_HMAC_SECRET;
 // nunca de argumento de linha de comando, e nunca é impresso. Só HTTPS (http só para localhost, em teste). Só as contas claude e codex (DP-41).
 // Saída: UMA linha de JSON no stdout (o resultado) ou, em erro, JSON em stderr e código de saída 1 (sem segredo, sem assinatura, sem cabeçalhos).
@@ -206,6 +207,71 @@ const COMMANDS = {
     };
     return (await post(cfg, 'callback', body, io)).body;
   },
+  /**
+   * Verificação do roteiro (§6) em UM comando, SEM efeito: lê /api/health, faz a sonda de assinatura (heartbeat e io/input de tarefa que não existe) e,
+   * só com o despacho desligado, um `pull` (que nada entrega). Recusa produção. Com o despacho LIGADO o `pull` é PULADO (tomaria um lease de verdade).
+   * Resultado por passo: PASS | FAIL | WARN | SKIP; `ok` = nenhum FAIL. Nunca imprime segredo, assinatura nem cabeçalhos.
+   */
+  async smoke(cfg, argv, io) {
+    const a = parseArgs(argv, ['expect-dispatch']);
+    const expect = a['expect-dispatch'] ?? 'any';
+    if (!['off', 'on', 'any'].includes(expect)) throw new CliError('uso', '--expect-dispatch: off | on | any');
+    const fetchImpl = io.fetchImpl ?? fetch;
+    const origin = new URL(cfg.base).origin;
+    const checks = [];
+    const add = (step, verdict, observed, note) => checks.push({ step, verdict, observed, ...(note ? { note } : {}) });
+
+    // 1) health (GET sem assinatura)
+    let health = null;
+    try {
+      const res = await fetchImpl(`${origin}/api/health`, { redirect: 'error', signal: AbortSignal.timeout(20_000) });
+      health = res.ok ? await res.json() : null;
+      if (!health) add('health', 'FAIL', `HTTP ${res.status}`, 'o app não respondeu /api/health');
+    } catch {
+      add('health', 'FAIL', 'sem resposta', 'rede ou tempo esgotado');
+    }
+    if (!health) return { ok: false, url: origin, checks, refused: 'sem_health' };
+    const prod = health.env !== 'staging';
+    add('health', prod ? 'FAIL' : 'PASS', { env: health.env, version: health.version, flags: health.flags }, prod ? 'o smoke só roda em staging: nada assinado foi enviado' : undefined);
+    if (prod) return { ok: false, url: origin, checks, refused: 'ambiente_nao_staging' };
+    const dispatchOn = Array.isArray(health.flags) && health.flags.includes('openbotDispatch');
+    if (expect !== 'any' && (expect === 'on') !== dispatchOn) add('flag openbotDispatch', 'FAIL', dispatchOn ? 'ligada' : 'desligada', `esperado: ${expect === 'on' ? 'ligada' : 'desligada'}`);
+    else add('flag openbotDispatch', 'PASS', dispatchOn ? 'ligada' : 'desligada');
+
+    // 2) sonda de assinatura: uma tarefa que não existe passa pela assinatura e devolve 404 (aceita) ou 401 (recusada)
+    const probe = async (step, path, body) => {
+      try {
+        await post(cfg, path, body, io);
+        add(step, 'WARN', 'respondeu 2xx', 'inesperado para uma tarefa que não existe');
+      } catch (e) {
+        if (!(e instanceof CliError)) throw e;
+        if (e.code === 'LEASE_ERROR' && e.status === 404) add(step, 'PASS', '404 LEASE_ERROR', 'assinatura aceita; nada foi criado');
+        else if (e.status === 423) add(step, 'PASS', `423 ${e.code}`, 'assinatura aceita; o LN está travado de propósito');
+        else if (e.status === 401) add(step, 'FAIL', `401 ${e.message.replace(/^UNAUTHORIZED: /, '')}`, /sem_segredo/.test(e.message) ? 'o servidor não tem o segredo HMAC configurado' : 'segredo diferente do do servidor, ou relógio fora da janela de 5 min');
+        else add(step, 'FAIL', `${e.status ?? ''} ${e.code}`.trim(), 'resposta inesperada');
+      }
+    };
+    await probe('assinatura (heartbeat)', 'heartbeat', { taskId: 'sonda-inexistente', leaseId: 'sonda' });
+    await probe('assinatura (io/input)', 'io/input', { taskId: 'sonda-inexistente', leaseId: 'sonda' });
+
+    // 3) pull só com o despacho desligado (nada é entregue); ligado, PULA para não tomar um lease
+    if (dispatchOn) {
+      add('pull', 'SKIP', 'não executado', 'despacho ligado: um pull tomaria o lease de uma tarefa de verdade');
+    } else {
+      try {
+        const r = await post(cfg, 'pull', { workerId: cfg.workerId, account: cfg.account, limit: 1 }, io);
+        add('pull', 'WARN', `${r.status} com ${r.body?.tasks?.length ?? 0} tarefa(s)`, 'com o despacho desligado o pull devia ser 423 DISPATCH_OFF');
+      } catch (e) {
+        if (!(e instanceof CliError)) throw e;
+        if (e.status === 423 && e.code === 'DISPATCH_OFF') add('pull', 'PASS', '423 DISPATCH_OFF', 'o despacho desligado não entrega nada');
+        else if (e.status === 423) add('pull', 'WARN', `423 ${e.code}`, 'travado por outro motivo (parada ou piloto parado)');
+        else if (e.code.startsWith('UPSTREAM_')) add('pull', 'WARN', `${e.status} sem corpo da API`, 'servidor anterior ao 423 Locked (a borda da Vertra esconde o código) ou app indisponível');
+        else if (e.status === 401) add('pull', 'FAIL', `401 ${e.code}`, 'assinatura recusada');
+        else add('pull', 'FAIL', `${e.status ?? ''} ${e.code}`.trim(), 'resposta inesperada');
+      }
+    }
+    return { ok: !checks.some((c) => c.verdict === 'FAIL'), url: origin, checks };
+  },
 };
 
 /**
@@ -223,6 +289,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   run(process.argv.slice(2), process.env).then(
     (r) => {
       process.stdout.write(`${JSON.stringify(r)}\n`);
+      if (r && r.ok === false && Array.isArray(r.checks)) process.exitCode = 1; // smoke com FAIL
     },
     (e) => {
       const err = e instanceof CliError ? { code: e.code, message: e.message, ...(e.status ? { status: e.status } : {}), ...(e.stop ? { stop: true } : {}) } : { code: 'erro', message: 'falha inesperada' };

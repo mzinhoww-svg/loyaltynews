@@ -18,8 +18,14 @@ const BASE = 'https://staging.exemplo.example/api/openbot';
 let app: Awaited<ReturnType<typeof makeApp>>;
 const ROUTES: Record<string, { POST: (r: Request) => Promise<Response> }> = { pull, heartbeat, callback, 'io/input': ioInput, 'io/result': ioResult } as any;
 
+const health = { status: 'ok', service: 'loyaltynews-web', version: 'teste', env: 'staging', flags: [] as string[] };
+let signedCalls = 0;
+let edge503 = false; // simula servidor anterior ao 423: a borda troca o corpo do pull por HTML
 const fetchImpl = (async (url: string, init: RequestInit) => {
+  if (String(url) === 'https://staging.exemplo.example/api/health') return Response.json(health);
   const path = String(url).slice(BASE.length + 1);
+  signedCalls += 1;
+  if (edge503 && path === 'pull') return new Response('<!doctype html><html data-kind="502"></html>', { status: 503, headers: { 'content-type': 'text/html', 'x-vertra-error': '1' } });
   return ROUTES[path]!.POST(new Request(`http://localhost:3000/api/openbot/${path}`, { method: 'POST', headers: init.headers as Record<string, string>, body: init.body as string }));
 }) as unknown as typeof fetch;
 const env = (account: string = 'codex', extra: Record<string, string> = {}) => ({ LN_API_BASE: BASE, LN_AGENT_ACCOUNT: account, LN_HMAC_SECRET_FILE: '/cofre/ln-hmac', ...extra });
@@ -37,6 +43,10 @@ beforeAll(async () => {
   app = await makeApp();
 }, 120_000);
 beforeEach(() => {
+  health.env = 'staging';
+  health.flags = [];
+  signedCalls = 0;
+  edge503 = false;
   process.env.OPENBOT_HMAC_SECRET = SECRET;
   delete process.env.OPENBOT_HMAC_SECRET_PREVIOUS;
   delete process.env.APP_ENV;
@@ -183,6 +193,92 @@ describe('423 Locked pelas rotas REAIS (ft/backend 0a2e2c8): o código chega ao 
     }
     await store.setKill('route:openbot', false, 'soltar', app.clock.now);
     expect((await cli(['heartbeat', ...lease])).leaseExpiresAt).toBeTruthy();
+  });
+});
+
+describe('smoke: a verificação do roteiro em um comando, sem efeito', () => {
+  const step = (r: any, name: string) => r.checks.find((c: any) => c.step === name);
+  const secretFree = (r: unknown) => expect(JSON.stringify(r)).not.toMatch(/segredo-de-teste|v1=|x-ln-signature/);
+
+  it('despacho desligado e segredo certo: tudo PASS (health, flag, assinatura por heartbeat e io/input, pull = 423 DISPATCH_OFF); nada criado', async () => {
+    app.deps.flags.openbotDispatch = false;
+    const r = await cli(['smoke']);
+    expect(r.ok).toBe(true);
+    expect(r.checks.map((c: any) => [c.step, c.verdict])).toEqual([
+      ['health', 'PASS'], ['flag openbotDispatch', 'PASS'], ['assinatura (heartbeat)', 'PASS'], ['assinatura (io/input)', 'PASS'], ['pull', 'PASS'],
+    ]);
+    expect(step(r, 'pull').observed).toBe('423 DISPATCH_OFF');
+    expect(step(r, 'health').observed).toMatchObject({ env: 'staging', flags: [] });
+    expect(await app.db.select().from(schema.openbotTasks)).toHaveLength(0);
+    expect(await app.db.select().from(schema.openbotHealth)).toHaveLength(0);
+    secretFree(r);
+  });
+
+  it('segredo errado: FAIL na assinatura (com a dica do relógio e do segredo), sem vazar; o pull com a flag desligada segue 423 (a flag vem antes da assinatura)', async () => {
+    app.deps.flags.openbotDispatch = false;
+    files['/cofre/errado5'] = 'segredo-errado-5';
+    const r = await cli(['smoke'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado5' }));
+    expect(r.ok).toBe(false);
+    expect([step(r, 'assinatura (heartbeat)').verdict, step(r, 'assinatura (io/input)').verdict, step(r, 'pull').verdict]).toEqual(['FAIL', 'FAIL', 'PASS']);
+    expect(step(r, 'assinatura (heartbeat)').note).toMatch(/segredo diferente/);
+    secretFree(r);
+    expect(JSON.stringify(r)).not.toContain('segredo-errado-5');
+  });
+
+  it('o servidor SEM segredo HMAC (staging de hoje): FAIL com a nota certa (sem_segredo)', async () => {
+    app.deps.flags.openbotDispatch = false;
+    delete process.env.OPENBOT_HMAC_SECRET;
+    const r = await cli(['smoke']);
+    expect(r.ok).toBe(false);
+    expect(step(r, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'FAIL', note: 'o servidor não tem o segredo HMAC configurado' });
+  });
+
+  it('despacho LIGADO: o pull é PULADO (tomaria um lease) e a tarefa pendente continua pendente; as sondas continuam', async () => {
+    app.deps.flags.openbotDispatch = true;
+    health.flags = ['openbotDispatch'];
+    await seed(20);
+    const r = await cli(['smoke', '--expect-dispatch', 'on']);
+    expect(r.ok).toBe(true);
+    expect(step(r, 'pull').verdict).toBe('SKIP');
+    expect(step(r, 'assinatura (heartbeat)').verdict).toBe('PASS');
+    const [t] = (await app.db.select().from(schema.openbotTasks)) as any[];
+    expect([t.status, t.leaseId ?? null]).toEqual(['pending', null]);
+  });
+
+  it('--expect-dispatch confere a flag (FAIL se diferente) e recusa valor inválido antes da rede', async () => {
+    app.deps.flags.openbotDispatch = false;
+    const r = await cli(['smoke', '--expect-dispatch', 'on']);
+    expect([r.ok, step(r, 'flag openbotDispatch').verdict]).toEqual([false, 'FAIL']);
+    expect(await refusal(cli(['smoke', '--expect-dispatch', 'talvez']))).toBe('uso');
+  });
+
+  it('PRODUÇÃO (health env diferente de staging): recusa e NÃO envia nenhuma chamada assinada', async () => {
+    health.env = 'production';
+    const r = await cli(['smoke']);
+    expect([r.ok, r.refused]).toEqual([false, 'ambiente_nao_staging']);
+    expect(signedCalls).toBe(0);
+    expect(r.checks).toHaveLength(1);
+  });
+
+  it('app fora do ar (health sem resposta): FAIL e nada assinado', async () => {
+    const down = (async () => new Response('x', { status: 502 })) as unknown as typeof fetch;
+    const r = await run(['smoke'], env(), { ...io(), fetchImpl: down });
+    expect([r.ok, r.refused]).toEqual([false, 'sem_health']);
+  });
+
+  it('kill switch: a assinatura PASSA (423 KILL_SWITCH = aceita, travado) e o pull vira WARN com o motivo; servidor anterior ao 423 (503 em HTML) também é WARN, não FAIL', async () => {
+    app.deps.flags.openbotDispatch = false;
+    const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
+    await store.setKill('route:openbot', true, 'smoke', app.clock.now);
+    const k = await cli(['smoke']);
+    expect(step(k, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'PASS', observed: '423 KILL_SWITCH' });
+    expect(step(k, 'pull')).toMatchObject({ verdict: 'WARN', observed: '423 KILL_SWITCH' });
+    expect(k.ok).toBe(true);
+    await store.setKill('route:openbot', false, 'soltar', app.clock.now);
+    edge503 = true;
+    const old = await cli(['smoke']);
+    expect(step(old, 'pull')).toMatchObject({ verdict: 'WARN', observed: '503 sem corpo da API' });
+    expect(old.ok).toBe(true);
   });
 });
 
