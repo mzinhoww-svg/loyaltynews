@@ -40,25 +40,12 @@ test.describe('Entity intelligence (@ln/intelligence)', () => {
     await erro(page, 'Parâmetros inválidos.');
   });
 
-  test('watchlists: criar, validar entidade, alertas só com revisão humana', async ({ page, context }) => {
+  // O fluxo completo das watchlists (criar, buscar e adicionar, alertas com antes/depois, revisar, remover, apagar, dono) está em studio-w-watchlists.spec.ts.
+  test('watchlists: estado vazio honesto pela rota', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/watchlists');
     await expect(page.getByRole('heading', { name: 'Nenhuma watchlist' })).toBeVisible();
-    await expect(page.locator('[data-vazio="alertas"]')).toBeVisible();
-    await page.getByRole('button', { name: 'Criar watchlist' }).click();
-    await erro(page, /name é obrigatório|obrigatório/);
-
-    await page.getByLabel('Nome', { exact: true }).fill('Bancos monitorados');
-    await page.getByRole('button', { name: 'Criar watchlist' }).click();
-    await sucesso(page, 'Watchlist criada.');
-    await expect(page.getByRole('list', { name: 'Watchlists' })).toContainText('Bancos monitorados');
-
-    await page.getByLabel('ID da entidade (UUID)').fill('xyz');
-    await page.getByRole('button', { name: 'Acompanhar' }).click();
-    await erro(page, /UUID/);
-    await page.getByLabel('ID da entidade (UUID)').fill(UUID_INEXISTENTE);
-    await page.getByRole('button', { name: 'Acompanhar' }).click();
-    await erro(page, /não encontrada/);
+    await expect(page.getByRole('form', { name: 'Nova watchlist' })).toBeVisible();
   });
 
   test('papéis: leitor lê watchlists mas não cria; comercial não acessa entidades', async ({ page, context }) => {

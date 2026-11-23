@@ -11,7 +11,7 @@ import { createAuth, createAuthHandler, createStaffUser, isRole, type Db, type R
 import { getRuntime, setRuntimeForTest } from '@ln/auth/runtime';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
-import { DEFAULT_CONFIG, addEvidence, addOrgRelation, processObservation, upsertOrganization, type Db as IntelDb } from '@ln/intelligence';
+import { DEFAULT_CONFIG, addEvidence, addOrgRelation, processObservation, upsertOrganization, generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 import { criarClientePglite } from './dev-db.e2e.mock';
 import type { E2eBackend } from './e2e-backend.types';
 
@@ -162,6 +162,11 @@ Fontes:
         updatedAt: agora,
       } as Parameters<PgEditorialStore['putArticle']>[0]);
       return { articleId, draft };
+    },
+    async seedAlertasWatchlist() {
+      // Studio 2: o worker que gera alertas não roda no e2e; chama a função real do pacote sobre os Moves já semeados (idempotente).
+      const idb = (await criarClientePglite()) as unknown as IntelDb;
+      return { gerados: (await generateAlerts(idb)).length };
     },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);

@@ -33,6 +33,7 @@ import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
 import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha } from '@/lib/studio/intelligence-view';
+import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -278,6 +279,17 @@ export const api = {
     retificarPedido: (requestId: string, fullName: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/rectify`, { metodo: 'POST', corpo: { fullName } }),
     suprimirPedido: (requestId: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/suppress`, { metodo: 'POST', corpo: {} }),
     revisarMove: (id: string, status: 'confirmed' | 'rejected') => chamar(dispatchIntelligence, `${I}/moves/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
+    // ---- Watchlists e alertas (Studio 2; WATCHLISTS_API.md). Privadas: o dono é a sessão; lista de outro dono = 404. ----
+    watchlists: () => chamar<{ items: WatchlistLinha[] }>(dispatchIntelligence, `${I}/watchlists`),
+    watchlist: (id: string) => chamar<{ watchlist: WatchlistLinha; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(id)}`),
+    criarWatchlist: (name: string) => chamar<{ id: string }>(dispatchIntelligence, `${I}/watchlists`, { metodo: 'POST', corpo: { name } }),
+    apagarWatchlist: (id: string) => chamar<{ id: string; deleted: true }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(id)}`, { metodo: 'DELETE', corpo: { id } }),
+    adicionarItem: (watchlistId: string, entityType: string, entityId: string) =>
+      chamar<{ watchlistId: string; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(watchlistId)}/items`, { metodo: 'POST', corpo: { watchlistId, entityType, entityId } }),
+    removerItem: (watchlistId: string, entityType: string, entityId: string) =>
+      chamar<{ watchlistId: string; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(watchlistId)}/items`, { metodo: 'DELETE', corpo: { watchlistId, entityType, entityId } }),
+    alertas: (query: { status?: 'pending_review' | 'approved' | 'rejected'; watchlistId?: string }) => chamar<{ items: AlertaLinha[] }>(dispatchIntelligence, `${I}/alerts`, { query }),
+    revisarAlerta: (id: string, status: 'approved' | 'rejected') => chamar<{ id: string; status: string; reviewed_by: string }>(dispatchIntelligence, `${I}/alerts/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
   },
   editorial: {
     fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
