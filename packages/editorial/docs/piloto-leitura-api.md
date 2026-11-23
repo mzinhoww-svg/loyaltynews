@@ -41,3 +41,17 @@ Pacote da matéria: `GET /articles/:articleId/review` (rascunho, claims com vere
 ## Quem fixa o mapa
 
 O mapa matéria→artigo é fixado **depois da rodada do piloto**, por um admin/editor-chefe (o operador do piloto, a partir da planilha do AgentOps), com `POST /piloto/mapa`; a Editorial entrega o pacote de cada matéria mas não escolhe qual é a1…a10.
+
+## Importação auditada da leitura do leitor 2 (folha lida fora do Studio)
+
+O QA 3 lê pela folha, fora do Studio; o leitor 1 (admin/editor_chefe) carrega o arquivo no Studio. O parse do CSV e a prévia são do Studio; a Editorial recebe JSON. **Só `admin` ou `editor_chefe`** (o revisor/QA 3 não importa; editor 403).
+
+| Rota | Entrada | Resposta |
+|---|---|---|
+| `POST /piloto/importacao/registro` | `{ arquivo: { nome, sha256 (hex 64, calculado pelo Studio sobre os bytes), linhas }, leitor2Nome, materias: ["a1","a4",…] }` | **201** `{ registradoEm, sha256 }` na primeira vez; **200** com o registro original se o mesmo sha256 for enviado de novo (idempotente); **409 FOLHA_DIFERENTE** se já houver folha registrada com OUTRO sha256 para alguma das matérias (a outra não é gravada); 400 matéria sem leitor 2 (só a1, a4, a6, a9). Só auditoria (`piloto.folha_recebida`), **sem conteúdo**. A tela chama assim que o arquivo é carregado e válido, antes de qualquer prévia. |
+| `POST /piloto/importacao` | `{ arquivo: {nome, sha256, linhas}, leitor2Nome (2–80), leituras: [{ materia, achados, checklist, veredito }] }` (strict; `achados` e `checklist` iguais ao `POST /piloto/:materia/leitura`) | **201** `{ importadas: [{ materia, unsupportedFacts, altas, medias, baixas }] }` (**nunca o conteúdo**). Erros: 403 papel; 400 mesmas validações da leitura (matéria só a1/a4/a6/a9, repetida no arquivo, trecho 3–500, tipo/gravidade do contrato, `evidenciaId` do artigo, "aprovado" sem alta e com checklist completo, campo extra, sha256 inválido); 404 matéria sem artigo mapeado; **409 `LEITOR1_PENDENTE`** (o leitor 1 ainda não registrou a leitura dele daquela matéria: regra de cegueira, aplicada no servidor); **409** o leitor 2 daquela matéria já existe (imutável) ou o mesmo arquivo (sha256) já foi importado; **409 `FOLHA_DIFERENTE`**. |
+
+- **Atomicidade: tudo ou nada.** Se qualquer matéria for inválida ou estiver bloqueada, **nenhuma** é gravada (sem 207). Uma exceção deliberada: o **hash da folha é gravado no primeiro envio mesmo quando a importação fica bloqueada** (ex.: `LEITOR1_PENDENTE`), para provar que a folha não mudou depois que o leitor 1 a viu.
+- **Registro:** cada leitura entra como leitor 2 em `piloto.leitura` com `origem: "importacao"`, `por = "importado por <userId> da folha de <leitor2Nome>"`, `importadoPor`, `leitor2Nome` e `arquivo {nome, sha256, linhas}`; mais `piloto.importado` (arquivo, matérias, quem, quando) e `piloto.folha_recebida`.
+- **`GET /piloto`:** cada item ganha `folha: { sha256, em } | null` (hash e data da **primeira** folha registrada para a matéria; nunca o conteúdo).
+- A leitura importada vale como a do leitor 2 em tudo: estado (`lida`), fechamento, divergência e cegueira.
