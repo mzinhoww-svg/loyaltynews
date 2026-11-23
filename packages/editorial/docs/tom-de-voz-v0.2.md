@@ -95,3 +95,15 @@ Cinco princípios (em ordem de prioridade):
 5. Existe outro texto do projeto (manifesto, voz da marca, exemplos de matérias que vocês consideram "a cara do Loyalty News") que eu devo usar no lugar desta proposta?
 
 Enquanto não houver resposta, a fábrica continua com o `tom-0.1`.
+
+## 7. Parecer do UI/UX Director (23/11/2026) — identidade e interface; a aprovação editorial final é do Editor-chefe/proprietário
+
+1. **Palavras proibidas:** de acordo com a lista; "exclusivo" e "revolucionário" valem **fora de citação literal e de nome próprio de produto** (evita falso positivo).
+2. **Título:** manter a proibição de "veja/saiba/confira"; **teto de 90 caracteres** (não quebra o layout: card grande até 4 linhas, pequeno até 5) e **meta de até 70** para a home ficar escaneável.
+3. **Tratamento do leitor:** impessoal em notícia; "você" só em explicador.
+4. **Tom lint — dividir:**
+   - **BLOQUEAR** (objetivo, sem falso positivo): emoji; "!" no título; título acima de 90 caracteres; título começando por "veja", "saiba" ou "confira".
+   - **AVISAR o revisor** (depende de contexto): palavras proibidas no corpo; data relativa sem data absoluta; "você" em notícia.
+5. **Texto de voz da marca:** não existe manifesto, guia de voz nem matérias-modelo aprovadas nos materiais do projeto (só a assinatura do Brandkit e a frase em inglês do rodapé, que **não** entra em matéria em pt-BR). Se existirem, só o proprietário ou o PM podem fornecer. "Redação Loyalty News" já é o autor institucional nas bylines do portal.
+
+**Estado:** a v0.2 continua **proposta**; o prompt segue `tom-0.1` até o Editor-chefe/proprietário aprovar. O "tom lint" ainda **não está implementado**; quando houver o OK editorial, a divisão acima (bloqueio × aviso) é a especificação.
