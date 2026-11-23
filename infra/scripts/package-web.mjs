@@ -60,7 +60,9 @@ const startCmd = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scrip
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
   'infra/scripts/guard-env.mjs', 'infra/scripts/build-web.mjs', 'infra/scripts/start-web.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs'];
-const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts']; // a sessão simulada do Studio só existe em teste
+// a sessão simulada do Studio só existe em teste; a rota de login de e2e (app/api/e2e) vem no código do Studio desde a int/003: em produção responde 404 e exige
+// LN_STUDIO_TEST_SESSION=1 (que o guard proíbe), mas não há motivo para ela existir num app implantado, então fica fora do pacote
+const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e'];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
@@ -135,7 +137,7 @@ try {
       { nome: 'TRUSTED_PROXY_HOPS', como: 'contar as entradas de X-Forwarded-For que o app recebe de uma requisição de teste com UMA entrada falsa injetada (TEST-NET 203.0.113.9); hops = total de entradas menos 1; exige o diagnóstico DIAG_XFF=1 do Backend (só contagem, nunca IPs); sem medição o limite por IP fica inativo e vale só o limite por conta (padrão seguro)' },
     ],
     sondas: ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock /'],
-    garantias: ['build_command = guard-env + build-web.mjs: APP_ENV e NEXT_PUBLIC_SITE_URL vêm do release.json e entram no ambiente do build (sem atribuição inline); o build falha se o canonical da home não for a URL do ambiente', 'start_command = guard-env + start-web.mjs: o app NÃO sobe se APP_COMMIT não for o SHA de 40 hex do release.json, se NEXT_PUBLIC_SITE_URL faltar/divergir ou se APP_ENV divergir (com zero downtime e rollback automático a versão anterior deve continuar no ar; comportamento na Vertra ainda não testado)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
+    garantias: ['build_command = guard-env + build-web.mjs: APP_ENV e NEXT_PUBLIC_SITE_URL vêm do release.json e entram no ambiente do build (sem atribuição inline); o build falha se o canonical da home não for a URL do ambiente', 'start_command = guard-env + start-web.mjs: o app NÃO sobe se APP_COMMIT não for o SHA de 40 hex do release.json, se NEXT_PUBLIC_SITE_URL faltar/divergir ou se APP_ENV divergir (com zero downtime e rollback automático a versão anterior deve continuar no ar; comportamento na Vertra ainda não testado)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e (inclui a rota app/api/e2e) nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(JSON.stringify({ ok: true, commit: sha12, perfil: profile, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length, manifesto: manifestPath }, null, 2));
