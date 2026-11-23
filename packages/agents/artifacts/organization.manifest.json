@@ -1,0 +1,3588 @@
+{
+  "schema": "ln.agents.organization-manifest/1",
+  "nota": "GERADO por packages/agents/src/artifacts.ts; não editar. Tudo desligado (enabled=false); nenhum agente OpenBot criado.",
+  "fontes": {
+    "agents.registry.json": {
+      "origem": "pacote-v2.1-completo/Loyalty_News_2.1/contracts/agents.registry.json",
+      "sha256": "285caa6e07b8194a1cf5b70cebc073141ed0b649307b7258216f75bf14954439"
+    },
+    "workflows.registry.json": {
+      "origem": "pacote-v2.1-completo/Loyalty_News_2.1/contracts/workflows.registry.json",
+      "sha256": "4d0d7624e6be342fb07525157da19f434c529f136a9a8087866393088ab9765a"
+    },
+    "meetings.registry.json": {
+      "origem": "r0-preparacao/arquitetura/meetings.registry.proposto-P5-v2.json",
+      "sha256": "a18e0a7150db095bf411a0f3ddd1123e15cf25ddd94f9656ddef3eaae2824264"
+    }
+  },
+  "meetings_version": "2.1-p5-v2-proposta",
+  "holiday_calendar": "BR-nacional-v1",
+  "contagens": {
+    "agents": 64,
+    "directorates": 7,
+    "newsrooms": 10,
+    "workflows": 19,
+    "meetings": 28,
+    "dailies": 18,
+    "weeklies": 6,
+    "monthlies": 3,
+    "events": 1
+  },
+  "flags_necessarias": [
+    "rituais",
+    "modelosHabilitados"
+  ],
+  "diretorias": [
+    {
+      "id": "editorial",
+      "department": "editorial",
+      "director": "director_editorial",
+      "members": [
+        "director_editorial",
+        "editor_mercado",
+        "writer_mercado",
+        "editor_programas",
+        "writer_programas",
+        "editor_pontos",
+        "writer_pontos",
+        "editor_bancos",
+        "writer_bancos",
+        "editor_varejo",
+        "writer_varejo",
+        "editor_travel",
+        "writer_travel",
+        "editor_tech",
+        "writer_tech",
+        "editor_crm",
+        "writer_crm",
+        "editor_global",
+        "writer_global",
+        "editor_regulacao",
+        "writer_regulacao",
+        "newsdesk",
+        "agenda",
+        "talks"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-editorial",
+      "weekly_meeting": "W-pautas"
+    },
+    {
+      "id": "creative",
+      "department": "creative",
+      "director": "director_creative",
+      "members": [
+        "director_creative",
+        "art",
+        "designer",
+        "media",
+        "image",
+        "visualqa"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-creative",
+      "weekly_meeting": null
+    },
+    {
+      "id": "growth",
+      "department": "growth",
+      "director": "director_growth",
+      "members": [
+        "director_growth",
+        "social",
+        "linkedin",
+        "instagram",
+        "seo",
+        "newsletter",
+        "publisher_social",
+        "growth_analytics",
+        "community"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-growth",
+      "weekly_meeting": "W-performance"
+    },
+    {
+      "id": "intelligence",
+      "department": "intelligence",
+      "director": "director_intelligence",
+      "members": [
+        "director_intelligence",
+        "discovery",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "marketdata",
+        "dataqa"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-intelligence",
+      "weekly_meeting": "W-intel"
+    },
+    {
+      "id": "commercial",
+      "department": "commercial",
+      "director": "director_commercial",
+      "members": [
+        "director_commercial",
+        "adops",
+        "sales",
+        "pricing",
+        "account"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-commercial",
+      "weekly_meeting": null
+    },
+    {
+      "id": "technology",
+      "department": "technology",
+      "director": "director_technology",
+      "members": [
+        "director_technology",
+        "sre",
+        "finops",
+        "platform",
+        "security"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-technology",
+      "weekly_meeting": "W-finops"
+    },
+    {
+      "id": "trust",
+      "department": "trust",
+      "director": "director_trust",
+      "members": [
+        "director_trust",
+        "factcheck",
+        "rights",
+        "privacy",
+        "audit"
+      ],
+      "reports_to": "publisher",
+      "daily_meeting": "D-trust",
+      "weekly_meeting": "W-trust"
+    }
+  ],
+  "redacoes": [
+    {
+      "editoria": "mercado",
+      "nome": "Mercado & Negócios",
+      "editor": "editor_mercado",
+      "writer": "writer_mercado",
+      "director": "director_editorial",
+      "daily": "D-mercado",
+      "memory_scope": "mercado",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "programas",
+      "nome": "Programas de Fidelidade",
+      "editor": "editor_programas",
+      "writer": "writer_programas",
+      "director": "director_editorial",
+      "daily": "D-programas",
+      "memory_scope": "programas",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "pontos",
+      "nome": "Pontos & Milhas",
+      "editor": "editor_pontos",
+      "writer": "writer_pontos",
+      "director": "director_editorial",
+      "daily": "D-pontos",
+      "memory_scope": "pontos",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "bancos",
+      "nome": "Bancos & Cartões",
+      "editor": "editor_bancos",
+      "writer": "writer_bancos",
+      "director": "director_editorial",
+      "daily": "D-bancos",
+      "memory_scope": "bancos",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "varejo",
+      "nome": "Varejo & Cashback",
+      "editor": "editor_varejo",
+      "writer": "writer_varejo",
+      "director": "director_editorial",
+      "daily": "D-varejo",
+      "memory_scope": "varejo",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "travel",
+      "nome": "Travel & Hospitality",
+      "editor": "editor_travel",
+      "writer": "writer_travel",
+      "director": "director_editorial",
+      "daily": "D-travel",
+      "memory_scope": "travel",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "tech",
+      "nome": "LoyaltyTech & IA",
+      "editor": "editor_tech",
+      "writer": "writer_tech",
+      "director": "director_editorial",
+      "daily": "D-tech",
+      "memory_scope": "tech",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "crm",
+      "nome": "CRM & CX",
+      "editor": "editor_crm",
+      "writer": "writer_crm",
+      "director": "director_editorial",
+      "daily": "D-crm",
+      "memory_scope": "crm",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "global",
+      "nome": "Global Loyalty",
+      "editor": "editor_global",
+      "writer": "writer_global",
+      "director": "director_editorial",
+      "daily": "D-global",
+      "memory_scope": "global",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    },
+    {
+      "editoria": "regulacao",
+      "nome": "Regulação & Dados",
+      "editor": "editor_regulacao",
+      "writer": "writer_regulacao",
+      "director": "director_editorial",
+      "daily": "D-regulacao",
+      "memory_scope": "regulacao",
+      "interactions": [
+        {
+          "directorate": "editorial",
+          "agents": [
+            "director_editorial",
+            "newsdesk"
+          ],
+          "workflows": [
+            "WF01",
+            "WF02",
+            "WF03"
+          ]
+        },
+        {
+          "directorate": "trust",
+          "agents": [
+            "factcheck",
+            "rights"
+          ],
+          "workflows": [
+            "WF02",
+            "WF08"
+          ]
+        },
+        {
+          "directorate": "intelligence",
+          "agents": [
+            "discovery",
+            "people",
+            "company"
+          ],
+          "workflows": [
+            "WF06"
+          ]
+        },
+        {
+          "directorate": "creative",
+          "agents": [
+            "art",
+            "designer",
+            "media"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "growth",
+          "agents": [
+            "linkedin",
+            "publisher_social"
+          ],
+          "workflows": [
+            "WF04"
+          ]
+        },
+        {
+          "directorate": "technology",
+          "agents": [
+            "finops"
+          ],
+          "workflows": [
+            "WF11"
+          ]
+        }
+      ]
+    }
+  ],
+  "perfis": [
+    {
+      "id": "publisher",
+      "name": "Publisher / CEO",
+      "department": "executivo",
+      "reports_to": null,
+      "scope": "internal",
+      "default_route_hint": "strategic",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy"
+      ],
+      "kpi": "receita, qualidade, orçamento",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_editorial",
+      "name": "Editor-chefe",
+      "department": "editorial",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " correções, qualidade e SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_creative",
+      "name": "Diretor criativo",
+      "department": "creative",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " aprovação visual e custo",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_growth",
+      "name": "Diretor de Growth",
+      "department": "growth",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " tráfego qualificado e opt-ins",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_intelligence",
+      "name": "Diretor de Intelligence",
+      "department": "intelligence",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " cobertura e precisão",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_commercial",
+      "name": "Diretor comercial",
+      "department": "commercial",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " MRR, ocupação, renovação",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_technology",
+      "name": "Diretor de tecnologia",
+      "department": "technology",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " SLO e orçamento",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "director_trust",
+      "name": "Diretor de Trust & Quality",
+      "department": "trust",
+      "reports_to": "publisher",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_metrics",
+        "propose_policy",
+        "review"
+      ],
+      "kpi": " incidentes e gates",
+      "enabled": false,
+      "required_result_fields": [
+        "priorities",
+        "decisions",
+        "delegations",
+        "budget_usage",
+        "risks"
+      ]
+    },
+    {
+      "id": "editor_mercado",
+      "name": "Editor de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "mercado",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_mercado",
+      "name": "Redator de Mercado & Negócios",
+      "department": "editorial",
+      "reports_to": "editor_mercado",
+      "scope": "mercado",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_programas",
+      "name": "Editor de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "programas",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_programas",
+      "name": "Redator de Programas de Fidelidade",
+      "department": "editorial",
+      "reports_to": "editor_programas",
+      "scope": "programas",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_pontos",
+      "name": "Editor de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "pontos",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_pontos",
+      "name": "Redator de Pontos & Milhas",
+      "department": "editorial",
+      "reports_to": "editor_pontos",
+      "scope": "pontos",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_bancos",
+      "name": "Editor de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "bancos",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_bancos",
+      "name": "Redator de Bancos & Cartões",
+      "department": "editorial",
+      "reports_to": "editor_bancos",
+      "scope": "bancos",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_varejo",
+      "name": "Editor de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "varejo",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_varejo",
+      "name": "Redator de Varejo & Cashback",
+      "department": "editorial",
+      "reports_to": "editor_varejo",
+      "scope": "varejo",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_travel",
+      "name": "Editor de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "travel",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_travel",
+      "name": "Redator de Travel & Hospitality",
+      "department": "editorial",
+      "reports_to": "editor_travel",
+      "scope": "travel",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_tech",
+      "name": "Editor de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "tech",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_tech",
+      "name": "Redator de LoyaltyTech & IA",
+      "department": "editorial",
+      "reports_to": "editor_tech",
+      "scope": "tech",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_crm",
+      "name": "Editor de CRM & CX",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "crm",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_crm",
+      "name": "Redator de CRM & CX",
+      "department": "editorial",
+      "reports_to": "editor_crm",
+      "scope": "crm",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_global",
+      "name": "Editor de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "global",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_global",
+      "name": "Redator de Global Loyalty",
+      "department": "editorial",
+      "reports_to": "editor_global",
+      "scope": "global",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "editor_regulacao",
+      "name": "Editor de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "regulacao",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "review",
+        "assign"
+      ],
+      "kpi": "first pass acceptance, correction rate, editorial SLA",
+      "enabled": false,
+      "required_result_fields": [
+        "decision",
+        "corrections",
+        "priority",
+        "assignment",
+        "reason"
+      ]
+    },
+    {
+      "id": "writer_regulacao",
+      "name": "Redator de Regulação & Dados",
+      "department": "editorial",
+      "reports_to": "editor_regulacao",
+      "scope": "regulacao",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft"
+      ],
+      "kpi": "factual error rate, accepted drafts, time to complete, source diversity",
+      "enabled": false,
+      "required_result_fields": [
+        "headline",
+        "lead",
+        "article",
+        "claims",
+        "source_refs",
+        "editorial_context"
+      ]
+    },
+    {
+      "id": "newsdesk",
+      "name": "Newsdesk / Radar",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "topic",
+        "sources",
+        "priority"
+      ]
+    },
+    {
+      "id": "agenda",
+      "name": "Editor de Agenda",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "event",
+        "date",
+        "organizer",
+        "source"
+      ]
+    },
+    {
+      "id": "talks",
+      "name": "Editor de Entrevistas e Talks",
+      "department": "editorial",
+      "reports_to": "director_editorial",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "interview_brief",
+        "consent",
+        "evidence"
+      ]
+    },
+    {
+      "id": "art",
+      "name": "Diretor de arte",
+      "department": "creative",
+      "reports_to": "director_creative",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "template",
+        "brief",
+        "media_requirements"
+      ]
+    },
+    {
+      "id": "designer",
+      "name": "Designer editorial",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "default_route_hint": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "template_id",
+        "assets",
+        "dimensions"
+      ]
+    },
+    {
+      "id": "media",
+      "name": "Pesquisador de mídia",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "asset_id",
+        "credit",
+        "source",
+        "rights_basis"
+      ]
+    },
+    {
+      "id": "image",
+      "name": "Criador de ilustrações",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "default_route_hint": "image_fast",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "asset_id",
+        "generation_context",
+        "label"
+      ]
+    },
+    {
+      "id": "visualqa",
+      "name": "QA visual",
+      "department": "creative",
+      "reports_to": "art",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "asset_id",
+        "contrast",
+        "credits",
+        "decision"
+      ]
+    },
+    {
+      "id": "social",
+      "name": "Editor de social",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "channel_plan",
+        "calendar",
+        "copy_brief"
+      ]
+    },
+    {
+      "id": "linkedin",
+      "name": "Redator LinkedIn",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "copy",
+        "mentions",
+        "asset_id",
+        "utm"
+      ]
+    },
+    {
+      "id": "instagram",
+      "name": "Redator Instagram",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "copy",
+        "mentions",
+        "asset_id",
+        "caption"
+      ]
+    },
+    {
+      "id": "seo",
+      "name": "Especialista SEO",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "meta",
+        "canonical",
+        "structured_data"
+      ]
+    },
+    {
+      "id": "newsletter",
+      "name": "Editor The Loyal",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "edition",
+        "segments",
+        "content"
+      ]
+    },
+    {
+      "id": "publisher_social",
+      "name": "Operador de distribuição",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "default_route_hint": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "channel",
+        "remote_id",
+        "receipt",
+        "status"
+      ]
+    },
+    {
+      "id": "growth_analytics",
+      "name": "Analista Growth",
+      "department": "growth",
+      "reports_to": "director_growth",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "metrics",
+        "period",
+        "experiment"
+      ]
+    },
+    {
+      "id": "community",
+      "name": "Community manager",
+      "department": "growth",
+      "reports_to": "social",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "comment_id",
+        "response_draft",
+        "risk"
+      ]
+    },
+    {
+      "id": "discovery",
+      "name": "Entity Discovery",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "entities",
+        "identities",
+        "sources"
+      ]
+    },
+    {
+      "id": "people",
+      "name": "People Intelligence",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "person_id",
+        "professional_facts",
+        "evidence"
+      ]
+    },
+    {
+      "id": "company",
+      "name": "Company Intelligence",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "company_id",
+        "corporate_facts",
+        "evidence"
+      ]
+    },
+    {
+      "id": "orgchart",
+      "name": "Org Chart Builder",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "company_id",
+        "nodes",
+        "verified_edges",
+        "unknown_edges"
+      ]
+    },
+    {
+      "id": "moves",
+      "name": "Loyalty Moves",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "entity_id",
+        "event",
+        "evidence",
+        "effective_date"
+      ]
+    },
+    {
+      "id": "graph",
+      "name": "Relationship Mapper",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "edges",
+        "temporal_intervals",
+        "evidence"
+      ]
+    },
+    {
+      "id": "marketdata",
+      "name": "Analista Market Data",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "metric",
+        "value",
+        "period",
+        "source"
+      ]
+    },
+    {
+      "id": "dataqa",
+      "name": "Data Quality Auditor",
+      "department": "intelligence",
+      "reports_to": "director_intelligence",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "entity_id",
+        "conflicts",
+        "decision"
+      ]
+    },
+    {
+      "id": "adops",
+      "name": "Ad Operations",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "default_route_hint": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "campaign_id",
+        "inventory",
+        "delivery_status"
+      ]
+    },
+    {
+      "id": "sales",
+      "name": "Executivo comercial",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "lead_id",
+        "proposal",
+        "status"
+      ]
+    },
+    {
+      "id": "pricing",
+      "name": "Analista Pricing",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "format_id",
+        "price",
+        "availability"
+      ]
+    },
+    {
+      "id": "account",
+      "name": "Customer Success",
+      "department": "commercial",
+      "reports_to": "director_commercial",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "account_id",
+        "campaign_metrics",
+        "service_status"
+      ]
+    },
+    {
+      "id": "sre",
+      "name": "SRE / Observabilidade",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "default_route_hint": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "incident",
+        "recovery",
+        "health"
+      ]
+    },
+    {
+      "id": "finops",
+      "name": "FinOps AI",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "default_route_hint": "deterministic",
+      "allowed_tools": [
+        "read_approved",
+        "execute_scoped"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "reservation",
+        "actual_usage",
+        "budget_remaining"
+      ]
+    },
+    {
+      "id": "platform",
+      "name": "Engenheiro de plataforma",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "service",
+        "health",
+        "action_proposal"
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security Engineer",
+      "department": "technology",
+      "reports_to": "director_technology",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "finding",
+        "severity",
+        "mitigation"
+      ]
+    },
+    {
+      "id": "factcheck",
+      "name": "Fact Checker",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "claims",
+        "verification",
+        "contradictions",
+        "decision"
+      ]
+    },
+    {
+      "id": "rights",
+      "name": "Direitos de conteúdo",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "default_route_hint": "economy",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "asset_id",
+        "rights_basis",
+        "credit",
+        "decision"
+      ]
+    },
+    {
+      "id": "privacy",
+      "name": "Privacy / LGPD",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "default_route_hint": "premium",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "request_id",
+        "identity_check",
+        "action",
+        "deadline"
+      ]
+    },
+    {
+      "id": "audit",
+      "name": "Auditor editorial",
+      "department": "trust",
+      "reports_to": "director_trust",
+      "scope": "internal",
+      "default_route_hint": "review",
+      "allowed_tools": [
+        "read_evidence",
+        "draft",
+        "review"
+      ],
+      "kpi": "qualidade, latência, custo",
+      "enabled": false,
+      "required_result_fields": [
+        "findings",
+        "severity",
+        "evidence",
+        "decision"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "id": "WF01",
+      "name": "Radar e pauta",
+      "trigger": "source.item",
+      "owner": "newsdesk",
+      "output": "triaged",
+      "blockers": [
+        "duplicate",
+        "rights_unknown"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "writer_{editoria}",
+          "expands_to": [
+            "writer_mercado",
+            "writer_programas",
+            "writer_pontos",
+            "writer_bancos",
+            "writer_varejo",
+            "writer_travel",
+            "writer_tech",
+            "writer_crm",
+            "writer_global",
+            "writer_regulacao"
+          ]
+        },
+        {
+          "agent": "editor_{editoria}",
+          "expands_to": [
+            "editor_mercado",
+            "editor_programas",
+            "editor_pontos",
+            "editor_bancos",
+            "editor_varejo",
+            "editor_travel",
+            "editor_tech",
+            "editor_crm",
+            "editor_global",
+            "editor_regulacao"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "WF02",
+      "name": "Redação especializada",
+      "trigger": "topic.assigned",
+      "owner": "director_editorial",
+      "output": "article.approved",
+      "blockers": [
+        "unsupported_claim",
+        "rights_unknown",
+        "approval_missing",
+        "rights_basis_unresolved",
+        "copy_literal",
+        "cross_provider_check_failed"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "writer_{editoria}",
+          "expands_to": [
+            "writer_mercado",
+            "writer_programas",
+            "writer_pontos",
+            "writer_bancos",
+            "writer_varejo",
+            "writer_travel",
+            "writer_tech",
+            "writer_crm",
+            "writer_global",
+            "writer_regulacao"
+          ]
+        },
+        {
+          "agent": "factcheck"
+        },
+        {
+          "agent": "rights"
+        },
+        {
+          "agent": "editor_{editoria}",
+          "expands_to": [
+            "editor_mercado",
+            "editor_programas",
+            "editor_pontos",
+            "editor_bancos",
+            "editor_varejo",
+            "editor_travel",
+            "editor_tech",
+            "editor_crm",
+            "editor_global",
+            "editor_regulacao"
+          ]
+        },
+        {
+          "step": "auto_gate_editor"
+        }
+      ]
+    },
+    {
+      "id": "WF03",
+      "name": "Publicar matéria",
+      "trigger": "article.approved",
+      "owner": "director_editorial",
+      "output": "article.published",
+      "blockers": [
+        "stale_approval",
+        "embargo"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "validate_revision"
+        },
+        {
+          "step": "transactional_publish"
+        },
+        {
+          "step": "outbox"
+        },
+        {
+          "step": "postpublication_audit"
+        },
+        {
+          "step": "unpublish_if_failed"
+        }
+      ]
+    },
+    {
+      "id": "WF04",
+      "name": "Pacote social",
+      "trigger": "article.published",
+      "owner": "director_growth",
+      "output": "social.receipt",
+      "blockers": [
+        "no_image",
+        "mention_unverified",
+        "no_receipt"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "discovery"
+        },
+        {
+          "agent": "media"
+        },
+        {
+          "agent": "art"
+        },
+        {
+          "agent": "designer"
+        },
+        {
+          "agent": "linkedin"
+        },
+        {
+          "agent": "instagram"
+        },
+        {
+          "agent": "visualqa"
+        },
+        {
+          "step": "auto_gate_social"
+        },
+        {
+          "agent": "publisher_social"
+        }
+      ]
+    },
+    {
+      "id": "WF05",
+      "name": "The Loyal",
+      "trigger": "schedule.weekdays",
+      "owner": "director_growth",
+      "output": "newsletter.sent",
+      "blockers": [
+        "consent_missing",
+        "stale_revision"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "newsletter"
+        },
+        {
+          "agent": "factcheck"
+        },
+        {
+          "step": "auto_gate_editor"
+        },
+        {
+          "step": "esp_send"
+        }
+      ]
+    },
+    {
+      "id": "WF06",
+      "name": "Entity Intelligence",
+      "trigger": "article.approved / source.evidence",
+      "owner": "director_intelligence",
+      "output": "entity.revision",
+      "blockers": [
+        "ambiguous_identity",
+        "conflicting_evidence"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "discovery"
+        },
+        {
+          "agent": "people"
+        },
+        {
+          "agent": "company"
+        },
+        {
+          "agent": "graph"
+        },
+        {
+          "agent": "dataqa"
+        },
+        {
+          "step": "auto_gate_data"
+        }
+      ]
+    },
+    {
+      "id": "WF07",
+      "name": "Organograma e Moves",
+      "trigger": "entity.revision",
+      "owner": "director_intelligence",
+      "output": "org.snapshot",
+      "blockers": [
+        "unverified_reporting",
+        "sensitive_change"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "orgchart"
+        },
+        {
+          "agent": "moves"
+        },
+        {
+          "agent": "dataqa"
+        },
+        {
+          "step": "auto_gate_data"
+        }
+      ]
+    },
+    {
+      "id": "WF08",
+      "name": "Correção editorial",
+      "trigger": "correction.requested",
+      "owner": "director_trust",
+      "output": "correction.closed",
+      "blockers": [
+        "missing_evidence",
+        "remote_unresolved"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "editor_{editoria}",
+          "expands_to": [
+            "editor_mercado",
+            "editor_programas",
+            "editor_pontos",
+            "editor_bancos",
+            "editor_varejo",
+            "editor_travel",
+            "editor_tech",
+            "editor_crm",
+            "editor_global",
+            "editor_regulacao"
+          ]
+        },
+        {
+          "agent": "factcheck"
+        },
+        {
+          "step": "auto_gate_editor"
+        },
+        {
+          "step": "republish"
+        },
+        {
+          "step": "social_reconcile"
+        },
+        {
+          "step": "entity_rebuild"
+        }
+      ]
+    },
+    {
+      "id": "WF09",
+      "name": "Mídia kit e métricas",
+      "trigger": "schedule.metrics",
+      "owner": "director_growth",
+      "output": "metrics.snapshot",
+      "blockers": [
+        "stale_data",
+        "provider_unavailable"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "collect_providers"
+        },
+        {
+          "step": "validate_periods"
+        },
+        {
+          "step": "aggregate"
+        },
+        {
+          "step": "publish_snapshot"
+        }
+      ]
+    },
+    {
+      "id": "WF10",
+      "name": "Comercial e mídia",
+      "trigger": "lead.created / campaign.approved",
+      "owner": "director_commercial",
+      "output": "campaign.report",
+      "blockers": [
+        "inventory_conflict",
+        "approval_missing"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "sales"
+        },
+        {
+          "agent": "pricing"
+        },
+        {
+          "step": "auto_gate_sales"
+        },
+        {
+          "agent": "adops"
+        },
+        {
+          "agent": "account"
+        }
+      ]
+    },
+    {
+      "id": "WF11",
+      "name": "FinOps e modelos",
+      "trigger": "usage.recorded / schedule.daily",
+      "owner": "director_technology",
+      "output": "budget.snapshot",
+      "blockers": [
+        "unknown_rate",
+        "budget_exhausted"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "finops"
+        },
+        {
+          "step": "reconcile"
+        },
+        {
+          "step": "budget_alert"
+        },
+        {
+          "step": "auto_gate_admin"
+        }
+      ]
+    },
+    {
+      "id": "WF12",
+      "name": "Conselho de pauta",
+      "trigger": "schedule.weekly",
+      "owner": "publisher",
+      "output": "plan.approved",
+      "blockers": [
+        "policy_conflict",
+        "budget_exceeded"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "director_editorial"
+        },
+        {
+          "agent": "director_creative"
+        },
+        {
+          "agent": "director_growth"
+        },
+        {
+          "agent": "director_intelligence"
+        },
+        {
+          "agent": "director_commercial"
+        },
+        {
+          "agent": "director_technology"
+        },
+        {
+          "agent": "director_trust"
+        },
+        {
+          "agent": "publisher"
+        },
+        {
+          "step": "auto_gate_owner"
+        }
+      ]
+    },
+    {
+      "id": "WF13",
+      "name": "Incidente e restauração",
+      "trigger": "incident.raised",
+      "owner": "director_technology",
+      "output": "incident.closed",
+      "blockers": [
+        "unsafe_replay",
+        "missing_approval"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "agent": "sre"
+        },
+        {
+          "agent": "security"
+        },
+        {
+          "step": "auto_gate_ops"
+        },
+        {
+          "step": "recover"
+        },
+        {
+          "agent": "audit"
+        }
+      ]
+    },
+    {
+      "id": "WF14",
+      "name": "Watchlist",
+      "trigger": "entity.revision / article.published",
+      "owner": "director_intelligence",
+      "output": "alert.receipt",
+      "blockers": [
+        "unverified_event",
+        "optout"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "match_active_subscriptions"
+        },
+        {
+          "step": "dedupe"
+        },
+        {
+          "step": "consent_check"
+        },
+        {
+          "step": "notify"
+        }
+      ]
+    },
+    {
+      "id": "WF15",
+      "name": "Reuniões e rituais",
+      "trigger": "schedule.meeting / meeting.requested",
+      "owner": "publisher",
+      "output": "meeting.closed",
+      "blockers": [
+        "missing_inputs",
+        "invalid_authority",
+        "budget_exhausted"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "snapshot"
+        },
+        {
+          "step": "structured_inputs"
+        },
+        {
+          "step": "chair_synthesis"
+        },
+        {
+          "step": "challenge_if_needed"
+        },
+        {
+          "step": "validate_decisions"
+        },
+        {
+          "step": "auto_gate_gate_if_needed"
+        },
+        {
+          "step": "transactional_actions"
+        }
+      ]
+    },
+    {
+      "id": "WF16",
+      "name": "Acompanhamento de decisões",
+      "trigger": "schedule.actions / decision.approved",
+      "owner": "publisher",
+      "output": "action.updated",
+      "blockers": [
+        "missing_owner",
+        "overdue",
+        "unverified_completion"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "validate_authority"
+        },
+        {
+          "step": "assign"
+        },
+        {
+          "step": "track_due_date"
+        },
+        {
+          "step": "verify_evidence"
+        },
+        {
+          "step": "escalate_overdue"
+        }
+      ]
+    },
+    {
+      "id": "WF17",
+      "name": "Governança de modelos",
+      "trigger": "model.change_requested",
+      "owner": "director_technology",
+      "output": "model.policy_version",
+      "blockers": [
+        "unknown_model",
+        "unknown_price",
+        "regression",
+        "approval_missing"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "refresh_catalog"
+        },
+        {
+          "step": "offline_eval"
+        },
+        {
+          "step": "cost_review"
+        },
+        {
+          "step": "security_review"
+        },
+        {
+          "step": "auto_gate_approval"
+        },
+        {
+          "step": "canary"
+        },
+        {
+          "step": "monitor_or_rollback"
+        }
+      ]
+    },
+    {
+      "id": "WF18",
+      "name": "Resposta e retificação",
+      "trigger": "legal.response_requested",
+      "owner": "director_trust",
+      "output": "response.receipt",
+      "blockers": [
+        "unverified_request"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "intake"
+        },
+        {
+          "step": "preserve_evidence"
+        },
+        {
+          "step": "triage"
+        },
+        {
+          "step": "auto_gate_response"
+        },
+        {
+          "step": "errata"
+        },
+        {
+          "step": "social_reconcile"
+        },
+        {
+          "step": "notify_owner_if_legal"
+        }
+      ]
+    },
+    {
+      "id": "WF19",
+      "name": "Pedido do titular",
+      "trigger": "privacy.requested",
+      "owner": "director_trust",
+      "output": "privacy.receipt",
+      "blockers": [
+        "identity_unverified",
+        "legal_conflict"
+      ],
+      "enabled": false,
+      "steps": [
+        {
+          "step": "intake"
+        },
+        {
+          "step": "verify_identity"
+        },
+        {
+          "step": "restrict_processing"
+        },
+        {
+          "step": "auto_gate_privacy"
+        },
+        {
+          "step": "rectify_or_remove"
+        },
+        {
+          "agent": "audit"
+        }
+      ]
+    }
+  ],
+  "rituais": [
+    {
+      "id": "D-mercado",
+      "title": "Daily: Mercado & Negócios",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_mercado",
+      "participants": [
+        "editor_mercado",
+        "writer_mercado"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-programas",
+      "title": "Daily: Programas de Fidelidade",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_programas",
+      "participants": [
+        "editor_programas",
+        "writer_programas"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-pontos",
+      "title": "Daily: Pontos & Milhas",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_pontos",
+      "participants": [
+        "editor_pontos",
+        "writer_pontos"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-bancos",
+      "title": "Daily: Bancos & Cartões",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_bancos",
+      "participants": [
+        "editor_bancos",
+        "writer_bancos"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-varejo",
+      "title": "Daily: Varejo & Cashback",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_varejo",
+      "participants": [
+        "editor_varejo",
+        "writer_varejo"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-travel",
+      "title": "Daily: Travel & Hospitality",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_travel",
+      "participants": [
+        "editor_travel",
+        "writer_travel"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-tech",
+      "title": "Daily: LoyaltyTech & IA",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_tech",
+      "participants": [
+        "editor_tech",
+        "writer_tech"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-crm",
+      "title": "Daily: CRM & CX",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_crm",
+      "participants": [
+        "editor_crm",
+        "writer_crm"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-global",
+      "title": "Daily: Global Loyalty",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_global",
+      "participants": [
+        "editor_global",
+        "writer_global"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-regulacao",
+      "title": "Daily: Regulação & Dados",
+      "cycle": "weekday",
+      "schedule_local": "06:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "editor_regulacao",
+      "participants": [
+        "editor_regulacao",
+        "writer_regulacao"
+      ],
+      "quorum_minimum": 2,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-editorial",
+      "title": "Daily editorial",
+      "cycle": "weekday",
+      "schedule_local": "06:20",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_editorial",
+      "participants": [
+        "director_editorial",
+        "newsdesk",
+        "editor_mercado",
+        "editor_programas",
+        "editor_pontos",
+        "editor_bancos",
+        "editor_varejo",
+        "editor_travel",
+        "editor_tech",
+        "editor_crm",
+        "editor_global",
+        "editor_regulacao"
+      ],
+      "quorum_minimum": 8,
+      "route": "review",
+      "depends_on": [],
+      "workflow": null,
+      "essential": true,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "D-creative",
+      "title": "Daily Criação",
+      "cycle": "weekday",
+      "schedule_local": "06:40",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_creative",
+      "participants": [
+        "director_creative",
+        "art",
+        "designer",
+        "media",
+        "image",
+        "visualqa"
+      ],
+      "quorum_minimum": 4,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-growth",
+      "title": "Daily Growth",
+      "cycle": "weekday",
+      "schedule_local": "06:45",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_growth",
+      "participants": [
+        "director_growth",
+        "social",
+        "linkedin",
+        "instagram",
+        "seo",
+        "newsletter",
+        "publisher_social",
+        "growth_analytics",
+        "community"
+      ],
+      "quorum_minimum": 6,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-intelligence",
+      "title": "Daily Intelligence",
+      "cycle": "weekday",
+      "schedule_local": "06:10",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_intelligence",
+      "participants": [
+        "director_intelligence",
+        "discovery",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "marketdata",
+        "dataqa"
+      ],
+      "quorum_minimum": 6,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-commercial",
+      "title": "Daily Comercial",
+      "cycle": "weekday",
+      "schedule_local": "08:30",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_commercial",
+      "participants": [
+        "director_commercial",
+        "adops",
+        "sales",
+        "pricing",
+        "account"
+      ],
+      "quorum_minimum": 4,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-technology",
+      "title": "Daily Tecnologia",
+      "cycle": "weekday",
+      "schedule_local": "08:15",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_technology",
+      "participants": [
+        "director_technology",
+        "sre",
+        "finops",
+        "platform",
+        "security"
+      ],
+      "quorum_minimum": 4,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-trust",
+      "title": "Daily Trust & Quality",
+      "cycle": "weekday",
+      "schedule_local": "07:15",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_trust",
+      "participants": [
+        "director_trust",
+        "factcheck",
+        "rights",
+        "privacy",
+        "audit"
+      ],
+      "quorum_minimum": 4,
+      "route": "economy",
+      "depends_on": [],
+      "workflow": null,
+      "essential": true,
+      "consolidation": false,
+      "enabled": false
+    },
+    {
+      "id": "D-sync",
+      "title": "Sincronização de diretorias",
+      "cycle": "weekday",
+      "schedule_local": "07:25",
+      "timezone": "America/Sao_Paulo",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence",
+        "director_trust"
+      ],
+      "quorum_minimum": 4,
+      "route": "review",
+      "depends_on": [
+        "D-trust",
+        "D-intelligence",
+        "D-editorial",
+        "D-creative",
+        "D-growth"
+      ],
+      "workflow": null,
+      "essential": true,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "W-pautas",
+      "title": "Conselho editorial semanal",
+      "cycle": "weekly",
+      "schedule_local": "MON 08:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_editorial",
+      "participants": [
+        "director_editorial",
+        "newsdesk",
+        "editor_mercado",
+        "editor_programas",
+        "editor_pontos",
+        "editor_bancos",
+        "editor_varejo",
+        "editor_travel",
+        "editor_tech",
+        "editor_crm",
+        "editor_global",
+        "editor_regulacao",
+        "director_intelligence",
+        "director_growth",
+        "director_creative"
+      ],
+      "quorum_minimum": 10,
+      "route": "review",
+      "depends_on": [],
+      "workflow": "WF12",
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "W-cross",
+      "title": "Weekly interdiretorias",
+      "cycle": "weekly",
+      "schedule_local": "MON 09:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence",
+        "director_commercial",
+        "director_technology",
+        "director_trust"
+      ],
+      "quorum_minimum": 6,
+      "route": "premium",
+      "depends_on": [],
+      "workflow": "WF15",
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "W-performance",
+      "title": "Performance e experimentos",
+      "cycle": "weekly",
+      "schedule_local": "FRI 15:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_growth",
+      "participants": [
+        "director_growth",
+        "growth_analytics",
+        "director_editorial",
+        "director_creative",
+        "director_intelligence",
+        "seo",
+        "newsletter"
+      ],
+      "quorum_minimum": 5,
+      "route": "review",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "W-finops",
+      "title": "FinOps & Model Council",
+      "cycle": "weekly",
+      "schedule_local": "FRI 14:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_technology",
+      "participants": [
+        "director_technology",
+        "finops",
+        "security",
+        "publisher",
+        "director_trust"
+      ],
+      "quorum_minimum": 4,
+      "route": "review",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "W-trust",
+      "title": "Auditoria editorial e dados",
+      "cycle": "weekly",
+      "schedule_local": "THU 14:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_trust",
+      "participants": [
+        "director_trust",
+        "audit",
+        "factcheck",
+        "rights",
+        "privacy",
+        "director_editorial",
+        "dataqa"
+      ],
+      "quorum_minimum": 5,
+      "route": "review",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "W-intel",
+      "title": "Intelligence Research Council",
+      "cycle": "weekly",
+      "schedule_local": "WED 14:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_intelligence",
+      "participants": [
+        "director_intelligence",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "dataqa",
+        "marketdata"
+      ],
+      "quorum_minimum": 6,
+      "route": "review",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "M-board",
+      "title": "Monthly Executive Board",
+      "cycle": "monthly",
+      "schedule_local": "FIRST_BUSINESS_DAY 10:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence",
+        "director_commercial",
+        "director_technology",
+        "director_trust"
+      ],
+      "quorum_minimum": 6,
+      "route": "strategic",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "M-model",
+      "title": "Model & Quality Review",
+      "cycle": "monthly",
+      "schedule_local": "FIRST_BUSINESS_DAY 14:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_technology",
+      "participants": [
+        "director_technology",
+        "finops",
+        "director_trust",
+        "audit",
+        "director_editorial",
+        "director_creative",
+        "director_growth",
+        "director_intelligence"
+      ],
+      "quorum_minimum": 6,
+      "route": "premium",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "M-commercial",
+      "title": "Revisão comercial",
+      "cycle": "monthly",
+      "schedule_local": "FIRST_BUSINESS_DAY 15:00",
+      "timezone": "America/Sao_Paulo",
+      "chair": "director_commercial",
+      "participants": [
+        "director_commercial",
+        "sales",
+        "pricing",
+        "account",
+        "director_growth",
+        "publisher"
+      ],
+      "quorum_minimum": 4,
+      "route": "review",
+      "depends_on": [],
+      "workflow": null,
+      "essential": false,
+      "consolidation": true,
+      "enabled": false
+    },
+    {
+      "id": "X-incident",
+      "title": "Comitê extraordinário",
+      "cycle": "event",
+      "schedule_local": "incident / breaking / dependency",
+      "timezone": "America/Sao_Paulo",
+      "chair": "publisher",
+      "participants": [
+        "publisher",
+        "director_trust",
+        "director_technology",
+        "director_editorial"
+      ],
+      "quorum_minimum": 3,
+      "route": "premium",
+      "depends_on": [],
+      "workflow": null,
+      "essential": true,
+      "consolidation": false,
+      "enabled": false
+    }
+  ],
+  "recovery_policy": {
+    "decision": "DP-11/P5: 2 h recovery window for rituals missed while the OpenBot host is off; separate batch, activate after R4-11 is accepted",
+    "window_minutes": 120,
+    "window_inclusive": true,
+    "timezone": "America/Sao_Paulo",
+    "same_business_day": true,
+    "late_outcome": "status_only record, no model call; agenda carried to the next occurrence",
+    "idempotency_key": "meeting_id + original_occurrence_date (the scheduled date before any holiday move)",
+    "holiday": "not due on national holidays; a weekly meeting that falls on a holiday moves to the next business day",
+    "dependencies": {
+      "D-sync": [
+        "D-intelligence",
+        "D-editorial",
+        "D-creative",
+        "D-growth",
+        "D-trust"
+      ],
+      "rule": "D-sync waits until each listed daily ran or became status_only for the same local date; its own window still ends at 07:25+120 min (09:25). Every dependency window ends earlier (latest: D-trust 07:15+120 = 09:15), so dependencies are always resolved before the D-sync deadline. If the D-sync deadline passes, D-sync becomes status_only.",
+      "consistency": "D-sync participants (publisher + directors editorial, creative, growth, intelligence, trust) match the listed dailies"
+    },
+    "boundary_tests": [
+      "restart at +120 min -> runs",
+      "restart at +121 min -> status_only",
+      "host off overnight -> previous day meetings become status_only",
+      "Monday holiday -> weekly on Tuesday",
+      "two restarts inside the window -> one execution",
+      "D-sync with a dependency still pending at 08:00 -> waits; dependency becomes status_only at its deadline -> D-sync runs before 09:25",
+      "host back at 09:30 -> D-sync status_only",
+      "Monday holiday: W-pautas moves to Tuesday 08:00 with key W-pautas+<Monday date>; a second restart on Tuesday does not duplicate"
+    ],
+    "rescheduling": {
+      "holiday_move": "weekly or monthly meeting due on a holiday moves to the next business day, same local time, keeping the original idempotency key and recording rescheduled_date",
+      "collision": "a meeting runs at most once per original occurrence; a moved occurrence that lands on a day where the next regular occurrence of the same meeting is also due runs once, with both keys recorded",
+      "supersession": "no monthly-replaces-weekly rule is adopted (pending a separate decision)"
+    }
+  }
+}
