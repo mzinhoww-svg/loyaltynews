@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { parsePage } from '../_components/Listing';
 import { SearchInput } from '../_components/ds-client';
-import { Sidebar } from '../_components/Sidebar';
+import { WithSidebar } from '../_components/Sidebar';
 import { ArticleGrid, EmptyState, PageHead, Pager } from '../_components/ui';
 import { getSource } from '../_lib/source';
 
@@ -21,14 +21,14 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
     <>
       <PageHead title="Busca" lead="Pesquise por matérias, empresas, programas ou temas." crumbs={[{ label: 'Busca' }]} />
       <SearchInput action="/busca" defaultValue={q} label="Buscar no portal" />
-      <div className="pt-layout">
+      <WithSidebar>
         <div aria-live="polite">
           {!result ? (
             <EmptyState title="Digite um termo para buscar">Resultados aparecem aqui, por relevância e data de publicação.</EmptyState>
           ) : result.items.length ? (
             <>
               <p className="pt-meta" data-testid="result-count">{result.total} resultado(s) para “{q}”</p>
-              <ArticleGrid items={result.items} cols={3} />
+              <ArticleGrid items={result.items} cols={3} headingLevel={2} />
               <Pager page={result} basePath="/busca" query={{ q }} />
             </>
           ) : (
@@ -37,8 +37,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
             </EmptyState>
           )}
         </div>
-        <Sidebar />
-      </div>
+        </WithSidebar>
     </>
   );
 }

@@ -354,6 +354,32 @@ export const transitionArticle: RouteFn = async (req, c) => {
 // ---------- público (Portal): só publicado/corrigido ----------
 const PUBLIC_STATUS = ['publicado', 'corrigido'] as const;
 
+type ArticleRow2 = typeof schema.articles.$inferSelect;
+
+/** Cartão público da matéria (o MESMO formato da listagem `/api/publico/materias`): serve a listagem e a home resolvida em `/api/publico/site`. */
+export async function publicCards(db: Db, rows: ArticleRow2[], now: Date) {
+  const imagens = await publicImagesOf(db, rows.map((r) => publishableImage(r.imagem)), now);
+  return rows.map((r, i) => ({
+    slug: r.slug,
+    titulo: r.titulo,
+    subtitulo: r.subtitulo,
+    resumo: r.resumo,
+    tipoConteudo: r.tipoConteudo,
+    tempoLeituraMin: readingTimeMinutes(r.corpo),
+    editoria: r.editoria,
+    assinatura: r.assinatura,
+    patrocinado: r.patrocinado,
+    rotuloPublieditorial: r.rotuloPublieditorial,
+    publicadoEm: r.publicadoEm,
+    corrigida: r.status === 'corrigido',
+    imagem: imageCard(imagens[i]),
+  }));
+}
+
+/** Matérias que o público pode ver: publicado/corrigido, classe `public`. */
+export const publicArticlesWhere = (...extra: Array<ReturnType<typeof eq> | undefined>) =>
+  and(inArray(schema.articles.status, [...PUBLIC_STATUS]), sql`${schema.articles.classeDeDado} = 'public'`, ...extra);
+
 export const publicListArticles: RouteFn = async (_req, c) => {
   const q = parse(ArticleQuery.pick({ editoria: true, q: true }).extend(Paging.shape), queryObject(c.url));
   const where = and(
@@ -370,24 +396,9 @@ export const publicListArticles: RouteFn = async (_req, c) => {
     .limit(q.limit)
     .offset(q.offset);
   const [total] = await c.deps.db.select({ n: count() }).from(schema.articles).where(where);
-  const imagens = await publicImagesOf(c.deps.db, rows.map((r) => publishableImage(r.imagem)), c.deps.now());
   return json(
     {
-      data: rows.map((r, i) => ({
-        slug: r.slug,
-        titulo: r.titulo,
-        subtitulo: r.subtitulo,
-        resumo: r.resumo,
-        tipoConteudo: r.tipoConteudo,
-        tempoLeituraMin: readingTimeMinutes(r.corpo),
-        editoria: r.editoria,
-        assinatura: r.assinatura,
-        patrocinado: r.patrocinado,
-        rotuloPublieditorial: r.rotuloPublieditorial,
-        publicadoEm: r.publicadoEm,
-        corrigida: r.status === 'corrigido',
-        imagem: imageCard(imagens[i]),
-      })),
+      data: await publicCards(c.deps.db, rows, c.deps.now()),
       total: total?.n ?? 0,
       limit: q.limit,
       offset: q.offset,

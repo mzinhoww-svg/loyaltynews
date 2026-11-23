@@ -2,6 +2,7 @@ export * from './types';
 export * from './flags';
 export * from './mlabs/port';
 export * from './mlabs/live';
+export * from './mlabs/create-post-draft';
 export * from './mlabs/errors';
 export * from './copy/engine';
 export * from './creative/post';

@@ -31,3 +31,10 @@ describe('flag de publicação pelo portal (ADR-017, decisão 1)', () => {
     expect(isEnabled('publicacaoAutonoma')).toBe(false);
   });
 });
+
+describe('flag do adaptador OpenBot (ADR-003, R2-10)', () => {
+  it('openbotDispatch existe e nasce desligada; só override explícito liga', () => {
+    expect(isEnabled('openbotDispatch')).toBe(false);
+    expect(isEnabled('openbotDispatch', { openbotDispatch: true })).toBe(true);
+  });
+});

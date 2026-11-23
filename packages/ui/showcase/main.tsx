@@ -27,6 +27,7 @@ import {
   MockFrame,
   Monogram,
   Pagination,
+  SearchIconLink,
   SearchInput,
   SectionHeading,
   Sidebar,
@@ -164,7 +165,7 @@ function TemplatesDemo() {
 function App() {
   return (
     <div className="ln-root">
-      <Header currentSlug="pontos-e-milhas" searchSlot={<SearchInput action="#busca" />} />
+      <Header currentSlug="pontos" links={[{ label: "Notícias", href: "#noticias" }, { label: "Análises", href: "#analises" }, { label: "Agenda", href: "#agenda" }, { label: "Intelligence", href: "#intelligence" }]} menu={{ label: "Editorias", position: 3 }} cta={{ label: "Anuncie", href: "#anuncie" }} actions={<SearchIconLink href="#busca" />} />
       <main id="conteudo">
         <Container as="section" style={{ paddingBlock: 32 }}>
           <Breadcrumb items={[{ label: "Início", href: "#" }, { label: "Design System" }]} />
@@ -276,7 +277,20 @@ function App() {
         <StudioDemo />
         <TemplatesDemo />
       </main>
-      <Footer year={2026} groups={[{ title: "Exemplo", links: [{ label: "Link de exemplo", href: "#exemplo" }] }]} note="Vitrine interna — não é página pública." />
+      <Footer
+        year={2026}
+        social={[
+          { network: "x", href: "#exemplo-x" },
+          { network: "linkedin", href: "#exemplo-linkedin" },
+          { network: "instagram", href: "#exemplo-instagram" },
+          { network: "googlenews", href: "#exemplo-googlenews" },
+          { network: "youtube", href: "#exemplo-youtube" },
+          { network: "rss", href: "#exemplo-rss" },
+          { network: "email", href: "#exemplo-email" },
+        ]}
+        groups={[{ title: "Exemplo", links: [{ label: "Link de exemplo", href: "#exemplo" }] }]}
+        note="Vitrine interna: links de redes são de exemplo, não perfis reais."
+      />
     </div>
   );
 }

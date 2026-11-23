@@ -1,8 +1,9 @@
 // Portão de orçamento: reserva atômica em micro-USD contra o teto agregado de US$ 50 (DP-04, ADR-015).
-// Cada reserva é checada e gravada dentro de um lock; sem isso, chamadas concorrentes poderiam estourar o teto.
+// Cada operação roda dentro de store.withLock: no banco, uma transação com trava de consultoria, então
+// processos diferentes não estouram o teto. O estado vem do log (replay), então sobrevive a restart.
 import { usdToMicro, microToUsd } from './money';
 import { monthKey } from './month';
-import { replay, spentMicro, type LedgerStore, type Lane, type ReservationState } from './ledger';
+import { replay, spentMicro, type KillState, type LedgerIO, type LedgerStore, type Lane, type ReservationState } from './ledger';
 import { AUDIT_RESERVE_TASK_KEYS, type ModelPolicy, type Pool, type TaskClass } from './types';
 
 export interface GateConfig {
@@ -13,15 +14,21 @@ export interface GateConfig {
   reserveMicro: number; // 8, exclusiva de auditoria e errata
   reserveTaskIds: readonly string[];
   ceilingMicro: Record<TaskClass, number>; // degraus: premium 35, não essencial 40, essencial 42, reserva 50
+  qualificationCapMicro: number; // teto próprio do modo qualification (ADR-021): até 5; 0 = sem modo
 }
 
 export interface ReserveInput {
   taskId: string;
   taskClass: TaskClass;
   lane: Lane;
+  route?: string; // rota da política (ex.: review); registrada para auditoria
   provider: string;
   model: string;
   escalation: boolean;
+  /** Modo qualification (ADR-021): pool `qualification`, dentro do teto próprio; sem verba de provedor, degrau nem reserva de auditoria. */
+  qualification?: boolean;
+  /** Teto (US$) da etapa desta chamada de qualificação (v7). Gasto da etapa = reservas do pool com o mesmo `taskId`. */
+  qualificationStageCapUsd?: number;
   amountUsd: number | null; // teto superior estimado; null = custo desconhecido
   at: Date;
 }
@@ -35,7 +42,9 @@ export type ReserveRefusal =
   | 'provider_allocation_exhausted'
   | 'escalation_sublimit'
   | 'step_ceiling'
-  | 'hard_cap';
+  | 'hard_cap'
+  | 'kill_switch'
+  | 'qualification_cap';
 
 export type ReserveResult =
   | { ok: true; reservationId: string; amountMicro: number }
@@ -48,6 +57,8 @@ export interface Snapshot {
   reserveMicro: number;
   providerMicro: Record<string, number>;
   escalationMicro: number;
+  /** Gasto do pool `qualification` (conta no total, no teto de US$ 50 e na verba do provedor; nunca na reserva de 8). */
+  qualificationMicro: number;
   openReservations: number;
   pendingReservations: number;
 }
@@ -67,15 +78,18 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
   const providerAllocationMicro: Record<string, number> = {
     openai: usdToMicro(alloc.openai),
     anthropic: usdToMicro(alloc.anthropic),
-    deepseek: usdToMicro(alloc.deepseek),
   };
+  // v5 ainda traz DeepSeek (verba 0); a v6/DP-26 o remove: sem entrada, o provedor cai em `zero_allocation`
+  if (alloc.deepseek !== undefined) providerAllocationMicro.deepseek = usdToMicro(alloc.deepseek);
   return {
     capMicro: usdToMicro(rules.hard_monthly_budget_usd),
     providerAllocationMicro,
     imageAllocationMicro: usdToMicro(alloc.images),
-    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
+    // v5: `..._opus_fable_included`; v6: `..._opus_included` (só Opus)
+    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_included ?? alloc.anthropic_escalation_opus_fable_included ?? 0),
     reserveMicro: usdToMicro(alloc.audit_errata_reserve),
     reserveTaskIds: AUDIT_RESERVE_TASK_KEYS,
+    qualificationCapMicro: qualificationPoolCapMicro(policy.qualification?.mode),
     ceilingMicro: {
       premium: usdToMicro(Number(findStep(steps, '35'))),
       non_essential: usdToMicro(Number(findStep(steps, '40'))),
@@ -83,6 +97,14 @@ export function gateConfigFromPolicy(policy: ModelPolicy): GateConfig {
       reserve: usdToMicro(Number(findStep(steps, '50'))),
     },
   };
+}
+
+// Teto do pool de qualificação: v6 = cap_usd; v7 = soma dos tetos por etapa (cada etapa tem o seu, conferido na reserva). Sem modo = 0.
+function qualificationPoolCapMicro(mode: NonNullable<ModelPolicy['qualification']>['mode']): number {
+  if (!mode) return 0;
+  const stages = Object.values(mode.stage_caps_usd ?? {});
+  if (stages.length > 0) return stages.reduce((a, v) => a + usdToMicro(v), 0);
+  return mode.cap_usd === undefined ? 0 : usdToMicro(mode.cap_usd);
 }
 
 // Os valores dos degraus são texto ("stop premium/experiments"); o teto de cada degrau vem da chave.
@@ -94,26 +116,18 @@ function findStep(steps: Record<string, string>, key: string): number {
 export class BudgetGate {
   private readonly config: GateConfig;
   private readonly store: LedgerStore;
-  private chain: Promise<unknown> = Promise.resolve();
 
   constructor(config: GateConfig, store: LedgerStore) {
     this.config = config;
     this.store = store;
   }
 
-  // Serializa operações: cada uma começa depois que a anterior terminou.
-  private locked<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.chain.then(fn, fn);
-    this.chain = run.catch(() => undefined);
-    return run;
-  }
-
-  private async states(): Promise<Map<string, ReservationState>> {
-    return replay(await this.store.readAll());
+  private async states(io: LedgerIO): Promise<Map<string, ReservationState>> {
+    return replay(await io.readAll());
   }
 
   async snapshot(at: Date): Promise<Snapshot> {
-    return this.locked(async () => this.computeSnapshot(await this.states(), monthKey(at)));
+    return this.store.withLock(async (io) => this.computeSnapshot(await this.states(io), monthKey(at)));
   }
 
   private computeSnapshot(states: Map<string, ReservationState>, month: string): Snapshot {
@@ -124,6 +138,7 @@ export class BudgetGate {
       reserveMicro: 0,
       providerMicro: {},
       escalationMicro: 0,
+      qualificationMicro: 0,
       openReservations: 0,
       pendingReservations: 0,
     };
@@ -132,7 +147,12 @@ export class BudgetGate {
       const spent = spentMicro(s);
       if (s.status === 'open') snap.openReservations += 1;
       if (s.status === 'pending') snap.pendingReservations += 1;
-      if (s.pool === 'reserve') {
+      if (s.pool === 'qualification') {
+        // DP-30/ADR-021: a qualificação debita a VERBA do provedor chamado (e o teto de US$ 50), nunca a reserva de 8
+        snap.qualificationMicro += spent;
+        snap.allocationMicro += spent;
+        snap.providerMicro[s.provider] = (snap.providerMicro[s.provider] ?? 0) + spent;
+      } else if (s.pool === 'reserve') {
         snap.reserveMicro += spent;
       } else {
         snap.allocationMicro += spent;
@@ -145,15 +165,66 @@ export class BudgetGate {
   }
 
   async reserve(input: ReserveInput): Promise<ReserveResult> {
-    return this.locked(async () => {
+    return this.store.withLock(async (io) => {
       const month = monthKey(input.at);
       const refuse = (reason: ReserveRefusal, detail: string): ReserveResult => ({ ok: false, reason, detail });
+
+      // 0. Parada persistida (defesa em profundidade: o gateway já a lê antes de rotear, mas a reserva é o último ponto antes do gasto).
+      //    Global recusa tudo, inclusive auditoria; parada de rota recusa só aquela rota. Conciliar e liberar não passam por aqui.
+      const kill = await io.readKill();
+      if (kill.global) return refuse('kill_switch', 'parada global ativa');
+      if (input.route && kill.routes.includes(input.route)) return refuse('kill_switch', `rota ${input.route} parada`);
 
       // 1. Custo desconhecido bloqueia (block_unknown_cost).
       if (input.amountUsd === null || !Number.isFinite(input.amountUsd) || input.amountUsd < 0) {
         return refuse('unknown_cost', 'custo máximo não estimado');
       }
       const amountMicro = usdToMicro(input.amountUsd);
+
+      // 1b. Modo qualification (ADR-021, DP-30): pool próprio com teto próprio (cap_usd), dentro do teto mensal de US$ 50 e debitando a verba
+      //     do provedor chamado; NÃO usa degrau nem a reserva de auditoria. Teto 0 = modo ausente.
+      if (input.qualification) {
+        if (this.config.qualificationCapMicro <= 0) return refuse('qualification_cap', 'modo de qualificação sem teto configurado');
+        const statesQ = await this.states(io);
+        const snapQ = this.computeSnapshot(statesQ, month);
+        if (input.qualificationStageCapUsd !== undefined) {
+          // teto da etapa conferido ANTES de reservar: gasto da etapa no mês + esta reserva não pode passar dele
+          const stageCap = usdToMicro(input.qualificationStageCapUsd);
+          let stageSpent = 0;
+          for (const s of statesQ.values()) if (s.monthKey === month && s.pool === 'qualification' && s.taskId === input.taskId) stageSpent += spentMicro(s);
+          if (stageSpent + amountMicro > stageCap) {
+            return refuse('qualification_cap', `teto da etapa de US$ ${microToUsd(stageCap)} atingido (${microToUsd(stageSpent)} gastos + ${microToUsd(amountMicro)} reservados)`);
+          }
+        }
+        if (snapQ.qualificationMicro + amountMicro > this.config.qualificationCapMicro) {
+          return refuse('qualification_cap', `teto de qualificação de US$ ${microToUsd(this.config.qualificationCapMicro)} atingido`);
+        }
+        if (snapQ.totalMicro + amountMicro > this.config.capMicro) return refuse('hard_cap', 'teto mensal de US$ 50 atingido');
+        // a qualificação sai da verba do provedor chamado (com production_enabled=false as verbas 20/22 estão ociosas); nunca da reserva de 8
+        const qCap = this.config.providerAllocationMicro[input.provider];
+        if (qCap === undefined || qCap === 0) return refuse('zero_allocation', `verba zero ou inexistente para ${input.provider}`);
+        if ((snapQ.providerMicro[input.provider] ?? 0) + amountMicro > qCap) {
+          return refuse('provider_allocation_exhausted', `verba de ${input.provider} esgotada no mês`);
+        }
+        const qid = await io.nextReservationId();
+        await io.append({
+          seq: (await io.readAll()).length + 1,
+          at: input.at.toISOString(),
+          monthKey: month,
+          type: 'reserve',
+          reservationId: qid,
+          taskId: input.taskId,
+          taskClass: 'non_essential',
+          pool: 'qualification',
+          lane: input.lane,
+          ...(input.route ? { route: input.route } : {}),
+          provider: input.provider,
+          model: input.model,
+          escalation: false,
+          amountMicro,
+        });
+        return { ok: true, reservationId: qid, amountMicro };
+      }
 
       // 2. Reserva exclusiva: só tarefas de auditoria podem tocar a reserva de 8.
       const isAudit = this.config.reserveTaskIds.includes(input.taskId);
@@ -170,7 +241,7 @@ export class BudgetGate {
         return refuse('image_allocation_zero', 'verba de imagens é zero até o preço ser verificado');
       }
 
-      const snap = this.computeSnapshot(await this.states(), month);
+      const snap = this.computeSnapshot(await this.states(io), month);
 
       // 4. Bolsa. Auditoria usa a verba do provedor até 42 e a reserva de 8 acima de 42 (DP-02 v5).
       //    Demais tarefas nunca tocam a reserva.
@@ -204,10 +275,10 @@ export class BudgetGate {
         return refuse('hard_cap', 'teto mensal de US$ 50 atingido');
       }
 
-      // Id derivado do próprio log: sem contador em memória, não colide após reinício.
-      const seq = (await this.store.readAll()).length + 1;
-      const id = `r-${seq}`;
-      await this.store.append({
+      // Id vem do armazenamento (UUID), não da contagem de eventos: sem colisão entre processos.
+      const id = await io.nextReservationId();
+      const seq = (await io.readAll()).length + 1; // ordem informativa do log; não identifica a reserva
+      await io.append({
         seq,
         at: input.at.toISOString(),
         monthKey: month,
@@ -217,6 +288,7 @@ export class BudgetGate {
         taskClass: input.taskClass,
         pool,
         lane: input.lane,
+        route: input.route ?? '',
         provider: input.provider,
         model: input.model,
         escalation: input.escalation,
@@ -228,17 +300,22 @@ export class BudgetGate {
 
   // Estado atual de uma reserva (ou undefined se não existe).
   async statusOf(reservationId: string): Promise<ReservationState | undefined> {
-    return this.locked(async () => (await this.states()).get(reservationId));
+    return this.store.withLock(async (io) => (await this.states(io)).get(reservationId));
+  }
+
+  // Reservas conciliadas (committed) de um mês, para a conciliação com o provedor (G4.2).
+  async committedOf(month: string): Promise<ReservationState[]> {
+    return this.store.withLock(async (io) => [...(await this.states(io)).values()].filter((s) => s.monthKey === month && s.status === 'committed'));
   }
 
   // Resultado incerto depois do envio: a reserva continua contando no teto como pendente de conciliação.
   async markPending(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
-      const s = (await this.states()).get(reservationId);
+    return this.store.withLock(async (io) => {
+      const s = (await this.states(io)).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'pending',
@@ -249,24 +326,29 @@ export class BudgetGate {
     });
   }
 
-  async commit(reservationId: string, actualUsd: number, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
-      const states = await this.states();
+  // Conciliação pelo custo real. generationId é a prova da cobrança (id da geração no provedor).
+  async commit(reservationId: string, actualUsd: number, at: Date, generationId?: string): Promise<CommitResult> {
+    return this.store.withLock(async (io) => {
+      const states = await this.states(io);
       const s = states.get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open' && s.status !== 'pending') {
         return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
       }
+      if (!Number.isFinite(actualUsd) || actualUsd < 0) {
+        return { ok: false, overrun: false, actualMicro: 0, detail: 'custo real inválido (negativo ou não numérico): recusado' };
+      }
       const actualMicro = usdToMicro(actualUsd);
       const overrun = actualMicro > s.reservedMicro;
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'commit',
         reservationId,
         actualMicro,
         overrun,
+        generationId,
       });
       return {
         ok: true,
@@ -279,14 +361,14 @@ export class BudgetGate {
 
   // Libera só reserva que nunca teve resultado incerto (rejeição com status sem cobrança).
   async release(reservationId: string, reason: string, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
-      const s = (await this.states()).get(reservationId);
+    return this.store.withLock(async (io) => {
+      const s = (await this.states(io)).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'open') {
         return { ok: false, overrun: false, actualMicro: 0, detail: `reserva ${s.status}: só conciliação libera` };
       }
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'release',
@@ -299,15 +381,15 @@ export class BudgetGate {
 
   // Liberação de reserva pendente, só com evidência de não cobrança (ex.: consulta de geração).
   async releaseConciliated(reservationId: string, evidence: string, at: Date): Promise<CommitResult> {
-    return this.locked(async () => {
+    return this.store.withLock(async (io) => {
       if (evidence.trim().length === 0) {
         return { ok: false, overrun: false, actualMicro: 0, detail: 'evidência vazia: liberação recusada' };
       }
-      const s = (await this.states()).get(reservationId);
+      const s = (await this.states(io)).get(reservationId);
       if (!s) return { ok: false, overrun: false, actualMicro: 0, detail: 'reserva inexistente' };
       if (s.status !== 'pending') return { ok: false, overrun: false, actualMicro: 0, detail: `reserva ${s.status}: não está pendente` };
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: s.monthKey,
         type: 'release',
@@ -319,11 +401,21 @@ export class BudgetGate {
     });
   }
 
+  // Estado da parada (global e por rota), lido a cada chamada.
+  async killState(): Promise<KillState> {
+    return this.store.readKill();
+  }
+
+  // Liga ou desliga a parada. Escopo 'global' ou 'route:<nome>'.
+  async setKill(scope: 'global' | `route:${string}`, active: boolean, reason: string, at: Date): Promise<void> {
+    await this.store.setKill(scope, active, reason, at);
+  }
+
   // Compra de crédito no OpenRouter: custo registrado à parte e fora do teto (DP-11/P3).
   async recordRefillFee(amountUsd: number, at: Date): Promise<void> {
-    await this.locked(async () => {
-      await this.store.append({
-        seq: (await this.store.readAll()).length + 1,
+    await this.store.withLock(async (io) => {
+      await io.append({
+        seq: (await io.readAll()).length + 1,
         at: at.toISOString(),
         monthKey: monthKey(at),
         type: 'refill_fee',

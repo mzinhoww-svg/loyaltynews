@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { isEnabled } from '@ln/contracts';
-import { gateConfigFromPolicy, microToUsd } from '@ln/modelops';
+import { gateConfigFromPolicy, microToUsd, type BudgetGate } from '@ln/modelops';
 import { findModule } from '@/lib/studio/modules';
 import { POLITICA_ROTULO, carregarPolitica, getPortao } from '@/lib/studio/modelops';
 import { requireModule } from '../../_lib/guard';
@@ -25,7 +25,17 @@ export default async function FinOpsPage() {
     );
   }
   const cfg = gateConfigFromPolicy(pol.policy);
-  const snap = await getPortao(pol.policy).snapshot(new Date());
+  const portao = getPortao(pol.policy);
+  let snap: Awaited<ReturnType<BudgetGate['snapshot']>> | null = null;
+  let falha: string | null = portao.ok ? null : portao.motivo;
+  if (portao.ok) {
+    try {
+      snap = await portao.gate.snapshot(new Date());
+    } catch {
+      falha = 'Não foi possível ler o ledger de orçamento no banco agora.'; // sem detalhe técnico na tela
+    }
+  }
+  const gasto = (v: number | undefined) => (snap ? usd(v ?? 0) : 'indisponível');
   const provedores = Object.entries(cfg.providerAllocationMicro);
   return (
     <>
@@ -35,6 +45,11 @@ export default async function FinOpsPage() {
       <div className="st-alert" role="status">
         {POLITICA_ROTULO}. Chamadas de modelo: <strong>{isEnabled('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong> (flag modelosHabilitados).
       </div>
+      {falha && (
+        <div className="st-alert err" role="alert">
+          Consumo indisponível. {falha}
+        </div>
+      )}
       <div className="st-grid" aria-label="Resumo do mês">
         <section className="st-card" aria-label="Teto mensal">
           <p className="st-hint">Teto mensal agregado</p>
@@ -43,16 +58,16 @@ export default async function FinOpsPage() {
           </p>
         </section>
         <section className="st-card" aria-label="Consumo registrado">
-          <p className="st-hint">Consumo registrado ({snap.monthKey})</p>
+          <p className="st-hint">Consumo registrado{snap ? ` (${snap.monthKey})` : ''}</p>
           <p className="st-stat" data-consumo>
-            {usd(snap.totalMicro)}
+            {gasto(snap?.totalMicro)}
           </p>
-          <p className="st-hint">Origem: livro-razão do gateway (em memória). {snap.totalMicro === 0 ? 'Sem consumo: nenhuma chamada foi feita.' : ''}</p>
+          <p className="st-hint">Origem: ledger de orçamento do gateway (PostgreSQL). {snap && snap.totalMicro === 0 ? 'Sem consumo: nenhuma chamada foi feita.' : ''}</p>
         </section>
         <section className="st-card" aria-label="Reservas">
           <p className="st-hint">Reservas abertas / pendentes</p>
           <p className="st-stat">
-            {snap.openReservations} / {snap.pendingReservations}
+            {snap ? `${snap.openReservations} / ${snap.pendingReservations}` : 'indisponível'}
           </p>
         </section>
       </div>
@@ -71,7 +86,7 @@ export default async function FinOpsPage() {
             <tr key={p} data-provedor={p}>
               <th scope="row">{p}</th>
               <td>{usd(micro)}</td>
-              <td>{usd(snap.providerMicro[p] ?? 0)}</td>
+              <td>{gasto(snap?.providerMicro[p])}</td>
             </tr>
           ))}
           <tr>
@@ -82,12 +97,12 @@ export default async function FinOpsPage() {
           <tr>
             <th scope="row">reserva (auditoria e errata)</th>
             <td>{usd(cfg.reserveMicro)}</td>
-            <td>{usd(snap.reserveMicro)}</td>
+            <td>{gasto(snap?.reserveMicro)}</td>
           </tr>
           <tr>
             <th scope="row">escalonamento (Opus/Fable, dentro da Anthropic)</th>
             <td>{usd(cfg.escalationSublimitMicro)}</td>
-            <td>{usd(snap.escalationMicro)}</td>
+            <td>{gasto(snap?.escalationMicro)}</td>
           </tr>
         </tbody>
       </table>

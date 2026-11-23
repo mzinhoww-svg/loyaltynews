@@ -7,12 +7,15 @@
 // Sondas de SEGURANÇA de runtime (alerta do PM): provam que variáveis só de teste não estão ativas no ambiente implantado.
 //   --denied <caminho>   o caminho (ex.: /studio) NÃO pode abrir sem login: exige 301/302/303/307/308/401/403, nunca 200
 //   --no-mock <caminho>  o caminho (ex.: / ou /noticias) deve responder 200 e NÃO conter a faixa/texto "MOCK"
+//                        (R8 da vitrine: também reprova os marcadores da vitrine de demonstração: faixa, selo "MOCK · dados de exemplo" e "[MOCK]"; é a sonda de PRODUÇÃO e de staging sem vitrine)
+//   --vitrine <caminho>  staging COM vitrine: o caminho deve responder 200 e conter a faixa "Conteúdo de demonstração"; nunca usar em produção
 //   --canonical <url>    o canonical da home (estática) E de /noticias (dinâmica) precisa começar com <url> (sem localhost): prova que NEXT_PUBLIC_SITE_URL existe no build e em execução
 //   --noindex <caminho>  staging NÃO pode ser indexado: robots.txt com Disallow: / (e sem Allow: /), sitemap sem URLs e o caminho com
 //                        X-Robots-Tag ou meta robots contendo noindex
 // Uso: node infra/scripts/healthcheck.mjs --url https://host [--ready] [--expect-commit <sha>] [--timeout 5000] [--retries 2]
 //        [--denied /studio] [--no-mock /] [--noindex /]
 import { parseArgs, fail } from './lib/util.mjs';
+import { VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.url || args.url === true) fail('use --url https://host', 2);
@@ -69,7 +72,17 @@ if (args['no-mock']) {
     out.noMock = { path: p, status: r.status };
     if (r.status !== 200) failures.push(`${p} respondeu ${r.status} (esperado 200)`);
     else if (/\bMOCK\b/.test(r.body ?? '')) failures.push(`${p} contém "MOCK": fixtures ativas em ambiente implantado (PORTAL_SOURCE/PORTAL_MODE=mock só em teste)`);
+    else { const achados = VITRINE_MARCADORES.filter((m) => String(r.body ?? '').includes(m)); if (achados.length) failures.push(`${p} contém marcador(es) da vitrine de demonstração (${achados.join(' | ')}): vitrine ligada onde não deve (produção ou staging sem vitrine)`); }
   } catch (e) { failures.push(`${p}: ${e.message}`); }
+}
+if (args.vitrine) {
+  const p = String(args.vitrine);
+  try {
+    const r = await get(p);
+    out.vitrine = { path: p, status: r.status, faixa: String(r.body ?? '').includes(VITRINE_BANNER) };
+    if (r.status !== 200) failures.push(`${p} respondeu ${r.status} (esperado 200)`);
+    else if (!out.vitrine.faixa) failures.push(`${p} sem a faixa "${VITRINE_BANNER}": a vitrine deveria estar ligada neste staging`);
+  } catch (e) { failures.push(`vitrine ${p}: ${e.message}`); }
 }
 if (args.canonical) {
   const want = String(args.canonical).replace(/\/$/, '');
