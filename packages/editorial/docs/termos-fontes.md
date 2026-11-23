@@ -19,10 +19,10 @@ Consulta: 23/11/2026 (horários aproximados dentro da sessão). Fontes: as 40 pe
 ## Critério de classificação (mecânico, igual para todos)
 | Classe | Quando | Recomendação operacional |
 |---|---|---|
-| **A** — reuso autorizado no texto | o texto oficial lido autoriza expressamente reproduzir/reutilizar, com condições (atribuição, não distorcer) | candidata a habilitar (decisão do proprietário + revisão humana da fonte) |
-| **B** — licença com restrição | licença aberta com restrição que pode alcançar a nossa reescrita (ex.: CC BY-ND) | NÃO habilitar até parecer (R0-10) |
-| **C** — texto proíbe ou condiciona | o texto oficial lido proíbe ou condiciona reprodução, extração ou acesso automatizado à autorização | NÃO habilitar; caminho: autorização escrita do titular |
-| **D** — sem termos de conteúdo | nenhum termo de uso de conteúdo localizado (só rodapé "direitos reservados" e/ou privacidade) | NÃO habilitar até haver autorização do titular (nada no site autoriza o reuso) |
+| **A** — reuso autorizado no texto | o texto oficial lido autoriza expressamente reproduzir/reutilizar, com condições (atribuição, não distorcer) | pode ser habilitada após a revisão humana no Studio (DP-28) |
+| **B** — licença com restrição | licença aberta com restrição que pode alcançar a nossa reescrita (ex.: CC BY-ND) | pode ser habilitada sob DP-28 (risco aceito pelo proprietário), após a revisão humana; manter a reescrita curta, com link; o parecer R0-10 só reduz o risco |
+| **C** — texto proíbe ou condiciona | o texto oficial lido proíbe ou condiciona reprodução, extração ou acesso automatizado à autorização | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| **D** — sem termos de conteúdo | nenhum termo de uso de conteúdo localizado (só rodapé "direitos reservados" e/ou privacidade) | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
 | **E** — inacessível / não lido | 403 ou desafio de bloqueio, página que só renderiza por JavaScript, ou termo oficial não localizado: nada lido | NÃO habilitar até leitura manual dos termos (leitura manual no navegador) |
 
 ## Resumo para decisão
@@ -32,37 +32,37 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 
 | Fonte | Classe | Termos oficiais lidos | O que o texto permite / proíbe (resumo) | Recomendação |
 |---|---|---|---|---|
-| EDPB (Comitê Europeu de Proteção de Dados) | A | [www.edpb.europa.eu/copyright_en](https://www.edpb.europa.eu/copyright_en) | Reutilização autorizada, com atribuição: "reproduction of textual data and multimedia items which are the property of the EDPB" | candidata a habilitar (decisão do proprietário + revisão humana da fonte) |
-| Agência Senado | A | [www12.senado.leg.br/noticias/politica-de-uso](https://www12.senado.leg.br/noticias/politica-de-uso) | "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo" | candidata a habilitar (decisão do proprietário + revisão humana da fonte) |
-| Câmara dos Deputados (Portal) | A | [www2.camara.leg.br/termo-de-uso-e-politica-de-pr](https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade) | Trechos podem ser reproduzidos "desde que estejam entre aspas" (item 7); informações do portal são "de domínio público" e podem ser reproduzidas (item | candidata a habilitar (decisão do proprietário + revisão humana da fonte) |
-| Portal gov.br (CVM, ANPD, Senacon/MJSP, ANAC, MCTI, ANATEL, Min. do Turismo) | B | [www.gov.br/pt-br/termos-de-uso](https://www.gov.br/pt-br/termos-de-uso)<br>[www.gov.br/cvm/pt-br/assuntos/noticias](https://www.gov.br/cvm/pt-br/assuntos/noticias)<br>[www.gov.br/anpd/pt-br](https://www.gov.br/anpd/pt-br) | Não informado no Termo de Uso | NÃO habilitar até parecer (R0-10) |
-| Azul — Relações com Investidores | C | [ri.voeazul.com.br/termos-condicoes-de-uso/](https://ri.voeazul.com.br/termos-condicoes-de-uso/) | Reprodução vedada sem autorização prévia da Azul | NÃO habilitar |
-| GOL — Relações com Investidores | C | [ri.voegol.com.br/termos-e-condicoes/](https://ri.voegol.com.br/termos-e-condicoes/) | Reprodução vedada sem autorização prévia da GOL | NÃO habilitar |
-| ABECS | C | [www.abecs.org.br/termos-de-uso](https://www.abecs.org.br/termos-de-uso) | Item 2.2: "não reproduzir, transferir, distribuir, armazenar e/ou de qualquer maneira utilizar o conteúdo do Aplicativo e do Site" | NÃO habilitar |
-| IATA | C | [www.iata.org/en/terms/](https://www.iata.org/en/terms/) | Reprodução "only for your personal, non-commercial use"; reprodução ilimitada/em massa proibida | NÃO habilitar |
-| Nubank (newsroom/RI) | C | [nubank.com.br/transparencia/termos-de-uso](https://nubank.com.br/transparencia/termos-de-uso) | "É vedado copiar, reproduzir, distribuir ou reutilizar conteúdos do Nubank sem autorização prévia e expressa" | NÃO habilitar |
-| Accor (newsroom) | C | [group.accor.com/en/legal-terms](https://group.accor.com/en/legal-terms) | Nenhum material pode ser copiado, reproduzido ou republicado sem autorização escrita da Accor, salvo uso pessoal, privado e não comercial | NÃO habilitar |
-| Marriott (newsroom) | C | [www.marriott.com/about/terms-of-use-modal.mi](https://www.marriott.com/about/terms-of-use-modal.mi) | "downloading, reproduction, or retransmission of the Services (or any part of its content) is strictly prohibited" | NÃO habilitar |
-| Salesforce (newsroom) | C | [www.salesforce.com/company/legal/sfdc-website-te](https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/)<br>[www.salesforce.com/company/legal/tmcusageguideli](https://www.salesforce.com/company/legal/tmcusageguidelines/) | "You may not use content from our Sites unless you obtain permission from us or its owner"; "Most uses require specific written permission" | NÃO habilitar |
-| HubSpot (newsroom) | C | [legal.hubspot.com/website-terms-of-use](https://legal.hubspot.com/website-terms-of-use)<br>[legal.hubspot.com/content-usage-guidelines](https://legal.hubspot.com/content-usage-guidelines) | Website Terms: conteúdo "may not be copied, reproduced, modified, published"; Diretrizes de Conteúdo: "Feel free to reference or quote up to 75 words  | NÃO habilitar |
-| Zendesk (newsroom) | C | [www.zendesk.com.br/company/agreements-and-terms/](https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/) | Exibir/copiar/baixar "exclusivamente para seu uso pessoal e não comercial" | NÃO habilitar |
-| ABAV | C | — (nenhum documento de termos lido) | Rodapé: "Proibida reprodução ou utilização a qualquer título, sob as penas da lei" | NÃO habilitar |
-| oneworld | C | [www.oneworld.com/privacy-policy](https://www.oneworld.com/privacy-policy) | "No such materials may be reproduced without the prior written consent"; "No information provided via this website may be republished in any fashion i | NÃO habilitar |
-| Itaú (Sites e Aplicativos) | C | [www.itau.com.br/termos-de-uso](https://www.itau.com.br/termos-de-uso) | Item 8: softwares, identidade visual e conteúdo "somente podem ser usados com sua prévia e expressa autorização" | NÃO habilitar |
-| Banco do Brasil (RI e site) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| FEBRABAN | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Bradesco (RI e hotsite Fidelidade/Livelo) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Dotz | D | — (nenhum documento de termos lido) | Só nos Termos da Conta Dotz (aplicativo): cópia, reprodução e uso comercial do conteúdo do Aplicativo "rigorosamente proibidas" | NÃO habilitar |
-| ABEMF | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| IDV — Instituto para Desenvolvimento do Varejo | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| ABRAS | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Brasscom | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| ABRAREC | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Procon-SP | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Airlines for America (A4A) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Livelo (site e /imprensa) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
-| Magazine Luiza (RI) | D | [ri.magazineluiza.com.br/show.aspx](https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==) | Não informado (o texto só afirma titularidade: o conteúdo pertence "a nós ou a terceiros que licitamente cederam seu direito de uso") | NÃO habilitar |
-| Santander Brasil (RI) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
+| EDPB (Comitê Europeu de Proteção de Dados) | A | [www.edpb.europa.eu/copyright_en](https://www.edpb.europa.eu/copyright_en) | Reutilização autorizada, com atribuição: "reproduction of textual data and multimedia items which are the property of the EDPB" | pode ser habilitada após a revisão humana no Studio (DP-28) |
+| Agência Senado | A | [www12.senado.leg.br/noticias/politica-de-uso](https://www12.senado.leg.br/noticias/politica-de-uso) | "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo" | pode ser habilitada após a revisão humana no Studio (DP-28) |
+| Câmara dos Deputados (Portal) | A | [www2.camara.leg.br/termo-de-uso-e-politica-de-pr](https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade) | Trechos podem ser reproduzidos "desde que estejam entre aspas" (item 7); informações do portal são "de domínio público" e podem ser reproduzidas (item | pode ser habilitada após a revisão humana no Studio (DP-28) |
+| Portal gov.br (CVM, ANPD, Senacon/MJSP, ANAC, MCTI, ANATEL, Min. do Turismo) | B | [www.gov.br/pt-br/termos-de-uso](https://www.gov.br/pt-br/termos-de-uso)<br>[www.gov.br/cvm/pt-br/assuntos/noticias](https://www.gov.br/cvm/pt-br/assuntos/noticias)<br>[www.gov.br/anpd/pt-br](https://www.gov.br/anpd/pt-br) | Não informado no Termo de Uso | pode ser habilitada sob DP-28 (risco aceito pelo proprietário), após a revisão humana; manter a reescrita curta, com link; o parecer R0-10 só reduz o risco |
+| Azul — Relações com Investidores | C | [ri.voeazul.com.br/termos-condicoes-de-uso/](https://ri.voeazul.com.br/termos-condicoes-de-uso/) | Reprodução vedada sem autorização prévia da Azul | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| GOL — Relações com Investidores | C | [ri.voegol.com.br/termos-e-condicoes/](https://ri.voegol.com.br/termos-e-condicoes/) | Reprodução vedada sem autorização prévia da GOL | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| ABECS | C | [www.abecs.org.br/termos-de-uso](https://www.abecs.org.br/termos-de-uso) | Item 2.2: "não reproduzir, transferir, distribuir, armazenar e/ou de qualquer maneira utilizar o conteúdo do Aplicativo e do Site" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| IATA | C | [www.iata.org/en/terms/](https://www.iata.org/en/terms/) | Reprodução "only for your personal, non-commercial use"; reprodução ilimitada/em massa proibida | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Nubank (newsroom/RI) | C | [nubank.com.br/transparencia/termos-de-uso](https://nubank.com.br/transparencia/termos-de-uso) | "É vedado copiar, reproduzir, distribuir ou reutilizar conteúdos do Nubank sem autorização prévia e expressa" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Accor (newsroom) | C | [group.accor.com/en/legal-terms](https://group.accor.com/en/legal-terms) | Nenhum material pode ser copiado, reproduzido ou republicado sem autorização escrita da Accor, salvo uso pessoal, privado e não comercial | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Marriott (newsroom) | C | [www.marriott.com/about/terms-of-use-modal.mi](https://www.marriott.com/about/terms-of-use-modal.mi) | "downloading, reproduction, or retransmission of the Services (or any part of its content) is strictly prohibited" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Salesforce (newsroom) | C | [www.salesforce.com/company/legal/sfdc-website-te](https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/)<br>[www.salesforce.com/company/legal/tmcusageguideli](https://www.salesforce.com/company/legal/tmcusageguidelines/) | "You may not use content from our Sites unless you obtain permission from us or its owner"; "Most uses require specific written permission" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| HubSpot (newsroom) | C | [legal.hubspot.com/website-terms-of-use](https://legal.hubspot.com/website-terms-of-use)<br>[legal.hubspot.com/content-usage-guidelines](https://legal.hubspot.com/content-usage-guidelines) | Website Terms: conteúdo "may not be copied, reproduced, modified, published"; Diretrizes de Conteúdo: "Feel free to reference or quote up to 75 words  | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Zendesk (newsroom) | C | [www.zendesk.com.br/company/agreements-and-terms/](https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/) | Exibir/copiar/baixar "exclusivamente para seu uso pessoal e não comercial" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| ABAV | C | — (nenhum documento de termos lido) | Rodapé: "Proibida reprodução ou utilização a qualquer título, sob as penas da lei" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| oneworld | C | [www.oneworld.com/privacy-policy](https://www.oneworld.com/privacy-policy) | "No such materials may be reproduced without the prior written consent"; "No information provided via this website may be republished in any fashion i | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Itaú (Sites e Aplicativos) | C | [www.itau.com.br/termos-de-uso](https://www.itau.com.br/termos-de-uso) | Item 8: softwares, identidade visual e conteúdo "somente podem ser usados com sua prévia e expressa autorização" | só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular |
+| Banco do Brasil (RI e site) | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| FEBRABAN | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| Bradesco (RI e hotsite Fidelidade/Livelo) | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| Dotz | D | — (nenhum documento de termos lido) | Só nos Termos da Conta Dotz (aplicativo): cópia, reprodução e uso comercial do conteúdo do Aplicativo "rigorosamente proibidas" | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana, usando só o site público (nunca conteúdo do aplicativo) |
+| ABEMF | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| IDV — Instituto para Desenvolvimento do Varejo | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| ABRAS | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| Brasscom | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| ABRAREC | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| Procon-SP | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| Airlines for America (A4A) | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 (risco aceito), após a revisão humana |
+| Livelo (site e /imprensa) | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 depois de atualizar o cadastro (hoje "inacessivel": o handler recusa aprovar) e da revisão humana |
+| Magazine Luiza (RI) | D | [ri.magazineluiza.com.br/show.aspx](https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==) | Não informado (o texto só afirma titularidade: o conteúdo pertence "a nós ou a terceiros que licitamente cederam seu direito de uso") | pode ser habilitada sob DP-28 depois de atualizar o cadastro (hoje "inacessivel": o handler recusa aprovar) e da revisão humana |
+| Santander Brasil (RI) | D | — (nenhum documento de termos lido) | Não informado | pode ser habilitada sob DP-28 depois de atualizar o cadastro (hoje "inacessivel": o handler recusa aprovar) e da revisão humana |
 | Banco Central do Brasil | E | [www.flickr.com/photos/bancocentralbr/sets/72](https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251) | NÃO LIDO no site oficial | NÃO habilitar até leitura manual dos termos |
 | LATAM (RI) e LATAM Pass | E | [www.latamairlines.com/us/en/legal/terms-of-use](https://www.latamairlines.com/us/en/legal/terms-of-use) | NÃO LIDO (200 na releitura, mas o termo só renderiza por JavaScript) | NÃO habilitar até leitura manual dos termos |
 | Star Alliance (`star-alliance`) | E | — | robots.txt e site seguem 403 com User-Agent identificado (reconfirmado em 23/11; não contornado) | NÃO habilitar até leitura manual dos termos |
@@ -71,7 +71,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 ## Fonte por fonte
 
 ### EDPB (Comitê Europeu de Proteção de Dados)
-- **Classe A — reuso autorizado no texto** · fontes cadastradas: edpb · **candidata a habilitar (decisão do proprietário + revisão humana da fonte)**
+- **Classe A — reuso autorizado no texto** · fontes cadastradas: edpb · **pode ser habilitada após a revisão humana no Studio (DP-28)**
 - **Por quê:** "The reuse of any information of this website is authorized for commercial and non-commercial purposes." O feed anunciado deu 503 na pesquisa anterior: coleta por página, sem feed confirmado.
 
 | Tópico | O que o texto diz |
@@ -99,7 +99,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Agência Senado
-- **Classe A — reuso autorizado no texto** · fontes cadastradas: senado-noticias · **candidata a habilitar (decisão do proprietário + revisão humana da fonte)**
+- **Classe A — reuso autorizado no texto** · fontes cadastradas: senado-noticias · **pode ser habilitada após a revisão humana no Studio (DP-28)**
 - **Por quê:** Feed RSS confirmado na pesquisa anterior. Atenção: a página trata do conteúdo da Agência Senado; fotos ou textos de terceiros republicados ali não estão cobertos pelo que foi lido.
 
 | Tópico | O que o texto diz |
@@ -123,7 +123,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Câmara dos Deputados (Portal)
-- **Classe A — reuso autorizado no texto** · fontes cadastradas: camara-noticias · **candidata a habilitar (decisão do proprietário + revisão humana da fonte)**
+- **Classe A — reuso autorizado no texto** · fontes cadastradas: camara-noticias · **pode ser habilitada após a revisão humana no Studio (DP-28)**
 - **Por quê:** Feed RSS confirmado. O robots.txt de www.camara.leg.br lista agentes de IA (GPTBot, ClaudeBot etc.) com Disallow só de caminhos específicos: o coletor já respeita robots.txt, mas confira os caminhos antes de habilitar.
 
 | Tópico | O que o texto diz |
@@ -151,7 +151,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido — User-agents de IA listados (GPTBot, ChatGPT-User, Google-Extended, anthropic-ai, Claude-Web, Omgilibot, Omgili, FacebookBot, CCBot, PerplexityBot), cada um com as mesmas regras Disallow por caminho (nao bloqueio total do site). Segundo a ferramenta, ha comenta
 
 ### Portal gov.br (CVM, ANPD, Senacon/MJSP, ANAC, MCTI, ANATEL, Min. do Turismo)
-- **Classe B — licença com restrição** · fontes cadastradas: cvm, anpd, senacon, anac, mcti, anatel, mtur · **NÃO habilitar até parecer (R0-10)**
+- **Classe B — licença com restrição** · fontes cadastradas: cvm, anpd, senacon, anac, mcti, anatel, mtur · **pode ser habilitada sob DP-28 (risco aceito pelo proprietário), após a revisão humana; manter a reescrita curta, com link; o parecer R0-10 só reduz o risco**
 - **Por quê:** O único texto de licença é o rodapé "Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada", conferido em CVM e ANPD; ANAC, MCTI, ANATEL, Senacon e Turismo NÃO foram abertos (licença não confirmada nesses órgãos). Se reescrever fatos com citação é ou não "derivação" é questão jurídica que este dossiê não decide.
 
 | Tópico | O que o texto diz |
@@ -176,7 +176,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Azul — Relações com Investidores
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: azul-ri · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: azul-ri · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Texto expresso: "sendo vedada sua reprodução, sem prévia autorização da Azul". Caminho possível: pedir autorização por escrito à Azul.
 
 | Tópico | O que o texto diz |
@@ -200,7 +200,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### GOL — Relações com Investidores
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: gol-ri · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: gol-ri · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Mesmo texto da Azul: "sendo vedada sua reprodução, sem prévia autorização da GOL". Caminho possível: autorização escrita.
 
 | Tópico | O que o texto diz |
@@ -223,7 +223,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### ABECS
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: abecs · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: abecs · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Os termos tratam do aplicativo e do site juntos; os itens de uso comercial e atribuição (3.2/3.3) valem para materiais ENVIADOS por usuários, não para o uso do conteúdo da ABECS por terceiros.
 
 | Tópico | O que o texto diz |
@@ -251,7 +251,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### IATA
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: iata · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: iata · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Uso limitado a pessoal e não comercial ("not intended for commercial exploitation unless expressly agreed in writing by IATA").
 
 | Tópico | O que o texto diz |
@@ -283,7 +283,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Nubank (newsroom/RI)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: nubank-newsroom · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: nubank-newsroom · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Os termos lidos estão em nubank.com.br; os rodapés de nu.com (newsroom, press kit, investidores) NÃO têm link de termos, então não está confirmado que valem para nu.com. Se valerem, proíbem a coleta automatizada e até o link sem autorização.
 
 | Tópico | O que o texto diz |
@@ -314,7 +314,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Accor (newsroom)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: accor-newsroom · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: accor-newsroom · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Uso comercial do conteúdo "expressly prohibited". Robôs e IA não são citados expressamente.
 
 | Tópico | O que o texto diz |
@@ -341,7 +341,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Marriott (newsroom)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: marriott-news · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: marriott-news · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Os termos falam em "Services"; não está confirmado que valem para news.marriott.com (a página só renderizou o título). Trechos são fragmentos de extração, conferidos no HTML bruto.
 
 | Tópico | O que o texto diz |
@@ -370,7 +370,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Salesforce (newsroom)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: salesforce-newsroom · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: salesforce-newsroom · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Feed RSS existe, mas os termos exigem permissão para usar o conteúdo.
 
 | Tópico | O que o texto diz |
@@ -398,7 +398,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### HubSpot (newsroom)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: hubspot-newsroom · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: hubspot-newsroom · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Conflito entre documentos: as diretrizes permitem citar até 75 palavras com atribuição, mas os termos do site vedam sistemas automatizados, e as diretrizes dizem "You cannot make money off of our content" (o portal é comercial). A resolução é decisão jurídica.
 
 | Tópico | O que o texto diz |
@@ -431,7 +431,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Zendesk (newsroom)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: zendesk-newsroom · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: zendesk-newsroom · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Sem feed confirmado (404 na pesquisa anterior).
 
 | Tópico | O que o texto diz |
@@ -460,7 +460,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### ABAV
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: abav · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: abav · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Não há documento de termos: a proibição está num aviso de rodapé.
 
 | Tópico | O que o texto diz |
@@ -484,7 +484,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido — Segundo a ferramenta: "Content-Signal: search=yes,ai-train=no,use=reference" para User-agent: *; mais de 30 User-agents de IA/crawlers com Disallow: / (ex.: GPTBot, ClaudeBot, anthropic-ai, Claude-Web, CCBot, Google-Extended, Applebot-Extended, Bytespider, Ama
 
 ### oneworld
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: oneworld · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: oneworld · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Os termos estão dentro da página de política de privacidade. Um fragmento chegou truncado ("is prohibit").
 
 | Tópico | O que o texto diz |
@@ -510,7 +510,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Itaú (Sites e Aplicativos)
-- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: itau-ri · **NÃO habilitar**
+- **Classe C — texto proíbe ou condiciona** · fontes cadastradas: itau-ri · **só com revisão caso a caso registrada (DP-28) ou autorização escrita do titular**
 - **Por quê:** Releitura de 23/11 com User-Agent identificado: 200. Os termos lidos são dos "Sites e Aplicativos do Itaú Unibanco"; o site de RI do Itaú é outro host e não foi aberto. O robots.txt convida LLMs e buscadores e traz Crawl-delay: 10.
 
 | Tópico | O que o texto diz |
@@ -534,7 +534,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido — comentário "Permitir indexação e leitura por LLMs e buscadores"; lista agentes de IA (Google-Extended, ClaudeBot, PerplexityBot, CCBot) e há "Crawl-delay: 10"
 
 ### Banco do Brasil (RI e site)
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: bb-ri · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: bb-ri · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** A página "Políticas de Uso e Privacidade" renderizou só a navegação (a URL com #/ deu 404). Só há rodapé "Todos os direitos reservados" (citação não conferida no HTML bruto). Não dá para afirmar o que o BB permite.
 
 | Tópico | O que o texto diz |
@@ -557,7 +557,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### FEBRABAN
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: febraban · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: febraban · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** A política de privacidade cita "Termos e Condições de Uso", mas esse documento não foi localizado (/termos-de-uso não existe). Só há rodapé "Todos os direitos reservados". Duas citações da privacidade não conferem no HTML bruto e ficam sinalizadas.
 
 | Tópico | O que o texto diz |
@@ -583,7 +583,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Bradesco (RI e hotsite Fidelidade/Livelo)
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: bradesco-ri; fonte do Intelligence: hotsite Fidelidade · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: bradesco-ri; fonte do Intelligence: hotsite Fidelidade · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Nenhum termo de uso/direitos autorais geral nos rodapés. O PDF de Condições do Internet Banking é de outro serviço e seu texto não pôde ser extraído (nada registrado). Só há "© 2026 Bradesco RI".
 
 | Tópico | O que o texto diz |
@@ -606,7 +606,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido — Linhas User-agent de IA presentes: GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, PerplexityBot, Perplexity-User, Google-Extended, Applebot-Extended. Estão no MESMO grupo de User-agent: * e Spacecat/1.0, com Allow: / (ou seja, nenhum bloqueio específico de IA
 
 ### Dotz
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: dotz (fonte do Intelligence) · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: dotz (fonte do Intelligence) · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Não há termos de uso do SITE dotz.com.br: o único documento com cláusulas de propriedade intelectual rege o aplicativo/conta. A home só renderizou o título.
 
 | Tópico | O que o texto diz |
@@ -633,7 +633,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### ABEMF
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: abemf (também fonte do Intelligence) · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: abemf (também fonte do Intelligence) · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Nenhum link de termos, privacidade ou direitos autorais no rodapé; só "© 2026 ABEMF ... Todos os direitos reservados". Associação: um pedido de autorização por escrito é caminho direto.
 
 | Tópico | O que o texto diz |
@@ -654,7 +654,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### IDV — Instituto para Desenvolvimento do Varejo
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: idv · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: idv · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Só política de privacidade e "© 2004 – 2026 ... Todos os direitos reservados". A sala de imprensa não foi aberta.
 
 | Tópico | O que o texto diz |
@@ -677,7 +677,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### ABRAS
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: abras · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: abras · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Só política de privacidade e "Todos os direitos reservados".
 
 | Tópico | O que o texto diz |
@@ -701,7 +701,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** nao_encontrado
 
 ### Brasscom
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: brasscom · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: brasscom · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Só política de privacidade e "Todos os direitos reservados ©2025".
 
 | Tópico | O que o texto diz |
@@ -723,7 +723,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### ABRAREC
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: abrarec · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: abrarec · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Só rodapé "© ABRAREC Todos os direitos reservados 2026".
 
 | Tópico | O que o texto diz |
@@ -744,7 +744,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Procon-SP
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: procon-sp · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: procon-sp · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Só o rodapé "© 2025 Fundação Procon – SP – Todos os direitos reservados"; a página de privacidade foi lida só em parte (~100 mil de ~270 mil caracteres).
 
 | Tópico | O que o texto diz |
@@ -765,7 +765,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Airlines for America (A4A)
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: a4a · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: a4a · **pode ser habilitada sob DP-28 (risco aceito), após a revisão humana**
 - **Por quê:** Só política de privacidade e "© 2026 ... All rights reserved". Existe o Product License Agreement de publications.airlines.org (não aberto).
 
 | Tópico | O que o texto diz |
@@ -787,7 +787,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Livelo (site e /imprensa)
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: livelo-imprensa (também fonte do Intelligence) · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: livelo-imprensa (também fonte do Intelligence) · **pode ser habilitada sob DP-28 depois de atualizar o cadastro (hoje "inacessivel": o handler recusa aprovar) e da revisão humana**
 - **Por quê:** Releitura de 23/11 com User-Agent identificado: site e /imprensa respondem 200 (o 403 de 22/11 era do cliente genérico; o Data Engineer chegou à mesma conclusão). O rodapé só leva a Regulamentos (regras do programa) e à Política de privacidade; não há termos de uso do site, só "Livelo S.A. Todos os direitos reservados". O robots.txt permite /imprensa.
 
 | Tópico | O que o texto diz |
@@ -809,7 +809,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Magazine Luiza (RI)
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: magalu-ri · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: magalu-ri · **pode ser habilitada sob DP-28 depois de atualizar o cadastro (hoje "inacessivel": o handler recusa aprovar) e da revisão humana**
 - **Por quê:** Releitura de 23/11 com User-Agent identificado: o RI responde 200 (a home www.magazineluiza.com.br segue 403 e não foi lida). Os Termos e Condições do RI afirmam titularidade, mas, ao contrário de Azul e GOL, não trazem vedação expressa de reprodução; também não autorizam.
 
 | Tópico | O que o texto diz |
@@ -831,7 +831,7 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 **robots.txt:** lido
 
 ### Santander Brasil (RI)
-- **Classe D — sem termos de conteúdo** · fontes cadastradas: santander-ri · **NÃO habilitar**
+- **Classe D — sem termos de conteúdo** · fontes cadastradas: santander-ri · **pode ser habilitada sob DP-28 depois de atualizar o cadastro (hoje "inacessivel": o handler recusa aprovar) e da revisão humana**
 - **Por quê:** Releitura de 23/11 com User-Agent identificado: ri.santander.com.br responde 200, mas só traz política de privacidade e estatutos/códigos; termos de uso do site não localizados (a home do www não foi lida).
 
 | Tópico | O que o texto diz |
@@ -894,14 +894,14 @@ Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso au
 
 ## DP-28 — decisão do proprietário (registrada em 23/11/2026) e o que ela libera
 
-**O que a DP-28 diz** (conforme repassado pelo Program Manager; este arquivo não traz o texto original da decisão): fontes de mercado AUTORIZADAS, **com risco aceito pelo proprietário**, além de Senado, Câmara e EDPB — **citando e linkando a fonte, sem reproduzir além do necessário**. Limites que continuam valendo:
+**O que a DP-28 diz** (registro `r0-preparacao/decisoes-proprietario-2026-11-22.md`): o proprietário autoriza incluir também as fontes de mercado (programas, milhas, bancos, varejo, viagem, CRM), **com RISCO ACEITO por ele**, citando e linkando a fonte, **sem reproduzir texto/imagem além do necessário**. Limites que continuam valendo:
 - `robots.txt` respeitado; **nunca contornar 403/429** (a fábrica já trata 429 como `rate_limited` e para);
 - fontes **classe C** (o texto proíbe automação ou reprodução: Azul, GOL, ABECS, IATA, Nubank, Accor, Marriott, Salesforce, HubSpot, Zendesk, oneworld, ABAV — e, pela leitura deste dossiê, também Itaú) **só com revisão caso a caso, registrada**;
-- Intelligence segue **fato + fonte + link + data, nunca o trecho**.
+- a **EXIBIÇÃO** de dados de empresas segue **fato + fonte + link + data, nunca o trecho**. A DP-28 limita o que se **mostra** ao público; **não** limita guardar internamente o trecho curto como evidência (a validação do Intelligence e da fábrica depende dele).
 
-**O que muda neste dossiê:** a coluna "Recomendação" das classes A, B e D deixa de ser "NÃO habilitar" e passa a ser "pode ser habilitada, sob DP-28, depois da revisão humana no Studio" (abaixo). A DP-28 é aceitação de risco, **não** autorização do titular e **não** parecer jurídico: nenhum texto de classe D autoriza o reuso; apenas não o proíbe nos documentos lidos. Isso fica registrado na nota de revisão de cada fonte.
+**O que muda neste dossiê:** a coluna "Recomendação" das classes A, B e D (tabelas e cabeçalhos por fonte) deixa de ser "NÃO habilitar" e passa a "pode ser habilitada, sob DP-28, depois da revisão humana no Studio"; a classe C passa a "só caso a caso"; a classe E segue "leitura manual". A DP-28 é aceitação de risco, **não** autorização do titular e **não** parecer jurídico: nenhum texto de classe D autoriza o reuso; apenas não o proíbe nos documentos lidos. Isso fica registrado na nota de revisão de cada fonte.
 
-**Atenção — Intelligence:** a carga `seed.public.v2` traz uma "citação literal curta" por vínculo, e o `RoleMention` descrito em `docs/intelligence-handoff.md` carrega um `trecho` literal (≤ 500 caracteres) que a validação usa como prova do que foi dito. Pela DP-28 o Intelligence guarda só fato, fonte, link e data. Isso exige mudança no lado do Intelligence/Data e, no `RoleMention`, decidir se o trecho continua só como insumo de validação (descartado depois) — fora desta entrega; até lá, a exibição pública dessas citações continua suspensa.
+**Atenção — Intelligence (exibição, não armazenamento):** a carga `seed.public.v2` guarda uma "citação literal curta" por vínculo e o `RoleMention` de `docs/intelligence-handoff.md` carrega um `trecho` literal (≤ 500 caracteres) que a validação usa como prova. A DP-28 restringe só a **exibição pública** ("fato + fonte + link + data, nunca o trecho"); guardar o trecho como evidência interna continua permitido. O que fica pendente é garantir que nenhuma tela ou API pública do Intelligence mostre o trecho (dono: Intelligence/Data; fora desta Frente) — até essa verificação, a exibição pública dessas citações continua suspensa.
 
 ### Fontes que podem ser habilitadas já (sob DP-28, com revisão humana no Studio)
 "Já" = não exige alterar o cadastro: nível de pesquisa `lido` ou `parcial`, robots permitido na pesquisa, sem login/paywall conhecido. Cada uma ainda passa pela revisão humana abaixo (a revisão confere termos, URL, robots e paywall de novo no dia).
@@ -934,6 +934,16 @@ O cadastro é imutável (toda fonte nasce `enabled=false`); o estado efetivo só
 
 Checklist do revisor (classes B/D): (a) reabrir a página de termos e confirmar que nada novo proíbe; (b) abrir `robots.txt` e conferir o caminho do feed/listagem; (c) abrir uma matéria e confirmar que não há login/paywall; (d) anotar na nota "DP-28, classe X, risco aceito pelo proprietário"; (e) não habilitar fonte cuja matéria traga imagem ou texto de terceiro sem crédito (regra D08: nenhuma foto sem base de direito).
 
+## DP-29 — diretriz do proprietário (23/11/2026): maximizar fontes, reescrever no tom do projeto, blogs especializados, autoral
+
+**O que a DP-29 diz** (registro `r0-preparacao/decisoes-proprietario-2026-11-22.md`): buscar o **maior número de fontes possível**; **nunca reproduzir** — a IA lê a fonte e redige com outras palavras, no tom de voz do projeto; **priorizar blogs especializados**, ancorados no que as fontes oficiais entregam; e **gerar conteúdo autoral próprio** sempre que houver espaço. Limite mantido pelo Program Manager (não é ato do proprietário e envolve risco jurídico e técnico): **não contornar bloqueios técnicos** (403, CAPTCHA, robots, rate limit); ampliar por vias legítimas — RSS/Atom, sitemaps, APIs públicas, newsletters públicas, renderização de JavaScript em navegador, coleta espaçada.
+
+**Como isto entra neste dossiê e na fábrica:**
+- A classificação A–E continua sendo o retrato do que o texto do site diz; a DP-28/DP-29 decidem o que se faz com ela (A/B/D habilitáveis; C só caso a caso; E sem leitura). Blogs especializados seguem a mesma régua e têm levantamento em documento próprio (`docs/fontes-blogs.md`, próximo commit).
+- "Nunca reproduzir" já é regra da fábrica (gate `copy_literal`: bloqueia 8 palavras consecutivas iguais à fonte ou 30% de 5-gramas coincidentes).
+- Blog é fonte de **pauta e contexto**, não de fato: números, datas e anúncios só entram quando confirmados por fonte oficial ou primária (ancoragem).
+- Conteúdo autoral (`tipo autoral`, com pauta própria) é ancorado em fontes oficiais coletadas e rotulado como tal.
+
 ## Fontes do Intelligence (carga `seed.public.v2`) — situação
 A carga usa 6 páginas públicas como evidência de vínculos entre organizações, com **citação literal curta** por registro. Situação dos termos de cada uma:
 | Página usada pelo Intelligence | Termos | Situação |
@@ -943,7 +953,7 @@ A carga usa 6 páginas públicas como evidência de vínculos entre organizaçõ
 | LATAM Pass — Conheça o programa | releitura de 23/11: responde 200, mas o termo só renderiza por JavaScript (nada de termos lido) | classe E |
 | ABEMF — home e Empresas Associadas | sem termos localizados | classe D |
 | Dotz — home | só Termos da Conta Dotz (aplicativo) | classe D |
-Observação: a carga atual guarda nome, relação e **trecho literal curto** como evidência; nenhum desses sites autoriza nem proíbe isso no texto lido. **Pela DP-28 o Intelligence passa a guardar só fato + fonte + link + data, nunca o trecho** — a carga precisa mudar (fora desta Frente) e a exibição pública das citações atuais continua suspensa.
+Observação: a carga atual guarda nome, relação e **trecho literal curto** como evidência interna; nenhum desses sites autoriza nem proíbe isso no texto lido. **A DP-28 restringe a exibição** (fato + fonte + link + data, nunca o trecho), não o armazenamento: a exibição pública das citações atuais continua suspensa até o Intelligence confirmar que não as mostra.
 
 ## O que fica para o proprietário decidir (R0-10)
 1. **Primeira matéria real:** Senado/Câmara (e EDPB) habilitáveis, com a revisão humana da fonte no Studio. O `robots.txt` da Câmara foi conferido na rodada simulada de 23/11 (35 regras por agente de IA, nenhuma sobre feed ou matérias); fotos/textos de terceiros nessas páginas continuam fora do que foi lido.
