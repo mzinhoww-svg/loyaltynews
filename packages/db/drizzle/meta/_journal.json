@@ -82,15 +82,15 @@
     {
       "idx": 11,
       "version": "7",
-      "when": 1795391490326,
-      "tag": "0011_social_packages",
+      "when": 1795391846937,
+      "tag": "0011_ad_integridade",
       "breakpoints": true
     },
     {
       "idx": 12,
       "version": "7",
-      "when": 1795392670826,
-      "tag": "0012_ad_delivery_flushes",
+      "when": 1795393788112,
+      "tag": "0012_backend_social_ad_flush",
       "breakpoints": true
     }
   ]

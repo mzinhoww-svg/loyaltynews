@@ -1,6 +1,6 @@
 {
-  "id": "a9b1b248-d953-492e-b651-23e4b8bcd82a",
-  "prevId": "6dc19308-6235-43e0-b81e-eb9b1b9043d1",
+  "id": "380cae71-598c-47a0-a154-c7e5a2c6b81d",
+  "prevId": "5f63e74f-2d2f-4936-87f0-1209ad8e0731",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2463,6 +2463,101 @@
       },
       "isRLSEnabled": false
     },
+    "public.ad_delivery_gaps": {
+      "name": "ad_delivery_gaps",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "ad_gap_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from": {
+          "name": "from",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "served_until": {
+          "name": "served_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to": {
+          "name": "to",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detected_at": {
+          "name": "detected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uncounted_serves": {
+          "name": "uncounted_serves",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "ignored_events": {
+          "name": "ignored_events",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "ad_delivery_gaps_periodo_idx": {
+          "name": "ad_delivery_gaps_periodo_idx",
+          "columns": [
+            {
+              "expression": "from",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "to",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_delivery_gaps_ordem": {
+          "name": "ad_delivery_gaps_ordem",
+          "value": "\"ad_delivery_gaps\".\"from\" <= \"ad_delivery_gaps\".\"served_until\" AND \"ad_delivery_gaps\".\"served_until\" <= \"ad_delivery_gaps\".\"to\""
+        },
+        "ad_delivery_gaps_contadores": {
+          "name": "ad_delivery_gaps_contadores",
+          "value": "\"ad_delivery_gaps\".\"uncounted_serves\" >= 0 AND \"ad_delivery_gaps\".\"ignored_events\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.ad_formats": {
       "name": "ad_formats",
       "schema": "",
@@ -2574,6 +2669,43 @@
         "ad_formats_motivo_se_nao_disponivel": {
           "name": "ad_formats_motivo_se_nao_disponivel",
           "value": "\"ad_formats\".\"disponibilidade\" = 'disponivel' OR length(\"ad_formats\".\"motivo_disponibilidade\") > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.ad_redis_watermark": {
+      "name": "ad_redis_watermark",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "ad_redis_watermark_nao_negativo": {
+          "name": "ad_redis_watermark_nao_negativo",
+          "value": "\"ad_redis_watermark\".\"value\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -4691,6 +4823,14 @@
         "conciliada",
         "liberada",
         "recusada"
+      ]
+    },
+    "public.ad_gap_reason": {
+      "name": "ad_gap_reason",
+      "schema": "public",
+      "values": [
+        "dedupe_perdido",
+        "dedupe_regrediu"
       ]
     },
     "public.campanha_status": {

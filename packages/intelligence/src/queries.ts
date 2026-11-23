@@ -127,7 +127,7 @@ export async function searchPeople(db: Db, q: string, limit = 20): Promise<{ id:
 
 export interface MoveView {
   id: Uuid;
-  kind: string;
+  kind: 'appointment' | 'departure' | 'title_change' | 'org_change';
   basis: 'announcement' | 'observed_diff';
   status: 'detected' | 'confirmed' | 'rejected';
   person_id: Uuid;
@@ -141,14 +141,22 @@ export interface MoveView {
   evidence: EvidenceRef;
 }
 
-export async function listMoveViews(
-  db: Db,
-  f: { status?: MoveView['status'][]; personId?: Uuid; organizationId?: Uuid; limit?: number; offset?: number } = {},
-): Promise<MoveView[]> {
-  const r = await db.query<any>(
-    `SELECT m.id, m.kind, m.basis, m.status, m.person_id, p.full_name AS person_name,
-            fo.legal_name AS from_organization, fr.title AS from_title, tor.legal_name AS to_organization, tr.title AS to_title,
-            m.effective_date::text, m.observed_on::text, ${EVIDENCE_COLS}
+export interface MoveFilter {
+  status?: MoveView['status'][];
+  personId?: Uuid;
+  organizationId?: Uuid;
+  kind?: MoveView['kind'];
+  /** AAAA-MM-DD (inclusive), sobre observed_on. */
+  since?: string;
+  /** AAAA-MM-DD (inclusive), sobre observed_on. */
+  until?: string;
+  /** Restringe a estes Moves (ex.: os de alertas aprovados). */
+  ids?: Uuid[];
+  limit?: number;
+  offset?: number;
+}
+
+const MOVE_FROM = `
        FROM ${S}.move m
        JOIN ${S}.person p ON p.id = m.person_id AND p.suppressed_at IS NULL
        JOIN ${S}.evidence ev ON ev.id = m.evidence_id
@@ -157,11 +165,27 @@ export async function listMoveViews(
       WHERE ($1::text[] IS NULL OR m.status = ANY($1::text[]))
         AND ($2::uuid IS NULL OR m.person_id = $2)
         AND ($3::uuid IS NULL OR fr.organization_id = $3 OR tr.organization_id = $3)
+        AND ($4::text IS NULL OR m.kind = $4)
+        AND ($5::date IS NULL OR m.observed_on >= $5::date)
+        AND ($6::date IS NULL OR m.observed_on <= $6::date)
+        AND ($7::uuid[] IS NULL OR m.id = ANY($7::uuid[]))`;
+const moveParams = (f: MoveFilter) => [f.status ?? null, f.personId ?? null, f.organizationId ?? null, f.kind ?? null, f.since ?? null, f.until ?? null, f.ids ?? null];
+
+export async function listMoveViews(db: Db, f: MoveFilter = {}): Promise<MoveView[]> {
+  const r = await db.query<any>(
+    `SELECT m.id, m.kind, m.basis, m.status, m.person_id, p.full_name AS person_name,
+            fo.legal_name AS from_organization, fr.title AS from_title, tor.legal_name AS to_organization, tr.title AS to_title,
+            m.effective_date::text, m.observed_on::text, ${EVIDENCE_COLS}${MOVE_FROM}
       ORDER BY m.observed_on DESC, m.detected_at DESC, m.id
-      LIMIT $4 OFFSET $5`,
-    [f.status ?? null, f.personId ?? null, f.organizationId ?? null, Math.min(Math.max(f.limit ?? 50, 1), 200), Math.max(f.offset ?? 0, 0)],
+      LIMIT $8 OFFSET $9`,
+    [...moveParams(f), Math.min(Math.max(f.limit ?? 50, 1), 200), Math.max(f.offset ?? 0, 0)],
   );
   return r.rows.map((x) => ({ ...x, evidence: toEvidence(x) }));
+}
+
+export async function countMoveViews(db: Db, f: MoveFilter = {}): Promise<number> {
+  const r = await db.query<{ c: string }>(`SELECT count(*)::text AS c${MOVE_FROM}`, moveParams(f));
+  return Number(r.rows[0]!.c);
 }
 
 export async function listWatchlists(db: Db, ownerRef?: string) {
