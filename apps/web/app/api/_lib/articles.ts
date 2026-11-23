@@ -9,6 +9,7 @@ import { can } from '@ln/auth';
 import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { issueFromEditorial } from './editorial/receipt';
+import { issueCorrectionReceipt } from './editorial/fabrica-correction';
 import { evidenceIdsOf, gateFailures, rowContentSha, type ArticleRow } from './article-core';
 import { issueRevisionReceipt, openRevision } from './correcao';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
@@ -240,6 +241,8 @@ export const issueReceipt: RouteFn = async (req, c) => {
   const b = await readBody(req, ReceiptInput);
   // Com rascunho no CMS editorial (mesmo id), o recibo nasce DELE (ADR-017 §4): upsert em articles + recibo numa transação.
   const rec = await new PgEditorialStore(c.deps.db).getArticle(c.params.id ?? '');
+  if (rec && b.correcao) return issueCorrectionReceipt(c, c.params.id ?? '', b, b.correcao); // recibo da versão corrigida (ADR-019 §c.5)
+  if (b.correcao) throw new HttpError(409, 'NOT_FACTORY_ARTICLE', 'correcao só vale para matéria da Fábrica; a do CMS usa PATCH com casoCorrecaoId.');
   if (rec) return issueFromEditorial(c, c.params.id ?? '', b, rec);
   if (b.versao === undefined) throw new HttpError(400, 'VALIDATION_ERROR', 'Entrada inválida.', [{ path: 'versao', message: 'obrigatória' }]);
   const a = await load(c.deps.db, c.params.id ?? '');

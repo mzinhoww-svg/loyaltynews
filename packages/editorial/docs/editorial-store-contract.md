@@ -15,7 +15,7 @@ runEditorialStoreContract('PostgresEditorialStore', async () => {
 });
 ```
 - A fábrica roda **antes de cada teste** e deve devolver uma loja **vazia**.
-- Passar a suíte (19 casos) é condição para a loja ser aceita pelo QA. A suíte também é testada contra implementações erradas (aliasing, upsert que mescla, auditoria fora de ordem, appends perdidos): `src/tests/store-contract.test.ts`.
+- Passar a suíte (20 casos) é condição para a loja ser aceita pelo QA. A suíte também é testada contra implementações erradas (aliasing, upsert que mescla, auditoria fora de ordem, appends perdidos): `src/tests/store-contract.test.ts`.
 - Os casos "handlers sobre a loja" exigem apenas as tabelas desta porta; não dependem de Next.js.
 
 ## Métodos
@@ -95,3 +95,16 @@ Para o upsert em `articles` na emissão do recibo (Backend): `id = rec.articleId
 
 ## Casos de correção ancorados em `articles.id` publicado (ADR-019 §c)
 `HandlerCtx.published: PublishedArticleLookup` (porta; o Backend implementa sobre `articles`, `origem: 'fabrica'` quando existe `editorial_article` com o mesmo id): `get(id) → { id, slug, titulo, status, versao, publicadoEm, origem } | undefined` e `evidences?(id)` (Fábrica = evidências do registro; CMS = `article_sources`). `openCorrection` e `intakeRightOfReply` usam a porta, não o `EditorialStore`: só abre caso para status `publicado`, `corrigido` ou `despublicado`; inexistente e não publicada (rascunho, em_checagem, aprovado, bloqueado) dão **404 com a mesma resposta** (o intake público não revela rascunho). Sem a porta: 503. O caso guarda `articleVersao`, `articleOrigem` e (no registro) `articleSlug`. `preserveCorrectionEvidence` usa `{siteBaseUrl}/materias/{slug}` quando a URL não é informada. A verificação da errata usa as evidências do registro editorial **mais** as da porta. `storeBackedPublishedLookup(store)` é a referência só para matérias da Fábrica.
+
+## Aplicar correção a matéria publicada da Fábrica (ADR-019 §c.5)
+`applyCorrection(store, { articleId, correctionId, draft, factcheck, receiptId, publishedAt, expectedContentSha256? })` (`@ln/editorial`):
+reabre a matéria PUBLICADA (continua no ar como `publicado`/`corrigido` até o commit) e publica a nova versão como **`corrigido`** num único `commitPublication`
+(matéria + auditoria + outbox `article.corrected:{id}:{sha}` na fila `article-corrected` + caso `notice_published`). `prepareCorrection` valida e compõe SEM gravar e devolve o
+`contentSha256` que o Backend usa para emitir o recibo da nova versão (`expectedContentSha256`).
+- **Sem caso aceito = recusa sem efeito**: o caso precisa existir, ser da mesma matéria e estar `accepted` (jurídico: `escalated_legal` aceito **com** ciência do responsável). Códigos: `case_not_found`, `case_mismatch`, `case_not_accepted`, `already_corrected`, `not_published`.
+- **O aviso entra no corpo e no hash.** O sistema compõe o corpo: texto + bloco `Avisos:` (todos os avisos registrados, em ordem) + `Fontes:`. O rascunho enviado NÃO pode trazer `Avisos:` (`notices_in_draft`). `ArticleRecord.notices` guarda os avisos; o gate (`checkNotices`) exige que o bloco seja exatamente essa lista: **avisos anteriores não podem sair, ser alterados nem ser inventados**. O bloco é excluído das checagens de número/aspas/cópia do texto (`mainBody`). Resposta do requerente (multilinha) é publicada sem alteração (recuo de 2 espaços nas linhas seguintes).
+- **`publicadoEm` original mantido** (`publication.publishedAt`); `publication.correctedAt` = data da correção; `publication.previous` encadeia recibo+hash das versões anteriores; URL e slug não mudam (`slug_immutable`).
+- A nova versão passa no mesmo gate editorial e em checagem de provedor distinto (`gate_failed`, `factcheck_failed`); hash do recibo velho ⇒ `receipt_stale`.
+- **Idempotente**: repetir o mesmo caso com o mesmo recibo devolve `alreadyApplied` e `outbox: 'duplicate'` sem efeitos (e completa o que uma versão anterior deixou para trás); outro recibo para o mesmo caso ⇒ `already_corrected`.
+- `PublicationCommit` ganhou `correction?: CorrectionRecord` (gravado na mesma transação) e `commitPublication` aceita matéria `publicado` **ou** `corrigido`. O `PgEditorialStore` precisa gravar o caso junto, na mesma transação (a suíte de contrato cobre).
+- **URL pública** da matéria no Portal: `{siteBaseUrl}/noticia/{slug}` (`publicArticleUrl`), usada em `preserveCorrectionEvidence`.

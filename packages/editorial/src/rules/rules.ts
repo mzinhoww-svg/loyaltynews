@@ -1,6 +1,7 @@
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
+import { parseNotices } from '../notices';
 import { ContentType } from '@ln/contracts';
 import { RESUMO_MAX, SLUG_MAX, SLUG_RE } from '../publishable';
 
@@ -23,8 +24,8 @@ const FABRICATED_REPORTING: RegExp[] = [
 ];
 const BYLINE = /^\s*([Pp]or|[Tt]exto( de)?|[Rr]eportagem( de)?|[Rr]ep[óo]rter|[Aa]utor(a)?)\s*[:\-–]?\s+[A-ZÀ-Ú][a-zà-ú]+(\s+[A-ZÀ-Ú][a-zà-ú]+)+/m;
 
-/** Corpo sem o bloco determinístico de atribuição ("Fontes:"), que contém URLs e datas de acesso. */
-export function mainBody(body: string): string { return body.split(/\n\nFontes:\n/)[0]!; }
+/** Corpo sem os blocos gerados pelo sistema: "Avisos:" (errata/resposta publicadas) e "Fontes:" (URLs e datas de acesso). */
+export function mainBody(body: string): string { return body.split(/\n\n(?:Avisos|Fontes):\n/)[0]!; }
 
 function f(code: string, message: string, claimId?: string): Finding {
   return claimId ? { code, message, claimId } : { code, message };
@@ -234,10 +235,29 @@ export function checkPublishable(d: Draft): CheckResult {
   return result(out);
 }
 
-export function runDeterministicChecks(d: Draft, evidences: Evidence[]): CheckResult {
+/**
+ * Avisos publicados (ADR-019 §c.5): o bloco "Avisos:" do corpo precisa ser EXATAMENTE a lista de avisos registrados
+ * (`expected`, em ordem). Aviso anterior removido ou alterado, aviso a mais ou bloco malformado reprovam. Sem avisos
+ * registrados, o corpo não pode ter bloco "Avisos:".
+ */
+export function checkNotices(d: Draft, expected: readonly string[]): CheckResult {
+  const out: Finding[] = [];
+  const p = parseNotices(d.body);
+  if (!p.ok) return result([f('notices_malformed', 'bloco "Avisos:" malformado ou duplicado')]);
+  expected.forEach((t, i) => {
+    if (p.notices[i] === undefined) out.push(f('notice_removed', `aviso #${i + 1} registrado não consta no corpo (avisos anteriores não podem sair)`));
+    else if (p.notices[i] !== t) out.push(f('notice_altered', `aviso #${i + 1} difere do texto registrado`));
+  });
+  if (p.notices.length > expected.length) out.push(f('notice_unexpected', 'o corpo traz aviso que não foi registrado por um caso aceito'));
+  return result(out);
+}
+
+export interface CheckOptions { /** Textos dos avisos já registrados na matéria (em ordem). */ notices?: readonly string[] }
+
+export function runDeterministicChecks(d: Draft, evidences: Evidence[], opts: CheckOptions = {}): CheckResult {
   const parts = [
     checkSignature(d), checkNoFabricatedReporting(d), checkEvidenceTrust(d, evidences), checkClaims(d, evidences),
-    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d),
+    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d), checkNotices(d, opts.notices ?? []),
   ];
   const findings = parts.flatMap((p) => p.findings);
   return result(findings);

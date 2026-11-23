@@ -172,7 +172,7 @@ describe('correção de matéria do CMS publicada: revisão → recibo → publi
     const fab = await published();
     await store.putArticle(sampleArticle(fab.id, { status: 'publicado' }));
     const casoFab = await acceptedCase(fab.id);
-    expect((await revise(fab.id, 1, { corpo: 'novo', casoCorrecaoId: casoFab })).body.error.code).toBe('EDITORIAL_ORIGIN');
+    expect((await revise(fab.id, 1, { corpo: 'novo', casoCorrecaoId: casoFab })).body.error.code).toBe('FACTORY_CORRECTION_ROUTE');
     // casoCorrecaoId em matéria não publicada é recusado
     const rasc = await create();
     expect((await revise(rasc.id, rasc.versao, { corpo: 'novo', casoCorrecaoId: caso })).status).toBe(422);
@@ -210,6 +210,8 @@ describe('correção de matéria do CMS publicada: revisão → recibo → publi
     expect(depois).toMatchObject({ status: 'corrigido', versao: 2, corpo: `O prazo de validade é de 24 meses.\n\n${aviso}` });
     expect(depois.publicadoEm?.toISOString()).toBe('2026-11-22T12:00:00.000Z'); // a data original da publicação não muda
     expect(await outboxOf(a.id)).toEqual([`article.corrected:${a.id}:${r.body.data.conteudoSha256}`, `article.published:${a.id}:${a.sha}`].sort());
+    expect((await store.getCorrection(caso))?.case.state).toBe('notice_published'); // o caso avança junto
+    expect((await app.db.select().from(schema.outbox).where(eq(schema.outbox.refId, a.id))).map((o) => o.queue).sort()).toEqual(['article-corrected', 'intelligence-ingest']);
     const corr = (await transitions(a.id)).filter((t) => t.para === 'corrigido');
     expect(corr).toMatchObject([{ de: 'publicado', nota: aviso, receiptId: r.body.data.id, actorId: chefe.id }]);
     const pub = await call(pubOne.GET, 'GET', { params: { slug: a.slug } });

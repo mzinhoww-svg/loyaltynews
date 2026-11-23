@@ -68,7 +68,9 @@ export async function openRevision(c: RouteCtx, a: ArticleRow, b: z.output<typeo
   if (b.versaoEsperada !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'A matéria mudou; recarregue.', { versaoAtual: a.versao });
   const store = new PgEditorialStore(c.deps.db);
   if (await store.getArticle(a.id)) {
-    throw new HttpError(409, 'EDITORIAL_ORIGIN', 'Matéria da Fábrica: a nova versão segue o caminho editorial (rascunho aprovado), não este.');
+    throw new HttpError(409, 'FACTORY_CORRECTION_ROUTE', 'Matéria da Fábrica: o texto corrigido vem do rascunho editorial. Emita o recibo (POST /recibos) e publique (POST /api/studio/editorial/articles/{id}/publication) com `correcao`.', {
+      recibo: `/api/materias/${a.id}/recibos`, publicacao: `/api/studio/editorial/articles/${a.id}/publication`,
+    });
   }
   const rec = await store.getCorrection(b.casoCorrecaoId);
   if (!rec) throw new HttpError(404, 'CASE_NOT_FOUND', 'Caso de correção não encontrado.');

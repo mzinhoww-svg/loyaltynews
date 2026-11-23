@@ -92,7 +92,7 @@ describe('abertura de caso sobre articles publicado', () => {
 });
 
 describe('preservação de evidência e verificação da errata', () => {
-  it('sem URL: usa NEXT_PUBLIC_SITE_URL + /materias/{slug}; sem a variável e sem URL ⇒ 400', async () => {
+  it('sem URL: usa NEXT_PUBLIC_SITE_URL + /noticia/{slug}; sem a variável e sem URL ⇒ 400', async () => {
     const id = caseId(await open('cms-pub'));
     delete process.env.NEXT_PUBLIC_SITE_URL;
     const semBase = await call(d, 'POST', { path: S(`/corrections/${id}/preserve-evidence`), body: { body: 'html da página publicada' }, as: chefe });
@@ -101,7 +101,7 @@ describe('preservação de evidência e verificação da errata', () => {
     try {
       const ok = await call(d, 'POST', { path: S(`/corrections/${id}/preserve-evidence`), body: { body: 'html da página publicada' }, as: chefe });
       expect(ok.status, JSON.stringify(ok.body)).toBe(200);
-      expect((await store.getCorrection(id))?.case.archive?.url).toBe('https://loyaltynews.example/materias/materia-cms-pub');
+      expect((await store.getCorrection(id))?.case.archive?.url).toBe('https://loyaltynews.example/noticia/materia-cms-pub');
     } finally {
       delete process.env.NEXT_PUBLIC_SITE_URL;
     }

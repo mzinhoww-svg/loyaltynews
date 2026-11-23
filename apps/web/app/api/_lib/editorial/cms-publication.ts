@@ -10,7 +10,7 @@ import { and, eq } from 'drizzle-orm';
 import { audit } from '@ln/auth';
 import { apiError } from '@ln/contracts';
 import { schema } from '@ln/db';
-import { INTELLIGENCE_QUEUE, type ApiResponse } from '@ln/editorial';
+import { buildReplyNotice, CORRECTION_QUEUE, INTELLIGENCE_QUEUE, publishNotice, type ApiResponse } from '@ln/editorial';
 import { enqueueOutbox } from '@ln/workers/outbox';
 import { evidenceIdsOf, gateFailures, rowContentSha } from '../article-core';
 import { withRevision, type Revision } from '../correcao';
@@ -50,8 +50,8 @@ export async function publishFromCms(ctx: PublicationCtx, p: CmsPublicationInput
     .from(schema.articleTransitions)
     .where(and(eq(schema.articleTransitions.articleId, a.id), eq(schema.articleTransitions.receiptId, p.receipt.id), eq(schema.articleTransitions.para, a.status === 'corrigido' ? 'corrigido' : 'publicado')));
   if (prev && (a.status === 'publicado' || a.status === 'corrigido')) {
-    const key = a.status === 'corrigido' ? `article.corrected:${a.id}:${sha}` : `article.published:${a.id}:${sha}`;
-    const ob = await enqueueOutbox(db, { queue: INTELLIGENCE_QUEUE, refId: a.id, idempotencyKey: key });
+    const corrigido = a.status === 'corrigido';
+    const ob = await enqueueOutbox(db, { queue: corrigido ? CORRECTION_QUEUE : INTELLIGENCE_QUEUE, refId: a.id, idempotencyKey: `${corrigido ? 'article.corrected' : 'article.published'}:${a.id}:${sha}` });
     return done(a.status, true, ob.created ? 'enqueued' : 'duplicate', a.publicadoEm);
   }
 
@@ -94,7 +94,14 @@ export async function publishFromCms(ctx: PublicationCtx, p: CmsPublicationInput
     // o aviso é a nota PÚBLICA da correção (a API pública lista as erratas pelas transições `corrigido`)
     await db.insert(schema.articleTransitions).values({ id: newId(), articleId: a.id, de: a.status, para: 'corrigido', actorId: p.userId, nota: rev.aviso, receiptId: p.receipt.id, at: now });
     await db.update(schema.articleRevisions).set({ estado: 'publicada', publicadoEm: now }).where(eq(schema.articleRevisions.id, rev.id));
-    const ob = await enqueueOutbox(db, { queue: INTELLIGENCE_QUEUE, refId: a.id, idempotencyKey: `article.corrected:${a.id}:${sha}` });
+    const ob = await enqueueOutbox(db, { queue: CORRECTION_QUEUE, refId: a.id, idempotencyKey: `article.corrected:${a.id}:${sha}` });
+    // o caso avança para `notice_published` junto (mesma transação), como na matéria da Fábrica
+    const cr = await ctx.store.getCorrection(rev.casoId);
+    if (cr && (cr.case.state === 'accepted' || cr.case.state === 'escalated_legal')) {
+      const notice = cr.case.kind === 'right_of_reply' && cr.replyText ? { text: rev.aviso, replySha256: buildReplyNotice(cr.case, cr.replyText, now.toISOString()).replySha256 } : { text: rev.aviso };
+      const step = publishNotice(cr.case, notice, now.toISOString());
+      if (step.ok) await ctx.store.putCorrection({ ...cr, case: step.case });
+    }
     await log('materia.corrigida', { versao: rev.versao, casoId: rev.casoId });
     return done('corrigido', false, ob.created ? 'enqueued' : 'duplicate', a.publicadoEm);
   }
