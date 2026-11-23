@@ -135,7 +135,7 @@ describe('CampaignBook', () => {
   it('regras de ativação continuam valendo depois de carregar', () => {
     const b = new CampaignBook(); b.load(wire(populated().snapshot()));
     expect(() => b.transition('cmp-1', 'active', NOW)).toThrow(/Ativação recusada/);
-    b.transition('cmp-1', 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1 } });
+    b.transition('cmp-1', 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, creativePositions: ['TOP'] } });
     expect(b.get('cmp-1').status).toBe('active');
   });
   it('recusa snapshot inválido; estado anterior intacto', () => {

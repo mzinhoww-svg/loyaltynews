@@ -254,7 +254,7 @@ describe('portal em modo api, de ponta a ponta (domínio + handlers)', () => {
     const cid = (h.addCreative(on(studio), { campaignId: camp.id, positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2027-01-31', ...realContent('FOOTER') }).body as { id: string }).id;
     expect((h.getAdPlan(on(), { positions: 'FOOTER' }).body as { slots: { available: boolean }[] }).slots[0]!.available).toBe(false); // aprovado mas campanha ainda não ativa
     h.approveCreative(on(studio), { creativeId: cid });
-    state.campaigns.transition(camp.id, 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [res], approvedCreativeCount: 1 } });
+    state.campaigns.transition(camp.id, 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [res], approvedCreativeCount: 1, creativePositions: ['FOOTER'] } });
     state.ads.setCreative(cid, { campaignActive: true });
 
     const plan = (h.getAdPlan(on(), { positions: 'TOP,FOOTER' }).body as { slots: { positionId: string; available: boolean; width: number | null }[] }).slots;

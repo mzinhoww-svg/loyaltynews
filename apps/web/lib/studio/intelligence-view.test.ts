@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { antesEDepois, nivelDoCargo, textoDaEvidencia, type EvidenciaRef, type MoveLinha } from './intelligence-view';
+import { antesEDepois, nivelDoCargo, nivelPorFonte, textoDaEvidencia, type EvidenciaRef, type MoveLinha } from './intelligence-view';
 
 const ev = (over: Partial<EvidenciaRef> = {}): EvidenciaRef => ({ id: 'e1', source_url: 'https://ri.exemplo.com.br/a', source_name: 'RI Exemplo', retrieved_at: '2026-11-20T10:00:00.000Z', is_mock: false, ...over });
 const move = (over: Partial<MoveLinha> = {}): MoveLinha => ({
@@ -40,5 +40,13 @@ describe('antesEDepois', () => {
     expect(a.cargo).toBeNull();
     const [, d] = antesEDepois(move({ kind: 'departure', to_organization: null, to_title: null, after: null }));
     expect(d.cargo).toBeNull();
+  });
+});
+
+describe('nivelPorFonte (usa o campo source_level, não a dedução)', () => {
+  it('official é fato; secondary e inferred são "a confirmar"', () => {
+    expect(nivelPorFonte('official')).toEqual({ chave: 'oficial', rotulo: 'Oficial', aConfirmar: false });
+    expect(nivelPorFonte('secondary')).toMatchObject({ chave: 'secundaria', aConfirmar: true });
+    expect(nivelPorFonte('inferred')).toMatchObject({ chave: 'inferida', rotulo: 'Inferida — a confirmar', aConfirmar: true });
   });
 });

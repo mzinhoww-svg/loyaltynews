@@ -21,8 +21,12 @@ const INVENTORY_STATUS: Record<InventoryError['code'], number> = {
 const CAMPAIGN_STATUS: Record<CampaignError['code'], number> = {
   BAD_TRANSITION: 409, NO_RESERVATION: 422, INVALID_RESERVATION: 422, NOT_FOUND: 404, NO_APPROVED_CREATIVE: 422,
   SALE_NOT_ENABLED: 409, FORMAT_NOT_AVAILABLE: 409, NO_CONFIRMED_RESERVATION: 409,
+  NO_POSITIONS: 422, POSITION_NOT_IN_CAMPAIGN: 422, BAD_STATE: 409,
 };
-const CRM_STATUS: Record<CrmError['code'], number> = { INVALID_LEAD: 422, NOT_FOUND: 404, BAD_STAGE: 409, LOST_REASON_REQUIRED: 422 };
+const CRM_STATUS: Record<CrmError['code'], number> = {
+  INVALID_LEAD: 422, NOT_FOUND: 404, BAD_STAGE: 409, LOST_REASON_REQUIRED: 422,
+  INVALID_ACCOUNT: 422, DUPLICATE_ACCOUNT: 409, INVALID_CONTACT: 422, DUPLICATE_CONTACT: 409,
+};
 
 /** Valida a entrada com zod e executa; erros de domínio viram o envelope ApiError. Nenhuma exceção escapa. */
 export function define<S extends z.ZodType, O>(

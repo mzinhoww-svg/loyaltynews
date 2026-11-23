@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { StudioLayout } from '@ln/ui';
 import { visibleModules, GRUPOS, checkAccess } from '@/lib/studio/modules';
 import { StudioSidebar, type NavItem } from '../_components/Sidebar';
@@ -16,7 +16,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
     slug: m.slug,
     nome: m.nome,
     grupo: GRUPOS[m.grupo],
-    flagDesligada: Boolean(m.flag) && !isEnabled(m.flag!),
+    flagDesligada: Boolean(m.flag) && !flagAtiva(m.flag!),
   }));
   return (
     <StudioLayout sidebar={<StudioSidebar itens={itens} />}>

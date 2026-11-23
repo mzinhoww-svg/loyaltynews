@@ -168,6 +168,12 @@ export const MediaQuery = z.object({
   vencendo: z.coerce.number().int().min(1).max(365).optional(),
   /** true = só licenças já vencidas. */
   vencida: z.enum(['true', 'false']).optional(),
+  /** Busca no crédito e no texto alternativo (aparada, 1–100; % e _ literais). */
+  q: z.string().trim().min(1).max(100).optional(),
+  /** Mesma régua do campo `licencaStatus` da resposta (vence_em_breve = próximos 30 dias). */
+  licencaStatus: z.enum(['sem_expiracao', 'valida', 'vence_em_breve', 'vencida']).optional(),
+  /** Mesma régua do campo `publicavel` da resposta: base de direito não pendente E licença não vencida. */
+  publicavel: z.enum(['true', 'false']).optional(),
 });
 export const AgendaQuery = z.object({
   from: IsoDate.optional(),

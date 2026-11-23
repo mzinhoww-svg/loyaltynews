@@ -44,7 +44,47 @@ function Setas({ tipo, indice }: { tipo: TipoDoc; indice: number }) {
   );
 }
 
-function EditarBloco({ b, i }: { b: Bloco; i: number }) {
+/** Matérias publicadas para fixar no destaque: marca as que entram; as já fixadas ficam marcadas mesmo fora do resultado da busca. */
+interface Opcao {
+  slug: string;
+  titulo: string;
+  editoria: string;
+}
+function SeletorMaterias({ opcoes, marcadas, idBase }: { opcoes: Opcao[]; marcadas: readonly string[]; idBase: string }) {
+  const todas: (Opcao & { fora?: boolean })[] = [
+    ...marcadas.map((slug) => opcoes.find((o) => o.slug === slug) ?? { slug, titulo: slug, editoria: '', fora: true }),
+    ...opcoes.filter((o) => !marcadas.includes(o.slug)),
+  ];
+  return (
+    <fieldset className="st-field" data-seletor="materias">
+      <legend>Matérias do destaque (publicadas)</legend>
+      {todas.length === 0 ? (
+        <p className="st-hint" data-vazio="materias">
+          Nenhuma matéria publicada encontrada. Busque por outro título ou publique matérias antes.
+        </p>
+      ) : (
+        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          {todas.map((o) => (
+            <label key={o.slug} style={{ display: 'block' }}>
+              <input type="checkbox" name="materiaSlug" value={o.slug} defaultChecked={marcadas.includes(o.slug)} /> {o.titulo}
+              <span className="st-hint">
+                {' '}
+                · {o.slug}
+                {o.fora ? ' (fixada; fora desta busca)' : ''}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+      <label htmlFor={`${idBase}-manual`} className="st-hint">
+        Avançado: slugs extras (separados por vírgula)
+      </label>
+      <input id={`${idBase}-manual`} name="materiaSlugs" type="text" />
+    </fieldset>
+  );
+}
+
+function EditarBloco({ b, i, opcoes }: { b: Bloco; i: number; opcoes: Opcao[] }) {
   return (
     <details>
       <summary>Editar bloco {i + 1}</summary>
@@ -59,10 +99,7 @@ function EditarBloco({ b, i }: { b: Bloco; i: number }) {
           </div>
         ) : null}
         {b.tipo === 'destaque' ? (
-          <div className="st-field">
-            <label htmlFor={`bs-${i}`}>Slugs das matérias do bloco {i + 1} (separados por vírgula)</label>
-            <input id={`bs-${i}`} name="materiaSlugs" type="text" defaultValue={b.materiaSlugs.join(', ')} />
-          </div>
+          <SeletorMaterias opcoes={opcoes} marcadas={b.materiaSlugs} idBase={`bs-${i}`} />
         ) : null}
         {b.tipo === 'lista_editoria' ? (
           <div className="st-field">
@@ -102,10 +139,14 @@ function EditarBloco({ b, i }: { b: Bloco; i: number }) {
   );
 }
 
-export default async function HomeMenusPage({ searchParams }: { searchParams: Promise<{ tipo?: string; tipoMsg?: string; aviso?: string }> }) {
+export default async function HomeMenusPage({ searchParams }: { searchParams: Promise<{ tipo?: string; tipoMsg?: string; aviso?: string; busca?: string }> }) {
   const { session } = await requireModule(findModule('home-menus')!);
   const q = await searchParams;
   const tipo: TipoDoc = ABAS.includes(q.tipo as TipoDoc) ? (q.tipo as TipoDoc) : 'home';
+  // matérias publicadas (e corrigidas) para o seletor do destaque, com busca por título
+  const busca = (q.busca ?? '').trim().slice(0, 100);
+  const [pub, cor] = tipo === 'home' ? await Promise.all([api.materias.listar({ status: 'publicado', ...(busca ? { q: busca } : {}) }), api.materias.listar({ status: 'corrigido', ...(busca ? { q: busca } : {}) })]) : [null, null];
+  const opcoes: Opcao[] = [...(pub && !ehErro(pub) ? pub.body.data : []), ...(cor && !ehErro(cor) ? cor.body.data : [])].slice(0, 40).map((m) => ({ slug: m.slug, titulo: m.titulo, editoria: m.editoria }));
   const r = await api.site.documento(tipo);
   if (naoConfigurado(r)) {
     return (
@@ -153,7 +194,7 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
             <li key={b.id} data-bloco={b.id}>
               <strong>{i + 1}.</strong> {descreverBloco(b)}
               {podeEditar ? <Setas tipo={tipo} indice={i} /> : null}
-              {podeEditar ? <EditarBloco b={b} i={i} /> : null}
+              {podeEditar ? <EditarBloco b={b} i={i} opcoes={opcoes} /> : null}
             </li>
           ))}
         </ol>
@@ -221,6 +262,18 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
         </ol>
       )}
 
+      {podeEditar && tipo === 'home' ? (
+        <form className="st-filters" method="get" role="search" aria-label="Buscar matéria publicada">
+          <input type="hidden" name="tipo" value="home" />
+          <div className="st-field">
+            <label htmlFor="busca">Buscar matéria publicada para o destaque (por título)</label>
+            <input id="busca" name="busca" type="search" defaultValue={busca} />
+          </div>
+          <button className="st-btn sec" type="submit">
+            Buscar matéria
+          </button>
+        </form>
+      ) : null}
       {podeEditar ? (
         <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="add">
           <h3 id="add" style={{ marginTop: 0 }}>
@@ -247,10 +300,7 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
                 </div>
               </div>
               <div className="st-row">
-                <div className="st-field">
-                  <label htmlFor="materiaSlugs">Destaque: slugs das matérias (separados por vírgula)</label>
-                  <input id="materiaSlugs" name="materiaSlugs" type="text" />
-                </div>
+                <SeletorMaterias opcoes={opcoes} marcadas={[]} idBase="novo" />
                 <div className="st-field">
                   <label htmlFor="editoria-bloco">Lista de editoria: editoria</label>
                   <select id="editoria-bloco" name="editoria" defaultValue="mercado">

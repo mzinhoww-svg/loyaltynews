@@ -32,7 +32,7 @@ const MODULOS: Array<[string, string]> = [
 ];
 
 // Módulos com tela própria (os demais mostram o estado vazio genérico).
-const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'correcoes-titular', 'piloto', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria'];
+const IMPLEMENTADOS = ['cms', 'fontes', 'agenda', 'home-menus', 'seo', 'midia', 'social', 'creative', 'crm', 'inventario', 'campanhas', 'entidades', 'organogramas', 'watchlists', 'correcoes-titular', 'piloto', 'organizacao', 'reunioes', 'decisoes', 'modelops', 'finops', 'auditoria'];
 
 test.describe('proteção de rota (negar por padrão)', () => {
   for (const rota of ['/studio', '/studio/cms', '/studio/cms/nova', '/studio/cms/checagem', '/studio/fontes', '/studio/finops', '/studio/nao-existe']) {
@@ -82,6 +82,18 @@ test.describe('shell e navegação', () => {
         await expect(nav.getByRole('link', { name: nome })).toHaveAttribute('aria-current', 'page');
       }
     }
+  });
+
+  test('botão feito com link mantém o texto visível (cor do texto ≠ cor do fundo)', async ({ page, context }) => {
+    await entrar(context, 'ana', 'admin');
+    await page.goto('/studio/cms');
+    const primario = page.getByRole('link', { name: 'Nova matéria' });
+    const cores = await primario.evaluate((el) => ({ texto: getComputedStyle(el).color, fundo: getComputedStyle(el).backgroundColor }));
+    expect(cores.texto).not.toBe(cores.fundo);
+    expect(cores.texto).toBe('rgb(255, 255, 255)');
+    const secundario = page.getByRole('link', { name: 'Fila de checagem' });
+    const sec = await secundario.evaluate((el) => ({ texto: getComputedStyle(el).color, fundo: getComputedStyle(el).backgroundColor }));
+    expect(sec.texto).not.toBe(sec.fundo);
   });
 
   test('flag desligada aparece no módulo', async ({ page, context }) => {
