@@ -4,7 +4,7 @@ import { Collector } from '../collector/collector';
 import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { goodDraftOutput, MockGateway, mockOk } from '../../fixtures/mock-gateway.mock';
 import { SourceRegistry } from '../sources/registry';
-import { InMemoryAuditLog, MAX_ATTEMPTS, socialPack } from '../pipeline/stages';
+import { InMemoryAuditLog, socialPack } from '../pipeline/stages';
 import type { StageDeps } from '../pipeline/stages';
 import { InMemoryQueue, createBullmqPipeline, jobOptions, makeProcessor } from '../pipeline/queue';
 import type { BullmqLike } from '../pipeline/queue';
