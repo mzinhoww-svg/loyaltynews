@@ -90,10 +90,10 @@ export class BrightDataUnlockerReader implements KeyedReader {
 // ------------------------------------------------------------------------------------------------
 export class ApifyRagBrowserReader implements KeyedReader {
   readonly provider = 'apify-rag-web-browser';
-  /** Unidade de crédito = US$ 0,001; a página lista "from $1.33 / 1,000 fetched pages" ⇒ ≈ 1,33 por leitura (arredondado para cima). */
-  readonly creditsPerRead = 2;
+  /** Unidade de crédito = US$ 0,001. A página lista "from $1.33 / 1,000 fetched pages", mas o teste real (23/11) mediu US$ 0,0018 a 0,0041 por leitura (usageTotalUsd) ⇒ teto conservador de 5. */
+  readonly creditsPerRead = 5;
   readonly unlocks = false; // a documentação lida não descreve desbloqueio/CAPTCHA
-  readonly freeQuotaFractionPerRead = 1.33 / 5000; // plano Free: US$ 5/mês
+  readonly freeQuotaFractionPerRead = 4 / 5000; // plano Free: US$ 5/mês; custo típico medido ≈ US$ 0,003 por página
 
   constructor(private readonly fetchImpl: FetchFn = fetch) {}
 
@@ -122,7 +122,7 @@ export class ApifyRagBrowserReader implements KeyedReader {
     const md = first?.markdown ?? first?.text;
     if (!md) return { status: 'provider_error', httpStatus: r.status };
     const page = first?.crawl?.httpStatusCode ?? first?.metadata?.httpStatusCode ?? 200;
-    return pageResponse({ credits: 2, httpStatus: page, text: md, finalUrl: first?.metadata?.url });
+    return pageResponse({ credits: 4, httpStatus: page, text: md, finalUrl: first?.metadata?.url });
   }
 }
 

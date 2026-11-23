@@ -66,3 +66,19 @@ Leitura de [Bright Data](https://brightdata.com/license), [Firecrawl](https://ww
 - **Cascata por custo**: tentar primeiro o mais barato que atende ao tipo de leitura (ver `leitor-cascata` na próxima entrega), subindo para desbloqueio só quando o anterior falha por bloqueio.
 
 Testes: `src/tests/reader-port.test.ts` (16): desligado por padrão; troca de conta na mesma leitura e memória da chave esgotada; renovação no dia 1; teto local sem passar da cota; 429 como espera; segredo ausente de resultado e relatório; ritmo por host e teto diário; login/paywall param e descartam o texto; CAPTCHA resolvido pelo provedor passa e desafio não resolvido falha; só fato é persistível.
+
+## 5. Teste real mínimo dos adaptadores (23/11/2026, conta 1 de cada provedor, dentro da cota gratuita)
+
+Duas leituras por provedor no máximo: uma página neutra (`https://example.com/`) e uma que respondeu **HTTP 403 ao nosso User-Agent** (`https://ir.latam.com/`). Chaves lidas do cofre só dentro do processo (nunca impressas); nenhum texto de página guardado. Roteiro: `scripts/reader-live-test.ts`.
+
+| Provedor (adaptador) | Resultado | Consumo |
+|---|---|---|
+| **Zyte** (`zyte-http`, `httpResponseBody`) | example.com 200 (171 caracteres, 0,8 s); **ir.latam.com 200** (3.215 caracteres de texto, 215 mil de HTML, 1,7 s) | a API **não informa custo por resposta**; 2 chamadas HTTP, até US$ 0,0025 pelo pior nível da tabela do crédito gratuito de US$ 5 (estimativa, não medida) |
+| **Scrapfly** (`basic` em example.com; `asp` em ir.latam.com) | ambas 200; ir.latam.com 3.215 caracteres, 3,0 s | **medido pelo /account: 2 de 1.000 créditos** (1 por chamada) |
+| **Apify** (RAG Web Browser) | example.com 200 (172 caracteres, 7,6 s); **ir.latam.com 200** (3.221 caracteres, 7,4 s) | **medido (`usageTotalUsd` das execuções): US$ 0,00408 e US$ 0,0018** ≈ US$ 0,006 de US$ 5/mês (≈ US$ 0,003 por página; mais que o "from $1.33/1k" da página) |
+| **Exa** (descoberta lite + contents) | descoberta: 3 links de `ri.magazineluiza.com.br` em 0,5 s (só link/título; data nula); contents de example.com 200 (172 caracteres) | tabela: ≈ US$ 0,004 (busca lite) + US$ 0,001 (1 página); a resposta usada não trouxe `costDollars` (contado pelo valor documentado) |
+| **Bright Data** (Web Unlocker) | **NÃO TESTADO**: a conta não tem zona ativa e `POST /zone` devolveu **403 "Your API key lacks the required permissions for this action"** (a criação de zona exige papel Admin/Ops; não é cobrança) | 0 |
+
+Destravar o Bright Data: o proprietário cria no painel uma zona de **Web Unlocker** (nome sugerido `ln_unlocker`; a doc avisa que pode pedir verificação com cartão, sem cobrança) **ou** gera uma chave com permissão de Admin; depois `LN_BD_ZONE=<zona> reader-live-test bd-read` (2 leituras, ~2 créditos de 5.000).
+
+Leitura prática: no caso real de página que recusa o nosso robô (LATAM IR), **Zyte, Scrapfly (asp) e Apify** entregaram o conteúdo; Zyte foi o mais barato e rápido (e o crédito gratuito dele vale só o primeiro mês). A cascata por custo (`orderByCost`) fica: Zyte → Bright Data → Apify → Scrapfly basic → Scrapfly asp.
