@@ -180,6 +180,127 @@ test.describe('honestidade de dados', () => {
     await expect(page.getByTestId('coverage-editorias')).toHaveAttribute('data-mock', 'false');
   });
 
+  test('V-13: mídia kit tem o mapa visual das posições, em texto acessível e sem sair da tela no celular', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const mapa = page.getByTestId('mk-mapa');
+    await expect(mapa).toBeVisible();
+    await expect(mapa.locator('svg')).toHaveAttribute('role', 'img');
+    await expect(mapa.locator('[data-position="TOP"]')).toHaveCount(1);
+    await expect(page.getByTestId('mk-mapa-lista')).toContainText('Banner topo');
+    const box = await mapa.boundingBox();
+    const vw = page.viewportSize()!.width;
+    expect(box!.x + box!.width).toBeLessThanOrEqual(vw + 1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await mapa.innerText()).not.toMatch(/R$/);
+  });
+
+  test('P2-1: toda tabela com rolagem do mídia kit é região focável, com nome único, e o foco por teclado fica visível', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const regioes = page.locator('.pt-scroll');
+    const n = await regioes.count();
+    expect(n).toBeGreaterThanOrEqual(2);
+    const nomes: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const r = regioes.nth(i);
+      await expect(r).toHaveAttribute('tabindex', '0');
+      await expect(r).toHaveAttribute('role', 'region');
+      const nome = (await r.getAttribute('aria-label')) ?? '';
+      expect(nome.trim().length).toBeGreaterThan(10);
+      nomes.push(nome);
+    }
+    expect(new Set(nomes).size).toBe(nomes.length); // nomes distintos (leitor de tela diferencia as tabelas)
+    // foco por teclado: Tab chega a uma região e o anel de foco aparece
+    const primeira = regioes.first();
+    await primeira.focus();
+    await expect(primeira).toBeFocused();
+    const outline = await primeira.evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) }; });
+    expect(outline.style).not.toBe('none');
+    expect(outline.width).toBeGreaterThanOrEqual(2);
+  });
+
+  test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    const svg = (await page.locator('[data-testid="mk-mapa"] svg').boundingBox())!;
+    const lista = (await page.getByTestId('mk-mapa-lista').boundingBox())!;
+    const figura = (await page.getByTestId('mk-mapa').boundingBox())!;
+    const vb = (await page.locator('[data-testid="mk-mapa"] svg').getAttribute('viewBox'))!.split(' ').map(Number);
+    expect(svg.height / svg.width).toBeCloseTo(vb[3]! / vb[2]!, 1); // proporção preservada
+    if (info.project.name === 'desktop') {
+      expect(svg.width).toBeLessThanOrEqual(520.5);
+      expect(lista.x).toBeGreaterThanOrEqual(svg.x + svg.width); // lista à direita do mapa
+      expect(lista.y).toBeLessThan(svg.y + svg.height); // e começa na altura do mapa
+      expect(figura.height).toBeLessThan(700); // antes: 1.014 px
+    } else {
+      const vw = page.viewportSize()!.width;
+      expect(svg.width).toBeGreaterThan(vw * 0.8);
+      expect(lista.y).toBeGreaterThanOrEqual(svg.y + svg.height); // empilhado
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
+  test('P2-a: rótulos do mapa legíveis (≥ 11 px reais) e dentro das caixas, no desktop e no celular', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const r = await page.evaluate(() => {
+      const svg = document.querySelector('[data-testid="mk-mapa"] svg') as SVGSVGElement;
+      const k = svg.getScreenCTM()!.a;
+      const px = (sel: string) => [...svg.querySelectorAll(sel)].map((t) => parseFloat(getComputedStyle(t).fontSize) * k);
+      const fora: string[] = [];
+      for (const g of svg.querySelectorAll('g[data-position]')) {
+        const rect = g.querySelector('rect')!.getBBox();
+        for (const t of g.querySelectorAll('text')) {
+          const b = (t as SVGTextElement).getBBox();
+          if (b.x < rect.x || b.x + b.width > rect.x + rect.width || b.y < rect.y || b.y + b.height > rect.y + rect.height) fora.push(`${g.getAttribute('data-position')}: ${t.textContent}`);
+        }
+      }
+      const ed = svg.querySelector('[data-testid="mk-mapa-editorial"]')!;
+      const er = ed.querySelector('rect')!.getBBox();
+      for (const t of ed.querySelectorAll('text')) { const b = (t as SVGTextElement).getBBox(); if (b.x + b.width > er.x + er.width || b.y + b.height > er.y + er.height) fora.push(`editorial: ${t.textContent}`); }
+      return { nomes: px('.pt-map-text'), dims: px('.pt-map-small'), legenda: px('.pt-map-cap'), fora };
+    });
+    for (const v of [...r.nomes, ...r.dims, ...r.legenda]) expect(v).toBeGreaterThanOrEqual(11);
+    expect(r.nomes.length).toBeGreaterThan(5);
+    expect(r.fora).toEqual([]);
+  });
+
+  test('P3-a: kicker do bloco de abertura usa o verde de destaque (#A7DDC9), não branco, e sem estilo inline', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const kicker = page.locator('.pt-hero-band .pt-kicker');
+    await expect(kicker).toHaveText(/Mídia kit · Proposta comercial/i);
+    await expect(kicker).toHaveCSS('color', 'rgb(167, 221, 201)');
+    expect(await kicker.getAttribute('style')).toBeNull();
+  });
+
+  test('P3-b: título de abertura do mídia kit em escala de exibição (≥ 28 px no celular, 44 px no desktop) e sem estourar a tela', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    const h1 = page.locator('.pt-hero-band--mk h1');
+    const size = parseFloat(await h1.evaluate((el) => getComputedStyle(el).fontSize));
+    if (info.project.name === 'desktop') expect(size).toBeCloseTo(44, 0); else expect(size).toBeGreaterThanOrEqual(28);
+    const lh = parseFloat(await h1.evaluate((el) => getComputedStyle(el).lineHeight)) / size;
+    expect(lh).toBeCloseTo(1.15, 2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    // outros h1 do portal não mudam de escala
+    await page.goto('/contato');
+    const outro = parseFloat(await page.locator('main h1').first().evaluate((el) => getComputedStyle(el).fontSize));
+    expect(outro).toBeLessThanOrEqual(36);
+  });
+
+  test('P3-d: Audiência em duas colunas no desktop (tempo real ao lado do histórico) e empilhada no celular, sem perder métrica', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    const grupos = page.getByTestId('audience-groups');
+    const [a, b] = await grupos.locator(':scope > div').all();
+    const ba = (await a!.boundingBox())!; const bb = (await b!.boundingBox())!;
+    await expect(a!.locator('h3')).toHaveText('Tempo real');
+    await expect(b!.locator('h3')).toHaveText('Histórico');
+    expect(await grupos.locator('.pt-metric').count()).toBeGreaterThanOrEqual(2);
+    if (info.project.name === 'desktop') {
+      expect(Math.abs(ba.y - bb.y)).toBeLessThan(2); // mesma linha
+      expect(bb.x).toBeGreaterThan(ba.x + ba.width - 1);
+    } else {
+      expect(bb.y).toBeGreaterThanOrEqual(ba.y + ba.height); // empilhado
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');

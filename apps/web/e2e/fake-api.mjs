@@ -198,6 +198,15 @@ const MEDIAKIT = {
     ],
   },
   blocks: {
+    // posições do inventário vindas da API (só 3 com dimensão: prova que o mapa lê a API, não a reserva do portal)
+    especificacoes: {
+      positions: [
+        { id: 'TOP', name: 'Banner topo', desktop: '1280x150' },
+        { id: 'SIDEBAR_1', name: 'Sidebar 1', desktop: '336x280' },
+        { id: 'FOOTER', name: 'Rodapé', desktop: '1280x200' },
+        { id: 'AGENDA', name: 'Agenda', desktop: null },
+      ],
+    },
     catalogo: {
       formats: [
         { id: 'banners--banner-topo', section: 'Banners', name: 'Banner topo', price: 'R$ 3.000/mês', scope: '1280 × 150; 4 cotas; mínimo 3 meses', status: 'sob_consulta' },
