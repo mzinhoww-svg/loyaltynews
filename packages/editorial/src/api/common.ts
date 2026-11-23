@@ -29,7 +29,7 @@ export interface ApiResponse<T> { status: number; body: T | ApiError }
 export type Action =
   | 'queue.list' | 'article.read' | 'article.review' | 'factcheck.read' | 'factcheck.recheck'
   | 'correction.list' | 'correction.manage' | 'correction.verify_requester' | 'correction.ack_legal'
-  | 'source.read' | 'source.review' | 'source.enable' | 'source.disable' | 'pauta.read' | 'pauta.submit' | 'piloto.read' | 'piloto.map' | 'piloto.leitura';
+  | 'source.read' | 'source.review' | 'source.enable' | 'source.disable' | 'pauta.read' | 'pauta.submit' | 'piloto.read' | 'piloto.map' | 'piloto.leitura' | 'piloto.import';
 
 /** Papéis de @ln/auth (stub do scaffold): admin, editor_chefe, editor, revisor, comercial, leitor. `comercial`/`leitor` não têm acesso editorial. */
 export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
@@ -55,6 +55,8 @@ export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
   'piloto.read': ['admin', 'editor_chefe', 'editor', 'revisor'],
   'piloto.map': ['admin', 'editor_chefe'],
   'piloto.leitura': ['admin', 'editor_chefe', 'revisor'],
+  // Importação da folha do leitor 2 (lida fora do Studio): quem importa é o leitor 1 (proprietário).
+  'piloto.import': ['admin', 'editor_chefe'],
 };
 
 export function authorize(ctx: HandlerCtx, action: Action): ApiError | Actor {

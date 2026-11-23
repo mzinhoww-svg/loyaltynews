@@ -6,13 +6,17 @@
 // exige `modelosHabilitados` + política com production_enabled + ledger persistente (ainda inexistente): recusada aqui.
 import { resolve } from 'node:path';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { errLine, installOutputFilter, installProcessGuards } from '@ln/db/safe-log';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
 import { pilotWiringImporter } from './openbot-wiring';
-import { loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
+import { createFactoryPool, loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
+
+// Nenhum erro de conexão pode sair com o objeto inteiro (ca/cert/key do TLS): filtro de PEM na saída e saída com código ≠ 0 em erro não tratado.
+installOutputFilter();
+installProcessGuards();
 
 async function main() {
   const { DATABASE_URL, LN_FACTORY_FLAGS, LN_MODEL_POLICY } = process.env;
@@ -23,8 +27,8 @@ async function main() {
   if (!DATABASE_URL) { console.error('[fábrica] DATABASE_URL é obrigatório'); process.exit(1); }
   const flags = parseFactoryFlags(LN_FACTORY_FLAGS);
   if (flags.modelosHabilitados) { console.error('[fábrica] modelosHabilitados recusada: ledger de orçamento persistente ainda não existe'); process.exit(1); }
-  const pool = new Pool({ connectionString: DATABASE_URL, max: 4 });
-  pool.on('error', () => undefined); // C1
+  let pool: ReturnType<typeof createFactoryPool>;
+  try { pool = createFactoryPool(process.env, { max: 4 }); } catch (e) { console.error(errLine('[fábrica] configuração de TLS do banco inválida', e)); process.exit(1); }
   const db = drizzle(pool, { schema }) as unknown as Db;
   try {
     const pilot = await loadPilotWiring(process.env, pilotWiringImporter(db)); // importador ESTÁTICO (o main é empacotado por esbuild); DP-41: só staging (APP_ENV=staging e LN_OPENBOT_PILOT=1); senão undefined
