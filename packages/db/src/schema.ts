@@ -45,9 +45,20 @@ export const sources = pgTable('sources', {
   ativo: boolean('ativo').notNull().default(false),
   /** ADR-019 §d: 'fabrica' = linha projetada do registro da Fábrica (somente leitura no CMS); 'cms' = cadastro manual de citação. */
   origem: text('origem').notNull().default('cms'),
+  /** P2-05 (fonte rápida da Nova matéria): 'a_confirmar' até alguém revisar os termos; nunca ativa (coleta) nesse estado. */
+  revisao: text('revisao').notNull().default('confirmada'),
+  /** Licença declarada no cadastro rápido (nulo nas fontes antigas). */
+  licenca: text('licenca'),
+  /** Chave de idempotência do cadastro rápido (a mesma chave devolve a mesma fonte). */
+  chaveIdem: text('chave_idem'),
+  criadoPor: text('criado_por'),
 }, (t) => [
   check('sources_acesso_publico', sql`${t.acesso} = 'publico'`),
   check('sources_origem', sql`${t.origem} in ('fabrica', 'cms')`),
+  check('sources_revisao', sql`${t.revisao} in ('confirmada', 'a_confirmar')`),
+  check('sources_a_confirmar_inativa', sql`${t.revisao} = 'confirmada' OR NOT ${t.ativo}`),
+  check('sources_licenca', sql`${t.licenca} IS NULL OR ${t.licenca} in ('aberta', 'creative_commons', 'termos_do_site', 'direitos_reservados', 'desconhecida')`),
+  uniqueIndex('sources_chave_idem_uq').on(t.chaveIdem),
 ]);
 
 export const evidences = pgTable('evidences', {

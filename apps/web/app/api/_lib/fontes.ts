@@ -67,8 +67,10 @@ export const patchSource: RouteFn = async (req, c) => {
   if (ativo && !termos) throw new HttpError(409, 'TERMS_NOT_REVIEWED', 'Fonte só é ativada com os termos de uso revisados.');
   const eds = b.editorias ? [...new Set(b.editorias)] : null;
   if (eds) await assertEditorias(c.deps.db, eds);
-  const fields = { ...b };
+  const fields: Partial<typeof schema.sources.$inferInsert> & typeof b = { ...b };
   delete fields.editorias;
+  // P2-05: fonte rápida ('a_confirmar') só vira confirmada quando alguém revisa os termos; antes disso o banco recusa ativá-la
+  if (cur.revisao === 'a_confirmar' && termos) fields.revisao = 'confirmada';
   await c.deps.db.transaction(async (tx) => {
     if (Object.keys(fields).length) await tx.update(schema.sources).set(fields).where(eq(schema.sources.id, cur.id));
     if (eds) {

@@ -197,6 +197,13 @@
       "when": 1795450868135,
       "tag": "0027_crm_contatos_posicoes",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795461079473,
+      "tag": "0028_fonte_rapida_evidencias",
+      "breakpoints": true
     }
   ]
 }

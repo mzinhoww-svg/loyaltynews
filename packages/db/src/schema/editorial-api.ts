@@ -147,3 +147,32 @@ export const sourceEditorias = pgTable(
   },
   (t) => [uniqueIndex('source_editorias_pk').on(t.sourceId, t.editoria)],
 );
+
+/**
+ * P2-05: evidência anotada na Nova matéria (URL + trecho de até 500 caracteres), ligada a uma matéria em rascunho.
+ * NÃO é uma `evidences` (captura com sha256 do conteúdo): a URL não é buscada, então fica 'a_confirmar' e não conta para os gates de
+ * publicação até a captura real. Só o trecho é guardado (nada além dele). `trecho_sha256` = sha256 do trecho (dedupe, não do conteúdo da página).
+ */
+export const editorialEvidencias = pgTable(
+  'editorial_evidencias',
+  {
+    id: text('id').primaryKey(),
+    articleId: text('article_id').notNull().references(() => articles.id),
+    sourceId: text('source_id').references(() => sources.id),
+    url: text('url').notNull(),
+    trecho: text('trecho').notNull(),
+    trechoSha256: text('trecho_sha256').notNull(),
+    estado: text('estado').notNull().default('a_confirmar'),
+    chaveIdem: text('chave_idem').notNull(),
+    criadoPor: text('criado_por').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    uniqueIndex('editorial_evidencias_chave_uq').on(t.chaveIdem),
+    index('editorial_evidencias_article_idx').on(t.articleId, t.criadoEm),
+    check('editorial_evidencias_url_https', sql`${t.url} ~ '^https://'`),
+    check('editorial_evidencias_trecho', sql`char_length(${t.trecho}) BETWEEN 1 AND 500`),
+    check('editorial_evidencias_sha', sql`${t.trechoSha256} ~ '^[0-9a-f]{64}$'`),
+    check('editorial_evidencias_estado', sql`${t.estado} in ('a_confirmar', 'confirmada')`),
+  ],
+);
