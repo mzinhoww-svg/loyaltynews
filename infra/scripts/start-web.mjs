@@ -34,6 +34,7 @@ export function startProblems(env, release) {
   const idxEnv = String(env.PORTAL_INDEXAVEL ?? ''); // exato, sem trim (I4)
   const idxRel = release.indexavel === true ? '1' : '';
   if (idxEnv !== idxRel) p.push(release.indexavel === true ? 'PORTAL_INDEXAVEL ausente em execução: o pacote é INDEXÁVEL (release.json.indexavel=true); defina PORTAL_INDEXAVEL=1' : `PORTAL_INDEXAVEL=${env.PORTAL_INDEXAVEL} em execução, mas o pacote NÃO é indexável (release.json.indexavel=false): apague a variável (a indexação só liga no go-live)`);
+  if (String(env.LN_BUILD_SKIP_TYPECHECK ?? '') !== '') p.push('LN_BUILD_SKIP_TYPECHECK definida em execução: ela só existe no build e vem do release.json (semTypecheckNoBuild); apague a variável do app');
   const commit = String(env.APP_COMMIT ?? '');
   if (!/^[0-9a-f]{40}$/.test(commit)) p.push(`APP_COMMIT não é um SHA de 40 caracteres hexadecimais minúsculos (tamanho ${commit.length}); apague o valor inteiro e cole só ${release.commit}`);
   else if (commit !== release.commit) p.push(`APP_COMMIT=${commit} difere do release.json (${release.commit})`);
