@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { dispatchTask, routeFor, type Caller, type OpenBotDeps } from './handlers';
+import { dispatchTask, effectiveRoute, type Caller, type OpenBotDeps } from './handlers';
 import { ID_RE, providerOfModel, PROVIDER_OF_ACCOUNT, type Account } from './types';
 
 // Gateway SÍNCRONO sobre o adaptador OpenBot. A Fábrica editorial chama `ModelGateway.invoke` e espera a resposta; este
@@ -99,7 +99,7 @@ export class OpenBotModelGateway {
     // Independência: tira da rota as vias cujo provedor é conhecido e proibido. Via de provedor incerto (antigravity) fica e é
     // conferida DEPOIS, pelo modelo declarado no custo.
     const excluded = new Set(req.excludeProviders);
-    const full = routeFor(c.deps, kind);
+    const full = effectiveRoute(c.deps, kind); // no piloto, já sem as contas fora da DP-41
     const route = full.filter((a) => a === 'antigravity' || !excluded.has(PROVIDER_OF_ACCOUNT[a]));
     if (route.length === 0) return { ok: false, refusal: 'no_independent_provider', detail: `nenhuma via de ${kind} fora de ${[...excluded].join(', ')}` };
 

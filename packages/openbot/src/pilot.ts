@@ -1,4 +1,4 @@
-import { providerOfModel } from './types';
+import { providerOfModel, type Account } from './types';
 
 // Trilha e parada imediata do PILOTO de 10 matérias pelo canal OpenBot (assinaturas Claude/Codex + OpenCode grátis;
 // OpenRouter desligado). Desenho: fast-track/custo/piloto-10-materias-openbot.md. Kit do AgentOps: packages/agents (pilot.ts).
@@ -96,9 +96,18 @@ export class InMemoryPilotState implements PilotStateStore {
   }
 }
 
+/**
+ * DP-41 (23/11/2026, proprietário): o piloto só usa as assinaturas JÁ PAGAS, Claude e Codex; sem OpenCode nem Antigravity, sem API
+ * tarifada, sem publicação. Vale por padrão sempre que o piloto está ativo (`PilotControl.allowedAccounts` só pode ESTREITAR ou, em
+ * teste da mecânica genérica, ampliar de forma explícita).
+ */
+export const DP41_ACCOUNTS: readonly Account[] = Object.freeze(['claude', 'codex'] as Account[]);
+
 export interface PilotControl {
   /** Piloto ativo: ligado só em staging, por decisão registrada. Desligado = nada disto vale. */
   enabled: boolean;
+  /** Contas que o piloto aceita (rota, pull e despacho). Padrão: DP-41 = claude e codex. */
+  allowedAccounts?: readonly Account[];
   rows: PilotRowStore;
   state: PilotStateStore;
   gate: PilotGate;

@@ -4,7 +4,7 @@ import { budgetStatus, isApiLane, MONTHLY_CAP_MICRO, validateUsage, type CostLed
 import { evaluateHealth, type HealthStore, type OpenBotHealth } from './health';
 import { LeaseError, type LeaseQueue } from './lease-queue';
 import {
-  PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
+  DP41_ACCOUNTS, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
 } from './pilot';
 import { verifySignature } from './signing';
 import {
@@ -108,6 +108,18 @@ export function routeFor(deps: Pick<OpenBotDeps, 'routes'>, kind: string): Accou
   return [...(deps.routes?.[kind] ?? DEFAULT_ROUTES[kind] ?? FALLBACK_ROUTE)];
 }
 
+/** Contas permitidas pelo piloto (DP-41: claude e codex por padrão); `null` quando o piloto não está ativo (sem restrição). */
+export function pilotAccounts(deps: Pick<OpenBotDeps, 'pilot'>): readonly Account[] | null {
+  return deps.pilot?.enabled ? deps.pilot.allowedAccounts ?? DP41_ACCOUNTS : null;
+}
+
+/** Rota efetiva: a rota do tipo, já sem as contas que o piloto não permite. Vazia = nenhuma via permitida (nada é despachado). */
+export function effectiveRoute(deps: Pick<OpenBotDeps, 'routes' | 'pilot'>, kind: string): Account[] {
+  const allowed = pilotAccounts(deps);
+  const r = routeFor(deps, kind);
+  return allowed ? r.filter((a) => allowed.includes(a)) : r;
+}
+
 /** Problemas de uma rota (vazia = válida): não vazia, só contas conhecidas, sem repetição e, na redação, uma só via. */
 export function routeProblems(kind: string, route: readonly string[]): string[] {
   const p: string[] = [];
@@ -176,6 +188,10 @@ export async function handlePull(deps: OpenBotDeps, req: SignedRequest): Promise
   const now = deps.now();
   if (killed(deps)) return fail(503, 'KILL_SWITCH', 'kill switch ativo: nenhuma tarefa é entregue');
   if (deps.pilot?.enabled && !p.data.account) return fail(400, 'VALIDATION_ERROR', 'no piloto o pull informa a via (account)', ['account']);
+  const allowedPull = pilotAccounts(deps);
+  if (allowedPull && p.data.account && !(allowedPull as readonly string[]).includes(p.data.account)) {
+    return fail(422, 'ACCOUNT_NOT_ALLOWED', `via fora do piloto (DP-41): só ${allowedPull.join(' e ')}`, p.data.account);
+  }
   const blocked = await pilotBlock(deps);
   if (blocked) return blocked;
   await deps.health.markPull(p.data.workerId, now);
@@ -436,8 +452,13 @@ export async function dispatchTask(deps: OpenBotDeps, caller: Caller, raw: unkno
     return fail(422, 'DATA_CLASS_BLOCKED', 'classe de dado não liberada para o OpenBot', d.dataClass);
   }
   const full = routeFor(deps, d.kind);
-  const route = d.route ?? full;
+  const allowedAcc = pilotAccounts(deps);
+  const route = d.route ?? effectiveRoute(deps, d.kind);
   const rp = routeProblems(d.kind, route);
+  if (allowedAcc) {
+    if (route.some((a) => !(allowedAcc as readonly string[]).includes(a))) rp.push(`via fora do piloto (DP-41): só ${allowedAcc.join(' e ')}`);
+    if (!d.route && route.length === 0) rp.push('nenhuma via permitida no piloto para este tipo de tarefa');
+  }
   if (d.route) {
     let i = 0;
     for (const a of full) if (i < d.route.length && d.route[i] === a) i += 1;
