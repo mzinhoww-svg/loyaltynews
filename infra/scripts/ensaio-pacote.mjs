@@ -191,8 +191,10 @@ try {
       step(`[A6] ${p} com a API indisponível: 200 vazio, sem MOCK e sem URL interna`, res.status === 200 && !/\bMOCK\b/.test(body) && !vaza, `HTTP ${res.status}${vaza ? ' (vaza detalhe interno)' : ''}`);
     }
     const art = await fetch(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
-    await art.text();
-    step('[A6] matéria com a API indisponível: 404 ou 503 (nunca 500)', art.status === 404 || art.status === 503, `HTTP ${art.status}`);
+    const artBody = await art.text();
+    // Portal int/009: API indisponível = página de erro honesta (200, noindex nos metadados, sem detalhe interno); 404/503 também servem. Nunca 500.
+    const artHonesta = art.status === 200 && /não conseguimos carregar esta matéria/i.test(artBody) && /noindex/i.test(artBody) && !/127\.0\.0\.1|ECONNREFUSED|api\/publico|\bat \w+\s*\(/i.test(artBody);
+    step('[A6] matéria com a API indisponível: 404, 503 ou página de erro honesta noindex (nunca 500)', art.status === 404 || art.status === 503 || artHonesta, `HTTP ${art.status}`);
   }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
   for (const p of ['/sitemap.xml', '/feed.xml']) {

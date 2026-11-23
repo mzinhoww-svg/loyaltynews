@@ -1168,3 +1168,18 @@ test('ci-checks: token em teste/doc passa só como placeholder evidente; token r
   assert.match(node('ci-checks.mjs', ['--root', r]).stderr, /segredo: chave sk- em packages\/openbot\/src\/prod\.ts/);
   rmSync(r, { recursive: true, force: true });
 });
+
+// ---- Worker com o job de alertas (Backend 2, af07005): LN_INTELLIGENCE_* amarradas ao release.json.jobsIntelligence
+test('guards: jobsProblems exige LN_INTELLIGENCE_ALERTS/PESSOAS = release.json.jobsIntelligence, só staging e com a flag da ADR-022', async () => {
+  const { jobsProblems } = await import('../scripts/lib/guards.mjs');
+  const ok = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas', LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on' };
+  assert.deepEqual(jobsProblems(ok, { jobsIntelligence: ['alertas'] }), []);
+  assert.deepEqual(jobsProblems({ APP_ENV: 'staging' }, { jobsIntelligence: [] }), []);
+  assert.deepEqual(jobsProblems({ APP_ENV: 'staging' }, {}), [], 'release.json antigo sem o campo');
+  assert.match(jobsProblems({ APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas' }, { jobsIntelligence: ['alertas'] }).join('|'), /defina LN_INTELLIGENCE_ALERTS=on/);
+  assert.match(jobsProblems({ APP_ENV: 'staging', LN_INTELLIGENCE_ALERTS: 'on' }, { jobsIntelligence: [] }).join('|'), /LN_INTELLIGENCE_ALERTS definida, mas o pacote não liga/);
+  assert.match(jobsProblems({ APP_ENV: 'production', LN_INTELLIGENCE_PESSOAS: 'on' }, {}).join('|'), /LN_INTELLIGENCE_PESSOAS definida/);
+  assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_REREAD: 'on' }, { jobsIntelligence: ['alertas'] }).join('|'), /LN_INTELLIGENCE_REREAD definida/);
+  assert.match(jobsProblems({ ...ok, LN_FLAGS_ON: '' }, { jobsIntelligence: ['alertas'] }).join('|'), /exige LN_FLAGS_ON com intelligencePessoas/);
+  assert.match(jobsProblems({ ...ok, APP_ENV: 'production' }, { jobsIntelligence: ['alertas'] }).join('|'), /só o staging/);
+});

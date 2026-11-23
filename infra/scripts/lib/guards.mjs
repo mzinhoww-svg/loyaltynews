@@ -88,6 +88,23 @@ export function flagsProblems(env, release) {
     : `LN_FLAGS_ON="${env.LN_FLAGS_ON}" definida, mas o pacote não liga nenhuma flag (release.json.flagsLigadas vazio): apague a variável do app`];
 };
 
+/** Jobs de Intelligence por variável (só staging, só o que o release.json.jobsIntelligence liga). 'alertas' = LN_INTELLIGENCE_ALERTS + LN_INTELLIGENCE_PESSOAS; LN_INTELLIGENCE_REREAD nunca vem de pacote. */
+export function jobsProblems(env, release) {
+  const rel = Array.isArray(release?.jobsIntelligence) ? release.jobsIntelligence : [];
+  const want = { LN_INTELLIGENCE_ALERTS: rel.includes('alertas'), LN_INTELLIGENCE_PESSOAS: rel.includes('alertas'), LN_INTELLIGENCE_REREAD: false };
+  const p = [];
+  for (const [nome, ligada] of Object.entries(want)) {
+    const cur = String(env[nome] ?? '').trim();
+    if (ligada && cur !== 'on') p.push(`${nome}="${env[nome] ?? ''}" difere do release.json (jobsIntelligence=${rel.join(',')}): defina ${nome}=on`);
+    else if (!ligada && cur !== '') p.push(`${nome} definida, mas o pacote não liga esse job (release.json.jobsIntelligence=[${rel.join(',')}]): apague a variável do app`);
+  }
+  if (rel.includes('alertas')) {
+    if (String(env.APP_ENV ?? '').trim().toLowerCase() !== 'staging') p.push(`jobsIntelligence=alertas com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging`);
+    if (!flagsNormalizadas(env.LN_FLAGS_ON).split(',').includes('intelligencePessoas')) p.push('jobsIntelligence=alertas exige LN_FLAGS_ON com intelligencePessoas (ADR-022)');
+  }
+  return p;
+}
+
 // Atribuições em arquivos de deploy/IaC/scripts de produção. Citar o NOME (ex.: no contrato de variáveis, como proibida) não reprova.
 export const ASSIGN_STUDIO = /LN_STUDIO_TEST_SESSION["']?\s*[=:]/;
 export const ASSIGN_PORTAL_MOCK = /PORTAL_(?:SOURCE|MODE)["']?\s*[=:]\s*["']?(?:mock|intelligence)\b/i;

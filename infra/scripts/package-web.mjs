@@ -29,6 +29,10 @@ const vitrine = Boolean(args.vitrine);
 //   o resultado fica no release log do deploy e no get_logs do worker. Prova temporária: tire a flag quando o Linux estiver provado.
 const provaPng = Boolean(args['prova-png']);
 if (provaPng && args.app !== 'workers') fail('--prova-png só vale para o worker (--app workers)', 2);
+// --intelligence-alertas (só o worker, só staging, exige --flags intelligencePessoas): liga o job de alertas das watchlists (Backend 2, af07005) com LN_INTELLIGENCE_ALERTS=on e
+//   LN_INTELLIGENCE_PESSOAS=on. Grava jobsIntelligence no release.json; o guard-env exige que as três variáveis LN_INTELLIGENCE_* batam com ele (a releitura REREAD nunca é ligada por pacote).
+const jobsIntelligence = args['intelligence-alertas'] ? ['alertas'] : [];
+if (jobsIntelligence.length && args.app !== 'workers') fail('--intelligence-alertas só vale para o worker (--app workers)', 2);
 const flagsLigadas = args.flags === undefined ? [] : [...new Set(String(args.flags === true ? '' : args.flags).split(',').map((s) => s.trim()).filter(Boolean))].sort();
 if (args.flags !== undefined && flagsLigadas.length === 0) fail('--flags exige nomes de flag separados por vírgula (ex.: --flags intelligencePessoas)', 2);
 for (const n of flagsLigadas) if (!/^[A-Za-z][A-Za-z0-9]*$/.test(n)) fail(`--flags: nome inválido "${n}" (só letras e números, como em FLAG_DEFAULTS)`, 2);
@@ -50,6 +54,8 @@ if (!['web', 'workers'].includes(appKey)) fail('--app deve ser web ou workers', 
 if (vitrine && appKey !== 'web') fail('--vitrine só vale para o web', 2);
 const SELF = dirname(fileURLToPath(import.meta.url));
 // Vitrine só no staging (Security R2/R3): recusa ANTES de tocar no repositório.
+if (jobsIntelligence.length && (profile === 'production' || /^prod/i.test(profile))) fail('--intelligence-alertas recusado: os jobs de Intelligence por variável só existem no staging (ADR-022)', 2);
+if (jobsIntelligence.length && !flagsLigadas.includes('intelligencePessoas')) fail('--intelligence-alertas exige --flags intelligencePessoas (o job também confere a flag da ADR-022)', 2);
 if (flagsLigadas.length && (profile === 'production' || /^prod/i.test(profile))) fail('--flags recusado: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES', 2);
 if (vitrine && (profile === 'production' || /^prod/i.test(profile))) fail('--vitrine recusado: a vitrine de demonstração do portal só existe no staging (perfil production nunca leva PORTAL_VITRINE)', 2);
 
@@ -114,7 +120,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -122,7 +128,7 @@ const vArgs = Object.entries(virtuals).map(([p, c]) => `--add-virtual-file=${p}:
 
 // 5. destino (nunca sobrescreve sem --force)
 const out = resolve(String(args.out));
-const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}${provaPng ? '-prova-png' : ''}`;
+const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}${jobsIntelligence.length ? '-alertas' : ''}${provaPng ? '-prova-png' : ''}`;
 const folder = join(out, name);
 const zip = join(out, `${name}.zip`);
 const manifestPath = join(out, `${name}.manifest.json`);
@@ -179,9 +185,11 @@ try {
     ...(indexavel ? [{ nome: 'PORTAL_INDEXAVEL', valor: '1' }] : []),
     // ADR-022: flags de produto ligadas por variável (só staging); também em EXECUÇÃO o guard-env compara com release.json.flagsLigadas. Sem --flags a variável NÃO deve existir.
     ...(flagsLigadas.length ? [{ nome: 'LN_FLAGS_ON', valor: flagsLigadas.join(',') }] : []),
+    // Worker com o job de alertas das watchlists (só staging; o guard-env confere com release.json.jobsIntelligence). Sem --intelligence-alertas estas variáveis NÃO devem existir.
+    ...(jobsIntelligence.includes('alertas') ? [{ nome: 'LN_INTELLIGENCE_PESSOAS', valor: 'on' }, { nome: 'LN_INTELLIGENCE_ALERTS', valor: 'on' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [
