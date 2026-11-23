@@ -268,6 +268,11 @@ export const api = {
     executivos: (q: string) => chamar<{ items: { id: string; full_name: string }[] }>(dispatchIntelligence, `${I}/executives`, { query: { q } }),
     /** Moves por estado (detected = pendente de revisão), com antes e depois quando o Backend os traz. */
     moves: (query: { status?: 'detected' | 'confirmed' | 'rejected'; organizationId?: string; personId?: string }) => chamar<{ items: MoveLinha[] }>(dispatchIntelligence, `${I}/moves`, { query }),
+    /** Pedido do titular (LGPD / direito de resposta): só admin. kind: access | rectification | suppression. */
+    abrirPedido: (corpo: { personId: string; kind: 'access' | 'rectification' | 'suppression'; note?: string }) => chamar<{ id: string; status: string }>(dispatchIntelligence, `${I}/subject-requests`, { metodo: 'POST', corpo }),
+    exportarPedido: (requestId: string) => chamar<{ requestId: string; data: { person: Record<string, unknown> | null; roles: Record<string, unknown>[] } }>(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/export`, { metodo: 'POST', corpo: {} }),
+    retificarPedido: (requestId: string, fullName: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/rectify`, { metodo: 'POST', corpo: { fullName } }),
+    suprimirPedido: (requestId: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/suppress`, { metodo: 'POST', corpo: {} }),
     revisarMove: (id: string, status: 'confirmed' | 'rejected') => chamar(dispatchIntelligence, `${I}/moves/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
   },
   editorial: {

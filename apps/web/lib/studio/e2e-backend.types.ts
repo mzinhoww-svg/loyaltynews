@@ -8,7 +8,7 @@ export interface E2eBackend {
   /** Semeia duas pautas autorais JÁ PROCESSADAS pelo worker (uma aprovada, uma bloqueada) na trilha de auditoria do e2e (MOCK: o worker não roda no e2e). Idempotente. */
   seedPautasProcessadas(): Promise<{ aprovada: string; bloqueada: string }>;
   /** Semeia o Entity Intelligence com dados MOCK pelas funções reais do pacote: empresas, cargos oficiais e secundário (a confirmar), uma relação e um Move detectado (antes/depois). Idempotente. */
-  seedIntelligence(): Promise<{ alfa: string; beta: string; pessoa: string }>;
+  seedIntelligence(): Promise<{ alfa: string; beta: string; pessoa: string; bruno: string; carla: string }>;
   /** Liga/desliga uma flag SÓ no backend de e2e (as rotas e o Studio leem o mesmo getDeps). */
   setFlag(nome: string, ligada: boolean): void;
 }
