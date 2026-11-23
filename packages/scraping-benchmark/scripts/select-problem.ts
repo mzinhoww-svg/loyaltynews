@@ -7,9 +7,12 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Linhas JSON de dataset/candidatos (script de uso único; campos heterogêneos).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = Record<string, any>;
 const DATA = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
-const ds = JSON.parse(readFileSync(join(DATA, 'dataset.json'), 'utf8')) as Array<Record<string, any>>;
-const cands = JSON.parse(readFileSync(join(DATA, 'problem-candidates.json'), 'utf8')) as Array<Record<string, any>>;
+const ds = JSON.parse(readFileSync(join(DATA, 'dataset.json'), 'utf8')) as Row[];
+const cands = JSON.parse(readFileSync(join(DATA, 'problem-candidates.json'), 'utf8')) as Row[];
 const norm = (u: string) => u.replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
 const used = new Set(ds.filter((d) => d.recency !== 'problema').map((d) => norm(d.url)));
 const looksArticle = (u: string) => {
@@ -26,7 +29,7 @@ const looksArticle = (u: string) => {
 function pick(category: string, n: number, perHostMax: number) {
   const pool = cands.filter((c) => c.category === category && c.title && looksArticle(c.url));
   const hosts = [...new Set(pool.map((c) => c.host))];
-  const chosen: any[] = [];
+  const chosen: Row[] = [];
   for (let round = 0; chosen.length < n && round < perHostMax; round++)
     for (const h of hosts) {
       if (chosen.length >= n) break;
@@ -43,7 +46,7 @@ const res = pick('restritivo', 15, 4);
 const olds = ds.filter((d) => d.recency === 'problema');
 const swaps: Array<{ out: string; in: string; host: string; feed: string }> = [];
 let next = 201;
-const replaceWith = (oldCat: string, list: any[]) => {
+const replaceWith = (oldCat: string, list: Row[]) => {
   const slots = olds.filter((o) => o.category === oldCat);
   list.forEach((c, i) => {
     const o = slots[i];

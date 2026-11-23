@@ -29,7 +29,7 @@ export class TavilyExtractReader implements KeyedReader {
     if (r.status === 432 || r.status === 433 || r.status === 402) return { status: 'quota_exhausted', httpStatus: r.status };
     if (r.status === 429) return /credit|quota|usage limit/i.test(raw) ? { status: 'quota_exhausted', httpStatus: 429 } : { status: 'rate_limited', retryAfterSeconds: Number(r.headers.get('retry-after')) || 60, httpStatus: 429 };
     if (r.status !== 200) return { status: 'provider_error', httpStatus: r.status };
-    let j: { results?: Array<{ url?: string; raw_content?: string }>; failed_results?: unknown[] } = {};
+    let j: { results?: Array<{ url?: string; raw_content?: string }>; failed_results?: unknown[] };
     try {
       j = JSON.parse(raw);
     } catch {
