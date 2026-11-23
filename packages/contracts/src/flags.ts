@@ -9,6 +9,8 @@ export const FLAG_DEFAULTS = {
   theLoyal: false,
   /** Publicação autônoma no portal, só após gates de R6 (D06). */
   publicacaoAutonoma: false,
+  /** Registro de publicação no portal disparado pelo CMS/Studio (sessão autenticada com MFA), após os gates automáticos (ADR-017). */
+  publicacaoPortal: false,
   /** Publicação no LinkedIn via mLabs (R5-02). */
   linkedinPublicacao: false,
   /** Ingestão de pessoas no Intelligence (J-01: parecer, controlador, processador). */
