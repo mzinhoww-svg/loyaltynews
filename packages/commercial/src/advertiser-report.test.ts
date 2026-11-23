@@ -28,7 +28,7 @@ const build = (delivery: DeliveryRow[], over: Partial<Parameters<typeof buildAdv
   buildAdvertiserReport({ account: { id: 'acc-1', name: 'Acme Fidelidade' }, campaigns: [A1, A2, OTHER], creatives: CREATIVES, reservations: [], delivery, audit: new DeliveryAudit(), now: NOW, ...over });
 
 function parseCsv(text: string): string[][] {
-  const t = text.replace(/^﻿/, ''); const rows: string[][] = []; let cur: string[] = []; let cell = ''; let q = false;
+  const t = text.replace(/^\uFEFF/, ''); const rows: string[][] = []; let cur: string[] = []; let cell = ''; let q = false;
   for (let i = 0; i < t.length; i++) {
     const ch = t[i]!;
     if (q) { if (ch === '"') { if (t[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
