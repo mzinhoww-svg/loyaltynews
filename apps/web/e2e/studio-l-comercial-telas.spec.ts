@@ -127,6 +127,64 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(page.getByTestId('anunciantes').locator('[data-conta]').filter({ hasText: 'Fidelidade Telas SA' })).toContainText('1 campanha(s)');
   });
 
+  test('anunciante direto, contato com base legal e relatório do anunciante com CSV; axe', async ({ page, context, request }) => {
+    await entrar(context, 'caio', 'comercial');
+    await page.goto('/studio/crm');
+    await page.getByLabel('Nome do anunciante').fill('Anunciante Direto Ltda');
+    await enviar(page, page.getByRole('button', { name: 'Criar anunciante' }));
+    await sucesso(page, 'Anunciante criado.');
+    const conta = page.getByTestId('anunciantes').locator('[data-conta]').filter({ hasText: 'Anunciante Direto Ltda' });
+    await expect(conta.locator('[data-vazio="contatos"]')).toBeVisible();
+
+    // sem base legal: recusado pelo domínio
+    await conta.getByText('Adicionar contato a Anunciante Direto Ltda').click();
+    await conta.getByLabel('Nome do contato').fill('Bruno Reis');
+    await conta.getByLabel('Email do contato').fill('bruno@direto.example');
+    await enviar(page, conta.getByRole('button', { name: 'Registrar contato' }));
+    await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+
+    const conta2 = page.getByTestId('anunciantes').locator('[data-conta]').filter({ hasText: 'Anunciante Direto Ltda' });
+    await conta2.getByText('Adicionar contato a Anunciante Direto Ltda').click();
+    await conta2.getByLabel('Nome do contato').fill('Bruno Reis');
+    await conta2.getByLabel('Email do contato').fill('bruno@direto.example');
+    await conta2.getByLabel('Cargo').fill('Marketing');
+    await conta2.getByLabel('Base legal').selectOption('legitimo_interesse');
+    await enviar(page, conta2.getByRole('button', { name: 'Registrar contato' }));
+    await sucesso(page, 'Contato registrado');
+    const contato = page.getByTestId('anunciantes').locator('[data-contato][data-origem="direto"]').filter({ hasText: 'Bruno Reis' });
+    await expect(contato).toContainText('Legítimo interesse');
+    await expect(contato).toContainText('(Marketing)');
+    await semViolacoes(page);
+
+    // relatório do anunciante sem campanha: vazio honesto, traço e nunca estimado
+    await page.getByRole('link', { name: 'Relatório de Anunciante Direto Ltda' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Anunciante Direto Ltda' })).toBeVisible();
+    for (const k of ['servidas', 'visiveis', 'cliques', 'taxa-vis', 'ctr', 'atualizado']) await expect(page.getByTestId(`rel-${k}`)).toHaveText('—');
+    await expect(page.getByTestId('rel-estimado')).toContainText('não');
+    await expect(page.locator('[data-vazio="campanhas"]')).toBeVisible();
+    expect(await page.getByTestId('relatorio-anunciante').innerText()).not.toMatch(/R\$|fatur|cobran|pre[cç]o/i);
+    await semViolacoes(page);
+
+    // relatório do anunciante com campanha: a campanha da conta aparece; janela inválida mostra o erro
+    await page.goto('/studio/crm');
+    await page.getByRole('link', { name: 'Relatório de Fidelidade Telas SA' }).click();
+    await expect(page.locator('tr[data-campanha]').filter({ hasText: 'Telas Topo' })).toContainText('TOP');
+    const url = page.url();
+    await page.goto(`${url}?de=2099-05-31&ate=2099-03-01`);
+    await expect(page.getByTestId('rel-erro')).toContainText(/janela/i);
+
+    // CSV: anexo protegido, só cabeçalho sem entrega (nenhum zero inventado)
+    await page.goto(url);
+    const href = (await page.getByRole('link', { name: 'Exportar CSV diário' }).getAttribute('href'))!;
+    const diario = await page.request.get(href);
+    expect(diario.status()).toBe(200);
+    expect(diario.headers()['content-type']).toContain('text/csv');
+    expect(diario.headers()['content-disposition']).toMatch(/^attachment; filename="[a-z0-9.-]+\.csv"$/);
+    expect((await diario.text()).replace(/^\uFEFF/, '').trimEnd().split('\r\n')).toHaveLength(1);
+    const anonimo = await request.get(href, { maxRedirects: 0 });
+    expect(anonimo.headers()['content-type'] ?? '').not.toContain('text/csv');
+  });
+
   test('RBAC: editor não chega às telas nem às actions comerciais', async ({ page, context }) => {
     await entrar(context, 'ed3', 'editor');
     for (const m of ['crm', 'campanhas']) {

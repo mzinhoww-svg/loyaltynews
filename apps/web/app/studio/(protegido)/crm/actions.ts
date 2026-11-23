@@ -52,3 +52,26 @@ export async function moverEstagioAction(fd: FormData): Promise<void> {
   const r = await api.comercial.moverEstagio({ opportunityId: texto(fd, 'id'), to: texto(fd, 'para'), ...(lostReason ? { lostReason } : {}) });
   voltar(BASE, ehErro(r) ? falha(r) : { ok: true }, 'Estágio atualizado.');
 }
+
+/** Anunciante direto (sem lead do mídia kit). Nome repetido ou vazio: o domínio recusa. */
+export async function criarContaAction(fd: FormData): Promise<void> {
+  await requireStudio(PAPEIS_COMERCIAIS);
+  const r = await api.comercial.criarConta(texto(fd, 'nome'));
+  voltar(BASE, ehErro(r) ? falha(r) : { ok: true }, 'Anunciante criado.');
+}
+
+/** Contato da conta com base legal; a data do registro e o autor são gravados pelo servidor. */
+export async function adicionarContatoAction(fd: FormData): Promise<void> {
+  await requireStudio(PAPEIS_COMERCIAIS);
+  const whatsapp = texto(fd, 'whatsapp');
+  const cargo = texto(fd, 'cargo');
+  const r = await api.comercial.adicionarContato({
+    accountId: texto(fd, 'conta'),
+    name: texto(fd, 'nome'),
+    email: texto(fd, 'email'),
+    basis: texto(fd, 'base'),
+    ...(whatsapp ? { whatsapp } : {}),
+    ...(cargo ? { role: cargo } : {}),
+  });
+  voltar(BASE, ehErro(r) ? falha(r) : { ok: true }, 'Contato registrado (base legal, data e autor gravados no servidor).');
+}

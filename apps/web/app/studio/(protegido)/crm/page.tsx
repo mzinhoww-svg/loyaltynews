@@ -43,6 +43,15 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const resTodos = status ? await api.comercial.leads() : resLeads;
   const contas = ehErro(resContas) ? [] : (resContas.body.data as ContaCrm[]);
   const contatos = (ehErro(resTodos) ? [] : resTodos.body) as unknown as ContatoCrm[];
+  // contatos diretos de cada conta (uma leitura por conta, no máximo 100 contas)
+  const diretos = Object.fromEntries(
+    await Promise.all(
+      contas.map(async (c) => {
+        const r = await api.comercial.contatosConta(c.id);
+        return [c.id, ehErro(r) ? { erro: mensagemErro(r) } : { data: r.body.data }] as const;
+      }),
+    ),
+  );
   const erroContas = ehErro(resContas) ? mensagemErro(resContas) : ehErro(resTodos) ? mensagemErro(resTodos) : null;
   return (
     <>
@@ -159,7 +168,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
         </form>
       </section>
 
-      <Anunciantes contas={contas} leads={contatos} erro={erroContas} />
+      <Anunciantes contas={contas} leads={contatos} diretos={diretos} erro={erroContas} />
 
       <h2 style={{ marginTop: 24 }}>Oportunidades</h2>
       <div className="st-grid" role="list" aria-label="Quadro de oportunidades">

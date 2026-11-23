@@ -260,6 +260,13 @@ export const api = {
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
     /** Posições da campanha: pré-reserva (held) ou confirmação (só com venda ligada); cancelar recusa reserva de campanha ativa. */
+    /** Anunciante direto (sem lead) e contatos da conta: base legal, data e autor gravados no servidor. Dado pessoal: só comercial e admin. */
+    criarConta: (name: string) => chamar<{ id: string; name: string; createdAt: string }>(dispatchCommercial, `${C}/studio/accounts`, { metodo: 'POST', corpo: { name } }),
+    contatosConta: (accountId: string) => chamar<{ data: ContatoConta[]; total: number }>(dispatchCommercial, `${C}/studio/accounts/contacts`, { query: { accountId } }),
+    adicionarContato: (corpo: { accountId: string; name: string; email: string; whatsapp?: string; role?: string; basis: string }) => chamar(dispatchCommercial, `${C}/studio/accounts/contacts`, { metodo: 'POST', corpo }),
+    /** Relatório do anunciante (todas as campanhas da conta na janela; contado, nunca estimado) e o CSV ('diario' | 'resumo'). */
+    relatorioConta: (accountId: string, from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/accounts/report`, { query: { accountId, from, to } }),
+    relatorioContaCsv: (accountId: string, kind: 'diario' | 'resumo', from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/accounts/report-csv`, { query: { accountId, kind, from, to } }),
     /** Posições da campanha (só em rascunho; ao menos uma). Reserva e criativo só nas posições declaradas. */
     definirPosicoes: (campaignId: string, positionIds: string[]) => chamar(dispatchCommercial, `${C}/studio/campaigns/positions`, { metodo: 'POST', corpo: { campaignId, positionIds } }),
     reservar: (corpo: { positionId: string; accountId: string; campaignId: string; startDate: string; endDate: string; confirm?: boolean }) => chamar<{ id: string }>(dispatchCommercial, `${C}/studio/reservations`, { metodo: 'POST', corpo }),
@@ -348,3 +355,5 @@ export interface CardSocial {
   revisadoEm: string | null;
   motivo: string | null;
 }
+
+export interface ContatoConta { id: string; accountId: string; name: string; email: string; whatsapp: string | null; role: string | null; basis: string; consentAt: string; registeredBy: string | null; createdAt: string }
