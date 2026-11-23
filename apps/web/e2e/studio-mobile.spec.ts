@@ -16,7 +16,7 @@ test.describe('Studio no celular (390 px)', () => {
       await entrar(context, 'ana', 'admin');
       await page.goto(`/studio/${slug}`);
       const pequenos = await page.evaluate(() =>
-        [...document.querySelectorAll('main .st-btn, main select, main input[type="text"], main input[type="url"], main input[type="search"], main input[type="date"], main input[type="checkbox"], main a:only-child')]
+        [...document.querySelectorAll('main .st-btn, main select, main input[type="text"], main input[type="url"], main input[type="search"], main input[type="date"], main input[type="checkbox"], main a:only-child, main summary')]
           .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && el.closest('details:not([open])') === null && r.height < 43.5; })
           .map((el) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}:${Math.round(el.getBoundingClientRect().height)}`),
       );
