@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { Db } from '../db';
-import { loadSeed, planSeedLoad, rollbackSeed, validateSeed, type SeedDataset, type VerificationReport } from '../index';
+import { getCompanyHandler, loadSeed, planSeedLoad, portalCompanyPage, rollbackSeed, validateSeed, type SeedDataset, type VerificationReport } from '../index';
 import { newDb } from './helpers';
 
 const file = (n: string) => fileURLToPath(new URL(`../../data/${n}`, import.meta.url));
@@ -65,7 +65,7 @@ describe('carga do v5 sobre o v4 (como seria no staging)', () => {
     await loadSeed(db, V4, V4_VER, ON);
     const antes = { p: await count('person'), r: await count('role_assignment'), o: await count('organization'), rel: await count('org_relation'), ev: await count('evidence') };
     const plan = await planSeedLoad(db, V5, V5_VER, ON);
-    expect(plan.counts).toEqual({ create: 12, exists: 75, rejected: 0 }); // 28 orgs + 27 relações + 20 cargos existentes; 12 cargos novos
+    expect(plan.counts).toEqual({ create: 13, exists: 75, rejected: 0 }); // 28 orgs + 27 relações + 20 cargos existentes; 12 cargos novos + 1 relação marcada "validação vencida"
     const { manifest } = await loadSeed(db, V5, V5_VER, ON);
     expect(manifest!.rolesCreated).toHaveLength(12);
     expect(manifest!.personsCreated).toHaveLength(12);
@@ -75,6 +75,53 @@ describe('carga do v5 sobre o v4 (como seria no staging)', () => {
     expect(await count('org_relation')).toBe(antes.rel);
     await rollbackSeed(db, manifest!);
     expect({ p: await count('person'), r: await count('role_assignment'), o: await count('organization'), rel: await count('org_relation'), ev: await count('evidence') }).toEqual(antes);
+  });
+
+  it('Santander→Esfera: marcada "validação vencida" (não apagada), fora do portal; o Studio vê o rótulo; nova fonte confirma; desfazer restaura', async () => {
+    await loadSeed(db, V4, V4_VER, ON); // staging: a relação do v3 está declarada
+    const oid = async (n: string) => (await db.query<{ id: string }>(`SELECT id FROM intelligence.organization WHERE legal_name = $1`, [n])).rows[0]!.id;
+    const esfera = await oid('Esfera');
+    const rel = async () => (await db.query<{ id: string; certainty: string; inference_basis: string | null; valid_to: string | null }>(
+      `SELECT id, certainty, inference_basis, valid_to::text FROM intelligence.org_relation x WHERE to_org_id = $1 ORDER BY valid_from, id`, [esfera])).rows;
+    expect((await rel()).map((r) => r.certainty)).toContain('declared');
+    const before = JSON.stringify(await rel());
+    expect(validateSeed(V5)).toEqual([]);
+    const { manifest } = await loadSeed(db, V5, V5_VER, ON);
+    expect(manifest!.relationsExpiredPrevious).toHaveLength(1);
+    const after = await rel();
+    expect(after).toHaveLength(JSON.parse(before).length); // nada apagado
+    const marked = after.find((r) => r.inference_basis?.startsWith('validação vencida em 2026-11-23'))!;
+    expect(marked.certainty).toBe('inferred');
+    // portal: a relação some; Studio: aparece rotulada
+    const pub = JSON.stringify(await portalCompanyPage(db, esfera, '2027-01-01'));
+    expect(pub).not.toContain('Santander');
+    const studio = (await getCompanyHandler(db, 'studio', { id: esfera, asOf: '2027-01-01', includeInferred: true })).body as { relations: { other_org_name: string; certainty: string; stale_validation: boolean }[] };
+    expect(studio.relations.find((r) => r.other_org_name === 'Santander')).toMatchObject({ certainty: 'inferred', stale_validation: true });
+    // idempotente: o plano seguinte reconhece como já marcada
+    expect((await planSeedLoad(db, V5, V5_VER, ON)).records.find((r) => r.ref.startsWith('expired:'))).toMatchObject({ action: 'exists' });
+    // nova fonte verificada confirma: a relação volta a declarada, com a evidência nova
+    const NEW: SeedDataset = {
+      schemaVersion: 'intelligence-seed/2', datasetId: 'seed.teste.confirma',
+      sources: [{ id: 'novo', name: 'MOCK nova fonte', url: 'https://mock.invalid/esfera-santander', method: 'capture' }],
+      organizations: [{ key: 'a', legalName: 'Santander', kind: 'other', sourceId: 'novo', quote: 'MOCK Santander é a controladora' }, { key: 'b', legalName: 'Esfera', kind: 'other', sourceId: 'novo', quote: 'MOCK Esfera é do Santander' }],
+      relations: [{ from: 'a', to: 'b', type: 'other', sourceId: 'novo', quote: 'MOCK Esfera é um programa do Santander' }],
+    };
+    const NEW_VER: VerificationReport = {
+      datasetId: NEW.datasetId, verifiedAt: '2027-01-10T12:00:00Z',
+      sources: [{ id: 'novo', url: NEW.sources[0]!.url, status: 'verified', http_status: 200, fetched_at: '2027-01-10T12:00:00Z', content_sha256: 'b'.repeat(64) }],
+      records: [{ ref: 'organization:a', source_id: 'novo', quote_found: true }, { ref: 'organization:b', source_id: 'novo', quote_found: true }, { ref: 'relation:a>other>b', source_id: 'novo', quote_found: true }],
+    };
+    const conf = await loadSeed(db, NEW, NEW_VER, ON);
+    expect(conf.manifest!.relationsStaleRestored).toHaveLength(1);
+    const fin = await rel();
+    expect(fin).toHaveLength(after.length); // a MESMA relação volta a declarada (sem linha nova, sem apagar)
+    expect(fin.find((r) => r.id === marked.id)).toMatchObject({ certainty: 'declared', inference_basis: null, valid_to: null });
+    expect(JSON.stringify(await portalCompanyPage(db, esfera, '2027-01-11'))).toContain('Santander');
+    // desfazer a confirmação devolve o estado "validação vencida"; desfazer o v5 devolve a declarada original
+    await rollbackSeed(db, conf.manifest!);
+    expect((await rel()).find((r) => r.id === marked.id)).toMatchObject({ certainty: 'inferred', valid_to: null });
+    await rollbackSeed(db, manifest!);
+    expect(JSON.stringify(await rel())).toBe(before);
   });
 
   it('sem a flag de pessoas o plano do v5 recusa os 32 cargos (exit 1 no carregador)', async () => {

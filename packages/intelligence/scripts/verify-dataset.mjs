@@ -54,6 +54,8 @@ export function decodeEntities(s) {
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (m, k) => NAMED[k] ?? m);
 }
+/** Cargo: a citação (nome + cargo literais) pode ser curta (ex.: "Eros Canedo CFO"); o mínimo da relação/organização (20) continua valendo para elas. Mesmo valor do validador (seed-load). */
+const MIN_ROLE_QUOTE = 12;
 const norm = (s) => s.normalize('NFC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
 
 /**
@@ -176,15 +178,15 @@ async function verify(path) {
     ...ds.relations.map((r) => ({ ref: `relation:${r.from}>${r.type}>${r.to}`, sourceId: r.sourceId, quote: r.quote, contextQuote: r.contextQuote })),
     ...(ds.persons ?? []).map((p) => ({ ref: `person:${p.key}`, sourceId: p.sourceId, quote: p.quote })),
     // cargos públicos (intelligence-seed/2): a citação (nome + cargo) precisa estar literalmente na página; a mesma referência que o carregador monta (roleRef)
-    ...(ds.roles ?? []).map((r) => ({ ref: `role:${r.orgKey}>${r.personName}>${r.title}`, sourceId: r.sourceId, quote: r.quote })),
+    ...(ds.roles ?? []).map((r) => ({ ref: `role:${r.orgKey}>${r.personName}>${r.title}`, sourceId: r.sourceId, quote: r.quote, minLen: MIN_ROLE_QUOTE })),
     // achados sobre termos de uso/direitos (revisão J-14): também exigem citação literal na página indicada
     ...(ds.termsFindings ?? []).map((f) => ({ ref: `terms:${f.id}`, sourceId: f.sourceId, quote: f.quote })),
   ];
   for (const rec of all) {
     const t = texts.get(rec.sourceId);
-    const has = (q) => t !== undefined && typeof q === 'string' && q.length >= 20 && t.includes(norm(q));
+    const has = (q, min = 20) => t !== undefined && typeof q === 'string' && q.length >= min && t.includes(norm(q));
     // contextQuote (opcional) também precisa estar literalmente na página: é o que dá sentido à lista (ex.: título "Empresas Associadas")
-    const found = has(rec.quote) && (rec.contextQuote === undefined || has(rec.contextQuote));
+    const found = has(rec.quote, rec.minLen) && (rec.contextQuote === undefined || has(rec.contextQuote));
     out.records.push({ ref: rec.ref, source_id: rec.sourceId, quote_found: found });
   }
   for (const s of out.sources) if (s.status === 'fetched') s.status = out.records.filter((r) => r.source_id === s.id).every((r) => r.quote_found) ? 'verified' : 'partial';

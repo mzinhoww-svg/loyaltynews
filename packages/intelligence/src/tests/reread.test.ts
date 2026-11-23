@@ -131,6 +131,12 @@ describe('currentHolder (titular do cargo único na página)', () => {
     expect(currentHolder('Nome Cargo Início Gustavo Sousa Diretor Presidente Até 2027', 'Diretor Presidente')).toBe('Gustavo Sousa');
     expect(currentHolder('Marcílio D&rsquo;Amico Pousada Presidente', 'Presidente')).toBe('Marcílio D’Amico Pousada');
   });
+  it('honorífico não faz parte do nome: "Dr. João Silva" e "João Silva" são o mesmo titular (sem falsa saída)', () => {
+    expect(currentHolder('Membros Cargo Dr. Marcelo de Araújo Noronha Diretor-Presidente', 'Diretor-Presidente')).toBe('Marcelo de Araújo Noronha');
+    expect(currentHolder('Sra. Ana Paula Teixeira | Diretora', 'Diretora', ' | ')).toBe('Ana Paula Teixeira');
+    expect(currentHolder('Prof. Dr. Gustavo Sousa Diretor Presidente', 'Diretor Presidente')).toBe('Gustavo Sousa');
+    expect(currentHolder('Dr. Diretor-Presidente', 'Diretor-Presidente')).toBeNull();
+  });
   it('devolve null quando o que vem antes não parece nome (menu, minúsculas, uma palavra) ou o separador é outro', () => {
     expect(currentHolder('Conselho de Administração Presidente', 'Presidente')).toBeNull();
     expect(currentHolder('o diretor presidente da companhia', 'presidente')).toBeNull();

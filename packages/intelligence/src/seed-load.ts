@@ -60,6 +60,12 @@ export interface SeedRole {
 }
 export interface SeedOrganization { key: string; legalName: string; tradeName?: string; kind: (typeof ORG_KINDS)[number]; sourceId: string; quote: string; contextQuote?: string }
 export interface SeedRelation { from: string; to: string; type: (typeof REL_TYPES)[number]; sourceId: string; quote: string; contextQuote?: string }
+/**
+ * Relação cuja citação DEIXOU de existir na fonte (a página mudou): não se apaga; marca-se "validação vencida". Fica fora da exibição pública
+ * (vira inferida, com a base "validação vencida em AAAA-MM-DD: motivo") até uma nova fonte verificada confirmar (aí a MESMA relação volta a declarada, com a evidência nova). Referencia as organizações pelo nome como estão no cadastro (podem nem estar mais no conjunto).
+ */
+export interface SeedExpiredRelation { fromName: string; toName: string; type: (typeof REL_TYPES)[number]; expiredOn: string; reason: string }
+export const STALE_BASIS_PREFIX = 'validação vencida';
 export interface SeedDataset {
   schemaVersion: (typeof SCHEMAS)[number];
   datasetId: string;
@@ -69,6 +75,8 @@ export interface SeedDataset {
   relations: SeedRelation[];
   /** Só em intelligence-seed/2. */
   roles?: SeedRole[];
+  /** Só em intelligence-seed/2. */
+  expiredRelations?: SeedExpiredRelation[];
   persons?: unknown[];
 }
 
@@ -107,6 +115,10 @@ export interface LoadManifest {
   rolesRevalidatedPrevious?: { id: Uuid; evidence_id: Uuid; validated_at: string; certainty?: string; inference_basis?: string | null }[];
   /** Cargos não carregados porque a pessoa foi suprimida a pedido do titular (nunca recriada). */
   rolesSkippedSuppressed?: number;
+  /** Relações marcadas "validação vencida" (valores anteriores, para o desfazer). */
+  relationsExpiredPrevious?: { id: Uuid; certainty: string; inference_basis: string | null }[];
+  /** Relações "validação vencida" que uma nova fonte verificada confirmou: voltam a declaradas com a evidência nova (valores anteriores aqui, para o desfazer). */
+  relationsStaleRestored?: { id: Uuid; evidence_id: Uuid; validated_at: string; certainty: string; inference_basis: string | null }[];
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -149,9 +161,24 @@ export function validateSeed(x: unknown): string[] {
   if (Array.isArray(x.persons) && x.persons.length) out.push('persons: não suportado (cargos públicos entram por roles em intelligence-seed/2; mudanças pelo contrato role-observation/1)');
   if (x.roles !== undefined && x.schemaVersion !== SEED_SCHEMA_VERSION_2) out.push(`roles só existe em ${SEED_SCHEMA_VERSION_2}`);
   out.push(...roleIssues(x.roles, sources, keys));
+  if (x.expiredRelations !== undefined) {
+    if (x.schemaVersion !== SEED_SCHEMA_VERSION_2) out.push(`expiredRelations só existe em ${SEED_SCHEMA_VERSION_2}`);
+    if (!Array.isArray(x.expiredRelations)) out.push('expiredRelations deve ser uma lista');
+    else x.expiredRelations.forEach((e, i) => {
+      const w = `expiredRelations[${i}]`;
+      if (!isObj(e)) return void out.push(`${w}: objeto esperado`);
+      for (const k of Object.keys(e)) if (!['fromName', 'toName', 'type', 'expiredOn', 'reason'].includes(k)) out.push(`${w}: campo ${k} não permitido`);
+      if (typeof e.fromName !== 'string' || !e.fromName.trim() || typeof e.toName !== 'string' || !e.toName.trim()) out.push(`${w}: fromName e toName obrigatórios`);
+      if (!REL_TYPES.includes(e.type as never)) out.push(`${w}: type inválido`);
+      if (!(typeof e.expiredOn === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.expiredOn) && !Number.isNaN(Date.parse(e.expiredOn)))) out.push(`${w}: expiredOn deve ser AAAA-MM-DD`);
+      if (typeof e.reason !== 'string' || e.reason.trim().length < 10 || e.reason.length > 250) out.push(`${w}: reason deve ter 10 a 250 caracteres`);
+    });
+  }
   return out;
 }
 
+/** Citação de cargo = nome + cargo literais; pode ser curta. Igual ao MIN_ROLE_QUOTE do verificador. */
+export const ROLE_QUOTE_MIN = 12;
 const ROLE_KEYS = ['personName', 'orgKey', 'title', 'body', 'sourceId', 'sourceLevel', 'quote', 'validFrom'];
 const hostOf = (u: string) => { try { return new URL(u).hostname; } catch { return ''; } };
 const squash = (q: string) => q.normalize('NFC').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
@@ -179,7 +206,7 @@ function roleIssues(roles: unknown, sources: unknown[], orgKeys: Set<string>): s
       if (SECONDARY_HOSTS.test(hostOf(src.url)) && r.sourceLevel !== 'secundaria') out.push(`${w}: LinkedIn/The Org são fonte SECUNDÁRIA (status "a confirmar"), nunca oficial`);
       if (/linkedin\.com\/(login|uas|checkpoint|authwall)/i.test(src.url)) out.push(`${w}: página de login não é fonte`);
     }
-    if (typeof quote !== 'string' || quote.length < 20 || quote.length > 300) out.push(`${w}: quote deve ter 20 a 300 caracteres`);
+    if (typeof quote !== 'string' || quote.length < ROLE_QUOTE_MIN || quote.length > 300) out.push(`${w}: quote deve ter ${ROLE_QUOTE_MIN} a 300 caracteres`);
     else {
       if (typeof name === 'string' && !squash(quote).includes(squash(name))) out.push(`${w}: a citação não contém o nome`);
       if (typeof title === 'string' && !squash(quote).includes(squash(title))) out.push(`${w}: a citação não contém o cargo`);
@@ -204,6 +231,7 @@ function contextIssues(where: string, r: Record<string, unknown>): string[] {
 const excerptOf = (q: { quote: string; contextQuote?: string }) => (q.contextQuote ? `${q.contextQuote} […] ${q.quote}` : q.quote);
 
 const orgRef = (key: string) => `organization:${key}`;
+export const expiredRef = (e: Pick<SeedExpiredRelation, 'fromName' | 'type' | 'toName'>) => `expired:${e.fromName}>${e.type}>${e.toName}`;
 /** Referência do cargo no relatório de verificação (o verificador monta a mesma string). */
 export const roleRef = (r: Pick<SeedRole, 'orgKey' | 'personName' | 'title'>) => `role:${r.orgKey}>${r.personName}>${r.title}`;
 /** Cargo como é gravado no cadastro (cargo do conselho leva o órgão). */
@@ -276,6 +304,19 @@ export async function planSeedLoad(db: Db, ds: SeedDataset, ver: VerificationRep
     if (cur.rows.length) { records.push({ ref, action: 'rejected', reason: 'a pessoa já tem outro cargo em aberto nesta organização: mudança de cargo é tratada pelo contrato role-observation/1 (gera Move com evidência de antes e depois)' }); continue; }
     records.push({ ref, action: 'create' });
   }
+  for (const e of ds.expiredRelations ?? []) {
+    const ref = expiredRef(e);
+    const cur = await db.query<{ certainty: string; inference_basis: string | null }>(
+      `SELECT x.certainty, x.inference_basis FROM intelligence.org_relation x
+         JOIN intelligence.organization a ON a.id = x.from_org_id AND a.normalized_name = $1
+         JOIN intelligence.organization b ON b.id = x.to_org_id AND b.normalized_name = $2
+        WHERE x.relation_type = $3 AND x.valid_to IS NULL`,
+      [normalizeOrgName(e.fromName), normalizeOrgName(e.toName), e.type],
+    );
+    if (cur.rows.some((x) => x.certainty === 'declared')) records.push({ ref, action: 'create' });
+    else if (cur.rows.some((x) => x.inference_basis?.startsWith(STALE_BASIS_PREFIX))) records.push({ ref, action: 'exists' });
+    else records.push({ ref, action: 'exists', reason: 'relação não está no cadastro (nada a marcar)' });
+  }
   const c = (a: RecordPlan['action']) => records.filter((x) => x.action === a).length;
   return { datasetId: ds.datasetId, ok: true, issues: [], records, counts: { create: c('create'), exists: c('exists'), rejected: c('rejected') } };
 }
@@ -340,9 +381,38 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
         manifest.relationsRevalidated.push(...upd.rows.map((x) => x.id));
         (manifest.relationsRevalidatedPrevious ??= []).push(...prev.rows.map((x) => ({ id: x.id, evidence_id: x.evidence_id, validated_at: new Date(x.validated_at).toISOString() })));
       } else {
+        // nova fonte verificada confirma uma relação que estava "validação vencida": a MESMA relação volta a declarada, com a evidência e a validação novas
+        // (não se cria linha nova: a vigência original continua; guarda-se o estado anterior para o desfazer)
+        const stale = await db.query<{ id: Uuid; evidence_id: Uuid; validated_at: string | Date; certainty: string; inference_basis: string | null }>(
+          `SELECT id, evidence_id, validated_at, certainty, inference_basis FROM intelligence.org_relation
+            WHERE from_org_id = $1 AND to_org_id = $2 AND relation_type = $3 AND valid_to IS NULL AND certainty = 'inferred' AND inference_basis LIKE $4`,
+          [from, to, r.type, `${STALE_BASIS_PREFIX}%`],
+        );
+        if (stale.rows.length) {
+          for (const x of stale.rows) {
+            (manifest.relationsStaleRestored ??= []).push({ id: x.id, evidence_id: x.evidence_id, validated_at: new Date(x.validated_at).toISOString(), certainty: x.certainty, inference_basis: x.inference_basis });
+            await db.query(`UPDATE intelligence.org_relation SET certainty = 'declared', inference_basis = NULL, evidence_id = $2, validated_at = $3 WHERE id = $1`, [x.id, ev.id, ev.at]);
+          }
+          continue;
+        }
         manifest.relationsCreated.push(await addOrgRelation(db, {
           fromOrgId: from, toOrgId: to, type: r.type, validFrom: ev.at.slice(0, 10), certainty: 'declared', evidenceId: ev.id, observedAt: ev.at, validatedAt: ev.at,
         }));
+      }
+    }
+    for (const e of ds.expiredRelations ?? []) {
+      if (!approved.has(expiredRef(e)) || exists.has(expiredRef(e))) continue;
+      const basis = `${STALE_BASIS_PREFIX} em ${e.expiredOn}: ${e.reason}`.slice(0, 400);
+      const rows = await db.query<{ id: Uuid; certainty: string; inference_basis: string | null }>(
+        `SELECT x.id, x.certainty, x.inference_basis FROM intelligence.org_relation x
+           JOIN intelligence.organization a ON a.id = x.from_org_id AND a.normalized_name = $1
+           JOIN intelligence.organization b ON b.id = x.to_org_id AND b.normalized_name = $2
+          WHERE x.relation_type = $3 AND x.valid_to IS NULL AND x.certainty = 'declared'`,
+        [normalizeOrgName(e.fromName), normalizeOrgName(e.toName), e.type],
+      );
+      for (const x of rows.rows) {
+        (manifest.relationsExpiredPrevious ??= []).push({ id: x.id, certainty: x.certainty, inference_basis: x.inference_basis });
+        await db.query(`UPDATE intelligence.org_relation SET certainty = 'inferred', inference_basis = $2 WHERE id = $1`, [x.id, basis]);
       }
     }
     for (const r of ds.roles ?? []) {
@@ -414,6 +484,13 @@ export async function rollbackSeed(db: Db, m: LoadManifest): Promise<{ relations
           [m.personsCreated],
         )
       : { rows: [] };
+    // relações vencidas: volta ao estado anterior (declarada) e reabre as que a nova fonte encerrou
+    for (const p of m.relationsExpiredPrevious ?? []) {
+      await db.query(`UPDATE intelligence.org_relation SET certainty = $2, inference_basis = $3 WHERE id = $1::uuid`, [p.id, p.certainty, p.inference_basis]);
+    }
+    for (const p of m.relationsStaleRestored ?? []) {
+      await db.query(`UPDATE intelligence.org_relation SET certainty = $2, inference_basis = $3, evidence_id = $4::uuid, validated_at = $5::timestamptz WHERE id = $1::uuid`, [p.id, p.certainty, p.inference_basis, p.evidence_id, p.validated_at]);
+    }
     const rel = m.relationsCreated.length ? await db.query(`DELETE FROM intelligence.org_relation WHERE id = ANY($1::uuid[]) RETURNING id`, [m.relationsCreated]) : { rows: [] };
     // restaura evidência e data de validação que a carga trocou nas relações já existentes (antes de apagar a evidência nova)
     for (const p of m.relationsRevalidatedPrevious ?? []) {
