@@ -3,14 +3,14 @@
   "status": "RASCUNHO",
   "created": false,
   "approval_required_from": "Program Manager",
-  "nota": "Nenhum agente foi criado no OpenBot e nenhum modelo foi chamado. Criar só com OK explícito do PM, depois do adaptador ligado, do modo qualification homologado e da política v7. Sem a API tarifada: o complemento OpenRouter fica DESLIGADO no piloto. Os prompts são os da Editorial (editorial-0.2), não há texto próprio aqui.",
+  "nota": "Nenhum agente foi criado no OpenBot e nenhum modelo foi chamado. Criar só com OK explícito do PM, depois do adaptador ligado, do modo qualification homologado e da política v7. Sem a API tarifada: o complemento OpenRouter fica DESLIGADO no piloto. Os prompts são os da Editorial (editorial-0.3), não há texto próprio aqui.",
   "prompts": {
-    "version": "editorial-0.2",
-    "toneVersion": "tom-0.1",
+    "version": "editorial-0.3",
+    "toneVersion": "tom-0.2",
     "branch": "ft/editorial",
-    "commit": "7b35efa",
+    "commit": "b040e53",
     "file": "packages/editorial/src/factory/prompts.ts",
-    "blobSha": "fd9a9f2f2a84d4b8eb373ac0699eb09a33b4d3d9",
+    "blobSha": "a7e58bdc24fdbca7e78ab9875c992632439d49aa",
     "maxOutputTokens": {
       "triage": 200,
       "context": 800,
@@ -31,7 +31,7 @@
       "required": true,
       "description": "Decide se o item de fonte é relevante e em qual editoria (`{\"relevant\", \"editoria\"}`). Tarefa simples e barata: roda no DeepSeek grátis via OpenCode. O limite dos modelos grátis é COMPARTILHADO e já se esgotou (o QA 2 foi travado por ele): por isso a pauta NÃO depende só do grátis e tem backup AUTOMÁTICO (assinatura, nunca API).",
       "editorial_task_class": "triage",
-      "prompt_ref": "editorial-0.2 / classe triage / packages/editorial/src/factory/prompts.ts@7b35efa",
+      "prompt_ref": "editorial-0.3 / classe triage / packages/editorial/src/factory/prompts.ts@b040e53",
       "adapter_kind": "classification",
       "primary": {
         "account": "opencode",
@@ -75,7 +75,7 @@
       "required": true,
       "description": "Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica.",
       "editorial_task_class": "draft",
-      "prompt_ref": "editorial-0.2 / classe draft / packages/editorial/src/factory/prompts.ts@7b35efa",
+      "prompt_ref": "editorial-0.3 / classe draft / packages/editorial/src/factory/prompts.ts@b040e53",
       "adapter_kind": "editorial_draft",
       "primary": {
         "account": "claude",
@@ -108,7 +108,7 @@
       "required": true,
       "description": "Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve. Se o Codex bater o limite, o backup é o Gemini (outro provedor, independente do redator Claude).",
       "editorial_task_class": "factcheck",
-      "prompt_ref": "editorial-0.2 / classe factcheck / packages/editorial/src/factory/prompts.ts@7b35efa",
+      "prompt_ref": "editorial-0.3 / classe factcheck / packages/editorial/src/factory/prompts.ts@b040e53",
       "adapter_kind": "fact_check",
       "primary": {
         "account": "codex",
@@ -145,9 +145,9 @@
       "title": "Revisão editorial independente do piloto (OpenBot, assinatura Codex)",
       "stage": "review",
       "required": true,
-      "description": "Revisão final (clareza, tom `tom-0.1`, ausência de invenção, coerência título-texto): `{\"approve\", \"issues\"}`. Não reescreve. Pode ser fundida com a checagem numa chamada só (`check_edit`), conforme o Arquiteto; o piloto mede as duas formas.",
+      "description": "Revisão final (clareza, tom `tom-0.2` (com o tom lint da Editorial), ausência de invenção, coerência título-texto): `{\"approve\", \"issues\"}`. Não reescreve. Pode ser fundida com a checagem numa chamada só (`check_edit`), conforme o Arquiteto; o piloto mede as duas formas.",
       "editorial_task_class": "review",
-      "prompt_ref": "editorial-0.2 / classe review / packages/editorial/src/factory/prompts.ts@7b35efa",
+      "prompt_ref": "editorial-0.3 / classe review / packages/editorial/src/factory/prompts.ts@b040e53",
       "adapter_kind": null,
       "primary": {
         "account": "codex",
@@ -186,7 +186,7 @@
       "required": false,
       "description": "Depois da aprovação: texto de LinkedIn como rascunho (`social_pack`) e menções de cargo (`roles`), só com fatos da matéria. Etapa opcional: o piloto principal mede pauta, redação, checagem e revisão. Nada é publicado; Instagram e The Loyal desligados.",
       "editorial_task_class": "social_pack",
-      "prompt_ref": "editorial-0.2 / classe social_pack / packages/editorial/src/factory/prompts.ts@7b35efa; roles: editorial-0.2 / classe roles / packages/editorial/src/factory/prompts.ts@7b35efa",
+      "prompt_ref": "editorial-0.3 / classe social_pack / packages/editorial/src/factory/prompts.ts@b040e53; roles: editorial-0.3 / classe roles / packages/editorial/src/factory/prompts.ts@b040e53",
       "adapter_kind": null,
       "primary": {
         "account": "claude",

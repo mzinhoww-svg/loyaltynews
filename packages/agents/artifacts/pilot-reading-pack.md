@@ -31,7 +31,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -53,7 +53,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -75,7 +75,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -97,7 +97,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -119,7 +119,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -141,7 +141,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -163,7 +163,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -185,7 +185,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -207,7 +207,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.
@@ -229,7 +229,7 @@ O resultado de cada matéria vai para a coluna `unsupported_facts` da planilha `
 **Passo 2 (30 s): marque.**
 
 - [ ] Todos os números, datas, valores, citações e atribuições do título, resumo e corpo estão nas evidências
-- [ ] Tom do projeto (tom-0.1 provisório) e sem texto copiado da fonte além do permitido
+- [ ] Tom do projeto (tom-0.2: título até 90 caracteres, sem "!", sem emoji, impessoal em notícia) e sem texto copiado da fonte além do permitido
 - [ ] Nada inventado (apuração, entrevista, imagem de terceiro)
 
 **Resultado:** `unsupported_facts` = nº de fatos materiais NÃO suportados: ____ (altas ____, médias ____, baixas ____). Veredicto do leitor: aprovado / bloqueado.

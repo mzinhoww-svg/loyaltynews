@@ -3,7 +3,7 @@
  * OpenRouter só como complemento, DESLIGADO no piloto). Desenho: `fast-track/custo/piloto-10-materias-openbot.md` (Arquiteto).
  *
  * Esta frente entrega os perfis dos agentes (NÃO criados), o roteiro, os critérios, a planilha de medição e o avaliador.
- * Os PROMPTS são os da Editorial (`editorial-0.2`, `packages/editorial/src/factory/prompts.ts`): fonte única, sem cópia aqui.
+ * Os PROMPTS são os da Editorial (`editorial-0.3`, `packages/editorial/src/factory/prompts.ts`): fonte única, sem cópia aqui.
  * Nada roda antes do adaptador ligado, do modo qualification homologado, da política v7 e do OK explícito do PM; nenhum agente
  * é criado e nenhum modelo é chamado por este código. Os dados dos testes são SIMULADOS.
  */
@@ -36,16 +36,16 @@ export const CLASS_C_EXCLUDED = ['Azul', 'GOL', 'ABECS', 'IATA', 'Nubank', 'Acco
 // --- prompts: referência à Editorial (fonte única) ----------------------------------------------------------------------
 
 /**
- * Prompts `editorial-0.2` da fábrica editorial, fixados por commit e hash do arquivo (git blob). Reconferir se a Editorial mudar
- * o arquivo: o piloto roda com o texto que a Editorial entregou, não com texto próprio. Tom provisório `tom-0.1` (sem guia aprovado).
+ * Prompts `editorial-0.3` da fábrica editorial, fixados por commit e hash do arquivo (git blob). Reconferir se a Editorial mudar
+ * o arquivo: o piloto roda com o texto que a Editorial entregou, não com texto próprio. Tom `tom-0.2` (adotado pelo PM como versão de trabalho, com os ajustes do UI/UX Director; o proprietário pode vetar ao ler as matérias).
  */
 export const EDITORIAL_PROMPTS_REF = {
-  version: 'editorial-0.2',
-  toneVersion: 'tom-0.1',
+  version: 'editorial-0.3',
+  toneVersion: 'tom-0.2',
   branch: 'ft/editorial',
-  commit: '7b35efa',
+  commit: 'b040e53', // homologado pelo QA 3; o editorial-0.2 era 7b35efa (blob fd9a9f2f2a84)
   file: 'packages/editorial/src/factory/prompts.ts',
-  blobSha: 'fd9a9f2f2a84d4b8eb373ac0699eb09a33b4d3d9',
+  blobSha: 'a7e58bdc24fdbca7e78ab9875c992632439d49aa',
   /** limite de saída por classe de tarefa (MAX_OUTPUT_TOKENS da fábrica) */
   maxOutputTokens: { triage: 200, context: 800, draft: 3000, factcheck: 1200, review: 500, social_pack: 700, roles: 1200 },
 } as const;
@@ -63,7 +63,7 @@ export interface StageSpec {
   /** contas aceitas como backup (linha com conta fora de `account` + `backups` é inválida) */
   backups: PilotAccount[];
   label: string;
-  /** classe de tarefa da fábrica (`editorial-0.2`); `check_edit` é a chamada única opcional factcheck + review */
+  /** classe de tarefa da fábrica (`editorial-0.3`); `check_edit` é a chamada única opcional factcheck + review */
   taskClass: EditorialTaskClass | 'factcheck+review' | null;
   /** tipo de tarefa do adaptador (DISPATCHABLE_KINDS) que carrega a etapa; null = lacuna a resolver pela Integration */
   adapterKind: string | null;
@@ -159,7 +159,7 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
     },
     {
       draft_id: 'ln_pilot_revisor', name: 'LN Piloto — Revisão', title: 'Revisão editorial independente do piloto (OpenBot, assinatura Codex)', stage: 'review', required: true,
-      description: 'Revisão final (clareza, tom `tom-0.1`, ausência de invenção, coerência título-texto): `{"approve", "issues"}`. Não reescreve. Pode ser fundida com a checagem numa chamada só (`check_edit`), conforme o Arquiteto; o piloto mede as duas formas.',
+      description: 'Revisão final (clareza, tom `tom-0.2` (com o tom lint da Editorial), ausência de invenção, coerência título-texto): `{"approve", "issues"}`. Não reescreve. Pode ser fundida com a checagem numa chamada só (`check_edit`), conforme o Arquiteto; o piloto mede as duas formas.',
       editorial_task_class: 'review', prompt_ref: promptRef('review'), adapter_kind: null,
       primary: { account: 'codex', model: `Codex/OpenAI (assinatura): ${MODEL_DECLARED}` },
       backups: [{ account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: 'Codex com limite ou indisponível; Google é outro autor, independente do redator Claude' }],

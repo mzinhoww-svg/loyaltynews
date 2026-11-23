@@ -16,11 +16,12 @@ const draft = (n: number, at: number, over: Partial<PilotRow> = {}) => base({ ta
 const check = (n: number, at: number, over: Partial<PilotRow> = {}) =>
   base({ task_id: `c${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'check_edit', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'checker_editor-v1+y', started_at: iso(at), ended_at: iso(at + 3), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, unsupported_facts: 0, ...over });
 
-describe('prompts: referência única à Editorial (editorial-0.2), sem texto próprio', () => {
+describe('prompts: referência única à Editorial (editorial-0.3), sem texto próprio', () => {
   it('fixa a versão, o commit e o hash do arquivo da fábrica; limites de saída por classe', () => {
-    expect(EDITORIAL_PROMPTS_REF).toMatchObject({ version: 'editorial-0.2', toneVersion: 'tom-0.1', branch: 'ft/editorial', file: 'packages/editorial/src/factory/prompts.ts' });
+    expect(EDITORIAL_PROMPTS_REF).toMatchObject({ version: 'editorial-0.3', toneVersion: 'tom-0.2', branch: 'ft/editorial', file: 'packages/editorial/src/factory/prompts.ts' });
     expect(EDITORIAL_PROMPTS_REF.commit).toMatch(/^[0-9a-f]{7,}$/);
     expect(EDITORIAL_PROMPTS_REF.blobSha).toMatch(/^[0-9a-f]{40}$/);
+    expect(EDITORIAL_PROMPTS_REF).toMatchObject({ commit: 'b040e53', blobSha: 'a7e58bdc24fdbca7e78ab9875c992632439d49aa' });
     expect(EDITORIAL_PROMPTS_REF.maxOutputTokens).toMatchObject({ triage: 200, draft: 3000, factcheck: 1200, review: 500 });
   });
 });
