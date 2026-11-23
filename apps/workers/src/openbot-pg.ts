@@ -1,15 +1,16 @@
-// Stores do adaptador OpenBot (ADR-003) sobre o PostgreSQL: a verdade da fila, do dedupe de callback, dos custos e da saúde.
-// Implementam as interfaces de @ln/openbot (LeaseQueue, CostLedger, HealthStore, CallbackStore) com a MESMA semântica das versões em memória,
-// mas com trava de linha: `claim` usa `FOR UPDATE SKIP LOCKED` (duas conexões nunca recebem a mesma tarefa), lease/heartbeat/complete/fail
-// travam a linha da tarefa e o `callbackId` e o `executionId` são chaves primárias (a primeira inserção vence, em qualquer processo).
-// Só ids e limites: nenhum conteúdo editorial. Nenhum segredo passa por aqui.
-import { and, asc, eq, inArray, lte, or, sql } from 'drizzle-orm';
+// Stores do adaptador OpenBot (ADR-003) sobre o PostgreSQL: a verdade da fila, do dedupe de callback, dos custos, da saúde, da trilha e do estado do piloto
+// e do armazém de conteúdo (TaskIo). Implementam as interfaces de @ln/openbot com a MESMA semântica das versões em memória, mas com trava de linha:
+// `claim` usa `FOR UPDATE SKIP LOCKED` (duas conexões nunca recebem a mesma tarefa), lease/heartbeat/complete/fail travam a linha da tarefa, e `callbackId`
+// e `executionId` são chaves primárias (a primeira inserção vence, em qualquer processo). A fila leva só ids e limites; o conteúdo vive em `openbot_io`.
+// Nenhum segredo passa por aqui.
+import { and, asc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { monthKey } from '@ln/modelops';
 import {
-  LeaseError,
-  type CallbackStore, type ClaimRequest, type CostEntry, type CostLedger, type HealthStore, type LeaseQueue, type LeasedTask, type NewTask, type Task, type UsageReport,
+  FALLBACK_ROUTE, LeaseError,
+  type Account, type CallbackStore, type ClaimRequest, type CostEntry, type CostLedger, type GatewayTaskClass, type HealthStore, type LeaseQueue, type LeasedTask,
+  type NewTask, type PilotRow, type PilotRowStore, type PilotStateStore, type PilotStop, type Task, type TaskIo, type UsageReport,
 } from '@ln/openbot';
 
 type TaskRow = typeof schema.openbotTasks.$inferSelect;
@@ -28,9 +29,14 @@ function toTask(r: TaskRow): Task {
     status: r.status as Task['status'],
     attempts: r.attempts,
     createdAt: r.createdAt.toISOString(),
+    route: r.route as Account[],
+    routeIndex: r.routeIndex,
+    limitHits: r.limitHits,
+    accountsLimited: r.accountsLimited as Task['accountsLimited'],
     ...(r.leaseId ? { leaseId: r.leaseId } : {}),
     ...(r.leaseHolder ? { leaseHolder: r.leaseHolder } : {}),
     ...(r.leaseExpiresAt ? { leaseExpiresAt: iso(r.leaseExpiresAt)! } : {}),
+    ...(r.availableAt ? { availableAt: iso(r.availableAt)! } : {}),
     ...(r.resultRef ? { resultRef: r.resultRef } : {}),
     ...(r.lastError ? { lastError: r.lastError } : {}),
   };
@@ -40,6 +46,7 @@ export class PgLeaseQueue implements LeaseQueue {
   constructor(private readonly db: Db, private readonly newId: () => string = () => crypto.randomUUID()) {}
 
   async enqueue(task: NewTask, now: Date) {
+    const route = task.route && task.route.length > 0 ? [...task.route] : [...FALLBACK_ROUTE];
     const ins = await this.db
       .insert(schema.openbotTasks)
       .values({
@@ -52,6 +59,7 @@ export class PgLeaseQueue implements LeaseQueue {
         maxCostMicro: task.maxCostMicro,
         maxAttempts: task.maxAttempts ?? 5,
         createdAt: now,
+        route,
       })
       .onConflictDoNothing({ target: schema.openbotTasks.idempotencyKey })
       .returning();
@@ -64,15 +72,13 @@ export class PgLeaseQueue implements LeaseQueue {
     const t = schema.openbotTasks;
     return this.db.transaction(async (tx) => {
       const claimable = and(
-        or(eq(t.status, 'pending'), and(eq(t.status, 'leased'), lte(t.leaseExpiresAt, req.now))),
+        or(and(eq(t.status, 'pending'), or(isNull(t.availableAt), lte(t.availableAt, req.now))), and(eq(t.status, 'leased'), lte(t.leaseExpiresAt, req.now))),
         req.kinds && req.kinds.length > 0 ? inArray(t.kind, [...req.kinds]) : undefined,
+        // só a via atual da rota recebe a tarefa
+        req.account ? sql`(${t.route} ->> ${t.routeIndex}) = ${req.account}` : undefined,
       );
-      // 1) esgotadas viram 'dead' (nunca são entregues de novo)
-      const exausted = await tx
-        .select({ id: t.id })
-        .from(t)
-        .where(and(claimable, sql`${t.attempts} >= ${t.maxAttempts}`))
-        .for('update', { skipLocked: true });
+      // 1) esgotadas (tentativas sem contar limite de conta) viram 'dead' e nunca são entregues de novo
+      const exausted = await tx.select({ id: t.id }).from(t).where(and(claimable, sql`${t.attempts} - ${t.limitHits} >= ${t.maxAttempts}`)).for('update', { skipLocked: true });
       if (exausted.length > 0) {
         await tx.update(t).set({ status: 'dead', leaseId: null, leaseHolder: null, leaseExpiresAt: null, lastError: sql`coalesce(${t.lastError}, 'tentativas esgotadas')` }).where(inArray(t.id, exausted.map((r) => r.id)));
       }
@@ -80,7 +86,7 @@ export class PgLeaseQueue implements LeaseQueue {
       const rows = await tx
         .select()
         .from(t)
-        .where(and(claimable, sql`${t.attempts} < ${t.maxAttempts}`))
+        .where(and(claimable, sql`${t.attempts} - ${t.limitHits} < ${t.maxAttempts}`))
         .orderBy(asc(t.seq))
         .limit(req.limit)
         .for('update', { skipLocked: true });
@@ -91,7 +97,7 @@ export class PgLeaseQueue implements LeaseQueue {
         await tx.update(t).set({ attempts: r.attempts + 1, status: 'leased', leaseId, leaseHolder: req.workerId, leaseExpiresAt: expires }).where(eq(t.id, r.id));
         out.push({
           id: r.id, kind: r.kind as LeasedTask['kind'], profileId: r.profileId, refId: r.refId, dataClass: r.dataClass as LeasedTask['dataClass'],
-          maxCostMicro: r.maxCostMicro, attempt: r.attempts + 1, leaseId, leaseExpiresAt: expires.toISOString(),
+          maxCostMicro: r.maxCostMicro, attempt: r.attempts + 1, leaseId, leaseExpiresAt: expires.toISOString(), account: (r.route as Account[])[r.routeIndex] as Account,
         });
       }
       return out;
@@ -128,21 +134,30 @@ export class PgLeaseQueue implements LeaseQueue {
     });
   }
 
-  async fail(taskId: string, leaseId: string, error: string, retryable: boolean, now: Date) {
+  async fail(taskId: string, leaseId: string, error: string, retryable: boolean, now: Date, retryAfterMs?: number, limit?: { account: Account; switchRoute: boolean }) {
     return this.db.transaction(async (tx) => {
       const t = tx as unknown as Db;
       const r = await this.lockHolding(t, taskId, leaseId, now);
       const lastError = error.slice(0, 500);
-      const again = retryable && r.attempts < r.maxAttempts;
-      const [u] = await t
-        .update(schema.openbotTasks)
-        .set(
-          again
-            ? { status: 'pending', leaseId: null, leaseHolder: null, leaseExpiresAt: null, lastError }
-            : { status: retryable ? 'dead' : 'failed', leaseExpiresAt: null, lastError },
-        )
-        .where(eq(schema.openbotTasks.id, taskId))
-        .returning();
+      const wait = retryAfterMs && retryAfterMs > 0 ? new Date(now.getTime() + retryAfterMs) : null;
+      let set: Partial<typeof schema.openbotTasks.$inferInsert>;
+      if (limit) {
+        // Limite da conta: não é falha da tarefa. Passa à próxima via (se a rota permite e há próxima); na última via, ou sem troca permitida
+        // (redação), espera a janela e recomeça pela via preferida.
+        const route = r.route as Account[];
+        const next = limit.switchRoute && r.routeIndex + 1 < route.length;
+        set = {
+          lastError, leaseExpiresAt: null, status: 'pending', leaseId: null, leaseHolder: null, limitHits: r.limitHits + 1,
+          accountsLimited: [...(r.accountsLimited as Task['accountsLimited']), { account: limit.account, at: now.toISOString() }],
+          routeIndex: next ? r.routeIndex + 1 : 0,
+          availableAt: next ? null : wait,
+        };
+      } else if (retryable && r.attempts - r.limitHits < r.maxAttempts) {
+        set = { lastError, leaseExpiresAt: null, status: 'pending', leaseId: null, leaseHolder: null, availableAt: wait };
+      } else {
+        set = { lastError, leaseExpiresAt: null, status: retryable ? 'dead' : 'failed' };
+      }
+      const [u] = await t.update(schema.openbotTasks).set(set).where(eq(schema.openbotTasks.id, taskId)).returning();
       return { task: toTask(u!) };
     });
   }
@@ -169,15 +184,22 @@ export class PgCallbackStore implements CallbackStore {
   }
 }
 
+type CostRow = typeof schema.openbotCostEntries.$inferSelect;
+
 /** Custos relatados, deduplicados por `executionId`. O teto mensal olha o mês (America/Sao_Paulo) do relógio injetado. */
 export class PgCostLedger implements CostLedger {
   constructor(private readonly db: Db, private readonly clock: () => Date = () => new Date()) {}
 
-  private toEntry(r: typeof schema.openbotCostEntries.$inferSelect): CostEntry {
+  private toEntry(r: CostRow): CostEntry {
     return {
-      executionId: r.executionId, taskId: r.taskId, leaseId: r.leaseId, model: r.model, generationIds: r.generationIds as string[],
-      promptTokens: r.promptTokens, completionTokens: r.completionTokens, cacheReadTokens: r.cacheReadTokens, cacheWriteTokens: r.cacheWriteTokens,
-      costMicro: r.costMicro, recordedAt: r.recordedAt.toISOString(), overrun: r.overrun,
+      executionId: r.executionId, taskId: r.taskId, leaseId: r.leaseId, model: r.model, lane: r.lane as CostEntry['lane'], costMicro: r.costMicro,
+      recordedAt: r.recordedAt.toISOString(), overrun: r.overrun,
+      ...(r.account ? { account: r.account as Account } : {}),
+      ...(r.generationIds ? { generationIds: r.generationIds as string[] } : {}),
+      ...(r.promptTokens !== null ? { promptTokens: r.promptTokens } : {}),
+      ...(r.completionTokens !== null ? { completionTokens: r.completionTokens } : {}),
+      ...(r.cacheReadTokens !== null ? { cacheReadTokens: r.cacheReadTokens } : {}),
+      ...(r.cacheWriteTokens !== null ? { cacheWriteTokens: r.cacheWriteTokens } : {}),
     };
   }
 
@@ -185,8 +207,10 @@ export class PgCostLedger implements CostLedger {
     const ins = await this.db
       .insert(schema.openbotCostEntries)
       .values({
-        executionId: report.executionId, taskId: report.taskId, leaseId: report.leaseId, model: report.model, generationIds: report.generationIds,
-        promptTokens: report.promptTokens, completionTokens: report.completionTokens, cacheReadTokens: report.cacheReadTokens, cacheWriteTokens: report.cacheWriteTokens,
+        executionId: report.executionId, taskId: report.taskId, leaseId: report.leaseId, lane: report.lane ?? 'api', account: report.account ?? null, model: report.model,
+        generationIds: report.generationIds ?? null,
+        promptTokens: report.promptTokens ?? null, completionTokens: report.completionTokens ?? null,
+        cacheReadTokens: report.cacheReadTokens ?? null, cacheWriteTokens: report.cacheWriteTokens ?? null,
         costMicro: report.costMicro, overrun: report.costMicro > maxCostMicro, monthKey: monthKey(now), recordedAt: now,
       })
       .onConflictDoNothing({ target: schema.openbotCostEntries.executionId })
@@ -197,7 +221,7 @@ export class PgCostLedger implements CostLedger {
   }
 
   async entries() {
-    return (await this.db.select().from(schema.openbotCostEntries).where(eq(schema.openbotCostEntries.monthKey, monthKey(this.clock()))).orderBy(asc(schema.openbotCostEntries.recordedAt))).map((r) => this.toEntry(r));
+    return (await this.db.select().from(schema.openbotCostEntries).where(eq(schema.openbotCostEntries.monthKey, monthKey(this.clock()))).orderBy(asc(schema.openbotCostEntries.recordedAt), asc(schema.openbotCostEntries.executionId))).map((r) => this.toEntry(r));
   }
 
   async totalMicro() {
@@ -221,5 +245,113 @@ export class PgHealthStore implements HealthStore {
   async last() {
     const [r] = await this.db.select().from(schema.openbotHealth).where(eq(schema.openbotHealth.id, 'pull'));
     return r ? { workerId: r.workerId, at: r.at.toISOString() } : null;
+  }
+}
+
+/** Trilha do piloto: uma linha por (task_id, attempt). `patch` é leitura-e-gravação sob trava de linha. */
+export class PgPilotRowStore implements PilotRowStore {
+  constructor(private readonly db: Db, private readonly clock: () => Date = () => new Date()) {}
+
+  async upsert(row: PilotRow) {
+    const values = { taskId: row.task_id, attempt: row.attempt, stage: row.stage, account: row.account, outcome: row.outcome, startedAt: new Date(row.started_at), row, updatedAt: this.clock() };
+    await this.db
+      .insert(schema.openbotPilotRows)
+      .values(values)
+      .onConflictDoUpdate({ target: [schema.openbotPilotRows.taskId, schema.openbotPilotRows.attempt], set: { stage: values.stage, account: values.account, outcome: values.outcome, startedAt: values.startedAt, row: values.row, updatedAt: values.updatedAt } });
+  }
+
+  async patch(taskId: string, attempt: number, fields: Partial<PilotRow>) {
+    return this.db.transaction(async (tx) => {
+      const t = schema.openbotPilotRows;
+      const [cur] = await tx.select().from(t).where(and(eq(t.taskId, taskId), eq(t.attempt, attempt))).for('update');
+      if (!cur) return false;
+      const merged = { ...(cur.row as PilotRow), ...fields, task_id: taskId, attempt } as PilotRow;
+      await tx.update(t).set({ row: merged, stage: merged.stage, account: merged.account, outcome: merged.outcome, startedAt: new Date(merged.started_at), updatedAt: this.clock() }).where(and(eq(t.taskId, taskId), eq(t.attempt, attempt)));
+      return true;
+    });
+  }
+
+  async all() {
+    const t = schema.openbotPilotRows;
+    return (await this.db.select({ row: t.row }).from(t).orderBy(asc(t.startedAt), asc(t.taskId), asc(t.attempt))).map((r) => r.row as PilotRow);
+  }
+}
+
+/** Estado do piloto: existe a linha `pilot` = PARADA IMEDIATA (motivos acumulados, instante do primeiro); sem linha = liberado. */
+export class PgPilotStateStore implements PilotStateStore {
+  constructor(private readonly db: Db) {}
+
+  async get(): Promise<PilotStop | null> {
+    const [r] = await this.db.select().from(schema.openbotPilotState).where(eq(schema.openbotPilotState.id, 'pilot'));
+    return r ? { reasons: r.reasons as string[], at: r.stoppedAt.toISOString() } : null;
+  }
+
+  async stop(reason: string, at: string) {
+    await this.db.transaction(async (tx) => {
+      const t = schema.openbotPilotState;
+      const [cur] = await tx.select().from(t).where(eq(t.id, 'pilot')).for('update');
+      if (!cur) {
+        await tx.insert(t).values({ id: 'pilot', reasons: [reason], stoppedAt: new Date(at) }).onConflictDoNothing();
+        // outra transação pode ter inserido no mesmo instante: então soma o motivo
+        const [now] = await tx.select().from(t).where(eq(t.id, 'pilot')).for('update');
+        if (now && !(now.reasons as string[]).includes(reason)) await tx.update(t).set({ reasons: [...(now.reasons as string[]), reason] }).where(eq(t.id, 'pilot'));
+        return;
+      }
+      const reasons = cur.reasons as string[];
+      if (!reasons.includes(reason)) await tx.update(t).set({ reasons: [...reasons, reason] }).where(eq(t.id, 'pilot'));
+    });
+  }
+
+  async clear() {
+    await this.db.delete(schema.openbotPilotState).where(eq(schema.openbotPilotState.id, 'pilot'));
+  }
+}
+
+export const MAX_IO_BYTES = 256 * 1024;
+export class IoTooLargeError extends Error {
+  constructor() {
+    super(`conteúdo acima de ${MAX_IO_BYTES / 1024} KB`);
+    this.name = 'IoTooLargeError';
+  }
+}
+const sizeOk = (v: unknown): boolean => Buffer.byteLength(JSON.stringify(v) ?? 'null', 'utf8') <= MAX_IO_BYTES;
+
+/**
+ * Armazém do conteúdo (TaskIo): a Fábrica grava a ENTRADA por `refId` (`putInput`) e lê o RESULTADO por `resultRef` (`getResult`); o agente do OpenBot lê a
+ * entrada e grava o resultado só pelas rotas autenticadas e presas ao lease (`getInputFor`, `putResultFor`).
+ */
+export class PgTaskIo implements TaskIo {
+  constructor(private readonly db: Db, private readonly clock: () => Date = () => new Date()) {}
+
+  async putInput(refId: string, input: unknown, meta: { taskClass: GatewayTaskClass; promptVersion: string }): Promise<void> {
+    if (!sizeOk(input)) throw new IoTooLargeError();
+    const t = schema.openbotIo;
+    await this.db
+      .insert(t)
+      .values({ ref: refId, direction: 'input', content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion, createdAt: this.clock() })
+      .onConflictDoUpdate({ target: t.ref, set: { content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion }, setWhere: eq(t.direction, 'input') });
+  }
+
+  async getResult(resultRef: string): Promise<unknown | null> {
+    const t = schema.openbotIo;
+    const [r] = await this.db.select().from(t).where(and(eq(t.ref, resultRef), eq(t.direction, 'result')));
+    return r ? r.content : null;
+  }
+
+  /** Para a rota do agente: a entrada de `refId` com a classe e a versão do prompt. */
+  async getInputFor(refId: string): Promise<{ input: unknown; taskClass: string | null; promptVersion: string | null } | null> {
+    const t = schema.openbotIo;
+    const [r] = await this.db.select().from(t).where(and(eq(t.ref, refId), eq(t.direction, 'input')));
+    return r ? { input: r.content, taskClass: r.taskClass, promptVersion: r.promptVersion } : null;
+  }
+
+  /** Para a rota do agente: grava o resultado da tentativa; idempotente (repetir a mesma tentativa sobrescreve o mesmo `resultRef`). */
+  async putResultFor(resultRef: string, taskId: string, result: unknown): Promise<void> {
+    if (!sizeOk(result)) throw new IoTooLargeError();
+    const t = schema.openbotIo;
+    await this.db
+      .insert(t)
+      .values({ ref: resultRef, direction: 'result', content: result ?? null, taskId, createdAt: this.clock() })
+      .onConflictDoUpdate({ target: t.ref, set: { content: result ?? null, taskId }, setWhere: eq(t.direction, 'result') });
   }
 }

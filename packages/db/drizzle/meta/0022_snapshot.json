@@ -1,5 +1,5 @@
 {
-  "id": "7a41d00e-aed3-4d9f-a388-e1e362ee1b7d",
+  "id": "e21920d6-5a54-404c-be11-81c776f3c4fd",
   "prevId": "414bdeb3-09c0-45fb-b537-38ee5e929ece",
   "version": "7",
   "dialect": "postgresql",
@@ -5580,6 +5580,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "lane": {
+          "name": "lane",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'api'"
+        },
+        "account": {
+          "name": "account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "model": {
           "name": "model",
           "type": "text",
@@ -5590,31 +5603,31 @@
           "name": "generation_ids",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "prompt_tokens": {
           "name": "prompt_tokens",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "completion_tokens": {
           "name": "completion_tokens",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "cache_read_tokens": {
           "name": "cache_read_tokens",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "cache_write_tokens": {
           "name": "cache_write_tokens",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "cost_micro": {
           "name": "cost_micro",
@@ -5677,9 +5690,21 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "openbot_cost_lane": {
+          "name": "openbot_cost_lane",
+          "value": "\"openbot_cost_entries\".\"lane\" IN ('api', 'subscription', 'opencode', 'antigravity')"
+        },
+        "openbot_cost_account": {
+          "name": "openbot_cost_account",
+          "value": "\"openbot_cost_entries\".\"account\" IS NULL OR \"openbot_cost_entries\".\"account\" IN ('claude', 'codex', 'opencode', 'antigravity')"
+        },
         "openbot_cost_nonneg": {
           "name": "openbot_cost_nonneg",
-          "value": "\"openbot_cost_entries\".\"cost_micro\" >= 0 AND \"openbot_cost_entries\".\"prompt_tokens\" >= 0 AND \"openbot_cost_entries\".\"completion_tokens\" >= 0 AND \"openbot_cost_entries\".\"cache_read_tokens\" >= 0 AND \"openbot_cost_entries\".\"cache_write_tokens\" >= 0"
+          "value": "\"openbot_cost_entries\".\"cost_micro\" >= 0 AND (\"openbot_cost_entries\".\"prompt_tokens\" IS NULL OR \"openbot_cost_entries\".\"prompt_tokens\" >= 0) AND (\"openbot_cost_entries\".\"completion_tokens\" IS NULL OR \"openbot_cost_entries\".\"completion_tokens\" >= 0) AND (\"openbot_cost_entries\".\"cache_read_tokens\" IS NULL OR \"openbot_cost_entries\".\"cache_read_tokens\" >= 0) AND (\"openbot_cost_entries\".\"cache_write_tokens\" IS NULL OR \"openbot_cost_entries\".\"cache_write_tokens\" >= 0)"
+        },
+        "openbot_cost_free_lane": {
+          "name": "openbot_cost_free_lane",
+          "value": "\"openbot_cost_entries\".\"lane\" = 'api' OR \"openbot_cost_entries\".\"cost_micro\" = 0"
         },
         "openbot_cost_month": {
           "name": "openbot_cost_month",
@@ -5720,6 +5745,216 @@
         "openbot_health_id": {
           "name": "openbot_health_id",
           "value": "\"openbot_health\".\"id\" = 'pull'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.openbot_io": {
+      "name": "openbot_io",
+      "schema": "",
+      "columns": {
+        "ref": {
+          "name": "ref",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "task_class": {
+          "name": "task_class",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "task_id": {
+          "name": "task_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "openbot_io_direction": {
+          "name": "openbot_io_direction",
+          "value": "\"openbot_io\".\"direction\" IN ('input', 'result')"
+        },
+        "openbot_io_size": {
+          "name": "openbot_io_size",
+          "value": "octet_length(\"openbot_io\".\"content\"::text) <= 262144"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.openbot_pilot_rows": {
+      "name": "openbot_pilot_rows",
+      "schema": "",
+      "columns": {
+        "task_id": {
+          "name": "task_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt": {
+          "name": "attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stage": {
+          "name": "stage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account": {
+          "name": "account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row": {
+          "name": "row",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "openbot_pilot_rows_started_idx": {
+          "name": "openbot_pilot_rows_started_idx",
+          "columns": [
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "attempt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "openbot_pilot_rows_task_id_attempt_pk": {
+          "name": "openbot_pilot_rows_task_id_attempt_pk",
+          "columns": [
+            "task_id",
+            "attempt"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "openbot_pilot_rows_outcome": {
+          "name": "openbot_pilot_rows_outcome",
+          "value": "\"openbot_pilot_rows\".\"outcome\" IN ('completed', 'failed', 'retryable', 'pending_limit')"
+        },
+        "openbot_pilot_rows_attempt": {
+          "name": "openbot_pilot_rows_attempt",
+          "value": "\"openbot_pilot_rows\".\"attempt\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.openbot_pilot_state": {
+      "name": "openbot_pilot_state",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "reasons": {
+          "name": "reasons",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stopped_at": {
+          "name": "stopped_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "openbot_pilot_state_id": {
+          "name": "openbot_pilot_state_id",
+          "value": "\"openbot_pilot_state\".\"id\" = 'pilot'"
+        },
+        "openbot_pilot_state_reasons": {
+          "name": "openbot_pilot_state_reasons",
+          "value": "jsonb_typeof(\"openbot_pilot_state\".\"reasons\") = 'array' AND jsonb_array_length(\"openbot_pilot_state\".\"reasons\") >= 1"
         }
       },
       "isRLSEnabled": false
@@ -5821,6 +6056,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "available_at": {
+          "name": "available_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "result_ref": {
           "name": "result_ref",
           "type": "text",
@@ -5832,6 +6073,34 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "route": {
+          "name": "route",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[\"claude\"]'::jsonb"
+        },
+        "route_index": {
+          "name": "route_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "limit_hits": {
+          "name": "limit_hits",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "accounts_limited": {
+          "name": "accounts_limited",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         }
       },
       "indexes": {
@@ -5891,7 +6160,11 @@
         },
         "openbot_tasks_attempts": {
           "name": "openbot_tasks_attempts",
-          "value": "\"openbot_tasks\".\"attempts\" >= 0 AND \"openbot_tasks\".\"max_attempts\" BETWEEN 1 AND 10"
+          "value": "\"openbot_tasks\".\"attempts\" >= 0 AND \"openbot_tasks\".\"max_attempts\" BETWEEN 1 AND 10 AND \"openbot_tasks\".\"limit_hits\" >= 0"
+        },
+        "openbot_tasks_route": {
+          "name": "openbot_tasks_route",
+          "value": "jsonb_typeof(\"openbot_tasks\".\"route\") = 'array' AND jsonb_array_length(\"openbot_tasks\".\"route\") BETWEEN 1 AND 4 AND \"openbot_tasks\".\"route_index\" >= 0 AND \"openbot_tasks\".\"route_index\" < jsonb_array_length(\"openbot_tasks\".\"route\")"
         },
         "openbot_tasks_lease": {
           "name": "openbot_tasks_lease",

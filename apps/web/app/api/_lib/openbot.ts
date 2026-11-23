@@ -1,15 +1,23 @@
-// Rotas do adaptador OpenBot (ADR-003): `POST /api/openbot/pull|heartbeat|callback`. Quem chama é o OpenBot (só conexão de SAÍDA dele),
-// sem sessão: a autenticação é a assinatura HMAC-SHA256 do corpo CRU (`x-ln-signature: v1=<hex>`, `x-ln-timestamp: <ms>`), janela de ±5 min,
-// segredo atual e anterior (rotação) do cofre via ambiente (`OPENBOT_HMAC_SECRET`, `OPENBOT_HMAC_SECRET_PREVIOUS`); sem segredo, tudo é 401.
-// A lógica é dos handlers PUROS de @ln/openbot (Frente 09); aqui só há a ligação: fila/custos/saúde/dedupe no PostgreSQL
-// (`@ln/workers/openbot-pg`: `FOR UPDATE SKIP LOCKED`), flag e parada.
-//  - Flag `openbotDispatch` (desligada por padrão): desligada, `pull` não entrega tarefa (503 DISPATCH_OFF); heartbeat e callback continuam
-//    para fechar o que já estava em curso.
-//  - Parada (kill switch): a parada GLOBAL ou da rota `openbot` do ledger canônico (`budget_kill_switch`) bloqueia pull e heartbeat (503 KILL_SWITCH).
+// Rotas do adaptador OpenBot (ADR-003): `POST /api/openbot/pull|heartbeat|callback` (cola `createOpenBotRoutes` de @ln/openbot) e, para o AGENTE,
+// `POST /api/openbot/io/input|result` (armazém do conteúdo, TaskIo). Quem chama é o OpenBot (só conexão de SAÍDA dele), sem sessão: a autenticação é a
+// assinatura HMAC-SHA256 do corpo CRU (`x-ln-signature: v1=<hex>`, `x-ln-timestamp: <ms>`), janela de ±5 min, segredo atual e anterior (rotação) do
+// cofre via ambiente (`OPENBOT_HMAC_SECRET`, `OPENBOT_HMAC_SECRET_PREVIOUS`); sem segredo, tudo é 401.
+// A lógica é dos handlers PUROS de @ln/openbot (Frente 09); aqui só há a ligação: fila/custos/saúde/dedupe/trilha/estado do piloto/conteúdo no PostgreSQL
+// (`@ln/workers/openbot-pg`: `FOR UPDATE SKIP LOCKED`), flag, parada e piloto.
+//  - Flag `openbotDispatch` (desligada por padrão): desligada, `pull` não entrega tarefa (503 DISPATCH_OFF); heartbeat, callback e io seguem para fechar o que já estava em curso.
+//  - Parada (kill switch): a parada GLOBAL ou da rota `openbot` do ledger canônico (`budget_kill_switch`) bloqueia pull, heartbeat e io (503 KILL_SWITCH).
 //    O callback segue aceito durante a parada (handler da Frente 09): fecha a tarefa e REGISTRA o custo já gasto; perder esse registro esconderia gasto.
-//  - Corpo até 64 KB. Nunca loga corpo, assinatura nem segredo.
-import { handleCallback, handleHeartbeat, handlePull, type HandlerResult, type OpenBotDeps } from '@ln/openbot';
-import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue } from '@ln/workers/openbot-pg';
+//  - Piloto (trilha, parada imediata, `canDispatchNext` do AgentOps): só com `APP_ENV=staging` E `LN_OPENBOT_PILOT=1`. O gate vem de `@ln/agents` quando existir;
+//    sem ele, FALHA FECHADO (o piloto não despacha) com o motivo explícito.
+//  - io/input: só quem tem o lease VIVO daquela tarefa lê a entrada. io/result: só quem tem o lease vivo grava o resultado, sob `res-<taskId>-a<tentativa>`. Teto 256 KB.
+//  - Corpo até 64 KB nas rotas de controle. Nunca loga corpo, cabeçalhos, IP nem segredo.
+import { apiError } from '@ln/contracts';
+import {
+  createOpenBotRoutes, ID_RE, openbotFlagsFrom, verifySignature, toSignedRequest,
+  type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate,
+} from '@ln/openbot';
+import { IoTooLargeError, MAX_IO_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from '@ln/workers/openbot-pg';
+import { z } from 'zod';
 import { HttpError, json, type RouteCtx, type RouteFn } from './http';
 import { killFlags } from './orcamento';
 
@@ -20,40 +28,127 @@ export function openbotSecrets(env: Record<string, string | undefined> = process
   return [env.OPENBOT_HMAC_SECRET, env.OPENBOT_HMAC_SECRET_PREVIOUS].filter((s): s is string => typeof s === 'string' && s.length > 0);
 }
 
+/** O piloto só existe em staging, por decisão registrada (LN_OPENBOT_PILOT=1). Qualquer outra combinação = desligado. */
+export const pilotEnabled = (env: Record<string, string | undefined> = process.env): boolean => env.APP_ENV === 'staging' && env.LN_OPENBOT_PILOT === '1';
+
+const closedGate: PilotGate = () => ({ allowed: false, reasons: ['canDispatchNext do AgentOps indisponível neste build (@ln/agents sem o piloto): o piloto não despacha'] });
+
+/** `canDispatchNext` de @ln/agents (AgentOps) quando o pacote o exporta; sem ele, o gate recusa tudo (falha fechada). */
+async function loadGate(): Promise<PilotGate> {
+  try {
+    const mod = (await import('@ln/agents')) as unknown as { canDispatchNext?: unknown };
+    return typeof mod.canDispatchNext === 'function' ? (mod.canDispatchNext as PilotGate) : closedGate;
+  } catch {
+    return closedGate;
+  }
+}
+
 /** Dependências dos handlers sobre o PostgreSQL desta requisição. A parada é lida antes (os handlers a recebem pronta). */
 export async function openbotDeps(c: RouteCtx, env: Record<string, string | undefined> = process.env): Promise<OpenBotDeps> {
   const k = await killFlags(c.deps.db);
   const kill = k.killGlobal || k.killedRoutes.includes(OPENBOT_KILL_ROUTE);
   const db = c.deps.db;
+  const flags = openbotFlagsFrom({ overrides: { openbotDispatch: c.deps.flags.openbotDispatch === true }, kill });
+  const pilot: PilotControl | undefined = pilotEnabled(env)
+    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: await loadGate() }
+    : undefined;
   return {
     queue: new PgLeaseQueue(db),
     ledger: new PgCostLedger(db, c.deps.now),
     health: new PgHealthStore(db),
     callbacks: new PgCallbackStore(db),
     secrets: () => openbotSecrets(env),
-    flags: () => ({ dispatchEnabled: c.deps.flags.openbotDispatch === true, kill }),
+    flags: () => flags,
     now: c.deps.now,
+    ...(pilot ? { pilot } : {}),
   };
 }
 
-const send = (r: HandlerResult<unknown>) => json(r.body, r.status, { 'cache-control': 'no-store' });
+const NO_STORE = { 'cache-control': 'no-store' } as const;
+const send = (r: HandlerResult<unknown>) => json(r.body, r.status, NO_STORE);
+const err = (status: number, code: string, message: string, details?: unknown) => json(apiError(code, message, details), status, NO_STORE);
+
+async function readRaw(req: Request, max = MAX_BODY): Promise<string> {
+  const body = await req.text();
+  if (Buffer.byteLength(body, 'utf8') > max) throw new HttpError(413, 'PAYLOAD_TOO_LARGE', `Corpo acima de ${Math.round(max / 1024)} KB.`);
+  return body;
+}
 
 export const openbotRoute =
   (kind: 'pull' | 'heartbeat' | 'callback'): RouteFn =>
   async (req, c) => {
-    const body = await req.text();
-    if (body.length > MAX_BODY) throw new HttpError(413, 'PAYLOAD_TOO_LARGE', 'Corpo acima de 64 KB.');
-    const raw = req.headers.get('x-ln-timestamp');
-    const request = {
-      body,
-      signature: req.headers.get('x-ln-signature') ?? undefined,
-      timestampMs: raw !== null && /^[0-9]{10,16}$/.test(raw) ? Number(raw) : undefined,
-    };
+    const body = await readRaw(req);
     const deps = await openbotDeps(c);
-    if (kind === 'pull') {
-      // sem despacho ligado nada é entregue (o handler só checa a parada); a recusa vale antes de qualquer efeito
-      if (!deps.flags().dispatchEnabled) return json({ error: { code: 'DISPATCH_OFF', message: 'despacho ao OpenBot desligado (flag openbotDispatch)', requestId: c.requestId } }, 503, { 'cache-control': 'no-store' });
-      return send(await handlePull(deps, request));
+    if (kind === 'pull' && !deps.flags().dispatchEnabled && !deps.flags().kill) {
+      // sem despacho ligado nada é entregue; a recusa vale antes de qualquer efeito (a parada tem a própria resposta, abaixo)
+      return err(503, 'DISPATCH_OFF', 'despacho ao OpenBot desligado (flag openbotDispatch)');
     }
-    return send(kind === 'heartbeat' ? await handleHeartbeat(deps, request) : await handleCallback(deps, request));
+    const routes = createOpenBotRoutes(deps);
+    const headers: Record<string, string> = {};
+    req.headers.forEach((v, k) => {
+      if (k === 'x-ln-signature' || k === 'x-ln-timestamp') headers[k] = v; // só os dois cabeçalhos de assinatura; nenhum outro é lido
+    });
+    return send(await routes[kind]({ body, headers }));
   };
+
+// ---------- conteúdo (TaskIo) para o AGENTE ----------
+
+const LeaseBody = z.object({ taskId: z.string().regex(ID_RE), leaseId: z.string().regex(ID_RE) });
+const ResultBody = LeaseBody.extend({ result: z.unknown() });
+
+/** Autentica (HMAC), confere a parada e o piloto e o LEASE vivo da tarefa. Devolve a tarefa ou a resposta de recusa. */
+async function guarded(req: Request, c: RouteCtx, schemaOf: z.ZodType<{ taskId: string; leaseId: string }>, maxBody = MAX_BODY) {
+  const raw = await readRaw(req, maxBody);
+  const deps = await openbotDeps(c);
+  const now = deps.now();
+  const headers: Record<string, string> = {};
+  req.headers.forEach((v, k) => {
+    if (k === 'x-ln-signature' || k === 'x-ln-timestamp') headers[k] = v;
+  });
+  const sig = toSignedRequest({ body: raw, headers });
+  const v = verifySignature({ secrets: deps.secrets(), header: sig.signature, timestampMs: sig.timestampMs, body: raw, now });
+  if (!v.ok) return { ok: false as const, res: err(401, 'UNAUTHORIZED', `assinatura recusada: ${v.reason}`) } as const;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false as const, res: err(400, 'VALIDATION_ERROR', 'corpo não é JSON') } as const;
+  }
+  const p = schemaOf.safeParse(parsed);
+  if (!p.success) return { ok: false as const, res: err(400, 'VALIDATION_ERROR', 'corpo inválido', p.error.issues.map((i) => i.path.join('.') || '(raiz)')) } as const;
+  if (deps.flags().kill) return { ok: false as const, res: err(503, 'KILL_SWITCH', 'kill switch ativo') } as const;
+  if (deps.pilot?.enabled) {
+    const stop = await deps.pilot.state.get();
+    if (stop) return { ok: false as const, res: err(503, 'PILOT_STOPPED', 'piloto em parada imediata', stop.reasons) } as const;
+  }
+  const task = await deps.queue.get(p.data.taskId);
+  if (!task) return { ok: false as const, res: err(404, 'LEASE_ERROR', 'tarefa inexistente', 'tarefa_inexistente') } as const;
+  if (task.status !== 'leased' || task.leaseId !== p.data.leaseId) return { ok: false as const, res: err(409, 'LEASE_ERROR', 'lease inválido', 'lease_invalida') } as const;
+  if (task.leaseExpiresAt && Date.parse(task.leaseExpiresAt) <= now.getTime()) return { ok: false as const, res: err(409, 'LEASE_ERROR', 'lease expirado', 'lease_expirada') } as const;
+  return { ok: true as const, task, body: p.data, now };
+}
+
+/** O agente lê a ENTRADA da tarefa (por `refId`). Só com o lease vivo. */
+export const openbotIoInput: RouteFn = async (req, c) => {
+  const g = await guarded(req, c, LeaseBody);
+  if (!g.ok) return g.res;
+  const got = await new PgTaskIo(c.deps.db, c.deps.now).getInputFor(g.task.refId);
+  if (!got) return err(404, 'NOT_FOUND', 'entrada da tarefa não encontrada');
+  return json({ data: { refId: g.task.refId, input: got.input, taskClass: got.taskClass, promptVersion: got.promptVersion } }, 200, NO_STORE);
+};
+
+/** O agente grava o RESULTADO da tentativa (idempotente) e recebe o `resultRef` para mandar no callback. Só com o lease vivo. */
+export const openbotIoResult: RouteFn = async (req, c) => {
+  const g = await guarded(req, c, ResultBody, MAX_IO_BYTES + 4096); // o resultado vai até 256 KB, mais o envelope
+  if (!g.ok) return g.res;
+  const { result } = g.body as unknown as { result: unknown };
+  if (result === undefined) return err(400, 'VALIDATION_ERROR', 'falta o resultado', ['result']);
+  const resultRef = `res-${g.task.id}-a${g.task.attempts}`;
+  try {
+    await new PgTaskIo(c.deps.db, c.deps.now).putResultFor(resultRef, g.task.id, result);
+  } catch (e) {
+    if (e instanceof IoTooLargeError) return err(413, 'PAYLOAD_TOO_LARGE', `resultado acima de ${MAX_IO_BYTES / 1024} KB`);
+    throw e;
+  }
+  return json({ data: { resultRef } }, 200, NO_STORE);
+};
