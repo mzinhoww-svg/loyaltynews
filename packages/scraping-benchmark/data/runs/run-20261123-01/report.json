@@ -1,6 +1,6 @@
 {
   "runId": "run-20261123-01",
-  "generatedAt": "2026-11-23T16:33:07.989Z",
+  "generatedAt": "2026-11-23T21:24:11.750Z",
   "attempts": 1112,
   "realAttempts": 800,
   "excludedReplaced": 182,
@@ -2516,16 +2516,16 @@
       "domain": "aeroin.net",
       "order": [
         {
-          "provider": "apify-rag-web-browser",
-          "expectedUsdPerValid": 0.0006
+          "provider": "exa-contents",
+          "expectedUsdPerValid": 0.0018
         },
         {
-          "provider": "direct",
-          "expectedUsdPerValid": 0.0006
+          "provider": "brightdata-unlocker",
+          "expectedUsdPerValid": 0.00255
         },
         {
-          "provider": "tavily-extract",
-          "expectedUsdPerValid": 0.0006
+          "provider": "firecrawl-scrape",
+          "expectedUsdPerValid": 0.006
         }
       ]
     },
@@ -2635,16 +2635,16 @@
       "domain": "finextra.com",
       "order": [
         {
-          "provider": "apify-rag-web-browser",
+          "provider": "zyte-http",
           "expectedUsdPerValid": 0.0006
         },
         {
-          "provider": "direct",
-          "expectedUsdPerValid": 0.0006
+          "provider": "exa-contents",
+          "expectedUsdPerValid": 0.0018
         },
         {
-          "provider": "scrapfly-basic",
-          "expectedUsdPerValid": 0.0006
+          "provider": "brightdata-unlocker",
+          "expectedUsdPerValid": 0.00255
         }
       ]
     },

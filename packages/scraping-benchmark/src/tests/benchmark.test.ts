@@ -18,6 +18,7 @@ import { readFlags, isProviderDisabled } from '../flags';
 import type { DatasetEntry, AttemptRecord } from '../types';
 import { shadowRun } from '../shadow';
 import { FirecrawlReader } from '../firecrawl';
+import { TavilyExtractReader } from '../tavily';
 import { LiveShadow } from '../live-shadow';
 import { createLiveShadowFromEnv, ShadowHostGate } from '../live-shadow-env';
 
@@ -455,5 +456,30 @@ describe('evidência de corpo (maior parágrafo, ≤ 200)', () => {
     const md = '[Home](/) [Economia](/e)\n\nUma matéria com texto corrido suficiente para ser parágrafo editorial de verdade aqui.';
     expect(bodyEvidence(md, undefined).excerpt).toMatch(/^Uma matéria/);
     expect(bodyEvidence(undefined, undefined)).toEqual({ longestParagraphChars: 0, longParagraphs: 0 });
+  });
+});
+
+describe('ressalvas abertas QA 3 (router 1 observação; adaptador cru)', () => {
+  it('com UMA falha no domínio, o provedor vai para trás de quem acertou e de quem não tem histórico', () => {
+    const mk = (n: string, usd: number) => ({ name: n, reader: new MockReader(n, (q) => ok(n, q.url)), worstCaseCredits: 1, usdPerCredit: usd });
+    const r = new AdaptiveRouter([mk('apify', 0.0000001), mk('exa', 0.001), mk('novo', 0.01)]);
+    r.seed('aeroin.net', 'apify', { attempts: 1, valid: 0, credits: 0 });
+    r.seed('aeroin.net', 'exa', { attempts: 1, valid: 1, credits: 1 });
+    expect(r.order('aeroin.net').map((p) => p.name)).toEqual(['exa', 'novo', 'apify']);
+  });
+  it('KeyedReader cru: 401/402 da origem e paywall no texto não devolvem corpo (Firecrawl e Tavily)', async () => {
+    const fc = (status: number, md = LONG) => new FirecrawlReader((async () => new Response(JSON.stringify({ success: true, data: { markdown: md, metadata: { statusCode: status } } }), { status: 200 })) as unknown as typeof fetch);
+    for (const s of [401, 402]) {
+      const r = await fc(s).read({ url: 'https://a.com' }, 'k');
+      expect(r).toMatchObject({ status: 'ok', httpStatus: s });
+      expect(r.text).toBeUndefined();
+    }
+    const pw = await fc(200, `${LONG} Conteúdo exclusivo para assinantes`).read({ url: 'https://a.com' }, 'k');
+    expect(pw).toMatchObject({ httpStatus: 402 });
+    expect(pw.text).toBeUndefined();
+    const tv = new TavilyExtractReader((async () => new Response(JSON.stringify({ results: [{ url: 'https://a.com', raw_content: `${LONG} Assine para continuar lendo a matéria completa` }] }), { status: 200 })) as unknown as typeof fetch);
+    const t = await tv.read({ url: 'https://a.com' }, 'k');
+    expect(t).toMatchObject({ httpStatus: 402 });
+    expect(t.text).toBeUndefined();
   });
 });

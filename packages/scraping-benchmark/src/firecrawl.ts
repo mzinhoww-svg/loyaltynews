@@ -5,6 +5,7 @@
  * único extrair título e data como nos outros provedores. Texto e HTML continuam efêmeros.
  */
 import type { KeyedReader, ProviderResponse, ReadRequest } from '@ln/intelligence';
+import { detectLoginOrPaywall } from '@ln/intelligence';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
@@ -46,6 +47,8 @@ export class FirecrawlReader implements KeyedReader {
     if (page === 404 || page === 410) return { status: 'not_found', credits: 1, httpStatus: page };
     if (!j.success || !md) return { status: 'provider_error', credits: 1, httpStatus: page };
     if (page >= 400 && page !== 401 && page !== 402) return { status: 'provider_error', credits: 1, httpStatus: page };
+    // proteção no próprio adaptador (ressalva QA 3): login/paywall da ORIGEM nunca devolve corpo, mesmo a um consumidor sem o pool
+    if (page === 401 || page === 402 || detectLoginOrPaywall({ text: md, httpStatus: page })) return { status: 'ok', credits: 1, httpStatus: page === 200 ? (detectLoginOrPaywall({ text: md }) === 'login_required' ? 401 : 402) : page };
     const title = str('ogTitle') || str('title');
     const date = str('publishedTime') || str('article:published_time') || str('datePublished');
     const head = `<html lang="${esc(str('language'))}"><head>${title ? `<meta property="og:title" content="${esc(title)}">` : ''}${date ? `<meta property="article:published_time" content="${esc(date)}">` : ''}</head><body></body></html>`;

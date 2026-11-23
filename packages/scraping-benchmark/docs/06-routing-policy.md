@@ -58,7 +58,7 @@ O adaptativo ganha +4 artigos válidos sobre o caminho atual e custa ~45 % menos
 
 Primeiro provedor por domínio, com a estatística real: **direct em 30 dos 34 domínios**; Exa em `latamairlines.com` (Exa e Firecrawl leram; Exa é mais barata); Apify em 2 e Scrapfly em 1 domínio onde o direto falhou. A tabela completa (1º, 2º e 3º, com custo esperado) está em `report.md` → "Matriz de roteamento".
 
-Fallback global sugerido depois do direto (pelo ranking e pelo custo): **Zyte → Scrapfly → Exa → Bright Data → Firecrawl → Tavily → Apify**. O shadow por replay com o Firecrawl incluído dá o mesmo resultado (100/100, US$ 0,000074 por válido): ele quase nunca é necessário. A ordem por domínio substitui a global quando houver ≥ 2 tentativas no domínio. Limite conhecido (QA 3): com 1 só observação no domínio, um empate de custo ainda pode pôr primeiro um provedor que falhou (ex.: Apify em aeroin.net e finextra.com); a regra de rebaixamento só age a partir de 2 tentativas.
+Fallback global sugerido depois do direto (pelo ranking e pelo custo): **Zyte → Scrapfly → Exa → Bright Data → Firecrawl → Tavily → Apify**. O shadow por replay com o Firecrawl incluído dá o mesmo resultado (100/100, US$ 0,000074 por válido): ele quase nunca é necessário. A ordem por domínio substitui a global quando houver ≥ 2 tentativas no domínio. Ressalva do QA 3 corrigida: a ordem agora usa faixas por domínio (0 = já teve sucesso, 1 = sem histórico, 2 = só falhou, mesmo com 1 observação) e o custo esperado dentro da faixa. aeroin.net passa a Exa e finextra.com a Zyte. Replay v2 do adaptativo: 99/100, 119 tentativas (antes 123), p95 de 7,6 s (antes 10,1 s), US$ 0,000206 por válido.
 
 ## Comparação com a hipótese da Diretiva V3 §12
 
