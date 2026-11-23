@@ -5,12 +5,13 @@ import { IsoDate, Id, Lead as LeadContract, isEnabled } from '@ln/contracts';
 import { CATALOG } from '../catalog';
 import { define, fail, ok } from './http';
 import {
-  campaignDetail, campaignReport, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
+  advertiserReport, campaignDetail, campaignReport, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
 } from '../queries';
 import type { FormatStatus } from '../types';
 import { adPlan, ALLOWED_MIME, resolveClickDestination, validateCreative } from '../creative';
 import type { ServeResult } from '../rotation';
 import { reportCsv } from '../report';
+import { advertiserCsv } from '../advertiser-report';
 import { CONTACT_BASES } from '../crm';
 
 const formatIds = (ids: string[]) => ids.filter((id) => !CATALOG.some((f) => f.id === id));
@@ -270,3 +271,10 @@ export const ingestMetric = define({
   auth: 'studio',
   schema: z.object({ source: z.string().min(1), metric: z.string().min(1), value: z.number().finite(), period_start: z.iso.datetime({ offset: true }), period_end: z.iso.datetime({ offset: true }), fetched_at: z.iso.datetime({ offset: true }), methodology_version: z.string().optional() }),
 }, (ctx, i) => ok(ctx.metrics.ingest(i), 201));
+
+const AdvertiserQuery = z.object({ accountId: Id, from: IsoDate.optional(), to: IsoDate.optional() });
+/** Relatório do anunciante: totais e série das campanhas dele na janela (contado, nunca estimado; origem, janela e data). Sem cobrança. */
+export const getAdvertiserReport = define({ auth: 'studio', schema: AdvertiserQuery }, (ctx, i) => ok(advertiserReport(ctx, i)));
+/** CSV do relatório do anunciante ('diario' ou 'resumo'). */
+export const exportAdvertiserReportCsv = define({ auth: 'studio', schema: AdvertiserQuery.extend({ kind: z.enum(['diario', 'resumo']).default('diario') }) }, (ctx, i) =>
+  ok(advertiserCsv(advertiserReport(ctx, i), i.kind)));

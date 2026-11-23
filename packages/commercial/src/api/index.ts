@@ -24,6 +24,8 @@ export const ROUTES: readonly Route[] = [
   { method: 'GET', path: '/api/commercial/studio/leads', auth: 'studio', handler: h.getLeadInbox },
   { method: 'POST', path: '/api/commercial/studio/accounts', auth: 'studio', handler: h.createAccount },
   { method: 'GET', path: '/api/commercial/studio/accounts/contacts', auth: 'studio', handler: h.listAccountContacts },
+  { method: 'GET', path: '/api/commercial/studio/accounts/report', auth: 'studio', handler: h.getAdvertiserReport },
+  { method: 'GET', path: '/api/commercial/studio/accounts/report-csv', auth: 'studio', handler: h.exportAdvertiserReportCsv },
   { method: 'POST', path: '/api/commercial/studio/accounts/contacts', auth: 'studio', handler: h.addAccountContact },
   { method: 'POST', path: '/api/commercial/studio/leads/qualify', auth: 'studio', handler: h.qualifyLead },
   { method: 'POST', path: '/api/commercial/studio/leads/discard', auth: 'studio', handler: h.discardLead },
