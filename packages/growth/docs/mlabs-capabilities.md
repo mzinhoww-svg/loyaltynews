@@ -38,3 +38,8 @@ Origem: `C:\Users\mazin\OpenBot\Shared\loyalty-news\fast-track\mlabs-leitura-202
 | `get_account_settings` | plano "unknown"; produtos chat e social; fuso America/Sao_Paulo |
 
 Conclusão registrada: existe um canal LinkedIn "Loyalty News" ativo, sem posts publicados nem agendados e sem limite mensal informado. Efeito no código: nenhum (o adaptador real segue sem mapeamento de escrita). Permanecem não provados por leitura (R5-02): menção, edição, exclusão, carrossel/PDF, idempotência no mLabs e 7 dias sem sessão interativa.
+
+## 6. Modos do adaptador mLabs (LinkedIn): simulado e rascunho
+- **Simulado (único modo ativo):** `createSocialPublisher({ mode: 'simulated' })`. Nada sai do processo; recibos `SIM-…`; é o que o Social Dashboard e o job usam. Testado.
+- **Real:** `createSocialPublisher({ mode: 'live', ... })` exige confirmação explícita, ator `publisher_social` e a flag `growth_linkedin_live`; sem mapeamento de `create_post` (depende de R1-05/R5-02) ele recusa. Edição e exclusão reais recusam (capacidade não confirmada). Não foi chamado.
+- **Rascunho no mLabs: NÃO verificado e NÃO implementado.** O catálogo do conector tem nomes como `create_post_approval_link`, `create_workflow` e `send_workflow_to_approval`, que sugerem um fluxo de aprovação, mas a leitura não prova que `create_post` aceite criar sem agendar nem publicar. Enquanto não houver teste em página de teste (R5-02), "rascunho" é o próprio modo simulado. Nenhuma escrita foi feita no mLabs.
