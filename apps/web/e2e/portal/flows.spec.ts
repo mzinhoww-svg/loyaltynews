@@ -142,6 +142,23 @@ test.describe('SEO básico', () => {
   });
 });
 
+test.describe('mídia kit: alvos de toque (UI/UX: mínimo de 44 px no mobile)', () => {
+  test('os 10 links de editoria, os botões e os atalhos do mídia kit têm pelo menos 44 × 44 px', async ({ page }, info) => {
+    test.skip(info.project.name !== 'mobile');
+    await page.goto('/midia-kit');
+    const alvos = page.locator('#cobertura .pt-table a, main .ln-btn, nav[aria-label="Seções do mídia kit"] a');
+    expect(await alvos.count()).toBeGreaterThanOrEqual(13); // 10 editorias + 2 botões + 4 atalhos (a contagem exata muda com o conteúdo)
+    const ruins: string[] = [];
+    for (const el of await alvos.all()) {
+      const box = await el.boundingBox();
+      const nome = ((await el.innerText()).trim() || (await el.getAttribute('aria-label')) || '?').slice(0, 40);
+      if (!box || box.height < 44 - 0.5 || box.width < 44 - 0.5) ruins.push(`${nome}: ${Math.round(box?.width ?? 0)}×${Math.round(box?.height ?? 0)}`);
+    }
+    expect(ruins, 'alvos de toque menores que 44 px').toEqual([]);
+    expect(await page.locator('#cobertura .pt-table a').count()).toBe(10);
+  });
+});
+
 test.describe('honestidade de dados', () => {
   test('V-05: cobertura do mídia kit — demonstração leva selo MOCK; sem dado real mostra "—" e "sem dado real"', async ({ page }) => {
     await page.goto('/midia-kit');
