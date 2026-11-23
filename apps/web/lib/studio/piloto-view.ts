@@ -41,6 +41,8 @@ export interface MateriaPiloto {
   leitor2: boolean;
   estado: EstadoMateria;
   leituras: { leitor1: boolean; leitor2: boolean };
+  /** Hash e data da PRIMEIRA folha do leitor 2 registrada para a matéria (nunca o conteúdo). */
+  folha?: { sha256: string; em: string } | null;
 }
 export interface Fechamento {
   lidas: number;
@@ -57,6 +59,9 @@ export interface Leitura {
   leitor: 1 | 2;
   por: string;
   em: string;
+  /** Leitura do leitor 2 importada da folha: 'importacao', com o arquivo (nome, sha256, linhas). */
+  origem?: 'studio' | 'importacao';
+  arquivo?: { nome: string; sha256: string; linhas: number };
   achados: Achado[];
   checklist: Checklist;
   veredito: 'aprovado' | 'bloqueado';

@@ -82,6 +82,9 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
           ))}
         </tbody>
       </table>
+      <p style={{ marginTop: 10 }}>
+        <Link href="/studio/piloto/importar">Importar a leitura do QA 3 (folha do leitor 2)</Link>
+      </p>
       {semMapa.length ? (
         <form action={fixarMapaAction} className="st-card" style={{ marginTop: 14 }} aria-label="Fixar mapa do piloto">
           <h2 style={{ marginTop: 0 }}>Ligar matérias aos rascunhos</h2>

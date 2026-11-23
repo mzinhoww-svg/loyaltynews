@@ -173,7 +173,7 @@ Fontes:
     async seedPilotoArtigos() {
       // Studio 2: dois artigos MOCK (sampleArticle da Editorial) para o caminho com dados da leitura do piloto; o mapa é fixado pela tela. Idempotente.
       const store = new PgEditorialStore(db);
-      const ids = ['piloto-e2e-a1', 'piloto-e2e-a2'];
+      const ids = ['piloto-e2e-a1', 'piloto-e2e-a2', 'piloto-e2e-a4'];
       for (const id of ids) if (!(await store.getArticle(id))) await store.putArticle(sampleArticle(id, { status: 'aprovado' }));
       return { artigos: ids };
     },
