@@ -28,6 +28,22 @@ Regra: só página **oficial** de RI/governança/imprensa da própria empresa (o
 
 **Santander→Esfera está "validação vencida" no v5 (decisão do PM, não se apaga):** a página inicial da Esfera mudou (o título era "Esfera: O programa de pontos e recompensas do Santander" e hoje é só "Esfera"), então a citação do v3 não existe mais na fonte desde 23/11/2026. A relação passa a inferida com a base "validação vencida em 2026-11-23: …" (`expiredRelations` no conjunto): **fora do portal**, visível no Studio com `stale_validation: true`, até uma nova fonte verificada confirmar (então entra a declarada e a vencida é encerrada).
 
+## Fonte secundária (seed v6, decisão do PM de 23/11/2026)
+Leitura de **The Org** (página pública, sem login, ritmo baixo; provedor só quando a leitura direta recusa) para as organizações sem página oficial; entram como **secundária, "a confirmar"** (inferido), sem Move e sem fato no portal. **LinkedIn não foi lido nesta rodada**: a The Org já cobriu o que havia de página pública de organograma; perfil individual do LinkedIn é dado pessoal além do necessário, e a página de empresa costuma pedir login para listar pessoas (não verificado). Nada foi coletado de lá.
+| Organização | Cargos "a confirmar" | Fonte | Observação |
+|---|---|---|---|
+| Genial | 1 (CEO) | theorg.com/org/genial-investimentos/teams/leadership | leitura por Zyte; "Genial Solar" (outra empresa) ignorada |
+| Esfera | 1 | theorg.com/org/sphere-1 | a página The Org casa por nome ("Esfera") |
+| Stix | 2 | theorg.com/org/soustix | |
+| Juntos Somos + | 2 | theorg.com/org/juntos-somos-mais | |
+| Bravium | 1 (CEO) | theorg.com/org/bravium | há também "Bravium Consulting Inc." na The Org: homônimo possível, por isso "a confirmar" |
+| LATAM Pass | 0 | — | a The Org só tem a LATAM Airlines (grupo); nenhum cargo da página cita o programa em nível de liderança; não se atribui pelo controlador |
+| Santander (marca) | 0 | — | marca/programa, sem entidade própria com pessoas |
+| Km de Vantagens | 0 | — | só aparece como Ipiranga (controladora); não se presume |
+| Clube Giro | 0 | — | só aparece como Grupo JCA (controladora); não se presume |
+| ABEMF | 0 | — | nenhuma entidade correspondente na The Org |
+Azul e Smiles seguem fora (classe C da DP-28).
+
 ## Próximos passos possíveis (precisam de decisão)
 - Os 12 sem cargos: (a) revisão caso a caso da Azul e da Smiles/GOL (classe C); (b) leitura **secundária** (LinkedIn/The Org, só página pública, sem login, via provedor, ritmo baixo) para entrar como "a confirmar" — autorizada pelo proprietário, **não executada** (cada leitura é um acesso a terceiro; peço a lista de organizações e o OK do PM antes); (c) buscar página oficial por outros caminhos (comunicados, estatutos).
 - Recoleta: o job de releitura (`REREAD_JOB.md`) cobre as 17 páginas oficiais do conjunto; páginas novas entram ao trocar o conjunto de referência do job.
