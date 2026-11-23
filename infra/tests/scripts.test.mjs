@@ -1139,3 +1139,31 @@ test('prova-png --etapa: uma linha [prova-png:<etapa>] {json} para o log do buil
   assert.match(linhas[0], /^\[prova-png:build\] \{"etapa":"build","ok":false,"plataforma":"[a-z0-9]+-[a-z0-9]+"/);
   rmSync(r, { recursive: true, force: true });
 });
+
+test('ci-checks: token em teste/doc passa só como placeholder evidente; token real em teste, e qualquer token fora de teste, reprova', async () => {
+  const { tokenEhPlaceholder, tokensReais } = await import('../scripts/lib/segredos.mjs');
+  // placeholders evidentes (os da ft/backend be051dc): marcador de falsidade no valor, sequência ascendente de 16+ caracteres, poucos caracteres distintos
+  for (const p of ['sk-primeira-conta-NAO-VAZAR', 'sk-segunda-conta-nao_vazar', 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123', 'sk-ABCDEFGHIJKLMNOPQRSTUVWX12345678', 'sk-' + 'A'.repeat(32), 'ghp_' + 'ab'.repeat(18), 'AKIAIOSFODNN7EXAMPLE', 'sk-fake-key-for-the-test-1234', 'xoxb-1234567890-exemplo']) assert.equal(tokenEhPlaceholder(p), true, p);
+  // aparência de segredo real: mistura aleatória, sem marcador e sem sequência
+  for (const p of ['sk-' + 'q8Zr3KmV9tYw2LpX6nBd4HsJ7cFa', 'ghp_' + 'aB3dE5gH7jK9mN1pQ3sT5vW7yZ2bD4', 'sk-proj-' + 'T3blaH9xQ2mZ8vK1cR7wY5nD4sJ6']) assert.equal(tokenEhPlaceholder(p), false, p);
+  const re = /\bsk-[A-Za-z0-9_-]{24,}/;
+  const misto = "const A = 'sk-primeira-conta-NAO-VAZAR'; const B = 'sk-" + 'q8Zr3KmV9tYw2LpX6nBd4HsJ7cFa' + "';";
+  assert.deepEqual(tokensReais(misto, re, 'packages/x/src/a.test.ts'), ['sk-q8Zr3KmV9tYw2LpX6nBd4HsJ7cFa']);
+  assert.equal(tokensReais("'sk-primeira-conta-NAO-VAZAR'", re, 'packages/x/src/a.test.ts').length, 0);
+  assert.equal(tokensReais("'sk-primeira-conta-NAO-VAZAR'", re, 'packages/x/src/a.ts').length, 1, 'fora de teste nenhum token passa, nem placeholder');
+  assert.equal(tokensReais("sk-primeira-conta-NAO-VAZAR", re, 'docs/guia.md').length, 0, 'documentação com placeholder passa');
+  // ponta a ponta no ci-checks
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  put(r, 'packages/openbot/src/__tests__/pilot.test.ts', "const a = 'sk-ABCDEFGHIJKLMNOPQRSTUVWX12345678'; const b = 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123';\n");
+  put(r, 'packages/intelligence/src/tests/reader-port.test.ts', "const S = { A: 'sk-primeira-conta-NAO-VAZAR' };\n");
+  assert.equal(node('ci-checks.mjs', ['--root', r]).status, 0);
+  put(r, 'packages/intelligence/src/tests/colado.test.ts', "const real = 'ghp_" + 'aB3dE5gH7jK9mN1pQ3sT5vW7yZ2bD4' + "';\n");
+  const x = node('ci-checks.mjs', ['--root', r]);
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /segredo: token GitHub em packages\/intelligence\/src\/tests\/colado\.test\.ts/);
+  rmSync(join(r, 'packages/intelligence/src/tests/colado.test.ts'));
+  put(r, 'packages/openbot/src/prod.ts', "export const k = 'sk-primeira-conta-NAO-VAZAR';\n");
+  assert.match(node('ci-checks.mjs', ['--root', r]).stderr, /segredo: chave sk- em packages\/openbot\/src\/prod\.ts/);
+  rmSync(r, { recursive: true, force: true });
+});

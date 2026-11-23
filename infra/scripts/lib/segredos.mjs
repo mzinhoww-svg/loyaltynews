@@ -17,3 +17,33 @@ export function conexoesComSenhaReais(txt, rel) {
   for (const m of txt.matchAll(re)) if (!(testeOuDoc && HOST_FALSO.test(m[1]))) reais.push(m[0]);
   return reais;
 }
+
+// ---- Tokens (GitHub, sk-, Slack, AWS) em arquivo de TESTE ou DOCUMENTAÇÃO: só passa o placeholder EVIDENTE; qualquer outro valor reprova.
+// Decisão 23/11/2026 (Security, conferência da ft/backend be051dc): fixtures como `sk-primeira-conta-NAO-VAZAR` e `ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123` não são vazamento,
+// mas a exclusão genérica de tests/ NÃO vale: um segredo real colado num teste tem de continuar sendo pego. Fora de teste/doc nenhum token passa.
+const MARCADORES_FALSOS = /nao[-_]?vazar|fake|falso|falsa|dummy|placeholder|example|exemplo|fixture|redact|nunca[-_]?usar/i;
+
+/** Maior sequência ascendente de caracteres consecutivos (ABCDEFG…, 0123…): chave aleatória real não passa de 3 ou 4. */
+function maiorSequenciaAscendente(s) {
+  let melhor = 1, atual = 1;
+  for (let i = 1; i < s.length; i++) { atual = s.charCodeAt(i) === s.charCodeAt(i - 1) + 1 ? atual + 1 : 1; if (atual > melhor) melhor = atual; }
+  return melhor;
+}
+
+/** O token é um placeholder evidente? Marcador de falsidade no próprio valor, sequência ascendente de 16+ caracteres ou no máximo 2 caracteres distintos. */
+export function tokenEhPlaceholder(token) {
+  const corpo = String(token).replace(/^(?:sk|ghp|gho|ghs|ghu|github_pat|xox[baprs]|AKIA)[-_]?/i, '');
+  if (MARCADORES_FALSOS.test(corpo)) return true;
+  if (maiorSequenciaAscendente(corpo) >= 16) return true;
+  if (new Set(corpo.replace(/[-_]/g, '')).size <= 2) return true;
+  return false;
+}
+
+/** Ocorrências de `re` (com flag g implícita) em `txt` que NÃO são placeholder evidente. Em arquivo de teste/doc os placeholders são ignorados; nos demais, todo achado conta. */
+export function tokensReais(txt, re, rel) {
+  const testeOuDoc = ARQUIVO_DE_TESTE_OU_DOC.test(rel);
+  const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+  const reais = [];
+  for (const m of txt.matchAll(g)) if (!(testeOuDoc && tokenEhPlaceholder(m[0]))) reais.push(m[0]);
+  return reais;
+}

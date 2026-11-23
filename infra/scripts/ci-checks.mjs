@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { conexoesComSenhaReais } from './lib/segredos.mjs';
+import { conexoesComSenhaReais, tokensReais } from './lib/segredos.mjs';
 import { achadosDoArquivo, ehCodigoDeProduto } from './lib/erros-log.mjs';
 import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER, ASSIGN_FLAGS } from './lib/guards.mjs';
 
@@ -94,6 +94,8 @@ for (const f of all) {
   for (const [nome, re] of SECRET_PATTERNS) {
     if (nome === 'string de conexão com senha') {
       if (conexoesComSenhaReais(txt, r).length) problems.push(`segredo: ${nome} em ${r}`);
+    } else if (['token GitHub', 'chave sk-', 'token Slack', 'AWS access key'].includes(nome)) {
+      if (tokensReais(txt, re, r).length) problems.push(`segredo: ${nome} em ${r}`); // em teste/doc passa só o placeholder evidente (lib/segredos.mjs)
     } else if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
   }
 }
