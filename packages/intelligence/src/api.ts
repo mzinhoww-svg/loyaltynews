@@ -10,6 +10,9 @@
  *   GET  /api/intelligence/executives/:id          -> getExecutiveHandler           [portal, studio]
  *   GET  /api/intelligence/companies/:id/org-chart -> getOrgChartHandler            [portal, studio]
  *   GET  /api/intelligence/moves                   -> listMovesHandler              [portal: só confirmados; studio: todos]
+ *   GET  /api/studio/intelligence/roles?certainty=&organizationId=&q=&limit=&offset= -> listRolesHandler [studio] (inclui a fila "a confirmar")
+ *   POST /api/studio/intelligence/roles/:id/confirm {officialUrl} -> confirmRoleHandler [studio, editor+, auditar]
+ *   POST /api/studio/intelligence/roles/:id/discard {motivo}      -> discardRoleHandler [studio, editor+, auditar]
  *   GET  /api/intelligence/moves/:id               -> getMoveHandler                [portal: só confirmado; studio: todos] (duas leituras: before/after)
  *   POST /api/studio/intelligence/moves/:id/review -> reviewMoveHandler             [studio, papel editor]
  *   GET/POST /api/studio/intelligence/watchlists, POST .../watchlists/:id/items     [studio]
@@ -30,6 +33,7 @@ import {
 import { currentPeopleAt, neighbors, shortestPath, type NodeRef } from './graph';
 import { getOrgChart } from './repo';
 import { reviewMove } from './moves';
+import { confirmRole, discardRole, listRoleViews } from './roles';
 import { createWatchlist, deleteWatchlist, listAlerts, reviewAlert, unwatch, watch } from './watchlists';
 import { exportPersonData, openSubjectRequest, rectifyPersonName, suppressPerson } from './subject-requests';
 
@@ -164,7 +168,42 @@ export async function graphPathHandler(db: Db, audience: Audience, input: unknow
   return ok({ path, max_hops: 3 });
 }
 
-// --------- Studio: revisão, watchlists, alertas ---------
+// --------- Studio: cargos (fila "a confirmar"), revisão, watchlists, alertas ---------
+
+/** Lista de cargos com `source_level` (official | secondary | inferred) e `status` (confirmed | to_confirm). Só Studio: o portal nunca recebe cargo inferido. */
+export async function listRolesHandler(db: Db, input: unknown): Promise<ApiResult> {
+  const f: Parameters<typeof listRoleViews>[1] = { limit: optInt(input, 'limit', 50, 200), offset: optInt(input, 'offset', 0, 100000) };
+  if (isObj(input) && input.certainty !== undefined) {
+    if (input.certainty !== 'declared' && input.certainty !== 'inferred') return fail(400, 'invalid_input', 'certainty deve ser declared ou inferred');
+    f.certainty = input.certainty;
+  }
+  if (isObj(input) && input.organizationId !== undefined) { const o = uuid(input, 'organizationId'); if (!o.ok) return o.res; f.organizationId = o.value; }
+  if (isObj(input) && typeof input.q === 'string' && input.q.trim()) f.q = input.q.slice(0, 100);
+  return ok({ items: await listRoleViews(db, f) });
+}
+
+const roleFail = (code: 'not_found' | 'not_inferred' | 'invalid_source', message: string) =>
+  fail(code === 'not_found' ? 404 : code === 'not_inferred' ? 409 : 400, code === 'invalid_source' ? 'invalid_input' : code, message);
+
+/** Confirma um cargo "a confirmar" com página OFICIAL (https, nunca LinkedIn/The Org). O Backend registra `actor` na auditoria. */
+export async function confirmRoleHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
+  const id = uuid(input, 'id'), url = text(input, 'officialUrl', 500);
+  if (!id.ok) return id.res;
+  if (!url.ok) return url.res;
+  if (!actor.trim()) return fail(401, 'actor_required', 'identidade é obrigatória');
+  const r = await confirmRole(db, id.value, { officialUrl: url.value, sourceName: isObj(input) && typeof input.sourceName === 'string' ? input.sourceName.slice(0, 200) : undefined }, actor);
+  return r.ok ? ok({ id: id.value, certainty: 'declared', source_level: 'official', confirmed_by: actor }) : roleFail(r.code, r.message);
+}
+
+/** Descarta um cargo inferido ("a confirmar"), com motivo. Declarado não se descarta por aqui. */
+export async function discardRoleHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
+  const id = uuid(input, 'id'), why = text(input, 'motivo', 200);
+  if (!id.ok) return id.res;
+  if (!why.ok) return why.res;
+  if (!actor.trim()) return fail(401, 'actor_required', 'identidade é obrigatória');
+  const r = await discardRole(db, id.value, why.value);
+  return r.ok ? ok({ id: id.value, discarded: true, discarded_by: actor }) : roleFail(r.code, r.message);
+}
 
 export async function reviewMoveHandler(db: Db, actor: string, input: unknown): Promise<ApiResult> {
   const id = uuid(input, 'id');

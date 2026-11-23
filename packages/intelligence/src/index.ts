@@ -11,6 +11,7 @@ export * from './subject-requests';
 export * from './queries';
 export * from './api';
 export * from './views';
+export * from './roles';
 export * from './ingest';
 export * from './org-layout';
 export * from './editorial-consumer';
