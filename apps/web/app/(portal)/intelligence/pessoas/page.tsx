@@ -7,7 +7,9 @@ import { formatDate } from '../../_lib/format';
 import { getSource } from '../../_lib/source';
 import { PEOPLE_EMPTY } from '../_components/intel';
 
-export const revalidate = 60;
+// Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
+// a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Pessoas — Loyalty Intelligence',
   description: 'Executivos do mercado de fidelização com cargos de fonte pública e data de validação.',

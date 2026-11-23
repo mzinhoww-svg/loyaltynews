@@ -9,7 +9,9 @@ import { KIND_LABEL, relationLabel } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
 import { MoveCard, RolesTable } from '../../_components/intel';
 
-export const revalidate = 60;
+// Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
+// a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
+export const dynamic = 'force-dynamic';
 
 const load = cache((id: string) => getSource().getCompany(id));
 

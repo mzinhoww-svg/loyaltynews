@@ -5,7 +5,9 @@ import { EmptyState, PageHead } from '../_components/ui';
 import { MOVES_EMPTY, MoveCard } from '../intelligence/_components/intel';
 import { getSource } from '../_lib/source';
 
-export const revalidate = 60;
+// Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática e vazia; em execução (PORTAL_SOURCE=api) o Next
+// recusaria a busca no-store e serviria a cópia congelada (achado no ensaio contra as rotas reais da int/011, next start).
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Loyalty Moves',
   description: 'Movimentações profissionais confirmadas no mercado de fidelização.',
