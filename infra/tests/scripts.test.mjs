@@ -294,3 +294,24 @@ test('start-web: sem release.json recusa (código 2); com ambiente errado recusa
     assert.doesNotMatch(r.stdout + r.stderr, /segredo-que-nao-pode-vazar/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('arquivos-orfaos: acha as sobras de upload antigo na árvore do app (JSON aninhado, lista plana e texto) e ignora node_modules/.next', async () => {
+  const { arquivosDaArvore, orfaos } = await import('../scripts/arquivos-orfaos.mjs');
+  const pacote = ['package.json', 'apps/web/app/page.tsx', 'apps/web/lib/studio/session.ts', 'release.json'];
+  const aninhada = { name: '', type: 'directory', children: [
+    { name: 'package.json', type: 'file' }, { name: 'release.json', type: 'file' },
+    { name: 'node_modules', type: 'directory', children: [{ name: 'x', type: 'file' }] },
+    { name: 'apps', type: 'directory', children: [{ name: 'web', type: 'directory', children: [
+      { name: '.next', type: 'directory', children: [{ name: 'BUILD_ID', type: 'file' }] },
+      { name: 'app', type: 'directory', children: [{ name: 'page.tsx', type: 'file' }, { name: 'velho.tsx', type: 'file' }] },
+      { name: 'lib', type: 'directory', children: [{ name: 'studio', type: 'directory', children: [{ name: 'session.ts', type: 'file' }, { name: 'test-seam.prod.ts', type: 'file' }] }] },
+    ] }] },
+  ] };
+  const esperado = ['apps/web/app/velho.tsx', 'apps/web/lib/studio/test-seam.prod.ts'];
+  assert.deepEqual(orfaos(arquivosDaArvore(aninhada), pacote), esperado);
+  const plana = { files: ['package.json', 'apps/web/app/page.tsx', 'apps/web/app/velho.tsx', 'apps/web/lib/studio/test-seam.prod.ts', 'node_modules/y/index.js', 'apps/web/.next/BUILD_ID'] };
+  assert.deepEqual(orfaos(arquivosDaArvore(plana), pacote), esperado);
+  assert.deepEqual(orfaos(arquivosDaArvore(JSON.stringify(['./package.json', '/apps/web/app/velho.tsx'])), pacote), ['apps/web/app/velho.tsx']);
+  assert.deepEqual(orfaos(arquivosDaArvore('package.json\napps/web/app/velho.tsx\napps/\n'), pacote), ['apps/web/app/velho.tsx']);
+  assert.deepEqual(orfaos(arquivosDaArvore(aninhada), [...pacote, ...esperado]), [], 'sem sobras quando o pacote cobre tudo');
+});
