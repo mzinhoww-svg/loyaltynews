@@ -62,10 +62,31 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
     if (String(env.CI ?? '').toLowerCase() === 'true') p.push('CI=true em ambiente de deploy: essa variável libera DB_SSL_MODE=disable e é só do CI');
   }
   const prod = ['production', 'producao'].includes(String(env.APP_ENV ?? '').toLowerCase());
+  // ADR-022 (DP-38): flags de produto por variável SÓ no staging, lista de nomes separada por vírgula. Produção liga por commit revisado (FLAG_RELEASES), nunca por variável.
+  const flagsOn = String(env.LN_FLAGS_ON ?? '');
+  if (flagsOn.trim() !== '') {
+    const ambFlags = String(env.APP_ENV ?? '').trim().toLowerCase();
+    if (prod) p.push('LN_FLAGS_ON definida em produção: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES');
+    else if (ambFlags === 'staging' && !/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
+    else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
+  }
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
 
   return p;
 }
+
+/** Lista de flags normalizada (ordenada, sem espaços) de `LN_FLAGS_ON` ou de release.json.flagsLigadas. */
+export const flagsNormalizadas = (v) => (Array.isArray(v) ? v : String(v ?? '').split(',')).map((s) => String(s).trim()).filter(Boolean).sort().join(',');
+
+/** ADR-022: em execução e no build, LN_FLAGS_ON tem de ser exatamente o que o release.json (`flagsLigadas`) diz; sem flags no pacote, a variável não pode existir. */
+export function flagsProblems(env, release) {
+  const rel = flagsNormalizadas(release?.flagsLigadas);
+  const cur = flagsNormalizadas(env.LN_FLAGS_ON);
+  if (cur === rel) return [];
+  return [rel
+    ? `LN_FLAGS_ON="${env.LN_FLAGS_ON ?? ''}" difere do release.json (flagsLigadas=${rel}): defina LN_FLAGS_ON=${rel}`
+    : `LN_FLAGS_ON="${env.LN_FLAGS_ON}" definida, mas o pacote não liga nenhuma flag (release.json.flagsLigadas vazio): apague a variável do app`];
+};
 
 // Atribuições em arquivos de deploy/IaC/scripts de produção. Citar o NOME (ex.: no contrato de variáveis, como proibida) não reprova.
 export const ASSIGN_STUDIO = /LN_STUDIO_TEST_SESSION["']?\s*[=:]/;
@@ -74,7 +95,8 @@ export const ASSIGN_PORTAL_MOCK = /PORTAL_(?:SOURCE|MODE)["']?\s*[=:]\s*["']?(?:
 // Vitrine (R8): ATRIBUIÇÃO de PORTAL_VITRINE (`PORTAL_VITRINE=1`, `PORTAL_VITRINE: '1'`, `"PORTAL_VITRINE": "1"`); LER (`process.env.PORTAL_VITRINE === '1'`) ou citar o nome não conta.
 // B1: ATRIBUICAO das variaveis da dispensa em configuracao de deploy (ler ou citar o nome nao conta).
 export const ASSIGN_WAIVER = /LN_BACKUP_(?:WAIVER_(?:REF|UNTIL)|VERTRA_SNAPSHOT_AT)["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
-export const ASSIGN_VITRINE = /PORTAL_VITRINE["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
+export const ASSIGN_FLAGS = /LN_FLAGS_ON["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
+export const ASSIGN_VITRINE =/PORTAL_VITRINE["']?\s*(?::|=(?!=))\s*["']?[^\s"',}=]/;
 // Marcadores que só existem com a vitrine ligada (Security R5/R8): a home de produção, e de staging sem vitrine, não pode conter nenhum.
 export const VITRINE_MARCADORES = ['Conteúdo de demonstração', 'MOCK · dados de exemplo', '[MOCK]'];
 export const VITRINE_BANNER = 'Conteúdo de demonstração';

@@ -53,7 +53,7 @@ export interface RouteRequest {
   ritualId?: string;
   escalationReason?: string;
   escalationsSoFar?: number;
-  mode: 'production' | 'simulation';
+  mode: 'production' | 'simulation' | 'qualification';
   qualifiedModelIds: readonly string[]; // qualificação R2-07/08; vazio por padrão
   zdrVerifiedModelIds: readonly string[]; // ZDR confirmado por modelo; vazio por padrão
   now: Date;

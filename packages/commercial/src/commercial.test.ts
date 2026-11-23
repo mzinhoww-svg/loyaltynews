@@ -8,6 +8,8 @@ import {
   evaluateActivation, confirmedCoverage, type Reservation, type ActivationEvidence,
 } from './index';
 
+import { realContent } from './real-creative.mock';
+
 const NOW = '2026-11-22T12:00:00-03:00';
 
 // ---------- catálogo ----------
@@ -80,7 +82,7 @@ test('capacidade teórica = R$72.000/mês a 100% e é rotulada como cenário, n�
 // ---------- rotação ----------
 function server(n: number) {
   const s = new AdServer();
-  for (let i = 1; i <= n; i++) s.addCreative({ id: `c${i}`, campaignId: `k${i}`, positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+  for (let i = 1; i <= n; i++) s.addCreative({ id: `c${i}`, campaignId: `k${i}`, positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent() });
   return s;
 }
 test('rotação com 4 anunciantes iguais dá 25% cada e conta impressões', () => {
@@ -90,8 +92,8 @@ test('rotação com 4 anunciantes iguais dá 25% cada e conta impressões', () =
 });
 test('pesos diferentes seguem a proporção', () => {
   const s = new AdServer();
-  s.addCreative({ id: 'a', campaignId: 'k1', positionId: 'TOP', weight: 3, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
-  s.addCreative({ id: 'b', campaignId: 'k2', positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+  s.addCreative({ id: 'a', campaignId: 'k1', positionId: 'TOP', weight: 3, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent() });
+  s.addCreative({ id: 'b', campaignId: 'k2', positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent() });
   for (let i = 0; i < 400; i++) s.serve({ positionId: 'TOP', today: '2026-12-05', pageViewId: `pv${i}` });
   assert.equal(s.delivery('a').served, 300); assert.equal(s.delivery('b').served, 100);
 });
@@ -130,7 +132,7 @@ test('relatório por campanha soma criativos da campanha', () => {
 
 // ---------- campanhas ----------
 const R = (over: Partial<Reservation> = {}): Reservation => ({ id: 'res-1', positionId: 'TOP', advertiserId: 'a', campaignId: 'cmp-1', startDate: '2026-12-01', endDate: '2027-02-28', status: 'confirmed', ...over });
-const EV = (over: Partial<ActivationEvidence> = {}): ActivationEvidence => ({ saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, ...over });
+const EV = (over: Partial<ActivationEvidence> = {}): ActivationEvidence => ({ saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, creativePositions: ['TOP'], ...over });
 /** Campanha cmp-1 em 'approved', pronta para tentar ativar. */
 function approvedCampaign() {
   const cb = new CampaignBook();
@@ -179,8 +181,8 @@ test('ativação: reserva confirmada precisa cobrir o período inteiro (início,
   refuses(cb, c.id, EV({ reservations: [R({ startDate: '2026-12-02' })] }), 'NO_CONFIRMED_RESERVATION');   // começa tarde
   refuses(cb, c.id, EV({ reservations: [R({ endDate: '2027-02-27' })] }), 'NO_CONFIRMED_RESERVATION');     // termina cedo
   refuses(cb, c.id, EV({ reservations: [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-02' })] }), 'NO_CONFIRMED_RESERVATION'); // buraco em 01/01
-  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })]), true);  // adjacentes cobrem
-  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2027-01-15' }), R({ id: 'b', startDate: '2027-01-10' })]), true);  // sobrepostas cobrem
+  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })], 'TOP'), true);  // adjacentes cobrem
+  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2027-01-15' }), R({ id: 'b', startDate: '2027-01-10' })], 'TOP'), true);  // sobrepostas cobrem
   cb.transition(c.id, 'active', NOW, { activation: EV({ reservations: [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })] }) });
   assert.equal(cb.get(c.id).status, 'active');
 });

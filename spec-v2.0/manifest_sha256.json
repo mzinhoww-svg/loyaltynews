@@ -1,0 +1,13 @@
+{
+  "Loyalty_News_Blueprint_v2_0.md": "6048d7d65c6ac949c0b9045dc428ac9c34833d46c903dc7f0c8b2051615e19fe",
+  "Loyalty_News_Wireframes_v2_0.html": "e8f39875a68dcf7ce356ac771d8492f23cb1e9bbe11f45cecced13b07a6e87d3",
+  "Loyalty_News_Wireframes_v2_0.pdf": "0898a2384ab2501534a8281ea35d0219153243ca7f1a6cc8e9298d7994e4b760",
+  "Loyalty_News_Wireframes_Completos_v2_0.pdf": "94e7f5b09e876d5b5aad618d9a18a62a1b70621616d5cdd21aed928f1325cdb8",
+  "Loyalty_News_v1_0_Baseline.zip": "8a7d0d6f1611837d88897bc78cd92b2637834584ebb8e679fbd57effb14e4f77",
+  "contracts/meetings.registry.json": "fe021fb8c8be41c6f405374d030e15e2586ebb854beaf0ffbedb6f8a09864322",
+  "contracts/agents.registry.json": "e70955f13e3d5aa4220f35d7c51d0788b76a84e52d0dfd0cfd53109311b04b49",
+  "contracts/budget.scenarios.csv": "a7555bf6957c1cfd4e37d287a616fc3891349ae3b516506b5d66b3a14faa8b94",
+  "contracts/workflows.registry.json": "1df7be3ac51407291982136bbf7b5b213d3b7396fdf48ddc9f970fadd153cfcb",
+  "contracts/model.policy.json": "3ac3820cd4dfb08c8780bbbc4106bddec766ba0f8df3d025c2f07eacf798eeb8",
+  "contracts/implementation_prompt.md": "06e047699e7a16a4019d06ec2edc3e4522b30fc96a5caa0504bcbf036179ad55"
+}

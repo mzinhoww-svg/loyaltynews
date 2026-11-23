@@ -15,7 +15,7 @@ const NOW = new Date('2026-11-25T10:00:00Z');
 const chefe: Actor = { userId: 'maria-chefe', roles: ['editor_chefe'], mfa: true };
 let ev: Evidence;
 beforeAll(async () => {
-  ev = (await new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  ev = (await new Collector(mockWeb(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 });
 
 /** Lookup MOCK do CMS: matérias que NÃO existem no EditorialStore (nascem no CMS), com evidências ligadas em article_sources. */

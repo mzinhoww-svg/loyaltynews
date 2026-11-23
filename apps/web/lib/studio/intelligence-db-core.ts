@@ -1,6 +1,7 @@
 // Núcleo (puro e testável) do banco do Entity Intelligence. NÃO contém código de banco em memória: a fábrica de dev/e2e
 // é injetada pelo chamador e só existe no build de e2e e no `next dev` (alias em next.config.ts). Em produção a fábrica é
 // nula: LN_STUDIO_DEV_DB é ignorada e o build recusa a variável.
+import { pgPoolConfig } from '@ln/db/tls';
 import type { Db } from '@ln/intelligence';
 
 export type Origem = 'postgres' | 'pglite-memoria';
@@ -21,7 +22,9 @@ export class BancoIndisponivel extends Error {
 export async function criarBanco(env: Record<string, string | undefined>, fabricaDev: FabricaDev | null): Promise<BancoIntelligence> {
   if (env.DATABASE_URL) {
     const { Pool } = await import('pg');
-    const pool = new Pool({ connectionString: env.DATABASE_URL });
+    // Vertra exige TLS com certificado de cliente em todo PostgreSQL: a mesma configuração do auth e do worker (@ln/db/tls)
+    const pool = new Pool(pgPoolConfig(env, { max: 5 }));
+    pool.on('error', () => undefined); // C1: erro de conexão ociosa não vira exceção com o objeto de opções no log
     return { db: pool as unknown as Db, origem: 'postgres' };
   }
   if (fabricaDev && env.LN_STUDIO_DEV_DB === 'pglite') return fabricaDev();

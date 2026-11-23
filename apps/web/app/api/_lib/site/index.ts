@@ -3,11 +3,14 @@
 //  - versão efetiva = a de maior data efetiva (publicadoEm ou publicarEm) já vencida; agendamento vale sozinho na hora marcada;
 //  - home e menus: só a chefia escreve e publica; SEO e links internos: a redação escreve, a chefia publica;
 //  - publicar revalida o conteúdo e o estado do sistema (matérias fixadas publicadas; posições publicitárias com dimensão reservada).
-import { and, asc, count, desc, eq, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { audit, can } from '@ln/auth';
 import { schema } from '@ln/db';
 import { z } from 'zod';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteCtx, type RouteFn } from '../http';
+import { publicArticlesWhere, publicCards } from '../articles';
+import { publicView as agendaPublicView } from '../agenda';
+import { hoje } from '../midia';
 import {
   CHEFIA_ONLY, CONTEUDO, CaminhoInterno, Destino, SiteTipoSchema, dimensaoReservada, pendenciasDePublicacao, type HomeContentT, type SeoContentT, type SiteTipo,
 } from './content';
@@ -76,7 +79,7 @@ export const previewSiteDoc: RouteFn = async (_req, c) => {
   const rascunho = await porEstado(c.deps.db, tipo, 'rascunho');
   if (!rascunho) throw new HttpError(404, 'NO_DRAFT', 'Não há rascunho deste documento.');
   const pendencias = await pendenciasDePublicacao(c.deps.db, tipo, rascunho.conteudo);
-  const resolvido = tipo === 'home' ? await resolverHome(c.deps.db, rascunho.conteudo as HomeContentT) : null;
+  const resolvido = tipo === 'home' ? await resolverHome(c.deps.db, rascunho.conteudo as HomeContentT, c.deps.now()) : null;
   return json({ data: { tipo, conteudo: rascunho.conteudo, pendencias, publicavel: pendencias.length === 0, resolvido } });
 };
 
@@ -249,20 +252,57 @@ export const deleteRedirect: RouteFn = async (_req, c) => {
 };
 
 // ---------- público (Portal) ----------
-async function resolverHome(db: RouteCtx['deps']['db'], h: HomeContentT) {
+/**
+ * Home RESOLVIDA: cada bloco já traz o que o Portal desenha (F-29), sem segunda chamada nem regra de negócio no Portal.
+ *  - `destaque`: `materias` na ordem fixada (fixada que saiu do ar some, sem quebrar a home);
+ *  - `lista_editoria` / `ultimas`: `materias` = as mais recentes (da editoria / de todas), até `limite`;
+ *  - `agenda`: `eventos` aprovados que ainda não terminaram, até `limite`;
+ *  - `publicidade`: `dimensao` reservada da posição.
+ * As matérias vêm no MESMO formato da listagem pública (`/api/publico/materias`): slug, título, resumo, tempo de leitura, assinatura,
+ * rótulo de publieditorial, `corrigida` e imagem pública com crédito. Só publicado/corrigido e classe `public`.
+ */
+async function resolverHome(db: RouteCtx['deps']['db'], h: HomeContentT, now: Date) {
   const slugs = [...new Set(h.blocos.flatMap((b) => (b.tipo === 'destaque' ? b.materiaSlugs : [])))];
-  const rows = slugs.length
-    ? await db
-        .select({ slug: schema.articles.slug, titulo: schema.articles.titulo, subtitulo: schema.articles.subtitulo, resumo: schema.articles.resumo, editoria: schema.articles.editoria, publicadoEm: schema.articles.publicadoEm })
-        .from(schema.articles)
-        .where(and(inArray(schema.articles.slug, slugs), inArray(schema.articles.status, ['publicado', 'corrigido']), eq(schema.articles.classeDeDado, 'public')))
-    : [];
-  const bySlug = new Map(rows.map((r) => [r.slug, r]));
-  return h.blocos.map((b) => {
-    if (b.tipo === 'destaque') return { ...b, materias: b.materiaSlugs.flatMap((s) => (bySlug.has(s) ? [bySlug.get(s)!] : [])) }; // fixada que saiu do ar some, sem quebrar a home
-    if (b.tipo === 'publicidade') return { ...b, dimensao: dimensaoReservada(b.posicao) };
-    return b;
-  });
+  const fixadas = slugs.length ? await db.select().from(schema.articles).where(publicArticlesWhere(inArray(schema.articles.slug, slugs))) : [];
+  const fixadasBySlug = new Map((await publicCards(db, fixadas, now)).map((card) => [card.slug, card]));
+  const maisRecentes = (editoria: string | undefined, limite: number) =>
+    db
+      .select()
+      .from(schema.articles)
+      .where(publicArticlesWhere(editoria ? eq(schema.articles.editoria, editoria) : undefined))
+      .orderBy(desc(schema.articles.publicadoEm), asc(schema.articles.id))
+      .limit(limite);
+  const resolvidos = await Promise.all(
+    h.blocos.map(async (b) => {
+      switch (b.tipo) {
+        case 'destaque':
+          return { ...b, materias: b.materiaSlugs.flatMap((s) => (fixadasBySlug.has(s) ? [fixadasBySlug.get(s)!] : [])) };
+        case 'lista_editoria':
+          return { ...b, materias: await publicCards(db, await maisRecentes(b.editoria, b.limite), now) };
+        case 'ultimas':
+          return { ...b, materias: await publicCards(db, await maisRecentes(undefined, b.limite), now) };
+        case 'agenda': {
+          const eventos = await db
+            .select()
+            .from(schema.agendaEvents)
+            .where(and(gte(schema.agendaEvents.fim, hoje(now)), eq(schema.agendaEvents.moderacao, 'aprovado')))
+            .orderBy(asc(schema.agendaEvents.inicio), asc(schema.agendaEvents.id))
+            .limit(b.limite);
+          return { ...b, eventos: eventos.map(agendaPublicView) };
+        }
+        case 'publicidade':
+          return { ...b, dimensao: dimensaoReservada(b.posicao) };
+        default: {
+          // Tipo de bloco novo SEM resolução ainda: o compilador acusa aqui (`never`) e, em tempo de execução, o bloco é IGNORADO de forma
+          // explícita (nunca sai como undefined/null na resposta pública). Acrescentar o tipo no `switch` é o que o liga ao Portal.
+          const _novo: never = b;
+          void _novo;
+          return null;
+        }
+      }
+    }),
+  );
+  return resolvidos.filter((b): b is NonNullable<typeof b> => b !== null);
 }
 
 /** Tudo o que o Portal precisa para montar a página, na versão em vigor agora. Sem documento publicado = null (o Portal usa o padrão dele). */
@@ -276,7 +316,7 @@ export const publicSite: RouteFn = async (_req, c) => {
   return json(
     {
       data: {
-        home: home ? { versao: home.versao, blocos: await resolverHome(c.deps.db, home.conteudo as HomeContentT) } : null,
+        home: home ? { versao: home.versao, blocos: await resolverHome(c.deps.db, home.conteudo as HomeContentT, now) } : null,
         menus: { principal: menuPrincipal?.conteudo ?? null, rodape: menuRodape?.conteudo ?? null },
         seo: seoC
           ? {

@@ -1,0 +1,2249 @@
+{
+  "runId": "run-20261123-01",
+  "criterion": "v1",
+  "note": "replay das respostas reais medidas; nenhuma chamada nova; nada publicado",
+  "eligible": 100,
+  "results": [
+    {
+      "path": "atual: direct → tavily",
+      "urls": 100,
+      "valid": 96,
+      "attempts": 112,
+      "fallbacks": 12,
+      "creditsUsdEquiv": 0.0144,
+      "usdPerValid": 0.00015,
+      "stopsByRestriction": 0,
+      "decisions": 213,
+      "latencyP50Ms": 460,
+      "latencyP95Ms": 10363,
+      "perUrl": [
+        {
+          "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 34875,
+          "attempts": 2
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/20/10/2026/gestao/renata-araujo-e-a-nova-secretaria-geral-da-aneel-e-a-primeira-mulher-a-ocupar-o-cargo/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 574,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/carreiras/premio-leva-5-universitarios-brasileiros-a-china-o-que-eles-fizeram-para-ganhar-a-viagem-miql/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 33587,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/empresas/bradesco-bbdc4-chega-ao-balanco-com-quase-r-10-bilhoes-a-mais-no-caixa-mas-ainda-precisa-convencer-que-a-virada-veio-para-ficar-miql/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 549,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/carreiras/o-conselho-do-ceo-do-btg-pactual-para-quem-quer-crescer-na-carreira-mesmo-sem-estar-pronto-miql/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 10065,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/20/10/2026/produtos/sandisk-lanca-cartoes-de-memoria-e-unidades-usb-c-para-oculos-de-realidade-virtual-da-meta/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 383,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/brasil/camara-deve-votar-hoje-o-ajuste-fiscal-entenda-a-proposta-do-governo-lula/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 4452,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/aberta-consulta-publica-para-tornar-obrigatorio-pronunciamento-tecnico-cpc-34-exploracao-e-avaliacao-de-recursos-minerais",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 176,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/economia/ipc-s-fica-estavel-em-038-na-3a-quadrissemana-de-novembro-diz-fgv/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 78,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/noticias/vendedor-de-loja-fazendo-live-a-china-ja-testou-e-a-licao-vai-alem-da-camera/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 72,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/rd-saude-radl3-brava-energia-brav3-jbs-jbss32-e-outros-destaques-desta-segunda-feira-mlem/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 84,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/empresas/rd-saude-radl3-vai-as-compras-empresa-aprova-recompra-de-ate-r-600-milhoes-em-acoes-lmrs/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 425,
+          "attempts": 1
+        },
+        {
+          "url": "https://www12.senado.leg.br/noticias/videos/2026/11/cdh-foi-ao-rio-de-janeiro-acompanhar-caso-do-menino-desaparecido-edson-davi",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 251,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/pop/kate-bishop-de-gaviao-arqueiro-e-confirmada-em-vingadores-doutor-destino/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1794,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/cvm-inicia-consulta-publica-relacionada-a-revisao-de-pronunciamento-tecnico-cpc-31",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 89,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/mercados/taxas-de-juros-acompanham-alta-do-dolar-com-fiscal-no-foco/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 74,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/artigos/varejo-e-consumo-no-japao-servem-de-inspiracao/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 251,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/plano-de-investimentos-da-petrobras-2027-2031-deve-superar-us120-bi-dizem-fontes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 48,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/colunistas/a-alegria-do-clt-a-estrategia-do-totalpass-e-uma-semana-mais-curta-de-aversao-a-risco-julw/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 628,
+          "attempts": 1
+        },
+        {
+          "url": "https://www12.senado.leg.br/noticias/videos/2026/11/diligencia-da-cdh-em-bacabal-no-maranhao-acompanhou-busca-por-criancas-desaparecidas",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 235,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/inteligencia-artificial/alexandr-wang-superinteligencia-claude-riemann/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 76,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/area-tecnica-da-cvm-informa-sobre-novo-sistema-de-solicitacao-de-autorizacao-e-informacao-de-atualizacoes-cadastrais",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1803,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/business/crowdstrike-reverte-prejuizo-supera-projecoes-e-anuncia-para-compra-de-empresa/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 94,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/foodservice/mel-com-pimenta-e-snacks-funcionais-estao-entre-as-tendencias-de-alimentos-para-2027/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 141,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/economistas-elevam-projecoes-para-selic-e-inflacao-em-2027-confira-o-focus-desta-segunda-feira-23-jcav/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 119,
+          "attempts": 1
+        },
+        {
+          "url": "https://nu.com/pt/sala-de-imprensa/companhia/nubank-recebe-aprovacao-do-banco-central-para-obter-licenca-bancaria-no-brasil",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 3215,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.livelo.com.br/imprensa/release-pesquisa-economia-comportamental-os-pontos",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1532,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.itau.com.br/relacoes-com-investidores/noticias/itau-bba-lanca-o-connect-cash-nova-plataforma-para-centralizacao-e-eficiencia-na-gestao-de-caixa-latam/?lang=en",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 962,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.finextra.com/pressarticle/111734/alipay-connects-global-e-wallets-with-brazils-pix",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 197,
+          "attempts": 2
+        },
+        {
+          "url": "https://nu.com/pt/sala-de-imprensa/companhia/nu-holdings-ltd-divulga-resultados-financeiros-do-terceiro-trimestre-de-2026",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 3461,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/openai-compra-ona/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1254,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/12/06/2026/gove-governo-zero-clique/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1086,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/stf-60-dias-novo-mci/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 84,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/meta-copa-apps/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1241,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/23/11/2026/mobimeeting-bmg-serpro/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 202,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/spons/travel-brands-arent-the-only-ones-that-benefit-from-non-prime-credit-card/875363/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 954,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/commerce/ecommerce/2026/croissant-uses-remy-ai-to-match-luxury-shoppers-with-new-brands/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 206,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/20/11/2026/tiktok-controle-de-ia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 113,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/spons/how-digital-dollars-improve-cross-border-payment-management/874849/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 771,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/news/banking/2026/mastercard-targets-the-trust-gap-in-open-finance/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 94,
+          "attempts": 1
+        },
+        {
+          "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 101,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/19/11/2026/motorola-lanca-qira-ia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 209,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/news/paypal-ceo-remakes-team/875344/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 803,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/smbs/2026/small-businesses-face-a-credit-divide-that-widens-with-size/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 55,
+          "attempts": 1
+        },
+        {
+          "url": "https://finsidersbrasil.com.br/pix-6-anos/crescimento-do-pix-coloca-a-prova-a-infraestrutura-do-sfn/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 86,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/segue-valendo-assine-o-clube-smiles-2-000-e-ganhe-14-mil-milhas-bonus-2/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 434,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/ultimo-dia-para-assinar-o-all-signature-antes-do-aumento/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 413,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/passageiro-de-primeira-celebra-15-anos-com-ofertas-exclusivas-em-julho/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 400,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.melhoresdestinos.com.br/promocao/pacotes-de-viagem-para-foz-do-iguacu-23nov26",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 99,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/voe-para-lisboa-partir-de-r-1-363-ou-57-mil-milhas-latam-pass-taxas-por-trecho/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 534,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/latam-pass-oferece-27-de-bonus-na-transferencia-de-pontos-livelo/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 92,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-announces-nominations-are-open-for-the-2027-nuts-bolts-awards/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 244,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/11-20-governments-back-global-agenda-for-more-competitive-sustainable-air-transport-industry/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 614,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/black-friday-all-accor-garanta-hospedagem-ate-50-porcento-desconto/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 223,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/black-friday-ganhe-5-000-pontos-ao-abrir-a-conta-global-revolut/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1191,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-continues-carb-partnership-to-advance-saf-deployment/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 189,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/11-17-us-fish-wildlife-service-becomes-first-government-agency-use-iata-lar-verify/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 779,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/turkish-airlines-oferece-20-de-desconto-em-voos-internacionais/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 32170,
+          "attempts": 2
+        },
+        {
+          "url": "https://passageirodeprimeira.com/prepare-se-os-alertas-do-pp-vao-ter-o-maior-desconto-da-historia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1184,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-response-to-misleading-and-incomplete-story-from-the-new-york-times/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 226,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/10-30-air-passenger-falls-september/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1646,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.melhoresdestinos.com.br/revista-time-melhores-companhias-aereas.html",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 179,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/black-friday-all-accor-garanta-assinatura-all-signature-ate-40-porcento-desconto/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 58,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/melhor-oferta-do-ano-assine-o-all-signature-com-ate-40-de-desconto-incluindo-ex-assinantes-2/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 460,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-receives-prnews-platinum-award-for-red-flight-blue-campaign/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 218,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/noticias/nao-quer-ia-canva-ganha-botao-para-isso/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 100,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 1804,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/achados/black-november-lenovo-idea-tab-pro-gen-2-para-jogos-tem-melhor-oferta-que-ja-vimos/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 549,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/achados/black-november-galaxy-z-fold-8-512-gb-tem-melhor-oferta-desde-lancamento/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 905,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/noticias/motorola-confirma-mais-celulares-que-receberao-o-android-17/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 439,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/aviso-de-pauta-brasscom-reune-liderancas-para-debater-o-impacto-pratico-da-ia-no-brasil-durante-o-tecforum-tecnologia/?utm_source=rss&utm_medium=rss&utm_campaign=aviso-de-pauta-brasscom-reune-liderancas-para-debater-o-impacto-pratico-da-ia-no-brasil-durante-o-tecforum-tecnologia",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 68,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/software/samsung-prepara-recurso-contra-golpes-e-voz-de-ia-em-ligacoes-no-whatsapp-e-telegram/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 986,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/reviews/samsung-galaxy-a07-e-a17-em-promocao-veja-as-melhores-ofertas-da-linha/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 158,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/aviso-de-pauta-maturidade-em-ciberseguranca-cresce-41-no-brasil-brasscom-debate-mercado-de-r-127-bi-em-webinar-no-dia-28-10/?utm_source=rss&utm_medium=rss&utm_campaign=aviso-de-pauta-maturidade-em-ciberseguranca-cresce-41-no-brasil-brasscom-debate-mercado-de-r-127-bi-em-webinar-no-dia-28-10",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 86,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/smartphone/samsung-pode-piorar-camera-do-galaxy-a38-em-2027-entenda/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 640,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/reviews/smart-tv-lg-43lr6700-e-boa-opcao-para-quem-busca-conectividade-e-recursos-sem-gastar-muito/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 89,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/brasscom-parabeniza-governo-reeleito-e-reforca-agenda-digital-como-pilar-para-autonomia-tecnologica-do-brasil/?utm_source=rss&utm_medium=rss&utm_campaign=brasscom-parabeniza-governo-reeleito-e-reforca-agenda-digital-como-pilar-para-autonomia-tecnologica-do-brasil",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 120,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/entretenimento/quanto-tempo-tera-vingadores-doutor-destino-diretor-revela/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 856,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/games-e-consoles/the-game-awards-12-vencedores-jogo-do-ano-numeros-gta-6/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 54,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/newsletter-agosto/?utm_source=rss&utm_medium=rss&utm_campaign=newsletter-agosto",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 92,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-registra-lucro-liquido-de-us--441-milhoes-no-terceiro-trim",
+          "valid": false,
+          "latencyMs": 10409,
+          "attempts": 2
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2024-11-22/star/a-new-haven-for-travellers-star-alliance-unveils-its-first-lounge-in-asia-at-guangzhou-baiyun-international-airport-china-media-release",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1683,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-publishes-statement-on-the-data-protection-challenges-of-smart-glasses_pt",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1652,
+          "attempts": 1
+        },
+        {
+          "url": "https://aeroin.net/portugal-se-junta-ao-brasil-para-desenvolver-versao-do-embraer-kc-390-para-caca-de-submarinos/?amp=",
+          "valid": false,
+          "latencyMs": 1883,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/o-bradesco-foi-o-unico-banco-com-propostas-contempladas-nos-cinco-leiloes-eco-invest-do-tesouro/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1974,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.oneworld.com/news/oneworld-unlocks-enhanced-multi-carrier-digital-check-in-experience-across-its-global-network-technology",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1053,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-pass-amplia-parceria-com-nubank-e-passa-a-oferecer-transfe",
+          "valid": false,
+          "latencyMs": 10363,
+          "attempts": 2
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2024-09-03/star/star-alliance-member-airlines-create-compelling-loyalty-offer-for-frequent-flyers-in-scandinavia-media-release",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1518,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-adopts-statement-on-review-of-the-republic-of-korea-adequacy-processor-bcr_fr",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 773,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/bradesco-bbdc4-esta-prestes-a-receber-r-10-bilhoes-para-crescer-mas-nao-vai-acelerar/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2257,
+          "attempts": 1
+        },
+        {
+          "url": "https://pt.oneworld.com/news/oneworld-hosts-innovation-summit-showcasing-the-future-of-travel",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2382,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-airlines-brasil-e-embraer-celebram-o-primeiro-e195-e2-da-h",
+          "valid": false,
+          "latencyMs": 10721,
+          "attempts": 2
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2025-01-14/general/brazil-plans-to-attract-investment-of-over-us-800mn-in-regional-airports",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1265,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-harmonises-fining-methodology-and-adopts-final-dsa-gdpr-guidelines_en",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 840,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/bradesco-reformula-area-de-renda-fixa-e-volta-liderar-ranking-da-anbima-apos-quase-10-anos/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2378,
+          "attempts": 1
+        },
+        {
+          "url": "https://onemileatatime.com/news/qatar-airways-airbus-a321lr-flat-bed-business-class/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 442,
+          "attempts": 1
+        },
+        {
+          "url": "https://simpleflying.com/qantas-cancels-3-international-boeing-787-routes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 781,
+          "attempts": 1
+        },
+        {
+          "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
+          "valid": true,
+          "provider": "tavily-extract",
+          "latencyMs": 1952,
+          "attempts": 2
+        },
+        {
+          "url": "https://onemileatatime.com/news/dozens-fall-ill-condor-flights-frankfurt-mass-casualty-response/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 217,
+          "attempts": 1
+        },
+        {
+          "url": "https://simpleflying.com/qatar-airways-adds-1st-ever-airbus-a321lr-routes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 731,
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "path": "cascata fixa por preço: direct → zyte → scrapfly → brightdata → exa → tavily → apify",
+      "urls": 100,
+      "valid": 100,
+      "attempts": 126,
+      "fallbacks": 26,
+      "creditsUsdEquiv": 0.01485,
+      "usdPerValid": 0.000149,
+      "stopsByRestriction": 0,
+      "decisions": 227,
+      "latencyP50Ms": 549,
+      "latencyP95Ms": 10113,
+      "perUrl": [
+        {
+          "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 31758,
+          "attempts": 2
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/20/10/2026/gestao/renata-araujo-e-a-nova-secretaria-geral-da-aneel-e-a-primeira-mulher-a-ocupar-o-cargo/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 574,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/carreiras/premio-leva-5-universitarios-brasileiros-a-china-o-que-eles-fizeram-para-ganhar-a-viagem-miql/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 31999,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/empresas/bradesco-bbdc4-chega-ao-balanco-com-quase-r-10-bilhoes-a-mais-no-caixa-mas-ainda-precisa-convencer-que-a-virada-veio-para-ficar-miql/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 549,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/carreiras/o-conselho-do-ceo-do-btg-pactual-para-quem-quer-crescer-na-carreira-mesmo-sem-estar-pronto-miql/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 10065,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/20/10/2026/produtos/sandisk-lanca-cartoes-de-memoria-e-unidades-usb-c-para-oculos-de-realidade-virtual-da-meta/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 383,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/brasil/camara-deve-votar-hoje-o-ajuste-fiscal-entenda-a-proposta-do-governo-lula/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 4452,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/aberta-consulta-publica-para-tornar-obrigatorio-pronunciamento-tecnico-cpc-34-exploracao-e-avaliacao-de-recursos-minerais",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 176,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/economia/ipc-s-fica-estavel-em-038-na-3a-quadrissemana-de-novembro-diz-fgv/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 78,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/noticias/vendedor-de-loja-fazendo-live-a-china-ja-testou-e-a-licao-vai-alem-da-camera/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 72,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/rd-saude-radl3-brava-energia-brav3-jbs-jbss32-e-outros-destaques-desta-segunda-feira-mlem/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 84,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/empresas/rd-saude-radl3-vai-as-compras-empresa-aprova-recompra-de-ate-r-600-milhoes-em-acoes-lmrs/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 425,
+          "attempts": 1
+        },
+        {
+          "url": "https://www12.senado.leg.br/noticias/videos/2026/11/cdh-foi-ao-rio-de-janeiro-acompanhar-caso-do-menino-desaparecido-edson-davi",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 251,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/pop/kate-bishop-de-gaviao-arqueiro-e-confirmada-em-vingadores-doutor-destino/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1794,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/cvm-inicia-consulta-publica-relacionada-a-revisao-de-pronunciamento-tecnico-cpc-31",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 89,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/mercados/taxas-de-juros-acompanham-alta-do-dolar-com-fiscal-no-foco/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 74,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/artigos/varejo-e-consumo-no-japao-servem-de-inspiracao/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 251,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/plano-de-investimentos-da-petrobras-2027-2031-deve-superar-us120-bi-dizem-fontes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 48,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/colunistas/a-alegria-do-clt-a-estrategia-do-totalpass-e-uma-semana-mais-curta-de-aversao-a-risco-julw/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 628,
+          "attempts": 1
+        },
+        {
+          "url": "https://www12.senado.leg.br/noticias/videos/2026/11/diligencia-da-cdh-em-bacabal-no-maranhao-acompanhou-busca-por-criancas-desaparecidas",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 235,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/inteligencia-artificial/alexandr-wang-superinteligencia-claude-riemann/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 76,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/area-tecnica-da-cvm-informa-sobre-novo-sistema-de-solicitacao-de-autorizacao-e-informacao-de-atualizacoes-cadastrais",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1803,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/business/crowdstrike-reverte-prejuizo-supera-projecoes-e-anuncia-para-compra-de-empresa/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 94,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/foodservice/mel-com-pimenta-e-snacks-funcionais-estao-entre-as-tendencias-de-alimentos-para-2027/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 141,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/economistas-elevam-projecoes-para-selic-e-inflacao-em-2027-confira-o-focus-desta-segunda-feira-23-jcav/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 119,
+          "attempts": 1
+        },
+        {
+          "url": "https://nu.com/pt/sala-de-imprensa/companhia/nubank-recebe-aprovacao-do-banco-central-para-obter-licenca-bancaria-no-brasil",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 3215,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.livelo.com.br/imprensa/release-pesquisa-economia-comportamental-os-pontos",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1532,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.itau.com.br/relacoes-com-investidores/noticias/itau-bba-lanca-o-connect-cash-nova-plataforma-para-centralizacao-e-eficiencia-na-gestao-de-caixa-latam/?lang=en",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 962,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.finextra.com/pressarticle/111734/alipay-connects-global-e-wallets-with-brazils-pix",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 7626,
+          "attempts": 2
+        },
+        {
+          "url": "https://nu.com/pt/sala-de-imprensa/companhia/nu-holdings-ltd-divulga-resultados-financeiros-do-terceiro-trimestre-de-2026",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 3461,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/openai-compra-ona/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1254,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/12/06/2026/gove-governo-zero-clique/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1086,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/stf-60-dias-novo-mci/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 84,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/meta-copa-apps/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1241,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/23/11/2026/mobimeeting-bmg-serpro/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 202,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/spons/travel-brands-arent-the-only-ones-that-benefit-from-non-prime-credit-card/875363/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 954,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/commerce/ecommerce/2026/croissant-uses-remy-ai-to-match-luxury-shoppers-with-new-brands/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 206,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/20/11/2026/tiktok-controle-de-ia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 113,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/spons/how-digital-dollars-improve-cross-border-payment-management/874849/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 771,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/news/banking/2026/mastercard-targets-the-trust-gap-in-open-finance/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 94,
+          "attempts": 1
+        },
+        {
+          "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 101,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/19/11/2026/motorola-lanca-qira-ia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 209,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/news/paypal-ceo-remakes-team/875344/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 803,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/smbs/2026/small-businesses-face-a-credit-divide-that-widens-with-size/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 55,
+          "attempts": 1
+        },
+        {
+          "url": "https://finsidersbrasil.com.br/pix-6-anos/crescimento-do-pix-coloca-a-prova-a-infraestrutura-do-sfn/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 86,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/segue-valendo-assine-o-clube-smiles-2-000-e-ganhe-14-mil-milhas-bonus-2/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 434,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/ultimo-dia-para-assinar-o-all-signature-antes-do-aumento/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 413,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/passageiro-de-primeira-celebra-15-anos-com-ofertas-exclusivas-em-julho/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 400,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.melhoresdestinos.com.br/promocao/pacotes-de-viagem-para-foz-do-iguacu-23nov26",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 99,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/voe-para-lisboa-partir-de-r-1-363-ou-57-mil-milhas-latam-pass-taxas-por-trecho/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 534,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/latam-pass-oferece-27-de-bonus-na-transferencia-de-pontos-livelo/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 92,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-announces-nominations-are-open-for-the-2027-nuts-bolts-awards/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 244,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/11-20-governments-back-global-agenda-for-more-competitive-sustainable-air-transport-industry/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 614,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/black-friday-all-accor-garanta-hospedagem-ate-50-porcento-desconto/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 223,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/black-friday-ganhe-5-000-pontos-ao-abrir-a-conta-global-revolut/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1191,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-continues-carb-partnership-to-advance-saf-deployment/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 189,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/11-17-us-fish-wildlife-service-becomes-first-government-agency-use-iata-lar-verify/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 779,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/turkish-airlines-oferece-20-de-desconto-em-voos-internacionais/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 39711,
+          "attempts": 2
+        },
+        {
+          "url": "https://passageirodeprimeira.com/prepare-se-os-alertas-do-pp-vao-ter-o-maior-desconto-da-historia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1184,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-response-to-misleading-and-incomplete-story-from-the-new-york-times/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 226,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/10-30-air-passenger-falls-september/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1646,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.melhoresdestinos.com.br/revista-time-melhores-companhias-aereas.html",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 179,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/black-friday-all-accor-garanta-assinatura-all-signature-ate-40-porcento-desconto/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 58,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/melhor-oferta-do-ano-assine-o-all-signature-com-ate-40-de-desconto-incluindo-ex-assinantes-2/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 460,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-receives-prnews-platinum-award-for-red-flight-blue-campaign/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 218,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/noticias/nao-quer-ia-canva-ganha-botao-para-isso/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 100,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 5077,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/achados/black-november-lenovo-idea-tab-pro-gen-2-para-jogos-tem-melhor-oferta-que-ja-vimos/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 15691,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/achados/black-november-galaxy-z-fold-8-512-gb-tem-melhor-oferta-desde-lancamento/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 1994,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/noticias/motorola-confirma-mais-celulares-que-receberao-o-android-17/",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 2436,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/aviso-de-pauta-brasscom-reune-liderancas-para-debater-o-impacto-pratico-da-ia-no-brasil-durante-o-tecforum-tecnologia/?utm_source=rss&utm_medium=rss&utm_campaign=aviso-de-pauta-brasscom-reune-liderancas-para-debater-o-impacto-pratico-da-ia-no-brasil-durante-o-tecforum-tecnologia",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 68,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/software/samsung-prepara-recurso-contra-golpes-e-voz-de-ia-em-ligacoes-no-whatsapp-e-telegram/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 986,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/reviews/samsung-galaxy-a07-e-a17-em-promocao-veja-as-melhores-ofertas-da-linha/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 158,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/aviso-de-pauta-maturidade-em-ciberseguranca-cresce-41-no-brasil-brasscom-debate-mercado-de-r-127-bi-em-webinar-no-dia-28-10/?utm_source=rss&utm_medium=rss&utm_campaign=aviso-de-pauta-maturidade-em-ciberseguranca-cresce-41-no-brasil-brasscom-debate-mercado-de-r-127-bi-em-webinar-no-dia-28-10",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 86,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/smartphone/samsung-pode-piorar-camera-do-galaxy-a38-em-2027-entenda/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 640,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/reviews/smart-tv-lg-43lr6700-e-boa-opcao-para-quem-busca-conectividade-e-recursos-sem-gastar-muito/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 89,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/brasscom-parabeniza-governo-reeleito-e-reforca-agenda-digital-como-pilar-para-autonomia-tecnologica-do-brasil/?utm_source=rss&utm_medium=rss&utm_campaign=brasscom-parabeniza-governo-reeleito-e-reforca-agenda-digital-como-pilar-para-autonomia-tecnologica-do-brasil",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 120,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/entretenimento/quanto-tempo-tera-vingadores-doutor-destino-diretor-revela/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 856,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/games-e-consoles/the-game-awards-12-vencedores-jogo-do-ano-numeros-gta-6/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 54,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/newsletter-agosto/?utm_source=rss&utm_medium=rss&utm_campaign=newsletter-agosto",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 92,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-registra-lucro-liquido-de-us--441-milhoes-no-terceiro-trim",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 8839,
+          "attempts": 5
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2024-11-22/star/a-new-haven-for-travellers-star-alliance-unveils-its-first-lounge-in-asia-at-guangzhou-baiyun-international-airport-china-media-release",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1683,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-publishes-statement-on-the-data-protection-challenges-of-smart-glasses_pt",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1652,
+          "attempts": 1
+        },
+        {
+          "url": "https://aeroin.net/portugal-se-junta-ao-brasil-para-desenvolver-versao-do-embraer-kc-390-para-caca-de-submarinos/?amp=",
+          "valid": true,
+          "provider": "brightdata-unlocker",
+          "latencyMs": 57537,
+          "attempts": 4
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/o-bradesco-foi-o-unico-banco-com-propostas-contempladas-nos-cinco-leiloes-eco-invest-do-tesouro/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1974,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.oneworld.com/news/oneworld-unlocks-enhanced-multi-carrier-digital-check-in-experience-across-its-global-network-technology",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1053,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-pass-amplia-parceria-com-nubank-e-passa-a-oferecer-transfe",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 10113,
+          "attempts": 5
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2024-09-03/star/star-alliance-member-airlines-create-compelling-loyalty-offer-for-frequent-flyers-in-scandinavia-media-release",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1518,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-adopts-statement-on-review-of-the-republic-of-korea-adequacy-processor-bcr_fr",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 773,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/bradesco-bbdc4-esta-prestes-a-receber-r-10-bilhoes-para-crescer-mas-nao-vai-acelerar/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2257,
+          "attempts": 1
+        },
+        {
+          "url": "https://pt.oneworld.com/news/oneworld-hosts-innovation-summit-showcasing-the-future-of-travel",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2382,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-airlines-brasil-e-embraer-celebram-o-primeiro-e195-e2-da-h",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 6412,
+          "attempts": 5
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2025-01-14/general/brazil-plans-to-attract-investment-of-over-us-800mn-in-regional-airports",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1265,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-harmonises-fining-methodology-and-adopts-final-dsa-gdpr-guidelines_en",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 840,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/bradesco-reformula-area-de-renda-fixa-e-volta-liderar-ranking-da-anbima-apos-quase-10-anos/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2378,
+          "attempts": 1
+        },
+        {
+          "url": "https://onemileatatime.com/news/qatar-airways-airbus-a321lr-flat-bed-business-class/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 442,
+          "attempts": 1
+        },
+        {
+          "url": "https://simpleflying.com/qantas-cancels-3-international-boeing-787-routes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 781,
+          "attempts": 1
+        },
+        {
+          "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 8242,
+          "attempts": 5
+        },
+        {
+          "url": "https://onemileatatime.com/news/dozens-fall-ill-condor-flights-frankfurt-mass-casualty-response/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 217,
+          "attempts": 1
+        },
+        {
+          "url": "https://simpleflying.com/qatar-airways-adds-1st-ever-airbus-a321lr-routes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 731,
+          "attempts": 1
+        }
+      ]
+    },
+    {
+      "path": "adaptativo (validação cruzada 2 dobras)",
+      "urls": 100,
+      "valid": 100,
+      "attempts": 116,
+      "fallbacks": 16,
+      "creditsUsdEquiv": 0.00745,
+      "usdPerValid": 0.000074,
+      "stopsByRestriction": 0,
+      "decisions": 216,
+      "perUrl": [
+        {
+          "url": "https://mercadoeconsumo.com.br/20/10/2026/gestao/renata-araujo-e-a-nova-secretaria-geral-da-aneel-e-a-primeira-mulher-a-ocupar-o-cargo/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 574,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/empresas/bradesco-bbdc4-chega-ao-balanco-com-quase-r-10-bilhoes-a-mais-no-caixa-mas-ainda-precisa-convencer-que-a-virada-veio-para-ficar-miql/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 549,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/20/10/2026/produtos/sandisk-lanca-cartoes-de-memoria-e-unidades-usb-c-para-oculos-de-realidade-virtual-da-meta/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 383,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/aberta-consulta-publica-para-tornar-obrigatorio-pronunciamento-tecnico-cpc-34-exploracao-e-avaliacao-de-recursos-minerais",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 176,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/noticias/vendedor-de-loja-fazendo-live-a-china-ja-testou-e-a-licao-vai-alem-da-camera/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 72,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/empresas/rd-saude-radl3-vai-as-compras-empresa-aprova-recompra-de-ate-r-600-milhoes-em-acoes-lmrs/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 425,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/pop/kate-bishop-de-gaviao-arqueiro-e-confirmada-em-vingadores-doutor-destino/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1794,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/mercados/taxas-de-juros-acompanham-alta-do-dolar-com-fiscal-no-foco/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 74,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/plano-de-investimentos-da-petrobras-2027-2031-deve-superar-us120-bi-dizem-fontes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 48,
+          "attempts": 1
+        },
+        {
+          "url": "https://www12.senado.leg.br/noticias/videos/2026/11/diligencia-da-cdh-em-bacabal-no-maranhao-acompanhou-busca-por-criancas-desaparecidas",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 235,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/area-tecnica-da-cvm-informa-sobre-novo-sistema-de-solicitacao-de-autorizacao-e-informacao-de-atualizacoes-cadastrais",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1803,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/foodservice/mel-com-pimenta-e-snacks-funcionais-estao-entre-as-tendencias-de-alimentos-para-2027/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 141,
+          "attempts": 1
+        },
+        {
+          "url": "https://nu.com/pt/sala-de-imprensa/companhia/nubank-recebe-aprovacao-do-banco-central-para-obter-licenca-bancaria-no-brasil",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 3215,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.itau.com.br/relacoes-com-investidores/noticias/itau-bba-lanca-o-connect-cash-nova-plataforma-para-centralizacao-e-eficiencia-na-gestao-de-caixa-latam/?lang=en",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 962,
+          "attempts": 1
+        },
+        {
+          "url": "https://nu.com/pt/sala-de-imprensa/companhia/nu-holdings-ltd-divulga-resultados-financeiros-do-terceiro-trimestre-de-2026",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 3461,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/12/06/2026/gove-governo-zero-clique/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1086,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/meta-copa-apps/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1241,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/spons/travel-brands-arent-the-only-ones-that-benefit-from-non-prime-credit-card/875363/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 954,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/20/11/2026/tiktok-controle-de-ia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 113,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/news/banking/2026/mastercard-targets-the-trust-gap-in-open-finance/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 94,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/19/11/2026/motorola-lanca-qira-ia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 209,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/smbs/2026/small-businesses-face-a-credit-divide-that-widens-with-size/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 55,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/segue-valendo-assine-o-clube-smiles-2-000-e-ganhe-14-mil-milhas-bonus-2/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 434,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/passageiro-de-primeira-celebra-15-anos-com-ofertas-exclusivas-em-julho/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 400,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/voe-para-lisboa-partir-de-r-1-363-ou-57-mil-milhas-latam-pass-taxas-por-trecho/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 534,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-announces-nominations-are-open-for-the-2027-nuts-bolts-awards/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 244,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/black-friday-all-accor-garanta-hospedagem-ate-50-porcento-desconto/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 223,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-continues-carb-partnership-to-advance-saf-deployment/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 189,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/turkish-airlines-oferece-20-de-desconto-em-voos-internacionais/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 33333,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.airlines.org/a4a-response-to-misleading-and-incomplete-story-from-the-new-york-times/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 226,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.melhoresdestinos.com.br/revista-time-melhores-companhias-aereas.html",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 179,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/melhor-oferta-do-ano-assine-o-all-signature-com-ate-40-de-desconto-incluindo-ex-assinantes-2/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 460,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/noticias/nao-quer-ia-canva-ganha-botao-para-isso/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 1449,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/achados/black-november-lenovo-idea-tab-pro-gen-2-para-jogos-tem-melhor-oferta-que-ja-vimos/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 1651,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/noticias/motorola-confirma-mais-celulares-que-receberao-o-android-17/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 2786,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/software/samsung-prepara-recurso-contra-golpes-e-voz-de-ia-em-ligacoes-no-whatsapp-e-telegram/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 986,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/aviso-de-pauta-maturidade-em-ciberseguranca-cresce-41-no-brasil-brasscom-debate-mercado-de-r-127-bi-em-webinar-no-dia-28-10/?utm_source=rss&utm_medium=rss&utm_campaign=aviso-de-pauta-maturidade-em-ciberseguranca-cresce-41-no-brasil-brasscom-debate-mercado-de-r-127-bi-em-webinar-no-dia-28-10",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 86,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/reviews/smart-tv-lg-43lr6700-e-boa-opcao-para-quem-busca-conectividade-e-recursos-sem-gastar-muito/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 89,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/entretenimento/quanto-tempo-tera-vingadores-doutor-destino-diretor-revela/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 856,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/newsletter-agosto/?utm_source=rss&utm_medium=rss&utm_campaign=newsletter-agosto",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 92,
+          "attempts": 1
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2024-11-22/star/a-new-haven-for-travellers-star-alliance-unveils-its-first-lounge-in-asia-at-guangzhou-baiyun-international-airport-china-media-release",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1683,
+          "attempts": 1
+        },
+        {
+          "url": "https://aeroin.net/portugal-se-junta-ao-brasil-para-desenvolver-versao-do-embraer-kc-390-para-caca-de-submarinos/?amp=",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 3140,
+          "attempts": 4
+        },
+        {
+          "url": "https://www.oneworld.com/news/oneworld-unlocks-enhanced-multi-carrier-digital-check-in-experience-across-its-global-network-technology",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1053,
+          "attempts": 1
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2024-09-03/star/star-alliance-member-airlines-create-compelling-loyalty-offer-for-frequent-flyers-in-scandinavia-media-release",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1518,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/bradesco-bbdc4-esta-prestes-a-receber-r-10-bilhoes-para-crescer-mas-nao-vai-acelerar/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2257,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-airlines-brasil-e-embraer-celebram-o-primeiro-e195-e2-da-h",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 258,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-harmonises-fining-methodology-and-adopts-final-dsa-gdpr-guidelines_en",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 840,
+          "attempts": 1
+        },
+        {
+          "url": "https://onemileatatime.com/news/qatar-airways-airbus-a321lr-flat-bed-business-class/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 442,
+          "attempts": 1
+        },
+        {
+          "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 6744,
+          "attempts": 4
+        },
+        {
+          "url": "https://simpleflying.com/qatar-airways-adds-1st-ever-airbus-a321lr-routes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 731,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 34107,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/carreiras/premio-leva-5-universitarios-brasileiros-a-china-o-que-eles-fizeram-para-ganhar-a-viagem-miql/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 32413,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/carreiras/o-conselho-do-ceo-do-btg-pactual-para-quem-quer-crescer-na-carreira-mesmo-sem-estar-pronto-miql/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 10065,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/brasil/camara-deve-votar-hoje-o-ajuste-fiscal-entenda-a-proposta-do-governo-lula/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 4452,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/economia/ipc-s-fica-estavel-em-038-na-3a-quadrissemana-de-novembro-diz-fgv/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 78,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/rd-saude-radl3-brava-energia-brav3-jbs-jbss32-e-outros-destaques-desta-segunda-feira-mlem/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 84,
+          "attempts": 1
+        },
+        {
+          "url": "https://www12.senado.leg.br/noticias/videos/2026/11/cdh-foi-ao-rio-de-janeiro-acompanhar-caso-do-menino-desaparecido-edson-davi",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 251,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/cvm-inicia-consulta-publica-relacionada-a-revisao-de-pronunciamento-tecnico-cpc-31",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 89,
+          "attempts": 1
+        },
+        {
+          "url": "https://mercadoeconsumo.com.br/23/11/2026/artigos/varejo-e-consumo-no-japao-servem-de-inspiracao/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 251,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.seudinheiro.com/2026/colunistas/a-alegria-do-clt-a-estrategia-do-totalpass-e-uma-semana-mais-curta-de-aversao-a-risco-julw/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 628,
+          "attempts": 1
+        },
+        {
+          "url": "https://exame.com/inteligencia-artificial/alexandr-wang-superinteligencia-claude-riemann/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 76,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.infomoney.com.br/business/crowdstrike-reverte-prejuizo-supera-projecoes-e-anuncia-para-compra-de-empresa/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 94,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.moneytimes.com.br/economistas-elevam-projecoes-para-selic-e-inflacao-em-2027-confira-o-focus-desta-segunda-feira-23-jcav/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 119,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.livelo.com.br/imprensa/release-pesquisa-economia-comportamental-os-pontos",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1532,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.finextra.com/pressarticle/111734/alipay-connects-global-e-wallets-with-brazils-pix",
+          "valid": true,
+          "provider": "zyte-http",
+          "latencyMs": 7626,
+          "attempts": 2
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/openai-compra-ona/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1254,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/11/06/2026/stf-60-dias-novo-mci/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 84,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.mobiletime.com.br/noticias/23/11/2026/mobimeeting-bmg-serpro/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 202,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.pymnts.com/commerce/ecommerce/2026/croissant-uses-remy-ai-to-match-luxury-shoppers-with-new-brands/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 206,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/spons/how-digital-dollars-improve-cross-border-payment-management/874849/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 771,
+          "attempts": 1
+        },
+        {
+          "url": "https://finsidersbrasil.com.br/pagamentos/na-black-friday-o-check-out-pode-definir-o-resultado-das-vendas/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 101,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.paymentsdive.com/news/paypal-ceo-remakes-team/875344/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 803,
+          "attempts": 1
+        },
+        {
+          "url": "https://finsidersbrasil.com.br/pix-6-anos/crescimento-do-pix-coloca-a-prova-a-infraestrutura-do-sfn/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 86,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/ultimo-dia-para-assinar-o-all-signature-antes-do-aumento/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 413,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.melhoresdestinos.com.br/promocao/pacotes-de-viagem-para-foz-do-iguacu-23nov26",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 99,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/latam-pass-oferece-27-de-bonus-na-transferencia-de-pontos-livelo/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 92,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/11-20-governments-back-global-agenda-for-more-competitive-sustainable-air-transport-industry/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 614,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/black-friday-ganhe-5-000-pontos-ao-abrir-a-conta-global-revolut/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1191,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/11-17-us-fish-wildlife-service-becomes-first-government-agency-use-iata-lar-verify/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 779,
+          "attempts": 1
+        },
+        {
+          "url": "https://passageirodeprimeira.com/prepare-se-os-alertas-do-pp-vao-ter-o-maior-desconto-da-historia/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1184,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.iata.org/en/pressroom/2026-releases/10-30-air-passenger-falls-september/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1646,
+          "attempts": 1
+        },
+        {
+          "url": "https://pontospravoar.com/black-friday-all-accor-garanta-assinatura-all-signature-ate-40-porcento-desconto/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 58,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.airlines.org/a4a-receives-prnews-platinum-award-for-red-flight-blue-campaign/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 218,
+          "attempts": 1
+        },
+        {
+          "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 3077,
+          "attempts": 2
+        },
+        {
+          "url": "https://tecnoblog.net/achados/black-november-galaxy-z-fold-8-512-gb-tem-melhor-oferta-desde-lancamento/",
+          "valid": true,
+          "provider": "scrapfly-basic",
+          "latencyMs": 2230,
+          "attempts": 2
+        },
+        {
+          "url": "https://brasscom.org.br/aviso-de-pauta-brasscom-reune-liderancas-para-debater-o-impacto-pratico-da-ia-no-brasil-durante-o-tecforum-tecnologia/?utm_source=rss&utm_medium=rss&utm_campaign=aviso-de-pauta-brasscom-reune-liderancas-para-debater-o-impacto-pratico-da-ia-no-brasil-durante-o-tecforum-tecnologia",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 68,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/reviews/samsung-galaxy-a07-e-a17-em-promocao-veja-as-melhores-ofertas-da-linha/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 158,
+          "attempts": 1
+        },
+        {
+          "url": "https://canaltech.com.br/smartphone/samsung-pode-piorar-camera-do-galaxy-a38-em-2027-entenda/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 640,
+          "attempts": 1
+        },
+        {
+          "url": "https://brasscom.org.br/brasscom-parabeniza-governo-reeleito-e-reforca-agenda-digital-como-pilar-para-autonomia-tecnologica-do-brasil/?utm_source=rss&utm_medium=rss&utm_campaign=brasscom-parabeniza-governo-reeleito-e-reforca-agenda-digital-como-pilar-para-autonomia-tecnologica-do-brasil",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 120,
+          "attempts": 1
+        },
+        {
+          "url": "https://olhardigital.com.br/2026/11/23/games-e-consoles/the-game-awards-12-vencedores-jogo-do-ano-numeros-gta-6/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 54,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-registra-lucro-liquido-de-us--441-milhoes-no-terceiro-trim",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 15141,
+          "attempts": 5
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-publishes-statement-on-the-data-protection-challenges-of-smart-glasses_pt",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1652,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/o-bradesco-foi-o-unico-banco-com-propostas-contempladas-nos-cinco-leiloes-eco-invest-do-tesouro/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1974,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-pass-amplia-parceria-com-nubank-e-passa-a-oferecer-transfe",
+          "valid": true,
+          "provider": "exa-contents",
+          "latencyMs": 241,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.edpb.europa.eu/news/edpb-adopts-statement-on-review-of-the-republic-of-korea-adequacy-processor-bcr_fr",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 773,
+          "attempts": 1
+        },
+        {
+          "url": "https://pt.oneworld.com/news/oneworld-hosts-innovation-summit-showcasing-the-future-of-travel",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2382,
+          "attempts": 1
+        },
+        {
+          "url": "https://portal.staralliance.com/cms/news/hot-topics/2025-01-14/general/brazil-plans-to-attract-investment-of-over-us-800mn-in-regional-airports",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 1265,
+          "attempts": 1
+        },
+        {
+          "url": "https://www.bradescori.com.br/noticias/bradesco-reformula-area-de-renda-fixa-e-volta-liderar-ranking-da-anbima-apos-quase-10-anos/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 2378,
+          "attempts": 1
+        },
+        {
+          "url": "https://simpleflying.com/qantas-cancels-3-international-boeing-787-routes/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 781,
+          "attempts": 1
+        },
+        {
+          "url": "https://onemileatatime.com/news/dozens-fall-ill-condor-flights-frankfurt-mass-casualty-response/",
+          "valid": true,
+          "provider": "direct",
+          "latencyMs": 217,
+          "attempts": 1
+        }
+      ],
+      "latencyP50Ms": 534,
+      "latencyP95Ms": 7626
+    }
+  ],
+  "divergences": [
+    {
+      "url": "https://pontospravoar.com/turkish-airlines-oferece-20-de-desconto-em-voos-internacionais/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 32170,
+      "latAdaptMs": 33333
+    },
+    {
+      "url": "https://tecnoblog.net/noticias/nao-quer-ia-canva-ganha-botao-para-isso/",
+      "atual": "direct",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 100,
+      "latAdaptMs": 1449
+    },
+    {
+      "url": "https://tecnoblog.net/achados/black-november-lenovo-idea-tab-pro-gen-2-para-jogos-tem-melhor-oferta-que-ja-vimos/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 549,
+      "latAdaptMs": 1651
+    },
+    {
+      "url": "https://tecnoblog.net/noticias/motorola-confirma-mais-celulares-que-receberao-o-android-17/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 439,
+      "latAdaptMs": 2786
+    },
+    {
+      "url": "https://aeroin.net/portugal-se-junta-ao-brasil-para-desenvolver-versao-do-embraer-kc-390-para-caca-de-submarinos/?amp=",
+      "atual": "falha",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 1883,
+      "latAdaptMs": 3140
+    },
+    {
+      "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-airlines-brasil-e-embraer-celebram-o-primeiro-e195-e2-da-h",
+      "atual": "falha",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 10721,
+      "latAdaptMs": 258
+    },
+    {
+      "url": "https://thepointsguy.com/news/delta-air-lines-tech-outage-messy-sunday-thanksgiving-travel/",
+      "atual": "tavily-extract",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 1952,
+      "latAdaptMs": 6744
+    },
+    {
+      "url": "https://www.seudinheiro.com/2026/economia/mega-sena-acumula-de-novo-premio-200-milhoes-dia-de-sorte-brilha-sozinha-loterias-lotofacil-quina-rsgp/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 34875,
+      "latAdaptMs": 34107
+    },
+    {
+      "url": "https://www.seudinheiro.com/2026/carreiras/premio-leva-5-universitarios-brasileiros-a-china-o-que-eles-fizeram-para-ganhar-a-viagem-miql/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 33587,
+      "latAdaptMs": 32413
+    },
+    {
+      "url": "https://www.finextra.com/pressarticle/111734/alipay-connects-global-e-wallets-with-brazils-pix",
+      "atual": "tavily-extract",
+      "adaptativo": "zyte-http",
+      "latAtualMs": 197,
+      "latAdaptMs": 7626
+    },
+    {
+      "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 1804,
+      "latAdaptMs": 3077
+    },
+    {
+      "url": "https://tecnoblog.net/achados/black-november-galaxy-z-fold-8-512-gb-tem-melhor-oferta-desde-lancamento/",
+      "atual": "tavily-extract",
+      "adaptativo": "scrapfly-basic",
+      "latAtualMs": 905,
+      "latAdaptMs": 2230
+    },
+    {
+      "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-registra-lucro-liquido-de-us--441-milhoes-no-terceiro-trim",
+      "atual": "falha",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 10409,
+      "latAdaptMs": 15141
+    },
+    {
+      "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-pass-amplia-parceria-com-nubank-e-passa-a-oferecer-transfe",
+      "atual": "falha",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 10363,
+      "latAdaptMs": 241
+    }
+  ]
+}

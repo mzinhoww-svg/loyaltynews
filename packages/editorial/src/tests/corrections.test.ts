@@ -97,7 +97,7 @@ test('pedido rejeitado (não jurídico) fecha com motivo registrado', () => {
 });
 
 test('a correção também é verificada: claim da errata precisa constar na evidência', async () => {
-  const ev = (await new Collector(mockWeb(), { now: () => new Date(T(3)), resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  const ev = (await new Collector(mockWeb(), { minSpacingMs: 0, now: () => new Date(T(3)), resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
   assert.deepEqual(verifyCorrectionClaims([{ id: 'k', kind: 'number', text: '2 pontos por real', evidenceIds: [ev.id] }], [ev]), []);
   const f = verifyCorrectionClaims([{ id: 'k', kind: 'number', text: '9 pontos por real', evidenceIds: [ev.id] }], [ev]);
   assert.equal(f[0]?.code, 'unsupported_metric');

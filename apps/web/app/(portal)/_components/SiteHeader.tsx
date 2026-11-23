@@ -3,7 +3,7 @@
 import { Button, Header, SearchIconLink, type HeaderLink, type HeaderMenu } from '@ln/ui';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { Editoria } from '../_lib/types';
+import type { Editoria, SiteMenuItem } from '../_lib/types';
 
 export interface NavFlags {
   theLoyal: boolean;
@@ -17,7 +17,16 @@ export interface NavFlags {
  * editorias) + busca em ícone + botão Anuncie. As editorias não ficam numa faixa própria no topo.
  * Itens de módulos desligados por flag não aparecem.
  */
-export function SiteHeader({ flags, editorias }: { flags: NavFlags; editorias: readonly Pick<Editoria, 'slug' | 'name'>[] }) {
+export function SiteHeader({
+  flags,
+  editorias,
+  mainMenu,
+}: {
+  flags: NavFlags;
+  editorias: readonly Pick<Editoria, 'slug' | 'name'>[];
+  /** Menu principal publicado no Studio; `null`/ausente = entradas padrão do portal. */
+  mainMenu?: readonly SiteMenuItem[] | null;
+}) {
   const pathname = usePathname() ?? '/';
   const current = pathname.startsWith('/editoria/') ? pathname.split('/')[2] : undefined;
   const on = (href: string) => pathname === href || pathname.startsWith(href + '/');
@@ -28,7 +37,10 @@ export function SiteHeader({ flags, editorias }: { flags: NavFlags; editorias: r
     ...(flags.podcast ? [L('/podcast', 'Podcast')] : []),
   ];
 
-  const links: HeaderLink[] = [L('/agenda', 'Agenda'), L('/entrevistas', 'Entrevistas'), ...optional, L('/moves', 'Moves'), L('/intelligence', 'Intelligence')];
+  // Menu publicado: cada item de topo vira um link da barra (os `filhos` não cabem na barra única; ficam no rodapé se este os publicar).
+  const links: HeaderLink[] = mainMenu?.length
+    ? mainMenu.map((i) => L(i.href, i.label))
+    : [L('/agenda', 'Agenda'), L('/entrevistas', 'Entrevistas'), ...optional, L('/moves', 'Moves'), L('/intelligence', 'Intelligence')];
   const menu: HeaderMenu = {
     label: 'Notícias',
     position: 0,

@@ -131,6 +131,18 @@ export const campaigns = pgTable('campaigns', {
   index('campaigns_status_idx').on(t.status),
 ]);
 
+/** Posições da campanha (várias por campanha; ordem = a do domínio). `campaigns.slot_id` continua = a PRIMEIRA, para leitores antigos.
+ *  Backend 3, a pedido do Commercial (ft/commercial 4ea7404). Linha legada sem posições aqui: a posição é a de `campaigns.slot_id`. */
+export const campaignPositions = pgTable('campaign_positions', {
+  campanhaId: text('campanha_id').notNull().references(() => campaigns.id),
+  slotId: text('slot_id').notNull().references(() => adSlots.id),
+  ordem: integer('ordem').notNull(),
+}, (t) => [
+  uniqueIndex('campaign_positions_pk').on(t.campanhaId, t.slotId),
+  uniqueIndex('campaign_positions_ordem_uq').on(t.campanhaId, t.ordem),
+  check('campaign_positions_ordem', sql`${t.ordem} >= 0`),
+]);
+
 export const adReservations = pgTable('ad_reservations', {
   id: text('id').primaryKey(),
   slotId: text('slot_id').notNull().references(() => adSlots.id),
@@ -163,11 +175,22 @@ export const adCreatives = pgTable('ad_creatives', {
   aprovado: boolean('aprovado').notNull().default(false),
   arquivoRef: text('arquivo_ref'), // chave no Blob S3 da Vertra; nunca URL externa de anunciante
   destinoUrl: text('destino_url'),
+  // Arquivo do criativo, MEDIDO NO SERVIDOR no upload (nunca confiado ao cliente). Nulo até o upload; tudo junto ou nada (ad_creatives_arquivo_coerente).
+  arquivoMime: text('arquivo_mime'),
+  largura: integer('largura'),
+  altura: integer('altura'),
+  tamanhoKb: integer('tamanho_kb'),
+  arquivoSha256: text('arquivo_sha256'),
+  textoAlternativo: text('texto_alternativo'),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   check('ad_creatives_peso', sql`${t.peso} > 0`),
   check('ad_creatives_periodo', sql`${t.fim} >= ${t.inicio}`),
   check('ad_creatives_destino_https', sql`${t.destinoUrl} IS NULL OR ${t.destinoUrl} ~ '^https://'`),
+  check('ad_creatives_arquivo_coerente', sql`(${t.arquivoMime} IS NULL AND ${t.largura} IS NULL AND ${t.altura} IS NULL AND ${t.tamanhoKb} IS NULL AND ${t.arquivoSha256} IS NULL) OR (${t.arquivoRef} IS NOT NULL AND ${t.arquivoMime} IN ('image/jpeg', 'image/png', 'image/gif') AND ${t.largura} > 0 AND ${t.altura} > 0 AND ${t.tamanhoKb} > 0 AND ${t.arquivoSha256} ~ '^[0-9a-f]{64}$')`),
+  check('ad_creatives_alt', sql`${t.textoAlternativo} IS NULL OR char_length(btrim(${t.textoAlternativo})) BETWEEN 1 AND 200`),
+  // Aprovado só com criativo COMPLETO: arquivo válido com hash, texto alternativo e destino https (a regra do PM: só criativo real aparece).
+  check('ad_creatives_aprovado_completo', sql`NOT ${t.aprovado} OR (${t.arquivoRef} IS NOT NULL AND ${t.arquivoMime} IS NOT NULL AND ${t.largura} IS NOT NULL AND ${t.altura} IS NOT NULL AND ${t.tamanhoKb} IS NOT NULL AND ${t.arquivoSha256} IS NOT NULL AND ${t.textoAlternativo} IS NOT NULL AND ${t.destinoUrl} IS NOT NULL)`),
   index('ad_creatives_slot_idx').on(t.slotId, t.aprovado),
 ]);
 
@@ -229,4 +252,28 @@ export const adDeliveryGaps = pgTable('ad_delivery_gaps', {
   check('ad_delivery_gaps_ordem', sql`${t.from} <= ${t.servedUntil} AND ${t.servedUntil} <= ${t.to}`),
   check('ad_delivery_gaps_contadores', sql`${t.uncountedServes} >= 0 AND ${t.ignoredEvents} >= 0`),
   index('ad_delivery_gaps_periodo_idx').on(t.from, t.to),
+]);
+
+/** Contato de uma conta do CRM (dado pessoal). Só nasce por ato explícito no Studio; base legal, data e autor gravados pelo servidor.
+ *  Backend 3, a pedido do Commercial (ft/commercial 4ea7404). Nunca sai em rota pública nem no mídia kit. */
+export const crmContacts = pgTable('crm_contacts', {
+  id: text('id').primaryKey(),
+  contaId: text('conta_id').notNull().references(() => crmAccounts.id),
+  nome: text('nome').notNull(),
+  email: text('email').notNull(),
+  whatsapp: text('whatsapp'),
+  cargo: text('cargo'),
+  baseLegal: text('base_legal').notNull(),
+  consentimentoEm: timestamp('consentimento_em', { withTimezone: true, precision: 3 }).notNull(),
+  registradoPor: text('registrado_por'),
+  classeDeDado: text('classe_de_dado').notNull().default('personal'),
+  criadoEm: timestamp('criado_em', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('crm_contacts_email_uq').on(t.contaId, sql`lower(${t.email})`),
+  index('crm_contacts_conta_idx').on(t.contaId, t.criadoEm),
+  check('crm_contacts_base_legal', sql`${t.baseLegal} in ('consentimento', 'legitimo_interesse', 'execucao_de_contrato')`),
+  check('crm_contacts_classe', sql`${t.classeDeDado} = 'personal'`),
+  check('crm_contacts_nome', sql`char_length(btrim(${t.nome})) BETWEEN 1 AND 120`),
+  check('crm_contacts_email', sql`char_length(${t.email}) BETWEEN 3 AND 254 AND ${t.email} LIKE '%_@_%'`),
+  check('crm_contacts_cargo', sql`${t.cargo} IS NULL OR char_length(${t.cargo}) <= 80`),
 ]);

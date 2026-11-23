@@ -6,11 +6,13 @@ import { expect, test } from '@playwright/test';
  */
 const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
 const mode = process.env.PORTAL_MODE ?? 'empty';
-const blocked = appEnv !== 'production' || mode === 'mock';
+// DP-24: produção só é indexável com PORTAL_INDEXAVEL=1; PORTAL_INDEXAVEL_E2E=0 testa a produção SEM o interruptor.
+const semInterruptor = process.env.PORTAL_INDEXAVEL_E2E === '0';
+const blocked = appEnv !== 'production' || mode === 'mock' || semInterruptor;
 
 const URLS = ['/', '/noticias', '/editoria/bancos', '/sobre', '/busca', '/robots.txt', '/sitemap.xml', '/feed.xml', '/api/health'];
 
-test.describe(`indexação com APP_ENV=${appEnv} (${mode})`, () => {
+test.describe(`indexação com APP_ENV=${appEnv}${semInterruptor ? ' sem PORTAL_INDEXAVEL' : ''} (${mode})`, () => {
   test('robots.txt', async ({ request }) => {
     const r = await request.get('/robots.txt');
     expect(r.status()).toBe(200);
@@ -45,6 +47,13 @@ test.describe(`indexação com APP_ENV=${appEnv} (${mode})`, () => {
     const nf = await request.get('/pagina-que-nao-existe');
     expect(nf.status()).toBe(404);
     if (blocked) expect(nf.headers()['x-robots-tag']).toBe('noindex, nofollow');
+  });
+
+  test('feed.xml: sem itens quando a indexação está bloqueada; com itens só em produção indexável (fonte api)', async ({ request }) => {
+    const body = await (await request.get('/feed.xml')).text();
+    expect(body).toContain('<rss');
+    if (blocked) expect(body, 'feed bloqueado não publica itens').not.toContain('<item>');
+    else if (mode === 'api' && !process.env.PORTAL_API_DOWN) expect(body).toContain('<item>');
   });
 
   test('meta robots e canonical na home', async ({ page }) => {

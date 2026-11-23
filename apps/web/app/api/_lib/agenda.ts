@@ -21,7 +21,7 @@ const range = (q: { from?: string; to?: string }) =>
 const order = [asc(schema.agendaEvents.inicio), asc(schema.agendaEvents.id)] as const;
 
 /** Visão pública: só o que o leitor precisa (nada de moderação, autor ou chave interna). */
-const publicView = (e: Row) => ({
+export const publicView = (e: Row) => ({
   id: e.id, titulo: e.titulo, inicio: e.inicio, fim: e.fim, local: e.local, url: e.url, editorias: e.editorias, patrocinado: e.patrocinado, fonteUrl: e.fonteUrl,
 });
 
@@ -41,6 +41,17 @@ export const publicListAgenda: RouteFn = async (_req, c) => {
     .where(and(range({ from, to: q.to }), eq(schema.agendaEvents.moderacao, 'aprovado')))
     .orderBy(...order);
   return json({ data: rows.map(publicView) }, 200, { 'cache-control': 'public, max-age=300' });
+};
+
+/**
+ * Público: UM evento aprovado, em QUALQUER data (evento já encerrado continua abrindo). Pendente, rejeitado e inexistente dão o mesmo 404
+ * (não revela que existe uma sugestão em moderação). Mesmo `publicView` da lista: nenhum campo de moderação, autor ou chave interna.
+ */
+export const publicGetAgenda: RouteFn = async (_req, c) => {
+  const id = c.params.id ?? '';
+  const [e] = id.length > 0 && id.length <= 200 ? await c.deps.db.select().from(schema.agendaEvents).where(and(eq(schema.agendaEvents.id, id), eq(schema.agendaEvents.moderacao, 'aprovado'))) : [];
+  if (!e) throw new HttpError(404, 'NOT_FOUND', 'Evento não encontrado.');
+  return json({ data: publicView(e) }, 200, { 'cache-control': 'public, max-age=300' });
 };
 
 export const getAgenda: RouteFn = async (_req, c) => {

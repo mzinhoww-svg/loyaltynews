@@ -1,0 +1,2 @@
+ALTER TABLE "budget_reservations" DROP CONSTRAINT "budget_reservations_pool";--> statement-breakpoint
+ALTER TABLE "budget_reservations" ADD CONSTRAINT "budget_reservations_pool" CHECK ("budget_reservations"."pool" IN ('allocation', 'reserve', 'qualification'));

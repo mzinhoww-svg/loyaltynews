@@ -3,6 +3,7 @@ import { ApiError } from '@ln/contracts';
 import { buildCatalog } from '../catalog';
 import { createCommercialState, makeCtx, type CommercialCtx } from '../state';
 import * as h from './index';
+import { realContent } from '../real-creative.mock';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 const studio = { id: 'u1', canManageCommercial: true };
@@ -78,7 +79,7 @@ describe('público', () => {
 describe('ad server', () => {
   function setup(flags: CommercialCtx['flags']) {
     const c = ctx({ flags });
-    c.ads.addCreative({ id: 'cr1', campaignId: 'k1', positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+    c.ads.addCreative({ id: 'cr1', campaignId: 'k1', positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent('TOP') });
     return c;
   }
   it('flag adServerVendas desligada: serve house, não conta, eventos ignorados', () => {
@@ -129,7 +130,7 @@ describe('fluxo Studio ponta a ponta pelos handlers', () => {
     expect(h.transitionCampaign(c, { campaignId: campId, to: 'reserved', reservationIds: [resId] }).status).toBe(200);
     h.transitionCampaign(c, { campaignId: campId, to: 'approved' });
     expect(code(h.transitionCampaign(c, { campaignId: campId, to: 'active' }))).toBe('NO_APPROVED_CREATIVE');
-    const cr = h.addCreative(c, { campaignId: campId, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28' }).body as { id: string };
+    const cr = h.addCreative(c, { campaignId: campId, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-02-28', ...realContent('TOP') }).body as { id: string };
     h.approveCreative(c, { creativeId: cr.id });
     expect(h.transitionCampaign(c, { campaignId: campId, to: 'active' }).status).toBe(200);
 
@@ -195,7 +196,7 @@ describe('ativação de campanha: todas as condições, uma a uma (negativos)', 
     expect(h.transitionCampaign(on, { campaignId: camp.id, to: 'reserved', reservationIds: [res.id] }).status).toBe(200);
     expect(h.transitionCampaign(on, { campaignId: camp.id, to: 'approved' }).status).toBe(200);
     if (creative) {
-      const cr = h.addCreative(on, { campaignId: camp.id, positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2027-01-31' }).body as { id: string };
+      const cr = h.addCreative(on, { campaignId: camp.id, positionId: 'FOOTER', startDate: '2026-12-01', endDate: '2027-01-31', ...realContent('FOOTER') }).body as { id: string };
       h.approveCreative(on, { creativeId: cr.id });
     }
     return { state, on, off, camp, res, acc };

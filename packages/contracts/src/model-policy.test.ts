@@ -141,3 +141,22 @@ describe('v7: autor distinto verificável no contrato e teto por etapa (QA 2 + d
     expect(ModelPolicy.safeParse(comModo({ golden_set_labeling_budget: 'audit_errata_reserve' })).success).toBe(false);
   });
 });
+
+describe('v7: reconferência do QA 2 (conta amarra o provedor; teto de cada etapa; v7 sem teto legado)', () => {
+  const ex = v7.execution;
+  const comTask = (k: string, val: unknown) => ({ ...v7, execution: { ...ex, primary: { ...ex.primary, by_task: { ...ex.primary.by_task, [k]: val } } } });
+  const comModo = (mode: object) => ({ ...v7, qualification: { ...v7.qualification, mode: { ...v7.qualification.mode, ...mode } } });
+
+  it('recusa conta Claude declarando OpenAI (e Codex declarando Anthropic) e a mesma conta da redação na checagem', () => {
+    expect(ModelPolicy.safeParse(comTask('fact_check', { account: 'claude', provider: 'openai' })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comTask('social_copy', { account: 'codex', provider: 'anthropic' })).success).toBe(false);
+  });
+
+  it('etapa 1 acima de 5, etapa desconhecida ou só o teto legado numa v7 são recusados', () => {
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: { '1': 10, '2': 10 } })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: { '1': 5, '3': 1 } })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: undefined, cap_usd: 5 })).success).toBe(false);
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: { '1': 5 } })).success).toBe(true);
+    expect(ModelPolicy.safeParse(comModo({ stage_caps_usd: {}, cap_usd: 5 })).success).toBe(false); // mapa vazio + legado na v7
+  });
+});

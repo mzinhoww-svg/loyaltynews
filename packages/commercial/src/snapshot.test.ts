@@ -5,13 +5,14 @@ import {
   type Creative, type Reservation,
 } from './index';
 import * as h from './api/index';
+import { realContent } from './real-creative.mock';
 
 const NOW = '2026-11-22T12:00:00-03:00';
 /** Passa por JSON como o banco/Redis fariam: o snapshot precisa sobreviver a isso sem perda. */
 const wire = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 const creative = (id: string, campaignId: string, positionId = 'TOP', weight = 1): Creative => ({
-  id, campaignId, positionId, weight, startDate: '2026-12-01', endDate: '2027-02-28', approved: true, campaignActive: true,
+  id, campaignId, positionId, weight, startDate: '2026-12-01', endDate: '2027-02-28', approved: true, campaignActive: true, ...realContent(positionId),
 });
 
 describe('Crm', () => {
@@ -134,7 +135,7 @@ describe('CampaignBook', () => {
   it('regras de ativação continuam valendo depois de carregar', () => {
     const b = new CampaignBook(); b.load(wire(populated().snapshot()));
     expect(() => b.transition('cmp-1', 'active', NOW)).toThrow(/Ativação recusada/);
-    b.transition('cmp-1', 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1 } });
+    b.transition('cmp-1', 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, creativePositions: ['TOP'] } });
     expect(b.get('cmp-1').status).toBe('active');
   });
   it('recusa snapshot inválido; estado anterior intacto', () => {

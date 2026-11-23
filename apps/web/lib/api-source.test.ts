@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   bodyToBlocks,
   createApiSlice,
@@ -62,7 +62,7 @@ describe('imagem pública', () => {
     const img = mapImage({ url: 'https://cdn.example/f.jpg', origem: 'fonte_terceiro', credito: 'Agência X', link: 'https://x.example', textoAlternativo: 'Foto' })!;
     expect(img.label).toBeNull();
     expect(img.credit).toBe('Agência X');
-    expect(img.link).toBe('https://x.example');
+    expect(img.link).toBe('https://x.example/');
   });
   it('imagem: null (vencida/sem base) vira ausência de imagem', () => {
     expect(mapImage(null)).toBeUndefined();
@@ -108,12 +108,12 @@ describe('mapeamento da matéria', () => {
 describe('cliente da API pública', () => {
   const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
 
-  it('getArticle: 404 vira null; 500 propaga erro; sempre sem cache', async () => {
+  it('getArticle: 404 = inexistente; 500 = indisponível (sem erro); sempre sem cache e com timeout', async () => {
     const f = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => (String(url).endsWith('/ausente') ? json({}, 404) : String(url).endsWith('/quebra') ? json({}, 500) : json({ data: article() })));
     const api = createApiSlice('http://api.test/', f as unknown as typeof fetch);
-    expect(await api.getArticle('ausente')).toBeNull();
-    await expect(api.getArticle('quebra')).rejects.toThrow(/500/);
-    expect((await api.getArticle('materia-teste'))!.image?.label).toBe('Ilustração conceitual');
+    expect(await api.getArticle('ausente')).toEqual({ article: null });
+    expect(await api.getArticle('quebra')).toEqual({ article: null, unavailable: true });
+    expect((await api.getArticle('materia-teste')).article!.image?.label).toBe('Ilustração conceitual');
     expect(f.mock.calls[0]![0]).toBe('http://api.test/api/publico/materias/ausente');
     expect(f.mock.calls[0]![1]?.cache).toBe('no-store');
   });
@@ -141,5 +141,139 @@ describe('cliente da API pública', () => {
     expect(await api.getTrending('24h')).toEqual([]);
     expect((await api.search('   ')).total).toBe(0);
     expect(f).not.toHaveBeenCalled();
+  });
+});
+
+describe('API indisponível = estado de erro honesto (unavailable), nunca exceção nem 500 (regra A6 do Security)', () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-23T12:00:00Z'));
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    errorSpy.mockRestore();
+  });
+
+  const refused = () => vi.fn(async () => Promise.reject(new TypeError('fetch failed: connect ECONNREFUSED http://127.0.0.1:3999/api/publico/materias?token=segredo')));
+  const status = (code: number, body = '{"error":{"code":"NOT_CONFIGURED","message":"detalhe interno com dados"}}') =>
+    vi.fn(async () => new Response(body, { status: code }));
+
+  it('conexão recusada: todas as leituras devolvem vazio/null e nada lança', async () => {
+    const api = createApiSlice('http://api.test', refused() as unknown as typeof fetch);
+    expect((await api.getLatest({ pageSize: 12 })).items).toEqual([]);
+    expect((await api.getLatest({ pageSize: 12 })).unavailable).toBe(true);
+    expect((await api.getLatest({ contentType: 'flash' })).total).toBe(0);
+    expect((await api.getLatest({ contentType: 'flash' })).unavailable).toBe(true);
+    expect(await api.getHighlights()).toEqual([]);
+    expect((await api.search('bancos')).items).toEqual([]);
+    expect((await api.search('bancos')).unavailable).toBe(true);
+    expect(await api.getArticle('qualquer')).toEqual({ article: null, unavailable: true });
+    expect(await api.listEvents()).toEqual({ items: [], unavailable: true });
+    expect(await api.getEvent('ev-1')).toEqual({ event: null, unavailable: true });
+    const art = mapArticle({ slug: 'a', titulo: 't', resumo: 'r', editoria: 'bancos', assinatura: 'x', publicadoEm: '2026-11-20T10:00:00-03:00', corpo: 'c' });
+    expect(await api.getRelated(art)).toEqual([]);
+  });
+
+  it('status 503 (NOT_CONFIGURED), 500 e 502: indisponível, lista vazia e matéria nula', async () => {
+    for (const code of [503, 500, 502]) {
+      const api = createApiSlice('http://api.test', status(code) as unknown as typeof fetch);
+      expect(await api.getLatest()).toMatchObject({ items: [], total: 0, unavailable: true });
+      expect(await api.getArticle('x')).toEqual({ article: null, unavailable: true });
+    }
+  });
+
+  it('JSON inválido ou formato inesperado: vazio', async () => {
+    for (const body of ['<html>erro</html>', '{"data":"não é lista"}', 'null']) {
+      const api = createApiSlice('http://api.test', status(200, body) as unknown as typeof fetch);
+      expect((await api.getLatest()).items).toEqual([]);
+      expect((await api.getLatest()).unavailable).toBe(true);
+      expect((await api.getArticle('x')).article).toBeNull();
+    }
+  });
+
+  it('timeout (AbortSignal) é tratado como indisponibilidade', async () => {
+    const lenta = vi.fn(async (_u: string | URL | Request, init?: RequestInit) => {
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      throw new DOMException('timed out', 'TimeoutError');
+    });
+    const api = createApiSlice('http://api.test', lenta as unknown as typeof fetch);
+    expect((await api.getLatest()).items).toEqual([]);
+  });
+
+  it('o log não vaza URL, token, corpo da resposta nem mensagem do erro, e sai no máximo uma vez por minuto', async () => {
+    const api = createApiSlice('http://api.test', refused() as unknown as typeof fetch);
+    for (let i = 0; i < 5; i++) await api.getLatest();
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const line = String(errorSpy.mock.calls[0]?.[0]);
+    expect(line).toContain('API pública indisponível');
+    expect(line).not.toMatch(/http|127.0.0.1|segredo|token|ECONNREFUSED|detalhe/i);
+    const outro = createApiSlice('http://api.test', status(503) as unknown as typeof fetch);
+    await outro.getLatest();
+    await outro.getLatest();
+    expect(errorSpy).toHaveBeenCalledTimes(2);
+    expect(String(errorSpy.mock.calls[1]?.[0])).not.toMatch(/detalhe|NOT_CONFIGURED|api.test/);
+    vi.setSystemTime(new Date('2026-11-23T12:01:01Z'));
+    await outro.getLatest();
+    expect(errorSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('nenhum caminho de falha devolve conteúdo MOCK', async () => {
+    const api = createApiSlice('http://api.test', status(503) as unknown as typeof fetch);
+    const tudo = JSON.stringify([await api.getLatest(), await api.getHighlights(), await api.search('x'), await api.getArticle('x'), await api.listEvents(), await api.getEvent('x')]);
+    expect(tudo).not.toMatch(/MOCK/);
+  });
+});
+
+describe('envelope e itens malformados nunca derrubam a página (QA 1: A6.1)', () => {
+  const ok = (over: Record<string, unknown> = {}) => ({
+    slug: 'ok', titulo: 'T', resumo: 'R', editoria: 'bancos', assinatura: 'Redação Loyalty News', publicadoEm: '2026-11-20T10:00:00-03:00', ...over,
+  });
+  const resp = (body: unknown) => vi.fn(async () => new Response(JSON.stringify(body), { status: 200 })) as unknown as typeof fetch;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+  afterEach(() => errorSpy.mockRestore());
+
+  it('"total" como texto (ou negativo, NaN, ausente) = resposta inválida: lista vazia, mesmo com itens bons', async () => {
+    for (const total of ['12', -1, null, undefined, {}]) {
+      const api = createApiSlice('http://api.test', resp({ data: [ok()], total }));
+      const page = await api.getLatest();
+      expect(page.items, `total=${JSON.stringify(total)}`).toEqual([]);
+      expect(page.total).toBe(0);
+    }
+  });
+
+  it('data=[null] e itens fora do formato são descartados sem TypeError; o item bom permanece', async () => {
+    const lixo = [null, undefined, 42, 'x', [], {}, ok({ slug: '' }), ok({ titulo: 3 }), ok({ publicadoEm: 'não é data' }), ok({ publicadoEm: undefined }), ok({ tempoLeituraMin: 'dois' }), ok({ imagem: 'x' })];
+    const api = createApiSlice('http://api.test', resp({ data: [...lixo, ok({ slug: 'bom' })], total: 13 }));
+    const page = await api.getLatest();
+    expect(page.items.map((i) => i.slug)).toEqual(['bom']);
+    expect(page.total).toBe(13);
+    expect(errorSpy).toHaveBeenCalled();
+    expect(String(errorSpy.mock.calls[0]?.[0])).not.toMatch(/http|api.test/);
+  });
+
+  it('data=[null] sozinho: lista vazia', async () => {
+    const api = createApiSlice('http://api.test', resp({ data: [null], total: 1 }));
+    expect((await api.getLatest()).items).toEqual([]);
+    expect(await api.getHighlights()).toEqual([]);
+    expect((await api.search('x')).items).toEqual([]);
+  });
+
+  it('matéria malformada = null (404), sem exceção: sem corpo, data inválida ou envelope errado', async () => {
+    for (const data of [null, {}, ok(), ok({ corpo: 1 }), ok({ corpo: 'c', publicadoEm: 'x' }), 'texto']) {
+      const api = createApiSlice('http://api.test', resp({ data }));
+      expect((await api.getArticle('x')).article).toBeNull();
+    }
+  });
+
+  it('matéria boa com errata/fonte malformadas: mantém o que presta e descarta o resto', async () => {
+    const data = { ...ok({ corpo: 'Texto.' }), erratas: [null, { nota: '', em: '2026-11-21T09:00:00-03:00' }, { nota: 'Corrigido.', em: 'x' }, { nota: 'Corrigido.', em: '2026-11-21T09:00:00-03:00' }], fontes: [null, { url: 3 }, { url: 'https://f.example/a', capturadoEm: 'x' }] };
+    const art = (await createApiSlice('http://api.test', resp({ data })).getArticle('x')).article;
+    expect(art?.corrections).toHaveLength(1);
+    expect(art?.sources).toEqual([{ label: 'f.example', url: 'https://f.example/a', publishedAt: undefined }]);
   });
 });

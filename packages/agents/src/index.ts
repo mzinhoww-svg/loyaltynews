@@ -10,3 +10,4 @@ export * from './pg-store';
 export * from './pg-adapter';
 export * from './output';
 export * from './openbot-profiles';
+export * from './pilot';

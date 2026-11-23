@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { LeasedTask, NewTask, Task } from './types';
+import { FALLBACK_ROUTE, type Account, type LeasedTask, type NewTask, type Task } from './types';
 
 // Fila com lease (pull). A implementação real é o outbox do PostgreSQL (`FOR UPDATE SKIP LOCKED`, do Backend); aqui o
 // contrato e uma implementação em memória com a MESMA semântica, usada nos testes e em desenvolvimento.
@@ -20,6 +20,8 @@ export interface ClaimRequest {
   limit: number;
   /** Restringe a tipos (ex.: workers próprios de reserva só pegam alguns). */
   kinds?: readonly string[];
+  /** A via (conta) deste worker: só recebe tarefas cuja via atual é esta. */
+  account?: Account;
 }
 
 export interface LeaseQueue {
@@ -30,7 +32,8 @@ export interface LeaseQueue {
   heartbeat(taskId: string, leaseId: string, now: Date, leaseMs: number): Promise<{ leaseExpiresAt: string }>;
   /** Idempotente: repetir com o mesmo lease devolve `already: true`. */
   complete(taskId: string, leaseId: string, resultRef: string | undefined, now: Date): Promise<{ already: boolean; task: Task }>;
-  fail(taskId: string, leaseId: string, error: string, retryable: boolean, now: Date): Promise<{ task: Task }>;
+  /** `retryAfterMs`: quando a falha é retentável, a tarefa só volta a ser puxável depois desse intervalo (limite de conta). */
+  fail(taskId: string, leaseId: string, error: string, retryable: boolean, now: Date, retryAfterMs?: number, limit?: { account: Account; switchRoute: boolean }): Promise<{ task: Task }>;
   get(taskId: string): Promise<Task | null>;
   counts(): Promise<Record<Task['status'], number>>;
 }
@@ -56,6 +59,10 @@ export class InMemoryLeaseQueue implements LeaseQueue {
       attempts: 0,
       maxAttempts: task.maxAttempts ?? 5,
       createdAt: now.toISOString(),
+      route: task.route && task.route.length > 0 ? [...task.route] : [...FALLBACK_ROUTE],
+      routeIndex: 0,
+      limitHits: 0,
+      accountsLimited: [],
     };
     this.tasks.set(t.id, t);
     this.byKey.set(t.idempotencyKey, t.id);
@@ -71,9 +78,11 @@ export class InMemoryLeaseQueue implements LeaseQueue {
     for (const t of this.tasks.values()) {
       if (out.length >= req.limit) break;
       if (req.kinds && !req.kinds.includes(t.kind)) continue;
+      if (req.account && t.route[t.routeIndex] !== req.account) continue;
       const claimable = t.status === 'pending' || this.expired(t, req.now);
       if (!claimable) continue;
-      if (t.attempts >= t.maxAttempts) {
+      if (t.status === 'pending' && t.availableAt !== undefined && Date.parse(t.availableAt) > req.now.getTime()) continue; // esperando a janela
+      if (t.attempts - t.limitHits >= t.maxAttempts) {
         t.status = 'dead';
         t.lastError = t.lastError ?? 'tentativas esgotadas';
         t.leaseId = undefined;
@@ -86,7 +95,7 @@ export class InMemoryLeaseQueue implements LeaseQueue {
       t.leaseExpiresAt = new Date(req.now.getTime() + req.leaseMs).toISOString();
       out.push({
         id: t.id, kind: t.kind, profileId: t.profileId, refId: t.refId, dataClass: t.dataClass, maxCostMicro: t.maxCostMicro,
-        attempt: t.attempts, leaseId: t.leaseId, leaseExpiresAt: t.leaseExpiresAt,
+        attempt: t.attempts, leaseId: t.leaseId, leaseExpiresAt: t.leaseExpiresAt, account: t.route[t.routeIndex] as Account,
       });
     }
     return out;
@@ -117,14 +126,30 @@ export class InMemoryLeaseQueue implements LeaseQueue {
     return { already: false, task: structuredClone(t) };
   }
 
-  async fail(taskId: string, leaseId: string, error: string, retryable: boolean, now: Date) {
+  async fail(taskId: string, leaseId: string, error: string, retryable: boolean, now: Date, retryAfterMs?: number, limit?: { account: Account; switchRoute: boolean }) {
     const t = this.holding(taskId, leaseId, now);
     t.lastError = error.slice(0, 500);
     t.leaseExpiresAt = undefined;
-    if (retryable && t.attempts < t.maxAttempts) {
+    if (limit) {
+      // Limite da conta: não é falha da tarefa. Passa à próxima via da rota (se a rota permite e há próxima); na última via, ou
+      // sem troca permitida (redação), espera a janela e recomeça pela via preferida.
+      t.limitHits += 1;
+      t.accountsLimited.push({ account: limit.account, at: now.toISOString() });
       t.status = 'pending';
       t.leaseId = undefined;
       t.leaseHolder = undefined;
+      if (limit.switchRoute && t.routeIndex + 1 < t.route.length) {
+        t.routeIndex += 1;
+        t.availableAt = undefined; // a próxima via pode puxar já
+      } else {
+        t.routeIndex = 0;
+        t.availableAt = retryAfterMs && retryAfterMs > 0 ? new Date(now.getTime() + retryAfterMs).toISOString() : undefined;
+      }
+    } else if (retryable && t.attempts - t.limitHits < t.maxAttempts) {
+      t.status = 'pending';
+      t.leaseId = undefined;
+      t.leaseHolder = undefined;
+      t.availableAt = retryAfterMs && retryAfterMs > 0 ? new Date(now.getTime() + retryAfterMs).toISOString() : undefined;
     } else {
       t.status = retryable ? 'dead' : 'failed';
     }

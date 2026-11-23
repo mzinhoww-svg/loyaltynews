@@ -5,6 +5,7 @@
 /** Tarefas que podem ir ao OpenBot. Espelha o catálogo do modelops, MENOS as determinísticas de publicação. */
 export const DISPATCHABLE_KINDS = [
   'editorial_draft',
+  'editorial_review',
   'fact_check',
   'classification',
   'daily',
@@ -13,6 +14,8 @@ export const DISPATCHABLE_KINDS = [
   'complex_analysis',
   'concept_image',
   'ritual',
+  /** Texto social (rascunho de LinkedIn) da etapa `social_pack` da Fábrica. É texto, não publicação: a publicação segue só do `publisher_social`. */
+  'social_copy',
 ] as const;
 export type TaskKind = (typeof DISPATCHABLE_KINDS)[number];
 
@@ -40,6 +43,8 @@ export interface NewTask {
   /** Teto de custo desta tarefa, em micro-USD (inteiro). */
   maxCostMicro: number;
   maxAttempts?: number;
+  /** Rota de contas já resolvida pelo despachante (padrão por tipo). */
+  route?: Account[];
 }
 
 export interface Task extends NewTask {
@@ -51,8 +56,17 @@ export interface Task extends NewTask {
   leaseId?: string;
   leaseHolder?: string;
   leaseExpiresAt?: string;
+  /** Só puxável a partir deste instante (limite da conta atingido: a tarefa espera a janela voltar; sem fallback). */
+  availableAt?: string;
   resultRef?: string;
   lastError?: string;
+  /** Rota de contas e posição atual (a via que deve executar agora). Redação tem rota de uma só via. */
+  route: Account[];
+  routeIndex: number;
+  /** Quantas vezes uma conta bateu o limite (não conta como tentativa falha). */
+  limitHits: number;
+  /** Histórico de vias que bateram o limite: a conta usada fica registrada. */
+  accountsLimited: { account: Account; at: string }[];
 }
 
 /** O que o OpenBot recebe ao puxar: IDs, o lease e os limites. */
@@ -66,22 +80,79 @@ export interface LeasedTask {
   attempt: number;
   leaseId: string;
   leaseExpiresAt: string;
+  /** A via (conta) que deve executar esta entrega. Executar por outra conta é recusado no callback. */
+  account: Account;
 }
 
+/**
+ * Faixa de custo da execução. `api`: tarifada (OpenRouter/gateway), exige ids de geração e custo conhecido. `subscription`
+ * (conta Claude ou Codex) e `opencode` (modelo gratuito): sem geração do OpenRouter, custo SEMPRE 0, modelo declarado.
+ */
+export const LANES = ['api', 'subscription', 'opencode', 'antigravity'] as const;
+export type Lane = (typeof LANES)[number];
+export const ACCOUNTS = ['claude', 'codex', 'opencode', 'antigravity'] as const;
+export type Account = (typeof ACCOUNTS)[number];
+
+/** Provedor do autor, derivado da conta (para provar independência redator × checador). */
+export const PROVIDER_OF_ACCOUNT: Record<Account, string> = { claude: 'anthropic', codex: 'openai', opencode: 'opencode', antigravity: 'antigravity' };
+
+/**
+ * Autor (família do modelo) pelo id DECLARADO no UsageReport; cai na conta quando o id não permite concluir. A via Antigravity
+ * hospeda modelos de várias famílias (Gemini, Claude, GPT-OSS): só o modelo declarado diz quem é o autor.
+ */
+export function providerOfModel(model: string | null | undefined, account: Account | 'deterministic'): string {
+  const m = (model ?? '').toLowerCase();
+  if (m.includes('claude')) return 'anthropic';
+  if (m.includes('gpt') || m.includes('codex') || m.includes('o3') || m.includes('o4')) return 'openai';
+  if (m.includes('gemini')) return 'google';
+  if (m.includes('deepseek')) return 'deepseek';
+  if (account === 'deterministic') return 'deterministic';
+  return PROVIDER_OF_ACCOUNT[account];
+}
+
+/**
+ * Rota padrão de contas por tipo de tarefa (decisão do PM no piloto, 23/11): a primeira é a via preferida; se ela bate o limite,
+ * a tarefa passa à próxima. Redação NUNCA troca de via (uma só). Substituível por `deps.routes`, com as mesmas invariantes.
+ */
+export const DEFAULT_ROUTES: Record<string, readonly Account[]> = {
+  classification: ['opencode', 'claude', 'antigravity'],
+  fact_check: ['codex', 'antigravity'],
+  editorial_review: ['codex', 'antigravity'],
+  editorial_draft: ['claude'],
+  entity_resolution: ['claude'],
+  social_copy: ['claude'],
+};
+export const FALLBACK_ROUTE: readonly Account[] = ['claude'];
+/** Tipos que nunca trocam de via, mesmo que alguém configure outra rota. */
+export const NEVER_SWITCH_KINDS = ['editorial_draft'] as const;
+
 export interface UsageReport {
+  /** Padrão `api`. Em `subscription`/`opencode` valem as regras da faixa gratuita (custo 0, sem geração obrigatória). */
+  lane?: Lane;
+  /** Obrigatória em `subscription` (claude|codex) e `opencode` (opencode). */
+  account?: Account;
   /** Id da execução no OpenBot: dedupe do custo. */
   executionId: string;
   taskId: string;
   leaseId: string;
   model: string;
-  /** Ids de geração no gateway/OpenRouter; base da conciliação. */
-  generationIds: string[];
-  promptTokens: number;
-  completionTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
+  /** Ids de geração no gateway/OpenRouter; base da conciliação. Obrigatório em `api` quando houve gasto; opcional nas faixas gratuitas. */
+  generationIds?: string[];
+  /** Tokens: obrigatórios em `api`; nas faixas gratuitas o OpenBot não os expõe (omitir = não medido, nunca zero inventado). */
+  promptTokens?: number;
+  completionTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
   /** Custo em micro-USD (inteiro). Custo ausente ou desconhecido é recusado (bloqueio por preço desconhecido). */
   costMicro: number;
 }
 
 export const ID_RE = /^[A-Za-z0-9_.-]{1,128}$/;
+
+/**
+ * Referência do resultado de uma execução: derivada, nunca escolhida pelo agente. `res-<taskId>-a<tentativa>` é idempotente por
+ * tentativa (a segunda tentativa não sobrescreve a primeira). Com `requireDerivedResultRef`, o callback só aceita esta forma.
+ */
+export function resultRefFor(taskId: string, attempt: number): string {
+  return `res-${taskId}-a${attempt}`;
+}

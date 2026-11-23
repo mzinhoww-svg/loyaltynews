@@ -8,6 +8,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
+import { PortalAgora } from '../../_components/PortalAgora';
 import { adicionarLinkAction, alternarRedirectAction, criarRedirectAction, removerLinkAction, removerRedirectAction, salvarSeoAction } from './actions';
 
 export const metadata: Metadata = { title: 'SEO' };
@@ -53,6 +54,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
   const chefia = checkAccess(session, CHEFIA_EDITORIAL).ok;
   const admin = checkAccess(session, ['admin']).ok;
   const org = seo.dadosEstruturados.organizacao;
+  const urlDoSite = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   return (
     <>
       <h1>SEO</h1>
@@ -65,11 +67,11 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
       {podeEscrever ? (
         <form action={salvarSeoAction} aria-label="SEO global" className="st-card">
           <div className="st-field">
-            <label htmlFor="tituloPadrao">Título padrão (até 70)</label>
+            <label htmlFor="tituloPadrao">Título padrão (obrigatório, até 70)</label>
             <input id="tituloPadrao" name="tituloPadrao" type="text" defaultValue={seo.tituloPadrao} />
           </div>
           <div className="st-field">
-            <label htmlFor="descricaoPadrao">Descrição padrão (até 200)</label>
+            <label htmlFor="descricaoPadrao">Descrição padrão (obrigatória, até 200)</label>
             <textarea id="descricaoPadrao" name="descricaoPadrao" rows={2} defaultValue={seo.descricaoPadrao} />
           </div>
           <div className="st-field">
@@ -93,12 +95,13 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           <h3>Organização (dados estruturados)</h3>
           <div className="st-row">
             <div className="st-field">
-              <label htmlFor="orgNome">Nome</label>
+              <label htmlFor="orgNome">Nome (obrigatório)</label>
               <input id="orgNome" name="orgNome" type="text" defaultValue={org.nome} />
             </div>
             <div className="st-field">
-              <label htmlFor="orgUrl">URL do site</label>
-              <input id="orgUrl" name="orgUrl" type="text" defaultValue={org.url} />
+              <label htmlFor="orgUrl">URL do site (obrigatória, https://…)</label>
+              <input id="orgUrl" name="orgUrl" type="text" defaultValue={org.url || urlDoSite} placeholder="https://…" />
+              {!org.url && urlDoSite ? <span className="st-hint">Sugerida pelo ambiente ({urlDoSite}); confira antes de salvar.</span> : null}
             </div>
           </div>
           <div className="st-field">
@@ -118,6 +121,9 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
       )}
       <div style={{ marginTop: 14 }}>
         <SiteDocPainel tipo="seo_global" estado={seoEstado} podePublicar={chefia} retorno="/studio/seo" />
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <PortalAgora parte="seo" />
       </div>
 
       <h2 style={{ marginTop: 24 }}>Links internos</h2>
@@ -176,6 +182,9 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
       ) : null}
       <div style={{ marginTop: 14 }}>
         <SiteDocPainel tipo="links_internos" estado={linksEstado} podePublicar={chefia} retorno="/studio/seo" />
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <PortalAgora parte="links" />
       </div>
 
       <h2 style={{ marginTop: 24 }}>Redirecionamentos</h2>

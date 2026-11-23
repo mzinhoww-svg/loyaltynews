@@ -1,5 +1,7 @@
 // Ledger append-only do orçamento. O estado (reservas abertas, pendentes, comprometido, sobrecarga) é reconstruído
-// por replay do log. Persistência real (PostgreSQL, R2-08) implementa a mesma interface LedgerStore.
+// por replay do log. O armazenamento real (PostgreSQL) implementa a mesma interface LedgerStore: a escrita e a
+// leitura do gate acontecem dentro de withLock, que no banco é uma transação com trava de consultoria.
+import { randomUUID } from 'node:crypto';
 import type { Pool, TaskClass } from './types';
 
 export type Lane = 'text' | 'image';
@@ -14,30 +16,86 @@ export interface LedgerEvent {
   taskClass?: TaskClass;
   pool?: Pool;
   lane?: Lane;
+  route?: string;
   provider?: string;
   model?: string;
   escalation?: boolean;
   amountMicro?: number; // reserve: teto reservado; refill_fee: valor pago
   actualMicro?: number; // commit: custo real informado pelo provedor
   overrun?: boolean; // commit: custo real acima da reserva
+  generationId?: string; // commit: identificador da geração no provedor (prova da cobrança)
   reason?: string; // pending/release: motivo
   evidence?: string; // release conciliada: evidência de que nada foi cobrado
 }
 
-export interface LedgerStore {
+// Leitura e escrita de um mesmo instante de travamento.
+export interface LedgerIO {
   append(event: LedgerEvent): Promise<void>;
   readAll(): Promise<readonly LedgerEvent[]>;
+  // Id novo da reserva, gerado fora da contagem de eventos (UUID; no banco, gen_random_uuid()).
+  nextReservationId(): Promise<string>;
+  // Parada vigente lida DENTRO da mesma transação/trava (sem abrir outra conexão: PGlite tem uma só).
+  readKill(): Promise<KillState>;
 }
 
+// Parada: global e por rota. Lida a cada chamada; ligada por quem tem autoridade (proprietário, gate).
+export interface KillState {
+  global: boolean;
+  routes: string[];
+}
+
+export interface LedgerStore {
+  withLock<T>(fn: (io: LedgerIO) => Promise<T>): Promise<T>;
+  append(event: LedgerEvent): Promise<void>;
+  readAll(): Promise<readonly LedgerEvent[]>;
+  readKill(): Promise<KillState>;
+  setKill(scope: 'global' | `route:${string}`, active: boolean, reason: string, at: Date): Promise<void>;
+}
+
+// Implementação em memória (testes e desenvolvimento). Não sobrevive a restart.
 export class MemoryLedgerStore implements LedgerStore {
   private events: LedgerEvent[] = [];
+  private kill = new Map<string, { active: boolean; reason: string }>();
+  private chain: Promise<unknown> = Promise.resolve();
+
+  async withLock<T>(fn: (io: LedgerIO) => Promise<T>): Promise<T> {
+    const run = this.chain.then(
+      () => fn(this.io()),
+      () => fn(this.io()),
+    );
+    this.chain = run.catch(() => undefined);
+    return run;
+  }
+
+  private io(): LedgerIO {
+    return {
+      append: async (event) => {
+        this.events.push(event);
+      },
+      readAll: async () => this.events.slice(),
+      nextReservationId: async () => randomUUID(),
+      readKill: () => this.readKill(),
+    };
+  }
 
   async append(event: LedgerEvent): Promise<void> {
-    this.events.push(event);
+    await this.withLock((io) => io.append(event));
   }
 
   async readAll(): Promise<readonly LedgerEvent[]> {
-    return this.events.slice();
+    return this.withLock((io) => io.readAll());
+  }
+
+  async readKill(): Promise<KillState> {
+    const global = this.kill.get('global')?.active === true;
+    const routes = [...this.kill.entries()]
+      .filter(([scope, v]) => scope.startsWith('route:') && v.active)
+      .map(([scope]) => scope.slice('route:'.length));
+    return { global, routes };
+  }
+
+  async setKill(scope: 'global' | `route:${string}`, active: boolean, reason: string, _at: Date): Promise<void> {
+    this.kill.set(scope, { active, reason });
   }
 }
 
@@ -58,6 +116,8 @@ export interface ReservationState {
   status: ReservationStatus;
   actualMicro: number;
   overrun: boolean;
+  /** Id da geração no provedor (prova da cobrança), gravado na conciliação; 'sem-id' no banco = ausente. */
+  generationId?: string;
 }
 
 // Reconstrói o estado das reservas a partir do log. Eventos de taxa de compra não entram aqui.
@@ -89,6 +149,7 @@ export function replay(events: readonly LedgerEvent[]): Map<string, ReservationS
         s.status = 'committed';
         s.actualMicro = e.actualMicro ?? s.reservedMicro;
         s.overrun = e.overrun ?? false;
+        if (e.generationId && e.generationId !== 'sem-id') s.generationId = e.generationId;
       }
     } else if (e.type === 'release') {
       const s = states.get(e.reservationId);

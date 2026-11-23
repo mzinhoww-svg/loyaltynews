@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { parsePage } from '../_components/Listing';
 import { SearchInput } from '../_components/ds-client';
 import { WithSidebar } from '../_components/Sidebar';
+import { ErrorState } from '../_components/states';
 import { ArticleGrid, EmptyState, PageHead, Pager } from '../_components/ui';
 import { getSource } from '../_lib/source';
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function BuscaPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   const sp = await searchParams;
-  const q = (sp.q ?? '').trim().slice(0, 120);
+  const q = (sp.q ?? '').trim().slice(0, 100);
   const result = q ? await getSource().search(q, parsePage(sp.page)) : null;
   return (
     <>
@@ -24,7 +25,11 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
       <WithSidebar>
         <div aria-live="polite">
           {!result ? (
-            <EmptyState title="Digite um termo para buscar">Resultados aparecem aqui, por relevância e data de publicação.</EmptyState>
+            <EmptyState title="Digite um termo para buscar">Os resultados vêm da busca no título e no resumo das matérias publicadas, da mais recente para a mais antiga.</EmptyState>
+          ) : result.unavailable ? (
+            <ErrorState title="Não conseguimos buscar agora" retryHref={`/busca?q=${encodeURIComponent(q)}`}>
+              A busca não respondeu; isso não significa que não haja resultados para “{q}”. Tente novamente em instantes.
+            </ErrorState>
           ) : result.items.length ? (
             <>
               <p className="pt-meta" data-testid="result-count">{result.total} resultado(s) para “{q}”</p>
@@ -33,7 +38,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
             </>
           ) : (
             <EmptyState title={`Nenhum resultado para “${q}”`}>
-              Tente outro termo ou navegue pelas editorias. Enquanto o portal não tem matérias publicadas, a busca não retorna conteúdo.
+              Tente outro termo ou navegue pelas editorias: a busca procura no título e no resumo das matérias publicadas.
             </EmptyState>
           )}
         </div>

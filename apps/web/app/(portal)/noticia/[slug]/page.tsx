@@ -2,22 +2,30 @@ import { Breadcrumb } from '@ln/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import { WithSidebar } from '../../_components/Sidebar';
+import { ErrorState } from '../../_components/states';
 import { AdSlot, ArticleGrid, MockTag, Section } from '../../_components/ui';
 import { CONTENT_TYPE_LABEL, editoriaName } from '../../_lib/editorias';
 import { flags } from '../../_lib/flags';
 import { formatDate } from '../../_lib/format';
+import { linkTerms } from '../../_lib/site-config';
+import { jsonLdString } from '../../_lib/jsonld';
 import { SITE_NAME, SITE_URL } from '../../_lib/site';
 import { getSource } from '../../_lib/source';
 
 type Props = { params: Promise<{ slug: string }> };
 
-export const revalidate = 60;
+// Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
+export const dynamic = 'force-dynamic';
+
+/** Uma leitura por requisição (metadados e página compartilham o resultado). */
+const loadArticle = cache((slug: string) => getSource().getArticle(slug));
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const a = await getSource().getArticle(slug);
-  if (!a) return { title: 'Matéria não encontrada', robots: { index: false } };
+  const { article: a, unavailable } = await loadArticle(slug);
+  if (!a) return { title: unavailable ? 'Matéria indisponível' : 'Matéria não encontrada', robots: { index: false } };
   const url = `/noticia/${a.slug}`;
   return {
     title: a.title,
@@ -41,9 +49,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
   const src = getSource();
-  const a = await src.getArticle(slug);
+  const { article: a, unavailable } = await loadArticle(slug);
+  if (!a && unavailable) {
+    // A API falhou: não é "matéria inexistente". Página de erro honesta (noindex nos metadados), sem 500 e sem detalhe técnico.
+    return (
+      <ErrorState title="Não conseguimos carregar esta matéria agora" retryHref={`/noticia/${encodeURIComponent(slug)}`}>
+        A matéria não respondeu a tempo. Ela pode existir: tente novamente em instantes ou <Link href="/noticias">veja as últimas notícias</Link>.
+      </ErrorState>
+    );
+  }
   if (!a) notFound();
   const related = await src.getRelated(a, 3);
+  // Links internos publicados no Studio: 1ª ocorrência de cada termo vira link (só em parágrafos; nunca em títulos ou citações).
+  const linkRules = (await src.getSiteConfig())?.internalLinks ?? [];
+  const linked = new Set<string>();
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -61,7 +80,7 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <AdSlot slot="topo" />
       <WithSidebar>
         <article className="pt-article">
@@ -133,7 +152,11 @@ export default async function ArticlePage({ params }: Props) {
                   {b.attribution && <footer className="pt-meta">— {b.attribution}</footer>}
                 </blockquote>
               ) : (
-                <p key={i}>{b.text}</p>
+                <p key={i}>
+                  {linkTerms(b.text, linkRules, linked).map((part, j) =>
+                    typeof part === 'string' ? part : <Link key={j} href={part.href} data-testid="internal-link">{part.text}</Link>,
+                  )}
+                </p>
               ),
             )}
           </div>

@@ -7,6 +7,8 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { ENV_PROIBIDAS_EM_PRODUCAO } from './fixtures/flags-proibidas.mjs';
+import { marcadoresEm } from './scan-marcadores.mjs';
 
 const MARKERS = ['senha-longa-de-teste-1', 'electric-sql/pglite'];
 // Marcadores da vitrine do portal (fixtures MOCK e faixa de demonstração; Security R8): só podem existir no build de vitrine do staging.
@@ -17,6 +19,8 @@ delete base.LN_E2E_BUILD;
 delete base.LN_STUDIO_TEST_SESSION;
 delete base.LN_STUDIO_DEV_DB;
 delete base.PORTAL_VITRINE;
+// O interruptor de indexação de produção não pode vazar para os builds de verificação (staging o recusa; a verificação é do pacote sem indexação).
+delete base.PORTAL_INDEXAVEL;
 delete base.PORTAL_SOURCE;
 // Build de produção de verdade: APP_ENV=production e URL pública (o build de produção recusa localhost).
 base.APP_ENV = 'production';
@@ -52,7 +56,7 @@ function scan(dir, markers = MARKERS, skipMaps = false) {
       if (st.isDirectory()) walk(p);
       else if (/\.(js|mjs|cjs|json|html|rsc|map|txt|css)$/.test(nome) && !(skipMaps && nome.endsWith('.map'))) {
         const txt = readFileSync(p, 'utf8');
-        for (const m of markers) if (txt.includes(m)) achados.add(m);
+        for (const m of marcadoresEm(txt, markers)) achados.add(m);
       }
     }
   };
@@ -109,7 +113,7 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
 {
   const srv = spawn('npx', ['next', 'start', '--port', String(PORT)], {
     shell: true,
-    env: { ...base, LN_STUDIO_TEST_SESSION: '1', LN_STUDIO_DEV_DB: 'pglite', PORTAL_VITRINE: '1', PORTAL_SOURCE: 'mock' },
+    env: { ...base, ...ENV_PROIBIDAS_EM_PRODUCAO },
     stdio: 'ignore',
   });
   try {
@@ -131,7 +135,7 @@ console.log('3) servidor de produção com as variáveis no ambiente e cookie si
       for (const rota of ['/', '/noticias']) {
         const html = await (await fetch(`http://127.0.0.1:${PORT}${rota}`)).text();
         const vazou = VITRINE_MARKERS.filter((m) => html.includes(m)).concat(html.includes('data-testid="demo-banner"') ? ['demo-banner'] : []);
-        if (vazou.length === 0) ok(`${rota} em produção com PORTAL_VITRINE=1 e PORTAL_SOURCE=mock não exibe vitrine`);
+        if (vazou.length === 0) ok(`${rota} em produção com a vitrine ligada e PORTAL_SOURCE com valor mock não exibe vitrine`);
         else fail(`${rota} vazou a vitrine em produção: ${vazou.join(', ')}`);
       }
       for (const rota of ['/studio', '/studio/cms', '/studio/social']) {

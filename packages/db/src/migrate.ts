@@ -29,12 +29,20 @@ export function sslConfigFromEnv(env: Record<string, string | undefined>): SslCo
   return { ca, cert, key, rejectUnauthorized: true };
 }
 
+/** Mensagem do erro SEM bloco PEM e SEM credencial de URL (incidente de 23/11; arquivo autocontido, por isso não importa o safe-log). */
+const saneada = (e: unknown): string =>
+  String(e instanceof Error ? e.message : e)
+    .replace(/-----BEGIN [A-Z0-9 ]+-----[\s\S]*?(?:-----END [A-Z0-9 ]+-----|$)/g, '[PEM REMOVIDO]')
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@'"]+@/gi, '$1***@')
+    .slice(0, 500);
+
 export const MIGRATIONS_DIR = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 export async function runMigrations(env: Record<string, string | undefined> = process.env): Promise<void> {
   const url = env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL ausente');
   const pool = new pg.Pool({ connectionString: url, ssl: sslConfigFromEnv(env), max: 1 });
+  pool.on('error', () => undefined); // C1: o erro de conexão ociosa não pode ir ao log com o objeto do TLS
   try {
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS_DIR });
   } finally {
@@ -48,7 +56,7 @@ if (invokedDirectly) {
     () => console.log('migrações aplicadas'),
     (e: unknown) => {
       // Nunca imprime a URL nem os PEM: só a mensagem.
-      console.error(`falha na migração: ${e instanceof Error ? e.message : String(e)}`);
+      console.error(`falha na migração: ${saneada(e)}`);
       process.exit(1);
     },
   );

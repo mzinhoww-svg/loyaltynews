@@ -1,0 +1,40 @@
+{
+  "reason": "recência pela data real (> 30 dias); página antiga do feed não garantiu antiguidade",
+  "swaps": [
+    {
+      "out": "u001",
+      "in": "u101",
+      "category": "financeiro"
+    },
+    {
+      "out": "u003",
+      "in": "u102",
+      "category": "financeiro"
+    },
+    {
+      "out": "u005",
+      "in": "u103",
+      "category": "financeiro"
+    },
+    {
+      "out": "u031",
+      "in": "u104",
+      "category": "fintech"
+    },
+    {
+      "out": "u033",
+      "in": "u105",
+      "category": "fintech"
+    },
+    {
+      "out": "u047",
+      "in": "u106",
+      "category": "aviacao-fidelidade"
+    }
+  ],
+  "counts": {
+    "recente": 60,
+    "historico": 20,
+    "problema": 20
+  }
+}

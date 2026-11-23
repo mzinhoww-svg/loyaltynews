@@ -6,13 +6,15 @@ import { buildLiveAdapter } from '../mlabs/live-adapter.internal';
 import type { MlabsReadPort, PostPayload, PublishReceipt } from '../mlabs/port';
 import { SimulatedMlabsAdapter } from '../mlabs/simulated.mock';
 import { mintWriteCapability } from '../mlabs/write-gate.internal';
-import type { Actor, Article, Channel } from '../types';
+import type { UploadedMedia } from '../mlabs/create-post-draft';
+import { MediaUploadError, MlabsRasterUploader, type PutBytes, type RasterizerPort, type UploadLedger } from '../pipeline/raster-upload';
+import type { Actor, Article, Channel, CreativeAsset } from '../types';
 
 export interface AuditEntry {
   ts: string;
   actorId: string;
   actorRole: string;
-  action: 'publish' | 'edit' | 'delete';
+  action: 'publish' | 'edit' | 'delete' | 'upload_media';
   channel: Channel;
   outcome: 'accepted' | 'refused';
   reason?: string;
@@ -45,10 +47,24 @@ export interface PublishRequest {
 
 type FlagSource = GrowthFlags | (() => GrowthFlags);
 
+/** Envio de mídia do criativo (R5-02). Sem isto o publicador recusa `uploadMedia` (`rasterizador_ausente`). */
+export interface MediaConfig {
+  /** Rasterizador SVG→PNG (UI/UX: `rasterizeCreative`, que usa sharp e por isso é injetado, não importado aqui). */
+  rasterizer: RasterizerPort;
+  /** PUT dos bytes. Só testes injetam; o modo real usa `fetch` (HTTPS público, sem redirecionamento). */
+  putBytes?: PutBytes;
+  ledger?: UploadLedger;
+  /** Idade máxima de uma entrada do registro de envios (padrão 24 h). */
+  ledgerMaxAgeMs?: number;
+  /** Só vale no modo simulado: no modo real, criativo mock nunca sobe. */
+  allowMock?: boolean;
+}
+
 interface CommonConfig {
   /** Valor fixo ou função lida a cada operação. Padrão: tudo desligado. */
   flags?: FlagSource;
   now?: () => string;
+  media?: MediaConfig;
 }
 
 /** Modo simulado (padrão do produto): nada sai do processo. */
@@ -90,6 +106,11 @@ export interface SocialPublisher {
   /** Só no modo simulado. */
   readonly simulated?: SimulatedView;
   publish(actor: Actor, req: PublishRequest): Promise<PublishReceipt>;
+  /**
+   * Envia o criativo ao mLabs (SVG → PNG → prepare_media_upload → PUT → get_media_upload) e devolve o id da imagem para o rascunho.
+   * É ESCRITA no mLabs: mesma identidade, mesma flag e mesma capability do `publish`; auditada; desligada por padrão.
+   */
+  uploadMedia(actor: Actor, asset: CreativeAsset, imageRef: string): Promise<UploadedMedia>;
   edit(actor: Actor, channel: Channel, receiptId: string, text: string): Promise<PublishReceipt>;
   remove(actor: Actor, channel: Channel, receiptId: string): Promise<PublishReceipt>;
 }
@@ -127,6 +148,7 @@ export function createSocialPublisher(config: PublisherConfig): SocialPublisher 
   const cap = mintWriteCapability();
   adapter.bindWriteAuthority(cap); // capability nova num adaptador recém-criado: sempre vincula
 
+  let uploader: MlabsRasterUploader | undefined;
   const receipts = new Map<string, PublishReceipt>();
   const auditLog: AuditEntry[] = [];
 
@@ -195,6 +217,29 @@ export function createSocialPublisher(config: PublisherConfig): SocialPublisher 
         articleId: article.id, receiptId: receipt.id,
       });
       return receipt;
+    },
+
+    async uploadMedia(actor, asset, imageRef) {
+      guard(actor, 'upload_media', 'linkedin');
+      const media = config.media;
+      if (!media) refuse(actor, 'upload_media', 'linkedin', 'rasterizador_ausente');
+      uploader ??= new MlabsRasterUploader({
+        rasterizer: media.rasterizer,
+        port: adapter.mediaUploadPort(cap, media.putBytes),
+        ledger: media.ledger,
+        ledgerMaxAgeMs: media.ledgerMaxAgeMs,
+        now: () => new Date(now()),
+        allowMock: config.mode === 'simulated' && media.allowMock === true,
+      });
+      try {
+        const r = await uploader.upload(asset, imageRef);
+        auditLog.push({ ts: now(), actorId: actor.id, actorRole: actor.role, action: 'upload_media', channel: 'linkedin', outcome: 'accepted', receiptId: imageRef });
+        return r;
+      } catch (e) {
+        const reason = e instanceof MediaUploadError ? e.reason : 'falha_no_envio_de_midia';
+        auditLog.push({ ts: now(), actorId: actor.id, actorRole: actor.role, action: 'upload_media', channel: 'linkedin', outcome: 'refused', reason, receiptId: imageRef });
+        throw e;
+      }
     },
 
     async edit(actor, channel, receiptId, text) {

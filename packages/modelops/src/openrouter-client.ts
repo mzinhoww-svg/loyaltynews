@@ -6,7 +6,9 @@ import { SimulatedOpenRouterClient } from './openrouter.mock';
 import { realCallsAllowed } from './policy';
 
 export interface ClientConfig {
-  policy: { rules: { production_enabled: boolean } }; // production_enabled da política
+  policy: { rules: { production_enabled: boolean }; qualification?: { mode?: { enabled?: boolean } } }; // production_enabled e modo de qualificação da política
+  /** 'production' (padrão) ou 'qualification' (ADR-021: chamada real com production_enabled=false, só com o modo LIGADO na política). */
+  mode?: 'production' | 'qualification';
   apiKey?: string;
   flags?: Partial<FlagState>;
 }
@@ -68,7 +70,11 @@ export function createOpenRouterCreditsReader(key: string, fetchImpl: typeof fet
 
 // Padrão: simulado. Flag desligada nunca usa a rede. Flag ligada sem chave é erro explícito.
 export function selectClient(config: ClientConfig, fetchImpl: typeof fetch = fetch): OpenRouterClient {
-  if (!realCallsAllowed(config.policy, isEnabled('modelosHabilitados', config.flags))) return new SimulatedOpenRouterClient();
+  const flag = isEnabled('modelosHabilitados', config.flags);
+  const allowed = config.mode === 'qualification'
+    ? flag && config.policy.rules.production_enabled === false && config.policy.qualification?.mode?.enabled === true
+    : realCallsAllowed(config.policy, flag);
+  if (!allowed) return new SimulatedOpenRouterClient();
   if (!config.apiKey) throw new Error('chamadas de modelo habilitadas, mas a chave do OpenRouter está ausente');
   return createRealOpenRouterClient(config.apiKey, fetchImpl);
 }

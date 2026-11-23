@@ -5,7 +5,9 @@ export const ROLES = ['admin', 'editor_chefe', 'editor', 'revisor', 'comercial',
 export type Role = (typeof ROLES)[number];
 
 export const RESOURCES = [
-  'editorias', 'materias', 'fontes', 'midia', 'agenda', 'entidades', 'inventario', 'campanhas', 'social', 'site', 'usuarios', 'auditoria',
+  'editorias', 'materias', 'fontes', 'midia', 'agenda', 'entidades', 'inventario', 'campanhas', 'social', 'site', 'orcamento', 'usuarios', 'auditoria',
+  /** Fila de pedidos do titular (DP-38): contém dado pessoal; só editor-chefe e admin. */
+  'titular',
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -19,7 +21,8 @@ const MATRIX: Record<Role, Grant> = {
   admin: Object.fromEntries(RESOURCES.map((r) => [r, [...ACTIONS]])) as Grant,
   editor_chefe: {
     editorias: CRUD, materias: [...CRUD, 'transition', 'publish'], fontes: CRUD, midia: CRUD, agenda: [...CRUD, 'transition'],
-    entidades: CRUD, inventario: ['read'], campanhas: ['read'], social: ['read', 'create', 'publish'], site: ['read', 'create', 'update', 'transition', 'publish'], auditoria: ['read'],
+    entidades: CRUD, inventario: ['read'], campanhas: ['read'], social: ['read', 'create', 'publish'], site: ['read', 'create', 'update', 'transition', 'publish'], orcamento: ['read'], auditoria: ['read'],
+    titular: ['read', 'update', 'transition'],
   },
   editor: {
     editorias: ['read'], materias: ['read', 'create', 'update', 'transition'], fontes: ['read', 'create', 'update'],
