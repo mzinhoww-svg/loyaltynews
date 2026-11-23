@@ -194,6 +194,30 @@ test.describe('honestidade de dados', () => {
     expect(await mapa.innerText()).not.toMatch(/R$/);
   });
 
+  test('P2-1: toda tabela com rolagem do mídia kit é região focável, com nome único, e o foco por teclado fica visível', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const regioes = page.locator('.pt-scroll');
+    const n = await regioes.count();
+    expect(n).toBeGreaterThanOrEqual(2);
+    const nomes: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const r = regioes.nth(i);
+      await expect(r).toHaveAttribute('tabindex', '0');
+      await expect(r).toHaveAttribute('role', 'region');
+      const nome = (await r.getAttribute('aria-label')) ?? '';
+      expect(nome.trim().length).toBeGreaterThan(10);
+      nomes.push(nome);
+    }
+    expect(new Set(nomes).size).toBe(nomes.length); // nomes distintos (leitor de tela diferencia as tabelas)
+    // foco por teclado: Tab chega a uma região e o anel de foco aparece
+    const primeira = regioes.first();
+    await primeira.focus();
+    await expect(primeira).toBeFocused();
+    const outline = await primeira.evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) }; });
+    expect(outline.style).not.toBe('none');
+    expect(outline.width).toBeGreaterThanOrEqual(2);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');

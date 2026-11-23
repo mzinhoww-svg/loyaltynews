@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { formatDateTime } from '../_lib/format';
 import { PositionMap } from '../_components/PositionMap';
+import { ScrollRegion } from '../_components/ScrollRegion';
 import { MockTag } from '../_components/ui';
 import { PUBLIC_POSITIONS, apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
 import { getSource } from '../_lib/source';
@@ -101,7 +102,7 @@ export default async function MidiaKitPage() {
             </div>
           ))}
         </div>
-        <div className="pt-scroll">
+        <ScrollRegion label="Editorias do portal e escopo">
           <table className="pt-table">
             <thead><tr><th>Editoria</th><th>Escopo</th></tr></thead>
             <tbody>
@@ -110,7 +111,7 @@ export default async function MidiaKitPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       </section>
 
       <section id="audiencia" className="pt-section" aria-labelledby="mk-aud">
@@ -137,14 +138,14 @@ export default async function MidiaKitPage() {
       <section id="formatos" className="pt-section" aria-labelledby="mk-for">
         <h2 id="mk-for">04 · Formatos e posições</h2>
         <PositionMap positions={kit?.positions.length ? kit.positions : PUBLIC_POSITIONS} />
-        <div className="pt-scroll">
+        <ScrollRegion label="Formatos e posições: dimensão e onde aparece">
           <table className="pt-table">
             <thead><tr><th>Formato</th><th>Dimensão</th><th>Onde aparece</th></tr></thead>
             <tbody>
               {FORMATS.map((f) => <tr key={f.name}><td>{f.name}</td><td>{f.size}</td><td>{f.where}</td></tr>)}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
         <p className="pt-meta">Conteúdo publicitário é sempre rotulado. Posições de ranking editorial não são vendidas.</p>
       </section>
 
@@ -158,7 +159,7 @@ export default async function MidiaKitPage() {
           <div data-testid="mk-precos">
             <p className="pt-meta">Valores de referência por formato, ajustáveis; confirmados na proposta. Um formato só é vendido quando está disponível.</p>
             {bySection(kit.formats).map(([section, rows]) => (
-              <div className="pt-scroll" key={section}>
+              <ScrollRegion key={section} label={`Preços de referência: ${section}`}>
                 <table className="pt-table">
                   <caption>{section}</caption>
                   <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
@@ -168,7 +169,7 @@ export default async function MidiaKitPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             ))}
             {kit.integrityNote && <p className="pt-meta" role="note" data-testid="mk-integridade">{kit.integrityNote}</p>}
           </div>

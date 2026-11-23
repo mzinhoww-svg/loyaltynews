@@ -142,6 +142,23 @@ test.describe('mídia kit via API comercial', () => {
     await expect(lista.locator('[data-position-item="AGENDA"]')).toContainText('dimensões em definição');
   });
 
+  test('P2-1: tabelas de preço por seção (vindas da API) também são regiões focáveis com nome único', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const precos = page.getByTestId('mk-precos').locator('.pt-scroll');
+    expect(await precos.count()).toBe(2); // Banners e The Loyal no mock
+    const nomes: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const r = precos.nth(i);
+      await expect(r).toHaveAttribute('tabindex', '0');
+      await expect(r).toHaveAttribute('role', 'region');
+      nomes.push((await r.getAttribute('aria-label')) ?? '');
+    }
+    expect(nomes[0]).toContain('Preços de referência: Banners');
+    expect(nomes[1]).toContain('Preços de referência: The Loyal');
+    await precos.nth(1).focus();
+    await expect(precos.nth(1)).toBeFocused();
+  });
+
   test('cobertura: só a coleta da API (origem, janela e data); métrica de demonstração (seed) vira "—" e "sem dado real"', async ({ page }) => {
     await page.goto('/midia-kit');
     const real = page.getByTestId('coverage-articles');
