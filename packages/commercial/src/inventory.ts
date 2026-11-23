@@ -1,3 +1,5 @@
+import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone, maxSeq } from './snapshot';
+
 // Inventário publicitário: posições de banner, reservas, disponibilidade e conflito (Blueprint v2.0 §4 "Inventário, regras e cálculo de receita").
 export interface BannerPosition {
   id: string; name: string; formatId: string;
@@ -31,6 +33,7 @@ export interface Reservation {
 }
 export interface Takeover { id: string; date: string; advertiserId: string; agreedCampaignIds: string[]; }
 
+export interface InventorySnapshot { version: typeof SNAPSHOT_VERSION; seq: number; positions?: BannerPosition[]; reservations: Reservation[]; takeovers: Takeover[] }
 export type InventoryErrorCode = 'POSITION_UNKNOWN' | 'POSITION_NOT_CONFIGURED' | 'INVALID_PERIOD' | 'MIN_CONTRACT' | 'NO_SLOT' | 'TAKEOVER_BLOCK' | 'TAKEOVER_CONFLICT';
 export class InventoryError extends Error {
   code: InventoryErrorCode;
@@ -57,6 +60,21 @@ export class InventoryBook {
   private seq = 0;
   private positions: readonly BannerPosition[];
   constructor(positions: readonly BannerPosition[] = POSITIONS) { this.positions = positions; }
+
+  // ---------- hidratação e persistência ----------
+  listPositions(): readonly BannerPosition[] { return this.positions; }
+  snapshot(): InventorySnapshot {
+    return { version: SNAPSHOT_VERSION, seq: this.seq, positions: clone([...this.positions]), reservations: clone(this.reservations), takeovers: clone(this.takeovers) };
+  }
+  /** Substitui reservas e takeovers (e as posições, se o snapshot as trouxer). Recalcula o contador de ids. */
+  load(s: InventorySnapshot): void {
+    assertSnapshot(s, 'InventoryBook', ['reservations', 'takeovers']);
+    assertUnique([...s.reservations.map((r) => r.id), ...s.takeovers.map((t) => t.id)], 'InventoryBook');
+    const c = clone(s);
+    if (Array.isArray(c.positions) && c.positions.length) this.positions = c.positions;
+    this.reservations = c.reservations; this.takeovers = c.takeovers;
+    this.seq = Math.max(s.seq ?? 0, maxSeq([...c.reservations.map((r) => r.id), ...c.takeovers.map((t) => t.id)]));
+  }
 
   position(id: string): BannerPosition {
     const p = this.positions.find((x) => x.id === id);

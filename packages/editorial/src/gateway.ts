@@ -4,10 +4,10 @@
  * Alinhado a ADR-015 (degraus de orçamento) e model.policy.json (rotas economy/review/premium).
  */
 
-export type TaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack';
+export type TaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack' | 'roles';
 export type RouteClass = 'economy' | 'review' | 'premium';
 /** Workflow que origina a chamada; o gateway usa para aplicar a reserva de auditoria (ADR-015). */
-export type WorkflowId = 'WF01' | 'WF02' | 'WF04' | 'WF08' | 'WF18';
+export type WorkflowId = 'WF01' | 'WF02' | 'WF04' | 'WF06' | 'WF08' | 'WF18';
 
 export interface GatewayRequest {
   taskClass: TaskClass;

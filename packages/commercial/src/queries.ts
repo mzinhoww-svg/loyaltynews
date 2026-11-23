@@ -2,6 +2,7 @@
 // Nenhuma consulta inventa número: sem dado => null/lista vazia/estado vazio explícito.
 import { isEnabled } from '@ln/contracts';
 import { priceLabel } from './catalog';
+import { auditabilityOf, campaignPeriodMs } from './audit';
 import { generateMediaKit, type MediaKit } from './mediakit';
 import { POSITIONS } from './inventory';
 import type { CommercialCtx } from './state';
@@ -13,6 +14,8 @@ import type { CampaignStatus } from './campaigns';
 export interface MediaKitPage extends MediaKit {
   /** O que a tela pode oferecer. Instagram e The Loyal seguem desligados até P-01/P-02. */
   capabilities: { adServerVendas: boolean; instagram: boolean; theLoyal: boolean; retargeting: boolean };
+  /** Integridade da entrega de anúncios: lacunas em que o dedupe perdeu estado. Vazio = nenhuma lacuna registrada. */
+  deliveryIntegrity: { gaps: readonly import('./audit').AuditGap[]; note: string | null };
 }
 export function mediaKitPage(ctx: CommercialCtx): MediaKitPage {
   return {
@@ -21,6 +24,7 @@ export function mediaKitPage(ctx: CommercialCtx): MediaKitPage {
       adServerVendas: isEnabled('adServerVendas', ctx.flags), instagram: isEnabled('instagram', ctx.flags),
       theLoyal: isEnabled('theLoyal', ctx.flags), retargeting: isEnabled('retargeting', ctx.flags),
     },
+    deliveryIntegrity: { gaps: ctx.ads.audit.list(), note: ctx.ads.audit.list().length ? 'Há período(s) não auditável(is) na entrega de anúncios: os números desses períodos são mínimos, não totais.' : null },
   };
 }
 
@@ -83,6 +87,7 @@ export function campaignDetail(ctx: CommercialCtx, campaignId: string) {
     creatives: ctx.ads.creativesOf(campaignId),
     report: {
       ...delivery,
+      auditability: auditabilityOf(ctx.ads.audit, ...campaignPeriodMs(c.startDate, c.endDate)),
       daysTotal: Math.round((Date.parse(c.endDate + 'T00:00:00Z') - Date.parse(c.startDate + 'T00:00:00Z')) / 86_400_000) + 1,
       visibleRate: delivery.served > 0 ? delivery.visible / delivery.served : null,
       methodology: 'Impressões servidas e visíveis são separadas; cliques válidos contam uma vez por impressão; bots, tráfego interno e auto-refresh são excluídos. Visitas por UTM, leitura de matérias e cliques de newsletter dependem de analytics e não estão disponíveis.',
@@ -102,6 +107,7 @@ export function studioDashboard(ctx: CommercialCtx, from: string, to: string) {
     if (c.status === 'active' && !ctx.ads.creativesOf(c.id).some((x) => x.approved)) attention.push({ kind: 'campanha_sem_criativo_aprovado', ref: c.id, message: `Campanha ${c.name} ativa sem criativo aprovado.` });
   }
   for (const p of POSITIONS) if (p.slotLimit === null) attention.push({ kind: 'posicao_nao_configurada', ref: p.id, message: `${p.id} sem limite/dimensões: não reservável.` });
+  for (const g of ctx.ads.audit.list()) attention.push({ kind: 'periodo_nao_auditavel', ref: g.id, message: `Entrega não auditável de ${g.from} a ${g.to} (${g.reason}); ${g.uncountedServes} impressões e ${g.ignoredEvents} eventos sem contagem.` });
   const metrics = ctx.metrics.all().map((m) => ({ ...ctx.metrics.get({ source: m.source, metric: m.metric }, ctx.now), }));
   return {
     period: { from, to },

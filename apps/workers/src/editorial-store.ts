@@ -2,27 +2,83 @@
 // Registro inteiro em json (a porta troca o registro por inteiro; json e não jsonb para preservar a ordem das chaves); colunas escalares só para índice.
 // UPSERT atômico por chave (last-writer-wins); auditoria em tabela somente-acréscimo lida por ORDER BY id.
 // Limite conhecido: o PostgreSQL não guarda em json/jsonb o caractere NUL (U+0000); texto com NUL é recusado (a promessa rejeita).
+import { randomUUID } from 'node:crypto';
 import { asc, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
-import type { ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, SourceState } from '@ln/editorial';
+import type {
+  ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, OutboxItem, PublicationCommit, PublicationCommitStep, SourceState,
+} from '@ln/editorial';
 
 /** JSON puro: descarta undefined e garante que nada compartilhe referência com o chamador. */
 const plain = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
+type Writer = Pick<Db, 'insert'>;
+
+async function upsertArticle(db: Writer, r: ArticleRecord): Promise<void> {
+  const row = { articleId: r.articleId, status: r.status, editoria: r.editoria, updatedAt: new Date(r.updatedAt), record: plain(r) };
+  await db.insert(schema.editorialArticle).values(row).onConflictDoUpdate({
+    target: schema.editorialArticle.articleId,
+    set: { status: row.status, editoria: row.editoria, updatedAt: row.updatedAt, record: row.record },
+  });
+}
+
 export class PgEditorialStore implements EditorialStore {
   constructor(private readonly db: Db) {}
+
+  /** Só para teste: faz a PRÓXIMA commitPublication lançar no passo indicado, DENTRO da transação (consome o gatilho). */
+  private fault: PublicationCommitStep | null = null;
+  armFault(step: PublicationCommitStep | null): void {
+    this.fault = step;
+  }
+  private maybeFail(step: PublicationCommitStep): void {
+    if (this.fault === step) {
+      this.fault = null;
+      throw new Error(`falha injetada em ${step}`);
+    }
+  }
+
+  /**
+   * UMA transação: outbox (decide a idempotência), matéria publicada e auditoria. Chave de outbox já existente ⇒
+   * 'duplicate' sem efeito (o INSERT ... ON CONFLICT DO NOTHING espera um commit concorrente e vê a linha dele).
+   * Qualquer falha ⇒ rollback de tudo, inclusive o outbox. Entrada inválida rejeita antes de abrir a transação.
+   */
+  async commitPublication(c: PublicationCommit): Promise<{ outbox: 'enqueued' | 'duplicate' }> {
+    const a = c.article;
+    const o = c.outbox;
+    if (!a.articleId || a.status !== 'publicado' || !a.publication || !c.audit.action || !c.audit.target || !o.queue || !o.refId || !o.idempotencyKey) {
+      throw new Error('commitPublication: entrada inválida');
+    }
+    return this.db.transaction(async (tx) => {
+      const ins = await tx
+        .insert(schema.outbox)
+        .values({ id: randomUUID(), queue: o.queue, refId: o.refId, idempotencyKey: o.idempotencyKey })
+        .onConflictDoNothing({ target: schema.outbox.idempotencyKey })
+        .returning({ id: schema.outbox.id });
+      if (ins.length === 0) return { outbox: 'duplicate' as const };
+      this.maybeFail('after_outbox');
+      await upsertArticle(tx, a);
+      this.maybeFail('after_article');
+      await tx.insert(schema.editorialAudit).values({ at: c.audit.at, record: plain(c.audit) });
+      this.maybeFail('after_audit');
+      return { outbox: 'enqueued' as const };
+    });
+  }
+
+  async listOutbox(): Promise<OutboxItem[]> {
+    const rows = await this.db
+      .select({ queue: schema.outbox.queue, refId: schema.outbox.refId, idempotencyKey: schema.outbox.idempotencyKey })
+      .from(schema.outbox)
+      .orderBy(asc(schema.outbox.createdAt), asc(schema.outbox.id));
+    return rows;
+  }
 
   async getArticle(id: string) {
     const [r] = await this.db.select({ record: schema.editorialArticle.record }).from(schema.editorialArticle).where(sql`${schema.editorialArticle.articleId} = ${id}`);
     return r ? (r.record as ArticleRecord) : undefined;
   }
   async putArticle(r: ArticleRecord) {
-    const row = { articleId: r.articleId, status: r.status, editoria: r.editoria, updatedAt: new Date(r.updatedAt), record: plain(r) };
-    await this.db.insert(schema.editorialArticle).values(row).onConflictDoUpdate({
-      target: schema.editorialArticle.articleId,
-      set: { status: row.status, editoria: row.editoria, updatedAt: row.updatedAt, record: row.record },
-    });
+    await upsertArticle(this.db, r);
   }
   async listArticles() {
     return (await this.db.select({ record: schema.editorialArticle.record }).from(schema.editorialArticle)).map((r) => r.record as ArticleRecord);

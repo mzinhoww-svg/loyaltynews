@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { EDITORIAL_STORE_CONTRACT, runEditorialStoreContract } from '../api/store-contract';
 import type { StoreFactory } from '../api/store-contract';
 import { InMemoryEditorialStore } from '../api/store';
-import type { ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, SourceState } from '../api/store';
+import type { ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, OutboxItem, PublicationCommit, PublicationCommitStep, SourceState } from '../api/store';
 
 // 1) A implementação de referência passa em TODA a suíte (é o que o Backend deve reproduzir sobre PostgreSQL).
-runEditorialStoreContract('InMemoryEditorialStore', () => new InMemoryEditorialStore());
+runEditorialStoreContract('InMemoryEditorialStore', () => { const s = new InMemoryEditorialStore(); return { store: s, armFault: (step) => s.armFault(step) }; });
 
 // 2) Meta-teste: a suíte precisa REPROVAR implementações erradas (senão não protege nada).
 class Base implements EditorialStore {
@@ -14,6 +14,7 @@ class Base implements EditorialStore {
   protected corrections = new Map<string, CorrectionRecord>();
   protected sources = new Map<string, SourceState>();
   protected audit: AuditItem[] = [];
+  protected outbox: OutboxItem[] = [];
   async getArticle(id: string) { return this.articles.get(id); }
   async putArticle(r: ArticleRecord) { this.articles.set(r.articleId, r); }
   async listArticles() { return [...this.articles.values()]; }
@@ -25,6 +26,11 @@ class Base implements EditorialStore {
   async listSourceStates() { return [...this.sources.values()]; }
   async appendAudit(a: AuditItem) { this.audit.push(a); }
   async listAudit() { return [...this.audit]; }
+  async listOutbox() { return [...this.outbox]; }
+  async commitPublication(c: PublicationCommit) {
+    this.articles.set(c.article.articleId, c.article); this.audit.push(c.audit); this.outbox.push(c.outbox);
+    return { outbox: 'enqueued' as const };
+  }
 }
 
 /** Sem cópia: devolve e guarda as mesmas referências (aliasing). */
@@ -52,6 +58,20 @@ class LossyAudit extends InMemoryEditorialStore {
   }
   override async listAudit() { return this.snapshot; }
 }
+
+/** Publicação NÃO atômica: grava a matéria primeiro e só depois o resto (o defeito que o QA 2 apontou). */
+class NonAtomicPublication extends InMemoryEditorialStore {
+  armed: PublicationCommitStep | null = null;
+  override async commitPublication(c: PublicationCommit) {
+    await this.putArticle(c.article);
+    if (this.armed === 'after_article') { this.armed = null; throw new Error('falha injetada em after_article'); }
+    await this.appendAudit(c.audit);
+    if (this.armed === 'after_audit') { this.armed = null; throw new Error('falha injetada em after_audit'); }
+    return super.commitPublication(c).catch(() => ({ outbox: 'enqueued' as const }));
+  }
+}
+/** Sem idempotência pela chave da outbox: duplica auditoria/outbox a cada chamada. */
+class NonIdempotentPublication extends Base {}
 
 const failing = async (factory: StoreFactory): Promise<string[]> => {
   const out: string[] = [];
@@ -86,4 +106,16 @@ test('fábrica com teardown é respeitada (um store novo e uma limpeza por teste
   assert.deepEqual(failed, []);
   assert.equal(created, EDITORIAL_STORE_CONTRACT.length);
   assert.equal(torn, created);
+});
+
+test('suíte de contrato reprova publicação NÃO atômica (matéria gravada antes da auditoria/outbox)', async () => {
+  const f = await failing(() => { const st = new NonAtomicPublication(); return { store: st, armFault: (step: PublicationCommitStep | null) => { st.armed = step; } }; });
+  assert.ok(f.some((n) => n.includes('falha injetada')), f.join(' | '));
+});
+
+test('suíte de contrato reprova publicação sem idempotência, sem validação e com concorrência quebrada', async () => {
+  const f = await failing(() => new NonIdempotentPublication());
+  assert.ok(f.some((n) => n.includes('idempotente pela chave')), f.join(' | '));
+  assert.ok(f.some((n) => n.includes('entrada inválida')), f.join(' | '));
+  assert.ok(f.some((n) => n.includes('commits idênticos em paralelo')), f.join(' | '));
 });

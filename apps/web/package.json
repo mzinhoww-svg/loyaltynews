@@ -13,12 +13,17 @@
     "verify:no-mock": "node scripts/verify-no-mock.mjs"
   },
   "dependencies": {
+    "@ln/agents": "0.0.0",
     "@ln/auth": "0.0.0",
     "@ln/commercial": "0.0.0",
     "@ln/contracts": "0.0.0",
     "@ln/db": "0.0.0",
+    "@ln/editorial": "0.0.0",
+    "@ln/growth": "0.1.0",
     "@ln/intelligence": "0.0.0",
+    "@ln/modelops": "0.0.0",
     "@ln/ui": "0.0.0",
+    "@ln/workers": "0.0.0",
     "ioredis": "5.11.1",
     "next": "16.4.6",
     "pg": "8.23.1",
@@ -26,6 +31,8 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.17",
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "1.65.1",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",

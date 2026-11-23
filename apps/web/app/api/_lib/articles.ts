@@ -6,7 +6,9 @@ import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import { ASSINATURA, canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
-import { contentSha256 } from './content-hash';
+import { publishedContentSha256 } from '@ln/contracts/hash';
+import { draftContentSha256 } from '@ln/editorial';
+import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
 import {
@@ -91,6 +93,21 @@ function serialize(a: ArticleRow, withBody = true) {
   };
 }
 
+/**
+ * sha do conteúdo aprovado (ADR-017: função ÚNICA `publishedContentSha256`). Com rascunho no CMS editorial (mesmo id),
+ * é `draftContentSha256` do RASCUNHO, a fonte da verdade; sem registro editorial (matéria só na tabela `articles`),
+ * é calculado sobre a linha de `articles`. Recibo desse segundo caminho não é aceito pela rota de publicação do
+ * Editorial (o hash difere: 409 sem efeito).
+ */
+async function approvedSha(db: Db, a: ArticleRow, evidenceIds: readonly string[]): Promise<string> {
+  const rec = await new PgEditorialStore(db).getArticle(a.id);
+  if (rec?.draft) return draftContentSha256(rec.draft);
+  return publishedContentSha256({
+    titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo, editoria: a.editoria, corpo: a.corpo,
+    imagem: a.imagem, classeDeDado: a.classeDeDado, patrocinado: a.patrocinado, rotuloPublieditorial: a.rotuloPublieditorial, fontes: evidenceIds,
+  });
+}
+
 async function receiptFor(db: Db, a: ArticleRow) {
   const [r] = await db
     .select()
@@ -103,7 +120,7 @@ async function receiptFor(db: Db, a: ArticleRow) {
 async function validReceipt(db: Db, a: ArticleRow) {
   const r = await receiptFor(db, a);
   if (!r) return null;
-  return r.conteudoSha256 === contentSha256(a, await evidenceIdsOf(db, a.id)) ? r : null;
+  return r.conteudoSha256 === (await approvedSha(db, a, await evidenceIdsOf(db, a.id))) ? r : null;
 }
 
 async function assertEvidences(db: Db, ids: readonly string[]) {
@@ -242,7 +259,7 @@ export const issueReceipt: RouteFn = async (req, c) => {
   const evIds = await evidenceIdsOf(c.deps.db, a.id);
   const failures = gateFailures(a, evIds.length);
   if (failures.length) throw new HttpError(422, 'GATES_FAILED', 'A matéria não passa nas regras determinísticas.', failures);
-  const hash = contentSha256(a, evIds);
+  const hash = await approvedSha(c.deps.db, a, evIds);
   const existing = await receiptFor(c.deps.db, a);
   if (existing) {
     if (existing.conteudoSha256 === hash) return json({ data: existing }, 200);
