@@ -15,6 +15,7 @@
   },
   "types": "./src/index.ts",
   "dependencies": {
+    "@ln/agents": "0.0.0",
     "@ln/auth": "0.0.0",
     "@ln/commercial": "0.0.0",
     "@ln/contracts": "0.0.0",
