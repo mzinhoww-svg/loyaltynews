@@ -5,6 +5,7 @@ import { api, type MateriaDetalhe } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, type ErroApi, type RespostaApi } from '@/lib/studio/backend';
 import { corpoAtualizacao, corpoCriacao, lerCampos, mesmasEvidencias } from '@/lib/studio/cms/materia-form';
 import { CMS_EDIT, CMS_REVIEW } from '@/lib/studio/cms/roles';
+import { montarCorrecao } from '@/lib/studio/cms/fabrica-correcao';
 import { requireStudio } from '../../_lib/guard';
 
 export interface FormState {
@@ -108,6 +109,10 @@ export async function salvarRevisaoAction(fd: FormData): Promise<void> {
     resumo: nulavel('resumo'),
     corpo: t(fd, 'corpo'),
   });
+  if (ehErro(r) && (r.body as ErroApi | null)?.error?.code === 'FACTORY_CORRECTION_ROUTE') {
+    // matéria da Fábrica: o texto corrigido vem do rascunho editorial; a tela leva ao fluxo de recibo + publicação com `correcao`
+    redirect(`/studio/cms/${encodeURIComponent(id)}/corrigir-fabrica?tipo=err&aviso=${encodeURIComponent(mensagemErro(r))}`);
+  }
   ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : 'Revisão de correção salva. A página publicada não mudou; emita o recibo da revisão e publique.');
 }
 
@@ -133,4 +138,45 @@ export async function decidirRevisaoAction(fd: FormData): Promise<void> {
   const id = t(fd, 'id');
   const r = await api.editorial.decidir(id, { articleId: id, decision: t(fd, 'decisao'), note: t(fd, 'nota') });
   redirect(`/studio/cms/checagem/${encodeURIComponent(id)}?tipo=${ehErro(r) ? 'err' : 'ok'}&aviso=${encodeURIComponent(ehErro(r) ? mensagemErro(r) : 'Decisão de revisão registrada.')}`);
+}
+
+export interface EstadoCorrecao {
+  tipo?: 'ok' | 'err';
+  mensagem?: string;
+  reciboId?: string;
+  publicado?: boolean;
+  valores: { casoId: string; draft: string; factcheck: string; url: string };
+}
+
+const bruto = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string) : '');
+
+/**
+ * Correção de matéria da FÁBRICA: o MESMO `correcao: {casoId, draft (sem bloco Avisos:), factcheck de outro provedor}` vai ao recibo
+ * (POST /api/materias/{id}/recibos) e à publicação oficial. O hash depende do dia do aviso: recibo e publicação no mesmo dia
+ * (senão RECEIPT_CONTENT_MISMATCH e é preciso reemitir). As recusas do Backend aparecem como vêm; o formulário mantém o que foi digitado.
+ */
+export async function corrigirFabricaAction(_prev: EstadoCorrecao, fd: FormData): Promise<EstadoCorrecao> {
+  await requireStudio(['admin', 'editor_chefe']);
+  const id = t(fd, 'id');
+  const op = t(fd, 'op');
+  const valores = { casoId: t(fd, 'casoId'), draft: bruto(fd, 'draft'), factcheck: bruto(fd, 'factcheck'), url: t(fd, 'url') };
+  const reciboAnterior = t(fd, 'recibo') || undefined;
+  const falha = (mensagem: string): EstadoCorrecao => ({ tipo: 'err', mensagem, valores, ...(reciboAnterior ? { reciboId: reciboAnterior } : {}) });
+  const c = montarCorrecao(valores.casoId, valores.draft, valores.factcheck);
+  if (!c.ok) return falha(c.erro);
+  if (op === 'recibo') {
+    const checagens = fd.getAll('checagem').map((x) => ({ tipo: String(x), resultado: 'aprovado' as const }));
+    if (checagens.length === 0) return falha('Marque ao menos uma checagem aprovada.');
+    const r = await api.materias.emitirRecibo(id, { checagens, correcao: c.correcao });
+    if (ehErro(r)) return falha(mensagemErro(r));
+    const rec = (r.body as { data: { id: string; versao: number } }).data;
+    return { tipo: 'ok', mensagem: `Recibo da versão corrigida (v${rec.versao}) emitido. Publique no mesmo dia: o hash depende do dia do aviso.`, reciboId: rec.id, valores };
+  }
+  if (op === 'publicar') {
+    if (!reciboAnterior) return falha('Emita o recibo da correção antes de publicar.');
+    const r = await api.editorial.publicar(id, { receiptId: reciboAnterior, url: valores.url, correcao: c.correcao });
+    if (ehErro(r)) return falha(mensagemErro(r));
+    return { tipo: 'ok', mensagem: 'Correção publicada: a matéria agora está corrigida.', publicado: true, reciboId: reciboAnterior, valores };
+  }
+  return falha('Ação desconhecida.');
 }

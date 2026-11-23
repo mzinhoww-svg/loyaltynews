@@ -19,13 +19,14 @@ import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboActi
 export const metadata: Metadata = { title: 'Matéria' };
 export const dynamic = 'force-dynamic';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// ids do CMS são UUID; ids de matéria da Fábrica não têm formato fixo: aceita só caracteres seguros e deixa a API dizer se existe
+const ID_SEGURO = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
 
 export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
   const { session } = await requireStudio(CMS_READ);
   const { id } = await params;
   const { tipo, aviso } = await searchParams;
-  if (!UUID.test(id)) notFound();
+  if (!ID_SEGURO.test(id)) notFound();
   const r = await api.materias.obter(id);
   if (naoConfigurado(r)) return <SemBanco modulo="O CMS editorial" />;
   if (r.status === 404) notFound();
@@ -47,6 +48,8 @@ export default async function Materia({ params, searchParams }: { params: Promis
   // correção: revisão em aberto (404 = não há) e casos desta matéria (o Backend confere se o caso é aceito, no PATCH)
   const revisao = publicada ? await api.materias.revisao(m.id) : null;
   const rev = revisao && !ehErro(revisao) ? revisao.body.data : null;
+  // matéria da Fábrica = existe registro editorial com este id: a correção segue o recibo + publicação com `correcao`, não a revisão do CMS
+  const ehFabrica = publicada ? !ehErro(await api.editorial.revisao(m.id)) : false;
   const casosResp = publicada ? await api.editorial.correcoes({}) : null;
   const casos = casosResp && !ehErro(casosResp) ? ((casosResp.body as { items: { id: string; articleId: string; kind: string; state: string }[] }).items ?? []).filter((c) => c.articleId === m.id) : [];
   const casosAceitos = casos.filter((c) => ['accepted', 'escalated_legal', 'notice_published', 'social_reconciled'].includes(c.state));
@@ -195,7 +198,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
                 Correção
               </h2>
               <p className="st-hint">
-                Corrigir matéria publicada exige um caso de correção ACEITO sobre ela. A revisão não altera a página pública: só a publicação oficial da revisão (com recibo) gera a nova versão, marcada como corrigida, com o aviso no fim do corpo. Matéria da Fábrica segue o fluxo editorial e este caminho a recusa.
+                Corrigir matéria publicada exige um caso de correção ACEITO sobre ela. A revisão não altera a página pública: só a publicação oficial da revisão (com recibo) gera a nova versão, marcada como corrigida, com o aviso no fim do corpo. Matéria da Fábrica segue outro caminho (recibo e publicação com `correcao`).
               </p>
               {casos.length === 0 ? (
                 <p className="st-hint" data-casos="0">
@@ -211,7 +214,18 @@ export default async function Materia({ params, searchParams }: { params: Promis
                 </ul>
               )}
 
-              {rev ? (
+              {ehFabrica ? (
+                <div data-origem="fabrica">
+                  <p>
+                    Matéria da Fábrica: o texto corrigido é um novo rascunho editorial com checagem de outro provedor, e o recibo e a publicação levam o mesmo <code>correcao</code>.
+                  </p>
+                  <Link className="st-btn" href={`/studio/cms/${encodeURIComponent(m.id)}/corrigir-fabrica`}>
+                    Corrigir pela Fábrica
+                  </Link>
+                </div>
+              ) : null}
+
+              {!ehFabrica && rev ? (
                 <div data-revisao={rev.estado}>
                   <h3>
                     Revisão v{rev.versao} <span className="st-badge">{rev.estado}</span>
@@ -265,7 +279,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
                 </div>
               ) : null}
 
-              {podeEditar && (!rev || rev.estado === 'rascunho') ? (
+              {!ehFabrica && podeEditar && (!rev || rev.estado === 'rascunho') ? (
                 <form action={salvarRevisaoAction} style={{ marginTop: 12 }} aria-label="Revisão de correção">
                   <h3 style={{ marginTop: 0 }}>{rev ? 'Refazer a revisão' : 'Nova revisão de correção'}</h3>
                   <input type="hidden" name="id" value={m.id} />

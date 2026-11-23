@@ -94,6 +94,30 @@ async function montar() {
         .onConflictDoNothing();
       return { articleId };
     },
+    async seedEditorialAprovada() {
+      const articleId = 'fabrica-e2e-2';
+      const dia = new Date().toISOString().slice(0, 10);
+      const agora = new Date().toISOString();
+      const evidencia = { id: 'ev-fabrica-2', sourceId: 'fonte-e2e', url: 'https://exemplo.com.br/fonte-oficial-2', canonicalUrl: 'https://exemplo.com.br/fonte-oficial-2', fetchedAt: agora, contentSha256: 'b'.repeat(64), title: 'Comunicado oficial 2', text: 'Comunicado ao mercado: a instituição informa novo valor de tarifa recorrente para a linha de plásticos, conforme tabela publicada em seu site institucional e válida a partir do ciclo seguinte.', publishedAt: null, suspicious: false, suspiciousReasons: [] };
+      const draft = { id: 'rascunho-fabrica-2', editoria: 'pontos', headline: 'Banco Gama reduz anuidade do cartão (Fábrica)', slug: 'banco-gama-reduz-anuidade-fabrica', resumo: 'O Banco Gama reduziu a anuidade do cartão.', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, body: `O Banco Gama reduziu a anuidade do cartão.
+
+Fontes:
+- Comunicado oficial 2: ${evidencia.url} (acessado em ${dia})`, claims: [{ id: 'c1', text: 'O Banco Gama reduziu a anuidade do cartão.', kind: 'fact', evidenceIds: [evidencia.id] }], evidenceIds: [evidencia.id], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem imagem' }, modelProvider: 'openai', promptVersion: 'e2e' };
+      await new PgEditorialStore(db).putArticle({
+        articleId,
+        editoria: 'pontos',
+        status: 'aprovado',
+        draft,
+        evidences: [evidencia],
+        factcheck: { provider: 'anthropic', model: 'e2e', verdicts: [{ claimId: 'c1', verdict: 'pass' }] },
+        blockers: [],
+        findings: [],
+        reviews: [],
+        recheckCount: 0,
+        updatedAt: agora,
+      } as Parameters<PgEditorialStore['putArticle']>[0]);
+      return { articleId, draft };
+    },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
       const key = `${user}:${role}:${mfa ? 'mfa' : 'nomfa'}`;

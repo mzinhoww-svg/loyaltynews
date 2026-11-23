@@ -118,11 +118,15 @@ test('sem caso aceito o Backend recusa; revisão não ocorre fora de caso; leitu
   await page.goto(casoUrl);
   await expect(page.getByRole('link', { name: 'Abrir a matéria' })).toBeVisible();
 
-  // matéria da Fábrica não segue este caminho: a nova versão é do rascunho editorial (409 EDITORIAL_ORIGIN), e a recusa vem do Backend
+  // matéria da Fábrica não segue este caminho: o texto corrigido é do rascunho editorial (409 FACTORY_CORRECTION_ROUTE), e a recusa vem do Backend
   const fabrica = await semearFabrica(context);
   const origem = await api(context, 'PATCH', `/api/materias/${fabrica}`, { versaoEsperada: 3, casoCorrecaoId: 'qualquer', titulo: 'Novo título' });
   expect(origem.status).toBe(409);
-  expect(origem.body.error.code).toBe('EDITORIAL_ORIGIN');
+  expect(origem.body.error.code).toBe('FACTORY_CORRECTION_ROUTE'); // aponta o recibo e a publicação com `correcao`
+
+  // matéria só do CMS não tem o fluxo da Fábrica: a tela diz para onde ir
+  await page.goto(`/studio/cms/${materiaId}/corrigir-fabrica`);
+  await expect(page.locator('[data-situacao="nao-fabrica"]')).toBeVisible();
 
   await entrar(context, 'lia', 'leitor');
   await page.goto(`/studio/cms/${materiaId}`);

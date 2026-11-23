@@ -40,6 +40,13 @@ export async function enviar(page: Page, botao: Locator): Promise<void> {
   }
 }
 
+/** Semeia uma matéria da Fábrica APROVADA (pronta para recibo e publicação oficiais) e devolve o rascunho dela (rota só existe no build de e2e). */
+export async function semearFabricaAprovada(context: BrowserContext): Promise<{ articleId: string; draft: Record<string, unknown> }> {
+  const r = await context.request.get('/api/e2e/login?seed=editorial-aprovada');
+  expect(r.ok(), `seed da Fábrica aprovada: ${r.status()}`).toBe(true);
+  return (await r.json()) as { articleId: string; draft: Record<string, unknown> };
+}
+
 /** Liga/desliga uma flag no backend de e2e (rota só existe no build de e2e). */
 export async function definirFlag(context: BrowserContext, nome: string, ligada: boolean): Promise<void> {
   const r = await context.request.get(`/api/e2e/login?flag=${encodeURIComponent(nome)}&on=${ligada ? 1 : 0}`);

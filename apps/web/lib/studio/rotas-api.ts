@@ -233,7 +233,7 @@ export const api = {
     checagem: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/factcheck`),
     rechecar: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/recheck`, { metodo: 'POST', corpo: {} }),
     /** Rota oficial de publicação (flag publicacaoPortal; recibo da versão; identidade de publicação). A transição genérica não publica. */
-    publicar: (articleId: string, corpo: { receiptId: string; url: string }) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/publication`, { metodo: 'POST', corpo: { articleId, ...corpo } }),
+    publicar: (articleId: string, corpo: { receiptId: string; url: string; correcao?: unknown }) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/publication`, { metodo: 'POST', corpo: { articleId, ...corpo } }),
     decidir: (articleId: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/review`, { metodo: 'POST', corpo }),
     correcoes: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/corrections`, { query }),
     correcao: (id: string) => chamar(dispatchEditorial, `${E}/corrections/${encodeURIComponent(id)}`),
