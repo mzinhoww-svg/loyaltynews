@@ -10,6 +10,8 @@ import {
 import { requireStudio } from '../../_lib/guard';
 
 const t = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string).trim() : '');
+/** Matérias do destaque: as marcadas no seletor, mais os slugs digitados (campo avançado). Sem repetir. */
+const slugsDoForm = (fd: FormData): string => [...new Set([...fd.getAll('materiaSlug').map((x) => String(x).trim()), ...t(fd, 'materiaSlugs').split(/[\s,]+/)].filter(Boolean))].join(',');
 const TIPOS: readonly TipoDoc[] = ['home', 'menu_principal', 'menu_rodape'];
 
 const volta = (tipo: string, ok: boolean, msg: string): never => redirect(`/studio/home-menus?tipo=${tipo}&tipoMsg=${ok ? 'ok' : 'err'}&aviso=${encodeURIComponent(msg)}`);
@@ -42,12 +44,14 @@ export async function editarDocAction(fd: FormData): Promise<void> {
     else if (op === 'remover') novo = { blocos: remover(h.blocos, i) };
     else if (op === 'editar-bloco') {
       const campos: Record<string, string> = {};
-      for (const k of ['titulo', 'materiaSlugs', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
+      for (const k of ['titulo', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
+      campos.materiaSlugs = slugsDoForm(fd);
       novo = { blocos: h.blocos.map((b, k) => (k === i ? editarBloco(b, campos) : b)) };
       msg = 'Bloco alterado no rascunho (ainda não publicado).';
     } else if (op === 'adicionar') {
       const campos: Record<string, string> = {};
-      for (const k of ['id', 'titulo', 'materiaSlugs', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
+      for (const k of ['id', 'titulo', 'editoria', 'limite', 'posicao']) campos[k] = t(fd, k);
+      campos.materiaSlugs = slugsDoForm(fd);
       novo = { blocos: [...h.blocos, novoBloco(t(fd, 'blocoTipo'), campos, h.blocos.map((b) => b.id))] };
     } else if (op === 'iniciar') msg = 'Rascunho criado a partir do conteúdo atual.';
   } else {

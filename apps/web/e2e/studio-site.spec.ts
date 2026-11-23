@@ -116,9 +116,16 @@ test.describe('SEO, links internos e redirecionamentos', () => {
   test('a redação grava o rascunho do SEO; só a chefia publica', async ({ page, context }) => {
     await entrar(context, 'bia', 'editor');
     await page.goto('/studio/seo');
+    // URL do site já vem sugerida pelo ambiente (P1-03) e os obrigatórios estão marcados
+    await expect(page.locator('#orgUrl')).toHaveValue(/^https:\/\/portal\.example\.test/);
+    await expect(page.getByLabel(/Descrição padrão \(obrigatória/)).toBeVisible();
     await page.locator('#descricaoPadrao').fill('');
     await enviar(page, page.getByRole('button', { name: 'Salvar rascunho do SEO' }));
     await expect(erro(page, /.+/)).toBeVisible();
+    // P1-02: o erro sai em português, com o nome do campo da tela, sem texto cru do validador
+    const msg = (await erro(page, /.+/).textContent()) ?? '';
+    expect(msg).toContain('Descrição padrão');
+    expect(msg).not.toMatch(/Too small|Invalid|dadosEstruturados|expected string/i);
 
     await page.locator('#tituloPadrao').fill('Loyalty News');
     await page.locator('#descricaoPadrao').fill('Notícias de fidelidade.');
