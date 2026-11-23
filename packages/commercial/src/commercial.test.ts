@@ -8,6 +8,8 @@ import {
   evaluateActivation, confirmedCoverage, type Reservation, type ActivationEvidence,
 } from './index';
 
+import { realContent } from './real-creative.mock';
+
 const NOW = '2026-11-22T12:00:00-03:00';
 
 // ---------- catálogo ----------
@@ -80,7 +82,7 @@ test('capacidade teórica = R$72.000/mês a 100% e é rotulada como cenário, n�
 // ---------- rotação ----------
 function server(n: number) {
   const s = new AdServer();
-  for (let i = 1; i <= n; i++) s.addCreative({ id: `c${i}`, campaignId: `k${i}`, positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+  for (let i = 1; i <= n; i++) s.addCreative({ id: `c${i}`, campaignId: `k${i}`, positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent() });
   return s;
 }
 test('rotação com 4 anunciantes iguais dá 25% cada e conta impressões', () => {
@@ -90,8 +92,8 @@ test('rotação com 4 anunciantes iguais dá 25% cada e conta impressões', () =
 });
 test('pesos diferentes seguem a proporção', () => {
   const s = new AdServer();
-  s.addCreative({ id: 'a', campaignId: 'k1', positionId: 'TOP', weight: 3, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
-  s.addCreative({ id: 'b', campaignId: 'k2', positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true });
+  s.addCreative({ id: 'a', campaignId: 'k1', positionId: 'TOP', weight: 3, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent() });
+  s.addCreative({ id: 'b', campaignId: 'k2', positionId: 'TOP', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent() });
   for (let i = 0; i < 400; i++) s.serve({ positionId: 'TOP', today: '2026-12-05', pageViewId: `pv${i}` });
   assert.equal(s.delivery('a').served, 300); assert.equal(s.delivery('b').served, 100);
 });

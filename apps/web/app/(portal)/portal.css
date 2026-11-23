@@ -87,6 +87,12 @@
 .pt-hero-band { background: var(--ln-color-primary); color: var(--ln-color-white); border-radius: var(--ln-radius-xl); padding: clamp(24px, 4vw, 40px); margin: var(--ln-space-5) 0; }
 .pt-hero-band h1, .pt-hero-band h2 { color: var(--ln-color-white); }
 .pt-hero-band p { color: var(--ln-color-mint); max-width: 680px; }
+/* Botões sobre o fundo escuro do bloco de abertura (auditoria V-04). Primário claro e secundário com contorno; foco visível em branco. */
+.pt-hero-band a.ln-btn--primary, .ln-root .pt-hero-band a.ln-btn--primary { background: var(--ln-color-white); color: var(--ln-color-primary); border-color: var(--ln-color-white); }
+.pt-hero-band a.ln-btn--primary:hover, .ln-root .pt-hero-band a.ln-btn--primary:hover { background: var(--ln-color-mint); border-color: var(--ln-color-mint); color: var(--ln-color-primary); }
+.pt-hero-band a.ln-btn--ghost, .ln-root .pt-hero-band a.ln-btn--ghost { background: transparent; color: var(--ln-color-white); border-color: var(--ln-color-white); }
+.pt-hero-band a.ln-btn--ghost:hover, .ln-root .pt-hero-band a.ln-btn--ghost:hover { background: rgba(255, 255, 255, 0.16); color: var(--ln-color-white); }
+.pt-hero-band a.ln-btn:focus-visible, .ln-root .pt-hero-band a.ln-btn:focus-visible { outline: 3px solid var(--ln-color-white); outline-offset: 3px; }
 
 @media (min-width: 1024px) {
   .pt-wrap { padding: 0 var(--ln-layout-gutter-lg); }
@@ -116,3 +122,9 @@
 .pt-correction { border: 1px solid #7a4b00; background: #fff8e6; color: #3d2600; border-radius: 8px; padding: 12px 14px; margin: 0 0 16px; }
 .pt-correction h2 { font-family: var(--ln-font-ui); font-size: 15px; margin: 0 0 4px; color: #5a3700; }
 .pt-correction p { margin: 0 0 4px; white-space: pre-line; }
+
+/* Alvos de toque de 44 px no mobile (UI/UX): links de tabela do mídia kit e chips de filtro/atalho. No desktop nada muda. */
+@media (max-width: 1023px) {
+  .pt-chip { min-height: var(--ln-touch-target); }
+  .pt-table a.pt-tap { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); }
+}

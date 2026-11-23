@@ -27,7 +27,7 @@ export interface MediaKit {
     decisores: { available: false; emptyState: string };
     tese: { text: string };
     especificacoes: { positions: typeof POSITIONS; mobileNote: string; formats: string };
-    catalogo: { total: number; byStatus: Record<string, number>; formats: { id: string; section: string; name: string; price: string; scope: string; status: string; statusReason: string }[]; packages: typeof PACKAGES; disclaimer: string; capacityScenario: ReturnType<typeof theoreticalGrossCapacity> };
+    catalogo: { total: number; byStatus: Record<string, number>; formats: { id: string; section: string; name: string; price: string; scope: string; status: string; statusReason?: string }[]; packages: typeof PACKAGES; disclaimer: string; capacityScenario: ReturnType<typeof theoreticalGrossCapacity> | null };
     contratacao: { steps: string[] };
     formulario: { fields: { name: string; required: boolean }[]; newsletterOptInSeparate: true };
   };
@@ -41,7 +41,11 @@ function build(slots: readonly MetricSlot[], store: MetricStore, now: string): {
   return { metrics, allEmpty: metrics.every((m) => m.record.status === 'unavailable') };
 }
 
-export function generateMediaKit(opts: { store: MetricStore; now: string; catalog?: readonly CommercialFormat[] }): MediaKit {
+/**
+ * `internal` (ator do Studio): só então saem o motivo do estado de cada formato (jargão de flags e frentes) e o cenário de capacidade
+ * (potencial de receita). O mídia kit público nunca os traz.
+ */
+export function generateMediaKit(opts: { store: MetricStore; now: string; catalog?: readonly CommercialFormat[]; internal?: boolean }): MediaKit {
   const catalog = opts.catalog ?? CATALOG;
   const cob = build(METRIC_SLOTS.filter((s) => s.block === 'cobertura'), opts.store, opts.now);
   const aud = build(METRIC_SLOTS.filter((s) => s.block === 'audiencia'), opts.store, opts.now);
@@ -62,10 +66,10 @@ export function generateMediaKit(opts: { store: MetricStore; now: string; catalo
       especificacoes: { positions: POSITIONS, mobileNote: 'Mobile sugerido 320x100 e 300x250; variante obrigatória quando aplicável. Formatos: JPG, PNG, GIF e HTML5 em sandbox após análise.', formats: 'Posições sem limite configurado não são reserváveis.' },
       catalogo: {
         total: catalog.length, byStatus,
-        formats: catalog.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status, statusReason: f.statusReason })),
+        formats: catalog.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status, ...(opts.internal ? { statusReason: f.statusReason } : {}) })),
         packages: PACKAGES,
         disclaimer: 'Preços de referência em BRL, ajustáveis; disponibilidade é real. Nenhum formato sem capacidade operacional fica disponível para venda.',
-        capacityScenario: theoreticalGrossCapacity(),
+        capacityScenario: opts.internal ? theoreticalGrossCapacity() : null,
       },
       contratacao: { steps: ['Lead pelo formulário', 'Qualificação no CRM', 'Proposta versionada', 'Aceite/contrato', 'Reserva de inventário', 'Criativo e QA', 'Aprovação do cliente', 'Ativação', 'Monitoramento de entrega', 'Relatório e renovação'] },
       formulario: { fields: [{ name: 'nome', required: true }, { name: 'empresa', required: true }, { name: 'email', required: true }, { name: 'whatsapp', required: false }, { name: 'formatos', required: false }, { name: 'objetivo', required: false }, { name: 'mensagem', required: false }, { name: 'newsletter_opt_in', required: false }], newsletterOptInSeparate: true },
@@ -94,4 +98,44 @@ export function renderMediaKitHtml(kit: MediaKit): string {
 <section data-block="catalogo"><h2>6. Catálogo (${b.catalogo.total} formatos)</h2><p>${esc(b.catalogo.disclaimer)}</p><table><thead><tr><th>Família</th><th>Produto</th><th>Referência</th><th>Escopo</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></section>
 <section data-block="contratacao"><h2>7. Contratação</h2><ol>${b.contratacao.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></section>
 <section data-block="formulario"><h2>8. Fale com o comercial</h2><ul>${b.formulario.fields.map((f) => `<li>${esc(f.name)}${f.required ? ' *' : ''}</li>`).join('')}</ul><p>O opt-in da newsletter é separado do contato comercial.</p></section></article>`;
+}
+
+// ---------- modelo de audiência para o portal ----------
+/** Mesma forma de MetricValue do portal (apps/web/app/(portal)/_lib/types.ts). Sem coleta: value null e state 'unavailable'. */
+export interface PortalMetric { /** Chave da métrica (ex.: articles_published_30d); usada pela cobertura. */ id?: string; label: string; value: string | null; state: 'ok' | 'unavailable' | 'stale'; source: string; window?: string; collectedAt?: string }
+export interface PortalAudience { realtime: PortalMetric[]; historical: PortalMetric[] }
+
+const SOURCE_NAME: Record<string, string> = { ga4_realtime: 'GA4 (tempo real)', ga4_report: 'GA4', esp: 'ESP · The Loyal', linkedin: 'LinkedIn', cms: 'CMS' };
+const dateBR = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso));
+
+function toPortalMetric(s: MetricSlot, store: MetricStore, now: string, withId: boolean): PortalMetric {
+  const r = store.get({ source: s.source, metric: s.metric }, now, s.klass);
+  const have = r.value !== null && r.status !== 'unavailable';
+  const m: PortalMetric = {
+    ...(withId ? { id: s.metric } : {}),
+    label: s.label,
+    value: have ? r.value!.toLocaleString('pt-BR') : null,
+    state: !have ? 'unavailable' : r.status === 'stale' ? 'stale' : 'ok',
+    source: SOURCE_NAME[s.source] ?? s.source,
+  };
+  if (have) {
+    m.window = s.klass === 'realtime' ? 'últimos 30 min' : `${dateBR(r.period_start!)} a ${dateBR(r.period_end!)}`;
+    m.collectedAt = r.fetched_at!;
+  }
+  return m;
+}
+
+/** Audiência do mídia kit no formato do portal. Cada número traz origem, janela e horário da coleta; sem coleta, "indisponível". */
+export function portalAudience(store: MetricStore, now: string): PortalAudience {
+  const out: PortalAudience = { realtime: [], historical: [] };
+  for (const s of METRIC_SLOTS.filter((x) => x.block === 'audiencia')) out[s.klass === 'realtime' ? 'realtime' : 'historical'].push(toPortalMetric(s, store, now, false));
+  return out;
+}
+
+/**
+ * Cobertura (CMS) no formato do portal: matérias publicadas em 30 e 90 dias e eventos futuros. Só entra o que foi COLETADO (origem, janela e
+ * horário); sem coleta, "indisponível". Quem alimenta o MetricStore deve contar apenas conteúdo real (nunca seed/demonstração).
+ */
+export function portalCoverage(store: MetricStore, now: string): PortalMetric[] {
+  return METRIC_SLOTS.filter((x) => x.block === 'cobertura').map((s) => toPortalMetric(s, store, now, true));
 }

@@ -110,3 +110,44 @@ test.describe('matéria via API pública', () => {
     else expect(r.headers()['x-robots-tag']).toBe('noindex, nofollow');
   });
 });
+
+test.describe('mídia kit via API comercial', () => {
+  test.skip(mode !== 'api', 'somente no modo api');
+
+  test('audiência com origem, janela e data de coleta; indisponível sem coleta; catálogo com preço de referência e disponibilidade', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const sessoes = page.locator('#audiencia .pt-metric').filter({ hasText: 'Sessões (30 dias)' });
+    await expect(sessoes.locator('strong')).toHaveText('1.234');
+    await expect(sessoes).toContainText('GA4');
+    await expect(sessoes).toContainText('05/11/2026 a 04/12/2026');
+    await expect(sessoes).toContainText('coletado em');
+    const semColeta = page.locator('#audiencia .pt-metric').filter({ hasText: 'Usuários ativos (30 dias)' });
+    await expect(semColeta.locator('strong')).toHaveText('—');
+    await expect(semColeta).toContainText('Indisponível');
+    const precos = page.getByTestId('mk-precos');
+    await expect(precos.getByRole('row', { name: /Banner topo.*R\$ 3\.000\/mês.*Sob consulta/ })).toBeVisible();
+    await expect(precos.getByRole('row', { name: /Banner meio.*Indisponível/ })).toBeVisible();
+    // nenhum motivo interno (flag, P-01/P-02) na página pública
+    expect(await page.locator('main').innerText()).not.toMatch(/\bflag\b|P-0[12]|adServerVendas/i);
+  });
+
+  test('cobertura: só a coleta da API (origem, janela e data); métrica de demonstração (seed) vira "—" e "sem dado real"', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const real = page.getByTestId('coverage-articles');
+    await expect(real.locator(':scope > strong')).toHaveText('12');
+    await expect(real).toContainText('CMS');
+    await expect(real).toContainText('05/11/2026 a 04/12/2026');
+    await expect(real).toContainText('coletado em');
+    await expect(real).toHaveAttribute('data-mock', 'false');
+    const demo = page.getByTestId('coverage-articles90');
+    await expect(demo.locator(':scope > strong')).toHaveText('—');
+    await expect(demo).toContainText('sem dado real');
+    await expect(demo).not.toContainText('coletado em');
+    const semColeta = page.getByTestId('coverage-events');
+    await expect(semColeta.locator(':scope > strong')).toHaveText('—');
+    // nenhum rótulo de demonstração vaza para a página, e o número do seed (20) não aparece em nenhum cartão
+    const texto = await page.locator('#cobertura').innerText();
+    expect(texto).not.toMatch(/DEMO|seed-stg/i);
+    expect(await page.locator('#cobertura .pt-metric strong').allTextContents()).not.toContain('20');
+  });
+});
