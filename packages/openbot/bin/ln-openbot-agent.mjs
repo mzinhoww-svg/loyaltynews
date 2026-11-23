@@ -2,7 +2,7 @@
 // Cliente do AGENTE do OpenBot para o piloto de 10 matérias (DP-41, só staging). O modelo NUNCA toca no segredo nem na assinatura: ele roda estes
 // comandos e só lê/escreve JSON. Sem dependências (Node 20+). Faz exatamente o que PROTOCOL.md descreve:
 //   pull  ->  input  ->  (o agente produz o resultado)  ->  result  ->  done | limit | fail      (+ heartbeat se a tarefa demorar)
-//   smoke: verificação do roteiro (§6) em UM comando, sem efeito (health, sonda de assinatura, pull só com o despacho desligado); recusa produção.
+//   smoke: verificação do roteiro (§6) em UM comando, sem efeito (health e sonda de assinatura; NUNCA faz pull); recusa produção.
 // Segurança: o segredo HMAC vem de um ARQUIVO (LN_HMAC_SECRET_FILE, o caminho que o cofre do OpenBot entrega) ou, menos recomendado, de LN_HMAC_SECRET;
 // nunca de argumento de linha de comando, e nunca é impresso. Só HTTPS (http só para localhost, em teste). Só as contas claude e codex (DP-41).
 // Saída: UMA linha de JSON no stdout (o resultado) ou, em erro, JSON em stderr e código de saída 1 (sem segredo, sem assinatura, sem cabeçalhos).
@@ -208,9 +208,11 @@ const COMMANDS = {
     return (await post(cfg, 'callback', body, io)).body;
   },
   /**
-   * Verificação do roteiro (§6) em UM comando, SEM efeito: lê /api/health, faz a sonda de assinatura (heartbeat e io/input de tarefa que não existe) e,
-   * só com o despacho desligado, um `pull` (que nada entrega). Recusa produção. Com o despacho LIGADO o `pull` é PULADO (tomaria um lease de verdade).
-   * Resultado por passo: PASS | FAIL | WARN | SKIP; `ok` = nenhum FAIL. Nunca imprime segredo, assinatura nem cabeçalhos.
+   * Verificação do roteiro (§6) em UM comando, SEM efeito: lê /api/health e faz a sonda de assinatura (heartbeat e io/input de uma tarefa que NÃO existe).
+   * NÃO faz `pull`: o pull é chamada operacional (grava a atividade do agente e RESERVA tarefa) e a leitura de /api/health pode estar velha (o despacho pode
+   * ligar entre o GET e o POST). O 423 DISPATCH_OFF do pull se confere À MÃO (`pull`), só quando o operador sabe que o despacho está desligado.
+   * Resultado por passo: PASS | FAIL | WARN; `ok` = nenhum FAIL. A saída usa SÓ mensagens locais e campos validados: nunca repete texto do servidor, segredo,
+   * assinatura nem cabeçalhos. Recusa produção sem enviar nada assinado.
    */
   async smoke(cfg, argv, io) {
     const a = parseArgs(argv, ['expect-dispatch']);
@@ -220,56 +222,57 @@ const COMMANDS = {
     const origin = new URL(cfg.base).origin;
     const checks = [];
     const add = (step, verdict, observed, note) => checks.push({ step, verdict, observed, ...(note ? { note } : {}) });
+    const SAFE_CODE = /^[A-Z][A-Z0-9_]{1,39}$/;
+    const codeOf = (e) => (SAFE_CODE.test(String(e.code)) ? String(e.code) : 'CODIGO_DESCONHECIDO');
+    const safeVersion = (v) => (typeof v === 'string' && /^[A-Za-z0-9._-]{1,64}$/.test(v) ? v : 'desconhecida');
+    const safeFlags = (f) => (Array.isArray(f) && f.length <= 32 && f.every((x) => typeof x === 'string' && /^[A-Za-z][A-Za-z0-9]{0,39}$/.test(x)) ? f : null);
 
     // 1) health (GET sem assinatura)
     let health = null;
     try {
       const res = await fetchImpl(`${origin}/api/health`, { redirect: 'error', signal: AbortSignal.timeout(20_000) });
       health = res.ok ? await res.json() : null;
-      if (!health) add('health', 'FAIL', `HTTP ${res.status}`, 'o app não respondeu /api/health');
+      if (!health || typeof health !== 'object') {
+        add('health', 'FAIL', `HTTP ${res.status}`, 'o app não respondeu /api/health com JSON');
+        health = null;
+      }
     } catch {
       add('health', 'FAIL', 'sem resposta', 'rede ou tempo esgotado');
     }
     if (!health) return { ok: false, url: origin, checks, refused: 'sem_health' };
+    const flags = safeFlags(health.flags);
     const prod = health.env !== 'staging';
-    add('health', prod ? 'FAIL' : 'PASS', { env: health.env, version: health.version, flags: health.flags }, prod ? 'o smoke só roda em staging: nada assinado foi enviado' : undefined);
+    add('health', prod ? 'FAIL' : 'PASS', { env: health.env === 'staging' ? 'staging' : 'outro', version: safeVersion(health.version), flags }, prod ? 'o smoke só roda em staging: nada assinado foi enviado' : undefined);
     if (prod) return { ok: false, url: origin, checks, refused: 'ambiente_nao_staging' };
-    const dispatchOn = Array.isArray(health.flags) && health.flags.includes('openbotDispatch');
-    if (expect !== 'any' && (expect === 'on') !== dispatchOn) add('flag openbotDispatch', 'FAIL', dispatchOn ? 'ligada' : 'desligada', `esperado: ${expect === 'on' ? 'ligada' : 'desligada'}`);
-    else add('flag openbotDispatch', 'PASS', dispatchOn ? 'ligada' : 'desligada');
 
-    // 2) sonda de assinatura: uma tarefa que não existe passa pela assinatura e devolve 404 (aceita) ou 401 (recusada)
+    // 2) flag: lista ausente ou inválida = estado DESCONHECIDO (nunca "desligado")
+    if (flags === null) {
+      add('flag openbotDispatch', expect === 'any' ? 'WARN' : 'FAIL', 'desconhecida', 'o /api/health não trouxe a lista de flags em formato válido');
+    } else {
+      const on = flags.includes('openbotDispatch');
+      if (expect !== 'any' && (expect === 'on') !== on) add('flag openbotDispatch', 'FAIL', on ? 'ligada' : 'desligada', `esperado: ${expect === 'on' ? 'ligada' : 'desligada'}`);
+      else add('flag openbotDispatch', 'PASS', on ? 'ligada' : 'desligada');
+    }
+
+    // 3) sonda de assinatura: uma tarefa que não existe passa pela assinatura e devolve 404 LEASE_ERROR (aceita), ou um 423 de parada PREVISTO (aceita, travado)
+    const LOCKS = ['KILL_SWITCH', 'PILOT_STOPPED'];
     const probe = async (step, path, body) => {
       try {
         await post(cfg, path, body, io);
         add(step, 'WARN', 'respondeu 2xx', 'inesperado para uma tarefa que não existe');
       } catch (e) {
         if (!(e instanceof CliError)) throw e;
-        if (e.code === 'LEASE_ERROR' && e.status === 404) add(step, 'PASS', '404 LEASE_ERROR', 'assinatura aceita; nada foi criado');
-        else if (e.status === 423) add(step, 'PASS', `423 ${e.code}`, 'assinatura aceita; o LN está travado de propósito');
-        else if (e.status === 401) add(step, 'FAIL', `401 ${e.message.replace(/^UNAUTHORIZED: /, '')}`, /sem_segredo/.test(e.message) ? 'o servidor não tem o segredo HMAC configurado' : 'segredo diferente do do servidor, ou relógio fora da janela de 5 min');
-        else add(step, 'FAIL', `${e.status ?? ''} ${e.code}`.trim(), 'resposta inesperada');
+        const code = codeOf(e);
+        if (e.status === 404 && code === 'LEASE_ERROR') add(step, 'PASS', '404 LEASE_ERROR', 'assinatura aceita; nada foi criado');
+        else if (e.status === 423 && LOCKS.includes(code)) add(step, 'PASS', `423 ${code}`, 'assinatura aceita; o LN está travado de propósito');
+        else if (e.status === 401) {
+          const semSegredo = /sem_segredo/.test(String(e.message));
+          add(step, 'FAIL', semSegredo ? '401 sem_segredo' : '401 assinatura recusada', semSegredo ? 'o servidor não tem o segredo HMAC configurado' : 'segredo diferente do do servidor, ou relógio fora da janela de 5 min');
+        } else add(step, 'FAIL', `${Number.isInteger(e.status) ? e.status : 'sem status'} ${code}`, 'resposta inesperada para a sonda');
       }
     };
     await probe('assinatura (heartbeat)', 'heartbeat', { taskId: 'sonda-inexistente', leaseId: 'sonda' });
     await probe('assinatura (io/input)', 'io/input', { taskId: 'sonda-inexistente', leaseId: 'sonda' });
-
-    // 3) pull só com o despacho desligado (nada é entregue); ligado, PULA para não tomar um lease
-    if (dispatchOn) {
-      add('pull', 'SKIP', 'não executado', 'despacho ligado: um pull tomaria o lease de uma tarefa de verdade');
-    } else {
-      try {
-        const r = await post(cfg, 'pull', { workerId: cfg.workerId, account: cfg.account, limit: 1 }, io);
-        add('pull', 'WARN', `${r.status} com ${r.body?.tasks?.length ?? 0} tarefa(s)`, 'com o despacho desligado o pull devia ser 423 DISPATCH_OFF');
-      } catch (e) {
-        if (!(e instanceof CliError)) throw e;
-        if (e.status === 423 && e.code === 'DISPATCH_OFF') add('pull', 'PASS', '423 DISPATCH_OFF', 'o despacho desligado não entrega nada');
-        else if (e.status === 423) add('pull', 'WARN', `423 ${e.code}`, 'travado por outro motivo (parada ou piloto parado)');
-        else if (e.code.startsWith('UPSTREAM_')) add('pull', 'WARN', `${e.status} sem corpo da API`, 'servidor anterior ao 423 Locked (a borda da Vertra esconde o código) ou app indisponível');
-        else if (e.status === 401) add('pull', 'FAIL', `401 ${e.code}`, 'assinatura recusada');
-        else add('pull', 'FAIL', `${e.status ?? ''} ${e.code}`.trim(), 'resposta inesperada');
-      }
-    }
     return { ok: !checks.some((c) => c.verdict === 'FAIL'), url: origin, checks };
   },
 };

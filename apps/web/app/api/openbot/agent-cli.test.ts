@@ -21,10 +21,15 @@ const ROUTES: Record<string, { POST: (r: Request) => Promise<Response> }> = { pu
 const health = { status: 'ok', service: 'loyaltynews-web', version: 'teste', env: 'staging', flags: [] as string[] };
 let signedCalls = 0;
 let edge503 = false; // simula servidor anterior ao 423: a borda troca o corpo do pull por HTML
+let override: ((path: string) => Response | null) | null = null; // respostas fixas por rota (testes de saída do smoke)
+let pullCalls = 0;
 const fetchImpl = (async (url: string, init: RequestInit) => {
   if (String(url) === 'https://staging.exemplo.example/api/health') return Response.json(health);
   const path = String(url).slice(BASE.length + 1);
   signedCalls += 1;
+  if (path === 'pull') pullCalls += 1;
+  const forced = override?.(path);
+  if (forced) return forced;
   if (edge503 && path === 'pull') return new Response('<!doctype html><html data-kind="502"></html>', { status: 503, headers: { 'content-type': 'text/html', 'x-vertra-error': '1' } });
   return ROUTES[path]!.POST(new Request(`http://localhost:3000/api/openbot/${path}`, { method: 'POST', headers: init.headers as Record<string, string>, body: init.body as string }));
 }) as unknown as typeof fetch;
@@ -46,6 +51,8 @@ beforeEach(() => {
   health.env = 'staging';
   health.flags = [];
   signedCalls = 0;
+  pullCalls = 0;
+  override = null;
   edge503 = false;
   process.env.OPENBOT_HMAC_SECRET = SECRET;
   delete process.env.OPENBOT_HMAC_SECRET_PREVIOUS;
@@ -196,53 +203,105 @@ describe('423 Locked pelas rotas REAIS (ft/backend 0a2e2c8): o código chega ao 
   });
 });
 
-describe('smoke: a verificação do roteiro em um comando, sem efeito', () => {
+describe('smoke: a verificação do roteiro em um comando, sem efeito e SEM pull', () => {
   const step = (r: any, name: string) => r.checks.find((c: any) => c.step === name);
-  const secretFree = (r: unknown) => expect(JSON.stringify(r)).not.toMatch(/segredo-de-teste|v1=|x-ln-signature/);
+  const clean = (r: unknown) => expect(JSON.stringify(r)).not.toMatch(/segredo-de-teste|v1=|x-ln-signature/);
 
-  it('despacho desligado e segredo certo: tudo PASS (health, flag, assinatura por heartbeat e io/input, pull = 423 DISPATCH_OFF); nada criado', async () => {
+  it('despacho desligado e segredo certo: tudo PASS (health, flag, assinatura por heartbeat e io/input); nada criado, nenhum pull, nenhuma atividade gravada', async () => {
     app.deps.flags.openbotDispatch = false;
     const r = await cli(['smoke']);
     expect(r.ok).toBe(true);
-    expect(r.checks.map((c: any) => [c.step, c.verdict])).toEqual([
-      ['health', 'PASS'], ['flag openbotDispatch', 'PASS'], ['assinatura (heartbeat)', 'PASS'], ['assinatura (io/input)', 'PASS'], ['pull', 'PASS'],
-    ]);
-    expect(step(r, 'pull').observed).toBe('423 DISPATCH_OFF');
-    expect(step(r, 'health').observed).toMatchObject({ env: 'staging', flags: [] });
+    expect(r.checks.map((c: any) => [c.step, c.verdict])).toEqual([['health', 'PASS'], ['flag openbotDispatch', 'PASS'], ['assinatura (heartbeat)', 'PASS'], ['assinatura (io/input)', 'PASS']]);
+    expect(step(r, 'health').observed).toEqual({ env: 'staging', version: 'teste', flags: [] });
+    expect(pullCalls).toBe(0);
     expect(await app.db.select().from(schema.openbotTasks)).toHaveLength(0);
     expect(await app.db.select().from(schema.openbotHealth)).toHaveLength(0);
-    secretFree(r);
+    clean(r);
   });
 
-  it('segredo errado: FAIL na assinatura (com a dica do relógio e do segredo), sem vazar; o pull com a flag desligada segue 423 (a flag vem antes da assinatura)', async () => {
+  it('NUNCA reserva tarefa nem grava atividade, mesmo se o despacho LIGAR depois da leitura do health (health diz desligado, o servidor está ligado): fila e atividade intactas', async () => {
+    app.deps.flags.openbotDispatch = true; // o servidor JÁ está ligado...
+    health.flags = []; // ...mas o /api/health lido pelo smoke ainda diz desligado
+    await seed(30);
+    const r = await cli(['smoke']);
+    expect(r.ok).toBe(true);
+    expect(pullCalls).toBe(0);
+    const [t] = (await app.db.select().from(schema.openbotTasks)) as any[];
+    expect([t.status, t.leaseId ?? null]).toEqual(['pending', null]);
+    expect(await app.db.select().from(schema.openbotHealth)).toHaveLength(0); // markPull nunca rodou
+    expect(await app.db.select().from(schema.openbotCostEntries)).toHaveLength(0);
+  });
+
+  it('despacho ligado (health e servidor): também sem pull; a tarefa pendente segue pendente sem lease', async () => {
+    app.deps.flags.openbotDispatch = true;
+    health.flags = ['openbotDispatch'];
+    await seed(31);
+    const r = await cli(['smoke', '--expect-dispatch', 'on']);
+    expect(r.ok).toBe(true);
+    expect(pullCalls).toBe(0);
+    const [t] = (await app.db.select().from(schema.openbotTasks)) as any[];
+    expect([t.status, t.leaseId ?? null]).toEqual(['pending', null]);
+  });
+
+  it('segredo errado: FAIL nas duas sondas, com a dica local, sem vazar; servidor sem segredo: FAIL sem_segredo', async () => {
     app.deps.flags.openbotDispatch = false;
     files['/cofre/errado5'] = 'segredo-errado-5';
     const r = await cli(['smoke'], env('codex', { LN_HMAC_SECRET_FILE: '/cofre/errado5' }));
     expect(r.ok).toBe(false);
-    expect([step(r, 'assinatura (heartbeat)').verdict, step(r, 'assinatura (io/input)').verdict, step(r, 'pull').verdict]).toEqual(['FAIL', 'FAIL', 'PASS']);
-    expect(step(r, 'assinatura (heartbeat)').note).toMatch(/segredo diferente/);
-    secretFree(r);
+    expect([step(r, 'assinatura (heartbeat)').verdict, step(r, 'assinatura (io/input)').verdict]).toEqual(['FAIL', 'FAIL']);
+    expect(step(r, 'assinatura (heartbeat)')).toMatchObject({ observed: '401 assinatura recusada', note: expect.stringMatching(/segredo diferente/) });
     expect(JSON.stringify(r)).not.toContain('segredo-errado-5');
-  });
-
-  it('o servidor SEM segredo HMAC (staging de hoje): FAIL com a nota certa (sem_segredo)', async () => {
-    app.deps.flags.openbotDispatch = false;
+    clean(r);
     delete process.env.OPENBOT_HMAC_SECRET;
-    const r = await cli(['smoke']);
-    expect(r.ok).toBe(false);
-    expect(step(r, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'FAIL', note: 'o servidor não tem o segredo HMAC configurado' });
+    const s = await cli(['smoke']);
+    expect(step(s, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'FAIL', observed: '401 sem_segredo', note: 'o servidor não tem o segredo HMAC configurado' });
   });
 
-  it('despacho LIGADO: o pull é PULADO (tomaria um lease) e a tarefa pendente continua pendente; as sondas continuam', async () => {
-    app.deps.flags.openbotDispatch = true;
-    health.flags = ['openbotDispatch'];
-    await seed(20);
-    const r = await cli(['smoke', '--expect-dispatch', 'on']);
-    expect(r.ok).toBe(true);
-    expect(step(r, 'pull').verdict).toBe('SKIP');
-    expect(step(r, 'assinatura (heartbeat)').verdict).toBe('PASS');
-    const [t] = (await app.db.select().from(schema.openbotTasks)) as any[];
-    expect([t.status, t.leaseId ?? null]).toEqual(['pending', null]);
+  it('a saída NUNCA repete texto do servidor: mensagem, código estranho e versão/flags inválidas são trocados por texto local', async () => {
+    const hostile = 'TEXTO-DO-SERVIDOR-xyz <script>';
+    override = (path) => (path === 'heartbeat' ? Response.json({ error: { code: 'UNAUTHORIZED', message: hostile } }, { status: 401, headers: { 'x-ln-signature': 'v1=abc' } }) : path === 'io/input' ? Response.json({ error: { code: 'codigo estranho ' + hostile, message: hostile } }, { status: 418 }) : null);
+    (health as any).version = hostile;
+    (health as any).flags = ['openbotDispatch', hostile];
+    const r = await cli(['smoke']);
+    const out = JSON.stringify(r);
+    expect(out).not.toContain('TEXTO-DO-SERVIDOR');
+    expect(out).not.toContain('<script>');
+    expect(out).not.toContain('v1=abc');
+    expect(step(r, 'health').observed).toEqual({ env: 'staging', version: 'desconhecida', flags: null });
+    expect(step(r, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'FAIL', observed: '401 assinatura recusada' });
+    expect(step(r, 'assinatura (io/input)')).toMatchObject({ verdict: 'FAIL', observed: '418 CODIGO_DESCONHECIDO' });
+  });
+
+  it('flags ausente ou inválida = estado DESCONHECIDO (WARN com --expect-dispatch any; FAIL se o operador esperava off/on)', async () => {
+    (health as any).flags = undefined;
+    const any = await cli(['smoke']);
+    expect(step(any, 'flag openbotDispatch')).toMatchObject({ verdict: 'WARN', observed: 'desconhecida' });
+    const off = await cli(['smoke', '--expect-dispatch', 'off']);
+    expect(step(off, 'flag openbotDispatch')).toMatchObject({ verdict: 'FAIL', observed: 'desconhecida' });
+    expect(off.ok).toBe(false);
+  });
+
+  it('PASS da assinatura só para 404 LEASE_ERROR ou 423 de parada PREVISTA; 423 desconhecido, LOCKED sem JSON ou 404 de outro tipo = FAIL', async () => {
+    override = (path) => (path === 'heartbeat' ? new Response('', { status: 423 }) : path === 'io/input' ? Response.json({ error: { code: 'OUTRA_COISA', message: 'x' } }, { status: 423 }) : null);
+    const r = await cli(['smoke']);
+    expect([step(r, 'assinatura (heartbeat)').verdict, step(r, 'assinatura (io/input)').verdict]).toEqual(['FAIL', 'FAIL']);
+    expect(step(r, 'assinatura (heartbeat)').observed).toBe('423 LOCKED');
+    expect(step(r, 'assinatura (io/input)').observed).toBe('423 OUTRA_COISA');
+    override = (path) => (path === 'heartbeat' ? Response.json({ error: { code: 'NOT_FOUND', message: 'x' } }, { status: 404 }) : null);
+    expect(step(await cli(['smoke']), 'assinatura (heartbeat)').verdict).toBe('FAIL');
+  });
+
+  it('kill switch e piloto parado (423 previstos): a assinatura PASSA e o smoke segue ok', async () => {
+    app.deps.flags.openbotDispatch = false;
+    const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
+    await store.setKill('route:openbot', true, 'smoke', app.clock.now);
+    const k = await cli(['smoke']);
+    expect(step(k, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'PASS', observed: '423 KILL_SWITCH' });
+    expect(k.ok).toBe(true);
+    await store.setKill('route:openbot', false, 'soltar', app.clock.now);
+    override = (path) => (path === 'heartbeat' || path === 'io/input' ? Response.json({ error: { code: 'PILOT_STOPPED', message: 'x' } }, { status: 423 }) : null);
+    const p = await cli(['smoke']);
+    expect(step(p, 'assinatura (io/input)')).toMatchObject({ verdict: 'PASS', observed: '423 PILOT_STOPPED' });
   });
 
   it('--expect-dispatch confere a flag (FAIL se diferente) e recusa valor inválido antes da rede', async () => {
@@ -252,33 +311,14 @@ describe('smoke: a verificação do roteiro em um comando, sem efeito', () => {
     expect(await refusal(cli(['smoke', '--expect-dispatch', 'talvez']))).toBe('uso');
   });
 
-  it('PRODUÇÃO (health env diferente de staging): recusa e NÃO envia nenhuma chamada assinada', async () => {
+  it('PRODUÇÃO (health env diferente de staging): recusa e NÃO envia nenhuma chamada assinada; app fora do ar também', async () => {
     health.env = 'production';
     const r = await cli(['smoke']);
-    expect([r.ok, r.refused]).toEqual([false, 'ambiente_nao_staging']);
-    expect(signedCalls).toBe(0);
+    expect([r.ok, r.refused, signedCalls]).toEqual([false, 'ambiente_nao_staging', 0]);
     expect(r.checks).toHaveLength(1);
-  });
-
-  it('app fora do ar (health sem resposta): FAIL e nada assinado', async () => {
     const down = (async () => new Response('x', { status: 502 })) as unknown as typeof fetch;
-    const r = await run(['smoke'], env(), { ...io(), fetchImpl: down });
-    expect([r.ok, r.refused]).toEqual([false, 'sem_health']);
-  });
-
-  it('kill switch: a assinatura PASSA (423 KILL_SWITCH = aceita, travado) e o pull vira WARN com o motivo; servidor anterior ao 423 (503 em HTML) também é WARN, não FAIL', async () => {
-    app.deps.flags.openbotDispatch = false;
-    const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
-    await store.setKill('route:openbot', true, 'smoke', app.clock.now);
-    const k = await cli(['smoke']);
-    expect(step(k, 'assinatura (heartbeat)')).toMatchObject({ verdict: 'PASS', observed: '423 KILL_SWITCH' });
-    expect(step(k, 'pull')).toMatchObject({ verdict: 'WARN', observed: '423 KILL_SWITCH' });
-    expect(k.ok).toBe(true);
-    await store.setKill('route:openbot', false, 'soltar', app.clock.now);
-    edge503 = true;
-    const old = await cli(['smoke']);
-    expect(step(old, 'pull')).toMatchObject({ verdict: 'WARN', observed: '503 sem corpo da API' });
-    expect(old.ok).toBe(true);
+    const d = await run(['smoke'], env(), { ...io(), fetchImpl: down });
+    expect([d.ok, d.refused]).toEqual([false, 'sem_health']);
   });
 });
 
