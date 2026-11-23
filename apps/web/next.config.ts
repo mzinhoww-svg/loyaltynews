@@ -1,5 +1,13 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants';
 import type { NextConfig } from 'next';
+
+// Raiz do monorepo, explícita: apps/web/next.config.ts -> ../.. . Sem isso o Next infere a raiz do workspace pelo lockfile e RECUSA a pasta que
+// contiver o diretório do usuário. Na Vertra o HOME fica dentro da pasta do app (/app/.cache/vertra/tmp/build/home), então ele ignorava /app e
+// não achava o `next` içado em /app/node_modules ("Could not find the Next.js package", build falhou em 22/11/2026). Fixar a raiz torna o build
+// independente de HOME e do diretório de trabalho (docs: turbopack#root-directory).
+const monorepoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 // Build de e2e do Studio: único caso em que o backend de teste (PGlite + login de teste) entra no bundle.
 const e2eBuild = process.env.LN_E2E_BUILD === '1';
@@ -38,9 +46,12 @@ const config = (phase: string): NextConfig => {
     experimental: { serverActions: { bodySizeLimit: '11mb' } },
     // Bancos nativos/WASM ficam fora do bundle (pg em produção; PGlite só em dev/e2e: nem a lista de externos o cita em produção).
     serverExternalPackages: devDbSeam.includes('.e2e.') ? ['pg', '@electric-sql/pglite'] : ['pg'],
+    // Mesma raiz para o rastreamento de arquivos do build (evita aviso de múltiplos lockfiles e inferência por HOME).
+    outputFileTracingRoot: monorepoRoot,
     // e2e usa diretório de build próprio para não contaminar o artefato de produção.
     distDir: e2eBuild ? '.next-e2e' : '.next',
     turbopack: {
+      root: monorepoRoot,
       resolveAlias: { '@ln-studio/e2e-backend': e2eBackendSeam, '@ln-studio/dev-db': devDbSeam },
     },
   };
