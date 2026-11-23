@@ -90,7 +90,13 @@ Uma violação (tentativa de publicar, chamada à API tarifada, segredo em log, 
 - **Tela:** `/studio/piloto` → **Exportar planilha** (só o leitor 1: admin ou editor-chefe). **[relato]**
 - **Esperado:** download `piloto-planilha-AAAA-MM-DD.csv`: **31 colunas** do AgentOps (`task_id` … `notes`, nessa ordem) mais 7 colunas do Studio no fim (`materia`, `leitor1_veredito`, `leitor2_veredito`, `leitor2_unsupported_high/medium/low`, `leitor2_origem`); uma linha por tarefa e tentativa; o leitor 2 só aparece nas matérias que você já leu; células com fórmula vêm neutralizadas (`'=…`). **[verificado]** colunas contra o código (`pilot-columns.test.ts`).
 - **Confira no CSV:** `tarifada_api_call` = false em todas as linhas; `published_attempt` = false; `account` só `claude` ou `codex`; `tokens_measured` = false (o OpenBot não expõe tokens: use `packet_chars`).
-- **Resultado do piloto:** o avaliador `evaluatePilot` (`@ln/agents`) recebe essas linhas e devolve o resultado (amostra válida, independência, qualidade, janelas, custo tarifado 0). **Ainda não há comando de linha para isso** (lacuna; o AgentOps pode entregar um se o PM pedir).
+- **Resultado do piloto (comando):** na pasta do repositório, com Node ≥ 22.18:
+  `node packages/agents/bin/avaliar-piloto.mjs --csv <arquivo.csv>` (acrescente `--json` para um resumo em JSON).
+  - Ele valida o cabeçalho (as 31 colunas do AgentOps, na ordem; as 7 do Studio no fim são ignoradas; qualquer outra coluna recusa), roda o avaliador do piloto e imprime o **veredito** e os **motivos**. Não usa rede, banco, segredo nem modelo: só lê o arquivo.
+  - **Esperado:** `VEREDITO: APROVADO` e **saída 0** quando a amostra é válida, a checagem e a revisão são de autor diferente do redator, a qualidade passa (0 altas e no máximo 1 média; baixas só anotadas), não há violação nem chamada à API tarifada e as janelas de limite foram medidas. Qualquer outro veredito (`REPROVADO`, `INVÁLIDO`, `PARADO`, `INCONCLUSIVO`) ou CSV malformado dá **saída 1**, com o motivo na tela.
+  - **Violações tratadas contam:** a violação resolvida em `/studio/piloto/violacoes` continua na planilha e continua contando no critério de 0 violações (o veredito fica `PARADO`).
+  - Há o **destaque do `output_valid`** (limiar de 95%, informativo: não reprova, PM-2026-11-23-J).
+  - Exemplos com dados SIMULADOS: `packages/agents/fixtures/pilot-csv/` (aprovado, reprovado, inválido).
 
 ## 9. Parar (qualquer momento, sem destruir nada)
 
