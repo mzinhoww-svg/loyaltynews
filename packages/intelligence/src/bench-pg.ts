@@ -10,7 +10,7 @@
  *    (`neighbors`, `shortestPath`): o cliente troca `intelligence.` pelo schema de teste no texto do SQL (as consultas usam nomes qualificados).
  *  - Nunca imprime URL, usuário, senha ou PEM; o relatório traz só tempos, contagens, versão e planos (EXPLAIN) sobre dados sintéticos.
  */
-import { neighbors, shortestPath } from './graph';
+import { neighbors, neighborsRecursive, shortestPath, shortestPathRecursive } from './graph';
 import type { Db } from './db';
 
 export const BENCH_SCHEMA_RE = /^ln_bench_\d{8}(_[a-z0-9]{1,8})?$/;
@@ -32,6 +32,8 @@ export interface BenchOptions {
   warmup?: number;
   asOf?: string;
   /** Teste: lança neste passo para provar que o schema é apagado em erro. */
+  /** Mede também a implementação recursiva de REFERÊNCIA (antes da otimização) nas mesmas entidades: comparativo no mesmo servidor. Mais lento (minutos). */
+  compareReference?: boolean;
   failAt?: 'after-create' | 'after-load' | 'during-measure';
   log?: (line: string) => void;
 }
@@ -78,7 +80,13 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
   const recording: Db = {
     query: async <T,>(sql: string, params?: unknown[]) => {
       const list = (captured[label] ??= []);
-      if (label && list.length < 2 && !list.some((x) => x.sql === sql)) list.push({ sql: sub(sql), params: params ?? [] });
+      if (label) {
+        // guarda, por texto de SQL, a chamada de MAIOR fronteira (a que mais pesa) para o EXPLAIN
+        const size = (x: unknown[]) => (Array.isArray(x[0]) ? (x[0] as unknown[]).length : 0);
+        const at = list.findIndex((x) => x.sql === sub(sql));
+        if (at < 0 && list.length < 3) list.push({ sql: sub(sql), params: params ?? [] });
+        else if (at >= 0 && size(params ?? []) > size(list[at]!.params)) list[at] = { sql: sub(sql), params: params ?? [] };
+      }
       return db.query<T>(sql, params);
     },
   };
@@ -158,6 +166,25 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
       if (i >= WARMUP) { nbOrg.push(d1); nbPerson.push(d2); path.push(d3); reached.push(a.length); }
     }
 
+    // 4b) comparativo com a implementação recursiva de referência (opcional), nas mesmas entidades
+    let reference: Record<string, ReturnType<typeof stats>> | undefined;
+    if (opts.compareReference) {
+      const rOrg: number[] = [], rPerson: number[] = [], rPath: number[] = [];
+      for (let i = 0; i < Math.min(QUERIES + WARMUP, orgIds.length - 1, personIds.length); i++) {
+        let t = performance.now();
+        await neighborsRecursive(db, { type: 'organization', id: orgIds[i]! }, { asOf: AS_OF });
+        const d1 = performance.now() - t;
+        t = performance.now();
+        await neighborsRecursive(db, { type: 'person', id: personIds[i]! }, { asOf: AS_OF });
+        const d2 = performance.now() - t;
+        t = performance.now();
+        await shortestPathRecursive(db, { type: 'organization', id: orgIds[i]! }, { type: 'organization', id: orgIds[i + 1]! }, { asOf: AS_OF });
+        const d3 = performance.now() - t;
+        if (i >= WARMUP) { rOrg.push(d1); rPerson.push(d2); rPath.push(d3); }
+      }
+      reference = { neighbors_from_organization: stats(rOrg), neighbors_from_person: stats(rPerson), shortest_path_org_to_org: stats(rPath) };
+    }
+
     // 5) EXPLAIN (ANALYZE, BUFFERS) das mesmas consultas (dados sintéticos; só o plano)
     const plans: Record<string, string[]> = {};
     for (const [name, list] of Object.entries(captured)) {
@@ -187,6 +214,7 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
         neighbors_from_person: stats(nbPerson),
         shortest_path_org_to_org: stats(path),
       },
+      reference_recursive: reference,
       proposed_criterion: { p95_ms: 300, edges: 100_000 },
       worst_p95_ms: +worst.toFixed(1),
       meets_criterion: edges >= 100_000 ? worst <= 300 : null, // null = carga abaixo de 100 mil arestas (fumaça): não vale como medição

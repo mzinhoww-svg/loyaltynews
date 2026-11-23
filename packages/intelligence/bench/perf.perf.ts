@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import { createTestDb } from '@ln/db/testing';
-import { neighbors, shortestPath } from '../src/graph';
+import { neighbors, neighborsRecursive, shortestPath, shortestPathRecursive } from '../src/graph';
 import type { Db } from '../src/db';
 
 const ORGS = 20_000;
@@ -106,6 +106,21 @@ describe('perf: grafo com ~100 mil arestas (PGlite — não vale como medição 
       }
     }
 
+    // referência: a implementação recursiva (enumera todos os caminhos), nas mesmas entidades — comparativo antes/depois
+    const refOrg: number[] = [], refPerson: number[] = [], refPath: number[] = [];
+    for (let i = 0; i < QUERIES + WARMUP; i++) {
+      let t = performance.now();
+      await neighborsRecursive(db, { type: 'organization', id: orgIds[i]! }, { asOf: AS_OF });
+      const d1 = performance.now() - t;
+      t = performance.now();
+      await neighborsRecursive(db, { type: 'person', id: personIds[i]! }, { asOf: AS_OF });
+      const d2 = performance.now() - t;
+      t = performance.now();
+      await shortestPathRecursive(db, { type: 'organization', id: orgIds[i]! }, { type: 'organization', id: orgIds[i + 1]! }, { asOf: AS_OF });
+      const d3 = performance.now() - t;
+      if (i >= WARMUP) { refOrg.push(d1); refPerson.push(d2); refPath.push(d3); }
+    }
+
     const worstP95 = Math.max(pct(nbOrg, 95), pct(nbPerson, 95), pct(path, 95));
     const result = {
       disclaimer:
@@ -126,6 +141,7 @@ describe('perf: grafo com ~100 mil arestas (PGlite — não vale como medição 
         neighbors_from_person: stats(nbPerson),
         shortest_path_org_to_org: stats(path),
       },
+      reference_recursive: { neighbors_from_organization: stats(refOrg), neighbors_from_person: stats(refPerson), shortest_path_org_to_org: stats(refPath) },
       proposed_criterion: { p95_ms: 300, edges: 100_000 },
       worst_p95_ms: +worstP95.toFixed(1),
       p95_within_proposed_criterion_on_this_machine: worstP95 <= 300,
