@@ -51,3 +51,19 @@ describe('módulo comercial (0003_commercial)', () => {
     ).rejects.toThrow();
   });
 });
+
+describe('integridade do ad server (0011_ad_integridade)', () => {
+  it('watermark só avança (upsert com GREATEST)', async () => {
+    const up = (v: number) => t.client.query(
+      "INSERT INTO ad_redis_watermark (id, value) VALUES ('ln:ad:hb', $1) ON CONFLICT (id) DO UPDATE SET value = GREATEST(ad_redis_watermark.value, EXCLUDED.value), at = now()", [v]);
+    await up(10); await up(7); await up(12);
+    const r = await t.client.query<{ v: string }>("SELECT value::text v FROM ad_redis_watermark WHERE id = 'ln:ad:hb'");
+    expect(r.rows[0]?.v).toBe('12');
+  });
+  it('lacuna exige from <= servedUntil <= to e contadores não negativos', async () => {
+    const base = { id: 'g1', reason: 'dedupe_perdido' as const, from: new Date('2026-11-22T10:00:00Z'), servedUntil: new Date('2026-11-22T10:05:00Z'), to: new Date('2026-11-22T12:05:00Z'), detectedAt: new Date('2026-11-22T10:05:00Z') };
+    await t.db.insert(s.adDeliveryGaps).values(base);
+    await expect(t.db.insert(s.adDeliveryGaps).values({ ...base, id: 'g2', to: new Date('2026-11-22T09:00:00Z') })).rejects.toThrow();
+    await expect(t.db.insert(s.adDeliveryGaps).values({ ...base, id: 'g3', uncountedServes: -1 })).rejects.toThrow();
+  });
+});
