@@ -29,7 +29,7 @@ export function Anunciantes(props: {
       </h2>
       <form action={criarContaAction} aria-label="Novo anunciante" className="st-actions" style={{ marginBottom: 12 }}>
         <div className="st-field">
-          <label htmlFor="conta-nome">Nome do anunciante</label>
+          <label htmlFor="conta-nome">Nome do anunciante (obrigatório)</label>
           <input id="conta-nome" name="nome" type="text" maxLength={400} />
         </div>
         <button className="st-btn" type="submit">
@@ -88,11 +88,11 @@ export function Anunciantes(props: {
                     <input type="hidden" name="conta" value={c.id} />
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                       <div className="st-field">
-                        <label htmlFor={`ct-nome-${c.id}`}>Nome do contato</label>
+                        <label htmlFor={`ct-nome-${c.id}`}>Nome do contato (obrigatório)</label>
                         <input id={`ct-nome-${c.id}`} name="nome" type="text" maxLength={400} />
                       </div>
                       <div className="st-field">
-                        <label htmlFor={`ct-email-${c.id}`}>Email do contato</label>
+                        <label htmlFor={`ct-email-${c.id}`}>Email do contato (obrigatório)</label>
                         <input id={`ct-email-${c.id}`} name="email" type="text" inputMode="email" maxLength={400} />
                       </div>
                       <div className="st-field">
@@ -104,7 +104,7 @@ export function Anunciantes(props: {
                         <input id={`ct-cargo-${c.id}`} name="cargo" type="text" maxLength={400} />
                       </div>
                       <div className="st-field">
-                        <label htmlFor={`ct-base-${c.id}`}>Base legal</label>
+                        <label htmlFor={`ct-base-${c.id}`}>Base legal (obrigatória)</label>
                         <select id={`ct-base-${c.id}`} name="base" defaultValue="">
                           <option value="">Escolha</option>
                           {Object.entries(BASES).map(([k, v]) => (

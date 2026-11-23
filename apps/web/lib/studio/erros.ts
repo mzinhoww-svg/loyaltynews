@@ -42,6 +42,33 @@ const CAMPOS: Record<string, string> = {
   motivo: 'Motivo',
   casoCorrecaoId: 'Caso de correção',
   versaoEsperada: 'Versão',
+  // comercial (chaves da API em inglês)
+  name: 'Nome',
+  accountId: 'Anunciante',
+  formatId: 'Formato',
+  positionId: 'Posição',
+  positionIds: 'Posições da campanha',
+  startDate: 'Início',
+  endDate: 'Fim',
+  altText: 'Texto alternativo',
+  destinationUrl: 'Destino',
+  advertiserName: 'Anunciante exibido',
+  email: 'E-mail',
+  whatsapp: 'WhatsApp',
+  role: 'Cargo',
+  basis: 'Base legal',
+  campaignId: 'Campanha',
+  creativeId: 'Criativo',
+  reservationId: 'Reserva',
+  reservationIds: 'Reservas',
+  from: 'De',
+  to: 'Até',
+  // Creative studio
+  articleId: 'Matéria',
+  kind: 'Template',
+  format: 'Formato',
+  autoralFormato: 'Formato autoral',
+  para: 'Novo estado',
 };
 
 const rotuloDoCampo = (caminho: string): string => {

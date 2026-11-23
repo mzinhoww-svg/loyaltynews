@@ -215,12 +215,12 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
             </div>
             <div className="st-row">
               <div className="st-field">
-                <label htmlFor="inicio">Início (AAAA-MM-DD)</label>
-                <input id="inicio" name="inicio" type="text" />
+                <label htmlFor="inicio">Início (obrigatório)</label>
+                <input id="inicio" name="inicio" type="date" required />
               </div>
               <div className="st-field">
-                <label htmlFor="fim">Fim (AAAA-MM-DD)</label>
-                <input id="fim" name="fim" type="text" />
+                <label htmlFor="fim">Fim (obrigatório)</label>
+                <input id="fim" name="fim" type="date" required />
               </div>
             </div>
             <div className="st-field">

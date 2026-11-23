@@ -11,7 +11,7 @@ test.describe('Studio no celular (390 px)', () => {
   test.use({ viewport: { width: 390, height: 800 } });
 
   // P2-10: botões, campos e seletores com pelo menos 44 px de altura
-  for (const slug of ['', 'cms', 'cms/nova', 'home-menus', 'agenda', 'seo', 'entidades', 'cms/pautas', 'fontes/fabrica']) {
+  for (const slug of ['', 'cms', 'cms/nova', 'home-menus', 'agenda', 'seo', 'entidades', 'cms/pautas', 'fontes/fabrica', 'crm', 'campanhas', 'inventario', 'creative']) {
     test(`/studio/${slug || '(início)'}: alvos de toque de 44 px`, async ({ page, context }) => {
       await entrar(context, 'ana', 'admin');
       await page.goto(`/studio/${slug}`);
