@@ -247,18 +247,6 @@ test.describe('busca', () => {
 test.describe('conteúdo MOCK', () => {
   test.skip(mode !== 'mock', 'somente no modo mock');
 
-  // Causa da falha intermitente ("page.goto: net::ERR_ABORTED" em /editoria/mercado e /noticia/mock-mercado-1): o servidor
-  // `next dev` compila cada rota na primeira visita e, com workers em paralelo, a navegação do navegador é abortada durante
-  // a compilação. Aqui as rotas são compiladas uma vez, em sequência, esperando a resposta (sem retry): quando o teste
-  // navega, a rota já está pronta. Não muda o que o teste verifica.
-  test.beforeAll(async ({ request }) => {
-    test.setTimeout(180_000);
-    for (const rota of ['/editoria/mercado', '/noticia/mock-mercado-1', '/noticia/mock-mercado-2', '/noticia/mock-programas-1', '/noticias?page=2', '/agenda', '/agenda/mock-evento-1']) {
-      const r = await request.get(rota, { timeout: 120_000 });
-      expect(r.status(), `aquecimento de ${rota}`).toBe(200);
-    }
-  });
-
   test('home mostra destaques, em alta, últimas, agenda e editorias, com faixa MOCK', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByText(/Conteúdo de demonstração — não publicado/)).toBeVisible();

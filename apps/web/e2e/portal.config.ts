@@ -36,6 +36,7 @@ const port = base
 
 export default defineConfig({
   testDir: './portal',
+  globalSetup: './portal/global-warmup.ts',
   // Em staging só a suíte de ambiente (as demais assumem indexação de produção).
   testMatch:
     mode === 'api'

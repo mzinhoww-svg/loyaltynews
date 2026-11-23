@@ -5,7 +5,8 @@ import { EmptyState, PageHead, RankedList } from '../_components/ui';
 import { getSource } from '../_lib/source';
 import type { TrendingWindow } from '../_lib/types';
 
-export const revalidate = 60;
+// Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Em alta',
   description: 'As matérias mais lidas do Loyalty News nas últimas 24 horas, 7 e 30 dias.',
