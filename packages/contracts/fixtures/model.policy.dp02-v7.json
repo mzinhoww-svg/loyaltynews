@@ -449,6 +449,13 @@
         "T8 golden set humano",
         "piloto de 10 materias pelo canal OpenBot ANTES da etapa 1 paga (DP-27; se cobrir redacao/checagem, a etapa 1 encolhe)"
       ],
+      "budget_accounting": {
+        "counts_in_monthly_cap": true,
+        "uses_audit_reserve": false,
+        "charged_to": "verba do provedor chamado (openai ou anthropic) no mes da chamada, pool qualification, dentro de stage_caps_usd",
+        "reason": "DP-04 ja soma 50 (20+22+0+8): nao ha folga fora das verbas; com producao desligada elas estao ociosas",
+        "status": "proposta do Chief Architect; FinOps confirma"
+      },
       "zdr_preferred": true,
       "stage_caps_usd": {
         "1": 5,
@@ -575,6 +582,14 @@
       "DeepSeek",
       "Fable em trabalho nao publicado",
       "checagem por amostragem (requisito Blueprint par.6 / WF02)"
-    ]
+    ],
+    "risk_accepted": {
+      "decision": "DP-30 (proprietario, 23/11/2026): aceita o risco dos termos das assinaturas Anthropic e OpenAI para uso automatizado do produto",
+      "mitigation": [
+        "separar, quando possivel, o uso de produto do uso de implementacao (uma suspensao nao para a equipe)",
+        "manter a rota de complemento pela API tarifada pronta e testada (canal openrouter_metered)"
+      ],
+      "not_verified": "termos das assinaturas para uso automatizado (DV-05): risco aceito, nao verificado"
+    }
   }
 }
