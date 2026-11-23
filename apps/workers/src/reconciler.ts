@@ -1,4 +1,4 @@
-import { type JobPayload, type QueueName, isQueueName, jobIdFor, parsePayload } from './queues';
+import { type JobPayload, type QueueName, jobIdFor, parsePayload, resolveQueue } from './queues';
 
 /** Linha do outbox (PostgreSQL). status: pending → enqueued → done (ou failed). */
 export interface OutboxRow {
@@ -44,16 +44,21 @@ export async function reconcileOutbox(
   const out: ReconcileResult = { enqueued: 0, retry: 0, failed: 0 };
   for (const row of rows) {
     let payload: JobPayload;
+    let queue: QueueName;
     try {
-      if (!isQueueName(row.queue)) throw new Error(`fila desconhecida: ${row.queue}`);
-      payload = parsePayload({ refId: row.refId, idempotencyKey: row.idempotencyKey });
+      const resolved = resolveQueue(row.queue);
+      if (!resolved) throw new Error(`fila desconhecida: ${row.queue}`);
+      queue = resolved;
+      // A chave do JOB é o id da linha (sempre no formato de ids); a chave de idempotência do produtor
+      // (livre, ex.: `article.published:{id}:{sha}`) continua única no outbox e não vai ao Redis.
+      payload = parsePayload({ refId: row.refId, idempotencyKey: row.id });
     } catch (e) {
       out.failed++;
       await store.markFailed(row.id, e instanceof Error ? e.message : String(e), now);
       continue;
     }
     try {
-      await sink.add(row.queue as QueueName, jobIdFor(row.queue as QueueName, row.idempotencyKey), payload);
+      await sink.add(queue, jobIdFor(queue, row.id), payload);
       await store.markEnqueued(row.id, now);
       out.enqueued++;
     } catch (e) {

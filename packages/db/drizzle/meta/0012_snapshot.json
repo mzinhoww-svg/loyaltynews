@@ -1,5 +1,5 @@
 {
-  "id": "17adcb45-6284-4769-b205-0a127bcba650",
+  "id": "380cae71-598c-47a0-a154-c7e5a2c6b81d",
   "prevId": "5f63e74f-2d2f-4936-87f0-1209ad8e0731",
   "version": "7",
   "dialect": "postgresql",
@@ -4678,6 +4678,60 @@
             },
             {
               "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ad_delivery_flushes": {
+      "name": "ad_delivery_flushes",
+      "schema": "",
+      "columns": {
+        "flush_id": {
+          "name": "flush_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "creative_id": {
+          "name": "creative_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ad_delivery_flushes_at_idx": {
+          "name": "ad_delivery_flushes_at_idx",
+          "columns": [
+            {
+              "expression": "at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

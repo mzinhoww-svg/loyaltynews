@@ -6,7 +6,10 @@ import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import { ASSINATURA, canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
-import { contentSha256 } from './content-hash';
+import { publishedContentSha256 } from '@ln/contracts/hash';
+import { draftContentSha256 } from '@ln/editorial';
+import { PgEditorialStore } from '@ln/workers/editorial-store';
+import { issueFromEditorial } from './editorial/receipt';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
 import {
@@ -68,6 +71,13 @@ export function gateFailures(a: ArticleRow, evidenceCount: number): string[] {
   return f;
 }
 
+/** Imagem só sai pública com base de direito (D08): 'pendente' ou inválida vira null. */
+function publishableImage(img: unknown): unknown {
+  if (img == null) return null;
+  const p = ImageRights.safeParse(img);
+  return p.success && isImagePublishable(p.data) ? img : null;
+}
+
 function serialize(a: ArticleRow, withBody = true) {
   return {
     id: a.id,
@@ -91,6 +101,21 @@ function serialize(a: ArticleRow, withBody = true) {
   };
 }
 
+/**
+ * sha do conteúdo aprovado (ADR-017: função ÚNICA `publishedContentSha256`). Com rascunho no CMS editorial (mesmo id),
+ * é `draftContentSha256` do RASCUNHO, a fonte da verdade; sem registro editorial (matéria só na tabela `articles`),
+ * é calculado sobre a linha de `articles`. Recibo desse segundo caminho não é aceito pela rota de publicação do
+ * Editorial (o hash difere: 409 sem efeito).
+ */
+async function approvedSha(db: Db, a: ArticleRow, evidenceIds: readonly string[]): Promise<string> {
+  const rec = await new PgEditorialStore(db).getArticle(a.id);
+  if (rec?.draft) return draftContentSha256(rec.draft);
+  return publishedContentSha256({
+    titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo, editoria: a.editoria, corpo: a.corpo,
+    imagem: a.imagem, classeDeDado: a.classeDeDado, patrocinado: a.patrocinado, rotuloPublieditorial: a.rotuloPublieditorial, fontes: evidenceIds,
+  });
+}
+
 async function receiptFor(db: Db, a: ArticleRow) {
   const [r] = await db
     .select()
@@ -103,7 +128,7 @@ async function receiptFor(db: Db, a: ArticleRow) {
 async function validReceipt(db: Db, a: ArticleRow) {
   const r = await receiptFor(db, a);
   if (!r) return null;
-  return r.conteudoSha256 === contentSha256(a, await evidenceIdsOf(db, a.id)) ? r : null;
+  return r.conteudoSha256 === (await approvedSha(db, a, await evidenceIdsOf(db, a.id))) ? r : null;
 }
 
 async function assertEvidences(db: Db, ids: readonly string[]) {
@@ -236,13 +261,17 @@ export const deleteArticle: RouteFn = async (_req, c) => {
 // ---------- recibo de publicação ----------
 export const issueReceipt: RouteFn = async (req, c) => {
   const b = await readBody(req, ReceiptInput);
+  // Com rascunho no CMS editorial (mesmo id), o recibo nasce DELE (ADR-017 §4): upsert em articles + recibo numa transação.
+  const rec = await new PgEditorialStore(c.deps.db).getArticle(c.params.id ?? '');
+  if (rec) return issueFromEditorial(c, c.params.id ?? '', b, rec);
+  if (b.versao === undefined) throw new HttpError(400, 'VALIDATION_ERROR', 'Entrada inválida.', [{ path: 'versao', message: 'obrigatória' }]);
   const a = await load(c.deps.db, c.params.id ?? '');
   if (a.status !== 'em_checagem') throw new HttpError(409, 'BAD_STATE', 'Recibo só é emitido para matéria em checagem.');
   if (b.versao !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'Versão do recibo difere da matéria.', { versaoAtual: a.versao });
   const evIds = await evidenceIdsOf(c.deps.db, a.id);
   const failures = gateFailures(a, evIds.length);
   if (failures.length) throw new HttpError(422, 'GATES_FAILED', 'A matéria não passa nas regras determinísticas.', failures);
-  const hash = contentSha256(a, evIds);
+  const hash = await approvedSha(c.deps.db, a, evIds);
   const existing = await receiptFor(c.deps.db, a);
   if (existing) {
     if (existing.conteudoSha256 === hash) return json({ data: existing }, 200);
@@ -279,6 +308,15 @@ export const transitionArticle: RouteFn = async (req, c) => {
   if (PUBLISH_SET.includes(b.para) && !can(session.role, 'materias', 'publish')) {
     throw new HttpError(403, 'FORBIDDEN', 'Sem permissão para publicar, despublicar ou corrigir.');
   }
+  // Publicar e corrigir só pelo fluxo oficial (POST /api/studio/editorial/articles/{id}/publication): lá a flag, o recibo, o hash do
+  // conteúdo, a projeção, a auditoria e o outbox (`article.published`/`article.corrected`) saem na MESMA transação. Esta rota genérica
+  // nunca muda a matéria para 'publicado' nem 'corrigido' (nem com a flag ligada): recusa sem efeito algum.
+  if (b.para === 'publicado' || b.para === 'corrigido') {
+    if (!c.deps.flags.publicacaoPortal) throw new HttpError(403, 'FEATURE_DISABLED', 'Publicação desligada (flag publicacaoPortal).');
+    throw new HttpError(409, 'USE_PUBLICATION_ROUTE', 'Publique pela rota de publicação do Editorial; esta rota não publica nem corrige.', {
+      rota: `/api/studio/editorial/articles/${a.id}/publication`,
+    });
+  }
   if (NOTE_SET.includes(b.para) && !b.nota) throw new HttpError(422, 'NOTE_REQUIRED', 'Esta transição exige uma nota.');
 
   const evIds = await evidenceIdsOf(c.deps.db, a.id);
@@ -286,22 +324,19 @@ export const transitionArticle: RouteFn = async (req, c) => {
   if (b.para === 'em_checagem' && evIds.length < 1) {
     throw new HttpError(422, 'GATES_FAILED', 'Matéria sem fontes não vai para checagem.', ['fontes: ao menos uma evidência']);
   }
-  if (b.para === 'aprovado' || b.para === 'publicado' || b.para === 'corrigido') {
+  if (b.para === 'aprovado') {
     const failures = gateFailures(a, evIds.length);
     if (failures.length) throw new HttpError(422, 'GATES_FAILED', 'A matéria não passa nas regras determinísticas.', failures);
     const receipt = await validReceipt(c.deps.db, a);
     if (!receipt) throw new HttpError(409, 'RECEIPT_REQUIRED', 'Exige recibo válido da versão atual.');
     receiptId = receipt.id;
-    if (b.para === 'publicado' && receipt.identidadePublicacao !== session.userId) {
-      throw new HttpError(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo publica esta matéria.');
-    }
   }
 
   const now = c.deps.now();
   const updated = await c.deps.db.transaction(async (tx) => {
     const upd = await tx
       .update(schema.articles)
-      .set({ status: b.para, ...(b.para === 'publicado' ? { publicadoEm: now } : {}) })
+      .set({ status: b.para })
       .where(and(eq(schema.articles.id, a.id), eq(schema.articles.status, a.status), eq(schema.articles.versao, a.versao)))
       .returning();
     if (!upd[0]) throw new HttpError(409, 'STATE_CONFLICT', 'A matéria mudou durante a operação; tente de novo.');
@@ -389,7 +424,7 @@ export const publicGetArticle: RouteFn = async (_req, c) => {
     editoria: a.editoria,
     assinatura: a.assinatura,
     corpo: a.corpo,
-    imagem: a.imagem,
+    imagem: publishableImage(a.imagem),
     patrocinado: a.patrocinado,
     rotuloPublieditorial: a.rotuloPublieditorial,
     publicadoEm: a.publicadoEm,

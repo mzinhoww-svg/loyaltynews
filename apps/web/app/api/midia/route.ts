@@ -1,5 +1,5 @@
 import { route } from '../_lib/http';
-import { listMedia, createMedia } from '../_lib/midia';
+import { createMedia, listMedia } from '../_lib/midia';
 
 export const dynamic = 'force-dynamic';
 export const GET = route(['midia', 'read'], listMedia);

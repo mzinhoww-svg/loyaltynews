@@ -12,3 +12,4 @@ export * from './flags';
 export * from './api';
 export * from './workflow-editorial';
 export * from './model-policy';
+export * from './published-content';

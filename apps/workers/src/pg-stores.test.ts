@@ -101,8 +101,9 @@ describe('efeito exatamente-uma-vez', () => {
   it('efeito que lança desfaz o ledger (o job pode ser repetido); reenvio produz um efeito só', async () => {
     await clear();
     await enqueueOutbox(db, { queue: 'redacao', refId: 'a1', idempotencyKey: 'ef1' });
+    const [row] = await db.select().from(schema.outbox).where(eq(schema.outbox.idempotencyKey, 'ef1'));
     const effects = new PgEffectStore(db);
-    const payload = { refId: 'a1', idempotencyKey: 'ef1' };
+    const payload = { refId: 'a1', idempotencyKey: row!.id }; // a chave do job é o id da linha do outbox
     await expect(processJob(effects, 'redacao', payload, async () => { throw new Error('falhou no meio'); })).rejects.toThrow();
     expect(await db.$count(schema.effectLedger)).toBe(0);
     expect(await db.$count(schema.outbox, eq(schema.outbox.status, 'done'))).toBe(0);
@@ -116,6 +117,27 @@ describe('efeito exatamente-uma-vez', () => {
     expect(n).toBe(1);
     expect(await db.$count(schema.auditLog, eq(schema.auditLog.resource, 'teste'))).toBe(1);
     expect(await db.$count(schema.outbox, eq(schema.outbox.status, 'done'))).toBe(1);
+  });
+});
+
+describe('outbox de outros módulos (publicação editorial)', () => {
+  it('fila com alias e chave com ":" viram job válido (chave do job = id da linha); fila desconhecida vira failed', async () => {
+    await clear();
+    const key = `article.published:art-1:${'b'.repeat(64)}`; // formato do Editorial: ':' e 64 hex
+    await enqueueOutbox(db, { queue: 'intelligence-ingest', refId: 'art-1', idempotencyKey: key });
+    await db.insert(schema.outbox).values({ id: 'x-bad', queue: 'inventada', refId: 'r', idempotencyKey: 'bad-q' });
+    const redis = new FakeRedis();
+    const res = await reconcileOutbox(new PgOutboxStore(db), redis, { now: new Date('2026-11-22T15:00:00Z') });
+    expect(res).toEqual({ enqueued: 1, retry: 0, failed: 1 });
+    const [job] = [...redis.jobs.entries()];
+    expect(job![1].queue).toBe('entidades');
+    expect(job![0]).toMatch(/^entidades__[0-9a-f-]{36}$/);
+    expect(job![1].payload.refId).toBe('art-1');
+    expect(JSON.stringify(job)).not.toContain('article.published'); // a chave livre do produtor não vai ao Redis
+    const effects = new PgEffectStore(db);
+    expect(await processJob(effects, 'entidades', job![1].payload, async () => {})).toBe('executed');
+    const [done] = await db.select().from(schema.outbox).where(eq(schema.outbox.idempotencyKey, key));
+    expect(done?.status).toBe('done');
   });
 });
 

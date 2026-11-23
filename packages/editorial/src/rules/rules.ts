@@ -1,6 +1,8 @@
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
+import { ContentType } from '@ln/contracts';
+import { RESUMO_MAX, SLUG_MAX, SLUG_RE } from '../publishable';
 
 /**
  * Regras editoriais determinísticas (sem LLM). O modelo propõe; estas regras decidem. Fail closed.
@@ -47,7 +49,7 @@ export function fabricatedReportingFindings(text: string): Finding[] {
 
 export function checkNoFabricatedReporting(d: Draft): CheckResult {
   const out: Finding[] = [];
-  const text = `${d.headline}\n${d.body}`;
+  const text = `${d.headline}\n${d.subtitulo ?? ''}\n${d.resumo ?? ''}\n${d.body}`;
   for (const re of FABRICATED_REPORTING) if (re.test(text)) out.push(f('fabricated_reporting', `linguagem de apuração/entrevista própria não suportada: ${re.source}`));
   return result(out);
 }
@@ -90,11 +92,14 @@ export function checkBodyGrounding(d: Draft, evidences: Evidence[]): CheckResult
   const used = evidences.filter((e) => d.evidenceIds.includes(e.id));
   const evNorm = normalizeText(evidenceText(used));
   const evNums = new Set(numbersIn(evidenceText(used)).map(digitsKey));
-  for (const n of numbersIn(`${d.headline} ${mainBody(d.body)}`)) {
+  const visible = [mainBody(d.body), d.resumo ?? '', d.subtitulo ?? ''];
+  for (const n of numbersIn(`${d.headline} ${visible.join(' ')}`)) {
     if (!evNums.has(digitsKey(n))) out.push(f('unsupported_metric', `número "${n}" no texto não consta nas evidências`));
   }
-  for (const m of mainBody(d.body).matchAll(/["“]([^"”]{12,})["”]/g)) {
-    if (!evNorm.includes(normalizeText(m[1]!))) out.push(f('invented_quote', `trecho entre aspas não consta literalmente nas evidências: "${m[1]!.slice(0, 40)}…"`));
+  for (const part of visible) {
+    for (const m of part.matchAll(/["“]([^"”]{12,})["”]/g)) {
+      if (!evNorm.includes(normalizeText(m[1]!))) out.push(f('invented_quote', `trecho entre aspas não consta literalmente nas evidências: "${m[1]!.slice(0, 40)}…"`));
+    }
   }
   return result(out);
 }
@@ -126,6 +131,9 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
   const bw = words(bodyNoQuotes);
   for (const e of evidences.filter((x) => d.evidenceIds.includes(x.id))) {
     const ew = words(e.text);
+    for (const [label, txt] of [['resumo', d.resumo], ['subtitulo', d.subtitulo]] as const) {
+      if (txt && longestCommonRun(words(txt), ew) >= COPY_RUN_LIMIT) out.push(f('copy_literal', `${label} copia trecho da fonte ${e.sourceId}`));
+    }
     const run = longestCommonRun(bw, ew);
     if (run >= COPY_RUN_LIMIT) out.push(f('copy_literal', `${run} palavras consecutivas idênticas à fonte ${e.sourceId}`));
     const set = new Set<string>();
@@ -200,10 +208,24 @@ export function checkImage(img: ImageDecision): CheckResult {
   return result(out);
 }
 
+/** Campos publicáveis (ADR-017 §4): resumo obrigatório ≤ 300, slug válido, classe pública, nunca patrocinado. */
+export function checkPublishable(d: Draft): CheckResult {
+  const out: Finding[] = [];
+  if (typeof d.resumo !== 'string' || d.resumo.trim() === '') out.push(f('resumo_missing', 'resumo obrigatório para aprovar (até 300 caracteres)'));
+  else if (d.resumo.length > RESUMO_MAX) out.push(f('resumo_too_long', `resumo com ${d.resumo.length} caracteres (máximo ${RESUMO_MAX})`));
+  if (d.subtitulo !== undefined && d.subtitulo.length > RESUMO_MAX) out.push(f('subtitulo_too_long', `subtítulo acima de ${RESUMO_MAX} caracteres`));
+  if (typeof d.slug !== 'string' || !SLUG_RE.test(d.slug) || d.slug.length > SLUG_MAX) out.push(f('slug_invalid', 'slug inválido (minúsculas, números e hífens)'));
+  if (!ContentType.safeParse(d.tipoConteudo).success) out.push(f('content_type_invalid', 'tipo de conteúdo inválido'));
+  if (d.classeDeDado !== 'public') out.push(f('data_class_not_public', 'matéria publicável precisa ser de classe pública'));
+  if (d.patrocinado || d.tipoConteudo === 'patrocinado') out.push(f('sponsored_not_editorial', 'conteúdo patrocinado não nasce na fábrica editorial (é do módulo Comercial)'));
+  if (d.rotuloPublieditorial !== undefined && d.patrocinado === false) out.push(f('label_without_sponsorship', 'rótulo publieditorial em conteúdo não patrocinado'));
+  return result(out);
+}
+
 export function runDeterministicChecks(d: Draft, evidences: Evidence[]): CheckResult {
   const parts = [
     checkSignature(d), checkNoFabricatedReporting(d), checkEvidenceTrust(d, evidences), checkClaims(d, evidences),
-    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image),
+    checkBodyGrounding(d, evidences), checkOriginality(d, evidences), checkAttribution(d, evidences), checkImage(d.image), checkPublishable(d),
   ];
   const findings = parts.flatMap((p) => p.findings);
   return result(findings);

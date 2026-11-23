@@ -48,11 +48,20 @@ export const media = pgTable(
     tipo: text('tipo').notNull(),
     direitos: jsonb('direitos').notNull(), // ImageRights (origem, crédito, base de direito, texto alternativo)
     sha256: text('sha256').notNull(),
+    // Arquivo no Blob S3 compatível (ausente = só metadados). A chave é por conteúdo: `midia/{sha256}`.
+    blobKey: text('blob_key'),
+    mime: text('mime'),
+    bytes: integer('bytes'),
+    // Licença: expiração e evidência (ADR-008/D08). Matéria nunca publica com licença vencida.
+    licencaExpiraEm: date('licenca_expira_em'),
+    licencaEvidencia: jsonb('licenca_evidencia'),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     check('media_tipo', sql`${t.tipo} IN ('imagem', 'video', 'documento')`),
     check('media_sha', sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
+    check('media_arquivo_completo', sql`${t.blobKey} IS NULL OR (${t.mime} IS NOT NULL AND ${t.bytes} > 0)`),
+    uniqueIndex('media_sha256_uq').on(t.sha256), // deduplicação: um registro por conteúdo
   ],
 );
 
@@ -68,8 +77,26 @@ export const agendaEvents = pgTable(
     editorias: jsonb('editorias').notNull().default(sql`'[]'::jsonb`),
     patrocinado: boolean('patrocinado').notNull().default(false),
     fonteUrl: text('fonte_url').notNull(),
+    // Moderação: evento criado pela redação nasce aprovado; sugestão pública nasce pendente (nada vai ao público sem decisão humana).
+    moderacao: text('moderacao').notNull().default('aprovado'),
+    origem: text('origem').notNull().default('interno'),
+    motivoRejeicao: text('motivo_rejeicao'),
+    moderadoPor: text('moderado_por'),
+    moderadoEm: timestamp('moderado_em', { withTimezone: true }),
+    /** Só em sugestão pública: sha256(titulo minúsculo|início). Impede sugestões idênticas pendentes ao mesmo tempo. */
+    chaveDedupe: text('chave_dedupe'),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [check('agenda_periodo', sql`${t.fim} >= ${t.inicio}`)],
+  (t) => [
+    check('agenda_periodo', sql`${t.fim} >= ${t.inicio}`),
+    check('agenda_moderacao', sql`${t.moderacao} IN ('pendente', 'aprovado', 'rejeitado')`),
+    check('agenda_origem', sql`${t.origem} IN ('interno', 'publico')`),
+    check('agenda_rejeicao_com_motivo', sql`${t.moderacao} <> 'rejeitado' OR (${t.motivoRejeicao} IS NOT NULL AND length(trim(${t.motivoRejeicao})) > 0)`),
+    check('agenda_publico_aprovado_por_humano', sql`${t.origem} <> 'publico' OR ${t.moderacao} = 'pendente' OR ${t.moderadoPor} IS NOT NULL`),
+    check('agenda_publico_nao_patrocinado', sql`${t.origem} <> 'publico' OR NOT ${t.patrocinado}`),
+    uniqueIndex('agenda_sugestao_pendente_uq').on(t.chaveDedupe).where(sql`${t.moderacao} = 'pendente' AND ${t.chaveDedupe} IS NOT NULL`),
+    index('agenda_moderacao_idx').on(t.moderacao, t.inicio),
+  ],
 );
 
 /** Contrato Source.editorias (min 1): as editorias que a fonte cobre. */

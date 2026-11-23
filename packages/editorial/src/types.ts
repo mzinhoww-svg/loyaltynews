@@ -2,7 +2,7 @@
 // estes tipos são locais à Frente 06 e devem ser migrados quando o contrato existir.
 
 import { ASSINATURA, EDITORIAS as EDITORIAS_CONTRATO } from '@ln/contracts';
-import type { EditoriaSlug } from '@ln/contracts';
+import type { ContentType, DataClass, EditoriaSlug } from '@ln/contracts';
 
 /** Slugs das dez editorias: fonte única em @ln/contracts (D13). */
 export const EDITORIAS: readonly EditoriaSlug[] = EDITORIAS_CONTRATO.map((e) => e.slug);
@@ -96,6 +96,14 @@ export interface Draft {
   editoria: Editoria;
   headline: string;
   body: string;
+  /** Campos publicáveis (ADR-017 §4): exatamente os de PublishableContent. */
+  slug: string;                 // gerado na 1ª redação a partir da manchete; único; imutável depois da 1ª publicação
+  resumo: string;               // ≤ 300; obrigatório no gate de aprovação (WF02)
+  subtitulo?: string;
+  tipoConteudo: ContentType;    // padrão 'noticia'
+  classeDeDado: DataClass;      // padrão 'public'
+  patrocinado: boolean;         // o pipeline editorial nunca produz conteúdo patrocinado
+  rotuloPublieditorial?: string;
   claims: Claim[];
   evidenceIds: string[];
   signature: string;
@@ -106,7 +114,7 @@ export interface Draft {
 
 export type ImageDecision =
   | { mode: 'none'; reason: string }
-  | { mode: 'source_image'; sourceId: string; url: string; credit: string; creditLink: string; basis: ImageRightsBasis | null }
+  | { mode: 'source_image'; sourceId: string; url: string; credit: string; creditLink: string; basis: ImageRightsBasis | null; /** texto alternativo (acessibilidade) */ alt?: string }
   | { mode: 'conceptual'; label: string; generatedBy: string };
 
 export interface Finding { code: string; message: string; claimId?: string }

@@ -118,11 +118,11 @@ describe('flush de entrega: Redis → ad_delivery_daily', () => {
     await event(ids[0]!, 'click');
     await serve('pv-f0'); // refresh
     const r1 = await flushAdDelivery(R(), app.db);
-    expect(r1).toEqual({ keys: 1, rows: 1 });
+    expect(r1).toEqual({ keys: 1, rows: 1, recovered: 0 });
     const [row] = await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.criativoId, 'cr-1'));
     expect(row).toMatchObject({ dia: DAY, servidas: 5, visiveis: 1, cliques: 1, refreshSuprimido: 1, ignoradasBotInterno: 0 });
     expect(Object.values(await readCounters(R(), 'cr-1', DAY)).every((v) => v === 0)).toBe(true);
-    expect(await flushAdDelivery(R(), app.db)).toEqual({ keys: 0, rows: 0 }); // nada a gravar
+    expect(await flushAdDelivery(R(), app.db)).toEqual({ keys: 0, rows: 0, recovered: 0 }); // nada a gravar
     // novo dia de tráfego soma na mesma linha
     await serve('pv-f9');
     await flushAdDelivery(R(), app.db);
@@ -130,15 +130,102 @@ describe('flush de entrega: Redis → ad_delivery_daily', () => {
     expect(row2).toMatchObject({ servidas: 6, visiveis: 1, cliques: 1 });
   });
 
-  it('falha ao gravar devolve os contadores ao Redis (nada se perde nem duplica); visível nunca passa de servida', async () => {
-    await redis.hincrby(adKeys.cnt('cr-inexistente', DAY), 's', 3); // FK falha no banco
-    await expect(flushAdDelivery(R(), app.db)).rejects.toThrow();
-    expect(await readCounters(R(), 'cr-inexistente', DAY)).toEqual({ s: 3 });
-    await redis.flushall();
+  it('dois flushes concorrentes sobre o mesmo contador: soma exata no banco, nunca em dobro (QA 2)', async () => {
+    const key = adKeys.cnt('cr-1', '2026-11-21');
+    for (const [f, n] of [['s', 100], ['v', 40], ['c', 7], ['i', 3], ['r', 11]] as const) await redis.hincrby(key, f, n);
+    const rs = await Promise.all([flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]);
+    expect(rs.reduce((a, r) => a + r.rows, 0)).toBe(1); // exatamente um flush levou o hash
+    const [row] = await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.id, 'cr-1@2026-11-21'));
+    expect(row).toMatchObject({ servidas: 100, visiveis: 40, cliques: 7, ignoradasBotInterno: 3, refreshSuprimido: 11 });
+    expect(await redis.keys('ln:ad:*')).toEqual([]); // nada sobra: hash tomado e chave de trabalho apagada
+  });
+
+  it('conservação: muitos flushes concorrentes com incrementos chegando durante o flush; banco + Redis = total exato', async () => {
+    const day = '2026-11-19';
+    const key = adKeys.cnt('cr-1', day);
+    const bump = async (n: number) => { for (let i = 0; i < n; i++) { await redis.hincrby(key, 's', 1); await redis.hincrby(key, 'r', 2); } };
+    await Promise.all([
+      bump(60), bump(60), bump(60),
+      flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db),
+    ]);
+    await Promise.all([flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]); // varre o que sobrou
+    const [row] = await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.id, `cr-1@${day}`));
+    const rest = await readCounters(R(), 'cr-1', day);
+    expect((row?.servidas ?? 0) + (rest.s ?? 0)).toBe(180);
+    expect((row?.refreshSuprimido ?? 0) + (rest.r ?? 0)).toBe(360);
+    expect(row?.servidas).toBe(180); // depois da varredura final tudo está no banco
+  });
+
+  const workKeys = () => redis.keys('ln:ad:flush:*');
+  const ledger = () => app.db.$count(schema.adDeliveryFlushes);
+  const row = async (id: string) => (await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.id, id)))[0];
+
+  it('falha de gravação com flushes concorrentes: o delta NÃO volta às cegas ao hash; fica na chave de trabalho e é gravado uma vez depois', async () => {
+    const ledgerBefore = await ledger();
+    await redis.hincrby(adKeys.cnt('cr-novo', DAY), 's', 5); // criativo ainda não existe: FK falha no banco
+    const rs = await Promise.allSettled([flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]);
+    expect(rs.filter((r) => r.status === 'rejected').length).toBeGreaterThanOrEqual(1);
+    expect(await readCounters(R(), 'cr-novo', DAY)).toEqual({}); // nada devolvido ao hash original
+    const keys = await workKeys();
+    expect(keys).toHaveLength(1); // uma única chave de trabalho guarda o delta
+    expect(await redis.hgetall(keys[0]!)).toEqual({ s: '5' });
+    expect(await ledger()).toBe(ledgerBefore); // a transação que falhou desfez o ledger junto
+    // o criativo passa a existir: a próxima rodada recupera a chave de trabalho e grava UMA vez
+    await app.db.insert(schema.adCreatives).values({ id: 'cr-novo', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true });
+    const r = await flushAdDelivery(R(), app.db);
+    expect(r).toMatchObject({ keys: 0, rows: 1, recovered: 0 });
+    expect((await row(`cr-novo@${DAY}`))?.servidas).toBe(5);
+    expect(await workKeys()).toEqual([]);
+    expect(await flushAdDelivery(R(), app.db)).toEqual({ keys: 0, rows: 0, recovered: 0 });
+    expect((await row(`cr-novo@${DAY}`))?.servidas).toBe(5);
+  });
+
+  it('erro AMBÍGUO (commit confirmado, resposta perdida): soma exata uma vez; a chave de trabalho é só apagada na recuperação (QA 2)', async () => {
+    const day = '2026-11-18';
+    const ledgerBefore = await ledger();
+    const key = adKeys.cnt('cr-1', day);
+    for (const [f, n] of [['s', 10], ['v', 4], ['c', 1]] as const) await redis.hincrby(key, f, n);
+    const lossy = new Proxy(app.db, {
+      get(t, p) {
+        if (p === 'transaction') {
+          return async (cb: any) => {
+            await (t as any).transaction(cb); // o banco confirma...
+            throw new Error('ECONNRESET depois do commit'); // ...e a resposta se perde
+          };
+        }
+        const v = Reflect.get(t, p);
+        return typeof v === 'function' ? v.bind(t) : v;
+      },
+    });
+    await expect(flushAdDelivery(R(), lossy as typeof app.db)).rejects.toThrow(/ECONNRESET/);
+    expect(await row(`cr-1@${day}`)).toMatchObject({ servidas: 10, visiveis: 4, cliques: 1 }); // gravou
+    expect(await readCounters(R(), 'cr-1', day)).toEqual({}); // não voltou ao hash
+    expect(await workKeys()).toHaveLength(1);
+    expect(await ledger()).toBe(ledgerBefore + 1);
+    // próxima rodada: o id está no ledger ⇒ só apaga a chave; NÃO soma de novo
+    const r = await flushAdDelivery(R(), app.db);
+    expect(r).toMatchObject({ rows: 0, recovered: 1 });
+    expect(await row(`cr-1@${day}`)).toMatchObject({ servidas: 10, visiveis: 4, cliques: 1 });
+    expect(await workKeys()).toEqual([]);
+    // e uma recuperação repetida/concorrente da mesma chave também soma uma só vez
+    await redis.hincrby(adKeys.cnt('cr-1', '2026-11-17'), 's', 7);
+    await Promise.allSettled([flushAdDelivery(R(), lossy as typeof app.db), flushAdDelivery(R(), app.db), flushAdDelivery(R(), app.db)]);
+    await flushAdDelivery(R(), app.db);
+    expect((await row('cr-1@2026-11-17'))?.servidas).toBe(7);
+    expect(await workKeys()).toEqual([]);
+  });
+
+  it('visível e clique nunca passam de servida; ledger de flush antigo é expurgado', async () => {
     await redis.hincrby(adKeys.cnt('cr-1', '2026-11-20'), 's', 2);
     await redis.hincrby(adKeys.cnt('cr-1', '2026-11-20'), 'v', 7); // contador de visível maior que servida (Redis perdeu dado)
+    await app.db.insert(schema.adDeliveryFlushes).values([
+      { flushId: 'velho', creativeId: 'cr-1', day: '2026-01-01', at: new Date(Date.now() - 9 * 86_400_000) },
+      { flushId: 'recente', creativeId: 'cr-1', day: '2026-01-02', at: new Date(Date.now() - 1 * 86_400_000) },
+    ]);
     await flushAdDelivery(R(), app.db);
-    const [row] = await app.db.select().from(schema.adDeliveryDaily).where(eq(schema.adDeliveryDaily.id, 'cr-1@2026-11-20'));
-    expect(row).toMatchObject({ servidas: 2, visiveis: 2 });
+    expect(await row('cr-1@2026-11-20')).toMatchObject({ servidas: 2, visiveis: 2 });
+    const ids = (await app.db.select().from(schema.adDeliveryFlushes)).map((r) => r.flushId);
+    expect(ids).toContain('recente');
+    expect(ids).not.toContain('velho');
   });
 });

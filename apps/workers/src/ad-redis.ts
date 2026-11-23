@@ -3,7 +3,8 @@
 //   ln:ad:view:{pageViewId}:{positionId}  JSON da LedgerEntry         TTL 30 min  SET NX EX
 //   ln:ad:imp:{impressionId}              hash {creativeId,key,at,visible,clicked}  TTL 2 h  HSETNX
 //   ln:ad:cnt:{creativeId}:{AAAA-MM-DD}   hash dos 5 contadores        TTL 3 dias  HINCRBY
-// O worker `flushAdDelivery` soma os contadores em ad_delivery_daily e subtrai do Redis o que gravou.
+// O worker `flushAdDelivery` soma os contadores em ad_delivery_daily. Tomada ATÔMICA do delta por RENAME: só um flush
+// leva o hash; o outro recebe "no such key" e pula; incrementos novos criam outro hash. Nunca soma duas vezes.
 import { sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
@@ -18,6 +19,9 @@ export interface AdRedis {
   hsetnx(key: string, field: string, value: string): Promise<number>;
   hincrby(key: string, field: string, increment: number): Promise<number>;
   expire(key: string, seconds: number): Promise<number>;
+  /** Atômico; rejeita se a origem não existe. É a tomada do delta no flush. */
+  rename(key: string, newKey: string): Promise<'OK'>;
+  del(key: string): Promise<number>;
   scan(cursor: string | number, match: 'MATCH', pattern: string, count: 'COUNT', n: number): Promise<[string, string[]]>;
 }
 
@@ -88,11 +92,77 @@ function splitKey(key: string): [string, string] {
   return [key.slice(0, i), key.slice(i + 1)];
 }
 
-/** Subtrai do Redis o que leu e grava no PostgreSQL; falha ao gravar devolve ao Redis. Crash no meio sub-conta. */
-export async function flushAdDelivery(redis: AdRedis, db: Db): Promise<{ keys: number; rows: number }> {
-  let cursor = '0';
+/** `ln:ad:flush:{uuid}:{criativo}:{AAAA-MM-DD}`: chave de trabalho; o uuid é o `flush_id` do ledger no banco. */
+const WORK_RE = /^ln:ad:flush:([0-9a-f-]{36}):(.+):(\d{4}-\d{2}-\d{2})$/;
+const LEDGER_RETENTION_DAYS = 7; // mais que o TTL da chave de trabalho (3 dias): ledger nunca some antes da chave
+
+type Delta = { s: number; v: number; c: number; i: number; r: number };
+const readDelta = (h: Record<string, string>): Delta => ({
+  s: Number(h.s ?? 0), v: Number(h.v ?? 0), c: Number(h.c ?? 0), i: Number(h.i ?? 0), r: Number(h.r ?? 0),
+});
+const hasAny = (d: Delta) => Object.values(d).some((x) => x > 0);
+
+/**
+ * Soma o delta UMA ÚNICA VEZ por `flushId`, mesmo com erro ambíguo (commit confirmado e resposta perdida): o id entra no
+ * ledger NA MESMA transação do upsert (chave primária única). Devolve true se somou agora, false se já estava somado.
+ */
+async function applyOnce(db: Db, flushId: string, creativeId: string, day: string, d: Delta): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const ins = await tx
+      .insert(schema.adDeliveryFlushes)
+      .values({ flushId, creativeId, day })
+      .onConflictDoNothing({ target: schema.adDeliveryFlushes.flushId })
+      .returning({ id: schema.adDeliveryFlushes.flushId });
+    if (ins.length === 0) return false; // outro flush (ou uma tentativa anterior cuja resposta se perdeu) já somou
+    await upsertDelivery(tx as unknown as Db, creativeId, day, d);
+    return true;
+  });
+}
+
+/**
+ * Grava os contadores no PostgreSQL SEM poder inflar nem perder por erro ambíguo, mesmo com vários flushes ao mesmo tempo:
+ *  1) RENAME atômico do hash para uma chave de trabalho exclusiva `ln:ad:flush:{flushId}:…` (só um flush a leva);
+ *  2) numa transação, o `flushId` entra no ledger e o delta é somado (único): repetir o mesmo id nunca soma de novo;
+ *  3) sucesso: apaga a chave de trabalho. QUALQUER erro: a chave de trabalho FICA (TTL 3 dias) e o delta NÃO volta às cegas
+ *     ao hash original; a próxima rodada a recupera: id no ledger ⇒ só apaga; id ausente ⇒ soma com o MESMO id.
+ * Erro persistente (ex.: criativo inexistente) mantém a chave até o TTL: sub-conta e alerta, nunca infla.
+ */
+export async function flushAdDelivery(redis: AdRedis, db: Db): Promise<{ keys: number; rows: number; recovered: number }> {
+  const errors: unknown[] = [];
   let keys = 0;
   let rows = 0;
+  let recovered = 0;
+
+  const handleWork = async (workKey: string, flushId: string, creativeId: string, day: string, fresh: boolean) => {
+    try {
+      const d = readDelta(await redis.hgetall(workKey));
+      if (!hasAny(d)) {
+        await redis.del(workKey);
+        return;
+      }
+      const applied = await applyOnce(db, flushId, creativeId, day, d);
+      if (fresh) keys++;
+      if (applied) rows++;
+      else recovered++;
+      await redis.del(workKey);
+    } catch (e) {
+      errors.push(e); // a chave de trabalho fica para a próxima rodada
+    }
+  };
+
+  // 0) recuperação: chaves de trabalho deixadas por falhas (ou por flushes em andamento: o ledger evita soma dupla)
+  let wc = '0';
+  do {
+    const [next, batch] = await redis.scan(wc, 'MATCH', 'ln:ad:flush:*', 'COUNT', 200);
+    wc = next;
+    for (const workKey of batch) {
+      const m = WORK_RE.exec(workKey);
+      if (m) await handleWork(workKey, m[1]!, m[2]!, m[3]!, false);
+    }
+  } while (wc !== '0');
+
+  // 1) novos contadores
+  let cursor = '0';
   do {
     const [next, batch] = await redis.scan(cursor, 'MATCH', adKeys.cntPattern, 'COUNT', 200);
     cursor = next;
@@ -100,24 +170,26 @@ export async function flushAdDelivery(redis: AdRedis, db: Db): Promise<{ keys: n
       const m = /^ln:ad:cnt:(.+):(\d{4}-\d{2}-\d{2})$/.exec(key);
       if (!m) continue;
       const [, creativeId, day] = m as unknown as [string, string, string];
-      const h = await redis.hgetall(key);
-      const d = {
-        s: Number(h.s ?? 0), v: Number(h.v ?? 0), c: Number(h.c ?? 0), i: Number(h.i ?? 0), r: Number(h.r ?? 0),
-      };
-      if (!Object.values(d).some((x) => x > 0)) continue;
-      keys++;
-      // 1) tira do Redis o que foi lido (incrementos novos ficam); 2) grava; se falhar, devolve
-      for (const [f, v] of Object.entries(d)) if (v > 0) await redis.hincrby(key, f, -v);
+      const flushId = crypto.randomUUID();
+      const work = `ln:ad:flush:${flushId}:${creativeId}:${day}`;
       try {
-        await upsertDelivery(db, creativeId, day, d);
-        rows++;
-      } catch (e) {
-        for (const [f, v] of Object.entries(d)) if (v > 0) await redis.hincrby(key, f, v);
-        throw e;
+        await redis.rename(key, work);
+      } catch {
+        continue; // outro flush levou este hash (ou ele expirou): nada a fazer
       }
+      await redis.expire(work, TTL.cnt);
+      await handleWork(work, flushId, creativeId, day, true);
     }
   } while (cursor !== '0');
-  return { keys, rows };
+
+  // 2) limpeza do ledger (muito mais velho que qualquer chave de trabalho possível)
+  try {
+    await db.delete(schema.adDeliveryFlushes).where(sql`${schema.adDeliveryFlushes.at} < now() - make_interval(days => ${LEDGER_RETENTION_DAYS})`);
+  } catch {
+    /* limpeza é best-effort */
+  }
+  if (errors.length) throw errors[0];
+  return { keys, rows, recovered };
 }
 
 async function upsertDelivery(db: Db, creativeId: string, day: string, d: { s: number; v: number; c: number; i: number; r: number }): Promise<void> {
