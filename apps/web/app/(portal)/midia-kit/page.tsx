@@ -106,7 +106,7 @@ export default async function MidiaKitPage() {
             <thead><tr><th>Editoria</th><th>Escopo</th></tr></thead>
             <tbody>
               {EDITORIAS.map((e) => (
-                <tr key={e.slug}><td><Link href={`/editoria/${e.slug}`}>{e.name}</Link></td><td>{e.description}</td></tr>
+                <tr key={e.slug}><td><Link href={`/editoria/${e.slug}`} className="pt-tap">{e.name}</Link></td><td>{e.description}</td></tr>
               ))}
             </tbody>
           </table>
