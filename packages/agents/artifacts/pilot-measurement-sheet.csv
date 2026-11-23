@@ -1,0 +1,1 @@
+task_id,kind,article_id,source_id,stage,account,declared_model,prompt_version,started_at,ended_at,attempt,outcome,limit_message,limit_at,account_resumed_at,gate_verdict,gate_reasons,cross_provider_ok,packet_chars,tokens_measured,unsupported_facts,published_attempt,tarifada_api_call,secret_in_log,tool_outside_contract,notes

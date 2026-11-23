@@ -73,7 +73,7 @@ Leitura: a combinação A a 30 por dia só aguenta tokens até 3.4× o deste mod
 
 | Alavanca | Efeito no custo (por matéria, API) | Prós | Contras e riscos | Qualidade / privacidade |
 |---|---|---|---|---|
-| (1) OpenBot nas assinaturas (B) | US$ 0.019 → 0.001 | custo marginal de API ~zero; Claude redige e Codex checa = autor distinto sem API | limite de uso desconhecido; sem `generation id`/custo conciliável (evidência de identidade do modelo mais fraca); PC ligado; **termos das assinaturas para uso automatizado em produção NÃO verificados**; revoga a regra "assinatura só para implementação" (DP-04/DP-05) | qualidade igual (mesmos modelos); privacidade: DP-27 aceita retenção; **dado pessoal continua fora** até decisão |
+| (1) OpenBot nas assinaturas (B) | US$ 0.019 → 0.001 | custo marginal de API ~zero; Claude redige e Codex checa = autor distinto sem API | limite de uso desconhecido; sem `generation id`/custo conciliável (evidência de identidade do modelo mais fraca); PC ligado; **risco dos termos das assinaturas para uso automatizado ACEITO pelo proprietário (DP-30)**: mitigar separando o uso de produto do de implementação e mantendo a rota de API pronta; revoga a regra "assinatura só para implementação" (DP-04/DP-05) | qualidade igual (mesmos modelos); privacidade: DP-27 aceita retenção; **dado pessoal continua fora** até decisão |
 | (2) Modelos gratuitos (F) | US$ 0.001 → 0.001 (só tira tokens da assinatura) | alivia o limite das assinaturas em triagem, social e entidades | qualidade NÃO verificada; política de dados dos gratuitos desconhecida; instabilidade de limite | só em etapas de baixo risco e de matéria já publicada; nunca na checagem; atrás de flag (Arquiteto concorda) |
 | (3) Cache agressivo, prompts menores, lote | A0→A: US$ 0.031 → 0.019 (cache); prompts −25%: ver E/G | maior alavanca na API; o cache é obrigatório na política | cache precisa ser comprovado por modelo (G2: `cached_tokens > 0`); sem cache a API não cabe | nenhum impacto de qualidade |
 | (4) Determinístico no lugar de modelo (C) | US$ 0.001 → 0.001 na API; tira 17 mil tokens/matéria da assinatura | barato, auditável, reproduzível (dedupe, whitelist de fontes, formatação, conferir números e citações contra a fonte) | só funciona onde há regra; exige código e testes | melhora a verificabilidade; não substitui a checagem factual por modelo |
@@ -101,6 +101,6 @@ O Arquiteto publicou `fast-track/custo/redesenho-custo-arquiteto.md` (modelo pr�
 
 ## 9. Não verificado
 
-- Limites e janelas de uso das assinaturas; se o OpenBot expõe consumo; termos dos provedores para uso automatizado em produção; política de dados dos modelos gratuitos.
+- Limites e janelas de uso das assinaturas; se o OpenBot expõe consumo; política de dados dos modelos gratuitos. O risco dos termos dos provedores para uso automatizado em produção é **aceito pelo proprietário (DP-30)**: registrar na política v7 e no livro; mitigação recomendada: separar produto e implementação e manter a rota de complemento pela API pronta.
 - Todos os perfis de tokens, as frações de economia e a premissa de 22 dias úteis por mês; o custo real só se sabe medindo (protocolo de medição e piloto).
 - Preços de lista de 22–23/11/2026 (vencem em 7 dias).
