@@ -13,8 +13,14 @@ import { editoriaName } from '../_lib/editorias';
 import { getSource } from '../_lib/source';
 import type { AdSlotId, Article, Page } from '../_lib/types';
 
+/** Selo compacto "MOCK" visível + texto completo só para leitor de tela ("MOCK · dados de exemplo"; Security R5). */
 export function MockTag() {
-  return <MockBadge label="" />;
+  return (
+    <>
+      <MockBadge label="" />
+      <span className="pt-sr"> · dados de exemplo</span>
+    </>
+  );
 }
 
 /** Estado vazio honesto (DS `EmptyState`), discreto por padrão: uma linha, sem caixa. */

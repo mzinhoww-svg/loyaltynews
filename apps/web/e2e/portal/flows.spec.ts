@@ -206,6 +206,10 @@ test.describe('conteúdo MOCK', () => {
 
   test('Moves e Intelligence mostram itens marcados MOCK', async ({ page }) => {
     await page.goto('/moves');
+    // Selo compacto visível "MOCK" + texto completo para leitor de tela.
+    const cell = page.getByRole('table').locator('td', { has: page.locator('[data-testid="mock-badge"]') }).first();
+    await expect(cell).toContainText('MOCK');
+    expect(await cell.evaluate((e) => e.textContent)).toContain('MOCK · dados de exemplo');
     await expect(page.getByRole('table')).toBeVisible();
     await expect(page.locator('[data-testid="mock-badge"]').first()).toBeVisible();
     await page.goto('/intelligence/empresas');
