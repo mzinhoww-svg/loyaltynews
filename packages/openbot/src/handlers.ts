@@ -257,6 +257,8 @@ const CallbackSchema = z.object({
       resumeAt: z.iso.datetime({ offset: true }).optional(),
     }).strict().optional(),
     reviewedDraftTaskId: z.string().regex(ID_RE).optional(),
+    /** Id da MATÉRIA (devolvido de `meta.articleId` da entrada): é o `article_id` da linha do piloto. Sem ele cai no refId da tarefa. */
+    articleId: z.string().regex(ID_RE).optional(),
     promptVersion: z.string().max(64).optional(),
     sourceId: z.string().regex(ID_RE).optional(),
     outputValid: z.boolean().optional(),
@@ -371,7 +373,7 @@ export async function handleCallback(deps: OpenBotDeps, req: SignedRequest): Pro
     const tarifada = usage !== undefined && (isApiLane(usage) || usage.costMicro > 0);
     const outcome: PilotRow['outcome'] = cb.outcome === 'completed' ? 'completed' : limited ? 'pending_limit' : retryable ? 'retryable' : 'failed';
     const row: PilotRow = {
-      task_id: task.id, kind: task.kind, article_id: task.refId, source_id: cb.trace.sourceId ?? 'nao_informada', stage: cb.trace.stage,
+      task_id: task.id, kind: task.kind, article_id: cb.trace.articleId ?? task.refId, source_id: cb.trace.sourceId ?? 'nao_informada', stage: cb.trace.stage,
       account: cb.trace.account, declared_model: usage?.model ?? null, prompt_version: cb.trace.promptVersion ?? null,
       started_at: cb.trace.startedAt, ended_at: cb.trace.endedAt, attempt: task.attempts,
       ...(cb.trace.reviewedDraftTaskId ? { reviewed_draft_task_id: cb.trace.reviewedDraftTaskId } : {}),

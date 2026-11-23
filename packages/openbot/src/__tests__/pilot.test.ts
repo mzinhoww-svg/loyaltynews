@@ -422,6 +422,25 @@ describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do pilo
   });
 });
 
+describe('a linha do piloto agrupa as etapas pela MATÉRIA (trace.articleId)', () => {
+  test('article_id vem do trace.articleId; sem ele cai no refId; checagem e rascunho da mesma matéria entram na mesma verificação de independência', async () => {
+    await dispatch({ kind: 'editorial_draft', refId: 'gw-d', idempotencyKey: 'k-d', route: ['claude'] });
+    const d = (await pull('claude'))!;
+    ok(await callback(d, { outcome: 'completed', resultRef: `res-${d.id}-a1`, usage: free(d, 'claude', 'claude-sonnet-5-5'), trace: trace('draft', 'claude', { articleId: 'art-1' }) }));
+    await dispatch({ kind: 'fact_check', refId: 'gw-f', idempotencyKey: 'k-f' });
+    const f = (await pull('codex'))!;
+    ok(await callback(f, { outcome: 'completed', resultRef: `res-${f.id}-a1`, usage: free(f, 'codex', 'gpt-5.1-codex'), trace: trace('factcheck', 'codex', { articleId: 'art-1', reviewedDraftTaskId: d.id }) }));
+    const all = await rows.all();
+    assert.deepEqual(all.map((r) => r.article_id), ['art-1', 'art-1']);
+    const rep = adapterReport(all);
+    assert.deepEqual([rep.articles, rep.independence.checked, rep.independence.independent, rep.independence.violations], [1, 1, 1, []]);
+    await dispatch({ kind: 'classification', refId: 'gw-sem', idempotencyKey: 'k-s', route: ['claude'] });
+    const s2 = (await pull('claude'))!;
+    ok(await callback(s2, { outcome: 'completed', resultRef: `res-${s2.id}-a1`, usage: free(s2, 'claude', 'claude-haiku-5-5'), trace: trace('triage', 'claude') }));
+    assert.equal((await rows.all()).at(-1)!.article_id, 'gw-sem');
+  });
+});
+
 describe('linha concluída que ainda espera o veredito da Editorial não para o piloto', () => {
   // gate com a regra REAL do AgentOps (validatePilotRow): checagem/revisão concluída exige gate_verdict e reviewed_draft_task_id
   const strictGate: PilotGate = (rows) => {
