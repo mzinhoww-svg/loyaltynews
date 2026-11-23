@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { describe, expect, it } from 'vitest';
-import { createTestDb } from '@ln/db/testing';
+import { createTestDb, isRealTestDb } from '@ln/db/testing';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { SourceRegistry, reviewSource, setSourceEnabled, shadowReader, type ReaderPort, type ShadowPort, type Source } from '@ln/editorial';
@@ -15,6 +15,10 @@ import { FakeResolver, MOCK_ARTICLE_ALFA, MOCK_PUBLIC_IP, MOCK_SOURCE, MockFetch
 
 let template: Blob | File | undefined;
 async function freshDb(): Promise<{ db: Db; client: PGlite }> {
+  if (isRealTestDb()) {
+    const t = await createTestDb(); // PostgreSQL real: banco clonado do modelo; client.close() apaga o banco
+    return { db: t.db as unknown as Db, client: t.client as unknown as PGlite };
+  }
   if (!template) { const base = await createTestDb(); template = await base.client.dumpDataDir('none'); await base.close(); }
   const client = new PGlite({ loadDataDir: template });
   await client.waitReady;

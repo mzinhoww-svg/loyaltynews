@@ -14,7 +14,8 @@ const KEYS: KeyConfig[] = [
   { label: 'conta-1', secretRef: 'SEGREDO_1', monthlyCreditCap: 5000 },
   { label: 'conta-2', secretRef: 'SEGREDO_2', monthlyCreditCap: 5000 },
 ];
-const SECRETS: Record<string, string> = { SEGREDO_1: 'sk-primeira-conta-NAO-VAZAR', SEGREDO_2: 'sk-segunda-conta-NAO-VAZAR' };
+// Chaves FALSAS montadas em tempo de execução (nenhum literal com cara de chave no arquivo): visivelmente falsas e sem disfarce.
+const SECRETS: Record<string, string> = { SEGREDO_1: 'sk-' + 'A'.repeat(32), SEGREDO_2: 'sk-' + 'B'.repeat(32) };
 
 const longText = 'Conteúdo público da página com texto legítimo suficiente para parecer uma notícia. '.repeat(30);
 const ok = (extra: Partial<ProviderResponse> = {}): ProviderResponse => ({ status: 'ok', credits: 1, httpStatus: 200, text: longText, ...extra });
@@ -109,7 +110,7 @@ describe('duas contas por provedor: troca automática quando a cota gratuita aca
     const r = await t.reader.read({ url: 'https://a.invalid/1' });
     const pool = (t.reader as unknown as { pool: QuotaKeyPool }).pool;
     const all = JSON.stringify([{ ...r, text: undefined }, pool.report()]);
-    expect(all).not.toContain('NAO-VAZAR');
+    for (const v of Object.values(SECRETS)) expect(all).not.toContain(v);
     expect(all).toContain('conta-1');
   });
 

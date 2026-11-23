@@ -8,6 +8,7 @@ import * as uiEntry from '../ui';
 import * as dashboardEntry from '../dashboard';
 import * as jobsEntry from '../jobs';
 import * as testingEntry from '../testing';
+import * as rasterEntry from '../creative/raster';
 import { LIVE_ACK } from '../mlabs/live';
 import { createSocialPublisher, PUBLISHER_SOCIAL } from '../publisher/publisher';
 
@@ -25,6 +26,7 @@ const ENTRIES: Record<string, Record<string, unknown>> = {
   './dashboard': dashboardEntry,
   './jobs': jobsEntry,
   './testing': testingEntry,
+  './raster': rasterEntry,
 };
 
 /** Nomes que nunca podem estar acessíveis por uma entrada pública, nem como export nem como membro de objeto alcançável. */
@@ -164,11 +166,11 @@ describe('superfície pública: nenhum caminho para escrever sem o publicador', 
     }
   });
 
-  test('package.json: só cinco subpaths (o `testing` exporta só a suíte de conformidade do registro de envios), todos em src/, nenhum wildcard nem módulo interno', () => {
+  test('package.json: só seis subpaths (`testing` exporta só a suíte de conformidade do registro de envios; `raster` só o rasterizador SVG→PNG, server-side, sem rede), todos em src/, nenhum wildcard nem módulo interno', () => {
     const pkg = JSON.parse(readFileSync(resolve(PKG, 'package.json'), 'utf8')) as { exports: Record<string, string> };
-    assert.deepEqual(Object.keys(pkg.exports).sort(), ['.', './dashboard', './jobs', './testing', './ui']);
+    assert.deepEqual(Object.keys(pkg.exports).sort(), ['.', './dashboard', './jobs', './raster', './testing', './ui']);
     for (const v of Object.values(pkg.exports)) {
-      assert.match(v, /^\.\/src\/(index|ui\/index|dashboard\/index|jobs\/index|testing)\.ts$/);
+      assert.match(v, /^\.\/src\/(index|ui\/index|dashboard\/index|jobs\/index|testing|creative\/raster)\.ts$/);
     }
   });
 

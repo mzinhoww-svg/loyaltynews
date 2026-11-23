@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { schema } from '@ln/db';
 import { FLAG_DEFAULTS } from '@ln/contracts';
 import { openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type OpenBotDeps, type GatewayRequestLike } from '@ln/openbot';
@@ -270,12 +270,14 @@ describe('E2E parte 2: flag LIGADA só no ambiente de teste', () => {
     expect(await costs()).toHaveLength(0);
   });
 
-  it('piloto (staging + LN_OPENBOT_PILOT=1) sem o gate do AgentOps neste build: o agente é recusado (503 PILOT_STOPPED) e nada é entregue; sem a variável, segue normal', async () => {
+  it('piloto (staging + LN_OPENBOT_PILOT=1) sem o gate do AgentOps (@ln/agents sem canDispatchNext, por mock): o agente é recusado (503 PILOT_STOPPED) e nada é entregue; sem a variável, segue normal', async () => {
+    vi.doMock('@ln/agents', () => ({}));
     const q = new PgLeaseQueue(app.db as any);
     await new PgTaskIo(app.db as any, app.deps.now).putInput('gw-pl', { x: 1 }, { taskClass: 'factcheck', promptVersion: 'p' });
     await q.enqueue({ kind: 'fact_check', profileId: 'writer_pontos', refId: 'gw-pl', idempotencyKey: 'pl', dataClass: 'public', maxCostMicro: 1, route: ['codex'] }, app.clock.now);
     Object.assign(process.env, { APP_ENV: 'staging', LN_OPENBOT_PILOT: '1' });
     const [run] = await agents.codex.tick();
+    vi.doUnmock('@ln/agents');
     expect(run!.steps[0]).toMatchObject({ path: 'pull', status: 503, code: 'PILOT_STOPPED' });
     expect((await tasks())[0]).toMatchObject({ status: 'pending' });
     delete process.env.APP_ENV;
