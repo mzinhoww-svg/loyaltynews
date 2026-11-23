@@ -124,18 +124,54 @@ export type ApiSlice = Pick<PortalSource, 'getHighlights' | 'getTrending' | 'get
 
 const emptyPage = (page: number, pageSize: number): Page<Article> => ({ items: [], page, pageSize, total: 0 });
 
+/** Tempo máximo de espera pela API pública: página lenta não pode travar o portal. */
+const API_TIMEOUT_MS = 5000;
+/** Intervalo mínimo entre logs do mesmo tipo (a API fora do ar não pode inundar o log a cada requisição). */
+const LOG_EVERY_MS = 60_000;
+
+/**
+ * Falha da API (decisão do Security, regra A6): rede, timeout, status não-OK ou JSON inválido NUNCA derrubam a página.
+ * Listagens viram estado vazio honesto; matéria vira "não encontrada". O log leva só a classe do erro e o status
+ * (nunca URL, corpo da resposta, cabeçalhos ou dados do leitor) e é limitado a um por minuto e tipo.
+ */
 export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch): ApiSlice {
   const base = baseUrl.replace(/\/$/, '');
-  // no-store: leitura sempre dinâmica (nunca congela uma resposta da API no build).
-  const get = async (path: string): Promise<Response> => fetchImpl(`${base}${path}`, { cache: 'no-store', headers: { accept: 'application/json' } });
+  const lastLog = new Map<string, number>();
+  const logFalha = (what: string, motivo: string) => {
+    const now = Date.now();
+    if (now - (lastLog.get(what) ?? 0) < LOG_EVERY_MS) return;
+    lastLog.set(what, now);
+    console.error(`[portal] API pública indisponível (${what}): ${motivo}; exibindo estado vazio`);
+  };
+
+  /** Resposta HTTP ou null quando a API não respondeu (rede, recusa de conexão, timeout). */
+  const get = async (path: string, what: string): Promise<Response | null> => {
+    try {
+      // no-store: leitura sempre dinâmica (nunca congela uma resposta da API no build).
+      return await fetchImpl(`${base}${path}`, { cache: 'no-store', headers: { accept: 'application/json' }, signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+    } catch (e) {
+      logFalha(what, e instanceof Error ? e.name : 'erro de rede');
+      return null;
+    }
+  };
 
   async function list(params: Record<string, string | number | undefined>): Promise<{ items: RawListItem[]; total: number }> {
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== '') qs.set(k, String(v));
-    const res = await get(`/api/publico/materias?${qs}`);
-    if (!res.ok) throw new Error(`API pública de matérias respondeu ${res.status}`);
-    const j = (await res.json()) as { data: RawListItem[]; total: number };
-    return { items: j.data, total: j.total };
+    const res = await get(`/api/publico/materias?${qs}`, 'matérias');
+    if (!res) return { items: [], total: 0 };
+    if (!res.ok) {
+      logFalha('matérias', `status ${res.status}`);
+      return { items: [], total: 0 };
+    }
+    try {
+      const j = (await res.json()) as { data?: RawListItem[]; total?: number };
+      if (!Array.isArray(j.data)) throw new Error('formato');
+      return { items: j.data, total: typeof j.total === 'number' ? j.total : j.data.length };
+    } catch {
+      logFalha('matérias', 'resposta inválida');
+      return { items: [], total: 0 };
+    }
   }
 
   async function page(q: { page?: number; pageSize?: number; editoriaSlug?: string; contentType?: ContentType; q?: string }): Promise<Page<Article>> {
@@ -161,10 +197,19 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
     },
     getLatest: (q) => page(q ?? {}),
     async getArticle(slug) {
-      const res = await get(`/api/publico/materias/${encodeURIComponent(slug)}`);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`API pública de matéria respondeu ${res.status}`);
-      return mapArticle(((await res.json()) as { data: RawArticle }).data);
+      const res = await get(`/api/publico/materias/${encodeURIComponent(slug)}`, 'matéria');
+      if (!res || res.status === 404) return null;
+      if (!res.ok) {
+        // Falha da API não é "matéria inexistente", mas a página só tem duas saídas honestas: 404 do portal (sem 500).
+        logFalha('matéria', `status ${res.status}`);
+        return null;
+      }
+      try {
+        return mapArticle(((await res.json()) as { data: RawArticle }).data);
+      } catch {
+        logFalha('matéria', 'resposta inválida');
+        return null;
+      }
     },
     async getRelated(article, limit = 3) {
       const r = await page({ pageSize: limit + 1, editoriaSlug: article.editoriaSlug });

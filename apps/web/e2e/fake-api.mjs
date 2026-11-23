@@ -4,6 +4,8 @@
 import http from 'node:http';
 
 const port = Number(process.env.FAKE_API_PORT ?? 3104);
+// FAKE_API_STATUS=503 simula a API pública sem banco (NOT_CONFIGURED) ou com erro: toda rota /api/publico responde esse status.
+const forcedStatus = Number(process.env.FAKE_API_STATUS ?? 0);
 
 const corpoCorrigido =
   'Parágrafo de teste da matéria corrigida (MOCK).\n\n## Subtítulo de teste\n\nSegundo parágrafo de teste (MOCK).\n\nAvisos:\n- Corrigimos o valor citado (MOCK).\n  Segunda linha do aviso.\n\nFontes:\n- https://fonte.example/mock';
@@ -89,6 +91,7 @@ http
   .createServer((req, res) => {
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
+    if (forcedStatus && u.pathname.startsWith('/api/publico/')) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
     if (u.pathname === '/api/publico/materias') {
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);
