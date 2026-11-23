@@ -15,8 +15,9 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const UA = 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)';
+export const UA = 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)';
 const PAUSE_MS = 1500;
 const TIMEOUT_MS = 20000;
 
@@ -42,13 +43,15 @@ export function htmlToText(html) {
 }
 const norm = (s) => s.normalize('NFC').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
 
-async function robotsAllows(url) {
+export async function robotsAllows(url) {
   const u = new URL(url);
   try {
     const r = await fetch(`${u.origin}/robots.txt`, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(TIMEOUT_MS) });
-    if (r.status === 404 || r.status === 410) return { allowed: true, note: 'robots.txt ausente' };
-    if (!r.ok) return { allowed: false, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca` };
-    const lines = (await r.text()).split(/\r?\n/).map((l) => l.replace(/#.*/, '').trim()).filter(Boolean);
+    if (r.status === 404 || r.status === 410) return { allowed: true, note: 'robots.txt ausente', sitemaps: [] };
+    if (!r.ok) return { allowed: false, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca`, sitemaps: [] };
+    const rawRobots = await r.text();
+    const sitemaps = [...rawRobots.matchAll(/^\s*sitemap\s*:\s*(\S+)/gim)].map((m) => m[1]).slice(0, 5);
+    const lines = rawRobots.split(/\r?\n/).map((l) => l.replace(/#.*/, '').trim()).filter(Boolean);
     let applies = false;
     let sawGroup = false;
     const disallow = [];
@@ -69,18 +72,19 @@ async function robotsAllows(url) {
     const longest = (arr) => arr.filter((p) => path.startsWith(p.replace(/\*$/, ''))).sort((a, b) => b.length - a.length)[0];
     const d = longest(disallow);
     const a = longest(allow);
-    if (d && (!a || a.length < d.length)) return { allowed: false, note: `robots.txt proibe ${d}` };
-    return { allowed: true, note: 'robots.txt permite' };
+    if (d && (!a || a.length < d.length)) return { allowed: false, note: `robots.txt proibe ${d}`, sitemaps };
+    return { allowed: true, note: 'robots.txt permite', sitemaps };
   } catch (e) {
-    return { allowed: false, note: `robots.txt inacessivel (${e.name}); por precaucao nao busca` };
+    return { allowed: false, note: `robots.txt inacessivel (${e.name}); por precaucao nao busca`, sitemaps: [] };
   }
 }
 
-async function fetchText(url) {
+export async function fetchText(url) {
   const r = await fetch(url, { headers: { 'user-agent': UA, accept: 'text/html,application/xhtml+xml' }, redirect: 'follow', signal: AbortSignal.timeout(TIMEOUT_MS) });
   const ct = r.headers.get('content-type') ?? '';
   const body = await r.text();
-  return { status: r.status, finalUrl: r.url, contentType: ct, text: /html|xml|text/i.test(ct) ? htmlToText(body) : '' };
+  const textual = /html|xml|text/i.test(ct);
+  return { status: r.status, finalUrl: r.url, contentType: ct, html: textual ? body : '', text: textual ? htmlToText(body) : '' };
 }
 
 async function probe(url, word) {
@@ -171,8 +175,12 @@ async function verify(path) {
   for (const s of out.sources) if (s.status === 'unverified') console.log(`  fonte ${s.id} não verificada: ${s.note}`);
 }
 
-const [a, b, c] = process.argv.slice(2);
-if (a === '--robots') {
+// Só executa quando chamado direto (scripts/probe-sources.mjs importa as funções acima sem disparar nada).
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+const [a, b, c] = isMain ? process.argv.slice(2) : [];
+if (!isMain) {
+  /* importado como módulo */
+} else if (a === '--robots') {
   for (const u of process.argv.slice(3)) {
     const r = await robotsAllows(u);
     console.log(`${r.allowed ? 'PERMITIDO' : 'BLOQUEADO'}  ${u}  (${r.note})`);
