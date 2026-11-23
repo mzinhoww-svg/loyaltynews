@@ -118,11 +118,11 @@ describe('1. configuração de staging (DP-41), sem disparar nada', () => {
     expect(await stateStore().get()).toBeNull();
   });
 
-  it('flag desligada (sem LN_FLAGS_ON) mesmo com o piloto ligado: a Fábrica recusa e o agente recebe 503 DISPATCH_OFF', async () => {
+  it('flag desligada (sem LN_FLAGS_ON) mesmo com o piloto ligado: a Fábrica recusa e o agente recebe 423 DISPATCH_OFF', async () => {
     setEnv({ APP_ENV: 'staging', LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: SECRET });
     expect(app.deps.flags.openbotDispatch).toBe(false);
     expect(await factory().gw.invoke(req('triage'))).toMatchObject({ ok: false, detail: 'DISPATCH_OFF' });
-    expect((await A.claude.tick())[0]!.steps[0]).toMatchObject({ status: 503, code: 'DISPATCH_OFF' });
+    expect((await A.claude.tick())[0]!.steps[0]).toMatchObject({ status: 423, code: 'DISPATCH_OFF' });
     expect(await tasks()).toHaveLength(0);
   });
 
@@ -133,7 +133,7 @@ describe('1. configuração de staging (DP-41), sem disparar nada', () => {
 });
 
 describe('2. o gate do AgentOps está ao alcance da rota?', () => {
-  it('estado atual: `@ln/agents` exporta canDispatchNext? se NÃO, o piloto FALHA FECHADO (503 PILOT_STOPPED com o motivo) e nada é entregue', async () => {
+  it('estado atual: `@ln/agents` exporta canDispatchNext? se NÃO, o piloto FALHA FECHADO (423 PILOT_STOPPED com o motivo) e nada é entregue', async () => {
     const { gw } = factory();
     const r = await gw.invoke(req('triage'));
     if (typeof GATE === 'function') {
@@ -142,7 +142,7 @@ describe('2. o gate do AgentOps está ao alcance da rota?', () => {
     }
     expect(r).toMatchObject({ ok: false });
     const [run] = await A.claude.tick();
-    expect(run!.steps[0]).toMatchObject({ status: 503, code: 'PILOT_STOPPED' });
+    expect(run!.steps[0]).toMatchObject({ status: 423, code: 'PILOT_STOPPED' });
     expect(JSON.stringify(run)).not.toMatch(/segredo-de-ensaio/);
   });
 });
@@ -201,7 +201,7 @@ describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL 
     expect(pilotCsv(final).split('\n')[0]).toBe(SHEET ? SHEET.join(',') : PILOT_CSV_COLUMNS.join(','));
   });
 
-  it('parada imediata pelo gate/adaptador: chamada tarifada (lane api) para o piloto e a rota passa a 503 PILOT_STOPPED; segredo em texto também', async () => {
+  it('parada imediata pelo gate/adaptador: chamada tarifada (lane api) para o piloto e a rota passa a 423 PILOT_STOPPED; segredo em texto também', async () => {
     const { gw } = factory();
     expect((await gw.invoke(req('triage'))).ok).toBe(true);
     const [t0] = (await tasks());
@@ -217,7 +217,7 @@ describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL 
     });
     expect([cb.status, cb.body?.pilotStopped]).toEqual([200, ['api_tarifada']]);
     expect(t0).toBeDefined();
-    expect((await A.claude.pull()).status).toBe(503);
+    expect((await A.claude.pull()).status).toBe(423);
     expect((await A.claude.pull()).body.error.code).toBe('PILOT_STOPPED');
     expect((await A.codex.pull()).body.error.code).toBe('PILOT_STOPPED');
   });
@@ -243,7 +243,7 @@ describe('4. DP-41 no fio e kill switch, com o piloto ligado (precisam do gate r
     expect(await tasks()).toHaveLength(0);
   });
 
-  it4('kill switch (route:openbot): pull e heartbeat dão 503 KILL_SWITCH; o callback da tarefa em curso ainda é aceito; ao soltar o kill o pull volta', async () => {
+  it4('kill switch (route:openbot): pull e heartbeat dão 423 KILL_SWITCH; o callback da tarefa em curso ainda é aceito; ao soltar o kill o pull volta', async () => {
     const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
     await new PgLeaseQueue(db()).enqueue({ kind: 'classification', profileId: 'newsdesk', refId: 'gw-kill', idempotencyKey: 'kill-1', dataClass: 'public', maxCostMicro: 1, route: ['claude'] }, app.clock.now);
     await new PgTaskIo(db(), app.deps.now).putInput('gw-kill', { x: 1 }, { taskClass: 'triage', promptVersion: 'editorial-0.3' });
