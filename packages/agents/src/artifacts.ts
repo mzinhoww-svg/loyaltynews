@@ -24,12 +24,13 @@ import { buildQualificationArtifacts, type QualificationArtifacts } from './qual
 import { buildCostRedesignArtifacts, type CostRedesignArtifacts } from './cost-redesign-doc';
 import { buildPilotArtifacts, type PilotArtifacts } from './pilot-doc';
 import { buildOrgProfileArtifacts, type OrgProfileArtifacts } from './org-profiles-doc';
+import { buildCatalogArtifacts, type CatalogArtifacts } from './catalog-doc';
 
 export { PKG_DIR, POLICY_FIXTURE };
 
 const usd = (micro: number) => (micro / 1_000_000).toFixed(2);
 
-export interface Artifacts extends ExtraArtifacts, QualificationArtifacts, CostRedesignArtifacts, PilotArtifacts, OrgProfileArtifacts {
+export interface Artifacts extends ExtraArtifacts, QualificationArtifacts, CostRedesignArtifacts, PilotArtifacts, OrgProfileArtifacts, CatalogArtifacts {
   'organization.manifest.json': string;
   'routing-plan.json': string;
   'activation-plan.md': string;
@@ -109,6 +110,7 @@ export function generateArtifacts(): Artifacts {
     ...buildCostRedesignArtifacts(check.policy),
     ...buildPilotArtifacts(registries),
     ...buildOrgProfileArtifacts(registries),
+    ...buildCatalogArtifacts(registries),
   };
 }
 
