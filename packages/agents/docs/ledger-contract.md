@@ -1,5 +1,7 @@
 # Contrato do ledger de orçamento persistente (gate G4)
 
+> **Atualização (23/11/2026):** a suíte de aceitação foi MOVIDA para `packages/modelops/src/ledger-acceptance` (branch `ft/g4-suite`, a pedido do PM e de acordo com o Backend); não há mais cópia em `@ln/agents`. O desenho adotado é o do ADR-020 (por estado, `LedgerStore.withLock`, tabelas `budget_*`), não a tabela de eventos proposta aqui; as seções 3–5 valem como regras e como histórico da decisão. Resultado medido: `r0-preparacao/g4/g4-pg-real-resultado-v3.md`; estresse e dois processos: `packages/modelops/docs/ledger-acceptance.md`.
+
 Proposta da Frente 07 (AgentOps) para o Backend/FinOps implementarem em `@ln/modelops` + `@ln/db`. **Nada em `modelops` nem em `db` foi alterado.** O código executável do contrato está em `packages/agents/src/ledger-contract/`; esta nota explica o porquê e o que o Backend precisa decidir.
 
 ## 1. Por que o ledger atual não serve para produção

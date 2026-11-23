@@ -5,7 +5,8 @@
     "DP-26 (proprietário, 23/11/2026): política de modelos de produção = proposta do FinOps; (a) privacidade = ZDR listado no OpenRouter + política de dados do OpenRouter arquivada [REVOGADO pela DP-27]; (b) sem reserva na redação (DeepSeek fora; reserva de US$ 8 só para auditoria); (c) Fable fora de todo trabalho não publicado",
     "DP-27 (proprietário, 23/11/2026): ZDR NÃO é mais exigido (máquina e assinaturas exclusivas do projeto; retenção aceita); prioridade = executar redação, checagem e rituais por agentes do OpenBot nas assinaturas já pagas (Claude, Codex; fora do teto), com a API tarifada só como complemento dentro de US$ 50; \"sem reserva na redação\" e \"Fable fora do não publicado\" seguem",
     "ADR-021 (Chief Architect): política v6 = v5 + DP-26; modo qualification (T6) definido e DESLIGADO; tarefa model_qualification, classe public, provider.zdr por chamada, allow_fallbacks=false, pool qualification, cap_usd = 5, exige production_enabled=false",
-    "PM (23/11/2026): qualificação em etapas, total <= US$ 15 em novembro; etapa 1 (<= US$ 5): Haiku, Sonnet e GPT-6.1-terra, uma passada cada; etapa 2 (<= US$ 10, só se a etapa 1 passar e com ok do PM): rotulagem do golden set; Opus sai de novembro (pós-lançamento, sob o sublimite de escalonamento)"
+    "PM (23/11/2026): qualificação em etapas, total <= US$ 15 em novembro; etapa 1 (<= US$ 5): Haiku, Sonnet e GPT-6.1-terra, uma passada cada; etapa 2 (<= US$ 10, só se a etapa 1 passar e com ok do PM): rotulagem do golden set; Opus sai de novembro (pós-lançamento, sob o sublimite de escalonamento)",
+    "PM (23/11/2026, sobre o protocolo 734fc1b): T10 = cap por etapa (US$ 5 e US$ 10; o Arquiteto ajusta ADR-021/contrato v7); T11 = rotulagem na verba da OpenAI (allocation), não na reserva de US$ 8; T4 = retenção contratual deixa de ser pré-condição (DP-27); o piloto de 10 matérias pelo canal OpenBot vem ANTES da etapa 1 paga, que pode encolher"
   ],
   "politica": {
     "arquivo": "packages/modelops/fixtures/model.policy.proposto-DP02-v5.json",
@@ -22,7 +23,7 @@
       "title": "Etapa 1: Haiku 5.5, Sonnet 5.5 e GPT-6.1-terra, uma passada cada",
       "capUsd": 5,
       "inNovember": true,
-      "requires": "G4 fechado (L1–L5), modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas"
+      "requires": "piloto de 10 matérias pelo canal OpenBot concluído (DP-27: se o canal cobrir redação e checagem, esta etapa pode encolher), G4 fechado, modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas"
     },
     "2": {
       "title": "Etapa 2: rotulagem do golden set (somente)",
@@ -1028,16 +1029,16 @@
         "detail": "etapa 3 não conta em novembro"
       },
       {
-        "id": "adr021_mode_cap",
-        "ok": false,
-        "severity": "warning",
-        "detail": "a ADR-021 fixa cap_usd = US$ 5 para o modo qualification; a etapa 2 (até US$ 10) e o total de US$ 15 exigem ajustar o cap por etapa (ou pool próprio) antes de rodar"
+        "id": "stage_caps_match_decision",
+        "ok": true,
+        "severity": "error",
+        "detail": "cap por etapa decidido pelo PM: etapa 1 US$ 5 e etapa 2 US$ 10 (a ADR-021 e o contrato v7 ainda dizem cap único de US$ 5: ajuste do Arquiteto pendente)"
       },
       {
-        "id": "golden_label_funding",
-        "ok": false,
-        "severity": "warning",
-        "detail": "o PM indicou \"verba de auditoria\" para a rotulagem do golden set; a DP-26 (b) e a política v6 restringem a reserva de US$ 8 a WF08/WF18/auditoria pós-publicação, e rotular não é nenhuma delas. Este plano contabiliza a rotulagem na verba da OpenAI (allocation), NÃO na reserva; pedir decisão do PM/Arquiteto"
+        "id": "golden_label_funding_not_reserve",
+        "ok": true,
+        "severity": "error",
+        "detail": "rotulagem do golden set contabilizada na verba da OpenAI (allocation), nunca na reserva de auditoria (decisão do PM)"
       }
     ],
     "ok": true

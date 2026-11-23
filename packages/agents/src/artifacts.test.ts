@@ -60,8 +60,9 @@ describe('artefatos versionados (artifacts/)', () => {
     expect(md).toMatch(/Etapa 2: rotulagem do golden set \(somente\)/);
     expect(md).toMatch(/Etapa 3 \(pós-lançamento, fora de novembro\): Opus 5\.5 e GPT-6\.2-sol/);
     expect(md).toMatch(/limite US\$ 15/);
-    expect(md).toMatch(/T10 \| Teto do modo por etapa/);
-    expect(md).toMatch(/T11 \| Fonte de verba da rotulagem/);
+    expect(md).toMatch(/T10 \| Teto do modo por etapa \| \*\*Decidida \(PM/);
+    expect(md).toMatch(/T11 \| Fonte de verba da rotulagem \| \*\*Decidida \(PM/);
+    expect(md).toMatch(/T12 \| Piloto antes da etapa 1/);
     expect(md).toMatch(/L5 aberta/);
     const plan = JSON.parse(generated['model-qualification-plan.json']);
     expect(plan.plano.ok).toBe(true);
@@ -69,7 +70,7 @@ describe('artefatos versionados (artifacts/)', () => {
     expect(plan.plano.stageTotals['1'].calls).toBe(122);
     expect(plan.plano.novemberTotals.ceilingWithRetriesMicro).toBeLessThanOrEqual(15_000_000);
     expect(plan.etapas['3'].inNovember).toBe(false);
-    expect(plan.decisoes).toHaveLength(4);
+    expect(plan.decisoes).toHaveLength(5);
     expect(JSON.stringify(plan)).not.toMatch(/api[_-]?key|password|secret/i);
   });
 });

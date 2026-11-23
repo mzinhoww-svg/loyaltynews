@@ -76,11 +76,15 @@ describe('orçamento da qualificação em etapas (PM 23/11, DP-26, ADR-021)', ()
     expect(plan.costs.filter((c) => c.stage !== 3).some((c) => c.model === 'claude-opus-5-5')).toBe(false);
   });
 
-  it('as decisões pendentes aparecem como AVISO: cap do modo (ADR-021, US$ 5) e fonte de verba da rotulagem', () => {
-    const warnings = plan.checks.filter((c) => c.severity === 'warning' && !c.ok).map((c) => c.id).sort();
-    expect(warnings).toEqual(['adr021_mode_cap', 'golden_label_funding']);
+  it('T10 e T11 decididas pelo PM: cap por etapa e rotulagem na verba da OpenAI, não na reserva de auditoria', () => {
+    expect(plan.checks.filter((c) => c.severity === 'warning' && !c.ok)).toEqual([]);
+    expect(plan.checks.find((c) => c.id === 'stage_caps_match_decision')!.ok).toBe(true);
+    expect(plan.checks.find((c) => c.id === 'golden_label_funding_not_reserve')!.ok).toBe(true);
+    expect(plan.stageTotals[2].byProviderCeilingWithRetriesMicro.openai).toBeGreaterThan(0);
+    // a ADR-021 ainda fixa cap_usd = 5 único (o Arquiteto ajusta na v7): o total de novembro excede esse cap único
     expect(plan.caps.adr021ModeCapMicro).toBe(5_000_000);
-    expect(plan.novemberTotals.ceilingWithRetriesMicro).toBeGreaterThan(plan.caps.adr021ModeCapMicro); // por isso o aviso
+    expect(plan.novemberTotals.ceilingWithRetriesMicro).toBeGreaterThan(plan.caps.adr021ModeCapMicro);
+    expect(QUAL_STAGES[1].requires).toMatch(/piloto de 10 matérias/);
   });
 
   it('conta as chamadas por etapa', () => {

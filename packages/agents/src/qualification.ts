@@ -187,7 +187,7 @@ export const QUAL_STAGES: Record<QualStage, { title: string; capUsd: number | nu
     title: 'Etapa 1: Haiku 5.5, Sonnet 5.5 e GPT-6.1-terra, uma passada cada',
     capUsd: 5,
     inNovember: true,
-    requires: 'G4 fechado (L1–L5), modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas',
+    requires: 'piloto de 10 matérias pelo canal OpenBot concluído (DP-27: se o canal cobrir redação e checagem, esta etapa pode encolher), G4 fechado, modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas',
   },
   2: {
     title: 'Etapa 2: rotulagem do golden set (somente)',
@@ -315,7 +315,6 @@ export function buildQualificationPlan(policy: ModelPolicy, cases: readonly Qual
   };
   type Check = QualificationPlan['checks'][number];
   const err = (id: string, ok: boolean, detail: string): Check => ({ id, ok, severity: 'error', detail });
-  const warn = (id: string, ok: boolean, detail: string): Check => ({ id, ok, severity: 'warning', detail });
   const stage12 = costs.filter((c) => c.stage !== 3);
   const verifier = usdToMicro(QUAL_BUDGET_PROPOSAL.verifierAcceptancesUsd);
   const checks: Check[] = [
@@ -332,8 +331,10 @@ export function buildQualificationPlan(policy: ModelPolicy, cases: readonly Qual
     err('public_data_only', cases.every((c) => c.dataClass === 'public'), 'toda entrada é classe public (publicada, sintética ou sanitizada); nenhum dado pessoal, embargado ou confidencial'),
     err('stage3_opus_under_escalation_sublimit', stageTotals[3].ceilingWithRetriesMicro === 0 || (november.byProviderCeilingWithRetriesMicro.anthropic ?? 0) >= 0, 'etapa 3 não conta em novembro'),
     // Decisões pendentes (avisos): não reprovam o plano, mas precisam de resposta antes de rodar.
-    warn('adr021_mode_cap', stageTotals[2].ceilingWithRetriesMicro === 0 || caps.adr021ModeCapMicro >= november.ceilingWithRetriesMicro, `a ADR-021 fixa cap_usd = US$ 5 para o modo qualification; a etapa 2 (até US$ 10) e o total de US$ 15 exigem ajustar o cap por etapa (ou pool próprio) antes de rodar`),
-    warn('golden_label_funding', false, 'o PM indicou "verba de auditoria" para a rotulagem do golden set; a DP-26 (b) e a política v6 restringem a reserva de US$ 8 a WF08/WF18/auditoria pós-publicação, e rotular não é nenhuma delas. Este plano contabiliza a rotulagem na verba da OpenAI (allocation), NÃO na reserva; pedir decisão do PM/Arquiteto'),
+    // T10 decidido pelo PM (23/11): cap POR ETAPA no modo qualification (etapa 1 = US$ 5, etapa 2 = US$ 10); o Arquiteto ajusta a ADR-021 e o contrato (v7)
+    err('stage_caps_match_decision', caps.stage1Micro === usdToMicro(5) && caps.stage2Micro === usdToMicro(10), 'cap por etapa decidido pelo PM: etapa 1 US$ 5 e etapa 2 US$ 10 (a ADR-021 e o contrato v7 ainda dizem cap único de US$ 5: ajuste do Arquiteto pendente)'),
+    // T11 decidido pelo PM (23/11): rotulagem do golden set na verba OpenAI (allocation), NÃO na reserva de US$ 8
+    err('golden_label_funding_not_reserve', !QUAL_BUDGET_PROPOSAL.usesAuditReserve && (stageTotals[2].byProviderCeilingWithRetriesMicro.openai ?? 0) > 0, 'rotulagem do golden set contabilizada na verba da OpenAI (allocation), nunca na reserva de auditoria (decisão do PM)'),
   ];
   return { policyVersion: policy.version, cases: [...cases], costs, stageTotals, novemberTotals: november, caps, checks, ok: checks.every((c) => c.ok || c.severity === 'warning') };
 }

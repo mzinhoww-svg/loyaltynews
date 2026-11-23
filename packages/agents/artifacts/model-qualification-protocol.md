@@ -9,20 +9,21 @@
 | T1 | Critério de produção / privacidade | **Revogada pela DP-27:** a DP-26 (a) exigia ZDR listado; agora ZDR **não é mais exigido** (máquina e assinaturas exclusivas do projeto; retenção aceita). O ZDR continua medido só como informação (`QC-ZDR`, não reprova). A ADR-021 e a política v6 ainda dizem `provider.zdr` por chamada: o Arquiteto atualiza para a v7 |
 | T2 | Reserva na redação | **Decidida (DP-26 b):** sem reserva e sem fallback na redação; **DeepSeek fora** (modelos, rotas, classe public e verba); a reserva de US$ 8 é só WF08, WF18 e auditoria pós-publicação. Este protocolo **não** qualifica DeepSeek |
 | T3 | Fable 5.2 | **Decidida (DP-26 c):** fora de todo trabalho não publicado; na v6, fora de toda rota (`strategic` = só Opus). Este protocolo **não** qualifica Fable |
-| T4 | Retenção contratual de Google, Amazon Bedrock e Azure (sem treino, região, prazo de exclusão de logs e do cache) | **Provavelmente dispensada pela DP-27** (retenção aceita pelo proprietário); a ADR-021 ainda a lista como pré-condição. Confirmar com o PM/Arquiteto na v7; até lá, **não verificada** |
+| T4 | Retenção contratual de Google, Amazon Bedrock e Azure | **Dispensada (PM, 23/11):** deixa de ser pré-condição pela DP-27 (retenção aceita pelo proprietário); a ADR-021/v7 ainda precisa refletir isso |
 | T5 | Processador OpenRouter | Política de dados **arquivada** (23/11). A aprovação efetiva do processador (assinatura protegida, DP-11/P1) segue pendente |
 | T6 | Modo de qualificação no gateway | **Decidida (ADR-021):** definido e **desligado**: candidatos, tarefa `model_qualification`, classe `public`, `provider.zdr` por chamada, `allow_fallbacks=false`, pool `qualification`, evidência por chamada, exige `production_enabled=false`. **Implementação do Backend** (após L1–L5 do ledger) e **homologação do QA** pendentes |
 | T7 | Ledger persistente (G4) | L1–L4 corrigidos na 0019 (ft/modelops 5de5e5c, PostgreSQL 18.7 real); **L5 aberta**: o commit aceita custo real negativo. G4 não fechado |
 | T8 | Golden set humano | Não existe. A **etapa 2** o rotula com ajuda de modelo; todo rótulo é proposta até a revisão de um humano da Editorial/Trust |
 | T9 | Recarga de crédito | O PM pedirá ao proprietário quando G4 e o modo estiverem homologados, somando os aceites do verificador (≈ US$ 0,50) |
-| T10 | Teto do modo por etapa | A ADR-021 fixa `cap_usd = 5` (cobre a etapa 1). A etapa 2 (até US$ 10) e o total de US$ 15 exigem ajustar o cap por etapa ou usar pool próprio, **antes de rodar** |
-| T11 | Fonte de verba da rotulagem | O PM indicou "verba de auditoria"; a DP-26 (b) e a v6 restringem a reserva de US$ 8 a WF08/WF18/auditoria pós-publicação, e rotular não é nenhuma delas. Este plano contabiliza na verba da OpenAI, **não** na reserva; decisão do PM/Arquiteto |
+| T10 | Teto do modo por etapa | **Decidida (PM, 23/11):** cap **por etapa** no modo qualification (etapa 1 US$ 5, etapa 2 US$ 10). A ADR-021 e o contrato ainda dizem `cap_usd = 5` único: o Arquiteto ajusta (v7) |
+| T11 | Fonte de verba da rotulagem | **Decidida (PM, 23/11):** a rotulagem do golden set sai da verba da **OpenAI (allocation)**, **não** da reserva de US$ 8 (que segue só para WF08, WF18 e auditoria pós-publicação) |
+| T12 | Piloto antes da etapa 1 | **Decisão do PM (DP-27):** o piloto de 10 matérias pelo canal OpenBot (assinaturas, sem custo de API) vem **antes** da etapa 1 paga; se o canal cobrir redação e checagem, a etapa 1 encolhe. Desenho do piloto: `fast-track/custo/piloto-10-materias-openbot.md` |
 
 ## 2. Etapas (decisão do PM, 23/11/2026)
 
 | Etapa | Escopo | Chamadas | Esperado (US$) | Teto de reserva (US$) | Teto com 20% de reexecução (US$) | Teto da etapa | Pré-condição |
 |---|---|---|---|---|---|---|---|
-| 1 | Etapa 1: Haiku 5.5, Sonnet 5.5 e GPT-6.1-terra, uma passada cada | 122 | 0.70 | 1.38 | 1.66 | US$ 5 | G4 fechado (L1–L5), modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas |
+| 1 | Etapa 1: Haiku 5.5, Sonnet 5.5 e GPT-6.1-terra, uma passada cada | 122 | 0.70 | 1.38 | 1.66 | US$ 5 | piloto de 10 matérias pelo canal OpenBot concluído (DP-27: se o canal cobrir redação e checagem, esta etapa pode encolher), G4 fechado, modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas |
 | 2 | Etapa 2: rotulagem do golden set (somente) | 400 | 2.20 | 4.76 | 5.71 | US$ 10 | etapa 1 aprovada e ok explícito do PM |
 | 3 | Etapa 3 (pós-lançamento, fora de novembro): Opus 5.5 e GPT-6.2-sol (alternativa lateral) | 65 | 1.36 | 2.34 | 2.80 | fora de novembro | decisão posterior do PM; o Opus conta no sublimite de escalonamento de US$ 5 (política v6) |
 
@@ -111,8 +112,8 @@ Um modelo só é **qualificado** quando TODOS os critérios dos casos de que par
 | 3 | anthropic/claude-opus-5.5 | 19 | 0.6728 | 0.8208 |
 
 - Por provedor, novembro (teto com reexecução): anthropic US$ 0.75; openai US$ 6.62.
-- Verificações do plano: OK no_unknown_cost; OK stage1_cap; OK stage2_cap; OK november_cap; OK within_monthly_cap; OK anthropic_allocation; OK openai_allocation; OK stages_1_2_exclude_deferred_models; OK no_fable_no_deepseek_no_images; OK audit_reserve_untouched; OK public_data_only; OK stage3_opus_under_escalation_sublimit; AVISO adr021_mode_cap; AVISO golden_label_funding.
-- Avisos (decisão pendente, não reprovam o plano): `adr021_mode_cap` (T10) e `golden_label_funding` (T11).
+- Verificações do plano: OK no_unknown_cost; OK stage1_cap; OK stage2_cap; OK november_cap; OK within_monthly_cap; OK anthropic_allocation; OK openai_allocation; OK stages_1_2_exclude_deferred_models; OK no_fable_no_deepseek_no_images; OK audit_reserve_untouched; OK public_data_only; OK stage3_opus_under_escalation_sublimit; OK stage_caps_match_decision; OK golden_label_funding_not_reserve.
+- T10 e T11 decididas pelo PM (verificações `stage_caps_match_decision` e `golden_label_funding_not_reserve`); resta o Arquiteto ajustar a ADR-021 e o contrato para cap por etapa.
 
 Parada do orçamento: ao consumir 80% do teto da etapa (fração `soft_budget_fraction` da política) o executor para e pede decisão; custo desconhecido, falha de cache, ZDR fora da lista ou 3 saídas inválidas seguidas do mesmo modelo também param a execução. Rodar no início do mês, antes da carga de produção.
 
