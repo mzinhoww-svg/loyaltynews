@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SearchInput } from '../_components/ds-client';
 import { PageHead } from '../_components/ui';
 import { getSource } from '../_lib/source';
+import s from './_components/intel.module.css';
 
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática e vazia; em execução (PORTAL_SOURCE=api) o Next
 // recusaria a busca no-store e serviria a cópia congelada (achado no ensaio contra as rotas reais da int/011, next start).
@@ -34,7 +35,7 @@ export default async function IntelligenceHub() {
       <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }}>
         {tiles.map((t) => (
           <li key={t.href} className="pt-panel">
-            <h2 style={{ fontSize: 22 }}><Link href={t.href}>{t.title}</Link></h2>
+            <h2 style={{ fontSize: 22 }}><Link href={t.href} className={s.touch} data-testid={`tile-${t.title.toLowerCase()}`}>{t.title}</Link></h2>
             <p>{t.text}</p>
             <p className="pt-meta" data-testid={`count-${t.title.toLowerCase()}`}>
               {t.n > 0 ? `${t.n} cadastrado(s) e verificado(s)` : 'Cadastros verificados: em breve'}
@@ -47,7 +48,7 @@ export default async function IntelligenceHub() {
         <ul>
           <li>Cada perfil traz fonte, data da última revisão e canal de correção.</li>
           <li>Hierarquia e relações não são inferidas por coocorrência em notícias.</li>
-          <li>Pedidos de titular (correção, retificação, supressão) seguem a <Link href="/privacidade" style={{ textDecoration: 'underline' }}>política de privacidade e LGPD</Link>.</li>
+          <li>Pedidos de titular (correção, retificação, supressão) seguem a <Link href="/privacidade" className={s.touch} style={{ textDecoration: 'underline' }}>política de privacidade e LGPD</Link>.</li>
           <li>Watchlist e alertas personalizados exigem conta e estão desligados nesta fase.</li>
         </ul>
       </section>

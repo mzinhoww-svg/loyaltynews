@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ErrorState } from '../_components/states';
 import { EmptyState, PageHead } from '../_components/ui';
 import { MOVES_EMPTY, MoveCard } from '../intelligence/_components/intel';
+import s from '../intelligence/_components/intel.module.css';
 import { getSource } from '../_lib/source';
 
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática e vazia; em execução (PORTAL_SOURCE=api) o Next
@@ -37,7 +38,7 @@ export default async function MovesPage() {
         <EmptyState title="Em breve: primeiras movimentações confirmadas">{MOVES_EMPTY}</EmptyState>
       )}
       <p className="pt-meta" style={{ marginTop: 18 }}>
-        Veja a <Link href="/privacidade" style={{ textDecoration: 'underline' }}>política de privacidade e LGPD</Link> para pedidos de correção ou remoção de dados profissionais.
+        Veja a <Link href="/privacidade" className={s.touch} style={{ textDecoration: 'underline' }} data-testid="moves-privacy">política de privacidade e LGPD</Link> para pedidos de correção ou remoção de dados profissionais.
       </p>
     </>
   );

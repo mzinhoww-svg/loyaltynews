@@ -3,6 +3,7 @@ import { MockTag } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
 import { linkPedido } from '../../_titular/pedido';
+import s from './intel.module.css';
 import type { EvidenceSource, MoveEntry, MoveReading, PersonRole } from '../../_lib/types';
 
 /** Fonte pública: nome com link (nova aba) e data de coleta. Nunca o trecho da página. */
@@ -109,7 +110,7 @@ export function MoveCard({ m, headingLevel = 2, link = true }: { m: MoveEntry; h
       <p className="pt-meta">
         Observado em <time dateTime={m.observedOn}>{day(m.observedOn)}</time>
         {m.effectiveDate ? <> · vigente desde <time dateTime={m.effectiveDate}>{day(m.effectiveDate)}</time></> : ' · data efetiva não declarada pela fonte'}
-        {' · '}<Link href={`/intelligence/pessoas/${m.person.id}`} style={{ textDecoration: 'underline' }}>perfil</Link>
+        {' · '}<Link href={`/intelligence/pessoas/${m.person.id}`} className={s.touch} style={{ textDecoration: 'underline' }}>perfil</Link>
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 8 }}>
         <Reading label="Antes" r={m.before} testId="move-before" />

@@ -4,6 +4,9 @@ import { Button, Input } from '@ln/ui';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { estadoDaResposta, ROTA_PEDIDO, urlDoAlvo, validarPedido, type EstadoEnvio, type PedidoErros, type PedidoValores } from './pedido';
 
+/** Botão de rádio com 24px (WCAG 2.5.8); a linha inteira (label, 44px) é a área de toque. Revisão visual int/012, P2-4. */
+const RADIO = { width: 24, height: 24, margin: 0, flex: 'none' } as const;
+
 const MENSAGEM: Record<Exclude<EstadoEnvio, 'recebido'>, string> = {
   invalido: 'Não conseguimos aceitar o pedido. Revise os campos e envie de novo.',
   muitos: 'Recebemos muitos pedidos deste contato ou desta rede em pouco tempo. Tente novamente mais tarde.',
@@ -97,10 +100,10 @@ export function PedidoTitularForm() {
       <fieldset className={erros.tipo ? 'ln-field ln-field--error' : 'ln-field'} aria-describedby={erros.tipo ? `${tipoId}-err` : undefined} style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="ln-field__label">O que você pede?<span aria-hidden="true"> *</span></legend>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
-          <input type="radio" name="tipo" value="correcao" defaultChecked /> Correção de um dado
+          <input type="radio" name="tipo" value="correcao" style={RADIO} defaultChecked /> Correção de um dado
         </label>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
-          <input type="radio" name="tipo" value="remocao" /> Remoção de um dado
+          <input type="radio" name="tipo" value="remocao" style={RADIO} /> Remoção de um dado
         </label>
         {erros.tipo && <p id={`${tipoId}-err`} className="ln-field__error"><span className="ln-sr-only">Erro: </span>{erros.tipo}</p>}
       </fieldset>
