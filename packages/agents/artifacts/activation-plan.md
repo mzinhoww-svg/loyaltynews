@@ -18,6 +18,8 @@
 | G6 | Worker determinístico de insumos (05:30, ADR-014) e coletor de insumos estruturados | Backend/Editorial | não existe |
 | G7 | Ligar flags em ambiente: `rituais` (primeiro só em staging), depois `modelosHabilitados` | Proprietário | desligadas |
 
+Critérios medíveis, dono e limiar de cada gate: `gates.md` / `gates.json` (o que o repositório já prova está marcado "OK offline"; nenhum gate é declarado atendido). Medição real de tokens por chamada para calibrar o custo: `token-measurement-protocol.md` e o harness `src/measure.ts` (só amostras medidas calibram). Rascunho dos 8 perfis OpenBot (7 diretorias + Publisher), **não criados**: `openbot-profiles.draft.json`, para aval do Program Manager.
+
 ## 3. Fases (cada uma reversível desligando a flag; só avança com evidência da anterior)
 | Fase | O que liga | Modelo? | Critério para avançar | Reversão |
 |---|---|---|---|---|

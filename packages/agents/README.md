@@ -14,6 +14,7 @@ Dono: LN AgentOps Engineer. Não cria agentes nem rotinas no OpenBot (ADR-004: p
 | Memória setorial | `src/memory.ts` | Por editoria, versionada (append-only); só editor, redator e diretor editorial da editoria escrevem |
 | Roteamento e custo | `src/routing-plan.ts` | Projeta o custo mensal dos 28 rituais pela política de modelos v5 (`@ln/modelops`): rota por ritual, modelo, teto de reserva e esperado, verba Anthropic, sublimite de escalonamento (US$ 5), OpenAI só em revisão, sem imagens/DeepSeek. Premissas de tokens **não medidas** (`DEFAULT_ASSUMPTIONS`). Falha fechada: sem preço/modelo = custo desconhecido |
 | Artefatos versionados | `artifacts/` (gerados por `src/artifacts.ts`) | `organization.manifest.json`, `routing-plan.json`, `activation-plan.md` (fases, gates e mapeamento OpenBot **proposto**). O teste `artifacts.test.ts` falha se estiverem desatualizados; regenerar com `UPDATE_ARTIFACTS=1 npx vitest run packages/agents/src/artifacts.test.ts` |
+| Gates e medição | `src/gates.ts`, `src/measure.ts`, `src/openbot-profiles.ts` | Critérios medíveis dos gates G1–G6 (`artifacts/gates.md`), harness de tokens por chamada para R4 (só amostras MEDIDAS calibram; simulado/estimado nunca) e rascunho dos 8 perfis OpenBot (NÃO criados, aval do PM) |
 | Persistência | tabelas em `@ln/db/schema` (`packages/db/src/schema/agents.ts`, migrações 0004 e 0005); `src/store.ts` (`InMemoryStore`), `src/pg-store.ts` (`PgStore`), `src/pg-adapter.ts` | `sector_memory`, `meeting_runs`, `meeting_minutes`, `meeting_decisions`, `action_items`, `meeting_inputs` |
 
 ## Uso

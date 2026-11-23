@@ -18,13 +18,14 @@ import { loadRegistries } from './config';
 import { buildOrganization, parseSteps } from './organization';
 import { buildRoutingPlan, CONSOLIDATION_RITUAL_IDS, DEFAULT_ASSUMPTIONS, type RoutingPlan } from './routing-plan';
 import { validateOrganization } from './validator';
+import { PKG_DIR, POLICY_FIXTURE } from './paths';
+import { buildGateAndDraftArtifacts, type ExtraArtifacts } from './artifacts-extra';
 
-export const PKG_DIR = join(__dirname, '..');
-export const POLICY_FIXTURE = join(PKG_DIR, '../modelops/fixtures/model.policy.proposto-DP02-v5.json');
+export { PKG_DIR, POLICY_FIXTURE };
 
 const usd = (micro: number) => (micro / 1_000_000).toFixed(2);
 
-export interface Artifacts {
+export interface Artifacts extends ExtraArtifacts {
   'organization.manifest.json': string;
   'routing-plan.json': string;
   'activation-plan.md': string;
@@ -99,6 +100,7 @@ export function generateArtifacts(): Artifacts {
     'organization.manifest.json': `${JSON.stringify(manifest, null, 2)}\n`,
     'routing-plan.json': `${JSON.stringify(routing, null, 2)}\n`,
     'activation-plan.md': renderActivationPlan(validation.counts, conservative, digest, policySha),
+    ...buildGateAndDraftArtifacts(registries, conservative),
   };
 }
 
@@ -123,6 +125,8 @@ function renderActivationPlan(counts: Record<string, number>, c: RoutingPlan, d:
 | G5 | Adaptador OpenBot (disparo, webhooks, custos) e mapeamento perfil → agente | Integration + PM | **não criado**; exige aval do PM |
 | G6 | Worker determinístico de insumos (05:30, ADR-014) e coletor de insumos estruturados | Backend/Editorial | não existe |
 | G7 | Ligar flags em ambiente: \`rituais\` (primeiro só em staging), depois \`modelosHabilitados\` | Proprietário | desligadas |
+
+Critérios medíveis, dono e limiar de cada gate: \`gates.md\` / \`gates.json\` (o que o repositório já prova está marcado "OK offline"; nenhum gate é declarado atendido). Medição real de tokens por chamada para calibrar o custo: \`token-measurement-protocol.md\` e o harness \`src/measure.ts\` (só amostras medidas calibram). Rascunho dos 8 perfis OpenBot (7 diretorias + Publisher), **não criados**: \`openbot-profiles.draft.json\`, para aval do Program Manager.
 
 ## 3. Fases (cada uma reversível desligando a flag; só avança com evidência da anterior)
 | Fase | O que liga | Modelo? | Critério para avançar | Reversão |

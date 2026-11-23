@@ -5,7 +5,9 @@
   "type": "module",
   "description": "64 perfis, 7 diretorias, 10 redações, 19 workflows e 28 rituais como configuração tipada; agendador de rituais; validador. Dono: Frente 07 — LN AgentOps Engineer.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./routing-plan": "./src/routing-plan.ts",
+    "./measure": "./src/measure.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {

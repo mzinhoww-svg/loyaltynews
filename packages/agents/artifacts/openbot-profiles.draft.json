@@ -1,0 +1,626 @@
+{
+  "schema": "ln.agents.openbot-profiles-draft/1",
+  "status": "RASCUNHO",
+  "created": false,
+  "approval_required_from": "Program Manager",
+  "basis": [
+    "ADR-003 (OpenBot executa e coordena; pull com lease; gateway)",
+    "ADR-004 (64 perfis = contratos sob demanda, memória no PostgreSQL)",
+    "model.policy v5 (acesso medido só via OpenRouter; OpenBot sem assinatura para chamada de modelo do produto)"
+  ],
+  "hypothesis": "Um agente OpenBot por diretoria mais o Publisher (8) é hipótese inicial; o tamanho ideal do conjunto não foi medido (ADR-004, \"Não verificado\") e deve ser medido em R4.",
+  "open_decisions": [
+    "A Diretoria Editorial hospeda 24 perfis (10 redações): manter 1 agente ou dividir (ex.: redações + núcleo editorial) se o contexto ficar largo? Medir em R4.",
+    "Nome e título definitivos dos agentes no OpenBot (os nomes aqui são propostos).",
+    "Se o Publisher e a Diretoria Technology (finops, sre, security) devem ser agentes separados do executor de implantação, por separação de funções (teste de identidade do executor no mesmo host, ADR-003)."
+  ],
+  "agents": [
+    {
+      "draft_id": "ln_executivo",
+      "name": "LN Publisher",
+      "title": "Publisher / CEO — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 1 perfil(is) de Publisher / CEO: publisher. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "executivo",
+      "hosted_profiles": [
+        "publisher"
+      ],
+      "chairs_rituals": [
+        "D-sync",
+        "W-cross",
+        "M-board",
+        "X-incident"
+      ],
+      "participates_in_rituals": [
+        "D-sync",
+        "W-cross",
+        "W-finops",
+        "M-board",
+        "M-commercial",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF12",
+        "WF15",
+        "WF16"
+      ],
+      "tool_verbs": [
+        "propose_policy",
+        "read_metrics"
+      ],
+      "highest_route_hint": "strategic",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F4",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_editorial",
+      "name": "LN Diretoria Editorial",
+      "title": "Diretoria Editorial — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 24 perfil(is) de Diretoria Editorial: director_editorial, editor_mercado, writer_mercado, editor_programas, writer_programas, editor_pontos, writer_pontos, editor_bancos, writer_bancos, editor_varejo, writer_varejo, editor_travel, writer_travel, editor_tech, writer_tech, editor_crm, writer_crm, editor_global, writer_global, editor_regulacao, writer_regulacao, newsdesk, agenda, talks. Inclui os 10 pares editor/redator das redações (a configuração de editoria vem da memória setorial no PostgreSQL). Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "editorial",
+      "hosted_profiles": [
+        "director_editorial",
+        "editor_mercado",
+        "writer_mercado",
+        "editor_programas",
+        "writer_programas",
+        "editor_pontos",
+        "writer_pontos",
+        "editor_bancos",
+        "writer_bancos",
+        "editor_varejo",
+        "writer_varejo",
+        "editor_travel",
+        "writer_travel",
+        "editor_tech",
+        "writer_tech",
+        "editor_crm",
+        "writer_crm",
+        "editor_global",
+        "writer_global",
+        "editor_regulacao",
+        "writer_regulacao",
+        "newsdesk",
+        "agenda",
+        "talks"
+      ],
+      "chairs_rituals": [
+        "D-mercado",
+        "D-programas",
+        "D-pontos",
+        "D-bancos",
+        "D-varejo",
+        "D-travel",
+        "D-tech",
+        "D-crm",
+        "D-global",
+        "D-regulacao",
+        "D-editorial",
+        "W-pautas"
+      ],
+      "participates_in_rituals": [
+        "D-mercado",
+        "D-programas",
+        "D-pontos",
+        "D-bancos",
+        "D-varejo",
+        "D-travel",
+        "D-tech",
+        "D-crm",
+        "D-global",
+        "D-regulacao",
+        "D-editorial",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "W-trust",
+        "M-board",
+        "M-model",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF01",
+        "WF02",
+        "WF03"
+      ],
+      "tool_verbs": [
+        "assign",
+        "draft",
+        "propose_policy",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F2",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_creative",
+      "name": "LN Diretoria Creative",
+      "title": "Diretoria Creative — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 6 perfil(is) de Diretoria Creative: director_creative, art, designer, media, image, visualqa. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "creative",
+      "hosted_profiles": [
+        "director_creative",
+        "art",
+        "designer",
+        "media",
+        "image",
+        "visualqa"
+      ],
+      "chairs_rituals": [
+        "D-creative"
+      ],
+      "participates_in_rituals": [
+        "D-creative",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "M-board",
+        "M-model"
+      ],
+      "owns_workflows": [],
+      "tool_verbs": [
+        "draft",
+        "execute_scoped",
+        "propose_policy",
+        "read_approved",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F3",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_growth",
+      "name": "LN Diretoria Growth",
+      "title": "Diretoria Growth — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 9 perfil(is) de Diretoria Growth: director_growth, social, linkedin, instagram, seo, newsletter, publisher_social, growth_analytics, community. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "growth",
+      "hosted_profiles": [
+        "director_growth",
+        "social",
+        "linkedin",
+        "instagram",
+        "seo",
+        "newsletter",
+        "publisher_social",
+        "growth_analytics",
+        "community"
+      ],
+      "chairs_rituals": [
+        "D-growth",
+        "W-performance"
+      ],
+      "participates_in_rituals": [
+        "D-growth",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "M-board",
+        "M-model",
+        "M-commercial"
+      ],
+      "owns_workflows": [
+        "WF04",
+        "WF05",
+        "WF09"
+      ],
+      "tool_verbs": [
+        "draft",
+        "execute_scoped",
+        "propose_policy",
+        "read_approved",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F3",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_intelligence",
+      "name": "LN Diretoria Intelligence",
+      "title": "Diretoria Intelligence — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 9 perfil(is) de Diretoria Intelligence: director_intelligence, discovery, people, company, orgchart, moves, graph, marketdata, dataqa. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "intelligence",
+      "hosted_profiles": [
+        "director_intelligence",
+        "discovery",
+        "people",
+        "company",
+        "orgchart",
+        "moves",
+        "graph",
+        "marketdata",
+        "dataqa"
+      ],
+      "chairs_rituals": [
+        "D-intelligence",
+        "W-intel"
+      ],
+      "participates_in_rituals": [
+        "D-intelligence",
+        "D-sync",
+        "W-pautas",
+        "W-cross",
+        "W-performance",
+        "W-trust",
+        "W-intel",
+        "M-board",
+        "M-model"
+      ],
+      "owns_workflows": [
+        "WF06",
+        "WF07",
+        "WF14"
+      ],
+      "tool_verbs": [
+        "draft",
+        "propose_policy",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F3",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_commercial",
+      "name": "LN Diretoria Commercial",
+      "title": "Diretoria Commercial — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 5 perfil(is) de Diretoria Commercial: director_commercial, adops, sales, pricing, account. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "commercial",
+      "hosted_profiles": [
+        "director_commercial",
+        "adops",
+        "sales",
+        "pricing",
+        "account"
+      ],
+      "chairs_rituals": [
+        "D-commercial",
+        "M-commercial"
+      ],
+      "participates_in_rituals": [
+        "D-commercial",
+        "W-cross",
+        "M-board",
+        "M-commercial"
+      ],
+      "owns_workflows": [
+        "WF10"
+      ],
+      "tool_verbs": [
+        "draft",
+        "execute_scoped",
+        "propose_policy",
+        "read_approved",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F5",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_technology",
+      "name": "LN Diretoria Technology",
+      "title": "Diretoria Technology — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 5 perfil(is) de Diretoria Technology: director_technology, sre, finops, platform, security. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "technology",
+      "hosted_profiles": [
+        "director_technology",
+        "sre",
+        "finops",
+        "platform",
+        "security"
+      ],
+      "chairs_rituals": [
+        "D-technology",
+        "W-finops",
+        "M-model"
+      ],
+      "participates_in_rituals": [
+        "D-technology",
+        "W-cross",
+        "W-finops",
+        "M-board",
+        "M-model",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF11",
+        "WF13",
+        "WF17"
+      ],
+      "tool_verbs": [
+        "draft",
+        "execute_scoped",
+        "propose_policy",
+        "read_approved",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F5",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    },
+    {
+      "draft_id": "ln_trust",
+      "name": "LN Diretoria Trust & Quality",
+      "title": "Diretoria Trust & Quality — executor de perfis sob demanda (Loyalty News)",
+      "description": "Executa, por disparo do adaptador do LN (pull com lease) e sem processo residente, os 5 perfil(is) de Diretoria Trust & Quality: director_trust, factcheck, rights, privacy, audit. Cada execução carrega um perfil, o contrato de saída e o contexto pedido; devolve resultado estruturado validado contra o contrato do perfil. Chama modelos só pelo gateway do LN, sem chave de provedor. Não publica, não aprova a si mesmo, não cria agentes nem rotinas.",
+      "department": "trust",
+      "hosted_profiles": [
+        "director_trust",
+        "factcheck",
+        "rights",
+        "privacy",
+        "audit"
+      ],
+      "chairs_rituals": [
+        "D-trust",
+        "W-trust"
+      ],
+      "participates_in_rituals": [
+        "D-trust",
+        "D-sync",
+        "W-cross",
+        "W-finops",
+        "W-trust",
+        "M-board",
+        "M-model",
+        "X-incident"
+      ],
+      "owns_workflows": [
+        "WF08",
+        "WF18",
+        "WF19"
+      ],
+      "tool_verbs": [
+        "draft",
+        "propose_policy",
+        "read_evidence",
+        "read_metrics",
+        "review"
+      ],
+      "highest_route_hint": "premium",
+      "must_not": [
+        "chamar provedor de modelo diretamente: toda chamada de modelo sai pelo gateway do LN (ADR-003, política v5: acesso medido só via OpenRouter)",
+        "usar assinatura do OpenBot para chamada de modelo do produto",
+        "publicar matéria, post, newsletter ou e-mail; publicar é do serviço de publicação com escopo, nunca do agente",
+        "guardar credencial de provedor, de mLabs ou de publicação (o agente recebe apenas o que o disparo traz)",
+        "aprovar a própria entrega, marcar tarefa como aceita ou editar arquivos protegidos",
+        "criar agentes, rotinas ou agendamentos próprios; o agendador é o do LN (flag rituais)",
+        "manter memória de trabalho fora do PostgreSQL (memória setorial por editoria/matéria)",
+        "abrir porta de entrada: o adaptador funciona por pull com lease, só conexão de saída"
+      ],
+      "data_and_credentials": [
+        "entrada: somente o pacote do disparo (evidências e memória setorial por referência); sem acesso direto à internet",
+        "saída: JSON do contrato do perfil, com evidence_refs; callback assinado e idempotente",
+        "execute_scoped (perfis que o têm) = pedir ao serviço com escopo; o agente não porta a credencial",
+        "dados classificados acima de public não saem para o OpenRouter (classe do dado vale a mais restritiva entre as entradas)"
+      ],
+      "escalation": [
+        "bloqueio (blockers do contrato de saída) sobe ao presidente do ritual; decisão protegida vai ao verificador independente (pending_verifier)",
+        "ato reservado ao responsável (legal/contratual) fica pending_human",
+        "falha incerta de chamada: reserva pendente, sem fallback automático (modelops)"
+      ],
+      "first_needed_in_phase": "F4",
+      "requires_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,333 @@
+{
+  "schema": "ln.agents.gates/1",
+  "nota": "GERADO. `met_offline` = conferido no repositório; `external` = depende de staging, ratificação, medição real ou terceiros. Nenhum gate está atendido: a decisão é de quem consta em decidedBy.",
+  "gates": [
+    {
+      "id": "G1",
+      "name": "Ratificar P5 v2 (item 11 das mudanças protegidas)",
+      "decidedBy": "Proprietário + verificador independente (cerimônia protegida, lote separado, depois do aceite de R4-11)",
+      "atendido": false,
+      "criterios": [
+        {
+          "id": "G1.1",
+          "text": "Os rituais carregados são exatamente a P5 v2",
+          "measure": "sha256 de data/meetings.registry.json igual ao de arquitetura/meetings.registry.proposto-P5-v2.json",
+          "threshold": "== a18e0a7150db…",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G1.1",
+            "status": "met_offline",
+            "evidence": "SOURCES.json: a18e0a7150db095bf411a0f3ddd1123e15cf25ddd94f9656ddef3eaae2824264"
+          }
+        },
+        {
+          "id": "G1.2",
+          "text": "Cada teste de fronteira da recovery_policy tem teste automatizado",
+          "measure": "mapa boundary_tests → nome de teste em scheduler.test.ts (+ `npm test` verde)",
+          "threshold": "8 de 8 cobertos e passando",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G1.2",
+            "status": "met_offline",
+            "evidence": "8 de 8 testes de fronteira mapeados em scheduler.test.ts (a execução verde é de `npm test`)"
+          }
+        },
+        {
+          "id": "G1.3",
+          "text": "Calendário 2026–2027: nenhum ritual em feriado nacional; 1º dia útil do mês correto (R4-11)",
+          "measure": "calendar.test.ts, bloco \"ocorrências de rituais\"",
+          "threshold": "100% dos feriados nacionais 2026–2027 sem ritual",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G1.3",
+            "status": "met_offline",
+            "evidence": "calendar.test.ts"
+          }
+        },
+        {
+          "id": "G1.4",
+          "text": "Ratificação assinada e aplicada em contracts/meetings.registry.json",
+          "measure": "registro da cerimônia + hash do contrato protegido",
+          "threshold": "assinatura presente e hash do contrato == P5 v2",
+          "owner": "Proprietário/verificador",
+          "avaliacao_offline": {
+            "criterion": "G1.4",
+            "status": "external",
+            "evidence": "depende da cerimônia protegida; o contrato contracts/meetings.registry.json não é editado por esta frente"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G2",
+      "name": "Qualificar modelos dos rituais (R2-07/08)",
+      "decidedBy": "Verificador independente / FinOps",
+      "atendido": false,
+      "criterios": [
+        {
+          "id": "G2.1",
+          "text": "Cada modelo das rotas economy/review/premium/strategic tem ID e preço verificados",
+          "measure": "política: binding.openrouter_id e price_as_of; rate card conferido no /api/v1/models",
+          "threshold": "price_as_of ≤ price_expiry_days (7) na data do uso",
+          "owner": "FinOps",
+          "timeDependent": true,
+          "avaliacao_offline": {
+            "criterion": "G2.1",
+            "status": "external",
+            "evidence": "preço vence em 7 dias: conferir na data do uso (dependente do tempo)"
+          }
+        },
+        {
+          "id": "G2.2",
+          "text": "Saída fora do esquema é rejeitada e a válida passa (R4-04)",
+          "measure": "validateAgentOutput sobre o golden set, por perfil e por modelo",
+          "threshold": "≥ 99% de saídas válidas por rota; 0 saídas inválidas aceitas",
+          "owner": "AgentOps + QA",
+          "proposedThreshold": true,
+          "avaliacao_offline": {
+            "criterion": "G2.2",
+            "status": "external",
+            "evidence": "o validador por perfil existe (output.test.ts, 64 perfis); falta o golden set real e a taxa por modelo"
+          }
+        },
+        {
+          "id": "G2.3",
+          "text": "Qualidade PT-BR frente ao golden set",
+          "measure": "avaliação cega comparando o modelo candidato com a referência (claude-sonnet-5-5)",
+          "threshold": "não pior que a referência em fidelidade factual; limiar numérico a definir com a Editorial",
+          "owner": "Editorial + QA",
+          "avaliacao_offline": {
+            "criterion": "G2.3",
+            "status": "external",
+            "evidence": "exige medição/consulta real fora deste pacote"
+          }
+        },
+        {
+          "id": "G2.4",
+          "text": "ZDR / data_collection=deny disponível por modelo",
+          "measure": "consulta ao endpoint do provedor no OpenRouter",
+          "threshold": "confirmado para 100% dos modelos usados",
+          "owner": "Security",
+          "avaliacao_offline": {
+            "criterion": "G2.4",
+            "status": "external",
+            "evidence": "exige medição/consulta real fora deste pacote"
+          }
+        },
+        {
+          "id": "G2.5",
+          "text": "Resposta traz usage e evidência de geração (custo conciliável)",
+          "measure": "sampleFromResponse(resposta) != null em 100% das chamadas de teste em staging",
+          "threshold": "100%",
+          "owner": "AgentOps + Backend",
+          "avaliacao_offline": {
+            "criterion": "G2.5",
+            "status": "external",
+            "evidence": "sampleFromResponse existe; falta rodar em staging com chamadas reais"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G3",
+      "name": "Banco de staging com as migrações da organização",
+      "decidedBy": "DevOps",
+      "atendido": false,
+      "criterios": [
+        {
+          "id": "G3.1",
+          "text": "Migrações 0004_agentic_org e 0005_agents_reschedule existem e estão no journal",
+          "measure": "packages/db/drizzle/meta/_journal.json",
+          "threshold": "ambas presentes",
+          "owner": "Arquiteto",
+          "avaliacao_offline": {
+            "criterion": "G3.1",
+            "status": "met_offline",
+            "evidence": "packages/db/drizzle/meta/_journal.json"
+          }
+        },
+        {
+          "id": "G3.2",
+          "text": "As migrações aplicam e o PgStore passa os testes de idempotência, atomicidade e CHECKs",
+          "measure": "pg.test.ts (PGlite)",
+          "threshold": "100% dos testes",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G3.2",
+            "status": "met_offline",
+            "evidence": "pg.test.ts presente (execução verde é de `npm test`)"
+          }
+        },
+        {
+          "id": "G3.3",
+          "text": "Aplicadas no PostgreSQL de staging",
+          "measure": "select das 6 tabelas no staging",
+          "threshold": "6 tabelas e as restrições presentes",
+          "owner": "DevOps",
+          "avaliacao_offline": {
+            "criterion": "G3.3",
+            "status": "external",
+            "evidence": "não existe banco de staging"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G4",
+      "name": "Ledger de orçamento e saldo persistidos em PostgreSQL",
+      "decidedBy": "Backend + FinOps (pacote modelops)",
+      "atendido": false,
+      "criterios": [
+        {
+          "id": "G4.1",
+          "text": "LedgerStore em PostgreSQL com transação e bloqueio de linha",
+          "measure": "teste de concorrência: N reservas paralelas não ultrapassam o teto",
+          "threshold": "0 estouros em 1000 reservas concorrentes (proposta)",
+          "owner": "Backend",
+          "proposedThreshold": true,
+          "avaliacao_offline": {
+            "criterion": "G4.1",
+            "status": "external",
+            "evidence": "pacote modelops (Backend + FinOps): fora desta frente"
+          }
+        },
+        {
+          "id": "G4.2",
+          "text": "Replay do ledger reproduz o gasto",
+          "measure": "replay == soma das gerações conciliadas",
+          "threshold": "diferença ≤ 1% (limite proposto no modelops)",
+          "owner": "FinOps",
+          "avaliacao_offline": {
+            "criterion": "G4.2",
+            "status": "external",
+            "evidence": "pacote modelops (Backend + FinOps): fora desta frente"
+          }
+        },
+        {
+          "id": "G4.3",
+          "text": "Saldo do provedor lido antes da primeira chamada",
+          "measure": "BalanceGuard injetado na composição do produto",
+          "threshold": "leitura obrigatória; falha de leitura bloqueia",
+          "owner": "Backend",
+          "avaliacao_offline": {
+            "criterion": "G4.3",
+            "status": "external",
+            "evidence": "pacote modelops (Backend + FinOps): fora desta frente"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G5",
+      "name": "Adaptador OpenBot e mapeamento perfil → agente",
+      "decidedBy": "Integration + Program Manager (aval para criar agentes)",
+      "atendido": false,
+      "criterios": [
+        {
+          "id": "G5.1",
+          "text": "O rascunho de perfis cobre os 64 perfis exatamente uma vez, preside os 28 rituais e é dono dos 19 workflows",
+          "measure": "validateOpenBotDraft",
+          "threshold": "0 problemas",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G5.1",
+            "status": "met_offline",
+            "evidence": "8 agentes cobrem 64 perfis, 28 rituais e 19 workflows; created=false"
+          }
+        },
+        {
+          "id": "G5.2",
+          "text": "Aval do Program Manager ao rascunho (nome, título, divisão da Editorial)",
+          "measure": "mensagem registrada",
+          "threshold": "aval explícito",
+          "owner": "Program Manager",
+          "avaliacao_offline": {
+            "criterion": "G5.2",
+            "status": "external",
+            "evidence": "depende de aval, adaptador e agentes que não existem"
+          }
+        },
+        {
+          "id": "G5.3",
+          "text": "Adaptador por pull com lease, só conexão de saída, callback assinado e idempotente (R2-10, testes 2, 3, 6 e 7)",
+          "measure": "suíte do adaptador",
+          "threshold": "100%",
+          "owner": "Integration",
+          "avaliacao_offline": {
+            "criterion": "G5.3",
+            "status": "external",
+            "evidence": "depende de aval, adaptador e agentes que não existem"
+          }
+        },
+        {
+          "id": "G5.4",
+          "text": "Teste negativo por agente: nenhum agente lê credencial ou memória de produção que não é sua (R2-09, teste 11)",
+          "measure": "teste por agente criado",
+          "threshold": "8 de 8 agentes negam",
+          "owner": "Security",
+          "avaliacao_offline": {
+            "criterion": "G5.4",
+            "status": "external",
+            "evidence": "depende de aval, adaptador e agentes que não existem"
+          }
+        },
+        {
+          "id": "G5.5",
+          "text": "Nenhuma credencial de provedor na configuração dos agentes",
+          "measure": "varredura da configuração (ADR-003)",
+          "threshold": "0 ocorrências",
+          "owner": "Security",
+          "avaliacao_offline": {
+            "criterion": "G5.5",
+            "status": "external",
+            "evidence": "depende de aval, adaptador e agentes que não existem"
+          }
+        }
+      ]
+    },
+    {
+      "id": "G6",
+      "name": "Insumos dos rituais: digest determinístico e coletor",
+      "decidedBy": "Backend + Editorial",
+      "atendido": false,
+      "criterios": [
+        {
+          "id": "G6.1",
+          "text": "Formato do insumo estruturado definido e validado (ParticipantInput) e coletor do banco",
+          "measure": "schemas.ts + StoreInputCollector + testes",
+          "threshold": "presentes e passando",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G6.1",
+            "status": "met_offline",
+            "evidence": "ParticipantInputSchema e StoreInputCollector"
+          }
+        },
+        {
+          "id": "G6.2",
+          "text": "Worker de digest roda às 05:30 e o insumo existe antes de cada ritual (ADR-014)",
+          "measure": "log do worker x meeting_runs.scheduled_for na fase F1/F2",
+          "threshold": "100% dos rituais com digest anterior ao horário",
+          "owner": "Backend",
+          "avaliacao_offline": {
+            "criterion": "G6.2",
+            "status": "external",
+            "evidence": "o worker de digest não existe"
+          }
+        },
+        {
+          "id": "G6.3",
+          "text": "Rituais sem insumo viram status_only (regra do silêncio) sem chamada de modelo",
+          "measure": "meeting_runs: status_only → model_calls = 0",
+          "threshold": "100%",
+          "owner": "AgentOps",
+          "avaliacao_offline": {
+            "criterion": "G6.3",
+            "status": "met_offline",
+            "evidence": "scheduler.test.ts cobre status_only sem insumo com model_calls = 0"
+          }
+        }
+      ]
+    }
+  ]
+}
