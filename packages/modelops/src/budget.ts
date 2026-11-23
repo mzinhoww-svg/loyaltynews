@@ -55,7 +55,7 @@ export interface Snapshot {
   reserveMicro: number;
   providerMicro: Record<string, number>;
   escalationMicro: number;
-  /** Gasto do pool `qualification` (conta no total e no teto de US$ 50; fora das verbas de produção). */
+  /** Gasto do pool `qualification` (conta no total, no teto de US$ 50 e na verba do provedor; nunca na reserva de 8). */
   qualificationMicro: number;
   openReservations: number;
   pendingReservations: number;
@@ -138,7 +138,10 @@ export class BudgetGate {
       if (s.status === 'open') snap.openReservations += 1;
       if (s.status === 'pending') snap.pendingReservations += 1;
       if (s.pool === 'qualification') {
+        // DP-30/ADR-021: a qualificação debita a VERBA do provedor chamado (e o teto de US$ 50), nunca a reserva de 8
         snap.qualificationMicro += spent;
+        snap.allocationMicro += spent;
+        snap.providerMicro[s.provider] = (snap.providerMicro[s.provider] ?? 0) + spent;
       } else if (s.pool === 'reserve') {
         snap.reserveMicro += spent;
       } else {
@@ -168,8 +171,8 @@ export class BudgetGate {
       }
       const amountMicro = usdToMicro(input.amountUsd);
 
-      // 1b. Modo qualification (ADR-021): pool próprio. Só tem teto próprio (cap_usd) e o teto mensal de US$ 50 (o gasto de qualificação conta
-      //     nele); NÃO usa verba de provedor, degrau nem a reserva de auditoria. Teto 0 = modo ausente.
+      // 1b. Modo qualification (ADR-021, DP-30): pool próprio com teto próprio (cap_usd), dentro do teto mensal de US$ 50 e debitando a verba
+      //     do provedor chamado; NÃO usa degrau nem a reserva de auditoria. Teto 0 = modo ausente.
       if (input.qualification) {
         if (this.config.qualificationCapMicro <= 0) return refuse('qualification_cap', 'modo de qualificação sem teto configurado');
         const snapQ = this.computeSnapshot(await this.states(io), month);
@@ -177,6 +180,12 @@ export class BudgetGate {
           return refuse('qualification_cap', `teto de qualificação de US$ ${microToUsd(this.config.qualificationCapMicro)} atingido`);
         }
         if (snapQ.totalMicro + amountMicro > this.config.capMicro) return refuse('hard_cap', 'teto mensal de US$ 50 atingido');
+        // a qualificação sai da verba do provedor chamado (com production_enabled=false as verbas 20/22 estão ociosas); nunca da reserva de 8
+        const qCap = this.config.providerAllocationMicro[input.provider];
+        if (qCap === undefined || qCap === 0) return refuse('zero_allocation', `verba zero ou inexistente para ${input.provider}`);
+        if ((snapQ.providerMicro[input.provider] ?? 0) + amountMicro > qCap) {
+          return refuse('provider_allocation_exhausted', `verba de ${input.provider} esgotada no mês`);
+        }
         const qid = await io.nextReservationId();
         await io.append({
           seq: (await io.readAll()).length + 1,

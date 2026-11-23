@@ -69,9 +69,9 @@ describe('modo qualification: caminho permitido', () => {
     const snap = await s.gate.snapshot(NOW);
     expect(snap.qualificationMicro).toBe(500_000); // custo real da resposta simulada
     expect(snap.totalMicro).toBe(500_000); // conta no teto de US$ 50
-    expect(snap.allocationMicro).toBe(0); // não consome verba de provedor
-    expect(snap.reserveMicro).toBe(0); // nem a reserva de auditoria
-    expect(snap.providerMicro).toEqual({});
+    expect(snap.allocationMicro).toBe(500_000); // DP-30: debita a verba do provedor chamado
+    expect(snap.providerMicro).toEqual({ anthropic: 500_000 });
+    expect(snap.reserveMicro).toBe(0); // nunca a reserva de auditoria
   });
 
   it('todos os cinco candidatos do protocolo passam (Opus sem consumir o sublimite de escalonamento)', async () => {
@@ -206,16 +206,29 @@ describe('modo qualification: teto próprio de US$ 5 e teto mensal', () => {
     expect(s.client.calls).toHaveLength(0);
   });
 
-  it('o pool de qualificação não toca a reserva de auditoria nem as verbas: a reserva de 8 e as verbas ficam intactas depois de gastar o teto de qualificação', async () => {
+  it('DP-30: a qualificação debita a verba do provedor chamado e nunca a reserva de 8; a verba de produção restante diminui na mesma medida', async () => {
     const policy = policyV6();
     const s = setup(policy, { costUsd: 0.2 });
-    for (let i = 0; i < 3; i++) await callModel(s.deps, call());
+    for (let i = 0; i < 3; i++) await callModel(s.deps, call()); // anthropic (haiku): 3 x US$ 0,20
     const snap = await s.gate.snapshot(NOW);
+    expect(snap.providerMicro.anthropic).toBe(600_000);
     expect(snap.reserveMicro).toBe(0);
-    expect(snap.allocationMicro).toBe(0);
     expect(snap.escalationMicro).toBe(0);
-    // produção continua com as verbas cheias
+    // produção: a verba de 22 da Anthropic já tem US$ 0,60 gastos pela qualificação
+    expect((await s.gate.reserve({ taskId: 'editorial_draft', taskClass: 'essential', lane: 'text', provider: 'anthropic', model: 'm', escalation: false, amountUsd: 22, at: NOW }))).toMatchObject({ ok: false, reason: 'provider_allocation_exhausted' });
+    expect((await s.gate.reserve({ taskId: 'editorial_draft', taskClass: 'essential', lane: 'text', provider: 'anthropic', model: 'm', escalation: false, amountUsd: 21.4, at: NOW })).ok).toBe(true);
+    // a OpenAI continua intacta
+    expect((await s.gate.reserve({ taskId: 'editorial_draft', taskClass: 'essential', lane: 'text', provider: 'openai', model: 'm', escalation: false, amountUsd: 20, at: NOW })).ok).toBe(true);
+  });
+
+  it('com a verba do provedor esgotada pela produção, a qualificação desse provedor é recusada (provider_allocation_exhausted) e a do outro segue', async () => {
+    const policy = policyV6();
+    const s = setup(policy, { costUsd: 0.1 });
     expect((await s.gate.reserve({ taskId: 'editorial_draft', taskClass: 'essential', lane: 'text', provider: 'anthropic', model: 'm', escalation: false, amountUsd: 22, at: NOW })).ok).toBe(true);
+    const bloqueada = await callModel(s.deps, call({ candidate: 'claude-haiku-5-5' }));
+    expect(bloqueada).toMatchObject({ status: 'blocked', reason: 'budget_refused', detail: 'provider_allocation_exhausted' });
+    expect(s.client.calls).toHaveLength(0);
+    expect((await callModel(s.deps, call({ candidate: 'openai-text-review' }))).status).toBe('ok');
   });
 });
 
