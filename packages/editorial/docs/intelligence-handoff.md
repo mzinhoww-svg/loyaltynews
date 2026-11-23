@@ -7,7 +7,7 @@ os tipos espelhados estão em `src/intelligence/types.ts` e a réplica de contra
 ## Fluxo
 1. **Backend publica** (WF03, identidade de publicação) e recebe o recibo.
 2. `applyPublication(store, { articleId, receiptId, url, publishedAt })` registra `publicado` **só se** a matéria está `aprovado`
-   e o gate refeito passa (adulteração depois da aprovação ⇒ `gate_failed`). Grava `publication` (recibo, URL, hash do corpo) e
+   e o gate refeito passa (adulteração depois da aprovação ⇒ `gate_failed`). Grava `publication` (recibo, URL, hash do corpo)
    e, NA MESMA OPERAÇÃO ATÔMICA (`store.commitPublication`: matéria + recibo + auditoria + outbox, ou nada), enfileira na outbox `{ queue: 'intelligence-ingest', refId: articleId, idempotencyKey: article.published:<id>:<sha256> }`
    (mesmo formato de `packages/db` outbox: por referência; PostgreSQL é a verdade). Idempotente pelo recibo.
 3. O **worker** relê a matéria por `refId` (`store.getArticle`), monta o job com `jobFromRecord(rec)` e roda o estágio `roles`:
