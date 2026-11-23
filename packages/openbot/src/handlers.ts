@@ -4,7 +4,7 @@ import { budgetStatus, isApiLane, MONTHLY_CAP_MICRO, validateUsage, type CostLed
 import { evaluateHealth, type HealthStore, type OpenBotHealth } from './health';
 import { LeaseError, type LeaseQueue } from './lease-queue';
 import {
-  awaitingEditorialGate, DP41_ACCOUNTS, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
+  awaitingEditorialGate, DP41_ACCOUNTS, gateRows, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
 } from './pilot';
 import { verifySignature } from './signing';
 import {
@@ -139,7 +139,7 @@ async function pilotBlock(deps: OpenBotDeps): Promise<HandlerResult<never> | nul
   if (!p?.enabled) return null;
   const st = await p.state.get();
   if (st) return fail(503, 'PILOT_STOPPED', 'piloto em parada imediata', st.reasons);
-  const gate = p.gate((await p.rows.all()).filter((r) => !awaitingEditorialGate(r)));
+  const gate = p.gate((await gateRows(p)).filter((r) => !awaitingEditorialGate(r)));
   if (!gate.allowed) {
     for (const r of gate.reasons) await p.state.stop(`${STOP.gate}: ${r}`, deps.now().toISOString());
     return fail(503, 'PILOT_STOPPED', 'o canDispatchNext recusou: piloto parado', gate.reasons);
@@ -526,7 +526,7 @@ export async function resumePilot(deps: OpenBotDeps, caller: Caller): Promise<Ha
   if (!caller.permissions.includes(PILOT_PERMISSIONS.admin)) return fail(403, 'FORBIDDEN', 'sem permissão openbot:pilot_admin');
   const p = deps.pilot;
   if (!p?.enabled) return fail(409, 'PILOT_OFF', 'piloto não está ativo');
-  const gate = p.gate(await p.rows.all());
+  const gate = p.gate(await gateRows(p));
   if (!gate.allowed) return fail(409, 'PILOT_STILL_INVALID', 'o canDispatchNext ainda recusa as linhas', gate.reasons);
   await p.state.clear();
   return ok({ resumed: true });

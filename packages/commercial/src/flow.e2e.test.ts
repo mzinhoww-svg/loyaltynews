@@ -18,7 +18,7 @@ test('e2e: do lead do mídia kit à entrega, sem audiência fictícia', () => {
   cb.transition(camp.id, 'reserved', now, { reservations: [res] }); cb.transition(camp.id, 'approved', now);
 
   ads.addCreative({ id: 'cr1', campaignId: camp.id, positionId: 'TOP', weight: 1, startDate: camp.startDate, endDate: camp.endDate, approved: true, campaignActive: true, ...realContent('TOP') });
-  cb.transition(camp.id, 'active', now, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: inv.list().filter((r) => r.campaignId === camp.id), approvedCreativeCount: ads.creativesOf(camp.id).filter((c) => c.approved).length } });
+  cb.transition(camp.id, 'active', now, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: inv.list().filter((r) => r.campaignId === camp.id), approvedCreativeCount: ads.creativesOf(camp.id).filter((c) => c.approved).length, creativePositions: ['TOP'] } });
   const s = ads.serve({ positionId: 'TOP', today: '2026-12-02', pageViewId: 'pv1' });
   ads.recordVisible(s.impressionId!); ads.recordClick(s.impressionId!);
   const rep = ads.campaignDelivery(camp.id);

@@ -3,7 +3,7 @@
 // de linha de negócio (`ref_id`) e limites; o conteúdo vive em `openbot_io`, lido e gravado só por API autenticada e presa ao lease.
 // Migração reversível: `drizzle/down/0022_openbot_fila_custos.down.sql` (ver o teste `openbot-migracao.test.ts`).
 import { sql } from 'drizzle-orm';
-import { bigint, bigserial, boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, bigserial, boolean, check, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const openbotTasks = pgTable(
   'openbot_tasks',
@@ -149,5 +149,28 @@ export const openbotIo = pgTable(
     check('openbot_io_direction', sql`${t.direction} IN ('input', 'result')`),
     // o teto de tamanho também vale no banco (a rota recusa antes, com 413): entrada até 512 KB (rascunho + evidências), resultado até 256 KB
     check('openbot_io_size', sql`octet_length(${t.content}::text) <= CASE WHEN ${t.direction} = 'input' THEN 524288 ELSE 262144 END`),
+  ],
+);
+
+/**
+ * Violações do piloto TRATADAS por um admin (decisão PM-2026-11-23-D): libera o despacho e a retomada, mas NÃO apaga nem edita a linha da planilha e a violação continua
+ * contando no critério de 0 violações da avaliação final (a planilha a mostra como "tratada por X em Y, motivo Z"). Uma resolução por (tarefa, tentativa).
+ * Migração reversível: `drizzle/down/0028_openbot_pilot_resolutions.down.sql`.
+ */
+export const openbotPilotResolutions = pgTable(
+  'openbot_pilot_resolutions',
+  {
+    taskId: text('task_id').notNull(),
+    attempt: integer('attempt').notNull(),
+    resolvidoPor: text('resolvido_por').notNull(),
+    resolvidoEm: timestamp('resolvido_em', { withTimezone: true }).notNull(),
+    motivo: text('motivo').notNull(),
+    acaoTomada: text('acao_tomada').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.attempt] }),
+    foreignKey({ columns: [t.taskId, t.attempt], foreignColumns: [openbotPilotRows.taskId, openbotPilotRows.attempt], name: 'openbot_pilot_resolutions_row_fk' }),
+    check('openbot_pilot_resolutions_motivo', sql`char_length(btrim(${t.motivo})) BETWEEN 10 AND 500`),
+    check('openbot_pilot_resolutions_acao', sql`char_length(btrim(${t.acaoTomada})) BETWEEN 1 AND 200`),
   ],
 );

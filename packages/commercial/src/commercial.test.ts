@@ -132,7 +132,7 @@ test('relatório por campanha soma criativos da campanha', () => {
 
 // ---------- campanhas ----------
 const R = (over: Partial<Reservation> = {}): Reservation => ({ id: 'res-1', positionId: 'TOP', advertiserId: 'a', campaignId: 'cmp-1', startDate: '2026-12-01', endDate: '2027-02-28', status: 'confirmed', ...over });
-const EV = (over: Partial<ActivationEvidence> = {}): ActivationEvidence => ({ saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, ...over });
+const EV = (over: Partial<ActivationEvidence> = {}): ActivationEvidence => ({ saleEnabled: true, formatStatus: 'disponivel', reservations: [R()], approvedCreativeCount: 1, creativePositions: ['TOP'], ...over });
 /** Campanha cmp-1 em 'approved', pronta para tentar ativar. */
 function approvedCampaign() {
   const cb = new CampaignBook();
@@ -181,8 +181,8 @@ test('ativação: reserva confirmada precisa cobrir o período inteiro (início,
   refuses(cb, c.id, EV({ reservations: [R({ startDate: '2026-12-02' })] }), 'NO_CONFIRMED_RESERVATION');   // começa tarde
   refuses(cb, c.id, EV({ reservations: [R({ endDate: '2027-02-27' })] }), 'NO_CONFIRMED_RESERVATION');     // termina cedo
   refuses(cb, c.id, EV({ reservations: [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-02' })] }), 'NO_CONFIRMED_RESERVATION'); // buraco em 01/01
-  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })]), true);  // adjacentes cobrem
-  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2027-01-15' }), R({ id: 'b', startDate: '2027-01-10' })]), true);  // sobrepostas cobrem
+  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })], 'TOP'), true);  // adjacentes cobrem
+  assert.equal(confirmedCoverage(c, [R({ id: 'a', endDate: '2027-01-15' }), R({ id: 'b', startDate: '2027-01-10' })], 'TOP'), true);  // sobrepostas cobrem
   cb.transition(c.id, 'active', NOW, { activation: EV({ reservations: [R({ id: 'a', endDate: '2026-12-31' }), R({ id: 'b', startDate: '2027-01-01' })] }) });
   assert.equal(cb.get(c.id).status, 'active');
 });

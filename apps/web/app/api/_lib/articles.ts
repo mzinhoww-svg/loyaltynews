@@ -3,6 +3,7 @@
 // papel com permissão `publish` (a identidade de publicação do recibo é o canal `portal`, ADR-017 §5). Conteúdo publicado é imutável;
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
 import { and, asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import { schema } from '@ln/db';
 import { canTransition, imageLabel, isImagePublishable, readingTimeMinutes, ContentType, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
@@ -382,7 +383,9 @@ export const publicArticlesWhere = (...extra: Array<ReturnType<typeof eq> | unde
 
 export const publicListArticles: RouteFn = async (_req, c) => {
   // `tipo` (tipo de conteúdo: noticia, flash, analise…) combina com editoria, q, limit e offset; o `total` já reflete todos os filtros
-  const q = parse(ArticleQuery.pick({ editoria: true, q: true }).extend({ tipo: ContentType.optional() }).extend(Paging.shape), queryObject(c.url));
+  // `q` aparado antes do teto de 100: só espaços vira vazio (400, nunca "lista tudo que tem espaço"); " milhas " busca "milhas"
+  const PublicQ = z.string().trim().min(1).max(100).optional();
+  const q = parse(ArticleQuery.pick({ editoria: true }).extend({ q: PublicQ, tipo: ContentType.optional() }).extend(Paging.shape), queryObject(c.url));
   const like = q.q ? `%${q.q.replace(/[%_\\]/g, '\\$&')}%` : null;
   const where = and(
     inArray(schema.articles.status, [...PUBLIC_STATUS]),
