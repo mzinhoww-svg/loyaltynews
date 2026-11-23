@@ -1,0 +1,216 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+
+/**
+ * Entity Intelligence no portal: lista de empresas com filtro por tipo, página da empresa com vínculos e fonte de cada um,
+ * navegação entre empresas relacionadas, estado vazio honesto (empty; pessoas e Moves) e axe nos três modos.
+ *   empty → fonte vazia; mock → fixtures MOCK; api → e2e/fake-api.mjs no formato do contrato público.
+ */
+const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
+/** Modo do Intelligence no servidor MOCK (só api): '' = full | vazio | sem-flag. */
+const intel = process.env.PORTAL_API_INTEL ?? '';
+
+async function axe(page: Page) {
+  await page.waitForLoadState('networkidle');
+  // Na navegação por clique o Next atualiza o <title> logo depois do conteúdo: espera o título antes de auditar.
+  await expect.poll(() => page.title()).not.toBe('');
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  const summary = r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`);
+  expect(summary, summary.join('\n')).toEqual([]);
+}
+
+test.describe('empty', () => {
+  test.skip(mode !== 'empty', 'somente no modo empty');
+
+  test('diretório, pessoas e Moves vazios e honestos; perfil inexistente é 404', async ({ page }) => {
+    await page.goto('/intelligence/empresas');
+    await expect(page.getByText('Em breve: primeiros perfis verificados')).toBeVisible();
+    await expect(page.getByTestId('company-list')).toHaveCount(0);
+    await axe(page);
+    await page.goto('/intelligence/empresas?tipo=company');
+    await expect(page.getByText('Nenhuma empresa com esse filtro')).toBeVisible();
+    const r = await page.goto('/intelligence/empresas/00000000-0000-4000-8000-00000000000a');
+    expect(r?.status()).toBe(404);
+    await page.goto('/moves');
+    await expect(page.getByText('Em breve: primeiras movimentações confirmadas')).toBeVisible();
+  });
+});
+
+test.describe('mock', () => {
+  test.skip(mode !== 'mock', 'somente no modo mock');
+
+  test('lista MOCK rotulada, perfil com vínculos e navegação de ida e volta', async ({ page }) => {
+    await page.goto('/intelligence/empresas');
+    const list = page.getByTestId('company-list');
+    await expect(list.getByRole('listitem')).toHaveCount(3);
+    await expect(list).toContainText('MOCK');
+    await axe(page);
+    await page.getByRole('link', { name: 'Programa', exact: false }).filter({ hasText: 'Programa de Teste' }).first().click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Programa de Teste (MOCK)');
+    await expect(page.getByTestId('relations')).toContainText('Controlada por');
+    await axe(page);
+    await page.getByTestId('relations').getByRole('link', { name: 'Empresa de Teste (MOCK)' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Empresa de Teste (MOCK)');
+    await expect(page.getByTestId('relations').locator('tbody tr')).toHaveCount(2);
+  });
+});
+
+test.describe('api', () => {
+  test.skip(mode !== 'api' || intel !== '', 'somente no modo api com Intelligence completo');
+
+  test('lista com filtro por tipo e contagens', async ({ page }) => {
+    await page.goto('/intelligence/empresas');
+    await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(5);
+    const chips = page.getByRole('list', { name: 'Filtrar por tipo' });
+    await expect(chips.getByRole('link', { name: 'Todos (5)' })).toHaveAttribute('aria-current', 'true');
+    await chips.getByRole('link', { name: 'Empresa (2)' }).click();
+    await expect(page).toHaveURL(/tipo=company/);
+    await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(2);
+    await expect(page.getByTestId('directory-count')).toContainText('2 organizações · Empresa');
+    await expect(chips.getByRole('link', { name: 'Empresa (2)' })).toHaveAttribute('aria-current', 'true');
+    await axe(page);
+    // Tipo inválido na URL é ignorado (mostra todos), nunca erro.
+    await page.goto('/intelligence/empresas?tipo=%3Cscript%3E');
+    await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(5);
+  });
+
+  test('perfil: vínculos com fonte, link e data; sem trecho literal; navegação entre relacionadas', async ({ page }) => {
+    await page.goto('/intelligence/empresas');
+    await page.getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa');
+    const rel = page.getByTestId('relations');
+    await expect(rel.locator('tbody tr')).toHaveCount(3);
+    await expect(rel).toContainText('Parceria anunciada com');
+    await expect(rel).toContainText('Vínculo declarado com');
+    const src = rel.getByRole('link', { name: /Fonte de teste/ }).first();
+    await expect(src).toHaveAttribute('href', /^https:\/\/fonte-.*\.invalid\//);
+    await expect(src).toHaveAttribute('rel', /noopener/);
+    await expect(rel.locator('time').first()).toHaveAttribute('datetime', '2026-11-23T00:00:00.000Z');
+    await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
+    // Programa Alfa tem uma pessoa com cargo vigente no MOCK: a seção mostra a tabela, não o "em breve".
+    await expect(page.getByTestId('company-people')).toContainText('[MOCK API] Ana Teste');
+    await axe(page);
+
+    await rel.getByRole('link', { name: '[MOCK API] Clube Delta' }).click();
+    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Clube Delta');
+    await expect(page.getByTestId('company-meta')).toContainText('Tipo não declarado na fonte');
+    await page.getByTestId('relations').getByRole('link', { name: '[MOCK API] Associação Gama' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Associação Gama');
+    await expect(page.getByTestId('relations').locator('tbody tr')).toHaveCount(2);
+  });
+
+  test('perfil inexistente ou id fora do formato: 404', async ({ page }) => {
+    expect((await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
+    expect((await page.goto('/intelligence/empresas/nao-e-uuid'))?.status()).toBe(404);
+  });
+
+  test('hub conta empresas, pessoas e Moves confirmados válidos', async ({ page }) => {
+    await page.goto('/intelligence');
+    await expect(page.getByTestId('count-empresas')).toHaveText('5 cadastrado(s) e verificado(s)');
+    await expect(page.getByTestId('count-pessoas')).toHaveText('2 cadastrado(s) e verificado(s)');
+    // 2 Moves na resposta, 1 sem a leitura "antes" (viola o modelo): só 1 é publicado.
+    await expect(page.getByTestId('count-moves')).toHaveText('1 cadastrado(s) e verificado(s)');
+  });
+
+  test('Moves: só o válido, com antes e depois e a fonte de cada lado; sem trecho literal; detalhe e 404', async ({ page }) => {
+    await page.goto('/moves');
+    const cards = page.getByTestId('move-card');
+    await expect(cards).toHaveCount(1);
+    await expect(cards).toContainText('Mudança de empresa');
+    await expect(cards).toContainText('data efetiva não declarada pela fonte');
+    const before = cards.getByTestId('move-before');
+    const after = cards.getByTestId('move-after');
+    await expect(before).toContainText('Diretora Comercial (MOCK)');
+    await expect(before).toContainText('[MOCK API] Banco Beta');
+    await expect(after).toContainText('CEO (MOCK)');
+    await expect(after).toContainText('[MOCK API] Programa Alfa');
+    await expect(before.getByRole('link', { name: /Fonte de teste/ })).toHaveAttribute('href', /\.invalid\//);
+    await expect(after.getByRole('link', { name: /Fonte de teste/ })).toHaveAttribute('href', /\.invalid\//);
+    await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
+    await expect(page.locator('main')).not.toContainText('Bia Teste');
+    await axe(page);
+    await cards.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
+    await expect(page).toHaveURL(/\/moves\/10000000-0000-4000-8000-000000000401$/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mudança de empresa: [MOCK API] Ana Teste');
+    await axe(page);
+    // Move fora do modelo ou inexistente: 404 de verdade.
+    expect((await page.goto('/moves/10000000-0000-4000-8000-000000000402'))?.status()).toBe(404);
+    expect((await page.goto('/moves/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
+    expect((await page.goto('/moves/nao-e-uuid'))?.status()).toBe(404);
+  });
+
+  test('pessoas: lista, busca, perfil com cargos atuais, histórico e Move; navegação até a empresa e de volta', async ({ page }) => {
+    await page.goto('/intelligence/pessoas');
+    await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(2);
+    await axe(page);
+    await page.goto('/intelligence/pessoas?q=bia');
+    await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(1);
+    await page.goto('/intelligence/pessoas');
+    await page.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste');
+    await expect(page.getByTestId('current-roles')).toContainText('CEO (MOCK)');
+    await expect(page.getByTestId('history-roles')).toContainText('Diretora Comercial (MOCK)');
+    // DP-38: todo perfil público de pessoa tem o caminho de correção ou remoção (direito de resposta / LGPD).
+    await expect(page.getByTestId('request-correction')).toHaveAttribute('href', '/correcoes');
+    await expect(page.getByTestId('move-card')).toHaveCount(1);
+    await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
+    await axe(page);
+    await page.getByTestId('current-roles').getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa');
+    const people = page.getByTestId('company-people');
+    await expect(people).toContainText('CEO (MOCK)');
+    await expect(page.getByTestId('move-card')).toHaveCount(1);
+    await axe(page);
+    await people.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste');
+    expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
+  });
+});
+
+test.describe('api com pessoas desligadas ou sem registros', () => {
+  test.skip(mode !== 'api' || (intel !== 'sem-flag' && intel !== 'vazio'), 'somente com PORTAL_API_INTEL=sem-flag|vazio');
+
+  test('pessoas e Moves: estado vazio honesto (não erro); perfis 404; empresa sem pessoas', async ({ page }) => {
+    for (const [rota, texto] of [
+      ['/intelligence/pessoas', 'Em breve: primeiros perfis verificados'],
+      ['/moves', 'Em breve: primeiras movimentações confirmadas'],
+    ] as const) {
+      const res = await page.goto(rota);
+      expect(res?.status(), rota).toBe(200);
+      await expect(page.getByText(texto), rota).toBeVisible();
+      await expect(page.getByTestId('error-state'), rota).toHaveCount(0);
+      await axe(page);
+    }
+    expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);
+    expect((await page.goto('/moves/10000000-0000-4000-8000-000000000401'))?.status()).toBe(404);
+    await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000001');
+    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
+    await expect(page.getByTestId('move-card')).toHaveCount(0);
+    await page.goto('/intelligence');
+    await expect(page.getByTestId('count-pessoas')).toHaveText('Cadastros verificados: em breve');
+    await expect(page.getByTestId('count-moves')).toHaveText('Cadastros verificados: em breve');
+  });
+});
+
+test.describe('mock: pessoas e Moves', () => {
+  test.skip(mode !== 'mock', 'somente no modo mock');
+
+  test('Move MOCK com antes e depois; pessoa MOCK com histórico; navegação', async ({ page }) => {
+    await page.goto('/moves');
+    const card = page.getByTestId('move-card');
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText('MOCK');
+    await expect(card.getByTestId('move-before')).toContainText('Diretora de Parcerias (MOCK)');
+    await expect(card.getByTestId('move-after')).toContainText('Diretora-Geral (MOCK)');
+    await axe(page);
+    await card.getByRole('link', { name: 'perfil' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pessoa de Teste Um (MOCK)');
+    await expect(page.getByTestId('history-roles')).toContainText('Diretora de Parcerias (MOCK)');
+    await expect(page.getByTestId('request-correction')).toBeVisible();
+    await axe(page);
+    await page.goto('/intelligence/pessoas');
+    await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(2);
+    await axe(page);
+  });
+});

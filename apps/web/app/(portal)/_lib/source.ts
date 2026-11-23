@@ -1,4 +1,5 @@
 import { createApiSlice } from './api-source';
+import { createIntelligenceSlice } from './intelligence-source';
 import { createSiteSlice } from './site-config';
 import { emptySource } from './empty-source';
 import { resolveSourceKind } from './indexing';
@@ -40,7 +41,7 @@ export function getSource(): PortalSource {
       return loadMock();
     case 'api': {
       const apiBase = process.env.PORTAL_API_BASE_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
-      return (apiSource ??= { ...emptySource, kind: 'api', ...createApiSlice(apiBase), ...createSiteSlice(apiBase) });
+      return (apiSource ??= { ...emptySource, kind: 'api', ...createApiSlice(apiBase), ...createSiteSlice(apiBase), ...createIntelligenceSlice(apiBase) });
     }
     default:
       return emptySource;

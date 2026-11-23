@@ -2,6 +2,7 @@
 // com o mesmo formato de apps/web/app/api/_lib/articles.ts. Só serve ao e2e do portal em PORTAL_MODE=api.
 // Nenhum conteúdo aqui é real.
 import http from 'node:http';
+import { intelligence } from './fake-api-intelligence.mjs';
 
 const port = Number(process.env.FAKE_API_PORT ?? 3104);
 // FAKE_API_STATUS=503 simula a API pública sem banco (NOT_CONFIGURED) ou com erro: toda rota /api/publico responde esse status.
@@ -226,6 +227,8 @@ http
       const found = [...agendaEvents, eventoPassado, eventoHostil].find((e) => e.id === id);
       return found ? send(res, 200, { data: found }) : send(res, 404, { error: { code: 'NOT_FOUND', message: 'Evento não encontrado.' } });
     }
+    const intel = intelligence(u);
+    if (intel) return send(res, intel[0], intel[1]);
     if (u.pathname === '/api/publico/materias') {
       // Gatilhos de teste dos estados de carregando e de erro (busca): q=lento atrasa a resposta; q=falha responde 503.
       const q0 = u.searchParams.get('q');
