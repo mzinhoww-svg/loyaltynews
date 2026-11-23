@@ -61,3 +61,20 @@ test('piloto: Senado e Câmara + 3 fontes classe D recomendadas; recusadas têm 
   for (const e of hab) { assert.ok(e.feed || e.sitemap, `${e.id}: coletável (feed ou sitemap)`); assert.ok(e.frequencia.materiasPorRodada >= 1); }
   assert.match(data.regraGeral['habilitacao']!, /pessoa diferente da pesquisadora/);
 });
+
+test('checklist de 1 página: as 5 fontes do piloto com as notas sugeridas do .data.json; FEBRABAN fora; cabe numa página', () => {
+  const md = readFileSync(new URL('../../docs/piloto-checklist-habilitacao.md', import.meta.url), 'utf8');
+  const hab = data.fontes.filter((e) => e.status.recomendacaoEditorial === 'habilitar');
+  assert.equal(hab.length, 5);
+  for (const e of hab) {
+    assert.ok(md.includes(`\`${e.id}\``), `${e.id} na tabela`);
+    // a nota colada no checklist é a mesma nota sugerida (ignora ajustes de data e de "conferir")
+    const inicio = (e.notaDeRevisaoSugerida ?? '').slice(0, 60);
+    assert.ok(inicio.length === 60 && md.includes(inicio), `${e.id}: nota do checklist começa igual à nota sugerida`);
+    assert.ok(md.includes(e.termos[0]!.url), `${e.id}: link dos termos`);
+  }
+  assert.match(md, /Fora do piloto[^\n]*FEBRABAN/);
+  assert.ok(!/\| ☐ \| FEBRABAN/.test(md));
+  assert.ok(md.split('\n').length <= 40, 'uma página');
+  assert.match(md, /pesquisadora/);
+});
