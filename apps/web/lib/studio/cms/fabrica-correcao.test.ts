@@ -1,38 +1,78 @@
 import { describe, expect, it } from 'vitest';
-import { modeloDaChecagem, modeloDoRascunho, montarCorrecao } from './fabrica-correcao';
+import { afirmacoesAlteradas, edicaoInicial, montarCorrecao, type RascunhoFabrica } from './fabrica-correcao';
 
-describe('montarCorrecao', () => {
-  it('monta {casoId, draft, factcheck} de dois JSONs de objeto', () => {
-    const r = montarCorrecao(' caso-1 ', '{"headline":"T"}', '{"provider":"p"}');
-    expect(r).toEqual({ ok: true, correcao: { casoId: 'caso-1', draft: { headline: 'T' }, factcheck: { provider: 'p' } } });
+const base: RascunhoFabrica = {
+  articleId: 'a1',
+  status: 'publicado',
+  versaoPublicada: 1,
+  podeCorrigir: true,
+  publicacao: null,
+  avisos: [],
+  rascunho: {
+    id: 'rascunho-1',
+    editoria: 'pontos',
+    slug: 'programa-alfa',
+    headline: 'Título',
+    subtitulo: 'Sub',
+    resumo: 'Resumo',
+    tipoConteudo: 'noticia',
+    classeDeDado: 'public',
+    patrocinado: false,
+    body: 'Corpo.\n\nFontes:\n- X: https://x.example',
+    claims: [
+      { id: 'c1', kind: 'fact', text: 'afirmação um', evidenceIds: ['e1'] },
+      { id: 'c2', kind: 'quote', text: 'afirmação dois', evidenceIds: ['e1'], quote: { text: 'fala', speaker: 'Fulano' } },
+    ],
+    evidenceIds: ['e1'],
+    signature: 'Redação',
+    image: { mode: 'none', reason: 'sem imagem' },
+    modelProvider: 'openai',
+    promptVersion: 'p1',
+  },
+  checagem: { provider: 'anthropic', model: 'm', verdicts: [{ claimId: 'c1', verdict: 'pass' }] },
+};
+
+describe('edicaoInicial', () => {
+  it('parte do que o Backend devolveu; veredito só onde a última checagem o tem', () => {
+    const e = edicaoInicial(base, 'caso-1');
+    expect(e).toMatchObject({ casoId: 'caso-1', headline: 'Título', subtitulo: 'Sub', provider: 'anthropic', model: 'm', verdicts: ['pass', ''] });
+    expect(e.claimTexts).toEqual(['afirmação um', 'afirmação dois']);
   });
-  it('recusa sem caso, JSON vazio, quebrado e que não seja objeto, dizendo qual campo', () => {
-    expect(montarCorrecao('', '{}', '{}')).toMatchObject({ ok: false, erro: expect.stringContaining('caso') });
-    expect(montarCorrecao('c', '', '{}')).toMatchObject({ ok: false, erro: expect.stringContaining('Rascunho corrigido: informe') });
-    expect(montarCorrecao('c', '{x', '{}')).toMatchObject({ ok: false, erro: expect.stringContaining('Rascunho corrigido: JSON inválido') });
-    expect(montarCorrecao('c', '[]', '{}')).toMatchObject({ ok: false, erro: expect.stringContaining('objeto') });
-    expect(montarCorrecao('c', '{}', 'null')).toMatchObject({ ok: false, erro: expect.stringContaining('Checagem') });
+  it('sem checagem anterior nada vem preenchido', () => {
+    expect(edicaoInicial({ ...base, checagem: null }, '')).toMatchObject({ provider: '', model: '', verdicts: ['', ''] });
   });
 });
 
-describe('modelos de partida (nada inventado)', () => {
-  const materia = { slug: 'programa-alfa', editoria: 'pontos', subtitulo: null, resumo: 'Resumo', tipoConteudo: 'noticia', patrocinado: false, rotuloPublieditorial: null };
-  const revisao = {
-    rascunho: { titulo: 'Título', corpo: 'Corpo.', assinatura: 'Redação', imagem: { mode: 'none', reason: 'sem imagem' }, claims: [{ id: 'c1', kind: 'fact', text: 'afirmação', evidenceIds: ['e1'] }] },
-    evidencias: [{ id: 'e1' }],
-  };
-  it('preenche só o que as rotas de leitura expõem e deixa em branco o que elas não expõem', () => {
-    const m = modeloDoRascunho(materia, revisao);
-    expect(m).toMatchObject({ editoria: 'pontos', headline: 'Título', body: 'Corpo.', slug: 'programa-alfa', signature: 'Redação', evidenceIds: ['e1'] });
-    expect(m).toMatchObject({ id: '', classeDeDado: '', modelProvider: '', promptVersion: '' });
-    expect(m).not.toHaveProperty('subtitulo');
-    expect(JSON.stringify(m)).not.toContain('Avisos:');
+describe('montarCorrecao', () => {
+  const ok = { ...edicaoInicial(base, 'caso-1'), verdicts: ['pass', 'pass'] };
+  it('reenvia o rascunho do Backend com só os textos trocados e a checagem informada', () => {
+    const r = montarCorrecao(base, { ...ok, headline: 'Título novo', claimTexts: ['afirmação um corrigida', 'afirmação dois'] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.correcao.casoId).toBe('caso-1');
+    expect(r.correcao.draft).toMatchObject({ id: 'rascunho-1', slug: 'programa-alfa', classeDeDado: 'public', modelProvider: 'openai', headline: 'Título novo', evidenceIds: ['e1'] });
+    expect(r.correcao.draft.claims[0]).toMatchObject({ id: 'c1', text: 'afirmação um corrigida', evidenceIds: ['e1'] });
+    expect(r.correcao.draft.claims[1]).toMatchObject({ quote: { text: 'fala', speaker: 'Fulano' } });
+    expect(r.correcao.factcheck).toEqual({ provider: 'anthropic', model: 'm', verdicts: [{ claimId: 'c1', verdict: 'pass' }, { claimId: 'c2', verdict: 'pass' }] });
+    expect(JSON.stringify(r.correcao)).not.toContain('Avisos:');
   });
-  it('checagem em branco: um veredito vazio por afirmação, sem provedor', () => {
-    expect(modeloDaChecagem(['c1', 'c2'])).toEqual({ provider: '', model: '', verdicts: [{ claimId: 'c1', verdict: '' }, { claimId: 'c2', verdict: '' }] });
+  it('subtítulo vazio sai do rascunho', () => {
+    const r = montarCorrecao(base, { ...ok, subtitulo: '  ' });
+    expect(r.ok && 'subtitulo' in r.correcao.draft).toBe(false);
   });
-  it('sem rascunho editorial devolve campos vazios, não dados fictícios', () => {
-    const m = modeloDoRascunho(materia, { rascunho: null, evidencias: [] });
-    expect(m).toMatchObject({ headline: '', body: '', claims: [], evidenceIds: [], signature: '' });
+  it('recusa, dizendo o campo: sem caso, vazios, bloco Avisos, veredito faltando, checagem sem provedor', () => {
+    expect(montarCorrecao(base, { ...ok, casoId: '' })).toMatchObject({ ok: false, erro: expect.stringContaining('caso') });
+    expect(montarCorrecao(base, { ...ok, headline: ' ' })).toMatchObject({ ok: false, erro: expect.stringContaining('Título') });
+    expect(montarCorrecao(base, { ...ok, body: 'x\n\nAvisos:\n- y' })).toMatchObject({ ok: false, erro: expect.stringContaining('Avisos') });
+    expect(montarCorrecao(base, { ...ok, claimTexts: ['a', ' '] })).toMatchObject({ ok: false, erro: expect.stringContaining('Afirmação 2') });
+    expect(montarCorrecao(base, { ...ok, verdicts: ['pass', ''] })).toMatchObject({ ok: false, erro: expect.stringContaining('afirmação 2') });
+    expect(montarCorrecao(base, { ...ok, provider: '' })).toMatchObject({ ok: false, erro: expect.stringContaining('provedor') });
+    expect(montarCorrecao(base, { ...ok, claimTexts: ['só uma'] })).toMatchObject({ ok: false, erro: expect.stringContaining('recarregue') });
+  });
+});
+
+describe('afirmacoesAlteradas', () => {
+  it('marca as afirmações com texto mudado (o veredito anterior não vale)', () => {
+    expect(afirmacoesAlteradas(base, ['afirmação um', 'dois mudou'])).toEqual([false, true]);
   });
 });

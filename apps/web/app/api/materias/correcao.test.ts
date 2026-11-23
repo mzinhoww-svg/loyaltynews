@@ -20,6 +20,7 @@ let chefe: Awaited<ReturnType<typeof app.actor>>;
 let admin: Awaited<ReturnType<typeof app.actor>>;
 let editor: Awaited<ReturnType<typeof app.actor>>;
 let leitor: Awaited<ReturnType<typeof app.actor>>;
+let revisor: Awaited<ReturnType<typeof app.actor>>;
 let ev: string[];
 let n = 0;
 
@@ -75,7 +76,7 @@ const revise = (id: string, versaoEsperada: number, body: Record<string, unknown
 beforeAll(async () => {
   app = await makeApp({ publicacaoPortal: true });
   store = new PgEditorialStore(app.db);
-  [chefe, admin, editor, leitor] = [await app.actor('editor_chefe'), await app.actor('admin'), await app.actor('editor'), await app.actor('leitor')];
+  [chefe, admin, editor, leitor, revisor] = [await app.actor('editor_chefe'), await app.actor('admin'), await app.actor('editor'), await app.actor('leitor'), await app.actor('revisor')];
   ev = await seedEvidence(app.db, 2);
 }, 120_000);
 afterAll(async () => {
@@ -107,10 +108,10 @@ describe('publicação oficial de matéria só do CMS (sem registro editorial)',
     expect((await go(a.id, 'corrigido')).status).toBe(409);
   });
 
-  it('portões: flag desligada 403; identidade de publicação diferente 403; recibo de outra matéria 409; conteúdo alterado depois do recibo 409; sem papel de publicar 403 — sem efeito', async () => {
+  it('portões: flag desligada 403; campo identidadePublicacao recusado 400; recibo de outra matéria 409; conteúdo alterado depois do recibo 409; sem papel de publicar 403 — sem efeito', async () => {
     const a = await create();
     await go(a.id, 'em_checagem');
-    const r = await receipt(a.id, a.versao, chefe, { identidadePublicacao: admin.id });
+    const r = await receipt(a.id, a.versao, chefe);
     await go(a.id, 'aprovado');
     const semEfeito = async () => {
       expect((await row(a.id)).status).toBe('aprovado');
@@ -123,7 +124,7 @@ describe('publicação oficial de matéria só do CMS (sem registro editorial)',
     } finally {
       app.deps.flags.publicacaoPortal = true;
     }
-    expect((await publish(a.id, r.body.data.id, chefe)).body.error.code).toBe('NOT_PUBLISHER_IDENTITY');
+    expect((await receipt(a.id, a.versao, chefe, { identidadePublicacao: admin.id })).status).toBe(400); // ADR-017 §5: o servidor fixa 'portal'
     expect((await publish(a.id, r.body.data.id, editor)).status).toBe(403);
     expect((await publish(a.id, 'recibo-que-nao-existe', admin)).status).toBe(409);
     await app.db.update(schema.articles).set({ corpo: 'texto trocado por fora do fluxo' }).where(eq(schema.articles.id, a.id));
@@ -131,6 +132,24 @@ describe('publicação oficial de matéria só do CMS (sem registro editorial)',
     expect(adult.status).toBe(409);
     expect(adult.body.error.code).toBe('RECEIPT_CONTENT_MISMATCH');
     await semEfeito();
+  });
+
+  it('ADR-017 §5 (matéria só do CMS): revisor emite o recibo (identidade portal, aprovador = revisor) e o editor-chefe publica; revisor não publica (403); rastro com publicadoPor e aprovador', async () => {
+    const a = await create();
+    await go(a.id, 'em_checagem');
+    const r = await receipt(a.id, a.versao, revisor);
+    expect(r.status, JSON.stringify(r.body)).toBe(201);
+    expect(r.body.data).toMatchObject({ identidadePublicacao: 'portal', aprovador: revisor.id });
+    await go(a.id, 'aprovado');
+    expect((await publish(a.id, r.body.data.id, revisor)).status).toBe(403);
+    expect((await row(a.id)).status).toBe('aprovado');
+    const p = await publish(a.id, r.body.data.id, chefe);
+    expect(p.status, JSON.stringify(p.body)).toBe(201);
+    const aud = (await app.db.select().from(schema.auditLog)).filter((x) => x.action === 'materia.publicada' && x.resourceId === a.id);
+    expect(aud[0]).toMatchObject({ actorId: chefe.id, detalhe: { publicadoPor: chefe.id, aprovador: revisor.id } });
+    const [ob] = await app.db.select().from(schema.outbox).where(eq(schema.outbox.refId, a.id));
+    expect(ob!.meta).toEqual({ publicadoPor: chefe.id, aprovador: revisor.id, receiptId: r.body.data.id });
+    expect((await transitions(a.id)).filter((t) => t.para === 'publicado')).toMatchObject([{ actorId: chefe.id, receiptId: r.body.data.id }]);
   });
 
   it('regras refeitas na publicação: matéria que deixou de passar (classe de dado) não publica', async () => {

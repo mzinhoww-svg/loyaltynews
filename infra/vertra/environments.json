@@ -1,0 +1,286 @@
+{
+  "$comment": "ESPECIFICAÇÃO DECLARATIVA PREPARADA (frente 01, fast-track). NADA aqui foi aplicado na Vertra (regra 6 do fast-track: sem escrita na Vertra). Quem aplica é o DevOps depois do gate e da capacidade aprovada, seguindo infra/docs/checklist-primeiro-deploy-staging.md. Sem segredos: só NOMES de variáveis (infra/vertra/env-contract.json).",
+  "schema": 1,
+  "preparado_em": "2026-11-22",
+  "fontes": [
+    "ADR-001",
+    "ADR-012",
+    "R0-07 v2 (inventário Vertra, confirmado pelo QA)",
+    "get_docs da Vertra de 22/11/2026 (seções 5, 12, 22)"
+  ],
+  "conta": {
+    "plano": "pro-8",
+    "memoria_limite_mb": 8192,
+    "memoria_alocada_mb": 3072,
+    "memoria_livre_mb": 5120,
+    "fonte": "get_profile (vertra-ln-leitura) em 22/11/2026 ~18h35 BRT, confirmando o aviso do PM (~18h50); upgrade feito pelo proprietário",
+    "ressalva": "Os campos owner_plan de cada recurso ainda mostravam 'pro-4' na mesma leitura (provável campo atrasado; não verificado). Reconfirmar get_profile imediatamente antes de aplicar.",
+    "recursos_de_outros_projetos_nao_tocar": [
+      "a9b3cf43 Camarim Magico (512)",
+      "d4eedc39 agencia-worker (128)",
+      "e5dd4a46 revela-face-engine (384)",
+      "ce27d621 wa-gateway (512)",
+      "34a59fd4 agencia-web (512)",
+      "38496aaf agencia-db (1024)"
+    ],
+    "regra": "os 3072 MB desses 6 recursos não podem ser tocados; conferir mesmo ID, RAM e estado antes e depois de cada deploy"
+  },
+  "organizacao": {
+    "recomendado": "workspace 'loyalty-news' (papéis e chaves próprias; Pro permite até 5 membros). Recursos de workspace usam o plano do dono: não somam memória extra (a confirmar: FinOps v2 também marca como não verificado).",
+    "alternativa": "pasta pessoal 'Loyalty News' (sem papéis separados).",
+    "criar_exige_escrita": true
+  },
+  "github": {
+    "repositorio": "mzinhoww-svg/loyaltynews",
+    "branch_staging": "staging",
+    "branch_producao": "main",
+    "observacao": "A Vertra baixa o código do GitHub como arquivo (sem .git) e roda install + build_command + start_command na RAIZ do repositório; não há 'diretório raiz' por app. Por isso os comandos usam workspaces do npm. O commit chega via APP_COMMIT (definido a cada release)."
+  },
+  "runtime": {
+    "linguagem": "typescript",
+    "node": "26.13.1",
+    "nota": "Vertra oferece 24.22.3 e 26.13.1; 26.13.1 = recomendado e igual ao Node local. Instalação inclui devDependencies quando há build_command."
+  },
+  "limites_da_plataforma": {
+    "porta": "apps Website escutam na 80 (0.0.0.0, não 127.0.0.1)",
+    "ram_minima_para_publicar_mb": 512,
+    "ram_minima_mb": {
+      "app": 100,
+      "redis": 512,
+      "postgresql": 1024
+    },
+    "build": {
+      "ram_do_ambiente_de_build": "2x a RAM da app (mín. 1024, máx. 4096)",
+      "timeout_install_min": 15,
+      "timeout_build_min": 10
+    },
+    "deploys_por_hora_conta_pro": 60,
+    "variaveis": {
+      "max_por_app": 256,
+      "valor_max_caracteres": 3072
+    }
+  },
+  "ambientes": {
+    "staging-min": {
+      "descricao": "Primeiro passo do rollout (deploy rápido do apps/web, sem banco), feito ANTES do staging completo. Sem fixtures: o portal usa a fonte vazia (PORTAL_SOURCE/PORTAL_MODE não definidos) e mostra estados vazios honestos; PORTAL_*=mock e a sessão simulada do Studio existem SÓ em teste. Com pro-8 cabe com folga.",
+      "ram_total_mb": 512,
+      "cabe_hoje": true,
+      "recursos": {
+        "web": {
+          "nome": "ln-staging-web",
+          "tipo": "website",
+          "ram_mb": 512,
+          "branch": "staging",
+          "build_command": "node infra/scripts/guard-env.mjs && npm run build -w apps/web",
+          "start_command": "node infra/scripts/guard-env.mjs && npx next start apps/web -p 80 -H 0.0.0.0",
+          "health_check_path": "/api/health",
+          "deploy": {
+            "zero_downtime": "auto",
+            "auto_rollback": true
+          },
+          "env": {
+            "APP_ENV": "staging",
+            "NODE_ENV": "production",
+            "APP_MODE": "nodb"
+          },
+          "subdominio": "loyaltynews-staging"
+        }
+      },
+      "requisitos_de_codigo": [
+        "/api/health responde 200 sem depender de banco nem Redis (já existe no scaffold; falta version/env)",
+        "/api/ready devolve 'degraded' com db='not_configured' quando APP_MODE=nodb (Backend)",
+        "/studio nega acesso sem login (redireciona ao login): provado pela sonda --denied /studio",
+        "nenhuma página mostra 'MOCK' em staging/produção: provado pela sonda --no-mock"
+      ]
+    },
+    "staging": {
+      "descricao": "Staging completo, espelho reduzido da produção.",
+      "ram_total_mb": 2304,
+      "cabe_hoje": true,
+      "recursos": {
+        "web": {
+          "nome": "ln-staging-web",
+          "tipo": "website",
+          "ram_mb": 512,
+          "branch": "staging",
+          "build_command": "node infra/scripts/guard-env.mjs && npm run build -w apps/web",
+          "start_command": "node infra/scripts/guard-env.mjs && npx next start apps/web -p 80 -H 0.0.0.0",
+          "health_check_path": "/api/health",
+          "deploy": {
+            "zero_downtime": "auto",
+            "auto_rollback": true
+          },
+          "env": {
+            "APP_ENV": "staging",
+            "NODE_ENV": "production"
+          },
+          "subdominio": "loyaltynews-staging"
+        },
+        "workers": {
+          "nome": "ln-staging-workers",
+          "tipo": "bot",
+          "ram_mb": 256,
+          "branch": "staging",
+          "build_command": "node infra/scripts/guard-env.mjs && npm run build -w apps/workers",
+          "start_command": "node infra/scripts/guard-env.mjs && node apps/workers/dist/index.js",
+          "health_check_path": null,
+          "deploy": {
+            "zero_downtime": "off",
+            "auto_rollback": true
+          },
+          "env": {
+            "APP_ENV": "staging",
+            "NODE_ENV": "production"
+          }
+        },
+        "postgres": {
+          "nome": "ln-staging-db",
+          "motor": "PostgreSQL",
+          "versao": "18",
+          "ram_mb": 1024,
+          "backup": {
+            "vertra_diario": true,
+            "externo": "pg_dump cifrado a cada 6 h (ADR-012)"
+          }
+        },
+        "redis": {
+          "nome": "ln-staging-redis",
+          "motor": "Redis",
+          "versao": "8.2",
+          "ram_mb": 512,
+          "backup": "não entra (reconstruído pelo reconciliador, ADR-002)"
+        },
+        "blob": {
+          "nome": "ln-staging-blob",
+          "tipo": "pasta Blob",
+          "visibilidade_padrao": "privada",
+          "quota": "compartilhada com a conta (50 GB no pro-4)",
+          "chave": "chave de API com escopo blob:* restrito à pasta (blob_prefix)"
+        }
+      }
+    },
+    "production": {
+      "descricao": "Produção. RAM do web em 512 MB é o mínimo; subir para 1024 se a monitoria mostrar pressão (RAM no get_metrics) ou reinícios por OOM.",
+      "ram_total_mb": 2432,
+      "cabe_hoje": true,
+      "recursos": {
+        "web": {
+          "nome": "ln-prod-web",
+          "tipo": "website",
+          "ram_mb": 512,
+          "branch": "main",
+          "build_command": "node infra/scripts/guard-env.mjs && npm run build -w apps/web",
+          "start_command": "node infra/scripts/guard-env.mjs && npx next start apps/web -p 80 -H 0.0.0.0",
+          "health_check_path": "/api/health",
+          "deploy": {
+            "zero_downtime": "off",
+            "auto_rollback": true,
+            "nota": "começa 'off' (a doc da Vertra manda usar 'off' para Next.js compilado: durante o deploy a versão antiga pode servir arquivos misturados). Só passa a 'auto' se o ensaio em staging, com sonda contínua, não mostrar erros."
+          },
+          "env": {
+            "APP_ENV": "production",
+            "NODE_ENV": "production"
+          },
+          "subdominio": "loyaltynews"
+        },
+        "workers": {
+          "nome": "ln-prod-workers",
+          "tipo": "bot",
+          "ram_mb": 384,
+          "branch": "main",
+          "build_command": "node infra/scripts/guard-env.mjs && npm run build -w apps/workers",
+          "start_command": "node infra/scripts/guard-env.mjs && node apps/workers/dist/index.js",
+          "health_check_path": null,
+          "deploy": {
+            "zero_downtime": "off",
+            "auto_rollback": true,
+            "nota": "'on' rodaria duas cópias juntas e processaria jobs em duplicidade; SIGTERM gracioso + BullMQ"
+          },
+          "env": {
+            "APP_ENV": "production",
+            "NODE_ENV": "production"
+          }
+        },
+        "postgres": {
+          "nome": "ln-prod-db",
+          "motor": "PostgreSQL",
+          "versao": "18",
+          "ram_mb": 1024,
+          "backup": {
+            "vertra_diario": true,
+            "externo": "pg_dump cifrado a cada 6 h (ADR-012)",
+            "rpo_alvo_h": 6,
+            "rto_alvo_h": 4
+          }
+        },
+        "redis": {
+          "nome": "ln-prod-redis",
+          "motor": "Redis",
+          "versao": "8.2",
+          "ram_mb": 512,
+          "backup": "não entra (ADR-012)"
+        },
+        "blob": {
+          "nome": "ln-prod-blob",
+          "tipo": "pasta Blob",
+          "visibilidade_padrao": "privada",
+          "chave": "chave restrita à pasta (blob_prefix)",
+          "backup": "SEM backup na Vertra: exclusão é permanente (doc, seção 22). Fora do escopo da ADR-012: decisão do proprietário (replicar ativos críticos para fora)."
+        }
+      }
+    }
+  },
+  "cenarios_de_capacidade": [
+    {
+      "nome": "pro-8 (atual, 5120 MB livres)",
+      "livre_mb": 5120,
+      "cabe": [
+        "staging (2304) + production (2432) = 4736"
+      ],
+      "sobra_mb": 384,
+      "recomendacao": "adotar: staging e produção com bancos separados (isolamento). Não é preciso compartilhar banco."
+    },
+    {
+      "nome": "alternativa só se faltar RAM no futuro",
+      "descricao": "staging e produção no mesmo PostgreSQL, em schemas separados (staging/production): economiza 1024 MB e um banco, mas perde isolamento (um erro de migração ou de carga em staging afeta produção; backup e restauração acoplados; certificado/credencial compartilhado). Não recomendado agora.",
+      "economia_mb": 1024
+    },
+    {
+      "nome": "pro-4 (anterior, 1024 MB livres)",
+      "livre_mb": 1024,
+      "cabe": [
+        "staging-min (512)"
+      ],
+      "observacao": "superado pelo upgrade; mantido só como registro"
+    }
+  ],
+  "capacidade_nota": "Usar 4736 de 5120 MB deixa 384 MB (7,5%) de folga: pouco para picos. Se o web em produção precisar de 1024 MB, a folga some (4736 + 512 = 5248 > 5120): nesse caso adotar workers de 256 em produção (-128) e/ou schemas separados em um banco só. Preços de tabela, não cotação.",
+  "dominio": {
+    "agora": "subdomínio *.vertraweb.app",
+    "staging_web": "loyaltynews-staging.vertraweb.app (se disponível)",
+    "producao_web": "loyaltynews.vertraweb.app (se disponível)",
+    "nota": "disponibilidade só se confirma ao definir o subdomínio (escrita); se ocupado, usar variante (ex.: ln-news-staging). Domínio próprio depois: pro-8 permite 2 por app, com SSL automático. Não verifiquei disponibilidade.",
+    "variavel": "APP_URL"
+  },
+  "variaveis_proibidas_em_staging_e_producao": {
+    "lista": [
+      {
+        "nome": "LN_STUDIO_TEST_SESSION",
+        "regra": "qualquer valor, no ambiente OU no build (sessão simulada do Studio, só de teste; definida em apps/web/playwright.config.ts)"
+      },
+      {
+        "nome": "PORTAL_SOURCE",
+        "regra": "valor 'mock' (só em teste)"
+      },
+      {
+        "nome": "PORTAL_MODE",
+        "regra": "valor 'mock' (só em teste)"
+      }
+    ],
+    "como_e_garantido": [
+      "build_command e start_command começam com 'node infra/scripts/guard-env.mjs &&' (o app não compila nem sobe se a variável existir; falha fechada)",
+      "ci-checks reprova ambiente, package.json (fora de scripts de teste), next.config, workflows e infra/vertra com essas atribuições",
+      "sondas de runtime no deploy: healthcheck.mjs --denied /studio --no-mock /"
+    ]
+  }
+}

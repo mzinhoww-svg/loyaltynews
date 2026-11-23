@@ -47,6 +47,7 @@
 .pt-article-sub { font-size: 20px; color: #55776d; font-family: var(--ln-font-editorial, Georgia, serif); margin-bottom: 14px; }
 .pt-byline { font-size: 14px; color: #55776d; display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 18px; }
 .pt-figure { margin: 0 0 22px; }
+.pt-figure img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 8px; }
 .pt-figure figcaption { font-size: 12px; color: #55776d; margin-top: 6px; }
 .pt-body { font-family: var(--ln-font-editorial, Georgia, serif); font-size: 19px; line-height: 1.7; }
 .pt-body h2 { font-family: var(--ln-font-ui, Inter, Arial, sans-serif); font-size: 22px; margin: 28px 0 8px; }
@@ -87,3 +88,11 @@
   .pt-event { grid-template-columns: 54px 1fr; }
   .pt-body { font-size: 18px; }
 }
+
+/* aviso de correção/errata e rótulo de imagem */
+.pt-correction { border: 1px solid #7a4b00; background: #fff8e6; color: #3d2600; border-radius: 8px; padding: 14px 16px; margin: 0 0 18px; }
+.pt-correction h2 { font-family: var(--ln-font-ui, Inter, Arial, sans-serif); font-size: 16px; margin: 0 0 6px; color: #5a3700; }
+.pt-correction p { margin: 0 0 6px; white-space: pre-line; }
+.pt-img-label { color: #153c3c; }
+.pt-card-labeled { position: relative; }
+.pt-card-labeled .pt-card-label { position: absolute; top: 8px; left: 8px; z-index: 2; background: #153c3c; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; pointer-events: none; }

@@ -34,7 +34,7 @@ function approved(id: string, over: Partial<ArticleRecord> = {}): ArticleRecord 
   return a;
 }
 
-async function seed(id: string, publisher = chefe.id, rec: ArticleRecord = approved(id), receiptSha?: string) {
+async function seed(id: string, publisher = 'portal', rec: ArticleRecord = approved(id), receiptSha?: string) {
   await app.db.insert(schema.articles).values({ id, slug: id, titulo: 'Título', editoria: 'pontos', corpo: 'Corpo', resumo: 'Resumo', status: 'aprovado' });
   await app.db.insert(schema.publicationReceipts).values({
     id: `rc-${id}`, articleId: id, versao: 1, conteudoSha256: receiptSha ?? draftContentSha256(rec.draft!), checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: publisher,
@@ -101,27 +101,28 @@ describe('registro da publicação: portões', () => {
     await nothingPublished('p-in');
   });
 
-  it('recibo inexistente ou de outra matéria: 409; identidade de publicação diferente: 403; matéria inexistente: 409 (sem recibo)', async () => {
-    await seed('p-rc', admin.id); // recibo emitido para o admin publicar
+  it('recibo inexistente ou de outra matéria: 409; recibo no formato antigo (identidade = usuário): 409 RECEIPT_STALE; matéria inexistente: 409 (sem recibo)', async () => {
+    await seed('p-rc', admin.id); // formato ANTIGO: identidade de publicação = um usuário
     await seed('p-other');
     expect((await call(d, 'POST', { path: P('p-rc'), body: body('p-rc', { receiptId: 'rc-nao-existe' }), as: chefe })).body.error.code).toBe('RECEIPT_NOT_FOUND');
     expect((await call(d, 'POST', { path: P('p-rc'), body: body('p-rc', { receiptId: 'rc-p-other' }), as: chefe })).body.error.code).toBe('RECEIPT_NOT_FOUND');
     const wrong = await call(d, 'POST', { path: P('p-rc'), body: body('p-rc'), as: chefe });
-    expect(wrong.status).toBe(403);
-    expect(wrong.body.error.code).toBe('NOT_PUBLISHER_IDENTITY');
+    expect(wrong.status).toBe(409);
+    expect(wrong.body.error.code).toBe('RECEIPT_STALE');
+    expect((await call(d, 'POST', { path: P('p-rc'), body: body('p-rc'), as: admin })).body.error.code).toBe('RECEIPT_STALE'); // nem o usuário gravado publica no formato antigo
     expect((await call(d, 'POST', { path: P('nao-existe'), body: body('nao-existe'), as: chefe })).status).toBe(409);
     await nothingPublished('p-rc');
   });
 
   it('matéria não aprovada: 409; gate refeito reprova rascunho adulterado: 409 com achados; nada gravado', async () => {
-    await seed('p-draft', chefe.id, approved('p-draft', { status: 'em_checagem' }));
+    await seed('p-draft', 'portal', approved('p-draft', { status: 'em_checagem' }));
     const nd = await call(d, 'POST', { path: P('p-draft'), body: body('p-draft'), as: chefe });
     expect(nd.status).toBe(409);
     expect(nd.body.error.code).toBe('NOT_APPROVED');
 
     const tampered = approved('p-gate');
     tampered.draft!.body = tampered.draft!.body.replace('Corpo MOCK.', 'Corpo MOCK. A alta foi de 87%.');
-    await seed('p-gate', chefe.id, tampered);
+    await seed('p-gate', 'portal', tampered);
     const g = await call(d, 'POST', { path: P('p-gate'), body: body('p-gate'), as: chefe });
     expect(g.status).toBe(409);
     expect(g.body.error.code).toBe('GATE_FAILED');
@@ -142,7 +143,7 @@ describe('recibo prova a versão e o conteúdo aprovados (achado do QA 2 em 283e
     await nothingPublished('p-ver');
     await app.db.insert(schema.publicationReceipts).values({
       id: 'rc-p-ver-2', articleId: 'p-ver', versao: 2, conteudoSha256: draftContentSha256((await store.getArticle('p-ver'))!.draft!),
-      checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: chefe.id,
+      checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: 'portal',
     });
     const ok = await call(d, 'POST', { path: P('p-ver'), body: body('p-ver', { receiptId: 'rc-p-ver-2' }), as: chefe });
     expect(ok.status).toBe(201);
@@ -150,7 +151,7 @@ describe('recibo prova a versão e o conteúdo aprovados (achado do QA 2 em 283e
   });
 
   it('sha divergente (recibo de outro conteúdo): 409 RECEIPT_CONTENT_MISMATCH, nada gravado', async () => {
-    await seed('p-sha', chefe.id, approved('p-sha'), 'c'.repeat(64));
+    await seed('p-sha', 'portal', approved('p-sha'), 'c'.repeat(64));
     const r = await call(d, 'POST', { path: P('p-sha'), body: body('p-sha'), as: chefe });
     expect(r.status).toBe(409);
     expect(r.body.error.code).toBe('RECEIPT_CONTENT_MISMATCH');
@@ -205,7 +206,7 @@ describe('registro da publicação: sucesso, duplicado e atomicidade', () => {
     expect((await store.listAudit()).filter((a) => a.target === 'p-ok' && a.action === 'article.published')).toHaveLength(1);
     expect((await store.listOutbox()).filter((o) => o.refId === 'p-ok')).toHaveLength(1);
     await app.db.insert(schema.publicationReceipts).values({
-      id: 'rc-p-ok-2', articleId: 'p-ok', versao: 2, conteudoSha256: sha, checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: chefe.id,
+      id: 'rc-p-ok-2', articleId: 'p-ok', versao: 2, conteudoSha256: sha, checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: 'portal',
     });
     const other = await call(d, 'POST', { path: P('p-ok'), body: body('p-ok', { receiptId: 'rc-p-ok-2' }), as: chefe });
     expect(other.status).toBe(409);
@@ -267,7 +268,7 @@ describe('ADR-017 ponta a ponta: recibo emitido pelo endpoint REAL → rota de p
     const { id, receipt } = await setupE2e('ok');
     const draft = (await store.getArticle(id))!.draft!;
     expect(receipt.conteudoSha256).toBe(draftContentSha256(draft));
-    expect(receipt.identidadePublicacao).toBe(chefe.id);
+    expect(receipt.identidadePublicacao).toBe('portal'); // ADR-017 §5: identidade do canal, fixada pelo servidor
     const r = await publish(id, receipt.id);
     expect(r.status).toBe(201);
     const rec = await store.getArticle(id);
@@ -496,5 +497,90 @@ describe('ADR-017 §4: articles é a projeção do conteúdo APROVADO (recibo �
     expect(one.body.data.fontes.length).toBeGreaterThan(0);
     expect(one.body.data.resumo).toBeTruthy();
     for (const k of ['id', 'status', 'classeDeDado', 'versao']) expect(one.body.data[k]).toBeUndefined();
+  });
+});
+
+describe('ADR-017 §5: quem publica (identidade do canal, aprovador e publicadoPor)', () => {
+  const rcpt = (id: string, as: any, extra: Record<string, unknown> = {}) =>
+    call(recibosRoute.POST, 'POST', { params: { id }, body: { checagens: [{ tipo: 'fatos', resultado: 'aprovado', autorModelo: 'openai' }], ...extra }, as });
+  const pubRoute = (id: string, receiptId: string, as: any) => call(d, 'POST', { path: P(id), body: { receiptId, url: `${URL_PUB}-${id}` }, as });
+
+  it('revisor emite o recibo e o editor-chefe publica: 201; identidade gravada = portal; aprovador = revisor; publicadoPor = chefe (auditoria, outbox, histórico e auditoria editorial)', async () => {
+    const id = 'q5-ok';
+    await store.putArticle(approved(id));
+    const rc = await rcpt(id, revisor);
+    expect(rc.status, JSON.stringify(rc.body)).toBe(201);
+    expect(rc.body.data).toMatchObject({ identidadePublicacao: 'portal', aprovador: revisor.id });
+    const p = await pubRoute(id, rc.body.data.id, chefe);
+    expect(p.status, JSON.stringify(p.body)).toBe(201);
+    const aud = (await app.db.select().from(schema.auditLog)).filter((a) => a.action === 'materia.publicada' && a.resourceId === id);
+    expect(aud).toHaveLength(1);
+    expect(aud[0]).toMatchObject({ actorId: chefe.id, detalhe: { publicadoPor: chefe.id, aprovador: revisor.id, receiptId: rc.body.data.id } });
+    const [ob] = await app.db.select().from(schema.outbox).where(eq(schema.outbox.refId, id));
+    expect(ob!.meta).toEqual({ publicadoPor: chefe.id, aprovador: revisor.id, receiptId: rc.body.data.id });
+    const tr = await app.db.select().from(schema.articleTransitions).where(eq(schema.articleTransitions.articleId, id));
+    expect(tr).toMatchObject([{ para: 'publicado', actorId: chefe.id, receiptId: rc.body.data.id }]);
+    expect((await store.listAudit()).some((a) => a.target === id && a.action === 'article.publisher' && a.userId === chefe.id && !!a.detail?.includes(revisor.id))).toBe(true);
+    // repetir não duplica o rastro
+    expect((await pubRoute(id, rc.body.data.id, chefe)).status).toBe(200);
+    expect((await app.db.select().from(schema.auditLog)).filter((a) => a.action === 'materia.publicada' && a.resourceId === id)).toHaveLength(1);
+  });
+
+  it('quem aprovou pode ser quem publica (editor-chefe); o admin também publica recibo de outro', async () => {
+    const a = 'q5-same';
+    await store.putArticle(approved(a));
+    const r = await rcpt(a, chefe);
+    expect((await pubRoute(a, r.body.data.id, chefe)).status).toBe(201);
+    const b = 'q5-admin';
+    await store.putArticle(approved(b));
+    const r2 = await rcpt(b, chefe);
+    expect((await pubRoute(b, r2.body.data.id, admin)).status).toBe(201);
+  });
+
+  it('revisor e editor tentam publicar: 403 por papel (flag, recibo e conteúdo válidos), sem efeito', async () => {
+    const id = 'q5-papel';
+    await store.putArticle(approved(id));
+    const rc = await rcpt(id, revisor);
+    expect((await pubRoute(id, rc.body.data.id, revisor)).status).toBe(403);
+    expect((await pubRoute(id, rc.body.data.id, editor)).status).toBe(403);
+    expect((await store.getArticle(id))?.status).toBe('aprovado');
+    expect((await store.listOutbox()).filter((o) => o.refId === id)).toHaveLength(0);
+  });
+
+  it('o cliente não escolhe a identidade: identidadePublicacao no corpo do recibo ⇒ 400 e nada é emitido', async () => {
+    const id = 'q5-campo';
+    await store.putArticle(approved(id));
+    const antes = await app.db.$count(schema.publicationReceipts);
+    for (const quem of [chefe.id, 'portal', 'qualquer']) {
+      const r = await rcpt(id, chefe, { identidadePublicacao: quem });
+      expect(r.status, quem).toBe(400);
+      expect(r.body.error.code).toBe('VALIDATION_ERROR');
+    }
+    expect(await app.db.$count(schema.publicationReceipts)).toBe(antes);
+  });
+
+  it('recibo no formato antigo (identidade = usuário) ⇒ 409 RECEIPT_STALE para qualquer um, inclusive o dono', async () => {
+    await seed('q5-velho', chefe.id);
+    for (const as of [chefe, admin]) {
+      const r = await call(d, 'POST', { path: P('q5-velho'), body: body('q5-velho'), as });
+      expect(r.status).toBe(409);
+      expect(r.body.error.code).toBe('RECEIPT_STALE');
+    }
+    await nothingPublished('q5-velho');
+  });
+
+  it('a flag e o MFA continuam exigidos: flag desligada 403 e sessão só de senha barrada, mesmo com recibo válido de outro emissor', async () => {
+    const id = 'q5-flag';
+    await store.putArticle(approved(id));
+    const rc = await rcpt(id, revisor);
+    app.deps.flags.publicacaoPortal = false;
+    try {
+      expect((await pubRoute(id, rc.body.data.id, chefe)).body.error.code).toBe('FEATURE_DISABLED');
+    } finally {
+      app.deps.flags.publicacaoPortal = true;
+    }
+    const solo = await app.passwordOnly('editor_chefe');
+    expect((await pubRoute(id, rc.body.data.id, solo)).body.error.code).toBe('MFA_REQUIRED');
+    expect((await store.getArticle(id))?.status).toBe('aprovado');
   });
 });
