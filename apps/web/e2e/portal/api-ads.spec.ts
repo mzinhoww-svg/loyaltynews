@@ -30,12 +30,14 @@ async function mockAds(page: Page, respond: (positionId: string) => unknown): Pr
   await page.route('**/api/commercial/ads/creative-image**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG }));
   return calls;
 }
-const dims = (id: string) => (id === 'TOP' ? ([1280, 150] as const) : ([336, 280] as const));
+// No mobile (≤ 767 px) o criativo tem de ser de formato mobile (320×100 ou 300×250); no desktop, o do plano.
+const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) <= 767;
+const dims = (id: string, page: Page) => (isMobile(page) ? (id === 'TOP' ? ([320, 100] as const) : ([300, 250] as const)) : id === 'TOP' ? ([1280, 150] as const) : ([336, 280] as const));
 
 test.describe('plano sem criativo real', () => {
   test.skip(ads !== 'sem', 'somente com PORTAL_API_ADS=sem');
   test('nenhuma posição aparece, nenhum espaço é reservado e o navegador nem chama o serve', async ({ page }) => {
-    const calls = await mockAds(page, (p) => creative(p, ...dims(p)));
+    const calls = await mockAds(page, (p) => creative(p, ...dims(p, page)));
     await page.goto('/noticias');
     await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('portal-ad')).toHaveCount(0);
@@ -50,7 +52,7 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
   test.skip(ads !== 'com', 'somente com PORTAL_API_ADS=com');
 
   test('só as posições do plano aparecem; rótulo Publicidade, anunciante, imagem e link patrocinado; um pageViewId por página', async ({ page }) => {
-    const calls = await mockAds(page, (p) => creative(p, ...dims(p)));
+    const calls = await mockAds(page, (p) => creative(p, ...dims(p, page)));
     await page.goto('/noticias');
     const top = page.locator('[data-testid="portal-ad"][data-position="TOP"]');
     const side = page.locator('[data-testid="portal-ad"][data-position="SIDEBAR_1"]');
@@ -88,7 +90,7 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
   });
 
   test('visível: só depois de ≥ 50 % por ≥ 1 s, uma única vez, com o impressionId', async ({ page }) => {
-    const calls = await mockAds(page, (p) => creative(p, ...dims(p)));
+    const calls = await mockAds(page, (p) => creative(p, ...dims(p, page)));
     await page.goto('/noticias');
     const top = page.locator('[data-testid="portal-ad"][data-position="TOP"]');
     await expect(top).toHaveAttribute('data-state', 'ad');
@@ -102,7 +104,7 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
   });
 
   test('impressão não contada (impressionId nulo): o anúncio aparece, mas nenhum evento é enviado', async ({ page }) => {
-    const calls = await mockAds(page, (p) => creative(p, ...dims(p), null));
+    const calls = await mockAds(page, (p) => creative(p, ...dims(p, page), null));
     await page.goto('/noticias');
     await expect(page.locator('[data-testid="portal-ad"][data-position="TOP"]')).toHaveAttribute('data-state', 'ad');
     await page.waitForTimeout(2000);
@@ -128,14 +130,14 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
   });
 
   test('anúncio com URL perigosa é descartado (javascript:)', async ({ page }) => {
-    await mockAds(page, (p) => { const c = creative(p, ...dims(p)); c.ad.href = 'javascript:alert(1)'; return c; });
+    await mockAds(page, (p) => { const c = creative(p, ...dims(p, page)); c.ad.href = 'javascript:alert(1)'; return c; });
     await page.goto('/noticias');
     await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('portal-ad')).toHaveCount(0);
   });
 
   test('a lateral existe por causa do anúncio da SIDEBAR_1 mesmo sem "Em alta"', async ({ page }) => {
-    await mockAds(page, (p) => creative(p, ...dims(p)));
+    await mockAds(page, (p) => creative(p, ...dims(p, page)));
     await page.goto('/noticias');
     await expect(page.getByRole('complementary', { name: 'Barra lateral' })).toBeVisible();
     await expect(page.locator('aside [data-testid="portal-ad"][data-position="SIDEBAR_1"]')).toHaveAttribute('data-state', 'ad');
@@ -143,7 +145,7 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
 
   test('axe com anúncios no ar', async ({ page }) => {
     test.setTimeout(90_000);
-    await mockAds(page, (p) => creative(p, ...dims(p)));
+    await mockAds(page, (p) => creative(p, ...dims(p, page)));
     await page.goto('/noticias');
     await expect(page.getByTestId('portal-ad').first()).toHaveAttribute('data-state', 'ad');
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -153,7 +155,7 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
 
   test('navegação interna (sem recarregar) usa um novo pageViewId na página seguinte', async ({ page }) => {
     test.setTimeout(90_000);
-    const calls = await mockAds(page, (p) => creative(p, ...dims(p)));
+    const calls = await mockAds(page, (p) => creative(p, ...dims(p, page)));
     await page.goto('/noticias');
     await expect(page.getByTestId('portal-ad').first()).toHaveAttribute('data-state', 'ad');
     await page.waitForFunction(() => Boolean((window as unknown as { next?: { router?: unknown } }).next?.router));
@@ -164,5 +166,39 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
     const segundo = calls.serve.find((s) => s.pageViewId !== primeiro)!.pageViewId;
     // Todas as posições da mesma página compartilham o id
     await expect.poll(() => new Set(calls.serve.filter((s) => s.pageViewId === segundo).map((s) => s.positionId)).size, { timeout: 15_000 }).toBe(2);
+  });
+
+  test('mobile: pede device=mobile, usa o criativo de 320×100 (topo) e 300×250 (sidebar) sem estourar a largura; desktop não manda device', async ({ page }) => {
+    const calls = await mockAds(page, (p) => creative(p, ...dims(p, page)));
+    await page.goto('/noticias');
+    await expect(page.getByTestId('portal-ad').first()).toHaveAttribute('data-state', 'ad');
+    const mobile = isMobile(page);
+    for (const s of calls.serve) {
+      if (mobile) expect((s as { device?: string }).device).toBe('mobile');
+      else expect((s as { device?: string }).device).toBeUndefined();
+    }
+    if (!mobile) return;
+    const topBox = page.locator('[data-testid="portal-ad"][data-position="TOP"] .ln-ad__box');
+    const sideBox = page.locator('[data-testid="portal-ad"][data-position="SIDEBAR_1"] .ln-ad__box');
+    await sideBox.scrollIntoViewIfNeeded();
+    const t = (await topBox.boundingBox())!;
+    const sd = (await sideBox.boundingBox())!;
+    expect(Math.round(t.width)).toBeLessThanOrEqual(320);
+    expect(Math.abs(t.width / t.height - 3.2)).toBeLessThan(0.05); // 320×100
+    expect(Math.round(sd.width)).toBeLessThanOrEqual(300);
+    expect(Math.abs(sd.width / sd.height - 1.2)).toBeLessThan(0.05); // 300×250
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `e2e/screenshots/api/${test.info().project.name}-anuncio-mobile.png`, fullPage: false });
+  });
+
+  test('mobile: criativo de formato desktop recebido no mobile NÃO é exibido (recolhe, sem espaço reservado e sem evento de visibilidade)', async ({ page }) => {
+    test.skip(!isMobile(page), 'somente no mobile');
+    const calls = await mockAds(page, (p) => creative(p, p === 'TOP' ? 1280 : 336, p === 'TOP' ? 150 : 280));
+    await page.goto('/noticias');
+    await page.waitForLoadState('networkidle');
+    await page.mouse.wheel(0, 600);
+    await page.waitForTimeout(1500);
+    await expect(page.getByTestId('portal-ad')).toHaveCount(0);
+    expect(calls.events).toEqual([]);
   });
 });

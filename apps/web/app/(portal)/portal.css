@@ -128,3 +128,13 @@
   .pt-chip { min-height: var(--ln-touch-target); }
   .pt-table a.pt-tap { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); }
 }
+
+/* Publicidade no mobile (≤ 767 px): formatos 320×100 e 300×250 do inventário. A caixa do DS traz proporção inline do formato desktop
+   (ex.: 1280×150, que viraria uma faixa de 46 px); aqui ela é trocada pela do formato mobile. Reserva só enquanto o criativo carrega
+   (TOP/rodapé 320×100; sidebars 300×250) e, com o criativo real, usa a dimensão dele. Sem criativo a posição recolhe (nada reservado). */
+@media (max-width: 767px) {
+  .pt-ad[data-device='mobile'] { margin-inline: auto; text-align: center; }
+  .pt-ad[data-device='mobile'][data-state='reservado'] .ln-ad__box { aspect-ratio: 320 / 100 !important; max-width: 320px !important; }
+  .pt-ad[data-device='mobile'][data-state='reservado'][data-position^='SIDEBAR'] .ln-ad__box { aspect-ratio: 300 / 250 !important; max-width: 300px !important; }
+  .pt-ad[data-device='mobile'][data-state='ad'] .ln-ad__box { aspect-ratio: var(--pt-ad-w) / var(--pt-ad-h) !important; max-width: calc(var(--pt-ad-w) * 1px) !important; }
+}
