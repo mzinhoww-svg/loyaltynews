@@ -141,7 +141,8 @@ describe('C1: pull → heartbeat → io → callback assinados, com a parada lig
     }, 60_000);
   }
 
-  // Sem assinatura: a ordem das checagens decide o que um chamador SEM o segredo descobre. Fixamos o comportamento atual, inclusive a exceção.
+  // Sem assinatura: a ordem das checagens decide o que um chamador SEM o segredo descobre. Desde ft/backend 59eed1b não há exceção: a assinatura
+  // vem antes de QUALQUER parada (despacho desligado, kill switch, piloto parado), em todas as rotas do agente.
   const semAssinatura = async (r: Route, body: unknown) =>
     (await r.POST(new Request('http://localhost:3000/api/openbot/x', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }))).status;
 
@@ -159,16 +160,22 @@ describe('C1: pull → heartbeat → io → callback assinados, com a parada lig
     }
   });
 
-  it('EXCEÇÃO: com o despacho desligado (sem kill), o PULL responde 423 DISPATCH_OFF ANTES de conferir a assinatura; as outras rotas seguem 401', async () => {
-    // _lib/openbot.ts (openbotRoute): a recusa por despacho desligado vale "antes de qualquer efeito" e antes do HMAC. Efeito: sem o segredo, dá para
-    // saber que o despacho está desligado (só isso; nada é lido, entregue ou gravado). Se a ordem mudar para assinar primeiro, este teste deve mudar junto.
+  it('despacho desligado (sem kill): sem assinatura ou com segredo errado o pull dá 401 (o estado da flag não aparece); com assinatura válida, 423 DISPATCH_OFF; nada é entregue', async () => {
+    // Decisão do Backend 1 (ft/backend 59eed1b): o HMAC vem antes do DISPATCH_OFF, igual ao kill switch.
     app.deps.flags.openbotDispatch = false;
-    const r = await pull.POST(new Request('http://localhost:3000/api/openbot/pull', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"workerId":"w"}' }));
-    expect(r.status).toBe(423);
-    expect((await r.json()).error.code).toBe('DISPATCH_OFF');
+    await new PgLeaseQueue(app.db as any).enqueue({ kind: 'editorial_draft', profileId: 'writer_pontos', refId: 'c1-x', idempotencyKey: 'c1-idem-x', dataClass: 'public', maxCostMicro: 1_000_000 }, app.clock.now);
+    const sem = await pull.POST(new Request('http://localhost:3000/api/openbot/pull', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"workerId":"w"}' }));
+    expect(sem.status).toBe(401);
+    expect(JSON.stringify(await sem.json())).not.toMatch(/DISPATCH_OFF|despacho/i);
+    const raw = '{"workerId":"w"}';
+    const ts = app.clock.now.getTime();
+    const errado = await pull.POST(new Request('http://localhost:3000/api/openbot/pull', { method: 'POST', headers: { 'content-type': 'application/json', 'x-ln-timestamp': String(ts), 'x-ln-signature': signBody('segredo-errado', ts, raw) }, body: raw }));
+    expect(errado.status).toBe(401);
+    const ok = await post(pull, { workerId: 'w' });
+    expect([ok.status, ok.body.error.code]).toEqual([423, 'DISPATCH_OFF']);
     expect(await semAssinatura(heartbeat, { taskId: 'task-x', leaseId: 'lease-x' })).toBe(401);
     expect(await semAssinatura(ioInput, { taskId: 'task-x', leaseId: 'lease-x' })).toBe(401);
     expect(await semAssinatura(callback, { callbackId: 'cb-x', taskId: 'task-x', leaseId: 'lease-x', outcome: 'failed' })).toBe(401);
-    expect(await new PgLeaseQueue(app.db as any).counts()).toMatchObject({ leased: 0 }); // nada foi entregue
+    expect(await new PgLeaseQueue(app.db as any).counts()).toMatchObject({ pending: 1, leased: 0 }); // nada foi entregue
   });
 });
