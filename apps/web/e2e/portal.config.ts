@@ -42,7 +42,7 @@ export default defineConfig({
           ? /api-site\.spec\.ts/
           : apiAds
             ? /api-ads\.spec\.ts/
-          : /(api|api-site|api-agenda|env)\.spec\.ts/
+          : /(api|api-site|api-agenda|api-tipos|env)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
         : /env\.spec\.ts/,

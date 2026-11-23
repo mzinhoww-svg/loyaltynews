@@ -75,6 +75,13 @@ const articles = [
   },
 ];
 
+// Entrevista e opinião (para /entrevistas e /opiniao). Sem imagem; só entram nas listas do seu tipo e nas gerais.
+const corpoSimples = (t) => [`${t} (MOCK).`, '', 'Fontes:', '- https://fonte.example/mock'].join('\n');
+articles.push(
+  { ...base, slug: 'api-entrevista', titulo: '[MOCK API] Entrevista de teste (MOCK)', resumo: 'Resumo de entrevista (MOCK).', tipoConteudo: 'entrevista', tempoLeituraMin: 4, editoria: 'global', corpo: corpoSimples('Texto de entrevista'), imagem: null, publicadoEm: '2026-11-16T10:00:00-03:00' },
+  { ...base, slug: 'api-opiniao', titulo: '[MOCK API] Opinião de teste (MOCK)', resumo: 'Resumo de opinião (MOCK).', tipoConteudo: 'opiniao', tempoLeituraMin: 3, editoria: 'global', corpo: corpoSimples('Texto de opinião'), imagem: null, publicadoEm: '2026-11-15T10:00:00-03:00' },
+);
+
 // Matéria com título/resumo hostis: só existe na rota de detalhe (não aparece nas listagens).
 const hostil = { ...base, slug: 'api-xss', titulo: '[MOCK API] </script><script>window.__xss_titulo=1</script> Matéria hostil', resumo: 'Resumo </script><script>window.__xss_resumo=1</script> (MOCK).', tipoConteudo: 'noticia', tempoLeituraMin: 1, editoria: 'global', corpo: 'Texto de teste (MOCK).\n\nFontes:\n- https://fonte.example/mock', imagem: { url: '/api/publico/midia/xss-1', origem: 'fonte_terceiro', credito: '</script><script>window.__xss_credito=1</script>', baseDeDireito: 'licenca', edicoes: [], textoAlternativo: 'Foto </script><script>window.__xss_alt=1</script>' }, publicadoEm: '2026-11-17T10:00:00-03:00' };
 
@@ -105,7 +112,7 @@ const siteFull = () => ({
     blocos: [
       { tipo: 'destaque', id: 'foco', titulo: 'Em foco do dia (MOCK)', materiaSlugs: ['api-ilustracao-corrigida', 'api-foto-terceiro'], materias: [articles[0], articles[2]].map(listItem) },
       { tipo: 'lista_editoria', id: 'pontos', editoria: 'pontos', limite: 6, titulo: 'Pontos publicados (MOCK)', materias: [articles[1]].map(listItem) },
-      { tipo: 'ultimas', id: 'ultimas', limite: 10, materias: articles.map(listItem) },
+      { tipo: 'ultimas', id: 'ultimas', limite: 10, materias: articles.slice(0, 3).map(listItem) },
       {
         tipo: 'agenda',
         id: 'agenda',
@@ -170,6 +177,7 @@ const adPlan = (positions) => ({
   slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1] } : { positionId: id, available: false, width: null, height: null })),
 });
 
+const TIPOS = ['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // MOCK de GET /api/commercial/mediakit (formato do handler getMediaKit do @ln/commercial). Só para o e2e do portal em modo api.
 const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
@@ -227,7 +235,11 @@ http
       const offset = Number(u.searchParams.get('offset') ?? 0);
       const ed = u.searchParams.get('editoria');
       const q = u.searchParams.get('q')?.toLowerCase();
-      const all = articles.filter((a) => (!ed || a.editoria === ed) && (!q || a.titulo.toLowerCase().includes(q)));
+      // Contrato: `tipo` filtra por tipoConteudo (valor inválido = 422); q com até 100 caracteres (acima disso = 422), como o Backend.
+      const tipo = u.searchParams.get('tipo');
+      if (tipo && !TIPOS.includes(tipo)) return send(res, 422, { error: { code: 'VALIDATION_ERROR', message: 'tipo inválido' } });
+      if (q && q.length > 100) return send(res, 422, { error: { code: 'VALIDATION_ERROR', message: 'q longo' } });
+      const all = articles.filter((a) => (!ed || a.editoria === ed) && (!tipo || a.tipoConteudo === tipo) && (!q || a.titulo.toLowerCase().includes(q)));
       return send(res, 200, { data: all.slice(offset, offset + limit).map(listItem), total: all.length, limit, offset });
     }
     const m = /^\/api\/publico\/materias\/([^/]+)$/.exec(u.pathname);

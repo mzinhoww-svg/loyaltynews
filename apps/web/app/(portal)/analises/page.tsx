@@ -17,8 +17,8 @@ export default async function AnalisesPage({ searchParams }: { searchParams: Pro
       basePath="/analises"
       page={parsePage(sp.page)}
       contentType="analise"
-      emptyTitle="Análises em breve"
-      emptyText="As primeiras análises aparecerão aqui quando forem publicadas."
+      emptyTitle="Nenhuma análise publicada"
+      emptyText="Quando houver análises publicadas, elas aparecem aqui, da mais recente para a mais antiga."
     />
   );
 }
