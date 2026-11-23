@@ -233,3 +233,6 @@ export function reportCsv(r: CampaignReport, kind: ReportCsvKind): { filename: s
     csv: kind === 'diario' ? reportDailyCsv(r) : reportSummaryCsv(r),
   };
 }
+
+/** Utilitários compartilhados com o relatório do anunciante (advertiser-report.ts). Uso interno do pacote. */
+export const reportInternals = { DAY_MS, parseDay, isDay, rate, spDate, line, BOM, EOL };
