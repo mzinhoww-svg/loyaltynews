@@ -1,26 +1,9 @@
-// Sessão do LN Studio. Usa @ln/auth (stub do scaffold nega; o Backend entrega a real).
-// Este arquivo NÃO contém sessão simulada. O único gancho de teste é o "seam" injetado pelo chamador:
-// no build de produção o seam é `null` (test-seam.prod.ts); o código simulado vive em test-seam.e2e.mock.ts
-// e só entra no build de e2e por alias em next.config.ts (LN_E2E_BUILD=1). Ver scripts/verify-no-mock.mjs.
+// Sessão do LN Studio: sempre a sessão REAL de @ln/auth (Better Auth: cookie + MFA + papel). Não há sessão simulada
+// no código do Studio. Os testes e2e entram por um login real contra um backend em PGlite que só existe no build de e2e
+// (lib/studio/e2e-backend.e2e.mock.ts, alias em next.config.ts).
 import { getSession, type Session } from '@ln/auth';
 
-export type TestSeam = (headers: Headers, env: Record<string, string | undefined>) => Session | null;
-
-export interface ResolvedSession {
-  session: Session | null;
-  /** true quando a sessão veio do seam de teste (a UI deve exibir MOCK). */
-  simulada: boolean;
-}
-
-export async function resolveStudioSession(
-  headers: Headers,
-  seam: TestSeam | null = null,
-  env: Record<string, string | undefined> = process.env,
-): Promise<ResolvedSession> {
-  if (seam) {
-    const sim = seam(headers, env);
-    if (sim) return { session: sim, simulada: true };
-  }
+export async function resolveStudioSession(headers: Headers): Promise<{ session: Session | null }> {
   const session = await getSession(new Request('http://studio.local/', { headers }));
-  return { session, simulada: false };
+  return { session };
 }
