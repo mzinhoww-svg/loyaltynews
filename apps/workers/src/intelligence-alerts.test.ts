@@ -5,6 +5,7 @@ import { runAlertCycle, startIntelligenceAlerts } from './intelligence-alerts';
 
 const T = '2026-11-01T00:00:00Z';
 const ON = { personIngestion: true, extendedPersonalData: false } as const;
+const FLAG = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas' };
 const db0 = { query: async () => ({ rows: [] }) } as unknown as IntelDb;
 
 describe('job de alertas das watchlists: desligado por padrão', () => {
@@ -17,9 +18,20 @@ describe('job de alertas das watchlists: desligado por padrão', () => {
     expect(lines.join('\n')).toMatch(/LN_INTELLIGENCE_PESSOAS/);
   });
 
+  it('ADR-022: com as chaves mas sem a flag (ou em produção) não liga; flags inválidas não ligam', () => {
+    const lines: string[] = [];
+    const log = (l: string) => lines.push(l);
+    const KEYS = { LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on' };
+    expect(startIntelligenceAlerts({ db: db0, env: KEYS, log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: { ...KEYS, APP_ENV: 'production' }, log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: { ...KEYS, APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, log })).toBeNull();
+    expect(lines.join('\n')).toMatch(/flag intelligencePessoas não ligada/);
+    expect(lines.join('\n')).toMatch(/sem decisão para production/);
+  });
+
   it('com as duas chaves liga (janela 30 d; a cada 15 min por padrão; piso de 5 min) e o stop cancela os timers', () => {
     const lines: string[] = [];
-    const h = startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on', LN_ALERTS_INTERVAL_MIN: '1' }, log: (l) => lines.push(l) });
+    const h = startIntelligenceAlerts({ db: db0, env: { ...FLAG, LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on', LN_ALERTS_INTERVAL_MIN: '1' }, log: (l) => lines.push(l) });
     expect(h).not.toBeNull();
     h!.stop();
     expect(lines[0]).toBe('[intelligence-alerts] ligado: janela 30 d, a cada 5 min');
@@ -71,8 +83,16 @@ describe('ciclo de alertas: só Move CONFIRMADO gera alerta, uma vez, só dentro
     expect(new Set(alertas.map((a) => a.person_name))).toEqual(new Set(['MOCK Caio']));
     expect(alertas.every((a) => a.status === 'pending_review' && a.watchlist_id === wl)).toBe(true);
 
-    // idempotente
+    // auditoria: uma linha por alerta, ator sistema, só ids
+    const aud = (await t.client.query(`SELECT actor_id, actor_role, resource_id, detalhe FROM audit_log WHERE action = 'intelligence.alerta_gerado'`)).rows as Array<{ actor_id: string | null; actor_role: string; resource_id: string; detalhe: unknown }>;
+    expect(aud.length).toBe(r1.created);
+    expect(new Set(aud.map((x) => x.resource_id))).toEqual(new Set(alertas.map((a) => a.id)));
+    expect(aud.every((x) => x.actor_id === null && x.actor_role === 'sistema')).toBe(true);
+    expect(JSON.stringify(aud)).not.toContain('MOCK Caio');
+
+    // idempotente (e sem auditoria nova)
     expect((await runAlertCycle(db, { now })).created).toBe(0);
+    expect((await t.client.query(`SELECT count(*)::int AS n FROM audit_log WHERE action = 'intelligence.alerta_gerado'`)).rows[0].n).toBe(r1.created);
     expect((await listAlerts(db)).length).toBe(alertas.length);
 
     // fora da janela: o Move detectado há mais de 30 dias não entra
