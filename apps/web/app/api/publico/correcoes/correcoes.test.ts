@@ -92,7 +92,7 @@ describe('POST /api/publico/correcoes (canal do titular, DP-38)', () => {
     const now = new Date();
     const vals = Array.from({ length: faltam }, (_, i) => ({
       id: `cheia-${i}`, tipo: 'correcao', estado: 'recebido', nome: 'X', contato: `c${i}@x.example`, url: 'https://x.example', texto: 'enchimento de fila',
-      chaveDedupe: `chave-${i}`, recebidoEm: now, atualizadoEm: now,
+      chaveDedupe: `chave-${i}`, recebidoEm: now, atualizadoEm: now, prazoEm: now,
     }));
     for (let i = 0; i < vals.length; i += 100) await app.db.insert(schema.titularPedidos).values(vals.slice(i, i + 100));
     const r = await enviar(pedido());
@@ -102,7 +102,7 @@ describe('POST /api/publico/correcoes (canal do titular, DP-38)', () => {
 
   it('o banco recusa tipo ou estado fora da lista', async () => {
     const now = new Date();
-    const base = { nome: 'X', contato: 'x@x.example', url: 'https://x.example', texto: 'xxxxxxxxxx', recebidoEm: now, atualizadoEm: now };
+    const base = { nome: 'X', contato: 'x@x.example', url: 'https://x.example', texto: 'xxxxxxxxxx', recebidoEm: now, atualizadoEm: now, prazoEm: now };
     await expect(app.db.insert(schema.titularPedidos).values({ ...base, id: 'bad1', tipo: 'apagar', chaveDedupe: 'b1' })).rejects.toThrow();
     await expect(app.db.insert(schema.titularPedidos).values({ ...base, id: 'bad2', tipo: 'correcao', estado: 'publicado', chaveDedupe: 'b2' })).rejects.toThrow();
   });

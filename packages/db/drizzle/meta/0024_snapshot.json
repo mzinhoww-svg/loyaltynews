@@ -1,5 +1,5 @@
 {
-  "id": "b60934f2-4274-4c7c-9d8f-4bb7b54bb06e",
+  "id": "afc3bca6-36f8-43df-86ba-118aa4b2165e",
   "prevId": "7a361b44-724b-4e0c-b61b-c29c961c5fdd",
   "version": "7",
   "dialect": "postgresql",
@@ -6274,6 +6274,48 @@
           "primaryKey": false,
           "notNull": true
         },
+        "alvo_tipo": {
+          "name": "alvo_tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alvo_id": {
+          "name": "alvo_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "responsavel": {
+          "name": "responsavel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prazo_em": {
+          "name": "prazo_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decisao": {
+          "name": "decisao",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decidido_por": {
+          "name": "decidido_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decidido_em": {
+          "name": "decidido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "chave_dedupe": {
           "name": "chave_dedupe",
           "type": "text",
@@ -6343,7 +6385,19 @@
         },
         "titular_estado": {
           "name": "titular_estado",
-          "value": "\"titular_pedidos\".\"estado\" IN ('recebido', 'em_analise', 'atendido', 'recusado')"
+          "value": "\"titular_pedidos\".\"estado\" IN ('recebido', 'em_analise', 'corrigido', 'removido', 'negado')"
+        },
+        "titular_alvo_tipo": {
+          "name": "titular_alvo_tipo",
+          "value": "\"titular_pedidos\".\"alvo_tipo\" IS NULL OR \"titular_pedidos\".\"alvo_tipo\" IN ('pessoa', 'cargo', 'move')"
+        },
+        "titular_decidido_coerente": {
+          "name": "titular_decidido_coerente",
+          "value": "(\"titular_pedidos\".\"estado\" IN ('recebido', 'em_analise')) = (\"titular_pedidos\".\"decidido_em\" IS NULL)"
+        },
+        "titular_negado_com_motivo": {
+          "name": "titular_negado_com_motivo",
+          "value": "\"titular_pedidos\".\"estado\" <> 'negado' OR length(trim(coalesce(\"titular_pedidos\".\"decisao\"->>'motivo', ''))) > 0"
         }
       },
       "isRLSEnabled": false
