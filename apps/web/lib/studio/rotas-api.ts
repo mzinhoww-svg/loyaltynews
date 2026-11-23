@@ -12,6 +12,7 @@ import * as midiasRoute from '@/app/api/midia/route';
 import * as midiaRoute from '@/app/api/midia/[id]/route';
 import * as agendasRoute from '@/app/api/agenda/route';
 import * as agendaRoute from '@/app/api/agenda/[id]/route';
+import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -88,6 +89,7 @@ export interface EventoAgenda {
 }
 
 const E = '/api/studio/editorial';
+const C = '/api/commercial';
 
 export const api = {
   materias: {
@@ -116,6 +118,23 @@ export const api = {
     criar: (corpo: unknown) => chamar<{ data: EventoAgenda }>(agendasRoute.POST as Despachante, '/api/agenda', { metodo: 'POST', corpo }),
     atualizar: (id: string, corpo: unknown) => chamar<{ data: EventoAgenda }>(comParams(agendaRoute.PATCH as Handler, { id }), `/api/agenda/${id}`, { metodo: 'PATCH', corpo }),
     excluir: (id: string) => chamar(comParams(agendaRoute.DELETE as Handler, { id }), `/api/agenda/${id}`, { metodo: 'DELETE' }),
+  },
+  comercial: {
+    formatos: (query: Record<string, string | undefined> = {}) => chamar(dispatchCommercial, `${C}/formats`, { query }),
+    midiaKit: () => chamar(dispatchCommercial, `${C}/mediakit`),
+    inventario: (from: string, to: string) => chamar(dispatchCommercial, `${C}/studio/inventory`, { query: { from, to } }),
+    leads: (status?: string) => chamar(dispatchCommercial, `${C}/studio/leads`, { query: { status } }),
+    /** Lead registrado pelo comercial: mesma rota pública do formulário do mídia kit (mesmas regras e consentimento gravado no servidor). */
+    registrarLead: (corpo: unknown) => chamar(dispatchCommercial, `${C}/leads`, { metodo: 'POST', corpo }),
+    qualificarLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/qualify`, { metodo: 'POST', corpo: { leadId } }),
+    descartarLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/discard`, { metodo: 'POST', corpo: { leadId } }),
+    converterLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/convert`, { metodo: 'POST', corpo: { leadId } }),
+    oportunidades: () => chamar(dispatchCommercial, `${C}/studio/opportunities`),
+    moverEstagio: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/opportunities/stage`, { metodo: 'POST', corpo }),
+    painel: (from: string, to: string) => chamar(dispatchCommercial, `${C}/studio/dashboard`, { query: { from, to } }),
+    criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
+    campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
+    transicaoCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns/transition`, { metodo: 'POST', corpo }),
   },
   editorial: {
     fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
