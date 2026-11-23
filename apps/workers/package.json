@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./editorial-store": "./src/editorial-store.ts",
     "./ad-redis": "./src/ad-redis.ts",
-    "./outbox": "./src/pg-stores.ts"
+    "./outbox": "./src/pg-stores.ts",
+    "./redis-tls": "./src/redis-tls.ts"
   },
   "types": "./src/index.ts",
   "dependencies": {
