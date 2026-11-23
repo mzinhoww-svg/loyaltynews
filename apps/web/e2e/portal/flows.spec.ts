@@ -142,7 +142,74 @@ test.describe('SEO básico', () => {
   });
 });
 
+test.describe('mídia kit: alvos de toque (UI/UX: mínimo de 44 px no mobile)', () => {
+  test('os 10 links de editoria, os botões e os atalhos do mídia kit têm pelo menos 44 × 44 px', async ({ page }, info) => {
+    test.skip(info.project.name !== 'mobile');
+    await page.goto('/midia-kit');
+    const alvos = page.locator('#cobertura .pt-table a, main .ln-btn, nav[aria-label="Seções do mídia kit"] a');
+    expect(await alvos.count()).toBeGreaterThanOrEqual(13); // 10 editorias + 2 botões + 4 atalhos (a contagem exata muda com o conteúdo)
+    const ruins: string[] = [];
+    for (const el of await alvos.all()) {
+      const box = await el.boundingBox();
+      const nome = ((await el.innerText()).trim() || (await el.getAttribute('aria-label')) || '?').slice(0, 40);
+      if (!box || box.height < 44 - 0.5 || box.width < 44 - 0.5) ruins.push(`${nome}: ${Math.round(box?.width ?? 0)}×${Math.round(box?.height ?? 0)}`);
+    }
+    expect(ruins, 'alvos de toque menores que 44 px').toEqual([]);
+    expect(await page.locator('#cobertura .pt-table a').count()).toBe(10);
+  });
+});
+
 test.describe('honestidade de dados', () => {
+  test('V-05: cobertura do mídia kit — demonstração leva selo MOCK; sem dado real mostra "—" e "sem dado real"', async ({ page }) => {
+    await page.goto('/midia-kit');
+    for (const key of ['articles', 'events']) {
+      const card = page.getByTestId(`coverage-${key}`);
+      const value = (await card.locator(':scope > strong').innerText()).replace(/\s+/g, ' ').trim();
+      if (mode === 'mock') {
+        if (value.startsWith('—')) continue;
+        await expect(card).toHaveAttribute('data-mock', 'true');
+        await expect(card).toContainText('MOCK');
+        await expect(card).toContainText('Demonstração');
+      } else {
+        expect(value).toBe('—');
+        await expect(card).toContainText('sem dado real');
+        await expect(card).toHaveAttribute('data-mock', 'false');
+      }
+    }
+    // Editorias é taxonomia do portal, nunca marcada como demonstração
+    await expect(page.getByTestId('coverage-editorias')).toHaveAttribute('data-mock', 'false');
+  });
+
+  test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop');
+    await page.goto('/midia-kit');
+    const r = await page.evaluate(() => {
+      const parse = (c: string): [number, number, number, number] => {
+        const m = /rgba?\(([^)]+)\)/.exec(c)!; const p = m[1]!.split(',').map((x) => parseFloat(x));
+        return [p[0]!, p[1]!, p[2]!, p[3] ?? 1];
+      };
+      const lum = ([r, g, b]: number[]) => { const f = [r!, g!, b!].map((v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }); return 0.2126 * f[0]! + 0.7152 * f[1]! + 0.0722 * f[2]!; };
+      const ratio = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x! + 0.05) / (y! + 0.05); };
+      const bgOf = (el: Element): [number, number, number, number] => { let e: Element | null = el; while (e) { const c = parse(getComputedStyle(e).backgroundColor); if (c[3] > 0) return c; e = e.parentElement; } return [255, 255, 255, 1]; };
+      const hero = document.querySelector('.pt-hero-band')!;
+      const heroBg = bgOf(hero);
+      const info = (id: string) => {
+        const el = document.querySelector(`[data-testid="${id}"]`)!; const cs = getComputedStyle(el);
+        const color = parse(cs.color); const own = parse(cs.backgroundColor);
+        const bg = own[3] > 0 ? own : heroBg; const border = parse(cs.borderTopColor);
+        return { textRatio: ratio(color, bg), buttonVsHero: ratio(own[3] > 0 ? own : border, heroBg), borderWidth: parseFloat(cs.borderTopWidth), borderVisible: border[3] > 0 };
+      };
+      return { primary: info('mk-cta-primary'), secondary: info('mk-cta-secondary') };
+    });
+    expect(r.primary.textRatio).toBeGreaterThanOrEqual(4.5);
+    expect(r.primary.buttonVsHero).toBeGreaterThanOrEqual(3);
+    expect(r.secondary.textRatio).toBeGreaterThanOrEqual(4.5);
+    expect(r.secondary.borderWidth).toBeGreaterThan(0);
+    expect(r.secondary.buttonVsHero).toBeGreaterThanOrEqual(3);
+    await expect(page.getByTestId('mk-cta-primary')).toBeVisible();
+    await expect(page.getByTestId('mk-cta-secondary')).toBeVisible();
+  });
+
   test('mídia kit nunca exibe métrica numérica de audiência sem coleta', async ({ page }) => {
     await page.goto('/midia-kit');
     const aud = page.locator('#audiencia');

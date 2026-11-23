@@ -3,7 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // O require condicional das fixtures (R8) não resolve .ts no Vitest; o teste troca a fonte por uma dublê controlada.
 const getLatest = vi.fn();
 let kind: 'mock' | 'empty' | 'api' = 'mock';
-vi.mock('../app/(portal)/_lib/source', () => ({ getSource: () => ({ kind, getLatest }) }));
+let noindexPublicado = false;
+vi.mock('../app/(portal)/_lib/source', () => ({
+  getSource: () => ({
+    kind,
+    getLatest,
+    getSiteConfig: async () => (noindexPublicado ? { home: null, menus: { main: null, footer: null }, seo: { title: 't', description: 'd', noindex: true }, internalLinks: [] } : null),
+  }),
+}));
 
 import { GET } from '../app/(portal)/feed.xml/route';
 
@@ -12,6 +19,7 @@ const article = { slug: 'x', title: '[MOCK] Matéria de teste', summary: 'Resumo
 afterEach(() => vi.unstubAllEnvs());
 
 beforeEach(() => {
+  noindexPublicado = false;
   getLatest.mockReset();
   getLatest.mockResolvedValue({ items: [article], page: 1, pageSize: 30, total: 1 });
 });
@@ -49,6 +57,15 @@ describe('feed.xml (Security R6: vitrine fora do feed)', () => {
       vi.stubEnv('PORTAL_INDEXAVEL', v);
       expect(await (await GET()).text()).not.toContain('<item>');
     }
+  });
+
+  it('noindex publicado no Studio soma-se ao bloqueio: produção indexável com seo noindex sai sem itens', async () => {
+    kind = 'api';
+    noindexPublicado = true;
+    vi.stubEnv('APP_ENV', 'production');
+    vi.stubEnv('PORTAL_INDEXAVEL', '1');
+    expect(await (await GET()).text()).not.toContain('<item>');
+    expect(getLatest).not.toHaveBeenCalled();
   });
 
   it('staging, mesmo com a variável, também sai sem itens', async () => {

@@ -8,10 +8,13 @@ import {
   type AdPosition,
 } from '@ln/ui';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { cache, type ReactNode } from 'react';
+import { AD_POSITION_OF, fetchAdPlan, type AdPlan } from '../_lib/ads';
+import { portalApiBase } from '../_lib/commercial-source';
 import { editoriaName } from '../_lib/editorias';
 import { getSource } from '../_lib/source';
 import type { AdSlotId, Article, Page } from '../_lib/types';
+import { PortalAd } from './PortalAd';
 
 /** Selo compacto: "MOCK" visível; o texto completo para leitor de tela ("· dados de exemplo") vem do `MockBadge` do DS (ln-sr-only). */
 export function MockTag() {
@@ -150,12 +153,23 @@ const AD_POSITION: Record<AdSlotId, AdPosition> = {
   rodape: 'FOOTER',
 };
 
+/** Plano das posições (modo api): uma leitura por requisição, cacheável por 60 s. O servidor nunca chama o serve (impressão só no navegador). */
+export const loadAdPlan = cache((): Promise<AdPlan> => fetchAdPlan(portalApiBase()));
+
 /**
- * Espaço publicitário. Sem criativo no inventário não renderiza nada (o placeholder do DS não é
- * usado em produção). Com criativo, usa o `AdSlot` do DS (rotulado "Publicidade", dimensão reservada).
+ * Espaço publicitário. Só criativo real aparece; sem criativo a posição fica oculta, sem espaço reservado.
+ *  - Modo api: o servidor consulta o PLANO (posição disponível ou não). Disponível reserva a dimensão do plano e entrega a um componente
+ *    cliente que, depois de hidratar, pede o anúncio, rotula como "Publicidade" e reporta a visibilidade. Indisponível não renderiza nada.
+ *  - Demais modos: `getAd` (sem criativo no inventário, nada é renderizado).
  */
 export async function AdSlot({ slot }: { slot: AdSlotId }) {
-  const ad = await getSource().getAd(slot);
+  const src = getSource();
+  if (src.kind === 'api') {
+    const planned = (await loadAdPlan()).get(AD_POSITION_OF[slot]);
+    if (!planned) return null;
+    return <PortalAd position={planned.positionId as AdPosition} width={planned.width} height={planned.height} />;
+  }
+  const ad = await src.getAd(slot);
   if (!ad) return null;
   return (
     <DsAdSlot position={AD_POSITION[slot]}>

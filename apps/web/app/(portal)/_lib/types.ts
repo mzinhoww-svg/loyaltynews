@@ -75,23 +75,47 @@ export interface Page<T> {
   page: number;
   pageSize: number;
   total: number;
+  /** Fonte api: a API falhou (rede, timeout, status não-OK, resposta inválida). Diferente de lista vazia legítima. */
+  unavailable?: boolean;
 }
 
 export interface EventItem {
+  /** Fonte api: o id do evento no Studio. */
   slug: string;
   title: string;
+  /** `YYYY-MM-DD` (evento do Studio, só data) ou ISO com hora. */
   startsAt: string;
   endsAt?: string;
-  timezone: string;
+  /** Só quando a fonte informa; o Studio publica apenas datas. */
+  timezone?: string;
   city?: string;
-  online: boolean;
-  organizer: string;
-  officialUrl: string;
-  sourceUrl: string;
+  /** Local como publicado (texto livre do Studio). */
+  place?: string;
+  /** `undefined` = a fonte não informa se é online ou presencial (nunca inferimos). */
+  online?: boolean;
+  /** `undefined` = a fonte não informa organizador. */
+  organizer?: string;
+  officialUrl?: string;
+  sourceUrl?: string;
   status: 'validado' | 'cancelado';
   priceNote?: string;
+  /** Evento patrocinado: o portal rotula (F-074). */
+  sponsored?: boolean;
+  /** `startsAt`/`endsAt` são datas sem hora. */
+  dateOnly?: boolean;
   mock?: boolean;
 }
+
+/** Matéria por slug: `unavailable` = a API falhou (distinto de matéria inexistente). */
+export type ArticleResult = { article: Article; unavailable?: false } | { article: null; unavailable?: boolean };
+
+/** Lista de eventos; `unavailable` = a API falhou (distinto de agenda vazia). */
+export interface EventList {
+  items: EventItem[];
+  unavailable?: boolean;
+}
+/** Evento por id: `unavailable` = a API falhou (distinto de evento inexistente). */
+export type EventResult = { event: EventItem; unavailable?: false } | { event: null; unavailable?: boolean };
 
 export interface MoveItem {
   id: string;
@@ -144,20 +168,60 @@ export interface LatestQuery {
   contentType?: ContentType;
 }
 
+/** Item de menu publicado no Studio (principal e rodapé). `href` é caminho interno ou URL http(s) já validada. */
+export interface SiteMenuItem {
+  label: string;
+  href: string;
+  children: { label: string; href: string }[];
+}
+export interface SiteEvent {
+  id: string;
+  title: string;
+  /** Datas `YYYY-MM-DD` (ou ISO) como publicadas. */
+  startsAt: string;
+  endsAt?: string;
+  place?: string;
+  url?: string;
+  sponsored: boolean;
+}
+export type HomeBlock =
+  | { type: 'destaque'; id: string; title?: string; articles: Article[] }
+  | { type: 'lista_editoria'; id: string; title?: string; editoriaSlug: string; articles: Article[] }
+  | { type: 'ultimas'; id: string; title?: string; articles: Article[] }
+  | { type: 'agenda'; id: string; title?: string; events: SiteEvent[] }
+  | { type: 'publicidade'; id: string; position: string };
+export interface SiteSeo {
+  title: string;
+  description: string;
+  ogImage?: string;
+  /** `noindex` publicado SOMA-SE ao bloqueio de indexação do ambiente; nunca o relaxa. */
+  noindex: boolean;
+  organization?: { name: string; url: string; logo?: string; sameAs: string[] };
+}
+/** Configuração do site publicada no Studio (`/api/publico/site`). Cada parte `null` = nada publicado: vale o padrão do portal. */
+export interface SiteConfig {
+  home: { version: number; blocks: HomeBlock[] } | null;
+  menus: { main: SiteMenuItem[] | null; footer: SiteMenuItem[] | null };
+  seo: SiteSeo | null;
+  internalLinks: { term: string; href: string }[];
+}
+
 /** Camada de acesso trocável: empty (padrão), mock (dev/teste) e, depois, API. */
 export interface PortalSource {
   readonly kind: 'empty' | 'mock' | 'api';
   getHighlights(): Promise<Article[]>;
   getTrending(window: TrendingWindow): Promise<Article[]>;
   getLatest(q?: LatestQuery): Promise<Page<Article>>;
-  getArticle(slug: string): Promise<Article | null>;
+  getArticle(slug: string): Promise<ArticleResult>;
   getRelated(article: Article, limit?: number): Promise<Article[]>;
   search(q: string, page?: number): Promise<Page<Article>>;
-  listEvents(): Promise<EventItem[]>;
-  getEvent(slug: string): Promise<EventItem | null>;
+  listEvents(): Promise<EventList>;
+  getEvent(slug: string): Promise<EventResult>;
   listMoves(): Promise<MoveItem[]>;
   listCompanies(): Promise<EntitySummary[]>;
   listPeople(): Promise<EntitySummary[]>;
   getAudience(): Promise<AudienceSnapshot>;
   getAd(slot: AdSlotId): Promise<AdCreative | null>;
+  /** Home, menus, SEO e links internos publicados no Studio; `null` quando a fonte não os tem (vazia, MOCK) ou a API falha. */
+  getSiteConfig(): Promise<SiteConfig | null>;
 }
