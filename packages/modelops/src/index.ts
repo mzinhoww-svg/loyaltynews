@@ -6,7 +6,9 @@ export * from './types';
 export { validatePolicy, loadPolicyFile } from './policy';
 export { MICRO_PER_USD, usdToMicro, microToUsd, priceToMicroPerMtok, tokensToMicro } from './money';
 export { monthKey } from './month';
-export { MemoryLedgerStore, replay, spentMicro, type LedgerEvent, type LedgerStore, type ReservationState, type Lane } from './ledger';
+export { MemoryLedgerStore, replay, spentMicro, type LedgerEvent, type LedgerIO, type LedgerStore, type KillState, type ReservationState, type Lane } from './ledger';
+// Única porta de escrita do ledger de orçamento em produção (ADR-020): tabelas budget_* de @ln/db.
+export { PostgresLedgerStore, type SqlDatabase, type SqlRunner } from './budget-pg';
 export { BudgetGate, gateConfigFromPolicy, type GateConfig, type ReserveInput, type ReserveResult, type ReserveRefusal, type Snapshot, type CommitResult } from './budget';
 export { route, TASK_CATALOG, ESSENTIAL_RITUALS, isEscalation, type RouteRequest, type RouteDecision, type TaskSpec } from './router';
 export { estimateMicro, type TokenEstimate } from './pricing';
