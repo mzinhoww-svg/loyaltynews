@@ -114,6 +114,14 @@ async function main() {
     const r404 = await get('/noticia/materia-que-nao-existe-smoke');
     check('materia: slug inexistente = 404', r404.status === 404, `HTTP ${r404.status}`);
   });
+  // ADR-022 / DP-38: com --expect-flags ou --expect-no-flags, as rotas públicas de pessoas e Moves têm de refletir a flag (desligada: 200 vazio com disponivel=false; ligada: disponivel=true).
+  if (flagsEsp !== null) await tentar('pessoas-moves', async () => {
+    const ligada = flagsEsp.includes('intelligencePessoas');
+    for (const rota of ['pessoas', 'moves']) {
+      const r = await get(`/api/publico/intelligence/${rota}`, { json: true });
+      check(`intelligence/${rota}: ${ligada ? 'ligada pela flag (disponivel=true)' : 'desligada (disponivel=false, sem dado de pessoa)'}`, r.status === 200 && r.j?.disponivel === ligada, `HTTP ${r.status} disponivel=${r.j?.disponivel}`);
+    }
+  });
   await tentar('feed', async () => {
     const r = await get('/feed.xml');
     // Staging NÃO é indexável: por desenho (Security R6) o feed é um canal RSS válido SEM itens, igual ao sitemap. Item no feed de staging seria vazamento de conteúdo para agregadores.

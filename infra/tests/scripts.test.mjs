@@ -1216,3 +1216,30 @@ test('guards: jobsProblems da releitura (LN_INTELLIGENCE_REREAD + LN_REREAD_SEED
   for (const n of ['LN_INTELLIGENCE_ALERTS', 'LN_INTELLIGENCE_PESSOAS', 'LN_INTELLIGENCE_REREAD', 'LN_REREAD_SEED', 'BRIGHTDATA_API_KEY']) assert.ok(c.variaveis.some((v) => v.nome === n && v.so_staging), n);
   assert.equal(c.variaveis.find((v) => v.nome === 'BRIGHTDATA_API_KEY').secreto, true);
 });
+
+test('prova-flags-producao: resolvedor que recusa a flag em produção passa; resolvedor frouxo reprova', () => {
+  const mk = (frouxo) => {
+    const r = tmp();
+    mkdirSync(join(r, 'packages', 'contracts', 'src'), { recursive: true });
+    writeFileSync(join(r, 'packages', 'contracts', 'src', 'flags.ts'), `
+const OK = ['intelligencePessoas'];
+export function resolveFlags(env) {
+  const amb = String(env.APP_ENV ?? '').toLowerCase();
+  const nomes = String(env.LN_FLAGS_ON ?? '').split(',').filter(Boolean);
+  for (const n of nomes) {
+    if (!OK.includes(n)) throw new Error('Subida recusada: flag desconhecida ' + n + ' em LN_FLAGS_ON (ADR-022)');
+    if (amb === 'production' && ${frouxo ? 'false' : 'true'}) throw new Error('Subida recusada: flag ' + n + ' sem decisão para production (ADR-022)');
+  }
+  return { state: Object.fromEntries(nomes.map((n) => [n, true])), logLine: nomes.length ? 'flags ligadas: ' + nomes.join(',') : 'flags ligadas: nenhuma' };
+}
+`);
+    return r;
+  };
+  const bom = node('prova-flags-producao.mjs', ['--root', mk(false)]);
+  assert.equal(bom.status, 0, bom.stdout + bom.stderr);
+  assert.equal(JSON.parse(bom.stdout).ok, true);
+  const ruim = node('prova-flags-producao.mjs', ['--root', mk(true)]);
+  assert.equal(ruim.status, 1);
+  assert.match(ruim.stdout, /"ok":false/);
+  assert.equal(node('prova-flags-producao.mjs', []).status, 2);
+});
