@@ -1,0 +1,125 @@
+{
+  "reason": "ressalva QA 3 (M1): problema/restritivo de fontes sem feed ou bloqueadas",
+  "swaps": [
+    {
+      "out": "u026",
+      "in": "u201",
+      "host": "nu.com",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u027",
+      "in": "u202",
+      "host": "livelo.com.br",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u028",
+      "in": "u203",
+      "host": "itau.com.br",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u029",
+      "in": "u204",
+      "host": "finextra.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u030",
+      "in": "u205",
+      "host": "nu.com",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u081",
+      "in": "u206",
+      "host": "latamairlines.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u082",
+      "in": "u207",
+      "host": "staralliance.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u083",
+      "in": "u208",
+      "host": "edpb.europa.eu",
+      "feed": "feed-quebrado"
+    },
+    {
+      "out": "u084",
+      "in": "u209",
+      "host": "aeroin.net",
+      "feed": "feed-quebrado"
+    },
+    {
+      "out": "u085",
+      "in": "u210",
+      "host": "bradescori.com.br",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u086",
+      "in": "u211",
+      "host": "oneworld.com",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u087",
+      "in": "u212",
+      "host": "latamairlines.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u088",
+      "in": "u213",
+      "host": "staralliance.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u089",
+      "in": "u214",
+      "host": "edpb.europa.eu",
+      "feed": "feed-quebrado"
+    },
+    {
+      "out": "u090",
+      "in": "u215",
+      "host": "bradescori.com.br",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u091",
+      "in": "u216",
+      "host": "oneworld.com",
+      "feed": "sem-feed"
+    },
+    {
+      "out": "u092",
+      "in": "u217",
+      "host": "latamairlines.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u093",
+      "in": "u218",
+      "host": "staralliance.com",
+      "feed": "bloqueado"
+    },
+    {
+      "out": "u094",
+      "in": "u219",
+      "host": "edpb.europa.eu",
+      "feed": "feed-quebrado"
+    },
+    {
+      "out": "u095",
+      "in": "u220",
+      "host": "bradescori.com.br",
+      "feed": "sem-feed"
+    }
+  ]
+}

@@ -10,7 +10,9 @@ import { BudgetGuard } from '../budget';
 import { AdaptiveRouter } from '../router';
 import { computeMetrics, rank, percentile, projectMonthly } from '../metrics';
 import { parseFeed, discoveryMetrics } from '../discovery';
-import { ssrfCheck, isPrivateAddress, DirectReader } from '../direct-reader';
+import { ssrfCheck, isPrivateAddress, DirectReader, pinnedTransport, type Transport, type Resolver } from '../direct-reader';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { runBenchmark, loadDone, classify } from '../runner';
 import { readFlags, isProviderDisabled } from '../flags';
 import type { DatasetEntry } from '../types';
@@ -81,6 +83,13 @@ describe('orçamento (corte automático)', () => {
     expect(g.check('a', 5)).toEqual({ ok: false, reason: 'budget_blocked' });
     expect(new BudgetGuard({ a: { provider: 'a', billing: 'free-confirmed', creditCap: 10, usdPerCredit: 0 } }, path).used('a')).toBe(8);
     expect(g.estimateUsd('a', 8)).toBe(0.008);
+  });
+  it('saldo e teto por conta no livro (FinOps), com alerta', () => {
+    const g = new BudgetGuard({ bd: { provider: 'bd', billing: 'free-confirmed', creditCap: 300, usdPerCredit: 0, account: 'conta-2', accountQuota: 5000, alertAt: 4 } });
+    g.record('bd', 5);
+    const s = g.snapshot();
+    expect(s.limits!['bd|conta-2']).toMatchObject({ used: 5, benchCap: 300, benchRemaining: 295, accountQuota: 5000, accountRemainingKnownToBenchmark: 4995, alertAt: 4 });
+    expect(s.alerts!.map((a) => a.key)).toEqual(['bd|conta-2']);
   });
 });
 
@@ -184,11 +193,38 @@ describe('leitor direto e SSRF', () => {
     expect(await ssrfCheck('https://ok.com/', pub)).toBeNull();
     expect(isPrivateAddress('::ffff:192.168.0.1')).toBe(true);
   });
-  it('redirect para rede interna é bloqueado (MOCK de fetch)', async () => {
-    const f = (async (u: string) => (String(u).startsWith('https://pub.com') ? new Response(null, { status: 302, headers: { location: 'http://10.1.1.1/admin' } }) : new Response('x'))) as typeof fetch;
-    const r = await new DirectReader(f, async (h) => (h === 'pub.com' ? ['8.8.8.8'] : ['10.1.1.1'])).read({ url: 'https://pub.com/a' });
+  it('redirect para rede interna é bloqueado (MOCK de transporte)', async () => {
+    const t: Transport = async (u) => (u.startsWith('https://pub.com') ? { status: 302, headers: { location: 'http://10.1.1.1/admin' } as Record<string, string>, body: Buffer.from('') } : { status: 200, headers: {} as Record<string, string>, body: Buffer.from('x') });
+    const r = await new DirectReader(t, async (h) => (h === 'pub.com' ? ['8.8.8.8'] : ['10.1.1.1'])).read({ url: 'https://pub.com/a' });
     expect(r.ok).toBe(false);
     expect((r as { ssrf?: string }).ssrf).toBe('ip_privado');
+  });
+  it('DNS rebinding: resolve UMA vez por salto e conecta no IP validado, mesmo se o DNS mudar depois', async () => {
+    let calls = 0;
+    const rebinding: Resolver = async () => (++calls === 1 ? ['93.184.216.34'] : ['127.0.0.1']); // 2ª resposta seria interna
+    const pinned: string[] = [];
+    const t: Transport = async (_u, ip) => {
+      pinned.push(ip);
+      await rebinding('evil.com'); // um atacante "troca" o DNS durante a conexão: não pode afetar o IP usado
+      return { status: 200, headers: {}, body: Buffer.from('<title>ok</title>') };
+    };
+    const r = await new DirectReader(t, rebinding).read({ url: 'https://evil.com/x' });
+    expect(r.ok).toBe(true);
+    expect(pinned).toEqual(['93.184.216.34']);
+    expect(calls).toBe(2); // 1 da validação + 1 do "atacante"; o leitor não resolveu de novo
+  });
+  it('pinnedTransport conecta no IP fixado sem consultar o DNS (servidor local real)', async () => {
+    const srv = createServer((_q, s) => s.end('pinned-ok'));
+    await new Promise<void>((ok) => srv.listen(0, '127.0.0.1', () => ok()));
+    const port = (srv.address() as AddressInfo).port;
+    try {
+      // host inexistente: só funciona se o socket usar o IP fixado em vez de resolver o nome
+      const r = await pinnedTransport(`http://nao-existe.invalid:${port}/`, '127.0.0.1', 5000);
+      expect(r.status).toBe(200);
+      expect(r.body.toString()).toBe('pinned-ok');
+    } finally {
+      srv.close();
+    }
   });
 });
 

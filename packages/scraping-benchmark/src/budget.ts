@@ -23,6 +23,19 @@ export interface ProviderBudget {
   unit?: string;
   /** Alerta (créditos) antes do teto; gravado uma vez por mês em `alerts`. */
   alertAt?: number;
+  /** Cota gratuita mensal da CONTA no provedor (ex.: Bright Data 5.000; Exa 10.000 = US$ 10), para saldo do FinOps. */
+  accountQuota?: number;
+}
+
+/** Saldo por conta (ressalva QA 3, M1): consumo do benchmark, teto do benchmark, cota da conta e o que resta. */
+export interface AccountLimit {
+  used: number;
+  benchCap: number;
+  benchRemaining: number;
+  accountQuota: number | null;
+  accountRemainingKnownToBenchmark: number | null; // cota − consumo do benchmark (não vê outros bots)
+  alertAt: number | null;
+  unit?: string;
 }
 
 export interface LedgerState {
@@ -32,6 +45,8 @@ export interface LedgerState {
   /** créditos por `produto|conta` */
   byAccount?: Record<string, number>;
   alerts?: Array<{ at: string; key: string; used: number; alertAt: number }>;
+  /** saldo e teto por `produto|conta` */
+  limits?: Record<string, AccountLimit>;
 }
 
 export type BudgetDecision = { ok: true } | { ok: false; reason: 'billing_unconfirmed' | 'budget_blocked' };
@@ -76,10 +91,29 @@ export class BudgetGuard {
       this.state.alerts ??= [];
       if (!this.state.alerts.some((a) => a.key === key)) this.state.alerts.push({ at: this.now().toISOString(), key, used: this.state.byAccount[key]!, alertAt: b.alertAt });
     }
+    this.state.limits = this.limits();
     if (this.ledgerPath) {
       mkdirSync(dirname(this.ledgerPath), { recursive: true });
       writeFileSync(this.ledgerPath, JSON.stringify(this.state, null, 2));
     }
+  }
+  /** Saldo e teto de cada `produto|conta` configurado (inclusive os ainda sem consumo). */
+  limits(): Record<string, AccountLimit> {
+    const out: Record<string, AccountLimit> = {};
+    for (const b of Object.values(this.budgets)) {
+      const key = `${b.provider}|${b.account ?? 'conta-1'}`;
+      const used = this.state.byAccount?.[key] ?? 0;
+      out[key] = {
+        used,
+        benchCap: b.creditCap,
+        benchRemaining: +Math.max(0, b.creditCap - used).toFixed(6),
+        accountQuota: b.accountQuota ?? null,
+        accountRemainingKnownToBenchmark: b.accountQuota === undefined ? null : +Math.max(0, b.accountQuota - used).toFixed(6),
+        alertAt: b.alertAt ?? null,
+        unit: b.unit,
+      };
+    }
+    return out;
   }
   estimateUsd(provider: string, credits: number): number {
     return +(credits * (this.budgets[provider]?.usdPerCredit ?? 0)).toFixed(6);

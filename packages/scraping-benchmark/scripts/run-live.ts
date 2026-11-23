@@ -41,13 +41,13 @@ function secret(name: string): string | undefined {
 
 // Teto do benchmark por provedor (créditos no mês), abaixo da cota gratuita; preço só para custo EQUIVALENTE estimado.
 const BUDGETS: Record<string, ProviderBudget> = {
-  'scrapfly-basic': { provider: 'scrapfly-basic', billing: 'free-confirmed', billingEvidence: 'DP-33 + plano FREE 1.000/mês', creditCap: 150, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800 },
-  'scrapfly-asp': { provider: 'scrapfly-asp', billing: 'free-confirmed', billingEvidence: 'DP-33', creditCap: 500, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800 },
-  'zyte-http': { provider: 'zyte-http', billing: 'free-confirmed', billingEvidence: 'DP-33 + crédito US$ 5 inicial', creditCap: 3_000, usdPerCredit: 0.0001, account: 'conta-1', unit: 'US$ 0,0001 (estimado: a Zyte não informa custo por resposta)', alertAt: 40_000 },
-  'apify-rag-web-browser': { provider: 'apify-rag-web-browser', billing: 'free-confirmed', billingEvidence: 'DP-33 + FREE US$ 5/mês', creditCap: 1_000, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 (estimado; real em usageTotalUsd da execução)', alertAt: 4_000 },
-  'exa-contents': { provider: 'exa-contents', billing: 'free-confirmed', billingEvidence: 'DP-33 + crédito gratuito', creditCap: 200, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 = costDollars.total da resposta, arredondado p/ cima', alertAt: 8_000 },
-  'brightdata-unlocker': { provider: 'brightdata-unlocker', billing: 'free-confirmed', billingEvidence: 'DP-33 + conta 2 com zona web_unlocker1, 5.000/mês', creditCap: 300, usdPerCredit: 1.5 / 1000, account: 'conta-2', unit: '1 requisição Web Unlocker (Browser API = 5/MB, não usado)', alertAt: 4_000 },
-  'tavily-extract': { provider: 'tavily-extract', billing: 'free-confirmed', billingEvidence: 'DP-33 + Researcher 1.000/mês', creditCap: 60, usdPerCredit: 0.008, account: 'conta-2', unit: '1 crédito Tavily (0,2 por extract basic bem-sucedido)', alertAt: 800 },
+  'scrapfly-basic': { provider: 'scrapfly-basic', billing: 'free-confirmed', billingEvidence: 'DP-33 + plano FREE 1.000/mês', creditCap: 150, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800, accountQuota: 1_000 },
+  'scrapfly-asp': { provider: 'scrapfly-asp', billing: 'free-confirmed', billingEvidence: 'DP-33', creditCap: 500, usdPerCredit: 30 / 200_000, account: 'conta-1', unit: '1 crédito Scrapfly (x-scrapfly-api-cost)', alertAt: 800, accountQuota: 1_000 },
+  'zyte-http': { provider: 'zyte-http', billing: 'free-confirmed', billingEvidence: 'DP-33 + crédito US$ 5 inicial', creditCap: 3_000, usdPerCredit: 0.0001, account: 'conta-1', unit: 'US$ 0,0001 (estimado: a Zyte não informa custo por resposta)', alertAt: 40_000, accountQuota: 50_000 },
+  'apify-rag-web-browser': { provider: 'apify-rag-web-browser', billing: 'free-confirmed', billingEvidence: 'DP-33 + FREE US$ 5/mês', creditCap: 1_000, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 (estimado; real em usageTotalUsd da execução)', alertAt: 4_000, accountQuota: 5_000 },
+  'exa-contents': { provider: 'exa-contents', billing: 'free-confirmed', billingEvidence: 'DP-33 + crédito gratuito', creditCap: 200, usdPerCredit: 0.001, account: 'conta-1', unit: 'US$ 0,001 = costDollars.total da resposta, arredondado p/ cima', alertAt: 8_000, accountQuota: 10_000 },
+  'brightdata-unlocker': { provider: 'brightdata-unlocker', billing: 'free-confirmed', billingEvidence: 'DP-33 + conta 2 com zona web_unlocker1, 5.000/mês', creditCap: 300, usdPerCredit: 1.5 / 1000, account: 'conta-2', unit: '1 requisição Web Unlocker (Browser API = 5/MB, não usado)', alertAt: 4_000, accountQuota: 5_000 },
+  'tavily-extract': { provider: 'tavily-extract', billing: 'free-confirmed', billingEvidence: 'DP-33 + Researcher 1.000/mês', creditCap: 60, usdPerCredit: 0.008, account: 'conta-2', unit: '1 crédito Tavily (0,2 por extract basic bem-sucedido)', alertAt: 800, accountQuota: 1_000 },
 };
 
 function pooled(keyed: KeyedReader, keyName: string, cap: number) {
