@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { describe, expect, it } from 'vitest';
 import { runEditorialStoreContract, sampleArticle } from '@ln/editorial/testing';
-import { createTestDb } from '@ln/db/testing';
+import { createTestDb, isRealTestDb } from '@ln/db/testing';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { PgEditorialStore } from './editorial-store';
@@ -11,6 +11,10 @@ import { PgEditorialStore } from './editorial-store';
 // Migra uma vez e reaproveita o banco pronto (dump) em cada caso: a fábrica roda antes de CADA teste e exige loja vazia.
 let template: Blob | File | undefined;
 async function freshDb(): Promise<{ db: Db; client: PGlite }> {
+  if (isRealTestDb()) {
+    const t = await createTestDb(); // PostgreSQL real: banco clonado do modelo; client.close() apaga o banco
+    return { db: t.db as unknown as Db, client: t.client as unknown as PGlite };
+  }
   if (!template) {
     const base = await createTestDb();
     template = await base.client.dumpDataDir('none');

@@ -36,7 +36,8 @@ describe('outbox e ledger de efeitos (ADR-002)', () => {
 });
 
 describe('orçamento (DP-04)', () => {
-  const base = { taskId: 't1', route: 'economy', provider: 'anthropic', model: 'm', maxEstimatedMicrousd: 1000 };
+  // taskClass é obrigatória desde a 0020 (sem padrão silencioso, gap L4b).
+  const base = { taskId: 't1', taskClass: 'essential', route: 'economy', provider: 'anthropic', model: 'm', maxEstimatedMicrousd: 1000 };
 
   it('reserva recusa provedor desconhecido, mês inválido, valor negativo e conciliação sem custo real', async () => {
     await expect(t.db.insert(s.budgetReservations).values({ id: 'b0', idempotencyKey: 'bk0', monthKey: '2026-11', ...base, provider: 'xpto' })).rejects.toThrow();
