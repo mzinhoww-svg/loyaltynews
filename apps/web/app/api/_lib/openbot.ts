@@ -16,7 +16,7 @@ import {
   createOpenBotRoutes, ID_RE, openbotFlagsFrom, PILOT_PERMISSIONS, resultRefFor, resumePilot, verifySignature, toSignedRequest,
   type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate,
 } from '@ln/openbot';
-import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
+import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
 import { z } from 'zod';
 import { HttpError, json, type RouteCtx, type RouteFn } from './http';
 import { killFlags } from './orcamento';
@@ -50,7 +50,7 @@ export async function openbotDeps(c: RouteCtx, env: Record<string, string | unde
   const db = c.deps.db;
   const flags = openbotFlagsFrom({ overrides: { openbotDispatch: c.deps.flags.openbotDispatch === true }, kill });
   const pilot: PilotControl | undefined = pilotEnabled(env)
-    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: await loadGate() }
+    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: await loadGate(), resolved: () => new PgPilotResolutionStore(db, c.deps.now).keys() }
     : undefined;
   return {
     queue: new PgLeaseQueue(db),

@@ -150,3 +150,5 @@ export * from './schema/openbot';
 export * from './schema/growth';
 // Canal do titular (DP-38), Backend 2.
 export * from './schema/titular';
+// Creative Studio (cards sociais), Backend 3.
+export * from './schema/creative';
