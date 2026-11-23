@@ -55,10 +55,21 @@ async function open(path: string): Promise<PGlite> {
 // migrado (CREATE DATABASE ... TEMPLATE) num banco novo e isolado por teste e o apaga no `close`. Serve para rodar a suíte inteira
 // contra PostgreSQL 18 de verdade e achar o que o PGlite esconde (travas e concorrência reais, tipos, erros, planos).
 // ---------------------------------------------------------------------------------------------------------------------
+let avisado = false;
 const realEnv = (): Record<string, string | undefined> | null => {
   const url = process.env.LN_TEST_PG_URL;
   const dir = process.env.LN_TEST_CERTS_DIR;
-  if (!url || !dir) return null;
+  if (!url || !dir) {
+    // Sem as DUAS variáveis o modo real não liga e a suíte roda em PGlite: avisar para ninguém achar que rodou em PostgreSQL real.
+    // (LN_TEST_CERTS_DIR sozinho é legítimo nos testes de TLS do Redis, que trazem LN_TEST_REDIS_TLS_URL.)
+    const soUmaDoPg = (url && !dir) || (dir && !url && !process.env.LN_TEST_REDIS_TLS_URL);
+    if (soUmaDoPg && !avisado) {
+      avisado = true;
+      console.warn(`[ln-test] ATENÇÃO: só ${url ? 'LN_TEST_PG_URL' : 'LN_TEST_CERTS_DIR'} está definida; o modo PostgreSQL REAL exige as duas (LN_TEST_PG_URL e LN_TEST_CERTS_DIR). Esta execução usa PGlite, NÃO o PostgreSQL real.`);
+    }
+    return null;
+  }
+  assertLocalTestHost(url, 'LN_TEST_PG_URL');
   return {
     DATABASE_URL: url,
     DB_SSL_CA_PEM: readFileSync(join(dir, 'ca.crt'), 'utf8'),
@@ -67,6 +78,22 @@ const realEnv = (): Record<string, string | undefined> | null => {
     NODE_ENV: 'production',
   };
 };
+
+/**
+ * Guarda de host: o modo real CRIA e APAGA bancos (e os testes de Redis real fazem `flushall`). Só vale em máquina local
+ * (127.0.0.1, ::1, localhost) a menos que `LN_TEST_ALLOW_REMOTE=1` seja definida de propósito. Apontar a variável para staging
+ * ou produção sem querer destruiria dados.
+ */
+export function assertLocalTestHost(url: string, nome: string): void {
+  let host: string;
+  try {
+    host = new URL(url).hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  } catch {
+    throw new Error(`${nome} não é uma URL válida`);
+  }
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || process.env.LN_TEST_ALLOW_REMOTE === '1') return;
+  throw new Error(`${nome} aponta para um host que não é local (${host}): o teste cria/apaga bancos e limpa dados. Use uma instância local ou defina LN_TEST_ALLOW_REMOTE=1 de propósito.`);
+}
 
 const ident = (n: string): string => {
   if (!/^[a-z0-9_]+$/.test(n)) throw new Error('nome de banco inválido');

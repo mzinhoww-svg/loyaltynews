@@ -76,6 +76,23 @@ describe('seed de staging', () => {
     }
   });
 
+  it('a conferência também pega fonte/evidência ligada a matéria do seed (o seed não inventa fonte)', async () => {
+    const t = await createTestDb();
+    try {
+      const db = t.db as unknown as Db;
+      await applyStagingSeed(db, STG, NOW);
+      expect((await checkStagingSeed(db)).ok).toBe(true);
+      await db.insert(schema.sources).values({ id: 'src-x', nome: 'Fonte inventada depois', url: 'https://example.org', tipo: 'site' });
+      await db.insert(schema.evidences).values({ id: 'ev-x', sourceId: 'src-x', url: 'https://example.org/a', capturadoEm: NOW, sha256: 'c'.repeat(64) });
+      await db.insert(schema.articleSources).values({ articleId: `${SEED_PREFIX}art-2`, evidenceId: 'ev-x' });
+      const c = await checkStagingSeed(db);
+      expect(c.ok).toBe(false);
+      expect(c.problemas).toEqual([expect.stringContaining('seed-stg-art-2 do seed tem fonte/evidência ligada')]);
+    } finally {
+      await t.close();
+    }
+  });
+
   it('não passa por cima de home/SEO que alguém já publicou e não toca em linha que não é do seed; remover apaga só o seed', async () => {
     const t = await createTestDb();
     try {

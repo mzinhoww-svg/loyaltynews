@@ -448,3 +448,19 @@ describe('home pública resolvida (F-29)', () => {
     expect(por('pontos').materias.find((m: any) => m.slug === 'ed-a3')).toEqual(igual);
   });
 });
+
+describe('home pública: bloco de tipo desconhecido', () => {
+  it('um tipo de bloco que o Portal ainda não resolve é IGNORADO de forma explícita (nunca sai null/undefined na lista)', async () => {
+    const atual = await app.db.select().from(schema.siteDocumentos).where(eq(schema.siteDocumentos.tipo, 'home'));
+    const maxV = Math.max(0, ...atual.map((d) => d.versao ?? 0));
+    await app.db.insert(schema.siteDocumentos).values({
+      id: 'home-bloco-novo', tipo: 'home', versao: maxV + 1, estado: 'publicado', publicadoEm: app.deps.now(), criadoPor: 'teste',
+      conteudo: { blocos: [{ tipo: 'bloco_do_futuro', id: 'novo', x: 1 }, { tipo: 'publicidade', id: 'anuncio-9', posicao: 'TOP' }] },
+    } as any);
+    const r = await publico();
+    expect(r.status).toBe(200);
+    const blocos = r.body.data.home?.blocos ?? [];
+    expect(blocos.every((b: any) => b && typeof b === 'object')).toBe(true);
+    expect(blocos.map((b: any) => b.tipo)).toEqual(['publicidade']); // o desconhecido sumiu; o resto da home segue resolvido
+  });
+});

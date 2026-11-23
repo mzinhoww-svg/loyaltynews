@@ -4,6 +4,7 @@ import RedisMock from 'ioredis-mock';
 import { eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
+import { assertLocalTestHost } from '@ln/db/testing';
 import { adKeys, flushAdDelivery, readCounters, type AdRedis } from '@ln/workers/ad-redis';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
@@ -12,6 +13,7 @@ import { seedCommercial } from '../_lib/commercial/repo';
 let app: Awaited<ReturnType<typeof makeApp>>;
 // Padrão: ioredis-mock. Com LN_TEST_REDIS_URL (ex.: redis://127.0.0.1:56379, um Redis LOCAL de teste: o teste faz flushall) usa Redis REAL.
 const REAL_REDIS_URL = process.env.LN_TEST_REDIS_URL;
+if (REAL_REDIS_URL) assertLocalTestHost(REAL_REDIS_URL, 'LN_TEST_REDIS_URL'); // o teste faz flushall: só em Redis local
 let redis: InstanceType<typeof RedisMock>;
 const R = () => redis as unknown as AdRedis;
 const DAY = '2026-11-22'; // relógio do testkit (12:00Z) em America/Sao_Paulo
