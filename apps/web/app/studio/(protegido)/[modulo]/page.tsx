@@ -1,7 +1,7 @@
 // Módulos do Studio sem backend: tela funcional com estado vazio honesto e flag. O CMS tem rota própria (precede esta).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { GRUPOS, findModule } from '@/lib/studio/modules';
 import { requireModule } from '../../_lib/guard';
 
@@ -16,7 +16,7 @@ export default async function ModulePage({ params }: { params: Promise<{ modulo:
   const mod = findModule((await params).modulo);
   if (!mod) notFound();
   await requireModule(mod);
-  const flagLigada = mod.flag ? isEnabled(mod.flag) : false;
+  const flagLigada = mod.flag ? flagAtiva(mod.flag) : false;
   return (
     <>
       <h1>{mod.nome}</h1>

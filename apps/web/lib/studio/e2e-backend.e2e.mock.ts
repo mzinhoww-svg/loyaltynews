@@ -196,6 +196,9 @@ export const sincronizarFlagsE2e: (() => void) | null = () => {
   setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState });
 };
 
+/** As mesmas flags de teste que as rotas enxergam (setFlag); o Studio as soma ao resolvedor de runtime SÓ no build de e2e. */
+export const flagsE2e: (() => Record<string, boolean>) | null = () => ({ ...flagsGlobais() });
+
 const KEY = Symbol.for('ln.studio.e2e.backend');
 type G = typeof globalThis & { [KEY]?: Promise<E2eBackend> };
 

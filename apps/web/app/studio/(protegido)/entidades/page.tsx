@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -20,7 +20,7 @@ export default async function EntidadesPage({ searchParams }: { searchParams: Pr
   const { q = '', tipo, aviso, nivel: nivelParam = '', cq = '', pagina: paginaParam = '1' } = await searchParams;
   const nivel: '' | NivelDaFonte = nivelParam === 'official' || nivelParam === 'secondary' || nivelParam === 'inferred' ? nivelParam : '';
   const pagina = Math.max(1, Math.floor(Number(paginaParam)) || 1);
-  const pessoasLigadas = isEnabled('intelligencePessoas');
+  const pessoasLigadas = flagAtiva('intelligencePessoas');
   // origem do banco só para avisar quando é o temporário de dev/e2e; os DADOS vêm das rotas do Backend
   const banco = await bancoOuNulo();
   const termo = q.trim();
