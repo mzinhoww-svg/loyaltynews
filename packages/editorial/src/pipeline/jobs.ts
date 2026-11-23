@@ -22,7 +22,7 @@ export interface ArticleJob {
   draftTaskId?: string;
   /** Slug gerado na 1ª redação e mantido nas seguintes (muda livremente até a 1ª publicação; depois é imutável). */
   slug?: string;
-  attempt: number;           // redações tentadas (máx. 3, model.policy rules.max_attempts)
+  attempt: number;           // redações tentadas: sobe só em re-redação pedida (recheck/feedback do editor); gate determinístico não refaz a redação
   feedback?: Finding[];      // achados que motivaram nova redação
   factcheck?: { provider: string; model: string; verdicts: FactVerdict[]; reviewedDraftTaskId?: string; reviewedDraftSha256?: string };
   /** Resultado da revisão final (qual revisão do rascunho avaliou e por qual modelo). */

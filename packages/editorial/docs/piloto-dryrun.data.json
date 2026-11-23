@@ -3,11 +3,11 @@
   "relogioDoEnsaio": "2026-11-26T12:00:00.000Z",
   "prompt": "editorial-0.3",
   "chamadasModeloReal": 0,
-  "chamadasSimuladas": 48,
+  "chamadasSimuladas": 42,
   "chamadasSimuladasPorClasse": {
     "triage": 10,
     "context": 10,
-    "draft": 16,
+    "draft": 10,
     "factcheck": 7,
     "review": 5
   },
@@ -224,12 +224,9 @@
       "estagios": [
         "triage",
         "context",
-        "draft",
-        "draft",
         "draft"
       ],
       "bloqueios": [
-        "max_attempts",
         "copy_literal"
       ],
       "achados": [
@@ -246,14 +243,6 @@
         },
         {
           "etapa": "context",
-          "output_valid": true
-        },
-        {
-          "etapa": "draft",
-          "output_valid": true
-        },
-        {
-          "etapa": "draft",
           "output_valid": true
         },
         {
@@ -409,12 +398,9 @@
       "estagios": [
         "triage",
         "context",
-        "draft",
-        "draft",
         "draft"
       ],
       "bloqueios": [
-        "max_attempts",
         "unsupported_claim"
       ],
       "achados": [
@@ -431,14 +417,6 @@
         },
         {
           "etapa": "context",
-          "output_valid": true
-        },
-        {
-          "etapa": "draft",
-          "output_valid": true
-        },
-        {
-          "etapa": "draft",
           "output_valid": true
         },
         {
@@ -594,12 +572,9 @@
       "estagios": [
         "triage",
         "context",
-        "draft",
-        "draft",
         "draft"
       ],
       "bloqueios": [
-        "max_attempts",
         "unsupported_claim"
       ],
       "achados": [
@@ -615,14 +590,6 @@
         },
         {
           "etapa": "context",
-          "output_valid": true
-        },
-        {
-          "etapa": "draft",
-          "output_valid": true
-        },
-        {
-          "etapa": "draft",
           "output_valid": true
         },
         {
@@ -1143,7 +1110,6 @@
     "bloqueadas": 5,
     "conformes": 10,
     "porBloqueio": {
-      "max_attempts": 3,
       "copy_literal": 1,
       "unsupported_claim": 3,
       "cross_provider_check_failed": 1

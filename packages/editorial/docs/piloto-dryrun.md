@@ -5,7 +5,7 @@
 ## Resultado
 
 - **10 matérias** simuladas (2 por fonte): **5 aprovadas** pelos gates e **5 bloqueadas** de propósito; **10/10** fizeram exatamente o que o cenário previa (status, bloqueio e achado do gate).
-- **Chamadas a modelo real: 0.** Chamadas ao "modelo" simulado (saída roteirizada, custo 0): 48 (triage 10, context 10, draft 16, factcheck 7, review 5). Prompt fixado: `editorial-0.3`.
+- **Chamadas a modelo real: 0.** Chamadas ao "modelo" simulado (saída roteirizada, custo 0): 42 (triage 10, context 10, draft 10, factcheck 7, review 5). Prompt fixado: `editorial-0.3`.
 - **Publicadas: 0.** Os 7 rascunhos gravados foram recusados pela publicação com `simulated_content` (o texto leva a marca SIMULADO).
 - Coletor: 5 fontes coletadas, **2 evidências cada**; menor intervalo medido entre requisições ao mesmo host: **3 s** (exigido: 3 s). URLs proibidas requisitadas: 0.
 
@@ -45,11 +45,11 @@ No Senado havia um item do feed em área que o `robots.txt` do ensaio proíbe: o
 | # | Fonte | Cenário (o que o ensaio quer provar) | Esperado | Resultado | Bloqueio | Gate que barrou | Conforme |
 |---|---|---|---|---|---|---|---|
 | a1 | `senado-noticias` | limpa | aprovado | **aprovado** | — | — | ✓ |
-| a2 | `senado-noticias` | copia_literal | bloqueado (`copy_literal`) | **bloqueado** | `max_attempts`, `copy_literal` | copy_literal | ✓ |
+| a2 | `senado-noticias` | copia_literal | bloqueado (`copy_literal`) | **bloqueado** | `copy_literal` | copy_literal | ✓ |
 | a3 | `camara-noticias` | limpa | aprovado | **aprovado** | — | — | ✓ |
-| a4 | `camara-noticias` | numero_sem_fonte | bloqueado (`unsupported_metric`) | **bloqueado** | `max_attempts`, `unsupported_claim` | afirmacoes_nas_evidencias | ✓ |
+| a4 | `camara-noticias` | numero_sem_fonte | bloqueado (`unsupported_metric`) | **bloqueado** | `unsupported_claim` | afirmacoes_nas_evidencias | ✓ |
 | a5 | `abemf` | limpa | aprovado | **aprovado** | — | — | ✓ |
-| a6 | `abemf` | tom_exclamacao | bloqueado (`tone_title_exclamation`) | **bloqueado** | `max_attempts`, `unsupported_claim` | tom_lint | ✓ |
+| a6 | `abemf` | tom_exclamacao | bloqueado (`tone_title_exclamation`) | **bloqueado** | `unsupported_claim` | tom_lint | ✓ |
 | a7 | `livelo-imprensa` | limpa | aprovado | **aprovado** | — | — | ✓ |
 | a8 | `livelo-imprensa` | checagem_reprova | bloqueado (`unsupported_claim`) | **bloqueado** | `unsupported_claim` | checagem_de_fatos (veredito do checador) | ✓ |
 | a9 | `abrarec` | limpa | aprovado | **aprovado** | — | — | ✓ |
@@ -57,9 +57,9 @@ No Senado havia um item do feed em área que o `robots.txt` do ensaio proíbe: o
 
 Achados que cada gate devolveu nas bloqueadas (texto do gate real):
 
-- **a2** (triage → context → draft → draft → draft): copy_literal: 29 palavras consecutivas idênticas à fonte senado-noticias · copy_literal: 78% dos 5-gramas coincidem com a fonte senado-noticias
-- **a4** (triage → context → draft → draft → draft): unsupported_metric: número "35" não consta na evidência · unsupported_metric: número "35" no texto não consta nas evidências
-- **a6** (triage → context → draft → draft → draft): tone_title_exclamation: ponto de exclamação no título
+- **a2** (triage → context → draft): copy_literal: 29 palavras consecutivas idênticas à fonte senado-noticias · copy_literal: 78% dos 5-gramas coincidem com a fonte senado-noticias
+- **a4** (triage → context → draft): unsupported_metric: número "35" não consta na evidência · unsupported_metric: número "35" no texto não consta nas evidências
+- **a6** (triage → context → draft): tone_title_exclamation: ponto de exclamação no título
 - **a8** (triage → context → draft → factcheck): unsupported_claim: veredito fail
 - **a10** (triage → context → draft → factcheck): same_provider: checagem veio do mesmo provedor do redator (simulado-redator)
 
@@ -88,11 +88,11 @@ Checagem em provedor distinto nas aprovadas: sim, todas (`simulado-checador` ≠
 | # | `output_valid` | `gate_verdict` na checagem | `gate_verdict` na revisão | `cross_provider_ok` |
 |---|---|---|---|---|
 | a1 | 5/5 válidas | approved | approved | true / true |
-| a2 | 5/5 válidas | — | — | — |
+| a2 | 3/3 válidas | — | — | — |
 | a3 | 5/5 válidas | approved | approved | true / true |
-| a4 | 5/5 válidas | — | — | — |
+| a4 | 3/3 válidas | — | — | — |
 | a5 | 5/5 válidas | approved | approved | true / true |
-| a6 | 5/5 válidas | — | — | — |
+| a6 | 3/3 válidas | — | — | — |
 | a7 | 5/5 válidas | approved | approved | true / true |
 | a8 | 4/4 válidas | blocked | — | true |
 | a9 | 5/5 válidas | approved | approved | true / true |
@@ -100,7 +100,7 @@ Checagem em provedor distinto nas aprovadas: sim, todas (`simulado-checador` ≠
 
 ## O que o ensaio mostrou (para o PM e o AgentOps)
 
-1. **Redação barrada por gate gasta 3 chamadas.** a2, a4 e a6 repetem a redação até `max_attempts` (3 tentativas) antes de bloquear. No piloto real, cada matéria assim consome 3 chamadas de redação da quota do OpenBot; se o modelo repetir o erro, não há ganho.
+1. **Redação barrada por gate NÃO é refeita** (corrigido nesta rodada). Cópia literal, número fora da fonte, tom, resumo etc. são barreiras determinísticas: a matéria bloqueia na 1ª redação, com 1 chamada de redação (antes eram 3 por matéria barrada, `max_attempts`). Nova tentativa fica só para falha transitória (fila/gateway).
 2. **O gate da redação não grava `gate_verdict` na planilha.** Pelo contrato com o AgentOps, `gate_verdict` e `cross_provider_ok` só vão na checagem e na revisão; a matéria barrada na redação fica com `output_valid` e o motivo só no registro da matéria (`findings`). Quem mede "bloqueios por gate" deve ler o registro, não só a planilha.
 3. **Rótulo do bloqueio de tom.** O tom lint bloqueante (a6) sai com o código `unsupported_claim` (padrão de `FINDING_TO_BLOCKER`; não existe código próprio de tom); o achado `tone_title_exclamation` identifica o motivo. Não mudei isso (mexe no contrato dos códigos de bloqueio); fica para decisão do PM.
 4. **Fonte com paywall `unknown` (Livelo)** só coleta depois que a revisão humana marca `paywall = none`; o ensaio simula essa revisão em memória.

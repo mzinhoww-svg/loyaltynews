@@ -216,8 +216,9 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
   };
   const chk = runDeterministicChecks(d, job.evidences);
   if (chk.verdict !== 'pass') {
-    if (job.attempt + 1 >= MAX_ATTEMPTS) return blocked(job, 'draft', ['max_attempts', ...toBlockers(chk.findings)], chk.findings);
-    return next('draft', { ...job, slug, attempt: job.attempt + 1, feedback: chk.findings });
+    // Barreira DETERMINÍSTICA (cópia, número fora da fonte, tom, resumo...): refazer com o mesmo modelo e a mesma evidência só gasta cota
+    // (ensaio do piloto: 3 chamadas por matéria barrada). Não há nova tentativa; nova tentativa é só para falha transitória (fila/gateway).
+    return blocked(job, 'draft', toBlockers(chk.findings), chk.findings);
   }
   return next('factcheck', { ...job, slug, draft: d, feedback: undefined, ...(r.taskId ? { draftTaskId: r.taskId } : { draftTaskId: undefined }) });
 }

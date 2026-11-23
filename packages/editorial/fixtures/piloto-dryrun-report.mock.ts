@@ -81,7 +81,7 @@ export function renderDryrunMarkdown(r: DryrunReport): string {
   L.push('');
   L.push('## O que o ensaio mostrou (para o PM e o AgentOps)');
   L.push('');
-  L.push('1. **Redação barrada por gate gasta 3 chamadas.** a2, a4 e a6 repetem a redação até `max_attempts` (3 tentativas) antes de bloquear. No piloto real, cada matéria assim consome 3 chamadas de redação da quota do OpenBot; se o modelo repetir o erro, não há ganho.');
+  L.push('1. **Redação barrada por gate NÃO é refeita** (corrigido nesta rodada). Cópia literal, número fora da fonte, tom, resumo etc. são barreiras determinísticas: a matéria bloqueia na 1ª redação, com 1 chamada de redação (antes eram 3 por matéria barrada, `max_attempts`). Nova tentativa fica só para falha transitória (fila/gateway).');
   L.push('2. **O gate da redação não grava `gate_verdict` na planilha.** Pelo contrato com o AgentOps, `gate_verdict` e `cross_provider_ok` só vão na checagem e na revisão; a matéria barrada na redação fica com `output_valid` e o motivo só no registro da matéria (`findings`). Quem mede "bloqueios por gate" deve ler o registro, não só a planilha.');
   L.push('3. **Rótulo do bloqueio de tom.** O tom lint bloqueante (a6) sai com o código `unsupported_claim` (padrão de `FINDING_TO_BLOCKER`; não existe código próprio de tom); o achado `tone_title_exclamation` identifica o motivo. Não mudei isso (mexe no contrato dos códigos de bloqueio); fica para decisão do PM.');
   L.push('4. **Fonte com paywall `unknown` (Livelo)** só coleta depois que a revisão humana marca `paywall = none`; o ensaio simula essa revisão em memória.');

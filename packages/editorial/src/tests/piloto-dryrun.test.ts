@@ -45,12 +45,12 @@ describe('ensaio do piloto em dry-run (simulado)', () => {
     expect(por('mesmo_provedor').bloqueios).toEqual(['cross_provider_check_failed']);
     expect(por('mesmo_provedor').checagem).toEqual({ provedor: SIM_DRAFTER, independente: false });
     expect(por('mesmo_provedor').linhasPiloto.find((x) => x.gate_verdict)).toMatchObject({ gate_verdict: 'blocked', cross_provider_ok: false });
-    // redação barrada por gate: 3 tentativas (max_attempts) e nenhuma linha com gate_verdict (contrato: só checagem e revisão)
+    // redação barrada por gate (barreira determinística): UMA chamada de redação, sem nova tentativa e sem max_attempts
     for (const c of ['copia_literal', 'numero_sem_fonte', 'tom_exclamacao']) {
-      expect(por(c).bloqueios).toContain('max_attempts');
-      expect(por(c).linhasPiloto.some((x) => x.gate_verdict)).toBe(false);
-      expect(por(c).estagios.filter((s) => s === 'draft')).toHaveLength(3);
+      expect(por(c).bloqueios).not.toContain('max_attempts');
+      expect(por(c).estagios.filter((s) => s === 'draft'), c).toHaveLength(1);
     }
+    expect(r.chamadasSimuladasPorClasse['draft']).toBe(10);
   });
 
   it('coletor: robots e prefixo do sitemap respeitados (as URLs plantadas nunca são requisitadas) e ≥ 3 s entre requisições ao mesmo host', async () => {
