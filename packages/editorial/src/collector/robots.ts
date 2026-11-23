@@ -1,48 +1,57 @@
-export interface RobotsRules { allow: string[]; disallow: string[]; crawlDelaySec: number | null }
+import { parseRobots as parseGuard, productToken, robotsDecision } from './crawl-guards.mjs';
 
-/** Parser mínimo de robots.txt: escolhe o grupo mais específico para o UA, senão '*'. */
-export function parseRobots(txt: string, userAgent: string): RobotsRules {
-  const ua = userAgent.toLowerCase();
-  type G = { agents: string[]; allow: string[]; disallow: string[]; delay: number | null };
-  const groups: G[] = [];
-  let cur: G | null = null;
+/**
+ * robots.txt do coletor. Toda DECISÃO de acesso (grupo do agente, curinga, âncora, normalização percent-encoded, precedência)
+ * vem do módulo comum de guardas (`crawl-guards.mjs`, do Data, RFC 9309): este arquivo não tem mais parser nem comparador
+ * próprios para allow/disallow. Só duas coisas ficam aqui porque o módulo comum ainda não as expõe: o Crawl-delay do grupo do
+ * agente e a contagem de regras desse grupo (relatório). Ambos escolhem o grupo pelo MESMO critério do módulo (token de produto
+ * exato; senão '*').
+ */
+export interface RobotsRules {
+  crawlDelaySec: number | null;
+  /** Nº de regras Allow/Disallow do grupo que vale para o agente (só para relatório). */
+  ruleCount: number;
+  /** Decisão do módulo comum para um caminho com query. */
+  decide: (pathAndQuery: string) => boolean;
+}
+
+interface RawGroup { agents: string[]; delay: number | null; rules: number }
+
+function rawGroups(txt: string): RawGroup[] {
+  const groups: RawGroup[] = [];
+  let cur: RawGroup | null = null;
   let lastWasAgent = false;
-  for (const rawLine of txt.split(/\r?\n/)) {
-    const line = rawLine.replace(/#.*/, '').trim();
-    if (!line) continue;
-    const i = line.indexOf(':');
-    if (i < 0) continue;
-    const k = line.slice(0, i).trim().toLowerCase();
-    const v = line.slice(i + 1).trim();
-    if (k === 'user-agent') {
-      if (!cur || !lastWasAgent) { cur = { agents: [], allow: [], disallow: [], delay: null }; groups.push(cur); }
-      cur.agents.push(v.toLowerCase());
-      lastWasAgent = true;
-      continue;
+  for (const raw of txt.split(/\r?\n/)) {
+    const line = raw.replace(/#.*/, '').trim();
+    const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
+    if (!m) continue;
+    const field = m[1]!.toLowerCase(); const value = m[2]!.trim();
+    if (field === 'user-agent') {
+      if (!cur || !lastWasAgent) { cur = { agents: [], delay: null, rules: 0 }; groups.push(cur); }
+      cur.agents.push(value.toLowerCase()); lastWasAgent = true; continue;
     }
     lastWasAgent = false;
     if (!cur) continue;
-    if (k === 'allow' && v) cur.allow.push(v);
-    else if (k === 'disallow' && v) cur.disallow.push(v);
-    else if (k === 'crawl-delay') { const n = Number(v); if (Number.isFinite(n)) cur.delay = n; }
+    if (field === 'crawl-delay') { const n = Number(value); if (Number.isFinite(n) && n >= 0) cur.delay = n; }
+    else if ((field === 'allow' || field === 'disallow') && value !== '') cur.rules++;
   }
-  const specific = groups.find((g) => g.agents.some((a) => a !== '*' && ua.includes(a)));
-  const g = specific ?? groups.find((g) => g.agents.includes('*'));
-  return g ? { allow: g.allow, disallow: g.disallow, crawlDelaySec: g.delay } : { allow: [], disallow: [], crawlDelaySec: null };
+  return groups;
 }
 
-function matchLen(pattern: string, path: string): number {
-  // suporte a * e $ ; retorna comprimento do padrão se casar, senão -1
-  const anchored = pattern.endsWith('$');
-  const p = anchored ? pattern.slice(0, -1) : pattern;
-  const re = new RegExp('^' + p.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + (anchored ? '$' : ''));
-  return re.test(path) ? p.length : -1;
+export function parseRobots(txt: string, userAgent: string): RobotsRules {
+  const token = productToken(userAgent);
+  const groups = rawGroups(txt);
+  const specific = groups.filter((g) => g.agents.includes(token));
+  const chosen = specific.length ? specific : groups.filter((g) => g.agents.includes('*'));
+  const delay = chosen.map((g) => g.delay).find((d): d is number => d !== null) ?? null;
+  const parsed = parseGuard(txt);
+  return {
+    crawlDelaySec: delay,
+    ruleCount: chosen.reduce((n, g) => n + g.rules, 0),
+    decide: (path: string): boolean => robotsDecision(parsed, userAgent, path).allowed,
+  };
 }
 
-/** Regra mais longa vence; empate favorece Allow (padrão RFC 9309). */
 export function isAllowedByRobots(rules: RobotsRules, pathAndQuery: string): boolean {
-  let best = -1; let allowed = true;
-  for (const d of rules.disallow) { const l = matchLen(d, pathAndQuery); if (l > best) { best = l; allowed = false; } }
-  for (const a of rules.allow) { const l = matchLen(a, pathAndQuery); if (l >= best && l >= 0) { best = l; allowed = true; } }
-  return allowed;
+  return rules.decide(pathAndQuery);
 }

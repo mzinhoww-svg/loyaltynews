@@ -20,7 +20,7 @@ const NOW = new Date('2026-11-24T13:00:00Z');
 const URL_PUB = 'https://loyaltynews.example/materia/a1';
 let ev: Evidence;
 beforeAll(async () => {
-  ev = (await new Collector(mockWebRoles(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/nomeacoes')).evidence!;
+  ev = (await new Collector(mockWebRoles(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/nomeacoes')).evidence!;
 });
 
 const gw = (draft?: () => unknown) => new MockGateway(ev.id, {

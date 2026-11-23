@@ -30,7 +30,7 @@ const chefe: Actor = { userId: 'maria-chefe', roles: ['editor_chefe'], mfa: true
 const admin: Actor = { userId: 'joao-admin', roles: ['admin'], mfa: true };
 let ev: Evidence;
 beforeAll(async () => {
-  ev = (await new Collector(mockWeb(), { now: () => T0, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
+  ev = (await new Collector(mockWeb(), { minSpacingMs: 0, now: () => T0, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 });
 
 async function publishedStore() {

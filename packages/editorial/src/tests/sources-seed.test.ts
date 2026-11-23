@@ -52,5 +52,10 @@ test('seed: correções registradas da pesquisa (LATAM host real; GOL sem feed 4
   assert.equal(reg.get('senacon')?.pathPrefix, '/mj');
   assert.equal(reg.get('anpd')?.pathPrefix, '/anpd');
   assert.equal(reg.get('cvm')?.pathPrefix, '/cvm');
-  for (const id of ['magalu-ri', 'itau-ri', 'santander-ri', 'livelo-imprensa', 'star-alliance', 'ico-uk']) assert.equal(reg.get(id)?.verification?.level, 'inacessivel', id);
+  for (const id of ['itau-ri', 'santander-ri', 'star-alliance', 'ico-uk']) assert.equal(reg.get(id)?.verification?.level, 'inacessivel', id);
+  // DP-29 (23/11): Livelo e Magalu RI reavaliadas (200 com o UA identificado); Santander RI segue bloqueada (302 -> 403), não contornada
+  for (const id of ['livelo-imprensa', 'magalu-ri']) assert.equal(reg.get(id)?.verification?.level, 'parcial', id);
+  assert.equal(reg.get('livelo-imprensa')?.sitemapUrl, 'https://www.livelo.com.br/sitemap/static-sitemap-0.xml');
+  assert.equal(reg.get('livelo-imprensa')?.sitemapPathPrefix, '/imprensa/');
+  assert.match(reg.get('santander-ri')?.verification?.notes ?? '', /BLOQUEADA/);
 });

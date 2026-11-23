@@ -5,7 +5,7 @@
 import type { Db } from '@ln/auth';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
-  Collector, InMemoryAuditLog, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
+  Collector, type ReaderPort, StoreReadBudget, InMemoryAuditLog, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
   type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
@@ -90,6 +90,8 @@ export interface RunEditorialFactoryInput {
   persistentLedger?: boolean;
   registry?: SourceRegistry;
   collector?: Collector;
+  /** DP-31: serviço de leitura (ex.: TavilyReader) para as fontes com acesso 'via-provedor'. Ausente = essas fontes são puladas. */
+  reader?: ReaderPort;
   now?: () => Date;
 }
 
@@ -103,7 +105,7 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
-  const collector = i.collector ?? new Collector(createNodeFetcher(), { now, resolver: systemResolver, flags });
+  const collector = i.collector ?? new Collector(createNodeFetcher(), { now, resolver: systemResolver, flags, readBudget: new StoreReadBudget(store), ...(i.reader ? { reader: i.reader } : {}) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
   return runFactory({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
 }
