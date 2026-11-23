@@ -12,7 +12,10 @@ export type UsageProblem =
   | 'id_invalido'
   | 'numero_invalido'
   | 'custo_desconhecido'
-  | 'geracao_ausente';
+  | 'geracao_ausente'
+  | 'faixa_invalida'
+  | 'conta_incompativel'
+  | 'custo_em_faixa_gratuita';
 
 export interface UsageValidation {
   ok: boolean;
@@ -21,6 +24,14 @@ export interface UsageValidation {
 
 const isCount = (n: unknown): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0;
 
+/** Contas aceitas por faixa gratuita: `subscription` = Claude ou Codex; `opencode` = OpenCode (modelo gratuito). */
+const ACCOUNTS_OF_LANE: Record<'subscription' | 'opencode' | 'antigravity', readonly string[]> = { subscription: ['claude', 'codex'], opencode: ['opencode'], antigravity: ['antigravity'] };
+
+/**
+ * Valida o relato de custo. Faixa `api` (padrão): tokens, custo conhecido e ids de geração quando houve gasto.
+ * Faixas `subscription`/`opencode`: conta compatível, modelo declarado e `costMicro` EXATAMENTE 0; sem geração do OpenRouter e
+ * sem tokens obrigatórios (o OpenBot não os expõe: omitidos = não medidos). Qualquer custo > 0 nessas faixas é recusado.
+ */
 export function validateUsage(u: unknown): UsageValidation {
   const problems: UsageValidation['problems'] = [];
   const bad = (code: UsageProblem, field: string) => problems.push({ code, field });
@@ -31,19 +42,38 @@ export function validateUsage(u: unknown): UsageValidation {
     else if (!ID_RE.test(r[f] as string)) bad('id_invalido', f);
   }
   if (typeof r.model !== 'string' || r.model.length === 0 || r.model.length > 128) bad('campo_ausente', 'model');
-  for (const f of ['promptTokens', 'completionTokens', 'cacheReadTokens', 'cacheWriteTokens'] as const) {
-    if (!isCount(r[f])) bad('numero_invalido', f);
+
+  const lane = r.lane === undefined ? 'api' : r.lane;
+  if (lane !== 'api' && lane !== 'subscription' && lane !== 'opencode' && lane !== 'antigravity') {
+    bad('faixa_invalida', 'lane');
+    return { ok: false, problems };
   }
+
   // Custo ausente, NaN, negativo, fracionário ou nulo = preço desconhecido: recusa, nunca assume zero.
   if (r.costMicro === undefined || r.costMicro === null) bad('custo_desconhecido', 'costMicro');
   else if (!isCount(r.costMicro)) bad('custo_desconhecido', 'costMicro');
+
+  const tokenFields = ['promptTokens', 'completionTokens', 'cacheReadTokens', 'cacheWriteTokens'] as const;
   const gens = r.generationIds;
-  if (!Array.isArray(gens) || gens.some((g) => typeof g !== 'string' || !ID_RE.test(g))) bad('id_invalido', 'generationIds');
-  else if (gens.length === 0 && ((r.costMicro as number) > 0 || (r.promptTokens as number) > 0 || (r.completionTokens as number) > 0)) {
-    bad('geracao_ausente', 'generationIds'); // gasto sem id de geração não pode ser conciliado
+
+  if (lane === 'api') {
+    for (const f of tokenFields) if (!isCount(r[f])) bad('numero_invalido', f);
+    if (r.account !== undefined) bad('conta_incompativel', 'account'); // conta é das faixas gratuitas
+    if (!Array.isArray(gens) || gens.some((g) => typeof g !== 'string' || !ID_RE.test(g))) bad('id_invalido', 'generationIds');
+    else if (gens.length === 0 && ((r.costMicro as number) > 0 || (r.promptTokens as number) > 0 || (r.completionTokens as number) > 0)) {
+      bad('geracao_ausente', 'generationIds'); // gasto sem id de geração não pode ser conciliado
+    }
+  } else {
+    if (typeof r.account !== 'string' || !ACCOUNTS_OF_LANE[lane].includes(r.account)) bad('conta_incompativel', 'account');
+    for (const f of tokenFields) if (r[f] !== undefined && !isCount(r[f])) bad('numero_invalido', f);
+    if (gens !== undefined && (!Array.isArray(gens) || gens.some((g) => typeof g !== 'string' || !ID_RE.test(g)))) bad('id_invalido', 'generationIds');
+    if (isCount(r.costMicro) && r.costMicro !== 0) bad('custo_em_faixa_gratuita', 'costMicro');
   }
   return { ok: problems.length === 0, problems };
 }
+
+/** `true` quando o relato é de faixa tarifada (`api`, o padrão). */
+export const isApiLane = (u: Pick<UsageReport, 'lane'>): boolean => (u.lane ?? 'api') === 'api';
 
 export interface CostEntry extends UsageReport {
   recordedAt: string;
@@ -118,7 +148,9 @@ export interface Reconciliation {
  * gerações é repartido igualmente entre elas só para a comparação por geração quando o relato não traz custo por geração;
  * a soma total é comparada exatamente. Tolerância em micro-USD (padrão 0: custos inteiros devem bater).
  */
-export function reconcile(reports: readonly UsageReport[], gateway: readonly GatewayEntry[], toleranceMicro = 0): Reconciliation {
+export function reconcile(allReports: readonly UsageReport[], gateway: readonly GatewayEntry[], toleranceMicro = 0): Reconciliation {
+  // Faixas gratuitas (assinatura, OpenCode) não têm geração no gateway: ficam fora da conciliação.
+  const reports = allReports.filter(isApiLane);
   const gw = new Map<string, number>();
   for (const g of gateway) gw.set(g.generationId, (gw.get(g.generationId) ?? 0) + g.costMicro);
 
@@ -126,11 +158,12 @@ export function reconcile(reports: readonly UsageReport[], gateway: readonly Gat
   let totalOpenbot = 0;
   for (const r of reports) {
     totalOpenbot += r.costMicro;
-    const n = r.generationIds.length;
+    const ids = r.generationIds ?? [];
+    const n = ids.length;
     if (n === 0) continue;
     const base = Math.floor(r.costMicro / n);
     let rest = r.costMicro - base * n;
-    for (const id of r.generationIds) {
+    for (const id of ids) {
       const share = base + (rest > 0 ? 1 : 0);
       if (rest > 0) rest -= 1;
       perGen.set(id, (perGen.get(id) ?? 0) + share);

@@ -46,7 +46,7 @@ export class SimulatedMlabsAdapter implements MlabsAdapter {
       mode: 'simulated',
       simulated: true,
       createdAt: this.now(),
-      status: 'scheduled',
+      status: 'draft', // o fluxo é só rascunho: nada agenda nem publica
       idempotencyKey,
     };
     this.posts.set(receipt.id, { payload: structuredClone(payload), receipt });

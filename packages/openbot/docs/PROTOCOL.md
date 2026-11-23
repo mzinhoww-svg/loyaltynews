@@ -32,3 +32,10 @@ Se o OpenBot para de puxar (> 3 min), `evaluateHealth` devolve `atrasado`: os wo
 
 ## Não verificado (do ADR-003 e deste adaptador)
 Endpoint customizado por agente no OpenBot; métrica de uso por execução; relay de webhook; se o OpenBot consegue enviar os cabeçalhos de assinatura e o corpo no formato acima; retenção da tabela de `callbackId`.
+
+## Atualização de 23/11/2026 (piloto de 10 matérias)
+- **`pull`** aceita `account` (`claude|codex|opencode|antigravity`): a via só recebe tarefas cuja via atual é a dela. **No piloto é obrigatório.** O lease devolvido traz `account`.
+- **Rotas de contas** por tipo (`DEFAULT_ROUTES`): pauta opencode→claude→antigravity; checagem e revisão codex→antigravity; redação só claude. O despacho aceita `route` apenas para **restringir** a rota padrão. No `callback`, `trace.limit` (a conta bateu o limite) passa a tarefa à próxima via (o limite não conta como tentativa); na última via, ou na redação, espera a janela e recomeça pela preferida. `nextAccount` na resposta diz quem puxa agora (`null` = espera).
+- **`usage`** ganha `lane` (`api|subscription|opencode|antigravity`) e `account`. Nas faixas gratuitas: `costMicro` exatamente 0, sem `generationIds` e tokens opcionais (omitidos = não medidos). Custo > 0 numa faixa gratuita é recusado.
+- **`callback`** ganha `trace` (`stage`, `account`, `startedAt`, `endedAt`, `packetChars`, `limit{message,at,resumeAt?}`, `reviewedDraftTaskId`, `promptVersion`, `sourceId`, `outputValid`, `toolOutsideContract`, `notes`) e `retryAfterSeconds`. A conta de `trace` e a do `usage` têm de coincidir (422 `TRACE_MISMATCH`) e ser a da via atribuída (422 `ACCOUNT_OUT_OF_ROUTE`). No piloto a trilha é obrigatória (422 `TRACE_REQUIRED`).
+- **Piloto**: códigos novos `PILOT_STOPPED` (503), `ROUTE_INVALID` (422), `ACCOUNT_OUT_OF_ROUTE`, `TRACE_REQUIRED`, `TRACE_MISMATCH`; `resumePilot` exige `openbot:pilot_admin`. Roteiro completo: `docs/ATIVACAO-STAGING.md`.

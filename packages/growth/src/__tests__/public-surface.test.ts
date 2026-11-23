@@ -158,8 +158,7 @@ describe('superfície pública: nenhum caminho para escrever sem o publicador', 
     assert.ok(reexported.length > 10);
     for (const t of reexported) {
       assert.doesNotMatch(t, /\.internal$/, t);
-      assert.doesNotMatch(t, /simulated\.mock$/, t);
-      assert.doesNotMatch(t, /gateway\.mock$/, t);
+      assert.doesNotMatch(t, /\.mock$/, t);
     }
   });
 
