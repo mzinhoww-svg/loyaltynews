@@ -8,6 +8,7 @@ import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import { requireStudio } from '../../_lib/guard';
 import { SemBanco } from '../../_components/SemBanco';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../_components/StatusArtigo';
 
 export const metadata: Metadata = { title: 'CMS editorial' };
@@ -29,6 +30,13 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
   }
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
+  // P2-04: o que espera ESTE papel (revisão e publicação), sem filtrar na mão
+  const podePublicar = checkAccess(session, ['admin', 'editor_chefe']).ok;
+  const contar = async (st: 'em_checagem' | 'aprovado') => {
+    const x = await api.materias.listar({ status: st });
+    return ehErro(x) ? null : x.body.total;
+  };
+  const [paraRevisar, paraPublicar] = await Promise.all([podeRevisar ? contar('em_checagem') : null, podePublicar ? contar('aprovado') : null]);
   const filtroInvalido = ehErro(r);
   const lista = filtroInvalido ? [] : r.body.data;
   const total = filtroInvalido ? 0 : r.body.total;
@@ -53,6 +61,21 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           Pauta autoral
         </Link>
       </div>
+
+      {paraRevisar !== null || paraPublicar !== null ? (
+        <nav aria-label="Para mim" className="st-actions" style={{ marginBottom: 14 }} data-para-mim>
+          {paraRevisar !== null ? (
+            <Link className="st-btn sec" href="/studio/cms?status=em_checagem" data-para-mim-revisar={paraRevisar}>
+              Para revisar ({paraRevisar})
+            </Link>
+          ) : null}
+          {paraPublicar !== null ? (
+            <Link className="st-btn sec" href="/studio/cms?status=aprovado" data-para-mim-publicar={paraPublicar}>
+              Para publicar ({paraPublicar})
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
 
       <form className="st-filters" method="get" role="search" aria-label="Filtrar matérias">
         <div className="st-field">
@@ -101,7 +124,8 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           ) : null}
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Matérias">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left', padding: '4px 0' }}>
             {total} matéria(s)
           </caption>
@@ -130,8 +154,9 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
-      <p className="st-hint">Publicação no portal: pela rota oficial, com recibo válido da versão e a flag publicacaoPortal ligada, para quem tem permissão de publicar (editor-chefe, admin). Quem aprova e quem publica podem ser a mesma pessoa.</p>
+      <p className="st-hint">Publicação no portal: pela rota oficial, com recibo válido da versão e a publicação no portal ligada nesta fase, para quem tem permissão de publicar (editor-chefe, admin). Quem aprova e quem publica podem ser a mesma pessoa.</p>
     </>
   );
 }

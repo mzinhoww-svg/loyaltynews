@@ -4,6 +4,7 @@ import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
 import { enviarArquivoAction, registrarMidiaAction, removerMidiaAction, renovarLicencaAction } from './actions';
 
@@ -139,7 +140,8 @@ export default async function MidiaPage({ searchParams }: { searchParams: Promis
           <p>{filtrando ? 'Ajuste os filtros.' : 'Registre o primeiro ativo abaixo, com a base de direito.'}</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Biblioteca de mídia">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {itens.length} ativo(s)
           </caption>
@@ -205,6 +207,7 @@ export default async function MidiaPage({ searchParams }: { searchParams: Promis
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
       {podeEscrever ? (
         <>

@@ -9,6 +9,7 @@ import { CMS_READ } from '@/lib/studio/cms/roles';
 import { FORMATOS, MAX_ANCORAS, MIN_ANCORAS, estadoDaPauta, fontesDeAncora, type FonteRegistro, type PautaVista } from '@/lib/studio/cms/pauta';
 import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { enviarPautaAction } from './actions';
 
@@ -16,6 +17,30 @@ export const metadata: Metadata = { title: 'Pauta autoral' };
 export const dynamic = 'force-dynamic';
 
 const PODE_ESCREVER = ['admin', 'editor_chefe', 'editor'] as const;
+/** O mínimo são 2 âncoras; a tela abre 3 e guarda as outras sob "Mais âncoras" (auditoria P2-12). */
+const ANCORAS_ABERTAS = 3;
+
+function linhaDeAncora(i: number, fontes: FonteRegistro[]) {
+  return (
+    <div className="st-row" key={i}>
+      <div className="st-field">
+        <label htmlFor={`fonte-${i}`}>Fonte da âncora {i + 1}</label>
+        <select id={`fonte-${i}`} name={`fonte-${i}`} defaultValue={fontes[i % fontes.length]!.id}>
+          {fontes.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.nome} — {f.host}
+              {f.pathPrefix ?? ''}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="st-field">
+        <label htmlFor={`url-${i}`}>Página da âncora {i + 1}</label>
+        <input id={`url-${i}`} name={`url-${i}`} type="text" placeholder="https://…" />
+      </div>
+    </div>
+  );
+}
 
 export default async function PautasPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
   const { session } = await requireStudio(CMS_READ);
@@ -57,7 +82,8 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
           <p>Nenhuma pauta autoral registrada.</p>
         </section>
       ) : (
-        <table className="st-table" aria-label="Pautas autorais">
+        <QuadroRolavel rotulo="Pautas">
+<table className="st-table" aria-label="Pautas autorais">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {pautas.length} pauta(s), da mais recente à mais antiga
           </caption>
@@ -128,6 +154,7 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
             })}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <h2 style={{ marginTop: 24 }}>Nova pauta</h2>
@@ -181,25 +208,11 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
               Âncoras: de {MIN_ANCORAS} a {MAX_ANCORAS} páginas de fontes primárias habilitadas
             </legend>
             <p className="st-hint">Escolha a fonte e cole a URL https da página dela. A página precisa ficar no host (e no caminho) da fonte escolhida. Linhas sem URL são ignoradas.</p>
-            {Array.from({ length: MAX_ANCORAS }, (_, i) => (
-              <div className="st-row" key={i}>
-                <div className="st-field">
-                  <label htmlFor={`fonte-${i}`}>Fonte da âncora {i + 1}</label>
-                  <select id={`fonte-${i}`} name={`fonte-${i}`} defaultValue={fontes[i % fontes.length]!.id}>
-                    {fontes.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.nome} — {f.host}
-                        {f.pathPrefix ?? ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="st-field">
-                  <label htmlFor={`url-${i}`}>Página da âncora {i + 1}</label>
-                  <input id={`url-${i}`} name={`url-${i}`} type="text" placeholder="https://…" />
-                </div>
-              </div>
-            ))}
+            {Array.from({ length: ANCORAS_ABERTAS }, (_, i) => linhaDeAncora(i, fontes))}
+            <details data-mais-ancoras>
+              <summary>Mais âncoras (até {MAX_ANCORAS})</summary>
+              {Array.from({ length: MAX_ANCORAS - ANCORAS_ABERTAS }, (_, k) => linhaDeAncora(ANCORAS_ABERTAS + k, fontes))}
+            </details>
           </fieldset>
           <button className="st-btn" type="submit">
             Registrar pauta na fila

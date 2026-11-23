@@ -5,6 +5,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { CMS_READ } from '@/lib/studio/cms/roles';
 import { requireStudio } from '../../../_lib/guard';
 import { SemBanco } from '../../../_components/SemBanco';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
 
 export const metadata: Metadata = { title: 'Fila de checagem' };
@@ -82,7 +83,8 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
           <p>A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados por flag). Nada é simulado.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Fila de checagem">
+<table className="st-table">
           <thead>
             <tr>
               <th scope="col">Matéria</th>
@@ -106,6 +108,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
     </>
   );

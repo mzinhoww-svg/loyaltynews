@@ -8,6 +8,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { nivelDoCargo, textoDaEvidencia } from '@/lib/studio/intelligence-view';
 import { requireModule } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
+import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { abrirPedidoAction, exportarPedidoAction, removerPessoaAction, retificarPedidoAction } from './actions';
 
@@ -53,7 +54,8 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
           Sem cargos registrados.
         </p>
       ) : (
-        <table className="st-table" aria-label="Cargos">
+        <QuadroRolavel rotulo="Cargos da pessoa">
+<table className="st-table" aria-label="Cargos">
           <thead>
             <tr>
               <th scope="col">Empresa</th>
@@ -89,6 +91,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
             })}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <section className="st-card" style={{ marginTop: 24 }} aria-labelledby="titular" data-secao="pedidos-do-titular">

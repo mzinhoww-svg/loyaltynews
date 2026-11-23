@@ -29,7 +29,7 @@ export default async function ModulePage({ params }: { params: Promise<{ modulo:
         </p>
         {mod.flag ? (
           <p>
-            Feature flag <code>{mod.flag}</code>: <strong>{flagLigada ? 'ligada' : 'desligada'}</strong>. Ligar a flag é decisão registrada, nunca padrão de código.
+            Este módulo está <strong>{flagLigada ? 'ligado' : 'desligado nesta fase'}</strong>. Ligar é uma decisão registrada, nunca padrão de código.
           </p>
         ) : (
           <p>Aguardando backend do módulo (sem flag dedicada no contrato).</p>

@@ -6,6 +6,7 @@ import { ESCRITA_EDITORIAL, CHEFIA_EDITORIAL } from '@/lib/studio/papeis';
 import { LINKS_PADRAO, SEO_PADRAO, type LinksConteudo, type SeoConteudo } from '@/lib/studio/site-docs';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
 import { PortalAgora } from '../../_components/PortalAgora';
@@ -54,6 +55,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
   const chefia = checkAccess(session, CHEFIA_EDITORIAL).ok;
   const admin = checkAccess(session, ['admin']).ok;
   const org = seo.dadosEstruturados.organizacao;
+  const urlDoSite = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   return (
     <>
       <h1>SEO</h1>
@@ -66,11 +68,11 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
       {podeEscrever ? (
         <form action={salvarSeoAction} aria-label="SEO global" className="st-card">
           <div className="st-field">
-            <label htmlFor="tituloPadrao">Título padrão (até 70)</label>
+            <label htmlFor="tituloPadrao">Título padrão (obrigatório, até 70)</label>
             <input id="tituloPadrao" name="tituloPadrao" type="text" defaultValue={seo.tituloPadrao} />
           </div>
           <div className="st-field">
-            <label htmlFor="descricaoPadrao">Descrição padrão (até 200)</label>
+            <label htmlFor="descricaoPadrao">Descrição padrão (obrigatória, até 200)</label>
             <textarea id="descricaoPadrao" name="descricaoPadrao" rows={2} defaultValue={seo.descricaoPadrao} />
           </div>
           <div className="st-field">
@@ -94,12 +96,13 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           <h3>Organização (dados estruturados)</h3>
           <div className="st-row">
             <div className="st-field">
-              <label htmlFor="orgNome">Nome</label>
+              <label htmlFor="orgNome">Nome (obrigatório)</label>
               <input id="orgNome" name="orgNome" type="text" defaultValue={org.nome} />
             </div>
             <div className="st-field">
-              <label htmlFor="orgUrl">URL do site</label>
-              <input id="orgUrl" name="orgUrl" type="text" defaultValue={org.url} />
+              <label htmlFor="orgUrl">URL do site (obrigatória, https://…)</label>
+              <input id="orgUrl" name="orgUrl" type="text" defaultValue={org.url || urlDoSite} placeholder="https://…" />
+              {!org.url && urlDoSite ? <span className="st-hint">Sugerida pelo ambiente ({urlDoSite}); confira antes de salvar.</span> : null}
             </div>
           </div>
           <div className="st-field">
@@ -131,7 +134,8 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           Nenhuma regra de link interno.
         </p>
       ) : (
-        <table className="st-table" aria-label="Regras de links internos">
+        <QuadroRolavel rotulo="Metadados por página">
+<table className="st-table" aria-label="Regras de links internos">
           <thead>
             <tr>
               <th scope="col">Termo</th>
@@ -160,6 +164,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
       {podeEscrever ? (
         <form action={adicionarLinkAction} aria-label="Nova regra de link interno" className="st-card" style={{ marginTop: 10 }}>
@@ -192,7 +197,8 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           <p>Nenhum redirecionamento cadastrado.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Redirecionamentos">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {redirects.length} redirecionamento(s)
           </caption>
@@ -239,6 +245,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       {chefia ? (
