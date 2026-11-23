@@ -13,6 +13,7 @@ import * as rollback from './documentos/[tipo]/rollback/route';
 import * as redirects from './redirects/route';
 import * as redirect from './redirects/[id]/route';
 import * as pubSite from '../publico/site/route';
+import * as pubMaterias from '../publico/materias/route';
 import * as pubRedirects from '../publico/site/redirects/route';
 import * as pubSitemap from '../publico/site/sitemap/route';
 
@@ -202,7 +203,8 @@ describe('publicar, versionar, agendar e rollback', () => {
     expect(h.versao).toBe(1);
     const dest = h.blocos.find((b: any) => b.tipo === 'destaque');
     expect(dest.materias).toHaveLength(1);
-    expect(Object.keys(dest.materias[0]).sort()).toEqual(['editoria', 'publicadoEm', 'resumo', 'slug', 'subtitulo', 'titulo']);
+    // mesmo cartão público da listagem /api/publico/materias (F-29): nada interno (id, status, versão, classe de dado, corpo) sai por aqui
+    expect(Object.keys(dest.materias[0]).sort()).toEqual(['assinatura', 'corrigida', 'editoria', 'imagem', 'patrocinado', 'publicadoEm', 'resumo', 'rotuloPublieditorial', 'slug', 'subtitulo', 'tempoLeituraMin', 'tipoConteudo', 'titulo']);
     expect(h.blocos.find((b: any) => b.tipo === 'publicidade').dimensao).toEqual({ desktop: '1280x150', mobile: ['320x100', '300x250'] });
     await app.db.update(schema.articles).set({ status: 'despublicado' as any }).where(eq(schema.articles.slug, 'materia-no-ar'));
     const h2 = (await publico()).body.data.home;
@@ -404,5 +406,45 @@ describe('redirects', () => {
     const lista2 = (await call(pubRedirects.GET, 'GET', {})).body.data;
     expect(lista2.map((r: any) => r.origem)).not.toContain('/p1');
     expect(Object.keys(lista2[0]).sort()).toEqual(['codigo', 'destino', 'origem']);
+  });
+});
+
+// F-29: a home publicada chega ao Portal JÁ RESOLVIDA (listas de editoria, últimas e agenda), sem o Portal recompor regra de negócio.
+describe('home pública resolvida (F-29)', () => {
+  it('lista_editoria, ultimas e agenda trazem os itens (só publicados/públicos, mais recentes primeiro, até o limite); o cartão é o mesmo da listagem pública', async () => {
+    for (const [slug, dia, ed] of [['ed-a1', '01', 'pontos'], ['ed-a2', '02', 'pontos'], ['ed-a3', '03', 'pontos'], ['ed-b1', '04', 'bancos']] as const) {
+      await artigo(slug, 'publicado', { publicadoEm: new Date(`2026-11-${dia}T10:00:00Z`), editoria: ed });
+    }
+    await artigo('ed-interna', 'publicado', { publicadoEm: new Date('2026-11-10T10:00:00Z'), classeDeDado: 'internal' as any });
+    await artigo('ed-rascunho', 'rascunho', { editoria: 'pontos' });
+    const ev = (id: string, inicio: string, fim: string, moderacao: string) =>
+      app.db.insert(schema.agendaEvents).values({ id, titulo: `Evento ${id}`, inicio, fim, local: 'São Paulo', fonteUrl: 'https://exemplo.example/e', moderacao } as any);
+    await ev('ag-passado', '2020-01-01', '2020-01-02', 'aprovado');
+    await ev('ag-ok-1', '2099-01-01', '2099-01-02', 'aprovado');
+    await ev('ag-ok-2', '2099-02-01', '2099-02-02', 'aprovado');
+    await ev('ag-pendente', '2099-03-01', '2099-03-02', 'pendente');
+    expect((await put('home', {
+      blocos: [
+        { tipo: 'lista_editoria', id: 'pontos', editoria: 'pontos', limite: 2 },
+        { tipo: 'ultimas', id: 'ultimas', limite: 3 },
+        { tipo: 'agenda', id: 'agenda', limite: 5 },
+      ],
+    }, chefe)).status).toBe(200);
+    expect((await pub('home')).status).toBe(200);
+    const blocos = (await publico()).body.data.home.blocos;
+    const por = (id: string) => blocos.find((b: any) => b.id === id);
+    expect(por('pontos').materias.map((m: any) => m.slug)).toEqual(['materia-no-ar', 'ed-a3']); // mais recentes da editoria; sem rascunho nem 'internal'
+    expect(por('ultimas').materias.map((m: any) => m.slug)).toEqual(['materia-no-ar', 'ed-b1', 'ed-a3']);
+    expect(por('ultimas').materias).toHaveLength(3);
+    expect(por('ultimas').materias.map((m: any) => m.slug)).not.toContain('ed-interna');
+    expect(por('ultimas').materias.map((m: any) => m.slug)).not.toContain('ed-rascunho');
+    const datas = por('ultimas').materias.map((m: any) => Date.parse(m.publicadoEm));
+    expect(datas).toEqual([...datas].sort((a: number, b: number) => b - a));
+    expect(por('agenda').eventos.map((e: any) => e.id)).toEqual(['ag-ok-1', 'ag-ok-2']); // só aprovados que ainda não terminaram
+    expect(Object.keys(por('agenda').eventos[0]).sort()).toEqual(['editorias', 'fim', 'fonteUrl', 'id', 'inicio', 'local', 'patrocinado', 'titulo', 'url']);
+    // o cartão da home é o da listagem pública
+    const lista = await call(pubMaterias.GET, 'GET', { query: { editoria: 'pontos' } });
+    const igual = lista.body.data.find((m: any) => m.slug === 'ed-a3');
+    expect(por('pontos').materias.find((m: any) => m.slug === 'ed-a3')).toEqual(igual);
   });
 });
