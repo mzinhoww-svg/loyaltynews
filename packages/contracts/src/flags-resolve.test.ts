@@ -33,6 +33,18 @@ describe('ADR-022 resolveFlags', () => {
     );
   });
 
+  it('adendo 2: leitorViaProvedor nasce desligada, liga só no staging (DP-32) e produção não sobe', () => {
+    expect(FLAG_DEFAULTS.leitorViaProvedor).toBe(false);
+    expect(resolveFlags({}).state.leitorViaProvedor).toBe(false);
+    expect(resolveFlags({ APP_ENV: 'staging' }).state.leitorViaProvedor).toBe(false);
+    const r = resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'leitorViaProvedor' });
+    expect(r.state.leitorViaProvedor).toBe(true);
+    expect(r.logLine).toBe('flags ligadas: leitorViaProvedor (DP-32, staging)');
+    expect(() => resolveFlags({ APP_ENV: 'production', LN_FLAGS_ON: 'leitorViaProvedor' })).toThrow(
+      new Error('Subida recusada: flag leitorViaProvedor sem decisão para production (ADR-022)'),
+    );
+  });
+
   it('DP-41: openbotDispatch liga só no staging', () => {
     const r = resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas,openbotDispatch' });
     expect(r.on).toEqual(['intelligencePessoas', 'openbotDispatch']);
@@ -101,6 +113,7 @@ describe('ADR-022 resolveFlags', () => {
     expect(DECISION_ID.test('DP-38')).toBe(true);
     expect(FLAG_RELEASES.intelligencePessoas).toEqual({ staging: 'DP-38', production: null });
     expect(FLAG_RELEASES.openbotDispatch).toEqual({ staging: 'DP-41', production: null });
+    expect(FLAG_RELEASES.leitorViaProvedor).toEqual({ staging: 'DP-32', production: null });
   });
 
   it('N6: todo id de produção existe em governance/decisions.yaml', () => {
