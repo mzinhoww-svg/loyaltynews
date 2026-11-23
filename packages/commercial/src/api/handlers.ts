@@ -8,6 +8,8 @@ import {
   campaignDetail, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
 } from '../queries';
 import type { FormatStatus } from '../types';
+import { adPlan, ALLOWED_MIME, resolveClickDestination, validateCreative } from '../creative';
+import type { ServeResult } from '../rotation';
 
 const formatIds = (ids: string[]) => ids.filter((id) => !CATALOG.some((f) => f.id === id));
 const PositionId = z.enum(['TOP', 'SIDEBAR_1', 'SIDEBAR_2', 'SIDEBAR_3', 'FOOTER', 'ARTICLE_INLINE', 'HOME_BETWEEN', 'AGENDA', 'DATA']);
@@ -41,12 +43,40 @@ export const submitLead = define({
 const ServeInput = z.object({ positionId: PositionId, pageViewId: z.string().min(1).max(128), isBot: z.boolean().optional(), isInternal: z.boolean().optional() });
 /** Serve o anúncio da posição. Com a flag `adServerVendas` desligada nada é servido (house) e nada é contado. */
 export const serveAd = define({ auth: 'public', schema: ServeInput }, (ctx, i) => {
-  if (!isEnabled('adServerVendas', ctx.flags)) return ok({ kind: 'house' as const, creativeId: null, impressionId: null, counted: false, reason: 'ad server desligado (flag adServerVendas)' });
+  if (!isEnabled('adServerVendas', ctx.flags)) return ok<ServeResult>({ kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'ad server desligado (flag adServerVendas)' });
   return ok(ctx.ads.serve({ positionId: i.positionId, today: ctx.today, pageViewId: i.pageViewId, isBot: i.isBot, isInternal: i.isInternal, nowMs: Date.parse(ctx.now) }));
 });
 export const recordAdEvent = define({ auth: 'public', schema: z.object({ impressionId: z.string().min(1), event: z.enum(['visible', 'click']) }) }, (ctx, i) => {
   if (!isEnabled('adServerVendas', ctx.flags)) return ok({ counted: false });
   return ok({ counted: i.event === 'visible' ? ctx.ads.recordVisible(i.impressionId, Date.parse(ctx.now)) : ctx.ads.recordClick(i.impressionId, Date.parse(ctx.now)) });
+});
+
+const csv = (v: unknown) => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : v);
+/**
+ * Plano das posições para o portal renderizar: quais posições têm criativo real elegível hoje. NÃO conta impressão.
+ * Posição sem criativo real => available:false e o portal a oculta. Com a flag adServerVendas desligada, nenhuma está disponível.
+ */
+export const getAdPlan = define({ auth: 'public', schema: z.object({ positions: z.preprocess(csv, z.array(PositionId).max(9).optional()) }) }, (ctx, i) => {
+  const slots = isEnabled('adServerVendas', ctx.flags) ? adPlan(ctx.ads.listCreatives(), ctx.today, i.positions) : adPlan([], ctx.today, i.positions);
+  return ok({ today: ctx.today, slots });
+});
+
+/**
+ * Destino do clique: sai do criativo cadastrado, nunca de URL do cliente (sem redirecionamento aberto). O Backend registra o clique
+ * (quando há impressionId) e responde 302 para destination. Desconhecido, pausado ou inválido => 404.
+ */
+export const resolveAdClick = define({ auth: 'public', schema: z.object({ ref: z.string().min(1).max(160) }) }, (ctx, i) => {
+  if (!isEnabled('adServerVendas', ctx.flags)) return fail(404, 'NOT_FOUND', 'Anúncio indisponível.');
+  const r = resolveClickDestination(i.ref, ctx.ads.listCreatives().filter((c) => c.campaignActive), (imp) => ctx.ads.ledger.byImpressionId(imp)?.creativeId);
+  return r ? ok(r) : fail(404, 'NOT_FOUND', 'Anúncio indisponível.');
+});
+
+/** Arquivo do criativo para a entrega pública: só de criativo real, aprovado, em campanha ativa e dentro do período. */
+export const resolveCreativeImage = define({ auth: 'public', schema: z.object({ id: Id }) }, (ctx, i) => {
+  if (!isEnabled('adServerVendas', ctx.flags)) return fail(404, 'NOT_FOUND', 'Arquivo indisponível.');
+  const c = ctx.ads.listCreatives().find((x) => x.id === i.id);
+  const live = c && c.asset && c.approved && c.campaignActive && c.startDate <= ctx.today && ctx.today <= c.endDate && validateCreative(c).length === 0;
+  return live ? ok({ key: c.asset!.key, mime: c.asset!.mime, sizeKB: c.asset!.sizeKB, sha256: c.asset!.sha256 ?? null }) : fail(404, 'NOT_FOUND', 'Arquivo indisponível.');
 });
 
 // ---------- Studio (exige ctx.actor.canManageCommercial) ----------
@@ -110,19 +140,40 @@ export const createCampaign = define({
   return ok(ctx.campaigns.create(i, ctx.now), 201);
 });
 
+const AssetSchema = z.object({ key: z.string().min(1).max(300), mime: z.enum(ALLOWED_MIME), width: z.number().int().positive(), height: z.number().int().positive(), sizeKB: z.number().positive().finite(), sha256: z.string().regex(/^[0-9a-f]{64}$/).optional() });
+const CreativeContent = { asset: AssetSchema.optional(), altText: z.string().max(200).optional(), destinationUrl: z.string().max(2000).optional(), advertiserName: z.string().max(80).optional() };
+
 export const addCreative = define({
   auth: 'studio',
-  schema: z.object({ campaignId: Id, positionId: PositionId, weight: z.number().positive().finite().default(1), startDate: IsoDate, endDate: IsoDate }),
+  schema: z.object({ campaignId: Id, positionId: PositionId, weight: z.number().positive().finite().default(1), startDate: IsoDate, endDate: IsoDate, ...CreativeContent }),
 }, (ctx, i) => {
   const c = ctx.campaigns.get(i.campaignId);
   const id = `cr-${ctx.ads.listCreatives().length + 1}`;
-  ctx.ads.addCreative({ id, campaignId: c.id, positionId: i.positionId, weight: i.weight, startDate: i.startDate, endDate: i.endDate, approved: false, campaignActive: c.status === 'active', label: 'publicidade' });
-  return ok({ id, approved: false }, 201);
+  const advertiserName = i.advertiserName ?? ctx.crm.accounts.get(c.accountId)?.name;
+  ctx.ads.addCreative({
+    id, campaignId: c.id, positionId: i.positionId, weight: i.weight, startDate: i.startDate, endDate: i.endDate, approved: false,
+    campaignActive: c.status === 'active', label: 'publicidade', asset: i.asset, altText: i.altText, destinationUrl: i.destinationUrl, advertiserName,
+  });
+  return ok({ id, approved: false, issues: validateCreative(ctx.ads.listCreatives().find((x) => x.id === id)!) }, 201);
 });
+
+/** Define/troca o arquivo, o alt e o destino. Qualquer alteração de conteúdo REVOGA a aprovação (precisa aprovar de novo). */
+export const setCreativeContent = define({ auth: 'studio', schema: z.object({ creativeId: Id, ...CreativeContent }) }, (ctx, i) => {
+  const cr = ctx.ads.listCreatives().find((x) => x.id === i.creativeId);
+  if (!cr) return fail(404, 'NOT_FOUND', 'Criativo não existe.');
+  const { creativeId, ...patch } = i;
+  ctx.ads.setCreative(creativeId, { ...patch, approved: false });
+  return ok({ id: creativeId, approved: false, issues: validateCreative(ctx.ads.listCreatives().find((x) => x.id === creativeId)!) });
+});
+
+/** Aprovar exige criativo real: arquivo válido para a posição, alt, anunciante e destino https. */
 export const approveCreative = define({ auth: 'studio', schema: z.object({ creativeId: Id }) }, (ctx, i) => {
-  if (!ctx.ads.listCreatives().some((c) => c.id === i.creativeId)) return fail(404, 'NOT_FOUND', 'Criativo não existe.');
-  ctx.ads.setCreative(i.creativeId, { approved: true });
-  return ok({ id: i.creativeId, approved: true });
+  const cr = ctx.ads.listCreatives().find((x) => x.id === i.creativeId);
+  if (!cr) return fail(404, 'NOT_FOUND', 'Criativo não existe.');
+  const issues = validateCreative(cr);
+  if (issues.length) return fail(422, 'CREATIVE_INVALID', 'Criativo incompleto ou fora da especificação da posição.', issues);
+  ctx.ads.setCreative(cr.id, { approved: true });
+  return ok({ id: cr.id, approved: true });
 });
 
 const ACTIVE_LIKE = new Set(['active']);
