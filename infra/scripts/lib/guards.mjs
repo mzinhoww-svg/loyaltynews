@@ -18,16 +18,31 @@ export function envProblems(env = process.env, { deploy = false } = {}) {
     // mock, intelligence e qualquer outro valor continuam reprovados. PORTAL_MODE segue só vazio/empty.
     for (const k of ['PORTAL_SOURCE', 'PORTAL_MODE']) {
       const v = String(env[k] ?? '').trim().toLowerCase();
-      if (v === '' || v === 'empty' || (k === 'PORTAL_SOURCE' && v === 'api')) continue;
+      if (v === '' || v === 'empty') continue;
+      // A2 (Security, decisao 12): `api` so com a grafia EXATA; o portal compara === 'api' e uma variante (API, ' api ') cairia em silencio na fonte vazia.
+      if (k === 'PORTAL_SOURCE' && v === 'api') {
+        if (String(env[k]) === 'api') continue;
+        p.push(`PORTAL_SOURCE="${env[k]}": a grafia tem de ser exatamente api (minusculas, sem espacos); o portal compara com === e cairia na fonte vazia sem aviso`);
+        continue;
+      }
       p.push(`${k}=${env[k]} em ambiente de deploy: deve ficar vazio${k === 'PORTAL_SOURCE' ? ' ou api' : ''} (fixtures MOCK e fontes experimentais só em teste)`);
     }
     // Vitrine do portal no STAGING (decisão do Security 23/11/2026, R1/R2): interruptor próprio PORTAL_VITRINE=1, exatamente `1`, e só com APP_ENV=staging.
     // PORTAL_SOURCE=mock continua proibido acima. Com production/producao/homologacao a variável DEFINIDA (qualquer valor) reprova.
     const vit = String(env.PORTAL_VITRINE ?? '').trim();
+    // A3 (Security, decisao 12): uma fonte por pacote. A vitrine (fixtures rotuladas) so com a fonte vazia; junto com api misturaria dados reais com a faixa de demonstracao.
+    if (vit !== '' && String(env.PORTAL_SOURCE ?? '').trim().toLowerCase() === 'api') p.push('PORTAL_VITRINE definida junto com PORTAL_SOURCE=api: uma fonte por pacote (vitrine so com a fonte vazia)');
     if (vit !== '') {
       const appEnvVit = String(env.APP_ENV ?? '').trim().toLowerCase();
       if (vit !== '1') p.push(`PORTAL_VITRINE=${env.PORTAL_VITRINE}: só o valor 1 é aceito (e só no staging)`);
       else if (appEnvVit !== 'staging') p.push(`PORTAL_VITRINE=1 com APP_ENV=${env.APP_ENV || '(vazio)'}: a vitrine de demonstração só existe no staging`);
+    }
+    // A4 (Security, decisao 12): PORTAL_API_BASE_URL em deploy so ausente (padrao: o proprio servidor) ou loopback http; outro host publicaria conteudo de fora (injecao de conteudo / SSRF).
+    const apiBase = String(env.PORTAL_API_BASE_URL ?? '').trim();
+    if (apiBase !== '') {
+      let u = null;
+      try { u = new URL(apiBase); } catch { /* invalida: reprovada abaixo */ }
+      if (!u || u.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(u.hostname)) p.push('PORTAL_API_BASE_URL em ambiente de deploy: so ausente ou http://127.0.0.1 / http://localhost (outro host e reprovado)');
     }
     if (String(env.DB_SSL_MODE ?? '').toLowerCase() === 'disable') p.push('DB_SSL_MODE=disable em ambiente de deploy: TLS com certificado de cliente é obrigatório na Vertra (disable é só do CI)');
     if (String(env.CI ?? '').toLowerCase() === 'true') p.push('CI=true em ambiente de deploy: essa variável libera DB_SSL_MODE=disable e é só do CI');

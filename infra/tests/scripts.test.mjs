@@ -444,7 +444,6 @@ test('guard: PORTAL_SOURCE=api é aceito em deploy (dados reais); mock, intellig
   const { envProblems } = await import('../scripts/lib/guards.mjs');
   const p = (env) => envProblems({ APP_ENV: 'production', ...env }, { deploy: true }).join('|');
   assert.equal(p({ PORTAL_SOURCE: 'api' }), '');
-  assert.equal(p({ PORTAL_SOURCE: 'API' }), '', 'caixa não importa');
   assert.equal(p({ PORTAL_SOURCE: 'empty' }), '');
   assert.equal(p({}), '');
   for (const v of ['mock', 'intelligence', 'real', 'apis']) assert.match(p({ PORTAL_SOURCE: v }), /PORTAL_SOURCE=.* deve ficar vazio ou api/, v);
@@ -498,4 +497,46 @@ test('check-conexoes: sem --env recusa (código 2) e sem vínculo em bindings.js
   assert.equal(x.status, 1);
   assert.match(x.stdout, /postgres FALHOU/);
   assert.doesNotMatch(x.stdout + x.stderr, /SEGREDO123/);
+});
+
+// ---------- Decisão 12 do Security: PORTAL_SOURCE=api (A1-A4; casos 1-5) ----------
+test('decisao 12 caso 1: staging e producao com PORTAL_SOURCE=api passam no guard (build e start via envProblems)', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const appEnv of ['staging', 'production']) assert.deepEqual(envProblems({ APP_ENV: appEnv, PORTAL_SOURCE: 'api' }, { deploy: true }), [], appEnv);
+  const run = (env) => node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), ...env } });
+  assert.equal(run({ APP_ENV: 'production', PORTAL_SOURCE: 'api' }).status, 0);
+  assert.equal(run({ APP_ENV: 'staging', PORTAL_SOURCE: 'api' }).status, 0);
+});
+
+test('decisao 12 caso 2 (A2): só a grafia exata api; API e " api " são reprovados', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const v of ['API', ' api ', 'Api', 'api ']) assert.match(envProblems({ APP_ENV: 'staging', PORTAL_SOURCE: v }, { deploy: true }).join('|'), /exatamente api/, JSON.stringify(v));
+  assert.equal(node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), APP_ENV: 'production', PORTAL_SOURCE: 'API' } }).status, 1);
+});
+
+test('decisao 12 caso 3 (A3): PORTAL_VITRINE junto com PORTAL_SOURCE=api é reprovado em staging; vitrine sozinha segue válida', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  assert.match(envProblems({ APP_ENV: 'staging', PORTAL_SOURCE: 'api', PORTAL_VITRINE: '1' }, { deploy: true }).join('|'), /uma fonte por pacote/);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', PORTAL_VITRINE: '1' }, { deploy: true }), []);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', PORTAL_SOURCE: 'empty', PORTAL_VITRINE: '1' }, { deploy: true }), []);
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'a'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'staging', vitrine: true };
+  assert.match(startProblems({ APP_ENV: 'staging', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl, PORTAL_VITRINE: '1', PORTAL_SOURCE: 'api' }, rel).join('|'), /uma fonte por pacote/);
+});
+
+test('decisao 12 caso 4 (A4): PORTAL_API_BASE_URL em deploy só ausente ou loopback http', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (v) => envProblems({ APP_ENV: 'production', PORTAL_SOURCE: 'api', ...(v === undefined ? {} : { PORTAL_API_BASE_URL: v }) }, { deploy: true }).join('|');
+  assert.equal(p(undefined), '');
+  assert.equal(p(''), '');
+  assert.equal(p('http://127.0.0.1:3000'), '');
+  assert.equal(p('http://localhost'), '');
+  for (const v of ['https://exemplo.invalid', 'http://exemplo.invalid', 'https://127.0.0.1', 'http://10.0.0.5:80', 'http://127.0.0.1.evil.test', 'nao-e-url']) assert.match(p(v), /PORTAL_API_BASE_URL/, v);
+});
+
+test('decisao 12 caso 5: mock e intelligence continuam reprovados (regressão), com ou sem api no meio', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  for (const v of ['mock', 'intelligence', 'MOCK']) assert.match(envProblems({ APP_ENV: 'production', PORTAL_SOURCE: v }, { deploy: true }).join('|'), /PORTAL_SOURCE=.* deve ficar vazio ou api/, v);
+  assert.match(envProblems({ APP_ENV: 'staging', PORTAL_MODE: 'mock' }, { deploy: true }).join('|'), /PORTAL_MODE=mock/);
 });
