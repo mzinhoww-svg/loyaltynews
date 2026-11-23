@@ -33,7 +33,7 @@ export class FirecrawlReader implements KeyedReader {
     if (r.status === 429) return /credit|quota|insufficient/i.test(raw) ? { status: 'quota_exhausted', httpStatus: 429 } : { status: 'rate_limited', retryAfterSeconds: Number(r.headers.get('retry-after')) || 60, httpStatus: 429 };
     if (r.status === 408) return { status: 'timeout', httpStatus: 408 };
     if (r.status !== 200) return { status: 'provider_error', httpStatus: r.status };
-    let j: { success?: boolean; data?: { markdown?: string; metadata?: Record<string, unknown> } } = {};
+    let j: { success?: boolean; data?: { markdown?: string; metadata?: Record<string, unknown> } };
     try {
       j = JSON.parse(raw);
     } catch {
