@@ -1,6 +1,6 @@
 // Rotas do Entity Intelligence (@ln/intelligence): handlers puros sobre uma porta SQL `query(sql, params)`.
 // Público (Portal): só dados com pessoas se a flag `intelligencePessoas` estiver ligada (J-01); nunca inferidos.
-// Studio: RBAC por rota; revisão de move/alerta por quem tem `materias:transition`; pedidos do titular (LGPD) só admin.
+// Studio: RBAC por rota; revisão de Move por quem tem `materias:transition`; revisão de ALERTA só pelo dono da lista (pessoal); pedidos do titular (LGPD) só admin.
 import { apiError } from '@ln/contracts';
 import {
   addWatchlistItemHandler, createWatchlistHandler, deleteWatchlistHandler, listWatchlists, removeWatchlistItemHandler, exportSubjectDataHandler, getCompanyHandler, getExecutiveHandler, getOrgChartHandler,
@@ -68,7 +68,7 @@ export const INTELLIGENCE_ROUTES: readonly IRoute[] = [
   stu('POST', '/watchlists/:watchlistId/items', WRITE, (db, a, i) => addWatchlistItemHandler(db, i, a)),
   stu('DELETE', '/watchlists/:watchlistId/items', WRITE, (db, a, i) => removeWatchlistItemHandler(db, a, i)),
   stu('GET', '/alerts', READ, alertsOfOwner),
-  stu('POST', '/alerts/:id/review', REVIEW, (db, a, i) => reviewAlertHandler(db, a, i)),
+  stu('POST', '/alerts/:id/review', WRITE, reviewOwnAlert), // alerta é PESSOAL: quem revisa é o DONO da lista (não o papel revisor)
   stu('POST', '/subject-requests', DPO, (db, a, i) => openSubjectRequestHandler(db, a, i)),
   stu('POST', '/subject-requests/:requestId/export', DPO, (db, a, i) => exportSubjectDataHandler(db, a, i)),
   stu('POST', '/subject-requests/:requestId/suppress', DPO, (db, a, i) => suppressSubjectHandler(db, a, i)),
@@ -92,6 +92,17 @@ async function alertsOfOwner(db: IntelDb, actor: string, input: unknown): Promis
   if (r.status !== 200) return r;
   const body = r.body as { items: { watchlist_id: string }[] };
   return { status: 200, body: { ...body, items: body.items.filter((a) => mine.has(a.watchlist_id)) } };
+}
+
+/** Revisão de alerta só pelo DONO da watchlist do alerta; de outro dono (ou id que não existe) = 404, sem revelar que o alerta existe. */
+async function reviewOwnAlert(db: IntelDb, actor: string, input: unknown): Promise<ApiResult> {
+  const id = isObj(input) && typeof input.id === 'string' ? input.id : '';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    const a = await db.query<{ watchlist_id: string }>(`SELECT watchlist_id FROM intelligence.alert WHERE id = $1`, [id]);
+    const mine = new Set((await listWatchlists(db, actor)).map((w) => w.id));
+    if (!a.rows[0] || !mine.has(a.rows[0].watchlist_id)) return { status: 404, body: { error: { code: 'not_found', message: 'alerta não encontrado' } } };
+  }
+  return reviewAlertHandler(db, actor, input); // id inválido, status inválido, já revisado: as respostas do pacote do Data
 }
 
 export const dispatchIntelligence = createDispatcher<H>({
