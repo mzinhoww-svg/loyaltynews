@@ -56,7 +56,7 @@ describe('contrato role-observation/1 — validação', () => {
     const s = ROLE_OBSERVATION_BATCH_JSON_SCHEMA;
     expect(Object.keys(s.properties).sort()).toEqual(['evidence', 'observations', 'schemaVersion']);
     expect(Object.keys(s.properties.observations.items.properties).sort()).toEqual(
-      ['announcement', 'extra', 'kind', 'observedAt', 'orgName', 'personName', 'publicProfileUrl', 'title'],
+      ['announcement', 'extra', 'kind', 'observedAt', 'orgName', 'personName', 'publicProfileUrl', 'sourceLevel', 'title'],
     );
     expect(s.properties.observations.items.additionalProperties).toBe(false);
     expect(s.properties.schemaVersion.const).toBe('role-observation/1');

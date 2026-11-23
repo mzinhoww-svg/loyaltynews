@@ -17,26 +17,58 @@
  * PGlite), nunca um pool, pois BEGIN/COMMIT precisam da mesma sessão.
  */
 import type { Db } from './db';
-import { addEvidence, addOrgRelation, upsertOrganization } from './repo';
-import { normalizeOrgName } from './normalize';
+import { addEvidence, addOrgRelation, addRole, resolveOrCreatePerson, revalidateRole, upsertOrganization } from './repo';
+import { DEFAULT_CONFIG, PersonSuppressedError, type IntelligenceConfig } from './config';
+import { SECONDARY_BASIS } from './moves';
+import { normalizeName, normalizeOrgName, normalizeTitle } from './normalize';
 import type { Uuid } from './types';
 
 export const SEED_SCHEMA_VERSION = 'intelligence-seed/1';
+/** v2 = v1 + `roles` (executivos e cargos públicos, só nome + cargo + empresa; só carrega com a flag de pessoas ligada). */
+export const SEED_SCHEMA_VERSION_2 = 'intelligence-seed/2';
+const SCHEMAS = [SEED_SCHEMA_VERSION, SEED_SCHEMA_VERSION_2] as const;
+/** Fonte de nível "secundária" (cargo nunca vira fato sem confirmação oficial): redes profissionais e sites de organogramas. */
+export const SECONDARY_HOSTS = /(^|\.)(linkedin\.com|theorg\.com)$/i;
 
 const ORG_KINDS = ['company', 'program', 'association', 'regulator', 'media', 'other'] as const;
 const REL_TYPES = ['parent_of', 'partner_of', 'supplier_of', 'coalition_member', 'acquired', 'other'] as const;
 
-/** method 'browser' = página que só renderiza com JavaScript; texto capturado pelo navegador do OpenBot em data/captures/<id>.json. */
-export interface SeedSource { id: string; name: string; url: string; method?: 'http' | 'browser' }
+/**
+ * method 'browser' | 'capture' = página que só renderiza com JavaScript ou que recusa leitura direta: texto capturado
+ * (navegador do OpenBot ou provedor, DP-32) em data/captures/<id>.json (LOCAL, fora do git; no git só o <id>.meta.json).
+ */
+export interface SeedSource { id: string; name: string; url: string; method?: 'http' | 'browser' | 'capture' }
+export const ROLE_LEVELS = ['oficial', 'secundaria'] as const;
+export const ROLE_BODIES = ['diretoria', 'conselho'] as const;
+/**
+ * Cargo público de uma pessoa em uma organização (DP-11 P4: SÓ nome, cargo e empresa). Nenhum outro campo é aceito
+ * (contato, foto, perfil, biografia...). `quote` precisa conter o nome e o cargo e estar literalmente na página.
+ * sourceLevel 'oficial' = RI/"quem somos" da própria empresa => certeza declarada. 'secundaria' (LinkedIn/The Org, só página pública,
+ * sem login) => status "a confirmar": entra como INFERIDA (nunca aparece no portal como fato) até haver leitura oficial.
+ */
+export interface SeedRole {
+  personName: string;
+  orgKey: string;
+  title: string;
+  /** 'conselho' = órgão de governança (exibido como "<cargo> (Conselho de Administração)"); padrão 'diretoria'. */
+  body?: (typeof ROLE_BODIES)[number];
+  sourceId: string;
+  sourceLevel: (typeof ROLE_LEVELS)[number];
+  quote: string;
+  /** AAAA-MM-DD só se a PÁGINA declara a data de início/eleição; sem isso a vigência começa na data da verificação. */
+  validFrom?: string;
+}
 export interface SeedOrganization { key: string; legalName: string; tradeName?: string; kind: (typeof ORG_KINDS)[number]; sourceId: string; quote: string; contextQuote?: string }
 export interface SeedRelation { from: string; to: string; type: (typeof REL_TYPES)[number]; sourceId: string; quote: string; contextQuote?: string }
 export interface SeedDataset {
-  schemaVersion: typeof SEED_SCHEMA_VERSION;
+  schemaVersion: (typeof SCHEMAS)[number];
   datasetId: string;
   description?: string;
   sources: SeedSource[];
   organizations: SeedOrganization[];
   relations: SeedRelation[];
+  /** Só em intelligence-seed/2. */
+  roles?: SeedRole[];
   persons?: unknown[];
 }
 
@@ -69,6 +101,12 @@ export interface LoadManifest {
   relationsRevalidated: Uuid[];
   /** Valores que as relações revalidadas tinham ANTES da carga (o desfazer os restaura). Ausente em manifestos antigos (v2: nenhuma relação revalidada). */
   relationsRevalidatedPrevious?: { id: Uuid; evidence_id: Uuid; validated_at: string }[];
+  /** v2 (roles). Ausentes em manifestos antigos. */
+  personsCreated?: Uuid[];
+  rolesCreated?: Uuid[];
+  rolesRevalidatedPrevious?: { id: Uuid; evidence_id: Uuid; validated_at: string; certainty?: string; inference_basis?: string | null }[];
+  /** Cargos não carregados porque a pessoa foi suprimida a pedido do titular (nunca recriada). */
+  rolesSkippedSuppressed?: number;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -78,7 +116,7 @@ const HTTPS = /^https:\/\/\S+$/i;
 export function validateSeed(x: unknown): string[] {
   const out: string[] = [];
   if (!isObj(x)) return ['conjunto deve ser um objeto'];
-  if (x.schemaVersion !== SEED_SCHEMA_VERSION) out.push(`schemaVersion deve ser ${SEED_SCHEMA_VERSION}`);
+  if (!SCHEMAS.includes(x.schemaVersion as never)) out.push(`schemaVersion deve ser ${SCHEMAS.join(' ou ')}`);
   if (typeof x.datasetId !== 'string' || !/^[a-z0-9._-]{3,64}$/.test(x.datasetId)) out.push('datasetId inválido');
   const sources = Array.isArray(x.sources) ? x.sources : [];
   const sourceIds = new Set<string>();
@@ -108,7 +146,50 @@ export function validateSeed(x: unknown): string[] {
     out.push(...contextIssues(`relations[${i}]`, r));
     for (const k of Object.keys(r)) if (!['from', 'to', 'type', 'sourceId', 'quote', 'contextQuote'].includes(k)) out.push(`relations[${i}]: campo ${k} não permitido (inferência/certeza/data não se declaram aqui)`);
   });
-  if (Array.isArray(x.persons) && x.persons.length) out.push('persons: não suportado em intelligence-seed/1 (pessoas só pelo contrato role-observation/1, com a flag intelligencePessoas)');
+  if (Array.isArray(x.persons) && x.persons.length) out.push('persons: não suportado (cargos públicos entram por roles em intelligence-seed/2; mudanças pelo contrato role-observation/1)');
+  if (x.roles !== undefined && x.schemaVersion !== SEED_SCHEMA_VERSION_2) out.push(`roles só existe em ${SEED_SCHEMA_VERSION_2}`);
+  out.push(...roleIssues(x.roles, sources, keys));
+  return out;
+}
+
+const ROLE_KEYS = ['personName', 'orgKey', 'title', 'body', 'sourceId', 'sourceLevel', 'quote', 'validFrom'];
+const hostOf = (u: string) => { try { return new URL(u).hostname; } catch { return ''; } };
+const squash = (q: string) => q.normalize('NFC').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
+
+function roleIssues(roles: unknown, sources: unknown[], orgKeys: Set<string>): string[] {
+  if (roles === undefined) return [];
+  if (!Array.isArray(roles)) return ['roles deve ser uma lista'];
+  const out: string[] = [];
+  const srcById = new Map(sources.filter(isObj).map((s) => [String(s.id), s]));
+  const seen = new Set<string>();
+  roles.forEach((r, i) => {
+    const w = `roles[${i}]`;
+    if (!isObj(r)) return void out.push(`${w}: objeto esperado`);
+    // DP-11 P4 / LGPD: só nome, cargo e empresa. Qualquer campo extra (e-mail, telefone, foto, perfil, biografia, opinião...) é recusado.
+    for (const k of Object.keys(r)) if (!ROLE_KEYS.includes(k)) out.push(`${w}: campo ${k} não permitido (só nome, cargo, empresa e a evidência)`);
+    const name = r.personName, title = r.title, quote = r.quote;
+    if (typeof name !== 'string' || name.trim().length < 5 || name.length > 120 || /[\d@:/<>]/.test(name) || name.trim().split(/\s+/).length < 2) out.push(`${w}: personName deve ser um nome completo (sem dígitos, e-mail ou link)`);
+    if (typeof title !== 'string' || !title.trim() || title.length > 120 || /[@<>]|https?:/.test(title)) out.push(`${w}: title obrigatório (até 120 caracteres, sem e-mail ou link)`);
+    if (typeof r.orgKey !== 'string' || !orgKeys.has(r.orgKey)) out.push(`${w}: orgKey desconhecida`);
+    if (r.body !== undefined && !ROLE_BODIES.includes(r.body as never)) out.push(`${w}: body inválido`);
+    const src = typeof r.sourceId === 'string' ? srcById.get(r.sourceId) : undefined;
+    if (!src) out.push(`${w}: sourceId desconhecido`);
+    if (!ROLE_LEVELS.includes(r.sourceLevel as never)) out.push(`${w}: sourceLevel deve ser oficial ou secundaria`);
+    if (src && typeof src.url === 'string') {
+      if (SECONDARY_HOSTS.test(hostOf(src.url)) && r.sourceLevel !== 'secundaria') out.push(`${w}: LinkedIn/The Org são fonte SECUNDÁRIA (status "a confirmar"), nunca oficial`);
+      if (/linkedin\.com\/(login|uas|checkpoint|authwall)/i.test(src.url)) out.push(`${w}: página de login não é fonte`);
+    }
+    if (typeof quote !== 'string' || quote.length < 20 || quote.length > 300) out.push(`${w}: quote deve ter 20 a 300 caracteres`);
+    else {
+      if (typeof name === 'string' && !squash(quote).includes(squash(name))) out.push(`${w}: a citação não contém o nome`);
+      if (typeof title === 'string' && !squash(quote).includes(squash(title))) out.push(`${w}: a citação não contém o cargo`);
+    }
+    if (r.validFrom !== undefined && !(typeof r.validFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.validFrom) && !Number.isNaN(Date.parse(r.validFrom)))) out.push(`${w}: validFrom deve ser AAAA-MM-DD`);
+    if (typeof name === 'string' && typeof title === 'string' && typeof r.orgKey === 'string') {
+      const id = roleRef({ orgKey: r.orgKey, personName: name, title });
+      if (seen.has(id)) out.push(`${w}: cargo repetido`); else seen.add(id);
+    }
+  });
   return out;
 }
 
@@ -123,6 +204,9 @@ function contextIssues(where: string, r: Record<string, unknown>): string[] {
 const excerptOf = (q: { quote: string; contextQuote?: string }) => (q.contextQuote ? `${q.contextQuote} […] ${q.quote}` : q.quote);
 
 const orgRef = (key: string) => `organization:${key}`;
+/** Referência do cargo no relatório de verificação (o verificador monta a mesma string). */
+export const roleRef = (r: Pick<SeedRole, 'orgKey' | 'personName' | 'title'>) => `role:${r.orgKey}>${r.personName}>${r.title}`;
+const roleTitle = (r: SeedRole) => (r.body === 'conselho' ? `${r.title} (Conselho de Administração)` : r.title);
 const relRef = (r: SeedRelation) => `relation:${r.from}>${r.type}>${r.to}`;
 
 function recordReason(ds: SeedDataset, ver: VerificationReport, ref: string, sourceId: string): string | null {
@@ -139,7 +223,7 @@ function recordReason(ds: SeedDataset, ver: VerificationReport, ref: string, sou
 }
 
 /** Dry-run (só leitura): diz o que seria criado, o que já existe e o que é recusado, e por quê. */
-export async function planSeedLoad(db: Db, ds: SeedDataset, ver: VerificationReport | null): Promise<LoadPlan> {
+export async function planSeedLoad(db: Db, ds: SeedDataset, ver: VerificationReport | null, cfg: IntelligenceConfig = DEFAULT_CONFIG): Promise<LoadPlan> {
   const issues = validateSeed(ds);
   if (!ver) issues.push('relatório de verificação ausente');
   else if (ver.datasetId !== ds.datasetId) issues.push('relatório de verificação é de outro conjunto');
@@ -170,6 +254,27 @@ export async function planSeedLoad(db: Db, ds: SeedDataset, ver: VerificationRep
     );
     records.push({ ref, action: ex.rows[0] ? 'exists' : 'create' });
   }
+  for (const r of ds.roles ?? []) {
+    const ref = roleRef(r);
+    const bad = recordReason(ds, ver, ref, r.sourceId);
+    if (bad) { records.push({ ref, action: 'rejected', reason: bad }); continue; }
+    // Pessoas só entram com a flag ligada (J-01 em aberto): sem ela o plano recusa TODOS os cargos, com o motivo.
+    if (!cfg.personIngestion) { records.push({ ref, action: 'rejected', reason: 'ingestão de pessoas desligada (flag intelligencePessoas; J-01): só com decisão registrada e --with-persons' }); continue; }
+    if (rejectedOrg.has(orgRef(r.orgKey))) { records.push({ ref, action: 'rejected', reason: 'organização do cargo foi recusada' }); continue; }
+    const o = orgByKey.get(r.orgKey)!;
+    const cur = await db.query<{ normalized_title: string; suppressed: boolean }>(
+      `SELECT ra.normalized_title, (p.suppressed_at IS NOT NULL) AS suppressed
+         FROM intelligence.person p
+         JOIN intelligence.role_assignment ra ON ra.person_id = p.id AND ra.valid_to IS NULL
+         JOIN intelligence.organization org ON org.id = ra.organization_id AND org.normalized_name = $2
+        WHERE p.normalized_name = $1`,
+      [normalizeName(r.personName), normalizeOrgName(o.legalName)],
+    );
+    if (cur.rows.some((x) => x.suppressed)) { records.push({ ref, action: 'rejected', reason: 'pessoa suprimida a pedido do titular (não é recriada)' }); continue; }
+    if (cur.rows.some((x) => x.normalized_title === normalizeTitle(roleTitle(r)))) { records.push({ ref, action: 'exists' }); continue; }
+    if (cur.rows.length) { records.push({ ref, action: 'rejected', reason: 'a pessoa já tem outro cargo em aberto nesta organização: mudança de cargo é tratada pelo contrato role-observation/1 (gera Move com evidência de antes e depois)' }); continue; }
+    records.push({ ref, action: 'create' });
+  }
   const c = (a: RecordPlan['action']) => records.filter((x) => x.action === a).length;
   return { datasetId: ds.datasetId, ok: true, issues: [], records, counts: { create: c('create'), exists: c('exists'), rejected: c('rejected') } };
 }
@@ -178,8 +283,8 @@ export async function planSeedLoad(db: Db, ds: SeedDataset, ver: VerificationRep
  * Carrega os registros APROVADOS (cria os novos; renova a validação dos existentes). Tudo em uma transação.
  * Registros recusados no plano não são carregados; o plano é devolvido junto para registro.
  */
-export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport | null): Promise<{ plan: LoadPlan; manifest: LoadManifest | null }> {
-  const plan = await planSeedLoad(db, ds, ver);
+export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport | null, cfg: IntelligenceConfig = DEFAULT_CONFIG): Promise<{ plan: LoadPlan; manifest: LoadManifest | null }> {
+  const plan = await planSeedLoad(db, ds, ver, cfg);
   if (!plan.ok || !ver) return { plan, manifest: null };
   const manifest: LoadManifest = { datasetId: ds.datasetId, loadedAt: new Date().toISOString(), evidenceIds: [], organizationsCreated: [], relationsCreated: [], relationsRevalidated: [] };
   const approved = new Set(plan.records.filter((r) => r.action !== 'rejected').map((r) => r.ref));
@@ -239,6 +344,42 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
         }));
       }
     }
+    for (const r of ds.roles ?? []) {
+      const ref = roleRef(r);
+      if (!approved.has(ref)) continue;
+      const orgId = orgIds.get(r.orgKey);
+      if (!orgId) continue;
+      const ev = await evidenceFor(r.sourceId, r.quote);
+      const official = r.sourceLevel === 'oficial';
+      const title = roleTitle(r);
+      let person: { id: Uuid; created: boolean };
+      try {
+        person = await resolveOrCreatePerson(db, { fullName: r.personName, organizationId: orgId, evidenceId: ev.id, observedAt: ev.at }, cfg);
+      } catch (e) {
+        if (e instanceof PersonSuppressedError) { manifest.rolesSkippedSuppressed = (manifest.rolesSkippedSuppressed ?? 0) + 1; continue; }
+        throw e;
+      }
+      if (person.created) (manifest.personsCreated ??= []).push(person.id);
+      if (exists.has(ref)) {
+        const cur = await db.query<{ id: Uuid; evidence_id: Uuid; validated_at: string | Date; certainty: string; inference_basis: string | null }>(
+          `SELECT id, evidence_id, validated_at, certainty, inference_basis FROM intelligence.role_assignment
+            WHERE person_id = $1 AND organization_id = $2 AND normalized_title = $3 AND valid_to IS NULL`,
+          [person.id, orgId, normalizeTitle(title)],
+        );
+        for (const x of cur.rows) {
+          (manifest.rolesRevalidatedPrevious ??= []).push({ id: x.id, evidence_id: x.evidence_id, validated_at: new Date(x.validated_at).toISOString(), certainty: x.certainty, inference_basis: x.inference_basis });
+          await revalidateRole(db, x.id, ev.at, ev.id);
+          // leitura oficial confirma o que estava "a confirmar" (nunca o contrário: secundária não rebaixa o oficial)
+          if (official && x.certainty === 'inferred') await db.query(`UPDATE intelligence.role_assignment SET certainty = 'declared', inference_basis = NULL WHERE id = $1`, [x.id]);
+        }
+      } else {
+        (manifest.rolesCreated ??= []).push(await addRole(db, {
+          personId: person.id, organizationId: orgId, title, validFrom: r.validFrom ?? ev.at.slice(0, 10),
+          certainty: official ? 'declared' : 'inferred', inferenceBasis: official ? undefined : SECONDARY_BASIS,
+          evidenceId: ev.id, observedAt: ev.at, validatedAt: ev.at,
+        }));
+      }
+    }
     await db.query('COMMIT');
   } catch (e) {
     await db.query('ROLLBACK');
@@ -248,9 +389,30 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
 }
 
 /** Desfaz uma carga pelo manifesto: relações e organizações CRIADAS por ela (se nada mais as referencia) e a evidência órfã. */
-export async function rollbackSeed(db: Db, m: LoadManifest): Promise<{ relationsRemoved: number; organizationsRemoved: number; organizationsKept: number; evidenceRemoved: number }> {
+export async function rollbackSeed(db: Db, m: LoadManifest): Promise<{ relationsRemoved: number; organizationsRemoved: number; organizationsKept: number; evidenceRemoved: number; rolesRemoved: number; personsRemoved: number }> {
   await db.query('BEGIN');
   try {
+    // cargos: restaura os revalidados (evidência, data e certeza anteriores), apaga os criados e as pessoas criadas que ficaram sem cargo/Move
+    for (const p of m.rolesRevalidatedPrevious ?? []) {
+      await db.query(
+        `UPDATE intelligence.role_assignment SET evidence_id = $2::uuid, validated_at = $3::timestamptz,
+                certainty = COALESCE($4, certainty), inference_basis = CASE WHEN $4 IS NULL THEN inference_basis ELSE $5 END WHERE id = $1::uuid`,
+        [p.id, p.evidence_id, p.validated_at, p.certainty ?? null, p.inference_basis ?? null],
+      );
+    }
+    const rolesDel = m.rolesCreated?.length ? await db.query(`DELETE FROM intelligence.role_assignment WHERE id = ANY($1::uuid[]) RETURNING id`, [m.rolesCreated]) : { rows: [] };
+    const personsDel = m.personsCreated?.length
+      ? await db.query(
+          `DELETE FROM intelligence.person p WHERE p.id = ANY($1::uuid[])
+             AND NOT EXISTS (SELECT 1 FROM intelligence.role_assignment WHERE person_id = p.id)
+             AND NOT EXISTS (SELECT 1 FROM intelligence.move WHERE person_id = p.id)
+             AND NOT EXISTS (SELECT 1 FROM intelligence.data_subject_request WHERE person_id = p.id)
+             AND NOT EXISTS (SELECT 1 FROM intelligence.person_extended WHERE person_id = p.id)
+             AND NOT EXISTS (SELECT 1 FROM intelligence.watchlist_item WHERE entity_type = 'person' AND entity_id = p.id)
+           RETURNING id`,
+          [m.personsCreated],
+        )
+      : { rows: [] };
     const rel = m.relationsCreated.length ? await db.query(`DELETE FROM intelligence.org_relation WHERE id = ANY($1::uuid[]) RETURNING id`, [m.relationsCreated]) : { rows: [] };
     // restaura evidência e data de validação que a carga trocou nas relações já existentes (antes de apagar a evidência nova)
     for (const p of m.relationsRevalidatedPrevious ?? []) {
@@ -282,7 +444,7 @@ export async function rollbackSeed(db: Db, m: LoadManifest): Promise<{ relations
         )
       : { rows: [] };
     await db.query('COMMIT');
-    return { relationsRemoved: rel.rows.length, organizationsRemoved: removed, organizationsKept: m.organizationsCreated.length - removed, evidenceRemoved: ev.rows.length };
+    return { relationsRemoved: rel.rows.length, organizationsRemoved: removed, organizationsKept: m.organizationsCreated.length - removed, evidenceRemoved: ev.rows.length, rolesRemoved: rolesDel.rows.length, personsRemoved: personsDel.rows.length };
   } catch (e) {
     await db.query('ROLLBACK');
     throw e;
