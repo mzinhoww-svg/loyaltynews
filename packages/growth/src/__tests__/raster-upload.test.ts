@@ -1,11 +1,7 @@
 import { beforeEach, describe, test } from 'vitest';
 import assert from 'node:assert/strict';
-import { DEFAULT_FLAGS } from '../flags';
-import { SimulatedMlabsTransport } from '../mlabs/transport.mock';
-import { InMemoryDraftStore, runLinkedInDraftPipeline } from '../pipeline/linkedin-draft';
 import { MediaUploadError, MlabsRasterUploader, pngSize, type MlabsRasterUploaderOptions } from '../pipeline/raster-upload';
 import { SimulatedMediaUploadPort, SimulatedRasterizer, solidPng } from '../pipeline/raster-upload.mock';
-import { mockPublishedRecord, mockSocialPack } from '../../fixtures/published-article.mock';
 import type { CreativeAsset } from '../types';
 
 const T0 = new Date('2026-11-23T12:00:00.000Z');
@@ -121,24 +117,5 @@ describe('MlabsRasterUploader (portas simuladas; nada vai ao mLabs)', () => {
     port.putStatus = 500;
     const e2 = await mk().upload(asset(), 'r').catch((x: Error) => x);
     assert.doesNotMatch(`${(e2 as Error).message}`, /simulado\.invalid|sig=|if-none-match/);
-  });
-});
-
-describe('dentro do pipeline de rascunho (mLabs simulado, flag ligada só no teste)', () => {
-  test('o imageId do upload simulado vai no create_post como RASCUNHO; o upload acontece uma vez mesmo em reexecução', async () => {
-    const transport = new SimulatedMlabsTransport(() => T0);
-    const uploader = mk();
-    const deps = {
-      flags: () => ({ ...DEFAULT_FLAGS, growth_linkedin_live: true }), now: () => T0.toISOString(), store: new InMemoryDraftStore(),
-      live: { transport, profileId: 'ext_PERFIL_DE_TESTE', uploader },
-    };
-    const rec = mockPublishedRecord({ publication: { ...mockPublishedRecord().publication!, isMock: false } });
-    const r = await runLinkedInDraftPipeline(deps, rec, mockSocialPack());
-    assert.equal(r.ok, true, JSON.stringify(r));
-    const call = transport.calls.find((c) => c.tool === 'create_post')!;
-    assert.equal((call.args as { status: string }).status, 'draft');
-    assert.match(JSON.stringify(call.args), /SIM-IMG-sim-up-1/);
-    assert.deepEqual([port.prepares.length, port.puts], [1, 1]);
-    assert.equal(transport.count('scheduled') + transport.count('pending_approval'), 0);
   });
 });

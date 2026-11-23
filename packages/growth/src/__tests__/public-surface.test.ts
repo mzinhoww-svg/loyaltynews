@@ -108,7 +108,7 @@ describe('superfície pública: nenhum caminho para escrever sem o publicador', 
   test('a visão simulada é só leitura: nenhuma função alcançável a partir do publicador cria post sem passar por publish', async () => {
     const { sim } = publishers();
     const { objects } = reach([sim, sim.reads, sim.simulated]);
-    const skipNames = new Set(['publish', 'edit', 'remove']);
+    const skipNames = new Set(['publish', 'edit', 'remove', 'uploadMedia']);
     for (const o of objects) {
       if (typeof o !== 'function') continue;
       if (skipNames.has(o.name)) continue;

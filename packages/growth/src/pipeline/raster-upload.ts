@@ -58,6 +58,9 @@ export interface MediaUploadPort {
   status(uploadId: string): Promise<MediaStatus>;
 }
 
+/** PUT dos bytes na URL assinada; devolve o status HTTP. Injetável (testes); o padrão do adaptador real usa `fetch`. */
+export type PutBytes = (url: string, method: string, headers: Record<string, string>, bytes: Uint8Array) => Promise<number>;
+
 export interface UploadLedger {
   get(key: string): Promise<{ imageId: string } | null>;
   put(key: string, value: { imageId: string }): Promise<void>;
@@ -149,7 +152,7 @@ export class MlabsRasterUploader implements MediaUploader {
 
     const sleep = o.sleep ?? ((ms: number) => new Promise<void>((res) => setTimeout(res, ms)));
     for (let i = 0; i < o.maxPolls; i++) {
-      const s = await o.port.status(prepared.uploadId);
+      const s: MediaStatus = await o.port.status(prepared.uploadId).catch(() => ({ state: 'processing' as const }));
       if (s.state === 'failed') throw new MediaUploadError('processamento_falhou');
       if (s.state === 'completed') {
         if (!s.imageId) throw new MediaUploadError('resposta_sem_imageid');
