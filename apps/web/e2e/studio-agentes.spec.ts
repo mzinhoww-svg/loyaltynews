@@ -13,6 +13,9 @@ test.describe('Organização agêntica (@ln/agents)', () => {
     await expect(page.locator('tr[data-agente]')).toHaveCount(64);
     await page.getByLabel('Departamento').selectOption('editorial');
     await page.getByRole('button', { name: 'Filtrar' }).click();
+    // espera a navegação do filtro (GET) antes de contar: sem isso a contagem caía no meio da troca de página e dava 0 (instável)
+    await expect(page).toHaveURL(/depto=editorial/);
+    await expect(page.locator('tr[data-agente]').first()).toBeVisible();
     const n = await page.locator('tr[data-agente]').count();
     expect(n).toBeGreaterThan(10);
     expect(n).toBeLessThan(64);
