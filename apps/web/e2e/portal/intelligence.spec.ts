@@ -9,6 +9,8 @@ import { expect, test, type Page } from '@playwright/test';
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 /** Modo do Intelligence no servidor MOCK (só api): '' = full | vazio | sem-flag. */
 const intel = process.env.PORTAL_API_INTEL ?? '';
+/** Clique que navega para uma página de detalhe: no next dev a 1ª visita compila a rota e pode passar de 5 s. */
+const NAV_MS = 20_000;
 
 async function axe(page: Page) {
   await page.waitForLoadState('networkidle');
@@ -46,11 +48,11 @@ test.describe('mock', () => {
     await expect(list).toContainText('MOCK');
     await axe(page);
     await page.getByRole('link', { name: 'Programa', exact: false }).filter({ hasText: 'Programa de Teste' }).first().click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Programa de Teste (MOCK)');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Programa de Teste (MOCK)', { timeout: NAV_MS });
     await expect(page.getByTestId('relations')).toContainText('Controlada por');
     await axe(page);
     await page.getByTestId('relations').getByRole('link', { name: 'Empresa de Teste (MOCK)' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Empresa de Teste (MOCK)');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Empresa de Teste (MOCK)', { timeout: NAV_MS });
     await expect(page.getByTestId('relations').locator('tbody tr')).toHaveCount(2);
   });
 });
@@ -77,7 +79,7 @@ test.describe('api', () => {
   test('perfil: vínculos com fonte, link e data; sem trecho literal; navegação entre relacionadas', async ({ page }) => {
     await page.goto('/intelligence/empresas');
     await page.getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa', { timeout: NAV_MS });
     const rel = page.getByTestId('relations');
     await expect(rel.locator('tbody tr')).toHaveCount(3);
     await expect(rel).toContainText('Parceria anunciada com');
@@ -96,7 +98,7 @@ test.describe('api', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Clube Delta');
     await expect(page.getByTestId('company-meta')).toContainText('Tipo não declarado na fonte');
     await page.getByTestId('relations').getByRole('link', { name: '[MOCK API] Associação Gama' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Associação Gama');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Associação Gama', { timeout: NAV_MS });
     await expect(page.getByTestId('relations').locator('tbody tr')).toHaveCount(2);
   });
 
@@ -148,22 +150,22 @@ test.describe('api', () => {
     await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(1);
     await page.goto('/intelligence/pessoas');
     await page.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
     await expect(page.getByTestId('current-roles')).toContainText('CEO (MOCK)');
     await expect(page.getByTestId('history-roles')).toContainText('Diretora Comercial (MOCK)');
     // DP-38: todo perfil público de pessoa tem o caminho de correção ou remoção (direito de resposta / LGPD).
-    await expect(page.getByTestId('request-correction')).toHaveAttribute('href', '/correcoes');
+    await expect(page.getByTestId('request-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fintelligence%2Fpessoas%2F10000000-0000-4000-8000-000000000201#pedido');
     await expect(page.getByTestId('move-card')).toHaveCount(1);
     await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
     await axe(page);
     await page.getByTestId('current-roles').getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa', { timeout: NAV_MS });
     const people = page.getByTestId('company-people');
     await expect(people).toContainText('CEO (MOCK)');
     await expect(page.getByTestId('move-card')).toHaveCount(1);
     await axe(page);
     await people.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
   });
 });
@@ -205,7 +207,7 @@ test.describe('mock: pessoas e Moves', () => {
     await expect(card.getByTestId('move-after')).toContainText('Diretora-Geral (MOCK)');
     await axe(page);
     await card.getByRole('link', { name: 'perfil' }).click();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pessoa de Teste Um (MOCK)');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Pessoa de Teste Um (MOCK)', { timeout: NAV_MS });
     await expect(page.getByTestId('history-roles')).toContainText('Diretora de Parcerias (MOCK)');
     await expect(page.getByTestId('request-correction')).toBeVisible();
     await axe(page);
