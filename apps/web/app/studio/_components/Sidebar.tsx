@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { Sidebar as UiSidebar, type SidebarGroup } from '@ln/ui';
 
 export interface NavItem {
   slug: string;
@@ -12,43 +12,23 @@ export interface NavItem {
   flagDesligada: boolean;
 }
 
-export function Sidebar({ itens }: { itens: NavItem[] }) {
+/** Navegação do Studio sobre o Sidebar do design system (@ln/ui). Os itens vêm do registro de módulos (papel + flag). */
+export function StudioSidebar({ itens }: { itens: NavItem[] }) {
   const pathname = usePathname();
-  const [aberto, setAberto] = useState(false);
-  const grupos = [...new Set(itens.map((i) => i.grupo))];
   const ativo = (href: string) => (href === '/studio' ? pathname === '/studio' : pathname === href || pathname.startsWith(`${href}/`));
-  return (
-    <aside className="st-side">
-      <div className="st-brand">LN Studio</div>
-      <button className="st-btn sec st-menu-btn" type="button" aria-expanded={aberto} aria-controls="st-nav" onClick={() => setAberto((v) => !v)}>
-        Menu
-      </button>
-      <nav id="st-nav" aria-label="Módulos do Studio" className={aberto ? 'st-nav open' : 'st-nav'}>
-        <ul>
-          <li>
-            <Link href="/studio" aria-current={ativo('/studio') ? 'page' : undefined}>
-              Visão geral
-            </Link>
-          </li>
-        </ul>
-        {grupos.map((g) => (
-          <section key={g} aria-label={g}>
-            <h2>{g}</h2>
-            <ul>
-              {itens
-                .filter((i) => i.grupo === g)
-                .map((i) => (
-                  <li key={i.slug}>
-                    <Link href={`/studio/${i.slug}`} aria-current={ativo(`/studio/${i.slug}`) ? 'page' : undefined}>
-                      {i.nome}
-                      {i.flagDesligada ? <span className="st-flagtag">flag off</span> : null}
-                    </Link>
-                  </li>
-                ))}
-            </ul>
-          </section>
-        ))}
-      </nav>
-    </aside>
-  );
+  const grupos = [...new Set(itens.map((i) => i.grupo))];
+  const groups: SidebarGroup[] = [
+    { items: [{ label: 'Visão geral', href: '/studio', current: ativo('/studio') }] },
+    ...grupos.map((g) => ({
+      title: g,
+      items: itens
+        .filter((i) => i.grupo === g)
+        .map((i) => ({
+          label: i.flagDesligada ? `${i.nome} (flag off)` : i.nome,
+          href: `/studio/${i.slug}`,
+          current: ativo(`/studio/${i.slug}`),
+        })),
+    })),
+  ];
+  return <UiSidebar groups={groups} brand="LN Studio" label="Módulos do Studio" linkAs={Link} />;
 }

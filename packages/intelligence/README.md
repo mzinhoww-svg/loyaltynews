@@ -15,6 +15,9 @@ Estado: implementado em fast-track; **não homologado** (QA) nem operacional (De
 | **Handlers de API** (funções puras para o Backend montar em `apps/web/app/api`) | `src/api.ts` — rotas sugeridas no cabeçalho do arquivo |
 | **Dados das telas** — Portal (público) e Studio | `src/views.ts` (`portal*`, `studio*`) |
 | **Contrato de ingestão** Editorial → Intelligence | `src/ingest.ts` + `INGESTION_CONTRACT.md` (`role-observation/1`) |
+| **Consumidor Editorial → Intelligence** (`consumeArticle`, `extractRoleMentions`) | `src/editorial-consumer.ts` |
+| **Moves no portal** (`/moves`), newsletter e alertas aprovados | `src/views.ts`: `portalMovesPage`, `newsletterMovesDigest`, `studioApprovedAlertsFeed`, `describeMove` |
+| **Layout determinístico de organograma** + SVG | `src/org-layout.ts` (`layoutOrgChart`, `renderOrgChartSvg`) e `orgChartLayoutFor` em `src/views.ts` |
 | Benchmark de 100 mil arestas | `bench/perf.perf.ts` → `bench/results/latest.json` |
 | Fixtures MOCK | `fixtures/mock-entities.ts` |
 
@@ -39,3 +42,9 @@ Em produção, passe um cliente com `query(sql, params) -> {rows}` (interface `D
 - Contratos: as saídas dos handlers/views são validadas com os schemas oficiais de `@ln/contracts` (`OrganizationView`, `PersonView` estrito, `PersonRoleView`, `RelationView`, `MoveView`, `RoleObservation`) em `src/tests/contracts-conformance.test.ts`. Watchlists, alertas, revisão de Move, organograma e grafo conformam com os schemas correspondentes em `src/tests/contracts-conformance-2.test.ts` (sem divergências).
 - Base legal LGPD/controlador (J-01/R1-01): as duas chaves de dado pessoal permanecem desligadas.
 - Sem coleta real: nenhuma fonte, nenhum crawler.
+
+## Consumidor do Editorial (matérias publicadas → cargos)
+`consumeArticle(db, { article, mentions? }, cfg)`: só matéria `status: 'published'`; sem `mentions`, usa o extrator de regras (frases de anúncio "X foi nomeada … da Empresa Y", "X deixa o cargo de …"; baixa cobertura de propósito). Com a flag `intelligencePessoas` **desligada** (padrão) registra só **organizações**; ligada, ingere cada menção como `role-observation/1` (um lote por menção, com o trecho como evidência). Idempotente por URL + `contentSha256`. Matéria antiga processada depois não desfaz cargo mais novo. Sem URL pública de perfil, a mesma pessoa em outra empresa **não** é fundida (homônimos): vira nomeação (`appointment`), nunca troca presumida; com URL, vira `org_change`.
+
+## Organograma: regra visível
+Linha contínua = declarado pela fonte. Linha **tracejada com o selo "INFERIDO — NÃO CONFIRMADO"** e legenda = inferido (nunca fato). O portal só recebe declarado (`orgChartLayoutFor(..., 'public')`); o Studio recebe os dois. SVG estático, sem script nem recurso externo, com MOCK quando a evidência é de teste. Layout em camadas, sem aleatoriedade: mesma entrada, mesma saída.

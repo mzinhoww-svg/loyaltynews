@@ -15,6 +15,9 @@
       ],
       "@ln-studio/test-seam": [
         "./lib/studio/test-seam.prod.ts"
+      ],
+      "@ln-studio/dev-db": [
+        "./lib/studio/dev-db.prod.ts"
       ]
     }
   },

@@ -5,7 +5,7 @@
 // Impressões/cliques: só agregado diário por criativo. Nenhum dado de leitor.
 import { sql } from 'drizzle-orm';
 import {
-  boolean, check, date, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex,
+  bigint, boolean, check, date, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { disponibilidade } from './enums';
 
@@ -203,4 +203,30 @@ export const commercialMetrics = pgTable('commercial_metrics', {
 }, (t) => [
   uniqueIndex('commercial_metrics_uq').on(t.origem, t.metrica),
   check('commercial_metrics_disponivel_completa', sql`${t.status} = 'unavailable' OR (${t.valor} IS NOT NULL AND ${t.periodoInicio} IS NOT NULL AND ${t.periodoFim} IS NOT NULL AND ${t.coletadoEm} IS NOT NULL AND ${t.periodoFim} >= ${t.periodoInicio})`),
+]);
+
+// ---------- integridade do ad server (pedido da Frente 02; packages/commercial/docs/dedupe-persistido.md) ----------
+/** Espelho do watermark monotônico `ln:ad:hb` do Redis: gravado com GREATEST a cada batida; valor do Redis menor
+ *  que o daqui (ou ausente) = perda/regressão do dedupe → abre lacuna de auditoria. */
+export const adRedisWatermark = pgTable('ad_redis_watermark', {
+  id: text('id').primaryKey(),
+  value: bigint('value', { mode: 'number' }).notNull(),
+  at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [check('ad_redis_watermark_nao_negativo', sql`${t.value} >= 0`)]);
+
+export const adGapReason = pgEnum('ad_gap_reason', ['dedupe_perdido', 'dedupe_regrediu']);
+/** Lacunas de auditoria da entrega (espelham AuditGap de @ln/commercial). Período não auditável: valores mínimos, não totais. */
+export const adDeliveryGaps = pgTable('ad_delivery_gaps', {
+  id: text('id').primaryKey(),
+  reason: adGapReason('reason').notNull(),
+  from: timestamp('from', { withTimezone: true }).notNull(),
+  servedUntil: timestamp('served_until', { withTimezone: true }).notNull(),
+  to: timestamp('to', { withTimezone: true }).notNull(),
+  detectedAt: timestamp('detected_at', { withTimezone: true }).notNull(),
+  uncountedServes: integer('uncounted_serves').notNull().default(0),
+  ignoredEvents: integer('ignored_events').notNull().default(0),
+}, (t) => [
+  check('ad_delivery_gaps_ordem', sql`${t.from} <= ${t.servedUntil} AND ${t.servedUntil} <= ${t.to}`),
+  check('ad_delivery_gaps_contadores', sql`${t.uncountedServes} >= 0 AND ${t.ignoredEvents} >= 0`),
+  index('ad_delivery_gaps_periodo_idx').on(t.from, t.to),
 ]);
