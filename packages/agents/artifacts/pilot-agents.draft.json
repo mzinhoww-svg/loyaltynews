@@ -29,22 +29,27 @@
       "title": "Pauta e triagem do piloto (OpenBot; DeepSeek grátis via OpenCode, backup Claude)",
       "stage": "triage",
       "required": true,
-      "description": "Decide se o item de fonte é relevante e em qual editoria (`{\"relevant\", \"editoria\"}`). Tarefa simples e barata: roda no DeepSeek grátis via OpenCode; se a via cair ou bater limite, o backup é a conta Claude (assinatura, nunca API).",
+      "description": "Decide se o item de fonte é relevante e em qual editoria (`{\"relevant\", \"editoria\"}`). Tarefa simples e barata: roda no DeepSeek grátis via OpenCode. O limite dos modelos grátis é COMPARTILHADO e já se esgotou (o QA 2 foi travado por ele): por isso a pauta NÃO depende só do grátis e tem backup AUTOMÁTICO (assinatura, nunca API).",
       "editorial_task_class": "triage",
       "prompt_ref": "editorial-0.2 / classe triage / packages/editorial/src/factory/prompts.ts@7b35efa",
       "adapter_kind": "classification",
       "primary": {
         "account": "opencode",
-        "model": "DeepSeek (OpenCode, camada gratuita): declarado no UsageReport (id exato não verificado)"
+        "model": "DeepSeek via OpenCode, camada gratuita (o QA 2 usou opencode/deepseek-v4.1-flash-free): declarado no UsageReport (id exato não verificado)"
       },
       "backups": [
         {
           "account": "claude",
           "model": "Claude (assinatura): declarado no UsageReport (id exato não verificado)",
-          "when": "OpenCode indisponível ou com limite; só nesta etapa"
+          "when": "1º backup, automático: OpenCode esgotado, indisponível ou com erro"
+        },
+        {
+          "account": "antigravity",
+          "model": "Gemini via Antigravity (assinatura): declarado no UsageReport (id exato não verificado)",
+          "when": "2º backup, automático: Claude também com limite; preserva a quota do Claude para a redação"
         }
       ],
-      "on_limit": "se o backup também bater o limite: a pauta fica pending; sem API",
+      "on_limit": "se os dois backups também baterem o limite: a pauta fica pending; sem API",
       "independence": "não se aplica (não redige nem checa)",
       "tool_contract": [
         "POST /api/openbot/pull",
@@ -101,7 +106,7 @@
       "title": "Checagem de fatos do piloto (OpenBot, assinatura Codex)",
       "stage": "factcheck",
       "required": true,
-      "description": "Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve.",
+      "description": "Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve. Se o Codex bater o limite, o backup é o Gemini (outro provedor, independente do redator Claude).",
       "editorial_task_class": "factcheck",
       "prompt_ref": "editorial-0.2 / classe factcheck / packages/editorial/src/factory/prompts.ts@7b35efa",
       "adapter_kind": "fact_check",
@@ -109,9 +114,15 @@
         "account": "codex",
         "model": "Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado)"
       },
-      "backups": [],
-      "on_limit": "SEM backup no piloto: o único backup independente seria a API (GPT-6.1-terra pelo OpenRouter), desligada; a tarefa fica pending e a matéria não é publicada (falha fechada)",
-      "independence": "autor diferente do redator, provado pelo `model` declarado (Claude × OpenAI); a Editorial passa `excludeProviders: [anthropic]`; mesmo autor = bloqueio",
+      "backups": [
+        {
+          "account": "antigravity",
+          "model": "Gemini via Antigravity (assinatura): declarado no UsageReport (id exato não verificado)",
+          "when": "Codex com limite ou indisponível; Google é outro autor, independente do redator Claude"
+        }
+      ],
+      "on_limit": "se o Gemini também bater o limite: a tarefa fica pending e a matéria não é publicada (falha fechada); sem API (a GPT-6.1-terra pelo OpenRouter fica desligada)",
+      "independence": "autor diferente do redator, provado pelo `model` declarado (Claude × OpenAI ou Claude × Google); a Editorial passa `excludeProviders: [anthropic]`; mesmo autor = bloqueio",
       "tool_contract": [
         "POST /api/openbot/pull",
         "POST /api/openbot/heartbeat",
@@ -142,9 +153,15 @@
         "account": "codex",
         "model": "Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado)"
       },
-      "backups": [],
-      "on_limit": "SEM backup no piloto: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator)",
-      "independence": "autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude",
+      "backups": [
+        {
+          "account": "antigravity",
+          "model": "Gemini via Antigravity (assinatura): declarado no UsageReport (id exato não verificado)",
+          "when": "Codex com limite ou indisponível; Google é outro autor, independente do redator Claude"
+        }
+      ],
+      "on_limit": "se o Gemini também bater o limite: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API",
+      "independence": "autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude; Gemini ou Codex valem",
       "tool_contract": [
         "POST /api/openbot/pull",
         "POST /api/openbot/heartbeat",

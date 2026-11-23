@@ -51,7 +51,8 @@ export const EDITORIAL_PROMPTS_REF = {
 
 // --- etapas, contas e perfis dos agentes -------------------------------------------------------------------------------
 
-export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'deterministic';
+/** `antigravity` = Gemini (Google) pela conta Antigravity do OpenBot; uma conta conectada por provedor, sem separar produto e implementação */
+export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'antigravity' | 'deterministic';
 export type PilotStage = 'triage' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
 export type EditorialTaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack' | 'roles';
 
@@ -68,11 +69,11 @@ export interface StageSpec {
 }
 
 export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
-  triage: { account: 'opencode', backups: ['claude'], label: 'Pauta/triagem (DeepSeek grátis via OpenCode; backup Claude)', taskClass: 'triage', adapterKind: 'classification' },
+  triage: { account: 'opencode', backups: ['claude', 'antigravity'], label: 'Pauta/triagem (DeepSeek grátis via OpenCode; backup automático Claude ou Gemini)', taskClass: 'triage', adapterKind: 'classification' },
   draft: { account: 'claude', backups: [], label: 'Redação (Claude); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
-  factcheck: { account: 'codex', backups: [], label: 'Checagem de fatos independente (Codex; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
-  review: { account: 'codex', backups: [], label: 'Revisão editorial independente (Codex; gate WF02)', taskClass: 'review', adapterKind: null },
-  check_edit: { account: 'codex', backups: [], label: 'Checagem + revisão numa chamada só (opção do Arquiteto, −24%)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
+  factcheck: { account: 'codex', backups: ['antigravity'], label: 'Checagem de fatos independente (Codex; backup Gemini; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
+  review: { account: 'codex', backups: ['antigravity'], label: 'Revisão editorial independente (Codex; backup Gemini; gate WF02)', taskClass: 'review', adapterKind: null },
+  check_edit: { account: 'codex', backups: ['antigravity'], label: 'Checagem + revisão numa chamada só (opção do Arquiteto, −24%; backup Gemini)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
   social_pack: { account: 'claude', backups: [], label: 'Texto social de LinkedIn como rascunho (Claude)', taskClass: 'social_pack', adapterKind: null },
   roles: { account: 'claude', backups: [], label: 'Entidades e cargos citados no texto (Claude)', taskClass: 'roles', adapterKind: 'entity_resolution' },
   rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO, QA visual', taskClass: null, adapterKind: null },
@@ -124,11 +125,14 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
   return [
     {
       draft_id: 'ln_pilot_pauta', name: 'LN Piloto — Pauta', title: 'Pauta e triagem do piloto (OpenBot; DeepSeek grátis via OpenCode, backup Claude)', stage: 'triage', required: true,
-      description: 'Decide se o item de fonte é relevante e em qual editoria (`{"relevant", "editoria"}`). Tarefa simples e barata: roda no DeepSeek grátis via OpenCode; se a via cair ou bater limite, o backup é a conta Claude (assinatura, nunca API).',
+      description: 'Decide se o item de fonte é relevante e em qual editoria (`{"relevant", "editoria"}`). Tarefa simples e barata: roda no DeepSeek grátis via OpenCode. O limite dos modelos grátis é COMPARTILHADO e já se esgotou (o QA 2 foi travado por ele): por isso a pauta NÃO depende só do grátis e tem backup AUTOMÁTICO (assinatura, nunca API).',
       editorial_task_class: 'triage', prompt_ref: promptRef('triage'), adapter_kind: 'classification',
-      primary: { account: 'opencode', model: `DeepSeek (OpenCode, camada gratuita): ${MODEL_DECLARED}` },
-      backups: [{ account: 'claude', model: `Claude (assinatura): ${MODEL_DECLARED}`, when: 'OpenCode indisponível ou com limite; só nesta etapa' }],
-      on_limit: 'se o backup também bater o limite: a pauta fica pending; sem API',
+      primary: { account: 'opencode', model: `DeepSeek via OpenCode, camada gratuita (o QA 2 usou opencode/deepseek-v4.1-flash-free): ${MODEL_DECLARED}` },
+      backups: [
+        { account: 'claude', model: `Claude (assinatura): ${MODEL_DECLARED}`, when: '1º backup, automático: OpenCode esgotado, indisponível ou com erro' },
+        { account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: '2º backup, automático: Claude também com limite; preserva a quota do Claude para a redação' },
+      ],
+      on_limit: 'se os dois backups também baterem o limite: a pauta fica pending; sem API',
       independence: 'não se aplica (não redige nem checa)',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
@@ -144,12 +148,12 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
     },
     {
       draft_id: 'ln_pilot_checador', name: 'LN Piloto — Checagem', title: 'Checagem de fatos do piloto (OpenBot, assinatura Codex)', stage: 'factcheck', required: true,
-      description: 'Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve.',
+      description: 'Confere cada claim do rascunho contra as evidências (`pass`, `fail` ou `inconclusive`; na dúvida, inconclusivo) e devolve o modelo que respondeu. Não reescreve. Se o Codex bater o limite, o backup é o Gemini (outro provedor, independente do redator Claude).',
       editorial_task_class: 'factcheck', prompt_ref: promptRef('factcheck'), adapter_kind: 'fact_check',
       primary: { account: 'codex', model: `Codex/OpenAI (assinatura): ${MODEL_DECLARED}` },
-      backups: [],
-      on_limit: 'SEM backup no piloto: o único backup independente seria a API (GPT-6.1-terra pelo OpenRouter), desligada; a tarefa fica pending e a matéria não é publicada (falha fechada)',
-      independence: 'autor diferente do redator, provado pelo `model` declarado (Claude × OpenAI); a Editorial passa `excludeProviders: [anthropic]`; mesmo autor = bloqueio',
+      backups: [{ account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: 'Codex com limite ou indisponível; Google é outro autor, independente do redator Claude' }],
+      on_limit: 'se o Gemini também bater o limite: a tarefa fica pending e a matéria não é publicada (falha fechada); sem API (a GPT-6.1-terra pelo OpenRouter fica desligada)',
+      independence: 'autor diferente do redator, provado pelo `model` declarado (Claude × OpenAI ou Claude × Google); a Editorial passa `excludeProviders: [anthropic]`; mesmo autor = bloqueio',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
@@ -157,9 +161,9 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
       description: 'Revisão final (clareza, tom `tom-0.1`, ausência de invenção, coerência título-texto): `{"approve", "issues"}`. Não reescreve. Pode ser fundida com a checagem numa chamada só (`check_edit`), conforme o Arquiteto; o piloto mede as duas formas.',
       editorial_task_class: 'review', prompt_ref: promptRef('review'), adapter_kind: null,
       primary: { account: 'codex', model: `Codex/OpenAI (assinatura): ${MODEL_DECLARED}` },
-      backups: [],
-      on_limit: 'SEM backup no piloto: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator)',
-      independence: 'autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude',
+      backups: [{ account: 'antigravity', model: `Gemini via Antigravity (assinatura): ${MODEL_DECLARED}`, when: 'Codex com limite ou indisponível; Google é outro autor, independente do redator Claude' }],
+      on_limit: 'se o Gemini também bater o limite: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API',
+      independence: 'autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude; Gemini ou Codex valem',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
@@ -221,11 +225,12 @@ export interface PilotRow {
   notes?: string;
 }
 
-export function authorOfDeclaredModel(model: string | null): 'anthropic' | 'openai' | 'deepseek' | 'unknown' {
+export function authorOfDeclaredModel(model: string | null): 'anthropic' | 'openai' | 'google' | 'deepseek' | 'unknown' {
   if (!model) return 'unknown';
   const m = model.toLowerCase();
   if (m.startsWith('anthropic/') || m.includes('claude')) return 'anthropic';
   if (m.startsWith('openai/') || m.startsWith('gpt') || m.includes('codex') || m.includes('gpt-')) return 'openai';
+  if (m.startsWith('google/') || m.includes('gemini') || m.includes('gemma')) return 'google';
   if (m.includes('deepseek')) return 'deepseek';
   return 'unknown';
 }
@@ -267,7 +272,7 @@ export function validatePilotRow(r: PilotRow): string[] {
 // --- avaliação dos critérios de saída -----------------------------------------------------------------------------------
 
 export interface WindowStat {
-  account: 'claude' | 'codex' | 'opencode';
+  account: 'claude' | 'codex' | 'opencode' | 'antigravity';
   from: string;
   to: string | null;
   completedTasks: number;
@@ -287,11 +292,13 @@ export interface PilotEvaluation {
   /** parada imediata: qualquer item aqui para o piloto; cada item traz a posição (1-based) da linha que a causou */
   stop: string[];
   windows: WindowStat[];
-  limitHits: { account: 'claude' | 'codex' | 'opencode'; at: string; message: string; resumedAt: string | null }[];
+  limitHits: { account: 'claude' | 'codex' | 'opencode' | 'antigravity'; at: string; message: string; resumedAt: string | null }[];
   independence: { checked: number; ok: number; rate: number | null; failures: string[]; uncheckedFinalDrafts: string[] };
   latencyMsByStage: Partial<Record<PilotStage, Stat>>;
   retries: { tasksWithRetry: number; failed: number; pendingLimit: number };
   quality: { approvedWithEvaluation: number; approvedWithoutEvaluation: number; unsupportedFacts: number };
+  /** execuções que rodaram num backup (conta diferente da principal da etapa): mede o quanto o backup foi usado */
+  backupsUsed: { stage: PilotStage; account: PilotAccount; tasks: number }[];
   /** custo tarifado: o piloto exige ZERO chamadas à API tarifada */
   tariffed: { apiCalls: number };
   /** saída no formato da classe de tarefa (G2.2): contagem informativa; o limiar é do protocolo */
@@ -325,7 +332,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
   // janelas por conta: abre na primeira atividade (ou na retomada) e fecha na tarefa que bateu o limite
   const windows: WindowStat[] = [];
   const limitHits: PilotEvaluation['limitHits'] = [];
-  for (const account of ['claude', 'codex', 'opencode'] as const) {
+  for (const account of ['claude', 'codex', 'opencode', 'antigravity'] as const) {
     const mine = rows.filter((r) => r.account === account).sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
     let cur: { from: string; tasks: number; articles: Set<string> } | null = null;
     for (const r of mine) {
@@ -435,6 +442,15 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
     latencyMsByStage,
     retries: { tasksWithRetry: rows.filter((r) => r.attempt > 1).length, failed: rows.filter((r) => r.outcome === 'failed').length, pendingLimit: rows.filter((r) => r.outcome === 'pending_limit').length },
     quality: { approvedWithEvaluation: withEval.length, approvedWithoutEvaluation: approved.length - withEval.length, unsupportedFacts: unsupported },
+    backupsUsed: (() => {
+      const m = new Map<string, { stage: PilotStage; account: PilotAccount; tasks: number }>();
+      for (const r of rows) {
+        if (!PILOT_STAGES[r.stage] || r.account === PILOT_STAGES[r.stage].account || r.outcome !== 'completed') continue;
+        const k = `${r.stage}|${r.account}`;
+        m.set(k, { stage: r.stage, account: r.account, tasks: (m.get(k)?.tasks ?? 0) + 1 });
+      }
+      return [...m.values()];
+    })(),
     tariffed: { apiCalls: rows.filter((r) => r.tarifada_api_call).length },
     outputValidity: (() => {
       const c = rows.filter((r) => r.output_valid !== undefined && r.account !== 'deterministic');

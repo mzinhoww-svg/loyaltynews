@@ -7,7 +7,9 @@
 - **DP-27:** canal principal = agentes OpenBot nas assinaturas (Claude redige, Codex confere), fora do teto; API tarifada só como complemento dentro de US$ 50 e **desligada no piloto**. O piloto vem **antes** da etapa 1 paga da qualificação; se o canal cobrir redação e checagem, a etapa 1 encolhe.
 - **DP-26 (b) e (c):** sem reserva (nem fallback) na redação; Fable fora do trabalho não publicado. **DP-26 (a) revogada pela DP-27:** ZDR não é exigido. Dado pessoal continua fora.
 - **DP-28:** fontes de mercado autorizadas com risco aceito; citar e linkar, sem reproduzir além do necessário; robots respeitado; nunca contornar 403/429; classe C fora (Azul, GOL, ABECS, IATA, Nubank, Accor, Marriott, Salesforce, HubSpot, Zendesk, oneworld, ABAV). **DP-29:** a IA lê e reescreve com palavras próprias (a Editorial aplica `copy_literal` de forma determinística).
-- **DP-30:** o proprietário aceita o risco dos termos das assinaturas Anthropic e OpenAI. Mitigação recomendada: contas de produto separadas das de implementação; rota de complemento pela API pronta (desligada).
+- **DP-30:** o proprietário aceita o risco dos termos das assinaturas Anthropic e OpenAI. A mitigação recomendada (contas de produto separadas das de implementação) **não é possível hoje**: ver a premissa abaixo. Rota de complemento pela API pronta e desligada.
+
+**Premissa registrada (PM, 23/11):** há UMA conta conectada por provedor no OpenBot (Claude, Codex, Antigravity/Gemini, OpenCode) e **não existe separação entre conta de produto e de implementação**; o proprietário aceitou esse risco (DP-27 e DP-30). Consequências: (1) a equipe de implementação e o piloto **disputam a mesma quota**; os limites medidos ficam contaminados pelo uso da implementação, então o relatório anota quem mais usou a conta na janela; (2) uma suspensão de conta pararia produto e implementação juntos; (3) o limite dos modelos GRÁTIS do OpenCode é compartilhado e se esgotou no mesmo dia em que o QA 2 o usou: a pauta não pode depender só dele.
 
 ## 2. Fontes e volume (10 matérias, NÃO publicadas)
 
@@ -27,15 +29,15 @@ Os prompts são os da Editorial: versão `editorial-0.2` (tom `tom-0.1`, provis�
 
 | Agente | Etapa | Classe da fábrica | Tipo no adaptador | Modelo principal | Backups | Se o limite bater |
 |---|---|---|---|---|---|---|
-| ln_pilot_pauta | triage | `triage` | classification | opencode: DeepSeek (OpenCode, camada gratuita): declarado no UsageReport (id exato não verificado) | claude (OpenCode indisponível ou com limite; só nesta etapa) | se o backup também bater o limite: a pauta fica pending; sem API |
+| ln_pilot_pauta | triage | `triage` | classification | opencode: DeepSeek via OpenCode, camada gratuita (o QA 2 usou opencode/deepseek-v4.1-flash-free): declarado no UsageReport (id exato não verificado) | claude (1º backup, automático: OpenCode esgotado, indisponível ou com erro); antigravity (2º backup, automático: Claude também com limite; preserva a quota do Claude para a redação) | se os dois backups também baterem o limite: a pauta fica pending; sem API |
 | ln_pilot_redator | draft | `draft` | editorial_draft | claude: Claude (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido |
-| ln_pilot_checador | factcheck | `factcheck` | fact_check | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | SEM backup no piloto: o único backup independente seria a API (GPT-6.1-terra pelo OpenRouter), desligada; a tarefa fica pending e a matéria não é publicada (falha fechada) |
-| ln_pilot_revisor | review | `review` | **lacuna** | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | SEM backup no piloto: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator) |
+| ln_pilot_checador | factcheck | `factcheck` | fact_check | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | antigravity (Codex com limite ou indisponível; Google é outro autor, independente do redator Claude) | se o Gemini também bater o limite: a tarefa fica pending e a matéria não é publicada (falha fechada); sem API (a GPT-6.1-terra pelo OpenRouter fica desligada) |
+| ln_pilot_revisor | review | `review` | **lacuna** | codex: Codex/OpenAI (assinatura): declarado no UsageReport (id exato não verificado) | antigravity (Codex com limite ou indisponível; Google é outro autor, independente do redator Claude) | se o Gemini também bater o limite: a tarefa fica pending (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API |
 | ln_pilot_social (opcional) | social_pack | `social_pack` | **lacuna** | claude: Claude (assinatura): declarado no UsageReport (id exato não verificado) | nenhum | adiar: etapa de baixa prioridade; fica pending e não conta contra os critérios de saída |
 
-**Regras de backup (política):** só a **pauta** tem backup (OpenCode grátis → Claude, ambos fora da API). **Redação, checagem e revisão não têm backup** no piloto: a política não admite fallback na redação (DP-26 b) e o único backup independente da checagem seria a API (GPT-6.1-terra pelo OpenRouter), que fica desligada; nesses casos a tarefa fica `pending` e a matéria **não** é publicada (falha fechada). Todo backup precisa respeitar a independência: o checador e o revisor **nunca** são do mesmo autor do redator (Claude × OpenAI); a Editorial passa `excludeProviders: [anthropic]` na checagem.
+**Regras de backup (decisão do PM, 23/11):** a **pauta** tem backup AUTOMÁTICO em cadeia (OpenCode grátis → Claude → Gemini via Antigravity), porque o grátis se esgota; a **checagem e a revisão** têm backup no **Gemini (Antigravity)**, outro provedor independente do redator Claude, em vez de ficar pending. A **redação não tem backup**: a política não admite fallback na redação (DP-26 b). Quando todas as vias de uma etapa estão no limite, a tarefa fica `pending` e a matéria **não** é publicada (falha fechada). Todo backup precisa respeitar a independência: o checador e o revisor **nunca** são do mesmo autor do redator (Claude × OpenAI ou Claude × Google); a Editorial passa `excludeProviders: [anthropic]`. O avaliador aceita só as contas previstas por etapa e mostra quanto cada backup foi usado (`backupsUsed`). Todos os backups são assinaturas ou camada gratuita: **nenhum é API tarifada**.
 
-**DeepSeek grátis via OpenCode:** só para a pauta (tarefa simples, saída de 200 tokens). Entrada só de item de fonte pública. A política de dados e os limites da camada gratuita NÃO foram verificados; a DP-27 aceita a retenção; dado pessoal nunca. Se a qualidade da pauta ficar abaixo da Claude, trocar a principal por Claude (decisão registrada).
+**DeepSeek grátis via OpenCode:** só para a pauta (tarefa simples, saída de 200 tokens). **Confirmado pelo PM:** o OpenBot roda agentes com o provedor OpenCode (o QA 2 rodou em `opencode/deepseek-v4.1-flash-free`), mas o limite dos modelos grátis é compartilhado e se esgotou no mesmo dia; por isso o backup automático. Entrada só de item de fonte pública; a política de dados da camada gratuita NÃO foi verificada; a DP-27 aceita a retenção; dado pessoal nunca. Se a pauta no grátis falhar com frequência ou a qualidade ficar abaixo da Claude, trocar a principal por Claude (decisão registrada).
 
 ## 4. Roteiro de execução
 
@@ -76,7 +78,7 @@ Os prompts são os da Editorial: versão `editorial-0.2` (tom `tom-0.1`, provis�
 | Camada | Controle | Como se prova |
 |---|---|---|
 | Preventivo | o OpenRouter e qualquer chave de provedor **não existem** na configuração dos agentes do piloto; a flag `modelosHabilitados` e o complemento ficam desligados; o gateway recusa sem portão de saldo (`balance_guard_missing`) antes de qualquer reserva | varredura da configuração (0 ocorrências); teste negativo por agente |
-| Preventivo | limite atingido = tarefa `pending`, sem fallback para API (o único backup é a pauta: OpenCode → Claude, ambos fora da API) | linhas `pending_limit` sem `tarifada_api_call` |
+| Preventivo | limite atingido = backup por assinatura ou camada gratuita (pauta: OpenCode → Claude → Gemini; checagem e revisão: Codex → Gemini) ou `pending`; **nunca fallback para API** | linhas `pending_limit` e `backupsUsed` sem `tarifada_api_call` |
 | Preventivo | o despachante só envia tarefa se `canDispatchNext` permitir; `tarifada_api_call` é parada imediata | `PilotSession` fecha a sessão na linha ofensiva |
 | Detectivo | cada linha da planilha traz `tarifada_api_call`; o relatório mostra `tariffed.apiCalls` | `evaluatePilot().tariffed.apiCalls === 0` |
 | Detectivo | o verificador lê o saldo do OpenRouter antes e depois do piloto e confere o ledger de orçamento (`budget_ledger`) sem linha nova | diferença de saldo = 0; 0 linhas novas |
@@ -95,7 +97,8 @@ Qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segre
 2. **Lacuna `review`:** `DISPATCHABLE_KINDS` não tem o tipo da revisão editorial (nem `social_pack`); acrescentar `editorial_review` (e `social_copy`, se o opcional entrar) ou usar a chamada única `check_edit` (`fact_check`).
 3. **Lacuna do `UsageReport`:** hoje exige `generationIds` e `costMicro` conhecido; uma execução por assinatura não tem geração do OpenRouter. Precisa de uma variante `lane: subscription` (conta, modelo declarado, `costMicro = 0`, sem `generationIds`) aceita sem o 422 `geracao_ausente`, e de uma via `opencode` equivalente.
 4. **Como a Fábrica espera o resultado:** o `ModelGateway.invoke` da Editorial é síncrono; um gateway do OpenBot precisa despachar a tarefa e aguardar o callback (com tempo-limite e `pending` no limite). Definir de quem é essa peça.
-5. `canDispatchNext` consultado antes de cada despacho; separação das contas de produto e de implementação (DP-30); onde o agente OpenCode roda, se roda.
+5. `canDispatchNext` consultado antes de cada despacho. **Backup automático:** ao receber o limite de uma conta, o despachante reenvia a tarefa à próxima via da cadeia da etapa (pauta, checagem, revisão) e a linha registra a conta usada; a redação nunca troca de via. Respondido pelo PM: o OpenBot roda agente OpenCode; há uma conta por provedor (Claude, Codex, Antigravity/Gemini, OpenCode), sem separar produto e implementação (premissa, risco aceito).
+6. As rotas e os tipos do adaptador precisam cobrir a via **Antigravity/Gemini** além de Claude, Codex e OpenCode (variante `lane` do `UsageReport`).
 
 **Com a Editorial (Fábrica e prompts `editorial-0.2`):**
 1. Confirmar o commit dos prompts fixado acima e o tom provisório `tom-0.1` (sem guia aprovado); avisar se o arquivo mudar.
@@ -114,19 +117,19 @@ Qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segre
 
 ## 10. Não verificado
 
-- Limites e janelas de uso do Claude, do Codex e do OpenCode grátis; se o OpenBot devolve a hora de retomada e o texto do limite; o id exato do modelo de cada conta.
-- Se o OpenBot roda um agente OpenCode (DeepSeek grátis), separa contas de produto e implementação e envia os cabeçalhos assinados do adaptador.
+- Limites e janelas de uso do Claude, do Codex, do Gemini (Antigravity) e do OpenCode grátis; se o OpenBot devolve a hora de retomada e o texto do limite; o id exato do modelo de cada conta.
+- Se o OpenBot envia os cabeçalhos assinados do adaptador. (Respondido pelo PM: roda agente OpenCode; não separa contas de produto e implementação.)
 - Termos das assinaturas: risco aceito (DP-30), não verificado em documento dos provedores. Política de dados do OpenCode grátis.
 - As fontes de mercado de classe D são proposta até a Editorial confirmar; Senado e Câmara estão desabilitadas hoje.
-- Nada foi executado: nenhum agente criado, nenhuma chamada de modelo.
+- Nada foi executado: nenhum agente criado, nenhuma chamada de modelo. **OK para criar os agentes (PM):** só depois do parecer do QA 1 e com o staging na Fase 3 (persistência); até lá fecham-se as lacunas com a Integration e a Editorial.
 
 ## Etapas do avaliador
 
-- `triage`: Pauta/triagem (DeepSeek grátis via OpenCode; backup Claude) (conta opencode; backup claude)
+- `triage`: Pauta/triagem (DeepSeek grátis via OpenCode; backup automático Claude ou Gemini) (conta opencode; backup claude, antigravity)
 - `draft`: Redação (Claude); sem fallback (DP-26 b) (conta claude)
-- `factcheck`: Checagem de fatos independente (Codex; autor distinto do redator) (conta codex)
-- `review`: Revisão editorial independente (Codex; gate WF02) (conta codex)
-- `check_edit`: Checagem + revisão numa chamada só (opção do Arquiteto, −24%) (conta codex)
+- `factcheck`: Checagem de fatos independente (Codex; backup Gemini; autor distinto do redator) (conta codex; backup antigravity)
+- `review`: Revisão editorial independente (Codex; backup Gemini; gate WF02) (conta codex; backup antigravity)
+- `check_edit`: Checagem + revisão numa chamada só (opção do Arquiteto, −24%; backup Gemini) (conta codex; backup antigravity)
 - `social_pack`: Texto social de LinkedIn como rascunho (Claude) (conta claude)
 - `roles`: Entidades e cargos citados no texto (Claude) (conta claude)
 - `rights_seo_qa`: Gates determinísticos: direitos, cópia literal, SEO, QA visual (conta deterministic)

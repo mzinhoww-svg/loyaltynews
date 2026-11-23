@@ -51,14 +51,16 @@ describe('agentes do piloto (rascunho, nada criado): pauta, redação, checagem 
     expect(by('ln_pilot_revisor').independence).toMatch(/Claude nunca revisa rascunho de Claude/);
   });
 
-  it('backups só na pauta (OpenCode → Claude); redação, checagem e revisão não têm backup e ficam pending no limite', () => {
-    expect(by('ln_pilot_pauta').backups.map((b) => b.account)).toEqual(['claude']);
-    for (const id of ['ln_pilot_redator', 'ln_pilot_checador', 'ln_pilot_revisor']) {
-      expect(by(id).backups, id).toEqual([]);
-      expect(by(id).on_limit, id).toMatch(/SEM backup/);
+  it('backups: pauta OpenCode → Claude → Gemini; checagem e revisão Codex → Gemini; redação sem backup (DP-26 b)', () => {
+    expect(by('ln_pilot_pauta').backups.map((b) => b.account)).toEqual(['claude', 'antigravity']);
+    expect(by('ln_pilot_pauta').description).toMatch(/COMPARTILHADO/);
+    for (const id of ['ln_pilot_checador', 'ln_pilot_revisor']) {
+      expect(by(id).backups.map((b) => b.account), id).toEqual(['antigravity']);
+      expect(by(id).on_limit, id).toMatch(/falha|pending/);
     }
+    expect(by('ln_pilot_redator').backups).toEqual([]);
+    expect(by('ln_pilot_redator').on_limit).toMatch(/SEM backup/);
     expect(by('ln_pilot_redator').on_limit).toMatch(/DP-26 b/);
-    expect(by('ln_pilot_checador').on_limit).toMatch(/falha fechada/);
     // nenhum backup é API tarifada
     expect(JSON.stringify(agents.flatMap((a) => a.backups))).not.toMatch(/openrouter|api tarifada|gpt-6\.1-terra/i);
   });
@@ -108,6 +110,8 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
     expect(authorOfDeclaredModel('gpt-6.1-terra')).toBe('openai');
     expect(authorOfDeclaredModel('openai/gpt-6.2-sol')).toBe('openai');
     expect(authorOfDeclaredModel('gpt-5-codex')).toBe('openai');
+    expect(authorOfDeclaredModel('gemini-3-pro (antigravity)')).toBe('google');
+    expect(authorOfDeclaredModel('google/gemini-3')).toBe('google');
     expect(authorOfDeclaredModel('modelo-x')).toBe('unknown');
     expect(authorOfDeclaredModel(null)).toBe('unknown');
   });
@@ -315,10 +319,36 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
   it('pauta no OpenCode, backup Claude aceito; qualquer outra conta é inválida', () => {
     expect(validatePilotRow(triage(1, 0))).toEqual([]);
     expect(validatePilotRow(triage(1, 0, { account: 'claude', declared_model: 'claude-sonnet-5-5' }))).toEqual([]); // backup permitido
-    expect(validatePilotRow(triage(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/opencode ou claude/)]));
-    // redação, checagem e revisão não têm backup: conta de backup é inválida
+    expect(validatePilotRow(triage(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/opencode ou claude ou antigravity/)]));
+    // redação não tem backup: conta de backup é inválida; checagem aceita Gemini mas não Claude
     expect(validatePilotRow(draft(1, 0, { account: 'opencode' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
     expect(validatePilotRow(factcheck(1, 3, { account: 'claude' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em codex/)]));
+  });
+
+  it('backup Gemini: pauta, checagem e revisão aceitam antigravity; independência vale com Gemini; backupsUsed conta o uso', () => {
+    expect(validatePilotRow(triage(1, 0, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual([]);
+    expect(validatePilotRow(factcheck(1, 3, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual([]);
+    expect(validatePilotRow(draft(1, 0, { account: 'antigravity', declared_model: 'gemini-3-pro' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+    const rows = [
+      triage(1, 0, { account: 'claude', declared_model: 'claude-sonnet-5-5' }),
+      triage(2, 0, { account: 'antigravity', declared_model: 'gemini-3-pro' }),
+      draft(1, 1),
+      factcheck(1, 4, { account: 'antigravity', declared_model: 'gemini-3-pro' }),
+      review(1, 7, { account: 'antigravity', declared_model: 'gemini-3-pro' }),
+    ];
+    const ev = evaluatePilot(rows);
+    expect(ev.independence).toMatchObject({ checked: 2, ok: 2, failures: [] });
+    expect(ev.backupsUsed).toEqual(expect.arrayContaining([
+      { stage: 'triage', account: 'claude', tasks: 1 },
+      { stage: 'triage', account: 'antigravity', tasks: 1 },
+      { stage: 'factcheck', account: 'antigravity', tasks: 1 },
+      { stage: 'review', account: 'antigravity', tasks: 1 },
+    ]));
+    expect(ev.backupsUsed).toHaveLength(4);
+    expect(evaluatePilot([draft(1, 0), factcheck(1, 3)]).backupsUsed).toEqual([]);
+    // Claude como checador de rascunho de Claude continua bloqueado
+    const same = evaluatePilot([draft(1, 0), factcheck(1, 3, { account: 'claude', declared_model: 'claude-opus-5-5' })]);
+    expect(same.exit.independence).not.toBe('pass');
   });
 
   it('checagem e revisão separadas: as duas precisam ser de autor diferente do redator e apontar o mesmo rascunho', () => {
