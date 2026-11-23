@@ -65,8 +65,8 @@ describe('tipos de matéria lidos da API (`tipo`)', () => {
     }
   });
 
-  it('422 (tipo recusado pelo servidor) = indisponível, sem lançar', async () => {
-    const f = vi.fn(async () => json({ error: { code: 'VALIDATION_ERROR' } }, 422));
+  it('400 (tipo recusado pelo servidor) = indisponível, sem lançar', async () => {
+    const f = vi.fn(async () => json({ error: { code: 'VALIDATION_ERROR' } }, 400));
     expect(await createApiSlice('http://api.test', f as unknown as typeof fetch).getLatest({ contentType: 'flash' })).toMatchObject({ unavailable: true });
   });
 });

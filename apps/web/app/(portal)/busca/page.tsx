@@ -25,7 +25,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
       <WithSidebar>
         <div aria-live="polite">
           {!result ? (
-            <EmptyState title="Digite um termo para buscar">Os resultados vêm da busca no título das matérias publicadas, da mais recente para a mais antiga.</EmptyState>
+            <EmptyState title="Digite um termo para buscar">Os resultados vêm da busca no título e no resumo das matérias publicadas, da mais recente para a mais antiga.</EmptyState>
           ) : result.unavailable ? (
             <ErrorState title="Não conseguimos buscar agora" retryHref={`/busca?q=${encodeURIComponent(q)}`}>
               A busca não respondeu; isso não significa que não haja resultados para “{q}”. Tente novamente em instantes.
@@ -38,7 +38,7 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
             </>
           ) : (
             <EmptyState title={`Nenhum resultado para “${q}”`}>
-              Tente outro termo ou navegue pelas editorias: a busca procura no título das matérias publicadas.
+              Tente outro termo ou navegue pelas editorias: a busca procura no título e no resumo das matérias publicadas.
             </EmptyState>
           )}
         </div>

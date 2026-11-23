@@ -126,7 +126,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Pedidos de titulares de dados',
-        paragraphs: ['Pedidos de correção, retificação ou supressão de dados seguem a página de privacidade e LGPD.'],
+        paragraphs: ['Para pedir correção ou remoção de dados pessoais, use o formulário desta página (/correcoes#pedido). A resposta chega ao e-mail informado. Os direitos e as bases legais estão na página de privacidade e LGPD.'],
       },
       {
         heading: 'Histórico de correções',
@@ -155,7 +155,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Direitos do titular',
-        paragraphs: ['Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O canal de pedidos será divulgado com o contato oficial.'],
+        paragraphs: ['Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O pedido é feito pelo formulário em /correcoes#pedido, e a resposta chega ao e-mail informado.'],
       },
       {
         heading: 'Cookies e medição',
