@@ -140,3 +140,11 @@
 .pt-map .pt-map-cap { fill: var(--ln-color-primary); font-size: 15px; font-family: inherit; }
 .pt-map figcaption { margin-top: var(--ln-space-2); font-size: var(--ln-text-sm); }
 .pt-map-list { margin: var(--ln-space-2) 0 0; padding-left: 1.2em; font-size: var(--ln-text-sm); }
+
+/* P3-5 (UI/UX): no desktop o mapa fica à esquerda e a lista de posições à direita (a página perde ~370 px); no mobile segue empilhado */
+@media (min-width: 1024px) {
+  .pt-map { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--ln-space-5); align-items: start; }
+  .pt-map svg { grid-column: 1; grid-row: 1; max-width: 520px; }
+  .pt-map figcaption { grid-column: 1; grid-row: 2; }
+  .pt-map-list { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+}

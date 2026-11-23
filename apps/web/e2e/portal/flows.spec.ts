@@ -218,6 +218,26 @@ test.describe('honestidade de dados', () => {
     expect(outline.width).toBeGreaterThanOrEqual(2);
   });
 
+  test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    const svg = (await page.locator('[data-testid="mk-mapa"] svg').boundingBox())!;
+    const lista = (await page.getByTestId('mk-mapa-lista').boundingBox())!;
+    const figura = (await page.getByTestId('mk-mapa').boundingBox())!;
+    const vb = (await page.locator('[data-testid="mk-mapa"] svg').getAttribute('viewBox'))!.split(' ').map(Number);
+    expect(svg.height / svg.width).toBeCloseTo(vb[3]! / vb[2]!, 1); // proporção preservada
+    if (info.project.name === 'desktop') {
+      expect(svg.width).toBeLessThanOrEqual(520.5);
+      expect(lista.x).toBeGreaterThanOrEqual(svg.x + svg.width); // lista à direita do mapa
+      expect(lista.y).toBeLessThan(svg.y + svg.height); // e começa na altura do mapa
+      expect(figura.height).toBeLessThan(700); // antes: 1.014 px
+    } else {
+      const vw = page.viewportSize()!.width;
+      expect(svg.width).toBeGreaterThan(vw * 0.8);
+      expect(lista.y).toBeGreaterThanOrEqual(svg.y + svg.height); // empilhado
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');
