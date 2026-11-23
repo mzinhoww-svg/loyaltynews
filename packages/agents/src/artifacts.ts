@@ -21,12 +21,13 @@ import { validateOrganization } from './validator';
 import { PKG_DIR, POLICY_FIXTURE } from './paths';
 import { buildGateAndDraftArtifacts, type ExtraArtifacts } from './artifacts-extra';
 import { buildQualificationArtifacts, type QualificationArtifacts } from './qualification-doc';
+import { buildCostRedesignArtifacts, type CostRedesignArtifacts } from './cost-redesign-doc';
 
 export { PKG_DIR, POLICY_FIXTURE };
 
 const usd = (micro: number) => (micro / 1_000_000).toFixed(2);
 
-export interface Artifacts extends ExtraArtifacts, QualificationArtifacts {
+export interface Artifacts extends ExtraArtifacts, QualificationArtifacts, CostRedesignArtifacts {
   'organization.manifest.json': string;
   'routing-plan.json': string;
   'activation-plan.md': string;
@@ -103,6 +104,7 @@ export function generateArtifacts(): Artifacts {
     'activation-plan.md': renderActivationPlan(validation.counts, conservative, digest, policySha),
     ...buildGateAndDraftArtifacts(registries, conservative),
     ...buildQualificationArtifacts(check.policy, policySha),
+    ...buildCostRedesignArtifacts(check.policy),
   };
 }
 
