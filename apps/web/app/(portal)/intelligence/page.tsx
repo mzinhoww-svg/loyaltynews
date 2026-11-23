@@ -13,11 +13,13 @@ export const metadata: Metadata = {
 
 export default async function IntelligenceHub() {
   const src = getSource();
-  const [companies, people, moves] = await Promise.all([src.listCompanies(), src.listPeople(), src.listMoves()]);
+  const [companies, peopleDir, movesFeed] = await Promise.all([src.listCompanies(), src.getPeopleDirectory(), src.getMovesFeed()]);
+  // Falha da API conta como 0 aqui (o hub só resume); cada página mostra o próprio estado de erro.
+  const count = (d: { status: string; total?: number }) => (d.status === 'ok' ? (d.total ?? 0) : 0);
   const tiles = [
     { href: '/intelligence/empresas', title: 'Empresas', text: 'Diretório de companhias, programas e parceiros, com fonte e data de revisão.', n: companies.length },
-    { href: '/intelligence/pessoas', title: 'Pessoas', text: 'Executivos e profissionais: apenas dados profissionais públicos, relevantes e verificáveis.', n: people.length },
-    { href: '/moves', title: 'Moves', text: 'Movimentações de cargo e de empresa confirmadas por fonte primária.', n: moves.length },
+    { href: '/intelligence/pessoas', title: 'Pessoas', text: 'Executivos e profissionais: apenas dados profissionais públicos, relevantes e verificáveis.', n: count(peopleDir) },
+    { href: '/moves', title: 'Moves', text: 'Movimentações de cargo e de empresa confirmadas por fonte primária.', n: count(movesFeed) },
   ];
   return (
     <>

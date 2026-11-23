@@ -17,8 +17,8 @@ export default async function EntrevistasPage({ searchParams }: { searchParams: 
       basePath="/entrevistas"
       page={parsePage(sp.page)}
       contentType="entrevista"
-      emptyTitle="Entrevistas em breve"
-      emptyText="Ainda não realizamos entrevistas. Quando houver a primeira, ela será publicada aqui com autoria e consentimento do entrevistado."
+      emptyTitle="Nenhuma entrevista publicada"
+      emptyText="Entrevistas publicadas aparecem aqui, sempre com autoria e consentimento do entrevistado."
     />
   );
 }

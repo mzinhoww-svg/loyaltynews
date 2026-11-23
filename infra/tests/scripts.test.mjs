@@ -690,3 +690,333 @@ test('opção (e): start-web reprova LN_BUILD_SKIP_TYPECHECK em execução (a va
   assert.deepEqual(startProblems(env, rel), []);
   assert.match(startProblems({ ...env, LN_BUILD_SKIP_TYPECHECK: '1' }, rel).join('|'), /LN_BUILD_SKIP_TYPECHECK definida em execução/);
 });
+
+test('build leve: buildLeveEnv só liga CIRCLE_NODE_TOTAL=2 (1 worker do Next) quando o release.json pede', async () => {
+  const { buildLeveEnv } = await import('../scripts/lib/typecheck-report.mjs');
+  assert.deepEqual(buildLeveEnv({ buildLeve: true }), { CIRCLE_NODE_TOTAL: '2', LN_BUILD_LEVE: '1' });
+  assert.deepEqual(buildLeveEnv({ buildLeve: false }), {});
+  assert.deepEqual(buildLeveEnv({}), {});
+  assert.deepEqual(buildLeveEnv(null), {});
+  assert.deepEqual(buildLeveEnv({ buildLeve: 'true' }), {}, 'só o booleano true');
+});
+
+test('build leve: package-web --build-leve recusa worker', () => {
+  const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--app', 'workers', '--build-leve']);
+  assert.equal(x.status, 2);
+  assert.match(x.stderr, /--build-leve so vale para o web/);
+});
+
+// ---------- Fase 3 do staging: smoke tests (smoke-staging.mjs) ----------
+test('smoke-staging: avaliarReady e empresasNaPagina (funções puras)', async () => {
+  const { avaliarReady, empresasNaPagina } = await import('../scripts/smoke-staging.mjs');
+  assert.deepEqual(avaliarReady({ status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' }), []);
+  assert.match(avaliarReady({ status: 'ok', mode: 'nodb', db: 'n/a', redis: 'n/a' }).join('|'), /mode=nodb/);
+  assert.match(avaliarReady({ status: 'indisponivel', mode: 'completo', db: 'falha', redis: 'ok' }).join('|'), /db=falha/);
+  assert.match(avaliarReady({ status: 'indisponivel', mode: 'completo', db: 'ok', redis: 'nao_configurado' }).join('|'), /redis=nao_configurado/);
+  assert.deepEqual(avaliarReady(null), ['corpo sem JSON']);
+  assert.equal(empresasNaPagina('<p class="pt-meta" data-testid="count-empresas">29 cadastrado(s) e verificado(s)</p>'), 29);
+  assert.equal(empresasNaPagina('<p data-testid="count-empresas">Cadastros verificados: em breve</p>'), null);
+  assert.equal(empresasNaPagina('<html></html>'), null);
+});
+
+test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /intelligence em breve reprovam com o motivo', async () => {
+  const R = 'DEMO · staging';
+  const estado = { mode: 'completo', semSeed: false, orgs: 29, feedComItem: false, loginForm: true };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...h }); res.end(b); };
+    const itensSeed = estado.semSeed ? [] : [1, 2, 3, 4, 5].map((n) => ({ slug: 'a' + n, titulo: '[' + R + '] Matéria ' + n }));
+    if (u === '/api/health') return json(200, { status: 'ok', version: 'abc' });
+    if (u === '/api/ready') return json(200, estado.mode === 'nodb' ? { status: 'ok', mode: 'nodb', db: 'n/a', redis: 'n/a' } : { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' });
+    if (u === '/api/publico/site') return json(200, { nome: 'Loyalty News' });
+    if (u === '/api/publico/editorias') return json(200, { data: Array.from({ length: 10 }, (_, i) => ({ slug: 'e' + i })) });
+    if (u === '/api/publico/materias') return json(200, { data: itensSeed, total: itensSeed.length });
+    if (u === '/api/publico/agenda') return json(200, { data: [{ titulo: '[' + R + '] Evento' }] });
+    if (u === '/') return html(200, '<meta name="robots" content="noindex, nofollow"/>' + (estado.semSeed ? '' : '[' + R + '] Matéria 1'));
+    if (u === '/noticias') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
+    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.feedComItem ? '<item><title>x</title></item>' : '') + '</rss>'); }
+    if (u === '/intelligence') return html(200, estado.orgs ? '<p data-testid="count-empresas">' + estado.orgs + ' cadastrado(s) e verificado(s)</p>' : '<p data-testid="count-empresas">Cadastros verificados: em breve</p>');
+    if (u === '/studio') { res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
+    if (u === '/studio/entrar') return html(200, estado.loginForm ? '<form><input type="password"/></form>' : '<p>O login do Studio ainda não está disponível neste ambiente.</p>');
+    if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('User-agent: *\nDisallow: /\n'); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  // spawn ASSÍNCRONO: o servidor falso roda neste processo e o spawnSync bloquearia o laço de eventos
+  const run = (extra = [], semUrl = false) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-staging.mjs'), ...(semUrl ? [] : ['--url', 'http://127.0.0.1:' + port, '--expect-commit', 'abc']), ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, stdout }));
+  });
+  try {
+    const ok = await run(['--expect-seed', '--expect-orgs', '29']);
+    assert.equal(ok.status, 0, ok.stdout);
+    assert.equal(JSON.parse(ok.stdout).falhas, 0);
+    estado.mode = 'nodb';
+    const nodb = await run();
+    assert.equal(nodb.status, 1);
+    assert.match(nodb.stdout, /mode=nodb/);
+    estado.mode = 'completo'; estado.semSeed = true;
+    assert.equal((await run()).status, 0, 'sem --expect-seed o seed não é exigido');
+    const sem = await run(['--expect-seed']);
+    assert.equal(sem.status, 1);
+    assert.match(sem.stdout, /seed publicado/);
+    estado.semSeed = false; estado.orgs = 0;
+    const emBreve = await run(['--expect-orgs', '29']);
+    assert.equal(emBreve.status, 1);
+    assert.match(emBreve.stdout, /adaptador api do portal ainda não lê Intelligence/);
+    // feed de staging com item = vazamento (R6); tela de entrada em aviso: nota sem falha, e falha só com --expect-login-form; detalhe de falha não aparece no que passou
+    estado.orgs = 29; estado.feedComItem = true;
+    const feed = await run();
+    assert.equal(feed.status, 1);
+    assert.match(feed.stdout, /SEM itens \(staging não indexável, R6\)/);
+    estado.feedComItem = false; estado.loginForm = false;
+    const aviso = await run(['--expect-seed']);
+    assert.equal(aviso.status, 0, aviso.stdout);
+    assert.match(JSON.parse(aviso.stdout).notas.join('|'), /login real do Studio está BLOQUEADO/);
+    for (const c of JSON.parse(aviso.stdout).checagens) if (c.ok) assert.equal(c.detalhe, undefined, 'check que passou não carrega detalhe de falha: ' + c.nome);
+    const exige = await run(['--expect-login-form']);
+    assert.equal(exige.status, 1);
+    assert.match(exige.stdout, /a tela é só um aviso/);
+    assert.equal((await run([], true)).status, 2, 'sem --url recusa');
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+test('ci-checks: URL de conexão com senha em teste/doc só passa com host obviamente falso; host real, e qualquer host fora de teste/doc, reprova', async () => {
+  const { conexoesComSenhaReais } = await import('../scripts/lib/segredos.mjs');
+  const f1 = "const a = 'postgres://u:p@h/db'; const b = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'; const c = 'postgres://u:p@db.example:5432/ln?x=1';";
+  assert.deepEqual(conexoesComSenhaReais(f1, 'packages/db/src/tls.test.ts'), []);
+  assert.deepEqual(conexoesComSenhaReais('postgres://usuario:senha@127.0.0.1:PORTA/postgres', 'packages/modelops/docs/ledger.md'), []);
+  assert.deepEqual(conexoesComSenhaReais('rediss://u:p@localhost:6379', 'apps/web/lib/x.spec.ts'), []);
+  const real = 'postgres://vertracloud:abc123@862011ce0c0a4472a2a1dbb341808f00.db.usa1.vertraweb.app:24684/vertracloud';
+  assert.equal(conexoesComSenhaReais(real, 'packages/db/src/tls.test.ts').length, 1, 'host da Vertra em teste continua reprovado');
+  assert.equal(conexoesComSenhaReais(real, 'docs/nota.md').length, 1, 'host da Vertra em doc continua reprovado');
+  assert.equal(conexoesComSenhaReais(f1, 'apps/web/app/api/x.ts').length, 3, 'fora de teste/doc nada muda');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@meu-servidor.com.br/db', 'apps/a.test.ts').length, 1, 'host desconhecido reprova');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@localhost.evil.com/db', 'apps/a.test.ts').length, 1, 'localhost.evil.com não é loopback');
+  assert.deepEqual(conexoesComSenhaReais('postgres://u:p@staging.exemplo.internal:5432/x postgres://u:p@10.0.0.7:5432/x postgres://u:p@192.168.1.9/x', 'packages/a/src/x.test.ts'), [], 'hosts internos e faixas privadas em teste');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@8.8.8.8/x', 'packages/a/src/x.test.ts').length, 1, 'IP publico em teste reprova');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@10.0.0.7:5432/x', 'apps/web/lib/x.ts').length, 1, 'faixa privada fora de teste reprova');
+});
+
+test('ci-checks: árvore com fixture falsa em teste passa; com URL real da Vertra em teste reprova (ponta a ponta)', () => {
+  const ok = tmp();
+  put(ok, 'package.json', '{"name":"x"}');
+  put(ok, 'packages/db/src/tls.test.ts', "export const U = 'postgres://u:p@h/db';");
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0);
+  rmSync(ok, { recursive: true, force: true });
+  const bad = tmp();
+  put(bad, 'package.json', '{"name":"x"}');
+  put(bad, 'packages/db/src/tls.test.ts', "export const U = 'postgres://vertracloud:abc@0123456789abcdef.db.usa1.vertraweb.app:1/vertracloud';");
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /string de conexão com senha em packages\/db\/src\/tls\.test\.ts/);
+  rmSync(bad, { recursive: true, force: true });
+});
+
+test('PEM em UMA linha com \\n escapado (como a Vertra entrega) é normalizado igual ao multilinha: normalizarPem, pgClientConfig e redisTlsFromEnv', async () => {
+  const { normalizarPem, pgClientConfig } = await import('../scripts/lib/pg.mjs');
+  const { redisTlsFromEnv } = await import('../scripts/check-conexoes.mjs');
+  const multi = '-----BEGIN CERTIFICATE-----\nAAAA\nBBBB\n-----END CERTIFICATE-----\n';
+  const umaLinha = multi.trim().split('\n').join('\\n');
+  assert.ok(!umaLinha.includes('\n'), 'a versão de uma linha não tem quebra real');
+  assert.equal(normalizarPem(umaLinha), multi);
+  assert.equal(normalizarPem(multi), multi);
+  assert.equal(normalizarPem('"' + umaLinha + '"'), multi, 'aspas ao redor');
+  assert.equal(normalizarPem(''), undefined);
+  assert.equal(normalizarPem(undefined), undefined);
+  const a = pgClientConfig({ DATABASE_URL: 'postgres://u:p@h:1/d', DB_SSL_CA_PEM: umaLinha, DB_SSL_CERT_PEM: umaLinha, DB_SSL_KEY_PEM: umaLinha });
+  assert.deepEqual([a.ssl.ca, a.ssl.cert, a.ssl.key], [multi, multi, multi]);
+  const r = redisTlsFromEnv({ REDIS_URL: 'rediss://u:p@abc.db.usa1.vertraweb.app:1', REDIS_SSL_CA_PEM: umaLinha, REDIS_SSL_CERT_PEM: umaLinha, REDIS_SSL_KEY_PEM: umaLinha });
+  assert.deepEqual([r.tls.ca, r.tls.cert, r.tls.key], [multi, multi, multi]);
+});
+
+// ---- memoria-build.mjs: guarda da troca de memória do web no build (880 só no build; 512 em regime)
+const perfilFalso = ({ stgWeb = 512, prodWeb = 512, stgWorker = 128, prodWorker = 256, extraUsed = 0, limit = 8192 } = {}) => {
+  const apps = [
+    { id: 'stg-web', name: 'ln-staging-web', type: 2, ram: stgWeb, status: 'up' },
+    { id: 'stg-wk', name: 'ln-staging-workers', type: 1, ram: stgWorker, status: 'up' },
+    { id: 'prod-web', name: 'ln-prod-web', type: 2, ram: prodWeb, status: 'up' },
+    { id: 'prod-wk', name: 'ln-prod-workers', type: 1, ram: prodWorker, status: 'up' },
+    { id: 'o1', name: 'camarim-magico', type: 2, ram: 512, status: 'up' },
+    { id: 'o2', name: 'agencia-worker', type: 1, ram: 128, status: 'up' },
+    { id: 'o3', name: 'revela-face-engine', type: 1, ram: 384, status: 'up' },
+    { id: 'o4', name: 'wa-gateway', type: 2, ram: 512, status: 'up' },
+    { id: 'o5', name: 'agencia-web', type: 2, ram: 512, status: 'up' },
+  ];
+  const databases = [{ id: 'd1', name: 'agencia-db', ram: 1024 }, { id: 'd2', name: 'ln-staging-db', ram: 1024 }, { id: 'd3', name: 'ln-staging-redis', ram: 512 }, { id: 'd4', name: 'ln-prod-db', ram: 1024 }, { id: 'd5', name: 'ln-prod-redis', ram: 512 }];
+  const soma = apps.reduce((s, a) => s + a.ram, 0) + databases.reduce((s, d) => s + d.ram, 0);
+  return { name: 'Fulano', email: 'fulano@example.invalid', applications: apps, databases, plan: { name: 'pro-8', memory: { limit, used: soma + extraUsed } } };
+};
+
+test('memoria-build: regime (7552 de 8192) pode subir um web a 880; pico 7920; volta a 7552', async () => {
+  const { lerPerfil, avaliar, passos } = await import('../scripts/memoria-build.mjs');
+  const p = lerPerfil(perfilFalso());
+  assert.equal(p.used, 7552);
+  assert.equal(p.soma, 7552);
+  const a = avaliar(p, 'prod-web', { fase: 'antes' });
+  assert.equal(a.ok, true, a.problemas.join('|'));
+  const s = passos(p, 'prod-web', { pacote: 'C:/pacote' });
+  assert.deepEqual(s.map((x) => x.usedEsperado), [7552, 7920, 7920, 7920, 7920, 7920, 7552, 7552]);
+  assert.deepEqual(s[1].args, { id: 'prod-web', memory: 880 });
+  assert.deepEqual(s[6].args, { id: 'prod-web', memory: 512 });
+  assert.equal(s[4].args.path, 'C:/pacote');
+  // durante: com o alvo em 880 o estado está certo; depois: ainda em 880 é problema (memória esquecida alta)
+  const alto = lerPerfil(perfilFalso({ prodWeb: 880 }));
+  assert.equal(avaliar(alto, 'prod-web', { fase: 'durante' }).ok, true);
+  const d = avaliar(alto, 'prod-web', { fase: 'depois' });
+  assert.equal(d.ok, false);
+  assert.match(d.problemas.join('|'), /continua em 880 MB: baixe para 512/);
+  assert.equal(avaliar(p, 'prod-web', { fase: 'depois' }).ok, true);
+});
+
+test('memoria-build: recusa dois webs altos, falta de folga, regime errado, perfil que não fecha e app desconhecido', async () => {
+  const { lerPerfil, avaliar } = await import('../scripts/memoria-build.mjs');
+  // outro web do LN já está em 880: só um por vez
+  const dois = avaliar(lerPerfil(perfilFalso({ stgWeb: 880 })), 'prod-web', { fase: 'antes' });
+  assert.equal(dois.ok, false);
+  assert.match(dois.problemas.join('|'), /ln-staging-web está em 880 MB .*só um web sobe por vez/);
+  // sem folga: staging com worker 256 e worker de produção 384 (7808 de 8192, sobram 384): subir +368 deixaria 16 MB
+  const semFolga = avaliar(lerPerfil(perfilFalso({ stgWorker: 256, prodWorker: 384 })), 'prod-web', { fase: 'antes' });
+  assert.equal(semFolga.ok, false);
+  assert.match(semFolga.problemas.join('|'), /faltam 112 MB.*pico seria 8176 de 8192/);
+  // margem mínima: com 8192 e margem 300 o pico (7920, livre 272) é recusado
+  const margem = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes', margem: 300 });
+  assert.equal(margem.ok, false);
+  assert.match(margem.problemas.join('|'), /faltam 28 MB.*pico seria 7920 de 8192/);
+  // regime errado (um build anterior deixou o web alto)
+  assert.match(avaliar(lerPerfil(perfilFalso({ prodWeb: 880 })), 'prod-web', { fase: 'antes' }).problemas.join('|'), /não no regime de 512/);
+  // leitura que não fecha (used diferente da soma)
+  assert.match(avaliar(lerPerfil(perfilFalso({ extraUsed: 256 })), 'prod-web', { fase: 'antes' }).problemas.join('|'), /não fecha/);
+  // app desconhecido e envelope { response }
+  assert.equal(avaliar(lerPerfil({ response: perfilFalso() }), 'nao-existe', { fase: 'antes' }).ok, false);
+  assert.throws(() => lerPerfil({ foo: 1 }), /não parece um get_profile/);
+});
+
+test('memoria-build: CLI plano/conferir (códigos de saída, sem e-mail nem nome na saída)', () => {
+  const r = tmp();
+  put(r, 'perfil.json', JSON.stringify(perfilFalso()));
+  put(r, 'perfil-alto.json', JSON.stringify(perfilFalso({ prodWeb: 880 })));
+  const ok = node('memoria-build.mjs', ['plano', '--profile', join(r, 'perfil.json'), '--app', 'prod-web', '--pacote', 'C:/p']);
+  assert.equal(ok.status, 0, ok.stderr);
+  const j = JSON.parse(ok.stdout);
+  assert.equal(j.ok, true);
+  assert.equal(j.passos.length, 8);
+  assert.doesNotMatch(ok.stdout, /fulano|Fulano/);
+  const ruim = node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'depois']);
+  assert.equal(ruim.status, 1);
+  assert.equal(JSON.parse(ruim.stdout).ok, false);
+  assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'durante']).status, 0);
+  assert.equal(node('memoria-build.mjs', ['plano', '--app', 'x']).status, 2);
+  assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil.json'), '--app', 'prod-web']).status, 2);
+  rmSync(r, { recursive: true, force: true });
+});
+
+// ---- erros-log.mjs: segredo em log de erro (incidente 23/11/2026; decisão 17 da Security)
+test('erros-log R1: conexão sem .on(error) no arquivo reprova; com ouvinte, em teste ou em comentário passa', async () => {
+  const { conexoesSemOuvinteDeErro, ehCodigoDeProduto } = await import('../scripts/lib/erros-log.mjs');
+  const sem = "import { Pool } from 'pg';\nimport IORedis from 'ioredis';\nconst pool = new Pool(cfg);\nconst r = new IORedis(url);\n";
+  assert.deepEqual(conexoesSemOuvinteDeErro(sem).map((a) => [a.construtor, a.linha]), [['new Pool', 3], ['new IORedis', 4]]);
+  assert.deepEqual(conexoesSemOuvinteDeErro(sem + "pool.on('error', (e) => log(safeErr(e)));\n"), []);
+  assert.deepEqual(conexoesSemOuvinteDeErro(sem + 'r.once("error", h);\n'), []);
+  assert.equal(conexoesSemOuvinteDeErro("import { Queue, Worker } from 'bullmq';\nnew Queue('a');\nnew Worker('a', fn);\n").length, 2);
+  // sem importar a biblioteca, `new Client`/`new Queue` são outra coisa
+  assert.deepEqual(conexoesSemOuvinteDeErro("class Client {}\nconst c = new Client();\nconst q = new Queue();\n"), []);
+  // comentário não conta, nem como conexão nem como ouvinte
+  assert.deepEqual(conexoesSemOuvinteDeErro("import { Pool } from 'pg';\n// new Pool(x)\n/* pool.on('error', h) */\n"), []);
+  assert.equal(conexoesSemOuvinteDeErro("import { Pool } from 'pg';\nconst p = new Pool(c);\n// pool.on('error', h)\n").length, 1);
+  // escopo: só apps/ e packages/, fora de teste
+  assert.equal(ehCodigoDeProduto('apps/workers/src/main.ts'), true);
+  assert.equal(ehCodigoDeProduto('packages/auth/src/runtime.ts'), true);
+  for (const r of ['apps/workers/src/main.test.ts', 'apps/web/e2e/x.ts', 'packages/db/src/__tests__/a.ts', 'apps/web/scripts/build.mjs', 'infra/scripts/check-conexoes.mjs', 'packages/db/src/x.d.ts', 'apps/web/app/page.css']) assert.equal(ehCodigoDeProduto(r), false, r);
+});
+
+test('erros-log R2: console.* com o erro inteiro reprova; {name, code, message} e e.message passam', async () => {
+  const { logsDeErroBruto } = await import('../scripts/lib/erros-log.mjs');
+  const ruins = [
+    "console.error(e);", "console.error('falhou', err);", "console.warn(error)", "console.log('x', { err });", "console.error({ error: e, id });",
+    "console.error('x', util.inspect(err, { depth: 5 }));", "console.error(JSON.stringify(e));", "console.error('x', e.cause);", "console.error(err.options)",
+    "client.on('error', console.error);", "console.error(`${id}`, dbError);", "console.error(...err);",
+  ];
+  for (const c of ruins) assert.equal(logsDeErroBruto(c).length, 1, c);
+  const boas = [
+    "console.error('falhou', e.message);", "console.error(safeErr(e));", "console.error({ name: e.name, code: e.code, message: e.message });",
+    "console.error(`[workers] falhou: ${String(e)}`);", "console.log('ok', id, total);", "console.error('x', (e as Error).message);",
+    "// console.error(e)", "/* console.error(err) */ console.log('a');", "const s = \"console.error(e)\";", "console.error('erro:', errors.length);",
+  ];
+  for (const c of boas) assert.equal(logsDeErroBruto(c).length, 0, c);
+  assert.equal(logsDeErroBruto("a();\nb();\nconsole.error(e);\n")[0].linha, 3);
+});
+
+test('ci-checks: segredo em log de erro avisa por padrão e REPROVA com --producao (e package-web production usa --producao)', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  put(r, 'apps/workers/src/main.ts', "import { Pool } from 'pg';\nconst pool = new Pool(cfg);\ntry { await pool.query('select 1'); } catch (e) { console.error(e); }\n");
+  put(r, 'apps/workers/src/main.test.ts', "import { Pool } from 'pg';\nnew Pool(cfg);\nconsole.error(e);\n");
+  put(r, 'packages/auth/src/ok.ts', "import { Pool } from 'pg';\nconst p = new Pool(cfg);\np.on('error', (e) => console.error(safeErr(e)));\n");
+  const aviso = node('ci-checks.mjs', ['--root', r]);
+  assert.equal(aviso.status, 0, aviso.stderr);
+  assert.match(aviso.stderr, /AVISO.*2 ocorrência/s);
+  assert.match(aviso.stderr, /apps\/workers\/src\/main\.ts:2 \[R1\]/);
+  assert.match(aviso.stderr, /apps\/workers\/src\/main\.ts:3 \[R2\]/);
+  assert.doesNotMatch(aviso.stderr, /main\.test\.ts|ok\.ts/);
+  for (const flag of ['--producao', '--logs-estritos']) {
+    const x = node('ci-checks.mjs', ['--root', r, flag]);
+    assert.equal(x.status, 1, flag);
+    assert.match(x.stderr, /segredo em log de erro: apps\/workers\/src\/main\.ts:2 \[R1\]/);
+  }
+  put(r, 'apps/workers/src/main.ts', "import { Pool } from 'pg';\nconst pool = new Pool(cfg);\npool.on('error', (e) => console.error(safeErr(e)));\n");
+  assert.equal(node('ci-checks.mjs', ['--root', r, '--producao']).status, 0);
+  rmSync(r, { recursive: true, force: true });
+});
+
+// ---- ADR-022 (DP-38): LN_FLAGS_ON só no staging, amarrada ao release.json
+test('guards: LN_FLAGS_ON só no staging, formato de lista e vínculo com release.json.flagsLigadas', async () => {
+  const { envProblems, flagsProblems, flagsNormalizadas, ASSIGN_FLAGS } = await import('../scripts/lib/guards.mjs');
+  const stg = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas' };
+  assert.deepEqual(envProblems(stg, { deploy: true }).filter((m) => /LN_FLAGS_ON/.test(m)), []);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', LN_FLAGS_ON: 'a,b' }, { deploy: true }).filter((m) => /LN_FLAGS_ON/.test(m)), []);
+  for (const ruim of ['intelligencePessoas, openbotDispatch', "'intelligencePessoas'", 'a;b', '1abc', ',a']) assert.match(envProblems({ ...stg, LN_FLAGS_ON: ruim }, { deploy: true }).join('|'), /LN_FLAGS_ON fora do formato/, ruim);
+  assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }).join('|'), /LN_FLAGS_ON definida em produção/);
+  assert.match(envProblems({ APP_ENV: 'producao', LN_FLAGS_ON: 'x' }).join('|'), /em produção/);
+  assert.match(envProblems({ APP_ENV: 'homolog', LN_FLAGS_ON: 'x' }, { deploy: true }).join('|'), /só o staging aceita flags/);
+  assert.deepEqual(envProblems({ APP_ENV: 'local', LN_FLAGS_ON: 'x' }).filter((m) => /LN_FLAGS_ON/.test(m)), [], 'desenvolvimento local não é barrado');
+  assert.equal(flagsNormalizadas(' b, a ,'), 'a,b');
+  assert.equal(flagsNormalizadas(['b', 'a']), 'a,b');
+  assert.deepEqual(flagsProblems({}, { flagsLigadas: [] }), []);
+  assert.deepEqual(flagsProblems({}, {}), []);
+  assert.deepEqual(flagsProblems({ LN_FLAGS_ON: 'b,a' }, { flagsLigadas: ['a', 'b'] }), []);
+  assert.match(flagsProblems({}, { flagsLigadas: ['intelligencePessoas'] }).join('|'), /defina LN_FLAGS_ON=intelligencePessoas/);
+  assert.match(flagsProblems({ LN_FLAGS_ON: 'openbotDispatch' }, { flagsLigadas: ['intelligencePessoas'] }).join('|'), /difere do release\.json/);
+  assert.match(flagsProblems({ LN_FLAGS_ON: 'intelligencePessoas' }, {}).join('|'), /não liga nenhuma flag/);
+  assert.equal(ASSIGN_FLAGS.test('LN_FLAGS_ON=intelligencePessoas'), true);
+  assert.equal(ASSIGN_FLAGS.test("{ LN_FLAGS_ON: 'a' }"), true);
+  assert.equal(ASSIGN_FLAGS.test('process.env.LN_FLAGS_ON === undefined'), false);
+});
+
+test('guard-env: release.json do pacote manda em LN_FLAGS_ON (web e worker); ci-checks reprova atribuição em arquivo de deploy', () => {
+  const r = tmp();
+  put(r, 'release.json', JSON.stringify({ appEnv: 'staging', flagsLigadas: ['intelligencePessoas'] }));
+  const env = { ...cleanEnvFlags(), APP_ENV: 'staging' };
+  const g = (extra) => spawnSync(process.execPath, [join(S, 'guard-env.mjs')], { cwd: r, encoding: 'utf8', env: { ...env, ...extra } });
+  assert.equal(g({ LN_FLAGS_ON: 'intelligencePessoas' }).status, 0);
+  const falta = g({});
+  assert.equal(falta.status, 1);
+  assert.match(falta.stderr, /defina LN_FLAGS_ON=intelligencePessoas/);
+  assert.equal(g({ LN_FLAGS_ON: 'openbotDispatch' }).status, 1);
+  put(r, 'release.json', JSON.stringify({ appEnv: 'staging', flagsLigadas: [] }));
+  assert.equal(g({}).status, 0);
+  assert.equal(g({ LN_FLAGS_ON: 'intelligencePessoas' }).status, 1);
+  rmSync(r, { recursive: true, force: true });
+  const c = tmp();
+  put(c, 'package.json', '{"name":"x","scripts":{"start":"LN_FLAGS_ON=intelligencePessoas next start"}}');
+  put(c, '.github/workflows/deploy.yml', 'env:\n  LN_FLAGS_ON: intelligencePessoas\n');
+  const x = node('ci-checks.mjs', ['--root', c], { env: cleanEnvFlags() });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /LN_FLAGS_ON atribuída no script "start"/);
+  assert.match(x.stderr, /LN_FLAGS_ON atribuída em \.github\/workflows\/deploy\.yml/);
+  rmSync(c, { recursive: true, force: true });
+});
+function cleanEnvFlags() { const e = { ...process.env }; for (const k of ['APP_ENV', 'LN_FLAGS_ON', 'CI', 'PORTAL_SOURCE', 'PORTAL_MODE', 'LN_STUDIO_TEST_SESSION', 'PORTAL_VITRINE', 'PORTAL_INDEXAVEL', 'DIAG_XFF']) delete e[k]; return e; }

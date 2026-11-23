@@ -19,16 +19,38 @@ const indexavel = appEnv === 'production' && (process.env.PORTAL_INDEXAVEL_E2E ?
 // API fora do ar (regra A6): PORTAL_API_DOWN=1 aponta o portal para uma porta sem servidor (conexão recusada);
 // PORTAL_API_DOWN=503 sobe o servidor MOCK respondendo 503 (API sem banco).
 const apiDown = mode === 'api' ? (process.env.PORTAL_API_DOWN ?? '') : '';
+// Configuração do site publicada no Studio (/api/publico/site) no servidor MOCK: full (padrão) | vazio | noindex | invalido | malicioso.
+const apiSite = mode === 'api' && !process.env.PORTAL_API_DOWN ? (process.env.PORTAL_API_SITE ?? '') : '';
+const SITE_PORT: Record<string, number> = { vazio: 8, noindex: 9, invalido: 10, malicioso: 11 };
+// Publicidade (plano em /api/commercial/ads/plan no servidor MOCK): com = TOP e SIDEBAR_1 disponíveis | sem = nenhuma posição.
+const apiAds = mode === 'api' && !process.env.PORTAL_API_DOWN && !apiSite ? (process.env.PORTAL_API_ADS ?? '') : '';
+const ADS_PORT: Record<string, number> = { com: 12, sem: 13 };
+// Intelligence (pessoas e Moves) no servidor MOCK: full (padrão) | vazio | sem-flag (intelligencePessoas desligada).
+// Porta própria base+14 (int/010: base+12/13 são da publicidade, do 09a6715).
+const apiIntel = mode === 'api' && !apiDown && !apiSite && !apiAds ? (process.env.PORTAL_API_INTEL ?? '') : '';
 const prodSemInterruptor = appEnv === 'production' && !indexavel;
 const port = base
-  ? base + (mode === 'mock' ? 1 : mode === 'api' ? (apiDown === '503' ? 7 : apiDown ? 6 : 2) : prodSemInterruptor ? 5 : appEnv === 'production' ? 0 : 3)
-  : mode === 'mock' ? 3102 : mode === 'api' ? 3105 : prodSemInterruptor ? 3106 : appEnv === 'production' ? 3101 : 3103;
+  ? base + (mode === 'mock' ? 1 : mode === 'api' ? (apiDown === '503' ? 7 : apiDown ? 6 : apiIntel ? 14 : (SITE_PORT[apiSite] ?? ADS_PORT[apiAds] ?? 2)) : prodSemInterruptor ? 5 : appEnv === 'production' ? 0 : 3)
+  : mode === 'mock' ? 3102 : mode === 'api' ? (apiIntel ? 3112 : 3105) : prodSemInterruptor ? 3106 : appEnv === 'production' ? 3101 : 3103;
 
 
 export default defineConfig({
   testDir: './portal',
   // Em staging só a suíte de ambiente (as demais assumem indexação de produção).
-  testMatch: mode === 'api' ? (apiDown ? /(api-down|env)\.spec\.ts/ : /(api|env)\.spec\.ts/) : indexavel ? /.*\.spec\.ts/ : /env\.spec\.ts/,
+  testMatch:
+    mode === 'api'
+      ? apiDown
+        ? /(api-down|env)\.spec\.ts/
+        : apiSite
+          ? /api-site\.spec\.ts/
+          : apiAds
+            ? /api-ads\.spec\.ts/
+          : apiIntel
+            ? /intelligence\.spec\.ts/
+          : /(api|api-site|api-agenda|api-tipos|env|intelligence|correcoes)\.spec\.ts/
+      : indexavel
+        ? /.*\.spec\.ts/
+        : /env\.spec\.ts/,
   outputDir: '../.test-results/portal',
   fullyParallel: true,
   retries: 0,
@@ -49,7 +71,7 @@ export default defineConfig({
                 url: `http://localhost:${fakeApiPort}/health`,
                 reuseExistingServer: !base,
                 timeout: 30_000,
-                env: { FAKE_API_PORT: String(fakeApiPort), ...(apiDown === '503' ? { FAKE_API_STATUS: '503' } : {}) },
+                env: { FAKE_API_PORT: String(fakeApiPort), ...(apiDown === '503' ? { FAKE_API_STATUS: '503' } : {}), ...(apiSite ? { FAKE_API_SITE: apiSite } : {}), ...(apiAds ? { FAKE_API_ADS: apiAds } : {}), ...(apiIntel ? { FAKE_API_INTEL: apiIntel } : {}) },
               },
             ]
           : []),

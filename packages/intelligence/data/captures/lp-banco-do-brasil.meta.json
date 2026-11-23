@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "lp-banco-do-brasil",
+  "url": "https://latampass.latam.com/br/pt/parceiros/banco-do-brasil",
+  "finalUrl": "https://latampass.latam.com/br/pt/parceiros/banco-do-brasil",
+  "capturedAt": "2026-11-23T16:47:10.811Z",
+  "robots": "robots.txt permite",
+  "length": 4433,
+  "sha256Claimed": "e29b0d220dcaea41af62bd0dc7ce47b4fac8422a13f3753acaebb3370f624237"
+}

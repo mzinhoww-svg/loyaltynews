@@ -11,6 +11,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { gerarPacotesAction } from './actions';
+import { metricasVista, rotuloEstado } from '@/lib/studio/social-metricas';
 
 export const metadata: Metadata = { title: 'Social dashboard' };
 export const dynamic = 'force-dynamic';
@@ -51,6 +52,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
       </p>
       <Flash tipo={q.tipo} aviso={q.aviso} />
       <DashboardSummaryCards summary={resumo.body as DashboardSummary} />
+      <MetricasMlabs metricas={(resumo.body as DashboardSummary).metrics} />
       <p className="st-hint">
         Flags: linkedinPublicacao {isEnabled('linkedinPublicacao') ? 'ligada' : 'desligada'} · instagram {isEnabled('instagram') ? 'ligada' : 'desligada'} · theLoyal {isEnabled('theLoyal') ? 'ligada' : 'desligada'}.
       </p>
@@ -133,8 +135,77 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           ))}
         </ul>
       ) : (
-        <p className="st-hint">Nenhum recibo. Métricas de alcance: não disponível (sem integração).</p>
+        <p className="st-hint">Nenhum recibo de publicação (simulada).</p>
       )}
     </>
+  );
+}
+
+/** Métricas do LinkedIn lidas do mLabs (só leitura). Sem fonte ou com falha: estado vazio honesto; valor ausente é "—", nunca 0. */
+function MetricasMlabs({ metricas }: { metricas: DashboardSummary['metrics'] }) {
+  const v = metricasVista(metricas);
+  return (
+    <section aria-labelledby="metricas" style={{ marginTop: 18 }} data-metricas={v.disponivel ? 'disponivel' : 'indisponivel'}>
+      <h2 id="metricas">Métricas do LinkedIn (mLabs, só leitura)</h2>
+      {!v.disponivel ? (
+        <div className="st-empty" data-vazio="metricas">
+          <p style={{ margin: 0 }}>
+            <strong>Métricas indisponíveis.</strong> {v.motivo}.
+          </p>
+          <p className="st-hint" style={{ margin: '6px 0 0' }}>
+            O Studio só mostra números lidos do mLabs. Enquanto não houver leitura, nada é estimado nem preenchido com zero.
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="st-hint">
+            Período {v.periodo} · lido em {v.lidoEm.slice(0, 16).replace('T', ' ')} UTC. Somente leitura: nada é publicado pelo Studio.
+          </p>
+          <dl className="st-row" aria-label="Indicadores">
+            {v.celulas.map((c) => (
+              <div key={c.rotulo} className="st-card" data-metrica={c.rotulo} data-estado={c.estado}>
+                <dt>{c.rotulo}</dt>
+                <dd style={{ margin: 0, fontSize: '1.4em' }}>
+                  <strong>{c.valor}</strong>
+                </dd>
+                <dd className="st-hint" style={{ margin: 0 }}>
+                  {rotuloEstado(c.estado)}
+                  {c.nota ? ` · ${c.nota}` : ''}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {v.posts.length === 0 ? (
+            <p className="st-hint" data-vazio="posts-mlabs">
+              Nenhum post publicado no período, segundo o mLabs.
+            </p>
+          ) : (
+            <table className="st-table">
+              <caption>Posts publicados (mLabs){v.cortada ? ' — lista cortada; o total está acima' : ''}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Data</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Curtidas</th>
+                  <th scope="col">Comentários</th>
+                  <th scope="col">Visualizações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {v.posts.map((p) => (
+                  <tr key={p.chave}>
+                    <td>{p.data}</td>
+                    <td>{p.tipo}</td>
+                    <td>{p.curtidas}</td>
+                    <td>{p.comentarios}</td>
+                    <td>{p.visualizacoes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </section>
   );
 }

@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "lp-bradesco",
+  "url": "https://latampass.latam.com/br/pt/parceiros/bradesco",
+  "finalUrl": "https://latampass.latam.com/br/pt/parceiros/bradesco",
+  "capturedAt": "2026-11-23T16:47:14.745Z",
+  "robots": "robots.txt permite",
+  "length": 4001,
+  "sha256Claimed": "b8509c28ebdefacb30dc0f6646472330721694907e68ba1f75f2adb74c2cf167"
+}

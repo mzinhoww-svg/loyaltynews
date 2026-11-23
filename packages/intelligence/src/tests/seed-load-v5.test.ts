@@ -99,7 +99,7 @@ describe('carga do v5 sobre o v4 (como seria no staging)', () => {
     expect(studio.relations.find((r) => r.other_org_name === 'Santander')).toMatchObject({ certainty: 'inferred', stale_validation: true });
     // idempotente: o plano seguinte reconhece como já marcada
     expect((await planSeedLoad(db, V5, V5_VER, ON)).records.find((r) => r.ref.startsWith('expired:'))).toMatchObject({ action: 'exists' });
-    // nova fonte verificada confirma: entra declarada e a vencida é encerrada (não apagada)
+    // nova fonte verificada confirma: a relação volta a declarada, com a evidência nova
     const NEW: SeedDataset = {
       schemaVersion: 'intelligence-seed/2', datasetId: 'seed.teste.confirma',
       sources: [{ id: 'novo', name: 'MOCK nova fonte', url: 'https://mock.invalid/esfera-santander', method: 'capture' }],
@@ -112,14 +112,14 @@ describe('carga do v5 sobre o v4 (como seria no staging)', () => {
       records: [{ ref: 'organization:a', source_id: 'novo', quote_found: true }, { ref: 'organization:b', source_id: 'novo', quote_found: true }, { ref: 'relation:a>other>b', source_id: 'novo', quote_found: true }],
     };
     const conf = await loadSeed(db, NEW, NEW_VER, ON);
-    expect(conf.manifest!.relationsStaleClosed).toHaveLength(1);
+    expect(conf.manifest!.relationsStaleRestored).toHaveLength(1);
     const fin = await rel();
-    expect(fin.filter((r) => r.certainty === 'declared' && r.valid_to === null)).toHaveLength(1);
-    expect(fin.find((r) => r.id === marked.id)!.valid_to).not.toBeNull();
+    expect(fin).toHaveLength(after.length); // a MESMA relação volta a declarada (sem linha nova, sem apagar)
+    expect(fin.find((r) => r.id === marked.id)).toMatchObject({ certainty: 'declared', inference_basis: null, valid_to: null });
     expect(JSON.stringify(await portalCompanyPage(db, esfera, '2027-01-11'))).toContain('Santander');
-    // desfazer a confirmação reabre a vencida; desfazer o v5 devolve a declarada
+    // desfazer a confirmação devolve o estado "validação vencida"; desfazer o v5 devolve a declarada original
     await rollbackSeed(db, conf.manifest!);
-    expect((await rel()).find((r) => r.id === marked.id)!.valid_to).toBeNull();
+    expect((await rel()).find((r) => r.id === marked.id)).toMatchObject({ certainty: 'inferred', valid_to: null });
     await rollbackSeed(db, manifest!);
     expect(JSON.stringify(await rel())).toBe(before);
   });

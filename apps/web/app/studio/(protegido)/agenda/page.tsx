@@ -7,6 +7,7 @@ import { eventoVigente, hojeSP } from '@/lib/studio/datas';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
+import { PortalAgora } from '../../_components/PortalAgora';
 import { criarEventoAction, moderarEventoAction, removerEventoAction } from './actions';
 
 export const metadata: Metadata = { title: 'Agenda e eventos' };
@@ -159,6 +160,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           <p>A agenda está vazia. Cadastre eventos com a fonte oficial abaixo.</p>
         </section>
       ) : null}
+      <PortalAgora parte="agenda" />
       <Tabela id="proximos" titulo="Próximos" eventos={proximos} podeRemover={podeRemover} podeModerar={podeModerar} />
       <Tabela id="arquivo" titulo="Arquivo (encerrados)" eventos={passados} podeRemover={podeRemover} podeModerar={podeModerar} />
       {podeEscrever ? (

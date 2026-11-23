@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
 import { getOrganizacao } from '@/lib/studio/agentes';
 import { requireModule } from '../../_lib/guard';
+import { SemRotaBackend } from '../../_components/SemBanco';
 
 export const metadata: Metadata = { title: 'Organização agêntica' };
 export const dynamic = 'force-dynamic';
@@ -18,9 +19,10 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
   return (
     <>
       <h1>Organização agêntica</h1>
+      <SemRotaBackend o_que="Organograma agêntico, papéis e registros vêm da configuração do repositório (@ln/agents)." />
       <p>
         Configuração versionada dos registros oficiais: {agentes.length} perfis, {org.registries.workflows.length} workflows e {org.registries.meetings.length} rituais. Responsabilidade vertical, execução horizontal. Rituais:{' '}
-        <strong>{isEnabled('rituais') ? 'ligados' : 'desligados'}</strong> (flag rituais) e chamadas de modelo <strong>{isEnabled('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong>: nada executa agora.
+        <strong>{flagAtiva('rituais') ? 'ligados' : 'desligados'}</strong> (flag rituais) e chamadas de modelo <strong>{flagAtiva('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong>: nada executa agora.
       </p>
 
       <h2>Diretorias</h2>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { isEnabled } from '@ln/contracts';
+import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
 import { periodo30 } from '@/lib/studio/comercial';
 import { hojeSP } from '@/lib/studio/datas';
@@ -58,7 +58,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
   const fmt = await api.comercial.formatos();
   const formatos = (ehErro(fmt) ? [] : (fmt.body as unknown as { formats: Formato[] }).formats).filter((f) => f.status !== 'indisponivel');
   const total = Object.values(painel.campaignsByStatus).reduce((a, b) => a + b, 0);
-  const vendas = isEnabled('adServerVendas');
+  const vendas = flagAtiva('adServerVendas');
   return (
     <>
       <h1>Campanhas</h1>

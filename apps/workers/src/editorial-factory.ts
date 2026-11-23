@@ -90,8 +90,16 @@ export interface RunEditorialFactoryInput {
   /** Deps do gateway de modelos (política, orçamento, cliente). Obrigatório fora do dry-run, salvo `modelGateway`. */
   gateway?: ModelopsTransportOptions;
   /**
+   * Gateway do OpenBot (DP-41): em vez do gateway de modelos (OpenRouter), as tarefas vão às contas de assinatura pelo adaptador (`OpenBotModelGateway` de
+   * `@ln/openbot`, montado pelo chamador com os stores PostgreSQL, o TaskIo e o gate do piloto). Exclusivo com `gateway`. Os custos do OpenBot são gravados em
+   * `openbot_cost_entries` (PostgreSQL), então a exigência de ledger persistente está atendida. O gateway recusa sozinho com despacho desligado (`openbotDispatch`),
+   * kill switch ou piloto parado; este arquivo não liga flag nenhuma nem cria o gateway.
+   */
+  openbotGateway?: ModelGateway;
+  /**
    * Gateway de modelos PRONTO (ex.: OpenBotModelGateway do piloto, DP-41, só staging). Quando informado substitui o gateway de modelops;
    * a chave de idempotência continua `<matéria>:<classe>:<tentativa>` e checagem/revisão recebem `reviewedDraftTaskId`.
+   * int/012: convive com `openbotGateway` (backend cb9e0dd) até a convergência do ft/backend 8520c81 (só `modelGateway`); os dois são exclusivos.
    */
   modelGateway?: ModelGateway;
   /** Linha do piloto (planilha de medição): veredito do gate e output_valid gravados por tarefa. */
@@ -115,10 +123,13 @@ export interface RunEditorialFactoryInput {
 export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<FactoryReport> {
   const flags: FlagState = { ...FLAG_DEFAULTS, ...(i.flags ?? {}) };
   const dryRun = i.dryRun !== false;
-  if (!dryRun && flags.modelosHabilitados && !i.persistentLedger) {
+  if (i.openbotGateway && i.gateway) throw new Error('openbotGateway e gateway de modelos são exclusivos: escolha um');
+  if (i.modelGateway && (i.openbotGateway || i.gateway)) throw new Error('modelGateway, openbotGateway e gateway de modelos são exclusivos: escolha um');
+  const injected: ModelGateway | undefined = i.modelGateway ?? i.openbotGateway;
+  if (!dryRun && flags.modelosHabilitados && !i.persistentLedger && !i.openbotGateway) {
     throw new Error('modelosHabilitados exige ledger de orçamento persistente (PostgreSQL); recusado para não perder o teto mensal em um restart');
   }
-  if (!dryRun && !i.gateway && !i.modelGateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos');
+  if (!dryRun && !i.gateway && !i.openbotGateway && !i.modelGateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos (gateway, modelGateway ou openbotGateway)');
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
@@ -126,9 +137,8 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const observer = shadowObserver(i.shadow);
   const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
-  const modelGateway = i.modelGateway ?? createLlmGateway(llm);
   try {
-    return await runFactory({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.options ?? {}), dryRun });
+    return await runFactory({ store, registry, collector, gateway: injected ?? createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.options ?? {}), dryRun });
   } finally {
     await drainShadow(i.shadow); // o job só termina quando a fila da sombra termina
   }

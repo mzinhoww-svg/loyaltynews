@@ -13,6 +13,8 @@ export const dynamic = 'force-dynamic';
 
 interface FonteFabrica {
   id: string;
+  /** 'padrao' | 'via-provedor' (DP-31/DP-32: lida por serviço de extração, risco aceito pelo proprietário) */
+  acesso?: string;
   nome: string;
   kind: string;
   host: string;
@@ -87,6 +89,11 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
           {itens.map((f) => (
             <section key={f.id} className="st-card" style={{ marginBottom: 12 }} aria-label={f.nome} data-fabrica-fonte={f.id} data-habilitada={f.habilitada ? 'sim' : 'nao'}>
               <h2 style={{ marginTop: 0 }}>{f.nome}</h2>
+              {f.acesso === 'via-provedor' ? (
+                <p className="st-alert" role="note" data-acesso="via-provedor">
+                  <strong>Acesso via provedor</strong> (risco aceito, DP-31/DP-32): a página é lida por um serviço de extração, não pela coleta direta.
+                </p>
+              ) : null}
               <p className="st-hint">
                 {f.host} · {f.kind} · {f.editorias.join(', ')} · pesquisada por {f.pesquisa.pesquisadoPor ?? 'desconhecido'}
               </p>
