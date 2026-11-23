@@ -17,7 +17,7 @@ LN_LOCAL_PG_URL=postgres://postgres@127.0.0.1:55433/ln_editorial_local \
 pg_ctl -D <pgdata-editorial> stop
 ```
 
-Sem `LN_LOCAL_PG_URL` o teste é ignorado (não roda em CI). O teste zera e remigra o banco apontado: **só aponte para banco descartável**.
+Sem `LN_LOCAL_PG_URL` o teste é ignorado (não roda em CI). O teste zera e remigra o banco apontado (`DROP DATABASE`), por isso uma guarda (`fixtures/local-pg-guard.mock.ts`, testada em `src/tests/local-pg-guard.test.ts`) recusa, antes de conectar, qualquer destino que não seja **local e descartável**: host `localhost`, `127.0.0.1` ou `::1`; sem parâmetros de URL; nome do banco só `[a-z0-9_]` e com prefixo `test_`, `ln_test_` ou `ln_editorial_local` (`postgres`, `template0/1` e bancos de aplicação são recusados).
 Não rode em sequência rápida: a Câmara respondeu HTTP 429 depois de várias execuções seguidas (ver "Achados").
 
 ## O que a rodada fez (7 passos)

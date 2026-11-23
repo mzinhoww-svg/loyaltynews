@@ -2,7 +2,8 @@
 // PostgreSQL REAL local (não PGlite): fonte habilitada → coleta real (leitura pública, 1 requisição por URL, robots respeitado) →
 // rascunho de MODELO SIMULADO → checagem simulada em "provedor" distinto → aprovada → RECIBO pela rota oficial.
 // NÃO chama modelo real, NÃO publica (publicacaoPortal desligada e o conteúdo SIMULADO é recusado por regra).
-// Só roda com LN_LOCAL_PG_URL (ex.: postgres://postgres@127.0.0.1:55433/ln_editorial_local); recria o banco a cada execução.
+// Só roda com LN_LOCAL_PG_URL, e só para banco LOCAL e DESCARTÁVEL (host localhost/127.0.0.1/::1, nome com prefixo de teste: ver fixtures/local-pg-guard.mock.ts);
+// recria o banco a cada execução (DROP DATABASE).
 // Saída: packages/editorial/docs/rodada-simulada/*.json (pacote por matéria + dados da rodada).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +28,7 @@ import { setDepsForTest, type Deps } from '../_lib/deps';
 import * as recibosRoute from '../materias/[id]/recibos/route';
 import * as pubOne from '../publico/materias/[slug]/route';
 import { dispatchEditorial as d, setStoreFactoryForTest } from '../_lib/editorial';
+import { assertLocalDisposablePg } from '../../../../../packages/editorial/fixtures/local-pg-guard.mock';
 import { SimulatedEditorialModel } from '../../../../../packages/editorial/fixtures/simulated-model.mock';
 
 const URL_LOCAL = process.env['LN_LOCAL_PG_URL'];
@@ -48,8 +50,10 @@ describe.skipIf(!URL_LOCAL)('rodada simulada local (PostgreSQL real, modelo simu
   const registry = new SourceRegistry(SEED_SOURCES);
 
   beforeAll(async () => {
-    const url = new URL(URL_LOCAL!);
-    const dbName = url.pathname.slice(1);
+    // Recusa, ANTES de conectar, qualquer destino que não seja local e descartável (a seguir há DROP DATABASE).
+    const alvo = assertLocalDisposablePg(URL_LOCAL);
+    const url = new URL(alvo.url);
+    const dbName = alvo.dbName;
     const admUrl = new URL(URL_LOCAL!); admUrl.pathname = '/postgres';
     const adm = new pg.Client({ connectionString: admUrl.toString() });
     await adm.connect();
