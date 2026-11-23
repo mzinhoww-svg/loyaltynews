@@ -115,6 +115,8 @@ try {
     { nome: 'NODE_ENV', valor: web.env?.NODE_ENV ?? 'production' },
     { nome: 'APP_COMMIT', valor: sha },
     ...(web.env?.APP_MODE ? [{ nome: 'APP_MODE', valor: web.env.APP_MODE }] : []),
+    // Obrigatória em EXECUÇÃO também: páginas dinâmicas e a revalidação da home leem a variável no servidor (experimento 22/11/2026: sem ela, localhost).
+    { nome: 'NEXT_PUBLIC_SITE_URL', valor: siteUrl ?? '(definir)' },
     { nome: 'APP_URL', valor: siteUrl ?? '(definir)' },
     { nome: 'BETTER_AUTH_URL', valor: siteUrl ?? '(definir)' },
   ];

@@ -177,20 +177,25 @@ test('build-web: checkHome aprova canonical do ambiente + noindex e reprova loca
   assert.match(checkHome('<html></html>', url, 'staging').join('|'), /sem link canonical/);
 });
 
-test('healthcheck --canonical: reprova localhost e URL errada, aprova a URL do ambiente', async () => {
-  let canon = 'http://localhost:3000';
+test('healthcheck --canonical: confere a home (estática) E /noticias (dinâmica); reprova localhost e URL errada', async () => {
+  let home = 'http://localhost:3000';
+  let dinamica = 'http://localhost:3000/noticias';
   const s = await server((req, res) => {
     if (req.url === '/api/health') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end('{"status":"ok"}'); }
-    if (req.url === '/') { res.writeHead(200); return res.end(`<html><head><link rel="canonical" href="${canon}"/></head></html>`); }
+    if (req.url === '/') { res.writeHead(200); return res.end(`<html><head><link rel="canonical" href="${home}"/></head></html>`); }
+    if (req.url === '/noticias') { res.writeHead(200); return res.end(`<html><head><link rel="canonical" href="${dinamica}"/></head></html>`); }
     res.writeHead(404); res.end();
   });
   const port = s.address().port;
   try {
     const want = 'https://loyaltynews-stg.vertraweb.app';
-    let r = await hc(port, ['--canonical', want]); assert.equal(r.status, 1); assert.match(r.stdout, /NEXT_PUBLIC_SITE_URL não entrou no build/);
-    canon = 'https://outro.vertraweb.app'; assert.equal((await hc(port, ['--canonical', want])).status, 1);
-    canon = want; assert.equal((await hc(port, ['--canonical', want])).status, 0);
-    canon = `${want}/`; assert.equal((await hc(port, ['--canonical', `${want}/`])).status, 0);
+    let r = await hc(port, ['--canonical', want]); assert.equal(r.status, 1); assert.match(r.stdout, /NEXT_PUBLIC_SITE_URL precisa existir no build E no ambiente de execução/);
+    home = 'https://outro.vertraweb.app'; dinamica = `${want}/noticias`; assert.equal((await hc(port, ['--canonical', want])).status, 1, 'home com URL errada');
+    // o caso do incidente de 22/11: a home (estática, gravada no build) está certa, a página dinâmica lê a variável em execução e sai localhost
+    home = want; dinamica = 'http://localhost:3000/noticias';
+    r = await hc(port, ['--canonical', want]); assert.equal(r.status, 1); assert.match(r.stdout, /\/noticias: canonical/);
+    dinamica = `${want}/noticias`; assert.equal((await hc(port, ['--canonical', want])).status, 0);
+    home = `${want}/`; assert.equal((await hc(port, ['--canonical', `${want}/`])).status, 0);
   } finally { s.closeAllConnections?.(); s.close(); }
 });
 

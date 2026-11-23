@@ -29,6 +29,7 @@ const clean = { ...process.env };
 for (const k of ['CI', 'LN_STUDIO_TEST_SESSION', 'PORTAL_SOURCE', 'PORTAL_MODE', 'LN_E2E_BUILD', 'DIAG_XFF']) delete clean[k];
 const appEnv = Object.fromEntries(man.depois_do_create.set_env.map((e) => [e.nome, e.valor]));
 appEnv.APP_URL = `http://127.0.0.1:${port}`; appEnv.BETTER_AUTH_URL = appEnv.APP_URL; // URL local só para o ensaio
+appEnv.NEXT_PUBLIC_SITE_URL = man.siteUrl; // variável de EXECUÇÃO obrigatória no painel (páginas dinâmicas e revalidação leem no servidor)
 
 function sh(cmd, { cwd, env, timeout = 15 * 60 * 1000 }) {
   return spawnSync(cmd, { cwd, env, shell: true, encoding: 'utf8', timeout, maxBuffer: 256 * 1024 * 1024 });
@@ -98,8 +99,8 @@ try {
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', '--no-mock', '/'], { encoding: 'utf8' });
   step('sondas: saúde com o commit certo, Studio nega sem login, sem MOCK', r.status === 0, r.status === 0 ? JSON.parse(r.stdout).denied?.status + ' ' + (JSON.parse(r.stdout).denied?.location ?? '') : r.stdout.trim().slice(0, 300));
 
-  r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--noindex', '/'], { encoding: 'utf8' });
-  step('staging NÃO indexável (robots Disallow: /, sitemap vazio, noindex)', r.status === 0, r.status === 0 ? '' : (() => { try { return JSON.parse(r.stdout).failures.join(' | ').slice(0, 400); } catch { return r.stdout.trim().slice(0, 400); } })());
+  r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--noindex', '/', '--canonical', man.siteUrl], { encoding: 'utf8' });
+  step('staging NÃO indexável (robots Disallow: /, sitemap vazio, noindex) e canonical certo na home e em /noticias', r.status === 0, r.status === 0 ? '' : (() => { try { return JSON.parse(r.stdout).failures.join(' | ').slice(0, 400); } catch { return r.stdout.trim().slice(0, 400); } })());
   {
     const home = await (await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(8000) })).text();
     const canon = (home.match(/<link[^>]+rel="canonical"[^>]*href="([^"]+)"/i) || home.match(/<link[^>]+href="([^"]+)"[^>]*rel="canonical"/i) || [])[1];
