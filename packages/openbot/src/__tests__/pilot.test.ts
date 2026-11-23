@@ -349,14 +349,48 @@ describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do pilo
     assert.equal((await deps.queue.counts()).pending, 0);
   });
 
-  test('pull como opencode ou antigravity é recusado (422 ACCOUNT_NOT_ALLOWED) e não marca a saúde; claude e codex puxam normalmente', async () => {
-    await dispatch({ idempotencyKey: 'p1' });
+  test('pull como opencode ou antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e o piloto PARA (503 até o resumePilot); nada é entregue nem a saúde marcada', async () => {
     for (const account of ['opencode', 'antigravity']) {
+      state = new InMemoryPilotState();
+      rows = new InMemoryPilotRowStore();
+      deps = { ...deps, pilot: { ...deps.pilot!, state, rows }, queue: new InMemoryLeaseQueue(() => `lease-${++n}`), health: new InMemoryHealthStore() };
+      await dispatch({ idempotencyKey: `p-${account}` });
       const r = await handlePull(deps, signed({ workerId: `agent-${account}`, account }));
-      assert.deepEqual([r.status, code(r.body)], [422, 'ACCOUNT_NOT_ALLOWED'], account);
+      assert.deepEqual([r.status, code(r.body)], [422, 'ACCOUNT_OUT_OF_ROUTE'], account);
+      assert.deepEqual((await state.get())?.reasons, [STOP.route], account);
+      assert.equal((await rows.all())[0]?.article_id, `conta-${account}`);
+      assert.equal(code((await handlePull(deps, signed({ workerId: 'agent-claude', account: 'claude' }))).body), 'PILOT_STOPPED', 'o piloto parado não entrega nem para a via certa');
+      assert.equal((await deps.health.last()), null, 'a saúde não foi marcada');
+      assert.equal((await deps.queue.counts()).leased, 0);
     }
-    assert.equal((await deps.health.last())?.at ?? null, null, 'a saúde não foi marcada pelo pull recusado');
+  });
+
+  test('claude e codex puxam normalmente com o piloto ativo', async () => {
+    await dispatch({ idempotencyKey: 'ok-c' });
+    await dispatch({ kind: 'fact_check', idempotencyKey: 'ok-f' });
     assert.equal((await pull('claude'))?.kind, 'classification');
+    assert.equal((await pull('codex'))?.kind, 'fact_check');
+    assert.equal(await state.get(), null);
+  });
+
+  test('checagem e revisão só na codex, SEM reserva: no limite a tarefa fica pendente (nextAccount null) e só a codex a retoma depois da janela; nunca claude', async () => {
+    for (const kind of ['fact_check', 'editorial_review']) {
+      const stage = kind === 'fact_check' ? 'factcheck' : 'review';
+      await dispatch({ kind, idempotencyKey: `lim-${kind}` });
+      const a = (await pull('codex'))!;
+      const r = ok<CallbackResult>(await callback(a, {
+        outcome: 'failed', usage: free(a, 'codex', 'gpt-5.1-codex'),
+        trace: trace(stage, 'codex', { reviewedDraftTaskId: 'task-rascunho-1', limit: { message: 'limite da codex', at: iso(), resumeAt: iso(600_000) } }),
+      }));
+      assert.equal(r.nextAccount, null, kind);
+      assert.equal(await pull('claude', [kind]), undefined, `${kind}: a claude não herda a checagem`);
+      assert.equal(await pull('codex', [kind]), undefined, `${kind}: ainda dentro da janela`);
+      tick(601_000);
+      const b = (await pull('codex', [kind]))!;
+      assert.deepEqual([b.id === a.id, b.attempt, b.account], [true, 2, 'codex'], kind);
+      ok(await callback(b, { outcome: 'completed', resultRef: `res-${b.id}-a2`, usage: free(b, 'codex', 'gpt-5.1-codex'), trace: trace(stage, 'codex', { reviewedDraftTaskId: 'task-rascunho-1' }) }));
+    }
+    assert.equal(await state.get(), null, 'o limite não é violação: o piloto não parou');
   });
 
   test('allowedAccounts pode ESTREITAR (só claude): a checagem, que é do codex, não tem via e é recusada', async () => {

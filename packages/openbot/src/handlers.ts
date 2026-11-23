@@ -190,7 +190,9 @@ export async function handlePull(deps: OpenBotDeps, req: SignedRequest): Promise
   if (deps.pilot?.enabled && !p.data.account) return fail(400, 'VALIDATION_ERROR', 'no piloto o pull informa a via (account)', ['account']);
   const allowedPull = pilotAccounts(deps);
   if (allowedPull && p.data.account && !(allowedPull as readonly string[]).includes(p.data.account)) {
-    return fail(422, 'ACCOUNT_NOT_ALLOWED', `via fora do piloto (DP-41): só ${allowedPull.join(' e ')}`, p.data.account);
+    // um agente configurado fora da DP-41 é violação de configuração: grava a linha e PARA o piloto (fica parado até `resumePilot`)
+    await pilotViolation(deps, STOP.route, { kind: 'pull', refId: `conta-${p.data.account}` });
+    return fail(422, 'ACCOUNT_OUT_OF_ROUTE', `via fora do piloto (DP-41): só ${allowedPull.join(' e ')}; o piloto foi parado`, p.data.account);
   }
   const blocked = await pilotBlock(deps);
   if (blocked) return blocked;
