@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { isEnabled } from '@ln/contracts';
+import { StudioLayout } from '@ln/ui';
 import { visibleModules, GRUPOS, checkAccess } from '@/lib/studio/modules';
-import { Sidebar, type NavItem } from '../_components/Sidebar';
+import { StudioSidebar, type NavItem } from '../_components/Sidebar';
 import { currentSession } from '../_lib/guard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
-  const { session, simulada } = await currentSession();
+  const { session } = await currentSession();
   const acesso = checkAccess(session, ['admin', 'editor_chefe', 'editor', 'revisor', 'comercial', 'leitor']);
   if (!acesso.ok) redirect(`/studio/entrar?motivo=${acesso.reason}`);
   const itens: NavItem[] = visibleModules(session).map((m) => ({
@@ -18,26 +19,13 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
     flagDesligada: Boolean(m.flag) && !isEnabled(m.flag!),
   }));
   return (
-    <div className="st-shell">
-      <a className="skip" href="#conteudo">
-        Ir para o conteúdo
-      </a>
-      <Sidebar itens={itens} />
-      <div className="st-main">
-        <header className="st-top">
-          <p>
-            Sessão: <strong>{session!.userId}</strong> · papéis: {session!.roles.join(', ')}
-          </p>
-          {simulada ? (
-            <span className="st-mock" role="status">
-              MOCK · sessão de teste simulada (não é login real)
-            </span>
-          ) : null}
-        </header>
-        <main id="conteudo" tabIndex={-1}>
-          {children}
-        </main>
-      </div>
-    </div>
+    <StudioLayout sidebar={<StudioSidebar itens={itens} />}>
+      <header className="st-top">
+        <p>
+          Sessão: <strong>{session!.email ?? session!.userId}</strong> · papéis: {session!.roles.join(', ')}
+        </p>
+      </header>
+      {children}
+    </StudioLayout>
   );
 }

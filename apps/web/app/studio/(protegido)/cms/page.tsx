@@ -2,27 +2,36 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EDITORIAS } from '@ln/contracts';
 import { checkAccess } from '@/lib/studio/modules';
-import { currentVersion, editoriaNome, getCmsService, STATUS_LABEL } from '@/lib/studio/cms/articles';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
+import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import { requireStudio } from '../../_lib/guard';
+import { SemBanco } from '../../_components/SemBanco';
+import { StatusArtigo } from '../../_components/StatusArtigo';
 
 export const metadata: Metadata = { title: 'CMS editorial' };
 export const dynamic = 'force-dynamic';
 
-const STATUSES = ['rascunho', 'em_checagem', 'bloqueado', 'aprovado'] as const;
+const STATUSES = ['rascunho', 'em_checagem', 'bloqueado', 'aprovado', 'publicado'] as const;
 
 export default async function CmsList({ searchParams }: { searchParams: Promise<{ status?: string; editoria?: string; q?: string }> }) {
   const { session } = await requireStudio(CMS_READ);
   const { status = '', editoria = '', q = '' } = await searchParams;
-  const todas = getCmsService().list();
-  const termo = q.trim().toLowerCase();
-  const lista = todas.filter((a) => {
-    const v = currentVersion(a);
-    return (!status || a.status === status) && (!editoria || v.editoria === editoria) && (!termo || v.titulo.toLowerCase().includes(termo));
-  });
+  const r = await api.materias.listar({ status, editoria, q });
+  if (naoConfigurado(r)) {
+    return (
+      <>
+        <h1>CMS editorial</h1>
+        <SemBanco modulo="O CMS editorial" />
+      </>
+    );
+  }
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
-  const naChecagem = todas.filter((a) => a.status === 'em_checagem').length;
+  const filtroInvalido = ehErro(r);
+  const lista = filtroInvalido ? [] : r.body.data;
+  const total = filtroInvalido ? 0 : r.body.total;
   return (
     <>
       <h1>CMS editorial</h1>
@@ -34,9 +43,12 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
         ) : null}
         {podeRevisar || podeEditar ? (
           <Link className="st-btn sec" href="/studio/cms/checagem">
-            Fila de checagem ({naChecagem})
+            Fila de checagem
           </Link>
         ) : null}
+        <Link className="st-btn sec" href="/studio/cms/correcoes">
+          Correções e direito de resposta
+        </Link>
       </div>
 
       <form className="st-filters" method="get" role="search" aria-label="Filtrar matérias">
@@ -71,15 +83,15 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
         </button>
       </form>
 
-      {lista.length === 0 ? (
+      {filtroInvalido ? (
+        <div className="st-alert err" role="alert">
+          Filtro inválido: {mensagemErro(r)}
+        </div>
+      ) : lista.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">{todas.length === 0 ? 'Nenhuma matéria ainda' : 'Nenhuma matéria com esses filtros'}</h2>
-          <p>
-            {todas.length === 0
-              ? 'A fila editorial está vazia. As matérias chegam pela Fábrica editorial ou são criadas aqui. Nada foi simulado.'
-              : 'Ajuste os filtros para ver outras matérias.'}
-          </p>
-          {todas.length === 0 && podeEditar ? (
+          <h2 id="vazio">{status || editoria || q ? 'Nenhuma matéria com esses filtros' : 'Nenhuma matéria ainda'}</h2>
+          <p>{status || editoria || q ? 'Ajuste os filtros para ver outras matérias.' : 'A fila editorial está vazia. As matérias chegam pela Fábrica editorial ou são criadas aqui. Nada foi simulado.'}</p>
+          {!status && !editoria && !q && podeEditar ? (
             <Link className="st-btn" href="/studio/cms/nova">
               Criar a primeira matéria
             </Link>
@@ -88,7 +100,7 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
       ) : (
         <table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left', padding: '4px 0' }}>
-            {lista.length} matéria(s)
+            {total} matéria(s)
           </caption>
           <thead>
             <tr>
@@ -96,30 +108,27 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
               <th scope="col">Editoria</th>
               <th scope="col">Estado</th>
               <th scope="col">Versão</th>
-              <th scope="col">Atualizada</th>
+              <th scope="col">Criada</th>
             </tr>
           </thead>
           <tbody>
-            {lista.map((a) => {
-              const v = currentVersion(a);
-              return (
-                <tr key={a.id}>
-                  <th scope="row">
-                    <Link href={`/studio/cms/${a.id}`}>{v.titulo}</Link>
-                  </th>
-                  <td>{editoriaNome(v.editoria)}</td>
-                  <td>
-                    <span className={`st-badge ${a.status}`}>{STATUS_LABEL[a.status]}</span>
-                  </td>
-                  <td>v{v.numero}</td>
-                  <td>{a.atualizadaEm.slice(0, 16).replace('T', ' ')} UTC</td>
-                </tr>
-              );
-            })}
+            {lista.map((a) => (
+              <tr key={a.id}>
+                <th scope="row">
+                  <Link href={`/studio/cms/${a.id}`}>{a.titulo}</Link>
+                </th>
+                <td>{EDITORIAS.find((e) => e.slug === a.editoria)?.nome ?? a.editoria}</td>
+                <td>
+                  <StatusArtigo status={a.status as keyof typeof STATUS_LABEL} />
+                </td>
+                <td>v{a.versao}</td>
+                <td>{a.criadoEm.slice(0, 16).replace('T', ' ')} UTC</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
-      <p className="st-hint">Publicação no portal não está disponível aqui: depende do backend (R3-07) e dos gates. Armazenamento temporário.</p>
+      <p className="st-hint">Publicação no portal é feita pela identidade de publicação (ADR-008) com recibo da versão: não há botão de publicar no Studio.</p>
     </>
   );
 }
