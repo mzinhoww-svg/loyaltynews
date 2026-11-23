@@ -1,4 +1,4 @@
-import { stopsCollection } from '../collector/collector';
+import { StopGuard } from '../collector/collector';
 import type { Collector, Skip } from '../collector/collector';
 import { eligibility, type SourceRegistry } from '../sources/registry';
 import { canonicalUrl } from '../dedupe/dedupe';
@@ -31,6 +31,7 @@ export async function anchorEvidences(collector: Collector, registry: SourceRegi
   const out: AnchorResult = { anchors: [], skipped: [], considered: 0 };
   if (evidence.sourceTier !== 'secondary') return out;
   const seen = new Set<string>([canonicalUrl(evidence.canonicalUrl)]);
+  const guard = new StopGuard();
   for (const link of evidence.outboundLinks ?? []) {
     if (out.anchors.length >= max) break;
     const src = primarySourceFor(registry, link);
@@ -41,10 +42,10 @@ export async function anchorEvidences(collector: Collector, registry: SourceRegi
     seen.add(key);
     out.considered++;
     const r = await collector.collectUrl(src, link);
-    if (r.evidence && !r.evidence.suspicious) out.anchors.push(r.evidence);
+    if (r.evidence && !r.evidence.suspicious) { out.anchors.push(r.evidence); guard.note(undefined); }
     else if (r.skip) {
       out.skipped.push(r.skip);
-      if (stopsCollection(r.skip)) break;
+      if (guard.note(r.skip)) break;
     } else if (r.evidence?.suspicious) out.skipped.push({ url: link, code: 'gated', detail: 'âncora suspeita (instrução embutida): descartada' });
   }
   return out;

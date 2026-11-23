@@ -15,7 +15,7 @@ Registro: `r0-preparacao/decisoes-proprietario-2026-11-22.md`, DP-31 (23/11/2026
 | Habilitação | `reviewSource` | Fonte `inacessivel` só é aprovável com o campo DP-31 **e** nota de revisão que cite a DP-31; as demais inacessíveis continuam 409. Habilitar segue exigindo `admin`/`editor_chefe` e a revisão atual. |
 | Fontes marcadas | `seed-blogs.ts`, `seed.ts` | As **11 bloqueadas** (Doctor of Credit, Head for Points, PhocusWire, Travel Weekly, Loyalty360, Loyalty Lobby, Finextra, Aeroflap, Executive Traveller, Rock Content, Mile Value) e o **Santander RI**. Todas desabilitadas. |
 
-Testes: `src/tests/dp31.test.ts` (9): sem serviço nada é buscado direto; robots `Disallow: /` ignorado só na fonte marcada; ritmo de 10 s e teto diário; 429 e 403 param; **CAPTCHA e login continuam parando**; fonte comum com o mesmo serviço configurado não o usa; cadastro (12 marcadas); regra da revisão; `TavilyReader` com respostas simuladas.
+Testes: `src/tests/dp31.test.ts` (9) e `src/tests/qa2-coletor-3.test.ts` (7): sem serviço nada é buscado direto; robots `Disallow: /` ignorado só na fonte marcada; ritmo de 10 s e teto diário; 429 e 403 param; **CAPTCHA e login continuam parando**; fonte comum com o mesmo serviço configurado não o usa; cadastro (12 marcadas); regra da revisão; `TavilyReader` com respostas simuladas.
 
 ## Tavily: o que a documentação oficial diz (lida em 23/11/2026, docs.tavily.com)
 
@@ -24,10 +24,34 @@ Testes: `src/tests/dp31.test.ts` (9): sem serviço nada é buscado direto; robot
 - **Robots.txt:** as páginas lidas (créditos, limites, extract, keyless, FAQ) **não dizem** se o extract respeita o `robots.txt`. Fato não verificado.
 - **Pagamento:** há pagamento por protocolo x402 e planos pagos; **nada disso é usado** (sem plano pago, sem cartão).
 
-## Teste no plano gratuito: não concluído (falta chave)
+## Teste real no plano gratuito (23/11/2026) — feito
 
-- Tentei o acesso "keyless" da documentação (sem conta, cabeçalho `X-Tavily-Access-Mode: keyless`): 3 chamadas de extract (uma delas a um site de bloqueio conhecido, outra ao RI do Santander) voltaram **HTTP 429** com `daily_cap_reached` e `monthly_cap_reached_bonus_eligible`. O teto keyless é compartilhado e já estava esgotado; **não** foi uma limitação nossa e nenhuma página foi lida.
-- Para testar de verdade é preciso a **chave gratuita** (cadastro em app.tavily.com, sem cartão): variável `TAVILY_API_KEY` no cofre do OpenBot. Como combinado com o PM, **não pedi ao proprietário**: o PM decide. Com a chave, a rodada de teste é: 1 `extract` de uma página aberta conhecida (controle), 1 de uma fonte DP-31 (ex.: Santander RI) e 1 `search`, anotando só status, tamanho e se veio desafio/login; ≤ 5 créditos.
+- O acesso "keyless" estourou o teto compartilhado (429); por isso o teste usou as chaves gratuitas do cofre do OpenBot (sem cartão, sem x402, sem plano pago). Só status, tamanhos e sinais foram registrados; **nenhum conteúdo foi guardado** e nenhuma chave foi impressa.
+- **Chave 1** (arquivo `TAVILY_API_KEY`): o valor **não tem o formato de chave do Tavily** (não começa por `tvly-`) e o serviço respondeu **401**. Precisa ser corrigida pelo proprietário; o leitor a pula e segue para a próxima.
+- **Chave 2** (`TAVILY_API_KEY_2`, formato `tvly-`): funcionou. Resultados (1 extract por URL, ≥ 10 s entre chamadas):
+
+| Leitura | Status | Texto | Desafio |
+|---|---|---|---|
+| Controle: página aberta (tavily.com) | 200 | 7.357 caracteres | não |
+| DP-31: RI do Santander (403 para o nosso coletor) | **200** | 2.481 caracteres | não |
+| DP-31: Doctor of Credit (robots 403 para o coletor) | **200** | 2.078 caracteres | não |
+| Busca com `include_domains` (Doctor of Credit) | 200 | 3 resultados (1 com data) | — |
+
+- Custo: ≈ 0,6 crédito de extract + 1 de busca por rodada de teste (plano gratuito: 1.000 créditos/mês). A busca com `topic: news` não achou blogs; passou a `general`.
+- Conclusão: o Tavily lê as páginas que o coletor direto não consegue; **nada garante** que o mesmo valha para todos os sites bloqueados (o Tavily pode falhar por URL em `failed_results`).
+
+## Várias chaves (`LN_TAVILY_API_KEYS`)
+
+Lista ordenada separada por vírgula (ou `LN_TAVILY_API_KEY` com uma). A leitura usa a 1ª chave até a **cota do serviço** acabar (HTTP 432/433, ou 429 cujo corpo fala de crédito/cota/limite de uso) e passa para a próxima, refazendo a chamada que não foi atendida; **chave recusada (401) também é pulada** (`keysRejected` sinaliza a configuração errada). **429 por ritmo do serviço não troca de chave**: devolve 429 e a coleta da fonte para, como o 429 de ritmo de qualquer site. Sem chaves restantes: `reader_unavailable` (cota esgotada) ou 401 (todas inválidas) e a coleta DP-31 para, sem fallback. Nenhum valor é impresso, gravado ou posto em mensagem de erro.
+
+## Correções do QA 2 (3ª rodada)
+
+1. Nenhum código de produção injeta intervalo zero (teste varre `apps/workers`, `packages/editorial` e `apps/web/app/api/_lib`); padrões: 3 s por host, 10 s e 5 páginas/dia na DP-31.
+2. `robots.ts` não tem mais parser nem comparador próprios: toda decisão (inclusive no redirecionamento) vem do módulo comum `crawl-guards.mjs` (Data, ft/intelligence 21efc8f: precedência pelo comprimento normalizado). Só o Crawl-delay do grupo e a contagem de regras ficam no Editorial, escolhendo o grupo pelo mesmo token exato.
+3. Índice de sitemap: 403, 429 ou desafio num filho interrompem a leitura; as páginas não são lidas.
+4. `StopGuard`: para sempre em 429/403/401/desafio/Crawl-delay excessivo/falha do serviço por URL; e após 2 páginas seguidas com login/paywall ou 3 falhas seguidas. Usado no feed, no sitemap, na descoberta DP-31, nas âncoras de blog e no autoral.
+5. Limite diário e espaçamento DP-31 **globais**: `StoreReadBudget` grava cada leitura (`collector.dp31_read`) na trilha de auditoria do banco; duas instâncias ou um restart enxergam o mesmo contador. Limite conhecido: duas instâncias que reservam no mesmo milissegundo podem passar as duas (exclusão estrita pediria uma linha de contador com UPSERT; a trilha é somente-acréscimo).
+6. `capText` nunca passa do máximo (a reticência conta; exatamente 1.500 fica intacto).
 
 ## Fontes que se encaixam (lista pedida pelo PM)
 

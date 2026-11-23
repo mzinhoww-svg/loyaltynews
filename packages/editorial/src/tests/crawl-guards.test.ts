@@ -1,4 +1,4 @@
-// Cópia dos testes das guardas de crawl do Data (ft/intelligence 79e6c52, scripts/crawl-guards.mjs): os mesmos casos de robots.txt
+// Cópia dos testes das guardas de crawl do Data (ft/intelligence 21efc8f, scripts/crawl-guards.mjs): os mesmos casos de robots.txt
 // (RFC 9309, normalização, grupo por token de produto) e de desafio, rodando contra a cópia usada pelo coletor.
 import { describe, it, expect } from 'vitest';
 import { agentToken, classifyResponse, detectChallenge, matchesPattern, normalizePath, parseRobots, productToken, robotsDecision } from '../collector/crawl-guards.mjs';
@@ -163,5 +163,30 @@ describe('robots.txt — grupo do agente: token de produto, sem diferenciar mai�
   it('um grupo "*" continua valendo quando nenhum grupo traz o nosso token', () => {
     expect(dec('User-agent: *\nDisallow: /noticias\n')).toMatchObject({ allowed: false, group: '*' });
     expect(dec('User-agent: outrobot\nDisallow: /\n')).toMatchObject({ allowed: true, group: 'none' });
+  });
+});
+
+describe('robots.txt — precedência pelo comprimento do padrão NORMALIZADO (não do texto bruto)', () => {
+  const dec = (robots: string, path: string) => robotsDecision(parseRobots(robots), UA, path);
+
+
+
+
+  it('exemplo do QA: Disallow /%7Efoo/bar contra Allow /~foo bloqueia /~foo/bar', () => {
+    expect(dec('User-agent: *\nDisallow: /%7Efoo/bar\nAllow: /~foo\n', '/~foo/bar')).toMatchObject({ allowed: false, rule: 'Disallow: /%7Efoo/bar' });
+    expect(dec('User-agent: *\nDisallow: /%7Efoo/bar\nAllow: /~foo\n', '/~foo/outra')).toMatchObject({ allowed: true });
+  });
+  it('o texto bruto enganaria: regra codificada LONGA no bruto, curta normalizada, perde para a mais específica de verdade', () => {
+    // Allow "/%7Efoo/" tem 8 caracteres brutos mas 6 normalizados; Disallow "/~foo/b" tem 7 nos dois: Disallow é mais específica
+    expect(dec('User-agent: *\nAllow: /%7Efoo/\nDisallow: /~foo/b\n', '/~foo/b')).toMatchObject({ allowed: false });
+    // e o inverso: Disallow codificado longo no bruto perde para o Allow normalizado mais específico
+    expect(dec('User-agent: *\nDisallow: /%7Efoo/\nAllow: /~foo/b\n', '/~foo/b')).toMatchObject({ allowed: true });
+    // com caracteres não ASCII (cada um vira 6 caracteres normalizados): Allow curto no bruto, mas mais específico normalizado
+    expect(dec('User-agent: *\nDisallow: /a%C3%A7%C3%A3o/\nAllow: /ação/pub\n', '/ação/pub')).toMatchObject({ allowed: true });
+    expect(dec('User-agent: *\nDisallow: /a%C3%A7%C3%A3o/\nAllow: /ação/pub\n', '/ação/outra')).toMatchObject({ allowed: false });
+  });
+  it('empate DEPOIS de normalizar favorece Allow (/%7Efoo e /~foo são a mesma regra)', () => {
+    expect(dec('User-agent: *\nDisallow: /%7Efoo\nAllow: /~foo\n', '/~foo/x')).toMatchObject({ allowed: true });
+    expect(dec('User-agent: *\nAllow: /%7efoo\nDisallow: /~foo\n', '/%7Efoo/x')).toMatchObject({ allowed: true });
   });
 });

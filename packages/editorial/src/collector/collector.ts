@@ -26,7 +26,26 @@ export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpRes
  * com acesso 'risco-aceito-dp31'. O serviço NÃO resolve CAPTCHA, não entra em login/paywall e não falsifica navegador: se a
  * página vier com desafio, login ou paywall, o coletor para. status = o da leitura (200 ok; 429 pedido de pausa; 403/5xx falha).
  */
-export interface ReaderResult { status: number; body: string; format?: 'html' | 'text'; retryAfterSec?: number | null }
+export interface ReaderResult { status: number; body: string; format?: 'html' | 'text'; retryAfterSec?: number | null; /** o serviço não conseguiu ler ESTA URL (site recusou/não renderizou): para a coleta da fonte, sem repetir */ failedUrl?: boolean; /** a COTA do serviço acabou em todas as chaves: não é culpa da fonte, mas a coleta DP-31 não tem como seguir */ quotaExhausted?: boolean }
+/**
+ * Orçamento de leituras DP-31 por host em janela deslizante. Em produção precisa ser GLOBAL (banco), senão duas instâncias do
+ * worker somariam o dobro do teto. reserve() já registra a leitura quando permite; devolve o instante da leitura anterior do host.
+ */
+export interface ReadBudget {
+  /** Reserva a próxima leitura do host: `waitMs` é quanto esperar (espaçamento desde a leitura anterior, de qualquer instância); a leitura fica registrada em nowMs + waitMs. */
+  reserve(host: string, nowMs: number, max: number, windowMs: number, spacingMs: number): Promise<{ allowed: boolean; used: number; waitMs: number }>;
+}
+export class MemoryReadBudget implements ReadBudget {
+  private readonly reads = new Map<string, number[]>();
+  async reserve(host: string, nowMs: number, max: number, windowMs: number, spacingMs: number) {
+    const win = (this.reads.get(host) ?? []).filter((t) => nowMs - t < windowMs);
+    if (win.length >= max) { this.reads.set(host, win); return { allowed: false, used: win.length, waitMs: 0 }; }
+    const waitMs = Math.max(0, (win.at(-1) ?? -Infinity) + spacingMs - nowMs);
+    win.push(nowMs + waitMs); this.reads.set(host, win);
+    return { allowed: true, used: win.length, waitMs };
+  }
+}
+
 export interface ReaderPort {
   readonly name: string;
   read(url: string): Promise<ReaderResult>;
@@ -47,7 +66,29 @@ export type SkipCode =
  * da fonte PARA. Nunca insistir, repetir com outro cliente ou contornar.
  */
 export const stopsCollection = (k: { code: SkipCode; detail: string }): boolean =>
-  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || k.code === 'challenge' || (k.code === 'http_error' && k.detail === '403');
+  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || k.code === 'challenge' || k.code === 'reader_unavailable'
+  || (k.code === 'http_error' && (k.detail === '403' || k.detail === '401' || k.detail === 'reader_failed'));
+
+/**
+ * Guarda de parada de um laço de coleta (feed, sitemap, descoberta, âncoras, autoral). Para SEMPRE em 429, 403, desafio, Crawl-delay
+ * excessivo, serviço de leitura ausente ou falha do serviço por URL; e para depois de 2 páginas seguidas com login/paywall
+ * (gated) ou 3 falhas seguidas (HTTP de erro / conteúdo vazio): uma fonte que só devolve isso não pode ser martelada.
+ * Um sucesso zera as sequências.
+ */
+export const GATED_LIMIT = 2;
+export const FAIL_LIMIT = 3;
+export class StopGuard {
+  private gated = 0;
+  private fails = 0;
+  /** Registra o resultado de uma URL; devolve true quando a coleta da fonte deve PARAR. */
+  note(skip: Skip | undefined): boolean {
+    if (!skip) { this.gated = 0; this.fails = 0; return false; }
+    if (stopsCollection(skip)) return true;
+    if (skip.code === 'gated') { this.fails = 0; return ++this.gated >= GATED_LIMIT; }
+    if (skip.code === 'http_error' || skip.code === 'empty_content') { this.gated = 0; return ++this.fails >= FAIL_LIMIT; }
+    return false; // robots/url_rejected/etc.: decisão nossa, não hostilidade da fonte
+  }
+}
 
 export interface Skip { url: string; code: SkipCode; detail: string }
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
@@ -62,6 +103,8 @@ export interface CollectorOptions {
   minSpacingMs?: number;
   /** DP-31: serviço de leitura das fontes com acesso 'risco-aceito-dp31'. Sem ele, essas fontes são puladas ('reader_unavailable'). */
   reader?: ReaderPort;
+  /** DP-31: contador GLOBAL de leituras por host (ex.: StoreReadBudget, no banco). Padrão: em memória (por instância; só para testes/dev). */
+  readBudget?: ReadBudget;
   /** DP-31: intervalo mínimo entre leituras do mesmo host (ms). Padrão 10000 (mínimo do proprietário). */
   dp31SpacingMs?: number;
   /** DP-31: páginas por host em 24 h ("poucas por dia"). Padrão 5; acima disso, 'rate_limited'. */
@@ -90,7 +133,7 @@ export class Collector {
   private readonly dp31SpacingMs: number;
   private readonly dp31MaxPagesPerDay: number;
   private readonly dp31MaxStoredChars: number;
-  private readonly dp31Reads = new Map<string, number[]>();
+  private readonly readBudget: ReadBudget;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
@@ -105,6 +148,7 @@ export class Collector {
     this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
     this.minSpacingMs = opts.minSpacingMs ?? 3000;
     this.reader = opts.reader;
+    this.readBudget = opts.readBudget ?? new MemoryReadBudget();
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
@@ -186,7 +230,7 @@ export class Collector {
         const html = /<\s*(html|head|body|!doctype)/i.test(r.body.slice(0, 1000));
         rules = html || detectChallenge({ status: 200, headers: r.headers, html: r.body, text: r.body }) ? null : parseRobots(r.body, this.ua);
       }
-      else if (r.status === 404) rules = { allow: [], disallow: [], crawlDelaySec: null }; // sem robots = sem restrição
+      else if (r.status === 404) rules = parseRobots('', this.ua); // sem robots = sem restrição (decide pelo módulo comum)
       else rules = null; // 401/403/5xx: tratar como indisponível => não coletar (fail closed)
     } catch { rules = null; }
     this.robotsCache.set(source.host, rules);
@@ -259,14 +303,11 @@ export class Collector {
     if (!source.feedUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem feedUrl cadastrado' }); return out; }
     const f = await this.collectRaw(source, source.feedUrl);
     if (f.skip) { out.skipped.push(f.skip); return out; }
+    const guard = new StopGuard();
     for (const it of parseFeed(f.body!).slice(0, limit)) {
       const r = await this.collectUrl(source, it.link, { title: it.title, publishedAt: it.publishedAt });
-      if (r.evidence) out.evidences.push(r.evidence);
-      else if (r.skip) {
-        out.skipped.push(r.skip);
-        // sem insistir quando a fonte pede pausa: limite por hora ou Crawl-delay excessivo
-        if (stopsCollection(r.skip)) break;
-      }
+      if (r.evidence) { out.evidences.push(r.evidence); guard.note(undefined); }
+      else if (r.skip) { out.skipped.push(r.skip); if (guard.note(r.skip)) break; }
     }
     return out;
   }
@@ -275,21 +316,14 @@ export class Collector {
   private async readViaReader(source: Source, url: string): Promise<{ r?: ReaderResult; skip?: Skip }> {
     if (!this.reader) return { skip: { url, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_DP31} e nenhum serviço de leitura configurado` } };
     const host = source.host;
-    const nowMs = this.now().getTime();
-    const win = (this.dp31Reads.get(host) ?? []).filter((t) => nowMs - t < 86_400_000);
-    if (win.length >= this.dp31MaxPagesPerDay) {
-      this.dp31Reads.set(host, win);
-      return { skip: { url, code: 'rate_limited', detail: `DP-31: limite de ${this.dp31MaxPagesPerDay} páginas por dia atingido para ${host}` } };
-    }
-    const last = win.at(-1);
-    if (last !== undefined) {
-      const wait = last + this.dp31SpacingMs - nowMs;
-      if (wait > 0) await this.sleep(wait);
-    }
-    win.push(this.now().getTime());
-    this.dp31Reads.set(host, win);
+    // Espera o intervalo desde a leitura anterior do host (de QUALQUER instância) e só então reserva a leitura no orçamento global.
+    const slot = await this.readBudget.reserve(host, this.now().getTime(), this.dp31MaxPagesPerDay, 86_400_000, this.dp31SpacingMs);
+    if (!slot.allowed) return { skip: { url, code: 'rate_limited', detail: `DP-31: limite de ${this.dp31MaxPagesPerDay} páginas por dia atingido para ${host} (${slot.used} nas últimas 24 h)` } };
+    if (slot.waitMs > 0) await this.sleep(slot.waitMs);
     let r: ReaderResult;
     try { r = await this.reader.read(url); } catch (e) { return { skip: { url, code: 'http_error', detail: e instanceof Error ? e.message.slice(0, 160) : 'erro do serviço de leitura' } }; }
+    if (r.quotaExhausted) return { skip: { url, code: 'reader_unavailable', detail: 'cota do serviço de leitura esgotada em todas as chaves' } };
+    if (r.failedUrl) return { skip: { url, code: 'http_error', detail: 'reader_failed' } };
     if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 (${this.reader.name})${r.retryAfterSec ? ` (Retry-After: ${r.retryAfterSec})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
     return { r };
@@ -329,10 +363,11 @@ export class Collector {
       if (f.skip) { out.skipped.push(f.skip); return out; }
       items = parseFeed(f.body!).map((i) => ({ url: i.link, title: i.title, publishedAt: i.publishedAt }));
     }
+    const guard = new StopGuard();
     for (const it of items.slice(0, limit)) {
       const r = await this.collectUrl(source, it.url, { ...(it.title ? { title: it.title } : {}), publishedAt: it.publishedAt ?? null });
-      if (r.evidence) out.evidences.push(r.evidence);
-      else if (r.skip) { out.skipped.push(r.skip); if (stopsCollection(r.skip)) break; }
+      if (r.evidence) { out.evidences.push(r.evidence); guard.note(undefined); }
+      else if (r.skip) { out.skipped.push(r.skip); if (guard.note(r.skip)) break; }
     }
     return out;
   }
@@ -357,7 +392,7 @@ export class Collector {
       pages = [];
       for (const c of children) {
         const sub = await this.collectRaw(source, c.loc);
-        if (sub.skip) { out.skipped.push(sub.skip); if (sub.skip.code === 'rate_limited') return out; continue; }
+        if (sub.skip) { out.skipped.push(sub.skip); if (stopsCollection(sub.skip)) return out; continue; }
         pages.push(...parseSitemap(sub.body!).entries);
       }
     }
@@ -366,13 +401,11 @@ export class Collector {
       .filter((e) => { try { return new URL(e.loc).pathname.startsWith(prefix); } catch { return false; } })
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))
       .slice(0, limit);
+    const guard = new StopGuard();
     for (const e of chosen) {
       const r = await this.collectUrl(source, e.loc, { publishedAt: e.lastmod });
-      if (r.evidence) out.evidences.push(r.evidence);
-      else if (r.skip) {
-        out.skipped.push(r.skip);
-        if (stopsCollection(r.skip)) break;
-      }
+      if (r.evidence) { out.evidences.push(r.evidence); guard.note(undefined); }
+      else if (r.skip) { out.skipped.push(r.skip); if (guard.note(r.skip)) break; }
     }
     return out;
   }
@@ -411,7 +444,8 @@ export function capText(text: string, max: number): string {
   if (text.length <= max) return text;
   const cut = text.slice(0, max);
   const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('.\n'));
-  return (end > max * 0.5 ? cut.slice(0, end + 1) : cut.trimEnd() + '…');
+  if (end > max * 0.5) return cut.slice(0, end + 1);
+  return cut.slice(0, Math.max(max - 1, 0)).trimEnd() + '…'; // a reticência ocupa 1 caractere: o total nunca passa de `max`
 }
 
 /** Evidência sem URL, data ou hash é rejeitada (ADR-007). */

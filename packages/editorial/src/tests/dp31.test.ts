@@ -149,7 +149,7 @@ test('TavilyReader: extract/search no formato da documentação, chave só no ca
       const r = handler(String(url), body);
       return new Response(JSON.stringify(r.json), { status: r.status, headers: { 'content-type': 'application/json', ...(r.headers ?? {}) } });
     }) as typeof fetch;
-  assert.throws(() => new TavilyReader({ apiKey: '' }), /apiKey ausente/);
+  assert.throws(() => new TavilyReader({ apiKey: '' }), /nenhuma chave/);
 
   const ok = new TavilyReader({ apiKey: 'tvly-TESTE', fetchImpl: mkFetch(() => ({ status: 200, json: { results: [{ url: u(1), raw_content: 'Texto da matéria.' }], failed_results: [] } })) });
   assert.deepEqual(await ok.read(u(1)), { status: 200, body: 'Texto da matéria.', format: 'text' });

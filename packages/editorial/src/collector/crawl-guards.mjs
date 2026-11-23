@@ -92,7 +92,10 @@ export function robotsDecision(parsed, ua, path) {
   const group = specific.length ? 'specific' : star.length ? '*' : 'none';
   const rules = chosen.flatMap((g) => g.rules).filter((r) => r.pattern !== '' && matchesPattern(r.pattern, path));
   if (rules.length === 0) return { allowed: true, rule: null, group };
-  rules.sort((a, b) => b.pattern.length - a.pattern.length || (a.allow === b.allow ? 0 : a.allow ? -1 : 1));
+  // Especificidade = comprimento do padrão JÁ NORMALIZADO (a forma em que ele é comparado), nunca o texto bruto.
+  // Ex.: "/%7Efoo/" tem 8 caracteres brutos mas 6 normalizados ("/~foo/"); contra "/~foo/b" (7), quem manda é 7.
+  const spec = (r) => normalizePath(r.pattern).length;
+  rules.sort((a, b) => spec(b) - spec(a) || (a.allow === b.allow ? 0 : a.allow ? -1 : 1));
   const best = rules[0];
   return { allowed: best.allow, rule: `${best.allow ? 'Allow' : 'Disallow'}: ${best.pattern}`, group };
 }

@@ -10,7 +10,7 @@ import { Pool } from 'pg';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
-import { TavilyReader } from '@ln/editorial';
+import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
 import { parseFactoryFlags, runEditorialFactory } from './editorial-factory';
 
 async function main() {
@@ -37,8 +37,10 @@ async function main() {
         mode: 'simulation' as const, qualifiedModelIds: [] as string[], zdrVerifiedModelIds: [] as string[],
       };
     }
-    // DP-31 (desligado por padrão): só com LN_TAVILY_API_KEY (chave do plano gratuito, lida do cofre do OpenBot pelo operador; nunca em log).
-    const reader = process.env['LN_TAVILY_API_KEY'] ? new TavilyReader({ apiKey: process.env['LN_TAVILY_API_KEY'] }) : undefined;
+    // DP-31 (desligado por padrão): só com LN_TAVILY_API_KEYS (lista ordenada, separada por vírgula; troca de chave só quando a COTA acaba) ou LN_TAVILY_API_KEY.
+    // Os valores vêm do cofre do OpenBot pelo operador e NUNCA são impressos nem gravados.
+    const tavilyKeys = parseTavilyKeys(process.env);
+    const reader = tavilyKeys.length ? new TavilyReader({ apiKeys: tavilyKeys }) : undefined;
     const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(reader ? { reader } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
     console.log(JSON.stringify(report, null, 2));
   } finally {

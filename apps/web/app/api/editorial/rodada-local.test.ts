@@ -106,12 +106,12 @@ describe.skipIf(!URL_LOCAL)('rodada simulada local (PostgreSQL real, modelo simu
       const feedPath = new URL(s.feedUrl!).pathname;
       const agents = Object.fromEntries(AI_AGENTS.map((ua) => {
         const r = parseRobots(txt, ua);
-        return [ua, { regrasEspecificas: r.disallow.length + r.allow.length, feedPermitido: isAllowedByRobots(r, feedPath), listagemPermitida: isAllowedByRobots(r, new URL(s.listingUrl!).pathname) }];
+        return [ua, { regrasEspecificas: r.ruleCount, feedPermitido: isAllowedByRobots(r, feedPath), listagemPermitida: isAllowedByRobots(r, new URL(s.listingUrl!).pathname) }];
       }));
       const ours = parseRobots(txt, USER_AGENT);
       rows.push({
         fonte: id, host: s.host, status: res.status, bytes: txt.length, crawlDelaySeg: ours.crawlDelaySec,
-        fabrica: { feedPermitido: isAllowedByRobots(ours, feedPath), listagemPermitida: isAllowedByRobots(ours, new URL(s.listingUrl!).pathname), disallowDoGrupoNosso: ours.disallow.slice(0, 12) },
+        fabrica: { feedPermitido: isAllowedByRobots(ours, feedPath), listagemPermitida: isAllowedByRobots(ours, new URL(s.listingUrl!).pathname), regrasDoGrupoNosso: ours.ruleCount },
         agentesDeIA: agents,
       });
       expect(res.status).toBe(200);

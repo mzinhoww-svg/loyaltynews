@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { requireFlag } from '../flags';
+import { StopGuard } from '../collector/collector';
 import { InMemoryQueue, makeProcessor } from '../pipeline/queue';
 import type { StageDeps } from '../pipeline/stages';
 import type { ArticleJob, BlockerCode, Stage, StageOutcome } from '../pipeline/jobs';
@@ -48,11 +49,13 @@ export async function runAutoral(deps: FactoryDeps, input: unknown): Promise<Art
   const evidences: Evidence[] = [];
   const seen = new Set<string>();
   const why: string[] = [];
+  const guard = new StopGuard();
   for (const url of pauta.ancoras) {
     const src = primarySourceFor(effective, url);
     if (!src) { why.push(`${url}: sem fonte primária habilitada que cubra esta URL`); continue; }
     const r = await deps.collector.collectUrl(src, url);
-    if (!r.evidence) { why.push(`${url}: ${r.skip?.code ?? 'sem evidência'}`); if (r.skip?.code === 'rate_limited') break; continue; }
+    if (!r.evidence) { why.push(`${url}: ${r.skip?.code ?? 'sem evidência'}`); if (guard.note(r.skip)) break; continue; }
+    guard.note(undefined);
     if (r.evidence.suspicious) { why.push(`${url}: evidência suspeita (instrução embutida)`); continue; }
     if (seen.has(r.evidence.canonicalUrl)) continue;
     seen.add(r.evidence.canonicalUrl);
