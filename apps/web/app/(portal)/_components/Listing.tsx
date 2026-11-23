@@ -54,6 +54,10 @@ export async function Listing(p: ListingProps) {
             <ErrorState title="Não conseguimos carregar as matérias agora" retryHref={p.page > 1 ? `${p.basePath}?page=${p.page}` : p.basePath}>
               Isso não significa que não haja matérias aqui: tente novamente em instantes.
             </ErrorState>
+          ) : data.total > 0 && data.items.length === 0 ? (
+            <EmptyState title="Não há matérias nesta página">
+              A listagem tem {data.total} matéria(s) em outras páginas. <Link href={p.basePath}>Voltar à primeira página</Link>.
+            </EmptyState>
           ) : data.items.length ? (
             <>
               <ArticleGrid items={data.items} cols={3} headingLevel={2} />

@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { parseArgs, fail } from './lib/util.mjs';
 import { assertBound, canonEnv } from './lib/binding.mjs';
-import { pgQuery } from './lib/pg.mjs';
+import { pgQuery, normalizarPem } from './lib/pg.mjs';
 
 /** Opções TLS do ioredis a partir das variáveis REDIS_SSL_*_PEM e do host da URL. Função pura (testada sem Redis). */
 export function redisTlsFromEnv(env) {
@@ -17,8 +17,9 @@ export function redisTlsFromEnv(env) {
   let u;
   try { u = new URL(env.REDIS_URL); } catch { throw new Error('REDIS_URL inválida'); }
   if (u.protocol !== 'rediss:') throw new Error('REDIS_URL precisa ser rediss:// (a Vertra exige TLS)');
-  for (const k of ['REDIS_SSL_CA_PEM', 'REDIS_SSL_CERT_PEM', 'REDIS_SSL_KEY_PEM']) if (!String(env[k]).includes('-----BEGIN ')) throw new Error(`${k} não parece PEM`);
-  return { host: u.hostname, tls: { ca: env.REDIS_SSL_CA_PEM, cert: env.REDIS_SSL_CERT_PEM, key: env.REDIS_SSL_KEY_PEM, servername: u.hostname, rejectUnauthorized: true } };
+  const pem = Object.fromEntries(['REDIS_SSL_CA_PEM', 'REDIS_SSL_CERT_PEM', 'REDIS_SSL_KEY_PEM'].map((k) => [k, normalizarPem(env[k])]));
+  for (const k of Object.keys(pem)) if (!String(pem[k]).includes('-----BEGIN ')) throw new Error(`${k} não parece PEM`);
+  return { host: u.hostname, tls: { ca: pem.REDIS_SSL_CA_PEM, cert: pem.REDIS_SSL_CERT_PEM, key: pem.REDIS_SSL_KEY_PEM, servername: u.hostname, rejectUnauthorized: true } };
 }
 
 const direct = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop());

@@ -71,7 +71,7 @@ if (args['no-mock']) {
     const r = await get(p);
     out.noMock = { path: p, status: r.status };
     if (r.status !== 200) failures.push(`${p} respondeu ${r.status} (esperado 200)`);
-    else if (/\bMOCK\b/.test(r.body ?? '')) failures.push(`${p} contém "MOCK": fixtures ativas em ambiente implantado (PORTAL_SOURCE/PORTAL_MODE=mock só em teste)`);
+    else if (/\bMOCK\b/.test(r.body ?? '')) failures.push(`${p} contém "MOCK": fixtures ativas em ambiente implantado (PORTAL_SOURCE ou PORTAL_MODE com valor mock só em teste)`);
     else { const achados = VITRINE_MARCADORES.filter((m) => String(r.body ?? '').includes(m)); if (achados.length) failures.push(`${p} contém marcador(es) da vitrine de demonstração (${achados.join(' | ')}): vitrine ligada onde não deve (produção ou staging sem vitrine)`); }
   } catch (e) { failures.push(`${p}: ${e.message}`); }
 }
