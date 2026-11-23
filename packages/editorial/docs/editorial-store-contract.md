@@ -75,3 +75,8 @@ O contrato exige last-writer-wins atômico. Para evitar sobrescrita silenciosa e
 
 ## Evolução prevista
 Paginação/filtros no servidor (`listArticles({status, editoria, limit, offset})`) quando a fila passar de alguns milhares de matérias; `expectedVersion` para concorrência otimista. Ambas exigem novos casos na suíte de contrato.
+
+## Id da matéria e hash do recibo (ADR-017)
+- **Um id só.** `articleId` é gerado na criação do rascunho (primeiro `putArticle`/`applyOutcome` do job) e **nunca muda**: é a chave do registro, `editorial_article.article_id`, e é o mesmo `articles.id` do portal (sem chave estrangeira). A porta não tem operação de renomear; `commitPublication` grava sempre sob `article.articleId`. O recibo emitido para outro `articleId` deve ser recusado pelo Backend (teste dele).
+- **Hash do recibo = `publishedContentSha256`** de `@ln/contracts/hash`, calculado sobre o **rascunho editorial aprovado** com `toPublishableContent(draft)` / `draftContentSha256(draft)` (exportados por `@ln/editorial`; o Backend deve usá-los, não reimplementar). Cobre título, editoria, corpo (com "Fontes:"), imagem e base de direito, classe, patrocínio e fontes. O mesmo valor vai a `PublicationReceipt.conteudoSha256`, à chave de outbox `article.published:{id}:{sha}` e a `publication.contentSha256`.
+- `applyPublication(store, { ..., expectedContentSha256 })`: o Backend passa o hash do recibo; se o rascunho mudou depois da aprovação (manchete, imagem, fontes...), a publicação é recusada com `receipt_stale`.

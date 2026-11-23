@@ -1,10 +1,28 @@
-import { sha256 } from '../dedupe/dedupe';
+import { publishedContentSha256 } from '@ln/contracts/hash';
+import type { PublishableContent } from '@ln/contracts';
+import type { Draft } from '../types';
 import { mainBody } from '../rules/rules';
 import type { ArticleRecord } from '../api/store';
 import type { PublishedArticle } from './types';
 
-/** Hash do conteúdo publicado (corpo completo, com o bloco "Fontes:"). O Backend grava o MESMO valor no recibo de publicação. */
-export const articleContentSha256 = (body: string): string => sha256(body);
+/**
+ * Conteúdo publicável do RASCUNHO editorial aprovado, na forma que `@ln/contracts` canoniza (ADR-017, decisão 3).
+ * É a ÚNICA derivação Draft → PublishableContent: o Backend deve usá-la (não reimplementar) ao emitir o recibo.
+ * O Draft editorial é sempre notícia pública e não patrocinada (conteúdo pago é do módulo Comercial), sem subtítulo/resumo.
+ */
+export function toPublishableContent(d: Draft): PublishableContent {
+  return {
+    titulo: d.headline, subtitulo: null, resumo: null, tipoConteudo: 'noticia', editoria: d.editoria, corpo: d.body,
+    imagem: d.image, classeDeDado: 'public', patrocinado: false, rotuloPublieditorial: null, fontes: d.evidenceIds,
+  };
+}
+
+/**
+ * Hash do recibo (`publishedContentSha256`, versão ln-published-content/1) sobre o rascunho aprovado: cobre título, editoria,
+ * corpo com "Fontes:", imagem com base de direito, classe, patrocínio e fontes. Mudar QUALQUER um depois da aprovação invalida o recibo.
+ * O mesmo valor vai ao recibo, à chave de outbox `article.published:{id}:{sha}` e a `publication.contentSha256`.
+ */
+export const draftContentSha256 = (d: Draft): string => publishedContentSha256(toPublishableContent(d));
 
 export const PORTAL_SOURCE_NAME = 'Loyalty News';
 
@@ -21,7 +39,7 @@ export function toPublishedArticle(rec: ArticleRecord, opts: { sourceName?: stri
   if (rec.status !== 'publicado' && rec.status !== 'corrigido') return { ok: false, reason: 'not_published' };
   if (!rec.publication) return { ok: false, reason: 'no_publication_record' };
   if (!rec.draft) return { ok: false, reason: 'no_draft' };
-  if (articleContentSha256(rec.draft.body) !== rec.publication.contentSha256) return { ok: false, reason: 'content_mismatch' };
+  if (draftContentSha256(rec.draft) !== rec.publication.contentSha256) return { ok: false, reason: 'content_mismatch' };
   return {
     ok: true,
     article: {

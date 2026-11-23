@@ -13,7 +13,8 @@ import type { ArticleJob, StageOutcome } from '../pipeline/jobs';
 import type { Evidence } from '../types';
 import { InMemoryEditorialStore, applyOutcome } from '../api/store';
 import { INTELLIGENCE_QUEUE, applyPublication } from '../api/publication';
-import { articleContentSha256, jobFromRecord, toPublishedArticle } from '../intelligence/published';
+import { draftContentSha256, jobFromRecord, toPublishableContent, toPublishedArticle } from '../intelligence/published';
+import { publishedContentSha256 } from '@ln/contracts/hash';
 import { extractRoleMentionsDeterministic, explicitDates, minimizeToOrganizations, validateMention } from '../intelligence/roles';
 import type { IntelligenceHandoff } from '../intelligence/types';
 
@@ -124,7 +125,7 @@ test('E2E (flag ligada): coleta → pipeline → aprovada → publicada (outbox)
   const pa = toPublishedArticle(rec);
   assert.ok(pa.ok);
   assert.equal(pa.ok && pa.article.status, 'published');
-  assert.equal(pa.ok && pa.article.contentSha256, articleContentSha256(rec.draft!.body));
+  assert.equal(pa.ok && pa.article.contentSha256, draftContentSha256(rec.draft!));
   assert.ok(pa.ok && !('text' in pa.article) && !('headline' in pa.article), 'evento por referência: sem texto por padrão');
 
   const out = await runStage(deps, { stage: 'roles', jobId: 'a1:roles:0', data: jobFromRecord(rec) }, { url: URL_PUB, publishedAt: rec.publication!.publishedAt, contentSha256: rec.publication!.contentSha256, isMock: true });
@@ -295,7 +296,7 @@ test('publicação atômica: publicação antiga SEM auditoria/outbox (estado le
   const { store } = await approve(gateway(), ROLES_PERSONS);
   const rec = (await store.getArticle('a1'))!;
   // estado legado: matéria já marcada publicada com recibo, mas sem auditoria e sem outbox
-  await store.putArticle({ ...rec, status: 'publicado', publication: { receiptId: 'rcpt-L', url: URL_PUB, publishedAt: NOW.toISOString(), contentSha256: articleContentSha256(rec.draft!.body) } });
+  await store.putArticle({ ...rec, status: 'publicado', publication: { receiptId: 'rcpt-L', url: URL_PUB, publishedAt: NOW.toISOString(), contentSha256: draftContentSha256(rec.draft!) } });
   assert.equal((await store.listAudit()).length, 0);
   assert.equal((await store.listOutbox()).length, 0);
   const fixed = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-L', url: URL_PUB, publishedAt: NOW.toISOString() });
@@ -315,4 +316,76 @@ test('publicação atômica: duas publicações concorrentes da mesma matéria g
   assert.equal(rs.filter((r) => r.ok && r.outbox === 'enqueued').length, 1);
   assert.equal((await store.listAudit()).length, 1);
   assert.equal((await store.listOutbox()).length, 1);
+});
+
+// ---------- ADR-017: hash do recibo = publishedContentSha256 do RASCUNHO aprovado; id único ----------
+test('ADR-017: o hash é publishedContentSha256 de @ln/contracts sobre o rascunho; recibo, outbox e publication usam o mesmo valor', async () => {
+  const { store } = await approve(gateway(), ROLES_PERSONS);
+  const rec = (await store.getArticle('a1'))!;
+  const c = toPublishableContent(rec.draft!);
+  assert.equal(c.titulo, rec.draft!.headline);
+  assert.equal(c.tipoConteudo, 'noticia');
+  assert.equal(c.patrocinado, false);
+  assert.equal(c.classeDeDado, 'public');
+  assert.deepEqual([...c.fontes], rec.draft!.evidenceIds);
+  const sha = publishedContentSha256(c);
+  assert.equal(draftContentSha256(rec.draft!), sha);
+  const res = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-H', url: URL_PUB, publishedAt: NOW.toISOString(), expectedContentSha256: sha });
+  assert.ok(res.ok);
+  assert.equal((await store.getArticle('a1'))?.publication?.contentSha256, sha);
+  assert.equal((await store.listOutbox())[0]?.idempotencyKey, `article.published:a1:${sha}`);
+  const pa = toPublishedArticle((await store.getArticle('a1'))!);
+  assert.ok(pa.ok && pa.article.contentSha256 === sha && pa.article.id === 'a1', 'PublishedArticle.id é o id único da matéria');
+});
+
+test('ADR-017: trocar manchete, imagem, fontes ou corpo depois da aprovação invalida o recibo (o hash antigo só do corpo não pegaria)', async () => {
+  const { store, deps } = await approve(gateway(), ROLES_PERSONS);
+  const rec = (await store.getArticle('a1'))!;
+  const approvedSha = draftContentSha256(rec.draft!);
+  const variants: Array<[string, typeof rec.draft]> = [
+    ['manchete', { ...rec.draft!, headline: 'MOCK: outra manchete' }],
+    ['imagem', { ...rec.draft!, image: { mode: 'source_image', sourceId: 'mock-ri', url: 'https://ri.mock.example/i.jpg', credit: 'c', creditLink: 'https://ri.mock.example', basis: null } }],
+    ['fontes', { ...rec.draft!, evidenceIds: [...rec.draft!.evidenceIds, 'ev_outra'] }],
+    ['editoria', { ...rec.draft!, editoria: 'regulacao' }],
+    ['corpo', { ...rec.draft!, body: `${rec.draft!.body} ` }],
+  ];
+  for (const [what, d] of variants) {
+    assert.notEqual(draftContentSha256(d!), approvedSha, `${what} deve mudar o hash`);
+    // publicação com recibo emitido sobre o rascunho aprovado, mas o rascunho foi trocado depois: recusada
+    await store.putArticle({ ...rec, draft: d! });
+    const r = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-X', url: URL_PUB, publishedAt: NOW.toISOString(), expectedContentSha256: approvedSha });
+    assert.ok(!r.ok && (r.code === 'receipt_stale' || r.code === 'gate_failed'), `${what}: ${JSON.stringify(r)}`);
+    assert.equal((await store.getArticle('a1'))?.status, 'aprovado');
+    assert.equal((await store.listOutbox()).length, 0);
+  }
+  // manchete/editoria não são pegas pelo gate editorial: é o hash do recibo que as barra
+  await store.putArticle({ ...rec, draft: variants[0]![1]! });
+  const stale = await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-X', url: URL_PUB, publishedAt: NOW.toISOString(), expectedContentSha256: approvedSha });
+  assert.ok(!stale.ok && stale.code === 'receipt_stale');
+  await store.putArticle(rec);
+  assert.ok((await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-X', url: URL_PUB, publishedAt: NOW.toISOString(), expectedContentSha256: approvedSha })).ok);
+  // depois de publicada, trocar a manchete faz o PublishedArticle e o estágio roles recusarem (hash do recibo não bate)
+  const pub = (await store.getArticle('a1'))!;
+  await store.putArticle({ ...pub, draft: { ...pub.draft!, headline: 'MOCK: manchete trocada depois' } });
+  const mism = toPublishedArticle((await store.getArticle('a1'))!);
+  assert.ok(!mism.ok && mism.reason === 'content_mismatch');
+  const out = await runStage(deps, { stage: 'roles', jobId: 'r', data: jobFromRecord((await store.getArticle('a1'))!) }, { url: URL_PUB, contentSha256: pub.publication!.contentSha256 });
+  assert.ok(out.kind === 'blocked' && out.blocked.blockers.includes('stale_approval'));
+});
+
+test('ADR-017: o id é um só e não muda — o registro e o PublishedArticle usam o articleId da criação do rascunho', async () => {
+  const { store } = await approve(gateway(), ROLES_PERSONS);
+  const rec = (await store.getArticle('a1'))!;
+  assert.equal(rec.articleId, 'a1');
+  // applyOutcome (hooks do worker) nunca troca o id: reaplicar resultados mantém a chave e não duplica o registro
+  const other = new InMemoryEditorialStore();
+  const job = { articleId: 'zz', editoria: 'pontos' as const, evidences: [ev], attempt: 0 };
+  await applyOutcome(other, job, { kind: 'next', next: { stage: 'context', jobId: 'zz:context:0', data: job } }, NOW.toISOString());
+  const again = await applyOutcome(other, { ...job, editoria: 'regulacao' as const }, { kind: 'blocked', blocked: { articleId: 'zz', stage: 'triage', blockers: ['duplicate'], findings: [] } }, NOW.toISOString());
+  assert.equal(again.articleId, 'zz');
+  assert.deepEqual((await other.listArticles()).map((x) => x.articleId), ['zz']);
+  // commitPublication grava sob o id do próprio registro (chave = article.articleId); não existe operação de renomear
+  await applyPublication(store, { articleId: 'a1', receiptId: 'rcpt-I', url: URL_PUB, publishedAt: NOW.toISOString() });
+  assert.deepEqual((await store.listArticles()).map((a) => a.articleId), ['a1']);
+  assert.equal((await store.listOutbox())[0]?.refId, 'a1');
 });

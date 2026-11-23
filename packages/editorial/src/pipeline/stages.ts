@@ -8,8 +8,8 @@ import { eligibility } from '../sources/registry';
 import {
   buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
 } from '../rules/rules';
-import { normalizeText, sha256 } from '../dedupe/dedupe';
-import { PORTAL_SOURCE_NAME } from '../intelligence/published';
+import { normalizeText } from '../dedupe/dedupe';
+import { PORTAL_SOURCE_NAME, draftContentSha256 } from '../intelligence/published';
 import type { DroppedMention, IntelligenceHandoff, PublishedArticle, RoleMention } from '../intelligence/types';
 import { extractRoleMentionsDeterministic, mentionKey, minimizeToOrganizations, validateMention } from '../intelligence/roles';
 import { isEnabled } from '../flags';
@@ -216,7 +216,7 @@ export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOut
 }
 
 // ---------------- 6. pacote social (WF04; só após article.published) ----------------
-/** Dados da publicação (recibo do WF03). `contentSha256` = sha256 do corpo publicado, quando o Backend o informa. */
+/** Dados da publicação (recibo do WF03). `contentSha256` = publishedContentSha256 do rascunho aprovado (mesmo valor do recibo), quando o Backend o informa. */
 export interface PublishedInfo { url: string; publishedAt?: string; contentSha256?: string; isMock?: boolean }
 
 export function utm(articleId: string, channel: string) { return { source: channel, medium: 'social', campaign: `materia-${articleId}` }; }
@@ -287,9 +287,9 @@ export async function extractRoles(deps: StageDeps, job: ArticleJob, published: 
   const d = job.draft;
   if (!job.approved || !d) return blocked(job, 'roles', ['approval_missing'], [{ code: 'not_approved', message: 'matéria não aprovada: não há texto publicável' }]);
   if (!/^https?:\/\/\S+$/i.test(published.url)) return blocked(job, 'roles', ['not_published'], [{ code: 'no_public_url', message: 'sem URL pública da matéria publicada' }]);
-  const bodySha = sha256(d.body);
+  const bodySha = draftContentSha256(d); // ADR-017: hash do rascunho aprovado inteiro (não só do corpo)
   if (published.contentSha256 && published.contentSha256 !== bodySha) {
-    return blocked(job, 'roles', ['stale_approval'], [{ code: 'content_mismatch', message: 'o texto publicado não é o texto aprovado deste job' }]);
+    return blocked(job, 'roles', ['stale_approval'], [{ code: 'content_mismatch', message: 'o conteúdo publicado não é o conteúdo aprovado deste job' }]);
   }
   const text = mainBody(d.body);
   const used = job.evidences.filter((e) => d.evidenceIds.includes(e.id));
