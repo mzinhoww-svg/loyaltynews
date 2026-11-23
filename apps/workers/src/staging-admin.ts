@@ -14,7 +14,7 @@
 //   L9 auditoria `bootstrap_admin_staging` (id, e-mail .invalid, data, commit), sem segredo.
 // Build: npm run build:staging-admin -w @ln/workers. Variáveis: DATABASE_URL (+ DB_SSL_*_PEM), BETTER_AUTH_SECRET (≥ 32), BETTER_AUTH_URL (origem do Studio), LN_COMMIT_SHA (opcional, vai na auditoria).
 import { chmodSync, closeSync, existsSync, fstatSync, lstatSync, openSync, unlinkSync, writeSync } from 'node:fs';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bootstrapStagingAdmin, assertStagingEmail, STAGING_ADMIN_DEFAULT_EMAIL, type Auth, type Db, type StagingAdminDeps, type StagingAdminResult } from '@ln/auth';
 import { getRuntime } from '@ln/auth/runtime';
