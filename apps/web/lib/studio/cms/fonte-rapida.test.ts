@@ -47,7 +47,9 @@ describe('montarEvidencia', () => {
 
 describe('mensagemDoCodigo', () => {
   it('SOURCE_EXISTS aponta a fonte já cadastrada', () => {
-    expect(mensagemDoCodigo('SOURCE_EXISTS', { id: 'rapida-aa11bb22' }, 'x')).toContain('rapida-aa11bb22');
+    const m = mensagemDoCodigo('SOURCE_EXISTS', { id: 'rapida-aa11bb22' }, 'x', 'Sala de imprensa do Banco');
+    expect(m).toContain('Sala de imprensa do Banco');
+    expect(m).not.toContain('rapida-aa11bb22'); // o código interno não aparece para a pessoa
     expect(mensagemDoCodigo('SOURCE_EXISTS', undefined, 'x')).toContain('já está cadastrada');
   });
   it('matéria fora de rascunho, fonte inexistente, idempotência e padrão', () => {

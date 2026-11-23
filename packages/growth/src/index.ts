@@ -17,3 +17,4 @@ export * from './pipeline/media';
 export * from './mlabs/validate';
 export * from './metrics/mlabs-metrics';
 export * from './pipeline/raster-upload';
+export * from './mlabs/mcp-http';

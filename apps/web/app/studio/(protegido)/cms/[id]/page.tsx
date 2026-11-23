@@ -28,7 +28,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
   const { session } = await requireStudio(CMS_READ);
   const { id } = await params;
   const qs = await searchParams;
-  const { tipo, aviso, fonte } = qs;
+  const { tipo, aviso, fonte, proximo } = qs;
   const valoresRapida = Object.fromEntries(Object.entries(qs).filter(([k, v]) => /^(fr|ev)_/.test(k) && typeof v === 'string')) as Record<string, string>;
   if (!ID_SEGURO.test(id)) notFound();
   const r = await api.materias.obter(id);
@@ -65,7 +65,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
       <p>
         <StatusArtigo status={m.status as Parameters<typeof StatusArtigo>[0]['status']} /> · v{m.versao} · {EDITORIAS.find((e) => e.slug === m.editoria)?.nome ?? m.editoria} · assinatura {m.assinatura} · {m.tempoLeituraMin} min de leitura
       </p>
-      <Flash tipo={tipo} aviso={aviso} />
+      <Flash tipo={tipo} aviso={aviso} proximo={proximo} />
       <div className="st-two">
         <section aria-label="Editor">
           {!editavel ? (
@@ -95,6 +95,11 @@ export default async function Materia({ params, searchParams }: { params: Promis
         <aside aria-label="Revisão">
           <div className="st-card">
             <h2 style={{ marginTop: 0 }}>Fluxo</h2>
+            {m.status === 'rascunho' && podeEditar ? (
+              <p className="st-hint" data-dica="checagem-fontes">
+                Para enviar à checagem, a matéria precisa de fonte <strong>ativa, com termos revisados</strong>, e de evidência registrada no <Link href="/studio/fontes">Banco de fontes</Link>. A fonte e a evidência rápidas (a confirmar) não bastam.
+              </p>
+            ) : null}
             <div className="st-actions" style={{ marginBottom: 10 }}>
               {m.status === 'rascunho' && podeEditar ? (
                 <form action={enviarChecagemAction}>

@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sampleArticle } from '@ln/editorial/testing';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { call, makeApp } from '../_lib/testkit';
 import { portalArticleUrl } from '../_lib/social/articles';
 import { dispatchSocial as d, getPublisher, resetPublisherForTest, SOCIAL_ROUTES } from '../_lib/social';
+import { getMetricsSource, metricsSourceFromEnv, setMetricsSourceForTest } from '../_lib/social/metrics';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
 let admin: Awaited<ReturnType<typeof app.actor>>;
@@ -172,5 +173,81 @@ describe('URL canônica da matéria nos posts', () => {
       if (old.site === undefined) delete process.env.NEXT_PUBLIC_SITE_URL; else process.env.NEXT_PUBLIC_SITE_URL = old.site;
       if (old.portal === undefined) delete process.env.PORTAL_BASE_URL; else process.env.PORTAL_BASE_URL = old.portal;
     }
+  });
+});
+
+// Métricas do canal LinkedIn (mLabs) no resumo: SÓ LEITURA, só com a credencial configurada, sem número inventado.
+describe('métricas do mLabs no resumo (somente leitura)', () => {
+  const TOKEN = 'tok-' + 'T'.repeat(24);
+  const ENV_KEYS = ['MLABS_MCP_TOKEN', 'MLABS_MCP_URL', 'MLABS_PROFILE_ID', 'MLABS_CHANNEL_ID'] as const;
+  afterEach(() => {
+    setMetricsSourceForTest(undefined);
+    for (const k of ENV_KEYS) delete process.env[k];
+    vi.unstubAllGlobals();
+  });
+
+  /** mLabs MCP FALSO em `fetch`: initialize, notifications/initialized e tools/call só de leitura. Registra as ferramentas chamadas. */
+  function stubMcp(tools: Record<string, unknown>) {
+    const called: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_u: string, init: RequestInit) => {
+      const b = JSON.parse(String(init.body)) as { id?: number; method: string; params?: { name?: string } };
+      if (b.method === 'initialize') return Response.json({ jsonrpc: '2.0', id: b.id, result: {} }, { headers: { 'mcp-session-id': 's1' } });
+      if (b.method === 'notifications/initialized') return new Response(null, { status: 202 });
+      called.push(b.params!.name!);
+      return Response.json({ jsonrpc: '2.0', id: b.id, result: { content: [{ type: 'text', text: JSON.stringify(tools[b.params!.name!]) }] } });
+    }));
+    return called;
+  }
+  const TOOLS = {
+    list_profiles: { items: [{ id: 'ext_p', active: true, connectedChannels: ['LINKEDIN'] }], totalCount: 1 },
+    list_channels: [{ id: 'ext_c', name: 'Loyalty News', channel: 'linkedin', active: true }],
+    list_published_posts: { posts: [], totalCount: 0, hasMore: false },
+    get_follower_growth: { status: 'ok', timeline: [{ date: '2026-11-22T00:00:00.000Z', followerCount: 0 }], summary: { startFollowers: 0, endFollowers: 0, totalGrowth: 0 } },
+  };
+
+  it('sem MLABS_MCP_TOKEN não há fonte: o resumo continua dizendo "não configurada", e nenhuma requisição sai', async () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    expect(metricsSourceFromEnv({})).toBeUndefined();
+    expect(getMetricsSource({})).toBeUndefined();
+    const r = await call(d, 'GET', { path: S('/summary'), as: editor });
+    expect(r.body.metrics).toMatchObject({ available: false, reason: expect.stringMatching(/não configurada/) });
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it('URL que não é HTTPS ou token ausente: falha fechada (sem fonte, sem erro para o painel)', () => {
+    expect(metricsSourceFromEnv({ MLABS_MCP_TOKEN: TOKEN, MLABS_MCP_URL: 'http://mcp.exemplo.example/mcp' })).toBeUndefined();
+    expect(metricsSourceFromEnv({ MLABS_MCP_URL: 'https://mcp.exemplo.example/mcp' })).toBeUndefined();
+    expect(metricsSourceFromEnv({ MLABS_MCP_TOKEN: TOKEN })).toBeDefined();
+  });
+
+  it('com a credencial no ambiente: o resumo traz as métricas lidas (só ferramentas de leitura) e a credencial vai só no cabeçalho', async () => {
+    process.env.MLABS_MCP_TOKEN = TOKEN;
+    process.env.MLABS_MCP_URL = 'https://mcp.exemplo.example/mcp';
+    const called = stubMcp(TOOLS);
+    const r = await call(d, 'GET', { path: S('/summary'), as: editor });
+    expect(r.status).toBe(200);
+    expect(r.body.metrics).toMatchObject({ available: true, data: { source: 'mlabs', channel: 'linkedin', published: { status: 'ok', count: 0 }, followers: { status: 'ok', current: 0 } } });
+    expect([...new Set(called)].sort()).toEqual(['get_follower_growth', 'list_channels', 'list_profiles', 'list_published_posts']);
+    expect(JSON.stringify(r.body)).not.toContain(TOKEN);
+    const again = await call(d, 'GET', { path: S('/summary'), as: chefe }); // dentro do cache de 5 min: sem novas leituras
+    expect(again.body.metrics.available).toBe(true);
+    expect(called.length).toBe(4);
+  });
+
+  it('mLabs fora do ar: o resumo segue 200 com a seção indisponível (sem número, sem o texto do erro)', async () => {
+    process.env.MLABS_MCP_TOKEN = TOKEN;
+    process.env.MLABS_MCP_URL = 'https://mcp.exemplo.example/mcp';
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('erro interno token=' + TOKEN, { status: 500 })));
+    const r = await call(d, 'GET', { path: S('/summary'), as: editor });
+    expect(r.status).toBe(200);
+    expect(r.body.metrics.data.published).toMatchObject({ status: 'indisponivel', count: null });
+    expect(JSON.stringify(r.body)).not.toContain(TOKEN);
+  });
+
+  it('o resumo continua exigindo social:read (comercial e leitor barrados) mesmo com a fonte ligada', async () => {
+    setMetricsSourceForTest({ read: async () => { throw new Error('não deveria ser chamada'); } });
+    expect((await call(d, 'GET', { path: S('/summary'), as: comercial })).status).toBe(403);
+    expect((await call(d, 'GET', { path: S('/summary'), as: leitor })).status).toBe(403);
   });
 });

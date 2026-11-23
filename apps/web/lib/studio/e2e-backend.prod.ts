@@ -4,6 +4,4 @@ import type { FabricaE2eBackend } from './e2e-backend.types';
 export const e2eBackend: FabricaE2eBackend | null = null;
 export const sincronizarFlagsE2e: (() => void) | null = null;
 /** Flags alteradas pelos testes (só no build de e2e). Em produção não existe: o Studio lê só o resolvedor de runtime (ADR-022). */
-/** Despachante MOCK do contrato de fonte rápida/evidência (só no build de e2e, até as rotas reais do Backend 3 entrarem). Em produção não existe. */
-export const despachoFonteRapidaE2e: ((req: Request) => Promise<Response>) | null = null;
 export const flagsE2e: (() => Record<string, boolean>) | null = null;

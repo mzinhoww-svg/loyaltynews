@@ -183,6 +183,34 @@
       "when": 1795450141332,
       "tag": "0025_titular_pedidos",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795450863887,
+      "tag": "0026_creative_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795450868135,
+      "tag": "0027_crm_contatos_posicoes",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795463954203,
+      "tag": "0028_openbot_pilot_resolutions",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795464275839,
+      "tag": "0029_fonte_rapida_evidencias",
+      "breakpoints": true
     }
   ]
 }

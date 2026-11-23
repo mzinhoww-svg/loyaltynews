@@ -67,7 +67,7 @@ describe('consultas do Studio comercial', () => {
     const res = s.inventory.reserve({ positionId: 'FOOTER', advertiserId: 'acc-1', campaignId: camp.id, startDate: '2026-12-01', endDate: '2026-12-31', status: 'confirmed' });
     s.campaigns.transition(camp.id, 'reserved', NOW, { reservations: [res] }); s.campaigns.transition(camp.id, 'approved', NOW);
     s.ads.addCreative({ id: 'cr1', campaignId: camp.id, positionId: 'FOOTER', weight: 1, startDate: '2026-12-01', endDate: '2026-12-31', approved: true, campaignActive: true, ...realContent('FOOTER') });
-    s.campaigns.transition(camp.id, 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [res], approvedCreativeCount: 1 } });
+    s.campaigns.transition(camp.id, 'active', NOW, { activation: { saleEnabled: true, formatStatus: 'disponivel', reservations: [res], approvedCreativeCount: 1, creativePositions: ['FOOTER'] } });
     s.ads.setCreative('cr1', { approved: false }); // criativo desaprovado depois da ativação => alerta
     const d = studioDashboard(c, '2026-12-01', '2026-12-31');
     expect(d.formatsByStatus.disponivel + d.formatsByStatus.sob_consulta + d.formatsByStatus.indisponivel).toBe(47);

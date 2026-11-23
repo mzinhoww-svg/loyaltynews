@@ -4,7 +4,7 @@ import { budgetStatus, isApiLane, MONTHLY_CAP_MICRO, validateUsage, type CostLed
 import { evaluateHealth, type HealthStore, type OpenBotHealth } from './health';
 import { LeaseError, type LeaseQueue } from './lease-queue';
 import {
-  PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
+  awaitingEditorialGate, DP41_ACCOUNTS, gateRows, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
 } from './pilot';
 import { verifySignature } from './signing';
 import {
@@ -108,6 +108,18 @@ export function routeFor(deps: Pick<OpenBotDeps, 'routes'>, kind: string): Accou
   return [...(deps.routes?.[kind] ?? DEFAULT_ROUTES[kind] ?? FALLBACK_ROUTE)];
 }
 
+/** Contas permitidas pelo piloto (DP-41: claude e codex por padrão); `null` quando o piloto não está ativo (sem restrição). */
+export function pilotAccounts(deps: Pick<OpenBotDeps, 'pilot'>): readonly Account[] | null {
+  return deps.pilot?.enabled ? deps.pilot.allowedAccounts ?? DP41_ACCOUNTS : null;
+}
+
+/** Rota efetiva: a rota do tipo, já sem as contas que o piloto não permite. Vazia = nenhuma via permitida (nada é despachado). */
+export function effectiveRoute(deps: Pick<OpenBotDeps, 'routes' | 'pilot'>, kind: string): Account[] {
+  const allowed = pilotAccounts(deps);
+  const r = routeFor(deps, kind);
+  return allowed ? r.filter((a) => allowed.includes(a)) : r;
+}
+
 /** Problemas de uma rota (vazia = válida): não vazia, só contas conhecidas, sem repetição e, na redação, uma só via. */
 export function routeProblems(kind: string, route: readonly string[]): string[] {
   const p: string[] = [];
@@ -127,7 +139,7 @@ async function pilotBlock(deps: OpenBotDeps): Promise<HandlerResult<never> | nul
   if (!p?.enabled) return null;
   const st = await p.state.get();
   if (st) return fail(503, 'PILOT_STOPPED', 'piloto em parada imediata', st.reasons);
-  const gate = p.gate(await p.rows.all());
+  const gate = p.gate((await gateRows(p)).filter((r) => !awaitingEditorialGate(r)));
   if (!gate.allowed) {
     for (const r of gate.reasons) await p.state.stop(`${STOP.gate}: ${r}`, deps.now().toISOString());
     return fail(503, 'PILOT_STOPPED', 'o canDispatchNext recusou: piloto parado', gate.reasons);
@@ -176,6 +188,12 @@ export async function handlePull(deps: OpenBotDeps, req: SignedRequest): Promise
   const now = deps.now();
   if (killed(deps)) return fail(503, 'KILL_SWITCH', 'kill switch ativo: nenhuma tarefa é entregue');
   if (deps.pilot?.enabled && !p.data.account) return fail(400, 'VALIDATION_ERROR', 'no piloto o pull informa a via (account)', ['account']);
+  const allowedPull = pilotAccounts(deps);
+  if (allowedPull && p.data.account && !(allowedPull as readonly string[]).includes(p.data.account)) {
+    // um agente configurado fora da DP-41 é violação de configuração: grava a linha e PARA o piloto (fica parado até `resumePilot`)
+    await pilotViolation(deps, STOP.route, { kind: 'pull', refId: `conta-${p.data.account}` });
+    return fail(422, 'ACCOUNT_OUT_OF_ROUTE', `via fora do piloto (DP-41): só ${allowedPull.join(' e ')}; o piloto foi parado`, p.data.account);
+  }
   const blocked = await pilotBlock(deps);
   if (blocked) return blocked;
   await deps.health.markPull(p.data.workerId, now);
@@ -239,6 +257,8 @@ const CallbackSchema = z.object({
       resumeAt: z.iso.datetime({ offset: true }).optional(),
     }).strict().optional(),
     reviewedDraftTaskId: z.string().regex(ID_RE).optional(),
+    /** Id da MATÉRIA (devolvido de `meta.articleId` da entrada): é o `article_id` da linha do piloto. Sem ele cai no refId da tarefa. */
+    articleId: z.string().regex(ID_RE).optional(),
     promptVersion: z.string().max(64).optional(),
     sourceId: z.string().regex(ID_RE).optional(),
     outputValid: z.boolean().optional(),
@@ -353,7 +373,7 @@ export async function handleCallback(deps: OpenBotDeps, req: SignedRequest): Pro
     const tarifada = usage !== undefined && (isApiLane(usage) || usage.costMicro > 0);
     const outcome: PilotRow['outcome'] = cb.outcome === 'completed' ? 'completed' : limited ? 'pending_limit' : retryable ? 'retryable' : 'failed';
     const row: PilotRow = {
-      task_id: task.id, kind: task.kind, article_id: task.refId, source_id: cb.trace.sourceId ?? 'nao_informada', stage: cb.trace.stage,
+      task_id: task.id, kind: task.kind, article_id: cb.trace.articleId ?? task.refId, source_id: cb.trace.sourceId ?? 'nao_informada', stage: cb.trace.stage,
       account: cb.trace.account, declared_model: usage?.model ?? null, prompt_version: cb.trace.promptVersion ?? null,
       started_at: cb.trace.startedAt, ended_at: cb.trace.endedAt, attempt: task.attempts,
       ...(cb.trace.reviewedDraftTaskId ? { reviewed_draft_task_id: cb.trace.reviewedDraftTaskId } : {}),
@@ -436,8 +456,13 @@ export async function dispatchTask(deps: OpenBotDeps, caller: Caller, raw: unkno
     return fail(422, 'DATA_CLASS_BLOCKED', 'classe de dado não liberada para o OpenBot', d.dataClass);
   }
   const full = routeFor(deps, d.kind);
-  const route = d.route ?? full;
+  const allowedAcc = pilotAccounts(deps);
+  const route = d.route ?? effectiveRoute(deps, d.kind);
   const rp = routeProblems(d.kind, route);
+  if (allowedAcc) {
+    if (route.some((a) => !(allowedAcc as readonly string[]).includes(a))) rp.push(`via fora do piloto (DP-41): só ${allowedAcc.join(' e ')}`);
+    if (!d.route && route.length === 0) rp.push('nenhuma via permitida no piloto para este tipo de tarefa');
+  }
   if (d.route) {
     let i = 0;
     for (const a of full) if (i < d.route.length && d.route[i] === a) i += 1;
@@ -501,7 +526,7 @@ export async function resumePilot(deps: OpenBotDeps, caller: Caller): Promise<Ha
   if (!caller.permissions.includes(PILOT_PERMISSIONS.admin)) return fail(403, 'FORBIDDEN', 'sem permissão openbot:pilot_admin');
   const p = deps.pilot;
   if (!p?.enabled) return fail(409, 'PILOT_OFF', 'piloto não está ativo');
-  const gate = p.gate(await p.rows.all());
+  const gate = p.gate(await gateRows(p));
   if (!gate.allowed) return fail(409, 'PILOT_STILL_INVALID', 'o canDispatchNext ainda recusa as linhas', gate.reasons);
   await p.state.clear();
   return ok({ resumed: true });

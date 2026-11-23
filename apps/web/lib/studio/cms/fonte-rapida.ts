@@ -90,11 +90,11 @@ export function montarEvidencia(e: EntradaEvidencia): Validacao<EntradaEvidencia
 }
 
 /** Mensagens para os códigos que o contrato define (o resto passa pelo tradutor de erros comum). */
-export function mensagemDoCodigo(codigo: string | undefined, detalhes: unknown, padrao: string): string {
-  const id = (detalhes as { id?: string } | null)?.id;
+export function mensagemDoCodigo(codigo: string | undefined, _detalhes: unknown, padrao: string, nomeDaFonte?: string): string {
   switch (codigo) {
     case 'SOURCE_EXISTS':
-      return `Esta URL já está cadastrada${id ? ` como a fonte ${id}` : ''}: use essa fonte em vez de criar outra.`;
+      // nome da fonte já cadastrada (nunca o código interno); a tela a deixa escolhida no formulário de evidência
+      return nomeDaFonte ? `Esta URL já está cadastrada como a fonte “${nomeDaFonte}”: use essa fonte em vez de criar outra.` : 'Esta URL já está cadastrada: use essa fonte em vez de criar outra.';
     case 'ARTICLE_NOT_DRAFT':
       return 'Só se anexa evidência a matéria em rascunho. Volte a matéria a rascunho para continuar.';
     case 'SOURCE_NOT_FOUND':

@@ -11,13 +11,14 @@ import { requireStudio } from '../../_lib/guard';
 const t = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string).trim() : '');
 const TRECHO = (fd: FormData) => ((typeof fd.get('trecho') === 'string' ? (fd.get('trecho') as string) : '').replace(/\r\n?/g, '\n'));
 
-function volta(fd: FormData, ok: boolean, msg: string, extra: Record<string, string> = {}): never {
+function volta(fd: FormData, ok: boolean, msg: string, extra: Record<string, string> = {}, proximo?: string): never {
   const base = retornoSeguro(t(fd, 'retorno'), '/studio/cms');
   const [caminho, query = ''] = base.split('?');
   const p = new URLSearchParams(query);
   p.set('tipo', ok ? 'ok' : 'err');
   p.set('aviso', msg);
   for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  if (proximo) p.set('proximo', proximo);
   redirect(`${caminho}?${p.toString()}`);
 }
 
@@ -28,12 +29,12 @@ const CAMPOS_FONTE = ['url', 'nome', 'tipo', 'licenca', 'editoria'];
 const CAMPOS_EVIDENCIA = ['url', 'trecho'];
 
 /** Mensagem do Backend para a pessoa: códigos do contrato com texto próprio; o resto passa pelo tradutor de erros comum. */
-function textoDoErro(r: RespostaApi<unknown> & { ok: false }): string {
+function textoDoErro(r: RespostaApi<unknown> & { ok: false }, nomeDaFonte?: string): string {
   const e = (r.body as ErroApi | null)?.error;
   if (r.status === 404 && e?.code === 'NOT_FOUND' && /Rota inexistente/i.test(e.message)) {
     return 'A fonte rápida ainda não está disponível neste ambiente (a rota do Backend não foi publicada). Cadastre a fonte no Banco de fontes.';
   }
-  return mensagemDoCodigo(e?.code, e?.details, mensagemErro(r));
+  return mensagemDoCodigo(e?.code, e?.details, mensagemErro(r), nomeDaFonte);
 }
 
 /**
@@ -49,7 +50,12 @@ export async function criarFonteRapidaAction(fd: FormData): Promise<void> {
     // URL já cadastrada: leva a fonte existente para o formulário de evidência
     const e = (r.body as ErroApi | null)?.error;
     const existente = e?.code === 'SOURCE_EXISTS' ? (e.details as { id?: string } | undefined)?.id : undefined;
-    return volta(fd, false, textoDoErro(r), { ...eco(fd, 'fr', CAMPOS_FONTE), ...(existente ? { fonte: existente } : {}) });
+    let nome: string | undefined;
+    if (existente) {
+      const lista = await api.fontes.listar();
+      if (!ehErro(lista)) nome = lista.body.data.find((f) => f.id === existente)?.nome;
+    }
+    return volta(fd, false, textoDoErro(r, nome), { ...eco(fd, 'fr', CAMPOS_FONTE), ...(existente ? { fonte: existente } : {}) }, existente ? `/studio/fontes/${existente}` : undefined);
   }
   const f = r.body.data;
   volta(fd, true, `${r.body.existente ? 'Esta fonte já tinha sido criada (reenvio seguro). ' : ''}Fonte “${f.nome}” criada como a confirmar e inativa: não coleta nada até alguém revisar os termos e ativá-la no Banco de fontes.`, { fonte: f.id });

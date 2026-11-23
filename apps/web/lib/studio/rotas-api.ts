@@ -32,7 +32,8 @@ import * as publicoRedirectsRoute from '@/app/api/publico/site/redirects/route';
 import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
-import { despachoFonteRapidaE2e } from '@ln-studio/e2e-backend';
+import * as fonteRapidaRoute from '@/app/api/studio/editorial/fontes/rapida/route';
+import * as evidenciaRapidaRoute from '@/app/api/studio/editorial/evidencias/route';
 import type { EvidenciaRapida, FonteRapida } from '@/lib/studio/cms/fonte-rapida';
 import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha, PaginaDeCargos } from '@/lib/studio/intelligence-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
@@ -50,6 +51,8 @@ export interface Fonte {
   acesso: string;
   termosRevisados: boolean;
   ativo: boolean;
+  /** 'a_confirmar' = fonte rápida ainda sem revisão dos termos (pode faltar em fontes antigas). */
+  revisao?: string;
 }
 export interface Evidencia {
   id: string;
@@ -263,14 +266,13 @@ export const api = {
     relatorioCsv: (campaignId: string, kind: 'diario' | 'resumo', from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report-csv`, { query: { campaignId, kind, from, to } }),
   },
   /**
-   * Fonte rápida e evidência rápida na Nova matéria (P2-05, contrato do Backend 3): a fonte nasce "a confirmar" e inativa; a evidência guarda só o
-   * trecho e não conta para os gates. No build de e2e usa o despachante MOCK do contrato; em produção chama o Editorial (404 enquanto as rotas
-   * reais do Backend 3 não entram: a tela mostra isso, sem simular).
+   * Fonte rápida e evidência rápida na Nova matéria (P2-05, rotas reais do Backend 3, migração 0029): a fonte nasce "a confirmar" e inativa; a
+   * evidência guarda só o trecho e não conta para os gates de publicação. Contrato: fast-track/contratos/fonte-rapida-evidencia-api.md.
    */
   fonteRapida: {
-    criar: (corpo: unknown) => chamar<{ data: FonteRapida; existente: boolean }>(despachoFonteRapidaE2e ?? dispatchEditorial, `${E}/fontes/rapida`, { metodo: 'POST', corpo }),
-    anexarEvidencia: (corpo: unknown) => chamar<{ data: EvidenciaRapida; existente: boolean }>(despachoFonteRapidaE2e ?? dispatchEditorial, `${E}/evidencias`, { metodo: 'POST', corpo }),
-    evidencias: (articleId: string) => chamar<{ data: EvidenciaRapida[]; total: number }>(despachoFonteRapidaE2e ?? dispatchEditorial, `${E}/evidencias`, { query: { articleId } }),
+    criar: (corpo: unknown) => chamar<{ data: FonteRapida; existente: boolean }>(fonteRapidaRoute.POST as Despachante, `${E}/fontes/rapida`, { metodo: 'POST', corpo }),
+    anexarEvidencia: (corpo: unknown) => chamar<{ data: EvidenciaRapida; existente: boolean }>(evidenciaRapidaRoute.POST as Despachante, `${E}/evidencias`, { metodo: 'POST', corpo }),
+    evidencias: (articleId: string) => chamar<{ data: EvidenciaRapida[]; total: number }>(evidenciaRapidaRoute.GET as Despachante, `${E}/evidencias`, { query: { articleId } }),
   },
   intelligence: {
     /** Empresas por nome (GET /api/studio/intelligence/companies?q=). */

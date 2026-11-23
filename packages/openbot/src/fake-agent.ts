@@ -22,7 +22,7 @@ export interface AgentInput {
   input: unknown;
   taskClass: string;
   promptVersion: string;
-  meta?: { reviewedDraftTaskId?: string };
+  meta?: { reviewedDraftTaskId?: string; articleId?: string };
 }
 
 /** O que o agente decide fazer com uma tarefa. */
@@ -120,9 +120,10 @@ export class FakeOpenBot {
     const stage = STAGE_OF_KIND[t.kind] ?? 'triage';
     const packetChars = JSON.stringify(input.input ?? null).length;
     const reviewed = input.meta?.reviewedDraftTaskId;
+    const articleId = input.meta?.articleId;
     const trace = (extra: Record<string, unknown> = {}) => ({
       stage, account: this.c.account, startedAt, endedAt: new Date(this.c.now()).toISOString(), packetChars,
-      ...(input.promptVersion ? { promptVersion: input.promptVersion } : {}), ...(reviewed ? { reviewedDraftTaskId: reviewed } : {}), ...extra,
+      ...(input.promptVersion ? { promptVersion: input.promptVersion } : {}), ...(reviewed ? { reviewedDraftTaskId: reviewed } : {}), ...(articleId ? { articleId } : {}), ...extra,
     });
     const callbackId = `cb-${t.id}-a${t.attempt}-${++this.n}`;
 

@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 export default async function NovaMateria({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireStudio(CMS_EDIT);
   const q = await searchParams;
-  const { tipo, aviso, fonte } = q;
+  const { tipo, aviso, fonte, proximo } = q;
   const valores = Object.fromEntries(Object.entries(q).filter(([k, v]) => /^(fr|ev)_/.test(k) && typeof v === 'string')) as Record<string, string>;
   if (naoConfigurado(await api.fontes.listar())) return <SemBanco modulo="O CMS editorial" />;
   const evidencias = await evidenciasDisponiveis();
@@ -26,7 +26,7 @@ export default async function NovaMateria({ searchParams }: { searchParams: Prom
         <Link href="/studio/cms">← CMS editorial</Link>
       </p>
       <h1>Nova matéria</h1>
-      <Flash tipo={tipo} aviso={aviso} />
+      <Flash tipo={tipo} aviso={aviso} proximo={proximo} />
       <div className="st-two">
         <MateriaForm evidencias={evidencias} />
         <aside aria-label="Fonte e evidência">

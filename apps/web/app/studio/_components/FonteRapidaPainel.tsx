@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { randomUUID } from 'node:crypto';
 import { EDITORIAS } from '@ln/contracts';
 import { api } from '@/lib/studio/rotas-api';
@@ -23,7 +24,7 @@ export async function FonteRapidaPainel({ articleId, status, retorno, fonteNova,
         Fonte e evidência rápidas
       </h2>
       <p className="st-hint" data-aviso="a-confirmar">
-        Cadastre a fonte e anexe a evidência sem sair daqui. A fonte nova fica <strong>a confirmar</strong> e <strong>inativa</strong>: não coleta nada até alguém revisar os termos e ativá-la no Banco de fontes. A evidência guarda só o trecho (até {TRECHO_MAX} caracteres) e <strong>não conta para os gates de publicação</strong>.
+        Cadastre a fonte e anexe a evidência sem sair daqui. A fonte nova fica <strong>a confirmar</strong> e <strong>inativa</strong>: não coleta nada até alguém revisar os termos e ativá-la no Banco de fontes. A evidência guarda só o trecho (até {TRECHO_MAX} caracteres) e <strong>não conta para os gates de publicação</strong>. Para <strong>enviar à checagem</strong>, a fonte ainda precisa estar ativa, com termos revisados e evidência registrada no <Link href="/studio/fontes">Banco de fontes</Link>.
       </p>
       {indisponivel ? (
         <div className="st-alert" role="status" data-indisponivel="fonte-rapida">
@@ -96,10 +97,11 @@ export async function FonteRapidaPainel({ articleId, status, retorno, fonteNova,
                   <label htmlFor="ev-fonte">Fonte (opcional)</label>
                   <select id="ev-fonte" name="sourceId" defaultValue={fonteNova ?? ''}>
                     <option value="">Sem fonte (só a URL)</option>
-                    {fonteNova && !fontes.some((f) => f.id === fonteNova) ? <option value={fonteNova}>{fonteNova} (criada agora, a confirmar)</option> : null}
+                    {fonteNova && !fontes.some((f) => f.id === fonteNova) ? <option value={fonteNova}>Fonte criada agora (a confirmar)</option> : null}
                     {fontes.map((f) => (
                       <option key={f.id} value={f.id}>
                         {f.nome}
+                        {f.revisao === 'a_confirmar' ? ' (a confirmar)' : ''}
                       </option>
                     ))}
                   </select>

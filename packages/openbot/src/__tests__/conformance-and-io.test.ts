@@ -95,6 +95,17 @@ describe('gateway: putInput idempotente, divergência e reviewedDraftTaskId', ()
     assert.equal('reviewedDraftTaskId' in (io3.puts[0]?.meta ?? {}), false);
   });
 
+  test('articleId: vem da chave <articleId>:<etapa>:<tentativa> da Editorial (ou de input.articleId) e vai em meta; id fora do formato não vai', async () => {
+    const io = new Io();
+    const g = mk(io);
+    const withKey = (idempotencyKey: string, input: unknown = {}) => ({ ...req(input), idempotencyKey });
+    await g.invoke(withKey('art-2026-0001:factcheck:1'));
+    await g.invoke(withKey('chave-sem-padrao', { articleId: 'art-2026-0002' }));
+    await g.invoke(withKey('com espaço:review:2'));
+    await g.invoke(withKey('chave-sem-padrao-2', { articleId: 'com espaço' }));
+    assert.deepEqual(io.puts.map((p) => p.meta.articleId), ['art-2026-0001', 'art-2026-0002', undefined, undefined]);
+  });
+
   test('despacho desligado ou parado: recusa ANTES de gravar a entrada (nenhuma entrada órfã) e sem criar tarefa', async () => {
     for (const [flags, refusal, detail] of [
       [{ dispatchEnabled: false, kill: false }, 'model_disabled', 'DISPATCH_OFF'],

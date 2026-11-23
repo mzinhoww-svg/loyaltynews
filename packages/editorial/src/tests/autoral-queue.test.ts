@@ -93,3 +93,78 @@ test('submitPauta: RBAC (editor propõe; leitor e revisor não), âncora fora do
   assert.equal((await listPautas(hctx(revisor), {})).status, 200);
   assert.equal((await listPautas({ ...hctx(revisor), actor: { userId: 'l', roles: ['leitor'], mfa: true } }, {})).status, 403);
 });
+
+// ---- Identificador estável da revisão do rascunho (piloto de 10 matérias; AgentOps `reviewed_draft_task_id`) ----
+import { draftRevision, review as reviewStage } from '../pipeline/stages';
+import { draftContentSha256 } from '../publishable';
+import { validateModelOutput } from '../factory/output-schemas';
+
+test('revisão do rascunho: checagem e revisão recebem o MESMO identificador (tarefa de redação + hash), que fica na entrada, na auditoria e no registro', async () => {
+  await enable();
+  assert.equal((await submitPauta(hctx(editor), PAUTA)).status, 201);
+  const llm = new Llm();
+  const d = deps(llm);
+  const rep = await runAutoralQueue(d);
+  const art = (await store.getArticle(rep.processed[0]!.articleId!))!;
+  const rev = draftRevision({ articleId: art.articleId, editoria: art.editoria, evidences: art.evidences, attempt: 0 }, art.draft!);
+  assert.equal(rev.taskId, `${art.articleId}:draft:0`);
+  assert.equal(rev.sha256, draftContentSha256(art.draft!));
+  assert.deepEqual([art.factcheck!.reviewedDraftTaskId, art.factcheck!.reviewedDraftSha256], [rev.taskId, rev.sha256]);
+  assert.deepEqual([art.review!.reviewedDraftTaskId, art.review!.reviewedDraftSha256], [rev.taskId, rev.sha256]);
+  const inputOf = (cls: string) => { const c = llm.calls.find((x) => x.taskClass === cls)!.messages[1]!.content; return JSON.parse(c.slice(c.indexOf('\n') + 1)) as { reviewedDraft?: { taskId: string; draftId: string; sha256: string } }; };
+  assert.deepEqual(inputOf('factcheck').reviewedDraft, rev); assert.deepEqual(inputOf('review').reviewedDraft, rev);
+  assert.equal(inputOf('draft').reviewedDraft, undefined, 'a redação não recebe revisão (ela a produz)');
+  const audit = (d.audit as InMemoryAuditLog).entries.filter((e) => e.event === 'model_call' && (e.stage === 'factcheck' || e.stage === 'review'));
+  assert.equal(audit.length, 2);
+  for (const e of audit) assert.deepEqual([e.reviewedDraftTaskId, e.reviewedDraftSha256], [rev.taskId, rev.sha256]);
+  // independência por par: o provedor da checagem difere do redator, e o registro tem os dois
+  assert.notEqual(art.factcheck!.provider, art.draft!.modelProvider);
+});
+
+test('revisão: rascunho alterado DEPOIS da checagem invalida a aprovação (stale_approval); sem o hash (registro antigo) segue o fluxo', async () => {
+  await enable();
+  assert.equal((await submitPauta(hctx(editor), PAUTA)).status, 201);
+  const llm = new Llm();
+  const rep = await runAutoralQueue(deps(llm));
+  const art = (await store.getArticle(rep.processed[0]!.articleId!))!;
+  const job = { articleId: art.articleId, editoria: art.editoria, evidences: art.evidences, attempt: 0, draft: art.draft!, factcheck: art.factcheck! };
+  const stale = await reviewStage({ gateway: createLlmGateway(llm), registry: new SourceRegistry([PRIMARY]), audit: new InMemoryAuditLog(), flags: FLAGS, now: () => NOW },
+    { ...job, draft: { ...art.draft!, resumo: `${art.draft!.resumo} (alterado)` } });
+  assert.equal(stale.kind, 'blocked');
+  if (stale.kind === 'blocked') assert.deepEqual(stale.blocked.blockers, ['stale_approval']);
+  const { reviewedDraftSha256: _s, reviewedDraftTaskId: _t, ...legacy } = art.factcheck!;
+  void _s; void _t;
+  const calls = llm.calls.length;
+  const legacyRun = await reviewStage({ gateway: createLlmGateway(llm), registry: new SourceRegistry([PRIMARY]), audit: new InMemoryAuditLog(), flags: FLAGS, now: () => NOW }, { ...job, factcheck: legacy });
+  assert.equal(legacyRun.kind, 'done'); assert.equal(llm.calls.length, calls + 1);
+});
+
+test('output_valid: esquema de cada classe (formato), com referências de evidência e cobertura de claims', () => {
+  const ok = (cls: Parameters<typeof validateModelOutput>[0], out: unknown, ctx = {}) => validateModelOutput(cls, out, ctx);
+  assert.equal(ok('triage', { relevant: true, editoria: 'pontos' }).valid, true);
+  assert.equal(ok('triage', { relevant: 'sim' }).valid, false);
+  assert.equal(ok('triage', { relevant: true, editoria: 'esportes' }).valid, false, 'editoria fora das 10');
+  assert.equal(ok('context', { notes: [{ text: 'x', evidenceIds: ['e1'] }] }, { evidenceIds: ['e1'] }).valid, true);
+  assert.deepEqual(ok('context', { notes: [{ text: 'x', evidenceIds: ['e9'] }] }, { evidenceIds: ['e1'] }).issues, ['evidência inexistente na entrada: e9']);
+  const draft = { headline: 'Título', body: 'Texto', resumo: 'Resumo curto', claims: [{ id: 'c1', kind: 'fact', text: 't', evidenceIds: ['e1'] }] };
+  assert.equal(ok('draft', draft, { evidenceIds: ['e1'] }).valid, true);
+  assert.equal(ok('draft', { ...draft, resumo: undefined }).valid, false, 'resumo obrigatório');
+  assert.equal(ok('draft', { ...draft, resumo: 'x'.repeat(301) }).valid, false, 'resumo ≤ 300');
+  assert.equal(ok('draft', { ...draft, claims: [{ id: 'c1', kind: 'quote', text: 't', evidenceIds: ['e1'] }] }).valid, false, 'quote sem texto/autor');
+  assert.equal(ok('draft', { ...draft, claims: [] }).valid, false);
+  assert.equal(ok('draft', { ...draft, extra: 1 }).valid, true); assert.equal(validateModelOutput('draft', { ...draft, extra: 1 }, { strict: true }).valid, false);
+  assert.equal(ok('factcheck', { verdicts: [{ claimId: 'c1', verdict: 'pass' }] }, { claimIds: ['c1'] }).valid, true);
+  assert.deepEqual(ok('factcheck', { verdicts: [{ claimId: 'c1', verdict: 'pass' }] }, { claimIds: ['c1', 'c2'] }).issues, ['claim sem veredito: c2']);
+  assert.equal(ok('factcheck', { verdicts: [{ claimId: 'c1', verdict: 'talvez' }] }).valid, false);
+  assert.equal(ok('review', { approve: false, issues: ['x'] }).valid, true); assert.equal(ok('review', { approve: 'sim' }).valid, false);
+  assert.equal(ok('social_pack', { linkedin: 'texto' }).valid, true); assert.equal(ok('social_pack', { linkedin: 'x'.repeat(1201) }).valid, false);
+  assert.equal(ok('roles', { mentions: [{ personName: 'A', orgName: 'B', title: 'CEO', kind: 'present', excerpt: 'A é CEO da B' }] }).valid, true);
+  assert.equal(ok('roles', { mentions: [{ personName: 'A', orgName: 'B', title: 'CEO', kind: 'present', effectiveDate: '23/11/2026', excerpt: 'x' }] }).valid, false);
+});
+
+test('docs/schemas-saida-por-classe.json acompanha o código (sem divergência)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { outputJsonSchemas } = await import('../factory/output-schemas');
+  const file = JSON.parse(readFileSync(new URL('../../docs/schemas-saida-por-classe.json', import.meta.url), 'utf8')) as unknown;
+  assert.deepEqual(file, JSON.parse(JSON.stringify(outputJsonSchemas())), 'regenerar: ver docs/piloto-10-materias-editorial.md §4');
+});

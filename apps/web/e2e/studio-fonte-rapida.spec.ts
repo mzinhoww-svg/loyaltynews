@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { entrar, enviar } from './helpers';
 
-// P2-05: fonte rápida e evidência rápida dentro da Nova matéria e da edição. As rotas do Backend 3 ainda não estão neste ramo: o e2e roda
-// contra o despachante MOCK do contrato (lib/studio/fonte-rapida.e2e.mock.ts); quando o SHA real entrar, o mesmo e2e roda nas rotas reais.
+// P2-05: fonte rápida e evidência rápida dentro da Nova matéria e da edição, sobre as rotas reais do Backend 3 (migração 0029).
 test.describe.configure({ mode: 'serial' });
 
 const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
@@ -50,8 +49,10 @@ test('cria a fonte rápida: nasce a confirmar e inativa; a mesma URL de novo é 
 
   await page.goto('/studio/cms/nova');
   await criar();
-  await erro(page, /já está cadastrada/);
-  await erro(page, fonteId);
+  await erro(page, /já está cadastrada como a fonte “Sala de imprensa do Banco Teste”/);
+  // a pessoa vê o nome e um link para a fonte, nunca o código interno
+  await expect(page.locator('main .st-alert.err')).not.toContainText(fonteId);
+  await expect(page.locator('main .st-alert.err a[data-proximo]')).toHaveAttribute('href', `/studio/fontes/${fonteId}`);
 });
 
 test('edição do rascunho: anexa evidência (URL + trecho), vê a lista com o selo a confirmar e o limite de 500', async ({ page, context }) => {
@@ -99,6 +100,35 @@ test('criar fonte na própria edição leva a fonte nova para o formulário de e
   await expect(page.locator('#ev-fonte')).toHaveValue(novo);
   // a lista de evidências da matéria segue lá depois do redirecionamento
   await expect(painel.locator('[data-evidencia-id]')).toHaveCount(1);
+});
+
+test('fonte criada na Nova matéria, antes de salvar o rascunho, aparece no seletor da evidência depois de salvar', async ({ page, context }) => {
+  await entrar(context, 'ed', 'editor');
+  await page.goto('/studio/cms/nova');
+  const form = page.locator('[data-painel="fonte-rapida"]').getByRole('form', { name: 'Nova fonte rápida' });
+  await form.getByLabel(/URL da fonte/).fill('https://www.cooperativa-teste.example/comunicados');
+  await form.getByLabel(/Nome da fonte/).fill('Comunicados da Cooperativa Teste');
+  await form.getByLabel('Editoria da fonte').selectOption('bancos');
+  await enviar(page, form.getByRole('button', { name: 'Criar fonte (a confirmar)' }));
+  await sucesso(page, 'Fonte “Comunicados da Cooperativa Teste” criada');
+  await page.getByLabel('Título', { exact: true }).fill('Cooperativa Teste reajusta anuidade');
+  await page.getByLabel(/Resumo/).fill('Resumo curto da segunda matéria de teste da fonte rápida.');
+  await page.getByLabel('Editoria', { exact: true }).selectOption('bancos');
+  await page.getByLabel('Corpo da matéria').fill('Texto completo da segunda matéria de teste da fonte rápida.');
+  await enviar(page, page.getByRole('button', { name: 'Criar rascunho' }));
+  await expect(page.getByRole('heading', { level: 1, name: 'Cooperativa Teste reajusta anuidade' })).toBeVisible();
+  await expect(page.locator('#ev-fonte').getByRole('option', { name: 'Comunicados da Cooperativa Teste (a confirmar)' })).toHaveCount(1);
+});
+
+test('enviar à checagem só com evidência rápida: a tela avisa antes e a recusa explica o próximo passo com link', async ({ page, context }) => {
+  await entrar(context, 'ed', 'editor');
+  await page.goto(materiaUrl);
+  await expect(page.locator('[data-dica="checagem-fontes"]')).toContainText('A fonte e a evidência rápidas (a confirmar) não bastam');
+  await enviar(page, page.getByRole('button', { name: 'Enviar para checagem' }));
+  const alerta = page.locator('main .st-alert.err').filter({ hasText: 'Próximo passo' });
+  await expect(alerta).toContainText('revise os termos e ative a fonte');
+  await expect(alerta).toContainText('não contam para a checagem');
+  await expect(alerta.locator('a[data-proximo]')).toHaveAttribute('href', '/studio/fontes');
 });
 
 test('só quem edita vê o painel; revisor e leitor não', async ({ page, context }) => {

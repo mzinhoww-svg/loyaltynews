@@ -48,6 +48,8 @@ describe('GET /api/publico/materias com tipo', () => {
   it('tipo inválido: erro de validação (400 VALIDATION_ERROR no padrão da API), nunca lista tudo', async () => {
     const r = await list({ tipo: 'inventado' });
     expect([r.status, r.body.error.code]).toEqual([400, 'VALIDATION_ERROR']);
+    const vazio = await list({ tipo: '' }); // tipo= vazio também é 400 (não é ignorado)
+    expect([vazio.status, vazio.body.error.code]).toEqual([400, 'VALIDATION_ERROR']);
   });
 
   it('q também casa com o resumo (e continua com teto de 100 caracteres; % e _ são literais)', async () => {
@@ -55,5 +57,13 @@ describe('GET /api/publico/materias com tipo', () => {
     expect(slugs(await list({ q: 'Título noticia' }))).toEqual(['noticia-1']);
     expect((await list({ q: '%' })).body.total).toBe(0);
     expect((await list({ q: 'x'.repeat(101) })).status).toBe(400);
+  });
+
+  it('q aparado: espaços nas pontas não mudam o resultado; só espaços = 400 (nunca casa tudo que tem espaço); 100 caracteres aceitos', async () => {
+    expect(slugs(await list({ q: '  cashback  ' }))).toEqual(['noticia-1']);
+    const branco = await list({ q: '   ' });
+    expect([branco.status, branco.body.error.code]).toEqual([400, 'VALIDATION_ERROR']);
+    expect((await list({ q: 'x'.repeat(100) })).status).toBe(200);
+    expect((await list({ q: ` ${'x'.repeat(100)} ` })).status).toBe(200); // o teto vale para o termo aparado
   });
 });
