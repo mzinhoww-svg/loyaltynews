@@ -7,6 +7,7 @@ import type { BudgetGate } from './budget';
 import type { BalanceGuard } from './balance';
 import { microToUsd } from './money';
 import { estimateMicro, type TokenEstimate } from './pricing';
+import { SimulatedOpenRouterClient } from './openrouter.mock';
 import {
   buildRequestBody,
   checkEvidence,
@@ -268,6 +269,10 @@ const QUALIFICATION_ROUTE = 'qualification';
 
 async function callQualification(deps: GatewayDeps, call: GatewayCall): Promise<GatewayOutcome> {
   const blocked = (reason: string, detail: string): GatewayOutcome => ({ status: 'blocked', reason, detail });
+  // G4.3: cliente REAL (qualquer um que não seja o simulado) exige o portão de saldo: o saldo do provedor é lido antes da primeira chamada.
+  if (!(deps.client instanceof SimulatedOpenRouterClient) && !deps.balance) {
+    return blocked('balance_guard_missing', 'cliente real sem portão de saldo do provedor: o saldo precisa ser lido antes da primeira chamada');
+  }
   const mode = deps.policy.qualification?.mode;
   if (!mode) return blocked('qualification_absent', 'a política não define o modo de qualificação');
   if (!mode.enabled) return blocked('qualification_disabled', 'modo de qualificação desligado na política');

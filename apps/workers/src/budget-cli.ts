@@ -2,6 +2,7 @@
 //   node dist/budget-cli.js status
 //   node dist/budget-cli.js kill on  "<motivo>" [--route <nome>] --actor <seu-id>
 //   node dist/budget-cli.js kill off "<motivo>" [--route <nome>] --actor <seu-id>
+//   node dist/budget-cli.js reconcile <AAAA-MM> [--tolerance <pct>]   (G4.2: confere o ledger com /generation do OpenRouter; só leitura; exige OPENROUTER_API_KEY; sai 0 só se o mês FECHA)
 // Usa o PostgresLedgerStore de @ln/modelops (tabela `budget_kill_switch`). Build: npm run build:budget-cli -w @ln/workers.
 // Nunca imprime URL, senha nem PEM.
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -10,7 +11,8 @@ import { schema } from '@ln/db';
 import { pgPoolConfig } from '@ln/db/tls';
 import { audit } from '@ln/auth';
 import type { Db } from '@ln/auth';
-import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
+import policyRaw from '@ln/modelops/policy';
+import { BudgetGate, PostgresLedgerStore, createOpenRouterGenerationReader, describeReconciliation, gateConfigFromPolicy, reconcileMonth, validatePolicy, type SqlDatabase } from '@ln/modelops';
 
 export async function run(
   argv: string[],
@@ -18,15 +20,51 @@ export async function run(
   out: (s: string) => void = console.log,
   /** Só testes: banco já aberto (sem Pool do ambiente). */
   injectedDb?: unknown,
+  /** Só testes: fetch da conciliação (padrão: fetch global). */
+  fetchImpl: typeof fetch = fetch,
 ): Promise<number> {
   const [cmd, sub, motivo, ...rest] = argv;
   const opt = (name: string) => {
     const i = rest.indexOf(name);
     return i >= 0 ? rest[i + 1] : undefined;
   };
-  if (cmd !== 'status' && !(cmd === 'kill' && (sub === 'on' || sub === 'off'))) {
-    out('uso: status | kill on|off "<motivo>" [--route <nome>] --actor <id>');
+  if (cmd !== 'status' && cmd !== 'reconcile' && !(cmd === 'kill' && (sub === 'on' || sub === 'off'))) {
+    out('uso: status | kill on|off "<motivo>" [--route <nome>] --actor <id> | reconcile <AAAA-MM> [--tolerance <pct>]');
     return 2;
+  }
+  if (cmd === 'reconcile') {
+    const month = sub;
+    const key = env.OPENROUTER_API_KEY?.trim();
+    if (!month || !/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      out('informe o mês no formato AAAA-MM');
+      return 2;
+    }
+    if (!key) {
+      out('conciliação exige OPENROUTER_API_KEY no ambiente (só leitura de /generation)');
+      return 2;
+    }
+    const tol = [sub, motivo, ...rest].includes('--tolerance') ? Number([sub, motivo, ...rest][[sub, motivo, ...rest].indexOf('--tolerance') + 1]) : 1;
+    if (!Number.isFinite(tol) || tol < 0 || tol > 5) {
+      out('tolerância inválida (0 a 5, em %)');
+      return 2;
+    }
+    const check = validatePolicy(policyRaw);
+    if (!check.ok || !check.policy) {
+      out('política de modelos inválida');
+      return 1;
+    }
+    const rpool = injectedDb ? null : new Pool(pgPoolConfig(env, { max: 1 }));
+    try {
+      const rdb = (injectedDb ?? drizzle(rpool!, { schema })) as ReturnType<typeof drizzle<typeof schema>>;
+      const gate = new BudgetGate(gateConfigFromPolicy(check.policy), new PostgresLedgerStore(rdb as unknown as SqlDatabase));
+      const result = await reconcileMonth(gate, createOpenRouterGenerationReader(key, fetchImpl), month, tol);
+      out(describeReconciliation(result));
+      for (const u of result.unverified) out(`  sem prova: ${u.reservationId}${u.generationId ? ` (${u.generationId})` : ''} — ${u.reason}`);
+      for (const m of result.mismatches) out(`  divergente: ${m.reservationId} (${m.generationId}) ledger ${m.ledgerMicro} × provedor ${m.providerMicro} micro-US$`);
+      return result.closed ? 0 : 1;
+    } finally {
+      await rpool?.end();
+    }
   }
   if (cmd === 'kill' && (!opt('--actor') || !motivo || motivo.trim().length < 5)) {
     out('informe o motivo (mínimo 5 caracteres) e --actor <seu id>');

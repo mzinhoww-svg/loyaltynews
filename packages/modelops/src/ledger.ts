@@ -116,6 +116,8 @@ export interface ReservationState {
   status: ReservationStatus;
   actualMicro: number;
   overrun: boolean;
+  /** Id da geração no provedor (prova da cobrança), gravado na conciliação; 'sem-id' no banco = ausente. */
+  generationId?: string;
 }
 
 // Reconstrói o estado das reservas a partir do log. Eventos de taxa de compra não entram aqui.
@@ -147,6 +149,7 @@ export function replay(events: readonly LedgerEvent[]): Map<string, ReservationS
         s.status = 'committed';
         s.actualMicro = e.actualMicro ?? s.reservedMicro;
         s.overrun = e.overrun ?? false;
+        if (e.generationId && e.generationId !== 'sem-id') s.generationId = e.generationId;
       }
     } else if (e.type === 'release') {
       const s = states.get(e.reservationId);
