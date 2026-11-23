@@ -18,6 +18,8 @@ export interface ArticleJob {
   duplicateOf?: string | null;
   context?: ContextNote[];
   draft?: Draft;
+  /** Id da TAREFA (no gateway) que produziu o rascunho atual, se o gateway informou: é o `reviewedDraftTaskId` das etapas seguintes. */
+  draftTaskId?: string;
   /** Slug gerado na 1ª redação e mantido nas seguintes (muda livremente até a 1ª publicação; depois é imutável). */
   slug?: string;
   attempt: number;           // redações tentadas (máx. 3, model.policy rules.max_attempts)

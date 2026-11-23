@@ -76,6 +76,7 @@ export async function runAutoral(deps: FactoryDeps, input: unknown): Promise<Art
   const stageDeps: StageDeps = {
     gateway: deps.gateway, registry: effective, audit: deps.audit, ...(deps.flags ? { flags: deps.flags } : {}),
     now, slugExists: async (slug) => (await deps.store.listArticles()).some((a) => a.draft?.slug === slug),
+    ...(deps.pilotSink ? { pilotSink: deps.pilotSink } : {}),
   };
   const queue = new InMemoryQueue();
   const processor = makeProcessor(stageDeps, queue);
