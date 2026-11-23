@@ -56,4 +56,12 @@ describe('GET /api/publico/materias com tipo', () => {
     expect((await list({ q: '%' })).body.total).toBe(0);
     expect((await list({ q: 'x'.repeat(101) })).status).toBe(400);
   });
+
+  it('q aparado: espaços nas pontas não mudam o resultado; só espaços = 400 (nunca casa tudo que tem espaço); 100 caracteres aceitos', async () => {
+    expect(slugs(await list({ q: '  cashback  ' }))).toEqual(['noticia-1']);
+    const branco = await list({ q: '   ' });
+    expect([branco.status, branco.body.error.code]).toEqual([400, 'VALIDATION_ERROR']);
+    expect((await list({ q: 'x'.repeat(100) })).status).toBe(200);
+    expect((await list({ q: ` ${'x'.repeat(100)} ` })).status).toBe(200); // o teto vale para o termo aparado
+  });
 });
