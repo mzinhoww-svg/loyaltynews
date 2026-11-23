@@ -4,9 +4,12 @@
 // (só trocando porta e host), aplica as variáveis do manifesto e roda as sondas: saúde com o commit certo, Studio negando sem login,
 // ausência de MOCK. Também prova que o guard falha fechado (LN_STUDIO_TEST_SESSION e PORTAL_SOURCE=mock impedem build/start).
 // Não escreve na Vertra nem no GitHub. Apaga o diretório temporário e encerra o servidor ao final.
-// Uso: node infra/scripts/ensaio-pacote.mjs --manifest <arquivo .manifest.json> [--port 3197]
+// Condição da Vertra reproduzida: lá o HOME fica DENTRO da pasta do app (/app/.cache/vertra/tmp/build/home) e o Next recusa /app como raiz do
+// workspace ("ignored package.json ... would include your home directory"). O ensaio roda instalação, build e start com HOME/USERPROFILE
+// dentro da pasta do pacote; `--home outside` roda com o HOME fora (é o paliativo `HOME=/tmp/...` no comando de build).
+// Uso: node infra/scripts/ensaio-pacote.mjs --manifest <arquivo .manifest.json> [--port 3197] [--home inside|outside]
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -58,6 +61,11 @@ try {
   if (!existsSync(ca.path)) fail(`pasta do pacote ausente: ${ca.path}`);
   cpSync(ca.path, work, { recursive: true });
   step('cópia do pacote para pasta temporária', true, `${man.arquivos} arquivos, commit ${man.commit.slice(0, 12)}`);
+  const homeFora = args.home === 'outside';
+  const homeDir = homeFora ? join(dir, 'home-fora') : join(work, '.cache', 'vertra', 'tmp', 'build', 'home');
+  mkdirSync(homeDir, { recursive: true });
+  clean.HOME = homeDir; clean.USERPROFILE = homeDir; // os.homedir() usa USERPROFILE no Windows e HOME no Linux
+  step(`condição da Vertra: HOME ${homeFora ? 'FORA' : 'DENTRO'} da pasta do app`, true, homeDir.replace(work, '<app>'));
 
   let r = sh('npm install --no-audit --no-fund', { cwd: work, env: clean });
   if (!step('npm install a partir do pacote', r.status === 0)) throw new Error('install falhou');
@@ -69,7 +77,8 @@ try {
   step('start RECUSADO com PORTAL_SOURCE=mock em staging', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
 
   r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv } });
-  if (!step('build com o build_command do manifesto', r.status === 0)) throw new Error('build falhou');
+  const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
+  if (!step('build com o build_command do manifesto', r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
   server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });
