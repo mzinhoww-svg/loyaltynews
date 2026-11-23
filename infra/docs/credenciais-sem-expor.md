@@ -9,6 +9,12 @@ Para `check-conexoes.mjs` e `migrate.mjs` o processo precisa de `DATABASE_URL`, 
 - `POST /v1/apps/{id}/envs` (ferramenta `set_env`) e `DELETE /v1/apps/{id}/envs/{env_id}` (`delete_env`).
 - - **Formato verificado pelo PM em 23/11/2026** (execução real do staging): a API envolve as respostas em `{ "response": { ... } }` (ler `.response`); o certificado traz os campos `crt`, `key`, `pem`, `ca` e `p12`; `POST /v1/databases/{id}/credentials/reset` vai **sem corpo** (enviar `content-type: application/json` sem corpo dá HTTP 400). Na primeira execução o script ainda deve mostrar só os NOMES dos campos se algo divergir.
 
+## REGRA OBRIGATÓRIA: PEM em UMA linha com \n escapado em toda variável de app (achado do PM em 23/11/2026, Fase 3)
+**A Vertra repassa ao processo SÓ A PRIMEIRA LINHA de uma variável multilinha.** Gravar um PEM com quebras de linha reais por `set_env` entrega ao app apenas `-----BEGIN CERTIFICATE-----`: o código passa na validação (`BEGIN` presente) e o OpenSSL falha depois com `error:0480006C:PEM routines::no start line` (e o Redis responde 'Connection is closed'). Sintoma que engana: a conferência feita no script (que mostra o valor INTEIRO, multilinha) parece certa; nenhuma ferramenta lê o valor da variável no app.
+Regra: **todo** `*_PEM` (`DB_SSL_CA_PEM`, `DB_SSL_CERT_PEM`, `DB_SSL_KEY_PEM`, `REDIS_SSL_CA_PEM`, `REDIS_SSL_CERT_PEM`, `REDIS_SSL_KEY_PEM`) vai para o `set_env` em UMA linha, com cada quebra trocada pela sequência de dois caracteres `\n`: `pem.trim().replace(/\r?\n/g, '\\n')`. O código do produto desescapa (`normalizePem` em `packages/db/src/tls.ts`, usado pelo web, pelo worker e pelo Redis) e as ferramentas de infra também (`check-conexoes.mjs`, `migrate.mjs`). Valor máximo de 3072 caracteres por variável: um PEM em uma linha tem o mesmo tamanho. Isso vale para staging E para produção.
+Para variáveis do **processo filho** (migração, seed, checagem) o script pode passar o PEM multilinha normalmente: o problema é só o transporte da Vertra para o app.
+Diagnóstico sem expor conteúdo, se voltar a acontecer: `releases\staging\diagnostico-pem-start.txt` (start temporário que mostra só estrutura: tamanho, linhas, BEGIN/END e se o Node interpreta).
+
 ## Regra da senha (por causa do `reset`)
 A senha só existe se for gerada: cada `reset` invalida a anterior. Portanto:
 1. **Antes de existir app usando o banco** (hoje: staging, só migração e checagem): pode girar a senha a cada execução e descartá-la. Ninguém depende dela.
@@ -68,7 +74,8 @@ Esboço do passo 3 (script do PM, fora do repositório; reaproveita `ambienteDe`
 const pg = await ambienteDe(DBS.staging.pg, 'DB_SSL', 'DATABASE_URL', 'postgres');       // gira a senha UMA vez
 const rd = await ambienteDe(DBS.staging.redis, 'REDIS_SSL', 'REDIS_URL', 'rediss');       // gira a senha UMA vez
 const comuns = { ...pg, ...rd };
-for (const app of [WEB_ID, WORKER_ID]) for (const [k, v] of Object.entries(comuns)) await setEnv(app, k, v);   // sem log do valor
+const achatar = (pem) => pem.trim().replace(/\r?\n/g, '\\n');                                          // PEM em UMA linha com \n escapado (regra acima)
+for (const app of [WEB_ID, WORKER_ID]) for (const [k, v] of Object.entries(comuns)) await setEnv(app, k, /_PEM$/.test(k) ? achatar(v) : v);   // sem log do valor
 await setEnv(WEB_ID, 'BETTER_AUTH_SECRET', crypto.randomBytes(48).toString('base64url'));
 for (const [k, v] of Object.entries({ APP_ENV: 'staging', NODE_ENV: 'production', APP_COMMIT: COMMIT })) await setEnv(WORKER_ID, k, v);
 ```

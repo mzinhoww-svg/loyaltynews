@@ -3,7 +3,8 @@
 // Só lê (GET sem sessão), nunca grava, nunca imprime segredo. Saída: JSON com cada checagem (ok/falhou + motivo) e código 0 se tudo que foi exigido passou.
 // Uso: node infra/scripts/smoke-staging.mjs --url https://loyaltynews-stg.vertraweb.app --expect-commit <sha>
 //        [--expect-seed] [--expect-orgs 29] [--timeout 8000]
-//   --expect-seed   exige o seed de staging (`seed-stg-*`, rótulo "[DEMO · staging]") nas matérias, na agenda e no feed
+//   --expect-seed   exige o seed de staging (`seed-stg-*`, rótulo "[DEMO · staging]") nas matérias, na agenda e na home (o feed fica SEM itens em staging: R6)
+//   --expect-login-form exige o formulário de e-mail e senha em /studio/entrar (hoje a tela é um aviso fixo; sem a flag vira só uma nota)
 //   --expect-orgs N exige que /intelligence mostre N empresas cadastradas (hoje o adaptador `api` do portal NÃO as lê: só com o adaptador de Intelligence)
 // Login do Studio NÃO é testado aqui (exige usuário e MFA, segredos): só a tela de entrada e a negação sem sessão.
 import { pathToFileURL } from 'node:url';
@@ -39,7 +40,9 @@ async function main() {
   const seed = Boolean(args['expect-seed']);
   const orgs = args['expect-orgs'] && args['expect-orgs'] !== true ? Number(args['expect-orgs']) : null;
   const out = [];
-  const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(detalhe ? { detalhe } : {}) });
+  const notas = [];
+  // O detalhe descreve a FALHA: só entra no resultado quando a checagem falha (fix 23/11: checagens que passavam traziam o texto de erro).
+  const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
   const get = async (p, { json = false } = {}) => {
     const r = await fetch(base + p, { redirect: 'manual', signal: AbortSignal.timeout(timeout), headers: { 'user-agent': 'ln-smoke/1', accept: json ? 'application/json' : 'text/html' } });
     const body = await r.text();
@@ -95,7 +98,9 @@ async function main() {
   });
   await tentar('feed', async () => {
     const r = await get('/feed.xml');
-    check('feed.xml: 200 RSS' + (seed ? ' com itens do seed' : ''), r.status === 200 && /<rss/.test(r.body) && (!seed || r.body.includes(ROTULO_SEED)), `HTTP ${r.status}`);
+    // Staging NÃO é indexável: por desenho (Security R6) o feed é um canal RSS válido SEM itens, igual ao sitemap. Item no feed de staging seria vazamento de conteúdo para agregadores.
+    const itensFeed = (r.body.match(/<item\b/g) || []).length;
+    check('feed.xml: canal RSS válido e SEM itens (staging não indexável, R6)', r.status === 200 && /<rss/.test(r.body) && itensFeed === 0, `HTTP ${r.status}, ${itensFeed} itens`);
   });
   await tentar('intelligence', async () => {
     const r = await get('/intelligence');
@@ -107,7 +112,10 @@ async function main() {
     const neg = await get('/studio');
     check('studio: sem sessão = 307 para o login', neg.status === 307 && /\/studio\/entrar/.test(neg.h.get('location') ?? ''), `HTTP ${neg.status} ${neg.h.get('location') ?? ''}`);
     const ent = await get('/studio/entrar');
-    check('studio/entrar: 200 com formulário de entrada', ent.status === 200 && /<form/i.test(ent.body) && /type="password"/i.test(ent.body), `HTTP ${ent.status}`);
+    const temForm = /<form/i.test(ent.body) && /type="password"/i.test(ent.body);
+    check('studio/entrar: 200', ent.status === 200, `HTTP ${ent.status}`);
+    if (args['expect-login-form']) check('studio/entrar: formulário de entrada (e-mail e senha)', temForm, 'a tela é só um aviso: o login do Studio ainda não foi entregue (Studio Engineer) e o 1º admin depende da CLI staging-admin (Backend)');
+    else if (!temForm) notas.push('studio/entrar: a tela é um aviso fixo ("login ainda não disponível"), sem formulário: o login real do Studio está BLOQUEADO até a interface de entrada (Studio Engineer) e a CLI staging-admin (Backend, 1º admin com TOTP) entrarem; use --expect-login-form para exigir');
   });
   await tentar('robots', async () => {
     const r = await get('/robots.txt');
@@ -115,7 +123,7 @@ async function main() {
   });
 
   const falhas = out.filter((c) => !c.ok);
-  console.log(JSON.stringify({ url: base, exigiu: { seed, orgs, commit: args['expect-commit'] ?? null }, total: out.length, falhas: falhas.length, checagens: out }, null, 2));
+  console.log(JSON.stringify({ url: base, exigiu: { seed, orgs, loginForm: Boolean(args['expect-login-form']), commit: args['expect-commit'] ?? null }, total: out.length, falhas: falhas.length, notas, checagens: out }, null, 2));
   process.exit(falhas.length ? 1 : 0);
 }
 
