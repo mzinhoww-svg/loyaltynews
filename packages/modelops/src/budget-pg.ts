@@ -163,10 +163,20 @@ async function readEvents(tx: SqlRunner): Promise<LedgerEvent[]> {
   return events;
 }
 
+async function killOf(runner: SqlRunner): Promise<KillState> {
+  const rows = await rowsOf(runner, sql`SELECT scope FROM budget_kill_switch WHERE active = true`);
+  const scopes = rows.map((r) => String(r.scope));
+  return {
+    global: scopes.includes('global'),
+    routes: scopes.filter((s) => s.startsWith('route:')).map((s) => s.slice('route:'.length)),
+  };
+}
+
 function ioFor(tx: SqlRunner): LedgerIO {
   return {
     append: (e) => appendEvent(tx, e),
     readAll: async () => readEvents(tx),
+    readKill: () => killOf(tx),
     // Id gerado pelo próprio banco: independe da contagem de eventos e não colide entre processos.
     nextReservationId: async () => {
       const r = await rowsOf(tx, sql`SELECT gen_random_uuid()::text AS id`);
@@ -205,13 +215,8 @@ export class PostgresLedgerStore implements LedgerStore {
     return this.withLock((io) => io.readAll());
   }
 
-  async readKill(): Promise<KillState> {
-    const rows = await rowsOf(this.db, sql`SELECT scope FROM budget_kill_switch WHERE active = true`);
-    const scopes = rows.map((r) => String(r.scope));
-    return {
-      global: scopes.includes('global'),
-      routes: scopes.filter((s) => s.startsWith('route:')).map((s) => s.slice('route:'.length)),
-    };
+  readKill(): Promise<KillState> {
+    return killOf(this.db);
   }
 
   async setKill(scope: 'global' | `route:${string}`, active: boolean, reason: string, at: Date): Promise<void> {

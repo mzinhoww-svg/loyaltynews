@@ -37,7 +37,8 @@ export type ReserveRefusal =
   | 'provider_allocation_exhausted'
   | 'escalation_sublimit'
   | 'step_ceiling'
-  | 'hard_cap';
+  | 'hard_cap'
+  | 'kill_switch';
 
 export type ReserveResult =
   | { ok: true; reservationId: string; amountMicro: number }
@@ -142,6 +143,12 @@ export class BudgetGate {
     return this.store.withLock(async (io) => {
       const month = monthKey(input.at);
       const refuse = (reason: ReserveRefusal, detail: string): ReserveResult => ({ ok: false, reason, detail });
+
+      // 0. Parada persistida (defesa em profundidade: o gateway já a lê antes de rotear, mas a reserva é o último ponto antes do gasto).
+      //    Global recusa tudo, inclusive auditoria; parada de rota recusa só aquela rota. Conciliar e liberar não passam por aqui.
+      const kill = await io.readKill();
+      if (kill.global) return refuse('kill_switch', 'parada global ativa');
+      if (input.route && kill.routes.includes(input.route)) return refuse('kill_switch', `rota ${input.route} parada`);
 
       // 1. Custo desconhecido bloqueia (block_unknown_cost).
       if (input.amountUsd === null || !Number.isFinite(input.amountUsd) || input.amountUsd < 0) {

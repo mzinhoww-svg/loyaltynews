@@ -34,6 +34,8 @@ export interface LedgerIO {
   readAll(): Promise<readonly LedgerEvent[]>;
   // Id novo da reserva, gerado fora da contagem de eventos (UUID; no banco, gen_random_uuid()).
   nextReservationId(): Promise<string>;
+  // Parada vigente lida DENTRO da mesma transação/trava (sem abrir outra conexão: PGlite tem uma só).
+  readKill(): Promise<KillState>;
 }
 
 // Parada: global e por rota. Lida a cada chamada; ligada por quem tem autoridade (proprietário, gate).
@@ -72,6 +74,7 @@ export class MemoryLedgerStore implements LedgerStore {
       },
       readAll: async () => this.events.slice(),
       nextReservationId: async () => randomUUID(),
+      readKill: () => this.readKill(),
     };
   }
 
