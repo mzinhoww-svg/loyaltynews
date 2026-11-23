@@ -18,6 +18,7 @@ Estado: implementado em fast-track; **não homologado** (QA) nem operacional (De
 | **Consumidor Editorial → Intelligence** (`consumeArticle`, `extractRoleMentions`) | `src/editorial-consumer.ts` |
 | **Moves no portal** (`/moves`), newsletter e alertas aprovados | `src/views.ts`: `portalMovesPage`, `newsletterMovesDigest`, `studioApprovedAlertsFeed`, `describeMove` |
 | **Layout determinístico de organograma** + SVG | `src/org-layout.ts` (`layoutOrgChart`, `renderOrgChartSvg`) e `orgChartLayoutFor` em `src/views.ts` |
+| **Carga verificada** (organizações e relações com citação literal da fonte pública) | `data/seed.public.v1.json` + `.verification.json`, `scripts/verify-dataset.mjs`, `src/seed-load.ts`, `src/seed-cli.ts`, `scripts/load-seed.ts`; plano em `STAGING_LOAD_PLAN.md` |
 | Benchmark de 100 mil arestas | `bench/perf.perf.ts` → `bench/results/latest.json` |
 | Fixtures MOCK | `fixtures/mock-entities.ts` |
 
