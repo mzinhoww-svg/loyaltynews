@@ -54,6 +54,7 @@ export async function run(
       return 1;
     }
     const rpool = injectedDb ? null : new Pool(pgPoolConfig(env, { max: 1 }));
+    rpool?.on('error', () => undefined); // C1
     try {
       const rdb = (injectedDb ?? drizzle(rpool!, { schema })) as ReturnType<typeof drizzle<typeof schema>>;
       const gate = new BudgetGate(gateConfigFromPolicy(check.policy), new PostgresLedgerStore(rdb as unknown as SqlDatabase));
@@ -71,6 +72,7 @@ export async function run(
     return 2;
   }
   const pool = injectedDb ? null : new Pool(pgPoolConfig(env, { max: 1 }));
+  pool?.on('error', () => undefined); // C1
   try {
     const db = (injectedDb ?? drizzle(pool!, { schema })) as ReturnType<typeof drizzle<typeof schema>>;
     const store = new PostgresLedgerStore(db as unknown as SqlDatabase);

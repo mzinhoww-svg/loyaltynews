@@ -221,6 +221,7 @@ export async function run(
     }
   }
   const pool = injectedDb ? null : new Pool(pgPoolConfig(env, { max: 1 }));
+  pool?.on('error', () => undefined); // C1
   try {
     const db = (injectedDb ?? drizzle(pool!, { schema })) as unknown as Db;
     if (cmd === 'apply') out(JSON.stringify(await applyStagingSeed(db, env)));
