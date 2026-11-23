@@ -9,6 +9,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
+import { conexoesComSenhaReais } from './lib/segredos.mjs';
 import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER } from './lib/guards.mjs';
 
 const root = String(parseArgs(process.argv.slice(2)).root || process.cwd());
@@ -78,7 +79,11 @@ for (const f of all) {
   if (statSync(f).size > 2 * 1024 * 1024 || /\.(png|jpe?g|gif|webp|pdf|zip|gz|woff2?|ttf|otf|mp4|xlsx)$/i.test(r)) continue;
   if (r === 'infra/scripts/ci-checks.mjs' || r.startsWith('infra/tests/')) continue; // padrões e fixtures de teste
   const txt = readFileSync(f, 'utf8');
-  for (const [nome, re] of SECRET_PATTERNS) if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
+  for (const [nome, re] of SECRET_PATTERNS) {
+    if (nome === 'string de conexão com senha') {
+      if (conexoesComSenhaReais(txt, r).length) problems.push(`segredo: ${nome} em ${r}`);
+    } else if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
+  }
 }
 
 /** Texto sem comentários (comentário que CITA `PORTAL_VITRINE=1` não é atribuição). Só para a checagem da vitrine. */

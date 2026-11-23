@@ -705,3 +705,100 @@ test('build leve: package-web --build-leve recusa worker', () => {
   assert.equal(x.status, 2);
   assert.match(x.stderr, /--build-leve so vale para o web/);
 });
+
+// ---------- Fase 3 do staging: smoke tests (smoke-staging.mjs) ----------
+test('smoke-staging: avaliarReady e empresasNaPagina (funções puras)', async () => {
+  const { avaliarReady, empresasNaPagina } = await import('../scripts/smoke-staging.mjs');
+  assert.deepEqual(avaliarReady({ status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' }), []);
+  assert.match(avaliarReady({ status: 'ok', mode: 'nodb', db: 'n/a', redis: 'n/a' }).join('|'), /mode=nodb/);
+  assert.match(avaliarReady({ status: 'indisponivel', mode: 'completo', db: 'falha', redis: 'ok' }).join('|'), /db=falha/);
+  assert.match(avaliarReady({ status: 'indisponivel', mode: 'completo', db: 'ok', redis: 'nao_configurado' }).join('|'), /redis=nao_configurado/);
+  assert.deepEqual(avaliarReady(null), ['corpo sem JSON']);
+  assert.equal(empresasNaPagina('<p class="pt-meta" data-testid="count-empresas">29 cadastrado(s) e verificado(s)</p>'), 29);
+  assert.equal(empresasNaPagina('<p data-testid="count-empresas">Cadastros verificados: em breve</p>'), null);
+  assert.equal(empresasNaPagina('<html></html>'), null);
+});
+
+test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /intelligence em breve reprovam com o motivo', async () => {
+  const R = 'DEMO · staging';
+  const estado = { mode: 'completo', semSeed: false, orgs: 29 };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...h }); res.end(b); };
+    const itensSeed = estado.semSeed ? [] : [1, 2, 3, 4, 5].map((n) => ({ slug: 'a' + n, titulo: '[' + R + '] Matéria ' + n }));
+    if (u === '/api/health') return json(200, { status: 'ok', version: 'abc' });
+    if (u === '/api/ready') return json(200, estado.mode === 'nodb' ? { status: 'ok', mode: 'nodb', db: 'n/a', redis: 'n/a' } : { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' });
+    if (u === '/api/publico/site') return json(200, { nome: 'Loyalty News' });
+    if (u === '/api/publico/editorias') return json(200, { data: Array.from({ length: 10 }, (_, i) => ({ slug: 'e' + i })) });
+    if (u === '/api/publico/materias') return json(200, { data: itensSeed, total: itensSeed.length });
+    if (u === '/api/publico/agenda') return json(200, { data: [{ titulo: '[' + R + '] Evento' }] });
+    if (u === '/') return html(200, '<meta name="robots" content="noindex, nofollow"/>' + (estado.semSeed ? '' : '[' + R + '] Matéria 1'));
+    if (u === '/noticias') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
+    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.semSeed ? '' : '[' + R + '] x') + '</rss>'); }
+    if (u === '/intelligence') return html(200, estado.orgs ? '<p data-testid="count-empresas">' + estado.orgs + ' cadastrado(s) e verificado(s)</p>' : '<p data-testid="count-empresas">Cadastros verificados: em breve</p>');
+    if (u === '/studio') { res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
+    if (u === '/studio/entrar') return html(200, '<form><input type="password"/></form>');
+    if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('User-agent: *\nDisallow: /\n'); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  // spawn ASSÍNCRONO: o servidor falso roda neste processo e o spawnSync bloquearia o laço de eventos
+  const run = (extra = [], semUrl = false) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-staging.mjs'), ...(semUrl ? [] : ['--url', 'http://127.0.0.1:' + port, '--expect-commit', 'abc']), ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, stdout }));
+  });
+  try {
+    const ok = await run(['--expect-seed', '--expect-orgs', '29']);
+    assert.equal(ok.status, 0, ok.stdout);
+    assert.equal(JSON.parse(ok.stdout).falhas, 0);
+    estado.mode = 'nodb';
+    const nodb = await run();
+    assert.equal(nodb.status, 1);
+    assert.match(nodb.stdout, /mode=nodb/);
+    estado.mode = 'completo'; estado.semSeed = true;
+    assert.equal((await run()).status, 0, 'sem --expect-seed o seed não é exigido');
+    const sem = await run(['--expect-seed']);
+    assert.equal(sem.status, 1);
+    assert.match(sem.stdout, /seed publicado/);
+    estado.semSeed = false; estado.orgs = 0;
+    const emBreve = await run(['--expect-orgs', '29']);
+    assert.equal(emBreve.status, 1);
+    assert.match(emBreve.stdout, /adaptador api do portal ainda não lê Intelligence/);
+    assert.equal((await run([], true)).status, 2, 'sem --url recusa');
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+test('ci-checks: URL de conexão com senha em teste/doc só passa com host obviamente falso; host real, e qualquer host fora de teste/doc, reprova', async () => {
+  const { conexoesComSenhaReais } = await import('../scripts/lib/segredos.mjs');
+  const f1 = "const a = 'postgres://u:p@h/db'; const b = 'postgres://postgres:postgres@127.0.0.1:55432/postgres'; const c = 'postgres://u:p@db.example:5432/ln?x=1';";
+  assert.deepEqual(conexoesComSenhaReais(f1, 'packages/db/src/tls.test.ts'), []);
+  assert.deepEqual(conexoesComSenhaReais('postgres://usuario:senha@127.0.0.1:PORTA/postgres', 'packages/modelops/docs/ledger.md'), []);
+  assert.deepEqual(conexoesComSenhaReais('rediss://u:p@localhost:6379', 'apps/web/lib/x.spec.ts'), []);
+  const real = 'postgres://vertracloud:abc123@862011ce0c0a4472a2a1dbb341808f00.db.usa1.vertraweb.app:24684/vertracloud';
+  assert.equal(conexoesComSenhaReais(real, 'packages/db/src/tls.test.ts').length, 1, 'host da Vertra em teste continua reprovado');
+  assert.equal(conexoesComSenhaReais(real, 'docs/nota.md').length, 1, 'host da Vertra em doc continua reprovado');
+  assert.equal(conexoesComSenhaReais(f1, 'apps/web/app/api/x.ts').length, 3, 'fora de teste/doc nada muda');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@meu-servidor.com.br/db', 'apps/a.test.ts').length, 1, 'host desconhecido reprova');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@localhost.evil.com/db', 'apps/a.test.ts').length, 1, 'localhost.evil.com não é loopback');
+  assert.deepEqual(conexoesComSenhaReais('postgres://u:p@staging.exemplo.internal:5432/x postgres://u:p@10.0.0.7:5432/x postgres://u:p@192.168.1.9/x', 'packages/a/src/x.test.ts'), [], 'hosts internos e faixas privadas em teste');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@8.8.8.8/x', 'packages/a/src/x.test.ts').length, 1, 'IP publico em teste reprova');
+  assert.equal(conexoesComSenhaReais('postgres://u:p@10.0.0.7:5432/x', 'apps/web/lib/x.ts').length, 1, 'faixa privada fora de teste reprova');
+});
+
+test('ci-checks: árvore com fixture falsa em teste passa; com URL real da Vertra em teste reprova (ponta a ponta)', () => {
+  const ok = tmp();
+  put(ok, 'package.json', '{"name":"x"}');
+  put(ok, 'packages/db/src/tls.test.ts', "export const U = 'postgres://u:p@h/db';");
+  assert.equal(node('ci-checks.mjs', ['--root', ok], { env: cleanEnv() }).status, 0);
+  rmSync(ok, { recursive: true, force: true });
+  const bad = tmp();
+  put(bad, 'package.json', '{"name":"x"}');
+  put(bad, 'packages/db/src/tls.test.ts', "export const U = 'postgres://vertracloud:abc@0123456789abcdef.db.usa1.vertraweb.app:1/vertracloud';");
+  const x = node('ci-checks.mjs', ['--root', bad], { env: cleanEnv() });
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /string de conexão com senha em packages\/db\/src\/tls\.test\.ts/);
+  rmSync(bad, { recursive: true, force: true });
+});
