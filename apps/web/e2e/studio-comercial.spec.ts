@@ -91,7 +91,7 @@ test.describe('Comercial (@ln/commercial)', () => {
     await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
     await sucesso(page, 'Campanha criada em rascunho.');
     await expect(page.getByRole('heading', { level: 1, name: 'Cartão Verão' })).toBeVisible();
-    await expect(page.getByText('sem impressões')).toBeVisible();
+    await expect(page.getByTestId('rel-servidas')).toHaveText('—'); // sem entrega registrada: traço, nunca 0
     await expect(page.getByText('não disponível (sem analytics)')).toBeVisible();
 
     await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
@@ -122,5 +122,65 @@ test.describe('Comercial (@ln/commercial)', () => {
     await expect(page).toHaveURL(/campanhas[/]campanha-que-nao-existe/);
     const r = await page.goto('/studio/campanhas/inexistente');
     expect(r?.status()).toBe(404);
+  });
+
+  test('campanhas: relatório do anunciante (sem dado = "—"), janela e exportação CSV com acesso protegido', async ({ page, context, request }) => {
+    await entrar(context, 'caio', 'comercial');
+    await page.goto('/studio/campanhas');
+    await page.getByLabel('Nome', { exact: true }).fill('Relatório Teste');
+    await page.getByLabel('Início (AAAA-MM-DD)').fill('2099-01-10');
+    await page.getByLabel('Fim (AAAA-MM-DD)').fill('2099-01-20');
+    await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
+    await sucesso(page, 'Campanha criada em rascunho.');
+    const id = decodeURIComponent(new URL(page.url()).pathname.split('/').pop()!);
+
+    // cabeçalho e estado vazio honesto
+    const rel = page.getByTestId('relatorio');
+    await expect(rel.getByRole('heading', { name: 'Relatório do anunciante' })).toBeVisible();
+    await expect(page.getByTestId('rel-anunciante')).not.toHaveText('');
+    await expect(rel).toContainText('10/01/2099 a 20/01/2099');
+    for (const k of ['servidas', 'visiveis', 'cliques', 'taxa-vis', 'ctr', 'atualizado']) await expect(page.getByTestId(`rel-${k}`)).toHaveText('—');
+    await expect(page.getByTestId('rel-vazio')).toContainText('ainda não foi ativada');
+    await expect(page.getByTestId('rel-estimado')).toContainText('não');
+    await expect(page.getByTestId('rel-origem')).toContainText('Servidor de anúncios');
+    await expect(page.getByTestId('rel-por-dia')).toHaveCount(0);
+    expect(await rel.innerText()).not.toMatch(/R\$|fatur|cobran|pre[cç]o/i);
+
+    // janela: válida recorta; inválida mostra o aviso e a página continua
+    await page.goto(`/studio/campanhas/${encodeURIComponent(id)}?de=2099-01-12&ate=2099-01-15`);
+    await expect(page.getByTestId('rel-janela')).toContainText('12/01/2099 a 15/01/2099');
+    await expect(page.getByRole('link', { name: 'Exportar CSV diário' })).toHaveAttribute('href', /de=2099-01-12&ate=2099-01-15/);
+    await page.goto(`/studio/campanhas/${encodeURIComponent(id)}?de=2099-01-15&ate=2099-01-12`);
+    await expect(page.getByTestId('rel-erro')).toContainText(/janela/i);
+    await expect(page.getByRole('heading', { level: 1, name: 'Relatório Teste' })).toBeVisible();
+
+    // CSV: cabeçalhos de download e conteúdo (sem dado: só o cabeçalho, nenhuma linha de zero)
+    await page.goto(`/studio/campanhas/${encodeURIComponent(id)}`);
+    const href = (await page.getByRole('link', { name: 'Exportar CSV diário' }).getAttribute('href'))!;
+    const diario = await page.request.get(href);
+    expect(diario.status()).toBe(200);
+    expect(diario.headers()['content-type']).toBe('text/csv; charset=utf-8');
+    expect(diario.headers()['content-disposition']).toMatch(/^attachment; filename="relatorio-diario-[a-z0-9-]+-2099-01-10-2099-01-20\.csv"$/);
+    expect(diario.headers()['x-content-type-options']).toBe('nosniff');
+    expect(diario.headers()['cache-control']).toBe('no-store');
+    const corpo = await diario.text();
+    expect(corpo.charCodeAt(0)).toBe(0xfeff);
+    expect(corpo.replace(/^\uFEFF/, '').trimEnd().split('\r\n')).toEqual(['campanha_id,campanha,anunciante,data,posicao,criativo_id,impressoes_servidas,impressoes_visiveis,cliques_validos,taxa_visibilidade,ctr,origem,coletado_em,periodo_auditavel']);
+    const resumo = await page.request.get(href.replace('tipo=diario', 'tipo=resumo'));
+    expect(resumo.status()).toBe(200);
+    const r = await resumo.text();
+    expect(r).toContain('\r\nestimado,nao\r\n'); expect(r).toContain('\r\nimpressoes_servidas,\r\n'); expect(r).toContain('sem_dado,');
+    // janela inválida no CSV: recusa legível, sem arquivo
+    const ruim = await page.request.get(href.replace(/de=[^&]+&ate=[^&]+/, 'de=2099-01-15&ate=2099-01-12'));
+    expect(ruim.status()).toBe(422); expect(ruim.headers()['content-type']).toContain('text/plain');
+
+    // protegido: sem sessão e com papel sem permissão NÃO recebem o arquivo
+    const anonimo = await request.get(href, { maxRedirects: 0 });
+    expect(anonimo.headers()['content-type'] ?? '').not.toContain('text/csv');
+    expect(await anonimo.text()).not.toContain('campanha_id');
+    await entrar(context, 'edu', 'editor');
+    const editor = await page.request.get(href, { maxRedirects: 0 });
+    expect(editor.headers()['content-type'] ?? '').not.toContain('text/csv');
+    expect(await editor.text()).not.toContain('campanha_id');
   });
 });

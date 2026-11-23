@@ -17,6 +17,8 @@ delete base.LN_E2E_BUILD;
 delete base.LN_STUDIO_TEST_SESSION;
 delete base.LN_STUDIO_DEV_DB;
 delete base.PORTAL_VITRINE;
+// O interruptor de indexação de produção não pode vazar para os builds de verificação (staging o recusa; a verificação é do pacote sem indexação).
+delete base.PORTAL_INDEXAVEL;
 delete base.PORTAL_SOURCE;
 // Build de produção de verdade: APP_ENV=production e URL pública (o build de produção recusa localhost).
 base.APP_ENV = 'production';

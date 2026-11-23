@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "sea-lider",
+  "url": "https://www.sea.com/aboutus/leadership",
+  "finalUrl": "https://www.sea.com/aboutus/leadership",
+  "capturedAt": "2026-11-23T14:52:46.990Z",
+  "robots": "robots.txt permite",
+  "length": 1089,
+  "sha256Claimed": "d0208e33d72399a7158ea23610933c5590a20bd5e184daa207bd763dd20e1afc"
+}

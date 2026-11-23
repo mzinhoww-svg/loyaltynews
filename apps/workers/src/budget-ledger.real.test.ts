@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
 import { pgPoolConfig } from '@ln/db/tls';
 import { runMigrations } from '@ln/db/migrate';
+import { assertLocalTestHost } from '@ln/db/testing';
 import type { Db } from '@ln/auth';
 import { BudgetGate, PostgresLedgerStore, gateConfigFromPolicy, loadPolicyFile, type SqlDatabase } from '@ln/modelops';
 
@@ -36,6 +37,7 @@ describe.skipIf(!real)('ledger de orçamento em PostgreSQL real, com instâncias
     ({ taskId: 'editorial_draft', taskClass: 'essential', lane: 'text', provider: 'anthropic', model: 'anthropic/claude-sonnet-5.5', escalation: false, amountUsd: 1, at: NOW, ...over }) as never;
 
   beforeAll(async () => {
+    assertLocalTestHost(url!, 'LN_TEST_PG_URL'); // este teste cria e apaga um banco: só em PostgreSQL local
     admin = new pg.Pool(pgPoolConfig({ ...tls(), DATABASE_URL: url! }, { max: 1 }));
     await admin.query(`create database ${DBNAME}`);
     await runMigrations(envFor(DBNAME));

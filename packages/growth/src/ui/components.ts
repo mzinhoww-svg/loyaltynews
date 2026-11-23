@@ -180,6 +180,22 @@ export function PackageQueue({ result, hrefFor }: PackageQueueProps): ReactEleme
   );
 }
 
+const METRIC_STATUS_LABEL = { ok: 'ok', sem_dados: 'sem dados', indisponivel: 'indisponível' } as const;
+const dash = (n: number | null) => (n === null ? '—' : String(n));
+
+/** Linha de métricas do canal LinkedIn (mLabs, só leitura). Valor ausente aparece como "—", nunca como 0. */
+export function metricsLine(m: DashboardSummary['metrics']): string {
+  if (!m.available) return `Métricas: indisponíveis (${m.reason})`;
+  const d = m.data;
+  const pub = d.published.status === 'ok'
+    ? `${dash(d.published.count)} post(s) publicado(s)${d.published.truncated ? ' (lista cortada)' : ''}`
+    : `posts publicados ${METRIC_STATUS_LABEL[d.published.status]}${d.published.reason ? ` (${d.published.reason})` : ''}`;
+  const fol = d.followers.status === 'ok'
+    ? `${dash(d.followers.current)} seguidor(es)${d.followers.observedAt ? `, última observação ${d.followers.observedAt.slice(0, 10)}` : ''}`
+    : `seguidores ${METRIC_STATUS_LABEL[d.followers.status]}${d.followers.reason ? ` (${d.followers.reason})` : ''}`;
+  return `Métricas LinkedIn (mLabs, leitura, ${d.period.start} a ${d.period.end}): ${pub} · ${fol}`;
+}
+
 export function DashboardSummaryCards({ summary }: { summary: DashboardSummary }): ReactElement {
   const statuses = Object.keys(summary.totals.byStatus) as PackageStatus[];
   return h('section', { 'aria-label': 'Resumo do Social Dashboard', style: { display: 'grid', gap: 12 } },
@@ -194,7 +210,6 @@ export function DashboardSummaryCards({ summary }: { summary: DashboardSummary }
     h('p', { style: { margin: 0 }, 'data-totals': true },
       `${summary.totals.packages} pacote(s): ${statuses.map((s) => `${STATUS_LABEL[s]} ${summary.totals.byStatus[s]}`).join(' · ')}`),
     h('p', { style: { margin: 0 }, 'data-brand': true }, brandStatusLabel(summary.brandStatus)),
-    h('p', { style: { margin: 0 }, 'data-metrics': true },
-      `Métricas: ${summary.metrics.available ? 'disponíveis' : `indisponíveis (${summary.metrics.reason})`}`),
+    h('p', { style: { margin: 0 }, 'data-metrics': true }, metricsLine(summary.metrics)),
   );
 }

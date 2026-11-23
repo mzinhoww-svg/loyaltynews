@@ -23,6 +23,7 @@ async function main() {
   const flags = parseFactoryFlags(LN_FACTORY_FLAGS);
   if (flags.modelosHabilitados) { console.error('[fábrica] modelosHabilitados recusada: ledger de orçamento persistente ainda não existe'); process.exit(1); }
   const pool = new Pool({ connectionString: DATABASE_URL, max: 4 });
+  pool.on('error', () => undefined); // C1
   const db = drizzle(pool, { schema }) as unknown as Db;
   try {
     let gateway;

@@ -255,6 +255,10 @@ export const api = {
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
     transicaoCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns/transition`, { metodo: 'POST', corpo }),
+    /** Relatório do anunciante (visíveis e cliques contados, origem, janela e data; nunca estimado). Janela opcional AAAA-MM-DD. */
+    relatorio: (campaignId: string, from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report`, { query: { campaignId, from, to } }),
+    /** O mesmo relatório em CSV ('diario' ou 'resumo'): corpo { filename, contentType, csv }. */
+    relatorioCsv: (campaignId: string, kind: 'diario' | 'resumo', from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report-csv`, { query: { campaignId, kind, from, to } }),
   },
   intelligence: {
     /** Empresas por nome (GET /api/studio/intelligence/companies?q=). */
