@@ -1,0 +1,3165 @@
+{
+  "geradoEm": "2026-11-23",
+  "leitores": [
+    {
+      "dominio": "www.gov.br (portal; CVM, ANPD, Senacon/MJSP, ANAC, MCTI, ANATEL, Ministerio do Turismo)",
+      "fontes": [
+        "gov-br-portal"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.gov.br/pt-br/termos-de-uso",
+          "titulo": "Termo de Uso e Aviso de Privacidade",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias",
+          "titulo": "CVM - Noticias (somente rodape consultado)",
+          "tipo": "licenca",
+          "consultadoEm": "2026-11-23T07:31:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.gov.br/anpd/pt-br",
+          "titulo": "ANPD - pagina inicial (somente rodape consultado)",
+          "tipo": "licenca",
+          "consultadoEm": "2026-11-23T07:31:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "licenca",
+          "trecho": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada",
+          "url": "https://www.gov.br/pt-br/termos-de-uso"
+        },
+        {
+          "topico": "licenca",
+          "trecho": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada.",
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias"
+        },
+        {
+          "topico": "licenca",
+          "trecho": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada",
+          "url": "https://www.gov.br/anpd/pt-br"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao de texto (no texto do Termo de Uso)",
+        "citacao",
+        "resumo/obra derivada (no texto do Termo de Uso; ha apenas o nome da licenca no rodape)",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "atribuicao/credito (no texto do Termo de Uso; ha apenas o nome da licenca no rodape)",
+        "uso comercial"
+      ],
+      "robots": {
+        "url": "https://www.gov.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:30:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: sem User-agent de IA e sem ai-train. Grupos: Yandex (Disallow /ebserh, /mre) e * (Disallow /economia/pt-br/internet/*, formularios/visualizacoes de /ebserh e /mre, recursos estaticos CSS/JS/imagens/PDF/ZIP, temas e recursos). Bloco do Googlebot aparece comentado. Sitemap: https://www.gov.br/sitemap.xml.gz. Texto integral nao foi exibido pela ferramenta."
+      },
+      "observacoes": "A pagina de Termo de Uso e Aviso de Privacidade (resumida pela ferramenta como lida integralmente) NAO traz secoes sobre reproducao, citacao, obra derivada, links, imagens, automacao/IA, atribuicao ou uso comercial; a unica referencia de licenca e o aviso de rodape (CC BY-ND 3.0, link https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR). O mesmo aviso de rodape foi observado em CVM (noticias) e ANPD. Nao foram abertos ANAC, MCTI, ANATEL, Senacon/MJSP e Ministerio do Turismo (nao verificado se ha aviso proprio). Links de privacidade vistos (nao lidos): CVM https://www.gov.br/cvm/pt-br/acesso-a-informacao-cvm/acoes-e-programas/politica-de-privacidade ; ANPD /anpd/pt-br/acesso-a-informacao/aviso-de-privacidade. Todos os trechos vieram do resumo da WebFetch (modelo intermediario), nao de leitura bruta do HTML. Horarios de consulta sao aproximados (sessao iniciada ~07:30-03:00)."
+    },
+    {
+      "dominio": "www.bcb.gov.br",
+      "fontes": [
+        "bcb"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.bcb.gov.br/",
+          "titulo": "Banco Central do Brasil (home; apenas o titulo foi retornado, sem rodape/links)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.bcb.gov.br/acessoinformacao/termosdeuso",
+          "titulo": "Banco Central do Brasil (URL tentada; retornou apenas o titulo)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:35:00-03:00",
+          "status": "nao_encontrado",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251",
+          "titulo": "Colecao de Arte (perfil Flickr do Banco Central; aviso de reproducao copiado do BCB, NAO e documento do dominio bcb.gov.br)",
+          "tipo": "direitos_autorais",
+          "consultadoEm": "2026-11-23T07:38:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao de texto / atribuicao / uso comercial (aviso em pagina do Flickr do BCB, nao no site bcb.gov.br)",
+          "trecho": "É permitida a reprodução total ou parcial sem fins lucrativos do conteúdo deste site,",
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251"
+        },
+        {
+          "topico": "atribuicao (mesmo aviso)",
+          "trecho": "preservada a integridade das informações e citada a fonte.",
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251"
+        },
+        {
+          "topico": "link para o site (mesmo aviso)",
+          "trecho": "É autorizada também a inserção, em outros sites, de links para essa página.",
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251"
+        }
+      ],
+      "topicosNaoInformados": [
+        "termos de uso oficiais do site bcb.gov.br (nao localizados/renderizados)",
+        "citacao",
+        "resumo/obra derivada",
+        "imagens/material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "licenca (no site bcb.gov.br)"
+      ],
+      "robots": {
+        "url": "https://www.bcb.gov.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:33:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: sem User-agent de IA e sem ai-train. Regra * e Googlebot/Googlebot-Image/Googlebot-News/Googlebot-Video: Allow / com Disallow de _catalogs, Lists/, Forms/, _layouts/. Mediapartners-Google e AdsBot-Google (variantes): Disallow /."
+      },
+      "observacoes": "O site bcb.gov.br renderizou apenas o titulo via WebFetch (provavel conteudo dinamico); o rodape/aviso oficial NAO foi lido. O unico texto de aviso de reproducao obtido veio de pagina do Flickr (perfil bancocentralbr, contato museudevalores@bcb.gov.br), que reproduz aviso do BCB; tambem foi citado por busca (resumo de busca, nao lido) em lista de e-mails OSM 2015, portanto o texto vigente no site pode diferir. A ferramenta ainda indicou via busca (NAO lido, nao verificado): Regulamento Pix (documento especifico) com 'Todos os direitos reservados. É permitida a reprodução parcial ou total desta obra, desde que citada a fonte e que não seja para venda ou qualquer fim comercial.'; Trabalhos para Discussao exigem citacao da fonte; Revista PGBC sob CC BY-NC-SA 4.0. Esses itens sao de documentos especificos, nao do site em geral. Politica de privacidade https://www.bcb.gov.br/acessoinformacao/politicaprivacidade nao foi aberta."
+    },
+    {
+      "dominio": "ri.voeazul.com.br / www.voeazul.com.br",
+      "fontes": [
+        "azul-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/",
+          "titulo": "Termos & Condições de Uso - Azul RI",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao de texto / direitos autorais",
+          "trecho": "Salvo disposição em contrário, todo o conteúdo das páginas desse website, tais como informações, materiais, instrumentos,",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/"
+        },
+        {
+          "topico": "reproducao de texto",
+          "trecho": "sendo vedada sua reprodução, sem prévia autorização da Azul.",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/"
+        },
+        {
+          "topico": "link (sites de terceiros; nao trata de links para o site)",
+          "trecho": "A Azul não se responsabiliza pelo conteúdo de outros websites (a) cujos endereços estejam disponíveis nas páginas deste",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/"
+        },
+        {
+          "topico": "escopo de uso",
+          "trecho": "A navegação e consulta pública desse website se sujeita aos Termos e Condições abaixo:",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "atribuicao/credito",
+        "uso comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://ri.voeazul.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:32:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: User-agent * / Googlebot / GoogleOther / Bingbot / Googlebot-Mobile agrupados; Allow /; Disallow /wp-admin/, /wp-includes/, /wp-content/ (com Allow para tema mziq_azul_ri e imagens jpg/jpeg/png/gif em uploads). Sem ai-train nem User-agent de IA. www.voeazul.com.br/robots.txt retornou 403 (nao consultado, nao contornado)."
+      },
+      "observacoes": "A ferramenta limita citacoes a ~125 caracteres, entao os trechos sao fragmentos; a frase completa da clausula de direitos autorais nao foi obtida literalmente (o resumo diz que o conteudo pertence a Azul ou a terceiros que cederam o uso). Termos do site www.voeazul.com.br nao foram acessados (403 no robots.txt)."
+    },
+    {
+      "dominio": "ri.voegol.com.br / www.voegol.com.br",
+      "fontes": [
+        "gol-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/",
+          "titulo": "Termos e Condições - GOL RI",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao de texto / direitos autorais",
+          "trecho": "Salvo disposição em contrário, todo o conteúdo das páginas desse website, tais como informações, materiais",
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/"
+        },
+        {
+          "topico": "reproducao de texto",
+          "trecho": "sendo vedada sua reprodução, sem prévia autorização da GOL.",
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/"
+        },
+        {
+          "topico": "link (sites de terceiros; nao trata de links para o site)",
+          "trecho": "A GOL não se responsabiliza pelo conteúdo de outros websites (a) cujos endereços estejam disponíveis",
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "atribuicao/credito",
+        "uso comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://ri.voegol.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:32:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: mesma estrutura do RI da Azul (User-agent *, Googlebot, GoogleOther, Bingbot, Googlebot-Mobile; Allow /; Disallow /wp-admin/, /wp-includes/, /wp-content/; Allow tema mziq_gol_ri e imagens em uploads). Sem ai-train nem User-agent de IA. www.voegol.com.br/robots.txt retornou 403 (nao contornado)."
+      },
+      "observacoes": "Trechos limitados a ~125 caracteres pela ferramenta; a segunda parte da clausula foi apresentada separadamente (resumo menciona 'pertencem à GOL ou a terceiros que licitamente cederam seu direito de uso'; esse fragmento veio entre aspas na primeira resposta, nao reproduzido aqui por vir incompleto). Termos do site www.voegol.com.br nao acessados."
+    },
+    {
+      "dominio": "ir.latam.com / www.latamairlines.com / latampass.latam.com",
+      "fontes": [
+        "latam-ir"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.latamairlines.com/us/en/legal/terms-of-use",
+          "titulo": "Terms of Use (LATAM Airlines) - nao lido",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://ir.latam.com/",
+          "titulo": "LATAM Investor Relations (home; rodape consultado)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:34:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://latampass.latam.com/",
+          "titulo": "LATAM Pass (home) - nao lido",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:36:00-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://latampass.latam.com/pt_br/descubra-latam-pass/termos-e-condicoes-2025",
+          "titulo": "Termos e Condições (LATAM Pass, regulamento do programa) - nao lido",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:40:00-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "copyright (rodape de ir.latam.com; nao e clausula de uso de conteudo)",
+          "trecho": "© 2026 LATAM Airlines Group S.A. - All rights reserved",
+          "url": "https://ir.latam.com/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao de texto",
+        "citacao",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "atribuicao/credito",
+        "uso comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://ir.latam.com/robots.txt",
+        "consultadoEm": "2026-11-23T07:34:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: User-agent * (Crawl-delay: 10, Allow: /), Eluta.ca, MS Search 6.0 Robot, gsa-crawler (Crawl-delay: 60, Allow: /); nenhum Disallow, sem ai-train nem User-agent de IA. https://www.latamairlines.com/robots.txt retornou 403 (nao contornado)."
+      },
+      "observacoes": "Terms of Use em www.latamairlines.com retornou HTTP 403; registrado como inacessivel, sem tentativa de contornar. O rodape de ir.latam.com (plataforma Q4 Inc.) lista Privacy Policy, Cookies Policy e Terms of Use apontando para https://www.latamairlines.com/us/en/legal/privacy-policy, .../cookies-policy e .../terms-of-use (links vistos, nao lidos). latampass.latam.com e a pagina de regulamento retornaram 403. Busca web apenas listou paginas de regulamento do programa LATAM Pass por pais (ex.: https://latampass.latam.com/en_us/discover-latam-pass/terms-and-conditions), que sao regras do programa de fidelidade e nao foram abertas; nao e documento de uso de conteudo."
+    },
+    {
+      "dominio": "www.abecs.org.br",
+      "fontes": [
+        "abecs"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "titulo": "Termos de Uso (documento: TERMOS E CONDIÇÕES GERAIS DE USO – ABECS, última modificação 01/11/2019)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao de texto (item 2.2)",
+          "trecho": "não reproduzir, transferir, distribuir, armazenar e/ou de qualquer maneira utilizar o conteúdo do Aplicativo e do Site",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "imagens / propriedade (item 2.1)",
+          "trecho": "marcas, logotipos, nomes comerciais, layouts, gráficos e design de interface, imagens, ilustrações, fotografias",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "licenca / direitos (item 2.3)",
+          "trecho": "nenhuma informação contida no Aplicativo e no Site deve ser interpretada como cessão, licença ou transferência de direitos",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "licenca de uso do aplicativo (item 1.2)",
+          "trecho": "O Aplicativo consiste em uma licença de uso concedida pela ABECS a seus usuários em dispositivos móveis",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "link (item 4.6; trata de links para outros sites)",
+          "trecho": "O Aplicativo e o Site poderão fornecer conexões ou referências a outros sites, originados de outras companhias",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "obra derivada (item 3.3; refere-se a Materiais enviados por usuario a ABECS)",
+          "trecho": "inclusive criação de obras derivadas",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "atribuicao (item 3.3; refere-se a Materiais enviados por usuario)",
+          "trecho": "seu nome será citado sempre que os Materiais forem utilizados pela ABECS, conforme informado pelo Usuário",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        },
+        {
+          "topico": "uso comercial (item 3.2; refere-se a Materiais enviados por usuario)",
+          "trecho": "A ABECS e suas empresas afiliadas e parceiras poderão usar e tornar públicos os Materiais, para qualquer propósito",
+          "url": "https://www.abecs.org.br/termos-de-uso"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "resumo/obra derivada por terceiros",
+        "link para o site",
+        "material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "atribuicao/credito para uso de conteudo da ABECS por terceiros",
+        "uso comercial por terceiros do conteudo do site"
+      ],
+      "robots": {
+        "url": "https://www.abecs.org.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:33:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: User-agent *; Disallow vazio; Disallow /?products/ e /products/. Sem ai-train, content-signal nem User-agent de IA."
+      },
+      "observacoes": "O documento trata de Aplicativo e Site em conjunto. A ferramenta indicou que 'Imprensa' aparece so como item de menu. Os itens 3.2/3.3 tratam de Materiais enviados por usuarios, nao de uso do conteudo da ABECS por terceiros; trechos incluidos por serem os mais proximos do topico, sem dedução."
+    },
+    {
+      "dominio": "www.iata.org",
+      "fontes": [
+        "iata"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.iata.org/en/terms/",
+          "titulo": "Website Terms of Use (cabecalho: IATA - Terms of Use)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao de texto (secao 3)",
+          "trecho": "IATA authorizes you to download or reproduce selected materials from this Website only for your personal, non-commercial use",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "reproducao em massa (secao 3)",
+          "trecho": "Without limitation, unlimited or wholesale reproduction, copying of the content",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "obra derivada (secao 3)",
+          "trecho": "You may not otherwise modify, disassemble, create derivative works, distribute, reproduce, publicly display",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "modificacao de dados (secao 3)",
+          "trecho": "unwarranted modification of data and information within the content is not permitted",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "link (secao 4; links de terceiros)",
+          "trecho": "IATA is providing these Third Party Links to you only as a convenience",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "propriedade de conteudo/imagens (secao 5)",
+          "trecho": "text, data, graphics, and icons, are copyrighted materials owned by IATA",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "IA (secao 3, 'Your Conduct'; fragmento da ferramenta)",
+          "trecho": "any generative artificial intelligence chatbot, platform or tool",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "IA (secao 3; fragmento da ferramenta)",
+          "trecho": "use the AI Tool for any interrogation, assessment or analysis",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "atribuicao (secao 3)",
+          "trecho": "provided that you retain all copyright and other proprietary notices contained in the original materials",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "atribuicao (secao 3)",
+          "trecho": "that the title or database brand name and IATA name is stated as the source",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "uso comercial (secao 3)",
+          "trecho": "it is not intended for commercial exploitation unless expressly agreed in writing by IATA",
+          "url": "https://www.iata.org/en/terms/"
+        },
+        {
+          "topico": "licenca (secao 1)",
+          "trecho": "you are granted a single user, non-exclusive, non-transferrable, revocable limited license to access and use this Website",
+          "url": "https://www.iata.org/en/terms/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao (clausula especifica)",
+        "link para o site (so links de terceiros)",
+        "material de imprensa",
+        "raspagem/robos/mineracao de texto (a ferramenta informou que nao ha mencao a scrap/crawl/robot/automated/text and data mining nem a treinamento de modelos)"
+      ],
+      "robots": {
+        "url": "https://www.iata.org/robots.txt",
+        "consultadoEm": "2026-11-23T07:33:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Segundo o resumo da ferramenta: User-agent * com Disallow /en/search/*, /episerver/, /utils/, /en/customers-tax-faq/, /customers-tax-faq/, /en/store/trainings/*; Sitemap https://www.iata.org/sitemap.xml. Sem ai-train, content-signal nem User-agent de IA."
+      },
+      "observacoes": "As frases de IA e de atribuicao vieram truncadas pela ferramenta (limite ~125 caracteres); o sentido completo (uso de ferramenta de IA generativa com informacao IATA, analise ou criacao de versoes derivadas, segundo o resumo da ferramenta) nao foi obtido em texto integral literal. Trechos 'atribuicao' sao parte de condicao do uso permitido (reproducao pessoal e nao comercial). O texto da secao 3 refere-se a ferramentas de IA em contexto de informacao confidencial/IATA, conforme resumo."
+    },
+    {
+      "dominio": "ri.magazineluiza.com.br / www.magazineluiza.com.br",
+      "fontes": [
+        "magalu-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://ri.magazineluiza.com.br/",
+          "titulo": "Magazine Luiza RI (home) - nao lido",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:35:00-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://www.magazineluiza.com.br/",
+          "titulo": "Magazine Luiza (home) - nao lido",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:35:00-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [],
+      "topicosNaoInformados": [
+        "todos os topicos (nenhum documento de termos lido)"
+      ],
+      "robots": {
+        "url": "https://www.magazineluiza.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:36:00-03:00",
+        "status": "inacessivel",
+        "sinaisDeIA": null,
+        "observacao": "HTTP 403. https://ri.magazineluiza.com.br/robots.txt tambem retornou 403. Nao contornado."
+      },
+      "observacoes": "Home do RI, home do site institucional e robots.txt dos dois hosts retornaram HTTP 403 via WebFetch (sem contornar). Busca web nao localizou termos de uso do site/RI de Magalu (so um termo de entregadores Magalog, nao aberto e nao relacionado ao conteudo). Status geral dos termos: nao_encontrado/inacessivel."
+    },
+    {
+      "dominio": "ri.bb.com.br / www.bb.com.br",
+      "fontes": [
+        "bb-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.bb.com.br/pbb/pagina-inicial/voce/politicas-de-uso-e-privacidade",
+          "titulo": "Políticas de Uso e Privacidade - Portal BB",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:36:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.bb.com.br/pbb/pagina-inicial/voce/politicas-de-uso-e-privacidade#/",
+          "titulo": "URL fornecida (com #/): HTTP 404 via WebFetch",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:30:00-03:00",
+          "status": "nao_encontrado",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://ri.bb.com.br/",
+          "titulo": "BB RI (home; rodape consultado)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:34:00-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "copyright (rodape de ri.bb.com.br; sem detalhamento)",
+          "trecho": "© Todos os direitos reservados",
+          "url": "https://ri.bb.com.br/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao de texto",
+        "citacao",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automacao/raspagem/robos/mineracao de texto/IA",
+        "atribuicao/credito",
+        "uso comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://www.bb.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:33:00-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "www.bb.com.br (resumo da ferramenta): User-agent * com Disallow /docs/pub/, /docs/portal/, /docs/pub/*.pdf$, /docs/sitesp/sustentabilidade/hotsite_Internet.html, /pbb/s001t006p002,500965,502412,8,1,1,2.bb, /portalbb/; Sitemap em cdn.bb.com.br; sem ai-train nem User-agent de IA. ri.bb.com.br/robots.txt (resumo): User-agent *, Googlebot, GoogleOther, Bingbot, Googlebot-Mobile agrupados; Disallow /wp-admin/, /wp-includes/, /wp-content/ (Allow tema mziq_banco_do_brasil_ri e imagens em uploads); sem ai-train nem User-agent de IA; Sitemap https://ri.bb.com.br/sitemap_index.xml (consultado 07:41)."
+      },
+      "observacoes": "A pagina 'Políticas de Uso e Privacidade - Portal BB' renderizou apenas navegacao ('Ignorar menu lateral', 'Conteúdo após menu lateral'); o texto das politicas NAO foi lido (provavel SPA), portanto nao se pode afirmar se contem regras de uso de conteudo ou so privacidade. A home de ri.bb.com.br nao exibiu link de termos de uso; so apontou para a mesma pagina de politicas (https://www.bb.com.br/pbb/pagina-inicial/voce/politicas-de-uso-e-privacidade#/). Busca web retornou apenas documentos de terceiros/especificos (nao lidos): Termo de uso do Portal do Desenvolvedor https://publicador.developers.bb.com.br/bucket/termo_uso_portal_developer_72489acf92.pdf (APIs) e Internet Banking Agreement da agencia de Londres https://www.bb.com.br/docs/portal/uce/InternetBankingAgreementPT.pdf; nao se aplicam ao site brasileiro e nao foram abertos."
+    },
+    {
+      "dominio": "nu.com / nubank.com.br (Nubank)",
+      "fontes": [
+        "nubank-newsroom"
+      ],
+      "documentos": [
+        {
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "titulo": "Termos de Uso (Nubank) - Vigência: 23/12/2025",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://nu.com/en/newsroom",
+          "titulo": "Nu Newsroom (rodapé sem link de Terms/Legal)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://nu.com/en/newsroom/press-kit",
+          "titulo": "Nu Press kit (sem termos de uso do material)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://nu.com/en/investors",
+          "titulo": "Nu Investor Relations (www.investidores.nu e international.nubank.com.br/newsroom redirecionam para nu.com; rodapé sem Terms/Legal)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reprodução de texto",
+          "trecho": "É vedado copiar, reproduzir, distribuir ou reutilizar conteúdos do Nubank sem autorização prévia e expressa do Nubank ou de terceiros titulares, conforme a legislação de direitos autorais, software e propriedade industrial.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso"
+        },
+        {
+          "topico": "link para o site",
+          "trecho": "Qualquer hiperlink do seu site ou aplicativo para páginas, produtos ou serviços do Nubank depende de autorização prévia e específica do Nubank.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso"
+        },
+        {
+          "topico": "automação/raspagem/mineração de dados",
+          "trecho": "Coleta automatizada e acesso indevido: acessar e coletar dados por meios automatizados (scraping, data mining, extração) sem autorização, nem tentar acessar dados sem permissão.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso"
+        },
+        {
+          "topico": "imagens/marcas (uso de marca, nome, logotipo)",
+          "trecho": "Sem uso indevido de marca: fora do próprio link, não usar marca, nome, logotipo, slogan, look and feel ou outros sinais do Nubank, salvo se houver autorização prévia e específica e observância às diretrizes de marca.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso"
+        },
+        {
+          "topico": "uso comercial (fragmento; contexto exato da cláusula não confirmado)",
+          "trecho": "comercializar, revender, alugar ou compartilhar acesso aos serviços, produtos e aplicativo do Nubank.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso"
+        },
+        {
+          "topico": "licença (fragmento; refere-se a licença concedida ao usuário, objeto exato não confirmado)",
+          "trecho": "Você recebe uma licença limitada, não exclusiva, intransferível, gratuita e revogável",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso"
+        },
+        {
+          "topico": "imagens/material de imprensa",
+          "trecho": "Download our logo, app images, and photos.",
+          "url": "https://nu.com/en/newsroom/press-kit"
+        },
+        {
+          "topico": "aviso de copyright (nu.com)",
+          "trecho": "© 2026 Nu Holdings Ltd.",
+          "url": "https://nu.com/en/newsroom/press-kit"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citação",
+        "resumo/obra derivada de conteúdo do site (a menção a obras derivadas na ferramenta refere-se a conteúdo enviado pelo usuário)",
+        "IA/treinamento/text mining (só há menção a scraping/data mining)",
+        "atribuição/crédito exigido para uso de conteúdo do site",
+        "licença de conteúdo tipo CC",
+        "termos específicos do press kit / sala de imprensa (a página do press kit não traz termos)"
+      ],
+      "robots": {
+        "url": "https://nu.com/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Grupos: User-Agent DatoCmsSearchBot e User-Agent *, ambos com Allow: / e Disallows de caminhos /us/, /global/ e /preview (nenhum relativo a notícias/newsroom em /en/). Sem User-agent de IA, sem ai-train/Content-Signal. Também lido: https://nubank.com.br/robots.txt (sem linhas de IA; bloqueia .pdf, /contratos/, utm_ etc.)."
+      },
+      "observacoes": "Os Termos de Uso lidos estão em nubank.com.br (rodapé do site brasileiro) e falam do ambiente/aplicativo do Nubank; os rodapés de nu.com/en/newsroom, press-kit e investors NÃO têm link de Terms/Legal (só Global Privacy Notice, PDF https://cdn.nu.com/global/en/privacy-notice.pdf, não aberto). Não está confirmado no texto se os Termos de nubank.com.br se aplicam a nu.com. WebFetch devolve respostas processadas por modelo: trechos marcados via resumo; os de uso comercial e licença vieram de uma primeira passada mais curta (fragmentos). www.investors.nu não foi consultado (investidores.nu redireciona a nu.com/en/investors). Horários de consulta aproximados (horário da sessão)."
+    },
+    {
+      "dominio": "portal.febraban.org.br",
+      "fontes": [
+        "febraban"
+      ],
+      "documentos": [
+        {
+          "url": "https://portal.febraban.org.br/",
+          "titulo": "FEBRABAN - Home (rodapé: Política de Privacidade, Cookies, © 2026)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br",
+          "titulo": "Febraban - Privacidade / Política de Privacidade e de Cookies",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://portal.febraban.org.br/termos-de-uso",
+          "titulo": "URL testada; devolveu a home (não é página de termos)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "nao_encontrado",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://febrabantech.febraban.org.br/termos-privacidade",
+          "titulo": "FEBRABAN TECH – termos e condições de uso & política de privacidade (outro host/evento)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso de copyright (único aviso encontrado no portal)",
+          "trecho": "© 2026 FEBRABAN Todos os direitos reservados.",
+          "url": "https://portal.febraban.org.br/"
+        },
+        {
+          "topico": "referência a Termos e Condições de Uso (documento em si não localizado)",
+          "trecho": "ou prática de atividade contrárias à presente Política, aos Termos e Condições de Uso ou à legislação vigente,",
+          "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br"
+        },
+        {
+          "topico": "links (para sites de terceiros, na política de privacidade)",
+          "trecho": "poderá conter links para outros sites",
+          "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reprodução de texto",
+        "citação",
+        "resumo/obra derivada",
+        "link para o site (só há texto sobre links do site para terceiros)",
+        "imagens/material de imprensa",
+        "automação/raspagem/IA",
+        "atribuição/crédito",
+        "uso comercial",
+        "licença"
+      ],
+      "robots": {
+        "url": "https://portal.febraban.org.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Um único grupo User-agent: * (resumido pela ferramenta, texto integral não reproduzido): Disallow de parâmetros de rastreio/utm, /Busca/, /Noticias/GestaoNewsLetter, /DetalheMeuBolso, /DetalheTech, /404/, /302/, e versões /en/ e /en-us/. Sem User-agent de IA, sem ai-train/Content-Signal. Sitemap: https://portal.febraban.org.br/sitemap.xml."
+      },
+      "observacoes": "Não foi localizado documento de Termos de Uso do portal principal: a política de privacidade menciona Termos e Condições de Uso, mas sem link/texto. Uma busca (resultado de WebSearch, NÃO lido na íntegra por mim) apontou que a plataforma FEBRABAN TECH tem termos próprios com cláusula de reprodução; a página febrabantech.febraban.org.br/termos-privacidade renderizou só o título (parcial). A mesma busca citou aviso de direitos autorais em PDFs de publicações (convenções coletivas), também NÃO lidos. Horários aproximados."
+    },
+    {
+      "dominio": "www.bradescori.com.br e banco.bradesco",
+      "fontes": [
+        "bradesco-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.bradescori.com.br/",
+          "titulo": "Bradesco RI (rodapé: Diretiva de Privacidade, © 2026 Bradesco RI)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://banco.bradesco/cartoes/hotsitefidelidade/",
+          "titulo": "Hotsite Fidelidade Bradesco Cartões (rodapé: Diretiva de Privacidade e Regulamentos; sem termos de uso/direitos autorais)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://assets.bradesco/content/dam/portal-bradesco/assets/exclusive/pdf/condicoes_de_uso_do_bradesco_internet_banking.pdf",
+          "titulo": "Condições de uso do Bradesco Internet Banking (PDF; termos de produto, não do site de notícias)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso de copyright (bradescori.com.br)",
+          "trecho": "© 2026 Bradesco RI.",
+          "url": "https://www.bradescori.com.br/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reprodução de texto",
+        "citação",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automação/raspagem/IA",
+        "atribuição/crédito",
+        "uso comercial",
+        "licença"
+      ],
+      "robots": {
+        "url": "https://banco.bradesco/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": "Linhas User-agent de IA presentes: GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, PerplexityBot, Perplexity-User, Google-Extended, Applebot-Extended. Estão no MESMO grupo de User-agent: * e Spacecat/1.0, com Allow: / (ou seja, nenhum bloqueio específico de IA). Sem ai-train/Content-Signal.",
+        "observacao": "Disallow (para todos): /erro-404/, diretório Akamai, páginas de campanha, assets de header/footer, /ciclodevida/, páginas de abertura de conta/produtos, formulário de ouvidoria, cartão Platinum, /principal/cadastro/, /bradesco-bank.shtm. O hotsite /cartoes/hotsitefidelidade/ não aparece na lista que a ferramenta resumiu. Resumo da ferramenta (arquivo não reproduzido). Também lido: https://www.bradescori.com.br/robots.txt: grupo * (+Googlebot, GoogleOther, Bingbot, Googlebot-Mobile) com Allow: / e Disallow /wp-admin/, /wp-includes/, /wp-content/; sem linhas de IA, sem ai-train/Content-Signal."
+      },
+      "observacoes": "Nenhum Termos de Uso/Direitos autorais geral do site foi localizado nos rodapés abertos. O PDF de Condições do Internet Banking foi baixado, mas o texto (streams comprimidos) não pôde ser lido: nada registrado do seu conteúdo. Uma busca (snippet NÃO lido por mim) sugere que termos de produtos Bradesco existem em PDFs (Bia, Pix, Internet Banking), sem termo geral do site. O hotsite lista Regulamento Programa de Fidelidade Bradesco Cartões (https://assets.bradesco/content/dam/portal-bradesco/assets/common/pdf/hotsite/regulamento-programa-fidelidade-cartoes.pdf), que é regulamento de programa, NÃO aberto. Horários aproximados."
+    },
+    {
+      "dominio": "www.livelo.com.br",
+      "fontes": [
+        "livelo-imprensa"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.livelo.com.br/",
+          "titulo": "Home Livelo (HTTP 403 Forbidden)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [],
+      "topicosNaoInformados": [
+        "todos os tópicos: documento não lido (acesso bloqueado, 403), nada a registrar"
+      ],
+      "robots": {
+        "url": "https://www.livelo.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "inacessivel",
+        "sinaisDeIA": null,
+        "observacao": "HTTP 403 Forbidden; robots.txt não lido."
+      },
+      "observacoes": "Home e robots.txt retornaram 403 (resposta incluía bloqueio sem contorno tentado). Uma WebSearch não retornou termos oficiais do site livelo.com.br (só cópias de terceiros/agregadores, que não foram usadas). Não foi tentada nenhuma forma de contornar o bloqueio."
+    },
+    {
+      "dominio": "www.dotz.com.br",
+      "fontes": [
+        "dotz"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.dotz.com.br/home",
+          "titulo": "Dotz: transforme os gastos do seu dia a dia em ganhos! (só título renderizado; rodapé não obtido)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://privacidade.dotz.com.br/",
+          "titulo": "Portal de Privacidade Dotz (links para políticas, regulamentos e termos)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://privacidade.dotz.com.br/index.php/regulamentos-e-termos-de-uso/",
+          "titulo": "Regulamentos e Termos de Uso (índice de documentos Dotz; sem termo sobre conteúdo do site dotz.com.br)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/",
+          "titulo": "Termos e Condições de Uso da Conta Dotz (conta digital/cartão pré-pago/aplicativo; sem data de vigência; rodapé © Copyright 2024)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reprodução / uso comercial (conteúdo do Aplicativo, cl. 10.2 dos Termos da Conta Dotz)",
+          "trecho": "A exploração comercial, transmissão, divulgação, modificação, reprodução, cópia ou quaisquer outras formas de utilização comercial de tal conteúdo pelo usuário são rigorosamente proibidas.",
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/"
+        },
+        {
+          "topico": "imagens/marcas (cl. 10.3)",
+          "trecho": "O uso não autorizado de qualquer marca, logotipo e/ou design da CGSSP é vedado",
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/"
+        },
+        {
+          "topico": "propriedade intelectual (cl. 10.2)",
+          "trecho": "Todos os Direitos de Propriedade Intelectual presentes no Aplicativo são da CGSSP.",
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/"
+        },
+        {
+          "topico": "aviso de copyright (portal de privacidade)",
+          "trecho": "© Copyright 2024 - DOTZ",
+          "url": "https://privacidade.dotz.com.br/index.php/regulamentos-e-termos-de-uso/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citação",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automação/raspagem/IA (só há proibição de engenharia reversa do Sistema Dotz e de mensagens em massa, no contexto da conta)",
+        "atribuição/crédito",
+        "licença de conteúdo",
+        "termos de uso do SITE dotz.com.br (não localizados)"
+      ],
+      "robots": {
+        "url": "https://www.dotz.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Conteúdo: User-agent: * / Disallow: (vazio, nada bloqueado). Sem User-agent de IA, sem ai-train/Content-Signal."
+      },
+      "observacoes": "Não foi localizado Termos de Uso do site dotz.com.br; o único documento com cláusulas de propriedade intelectual lido são os Termos da Conta Dotz (app/conta), que regem o aplicativo e não o site de notícias. A cláusula 10.2 refere-se a 'tal conteúdo' (conteúdo do Aplicativo). Home dotz.com.br/home é renderizada por JavaScript (só título obtido), por isso rodapé não verificado. Há também Termos Clube Dotz e outros regulamentos listados no índice, não abertos. Horários aproximados."
+    },
+    {
+      "dominio": "www.abemf.com.br e web.abemf.com.br",
+      "fontes": [
+        "abemf"
+      ],
+      "documentos": [
+        {
+          "url": "https://web.abemf.com.br/associados/",
+          "titulo": "ABEMF - Empresas Associadas (rodapé: © 2026 ABEMF; sem links de termos/privacidade)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso de copyright",
+          "trecho": "© 2026 ABEMF - Associação Brasileira das Empresas do Mercado de Fidelização Todos os direitos reservados",
+          "url": "https://web.abemf.com.br/associados/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reprodução de texto",
+        "citação",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa",
+        "automação/raspagem/IA",
+        "atribuição/crédito",
+        "uso comercial",
+        "licença",
+        "termos de uso / direitos autorais (documento não encontrado)"
+      ],
+      "robots": {
+        "url": "https://web.abemf.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent: * / Disallow: /wp-admin/ / Allow: /wp-admin/admin-ajax.php / Sitemap: https://web.abemf.com.br/wp-sitemap.xml. Sem User-agent de IA, sem ai-train/Content-Signal."
+      },
+      "observacoes": "www.abemf.com.br redireciona (302) para web.abemf.com.br. Nenhum link de Termos de uso, Política de privacidade ou Direitos autorais no rodapé da página de associados nem na navegação (lista de navegação obtida da mesma página). Uma WebSearch também não achou termos (apenas rodapés de copyright de páginas antigas de www.abemf.com.br, não abertas). Status do documento de termos: nao_encontrado. Horários aproximados."
+    },
+    {
+      "dominio": "www.itau.com.br (Itaú, RI)",
+      "fontes": [
+        "itau-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.itau.com.br/",
+          "titulo": "Home Itaú (HTTP 403 Forbidden)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [],
+      "topicosNaoInformados": [
+        "todos os tópicos: documento não lido (403), nada a registrar"
+      ],
+      "robots": {
+        "url": "https://www.itau.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "inacessivel",
+        "sinaisDeIA": null,
+        "observacao": "HTTP 403 Forbidden; robots.txt não lido."
+      },
+      "observacoes": "Home e robots.txt do Itaú retornaram 403; sem tentativa de contorno. Não foi aberta nenhuma outra URL de RI do Itaú."
+    },
+    {
+      "dominio": "www.santander.com.br e ri.santander.com.br",
+      "fontes": [
+        "santander-ri"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.santander.com.br/",
+          "titulo": "Home Santander Brasil (HTTP 403 Forbidden)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://ri.santander.com.br/",
+          "titulo": "RI Santander Brasil (HTTP 403 Forbidden)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        }
+      ],
+      "trechos": [],
+      "topicosNaoInformados": [
+        "todos os tópicos: documento não lido (403), nada a registrar"
+      ],
+      "robots": {
+        "url": "https://www.santander.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "inacessivel",
+        "sinaisDeIA": null,
+        "observacao": "HTTP 403 Forbidden em www.santander.com.br/robots.txt e em ri.santander.com.br/robots.txt."
+      },
+      "observacoes": "Todos os acessos retornaram 403; sem tentativa de contorno."
+    },
+    {
+      "dominio": "www.idv.org.br",
+      "fontes": [
+        "idv"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.idv.org.br/",
+          "titulo": "IDV - Instituto para Desenvolvimento do Varejo (home; rodapé sem Termos de uso)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.idv.org.br/politica-de-privacidade",
+          "titulo": "Política de privacidade IDV",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso de copyright",
+          "trecho": "© 2004 – 2026 IDV Instituto para Desenvolvimento do Varejo. Todos os direitos reservados.",
+          "url": "https://www.idv.org.br/"
+        },
+        {
+          "topico": "aceitação de condições (texto da política de privacidade, não termos de conteúdo)",
+          "trecho": "Ao navegar por nosso site e aplicativo, você concorda com todas as condições aqui expostas",
+          "url": "https://www.idv.org.br/politica-de-privacidade"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reprodução de texto",
+        "citação",
+        "resumo/obra derivada",
+        "link para o site",
+        "imagens/material de imprensa (existem páginas de Releases/Sala de imprensa, não abertas)",
+        "automação/raspagem/IA",
+        "atribuição/crédito",
+        "uso comercial",
+        "licença"
+      ],
+      "robots": {
+        "url": "https://www.idv.org.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent: * / Disallow: /wp-admin/ / Allow: /wp-admin/admin-ajax.php / Sitemap: https://www.idv.org.br/sitemap_index.xml. Sem User-agent de IA, sem ai-train/Content-Signal."
+      },
+      "observacoes": "Nenhum Termos de uso/Direitos autorais encontrado; só política de privacidade (privacidade_apenas) e rodapé de copyright. Páginas https://www.idv.org.br/sala-imprensa/releases e /contato-com-a-imprensa existem no menu, não abertas. Horários aproximados."
+    },
+    {
+      "dominio": "www.abras.com.br",
+      "fontes": [
+        "abras"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.abras.com.br/",
+          "titulo": "ABRAS (home; rodapé sem Termos de uso/Direitos autorais)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.abras.com.br/abras/politica-de-privacidade",
+          "titulo": "Política de privacidade ABRAS",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.abras.com.br/abras/expediente",
+          "titulo": "Expediente ABRAS (sem texto de reprodução)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso de copyright (rodapé)",
+          "trecho": "Todos os direitos reservados.",
+          "url": "https://www.abras.com.br/abras/expediente"
+        },
+        {
+          "topico": "links (links do portal para terceiros, política de privacidade)",
+          "trecho": "No portal ABRAS existem diversos links para empresas com as quais mantemos algum tipo de relacionamento.",
+          "url": "https://www.abras.com.br/abras/politica-de-privacidade"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reprodução de texto",
+        "citação",
+        "resumo/obra derivada",
+        "link para o site (só há texto sobre links do portal para terceiros)",
+        "imagens/material de imprensa (existe /abras/imprensa, não aberta)",
+        "automação/raspagem/IA",
+        "atribuição/crédito",
+        "uso comercial",
+        "licença"
+      ],
+      "robots": {
+        "url": "https://www.abras.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "nao_encontrado",
+        "sinaisDeIA": null,
+        "observacao": "HTTP 404 Not Found."
+      },
+      "observacoes": "Nenhum Termos de uso/Direitos autorais encontrado; só política de privacidade e rodapé (© 2021 com crédito à Pot&Pracy, CNPJ 62.360.268.0001/91). Não foi aberta a página /abras/imprensa. Horários aproximados."
+    },
+    {
+      "dominio": "group.accor.com",
+      "fontes": [
+        "accor-newsroom"
+      ],
+      "documentos": [
+        {
+          "url": "https://group.accor.com/en/legal-terms",
+          "titulo": "Legal Notice (Accor Group) - Page updated as of March 1, 2026",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reprodução de texto",
+          "trecho": "No material from the www.group.accor.com site may be copied, reproduced, modified, republished, uploaded, distorted, transmitted or distributed in any way whatsoever, on any medium whatsoever, in part or in full,",
+          "url": "https://group.accor.com/en/legal-terms"
+        },
+        {
+          "topico": "reprodução de texto (exceção)",
+          "trecho": "without the prior written authorization of Accor SA except strictly for personal, private and non-commercial use, without modifying the material on the www.group.accor.com site.",
+          "url": "https://group.accor.com/en/legal-terms"
+        },
+        {
+          "topico": "link para o site",
+          "trecho": "The creation of links to the www.group.accor.com site is subject to the prior agreement of Accor SA.",
+          "url": "https://group.accor.com/en/legal-terms"
+        },
+        {
+          "topico": "extração/reutilização (não menciona robôs/IA expressamente)",
+          "trecho": "The extraction and/or repeated re-use of the content, even non substantial, of this site is also prohibited.",
+          "url": "https://group.accor.com/en/legal-terms"
+        },
+        {
+          "topico": "uso comercial",
+          "trecho": "In particular, use of the content of this site for commercial purposes is expressly prohibited.",
+          "url": "https://group.accor.com/en/legal-terms"
+        },
+        {
+          "topico": "atribuição/crédito (em cópias autorizadas)",
+          "trecho": "The following notice must in particular appear on all authorized copies of all or part of the site content: ©Copyright Accor SA.",
+          "url": "https://group.accor.com/en/legal-terms"
+        },
+        {
+          "topico": "licença (de acesso)",
+          "trecho": "Any current or prospective customer or partner has a personal, non-exclusive, non-assignable, non-transferable right to access the information contained on the www.group.accor.com site for his own hotel reservation needs.",
+          "url": "https://group.accor.com/en/legal-terms"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citação",
+        "resumo/obra derivada (há proibição de modificar/extrair, sem menção a resumos)",
+        "imagens/material de imprensa (sem termos próprios)",
+        "robôs/IA/text mining (não mencionados)",
+        "licença aberta tipo CC"
+      ],
+      "robots": {
+        "url": "https://group.accor.com/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-Agent: * com Disallow de */404, */error, /*?filter=, /*?page=, /accessibility, /search?prod_search_index, /contact-us?profile; Sitemap: https://group.accor.com/api/sitemap. Sem User-agent de IA, sem ai-train/Content-Signal."
+      },
+      "observacoes": "Trechos obtidos por resposta processada da ferramenta (reproduzidos em pedaços e reunidos aqui). Na primeira passada, a ferramenta citou também: 'The photographs appearing on the www.group.accor.com site are not contractually binding.' (não é licença de imagens). O texto lido refere-se ao site www.group.accor.com. Horários aproximados."
+    },
+    {
+      "dominio": "news.marriott.com / www.marriott.com",
+      "fontes": [
+        "marriott-news"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "titulo": "Marriott Terms of Use - Last revised: July 2026 (rege os 'Services' da Marriott; aplicabilidade a news.marriott.com não confirmada no texto lido)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.marriott.com/about/terms-of-use.mi",
+          "titulo": "Terms of Use (HTTP 403, Retry-After: 28800)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "inacessivel",
+          "viaResumoDaFerramenta": false
+        },
+        {
+          "url": "https://news.marriott.com/",
+          "titulo": "Marriott News Center (só título renderizado; rodapé não obtido)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T07:31:15-03:00",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reprodução de texto (fragmento)",
+          "trecho": "downloading, reproduction, or retransmission of the Services (or any part of its content) is strictly prohibited.",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        },
+        {
+          "topico": "link para o site (fragmento)",
+          "trecho": "(standard search engine technology that links users to our Services is permitted)",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        },
+        {
+          "topico": "automação/robôs (fragmento)",
+          "trecho": "use robots, spiders, or other automatic or high-volume methods or devices",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        },
+        {
+          "topico": "IA (fragmento; refere-se a 'AI Services, Responses')",
+          "trecho": "use the AI Services, Responses, related data, or models to create, train, modify, adapt, improve, or otherwise develop",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        },
+        {
+          "topico": "uso comercial (fragmento)",
+          "trecho": "You may use content on the Services and Responses for your personal, non-commercial use",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        },
+        {
+          "topico": "licença (fragmento)",
+          "trecho": "No license to, or right in, any such trademarks, patents, copyrighted materials,",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        },
+        {
+          "topico": "aviso de copyright",
+          "trecho": "© 1996 - 2026 Marriott International, Inc. All rights reserved. Marriott proprietary information.",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citação",
+        "resumo/obra derivada",
+        "imagens/material de imprensa (não confirmado nos trechos lidos; uma busca citou página de mídia, não aberta)",
+        "atribuição/crédito",
+        "termos específicos de news.marriott.com"
+      ],
+      "robots": {
+        "url": "https://news.marriott.com/robots.txt",
+        "consultadoEm": "2026-11-23T07:31:15-03:00",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent: * / Disallow: /static-assets/* / Disallow: /*.pdf$. Sem User-agent de IA, sem ai-train/Content-Signal. Também lido https://www.marriott.com/robots.txt: Baiduspider Disallow: /; grupo * bloqueia /zh/, /einterface/, buscas etc.; sem linhas de IA."
+      },
+      "observacoes": "Trechos são fragmentos extraídos pela ferramenta (resposta processada), não conferidos contra o texto integral; contexto (condições/ressalvas) pode alterar o sentido. A URL terms-of-use.mi retornou 403; a versão 'modal' abriu e informa 'Last revised: July 2026'. Uma busca (snippet) citou 'April 2026' para terms-of-use.mi, divergência não verificada. Não há confirmação de que esses Termos valem para news.marriott.com. Horários aproximados."
+    },
+    {
+      "dominio": "www.edpb.europa.eu",
+      "fontes": [
+        "edpb"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "titulo": "Copyright | European Data Protection Board",
+          "tipo": "direitos_autorais",
+          "consultadoEm": "2026-11-23T10:21:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto",
+          "trecho": "reproduction of textual data and multimedia items which are the property of the EDPB",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "resumo_obra_derivada",
+          "trecho": "The original meaning or the message of the documents should not be distorted.",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "imagens_material_imprensa",
+          "trecho": "multimedia items such as texts, drawings, graphics, logos, icons, images, audio and video material, photographs.",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "automacao_raspagem_ia (somente contornar medidas tecnicas; nada sobre scraping/IA)",
+          "trecho": "not to seek to circumvent the technical measures put in place to protect documents and multimedia items.",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "atribuicao",
+          "trecho": "The re-user is obliged to acknowledge the source of the document;",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "atribuicao",
+          "trecho": "The user undertakes not to delete or change the indications of the author or the source.",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "uso_comercial",
+          "trecho": "The reuse of any information of this website is authorized for commercial and non-commercial purposes.",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        },
+        {
+          "topico": "responsabilidade",
+          "trecho": "The European Data Protection Board cannot be held liable for any consequence stemming from the reuse.",
+          "url": "https://www.edpb.europa.eu/copyright_en"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "link",
+        "automacao_raspagem_mineracao_de_texto_ia (explicito)",
+        "licenca nomeada (CC BY, Decisao 2011/833/UE nao citada na pagina lida)",
+        "material de imprensa"
+      ],
+      "robots": {
+        "url": "https://www.edpb.europa.eu/robots.txt",
+        "consultadoEm": "2026-11-23T10:21:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Somente grupo User-agent: * (modelo Drupal) com Disallow de /core/, /profiles/, /admin/, /search/, /user/*, /media/oembed etc. Sem User-agent de IA, sem ai-train, sem Content-Signal."
+      },
+      "observacoes": "Conteudo lido via WebFetch (resumo/extracao por modelo); trechos conforme devolvidos pela ferramenta, nao conferidos visualmente. Horarios de consulta aproximados (janela 10:20-10:30Z). Pagina diz que reuso e autorizado para fins comerciais e nao comerciais sob as condicoes listadas (atribuicao, nao distorcer sentido)."
+    },
+    {
+      "dominio": "www12.senado.leg.br",
+      "fontes": [
+        "senado-noticias"
+      ],
+      "documentos": [
+        {
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso",
+          "titulo": "POLÍTICA DE USO — Senado Notícias",
+          "tipo": "politica_de_conteudo",
+          "consultadoEm": "2026-11-23T10:21:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto",
+          "trecho": "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso"
+        },
+        {
+          "topico": "imagens_material_imprensa",
+          "trecho": "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso"
+        },
+        {
+          "topico": "atribuicao",
+          "trecho": "mediante a citação da Agência Senado e do autor",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso"
+        },
+        {
+          "topico": "atribuicao (audio)",
+          "trecho": "No caso dos arquivos de áudio, deverão constar dos créditos à Rádio Senado",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "resumo_obra_derivada (so limite: nao descaracterizar conteudo)",
+        "link",
+        "automacao_raspagem_ia",
+        "uso_comercial",
+        "licenca (ex.: Creative Commons)"
+      ],
+      "robots": {
+        "url": "https://www12.senado.leg.br/robots.txt",
+        "consultadoEm": "2026-11-23T10:21:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Grupo User-agent: * com Disallow vazio (nada bloqueado); grupo Googlebot com 2 Disallow (sendto_form, folder_factories); 2 Sitemaps. Sem IA, ai-train ou Content-Signal. Resumo da ferramenta, nao texto integral."
+      },
+      "observacoes": "A pagina tambem contem texto de boletim por e-mail (dados pessoais) e, segundo resumo da ferramenta, credito a TV Senado para video (nao confirmado em trecho literal). Trechos vindos de extracao por modelo (WebFetch); fragmentos curtos, a frase completa nao foi reproduzida pela ferramenta."
+    },
+    {
+      "dominio": "www.camara.leg.br / www2.camara.leg.br",
+      "fontes": [
+        "camara-noticias"
+      ],
+      "documentos": [
+        {
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "titulo": "Termo de uso e política de privacidade — Portal da Câmara dos Deputados",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T10:22:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto / citacao (item 7)",
+          "trecho": "reproduzir trechos de textos, notícias ou estudos publicados no Portal da Câmara, desde que estejam entre aspas",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "citacao (item 29)",
+          "trecho": "Trechos de textos, notícias ou estudos publicados devem ser citados entre aspas",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "imagens_material_imprensa (item 7)",
+          "trecho": "Você pode reproduzir gratuitamente dados, imagens e infografias publicados no portal da Câmara",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "atribuicao (item 7)",
+          "trecho": "desde que citada a fonte \"Câmara dos Deputados\" e a autoria da informação, quando houver.",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "licenca / reproducao (item 29)",
+          "trecho": "Todas as informações publicadas no Portal da Câmara são de domínio público, gratuitas e podem ser reproduzidas",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "automacao_raspagem_ia (item 22, robos em participacao/interacao)",
+          "trecho": "Podemos coibir a participação de sistemas automatizados ou robôs (scripts, bots, entre outros) que tentem imitar pessoas.",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "automacao_raspagem_ia (item 37, uso de IA pela propria Camara; nao trata de terceiros)",
+          "trecho": "A Câmara dos Deputados pode usar ferramentas de Inteligência Artificial (IA) para gerar conteúdos",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        },
+        {
+          "topico": "link (item 40, apenas links do portal para externos)",
+          "trecho": "O portal pode exibir links para conteúdos externos, sem, contudo, ser responsável pelo conteúdo exibido no site lincado.",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        }
+      ],
+      "topicosNaoInformados": [
+        "resumo_obra_derivada",
+        "link para o portal (so ha texto sobre links externos exibidos pelo portal)",
+        "raspagem/mineracao de texto/treinamento de IA por terceiros",
+        "uso_comercial",
+        "licenca nomeada (ex.: Creative Commons)"
+      ],
+      "robots": {
+        "url": "https://www.camara.leg.br/robots.txt",
+        "consultadoEm": "2026-11-23T10:23:00Z",
+        "status": "lido",
+        "sinaisDeIA": "User-agents de IA listados (GPTBot, ChatGPT-User, Google-Extended, anthropic-ai, Claude-Web, Omgilibot, Omgili, FacebookBot, CCBot, PerplexityBot), cada um com as mesmas regras Disallow por caminho (nao bloqueio total do site). Segundo a ferramenta, ha comentario no cabecalho sobre impedir uso do conteudo para treinar IA. Sem ai-train nem Content-Signal.",
+        "observacao": "DIVERGENCIA: o robots.txt de www2.camara.leg.br (https://www2.camara.leg.br/robots.txt, 10:22Z) foi resumido pela ferramenta como um unico grupo User-agent: * sem agentes de IA e com Disallows de padroes/nomes de paginas; o de www.camara.leg.br lista agentes de IA. Disallow geral inclui PDFs, TIFF/BMP/GIF, paginas de deputados, parametros de transparencia, 'crawl=no'; SEO/data-mining bots e Baidu/Yandex/Sogou bloqueados por inteiro. Resumos da ferramenta; textos nao reproduzidos integralmente."
+      },
+      "observacoes": "Documento combina termo de uso e politica de privacidade. Trechos vindos de extracao por modelo (WebFetch); a segunda leitura confirmou as mesmas frases dos itens 7, 22 e 29, mas a ferramenta nao reproduziu os itens na integra (texto completo de cada item nao verificado). Pagina do portal nao traz item de licenca de dados abertos."
+    },
+    {
+      "dominio": "brasscom.org.br",
+      "fontes": [
+        "brasscom"
+      ],
+      "documentos": [
+        {
+          "url": "https://brasscom.org.br/politica-de-privacidade/",
+          "titulo": "Política de Privacidade - Brasscom",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T10:22:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://brasscom.org.br/",
+          "titulo": "Home (rodape inspecionado em busca de termos)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T10:22:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "Todos os direitos reservados ©2025 BRASSCOM | Orgulhosamente desenvolvido por Gim Digital",
+          "url": "https://brasscom.org.br/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao_texto",
+        "citacao",
+        "resumo_obra_derivada",
+        "link",
+        "imagens_material_imprensa",
+        "automacao_raspagem_ia",
+        "atribuicao (no site)",
+        "uso_comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://brasscom.org.br/robots.txt",
+        "consultadoEm": "2026-11-23T10:22:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent: * com Disallow vazio (gerado por Yoast SEO); Sitemap https://brasscom.org.br/sitemap_index.xml. Sem IA, ai-train ou Content-Signal."
+      },
+      "observacoes": "Nao foi encontrada pagina de Termos de uso/Direitos autorais: rodape lista apenas Estatuto e Normas e Canal de Etica; busca no dominio retornou so politica de privacidade. A busca (resumo da ferramenta, nao aberto por mim) citou que uma apresentacao em PDF (https://brasscom.org.br/wp-content/uploads/2024/01/BRI2-2023-003-Pesquisa-Pulso-v18.pdf) traz autorizacao de uso 'desde que os devidos creditos sejam concedidos'; esse PDF NAO foi aberto, entao nao e trecho verificado. Status de termos: nao_encontrado."
+    },
+    {
+      "dominio": "www.salesforce.com",
+      "fontes": [
+        "salesforce-newsroom"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/",
+          "titulo": "Terms of Service | Salesforce",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T10:23:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/",
+          "titulo": "Trademark & Copyright Usage Guidelines | Salesforce",
+          "tipo": "politica_de_conteudo",
+          "consultadoEm": "2026-11-23T10:25:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto / uso de conteudo (ToS, secao G)",
+          "trecho": "You may not use content from our Sites unless you obtain permission from us or its owner.",
+          "url": "https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/"
+        },
+        {
+          "topico": "licenca / propriedade (ToS, secao G)",
+          "trecho": "Using our Site does not give you ownership of any intellectual property rights to the content you access.",
+          "url": "https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/"
+        },
+        {
+          "topico": "reproducao_texto / imagens (Guidelines)",
+          "trecho": "You may not use or display any of Salesforce’s content, including images, text, audio, video, or media",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/"
+        },
+        {
+          "topico": "link (Guidelines)",
+          "trecho": "You may link to Salesforce’s content as long as you do not commercialize the links.",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/"
+        },
+        {
+          "topico": "reproducao_texto (Guidelines)",
+          "trecho": "Most uses require specific written permission",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/"
+        },
+        {
+          "topico": "imagens_material_imprensa (Guidelines, screenshots)",
+          "trecho": "Screenshots of Salesforce’s software are permitted solely for educational tutorials",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/"
+        },
+        {
+          "topico": "atribuicao (Guidelines)",
+          "trecho": "The following attribution statement must accompany any use of Salesforce’s copyrighted works:",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao (limite de palavras ou direito de citar)",
+        "resumo_obra_derivada (so aparece na licenca de conteudo de usuario)",
+        "automacao_raspagem_mineracao_ia sobre conteudo do site (ToS so diz que atividade nao pode 'interferir' com os Sites; secao sobre IA trata de agentes de IA da Salesforce)",
+        "uso_comercial (ToS)",
+        "licenca concedida ao publico sobre conteudo do site",
+        "termos especificos de newsroom/imprensa (nao encontrados)"
+      ],
+      "robots": {
+        "url": "https://www.salesforce.com/robots.txt",
+        "consultadoEm": "2026-11-23T10:23:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Grupos para 'MS Search 4.0 Robot' (Disallow /), User-agent: * (varios Disallow, ex.: /content/dam/, /search/), AdsBot-Google e scanners Acunetix. Nenhum User-agent de IA, sem ai-train/Content-Signal. Resumo da ferramenta."
+      },
+      "observacoes": "Busca por termos de newsroom/imprensa da Salesforce nao retornou pagina de imprensa com termos; nao ha documento especifico de newsroom lido. O trecho 'You may not use or display any of Salesforce’s content...' foi devolvido truncado pela ferramenta (final da frase nao visto). O ToS lido e de 8 de abril de 2025 (segundo a ferramenta); as Guidelines, 'Last Updated: June 12, 2023'. A ferramenta recusou reproduzir as secoes G/H na integra; so frases curtas."
+    },
+    {
+      "dominio": "www.hubspot.com / legal.hubspot.com",
+      "fontes": [
+        "hubspot-newsroom"
+      ],
+      "documentos": [
+        {
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "titulo": "HubSpot Website Terms of Use (last updated April 14, 2026)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T10:24:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "titulo": "Content Usage Guidelines - Legal Center - HubSpot",
+          "tipo": "politica_de_conteudo",
+          "consultadoEm": "2026-11-23T10:28:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto (Website Terms, sec. 3)",
+          "trecho": "the Content may not be copied, reproduced, modified, published",
+          "url": "https://legal.hubspot.com/website-terms-of-use"
+        },
+        {
+          "topico": "resumo_obra_derivada (Website Terms, sec. 3)",
+          "trecho": "create derivative works based on the Content or a Site, in whole or in part, by any means",
+          "url": "https://legal.hubspot.com/website-terms-of-use"
+        },
+        {
+          "topico": "link / framing (Website Terms, sec. 2(vii))",
+          "trecho": "mirror or frame a Site or any part of it on any other web site or web page.",
+          "url": "https://legal.hubspot.com/website-terms-of-use"
+        },
+        {
+          "topico": "automacao_raspagem_ia (Website Terms, sec. 2(v))",
+          "trecho": "use or launch any automated system, including without limitation, \"robots,\" \"spiders,\"",
+          "url": "https://legal.hubspot.com/website-terms-of-use"
+        },
+        {
+          "topico": "uso_comercial (Website Terms, sec. 1)",
+          "trecho": "solely for your non-commercial, personal purposes and/or to learn about HubSpot",
+          "url": "https://legal.hubspot.com/website-terms-of-use"
+        },
+        {
+          "topico": "licenca (Website Terms, sec. 3)",
+          "trecho": "You do not receive any right or license to use the foregoing.",
+          "url": "https://legal.hubspot.com/website-terms-of-use"
+        },
+        {
+          "topico": "reproducao_texto (Content Usage Guidelines)",
+          "trecho": "we can't let you republish in full any of our text-based content",
+          "url": "https://legal.hubspot.com/content-usage-guidelines"
+        },
+        {
+          "topico": "citacao (Content Usage Guidelines)",
+          "trecho": "Feel free to reference or quote up to 75 words of any of our text content",
+          "url": "https://legal.hubspot.com/content-usage-guidelines"
+        },
+        {
+          "topico": "link (Content Usage Guidelines)",
+          "trecho": "Feel free to share links to any of our content by email and social media.",
+          "url": "https://legal.hubspot.com/content-usage-guidelines"
+        },
+        {
+          "topico": "imagens_material_imprensa (Content Usage Guidelines)",
+          "trecho": "Feel free to republish in full any HubSpot-original images (such as charts, graphs, cartoons, infographics)",
+          "url": "https://legal.hubspot.com/content-usage-guidelines"
+        },
+        {
+          "topico": "atribuicao (Content Usage Guidelines)",
+          "trecho": "Attribute HubSpot as the source.",
+          "url": "https://legal.hubspot.com/content-usage-guidelines"
+        },
+        {
+          "topico": "uso_comercial (Content Usage Guidelines)",
+          "trecho": "You cannot make money off of our content.",
+          "url": "https://legal.hubspot.com/content-usage-guidelines"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao (Website Terms)",
+        "link para o site (Website Terms; so framing/espelhamento e links de saida)",
+        "mineracao de texto/treinamento de IA (explicito)",
+        "atribuicao (Website Terms)",
+        "resumo_obra_derivada (Content Usage Guidelines)",
+        "automacao_raspagem_ia (Content Usage Guidelines)",
+        "licenca nomeada (Content Usage Guidelines)",
+        "termos especificos de newsroom/imprensa (nao lidos)"
+      ],
+      "robots": {
+        "url": "https://www.hubspot.com/robots.txt",
+        "consultadoEm": "2026-11-23T10:24:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Um unico grupo User-agent: * (~400 linhas, principalmente Disallow de caminhos estaticos/parametros como portalId, /meetings, /_hcms/perf). Sem User-agent de IA, ai-train ou Content-Signal. Resumo da ferramenta."
+      },
+      "observacoes": "A Content Usage Guidelines nao traz data de atualizacao na pagina (segundo a ferramenta). A busca indicou que legal.hubspot.com/tm-usage-guidelines remete jornalistas ao Newsroom; essa pagina NAO foi aberta. Os dois documentos tem regimes aparentemente distintos (Website Terms restritivo; Content Usage Guidelines com permissoes) — registrado literalmente, sem interpretar a relacao entre eles."
+    },
+    {
+      "dominio": "www.zendesk.com / www.zendesk.com.br",
+      "fontes": [
+        "zendesk-newsroom"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "titulo": "Termos de uso do Site (pagina-hub; Termos atualizados em 1º de fevereiro de 2024)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T10:23:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://web-assets.zendesk.com/zendesk/pdf/Zendesk_Media_Kit_2026_V1.1.pdf",
+          "titulo": "Media Kit (Newsroom & Press Releases)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T10:29:00Z",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto (secao 6)",
+          "trecho": "você não pode copiar, distribuir, reproduzir, espelhar, enquadrar, exibir publicamente",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "reproducao_texto / excecao (secao 6)",
+          "trecho": "Exceto com a nossa permissão prévia e expressa por escrito ou conforme permitido por lei",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "resumo_obra_derivada (secao 6)",
+          "trecho": "traduzir, criar trabalhos derivados, republicar ou transmitir os Sites",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "uso_comercial / uso pessoal (secao 6)",
+          "trecho": "Você pode exibir, copiar e baixar Conteúdo dos Sites exclusivamente para seu uso pessoal e não comercial",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "uso_comercial (secao 5(b))",
+          "trecho": "reproduzir, duplicar, copiar, vender, revender ou explorar para qualquer finalidade comercial",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "automacao (secao 4.5; trata de inflar visualizacoes)",
+          "trecho": "usar nenhum serviço, tecnologia ou sistema automatizado para aumentar artificialmente as visualizações",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "atribuicao / avisos de direitos autorais (secao 6)",
+          "trecho": "você não remova nenhum aviso de direitos autorais ou de propriedade do Conteúdo",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        },
+        {
+          "topico": "licenca (conteudo enviado por usuarios, secao 4.10)",
+          "trecho": "nos concede o direito e a licença universais, permanentes, irrevogáveis, não exclusivos e isentos de royalties",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "link para o site (so 'enquadrar'/espelhar)",
+        "imagens_material_imprensa (sem regra especifica nos Termos do Site)",
+        "mineracao de texto/treinamento de IA (explicito)",
+        "exigencia de atribuicao/credito",
+        "licenca de uso do conteudo do site ao publico alem do uso pessoal"
+      ],
+      "robots": {
+        "url": "https://www.zendesk.com/robots.txt",
+        "consultadoEm": "2026-11-23T10:24:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "User-agent: * com Allow: / e Disallows (thank-you, adwords, /brand, /brand/, agreements, blog-ads-api-output, tags de blog); Sitemap https://www.zendesk.com/generated_sitemap.xml. Sem User-agent de IA, ai-train ou Content-Signal. Resumo da ferramenta; robots de www.zendesk.com.br nao consultado separadamente."
+      },
+      "observacoes": "A pagina e um hub de varios documentos; as citacoes vem da secao 'Termos de uso do Site' e foram devolvidas como fragmentos curtos pela ferramenta (frases completas nao verificadas); numeracao de secoes conforme a ferramenta. A ferramenta notou dateModified 2024-02-06 nos metadados vs 1/2/2024 no texto. Media Kit PDF (criado 2026-10-01 segundo metadados): so o inicio renderizou; nao ha termos de uso de logos/imagens no trecho visto; a busca (resumo, nao verificado) mencionou 'editorial use only', NAO confirmado em texto lido. robots.txt do Zendesk bloqueia /brand para todos os crawlers (Disallow listado)."
+    },
+    {
+      "dominio": "abrarec.com.br",
+      "fontes": [
+        "abrarec"
+      ],
+      "documentos": [
+        {
+          "url": "https://abrarec.com.br/",
+          "titulo": "Home (rodape inspecionado em busca de termos)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T10:24:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "© ABRAREC Todos os direitos reservados 2026 | Desenvolvido por Navegar Marketing Digital",
+          "url": "https://abrarec.com.br/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao_texto",
+        "citacao",
+        "resumo_obra_derivada",
+        "link",
+        "imagens_material_imprensa",
+        "automacao_raspagem_ia",
+        "atribuicao",
+        "uso_comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://abrarec.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T10:24:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Texto devolvido: User-agent: *; Disallow: /wp-admin/; Allow: /wp-admin/admin-ajax.php; Sitemaps wp-sitemap.xml, sitemap.xml, sitemap.html. Sem IA, ai-train ou Content-Signal."
+      },
+      "observacoes": "Termos de uso: nao_encontrado. Rodape lista apenas Politica de Privacidade (https://abrarec.com.br/politica-de-privacidade/, ja conhecida, nao reaberta) e Estatuto (PDF, nao aberto). Busca no dominio nao retornou termos de uso (so regulamento de premio, pagina institucional etc.; nao abertos)."
+    },
+    {
+      "dominio": "www.procon.sp.gov.br",
+      "fontes": [
+        "procon-sp"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.procon.sp.gov.br/privacidade-e-protecao-de-dados-lgpd/",
+          "titulo": "Privacidade e Proteção de Dados – LGPD – PROCON.SP",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T10:27:00Z",
+          "status": "parcial",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "© 2025 Fundação Procon – SP – Todos os direitos reservados.",
+          "url": "https://www.procon.sp.gov.br/privacidade-e-protecao-de-dados-lgpd/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao_texto",
+        "citacao",
+        "resumo_obra_derivada",
+        "link",
+        "imagens_material_imprensa",
+        "automacao_raspagem_ia",
+        "atribuicao",
+        "uso_comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://www.procon.sp.gov.br/robots.txt",
+        "consultadoEm": "2026-11-23T10:25:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Texto devolvido: User-agent: * Disallow /wp-admin/ (Allow admin-ajax.php), Sitemap wp-sitemap.xml; segundo grupo User-agent: * Disallow /wp-content/uploads/wpo/wpo-plugins-tables-list.json. Sem IA, ai-train ou Content-Signal."
+      },
+      "observacoes": "Termos de uso/direitos autorais do portal: nao_encontrado. Home: rodape nao renderizou (so ~19 mil caracteres, truncado antes do rodape) — status parcial; unico link legal visto foi a pagina LGPD, lida apenas nos primeiros 100 mil de ~270 mil caracteres. A busca indicou Termos de Uso do sistema Procon-SP Digital (https://consumidor2.procon.sp.gov.br/assets/Termos%20de%20Uso%20-%20Consumidor.pdf), que e termos de um sistema de atendimento, NAO do conteudo do portal, e NAO foi aberto por mim."
+    },
+    {
+      "dominio": "abav.com.br",
+      "fontes": [
+        "abav"
+      ],
+      "documentos": [
+        {
+          "url": "https://abav.com.br/politica-de-privacidade/",
+          "titulo": "Política de Privacidade (LGPD) — ABAV",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T10:27:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://abav.com.br/imprensa/",
+          "titulo": "Imprensa — ABAV",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T10:27:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://abav.com.br/",
+          "titulo": "Home (rodape com aviso de conteudo)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T10:25:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto / uso (aviso no rodape, nao documento de termos)",
+          "trecho": "Todo o conteúdo deste site é de uso exclusivo da ABAV.",
+          "url": "https://abav.com.br/"
+        },
+        {
+          "topico": "reproducao_texto / uso (aviso no rodape, nao documento de termos)",
+          "trecho": "Proibida reprodução ou utilização a qualquer título, sob as penas da lei.",
+          "url": "https://abav.com.br/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "citacao",
+        "resumo_obra_derivada",
+        "link",
+        "imagens_material_imprensa (pagina Imprensa sem termos de uso de imagens/releases)",
+        "automacao_raspagem_ia (nos documentos; apenas no robots.txt)",
+        "atribuicao",
+        "uso_comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://abav.com.br/robots.txt",
+        "consultadoEm": "2026-11-23T10:26:00Z",
+        "status": "lido",
+        "sinaisDeIA": "Segundo a ferramenta: \"Content-Signal: search=yes,ai-train=no,use=reference\" para User-agent: *; mais de 30 User-agents de IA/crawlers com Disallow: / (ex.: GPTBot, ClaudeBot, anthropic-ai, Claude-Web, CCBot, Google-Extended, Applebot-Extended, Bytespider, Amazonbot, cohere-ai, meta-externalagent, MistralAI-Training, Diffbot, omgili, PetalBot, KimiBot); comentario no arquivo menciona reserva expressa de direitos conforme Art. 4 da Diretiva (UE) 2019/790. Bingbot e Baidu tambem com Disallow: /.",
+        "observacao": "Resumo da ferramenta (arquivo nao reproduzido na integra). Disallow adicionais em User-agent: *: /cgi-bin/, /wusage, /wp-admin/, /wp-includes/, caminhos de assets do tema."
+      },
+      "observacoes": "Termos de uso/Direitos autorais como documento: nao_encontrado (rodape tem apenas LGPD/Politica de Privacidade e cookies). A unica declaracao sobre uso do conteudo e o aviso de rodape do site, que aparece em todas as paginas lidas; nao foi tratada como documento de termos."
+    },
+    {
+      "dominio": "www.airlines.org",
+      "fontes": [
+        "a4a"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.airlines.org/privacy/",
+          "titulo": "Privacy Statement | Airlines For America",
+          "tipo": "privacidade_apenas",
+          "consultadoEm": "2026-11-23T10:28:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        },
+        {
+          "url": "https://www.airlines.org/",
+          "titulo": "Home (rodape inspecionado em busca de termos)",
+          "tipo": "outro",
+          "consultadoEm": "2026-11-23T10:25:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "© 2026 Airlines for America (A4A). All rights reserved.",
+          "url": "https://www.airlines.org/"
+        }
+      ],
+      "topicosNaoInformados": [
+        "reproducao_texto",
+        "citacao",
+        "resumo_obra_derivada",
+        "link",
+        "imagens_material_imprensa",
+        "automacao_raspagem_ia",
+        "atribuicao",
+        "uso_comercial",
+        "licenca"
+      ],
+      "robots": {
+        "url": "https://www.airlines.org/robots.txt",
+        "consultadoEm": "2026-11-23T10:25:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Texto devolvido: User-agent: * Disallow /wp-admin/ (Allow admin-ajax.php), Sitemap https://www.airlines.org/sitemaps.xml; segundo grupo User-agent: * Disallow /wp-content/uploads/wpo/wpo-plugins-tables-list.json. Sem IA, ai-train ou Content-Signal."
+      },
+      "observacoes": "Termos de uso do site: nao_encontrado (rodape: Careers, Media Resources, Glossary, About, Publications & Subscriptions, ATA e-Business, Privacy Statement; sem Terms of Use). Pagina 'Media Resources' (https://www.airlines.org/media/) NAO foi aberta. A busca indicou, em subdominio separado, 'Product License Agreement / Terms & Conditions' de publications.airlines.org (https://publications.airlines.org/pages/product-license-agreement-terms-conditions-1) com clausulas sobre scraping e treinamento de IA e termos do careers.airlines.org (YourMembership); ambos NAO foram abertos por mim e sao de outros hosts/produtos, entao nao registrei trechos."
+    },
+    {
+      "dominio": "www.oneworld.com",
+      "fontes": [
+        "oneworld"
+      ],
+      "documentos": [
+        {
+          "url": "https://www.oneworld.com/privacy-policy",
+          "titulo": "oneworld.com Terms of Use and Privacy Policy (Updated: January 2023)",
+          "tipo": "termos_de_uso",
+          "consultadoEm": "2026-11-23T10:28:00Z",
+          "status": "lido",
+          "viaResumoDaFerramenta": true
+        }
+      ],
+      "trechos": [
+        {
+          "topico": "reproducao_texto",
+          "trecho": "No such materials may be reproduced without the prior written consent of the applicable owners",
+          "url": "https://www.oneworld.com/privacy-policy"
+        },
+        {
+          "topico": "citacao / republicacao",
+          "trecho": "No information provided via this website may be republished in any fashion in any public forum.",
+          "url": "https://www.oneworld.com/privacy-policy"
+        },
+        {
+          "topico": "direitos_autorais (titularidade)",
+          "trecho": "Trademarks, brands and copyright material contained on this website belong to",
+          "url": "https://www.oneworld.com/privacy-policy"
+        },
+        {
+          "topico": "automacao_raspagem_ia",
+          "trecho": "Automated access to this website, for example, via a \"screen scraper,\" \"bot,\" etc. is prohibit",
+          "url": "https://www.oneworld.com/privacy-policy"
+        },
+        {
+          "topico": "link (apenas links de saida)",
+          "trecho": "This website contains links to other sites.",
+          "url": "https://www.oneworld.com/privacy-policy"
+        },
+        {
+          "topico": "licenca (somente conteudo enviado por usuarios)",
+          "trecho": "a worldwide, perpetual, royalty-free, non-exclusive, irrevocable, transferable, sublicensable license",
+          "url": "https://www.oneworld.com/privacy-policy"
+        }
+      ],
+      "topicosNaoInformados": [
+        "resumo_obra_derivada",
+        "link para o site",
+        "imagens_material_imprensa (conteudo do site)",
+        "atribuicao",
+        "uso_comercial (conteudo do site)",
+        "mineracao de texto/treinamento de IA (explicito)",
+        "licenca sobre conteudo do site"
+      ],
+      "robots": {
+        "url": "https://www.oneworld.com/robots.txt",
+        "consultadoEm": "2026-11-23T10:26:00Z",
+        "status": "lido",
+        "sinaisDeIA": null,
+        "observacao": "Texto devolvido: User-agent: * Disallow /bin/ e /App_Data/; Sitemap https://www.oneworld.com/sitemap_index.xml. Sem IA, ai-train ou Content-Signal."
+      },
+      "observacoes": "Documento combinado Termos de Uso + Politica de Privacidade, linkado no rodape como 'Privacy Policy'. A frase 'is prohibit' foi devolvida truncada pela ferramenta (texto original provavelmente 'prohibited'; nao verificado). A frase 'Trademarks, brands and copyright material ... belong to' esta cortada pela ferramenta. A primeira citacao ('No such materials') depende de contexto anterior nao visto. A busca (so resumo) indicou outras paginas de condicoes (lounges) nao abertas."
+    }
+  ],
+  "conferenciaBruta": [
+    {
+      "dominio": "www.gov.br (portal; CVM, ANPD, Senacon/MJSP, ANAC, MCTI, ANATEL, Ministerio do Turismo)",
+      "lote": 1,
+      "documentos": {
+        "https://www.gov.br/pt-br/termos-de-uso": "texto bruto lido (39663 caracteres)",
+        "https://www.gov.br/cvm/pt-br/assuntos/noticias": "texto bruto lido (19569 caracteres)",
+        "https://www.gov.br/anpd/pt-br": "texto bruto lido (4246 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "licenca",
+          "trecho": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada",
+          "url": "https://www.gov.br/pt-br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca",
+          "trecho": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada.",
+          "url": "https://www.gov.br/cvm/pt-br/assuntos/noticias",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca",
+          "trecho": "Todo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada",
+          "url": "https://www.gov.br/anpd/pt-br",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.bcb.gov.br",
+      "lote": 1,
+      "documentos": {
+        "https://www.bcb.gov.br/": "nao_verificavel (página sem texto no HTML: 114 caracteres; provável JavaScript)",
+        "https://www.bcb.gov.br/acessoinformacao/termosdeuso": "nao_verificavel (página sem texto no HTML: 114 caracteres; provável JavaScript)",
+        "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251": "texto bruto lido (1747 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao de texto / atribuicao / uso comercial (aviso em pagina do Flickr do BCB, nao no site bcb.gov.br)",
+          "trecho": "É permitida a reprodução total ou parcial sem fins lucrativos do conteúdo deste site,",
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (mesmo aviso)",
+          "trecho": "preservada a integridade das informações e citada a fonte.",
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link para o site (mesmo aviso)",
+          "trecho": "É autorizada também a inserção, em outros sites, de links para essa página.",
+          "url": "https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "ri.voeazul.com.br / www.voeazul.com.br",
+      "lote": 1,
+      "documentos": {
+        "https://ri.voeazul.com.br/termos-condicoes-de-uso/": "texto bruto lido (8611 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao de texto / direitos autorais",
+          "trecho": "Salvo disposição em contrário, todo o conteúdo das páginas desse website, tais como informações, materiais, instrumentos,",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao de texto",
+          "trecho": "sendo vedada sua reprodução, sem prévia autorização da Azul.",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (sites de terceiros; nao trata de links para o site)",
+          "trecho": "A Azul não se responsabiliza pelo conteúdo de outros websites (a) cujos endereços estejam disponíveis nas páginas deste",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "escopo de uso",
+          "trecho": "A navegação e consulta pública desse website se sujeita aos Termos e Condições abaixo:",
+          "url": "https://ri.voeazul.com.br/termos-condicoes-de-uso/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "ri.voegol.com.br / www.voegol.com.br",
+      "lote": 1,
+      "documentos": {
+        "https://ri.voegol.com.br/termos-e-condicoes/": "texto bruto lido (7760 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao de texto / direitos autorais",
+          "trecho": "Salvo disposição em contrário, todo o conteúdo das páginas desse website, tais como informações, materiais",
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao de texto",
+          "trecho": "sendo vedada sua reprodução, sem prévia autorização da GOL.",
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (sites de terceiros; nao trata de links para o site)",
+          "trecho": "A GOL não se responsabiliza pelo conteúdo de outros websites (a) cujos endereços estejam disponíveis",
+          "url": "https://ri.voegol.com.br/termos-e-condicoes/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "ir.latam.com / www.latamairlines.com / latampass.latam.com",
+      "lote": 1,
+      "documentos": {
+        "https://www.latamairlines.com/us/en/legal/terms-of-use": "nao_verificavel (página sem texto no HTML: 29 caracteres; provável JavaScript)",
+        "https://ir.latam.com/": "inacessivel (HTTP 403)",
+        "https://latampass.latam.com/": "texto bruto lido (5603 caracteres)",
+        "https://latampass.latam.com/pt_br/descubra-latam-pass/termos-e-condicoes-2025": "texto bruto lido (3107 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "copyright (rodape de ir.latam.com; nao e clausula de uso de conteudo)",
+          "trecho": "© 2026 LATAM Airlines Group S.A. - All rights reserved",
+          "url": "https://ir.latam.com/",
+          "conferencia": "inacessivel (HTTP 403)"
+        }
+      ]
+    },
+    {
+      "dominio": "www.abecs.org.br",
+      "lote": 1,
+      "documentos": {
+        "https://www.abecs.org.br/termos-de-uso": "texto bruto lido (16012 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao de texto (item 2.2)",
+          "trecho": "não reproduzir, transferir, distribuir, armazenar e/ou de qualquer maneira utilizar o conteúdo do Aplicativo e do Site",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens / propriedade (item 2.1)",
+          "trecho": "marcas, logotipos, nomes comerciais, layouts, gráficos e design de interface, imagens, ilustrações, fotografias",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca / direitos (item 2.3)",
+          "trecho": "nenhuma informação contida no Aplicativo e no Site deve ser interpretada como cessão, licença ou transferência de direitos",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca de uso do aplicativo (item 1.2)",
+          "trecho": "O Aplicativo consiste em uma licença de uso concedida pela ABECS a seus usuários em dispositivos móveis",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (item 4.6; trata de links para outros sites)",
+          "trecho": "O Aplicativo e o Site poderão fornecer conexões ou referências a outros sites, originados de outras companhias",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "obra derivada (item 3.3; refere-se a Materiais enviados por usuario a ABECS)",
+          "trecho": "inclusive criação de obras derivadas",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (item 3.3; refere-se a Materiais enviados por usuario)",
+          "trecho": "seu nome será citado sempre que os Materiais forem utilizados pela ABECS, conforme informado pelo Usuário",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso comercial (item 3.2; refere-se a Materiais enviados por usuario)",
+          "trecho": "A ABECS e suas empresas afiliadas e parceiras poderão usar e tornar públicos os Materiais, para qualquer propósito",
+          "url": "https://www.abecs.org.br/termos-de-uso",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.iata.org",
+      "lote": 1,
+      "documentos": {
+        "https://www.iata.org/en/terms/": "texto bruto lido (20455 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao de texto (secao 3)",
+          "trecho": "IATA authorizes you to download or reproduce selected materials from this Website only for your personal, non-commercial use",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao em massa (secao 3)",
+          "trecho": "Without limitation, unlimited or wholesale reproduction, copying of the content",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "obra derivada (secao 3)",
+          "trecho": "You may not otherwise modify, disassemble, create derivative works, distribute, reproduce, publicly display",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "modificacao de dados (secao 3)",
+          "trecho": "unwarranted modification of data and information within the content is not permitted",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (secao 4; links de terceiros)",
+          "trecho": "IATA is providing these Third Party Links to you only as a convenience",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "propriedade de conteudo/imagens (secao 5)",
+          "trecho": "text, data, graphics, and icons, are copyrighted materials owned by IATA",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "IA (secao 3, 'Your Conduct'; fragmento da ferramenta)",
+          "trecho": "any generative artificial intelligence chatbot, platform or tool",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "IA (secao 3; fragmento da ferramenta)",
+          "trecho": "use the AI Tool for any interrogation, assessment or analysis",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (secao 3)",
+          "trecho": "provided that you retain all copyright and other proprietary notices contained in the original materials",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (secao 3)",
+          "trecho": "that the title or database brand name and IATA name is stated as the source",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso comercial (secao 3)",
+          "trecho": "it is not intended for commercial exploitation unless expressly agreed in writing by IATA",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca (secao 1)",
+          "trecho": "you are granted a single user, non-exclusive, non-transferrable, revocable limited license to access and use this Website",
+          "url": "https://www.iata.org/en/terms/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "ri.magazineluiza.com.br / www.magazineluiza.com.br",
+      "lote": 1,
+      "documentos": {
+        "https://ri.magazineluiza.com.br/": "texto bruto lido (5739 caracteres)",
+        "https://www.magazineluiza.com.br/": "inacessivel (HTTP 403)"
+      },
+      "trechos": []
+    },
+    {
+      "dominio": "ri.bb.com.br / www.bb.com.br",
+      "lote": 1,
+      "documentos": {
+        "https://www.bb.com.br/pbb/pagina-inicial/voce/politicas-de-uso-e-privacidade": "texto bruto lido (28382 caracteres)",
+        "https://www.bb.com.br/pbb/pagina-inicial/voce/politicas-de-uso-e-privacidade#/": "texto bruto lido (28382 caracteres)",
+        "https://ri.bb.com.br/": "texto bruto lido (2543 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "copyright (rodape de ri.bb.com.br; sem detalhamento)",
+          "trecho": "© Todos os direitos reservados",
+          "url": "https://ri.bb.com.br/",
+          "conferencia": "nao_confere"
+        }
+      ]
+    },
+    {
+      "dominio": "nu.com / nubank.com.br (Nubank)",
+      "lote": 2,
+      "documentos": {
+        "https://nubank.com.br/transparencia/termos-de-uso": "texto bruto lido (25908 caracteres)",
+        "https://nu.com/en/newsroom": "texto bruto lido (2510 caracteres)",
+        "https://nu.com/en/newsroom/press-kit": "texto bruto lido (1468 caracteres)",
+        "https://nu.com/en/investors": "texto bruto lido (1669 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reprodução de texto",
+          "trecho": "É vedado copiar, reproduzir, distribuir ou reutilizar conteúdos do Nubank sem autorização prévia e expressa do Nubank ou de terceiros titulares, conforme a legislação de direitos autorais, software e propriedade industrial.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link para o site",
+          "trecho": "Qualquer hiperlink do seu site ou aplicativo para páginas, produtos ou serviços do Nubank depende de autorização prévia e específica do Nubank.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automação/raspagem/mineração de dados",
+          "trecho": "Coleta automatizada e acesso indevido: acessar e coletar dados por meios automatizados (scraping, data mining, extração) sem autorização, nem tentar acessar dados sem permissão.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens/marcas (uso de marca, nome, logotipo)",
+          "trecho": "Sem uso indevido de marca: fora do próprio link, não usar marca, nome, logotipo, slogan, look and feel ou outros sinais do Nubank, salvo se houver autorização prévia e específica e observância às diretrizes de marca.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso comercial (fragmento; contexto exato da cláusula não confirmado)",
+          "trecho": "comercializar, revender, alugar ou compartilhar acesso aos serviços, produtos e aplicativo do Nubank.",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licença (fragmento; refere-se a licença concedida ao usuário, objeto exato não confirmado)",
+          "trecho": "Você recebe uma licença limitada, não exclusiva, intransferível, gratuita e revogável",
+          "url": "https://nubank.com.br/transparencia/termos-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens/material de imprensa",
+          "trecho": "Download our logo, app images, and photos.",
+          "url": "https://nu.com/en/newsroom/press-kit",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "aviso de copyright (nu.com)",
+          "trecho": "© 2026 Nu Holdings Ltd.",
+          "url": "https://nu.com/en/newsroom/press-kit",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "portal.febraban.org.br",
+      "lote": 2,
+      "documentos": {
+        "https://portal.febraban.org.br/": "texto bruto lido (10206 caracteres)",
+        "https://portal.febraban.org.br/privacidade?idioma=pt-br": "texto bruto lido (25063 caracteres)",
+        "https://portal.febraban.org.br/termos-de-uso": "texto bruto lido (10206 caracteres)",
+        "https://febrabantech.febraban.org.br/termos-privacidade": "nao_verificavel (página sem texto no HTML: 85 caracteres; provável JavaScript)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso de copyright (único aviso encontrado no portal)",
+          "trecho": "© 2026 FEBRABAN Todos os direitos reservados.",
+          "url": "https://portal.febraban.org.br/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "referência a Termos e Condições de Uso (documento em si não localizado)",
+          "trecho": "ou prática de atividade contrárias à presente Política, aos Termos e Condições de Uso ou à legislação vigente,",
+          "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br",
+          "conferencia": "nao_confere"
+        },
+        {
+          "topico": "links (para sites de terceiros, na política de privacidade)",
+          "trecho": "poderá conter links para outros sites",
+          "url": "https://portal.febraban.org.br/privacidade?idioma=pt-br",
+          "conferencia": "nao_confere"
+        }
+      ]
+    },
+    {
+      "dominio": "www.bradescori.com.br e banco.bradesco",
+      "lote": 2,
+      "documentos": {
+        "https://www.bradescori.com.br/": "texto bruto lido (3231 caracteres)",
+        "https://banco.bradesco/cartoes/hotsitefidelidade/": "texto bruto lido (21183 caracteres)",
+        "https://assets.bradesco/content/dam/portal-bradesco/assets/exclusive/pdf/condicoes_de_uso_do_bradesco_internet_banking.pdf": "nao_verificavel (PDF)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso de copyright (bradescori.com.br)",
+          "trecho": "© 2026 Bradesco RI.",
+          "url": "https://www.bradescori.com.br/",
+          "conferencia": "curto_demais"
+        }
+      ]
+    },
+    {
+      "dominio": "www.livelo.com.br",
+      "lote": 2,
+      "documentos": {
+        "https://www.livelo.com.br/": "texto bruto lido (17961 caracteres)"
+      },
+      "trechos": []
+    },
+    {
+      "dominio": "www.dotz.com.br",
+      "lote": 2,
+      "documentos": {
+        "https://www.dotz.com.br/home": "nao_verificavel (página sem texto no HTML: 61 caracteres; provável JavaScript)",
+        "https://privacidade.dotz.com.br/": "texto bruto lido (4420 caracteres)",
+        "https://privacidade.dotz.com.br/index.php/regulamentos-e-termos-de-uso/": "texto bruto lido (2229 caracteres)",
+        "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/": "texto bruto lido (34774 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reprodução / uso comercial (conteúdo do Aplicativo, cl. 10.2 dos Termos da Conta Dotz)",
+          "trecho": "A exploração comercial, transmissão, divulgação, modificação, reprodução, cópia ou quaisquer outras formas de utilização comercial de tal conteúdo pelo usuário são rigorosamente proibidas.",
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens/marcas (cl. 10.3)",
+          "trecho": "O uso não autorizado de qualquer marca, logotipo e/ou design da CGSSP é vedado",
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "propriedade intelectual (cl. 10.2)",
+          "trecho": "Todos os Direitos de Propriedade Intelectual presentes no Aplicativo são da CGSSP.",
+          "url": "https://privacidade.dotz.com.br/termos-e-condicoes-de-uso-da-conta-dotz/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "aviso de copyright (portal de privacidade)",
+          "trecho": "© Copyright 2024 - DOTZ",
+          "url": "https://privacidade.dotz.com.br/index.php/regulamentos-e-termos-de-uso/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.abemf.com.br e web.abemf.com.br",
+      "lote": 2,
+      "documentos": {
+        "https://web.abemf.com.br/associados/": "texto bruto lido (3658 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso de copyright",
+          "trecho": "© 2026 ABEMF - Associação Brasileira das Empresas do Mercado de Fidelização Todos os direitos reservados",
+          "url": "https://web.abemf.com.br/associados/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.itau.com.br (Itaú, RI)",
+      "lote": 2,
+      "documentos": {
+        "https://www.itau.com.br/": "texto bruto lido (8032 caracteres)"
+      },
+      "trechos": []
+    },
+    {
+      "dominio": "www.santander.com.br e ri.santander.com.br",
+      "lote": 2,
+      "documentos": {
+        "https://www.santander.com.br/": "texto bruto lido (8465 caracteres)",
+        "https://ri.santander.com.br/": "texto bruto lido (2307 caracteres)"
+      },
+      "trechos": []
+    },
+    {
+      "dominio": "www.idv.org.br",
+      "lote": 2,
+      "documentos": {
+        "https://www.idv.org.br/": "texto bruto lido (3976 caracteres)",
+        "https://www.idv.org.br/politica-de-privacidade": "texto bruto lido (9910 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso de copyright",
+          "trecho": "© 2004 – 2026 IDV Instituto para Desenvolvimento do Varejo. Todos os direitos reservados.",
+          "url": "https://www.idv.org.br/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "aceitação de condições (texto da política de privacidade, não termos de conteúdo)",
+          "trecho": "Ao navegar por nosso site e aplicativo, você concorda com todas as condições aqui expostas",
+          "url": "https://www.idv.org.br/politica-de-privacidade",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.abras.com.br",
+      "lote": 2,
+      "documentos": {
+        "https://www.abras.com.br/": "texto bruto lido (3168 caracteres)",
+        "https://www.abras.com.br/abras/politica-de-privacidade": "texto bruto lido (6706 caracteres)",
+        "https://www.abras.com.br/abras/expediente": "texto bruto lido (2710 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso de copyright (rodapé)",
+          "trecho": "Todos os direitos reservados.",
+          "url": "https://www.abras.com.br/abras/expediente",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "links (links do portal para terceiros, política de privacidade)",
+          "trecho": "No portal ABRAS existem diversos links para empresas com as quais mantemos algum tipo de relacionamento.",
+          "url": "https://www.abras.com.br/abras/politica-de-privacidade",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "group.accor.com",
+      "lote": 2,
+      "documentos": {
+        "https://group.accor.com/en/legal-terms": "texto bruto lido (13904 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reprodução de texto",
+          "trecho": "No material from the www.group.accor.com site may be copied, reproduced, modified, republished, uploaded, distorted, transmitted or distributed in any way whatsoever, on any medium whatsoever, in part or in full,",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reprodução de texto (exceção)",
+          "trecho": "without the prior written authorization of Accor SA except strictly for personal, private and non-commercial use, without modifying the material on the www.group.accor.com site.",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link para o site",
+          "trecho": "The creation of links to the www.group.accor.com site is subject to the prior agreement of Accor SA.",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "extração/reutilização (não menciona robôs/IA expressamente)",
+          "trecho": "The extraction and/or repeated re-use of the content, even non substantial, of this site is also prohibited.",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso comercial",
+          "trecho": "In particular, use of the content of this site for commercial purposes is expressly prohibited.",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuição/crédito (em cópias autorizadas)",
+          "trecho": "The following notice must in particular appear on all authorized copies of all or part of the site content: ©Copyright Accor SA.",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licença (de acesso)",
+          "trecho": "Any current or prospective customer or partner has a personal, non-exclusive, non-assignable, non-transferable right to access the information contained on the www.group.accor.com site for his own hotel reservation needs.",
+          "url": "https://group.accor.com/en/legal-terms",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "news.marriott.com / www.marriott.com",
+      "lote": 2,
+      "documentos": {
+        "https://www.marriott.com/about/terms-of-use-modal.mi": "texto bruto lido (36095 caracteres)",
+        "https://www.marriott.com/about/terms-of-use.mi": "inacessivel (HTTP 403)",
+        "https://news.marriott.com/": "nao_verificavel (página sem texto no HTML: 20 caracteres; provável JavaScript)"
+      },
+      "trechos": [
+        {
+          "topico": "reprodução de texto (fragmento)",
+          "trecho": "downloading, reproduction, or retransmission of the Services (or any part of its content) is strictly prohibited.",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link para o site (fragmento)",
+          "trecho": "(standard search engine technology that links users to our Services is permitted)",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automação/robôs (fragmento)",
+          "trecho": "use robots, spiders, or other automatic or high-volume methods or devices",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "IA (fragmento; refere-se a 'AI Services, Responses')",
+          "trecho": "use the AI Services, Responses, related data, or models to create, train, modify, adapt, improve, or otherwise develop",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso comercial (fragmento)",
+          "trecho": "You may use content on the Services and Responses for your personal, non-commercial use",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licença (fragmento)",
+          "trecho": "No license to, or right in, any such trademarks, patents, copyrighted materials,",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "aviso de copyright",
+          "trecho": "© 1996 - 2026 Marriott International, Inc. All rights reserved. Marriott proprietary information.",
+          "url": "https://www.marriott.com/about/terms-of-use-modal.mi",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.edpb.europa.eu",
+      "lote": 3,
+      "documentos": {
+        "https://www.edpb.europa.eu/copyright_en": "texto bruto lido (4013 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto",
+          "trecho": "reproduction of textual data and multimedia items which are the property of the EDPB",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "resumo_obra_derivada",
+          "trecho": "The original meaning or the message of the documents should not be distorted.",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens_material_imprensa",
+          "trecho": "multimedia items such as texts, drawings, graphics, logos, icons, images, audio and video material, photographs.",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automacao_raspagem_ia (somente contornar medidas tecnicas; nada sobre scraping/IA)",
+          "trecho": "not to seek to circumvent the technical measures put in place to protect documents and multimedia items.",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao",
+          "trecho": "The re-user is obliged to acknowledge the source of the document;",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao",
+          "trecho": "The user undertakes not to delete or change the indications of the author or the source.",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso_comercial",
+          "trecho": "The reuse of any information of this website is authorized for commercial and non-commercial purposes.",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "responsabilidade",
+          "trecho": "The European Data Protection Board cannot be held liable for any consequence stemming from the reuse.",
+          "url": "https://www.edpb.europa.eu/copyright_en",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www12.senado.leg.br",
+      "lote": 3,
+      "documentos": {
+        "https://www12.senado.leg.br/noticias/politica-de-uso": "texto bruto lido (3141 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto",
+          "trecho": "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens_material_imprensa",
+          "trecho": "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao",
+          "trecho": "mediante a citação da Agência Senado e do autor",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (audio)",
+          "trecho": "No caso dos arquivos de áudio, deverão constar dos créditos à Rádio Senado",
+          "url": "https://www12.senado.leg.br/noticias/politica-de-uso",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.camara.leg.br / www2.camara.leg.br",
+      "lote": 3,
+      "documentos": {
+        "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade": "texto bruto lido (10882 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto / citacao (item 7)",
+          "trecho": "reproduzir trechos de textos, notícias ou estudos publicados no Portal da Câmara, desde que estejam entre aspas",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "citacao (item 29)",
+          "trecho": "Trechos de textos, notícias ou estudos publicados devem ser citados entre aspas",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens_material_imprensa (item 7)",
+          "trecho": "Você pode reproduzir gratuitamente dados, imagens e infografias publicados no portal da Câmara",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (item 7)",
+          "trecho": "desde que citada a fonte \"Câmara dos Deputados\" e a autoria da informação, quando houver.",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca / reproducao (item 29)",
+          "trecho": "Todas as informações publicadas no Portal da Câmara são de domínio público, gratuitas e podem ser reproduzidas",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automacao_raspagem_ia (item 22, robos em participacao/interacao)",
+          "trecho": "Podemos coibir a participação de sistemas automatizados ou robôs (scripts, bots, entre outros) que tentem imitar pessoas.",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automacao_raspagem_ia (item 37, uso de IA pela propria Camara; nao trata de terceiros)",
+          "trecho": "A Câmara dos Deputados pode usar ferramentas de Inteligência Artificial (IA) para gerar conteúdos",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (item 40, apenas links do portal para externos)",
+          "trecho": "O portal pode exibir links para conteúdos externos, sem, contudo, ser responsável pelo conteúdo exibido no site lincado.",
+          "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "brasscom.org.br",
+      "lote": 3,
+      "documentos": {
+        "https://brasscom.org.br/politica-de-privacidade/": "texto bruto lido (3689 caracteres)",
+        "https://brasscom.org.br/": "texto bruto lido (6871 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "Todos os direitos reservados ©2025 BRASSCOM | Orgulhosamente desenvolvido por Gim Digital",
+          "url": "https://brasscom.org.br/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.salesforce.com",
+      "lote": 3,
+      "documentos": {
+        "https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/": "texto bruto lido (35803 caracteres)",
+        "https://www.salesforce.com/company/legal/tmcusageguidelines/": "texto bruto lido (37581 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto / uso de conteudo (ToS, secao G)",
+          "trecho": "You may not use content from our Sites unless you obtain permission from us or its owner.",
+          "url": "https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca / propriedade (ToS, secao G)",
+          "trecho": "Using our Site does not give you ownership of any intellectual property rights to the content you access.",
+          "url": "https://www.salesforce.com/company/legal/sfdc-website-terms-of-service/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao_texto / imagens (Guidelines)",
+          "trecho": "You may not use or display any of Salesforce’s content, including images, text, audio, video, or media",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (Guidelines)",
+          "trecho": "You may link to Salesforce’s content as long as you do not commercialize the links.",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao_texto (Guidelines)",
+          "trecho": "Most uses require specific written permission",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens_material_imprensa (Guidelines, screenshots)",
+          "trecho": "Screenshots of Salesforce’s software are permitted solely for educational tutorials",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (Guidelines)",
+          "trecho": "The following attribution statement must accompany any use of Salesforce’s copyrighted works:",
+          "url": "https://www.salesforce.com/company/legal/tmcusageguidelines/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.hubspot.com / legal.hubspot.com",
+      "lote": 3,
+      "documentos": {
+        "https://legal.hubspot.com/website-terms-of-use": "texto bruto lido (29643 caracteres)",
+        "https://legal.hubspot.com/content-usage-guidelines": "texto bruto lido (12496 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto (Website Terms, sec. 3)",
+          "trecho": "the Content may not be copied, reproduced, modified, published",
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "resumo_obra_derivada (Website Terms, sec. 3)",
+          "trecho": "create derivative works based on the Content or a Site, in whole or in part, by any means",
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link / framing (Website Terms, sec. 2(vii))",
+          "trecho": "mirror or frame a Site or any part of it on any other web site or web page.",
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automacao_raspagem_ia (Website Terms, sec. 2(v))",
+          "trecho": "use or launch any automated system, including without limitation, \"robots,\" \"spiders,\"",
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso_comercial (Website Terms, sec. 1)",
+          "trecho": "solely for your non-commercial, personal purposes and/or to learn about HubSpot",
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca (Website Terms, sec. 3)",
+          "trecho": "You do not receive any right or license to use the foregoing.",
+          "url": "https://legal.hubspot.com/website-terms-of-use",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao_texto (Content Usage Guidelines)",
+          "trecho": "we can't let you republish in full any of our text-based content",
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "citacao (Content Usage Guidelines)",
+          "trecho": "Feel free to reference or quote up to 75 words of any of our text content",
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (Content Usage Guidelines)",
+          "trecho": "Feel free to share links to any of our content by email and social media.",
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "imagens_material_imprensa (Content Usage Guidelines)",
+          "trecho": "Feel free to republish in full any HubSpot-original images (such as charts, graphs, cartoons, infographics)",
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao (Content Usage Guidelines)",
+          "trecho": "Attribute HubSpot as the source.",
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso_comercial (Content Usage Guidelines)",
+          "trecho": "You cannot make money off of our content.",
+          "url": "https://legal.hubspot.com/content-usage-guidelines",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.zendesk.com / www.zendesk.com.br",
+      "lote": 3,
+      "documentos": {
+        "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/": "texto bruto lido (27687 caracteres)",
+        "https://web-assets.zendesk.com/zendesk/pdf/Zendesk_Media_Kit_2026_V1.1.pdf": "nao_verificavel (PDF)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto (secao 6)",
+          "trecho": "você não pode copiar, distribuir, reproduzir, espelhar, enquadrar, exibir publicamente",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao_texto / excecao (secao 6)",
+          "trecho": "Exceto com a nossa permissão prévia e expressa por escrito ou conforme permitido por lei",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "resumo_obra_derivada (secao 6)",
+          "trecho": "traduzir, criar trabalhos derivados, republicar ou transmitir os Sites",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso_comercial / uso pessoal (secao 6)",
+          "trecho": "Você pode exibir, copiar e baixar Conteúdo dos Sites exclusivamente para seu uso pessoal e não comercial",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "uso_comercial (secao 5(b))",
+          "trecho": "reproduzir, duplicar, copiar, vender, revender ou explorar para qualquer finalidade comercial",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automacao (secao 4.5; trata de inflar visualizacoes)",
+          "trecho": "usar nenhum serviço, tecnologia ou sistema automatizado para aumentar artificialmente as visualizações",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "atribuicao / avisos de direitos autorais (secao 6)",
+          "trecho": "você não remova nenhum aviso de direitos autorais ou de propriedade do Conteúdo",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca (conteudo enviado por usuarios, secao 4.10)",
+          "trecho": "nos concede o direito e a licença universais, permanentes, irrevogáveis, não exclusivos e isentos de royalties",
+          "url": "https://www.zendesk.com.br/company/agreements-and-terms/terms-of-use/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "abrarec.com.br",
+      "lote": 3,
+      "documentos": {
+        "https://abrarec.com.br/": "texto bruto lido (5773 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "© ABRAREC Todos os direitos reservados 2026 | Desenvolvido por Navegar Marketing Digital",
+          "url": "https://abrarec.com.br/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.procon.sp.gov.br",
+      "lote": 3,
+      "documentos": {
+        "https://www.procon.sp.gov.br/privacidade-e-protecao-de-dados-lgpd/": "texto bruto lido (214151 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "© 2025 Fundação Procon – SP – Todos os direitos reservados.",
+          "url": "https://www.procon.sp.gov.br/privacidade-e-protecao-de-dados-lgpd/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "abav.com.br",
+      "lote": 3,
+      "documentos": {
+        "https://abav.com.br/politica-de-privacidade/": "texto bruto lido (19015 caracteres)",
+        "https://abav.com.br/imprensa/": "texto bruto lido (8395 caracteres)",
+        "https://abav.com.br/": "texto bruto lido (11252 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto / uso (aviso no rodape, nao documento de termos)",
+          "trecho": "Todo o conteúdo deste site é de uso exclusivo da ABAV.",
+          "url": "https://abav.com.br/",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "reproducao_texto / uso (aviso no rodape, nao documento de termos)",
+          "trecho": "Proibida reprodução ou utilização a qualquer título, sob as penas da lei.",
+          "url": "https://abav.com.br/",
+          "conferencia": "verificado"
+        }
+      ]
+    },
+    {
+      "dominio": "www.airlines.org",
+      "lote": 3,
+      "documentos": {
+        "https://www.airlines.org/privacy/": "texto bruto lido (13536 caracteres)",
+        "https://www.airlines.org/": "texto bruto lido (3944 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "aviso_de_copyright (rodape)",
+          "trecho": "© 2026 Airlines for America (A4A). All rights reserved.",
+          "url": "https://www.airlines.org/",
+          "conferencia": "nao_confere"
+        }
+      ]
+    },
+    {
+      "dominio": "www.oneworld.com",
+      "lote": 3,
+      "documentos": {
+        "https://www.oneworld.com/privacy-policy": "texto bruto lido (18189 caracteres)"
+      },
+      "trechos": [
+        {
+          "topico": "reproducao_texto",
+          "trecho": "No such materials may be reproduced without the prior written consent of the applicable owners",
+          "url": "https://www.oneworld.com/privacy-policy",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "citacao / republicacao",
+          "trecho": "No information provided via this website may be republished in any fashion in any public forum.",
+          "url": "https://www.oneworld.com/privacy-policy",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "direitos_autorais (titularidade)",
+          "trecho": "Trademarks, brands and copyright material contained on this website belong to",
+          "url": "https://www.oneworld.com/privacy-policy",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "automacao_raspagem_ia",
+          "trecho": "Automated access to this website, for example, via a \"screen scraper,\" \"bot,\" etc. is prohibit",
+          "url": "https://www.oneworld.com/privacy-policy",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "link (apenas links de saida)",
+          "trecho": "This website contains links to other sites.",
+          "url": "https://www.oneworld.com/privacy-policy",
+          "conferencia": "verificado"
+        },
+        {
+          "topico": "licenca (somente conteudo enviado por usuarios)",
+          "trecho": "a worldwide, perpetual, royalty-free, non-exclusive, irrevocable, transferable, sublicensable license",
+          "url": "https://www.oneworld.com/privacy-policy",
+          "conferencia": "verificado"
+        }
+      ]
+    }
+  ]
+}
