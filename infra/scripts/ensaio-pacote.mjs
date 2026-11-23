@@ -144,6 +144,10 @@ try {
   if (vitrine || apiSrc) delete buildEnv.PORTAL_VITRINE; else buildEnv.PORTAL_VITRINE = '1'; // a vitrine vem do release.json, nunca do painel (com api o painel hostil com vitrine é recusado, testado acima)
   r = runChain(ca.build, { cwd: work, env: buildEnv });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
+  if (man.semTypecheckNoBuild === true) {
+    const log = `${r.stdout}${r.stderr}`;
+    step('[typecheck] build do pacote SEM checagem de tipos dentro do build (release.json.semTypecheckNoBuild)', r.status === 0 && /typecheck-no-build=dispensado/.test(log) && (/Skipping validation of types/i.test(log) || !/Running TypeScript/.test(log)), /Running TypeScript/.test(log) ? 'o Next AINDA rodou o TypeScript: falta a linha de apps/web/next.config.ts (int/006)' : '');
+  }
   if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : apiSrc ? 'sem PORTAL_VITRINE' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
