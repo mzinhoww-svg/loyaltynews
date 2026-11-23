@@ -141,9 +141,34 @@ describe('C1: pull → heartbeat → io → callback assinados, com a parada lig
     }, 60_000);
   }
 
-  it('sem assinatura a parada não vaza: 401 antes de qualquer 423 (o agente não descobre o estado sem o segredo)', async () => {
-    await ligar('KILL_SWITCH');
-    const res = await pull.POST(new Request('http://localhost:3000/api/openbot/pull', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"workerId":"w"}' }));
-    expect(res.status).toBe(401);
+  // Sem assinatura: a ordem das checagens decide o que um chamador SEM o segredo descobre. Fixamos o comportamento atual, inclusive a exceção.
+  const semAssinatura = async (r: Route, body: unknown) =>
+    (await r.POST(new Request('http://localhost:3000/api/openbot/x', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }))).status;
+
+  it('sem assinatura, com kill switch ou piloto parado: 401 em pull, heartbeat, io/input e io/result (a assinatura vem antes da parada)', async () => {
+    const lease = { taskId: 'task-x', leaseId: 'lease-x' };
+    for (const motivo of ['KILL_SWITCH', 'PILOT_STOPPED'] as const) {
+      if (motivo === 'PILOT_STOPPED') pilotOn();
+      await ligar(motivo);
+      expect(await semAssinatura(pull, { workerId: 'w', account: 'claude' }), `${motivo} pull`).toBe(401);
+      expect(await semAssinatura(heartbeat, lease), `${motivo} heartbeat`).toBe(401);
+      expect(await semAssinatura(ioInput, lease), `${motivo} io/input`).toBe(401);
+      expect(await semAssinatura(ioResult, { ...lease, result: {} }), `${motivo} io/result`).toBe(401);
+      await desligar(motivo);
+      pilotOff();
+    }
+  });
+
+  it('EXCEÇÃO: com o despacho desligado (sem kill), o PULL responde 423 DISPATCH_OFF ANTES de conferir a assinatura; as outras rotas seguem 401', async () => {
+    // _lib/openbot.ts (openbotRoute): a recusa por despacho desligado vale "antes de qualquer efeito" e antes do HMAC. Efeito: sem o segredo, dá para
+    // saber que o despacho está desligado (só isso; nada é lido, entregue ou gravado). Se a ordem mudar para assinar primeiro, este teste deve mudar junto.
+    app.deps.flags.openbotDispatch = false;
+    const r = await pull.POST(new Request('http://localhost:3000/api/openbot/pull', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"workerId":"w"}' }));
+    expect(r.status).toBe(423);
+    expect((await r.json()).error.code).toBe('DISPATCH_OFF');
+    expect(await semAssinatura(heartbeat, { taskId: 'task-x', leaseId: 'lease-x' })).toBe(401);
+    expect(await semAssinatura(ioInput, { taskId: 'task-x', leaseId: 'lease-x' })).toBe(401);
+    expect(await semAssinatura(callback, { callbackId: 'cb-x', taskId: 'task-x', leaseId: 'lease-x', outcome: 'failed' })).toBe(401);
+    expect(await new PgLeaseQueue(app.db as any).counts()).toMatchObject({ leased: 0 }); // nada foi entregue
   });
 });
