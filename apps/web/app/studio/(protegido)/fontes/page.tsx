@@ -7,6 +7,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { ESCRITA_EDITORIAL } from '@/lib/studio/papeis';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
 import { alterarFonteAction, criarFonteAction } from './actions';
 
@@ -52,7 +53,8 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
           <p>O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial e está desligada nesta fase.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Banco de fontes">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {fontes.length} fonte(s)
           </caption>
@@ -108,6 +110,7 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       {podeEscrever ? (

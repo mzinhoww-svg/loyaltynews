@@ -8,6 +8,7 @@ import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import { requireStudio } from '../../_lib/guard';
 import { SemBanco } from '../../_components/SemBanco';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../_components/StatusArtigo';
 
 export const metadata: Metadata = { title: 'CMS editorial' };
@@ -123,7 +124,8 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           ) : null}
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Matérias">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left', padding: '4px 0' }}>
             {total} matéria(s)
           </caption>
@@ -152,6 +154,7 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
       <p className="st-hint">Publicação no portal: pela rota oficial, com recibo válido da versão e a publicação no portal ligada nesta fase, para quem tem permissão de publicar (editor-chefe, admin). Quem aprova e quem publica podem ser a mesma pessoa.</p>
     </>

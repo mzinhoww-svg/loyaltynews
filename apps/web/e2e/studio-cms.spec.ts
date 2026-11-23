@@ -176,6 +176,32 @@ test.describe('CMS editorial (/api/materias)', () => {
     await expect(page.locator('[data-para-mim]')).toHaveCount(0);
   });
 
+  // revisão visual P2-1: tabela que rola no celular fica num quadro com nome e foco de teclado (axe scrollable-region-focusable)
+  test('lista do CMS no celular: a tabela fica num quadro rolável focável e com nome', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto('/studio/cms');
+    const quadro = page.locator('main .st-quadro').first();
+    await expect(quadro).toHaveAttribute('role', 'region');
+    await expect(quadro).toHaveAttribute('tabindex', '0');
+    await expect(quadro).toHaveAttribute('aria-label', 'Matérias');
+    await expect(quadro.locator('table')).toHaveCount(1);
+    await quadro.focus();
+    await expect(quadro).toBeFocused();
+  });
+
+  // revisão visual P3-2: a célula do título (cabeçalho da linha) não destoa das outras células da linha
+  test('lista do CMS: a célula do título tem o mesmo fundo das outras células', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    await page.goto('/studio/cms');
+    const fundos = await page.evaluate(() => {
+      const linha = document.querySelector('main table tbody tr')!;
+      return [...linha.children].map((c) => getComputedStyle(c).backgroundColor);
+    });
+    expect(fundos.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(fundos).size, fundos.join(' | ')).toBe(1);
+  });
+
   test('filtros por estado, editoria e busca; filtro inválido é recusado pela API', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/cms?status=bloqueado');

@@ -44,6 +44,8 @@
 .st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); overflow: hidden; }
 .st-table th, .st-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--st-line); vertical-align: top; }
 .st-table th { background: var(--ln-color-neutral-bg); font-size: 13px; }
+/* revisão visual P3-2: o cabeçalho da linha (célula do título) não tem fundo diferente das outras células */
+.st-table tbody th { background: transparent; font-size: inherit; }
 .st-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 14px; }
 .st-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; min-width: 0; }
 .st-field label, .st-field legend { font-weight: 600; font-size: 14px; }
@@ -97,6 +99,9 @@
   .st-main { padding: 14px; }
   /* F-27: toda tabela larga (inclusive as dos pacotes @ln/*) rola dentro do próprio quadro, não a página inteira */
   .studio table { display: block; max-width: 100%; overflow-x: auto; }
+  /* revisão visual P2-1: o quadro (região focável) é quem rola; a tabela dentro dele mantém o layout de tabela */
+  .studio .st-quadro { max-width: 100%; overflow-x: auto; }
+  .studio .st-quadro > table { display: table; overflow: visible; min-width: 100%; }
 }
 
 /* revisão visual P2-6 (decisão PM-2026-11-23-H): títulos do Studio em Inter (fonte de interface), mesmos tamanhos e pesos; o portal não muda */

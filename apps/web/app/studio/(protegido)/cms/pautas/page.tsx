@@ -9,6 +9,7 @@ import { CMS_READ } from '@/lib/studio/cms/roles';
 import { FORMATOS, MAX_ANCORAS, MIN_ANCORAS, estadoDaPauta, fontesDeAncora, type FonteRegistro, type PautaVista } from '@/lib/studio/cms/pauta';
 import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { enviarPautaAction } from './actions';
 
@@ -81,7 +82,8 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
           <p>Nenhuma pauta autoral registrada.</p>
         </section>
       ) : (
-        <table className="st-table" aria-label="Pautas autorais">
+        <QuadroRolavel rotulo="Pautas">
+<table className="st-table" aria-label="Pautas autorais">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {pautas.length} pauta(s), da mais recente à mais antiga
           </caption>
@@ -152,6 +154,7 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
             })}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <h2 style={{ marginTop: 24 }}>Nova pauta</h2>
