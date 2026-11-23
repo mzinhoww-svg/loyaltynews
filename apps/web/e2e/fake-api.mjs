@@ -162,6 +162,14 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+// GET /api/commercial/ads/plan (formato de adPlan do @ln/commercial). FAKE_API_ADS=com: TOP e SIDEBAR_1 disponíveis; qualquer outro valor: nenhuma.
+const adsMode = process.env.FAKE_API_ADS ?? 'sem';
+const ADS_DIM = { TOP: [1280, 150], SIDEBAR_1: [336, 280] };
+const adPlan = (positions) => ({
+  today: new Date().toISOString().slice(0, 10),
+  slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1] } : { positionId: id, available: false, width: null, height: null })),
+});
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // MOCK de GET /api/commercial/mediakit (formato do handler getMediaKit do @ln/commercial). Só para o e2e do portal em modo api.
 const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
@@ -195,6 +203,7 @@ http
       return send(res, 200, MEDIAKIT);
     }
     if (forcedStatus && u.pathname.startsWith('/api/publico/')) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
+    if (u.pathname === '/api/commercial/ads/plan') return send(res, 200, adPlan((u.searchParams.get('positions') ?? '').split(',').filter(Boolean)));
     if (u.pathname === '/api/publico/site') return send(res, 200, sitePayload());
     if (u.pathname === '/api/publico/agenda') return send(res, 200, { data: agendaMode === 'vazia' ? [] : agendaEvents });
     const ev = /^\/api\/publico\/agenda\/([^/]+)$/.exec(u.pathname);
