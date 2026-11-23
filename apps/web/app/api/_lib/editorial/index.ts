@@ -6,8 +6,8 @@
 import { sql } from 'drizzle-orm';
 import {
   acknowledgeLegalCase, closeCorrection, getArticleReview, getCorrection, getFactcheck, intakeRightOfReply, listCorrections, listQueue,
-  listSources, markCorrectionEntitiesRebuilt, openCorrection, preserveCorrectionEvidence, publishCorrectionNotice, reconcileCorrectionSocial,
-  requestRecheck, reviewSource, setSourceEnabled, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
+  listPautas, listSources, markCorrectionEntitiesRebuilt, openCorrection, preserveCorrectionEvidence, publishCorrectionNotice, reconcileCorrectionSocial,
+  requestRecheck, reviewSource, setSourceEnabled, submitPauta, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
   type ApiResponse, type JobQueue,
 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
@@ -56,6 +56,9 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   stu('GET', '/sources', READ, listSources),
   stu('POST', '/sources/:sourceId/review', WRITE, reviewSource),
   stu('POST', '/sources/:sourceId/enabled', WRITE, setSourceEnabled),
+  // pauta autoral (DP-29): a rota só registra e lista; o worker (runAutoralQueue) processa
+  stu('GET', '/pautas', READ, listPautas),
+  stu('POST', '/pautas', WRITE, submitPauta),
   // Portal (sem sessão; limite por IP no dispatcher): formulário de direito de resposta
   { method: 'POST', path: `${PUB}/right-of-reply`, auth: 'public', handler: intakeRightOfReply },
 ];
