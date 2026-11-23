@@ -18,3 +18,12 @@ for (const rota of ['/studio/modelops', '/studio/organizacao', '/studio/reunioes
     }
   });
 }
+
+// P2-2: nada de rótulo técnico de flag para o usuário nas telas da frente Studio 2.
+for (const rota of ['/studio/modelops', '/studio/organizacao', '/studio/reunioes', '/studio/finops', '/studio/social', '/studio/watchlists', '/studio/organogramas']) {
+  test(`P2-2: ${rota} sem nome de flag no texto`, async ({ page, context }) => {
+    await entrar(context, 'uiux-adm', 'admin');
+    await page.goto(rota);
+    await expect(page.locator('main')).not.toContainText(/\bflag\b|modelosHabilitados|linkedinPublicacao|production_enabled=/i);
+  });
+}

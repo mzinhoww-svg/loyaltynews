@@ -48,13 +48,13 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
     <>
       <h1>Social dashboard</h1>
       <p>
-        Pacotes sociais por canal, com bloqueios e recibos, vindos das rotas reais do Backend (<code>/api/studio/social</code>). A publicação é <strong>somente simulada</strong>: nada vai ao mLabs (identidade de publicação separada, ADR-008). Instagram e The Loyal estão construídos e desligados por flag.
+        Pacotes sociais por canal, com bloqueios e recibos, vindos das rotas reais do Backend (<code>/api/studio/social</code>). A publicação é <strong>somente simulada</strong>: nada vai ao mLabs (identidade de publicação separada, ADR-008). Instagram e The Loyal estão construídos e desligados nesta fase.
       </p>
       <Flash tipo={q.tipo} aviso={q.aviso} />
       <DashboardSummaryCards summary={resumo.body as DashboardSummary} />
       <MetricasMlabs metricas={(resumo.body as DashboardSummary).metrics} />
       <p className="st-hint">
-        Flags: linkedinPublicacao {flagAtiva('linkedinPublicacao') ? 'ligada' : 'desligada'} · instagram {flagAtiva('instagram') ? 'ligada' : 'desligada'} · theLoyal {flagAtiva('theLoyal') ? 'ligada' : 'desligada'}.
+        Canais: LinkedIn {flagAtiva('linkedinPublicacao') ? 'ligado' : 'desligado nesta fase'} · Instagram {flagAtiva('instagram') ? 'ligado' : 'desligado nesta fase'} · The Loyal {flagAtiva('theLoyal') ? 'ligado' : 'desligado nesta fase'}.
       </p>
 
       <h2>Fila de pacotes</h2>
@@ -112,7 +112,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
               <label htmlFor="canal">Canal</label>
               <select id="canal" name="canal" defaultValue="linkedin">
                 <option value="linkedin">LinkedIn</option>
-                <option value="instagram">Instagram (flag desligada)</option>
+                <option value="instagram">Instagram (desligado nesta fase)</option>
               </select>
             </div>
             <button className="st-btn" type="submit">

@@ -22,7 +22,7 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
       <SemRotaBackend o_que="Organograma agêntico, papéis e registros vêm da configuração do repositório (@ln/agents)." />
       <p>
         Configuração versionada dos registros oficiais: {agentes.length} perfis, {org.registries.workflows.length} workflows e {org.registries.meetings.length} rituais. Responsabilidade vertical, execução horizontal. Rituais:{' '}
-        <strong>{flagAtiva('rituais') ? 'ligados' : 'desligados'}</strong> (flag rituais) e chamadas de modelo <strong>{flagAtiva('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong>: nada executa agora.
+        <strong>{flagAtiva('rituais') ? 'ligados' : 'desligados'}</strong> e chamadas de modelo <strong>{flagAtiva('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong>: nada executa agora.
       </p>
 
       <h2>Diretorias</h2>

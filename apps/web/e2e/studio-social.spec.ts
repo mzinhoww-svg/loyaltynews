@@ -13,7 +13,7 @@ test.describe('Social dashboard (@ln/growth)', () => {
     await expect(resumo.locator('[data-channel="instagram"]')).toContainText('Chave desligada');
     await expect(resumo.locator('[data-channel="the_loyal"]')).toContainText('Chave desligada');
     await expect(resumo.locator('[data-metrics]')).toContainText('indisponíveis');
-    await expect(page.getByText('Flags: linkedinPublicacao desligada · instagram desligada · theLoyal desligada.')).toBeVisible();
+    await expect(page.getByText('Canais: LinkedIn desligado nesta fase · Instagram desligado nesta fase · The Loyal desligado nesta fase.')).toBeVisible();
     await expect(page.getByRole('button', { name: /publicar/i })).toHaveCount(0);
   });
 

@@ -43,7 +43,7 @@ export default async function FinOpsPage() {
       <SemRotaBackend o_que="Orçamento e teto vêm da configuração (@ln/modelops); o consumo é o livro-razão do gateway." />
       <p>Orçamento, consumo e degraus do mês (America/Sao_Paulo). Só o admin altera limites; agentes não alteram o teto mensal.</p>
       <div className="st-alert" role="status">
-        {POLITICA_ROTULO}. Chamadas de modelo: <strong>{flagAtiva('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong> (flag modelosHabilitados).
+        {POLITICA_ROTULO}. Chamadas de modelo: <strong>{flagAtiva('modelosHabilitados') ? 'habilitadas' : 'desabilitadas'}</strong>.
       </div>
       {falha && (
         <div className="st-alert err" role="alert">

@@ -49,7 +49,7 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
       <p>Catálogo, roteamento por tarefa e classe de dado. Nenhuma chamada de modelo sai do Studio.</p>
       <div className="st-alert" role="status">
         <strong>{POLITICA_ROTULO}.</strong> Versão {policy.version}, preços de {policy.rate_card_as_of}. Chamadas reais:{' '}
-        <strong data-reais={reais ? 'sim' : 'nao'}>{reais ? 'permitidas' : 'bloqueadas'}</strong> (política production_enabled={String(policy.rules.production_enabled)}, flag modelosHabilitados {flag ? 'ligada' : 'desligada'}).
+        <strong data-reais={reais ? 'sim' : 'nao'}>{reais ? 'permitidas' : 'bloqueadas'}</strong> (política de produção {policy.rules.production_enabled ? 'liberada' : 'bloqueada'}; chamadas de modelo {flag ? 'ligadas' : 'desligadas nesta fase'}).
       </div>
 
       <h2>Catálogo de modelos ({policy.models.length})</h2>

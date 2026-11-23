@@ -87,7 +87,7 @@ test.describe('shell e navegação', () => {
   test('flag desligada aparece no módulo', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio/social');
-    await expect(page.getByText('desligada', { exact: false }).first()).toBeVisible();
+    await expect(page.getByText('desligado nesta fase', { exact: false }).first()).toBeVisible();
     await page.goto('/studio/inexistente');
     await expect(page.getByRole('heading', { name: /404|not found|não encontrada/i }).first()).toBeVisible();
   });

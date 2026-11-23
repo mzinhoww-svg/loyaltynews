@@ -7,7 +7,7 @@ test.describe('Organização agêntica (@ln/agents)', () => {
     await page.goto('/studio/organizacao');
     await expect(page.getByRole('heading', { level: 1, name: 'Organização agêntica' })).toBeVisible();
     await expect(page.getByText(/64 perfis, 19 workflows e 28 rituais/)).toBeVisible();
-    await expect(page.getByText('Rituais: desligados (flag rituais)')).toBeVisible();
+    await expect(page.getByText('Rituais: desligados e chamadas de modelo', { exact: false })).toBeVisible();
     await expect(page.locator('tr[data-diretoria]')).toHaveCount(7);
     await expect(page.locator('tr[data-redacao]')).toHaveCount(10);
     await expect(page.locator('tr[data-agente]')).toHaveCount(64);
@@ -24,7 +24,7 @@ test.describe('Organização agêntica (@ln/agents)', () => {
     await page.locator('tr[data-agente] a').first().click();
     await expect(page.getByRole('heading', { name: 'Missão' })).toBeVisible();
     await expect(page.getByRole('list', { name: 'Ferramentas permitidas' })).toBeVisible();
-    await expect(page.getByText('A execução do agente (chamadas de modelo) depende da flag modelosHabilitados')).toBeVisible();
+    await expect(page.getByText('A execução do agente (chamadas de modelo) só acontece quando elas forem ligadas')).toBeVisible();
     expect((await page.goto('/studio/organizacao/agente-que-nao-existe'))?.status()).toBe(404);
   });
 
