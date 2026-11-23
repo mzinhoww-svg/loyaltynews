@@ -10,7 +10,9 @@ import { Pool } from 'pg';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
-import { parseFactoryFlags, runEditorialFactory } from './editorial-factory';
+import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
+import { pilotWiringImporter } from './openbot-wiring';
+import { loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
 
 async function main() {
   const { DATABASE_URL, LN_FACTORY_FLAGS, LN_MODEL_POLICY } = process.env;
@@ -25,8 +27,9 @@ async function main() {
   pool.on('error', () => undefined); // C1
   const db = drizzle(pool, { schema }) as unknown as Db;
   try {
+    const pilot = await loadPilotWiring(process.env, pilotWiringImporter(db)); // importador ESTÁTICO (o main é empacotado por esbuild); DP-41: só staging (APP_ENV=staging e LN_OPENBOT_PILOT=1); senão undefined
     let gateway;
-    if (run) {
+    if (run && !pilot) {
       if (!simulate) { console.error('[fábrica] --run exige --simulate enquanto não houver chamada real de modelo autorizada'); process.exit(1); }
       const path = LN_MODEL_POLICY ?? resolve(process.cwd(), 'packages/modelops/fixtures/model.policy.proposto-DP02-v5.json');
       const check = loadPolicyFile(path);
@@ -37,7 +40,18 @@ async function main() {
         mode: 'simulation' as const, qualifiedModelIds: [] as string[], zdrVerifiedModelIds: [] as string[],
       };
     }
-    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
+    // DP-31 (desligado por padrão): só com LN_TAVILY_API_KEYS (lista ordenada, separada por vírgula; troca de chave só quando a COTA acaba) ou LN_TAVILY_API_KEY.
+    // Os valores vêm do cofre do OpenBot pelo operador e NUNCA são impressos nem gravados.
+    const shadow = await loadShadow(process.env);
+    const tavilyKeys = parseTavilyKeys(process.env);
+    const reader = tavilyKeys.length ? new TavilyReader({ apiKeys: tavilyKeys }) : undefined;
+    if (args.includes('--autoral')) {
+      // pautas autorais pendentes (DP-29): exige --run --simulate enquanto não houver chamada real de modelo autorizada
+      if (!gateway && !pilot) { console.error('[fábrica] --autoral chama modelo: use --run --simulate'); process.exit(1); }
+      console.log(JSON.stringify(await runEditorialAutoral({ db, flags, ...(gateway ? { gateway } : {}), ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(max ? { max } : {}) }), null, 2));
+      return;
+    }
+    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
     console.log(JSON.stringify(report, null, 2));
   } finally {
     await pool.end();

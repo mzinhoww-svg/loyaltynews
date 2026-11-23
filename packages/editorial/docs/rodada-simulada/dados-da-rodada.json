@@ -1,0 +1,392 @@
+{
+  "geradoEm": "2026-11-23T11:06:08.438Z",
+  "aviso": "SIMULADO — ensaio local; nada foi publicado; nenhum modelo real foi chamado.",
+  "postgres": {
+    "versao": "PostgreSQL 18.7 on x86_64-windows, compiled by msvc-19.44.35",
+    "host": "127.0.0.1:55433",
+    "banco": "ln_editorial_local"
+  },
+  "tabelas": 54,
+  "robots": [
+    {
+      "fonte": "senado-noticias",
+      "host": "www12.senado.leg.br",
+      "status": 200,
+      "bytes": 162,
+      "crawlDelaySeg": null,
+      "fabrica": {
+        "feedPermitido": true,
+        "listagemPermitida": true,
+        "disallowDoGrupoNosso": []
+      },
+      "agentesDeIA": {
+        "GPTBot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "ChatGPT-User": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "OAI-SearchBot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "ClaudeBot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Claude-Web": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "anthropic-ai": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "PerplexityBot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Google-Extended": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "CCBot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Bytespider": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Omgilibot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "FacebookBot": {
+          "regrasEspecificas": 0,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        }
+      }
+    },
+    {
+      "fonte": "camara-noticias",
+      "host": "www.camara.leg.br",
+      "status": 200,
+      "bytes": 6570,
+      "crawlDelaySeg": null,
+      "fabrica": {
+        "feedPermitido": true,
+        "listagemPermitida": true,
+        "disallowDoGrupoNosso": [
+          "/wp-admin*",
+          "/config*",
+          "/tmp*",
+          "/admin*",
+          "/login*",
+          "/private*",
+          "/comentarios/*",
+          "/comentarios?*",
+          "/sileg/prop_lista*",
+          "/internet/sileg/prop_lista*",
+          "/sileg/Prop_lista*",
+          "/internet/sileg/Prop_lista*"
+        ]
+      },
+      "agentesDeIA": {
+        "GPTBot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "ChatGPT-User": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "OAI-SearchBot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "ClaudeBot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Claude-Web": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "anthropic-ai": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "PerplexityBot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Google-Extended": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "CCBot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Bytespider": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "Omgilibot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        },
+        "FacebookBot": {
+          "regrasEspecificas": 35,
+          "feedPermitido": true,
+          "listagemPermitida": true
+        }
+      }
+    }
+  ],
+  "fontesHabilitadas": [
+    {
+      "id": "senado-noticias",
+      "habilitada": true,
+      "revisor": "5635736b-37b7-4021-b6c8-54e5ac0f84c7",
+      "em": "2026-11-23T11:06:12.203Z"
+    },
+    {
+      "id": "camara-noticias",
+      "habilitada": true,
+      "revisor": "5635736b-37b7-4021-b6c8-54e5ac0f84c7",
+      "em": "2026-11-23T11:06:12.226Z"
+    }
+  ],
+  "rodadas": [
+    {
+      "fonte": "senado-noticias",
+      "startedAt": "2026-11-23T11:06:12.241Z",
+      "dryRun": false,
+      "sources": [
+        {
+          "sourceId": "senado-noticias",
+          "status": "collected",
+          "evidences": 3,
+          "skipped": []
+        }
+      ],
+      "duplicates": [],
+      "deferred": [
+        "art_29adb81da59312375b43",
+        "art_157f25aefbdf2d943125"
+      ],
+      "articles": [
+        {
+          "articleId": "art_d2e07e4baae810ccd42e",
+          "sourceId": "senado-noticias",
+          "url": "https://www12.senado.leg.br/noticias/infomaterias/2026/11/autodeclaracao-racial-revela-preconceitos-e-combate-desigualdades",
+          "status": "aprovado",
+          "stages": [
+            "triage",
+            "context",
+            "draft",
+            "factcheck",
+            "review"
+          ],
+          "blockers": [],
+          "findings": []
+        }
+      ],
+      "haltedBy": null
+    },
+    {
+      "fonte": "camara-noticias",
+      "startedAt": "2026-11-23T11:06:13.038Z",
+      "dryRun": false,
+      "sources": [
+        {
+          "sourceId": "camara-noticias",
+          "status": "collected",
+          "evidences": 3,
+          "skipped": []
+        }
+      ],
+      "duplicates": [],
+      "deferred": [
+        "art_b8c104d7cdd81caa5eb9",
+        "art_9f8cc59e66c323ef95c0"
+      ],
+      "articles": [
+        {
+          "articleId": "art_db4ec089847f54010f26",
+          "sourceId": "camara-noticias",
+          "url": "https://www.camara.leg.br/noticias/1321186-camara-deve-votar-ajuste-fiscal-proposta-do-governo-pretende-economizar-r-70-bilhoes",
+          "status": "aprovado",
+          "stages": [
+            "triage",
+            "context",
+            "draft",
+            "factcheck",
+            "review"
+          ],
+          "blockers": [],
+          "findings": []
+        }
+      ],
+      "haltedBy": null
+    }
+  ],
+  "resumo": {
+    "artigos": 2,
+    "aprovados": 2,
+    "bloqueados": 0
+  },
+  "pacotes": 2,
+  "publicacao": {
+    "orquestradorSemFlag": [
+      "waiting_flag",
+      "waiting_flag"
+    ],
+    "orquestradorComFlag": [
+      "simulated_content",
+      "simulated_content"
+    ],
+    "chamadasHttp": 0,
+    "outbox": 0
+  },
+  "custo": {
+    "premissas": "tokens de ENTRADA medidos nos prompts reais com a evidência real (≈3,5 caracteres/token); tokens de SAÍDA = teto por estágio (limite superior); tarifas de contracts/model.policy.json (pico); inclui só as chamadas feitas nesta rodada (sem social/cargos); NÃO inclui cache nem reservas do gateway",
+    "estagios": [
+      {
+        "estagio": "triage",
+        "rota": "economy",
+        "tokensDeEntrada": 2101,
+        "tokensDeSaidaMax": 200,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "context",
+        "rota": "economy",
+        "tokensDeEntrada": 2068,
+        "tokensDeSaidaMax": 800,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "draft",
+        "rota": "review",
+        "tokensDeEntrada": 2350,
+        "tokensDeSaidaMax": 3000,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "factcheck",
+        "rota": "review",
+        "tokensDeEntrada": 2278,
+        "tokensDeSaidaMax": 1200,
+        "excluiProvedores": [
+          "simulado-redator"
+        ]
+      },
+      {
+        "estagio": "review",
+        "rota": "economy",
+        "tokensDeEntrada": 442,
+        "tokensDeSaidaMax": 500,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "triage",
+        "rota": "economy",
+        "tokensDeEntrada": 1252,
+        "tokensDeSaidaMax": 200,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "context",
+        "rota": "economy",
+        "tokensDeEntrada": 1220,
+        "tokensDeSaidaMax": 800,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "draft",
+        "rota": "review",
+        "tokensDeEntrada": 1502,
+        "tokensDeSaidaMax": 3000,
+        "excluiProvedores": []
+      },
+      {
+        "estagio": "factcheck",
+        "rota": "review",
+        "tokensDeEntrada": 1441,
+        "tokensDeSaidaMax": 1200,
+        "excluiProvedores": [
+          "simulado-redator"
+        ]
+      },
+      {
+        "estagio": "review",
+        "rota": "economy",
+        "tokensDeEntrada": 454,
+        "tokensDeSaidaMax": 500,
+        "excluiProvedores": []
+      }
+    ],
+    "materias": 2,
+    "cenarios": [
+      {
+        "nome": "econômico (deepseek-flash; checagem em claude-haiku-5-5)",
+        "modelos": {
+          "*": "deepseek-flash",
+          "factcheck": "claude-haiku-5-5"
+        },
+        "usdPorMateriaLimiteSuperior": 0.0158,
+        "tentativasDeRedacao": 1
+      },
+      {
+        "nome": "conservador (redação e revisão em claude-sonnet-5-5; checagem em deepseek-v4-pro)",
+        "modelos": {
+          "*": "deepseek-flash",
+          "draft": "claude-sonnet-5-5",
+          "review": "claude-sonnet-5-5",
+          "factcheck": "deepseek-v4-pro"
+        },
+        "usdPorMateriaLimiteSuperior": 0.0983,
+        "tentativasDeRedacao": 1
+      },
+      {
+        "nome": "pior caso: conservador com 3 tentativas de redação",
+        "modelos": {
+          "*": "deepseek-flash",
+          "draft": "claude-sonnet-5-5",
+          "review": "claude-sonnet-5-5",
+          "factcheck": "deepseek-v4-pro"
+        },
+        "usdPorMateriaLimiteSuperior": 0.2337,
+        "tentativasDeRedacao": 3
+      }
+    ]
+  }
+}

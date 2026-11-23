@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { apiError, canTransition } from '@ln/contracts';
 import type { ArticleStatus } from '@ln/contracts';
 import { EDITORIAS } from '../types';
-import { runDeterministicChecks } from '../rules/rules';
+import { checkTone, runDeterministicChecks } from '../rules/rules';
 import {
   buildErratumNotice, buildReplyNotice, closeCase, markEntitiesRebuilt, openCase, ownerAck, preserveEvidence, publishNotice,
   reconcileSocial, triage, verifyCorrectionClaims,
@@ -58,6 +58,8 @@ export interface ReviewView {
   evidencias: Array<{ id: string; sourceId: string; url: string; capturadoEm: string; sha256: string; titulo: string; suspeita: boolean }>;
   gate: { passou: boolean; achados: Array<{ code: string; message: string; claimId?: string }>; independencia: ReturnType<typeof independence>; todasClaimsAprovadas: boolean };
   bloqueios: string[]; revisoes: ArticleRecord['reviews'];
+  /** Avisos do tom lint (palavra proibida, data relativa, "você" em notícia, título acima da meta): recalculados do rascunho; não bloqueiam. */
+  avisosDeTom: Array<{ code: string; message: string }>;
 }
 
 /** O gate é SEMPRE recalculado a partir do rascunho e das evidências; o que foi gravado antes não é confiado. */
@@ -80,6 +82,7 @@ export async function getArticleReview(ctx: HandlerCtx, input: unknown): Promise
     evidencias: r.evidences.map((e) => ({ id: e.id, sourceId: e.sourceId, url: e.url, capturadoEm: e.fetchedAt, sha256: e.contentSha256, titulo: e.title, suspeita: e.suspicious })),
     gate: { passou: !!chk && chk.verdict === 'pass' && ind.independent && allPass, achados: chk?.findings ?? [], independencia: ind, todasClaimsAprovadas: allPass },
     bloqueios: r.blockers, revisoes: r.reviews,
+    avisosDeTom: d ? checkTone(d).warnings : [],
   });
 }
 

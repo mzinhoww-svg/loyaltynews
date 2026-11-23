@@ -19,7 +19,7 @@ const realFetch = globalThis.fetch;
 globalThis.fetch = (() => { throw new Error('fetch real proibido nos testes do pipeline'); }) as typeof fetch;
 process.on('exit', () => { globalThis.fetch = realFetch; });
 
-const ev = (await new Collector(mockWeb(), { now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver(), flags: COLLECT_ON })
+const ev = (await new Collector(mockWeb(), { minSpacingMs: 0, now: () => new Date('2026-11-23T12:00:00Z'), resolver: mockResolver(), flags: COLLECT_ON })
   .collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria')).evidence!;
 
 const registry = new SourceRegistry([MOCK_SOURCE]);

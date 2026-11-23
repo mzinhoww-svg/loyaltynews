@@ -102,7 +102,7 @@ describe('execução da fábrica (PostgreSQL de teste)', () => {
   const registry = () => new SourceRegistry([SRC]);
   const collector = () => new Collector(
     new MockFetcher({ 'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:', 'https://ri.mock.example/feed.xml': '<rss><channel><item><title>MOCK</title><link>https://ri.mock.example/noticias/alfa-parceria</link></item></channel></rss>', 'https://ri.mock.example/noticias/alfa-parceria': MOCK_ARTICLE_ALFA }),
-    { now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
+    { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
   );
   async function enable(db: Db) {
     const store = new PgEditorialStore(db);
@@ -153,29 +153,8 @@ describe('execução da fábrica (PostgreSQL de teste)', () => {
   });
 });
 
-describe('openbotGateway (DP-41): a Fábrica usa o adaptador do OpenBot em vez do gateway de modelos', () => {
-  const stubGateway = (calls: string[]) => ({
-    async invoke(r: { taskClass: string }) {
-      calls.push(r.taskClass);
-      return { ok: false as const, refusal: 'model_disabled' as const, detail: 'DISPATCH_OFF' };
-    },
-  });
-
-  it('é exclusivo com o gateway de modelos; sozinho basta para rodar fora do dry-run; com modelosHabilitados não pede ledger do modelops (os custos do OpenBot são PostgreSQL)', async () => {
-    const { db, client } = await freshDb();
-    try {
-      const calls: string[] = [];
-      await expect(runEditorialFactory({ db, dryRun: false, flags: { editorialCollector: true, editorialPipeline: true }, gateway: opts(), openbotGateway: stubGateway(calls) as never })).rejects.toThrow(/exclusivos/);
-      // sem fonte habilitada a fábrica nem chama o gateway: o que importa aqui é que as recusas de configuração não disparam
-      const r = await runEditorialFactory({
-        db, dryRun: false, flags: { editorialCollector: true, editorialPipeline: true, modelosHabilitados: true }, registry: new SourceRegistry([]), now: () => NOW, openbotGateway: stubGateway(calls) as never,
-      });
-      expect(r.articles).toEqual([]);
-      expect(calls).toEqual([]);
-    } finally { await client.close(); }
-  });
-
-  it('o OpenBotModelGateway REAL é aceito como openbotGateway (tipo) e, com o despacho desligado, recusa antes de gravar qualquer entrada (nenhuma tarefa, nenhuma rede)', async () => {
+describe('modelGateway com o OpenBotModelGateway REAL (DP-41): a Fábrica usa o adaptador do OpenBot em vez do gateway de modelos', () => {
+  it('o OpenBotModelGateway REAL é aceito como modelGateway (tipo) e, com o despacho desligado, recusa antes de gravar qualquer entrada (nenhuma tarefa, nenhuma rede)', async () => {
     const { OpenBotModelGateway, OPENBOT_PERMISSIONS, openbotFlagsFrom } = await import('@ln/openbot');
     const { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgTaskIo } = await import('./openbot-pg');
     const { db, client } = await freshDb();
@@ -186,7 +165,7 @@ describe('openbotGateway (DP-41): a Fábrica usa o adaptador do OpenBot em vez d
         io: new PgTaskIo(db, () => NOW), caller: { id: 'fabrica', permissions: [OPENBOT_PERMISSIONS.dispatch] },
         profiles: { triage: 'newsdesk', context: 'newsdesk', draft: 'writer_pontos', factcheck: 'newsdesk', review: 'newsdesk', social_pack: 'newsdesk', roles: 'newsdesk' },
       });
-      const r = await runEditorialFactory({ db, dryRun: true, flags: { editorialCollector: true }, registry: new SourceRegistry([]), now: () => NOW, openbotGateway: gw });
+      const r = await runEditorialFactory({ db, dryRun: true, flags: { editorialCollector: true }, registry: new SourceRegistry([]), now: () => NOW, modelGateway: gw });
       expect(r.articles).toEqual([]);
       const res = await gw.invoke({ taskClass: 'triage', idempotencyKey: 'art-1:triage:1', excludeProviders: [], dataClass: 'public', input: { x: 1 } } as never);
       expect(res).toMatchObject({ ok: false, refusal: 'model_disabled', detail: 'DISPATCH_OFF' });
