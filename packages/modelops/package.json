@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Gateway de modelos do Loyalty News: política, roteamento, orçamento em micro-USD, ledger e portão de saldo (ADR-006, ADR-013, ADR-015). Dono: Frente 11 — LN Backend Engineer + FinOps.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./policy": "./fixtures/model.policy.proposto-DP02-v5.json"
   },
   "types": "./src/index.ts",
   "dependencies": {
