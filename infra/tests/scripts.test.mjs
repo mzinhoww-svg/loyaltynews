@@ -1253,3 +1253,26 @@ test('smoke-staging: avaliarReady com o campo migracoes (ft/backend-2 19cd21e)',
   assert.match(avaliarReady(base, { exigirMigracoes: true }).join('|'), /campo migracoes ausente/);
   assert.deepEqual(avaliarReady({ ...base, migracoes: 'ok' }, { exigirMigracoes: true }), []);
 });
+
+test('smoke-staging --rollback-app-sem-banco: aceita só o 503 migracoes_divergentes do /api/ready', async () => {
+  let corpo = { status: 'indisponivel', motivo: 'migracoes_divergentes' };
+  const s = await server((req, res) => {
+    if (req.url.split('?')[0] === '/api/ready') { res.writeHead(503, { 'content-type': 'application/json' }); return res.end(JSON.stringify(corpo)); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  const run = (extra) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-staging.mjs'), '--url', 'http://127.0.0.1:' + port, ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', () => resolve(JSON.parse(stdout).checagens.find((x) => /^ready:/.test(x.nome))));
+  });
+  try {
+    assert.equal((await run(['--rollback-app-sem-banco'])).ok, true);
+    assert.equal((await run([])).ok, false, 'sem a opção o 503 reprova');
+    corpo = { status: 'indisponivel', motivo: 'migracoes_pendentes' };
+    assert.equal((await run(['--rollback-app-sem-banco'])).ok, false, 'outro motivo continua reprovando');
+    corpo = { status: 'indisponivel' };
+    assert.equal((await run(['--rollback-app-sem-banco'])).ok, false, '503 sem motivo reprova');
+  } finally { s.close(); }
+});

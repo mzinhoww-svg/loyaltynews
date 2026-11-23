@@ -5,6 +5,7 @@
 //        [--expect-seed] [--expect-orgs 29] [--timeout 8000]
 //   --expect-seed   exige o seed de staging (`seed-stg-*`, rótulo "[DEMO · staging]") nas matérias, na agenda e na home (o feed fica SEM itens em staging: R6)
 //   --expect-login-form exige o formulário de e-mail e senha em /studio/entrar (hoje a tela é um aviso fixo; sem a flag vira só uma nota)
+//   --rollback-app-sem-banco aceita SO o 503 "migracoes_divergentes" do /api/ready (rollback do app com o banco já migrado, build antigo com a sonda)
 //   --expect-migracoes exige /api/ready com migracoes:"ok" (builds com ft/backend-2 19cd21e em diante); sem a opção o campo, se existir, só pode ser "ok"
 //   --expect-flags a,b  exige que /api/health liste EXATAMENTE essas flags (ADR-022; staging com DP-38: intelligencePessoas); --expect-no-flags exige a lista vazia
 //   --expect-orgs N exige que /intelligence mostre N empresas cadastradas (hoje o adaptador `api` do portal NÃO as lê: só com o adaptador de Intelligence)
@@ -70,6 +71,12 @@ async function main() {
   await tentar('ready', async () => {
     const r = await get('/api/ready', { json: true });
     const motivo = String(r.j?.motivo ?? r.j?.reason ?? '').replace(/[^A-Za-z0-9_ -]/g, '').slice(0, 60);
+    // Rollback do APP sem rollback do banco (ft/backend-2 19cd21e, igualdade estrita): o build antigo que já tem a sonda responde 503 "migracoes_divergentes" porque o banco avançou.
+    // Com --rollback-app-sem-banco SÓ esse 503 é aceito (outro motivo, ou 503 sem motivo, continua reprovando).
+    if (args['rollback-app-sem-banco'] && r.status === 503 && motivo === 'migracoes_divergentes') {
+      check('ready: rollback do app sem rollback do banco: 503 migracoes_divergentes aceito (banco à frente do build)', true);
+      return;
+    }
     const p = r.status === 200 ? avaliarReady(r.j, { exigirMigracoes: Boolean(args['expect-migracoes']) }) : [`HTTP ${r.status}${motivo ? ` (${motivo})` : ''}`];
     check('ready: staging completo (banco e Redis respondem, não é nodb)', p.length === 0, p.join(' | '));
   });
