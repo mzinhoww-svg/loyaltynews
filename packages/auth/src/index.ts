@@ -1,0 +1,41 @@
+// @ln/auth — autenticação do LN Studio (ADR-011). Dono: Frente 02 — LN Backend Engineer.
+// Better Auth (ver DECISAO.md). API compatível com o stub do scaffold: getSession / requireRole / AccessDeniedError.
+import { AccessDeniedError, requireRoleWith, sessionFromHeaders, type Session } from './guard';
+import { getRuntime } from './runtime';
+import type { Role } from './rbac';
+
+export * from './rbac';
+export * from './guard';
+export * from './attempts';
+export { audit, redact, type AuditEntry } from './audit';
+export { createAuth, createStaffUser, type Auth, type CreateAuthOptions, type NewStaffUser } from './server';
+export { createAuthHandler } from './handler';
+export { clientIp, trustedProxyHops } from './client-ip';
+export type { Db } from './types';
+
+async function headersOf(request?: Request): Promise<Headers | null> {
+  if (request) return request.headers;
+  try {
+    // Server Components e route handlers do Next: cabeçalhos da requisição corrente.
+    const { headers } = await import('next/headers');
+    return await headers();
+  } catch {
+    return null;
+  }
+}
+
+/** Sessão corrente (cookie) ou null. Sem configuração de ambiente, sempre null. */
+export async function getSession(request?: Request): Promise<Session | null> {
+  const rt = getRuntime();
+  const h = await headersOf(request);
+  if (!rt || !h) return null;
+  return sessionFromHeaders(rt.auth, h);
+}
+
+/** Exige sessão com MFA e um dos papéis; nega por padrão. */
+export async function requireRole(allowed: readonly Role[], request?: Request): Promise<Session> {
+  const rt = getRuntime();
+  const h = await headersOf(request);
+  if (!rt || !h) throw new AccessDeniedError('NO_SESSION');
+  return requireRoleWith(rt.auth, h, allowed);
+}

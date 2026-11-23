@@ -1,0 +1,22 @@
+{
+  "name": "@ln/editorial",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fontes, coleta determinística, dedupe, redação e checagem. Dono: Frente 06 — LN Editorial Engineer.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/api/store-contract.ts"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@ln/contracts": "0.0.0",
+    "zod": "4.6.7"
+  },
+  "peerDependencies": {
+    "bullmq": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "bullmq": { "optional": true }
+  }
+}
