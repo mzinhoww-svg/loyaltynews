@@ -17,9 +17,12 @@ export function MockTag() {
   return <MockBadge label="" />;
 }
 
-/** Estado vazio honesto (DS `EmptyState`). */
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
-  return <DsEmptyState title={title} description={children} />;
+/**
+ * Estado vazio honesto (DS `EmptyState`). Por padrão em linha discreta (inline); `box` só para páginas inteiras sem outro conteúdo
+ * (404, página que existe só para esse aviso).
+ */
+export function EmptyState({ title, children, box = false }: { title: string; children?: ReactNode; box?: boolean }) {
+  return <DsEmptyState title={title} description={children} appearance={box ? 'box' : 'inline'} />;
 }
 
 export function PageHead({
@@ -83,7 +86,6 @@ export function ArticleCard({
   headingLevel?: 2 | 3 | 4;
 }) {
   const nome = editoriaName(article.editoriaSlug);
-  const label = article.image?.label;
   const card = (
     <DsArticleCard
       title={article.title}
@@ -96,22 +98,14 @@ export function ArticleCard({
       author={article.authorLabel}
       imageSrc={article.image?.src}
       imageAlt={article.image?.alt}
+      imageLabel={article.image?.label ?? undefined}
       headingLevel={headingLevel}
       rank={rank}
       isMock={article.mock}
       linkAs={Link}
     />
   );
-  // Rótulo visível obrigatório junto da imagem (ADR-018), também nos cards: só quando o card mostra imagem.
-  if (!label || !article.image || size === 'compact') return card;
-  return (
-    <div className="pt-card-labeled">
-      <span className="pt-card-label" data-testid="card-image-label">
-        {label}
-      </span>
-      {card}
-    </div>
-  );
+  return card;
 }
 
 export function ArticleGrid({ items, cols = 4 }: { items: Article[]; cols?: 3 | 4 }) {

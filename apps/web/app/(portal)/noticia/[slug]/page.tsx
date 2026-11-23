@@ -2,7 +2,7 @@ import { Breadcrumb } from '@ln/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Sidebar } from '../../_components/Sidebar';
+import { WithSidebar } from '../../_components/Sidebar';
 import { AdSlot, ArticleGrid, MockTag, Section } from '../../_components/ui';
 import { CONTENT_TYPE_LABEL, editoriaName } from '../../_lib/editorias';
 import { flags } from '../../_lib/flags';
@@ -63,7 +63,7 @@ export default async function ArticlePage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <AdSlot slot="topo" />
-      <div className="pt-layout" style={{ marginTop: 24 }}>
+      <WithSidebar>
         <article className="pt-article">
           <Breadcrumb linkAs={Link} items={[{ label: 'Início', href: '/' }, { label: editoriaName(a.editoriaSlug), href: `/editoria/${a.editoriaSlug}` }, { label: a.title }]} />
           <div className="pt-kicker">
@@ -176,8 +176,7 @@ export default async function ArticlePage({ params }: Props) {
             </Section>
           )}
         </article>
-        <Sidebar />
-      </div>
+        </WithSidebar>
     </>
   );
 }

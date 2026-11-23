@@ -49,6 +49,15 @@ ${r.stderr}`;
   else fail(`build deveria ser recusado com ${v} (status ${r.status})`);
 }
 
+{
+  // Vitrine do portal (Security R2/R8): build de produção com PORTAL_VITRINE definida deve falhar.
+  const r = spawnSync('npx next build', { shell: true, env: { ...base, APP_ENV: 'production', NEXT_PUBLIC_SITE_URL: 'https://verify.example.test', PORTAL_VITRINE: '1' }, encoding: 'utf8' });
+  const saida = `${r.stdout}
+${r.stderr}`;
+  if (r.status !== 0 && saida.includes('Build recusado') && saida.includes('PORTAL_VITRINE')) ok('build de produção recusado com PORTAL_VITRINE definida');
+  else fail(`build de produção deveria ser recusado com PORTAL_VITRINE (status ${r.status})`);
+}
+
 console.log('2) build de produção limpo não contém o código simulado');
 rmSync('.next', { recursive: true, force: true });
 {

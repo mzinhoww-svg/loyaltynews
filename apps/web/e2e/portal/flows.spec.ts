@@ -13,41 +13,55 @@ async function expand(button: import('@playwright/test').Locator) {
 }
 
 test.describe('navegação e menu', () => {
-  test('desktop: Header do DS lista as 10 editorias e a navegação de utilidade os formatos', async ({ page }, info) => {
+  test('desktop: menu de editorias em uma linha com "Mais"; atalhos na barra superior', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/');
     const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
-    await expect(nav.getByRole('link')).toHaveCount(10);
-    await expect(nav.getByRole('link', { name: 'Bancos & Cartões' })).toBeVisible();
+    // ≥1280 px: 6 editorias fixas + "Mais" (as outras 4 ficam no painel); uma única linha de menu.
+    await expect(nav.locator('.ln-header__list > li > a.ln-header__link:visible')).toHaveCount(6);
+    const linhas = await nav.locator('.ln-header__list > li:visible').evaluateAll((els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size);
+    expect(linhas, 'menu em mais de uma linha').toBe(1);
+    const mais = nav.getByRole('button', { name: /Mais/ });
+    await expand(mais);
+    const painel = nav.locator('.ln-header__more-panel');
+    for (const n of ['LoyaltyTech & IA', 'CRM & CX', 'Global Loyalty', 'Regulação & Dados']) await expect(painel.getByRole('link', { name: n })).toBeVisible();
+    await page.screenshot({ path: path.join(SHOTS, 'desktop-menu-mais.png') });
+    await page.keyboard.press('Escape');
+    await expect(painel).toBeHidden();
     const util = page.getByRole('navigation', { name: 'Seções do portal' });
-    for (const l of ['Todas as notícias', 'Loyalty Flash', 'Análises', 'Em alta', 'Agenda', 'Entrevistas', 'Moves', 'Intelligence', 'Contato']) {
+    for (const l of ['Em alta', 'Agenda', 'Entrevistas', 'Moves', 'Intelligence', 'Anuncie']) {
       await expect(util.getByRole('link', { name: l, exact: true })).toBeVisible();
     }
-    await page.screenshot({ path: path.join(SHOTS, 'desktop-menu.png') });
+    // Cabeçalho compacto: barra superior + menu = ~100 px.
+    const h = await page.locator('header').evaluate((e) => Math.round(e.getBoundingClientRect().height));
+    expect(h).toBeLessThanOrEqual(110);
     await nav.getByRole('link', { name: 'Bancos & Cartões' }).click();
     await expect(page).toHaveURL(/\/editoria\/bancos$/);
     await expect(page.getByRole('link', { name: 'Bancos & Cartões' }).first()).toHaveAttribute('aria-current', 'page');
   });
 
-  test('mobile: menu colapsável abre, navega e fecha com ESC', async ({ page }, info) => {
+  test('mobile: uma barra de 56 px; menu abre em painel com editorias e atalhos, fecha com ESC', async ({ page }, info) => {
     test.skip(info.project.name !== 'mobile');
     await page.goto('/');
+    const h = await page.locator('header').evaluate((e) => Math.round(e.getBoundingClientRect().height));
+    expect(h).toBeLessThanOrEqual(64);
     const toggle = page.locator('.ln-header__toggle');
     const nav = page.getByRole('navigation', { name: 'Editorias', exact: true });
     await expect(nav).toBeHidden();
     await expand(toggle);
     await expect(nav).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Em alta' })).toBeVisible();
     await page.screenshot({ path: path.join(SHOTS, 'mobile-menu-aberto.png') });
     await page.keyboard.press('Escape');
     await expect(nav).toBeHidden();
     await expand(toggle);
-    await nav.getByRole('link', { name: 'Pontos & Milhas' }).click();
+    await nav.getByRole('link', { name: 'Pontos & Milhas' }).first().click();
     await expect(page).toHaveURL(/\/editoria\/pontos$/);
   });
 
   test('itens de módulos desligados (The Loyal, Podcast, Market Data) não aparecem no menu', async ({ page }) => {
     await page.goto('/');
-    const header = page.locator('header, .pt-subnav');
+    const header = page.locator('header');
     await expect(header.getByRole('link', { name: 'The Loyal' })).toHaveCount(0);
     await expect(header.getByRole('link', { name: 'Podcast' })).toHaveCount(0);
     await expect(header.getByRole('link', { name: 'Market Data' })).toHaveCount(0);
@@ -143,7 +157,7 @@ test.describe('conteúdo MOCK', () => {
 
   test('home mostra destaques, em alta, últimas, agenda e editorias, com faixa MOCK', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/MOCK — conteúdo sintético/)).toBeVisible();
+    await expect(page.getByTestId('demo-banner')).toHaveText('Conteúdo de demonstração — não publicado');
     await expect(page.getByRole('heading', { name: 'Destaques' })).toBeVisible();
     await expect(page.locator('#destaques article')).not.toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Em alta' }).first()).toBeVisible();
@@ -219,11 +233,11 @@ test.describe('conteúdo MOCK', () => {
 
   test('cards com ilustração mostram o rótulo visível (home, mobile incluso)', async ({ page }, info) => {
     await page.goto('/');
-    const labels = page.getByTestId('card-image-label');
+    const labels = page.locator('.ln-card__imglabel');
     await expect(labels.first()).toBeVisible();
     await expect(labels.first()).toHaveText('Ilustração conceitual');
     await page.goto('/editoria/mercado');
-    await expect(page.getByTestId('card-image-label').first()).toBeVisible();
+    await expect(page.locator('.ln-card__imglabel').first()).toBeVisible();
     await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-card-rotulo.png`) });
   });
 

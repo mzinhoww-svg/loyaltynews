@@ -1,4 +1,6 @@
-import { resolveSiteUrl } from './indexing';
+import { assertVitrineEnv, resolveSiteUrl } from './indexing';
+
+assertVitrineEnv();
 
 export const SITE_NAME = 'Loyalty News';
 export const SITE_TAGLINE = 'Portal de inteligência sobre fidelização';
