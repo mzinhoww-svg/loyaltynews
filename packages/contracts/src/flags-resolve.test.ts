@@ -28,8 +28,17 @@ describe('ADR-022 resolveFlags', () => {
   });
 
   it('flag conhecida sem entrada no registro: recusada', () => {
-    expect(() => resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'openbotDispatch' })).toThrow(
-      'Subida recusada: flag openbotDispatch sem decisão para staging (ADR-022)',
+    expect(() => resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'planosPagos' })).toThrow(
+      'Subida recusada: flag planosPagos sem decisão para staging (ADR-022)',
+    );
+  });
+
+  it('DP-41: openbotDispatch liga só no staging', () => {
+    const r = resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas,openbotDispatch' });
+    expect(r.on).toEqual(['intelligencePessoas', 'openbotDispatch']);
+    expect(r.logLine).toBe('flags ligadas: intelligencePessoas (DP-38, staging), openbotDispatch (DP-41, staging)');
+    expect(() => resolveFlags({ APP_ENV: 'production', LN_FLAGS_ON: 'openbotDispatch' })).toThrow(
+      'Subida recusada: flag openbotDispatch sem decisão para production (ADR-022)',
     );
   });
 
@@ -91,6 +100,7 @@ describe('ADR-022 resolveFlags', () => {
     expect(DECISION_ID.test('DP-?? (piloto)')).toBe(false);
     expect(DECISION_ID.test('DP-38')).toBe(true);
     expect(FLAG_RELEASES.intelligencePessoas).toEqual({ staging: 'DP-38', production: null });
+    expect(FLAG_RELEASES.openbotDispatch).toEqual({ staging: 'DP-41', production: null });
   });
 
   it('N6: todo id de produção existe em governance/decisions.yaml', () => {

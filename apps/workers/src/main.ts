@@ -10,6 +10,7 @@ import { flushAdDelivery, type AdRedis } from './ad-redis';
 import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
 import { redisTlsOptions } from './redis-tls';
+import { startIntelligenceAlerts } from './intelligence-alerts';
 import { startIntelligenceReread } from './intelligence-reread';
 import { BullQueueSink, startReconciler, startWorkers } from './runtime';
 
@@ -66,12 +67,16 @@ async function main() {
       .catch((e) => console.error(errLine('[workers] flush de anúncios falhou', e)));
   }, 60_000);
   // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on e LN_INTELLIGENCE_PESSOAS=on
-  const reread = startIntelligenceReread({ db: { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb });
+  const intelDbPort = { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb;
+  const reread = startIntelligenceReread({ db: intelDbPort });
+  // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on e LN_INTELLIGENCE_PESSOAS=on)
+  const alerts = startIntelligenceAlerts({ db: intelDbPort });
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {
     reconciler.stop();
     reread?.stop();
+    alerts?.stop();
     clearInterval(adFlush);
     await workers.close();
     await sink.close();

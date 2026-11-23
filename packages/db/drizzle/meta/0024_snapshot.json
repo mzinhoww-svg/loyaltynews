@@ -1,5 +1,5 @@
 {
-  "id": "afc3bca6-36f8-43df-86ba-118aa4b2165e",
+  "id": "63a4553c-fe91-4340-9bf7-62a010999330",
   "prevId": "7a361b44-724b-4e0c-b61b-c29c961c5fdd",
   "version": "7",
   "dialect": "postgresql",
@@ -6227,142 +6227,35 @@
       },
       "isRLSEnabled": false
     },
-    "public.titular_pedidos": {
-      "name": "titular_pedidos",
+    "public.growth_media_uploads": {
+      "name": "growth_media_uploads",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "key": {
+          "name": "key",
           "type": "text",
           "primaryKey": true,
           "notNull": true
         },
-        "tipo": {
-          "name": "tipo",
+        "image_id": {
+          "name": "image_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "estado": {
-          "name": "estado",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'recebido'"
-        },
-        "nome": {
-          "name": "nome",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "contato": {
-          "name": "contato",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "texto": {
-          "name": "texto",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "alvo_tipo": {
-          "name": "alvo_tipo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "alvo_id": {
-          "name": "alvo_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "responsavel": {
-          "name": "responsavel",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "prazo_em": {
-          "name": "prazo_em",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "decisao": {
-          "name": "decisao",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "decidido_por": {
-          "name": "decidido_por",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "decidido_em": {
-          "name": "decidido_em",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "chave_dedupe": {
-          "name": "chave_dedupe",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recebido_em": {
-          "name": "recebido_em",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "atualizado_em": {
-          "name": "atualizado_em",
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         }
       },
       "indexes": {
-        "titular_pedido_aberto_uq": {
-          "name": "titular_pedido_aberto_uq",
+        "growth_media_uploads_created_idx": {
+          "name": "growth_media_uploads_created_idx",
           "columns": [
             {
-              "expression": "chave_dedupe",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"titular_pedidos\".\"estado\" IN ('recebido', 'em_analise')",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "titular_estado_idx": {
-          "name": "titular_estado_idx",
-          "columns": [
-            {
-              "expression": "estado",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "recebido_em",
+              "expression": "created_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -6379,25 +6272,13 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "titular_tipo": {
-          "name": "titular_tipo",
-          "value": "\"titular_pedidos\".\"tipo\" IN ('correcao', 'remocao')"
+        "growth_media_uploads_key": {
+          "name": "growth_media_uploads_key",
+          "value": "\"growth_media_uploads\".\"key\" ~ '^[A-Za-z0-9:_,.-]{1,200}$'"
         },
-        "titular_estado": {
-          "name": "titular_estado",
-          "value": "\"titular_pedidos\".\"estado\" IN ('recebido', 'em_analise', 'corrigido', 'removido', 'negado')"
-        },
-        "titular_alvo_tipo": {
-          "name": "titular_alvo_tipo",
-          "value": "\"titular_pedidos\".\"alvo_tipo\" IS NULL OR \"titular_pedidos\".\"alvo_tipo\" IN ('pessoa', 'cargo', 'move')"
-        },
-        "titular_decidido_coerente": {
-          "name": "titular_decidido_coerente",
-          "value": "(\"titular_pedidos\".\"estado\" IN ('recebido', 'em_analise')) = (\"titular_pedidos\".\"decidido_em\" IS NULL)"
-        },
-        "titular_negado_com_motivo": {
-          "name": "titular_negado_com_motivo",
-          "value": "\"titular_pedidos\".\"estado\" <> 'negado' OR length(trim(coalesce(\"titular_pedidos\".\"decisao\"->>'motivo', ''))) > 0"
+        "growth_media_uploads_image": {
+          "name": "growth_media_uploads_image",
+          "value": "char_length(\"growth_media_uploads\".\"image_id\") BETWEEN 1 AND 200"
         }
       },
       "isRLSEnabled": false

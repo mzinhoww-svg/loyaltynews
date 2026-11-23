@@ -139,3 +139,46 @@ describe('fila do titular no Studio (DP-38)', () => {
     expect((await postar('POST', [id, 'apagar'], chefe, {})).status).toBe(404);
   });
 });
+
+describe('efeitosTitular (contrato com as rotas públicas)', () => {
+  it('remover_pessoa, remover_cargo, move e corrigir viram conjuntos; negado e sem alvo não', async () => {
+    const { efeitosTitular } = await import('../../_lib/titular-efeito');
+    const pes = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p1' });
+    const car = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p2?cargo=ef-c1' });
+    const mov = await novo({ url: 'https://ln.example/intelligence/moves/ef-m1' });
+    const cor = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p3' });
+    const neg = await novo({ url: 'https://ln.example/intelligence/pessoas/ef-p4' });
+    const sem = await novo({ url: 'https://ln.example/noticia/x' });
+    await postar('POST', [pes, 'decidir'], chefe, { acao: 'remover_pessoa' });
+    await postar('POST', [car, 'decidir'], chefe, { acao: 'remover_cargo' });
+    await postar('POST', [mov, 'decidir'], chefe, { acao: 'remover_pessoa' });
+    await postar('POST', [cor, 'decidir'], chefe, { acao: 'corrigir', campos: { cargo: 'CEO' } });
+    await postar('POST', [neg, 'decidir'], chefe, { acao: 'negar', motivo: 'fonte oficial confirma' });
+    await postar('POST', [sem, 'decidir'], chefe, { acao: 'remover_pessoa' });
+    const e = await efeitosTitular(app.db);
+    expect(e.pessoasOcultas.has('ef-p1')).toBe(true);
+    expect(e.cargosOcultos.has('ef-c1')).toBe(true);
+    expect(e.movesOcultos.has('ef-m1')).toBe(true);
+    expect(e.correcoes.get('pessoa:ef-p3')).toEqual({ cargo: 'CEO' });
+    expect(e.pessoasOcultas.has('ef-p4')).toBe(false);
+  });
+});
+
+describe('lista sem texto livre (achado 3 do QA 7)', () => {
+  it('GET da lista não traz resumo, texto, url nem decisão, nem de pedido decidido; o detalhe auditado traz', async () => {
+    const marca = 'MARCA-LIVRE-QA7 texto pessoal do titular';
+    const url = 'https://ln.example/intelligence/pessoas/qa7-p1';
+    const id = await novo({ url, texto: marca });
+    const motivo = 'MOTIVO-LIVRE-QA7 confirmado';
+    expect((await postar('POST', [id, 'decidir'], chefe, { acao: 'negar', motivo })).status).toBe(200);
+    const l = await req('GET', [], chefe);
+    const it = l.body.items.find((x: { id: string }) => x.id === id);
+    expect(it).toBeDefined();
+    for (const k of ['resumo', 'texto', 'url', 'decisao', 'nome', 'contato']) expect(it).not.toHaveProperty(k);
+    const txt = JSON.stringify(l.body);
+    for (const v of ['MARCA-LIVRE-QA7', 'MOTIVO-LIVRE-QA7', url]) expect(txt).not.toContain(v);
+    expect(it).toMatchObject({ estado: 'negado', alvo: { tipo: 'pessoa', id: 'qa7-p1' }, decidido_por: chefe.id });
+    const d = await req('GET', [id], chefe);
+    expect(d.body).toMatchObject({ url, texto: marca, decisao: { acao: 'negar', motivo } });
+  });
+});

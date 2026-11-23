@@ -64,7 +64,7 @@ export type FlagRelease = { staging: string | null; production: string | null };
  */
 export const FLAG_RELEASES = {
   intelligencePessoas: { staging: 'DP-38', production: null }, // produção só no go-live (outra mudança registrada)
-  // openbotDispatch: só entra com o número real da decisão do piloto (N5)
+  openbotDispatch: { staging: 'DP-41', production: null }, // piloto só no staging, só assinaturas, sem API tarifada nem publicação
 } as const satisfies Partial<Record<FlagName, FlagRelease>>;
 
 /** Hosts públicos da produção (N7). Preenchido quando o domínio existir. */
