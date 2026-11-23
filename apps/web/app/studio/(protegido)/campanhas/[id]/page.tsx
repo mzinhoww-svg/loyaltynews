@@ -10,6 +10,8 @@ import { SemBanco } from '../../../_components/SemBanco';
 import { transicaoAction } from '../actions';
 import type { CampaignReport } from '@ln/commercial';
 import { Relatorio } from './_components/Relatorio';
+import { PosicoesCriativos, type CriativoLinha, type ReservaLinha } from './_components/PosicoesCriativos';
+import { isEnabled } from '@ln/contracts';
 
 export const metadata: Metadata = { title: 'Campanha' };
 export const dynamic = 'force-dynamic';
@@ -25,7 +27,9 @@ const DESTINOS: Record<string, string[]> = {
 };
 
 type Detalhe = {
-  campaign: { id: string; name: string; status: string; startDate: string; endDate: string; history: { from: string | null; to: string; at: string; note?: string }[] };
+  campaign: { id: string; name: string; status: string; accountId: string; positionId?: string | null; positionIds?: string[]; startDate: string; endDate: string; history: { from: string | null; to: string; at: string; note?: string }[] };
+  reservations: ReservaLinha[];
+  creatives: CriativoLinha[];
   report: { utmVisits: number | null };
 };
 
@@ -71,6 +75,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
           <p className="st-hint">
             Visitas por UTM: {d.report.utmVisits === null ? 'não disponível (sem analytics)' : d.report.utmVisits}
           </p>
+          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={isEnabled('adServerVendas')} />
         </div>
         <aside>
           <div className="st-card">

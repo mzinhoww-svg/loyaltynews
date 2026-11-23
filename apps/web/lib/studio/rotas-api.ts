@@ -17,6 +17,11 @@ import * as agendasRoute from '@/app/api/agenda/route';
 import * as agendaRoute from '@/app/api/agenda/[id]/route';
 import * as agendaModeracaoRoute from '@/app/api/agenda/[id]/moderacao/route';
 import * as midiaUploadRoute from '@/app/api/midia/arquivo/route';
+import * as criativoUploadRoute from '@/app/api/commercial/studio/creatives/upload/route';
+import * as creativeTemplatesRoute from '@/app/api/studio/creative/templates/route';
+import * as creativePreviewRoute from '@/app/api/studio/creative/preview/route';
+import * as creativeCardsRoute from '@/app/api/studio/creative/cards/route';
+import * as creativeTransicaoRoute from '@/app/api/studio/creative/cards/[id]/transicao/route';
 import * as siteDocsRoute from '@/app/api/site/documentos/route';
 import * as siteDocRoute from '@/app/api/site/documentos/[tipo]/route';
 import * as siteRascunhoRoute from '@/app/api/site/documentos/[tipo]/rascunho/route';
@@ -261,6 +266,23 @@ export const api = {
     contas: (query: Record<string, string | undefined> = {}) => chamar<Pagina<ContaLinha>>(dispatchCommercial, `${C}/studio/accounts`, { query }),
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
+    /** Posições da campanha: pré-reserva (held) ou confirmação (só com venda ligada); cancelar recusa reserva de campanha ativa. */
+    /** Anunciante direto (sem lead) e contatos da conta: base legal, data e autor gravados no servidor. Dado pessoal: só comercial e admin. */
+    criarConta: (name: string) => chamar<{ id: string; name: string; createdAt: string }>(dispatchCommercial, `${C}/studio/accounts`, { metodo: 'POST', corpo: { name } }),
+    contatosConta: (accountId: string) => chamar<{ data: ContatoConta[]; total: number }>(dispatchCommercial, `${C}/studio/accounts/contacts`, { query: { accountId } }),
+    adicionarContato: (corpo: { accountId: string; name: string; email: string; whatsapp?: string; role?: string; basis: string }) => chamar(dispatchCommercial, `${C}/studio/accounts/contacts`, { metodo: 'POST', corpo }),
+    /** Relatório do anunciante (todas as campanhas da conta na janela; contado, nunca estimado) e o CSV ('diario' | 'resumo'). */
+    relatorioConta: (accountId: string, from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/accounts/report`, { query: { accountId, from, to } }),
+    relatorioContaCsv: (accountId: string, kind: 'diario' | 'resumo', from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/accounts/report-csv`, { query: { accountId, kind, from, to } }),
+    /** Posições da campanha (só em rascunho; ao menos uma). Reserva e criativo só nas posições declaradas. */
+    definirPosicoes: (campaignId: string, positionIds: string[]) => chamar(dispatchCommercial, `${C}/studio/campaigns/positions`, { metodo: 'POST', corpo: { campaignId, positionIds } }),
+    reservar: (corpo: { positionId: string; accountId: string; campaignId: string; startDate: string; endDate: string; confirm?: boolean }) => chamar<{ id: string }>(dispatchCommercial, `${C}/studio/reservations`, { metodo: 'POST', corpo }),
+    cancelarReserva: (reservationId: string) => chamar(dispatchCommercial, `${C}/studio/reservations/cancel`, { metodo: 'POST', corpo: { reservationId } }),
+    /** Criativos: cadastro (sem arquivo), arquivo medido no servidor (multipart) e aprovação (recusa com a lista do que falta). */
+    adicionarCriativo: (corpo: unknown) => chamar<{ id: string; approved: boolean; issues: { code: string; message: string }[] }>(dispatchCommercial, `${C}/studio/creatives`, { metodo: 'POST', corpo }),
+    conteudoCriativo: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/creatives/content`, { metodo: 'POST', corpo }),
+    enviarArquivoCriativo: (form: FormData) => chamar(criativoUploadRoute.POST as Despachante, `${C}/studio/creatives/upload`, { metodo: 'POST', form }),
+    aprovarCriativo: (creativeId: string) => chamar(dispatchCommercial, `${C}/studio/creatives/approve`, { metodo: 'POST', corpo: { creativeId } }),
     transicaoCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns/transition`, { metodo: 'POST', corpo }),
     /** Relatório do anunciante (visíveis e cliques contados, origem, janela e data; nunca estimado). Janela opcional AAAA-MM-DD. */
     relatorio: (campaignId: string, from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report`, { query: { campaignId, from, to } }),
@@ -339,4 +361,37 @@ export const api = {
     revisarFonte: (sourceId: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/review`, { metodo: 'POST', corpo }),
     habilitarFonte: (sourceId: string, enabled: boolean) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/enabled`, { metodo: 'POST', corpo: { enabled } }),
   },
+  /** Creative Studio (contrato fast-track/contratos/creative-studio-api.md): cards sociais por template; nada publica nem chama o mLabs. */
+  creative: {
+    templates: () => chamar<{ items: { kind: 'materia' | 'analise'; formats: string[]; descricao: string }[] }>(creativeTemplatesRoute.GET as Despachante, '/api/studio/creative/templates'),
+    previa: (corpo: CardPedido) => chamar<CardPrevia>(creativePreviewRoute.POST as Despachante, '/api/studio/creative/preview', { metodo: 'POST', corpo }),
+    criar: (corpo: CardPedido) => chamar<{ card: CardSocial; existente: boolean }>(creativeCardsRoute.POST as Despachante, '/api/studio/creative/cards', { metodo: 'POST', corpo }),
+    cards: (query: Record<string, string | undefined> = {}) => chamar<{ data: CardSocial[]; total: number; limit: number; offset: number }>(creativeCardsRoute.GET as Despachante, '/api/studio/creative/cards', { query }),
+    transicao: (id: string, corpo: { para: CardSocial['estado']; motivo?: string }) =>
+      chamar<{ card: CardSocial }>(comParams(creativeTransicaoRoute.POST as Handler, { id }), `/api/studio/creative/cards/${encodeURIComponent(id)}/transicao`, { metodo: 'POST', corpo }),
+  },
 };
+
+export type CardPedido = { articleId: string; kind: 'materia' | 'analise'; format: 'linkedin_landscape' | 'square'; autoralFormato?: 'analise' | 'explicador' | 'comparativo' };
+export type CardPrevia = { svg: string; altText: string; width: number; height: number; svgSha256: string; mock: boolean; brandStatus: string };
+export interface CardSocial {
+  id: string;
+  articleId: string;
+  articleTitulo: string | null;
+  kind: 'materia' | 'analise';
+  format: 'linkedin_landscape' | 'square';
+  autoralFormato: string | null;
+  estado: 'rascunho' | 'em_revisao' | 'aprovado' | 'rejeitado';
+  svgSha256: string;
+  altText: string;
+  width: number;
+  height: number;
+  mock: boolean;
+  criadoPor: string;
+  criadoEm: string;
+  revisadoPor: string | null;
+  revisadoEm: string | null;
+  motivo: string | null;
+}
+
+export interface ContatoConta { id: string; accountId: string; name: string; email: string; whatsapp: string | null; role: string | null; basis: string; consentAt: string; registeredBy: string | null; createdAt: string }
