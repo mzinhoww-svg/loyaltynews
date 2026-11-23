@@ -22,6 +22,7 @@ describe('agenda pública: formato e mapeamento', () => {
     const ev = mapEvent(raw() as never);
     expect(ev).toMatchObject({ slug: 'ev-1', title: 'Congresso de teste', startsAt: '2026-12-04', endsAt: '2026-12-05', place: 'São Paulo', status: 'validado', sponsored: false, dateOnly: true });
     expect(ev.officialUrl).toBe('https://evento.example/a');
+    expect(mapEvent(raw({ url: 'https://x.example/?q=</script>' }) as never).officialUrl).toBe('https://x.example/?q=%3C/script%3E');
     expect(ev.sourceUrl).toBe('https://fonte.example/evento');
     expect(ev.organizer).toBeUndefined();
     expect(ev.online).toBeUndefined();
@@ -133,5 +134,19 @@ describe('formatação de eventos só com data', () => {
     expect(isUpcoming(e, new Date('2026-12-04T22:00:00-03:00'))).toBe(true);
     expect(isUpcoming(e, new Date('2026-12-05T00:30:00-03:00'))).toBe(false);
     expect(isUpcoming(ev({ inicio: '2026-12-04', fim: '2026-12-06' }), new Date('2026-12-05T10:00:00-03:00'))).toBe(true);
+  });
+});
+
+describe('matéria: links e imagem só http(s) ou caminho do portal', () => {
+  it('fonte e crédito com javascript:/data: são descartados; URLs saem normalizadas', async () => {
+    const { mapArticle, mapImage } = await import('../app/(portal)/_lib/api-source');
+    const art = mapArticle({
+      slug: 'a', titulo: 't', resumo: 'r', editoria: 'bancos', assinatura: 'x', publicadoEm: '2026-11-20T10:00:00-03:00', corpo: 'c',
+      fontes: [{ sourceId: 's', url: 'javascript:alert(1)', capturadoEm: '2026-11-19T10:00:00-03:00' }, { sourceId: 's2', url: 'https://f.example/a?q=<x>', capturadoEm: '2026-11-19T10:00:00-03:00' }],
+    } as never);
+    expect(art.sources.map((s) => s.url)).toEqual(['https://f.example/a?q=%3Cx%3E']);
+    expect(mapImage({ url: 'javascript:alert(1)', credito: 'c', textoAlternativo: 'a' } as never)).toBeUndefined();
+    expect(mapImage({ url: '//evil.example/x.png', credito: 'c', textoAlternativo: 'a' } as never)).toBeUndefined();
+    expect(mapImage({ url: '/api/publico/midia/1', credito: 'c', textoAlternativo: 'a', link: 'javascript:1' } as never)).toMatchObject({ src: '/api/publico/midia/1', link: undefined });
   });
 });

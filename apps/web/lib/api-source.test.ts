@@ -62,7 +62,7 @@ describe('imagem pública', () => {
     const img = mapImage({ url: 'https://cdn.example/f.jpg', origem: 'fonte_terceiro', credito: 'Agência X', link: 'https://x.example', textoAlternativo: 'Foto' })!;
     expect(img.label).toBeNull();
     expect(img.credit).toBe('Agência X');
-    expect(img.link).toBe('https://x.example');
+    expect(img.link).toBe('https://x.example/');
   });
   it('imagem: null (vencida/sem base) vira ausência de imagem', () => {
     expect(mapImage(null)).toBeUndefined();

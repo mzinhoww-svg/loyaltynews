@@ -70,13 +70,15 @@ export function bodyToBlocks(corpo: string): ArticleBlock[] {
 /** `imagem: null` (vencida, sem base de direito ou sem arquivo) vira ausência de imagem; nunca imagem quebrada. */
 export function mapImage(img: RawImage | null | undefined): ArticleImage | undefined {
   if (!img || typeof img.url !== 'string' || !img.url) return undefined;
+  // Só caminho do próprio portal ou URL http(s): nada de javascript:, data: ou //host.
+  if (!(/^\/(?!\/)/.test(img.url) || httpHref(img.url))) return undefined;
   return {
     src: img.url,
     alt: img.textoAlternativo,
     credit: img.credito,
     // O rótulo vem pronto do Backend; sem ele (resposta antiga), calcula pela origem (ADR-018).
     label: img.rotulo !== undefined ? img.rotulo : img.origem ? imageLabel({ origem: img.origem as never }) : null,
-    link: img.link,
+    link: httpHref(img.link),
   };
 }
 
@@ -138,13 +140,13 @@ export function mapListItem(r: RawListItem): Article {
 
 export function mapArticle(r: RawArticle): Article {
   const erratas = (Array.isArray(r.erratas) ? r.erratas : []).filter((e) => isObj(e) && isStr(e.nota) && isDate(e.em));
-  const fontes = (Array.isArray(r.fontes) ? r.fontes : []).filter((f) => isObj(f) && isStr(f.url));
+  const fontes = (Array.isArray(r.fontes) ? r.fontes : []).filter((f) => isObj(f) && isStr(f.url) && httpHref(f.url) !== undefined);
   return {
     ...mapListItem(r),
     updatedAt: erratas.at(-1)?.em,
     image: mapImage(r.imagem),
     body: bodyToBlocks(r.corpo),
-    sources: fontes.map((f) => ({ label: host(f.url), url: f.url, publishedAt: isDate(f.capturadoEm) ? f.capturadoEm : undefined })),
+    sources: fontes.map((f) => ({ label: host(f.url), url: httpHref(f.url) as string, publishedAt: isDate(f.capturadoEm) ? f.capturadoEm : undefined })),
     corrections: erratas.map((e) => ({ at: e.em, text: e.nota as string })),
   };
 }
@@ -161,13 +163,14 @@ export interface RawEvent {
   fonteUrl?: string | null;
 }
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const isHttp = (v: unknown): v is string => {
-  if (typeof v !== 'string') return false;
+/** URL http(s) normalizada pelo parser (nunca o texto cru: < e > viram %3C e %3E); outra coisa = undefined. */
+const httpHref = (v: unknown): string | undefined => {
+  if (typeof v !== 'string') return undefined;
   try {
     const u = new URL(v);
-    return u.protocol === 'http:' || u.protocol === 'https:';
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : undefined;
   } catch {
-    return false;
+    return undefined;
   }
 };
 const isDay = (v: unknown): v is string => typeof v === 'string' && (DATE_ONLY.test(v) ? !Number.isNaN(Date.parse(`${v}T12:00:00-03:00`)) : isDate(v));
@@ -188,8 +191,8 @@ export function mapEvent(r: RawEvent): EventItem {
     startsAt: r.inicio,
     endsAt: r.fim,
     place: r.local,
-    officialUrl: isHttp(r.url) ? r.url : undefined,
-    sourceUrl: isHttp(r.fonteUrl) ? r.fonteUrl : undefined,
+    officialUrl: httpHref(r.url),
+    sourceUrl: httpHref(r.fonteUrl),
     status: 'validado',
     sponsored: r.patrocinado === true,
     dateOnly: DATE_ONLY.test(r.inicio),

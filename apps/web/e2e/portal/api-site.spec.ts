@@ -140,7 +140,7 @@ test.describe('noindex publicado no Studio soma-se ao bloqueio', () => {
 test.describe('conteúdo hostil do Studio (XSS): nada executa, destinos reservados são recusados', () => {
   test.skip(siteMode !== 'malicioso', 'somente com PORTAL_API_SITE=malicioso');
 
-  const flags = ['name', 'url', 'hash', 'logo', 'sameas', 'menu', 'titulo', 'resumo', 'credito', 'alt'];
+  const flags = ['name', 'url', 'hash', 'logo', 'sameas', 'menu', 'titulo', 'resumo', 'credito', 'alt', 'evento', 'local', 'evurl', 'evfonte'];
   const executou = (page: Page) =>
     page.evaluate((fs) => fs.filter((f) => (window as unknown as Record<string, unknown>)[`__xss_${f}`] !== undefined), flags);
 
@@ -184,5 +184,20 @@ test.describe('conteúdo hostil do Studio (XSS): nada executa, destinos reservad
     expect(await page.content()).not.toContain('</script><script>window.__xss');
     const lds = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((t) => JSON.parse(t) as { headline?: string });
     expect(lds.some((l) => l.headline?.includes('</script>'))).toBe(true); // o texto chega íntegro como dado
+  });
+
+  test('evento da agenda com título, local e links hostis: nada executa, links normalizados e JSON-LD Event seguro', async ({ page, request }) => {
+    await page.goto('/agenda/ev-xss');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Evento hostil');
+    await page.waitForLoadState('networkidle');
+    expect(await executou(page)).toEqual([]);
+    expect(await page.content()).not.toContain('</script><script>window.__xss');
+    const hrefs = await page.locator('main a').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
+    for (const h of hrefs) expect(h, h).not.toMatch(/[<>]/);
+    const ld = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((t) => JSON.parse(t) as { '@type'?: string; name?: string }).find((l) => l['@type'] === 'Event');
+    expect(ld?.name).toContain('</script>'); // texto como dado
+    // O .ics não carrega quebras de linha injetadas nem script
+    const ics = await (await request.get('/agenda/ev-xss/ics')).text();
+    expect(ics.split('\r\n').every((l) => /^[A-Z-]+(;[A-Z=-]+)?:/.test(l) || l === '')).toBe(true);
   });
 });

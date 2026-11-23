@@ -93,6 +93,8 @@ const agendaEvents = [
 ];
 // Evento encerrado: só a rota por id (Backend: aprovado em qualquer data) o devolve; a lista pública traz só os que não terminaram.
 const eventoPassado = { id: 'ev-passado', titulo: '[MOCK] Evento encerrado', inicio: day(-30), fim: day(-29), local: 'Belo Horizonte (MOCK)', url: 'https://evento.example/passado', editorias: [], patrocinado: false, fonteUrl: 'https://fonte.example/passado-mock' };
+// Evento com texto hostil: só a rota por id o devolve (não entra na lista nem na home).
+const eventoHostil = { id: 'ev-xss', titulo: '[MOCK] </script><script>window.__xss_evento=1</script> Evento hostil', inicio: day(15), fim: day(15), local: '</script><script>window.__xss_local=1</script>', url: 'https://evento.example/?q=</script><script>window.__xss_evurl=1</script>', editorias: [], patrocinado: false, fonteUrl: 'https://fonte.example/x?q=</script><script>window.__xss_evfonte=1</script>' };
 const agendaMode = process.env.FAKE_API_AGENDA ?? 'ok'; // ok | vazia
 
 // GET /api/publico/site (formato de apps/web/app/api/_lib/site/index.ts). FAKE_API_SITE: full (padrão) | vazio | noindex | invalido | malicioso.
@@ -198,7 +200,7 @@ http
     const ev = /^\/api\/publico\/agenda\/([^/]+)$/.exec(u.pathname);
     if (ev) {
       const id = decodeURIComponent(ev[1]);
-      const found = [...agendaEvents, eventoPassado].find((e) => e.id === id);
+      const found = [...agendaEvents, eventoPassado, eventoHostil].find((e) => e.id === id);
       return found ? send(res, 200, { data: found }) : send(res, 404, { error: { code: 'NOT_FOUND', message: 'Evento não encontrado.' } });
     }
     if (u.pathname === '/api/publico/materias') {
