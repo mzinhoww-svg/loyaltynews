@@ -19,7 +19,7 @@ Cabeçalhos: `x-ln-timestamp` (ms desde a época) e `x-ln-signature: v1=<hex>`, 
 | (interno) | `dispatchTask` | `{kind, profileId, refId, idempotencyKey, dataClass, maxCostMicro, maxAttempts?}` | `{created, task}` (201/200) |
 | (interno) | `getOpenBotStatus` | — | saúde, fila, custo, flags |
 
-Códigos de erro (envelope `ApiError` de `@ln/contracts`): `UNAUTHORIZED` 401, `VALIDATION_ERROR` 400, `LEASE_ERROR` 404/409, `USAGE_INVALID` 422, `USAGE_MISMATCH` 422, `KILL_SWITCH` 423, `DISPATCH_OFF` 409, `KIND_FORBIDDEN`/`KIND_UNKNOWN`/`DATA_CLASS_BLOCKED`/`COST_CAP_EXCEEDS_BUDGET` 422, `BUDGET_EXHAUSTED` 409, `FORBIDDEN` 403.
+Códigos de erro (envelope `ApiError` de `@ln/contracts`): `UNAUTHORIZED` 401, `VALIDATION_ERROR` 400, `LEASE_ERROR` 404/409, `USAGE_INVALID` 422, `USAGE_MISMATCH` 422, `KILL_SWITCH`, `DISPATCH_OFF` e `PILOT_STOPPED` 423 Locked nas rotas do agente (`pull`, `heartbeat`, `io/*`; ver a seção "423 Locked" no fim: o `DISPATCH_OFF` do despacho da Fábrica, `dispatchTask`, segue 409), `KIND_FORBIDDEN`/`KIND_UNKNOWN`/`DATA_CLASS_BLOCKED`/`COST_CAP_EXCEEDS_BUDGET` 422, `BUDGET_EXHAUSTED` 409, `FORBIDDEN` 403.
 
 ## Ciclo da tarefa
 `pending → leased → completed` (ou `failed` se não retentável; `pending` de novo se retentável; `dead` ao esgotar tentativas). Lease expirado volta a ser puxável (outra tentativa; o antigo detentor perde o lease). `complete` com o mesmo lease é idempotente. O `callbackId` já visto devolve 200 `duplicate` sem efeito; callback recusado por validação **não** consome o `callbackId`.
