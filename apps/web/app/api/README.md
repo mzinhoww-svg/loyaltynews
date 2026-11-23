@@ -29,7 +29,9 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 
 | `GET/POST /api/fontes`, `GET/PATCH/DELETE /api/fontes/{id}` | fontes:* | fonte nasce inativa; ativar exige `termosRevisados`; só `acesso: publico`; URL só http(s) |
 | `GET/POST /api/fontes/{id}/evidencias` | fontes:read/create | evidência só de fonte ativa |
-| `GET/POST /api/midia`, `GET/DELETE /api/midia/{id}` | midia:* | só metadados e base de direito (`publicavel`); upload ao Blob ainda não ligado |
+| `GET/POST /api/midia`, `GET/PATCH/DELETE /api/midia/{id}` | midia:* | metadados, base de direito, **evidência e expiração da licença** (licença/autorização/exceção exigem evidência; vencida ⇒ `publicavel=false`; `?vencendo=N`, `?vencida=true`); **deduplicação por sha256** (mesmo conteúdo ⇒ 200 `deduplicada`) |
+| `POST /api/midia/arquivo` | midia:create | upload multipart (`arquivo` + `metadados` JSON): tipo e sha256 do CONTEÚDO (JPEG, PNG, GIF, WebP até 5 MB; PDF até 10 MB; SVG/HTML recusados com 415); arquivo no Blob S3 em `midia/{sha256}`; sem S3 configurado ⇒ 503 |
+| `GET /api/midia/{id}/arquivo` | midia:read | bytes do arquivo com `nosniff` e CSP `sandbox` |
 | `GET/POST /api/agenda`, `GET/PATCH/DELETE /api/agenda/{id}` | agenda:* | `?from&to` (YYYY-MM-DD) |
 
 Matéria: `resumo` (até 300, obrigatório para aprovar/publicar), `tipoConteudo` (padrão `noticia`; `patrocinado` exige `patrocinado=true` + rótulo) e `tempoLeituraMin` derivado do corpo.
@@ -56,7 +58,7 @@ Auditoria de perda do Redis do ad server (depende da tabela `ad_redis_watermark`
 
 ## Operação
 `GET /api/health` (processo vivo), `GET /api/ready` (banco e Redis respondem; 503 se não). `APP_MODE=nodb`: sobe sem banco; rotas de dados respondem 503 `NOT_CONFIGURED` e `/api/ready` diz `mode: nodb`.
-Variáveis: `DATABASE_URL`, `BETTER_AUTH_SECRET` (≥32 caracteres), `BETTER_AUTH_URL`, `REDIS_URL`. Nenhum segredo no repositório.
+Variáveis: `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (Blob S3 compatível; só ambiente, nunca no repositório; sem elas o upload responde 503), `DATABASE_URL`, `BETTER_AUTH_SECRET` (≥32 caracteres), `BETTER_AUTH_URL`, `REDIS_URL`. Nenhum segredo no repositório.
 - **Diagnóstico temporário `DIAG_XFF`** (para medir `TRUSTED_PROXY_HOPS` no staging): com `DIAG_XFF=1` e `APP_ENV` diferente de production/producao, `GET /api/health` acrescenta o cabeçalho `x-ln-xff-count` (número de entradas não vazias de `X-Forwarded-For`; hops = contagem − 1 quando você injeta uma entrada falsa). Só a contagem sai: nenhum IP é devolvido, logado ou gravado. Desligado por padrão; em produção é ignorado. Remover a variável depois da medição.
 
 ## Decisões abertas (peço ao Chief Architect / Editorial)

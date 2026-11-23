@@ -48,11 +48,20 @@ export const media = pgTable(
     tipo: text('tipo').notNull(),
     direitos: jsonb('direitos').notNull(), // ImageRights (origem, crédito, base de direito, texto alternativo)
     sha256: text('sha256').notNull(),
+    // Arquivo no Blob S3 compatível (ausente = só metadados). A chave é por conteúdo: `midia/{sha256}`.
+    blobKey: text('blob_key'),
+    mime: text('mime'),
+    bytes: integer('bytes'),
+    // Licença: expiração e evidência (ADR-008/D08). Matéria nunca publica com licença vencida.
+    licencaExpiraEm: date('licenca_expira_em'),
+    licencaEvidencia: jsonb('licenca_evidencia'),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     check('media_tipo', sql`${t.tipo} IN ('imagem', 'video', 'documento')`),
     check('media_sha', sql`${t.sha256} ~ '^[0-9a-f]{64}$'`),
+    check('media_arquivo_completo', sql`${t.blobKey} IS NULL OR (${t.mime} IS NOT NULL AND ${t.bytes} > 0)`),
+    uniqueIndex('media_sha256_uq').on(t.sha256), // deduplicação: um registro por conteúdo
   ],
 );
 

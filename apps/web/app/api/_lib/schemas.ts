@@ -118,13 +118,53 @@ export const EvidenceCreate = z.strictObject({
   sha256: EvidenceRef.shape.sha256,
 });
 
+/** Evidência da licença/autorização (contrato, e-mail, página de termos...): referência, nunca o arquivo em si. */
+export const LicencaEvidencia = z
+  .strictObject({
+    tipo: z.enum(['url', 'documento', 'contrato', 'email']),
+    referencia: z.string().trim().min(1).max(500),
+    descricao: z.string().trim().max(500).optional(),
+  })
+  .refine((e) => e.tipo !== 'url' || /^https?:\/\/\S+$/i.test(e.referencia), { message: 'url exige http(s)', path: ['referencia'] });
+
 export const MediaCreate = z.strictObject({
   tipo: z.enum(['imagem', 'video', 'documento']),
   direitos: SafeImage,
   sha256: Sha256,
+  licencaExpiraEm: IsoDate.optional(),
+  licencaEvidencia: LicencaEvidencia.optional(),
 });
 
-export const MediaQuery = z.object({ tipo: z.enum(['imagem', 'video', 'documento']).optional() });
+export const MediaPatch = z
+  .strictObject({
+    direitos: SafeImage.optional(),
+    licencaExpiraEm: IsoDate.nullable().optional(),
+    licencaEvidencia: LicencaEvidencia.nullable().optional(),
+  })
+  .refine((u) => Object.keys(u).length > 0, { message: 'nenhum campo para alterar' });
+
+/** Metadados do upload: os mesmos direitos, sem a URL (o servidor aponta para o próprio arquivo). */
+export const UploadMeta = z
+  .strictObject({
+    direitos: z.strictObject({
+      origem: z.enum(['propria', 'licenciada', 'fonte_terceiro', 'dominio_publico', 'composicao_deterministica']),
+      credito: z.string().min(1).max(300),
+      link: HttpUrl.optional(),
+      baseDeDireito: z.enum(['propria', 'licenca', 'autorizacao', 'dominio_publico', 'excecao_validada', 'pendente']),
+      edicoes: z.array(z.enum(['enquadramento', 'tamanho', 'compressao'])).default([]),
+      textoAlternativo: z.string().min(1).max(500),
+    }),
+    licencaExpiraEm: IsoDate.optional(),
+    licencaEvidencia: LicencaEvidencia.optional(),
+  });
+
+export const MediaQuery = z.object({
+  tipo: z.enum(['imagem', 'video', 'documento']).optional(),
+  /** Licenças que vencem nos próximos N dias (1–365), ainda não vencidas. */
+  vencendo: z.coerce.number().int().min(1).max(365).optional(),
+  /** true = só licenças já vencidas. */
+  vencida: z.enum(['true', 'false']).optional(),
+});
 export const AgendaQuery = z.object({ from: IsoDate.optional(), to: IsoDate.optional() });
 
 export const AgendaCreate = z
