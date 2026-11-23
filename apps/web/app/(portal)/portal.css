@@ -161,3 +161,8 @@
 
 /* P3-b (UI/UX): título de abertura do mídia kit com escala de exibição (só esta página): 28 px no celular, 44 px no desktop largo */
 .pt .pt-hero-band--mk h1 { font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem); line-height: 1.15; }
+
+/* P3-d (UI/UX): Audiência em duas colunas no desktop (tempo real | histórico), cada métrica em cartão de largura natural; empilha no celular */
+.pt-audience { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-2) var(--ln-space-5); }
+.pt-audience .pt-metrics { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+@media (min-width: 768px) { .pt-audience { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }

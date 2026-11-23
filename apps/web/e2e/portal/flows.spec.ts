@@ -284,6 +284,23 @@ test.describe('honestidade de dados', () => {
     expect(outro).toBeLessThanOrEqual(36);
   });
 
+  test('P3-d: Audiência em duas colunas no desktop (tempo real ao lado do histórico) e empilhada no celular, sem perder métrica', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    const grupos = page.getByTestId('audience-groups');
+    const [a, b] = await grupos.locator(':scope > div').all();
+    const ba = (await a!.boundingBox())!; const bb = (await b!.boundingBox())!;
+    await expect(a!.locator('h3')).toHaveText('Tempo real');
+    await expect(b!.locator('h3')).toHaveText('Histórico');
+    expect(await grupos.locator('.pt-metric').count()).toBeGreaterThanOrEqual(2);
+    if (info.project.name === 'desktop') {
+      expect(Math.abs(ba.y - bb.y)).toBeLessThan(2); // mesma linha
+      expect(bb.x).toBeGreaterThan(ba.x + ba.width - 1);
+    } else {
+      expect(bb.y).toBeGreaterThanOrEqual(ba.y + ba.height); // empilhado
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');

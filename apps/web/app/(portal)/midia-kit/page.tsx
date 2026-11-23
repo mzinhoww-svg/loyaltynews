@@ -116,10 +116,16 @@ export default async function MidiaKitPage() {
 
       <section id="audiencia" className="pt-section" aria-labelledby="mk-aud">
         <h2 id="mk-aud">02 · Audiência</h2>
-        <h3>Tempo real</h3>
-        <div className="pt-metrics">{audience.realtime.map((m) => <Metric key={m.label} m={m} />)}</div>
-        <h3>Histórico</h3>
-        <div className="pt-metrics">{audience.historical.map((m) => <Metric key={m.label} m={m} />)}</div>
+        <div className="pt-audience" data-testid="audience-groups">
+          <div>
+            <h3>Tempo real</h3>
+            <div className="pt-metrics">{audience.realtime.map((m) => <Metric key={m.label} m={m} />)}</div>
+          </div>
+          <div>
+            <h3>Histórico</h3>
+            <div className="pt-metrics">{audience.historical.map((m) => <Metric key={m.label} m={m} />)}</div>
+          </div>
+        </div>
         <p className="pt-meta" data-testid="audience-stamp">
           {last ? `Última coleta: ${formatDateTime(last)}.` : 'Atualizado: — · Aguardando integração de medição (GA4). Nenhuma métrica é exibida antes disso.'}
         </p>
