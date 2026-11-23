@@ -23,7 +23,9 @@ export const POLICY_V7_REF = {
 
 export type OrgTaskKind =
   | 'editorial_draft' | 'editorial_review' | 'fact_check' | 'postpublication_audit'
-  | 'ritual' | 'entity_extraction' | 'social_copy' | 'analysis' | 'deterministic' | 'concept_image';
+  | 'ritual' | 'entity_extraction' | 'social_copy' | 'analysis' | 'deterministic' | 'concept_image'
+  /** texto da correção do WF08, redigido no Claude pelo editor ou pelo redator da editoria (PM-2026-11-23-G) */
+  | 'correction_draft';
 
 export type OrgAccount = 'claude' | 'codex';
 
@@ -49,6 +51,8 @@ export interface OrgProfileDraft {
   /** complemento pelo gateway do LN (OpenRouter), dentro do teto; DESLIGADO no piloto (DP-41) e sem produção */
   complement_api: { enabled: false; route: string; models: string[]; alternative_model_allowed: boolean } | null;
   backup: string;
+  /** tarefa do perfil DENTRO de um workflow, quando difere da principal (ex.: o editor redige a correção no WF08, em Claude) */
+  workflow_tasks: Record<string, { task_kind: OrgTaskKind; account: OrgAccount; provider: 'anthropic' | 'openai' }>;
   independence: string | null;
   data_class_allowed: 'public';
   blocked_until: string[];
@@ -150,6 +154,7 @@ export function buildOrgProfiles(registries: Pick<LoadedRegistries, 'agents' | '
             : { channel: 'openbot_subscription', account: 'claude', provider: 'anthropic', model: 'Claude pela assinatura; modelo informado pelo OpenBot no UsageReport (id exato não verificado)' },
       complement_api: det || none ? null : { enabled: false, route: complementRoute, models, alternative_model_allowed: kind !== 'editorial_draft' },
       backup,
+      workflow_tasks: (a.id.startsWith('editor_') && a.department === 'editorial' ? { WF08: { task_kind: 'correction_draft', account: 'claude', provider: 'anthropic' } } : {}) as OrgProfileDraft['workflow_tasks'],
       independence,
       data_class_allowed: 'public',
       blocked_until: BLOCKED[a.id] ?? [],
@@ -219,6 +224,10 @@ export function validateOrgProfiles(draft: OrgProfilesDraft, registries: Pick<Lo
     if (p.task_kind === 'editorial_draft' && p.execution.account !== 'claude') add('DRAFT_ACCOUNT', `${p.id}: redação só em Claude`);
     if (p.task_kind === 'editorial_draft' && p.complement_api?.alternative_model_allowed) add('DRAFT_FALLBACK', `${p.id}: redação não admite modelo alternativo (DP-26 b)`);
     if ((p.task_kind === 'fact_check' || p.task_kind === 'editorial_review' || p.task_kind === 'postpublication_audit') && !p.independence) add('INDEPENDENCE', `${p.id}: regra de independência ausente`);
+    for (const [wf, t] of Object.entries(p.workflow_tasks)) {
+      if (t.task_kind === 'correction_draft' && (t.account !== 'claude' || t.provider !== 'anthropic')) add('WORKFLOW_TASK', `${p.id}/${wf}: o texto da correção é redigido no Claude`);
+      if (!['claude', 'codex'].includes(t.account)) add('ACCOUNT', `${p.id}/${wf}: conta fora de Claude e Codex (DP-41)`);
+    }
     if (p.complement_api && p.complement_api.enabled !== false) add('COMPLEMENT_ON', `${p.id}: complemento pela API deve estar desligado`);
     if (/gemini|antigravity|opencode|deepseek|fable/i.test(JSON.stringify({ e: p.execution, c: p.complement_api, b: p.backup })) && !/Fable em trabalho|DeepSeek/.test(p.backup)) add('OFF_POLICY', `${p.id}: modelo ou conta fora da política v7`);
     if (p.execution.channel === 'deterministic' && p.execution.account !== null) add('DET', `${p.id}: determinístico não tem conta`);

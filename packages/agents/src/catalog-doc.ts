@@ -1,7 +1,8 @@
 /** Artefatos do catálogo dos 28 rituais e 19 workflows: `catalog.json` e a tabela de lacunas. Não exportado por `index.ts`. */
 import type { LoadedRegistries } from './config';
-import { buildCatalog, checkReviewSameProvider, validateCatalog } from './catalog';
+import { buildCatalog, checkReviewSameProvider, validateCatalog, writeCheckPairs } from './catalog';
 import { buildOrgProfiles } from './org-profiles';
+import { ARTIFACT_SCHEMAS, OUTPUT_LABEL_KIND, PROPOSED_GATES } from './catalog-schemas';
 
 export interface CatalogArtifacts {
   'catalog.json': string;
@@ -16,69 +17,79 @@ export function buildCatalogArtifacts(registries: Pick<LoadedRegistries, 'agents
   const issues = validateCatalog(catalog, registries, org);
   if (issues.length) throw new Error(`catálogo inválido: ${issues.map((i) => i.code).join(', ')}`);
   const sameProvider = checkReviewSameProvider(catalog, org);
+  const pairs = writeCheckPairs(catalog, org);
+  const pairWf = [...new Set(pairs.map((p) => p.workflow))];
 
   const ritualRows = catalog.rituals.map((r) => {
-    const entrada = `${r.input.mode}; ${r.input.from_digest ? 'insumos por digest determinístico (ADR-014)' : 'um insumo estruturado por participante'}${r.input.depends_on.length ? `; depende de ${r.input.depends_on.join(', ')}` : ''}${r.input.workflow ? `; workflow ${r.input.workflow}` : ''}`;
-    const lacunas = ['G-R1', 'G-R2', ...(r.cycle === 'event' ? ['G-R3'] : [])].join(', ');
-    return `| \`${r.id}\` | ${r.cycle} ${cell(r.cadence.schedule_local)} | ${r.participants.length} (preside \`${r.chair}\`; quórum ${r.quorum.minimum}) | ${cell(entrada)} | ${cell(r.output.artifacts.join(', '))} | ✓ \`MeetingOutcomeRecord\` | ${lacunas} |`;
+    const entrada = `família \`${r.input.family}\` (ParticipantInput + payload)${r.input.event_trigger ? ' + gatilho do evento' : ''}; ${r.input.from_digest ? 'digest determinístico (ADR-014)' : 'um insumo por participante'}${r.input.depends_on.length ? `; depende de ${r.input.depends_on.join(', ')}` : ''}${r.input.workflow ? `; workflow ${r.input.workflow}` : ''}`;
+    const saida = r.output.artifacts.map((a) => `${a.label} (${a.kind})`).join(', ');
+    return `| \`${r.id}\` | ${r.cycle} ${cell(r.cadence.schedule_local)} | ${r.participants.length} (preside \`${r.chair}\`; quórum ${r.quorum.minimum}) | ${cell(entrada)} | ${cell(saida)} | ✓ \`MeetingOutcomeRecord\` |`;
   });
 
   const ruleOf = (id: string) => catalog.independence.find((r) => r.workflow === id);
   const workflowRows = catalog.workflows.map((w) => {
     const etapas = w.stages.map((s) => s.tokens.map((t) => t.token).join(' + ')).join(' → ');
     const rule = ruleOf(w.id);
-    const indep = rule ? `✓ ${rule.authors.join('/')} ≠ ${[...rule.checkers, ...rule.reviewers].join(' ≠ ')}` : 'não editorial';
-    const lacunas = ['G-W2', 'G-W3', ...(w.gates.length === 0 ? ['G-W1'] : [])].join(', ');
-    return `| \`${w.id}\` | ${cell(etapas)} | \`${w.owner}\` | ${w.gates.length ? w.gates.join(', ') : '— (sem gate explícito)'} | ${cell(`${w.evidence.artifact}; bloqueios: ${w.evidence.fail_closed_blockers.join(', ')}`)} | ${indep} | ${lacunas} |`;
+    const roles = rule ? `✓ ${[...rule.authors].join('/')} ≠ ${[...rule.checkers, ...rule.reviewers].join(' ≠ ')}` : pairWf.includes(w.id) ? '✓ regra geral (escrita → checagem)' : 'sem passo de escrita seguido de checagem';
+    const gates = w.gates.map((g) => `${g.id}${g.source === 'proposal' ? ' (proposta)' : ''}`).join(', ');
+    const stageKinds = [...new Set(w.stages.flatMap((s) => s.tokens.map((t) => t.evidence)))].join(', ');
+    return `| \`${w.id}\` | ${cell(etapas)} | \`${w.owner}\` | ${gates} | ${cell(`${w.evidence.artifact}; bloqueios: ${w.evidence.fail_closed_blockers.join(', ')}; evidência por etapa: ${stageKinds}`)} | ${roles} |`;
   });
-  const noGate = catalog.workflows.filter((w) => w.gates.length === 0).map((w) => w.id);
+
+  const kinds = Object.keys(ARTIFACT_SCHEMAS);
+  const proposed = Object.entries(PROPOSED_GATES).map(([wf, g]) => `${wf} → \`${g.id}\` depois de \`${g.after}\` (${g.blockers.join(', ')})`);
 
   const md = [
     '# Catálogo dos 28 rituais e 19 workflows: tabela de lacunas (Frente 07)',
     '',
     '> GERADO por `packages/agents/src/catalog-doc.ts`; não editar. **Nada roda nem chama modelo:** é só o catálogo, desligado (`enabled=false`). Revisão: QA 3.',
     '',
-    'Fonte oficial: Blueprint v2.1 §2 e §3, `contracts/meetings.registry.json` e `contracts/workflows.registry.json` (protegidos; cópias byte a byte em `packages/agents/data`) e os itens R4-11 e R4-12 do backlog. O Blueprint é resumido: o que ele não detalha aparece abaixo como lacuna, não como dado inventado.',
+    'Fonte oficial: Blueprint v2.1 §2 e §3, `contracts/meetings.registry.json` e `contracts/workflows.registry.json` (protegidos; cópias byte a byte em `packages/agents/data`, **não alterados**) e os itens R4-11 e R4-12 do backlog. O Blueprint é resumido: onde ele não detalha, o catálogo traz um esquema PROPOSTO pela frente (`catalog-schemas.ts`), marcado como proposta até o Chief Architect ratificar.',
     '',
-    '## 1. O que já existe em `packages/agents` e o que este lote acrescenta',
+    '## 1. O que já existia em `packages/agents` e o que o catálogo acrescenta',
     '',
-    '| Item | Já existia | Acrescentado agora |',
+    '| Item | Já existia | Catálogo |',
     '|---|---|---|',
-    '| Contagens 28 rituais (18 diários, 6 semanais, 3 mensais, 1 evento) e 19 workflows | `validator.ts` (`COUNT`) e `validator.test.ts` | catálogo tipado com `RitualSpecSchema` e `WorkflowSpecSchema` (zod estrito) e teste de contagem sobre o catálogo |',
+    '| Contagens 28 rituais (18/6/3/1) e 19 workflows | `validator.ts` (`COUNT`) | `RitualSpecSchema` e `WorkflowSpecSchema` (zod estritos) e teste de contagem sobre o catálogo |',
     '| Ids únicos, participantes, presidente, dono, passos, dependências, quórum, rota | `validator.ts` | as mesmas verificações sobre o catálogo normalizado (todo participante é um dos 64 perfis) |',
-    '| Cadência (horário, fuso, feriados, janela de recuperação P5 v2, idempotência) | `scheduler.ts`, `calendar.ts`, `validator.ts` | cadência exposta no catálogo (`cadence`) |',
-    '| Ata persistida (resumo, bloqueios, evidências, saídas), decisões e tarefas idempotentes | `store.ts` (`MeetingOutcomeRecord`), `pg-store.ts`, migrações 0004/0005 | declarada em cada ritual (`output.minutes`) |',
-    '| Etapas, responsável, gate e evidência de cada workflow | só a string `steps`, `owner`, `output`, `blockers` e `policy` do registro | etapas em ordem com agentes expandidos por editoria, gates `auto_gate_*`, evidência (artefato, bloqueios fail-closed, política) |',
-    '| Independência editorial (redação ≠ checagem ≠ revisão, provedores diferentes) | regra textual da política e o gate do piloto | dado + validação por editoria em WF02, WF03, WF05 e WF08 contra os provedores dos 64 perfis na v7 |',
+    '| Cadência (horário, fuso, feriados, janela P5 v2, idempotência) | `scheduler.ts`, `calendar.ts`, `validator.ts` | `cadence` em cada ritual |',
+    '| Ata persistida, decisões e tarefas idempotentes | `store.ts` (`MeetingOutcomeRecord`), `pg-store.ts`, migrações 0004/0005 | `output.minutes` em cada ritual |',
+    '| Formato da entrada de cada ritual | só `ParticipantInput` genérico no agendador | **família de entrada** (`newsroom_daily`, `directorate_daily`, `sync`, `weekly`, `monthly`, `event`) com `payload` próprio, e o gatilho do evento do `X-incident` |',
+    `| Esquema da saída de cada ritual | só rótulos de texto | **${kinds.length} tipos de artefato** com esquema (${kinds.join(', ')}) e o mapa dos ${Object.keys(OUTPUT_LABEL_KIND).length} rótulos distintos de \`outputs\` |`,
+    '| Gate explícito de cada workflow | `auto_gate_*` em 14 dos 19 | os 5 sem gate (WF01, WF03, WF09, WF14, WF16) ganham um gate PROPOSTO que cobre os bloqueios do registro |',
+    '| Evidência por etapa | só artefato, bloqueios e texto de política | esquema por etapa: `agent_output`, `deterministic_step` e `gate_verdict` (pass exige 0 bloqueios; fail exige pelo menos 1) |',
+    `| Independência editorial | regra textual da política e o gate do piloto | dado por editoria em WF02, WF03, WF05 e WF08, mais a **regra geral** (quem checa um texto nunca está no provedor de quem o escreveu) aplicada a todo passo de escrita seguido de checagem (${pairWf.join(', ')}; ${pairs.length} pares) |`,
     '',
     '## 2. Rituais (28): cadência, participantes, entrada, saída e ata',
     '',
-    '| Ritual | Cadência | Participantes | Entrada | Saída | Ata persistida | Lacunas |',
-    '|---|---|---|---|---|---|---|',
+    '| Ritual | Cadência | Participantes | Entrada | Saída | Ata persistida |',
+    '|---|---|---|---|---|---|',
     ...ritualRows,
     '',
     '## 3. Workflows (19): etapas, responsável, gate, evidência e independência',
     '',
-    '| Workflow | Etapas | Responsável | Gate | Evidência | Independência | Lacunas |',
-    '|---|---|---|---|---|---|---|',
+    '| Workflow | Etapas | Responsável | Gate | Evidência | Independência |',
+    '|---|---|---|---|---|---|',
     ...workflowRows,
     '',
-    '## 4. Lacunas (o que o documento oficial não detalha ou o código ainda não faz)',
+    '## 4. Lacunas fechadas (como PROPOSTA a ratificar) e o que continua aberto',
     '',
-    '| Id | Lacuna | Quem decide ou faz |',
+    '| Id | Situação | Detalhe |',
     '|---|---|---|',
-    '| G-R1 | O registro de rituais traz `mode` e `purpose`, mas **não define o formato da entrada** de cada ritual (o que exatamente cada participante entrega). O catálogo deriva "um insumo estruturado por participante" (ou digest, ADR-014) | Chief Architect (contrato protegido) e Editorial/Diretorias (conteúdo) |',
-    '| G-R2 | As saídas (`outputs`) são rótulos de texto, **sem esquema por ritual**; a ata guarda `outputs: string[]`. Falta o schema de cada artefato (pauta priorizada, daily brief, plano mensal etc.) | Chief Architect e o dono de cada ritual |',
-    '| G-R3 | `X-incident` é por evento: não tem horário, só gatilho (incidente, breaking, dependência); o formato do gatilho não está no registro | Chief Architect e SRE |',
-    `| G-W1 | Workflows **sem gate automático explícito** nas etapas: ${noGate.join(', ')}. Hoje só os bloqueios fail-closed os protegem | Chief Architect (contrato protegido) |`,
-    '| G-W2 | A evidência de cada workflow é o artefato de saída mais os bloqueios e o texto de política; **não há esquema de evidência por etapa** | Chief Architect e Security & Governance |',
-    '| G-W3 | **Não existe motor de execução dos workflows** (por desenho: tudo desligado até o gate R4). O catálogo descreve etapas e responsáveis; quem as executa é a Fábrica/adaptador, ainda não ligados | Integration, Backend e Editorial, depois do R4 |',
-    `| G-I1 | **Independência com dois provedores:** o pedido diz "redação ≠ checagem ≠ revisão, em provedores diferentes", mas a DP-41 só tem Claude e Codex. A v7 exige que checagem e revisão difiram do **redator**, não entre si; por isso WF02, WF08 e WF03 usam Codex na checagem e na revisão (mesmo provedor: ${sameProvider.join(', ') || 'nenhum'}) contra o redator Claude. Os três papéis são perfis diferentes e a validação garante isso, mas três provedores distintos só existiriam com um terceiro (fora da DP-41) | PM |`,
-    '| G-I2 | **WF08 (correção):** o texto corrigido é redigido por `editor_{editoria}` (Codex) e checado por `factcheck` (Codex). A v7 compara a checagem com o autor do conteúdo sob correção (o redator original, Claude, satisfeito), mas o texto da correção em si não tem checagem de outro provedor | PM e Editorial |',
+    '| G-R1 | fechada (proposta) | formato da entrada por família de ritual (`RITUAL_INPUT_SCHEMAS`), reaproveitando o `ParticipantInput` do agendador |',
+    '| G-R2 | fechada (proposta) | esquema de cada saída por rótulo (`OUTPUT_LABEL_KIND`); rótulo novo no registro sem esquema falha o validador (`OUTPUT_LABEL`) |',
+    '| G-R3 | fechada (proposta) | gatilho do `X-incident` (`EVENT_TRIGGER_SCHEMA`: incident, breaking ou dependency, com referência e hora) |',
+    `| G-W1 | fechada (proposta) | gate explícito nos 5 workflows sem \`auto_gate_*\`: ${proposed.join('; ')}. O registro protegido NÃO foi alterado |`,
+    '| G-W2 | fechada (proposta) | esquema de evidência por etapa (`STAGE_EVIDENCE_SCHEMAS`) e tipo de evidência em cada etapa do catálogo |',
+    '| G-W3 | **aberta** | não existe motor de execução dos workflows (por desenho: tudo desligado até o gate R4); Integration, Backend e Editorial, depois do R4 |',
+    '| G-P1 | **aberta** | os esquemas de entrada e saída, os 5 gates e os esquemas de evidência são proposta da frente; os contratos protegidos (`contracts/*.registry.json`) seguem como estão, e ratificá-los é decisão do Chief Architect (mudança protegida) |',
+    `| G-I1 | resolvida (PM-2026-11-23-G) | checagem e revisão diferem do redator em papel e provedor e não precisam diferir entre si; sem terceiro provedor (DP-41). Checagem e revisão no mesmo provedor em: ${sameProvider.join(', ') || 'nenhum'} |`,
+    '| G-I2 | resolvida (PM-2026-11-23-G) | em WF08 o texto da correção é redigido no Claude, pelo editor (tarefa `correction_draft` do perfil) ou pelo redator da editoria, e o `factcheck` segue no Codex |',
     '',
     '## 5. Não verificado',
     '',
     '- Nenhum ritual ou workflow foi executado; nenhum modelo foi chamado; o catálogo é configuração.',
+    '- Os esquemas propostos não foram revisados pelas diretorias que usariam cada artefato; são ponto de partida.',
     '- A tabela compara o que está no código e nos contratos copiados; não confirmei se o Blueprint integral (além do resumo em `pacote-v2.1-completo`) traz mais detalhe.',
     '',
   ].join('\n');

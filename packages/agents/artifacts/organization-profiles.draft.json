@@ -63,6 +63,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -113,6 +114,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -163,6 +165,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -207,6 +210,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -257,6 +261,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -307,6 +312,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -351,6 +357,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -400,6 +407,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -451,6 +459,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -491,6 +506,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -528,6 +544,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -568,6 +591,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -605,6 +629,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -645,6 +676,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -682,6 +714,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -722,6 +761,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -759,6 +799,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -799,6 +846,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -836,6 +884,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -876,6 +931,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -913,6 +969,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -953,6 +1016,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -990,6 +1054,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1030,6 +1101,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1067,6 +1139,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1107,6 +1186,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1144,6 +1224,13 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {
+        "WF08": {
+          "task_kind": "correction_draft",
+          "account": "claude",
+          "provider": "anthropic"
+        }
+      },
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1184,6 +1271,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1220,6 +1308,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1259,6 +1348,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1293,6 +1383,7 @@
         "alternative_model_allowed": false
       },
       "backup": "sem modelo ALTERNATIVO (DP-26 b). No limite da assinatura a tarefa volta a `pending` e espera a janela; o único complemento é o mesmo claude-haiku-5-5 pela API tarifada, dentro do teto e fora do piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "o rascunho só segue com checagem e revisão de outro provedor (Codex); a checagem nunca é por amostragem",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1327,6 +1418,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1356,6 +1448,7 @@
       },
       "complement_api": null,
       "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1392,6 +1485,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1421,6 +1515,7 @@
       },
       "complement_api": null,
       "backup": "nenhum: sem modelo de imagem na v7",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -1459,6 +1554,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1495,6 +1591,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1531,6 +1628,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1567,6 +1665,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1603,6 +1702,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1640,6 +1740,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1670,6 +1771,7 @@
       },
       "complement_api": null,
       "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1706,6 +1808,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1743,6 +1846,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1779,6 +1883,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1815,6 +1920,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -1854,6 +1960,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -1891,6 +1998,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -1930,6 +2038,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -1969,6 +2078,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2006,6 +2116,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2043,6 +2154,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2074,6 +2186,7 @@
       },
       "complement_api": null,
       "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2110,6 +2223,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -2149,6 +2263,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -2188,6 +2303,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -2220,6 +2336,7 @@
       },
       "complement_api": null,
       "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2249,6 +2366,7 @@
       },
       "complement_api": null,
       "backup": "não se aplica: etapa determinística, sem modelo (a execução com escopo é do serviço de publicação ou de operação)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2287,6 +2405,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2323,6 +2442,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2361,6 +2481,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "autor do modelo diferente do autor do rascunho (redação em Claude, checagem e revisão em Codex); mesmo autor ou autor desconhecido = bloqueio",
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2398,6 +2519,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [],
@@ -2435,6 +2557,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Claude a tarefa volta a `pending` e espera a janela; complemento pela API tarifada na rota do perfil, dentro do teto e na ordem de corte da ADR-015 (premium e rituais param primeiro); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": null,
       "data_class_allowed": "public",
       "blocked_until": [
@@ -2475,6 +2598,7 @@
         "alternative_model_allowed": true
       },
       "backup": "no limite do Codex a tarefa fica `pending`; complemento pela API tarifada na rota `review` com outro autor que o do conteúdo (fallback lateral só entre autores distintos; sem autor distinto = bloqueio, falha fechada); desligado no piloto (DP-41)",
+      "workflow_tasks": {},
       "independence": "autor do modelo diferente do autor do conteúdo auditado; verba só da reserva de auditoria e erratas",
       "data_class_allowed": "public",
       "blocked_until": [],

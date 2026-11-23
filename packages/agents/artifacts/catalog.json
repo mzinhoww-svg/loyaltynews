@@ -1,5 +1,5 @@
 {
-  "schema": "ln.agents.catalog/1",
+  "schema": "ln.agents.catalog/2",
   "status": "CATALOGO_DESLIGADO",
   "runs": false,
   "counts": {
@@ -29,7 +29,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -37,9 +39,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -81,7 +92,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -89,9 +102,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -133,7 +155,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -141,9 +165,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -185,7 +218,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -193,9 +228,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -237,7 +281,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -245,9 +291,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -289,7 +344,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -297,9 +354,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -341,7 +407,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -349,9 +417,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -393,7 +470,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -401,9 +480,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -445,7 +533,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -453,9 +543,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -497,7 +596,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Pautas, evidências, bloqueios e atribuição",
-        "participant_inputs": "structured_parallel",
+        "family": "newsroom_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -505,9 +606,18 @@
       },
       "output": {
         "artifacts": [
-          "pauta priorizada",
-          "tarefas",
-          "bloqueios"
+          {
+            "label": "pauta priorizada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "bloqueios",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -559,7 +669,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Agenda do dia, concorrência de pautas, notícia urgente",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -567,9 +679,18 @@
       },
       "output": {
         "artifacts": [
-          "daily brief",
-          "decisões",
-          "tarefas"
+          {
+            "label": "daily brief",
+            "kind": "status_report"
+          },
+          {
+            "label": "decisões",
+            "kind": "decision_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -615,7 +736,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Revisar fila, entregas, riscos e impedimentos",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -623,9 +746,18 @@
       },
       "output": {
         "artifacts": [
-          "status",
-          "tarefas",
-          "escalonamentos"
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -674,7 +806,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Revisar fila, entregas, riscos e impedimentos",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -682,9 +816,18 @@
       },
       "output": {
         "artifacts": [
-          "status",
-          "tarefas",
-          "escalonamentos"
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -733,7 +876,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Revisar fila, entregas, riscos e impedimentos",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -741,9 +886,18 @@
       },
       "output": {
         "artifacts": [
-          "status",
-          "tarefas",
-          "escalonamentos"
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -788,7 +942,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Revisar fila, entregas, riscos e impedimentos",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -796,9 +952,18 @@
       },
       "output": {
         "artifacts": [
-          "status",
-          "tarefas",
-          "escalonamentos"
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -843,7 +1008,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Revisar fila, entregas, riscos e impedimentos",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -851,9 +1018,18 @@
       },
       "output": {
         "artifacts": [
-          "status",
-          "tarefas",
-          "escalonamentos"
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -898,7 +1074,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Revisar fila, entregas, riscos e impedimentos",
-        "participant_inputs": "structured_parallel",
+        "family": "directorate_daily",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -906,9 +1084,18 @@
       },
       "output": {
         "artifacts": [
-          "status",
-          "tarefas",
-          "escalonamentos"
+          {
+            "label": "status",
+            "kind": "status_report"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          },
+          {
+            "label": "escalonamentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -954,7 +1141,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Resolver dependências e arbitrar prioridades do dia",
-        "participant_inputs": "structured_parallel",
+        "family": "sync",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [
           "D-trust",
@@ -968,9 +1157,18 @@
       },
       "output": {
         "artifacts": [
-          "prioridade aprovada",
-          "dependências",
-          "impedimentos"
+          {
+            "label": "prioridade aprovada",
+            "kind": "priority_list"
+          },
+          {
+            "label": "dependências",
+            "kind": "dependency_list"
+          },
+          {
+            "label": "impedimentos",
+            "kind": "blocker_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1025,7 +1223,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Planejar cobertura e investigações",
-        "participant_inputs": "structured_parallel",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": "WF12",
@@ -1033,9 +1233,18 @@
       },
       "output": {
         "artifacts": [
-          "calendário",
-          "pautas",
-          "hipóteses"
+          {
+            "label": "calendário",
+            "kind": "calendar"
+          },
+          {
+            "label": "pautas",
+            "kind": "priority_list"
+          },
+          {
+            "label": "hipóteses",
+            "kind": "hypothesis_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1083,7 +1292,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Estratégia, prioridades e capacidade",
-        "participant_inputs": "structured_parallel",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": "WF15",
@@ -1091,9 +1302,18 @@
       },
       "output": {
         "artifacts": [
-          "OKRs",
-          "decisões",
-          "alocação proposta"
+          {
+            "label": "OKRs",
+            "kind": "plan"
+          },
+          {
+            "label": "decisões",
+            "kind": "decision_list"
+          },
+          {
+            "label": "alocação proposta",
+            "kind": "proposal"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1140,7 +1360,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Avaliar coortes, distribuição e conversão",
-        "participant_inputs": "structured_parallel",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1148,9 +1370,18 @@
       },
       "output": {
         "artifacts": [
-          "experimentos",
-          "aprendizados",
-          "tarefas"
+          {
+            "label": "experimentos",
+            "kind": "plan"
+          },
+          {
+            "label": "aprendizados",
+            "kind": "finding_list"
+          },
+          {
+            "label": "tarefas",
+            "kind": "task_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1195,7 +1426,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Custos, qualidade, fallback, rate cards e evals",
-        "participant_inputs": "structured_parallel",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1203,9 +1436,18 @@
       },
       "output": {
         "artifacts": [
-          "recomendações de routing",
-          "riscos",
-          "orçamento proposto"
+          {
+            "label": "recomendações de routing",
+            "kind": "proposal"
+          },
+          {
+            "label": "riscos",
+            "kind": "finding_list"
+          },
+          {
+            "label": "orçamento proposto",
+            "kind": "proposal"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1252,7 +1494,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Amostras, reclamações, correções e privacidade",
-        "participant_inputs": "structured_parallel",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1260,8 +1504,14 @@
       },
       "output": {
         "artifacts": [
-          "achados",
-          "ações corretivas"
+          {
+            "label": "achados",
+            "kind": "finding_list"
+          },
+          {
+            "label": "ações corretivas",
+            "kind": "task_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1309,7 +1559,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Cobertura, qualidade de organogramas e prioridades",
-        "participant_inputs": "structured_parallel",
+        "family": "weekly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1317,8 +1569,14 @@
       },
       "output": {
         "artifacts": [
-          "plano de enriquecimento",
-          "casos inconclusivos"
+          {
+            "label": "plano de enriquecimento",
+            "kind": "plan"
+          },
+          {
+            "label": "casos inconclusivos",
+            "kind": "finding_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1366,7 +1624,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "P&L, OKRs, estratégia e riscos com responsável humano",
-        "participant_inputs": "structured_parallel",
+        "family": "monthly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1374,9 +1634,18 @@
       },
       "output": {
         "artifacts": [
-          "ata",
-          "decisões sujeitas a aprovação humana",
-          "plano mensal"
+          {
+            "label": "ata",
+            "kind": "minutes"
+          },
+          {
+            "label": "decisões sujeitas a aprovação humana",
+            "kind": "decision_list"
+          },
+          {
+            "label": "plano mensal",
+            "kind": "plan"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1424,7 +1693,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Benchmark e mudanças de modelos em sandbox",
-        "participant_inputs": "structured_parallel",
+        "family": "monthly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1432,8 +1703,14 @@
       },
       "output": {
         "artifacts": [
-          "evals",
-          "proposta de promoção ou rollback"
+          {
+            "label": "evals",
+            "kind": "metric_report"
+          },
+          {
+            "label": "proposta de promoção ou rollback",
+            "kind": "proposal"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1479,7 +1756,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Inventário, pipeline, receita e renovação",
-        "participant_inputs": "structured_parallel",
+        "family": "monthly",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": null,
         "from_digest": true,
         "depends_on": [],
         "workflow": null,
@@ -1487,9 +1766,18 @@
       },
       "output": {
         "artifacts": [
-          "forecast",
-          "propostas",
-          "ações"
+          {
+            "label": "forecast",
+            "kind": "metric_report"
+          },
+          {
+            "label": "propostas",
+            "kind": "proposal"
+          },
+          {
+            "label": "ações",
+            "kind": "task_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1533,7 +1821,9 @@
       "input": {
         "mode": "async_structured_first",
         "agenda": "Tratar incidente ou decisão acima da alçada",
-        "participant_inputs": "structured_parallel",
+        "family": "event",
+        "participant_input": "ParticipantInput+payload",
+        "event_trigger": "EVENT_TRIGGER_SCHEMA",
         "from_digest": false,
         "depends_on": [],
         "workflow": null,
@@ -1541,9 +1831,18 @@
       },
       "output": {
         "artifacts": [
-          "contenção",
-          "decisão",
-          "responsáveis"
+          {
+            "label": "contenção",
+            "kind": "plan"
+          },
+          {
+            "label": "decisão",
+            "kind": "decision_list"
+          },
+          {
+            "label": "responsáveis",
+            "kind": "task_list"
+          }
         ],
         "minutes": {
           "persisted": true,
@@ -1590,7 +1889,8 @@
                 "writer_crm",
                 "writer_global",
                 "writer_regulacao"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1611,12 +1911,23 @@
                 "editor_crm",
                 "editor_global",
                 "editor_regulacao"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         }
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "auto_gate_triage",
+          "after": "editor_{editoria}",
+          "blockers": [
+            "duplicate",
+            "rights_unknown"
+          ],
+          "source": "proposal"
+        }
+      ],
       "evidence": {
         "artifact": "triaged",
         "fail_closed_blockers": [
@@ -1653,7 +1964,8 @@
                 "writer_crm",
                 "writer_global",
                 "writer_regulacao"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1665,14 +1977,16 @@
               "kind": "agent",
               "agents": [
                 "factcheck"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "rights",
               "kind": "agent",
               "agents": [
                 "rights"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1693,7 +2007,8 @@
                 "editor_crm",
                 "editor_global",
                 "editor_regulacao"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1703,13 +2018,26 @@
             {
               "token": "auto_gate_editor",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_editor"
+        {
+          "id": "auto_gate_editor",
+          "after": "editor_{editoria}",
+          "blockers": [
+            "unsupported_claim",
+            "rights_unknown",
+            "approval_missing",
+            "rights_basis_unresolved",
+            "copy_literal",
+            "cross_provider_check_failed"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "article.approved",
@@ -1740,7 +2068,8 @@
             {
               "token": "validate_revision",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -1750,7 +2079,8 @@
             {
               "token": "transactional_publish",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -1760,7 +2090,8 @@
             {
               "token": "outbox",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -1770,7 +2101,8 @@
             {
               "token": "postpublication_audit",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -1780,12 +2112,23 @@
             {
               "token": "unpublish_if_failed",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "auto_gate_publish",
+          "after": "validate_revision",
+          "blockers": [
+            "stale_approval",
+            "embargo"
+          ],
+          "source": "proposal"
+        }
+      ],
       "evidence": {
         "artifact": "article.published",
         "fail_closed_blockers": [
@@ -1813,14 +2156,16 @@
               "kind": "agent",
               "agents": [
                 "discovery"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "media",
               "kind": "agent",
               "agents": [
                 "media"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1832,7 +2177,8 @@
               "kind": "agent",
               "agents": [
                 "art"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1844,21 +2190,24 @@
               "kind": "agent",
               "agents": [
                 "designer"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "linkedin",
               "kind": "agent",
               "agents": [
                 "linkedin"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "instagram_if_enabled",
               "kind": "agent",
               "agents": [
                 "instagram"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1870,7 +2219,8 @@
               "kind": "agent",
               "agents": [
                 "visualqa"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1880,7 +2230,8 @@
             {
               "token": "auto_gate_social",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -1892,13 +2243,23 @@
               "kind": "agent",
               "agents": [
                 "publisher_social"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_social"
+        {
+          "id": "auto_gate_social",
+          "after": "visualqa",
+          "blockers": [
+            "no_image",
+            "mention_unverified",
+            "no_receipt"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "social.receipt",
@@ -1931,7 +2292,8 @@
               "kind": "agent",
               "agents": [
                 "newsletter"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1943,7 +2305,8 @@
               "kind": "agent",
               "agents": [
                 "factcheck"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -1953,7 +2316,8 @@
             {
               "token": "auto_gate_editor",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -1963,13 +2327,22 @@
             {
               "token": "esp_send",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_editor"
+        {
+          "id": "auto_gate_editor",
+          "after": "factcheck",
+          "blockers": [
+            "consent_missing",
+            "stale_revision"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "newsletter.sent",
@@ -2001,7 +2374,8 @@
               "kind": "agent",
               "agents": [
                 "discovery"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2013,14 +2387,16 @@
               "kind": "agent",
               "agents": [
                 "people"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "company",
               "kind": "agent",
               "agents": [
                 "company"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2032,7 +2408,8 @@
               "kind": "agent",
               "agents": [
                 "graph"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2044,7 +2421,8 @@
               "kind": "agent",
               "agents": [
                 "dataqa"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2054,13 +2432,22 @@
             {
               "token": "auto_gate_data",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_data"
+        {
+          "id": "auto_gate_data",
+          "after": "dataqa",
+          "blockers": [
+            "ambiguous_identity",
+            "conflicting_evidence"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "entity.revision",
@@ -2089,14 +2476,16 @@
               "kind": "agent",
               "agents": [
                 "orgchart"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "moves",
               "kind": "agent",
               "agents": [
                 "moves"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2108,7 +2497,8 @@
               "kind": "agent",
               "agents": [
                 "dataqa"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2118,13 +2508,22 @@
             {
               "token": "auto_gate_data",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_data"
+        {
+          "id": "auto_gate_data",
+          "after": "dataqa",
+          "blockers": [
+            "unverified_reporting",
+            "sensitive_change"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "org.snapshot",
@@ -2162,7 +2561,8 @@
                 "editor_crm",
                 "editor_global",
                 "editor_regulacao"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2174,7 +2574,8 @@
               "kind": "agent",
               "agents": [
                 "factcheck"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2184,7 +2585,8 @@
             {
               "token": "auto_gate_editor",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -2194,7 +2596,8 @@
             {
               "token": "republish",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2204,7 +2607,8 @@
             {
               "token": "social_reconcile",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2214,13 +2618,22 @@
             {
               "token": "entity_rebuild",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_editor"
+        {
+          "id": "auto_gate_editor",
+          "after": "factcheck",
+          "blockers": [
+            "missing_evidence",
+            "remote_unresolved"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "correction.closed",
@@ -2247,7 +2660,8 @@
             {
               "token": "collect_providers",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2257,7 +2671,8 @@
             {
               "token": "validate_periods",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2267,7 +2682,8 @@
             {
               "token": "aggregate",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2277,12 +2693,23 @@
             {
               "token": "publish_snapshot",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "auto_gate_metrics",
+          "after": "aggregate",
+          "blockers": [
+            "stale_data",
+            "provider_unavailable"
+          ],
+          "source": "proposal"
+        }
+      ],
       "evidence": {
         "artifact": "metrics.snapshot",
         "fail_closed_blockers": [
@@ -2311,7 +2738,8 @@
               "kind": "agent",
               "agents": [
                 "sales"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2323,7 +2751,8 @@
               "kind": "agent",
               "agents": [
                 "pricing"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2333,7 +2762,8 @@
             {
               "token": "auto_gate_sales",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -2345,7 +2775,8 @@
               "kind": "agent",
               "agents": [
                 "adops"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2357,13 +2788,22 @@
               "kind": "agent",
               "agents": [
                 "account"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_sales"
+        {
+          "id": "auto_gate_sales",
+          "after": "pricing",
+          "blockers": [
+            "inventory_conflict",
+            "approval_missing"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "campaign.report",
@@ -2393,7 +2833,8 @@
               "kind": "agent",
               "agents": [
                 "finops"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2403,7 +2844,8 @@
             {
               "token": "reconcile",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2413,7 +2855,8 @@
             {
               "token": "budget_alert",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2423,13 +2866,22 @@
             {
               "token": "auto_gate_admin",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_admin"
+        {
+          "id": "auto_gate_admin",
+          "after": "budget_alert",
+          "blockers": [
+            "unknown_rate",
+            "budget_exhausted"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "budget.snapshot",
@@ -2458,49 +2910,56 @@
               "kind": "agent",
               "agents": [
                 "director_editorial"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "director_creative",
               "kind": "agent",
               "agents": [
                 "director_creative"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "director_growth",
               "kind": "agent",
               "agents": [
                 "director_growth"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "director_intelligence",
               "kind": "agent",
               "agents": [
                 "director_intelligence"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "director_commercial",
               "kind": "agent",
               "agents": [
                 "director_commercial"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "director_technology",
               "kind": "agent",
               "agents": [
                 "director_technology"
-              ]
+              ],
+              "evidence": "agent_output"
             },
             {
               "token": "director_trust",
               "kind": "agent",
               "agents": [
                 "director_trust"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2512,7 +2971,8 @@
               "kind": "agent",
               "agents": [
                 "publisher"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2522,13 +2982,22 @@
             {
               "token": "auto_gate_owner",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_owner"
+        {
+          "id": "auto_gate_owner",
+          "after": "publisher",
+          "blockers": [
+            "policy_conflict",
+            "budget_exceeded"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "plan.approved",
@@ -2557,7 +3026,8 @@
               "kind": "agent",
               "agents": [
                 "sre"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2569,7 +3039,8 @@
               "kind": "agent",
               "agents": [
                 "security"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         },
@@ -2579,7 +3050,8 @@
             {
               "token": "auto_gate_ops",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -2589,7 +3061,8 @@
             {
               "token": "recover",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2601,13 +3074,22 @@
               "kind": "agent",
               "agents": [
                 "audit"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_ops"
+        {
+          "id": "auto_gate_ops",
+          "after": "security",
+          "blockers": [
+            "unsafe_replay",
+            "missing_approval"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "incident.closed",
@@ -2635,7 +3117,8 @@
             {
               "token": "match_active_subscriptions",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2645,7 +3128,8 @@
             {
               "token": "dedupe",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2655,7 +3139,8 @@
             {
               "token": "consent_check",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2665,12 +3150,23 @@
             {
               "token": "notify",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "auto_gate_alert",
+          "after": "consent_check",
+          "blockers": [
+            "unverified_event",
+            "optout"
+          ],
+          "source": "proposal"
+        }
+      ],
       "evidence": {
         "artifact": "alert.receipt",
         "fail_closed_blockers": [
@@ -2697,7 +3193,8 @@
             {
               "token": "snapshot",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2707,7 +3204,8 @@
             {
               "token": "structured_inputs",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2717,7 +3215,8 @@
             {
               "token": "chair_synthesis",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2727,7 +3226,8 @@
             {
               "token": "challenge_if_needed",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2737,7 +3237,8 @@
             {
               "token": "validate_decisions",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2747,7 +3248,8 @@
             {
               "token": "auto_gate_gate_if_needed",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -2757,13 +3259,23 @@
             {
               "token": "transactional_actions",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_gate_if_needed"
+        {
+          "id": "auto_gate_gate_if_needed",
+          "after": "validate_decisions",
+          "blockers": [
+            "missing_inputs",
+            "invalid_authority",
+            "budget_exhausted"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "meeting.closed",
@@ -2792,7 +3304,8 @@
             {
               "token": "validate_authority",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2802,7 +3315,8 @@
             {
               "token": "assign",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2812,7 +3326,8 @@
             {
               "token": "track_due_date",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2822,7 +3337,8 @@
             {
               "token": "verify_evidence",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2832,12 +3348,24 @@
             {
               "token": "escalate_overdue",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
-      "gates": [],
+      "gates": [
+        {
+          "id": "auto_gate_actions",
+          "after": "verify_evidence",
+          "blockers": [
+            "missing_owner",
+            "overdue",
+            "unverified_completion"
+          ],
+          "source": "proposal"
+        }
+      ],
       "evidence": {
         "artifact": "action.updated",
         "fail_closed_blockers": [
@@ -2864,7 +3392,8 @@
             {
               "token": "refresh_catalog",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2874,7 +3403,8 @@
             {
               "token": "offline_eval",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2884,7 +3414,8 @@
             {
               "token": "cost_review",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2894,7 +3425,8 @@
             {
               "token": "security_review",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2904,7 +3436,8 @@
             {
               "token": "auto_gate_approval",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -2914,7 +3447,8 @@
             {
               "token": "canary",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2924,13 +3458,24 @@
             {
               "token": "monitor_or_rollback",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_approval"
+        {
+          "id": "auto_gate_approval",
+          "after": "security_review",
+          "blockers": [
+            "unknown_model",
+            "unknown_price",
+            "regression",
+            "approval_missing"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "model.policy_version",
@@ -2959,7 +3504,8 @@
             {
               "token": "intake",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2969,7 +3515,8 @@
             {
               "token": "preserve_evidence",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2979,7 +3526,8 @@
             {
               "token": "triage",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -2989,7 +3537,8 @@
             {
               "token": "auto_gate_response",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -2999,7 +3548,8 @@
             {
               "token": "errata",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -3009,7 +3559,8 @@
             {
               "token": "social_reconcile",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -3019,13 +3570,21 @@
             {
               "token": "notify_owner_if_legal",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_response"
+        {
+          "id": "auto_gate_response",
+          "after": "triage",
+          "blockers": [
+            "unverified_request"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "response.receipt",
@@ -3051,7 +3610,8 @@
             {
               "token": "intake",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -3061,7 +3621,8 @@
             {
               "token": "verify_identity",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -3071,7 +3632,8 @@
             {
               "token": "restrict_processing",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -3081,7 +3643,8 @@
             {
               "token": "auto_gate_privacy",
               "kind": "gate",
-              "agents": []
+              "agents": [],
+              "evidence": "gate_verdict"
             }
           ]
         },
@@ -3091,7 +3654,8 @@
             {
               "token": "rectify_or_remove",
               "kind": "step",
-              "agents": []
+              "agents": [],
+              "evidence": "deterministic_step"
             }
           ]
         },
@@ -3103,13 +3667,22 @@
               "kind": "agent",
               "agents": [
                 "audit"
-              ]
+              ],
+              "evidence": "agent_output"
             }
           ]
         }
       ],
       "gates": [
-        "auto_gate_privacy"
+        {
+          "id": "auto_gate_privacy",
+          "after": "restrict_processing",
+          "blockers": [
+            "identity_unverified",
+            "legal_conflict"
+          ],
+          "source": "registry"
+        }
       ],
       "evidence": {
         "artifact": "privacy.receipt",
@@ -3135,7 +3708,7 @@
       "reviewers": [
         "editor_{editoria}"
       ],
-      "note": "redação ≠ checagem ≠ revisão; checagem e revisão de provedor diferente do redator (gate WF02)"
+      "note": "redação ≠ checagem ≠ revisão como perfis; checagem e revisão de provedor diferente do redator (gate WF02); checagem e revisão podem dividir o provedor (v7)"
     },
     {
       "workflow": "WF03",
@@ -3162,15 +3735,14 @@
     {
       "workflow": "WF08",
       "authors": [
+        "editor_{editoria}",
         "writer_{editoria}"
       ],
       "checkers": [
         "factcheck"
       ],
-      "reviewers": [
-        "editor_{editoria}"
-      ],
-      "note": "checagem da correção por provedor diferente do autor do conteúdo sob correção (v7: wf08_correction)"
+      "reviewers": [],
+      "note": "PM-2026-11-23-G: o texto da correção é redigido no Claude pelo editor (ou pelo redator) da editoria; a checagem fica no Codex; também difere do autor do conteúdo sob correção"
     }
   ]
 }
