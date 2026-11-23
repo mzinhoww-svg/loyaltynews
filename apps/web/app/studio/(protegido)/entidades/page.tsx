@@ -1,35 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { isEnabled } from '@ln/contracts';
-import { listMovesHandler, searchCompaniesHandler, searchExecutivesHandler } from '@ln/intelligence';
-import { findModule } from '@/lib/studio/modules';
+import { checkAccess, findModule } from '@/lib/studio/modules';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { bancoOuNulo } from '@/lib/studio/intelligence-db';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { OrigemBanco, SemBanco } from '../../_components/SemBanco';
-import { revisarMoveAction } from './actions';
+import { MovesPendentes } from '../../_components/MovesPendentes';
 
 export const metadata: Metadata = { title: 'Entity intelligence' };
 export const dynamic = 'force-dynamic';
 
-type Empresa = { id: string; legal_name: string; trade_name: string | null; kind: string };
-type Pessoa = { id: string; full_name: string };
-type Move = { id: string; status: string; person_name?: string; summary?: string; [k: string]: unknown };
-
 export default async function EntidadesPage({ searchParams }: { searchParams: Promise<{ q?: string; tipo?: string; aviso?: string }> }) {
-  await requireModule(findModule('entidades')!);
+  const { session } = await requireModule(findModule('entidades')!);
   const { q = '', tipo, aviso } = await searchParams;
-  const banco = await bancoOuNulo();
   const pessoasLigadas = isEnabled('intelligencePessoas');
+  // origem do banco só para avisar quando é o temporário de dev/e2e; os DADOS vêm das rotas do Backend
+  const banco = await bancoOuNulo();
+  const termo = q.trim();
+  const [emp, pes] = termo ? await Promise.all([api.intelligence.empresas(termo), api.intelligence.executivos(termo)]) : [null, null];
+  const semBanco = (emp && naoConfigurado(emp)) || !banco;
+  const podeRevisar = checkAccess(session, ['admin', 'editor_chefe', 'editor', 'revisor']).ok;
   return (
     <>
       <h1>Entity intelligence</h1>
-      <p>Empresas e executivos com fonte e data de validação. Informação profissional de fonte pública; ausência de registro não prova inexistência. Movimentações só viram fato depois de revisão.</p>
+      <p>Empresas, relações e cargos com fonte e data de validação. Informação profissional de fonte pública; ausência de registro não prova inexistência. Movimentações só viram fato depois de revisão.</p>
       <div className="st-alert" role="status">
         Ingestão de pessoas (flag intelligencePessoas): <strong>{pessoasLigadas ? 'ligada' : 'desligada'}</strong>.
       </div>
       <Flash tipo={tipo} aviso={aviso} />
-      {!banco ? (
+      {semBanco ? (
         <SemBanco />
       ) : (
         <>
@@ -43,21 +45,32 @@ export default async function EntidadesPage({ searchParams }: { searchParams: Pr
               Buscar
             </button>
           </form>
-          {q ? <Resultados db={banco.db} q={q} /> : <p className="st-hint">Digite um nome para buscar.</p>}
-          <Fila db={banco.db} />
+          {emp && pes ? <Resultados emp={emp} pes={pes} q={termo} /> : <p className="st-hint">Digite um nome para buscar.</p>}
+
+          <section aria-labelledby="a-confirmar" style={{ marginTop: 24 }}>
+            <h2 id="a-confirmar">Cargos a confirmar</h2>
+            <p className="st-hint" data-lacuna="fila-a-confirmar">
+              Cargo vindo de LinkedIn ou de site de organograma fica como <strong>secundária — a confirmar</strong>: nunca vira Move e nunca fecha cargo. Um editor o confirma com a página oficial ou o descarta. Hoje a lista de cargos a confirmar só existe por empresa (abra a empresa para ver os dela): a fila geral e as ações de confirmar e descartar dependem de rotas que o Backend ainda não tem.
+            </p>
+          </section>
+
+          <MovesPendentes podeRevisar={podeRevisar} retorno="/studio/entidades" />
         </>
       )}
     </>
   );
 }
 
-async function Resultados({ db, q }: { db: Parameters<typeof searchCompaniesHandler>[0]; q: string }) {
-  const emp = await searchCompaniesHandler(db, { q });
-  const pes = await searchExecutivesHandler(db, { q });
-  const empresas = ((emp.body as { items?: Empresa[] }).items ?? []) as Empresa[];
-  const pessoas = ((pes.body as { items?: Pessoa[] }).items ?? []) as Pessoa[];
-  const invalido = emp.status >= 400;
-  if (invalido) return <div className="st-alert err" role="alert">Busca inválida.</div>;
+function Resultados({ emp, pes, q }: { emp: Awaited<ReturnType<typeof api.intelligence.empresas>>; pes: Awaited<ReturnType<typeof api.intelligence.executivos>>; q: string }) {
+  if (ehErro(emp)) {
+    return (
+      <div className="st-alert err" role="alert">
+        {mensagemErro(emp)}
+      </div>
+    );
+  }
+  const empresas = emp.body.items;
+  const pessoas = ehErro(pes) ? [] : pes.body.items;
   if (empresas.length === 0 && pessoas.length === 0) {
     return (
       <section className="st-empty" aria-labelledby="sem-res">
@@ -79,53 +92,11 @@ async function Resultados({ db, q }: { db: Parameters<typeof searchCompaniesHand
       <h2>Executivos ({pessoas.length})</h2>
       <ul aria-label="Executivos encontrados">
         {pessoas.map((p) => (
-          <li key={p.id}>{p.full_name}</li>
+          <li key={p.id}>
+            <Link href={`/studio/entidades/pessoa/${p.id}`}>{p.full_name}</Link>
+          </li>
         ))}
       </ul>
     </>
-  );
-}
-
-async function Fila({ db }: { db: Parameters<typeof listMovesHandler>[0] }) {
-  const r = await listMovesHandler(db, 'studio', { status: 'detected', limit: 50 });
-  const moves = ((r.body as { items?: Move[] }).items ?? []) as Move[];
-  return (
-    <section aria-labelledby="fila-moves" style={{ marginTop: 24 }}>
-      <h2 id="fila-moves">Fila de revisão de movimentações</h2>
-      {moves.length === 0 ? (
-        <p className="st-hint" data-vazio="moves">
-          Nenhuma movimentação aguardando revisão.
-        </p>
-      ) : (
-        <table className="st-table">
-          <thead>
-            <tr>
-              <th scope="col">Movimentação</th>
-              <th scope="col">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {moves.map((m) => (
-              <tr key={m.id}>
-                <th scope="row">{m.person_name ?? m.id}</th>
-                <td>
-                  <div className="st-actions">
-                    {(['confirmed', 'rejected'] as const).map((s) => (
-                      <form action={revisarMoveAction} key={s}>
-                        <input type="hidden" name="id" value={m.id} />
-                        <input type="hidden" name="status" value={s} />
-                        <button className={s === 'rejected' ? 'st-btn danger' : 'st-btn'} type="submit" aria-label={`${s === 'confirmed' ? 'Confirmar' : 'Rejeitar'} ${m.person_name ?? m.id}`}>
-                          {s === 'confirmed' ? 'Confirmar' : 'Rejeitar'}
-                        </button>
-                      </form>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
   );
 }

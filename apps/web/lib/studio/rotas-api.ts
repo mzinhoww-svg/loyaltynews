@@ -31,6 +31,8 @@ import * as publicoSitemapRoute from '@/app/api/publico/site/sitemap/route';
 import * as publicoRedirectsRoute from '@/app/api/publico/site/redirects/route';
 import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
+import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
+import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha } from '@/lib/studio/intelligence-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -177,6 +179,7 @@ export interface EventoAgenda {
 
 const E = '/api/studio/editorial';
 const C = '/api/commercial';
+const I = '/api/studio/intelligence';
 
 export const api = {
   materias: {
@@ -252,6 +255,20 @@ export const api = {
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
     transicaoCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns/transition`, { metodo: 'POST', corpo }),
+  },
+  intelligence: {
+    /** Empresas por nome (GET /api/studio/intelligence/companies?q=). */
+    empresas: (q: string) => chamar<{ items: OrganizacaoLinha[] }>(dispatchIntelligence, `${I}/companies`, { query: { q } }),
+    /** Empresa com pessoas e cargos, relações e evidências. `includeInferred` traz também o que veio de fonte secundária ("a confirmar"). */
+    empresa: (id: string, opts: { asOf?: string; includeInferred?: boolean } = {}) =>
+      chamar<EmpresaDetalhe>(dispatchIntelligence, `${I}/companies/${encodeURIComponent(id)}`, { query: { asOf: opts.asOf, ...(opts.includeInferred ? { includeInferred: 'true' } : {}) } }),
+    executivo: (id: string, opts: { includeInferred?: boolean } = {}) =>
+      chamar<{ person: { id: string; full_name: string; public_profile_url: string | null; evidence: import('@/lib/studio/intelligence-view').EvidenciaRef }; roles: CargoLinha[] }>(
+        dispatchIntelligence, `${I}/executives/${encodeURIComponent(id)}`, { query: opts.includeInferred ? { includeInferred: 'true' } : {} }),
+    executivos: (q: string) => chamar<{ items: { id: string; full_name: string }[] }>(dispatchIntelligence, `${I}/executives`, { query: { q } }),
+    /** Moves por estado (detected = pendente de revisão), com antes e depois quando o Backend os traz. */
+    moves: (query: { status?: 'detected' | 'confirmed' | 'rejected'; organizationId?: string; personId?: string }) => chamar<{ items: MoveLinha[] }>(dispatchIntelligence, `${I}/moves`, { query }),
+    revisarMove: (id: string, status: 'confirmed' | 'rejected') => chamar(dispatchIntelligence, `${I}/moves/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
   },
   editorial: {
     fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
