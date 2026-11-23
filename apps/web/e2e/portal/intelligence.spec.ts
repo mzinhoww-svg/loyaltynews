@@ -94,8 +94,10 @@ test.describe('api', () => {
     await axe(page);
 
     await rel.getByRole('link', { name: '[MOCK API] Clube Delta' }).click();
+    // Espera determinística da navegação (URL e título do destino) antes de checar o conteúdo.
+    await expect(page).toHaveURL(/\/intelligence\/empresas\/10000000-0000-4000-8000-000000000004$/, { timeout: NAV_MS });
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Clube Delta', { timeout: NAV_MS });
     await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Clube Delta');
     await expect(page.getByTestId('company-meta')).toContainText('Tipo não declarado na fonte');
     await page.getByTestId('relations').getByRole('link', { name: '[MOCK API] Associação Gama' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Associação Gama', { timeout: NAV_MS });
@@ -187,7 +189,8 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000401'))?.status()).toBe(404);
     await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000001');
-    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa', { timeout: NAV_MS });
+    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible({ timeout: NAV_MS });
     await expect(page.getByTestId('move-card')).toHaveCount(0);
     await page.goto('/intelligence');
     await expect(page.getByTestId('count-pessoas')).toHaveText('Cadastros verificados: em breve');
