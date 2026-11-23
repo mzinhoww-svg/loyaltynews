@@ -28,6 +28,6 @@ export * from './api/source-handlers';
 export { sourceFingerprint, effectiveSource, resolveEffectiveSources } from './sources/state';
 export * from './intelligence/types';
 export { extractRoleMentionsDeterministic, validateMention, minimizeToOrganizations, explicitDates, ANNOUNCEMENT_CUE } from './intelligence/roles';
-export { articleContentSha256, toPublishedArticle, jobFromRecord, PORTAL_SOURCE_NAME } from './intelligence/published';
+export { draftContentSha256, toPublishableContent, toPublishedArticle, jobFromRecord, PORTAL_SOURCE_NAME } from './intelligence/published';
 export * from './api/publication';
 export { extractRoles } from './pipeline/stages';

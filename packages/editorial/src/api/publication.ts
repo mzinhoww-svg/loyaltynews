@@ -1,6 +1,6 @@
 import { canTransition } from '@ln/contracts';
 import { runDeterministicChecks } from '../rules/rules';
-import { articleContentSha256 } from '../intelligence/published';
+import { draftContentSha256 } from '../intelligence/published';
 import type { ArticleRecord, EditorialStore, OutboxItem } from './store';
 
 /**
@@ -16,8 +16,16 @@ import type { ArticleRecord, EditorialStore, OutboxItem } from './store';
 export type { OutboxItem } from './store';
 export const INTELLIGENCE_QUEUE = 'intelligence-ingest';
 
-export interface PublicationInput { articleId: string; receiptId: string; url: string; publishedAt: string; isMock?: boolean }
-export type PublicationCode = 'not_found' | 'invalid_input' | 'not_approved' | 'gate_failed' | 'no_draft';
+export interface PublicationInput {
+  /** Id único da matéria (ADR-017): o mesmo de `articles.id`; nasce na criação do rascunho e nunca muda. */
+  articleId: string; receiptId: string; url: string; publishedAt: string; isMock?: boolean;
+  /**
+   * `PublicationReceipt.conteudoSha256` (publishedContentSha256 do rascunho APROVADO). Se informado e diferente do hash do
+   * rascunho atual (manchete, imagem, corpo, fontes... mudaram depois da aprovação), a publicação é recusada ('receipt_stale').
+   */
+  expectedContentSha256?: string;
+}
+export type PublicationCode = 'not_found' | 'invalid_input' | 'not_approved' | 'gate_failed' | 'no_draft' | 'receipt_stale';
 export type PublicationResult =
   | { ok: true; record: ArticleRecord; outbox: 'enqueued' | 'duplicate'; alreadyPublished: boolean }
   | { ok: false; code: PublicationCode; message: string; findings?: Array<{ code: string; message: string }> };
@@ -31,6 +39,9 @@ export async function applyPublication(store: EditorialStore, input: Publication
   const rec = await store.getArticle(input.articleId);
   if (!rec) return { ok: false, code: 'not_found', message: 'matéria não encontrada' };
   if (!rec.draft) return { ok: false, code: 'no_draft', message: 'matéria sem rascunho' };
+  if (input.expectedContentSha256 && input.expectedContentSha256 !== draftContentSha256(rec.draft)) {
+    return { ok: false, code: 'receipt_stale', message: 'o conteúdo do rascunho mudou depois do recibo: o hash do recibo não corresponde mais' };
+  }
   const item = (r: ArticleRecord): OutboxItem => ({ queue: INTELLIGENCE_QUEUE, refId: r.articleId, idempotencyKey: outboxKey(r.articleId, r.publication!.contentSha256) });
   const auditOf = (r: ArticleRecord) => ({ at: input.publishedAt, userId: null, action: 'article.published', target: r.articleId, detail: `recibo ${input.receiptId}` });
 
@@ -53,7 +64,7 @@ export async function applyPublication(store: EditorialStore, input: Publication
   }
   const next: ArticleRecord = {
     ...rec, status: 'publicado', updatedAt: input.publishedAt,
-    publication: { receiptId: input.receiptId, url: input.url, publishedAt: input.publishedAt, contentSha256: articleContentSha256(rec.draft.body), ...(input.isMock ? { isMock: true } : {}) },
+    publication: { receiptId: input.receiptId, url: input.url, publishedAt: input.publishedAt, contentSha256: draftContentSha256(rec.draft), ...(input.isMock ? { isMock: true } : {}) },
   };
   const r = await store.commitPublication({ article: next, audit: auditOf(next), outbox: item(next) });
   return { ok: true, record: (await store.getArticle(next.articleId)) ?? next, outbox: r.outbox, alreadyPublished: r.outbox === 'duplicate' };
