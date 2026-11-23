@@ -1,0 +1,103 @@
+/**
+ * Analisa data/runs/<runId>/attempts.jsonl: métricas por provedor, ranking global/por categoria, matriz por domínio,
+ * pipeline combinado (melhor provedor por URL, em ordem de custo), projeções mensais. Saída: report.json e report.md.
+ * Uso: npx tsx packages/scraping-benchmark/scripts/analyze.ts <runId>
+ */
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { computeMetrics, rank, projectMonthly, type ProviderMetrics } from '../src/metrics.ts';
+import { AdaptiveRouter } from '../src/router.ts';
+import type { AttemptRecord, DatasetEntry } from '../src/types.ts';
+
+const PKG = join(dirname(fileURLToPath(import.meta.url)), '..');
+const runId = process.argv[2] ?? 'run-20261123-01';
+const dir = join(PKG, 'data', 'runs', runId);
+const recs: AttemptRecord[] = readFileSync(join(dir, 'attempts.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+const ds: DatasetEntry[] = JSON.parse(readFileSync(join(PKG, 'data', 'dataset.json'), 'utf8'));
+const byId = new Map(ds.map((d) => [d.id, d]));
+// só URLs do dataset vigente (v1.1 substituiu 6 entradas; as tentativas antigas ficam no JSONL, fora da análise)
+const real = recs.filter((r) => !r.mock && byId.has(r.urlId));
+const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${(x * 100).toFixed(1)}%`);
+
+const metrics = computeMetrics(real);
+const ranking = rank(metrics);
+
+// por categoria e por recência
+const groups = (key: (d: DatasetEntry) => string) => {
+  const out: Record<string, ProviderMetrics[]> = {};
+  const keys = [...new Set(ds.map(key))];
+  for (const k of keys) out[k] = computeMetrics(real.filter((r) => key(byId.get(r.urlId)!) === k));
+  return out;
+};
+const byCategory = groups((d) => d.category);
+const byRecency = groups((d) => d.recency);
+
+// matriz por domínio: taxa editorial por provedor
+const domains = [...new Set(ds.map((d) => d.domain))].sort();
+const providers = [...new Set(real.map((r) => r.provider))].sort();
+const domainMatrix = domains.map((dom) => {
+  const row: Record<string, string> = { domain: dom };
+  for (const p of providers) {
+    const rs = real.filter((r) => r.domain === dom && r.provider === p && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled');
+    row[p] = rs.length ? `${rs.filter((r) => r.editorialSuccess).length}/${rs.length}` : '—';
+  }
+  return row;
+});
+
+// roteador semeado com a estatística real → ordem recomendada por domínio
+const usd = Object.fromEntries(metrics.map((m) => [m.provider, m.creditsUsed ? m.costEstimatedUsd / m.creditsUsed : 0]));
+const router = new AdaptiveRouter(providers.map((p) => ({ name: p, reader: { provider: p, read: async () => ({ ok: false, url: '', provider: p }) }, worstCaseCredits: 1, usdPerCredit: usd[p] ?? 0 })));
+for (const dom of domains)
+  for (const p of providers) {
+    const rs = real.filter((r) => r.domain === dom && r.provider === p && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled');
+    if (rs.length) router.seed(dom, p, { attempts: rs.length, valid: rs.filter((r) => r.editorialSuccess).length, credits: rs.reduce((a, r) => a + r.creditsUsed, 0) });
+  }
+const routingMatrix = router.matrix(domains).map((m) => ({ domain: m.domain, order: m.order.slice(0, 3) }));
+
+// pipeline combinado: para cada URL, há algum provedor com sucesso técnico/editorial? (elegível = sem paywall)
+const eligible = ds.filter((d) => !d.paywall);
+const combined = {
+  eligibleUrls: eligible.length,
+  technical: eligible.filter((d) => real.some((r) => r.urlId === d.id && r.technicalSuccess)).length,
+  editorial: eligible.filter((d) => real.some((r) => r.urlId === d.id && r.editorialSuccess)).length,
+  allUrls: ds.length,
+  editorialAll: ds.filter((d) => real.some((r) => r.urlId === d.id && r.editorialSuccess)).length,
+  titleOk: 0,
+  dateVerifiable: 0,
+  dateOk: 0,
+};
+for (const d of eligible) {
+  const best = real.filter((r) => r.urlId === d.id && r.editorialSuccess).sort((a, b) => a.costEstimatedUsd - b.costEstimatedUsd)[0];
+  if (!best) continue;
+  if ((best.titleMatch ?? 0) >= 0.5) combined.titleOk++;
+  if (best.dateMatch !== null && best.dateMatch !== undefined) {
+    combined.dateVerifiable++;
+    if (best.dateMatch) combined.dateOk++;
+  }
+}
+const failedUrls = eligible.filter((d) => !real.some((r) => r.urlId === d.id && r.editorialSuccess)).map((d) => ({ id: d.id, domain: d.domain, category: d.category, errors: [...new Set(real.filter((r) => r.urlId === d.id).map((r) => `${r.provider}:${r.errorClass}${r.httpStatus ? `/${r.httpStatus}` : ''}`))] }));
+
+const projections = Object.fromEntries(metrics.map((m) => [m.provider, projectMonthly(m.costPerValidArticleUsd)]));
+const report = { runId, generatedAt: new Date().toISOString(), attempts: recs.length, realAttempts: real.length, mockAttempts: recs.length - real.length, metrics, ranking, byCategory, byRecency, domainMatrix, routingMatrix, combined, failedUrls, projections };
+writeFileSync(join(dir, 'report.json'), JSON.stringify(report, null, 2));
+
+// markdown
+const L: string[] = [];
+L.push(`# Resultados — ${runId}`, '', `Tentativas reais: ${real.length} (mock: ${recs.length - real.length}). Gerado em ${report.generatedAt}.`, '');
+L.push('## Métricas por provedor', '', '| Provedor | n | Técnico | Editorial | Título | Data (verif.) | p50 ms | p95 ms | p99 ms | 403 | 429 | Timeout | Créditos | US$ equiv. | US$/artigo válido |', '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
+for (const m of [...metrics].sort((a, b) => b.editorialSuccessRate - a.editorialSuccessRate))
+  L.push(`| ${m.provider} | ${m.n} | ${pct(m.technicalSuccessRate)} | ${pct(m.editorialSuccessRate)} | ${pct(m.titleAccuracy)} | ${pct(m.dateAccuracy)} (${m.dateVerifiable}) | ${m.p50 ?? '—'} | ${m.p95 ?? '—'} | ${m.p99 ?? '—'} | ${pct(m.rate403)} | ${pct(m.rate429)} | ${pct(m.timeoutRate)} | ${+m.creditsUsed.toFixed(2)} | ${m.costEstimatedUsd.toFixed(4)} | ${m.costPerValidArticleUsd?.toFixed(5) ?? '—'} |`);
+L.push('', '## Ranking ponderado (qualidade 35, sucesso 25, custo 20, latência 15, frescor 5)', '', '| # | Provedor | Score | Qualidade | Sucesso | Custo | Latência | Frescor | n |', '|---:|---|---:|---:|---:|---:|---:|---:|---:|');
+ranking.forEach((r, i) => L.push(`| ${i + 1} | ${r.provider} | ${r.score.toFixed(3)} | ${r.parts.quality.toFixed(2)} | ${r.parts.success.toFixed(2)} | ${r.parts.cost.toFixed(2)} | ${r.parts.latency.toFixed(2)} | ${r.parts.freshness.toFixed(2)} | ${r.n}${r.lowSample ? ' (amostra baixa)' : ''} |`));
+L.push('', '## Sucesso editorial por categoria', '', `| Categoria | ${providers.join(' | ')} |`, `|---|${providers.map(() => '---:').join('|')}|`);
+for (const [k, ms] of Object.entries(byCategory)) L.push(`| ${k} | ${providers.map((p) => { const m = ms.find((x) => x.provider === p); return m ? `${pct(m.editorialSuccessRate)} (${m.n})` : '—'; }).join(' | ')} |`);
+L.push('', '## Sucesso editorial por recência', '', `| Recência | ${providers.join(' | ')} |`, `|---|${providers.map(() => '---:').join('|')}|`);
+for (const [k, ms] of Object.entries(byRecency)) L.push(`| ${k} | ${providers.map((p) => { const m = ms.find((x) => x.provider === p); return m ? `${pct(m.editorialSuccessRate)} (${m.n})` : '—'; }).join(' | ')} |`);
+L.push('', '## Pipeline combinado (URLs elegíveis = sem paywall)', '', `- Elegíveis: ${combined.eligibleUrls}; sucesso técnico combinado: ${combined.technical} (${pct(combined.technical / combined.eligibleUrls)}); editorial válido: ${combined.editorial} (${pct(combined.editorial / combined.eligibleUrls)}).`, `- Título correto (no extrator mais barato com sucesso): ${combined.titleOk}/${combined.editorial} (${pct(combined.titleOk / Math.max(1, combined.editorial))}).`, `- Data verificável: ${combined.dateVerifiable}; correta: ${combined.dateOk} (${pct(combined.dateOk / Math.max(1, combined.dateVerifiable))}).`, `- Incluindo paywall: ${combined.editorialAll}/${combined.allUrls}.`, '');
+L.push('### URLs elegíveis sem extração válida', '', ...failedUrls.map((f) => `- ${f.id} ${f.domain} (${f.category}): ${f.errors.join(', ')}`), '');
+L.push('## Matriz por domínio (válidos/tentativas)', '', `| Domínio | ${providers.join(' | ')} |`, `|---|${providers.map(() => '---:').join('|')}|`, ...domainMatrix.map((r) => `| ${r.domain} | ${providers.map((p) => r[p]).join(' | ')} |`));
+L.push('', '## Matriz de roteamento recomendada (menor custo esperado por artigo válido)', '', '| Domínio | 1º | 2º | 3º |', '|---|---|---|---|', ...routingMatrix.map((m) => `| ${m.domain} | ${m.order.map((o) => `${o.provider} (${o.expectedUsdPerValid})`).join(' | ')} |`));
+L.push('', '## Projeção mensal (US$ equivalentes, preço de lista; hoje só cota gratuita)', '', '| Provedor | 1.000 | 10.000 | 50.000 | 100.000 |', '|---|---:|---:|---:|---:|', ...Object.entries(projections).map(([p, v]) => `| ${p} | ${v['1000'] ?? '—'} | ${v['10000'] ?? '—'} | ${v['50000'] ?? '—'} | ${v['100000'] ?? '—'} |`));
+writeFileSync(join(dir, 'report.md'), L.join('\n') + '\n');
+console.log(L.slice(0, 40).join('\n'));
