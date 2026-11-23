@@ -253,6 +253,9 @@ export class BudgetGate {
       if (s.status !== 'open' && s.status !== 'pending') {
         return { ok: false, overrun: false, actualMicro: 0, detail: `reserva já ${s.status}` };
       }
+      if (!Number.isFinite(actualUsd) || actualUsd < 0) {
+        return { ok: false, overrun: false, actualMicro: 0, detail: 'custo real inválido (negativo ou não numérico): recusado' };
+      }
       const actualMicro = usdToMicro(actualUsd);
       const overrun = actualMicro > s.reservedMicro;
       await io.append({

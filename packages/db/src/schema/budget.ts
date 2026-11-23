@@ -24,7 +24,7 @@ export const budgetReservations = pgTable(
     reservedAt: timestamp('reserved_at', { withTimezone: true }).notNull().defaultNow(),
     // Campos para o gate reconstruir o estado (pool de bolsa, classe, faixa e escalonamento).
     pool: text('pool').notNull().default('allocation'),
-    taskClass: text('task_class').notNull().default('essential'),
+    taskClass: text('task_class').notNull(), // sem padrão: classe obrigatória (migração 0020)
     lane: text('lane').notNull().default('text'),
     escalation: boolean('escalation').notNull().default(false),
     // Ordem real de criação (identidade do banco); a reconstrução do estado segue esta ordem.
@@ -34,6 +34,7 @@ export const budgetReservations = pgTable(
     uniqueIndex('budget_reservations_idem_uq').on(t.idempotencyKey),
     check('budget_reservations_month', sql`${t.monthKey} ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'`),
     check('budget_reservations_max', sql`${t.maxEstimatedMicrousd} >= 0`),
+    check('budget_reservations_actual_nonneg', sql`${t.actualMicrousd} IS NULL OR ${t.actualMicrousd} >= 0`),
     check('budget_reservations_provider', sql`${t.provider} IN ('anthropic', 'openai', 'deepseek')`),
     check('budget_reservations_pool', sql`${t.pool} IN ('allocation', 'reserve')`),
     check('budget_reservations_task_class', sql`${t.taskClass} IN ('essential', 'non_essential', 'premium', 'reserve')`),
