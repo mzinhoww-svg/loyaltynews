@@ -85,7 +85,7 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
 
   const r = await applyPublication(ctx.store, { articleId, receiptId, url, publishedAt: ctx.now().toISOString(), expectedContentSha256: receipt.sha });
   if (!r.ok) {
-    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409, slug_immutable: 409, slug_taken: 409 }[r.code];
+    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409, slug_immutable: 409, slug_taken: 409, simulated_content: 409 }[r.code];
     const code = r.code === 'receipt_stale' ? 'RECEIPT_CONTENT_MISMATCH' : r.code.toUpperCase();
     return err(status, code, r.message, r.findings);
   }

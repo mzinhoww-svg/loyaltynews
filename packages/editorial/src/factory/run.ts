@@ -4,11 +4,12 @@ import { requireFlag } from '../flags';
 import type { ModelGateway } from '../gateway';
 import { InMemoryQueue, makeProcessor } from '../pipeline/queue';
 import type { AuditLog, StageDeps } from '../pipeline/stages';
-import type { ArticleJob, BlockerCode, Stage } from '../pipeline/jobs';
+import type { ArticleJob, BlockerCode, Stage, StageOutcome } from '../pipeline/jobs';
 import type { SourceRegistry } from '../sources/registry';
 import { applyOutcome } from '../api/store';
 import type { EditorialStore } from '../api/store';
 import { collectFromSources } from './collect';
+import { anchorEvidences } from './anchor';
 import type { CollectOutcome, SourceCollectReport } from './collect';
 
 /**
@@ -32,6 +33,8 @@ export interface FactoryOptions { maxArticles?: number; limitPerSource?: number;
 
 export interface ArticleRunReport {
   articleId: string; sourceId: string; url: string; status: string; stages: Stage[]; blockers: BlockerCode[]; findings: string[];
+  /** Páginas de fonte primária coletadas pelos links do post para ancorar uma matéria de fonte secundária (blog). */
+  anchors?: string[];
 }
 export interface FactoryReport {
   startedAt: string; dryRun: boolean;
@@ -87,6 +90,20 @@ export async function runFactory(deps: FactoryDeps, opts: FactoryOptions = {}): 
       return out;
     };
     const job: ArticleJob = { articleId: item.articleId, editoria: item.editoria, evidences: [item.evidence], attempt: 0 };
+    if (item.evidence.sourceTier === 'secondary') {
+      // DP-29: blog é pista. Sem âncora em fonte primária habilitada, a matéria não segue (nem gasta modelo).
+      const anc = await anchorEvidences(deps.collector, collected.effective, item.evidence);
+      row.anchors = anc.anchors.map((e) => e.canonicalUrl);
+      job.evidences = [item.evidence, ...anc.anchors];
+      if (!anc.anchors.length) {
+        const why = anc.considered ? `os ${anc.considered} link(s) para fonte primária não puderam ser coletados (${anc.skipped.map((k) => k.code).join(',') || 'sem evidência'})` : 'o post não linka nenhuma fonte primária habilitada';
+        const out: StageOutcome = { kind: 'blocked', blocked: { articleId: item.articleId, stage: 'triage', blockers: ['unanchored'], findings: [{ code: 'needs_primary_anchor', message: `fonte secundária sem âncora primária: ${why}` }] } };
+        const rec = await applyOutcome(deps.store, job, out, now().toISOString());
+        row.status = rec.status; row.blockers = ['unanchored']; row.findings = out.blocked.findings.map((f) => `${f.code}: ${f.message}`);
+        await deps.store.appendAudit({ at: now().toISOString(), userId: null, action: 'factory.article', target: item.articleId, detail: `${row.status}; sem âncora primária` });
+        continue;
+      }
+    }
     await queue.enqueue({ stage: 'triage', jobId: `${item.articleId}:triage:0`, data: job });
     await queue.drain(persisting);
     await deps.store.appendAudit({ at: now().toISOString(), userId: null, action: 'factory.article', target: item.articleId, detail: `${row.status}; estágios: ${row.stages.join('>')}` });
