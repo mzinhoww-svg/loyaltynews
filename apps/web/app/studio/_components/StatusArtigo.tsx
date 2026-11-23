@@ -1,5 +1,5 @@
 import { StatusPill, type StatusTone } from '@ln/ui';
-import { STATUS_LABEL } from '@/lib/studio/cms/articles';
+import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import type { ArticleStatus } from '@ln/contracts';
 
 const TOM: Record<ArticleStatus, StatusTone> = {

@@ -4,10 +4,7 @@
 // "banco não configurado" (nunca dados falsos). Só para Server Components e server actions.
 import { headers } from 'next/headers';
 
-export interface RespostaApi<T = unknown> {
-  status: number;
-  body: T;
-}
+export type RespostaApi<T = unknown> = { status: number; ok: true; body: T } | { status: number; ok: false; body: ErroApi };
 
 export type Despachante = (req: Request) => Promise<Response>;
 
@@ -19,7 +16,7 @@ export async function chamar<T = unknown>(
   despachar: Despachante,
   caminho: string,
   opts: { metodo?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; query?: Record<string, string | undefined>; corpo?: unknown } = {},
-): Promise<RespostaApi<T | ErroApi>> {
+): Promise<RespostaApi<T>> {
   const url = new URL(caminho, 'http://studio.local');
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v) url.searchParams.set(k, v);
   const cookie = (await headers()).get('cookie');
@@ -30,11 +27,11 @@ export async function chamar<T = unknown>(
     ...(opts.corpo !== undefined && metodo !== 'GET' ? { body: JSON.stringify(opts.corpo) } : {}),
   });
   const res = await despachar(req);
-  const body = (await res.json().catch(() => null)) as T | ErroApi;
-  return { status: res.status, body };
+  const body = await res.json().catch(() => null);
+  return (res.status >= 400 ? { status: res.status, ok: false, body: body ?? { error: { code: 'UNKNOWN', message: `Erro ${res.status}` } } } : { status: res.status, ok: true, body }) as RespostaApi<T>;
 }
 
-export const ehErro = (r: RespostaApi<unknown>): r is RespostaApi<ErroApi> => r.status >= 400;
+export const ehErro = <T>(r: RespostaApi<T>): r is Extract<RespostaApi<T>, { ok: false }> => !r.ok;
 
 /** Banco/Backend não configurado neste ambiente (503 NOT_CONFIGURED). */
 export const naoConfigurado = (r: RespostaApi<unknown>): boolean => r.status === 503 && (r.body as ErroApi | null)?.error?.code === 'NOT_CONFIGURED';

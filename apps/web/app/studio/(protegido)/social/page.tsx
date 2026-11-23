@@ -4,7 +4,7 @@ import { isEnabled } from '@ln/contracts';
 import type { DashboardSummary, QueueResult, ReceiptRow } from '@ln/growth/dashboard';
 import { DashboardSummaryCards, PackageQueue } from '@ln/growth/ui';
 import { dispatchSocial } from '@/app/api/_lib/social';
-import { dispatchEditorial } from '@/app/api/_lib/editorial';
+import { api } from '@/lib/studio/rotas-api';
 import { chamar, ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { requireModule } from '../../_lib/guard';
@@ -41,7 +41,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
   }
   const fila = await chamar<QueueResult>(dispatchSocial, `${API}/queue`, { query: { channel: q.channel, status: q.status } });
   const recibos = await chamar<{ items: ReceiptRow[] }>(dispatchSocial, `${API}/receipts`);
-  const aprovadas = await chamar<{ items: { id: string; titulo: string }[] }>(dispatchEditorial, '/api/studio/editorial/queue', { query: { status: 'aprovado' } });
+  const aprovadas = await api.materias.listar({ status: 'aprovado' });
   const podeGerar = checkAccess(session, ['admin', 'editor_chefe', 'editor']).ok;
   return (
     <>
@@ -99,7 +99,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
             <div className="st-field">
               <label htmlFor="articleId">Matéria aprovada</label>
               <select id="articleId" name="articleId">
-                {(!ehErro(aprovadas) ? (aprovadas.body as { items: { id: string; titulo: string }[] }).items ?? [] : []).map((a) => (
+                {(ehErro(aprovadas) ? [] : aprovadas.body.data).map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.titulo}
                   </option>

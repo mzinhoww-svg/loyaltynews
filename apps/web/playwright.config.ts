@@ -7,6 +7,9 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,
   retries: 0,
+  // Um worker: o backend de e2e usa um PGlite de conexão única (transações de requisições concorrentes se intercalariam) e o banco é compartilhado entre os specs.
+  workers: 1,
+  fullyParallel: false,
   reporter: 'list',
   use: { baseURL: `http://127.0.0.1:${PORT}` },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

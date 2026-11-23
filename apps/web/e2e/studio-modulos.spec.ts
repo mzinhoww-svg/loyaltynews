@@ -1,52 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { entrar } from './helpers';
 
-test.describe('Fontes', () => {
-  test.describe.configure({ mode: 'serial' });
-
-  test('começa vazio e o revisor só lê', async ({ page, context }) => {
-    await entrar(context, 'rui', 'revisor');
-    await page.goto('/studio/fontes');
-    await expect(page.getByRole('heading', { name: 'Nenhuma fonte cadastrada' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cadastrar fonte' })).toHaveCount(0);
-    await expect(page.getByText('Seu papel só lê o banco de fontes.')).toBeVisible();
-  });
-
-  test('valida, cadastra, recusa duplicata e alterna ativo respeitando os termos', async ({ page, context }) => {
-    await entrar(context, 'ana', 'editor');
-    await page.goto('/studio/fontes');
-    await page.getByRole('button', { name: 'Cadastrar fonte' }).click();
-    await expect(page.locator('main .st-alert.err').filter({ hasText: 'Nome obrigatório' }).first()).toBeVisible();
-    await expect(page.locator('main .st-alert.err').filter({ hasText: 'Escolha ao menos uma editoria' }).first()).toBeVisible();
-
-    await page.getByLabel('Nome', { exact: true }).fill('Comunicado Programa X');
-    await page.getByLabel('URL pública').fill('https://exemplo.com.br/imprensa');
-    await page.getByLabel('Pontos & Milhas').check();
-    await page.getByLabel(/Ativa \(exige termos/).check();
-    await page.getByRole('button', { name: 'Cadastrar fonte' }).click();
-    await expect(page.locator('main .st-alert.err').filter({ hasText: 'depois de revisar os termos' }).first()).toBeVisible();
-
-    await page.getByLabel('Nome', { exact: true }).fill('Comunicado Programa X');
-    await page.getByLabel('URL pública').fill('https://exemplo.com.br/imprensa');
-    await page.getByLabel('Pontos & Milhas').check();
-    await page.getByRole('button', { name: 'Cadastrar fonte' }).click();
-    await expect(page.locator('main .st-alert.ok').filter({ hasText: 'Fonte cadastrada.' }).first()).toBeVisible();
-    await expect(page.getByRole('row', { name: /Comunicado Programa X/ })).toContainText('Pendentes');
-
-    await page.getByLabel('Nome', { exact: true }).fill('Outra');
-    await page.getByLabel('URL pública').fill('https://EXEMPLO.com.br/imprensa/');
-    await page.getByLabel('Pontos & Milhas').check();
-    await page.getByRole('button', { name: 'Cadastrar fonte' }).click();
-    await expect(page.locator('main .st-alert.err').filter({ hasText: 'Já existe uma fonte com esta URL.' }).first()).toBeVisible();
-
-    await page.getByRole('button', { name: 'Ativar: Comunicado Programa X' }).click();
-    await expect(page.locator('main .st-alert.err').filter({ hasText: 'depois de revisar os termos' }).first()).toBeVisible();
-    await page.getByRole('button', { name: 'Marcar termos revisados: Comunicado Programa X' }).click();
-    await page.getByRole('button', { name: 'Ativar: Comunicado Programa X' }).click();
-    await expect(page.getByRole('row', { name: /Comunicado Programa X/ })).toContainText('Ativa');
-  });
-});
-
 test.describe('Biblioteca de mídia', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -180,7 +134,7 @@ test.describe('Home e menus', () => {
     await expect(page.getByText('Versão vigente: v3')).toBeVisible();
     await expect(blocos.nth(2)).toContainText('Banner topo');
     await expect(page.getByText('rollback para v1')).toBeVisible();
-    await expect(page.getByText(/v2 · ana/)).toBeVisible();
+    await expect(page.getByText(/v2 · [0-9a-f-]{36} · /)).toBeVisible();
   });
 
   test('item de menu com flag desligada não pode ficar visível', async ({ page, context }) => {

@@ -1,111 +1,138 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { EDITORIAS } from '@ln/contracts';
 import { checkAccess } from '@/lib/studio/modules';
-import { checkVersion, currentVersion, editoriaNome, getCmsService } from '@/lib/studio/cms/articles';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
+import { evidenciasDisponiveis } from '@/lib/studio/cms/evidencias';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
-import { StatusArtigo } from '../../../_components/StatusArtigo';
+import { STATUS_EDITAVEIS, TIPOS_CHECAGEM } from '@/lib/studio/cms/status';
 import { requireStudio } from '../../../_lib/guard';
-import { ArticleForm } from '../ArticleForm';
-import { approveAction, blockAction, reopenAction, submitReviewAction } from '../actions';
+import { Flash } from '../../../_components/Flash';
+import { SemBanco } from '../../../_components/SemBanco';
+import { StatusArtigo } from '../../../_components/StatusArtigo';
+import { MateriaForm } from '../MateriaForm';
+import { aprovarAction, bloquearAction, emitirReciboAction, enviarChecagemAction, voltarRascunhoAction } from '../actions';
 
 export const metadata: Metadata = { title: 'Matéria' };
 export const dynamic = 'force-dynamic';
 
-export default async function Materia({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ tipo?: string; aviso?: string }>;
-}) {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
   const { session } = await requireStudio(CMS_READ);
   const { id } = await params;
   const { tipo, aviso } = await searchParams;
-  const rec = getCmsService().get(id);
-  if (!rec) notFound();
-  const v = currentVersion(rec);
-  const issues = checkVersion(v);
+  if (!UUID.test(id)) notFound();
+  const r = await api.materias.obter(id);
+  if (naoConfigurado(r)) return <SemBanco modulo="O CMS editorial" />;
+  if (r.status === 404) notFound();
+  if (ehErro(r)) throw new Error(mensagemErro(r));
+  const m = r.body.data;
+  const evidencias = await evidenciasDisponiveis();
+  // evidências já anexadas entram na lista mesmo que a fonte tenha sido desativada
+  for (const f of m.fontes) if (!evidencias.some((e) => e.id === f.id)) evidencias.push({ id: f.id, url: f.url, fonte: f.sourceId, capturadoEm: f.capturadoEm });
   const podeEditar = checkAccess(session, CMS_EDIT).ok;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
-  const proprio = v.autor === session.userId;
+  const editavel = STATUS_EDITAVEIS.includes(m.status);
   return (
     <>
       <p>
         <Link href="/studio/cms">← CMS editorial</Link>
       </p>
-      <h1>{v.titulo}</h1>
+      <h1>{m.titulo}</h1>
       <p>
-        <StatusArtigo status={rec.status} /> · v{v.numero} · {editoriaNome(v.editoria)} · assinatura {rec.assinatura}
+        <StatusArtigo status={m.status as Parameters<typeof StatusArtigo>[0]['status']} /> · v{m.versao} · {EDITORIAS.find((e) => e.slug === m.editoria)?.nome ?? m.editoria} · assinatura {m.assinatura} · {m.tempoLeituraMin} min de leitura
       </p>
-      {aviso ? (
-        <div className={`st-alert ${tipo === 'err' ? 'err' : 'ok'}`} role={tipo === 'err' ? 'alert' : 'status'}>
-          {aviso}
-        </div>
-      ) : null}
-      {rec.status === 'bloqueado' && rec.motivoBloqueio ? <div className="st-alert err">Bloqueada: {rec.motivoBloqueio}</div> : null}
-
+      <Flash tipo={tipo} aviso={aviso} />
       <div className="st-two">
         <section aria-label="Editor">
-          <ArticleForm key={`${rec.id}-${v.numero}`} id={rec.id} valor={v} somenteLeitura={!podeEditar} />
+          {!editavel ? <p className="st-hint">Só rascunho e bloqueado são editáveis; para alterar, volte a matéria a rascunho.</p> : null}
+          <MateriaForm
+            key={`${m.id}-${m.versao}`}
+            id={m.id}
+            somenteLeitura={!podeEditar || !editavel}
+            evidencias={evidencias}
+            valor={{
+              titulo: m.titulo,
+              subtitulo: m.subtitulo ?? '',
+              resumo: m.resumo ?? '',
+              tipoConteudo: m.tipoConteudo,
+              editoria: m.editoria,
+              corpo: m.corpo,
+              evidenceIds: m.fontes.map((f) => f.id),
+              imagem: m.imagem,
+              patrocinado: m.patrocinado,
+              rotulo: m.rotuloPublieditorial ?? '',
+            }}
+          />
         </section>
         <aside aria-label="Revisão">
           <div className="st-card">
-            <h2 style={{ marginTop: 0 }}>Checagem automática</h2>
-            {issues.length === 0 ? (
-              <p>Sem pendências.</p>
-            ) : (
-              <ul className="st-issues">
-                {issues.map((i, n) => (
-                  <li key={n} className={i.severidade}>
-                    {i.mensagem}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="st-actions" style={{ marginTop: 12 }}>
-              {rec.status === 'rascunho' && podeEditar ? (
-                <form action={submitReviewAction}>
-                  <input type="hidden" name="id" value={rec.id} />
+            <h2 style={{ marginTop: 0 }}>Fluxo</h2>
+            <div className="st-actions" style={{ marginBottom: 10 }}>
+              {m.status === 'rascunho' && podeEditar ? (
+                <form action={enviarChecagemAction}>
+                  <input type="hidden" name="id" value={m.id} />
                   <button className="st-btn" type="submit">
                     Enviar para checagem
                   </button>
                 </form>
               ) : null}
-              {(rec.status === 'bloqueado' || rec.status === 'aprovado') && podeEditar ? (
-                <form action={reopenAction}>
-                  <input type="hidden" name="id" value={rec.id} />
+              {(m.status === 'bloqueado' || m.status === 'aprovado' || m.status === 'em_checagem') && podeEditar ? (
+                <form action={voltarRascunhoAction}>
+                  <input type="hidden" name="id" value={m.id} />
                   <button className="st-btn sec" type="submit">
-                    Reabrir como rascunho
+                    Voltar a rascunho
                   </button>
                 </form>
               ) : null}
             </div>
-            {rec.status === 'em_checagem' && podeRevisar ? (
-              <div style={{ marginTop: 12 }}>
-                {proprio ? <p className="st-hint">Você é o autor da v{v.numero}: outra pessoa precisa aprová-la (quatro olhos).</p> : null}
-                <form action={approveAction} className="st-actions">
-                  <input type="hidden" name="id" value={rec.id} />
-                  <input type="hidden" name="versao" value={v.numero} />
-                  <button className="st-btn" type="submit" disabled={proprio}>
-                    Aprovar v{v.numero}
-                  </button>
-                </form>
-                <form action={blockAction} style={{ marginTop: 10 }}>
-                  <input type="hidden" name="id" value={rec.id} />
+
+            {m.status === 'em_checagem' && podeRevisar ? (
+              <>
+                {!m.recibo ? (
+                  <form action={emitirReciboAction}>
+                    <input type="hidden" name="id" value={m.id} />
+                    <input type="hidden" name="versao" value={m.versao} />
+                    <fieldset className="st-field">
+                      <legend>Checagens aprovadas (recibo da v{m.versao})</legend>
+                      {TIPOS_CHECAGEM.map((c) => (
+                        <label key={c}>
+                          <input type="checkbox" name="checagem" value={c} /> {c}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <button className="st-btn" type="submit">
+                      Emitir recibo da versão
+                    </button>
+                    <p className="st-hint">O recibo liga as checagens ao hash do conteúdo desta versão; sem ele, não há aprovação.</p>
+                  </form>
+                ) : (
+                  <form action={aprovarAction}>
+                    <input type="hidden" name="id" value={m.id} />
+                    <button className="st-btn" type="submit">
+                      Aprovar v{m.versao}
+                    </button>
+                  </form>
+                )}
+                <form action={bloquearAction} style={{ marginTop: 10 }}>
+                  <input type="hidden" name="id" value={m.id} />
                   <div className="st-field">
-                    <label htmlFor="motivo">Motivo do bloqueio</label>
-                    <input id="motivo" name="motivo" type="text" />
+                    <label htmlFor="nota-bloqueio">Motivo do bloqueio</label>
+                    <input id="nota-bloqueio" name="nota" type="text" />
                   </div>
                   <button className="st-btn danger" type="submit">
                     Bloquear
                   </button>
                 </form>
-              </div>
+              </>
             ) : null}
-            {rec.aprovacao ? (
+
+            {m.recibo ? (
               <p className="st-hint">
-                Aprovada na v{rec.aprovacao.versao} por {rec.aprovacao.por}.
+                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}.
               </p>
             ) : null}
             <p style={{ marginTop: 12 }}>
@@ -114,29 +141,36 @@ export default async function Materia({
               </button>
             </p>
             <p className="st-hint" id="pub-hint">
-              Publicar não está disponível: depende do backend e de aprovação ligada à versão (R3-07), além do gate de publicação.
+              Publicar não está no Studio: só a identidade de publicação do recibo publica (ADR-008), com a versão aprovada.
             </p>
           </div>
 
           <div className="st-card" style={{ marginTop: 14 }}>
-            <h2 style={{ marginTop: 0 }}>Versões</h2>
-            <ol reversed>
-              {[...rec.versoes].reverse().map((x) => (
-                <li key={x.numero}>
-                  v{x.numero} · {x.autor} · {x.criadaEm.slice(0, 16).replace('T', ' ')} UTC{x.nota ? ` · ${x.nota}` : ''}
-                </li>
-              ))}
-            </ol>
+            <h2 style={{ marginTop: 0 }}>Fontes ({m.fontes.length})</h2>
+            {m.fontes.length === 0 ? (
+              <p className="st-hint">Sem fontes: a matéria não vai à checagem.</p>
+            ) : (
+              <ul className="st-issues">
+                {m.fontes.map((f) => (
+                  <li key={f.id}>{f.url}</li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="st-card" style={{ marginTop: 14 }}>
             <h2 style={{ marginTop: 0 }}>Histórico</h2>
-            <ul className="st-issues">
-              {[...rec.historico].reverse().map((h, i) => (
-                <li key={i}>
-                  {h.em.slice(11, 19)} · {h.quem} · {h.acao.replaceAll('_', ' ')} (v{h.versao}){h.detalhe ? ` — ${h.detalhe}` : ''}
-                </li>
-              ))}
-            </ul>
+            {m.transicoes.length === 0 ? (
+              <p className="st-hint">Sem transições.</p>
+            ) : (
+              <ul className="st-issues">
+                {[...m.transicoes].reverse().map((t) => (
+                  <li key={t.id}>
+                    {t.at.slice(11, 19)} · {t.de} → {t.para}
+                    {t.nota ? ` — ${t.nota}` : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </aside>
       </div>

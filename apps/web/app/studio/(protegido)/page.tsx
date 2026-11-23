@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { isEnabled } from '@ln/contracts';
 import { KpiCard } from '@ln/ui';
 import { GRUPOS, visibleModules } from '@/lib/studio/modules';
-import { getCmsService, STATUS_LABEL } from '@/lib/studio/cms/articles';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, naoConfigurado } from '@/lib/studio/backend';
+import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import { requireStudio } from '../_lib/guard';
 
 export const metadata: Metadata = { title: 'Visão geral' };
@@ -12,8 +14,10 @@ export const dynamic = 'force-dynamic';
 export default async function StudioHome() {
   const { session } = await requireStudio(['admin', 'editor_chefe', 'editor', 'revisor', 'comercial', 'leitor']);
   const mods = visibleModules(session);
-  const materias = getCmsService().list();
-  const porStatus = (['rascunho', 'em_checagem', 'bloqueado', 'aprovado'] as const).map((s) => ({ s, n: materias.filter((m) => m.status === s).length }));
+  const estados = ['rascunho', 'em_checagem', 'bloqueado', 'aprovado'] as const;
+  const contagens = await Promise.all(estados.map((s) => api.materias.listar({ status: s })));
+  const semBanco = contagens.some((c) => naoConfigurado(c));
+  const porStatus = estados.map((s, i) => ({ s, n: ehErro(contagens[i]!) ? null : (contagens[i]!.body as { total: number }).total }));
   return (
     <>
       <h1>LN Studio</h1>
@@ -22,10 +26,15 @@ export default async function StudioHome() {
       <h2>Fila editorial</h2>
       <div className="st-grid" aria-label="Contagem da fila editorial">
         {porStatus.map(({ s, n }) => (
-          <KpiCard key={s} label={STATUS_LABEL[s]} value={n} source="CMS do Studio (armazenamento temporário)" period="estado atual" headingLevel={3} />
+          <KpiCard key={s} label={STATUS_LABEL[s]} value={n} source="CMS (PostgreSQL, rota /api/materias)" period="estado atual" headingLevel={3} />
         ))}
       </div>
-      <p className="st-hint">Armazenamento temporário do CMS (sem backend): os dados somem ao reiniciar o servidor. Audiência, receita e custos: não disponível.</p>
+      {semBanco ? (
+        <p className="st-hint" role="note">
+          Banco de dados não configurado neste ambiente: contagens indisponíveis (nunca estimadas).
+        </p>
+      ) : null}
+      <p className="st-hint">Audiência, receita e custos: não disponível.</p>
 
       <h2>Módulos</h2>
       <div className="st-grid">

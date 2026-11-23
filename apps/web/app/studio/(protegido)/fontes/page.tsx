@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { EDITORIAS } from '@ln/contracts';
 import { checkAccess, findModule } from '@/lib/studio/modules';
-import { getFontes } from '@/lib/studio/fontes';
+import { api } from '@/lib/studio/rotas-api';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { ESCRITA_EDITORIAL } from '@/lib/studio/papeis';
 import { requireModule } from '../../_lib/guard';
-import { Flash, SemBackend } from '../../_components/Flash';
-import { alternarFonteAction, criarFonteAction, revisarTermosAction } from './actions';
+import { Flash } from '../../_components/Flash';
+import { SemBanco } from '../../_components/SemBanco';
+import { alterarFonteAction, criarFonteAction } from './actions';
 
 export const metadata: Metadata = { title: 'Banco de fontes' };
 export const dynamic = 'force-dynamic';
@@ -13,18 +16,37 @@ export const dynamic = 'force-dynamic';
 export default async function FontesPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
   const { session } = await requireModule(findModule('fontes')!);
   const { tipo, aviso } = await searchParams;
-  const fontes = getFontes().list();
+  const r = await api.fontes.listar();
+  if (naoConfigurado(r)) {
+    return (
+      <>
+        <h1>Banco de fontes</h1>
+        <SemBanco modulo="O banco de fontes" />
+      </>
+    );
+  }
+  if (ehErro(r)) {
+    return (
+      <>
+        <h1>Banco de fontes</h1>
+        <div className="st-alert err" role="alert">
+          {mensagemErro(r)}
+        </div>
+      </>
+    );
+  }
+  const fontes = r.body.data;
   const podeEscrever = checkAccess(session, ESCRITA_EDITORIAL).ok;
   return (
     <>
       <h1>Banco de fontes</h1>
-      <p>Só fontes de acesso público: nada de contornar login ou paywall. A fonte só fica ativa depois que os termos de uso são revisados.</p>
+      <p>Só fontes de acesso público: nada de contornar login ou paywall. A fonte nasce inativa e só pode ser ativada depois de revisar os termos de uso. As evidências (URL, data e hash do conteúdo capturado) alimentam as matérias.</p>
       <Flash tipo={tipo} aviso={aviso} />
 
       {fontes.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">
           <h2 id="vazio">Nenhuma fonte cadastrada</h2>
-          <p>O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; conectores e coleta dependem da Fábrica editorial (flag editorialCollector desligada).</p>
+          <p>O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial (flag editorialCollector desligada).</p>
         </section>
       ) : (
         <table className="st-table">
@@ -43,9 +65,9 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
           </thead>
           <tbody>
             {fontes.map((f) => (
-              <tr key={f.id}>
+              <tr key={f.id} data-fonte={f.id}>
                 <th scope="row">
-                  {f.nome}
+                  <Link href={`/studio/fontes/${encodeURIComponent(f.id)}`}>{f.nome}</Link>
                   <br />
                   <a href={f.url} rel="noreferrer noopener">
                     {f.url}
@@ -61,15 +83,17 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
                   <td>
                     <div className="st-actions">
                       {!f.termosRevisados ? (
-                        <form action={revisarTermosAction}>
+                        <form action={alterarFonteAction}>
                           <input type="hidden" name="id" value={f.id} />
+                          <input type="hidden" name="op" value="termos" />
                           <button className="st-btn sec" type="submit" aria-label={`Marcar termos revisados: ${f.nome}`}>
                             Marcar termos revisados
                           </button>
                         </form>
                       ) : null}
-                      <form action={alternarFonteAction}>
+                      <form action={alterarFonteAction}>
                         <input type="hidden" name="id" value={f.id} />
+                        <input type="hidden" name="op" value={f.ativo ? 'desativar' : 'ativar'} />
                         <button className="st-btn sec" type="submit" aria-label={`${f.ativo ? 'Desativar' : 'Ativar'}: ${f.nome}`}>
                           {f.ativo ? 'Desativar' : 'Ativar'}
                         </button>
@@ -118,10 +142,7 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
             </fieldset>
             <div className="st-field">
               <label>
-                <input type="checkbox" name="termos" /> Termos de uso revisados
-              </label>
-              <label>
-                <input type="checkbox" name="ativo" /> Ativa (exige termos revisados)
+                <input type="checkbox" name="termos" /> Termos de uso já revisados
               </label>
             </div>
             <button className="st-btn" type="submit">
@@ -132,7 +153,6 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
       ) : (
         <p className="st-hint">Seu papel só lê o banco de fontes.</p>
       )}
-      <SemBackend>Teste de fetch e cooldown dependem do coletor.</SemBackend>
     </>
   );
 }
