@@ -39,6 +39,8 @@ export const FLAG_DEFAULTS = {
   editorialCollector: false,
   /** Fábrica editorial: pipeline de redação e checagem (WF01/WF02). */
   editorialPipeline: false,
+  /** Despacho de tarefas ao OpenBot pelo adaptador `@ln/openbot` (ADR-003, R2-10; protocolo em packages/openbot/docs/PROTOCOL.md). */
+  openbotDispatch: false,
 } as const satisfies Record<string, false>;
 
 export type FlagName = keyof typeof FLAG_DEFAULTS;
