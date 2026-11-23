@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOINDEX_HEADER, indexingBlocked, isProductionEnv, resolveSiteUrl, resolveSourceKind, robotsTxt } from '../app/(portal)/_lib/indexing';
+import { NOINDEX_HEADER, assertVitrineEnv, indexingBlocked, isProductionEnv, resolveSiteUrl, resolveSourceKind, robotsTxt } from '../app/(portal)/_lib/indexing';
 
 describe('política de indexação por APP_ENV', () => {
   it('só production libera indexação', () => {
@@ -93,5 +93,23 @@ describe('fonte de dados por ambiente (sem abrir caminho para mock em deploy)', 
   });
   it('vitrine pedida bloqueia indexação em qualquer ambiente', () => {
     expect(indexingBlocked({ APP_ENV: 'production', PORTAL_VITRINE: '1' })).toBe(true);
+  });
+});
+
+describe('build da vitrine (Security R2/R8)', () => {
+  const build = { NEXT_PHASE: 'phase-production-build' };
+  it('produção, producao, homologacao e ausente recusam o build com PORTAL_VITRINE', () => {
+    for (const APP_ENV of ['production', 'producao', 'homologacao', undefined]) {
+      expect(() => assertVitrineEnv({ ...build, APP_ENV, PORTAL_VITRINE: '1' })).toThrow(/Build recusado/);
+    }
+  });
+  it('só o valor 1 em staging passa; outros valores recusam', () => {
+    expect(() => assertVitrineEnv({ ...build, APP_ENV: 'staging', PORTAL_VITRINE: '1' })).not.toThrow();
+    for (const v of ['0', 'true', 'yes']) expect(() => assertVitrineEnv({ ...build, APP_ENV: 'staging', PORTAL_VITRINE: v })).toThrow(/Build recusado/);
+  });
+  it('sem a variável, ou fora do build, não lança', () => {
+    expect(() => assertVitrineEnv({ ...build, APP_ENV: 'production' })).not.toThrow();
+    expect(() => assertVitrineEnv({ ...build, APP_ENV: 'production', PORTAL_VITRINE: '' })).not.toThrow();
+    expect(() => assertVitrineEnv({ APP_ENV: 'production', PORTAL_VITRINE: '1' })).not.toThrow();
   });
 });

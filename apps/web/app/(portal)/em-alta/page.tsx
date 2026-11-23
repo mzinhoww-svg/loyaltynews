@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Sidebar } from '../_components/Sidebar';
+import { WithSidebar } from '../_components/Sidebar';
 import { EmptyState, PageHead, RankedList } from '../_components/ui';
 import { getSource } from '../_lib/source';
 import type { TrendingWindow } from '../_lib/types';
@@ -38,18 +38,17 @@ export default async function EmAltaPage({ searchParams }: { searchParams: Promi
           </li>
         ))}
       </ul>
-      <div className="pt-layout">
+      <WithSidebar>
         <div>
           {items.length ? (
-            <RankedList items={items} />
+            <RankedList items={items} headingLevel={2} />
           ) : (
             <EmptyState title="Ranking em formação">
               O ranking de mais lidas depende de matérias publicadas e de histórico de leitura suficiente. Nada é simulado.
             </EmptyState>
           )}
         </div>
-        <Sidebar />
-      </div>
+        </WithSidebar>
     </>
   );
 }
