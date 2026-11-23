@@ -9,6 +9,7 @@
   "include": [
     "packages/*/src/**/*.ts",
     "packages/*/src/**/*.tsx",
+    "apps/workers/src/**/*.ts",
     "packages/*/*.ts",
     "vitest.config.ts"
   ],

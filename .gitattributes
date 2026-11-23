@@ -1,0 +1,19 @@
+# Politica de bytes Loyalty News (caminho protegido; muda so por baseline assinado pela raiz).
+# Invariante: bytes no disco == bytes do blob, em qualquer SO e com qualquer core.autocrlf.
+# Os hashes de evidencia comparam disco e blob; nenhuma conversao de fim de linha e permitida.
+# Escritores de texto (gov.py/save) gravam UTF-8 com LF; o Git nao normaliza nem converte.
+* -text
+# Binarios explicitos: sem conversao e sem diff textual.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svgz binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

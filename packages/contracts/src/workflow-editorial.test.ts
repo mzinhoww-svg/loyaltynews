@@ -39,3 +39,23 @@ describe('agenda', () => {
     expect(AgendaEvent.safeParse({ ...e, fim: '2026-12-03' }).success).toBe(true);
   });
 });
+
+import { Article as ArticleSchema, ASSINATURA as SIG, readingTimeMinutes } from './index';
+describe('matéria: resumo, tipo de conteúdo e tempo de leitura', () => {
+  const ev = { sourceId: 's', url: 'https://example.org/a', capturadoEm: '2026-11-22T10:00:00-03:00', sha256: 'a'.repeat(64) };
+  const a = { id: 'a1', slug: 'm', titulo: 'T', editoria: 'pontos', status: 'publicado', assinatura: SIG, corpo: 'C', fontes: [ev], versao: 1 };
+  it('publicar exige resumo', () => {
+    expect(ArticleSchema.safeParse(a).success).toBe(false);
+    expect(ArticleSchema.safeParse({ ...a, resumo: 'Resumo.' }).success).toBe(true);
+  });
+  it('tipo padrão é notícia; patrocinado exige rótulo', () => {
+    expect(ArticleSchema.parse({ ...a, resumo: 'R' }).tipoConteudo).toBe('noticia');
+    expect(ArticleSchema.safeParse({ ...a, resumo: 'R', tipoConteudo: 'patrocinado' }).success).toBe(false);
+    expect(ArticleSchema.safeParse({ ...a, resumo: 'R', tipoConteudo: 'patrocinado', patrocinado: true, rotuloPublieditorial: 'Conteúdo patrocinado' }).success).toBe(true);
+  });
+  it('tempo de leitura derivado (200 palavras/min, mínimo 1)', () => {
+    expect(readingTimeMinutes('uma frase curta')).toBe(1);
+    expect(readingTimeMinutes(Array(401).fill('palavra').join(' '))).toBe(3);
+    expect(readingTimeMinutes('<p>**negrito**</p> ' + Array(199).fill('x').join(' '))).toBe(1);
+  });
+});

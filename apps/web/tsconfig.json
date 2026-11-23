@@ -4,9 +4,32 @@
     "jsx": "react-jsx",
     "allowJs": false,
     "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./*"] }
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@ln-studio/dev-db": [
+        "./lib/studio/dev-db.prod.ts"
+      ],
+      "@ln-studio/e2e-backend": [
+        "./lib/studio/e2e-backend.prod.ts"
+      ]
+    }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "e2e", "playwright.config.ts"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "e2e",
+    "playwright.config.ts"
+  ]
 }

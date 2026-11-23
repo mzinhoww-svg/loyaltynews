@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Gateway de modelos, roteamento e orçamento. Dono: Frente 11 — LN Backend Engineer + FinOps.",
+  "description": "Gateway de modelos do Loyalty News: política, roteamento, orçamento em micro-USD, ledger e portão de saldo (ADR-006, ADR-013, ADR-015). Dono: Frente 11 — LN Backend Engineer + FinOps.",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -1,0 +1,479 @@
+{
+  "version": "2.1-dp02-v4-proposta",
+  "rate_card_as_of": "2026-11-21",
+  "currency": "USD",
+  "models": [
+    {
+      "id": "deepseek-flash",
+      "provider": "deepseek",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 0.3,
+      "output_peak": 1.2,
+      "input_offpeak": 0.15,
+      "output_offpeak": 0.6,
+      "cache_hit_peak": 0.006,
+      "cache_hit_offpeak": 0.003,
+      "budget_allocation_usd": 0,
+      "note_dp04": "DeepSeek not chosen (DP-04); kept in catalog, removed from routes; re-adding requires allocation > 0 by protected change"
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "provider": "deepseek",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "input_peak": 1.32,
+      "output_peak": 3.96,
+      "input_offpeak": 0.66,
+      "output_offpeak": 1.98,
+      "cache_hit_peak": 0.044,
+      "cache_hit_offpeak": 0.022,
+      "budget_allocation_usd": 0,
+      "note_dp04": "DeepSeek not chosen (DP-04); kept in catalog, removed from routes; re-adding requires allocation > 0 by protected change"
+    },
+    {
+      "id": "claude-opus-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 4,
+      "output_peak": 20,
+      "binding": {
+        "access_path": "openrouter_metered (DP-05)",
+        "openrouter_id": "anthropic/claude-opus-5.5",
+        "canonical_slug": "anthropic/claude-opus-5.5-20260921",
+        "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
+        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_usd_per_mtok": {
+          "input": 4.0,
+          "output": 20.0,
+          "cache_read": 0.2,
+          "cache_write": 5.0,
+          "cache_write_1h": 8.0
+        },
+        "structured_outputs": true,
+        "extra_fees_listed": {
+          "web_search_usd_per_request": 0.01,
+          "policy": "forbidden (no LLM network access)"
+        }
+      },
+      "price_matches_openrouter_listing": true
+    },
+    {
+      "id": "claude-fable-5-2",
+      "provider": "anthropic",
+      "capabilities": [
+        "text",
+        "vision",
+        "tools"
+      ],
+      "input_peak": 8,
+      "output_peak": 40,
+      "binding": {
+        "access_path": "openrouter_metered (DP-05)",
+        "openrouter_id": "anthropic/claude-fable-5.2",
+        "canonical_slug": "anthropic/claude-fable-5.2-20261109",
+        "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
+        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_usd_per_mtok": {
+          "input": 8.0,
+          "output": 40.0,
+          "cache_read": 0.2,
+          "cache_write": 10.0,
+          "cache_write_1h": 16.0
+        },
+        "structured_outputs": true,
+        "extra_fees_listed": {
+          "web_search_usd_per_request": 0.01,
+          "policy": "forbidden (no LLM network access)"
+        }
+      },
+      "price_matches_openrouter_listing": true
+    },
+    {
+      "id": "gpt-image-2.6-flare",
+      "provider": "openai",
+      "capabilities": [
+        "image_generation"
+      ],
+      "input_peak": null,
+      "output_peak": null,
+      "note_dp04": "image budget USD 0 (DP-04); removed from image routes; id not listed on OpenRouter as of 2026-11-22"
+    },
+    {
+      "id": "gpt-image-2.6-sunburst",
+      "provider": "openai",
+      "capabilities": [
+        "image_generation"
+      ],
+      "input_peak": null,
+      "output_peak": null,
+      "note_dp04": "image budget USD 0 (DP-04); removed from image routes; id not listed on OpenRouter as of 2026-11-22"
+    },
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text"
+      ],
+      "input_peak": 0.1,
+      "output_peak": 0.5,
+      "candidate_only": true,
+      "qualification": "ID and exact pricing/caps verify R2-07; audit F-061",
+      "binding": {
+        "access_path": "openrouter_metered (DP-05)",
+        "openrouter_id": "anthropic/claude-haiku-5.5",
+        "canonical_slug": "anthropic/claude-haiku-5.5-20261007",
+        "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
+        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_usd_per_mtok": {
+          "input": 0.1,
+          "output": 0.5,
+          "cache_read": 0.01,
+          "cache_write": 0.125,
+          "cache_write_1h": 0.2
+        },
+        "structured_outputs": true,
+        "long_context_overrides": [
+          {
+            "min_prompt_tokens": 100000,
+            "input": 0.5,
+            "output": 2.5,
+            "cache_read": 0.05,
+            "cache_write": 0.625,
+            "cache_write_1h": 1.0
+          }
+        ],
+        "extra_fees_listed": {
+          "web_search_usd_per_request": 0.01,
+          "policy": "forbidden (no LLM network access)"
+        }
+      },
+      "price_matches_openrouter_listing": true
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "anthropic",
+      "capabilities": [
+        "text"
+      ],
+      "input_peak": 2,
+      "output_peak": 10,
+      "candidate_only": true,
+      "qualification": "ID and exact pricing/caps verify R2-07",
+      "binding": {
+        "access_path": "openrouter_metered (DP-05)",
+        "openrouter_id": "anthropic/claude-sonnet-5.5",
+        "canonical_slug": "anthropic/claude-sonnet-5.5-20260928",
+        "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
+        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_usd_per_mtok": {
+          "input": 2.0,
+          "output": 10.0,
+          "cache_read": 0.1,
+          "cache_write": 2.5,
+          "cache_write_1h": 4.0
+        },
+        "structured_outputs": true,
+        "extra_fees_listed": {
+          "web_search_usd_per_request": 0.01,
+          "policy": "forbidden (no LLM network access)"
+        }
+      },
+      "price_matches_openrouter_listing": true
+    },
+    {
+      "id": "openai-text-review",
+      "provider": "openai",
+      "capabilities": [
+        "text"
+      ],
+      "input_peak": 1.0,
+      "output_peak": 5.0,
+      "cache_hit_peak": 0.05,
+      "candidate_only": true,
+      "allowed_tasks": [
+        "fact_check",
+        "editorial_review"
+      ],
+      "role": "primary candidate (cheaper than claude-sonnet-5-5 at listing prices)",
+      "binding": {
+        "access_path": "openrouter_metered (DP-05)",
+        "openrouter_id": "openai/gpt-6.1-terra",
+        "canonical_slug": "openai/gpt-6.1-terra-20261026",
+        "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
+        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_usd_per_mtok": {
+          "input": 1.0,
+          "output": 5.0,
+          "cache_read": 0.05,
+          "cache_write": 1.25
+        },
+        "structured_outputs": true,
+        "long_context_overrides": [
+          {
+            "min_prompt_tokens": 272000,
+            "input": 2.0,
+            "output": 7.5,
+            "cache_read": 0.1,
+            "cache_write": 2.5
+          }
+        ],
+        "extra_fees_listed": {
+          "web_search_usd_per_request": 0.01,
+          "policy": "forbidden (no LLM network access)"
+        }
+      },
+      "qualification": "DP-02 + DP-05. ID and price read from public OpenRouter listing; eval PT-BR, ZDR availability and per-call evidence verify R2-07; production_enabled stays false"
+    },
+    {
+      "id": "openai-text-review-alt",
+      "provider": "openai",
+      "capabilities": [
+        "text"
+      ],
+      "input_peak": 2.0,
+      "output_peak": 10.0,
+      "cache_hit_peak": 0.1,
+      "candidate_only": true,
+      "allowed_tasks": [
+        "fact_check",
+        "editorial_review"
+      ],
+      "role": "lateral alternative, same price class as claude-sonnet-5-5 at listing prices; reasoning mandatory",
+      "binding": {
+        "access_path": "openrouter_metered (DP-05)",
+        "openrouter_id": "openai/gpt-6.2-sol",
+        "canonical_slug": "openai/gpt-6.2-sol-20261117",
+        "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
+        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_usd_per_mtok": {
+          "input": 2.0,
+          "output": 10.0,
+          "cache_read": 0.1,
+          "cache_write": 2.5
+        },
+        "structured_outputs": true,
+        "long_context_overrides": [
+          {
+            "min_prompt_tokens": 272000,
+            "input": 4.0,
+            "output": 15.0,
+            "cache_read": 0.2,
+            "cache_write": 5.0
+          }
+        ],
+        "extra_fees_listed": {
+          "web_search_usd_per_request": 0.01,
+          "policy": "forbidden (no LLM network access)"
+        }
+      },
+      "qualification": "DP-02 + DP-05. ID and price read from public OpenRouter listing; eval PT-BR, ZDR availability and per-call evidence verify R2-07; production_enabled stays false"
+    }
+  ],
+  "routes": {
+    "deterministic": [],
+    "economy": [
+      "claude-haiku-5-5"
+    ],
+    "review": [
+      "claude-sonnet-5-5",
+      "openai-text-review",
+      "openai-text-review-alt"
+    ],
+    "premium": [
+      "claude-opus-5-5"
+    ],
+    "strategic": [
+      "claude-fable-5-2",
+      "claude-opus-5-5"
+    ],
+    "image_fast": [],
+    "image_premium": []
+  },
+  "rules": {
+    "production_enabled": false,
+    "block_unknown_cost": true,
+    "no_cross_provider_for_restricted_data": true,
+    "max_attempts": 3,
+    "max_escalations": 2,
+    "soft_budget_fraction": 0.8,
+    "price_expiry_days": 7,
+    "hard_monthly_budget_usd": 50,
+    "hard_monthly_budget_scope": "aggregate providers, atomic USD micro-unit reservations",
+    "prompt_cache_required": true,
+    "lateral_fallback": true,
+    "cross_provider_independent_review": true,
+    "fallback_only_same_class": true,
+    "escalation_requires_separate_budget_and_reason": true,
+    "cache_failure": "measure/stop if cost cannot fit",
+    "emergency_stop": true,
+    "monthly_cap_immutable_by_agents": true,
+    "refill_does_not_increment_monthly_cap": true,
+    "fact_check_provider_must_differ_from_draft": true,
+    "fact_check_same_provider_fallback": false,
+    "fact_check_no_distinct_provider_available": "block (fail closed)",
+    "provider_distinctness_basis": "model author = prefix of generation.model of the successful attempt; hosting provider_name is NOT the criterion",
+    "openai_text_scope": "review and fact_check routes only; no draft, no entity_resolution of personal data",
+    "metered_access_path": "openrouter only (DP-05); no direct provider keys; OpenBot subscriptions not allowed for product model calls",
+    "subscription_access_counts_against_cap": false,
+    "subscription_access_scope": "implementation work only; fixed cost in the ledger, outside the cap (DP-04)",
+    "openrouter_request_constraints": {
+      "models_array": "forbidden for fact_check (no silent cross-model fallback)",
+      "provider.allow_fallbacks": "allowed only among hosts of the same model; author re-checked on response",
+      "provider.data_collection": "deny (mandatory)",
+      "provider.zdr": "required for unpublished editorial work (DP-11/P2): if the model has no ZDR endpoint, the call is blocked; not required for already published content; data_collection=deny applies always",
+      "provider.require_parameters": true,
+      "provider.max_price": "per-request ceiling on per-token prices (USD/Mtok) at the tier the request will hit; rejects endpoints or tiers priced above the catalog; does NOT cover credit purchase fees",
+      "plugins_web_search": "forbidden (listed at USD 0.01/request; LLMs have no network access)"
+    },
+    "budget_allocation_usd": {
+      "openai": 20,
+      "anthropic": 22,
+      "anthropic_escalation_opus_fable_included": 5,
+      "images": 0,
+      "deepseek": 0,
+      "audit_errata_reserve": 8
+    },
+    "budget_steps_usd": {
+      "35": "stop premium/experiments",
+      "40": "alert; stop non-essential enrichment and meetings",
+      "42": "audit and errata only",
+      "50": "hard stop until the month rolls over"
+    },
+    "on_cap_reached": "stop until next calendar month (America/Sao_Paulo); refill does not reopen the month",
+    "provider_side_barrier": "OpenRouter prepaid balance (shared account). Recommended owner act: dedicated LN key with limit 50 and limit_reset monthly (resets 00:00 UTC, 3 h before the BRT month)",
+    "cap_scope_note": "gateway counts only LN calls by generation id; other usage on the same OpenRouter account is outside LN accounting",
+    "credit_purchase_fee_accounting": "outside the USD 50 cap (DP-11/P3); booked in the ledger as refill cost, separate from per-call usage, reported monthly",
+    "reservation_tiering": "reserve before the call at the price tier the estimated prompt will hit (long_context_overrides, incl. cache_write_1h); if the estimate is uncertain, reserve at the highest tier; reconcile with usage.cost after the call",
+    "budget_enforcement": {
+      "allocation_checked_before_call": true,
+      "zero_allocation": "ineligible; call is not sent",
+      "anthropic_escalation_opus_fable_sublimit_usd": 5,
+      "audit_errata_reserve_usd": 8,
+      "audit_errata_reserve_exclusive_to": [
+        "WF08 correction",
+        "WF18 response/retraction",
+        "postpublication audit/unpublish"
+      ],
+      "tests_required": [
+        "concurrent reservations never exceed cap or sub-limits",
+        "reserve 8 unusable by other tasks",
+        "month rollover America/Sao_Paulo resets counters exactly once",
+        "price tier selection incl. long context"
+      ]
+    },
+    "review_evidence": {
+      "required": [
+        "response.id",
+        "response.model",
+        "usage.cost",
+        "usage.prompt_tokens",
+        "usage.completion_tokens",
+        "generation.model (must equal response.model)",
+        "generation.provider_name",
+        "generation.total_cost"
+      ],
+      "optional": [
+        "generation.upstream_id",
+        "generation.provider_responses",
+        "generation.data_region",
+        "openrouter_metadata",
+        "usage.prompt_tokens_details.cached_tokens (required when a cache hit is claimed)"
+      ],
+      "successful_attempt": "if provider_responses is present, use the attempt whose id equals upstream_id or the single status 200 entry; never infer the author from another attempt",
+      "reconcile": "same lookup for drafter and checker; authors must differ",
+      "missing_required": "block (evidence invalid)",
+      "public_ledger": "DP-06: the verifier repository is public; only ids, model, author, host, tokens, cost and hashes are published, never prompts, drafts or responses",
+      "v21_10_status": "not closed: needs independent runner, segregated identity, sanitized logs and signed tag"
+    },
+    "zdr_required_by_class": {
+      "unpublished_editorial_work": true,
+      "published_content": false,
+      "missing_zdr_endpoint_when_required": "block"
+    }
+  },
+  "sources": [
+    "https://api-docs.deepseek.com/quick_start/pricing/",
+    "https://platform.claude.com/docs/en/models/overview",
+    "https://platform.claude.com/docs/en/about-claude/pricing",
+    "https://developers.openai.com/api/reference/resources/images/methods/generate"
+  ],
+  "qualification": {
+    "status": "unverified; no model enabled until R2-07/08",
+    "require_provider_discovery": true,
+    "require_exact_model_id_and_capabilities": true,
+    "require_price_for_image_units": true,
+    "routing_notes": "Model identifiers are candidate aliases; bind to verified API identifiers before activation. Do not route private data without approved processor. Budget includes no images until price verified.",
+    "openai_text_requirements": [
+      "DONE 2026-11-22: IDs and listing prices from public OpenRouter /api/v1/models (see binding)",
+      "eval PT-BR golden set: openai/gpt-6.1-terra vs openai/gpt-6.2-sol vs claude-sonnet-5-5 (R2-07)",
+      "ZDR / data_collection=deny endpoint availability per model (unverified)",
+      "verifier re-checks GET /api/v1/generation with its own scoped credential, never exposed to pull_request workflows of the public repo (DP-06) (unverified)",
+      "credit purchase fee booked separately (not covered by max_price)"
+    ]
+  },
+  "data_classes": {
+    "public": [
+      "deepseek",
+      "anthropic",
+      "openai"
+    ],
+    "internal_pending_processor_approval": [],
+    "personal_pending_processor_approval": [],
+    "commercial_confidential_pending_processor_approval": [],
+    "restricted": [],
+    "secret": [],
+    "classification_rules": {
+      "status": "PROPOSED - protected change; P4 decided by owner (DP-11)",
+      "propagation": "output class = most restrictive class among ALL inputs: instructions, context, memory, attachments, metadata and evidence",
+      "editorial_work_from_sanitized_public_inputs": "public, only if every input above is public (unpublished drafts, edits, fact-check packets)",
+      "embargo_or_confidential_input": "commercial_confidential -> blocked",
+      "personal_data": "personal -> blocked until legal basis and processor approved (Blueprint §5)",
+      "public_professional_info_exception": "RATIFIED (DP-11/P4): executive name, role and company taken from a public source, with the source reference, may be in class public drafts; nothing else (no contact data, personal identifiers or private life)",
+      "unknown_class": "block",
+      "collector_must_tag_class": true,
+      "routing_class_is_not_publication_authorization": true
+    },
+    "processors": {
+      "openrouter": {
+        "status": "approved by owner (DP-11/P1); effective only after the protected signature",
+        "scope": "class public only",
+        "conditions": [
+          "provider.data_collection=deny on every call",
+          "OpenRouter data and retention policy filed before production_enabled=true",
+          "upstream retention per endpoint recorded"
+        ],
+        "not_approved_for": [
+          "internal",
+          "personal",
+          "commercial_confidential",
+          "restricted",
+          "secret"
+        ]
+      }
+    }
+  },
+  "budget_order": "steps 35/40/42/50 (DP-04): premium/experiments first; then noncritical enrichment/meetings; audit/errata reserve 8; hard stop at 50 until month rollover; no auto increase",
+  "routing_by_task": {
+    "classification": "economy",
+    "source_ingestion": "deterministic",
+    "editorial_draft": "economy",
+    "fact_check": "review; model author must differ from draft model author (anthropic|openai|deepseek); fallback only to another distinct author in review; else block",
+    "daily": "economy",
+    "monthly_board": "strategic",
+    "entity_resolution": "economy; personal data only approved processor",
+    "complex_analysis": "premium",
+    "creative_composition": "deterministic",
+    "concept_image": "image_fast",
+    "social_publish": "deterministic"
+  }
+}

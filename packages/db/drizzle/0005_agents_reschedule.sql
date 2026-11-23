@@ -1,0 +1,6 @@
+ALTER TABLE "meeting_decisions" DROP CONSTRAINT "meeting_decisions_status_ck";--> statement-breakpoint
+ALTER TABLE "meeting_runs" ADD COLUMN "rescheduled_date" date;--> statement-breakpoint
+ALTER TABLE "meeting_runs" ADD COLUMN "reschedule_reason" text;--> statement-breakpoint
+ALTER TABLE "meeting_runs" ADD COLUMN "idempotency_keys" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "meeting_decisions" ADD CONSTRAINT "meeting_decisions_status_ck" CHECK ("meeting_decisions"."status" IN ('approved','pending_human','pending_verifier','rejected_invalid_authority'));--> statement-breakpoint
+ALTER TABLE "meeting_runs" ADD CONSTRAINT "meeting_runs_reschedule_ck" CHECK (("meeting_runs"."rescheduled_date" IS NULL AND "meeting_runs"."reschedule_reason" IS NULL) OR ("meeting_runs"."rescheduled_date" IS NOT NULL AND "meeting_runs"."rescheduled_date" > "meeting_runs"."local_date" AND "meeting_runs"."reschedule_reason" IS NOT NULL AND "meeting_runs"."reschedule_reason" = 'holiday_move'));
