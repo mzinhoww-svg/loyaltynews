@@ -11,6 +11,7 @@ import type { FormatStatus } from '../types';
 import { adPlan, ALLOWED_MIME, resolveClickDestination, validateCreative } from '../creative';
 import type { ServeResult } from '../rotation';
 import { reportCsv } from '../report';
+import { CONTACT_BASES } from '../crm';
 
 const formatIds = (ids: string[]) => ids.filter((id) => !CATALOG.some((f) => f.id === id));
 const PositionId = z.enum(['TOP', 'SIDEBAR_1', 'SIDEBAR_2', 'SIDEBAR_3', 'FOOTER', 'ARTICLE_INLINE', 'HOME_BETWEEN', 'AGENDA', 'DATA']);
@@ -87,6 +88,23 @@ export const getInventoryCalendar = define({ auth: 'studio', schema: z.object({ 
 export const getLeadInbox = define({ auth: 'studio', schema: z.object({ status: z.enum(['novo', 'qualificado', 'descartado', 'convertido']).optional() }) }, (ctx, i) => ok(leadInbox(ctx, i)));
 export const getOpportunityBoard = define({ auth: 'studio', schema: z.object({}).default({}) }, (ctx) => ok(opportunityBoard(ctx)));
 export const getCampaignDetail = define({ auth: 'studio', schema: z.object({ campaignId: Id }) }, (ctx, i) => ok(campaignDetail(ctx, i.campaignId)));
+
+/** Cria uma conta (anunciante) direto. 409 se o nome já existir (sem diferenciar maiúsculas). */
+export const createAccount = define({ auth: 'studio', schema: z.object({ name: z.string().min(1).max(400) }).strict() }, (ctx, i) => {
+  const a = ctx.crm.createAccount(i.name, ctx.now);
+  return ok({ id: a.id, name: a.name, createdAt: a.createdAt }, 201);
+});
+
+const ContactInput = z.object({ accountId: Id, name: z.string().min(1).max(400), email: z.string().min(1).max(400), whatsapp: z.string().max(80).optional(), role: z.string().max(400).optional(), basis: z.enum(CONTACT_BASES) }).strict();
+/**
+ * Contato direto de uma conta. A data do registro e o autor são gravados pelo servidor (campos de consentimento/autoria vindos do cliente
+ * são recusados pelo schema estrito). Dado pessoal: só Studio (comercial e admin); nunca em rota pública.
+ */
+export const addAccountContact = define({ auth: 'studio', schema: ContactInput }, (ctx, i) => ok(ctx.crm.addContact(i, ctx.now, ctx.actor?.id ?? null), 201));
+export const listAccountContacts = define({ auth: 'studio', schema: z.object({ accountId: Id }) }, (ctx, i) => {
+  const data = ctx.crm.listContacts(i.accountId);
+  return ok({ data, total: data.length });
+});
 
 export const qualifyLead = define({ auth: 'studio', schema: z.object({ leadId: Id }) }, (ctx, i) => ok(ctx.crm.qualifyLead(i.leadId)));
 export const discardLead = define({ auth: 'studio', schema: z.object({ leadId: Id }) }, (ctx, i) => ok(ctx.crm.discardLead(i.leadId)));
