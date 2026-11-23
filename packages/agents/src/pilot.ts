@@ -26,7 +26,8 @@ export const PILOT_SOURCES: PilotSource[] = [
   { id: 'camara-noticias', termsClass: 'institucional', editoria: 'regulacao', articles: 3, status: 'institutional_pending_enablement' },
   { id: 'abemf', termsClass: 'D', editoria: 'programas', articles: 2, status: 'to_confirm_by_editorial' },
   { id: 'livelo-imprensa', termsClass: 'D', editoria: 'pontos', articles: 1, status: 'to_confirm_by_editorial' },
-  { id: 'febraban', termsClass: 'D', editoria: 'bancos', articles: 1, status: 'to_confirm_by_editorial' },
+  // Editorial (23/11) discorda de `febraban` (sem feed nem sitemap, paywall desconhecido); troca por `abrarec` (feed, item de 19/11). `procon-sp` é a alternativa.
+  { id: 'abrarec', termsClass: 'D', editoria: 'consumidor', articles: 1, status: 'to_confirm_by_editorial' },
 ];
 
 /** Fontes de classe C: fora do piloto (DP-28: só com revisão caso a caso registrada). */
@@ -76,7 +77,7 @@ export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   check_edit: { account: 'codex', backups: ['antigravity'], label: 'Checagem + revisão numa chamada só (opção do Arquiteto, −24%; backup Gemini)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
   social_pack: { account: 'claude', backups: [], label: 'Texto social de LinkedIn como rascunho (Claude)', taskClass: 'social_pack', adapterKind: null },
   roles: { account: 'claude', backups: [], label: 'Entidades e cargos citados no texto (Claude)', taskClass: 'roles', adapterKind: 'entity_resolution' },
-  rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO, QA visual', taskClass: null, adapterKind: null },
+  rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO mínimo (slug e resumo); QA visual fora', taskClass: null, adapterKind: null },
 };
 
 const allowedAccounts = (st: PilotStage): PilotAccount[] => [PILOT_STAGES[st].account, ...PILOT_STAGES[st].backups];
