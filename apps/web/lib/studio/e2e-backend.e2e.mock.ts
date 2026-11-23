@@ -11,6 +11,7 @@ import { createAuth, createAuthHandler, createStaffUser, isRole, type Db, type R
 import { getRuntime, setRuntimeForTest } from '@ln/auth/runtime';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
+import { sampleArticle } from '@ln/editorial/testing';
 import { DEFAULT_CONFIG, addEvidence, addOrgRelation, processObservation, upsertOrganization, generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 import { criarClientePglite } from './dev-db.e2e.mock';
 import type { E2eBackend } from './e2e-backend.types';
@@ -167,6 +168,13 @@ Fontes:
       // Studio 2: o worker que gera alertas não roda no e2e; chama a função real do pacote sobre os Moves já semeados (idempotente).
       const idb = (await criarClientePglite()) as unknown as IntelDb;
       return { gerados: (await generateAlerts(idb)).length };
+    },
+    async seedPilotoArtigos() {
+      // Studio 2: dois artigos MOCK (sampleArticle da Editorial) para o caminho com dados da leitura do piloto; o mapa é fixado pela tela. Idempotente.
+      const store = new PgEditorialStore(db);
+      const ids = ['piloto-e2e-a1', 'piloto-e2e-a2'];
+      for (const id of ids) if (!(await store.getArticle(id))) await store.putArticle(sampleArticle(id, { status: 'aprovado' }));
+      return { artigos: ids };
     },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
