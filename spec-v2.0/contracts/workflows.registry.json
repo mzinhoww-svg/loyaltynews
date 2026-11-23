@@ -1,0 +1,232 @@
+{
+  "format": "logical workflow contracts; build adapter after OpenBot PoC",
+  "workflows": [
+    {
+      "id": "WF01",
+      "name": "Radar e pauta",
+      "trigger": "source.item",
+      "owner": "newsdesk",
+      "steps": "writer_{editoria}>editor_{editoria}",
+      "output": "triaged",
+      "blockers": [
+        "duplicate",
+        "rights_unknown"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF02",
+      "name": "Redação especializada",
+      "trigger": "topic.assigned",
+      "owner": "editorial",
+      "steps": "writer_{editoria}>factcheck+rights>editor_{editoria}>human_editor",
+      "output": "article.approved",
+      "blockers": [
+        "unsupported_claim",
+        "rights_unknown",
+        "approval_missing"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF03",
+      "name": "Publicar matéria",
+      "trigger": "article.approved",
+      "owner": "editorial",
+      "steps": "validate_revision>transactional_publish>outbox",
+      "output": "article.published",
+      "blockers": [
+        "stale_approval",
+        "embargo"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF04",
+      "name": "Pacote social",
+      "trigger": "article.published",
+      "owner": "growth",
+      "steps": "discovery+media>art>designer+linkedin+instagram>visualqa>human_social>publisher_social",
+      "output": "social.receipt",
+      "blockers": [
+        "no_image",
+        "mention_unverified",
+        "no_receipt"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF05",
+      "name": "The Loyal",
+      "trigger": "schedule.weekdays",
+      "owner": "growth",
+      "steps": "newsletter>factcheck>human_editor>esp_send",
+      "output": "newsletter.sent",
+      "blockers": [
+        "consent_missing",
+        "stale_revision"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF06",
+      "name": "Entity Intelligence",
+      "trigger": "article.approved / source.evidence",
+      "owner": "intelligence",
+      "steps": "discovery>people+company>graph>dataqa>human_data",
+      "output": "entity.revision",
+      "blockers": [
+        "ambiguous_identity",
+        "conflicting_evidence"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF07",
+      "name": "Organograma e Moves",
+      "trigger": "entity.revision",
+      "owner": "intelligence",
+      "steps": "orgchart+moves>dataqa>human_data",
+      "output": "org.snapshot",
+      "blockers": [
+        "unverified_reporting",
+        "sensitive_change"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF08",
+      "name": "Correção editorial",
+      "trigger": "correction.requested",
+      "owner": "trust",
+      "steps": "editor_{editoria}>factcheck>human_editor>republish>social_reconcile>entity_rebuild",
+      "output": "correction.closed",
+      "blockers": [
+        "missing_evidence",
+        "remote_unresolved"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF09",
+      "name": "Mídia kit e métricas",
+      "trigger": "schedule.metrics",
+      "owner": "growth",
+      "steps": "collect_providers>validate_periods>aggregate>publish_snapshot",
+      "output": "metrics.snapshot",
+      "blockers": [
+        "stale_data",
+        "provider_unavailable"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF10",
+      "name": "Comercial e mídia",
+      "trigger": "lead.created / campaign.approved",
+      "owner": "commercial",
+      "steps": "sales>pricing>human_sales>adops>account",
+      "output": "campaign.report",
+      "blockers": [
+        "inventory_conflict",
+        "approval_missing"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF11",
+      "name": "FinOps e modelos",
+      "trigger": "usage.recorded / schedule.daily",
+      "owner": "technology",
+      "steps": "finops>reconcile>budget_alert>human_admin",
+      "output": "budget.snapshot",
+      "blockers": [
+        "unknown_rate",
+        "budget_exhausted"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF12",
+      "name": "Conselho de pauta",
+      "trigger": "schedule.weekly",
+      "owner": "publisher",
+      "steps": "editorial+creative+growth+intelligence+commercial+technology+trust>publisher>human_owner",
+      "output": "plan.approved",
+      "blockers": [
+        "policy_conflict",
+        "budget_exceeded"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF13",
+      "name": "Incidente e restauração",
+      "trigger": "incident.raised",
+      "owner": "technology",
+      "steps": "sre>security>human_ops>recover>audit",
+      "output": "incident.closed",
+      "blockers": [
+        "unsafe_replay",
+        "missing_approval"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF14",
+      "name": "Watchlist",
+      "trigger": "entity.revision / article.published",
+      "owner": "intelligence",
+      "steps": "match_active_subscriptions>dedupe>consent_check>notify",
+      "output": "alert.receipt",
+      "blockers": [
+        "unverified_event",
+        "optout"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF15",
+      "name": "Reuniões e rituais",
+      "trigger": "schedule.meeting / meeting.requested",
+      "owner": "publisher",
+      "steps": "snapshot>structured_inputs>chair_synthesis>challenge_if_needed>validate_decisions>human_gate_if_needed>transactional_actions",
+      "output": "meeting.closed",
+      "blockers": [
+        "missing_inputs",
+        "invalid_authority",
+        "budget_exhausted"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF16",
+      "name": "Acompanhamento de decisões",
+      "trigger": "schedule.actions / decision.approved",
+      "owner": "publisher",
+      "steps": "validate_authority>assign>track_due_date>verify_evidence>escalate_overdue",
+      "output": "action.updated",
+      "blockers": [
+        "missing_owner",
+        "overdue",
+        "unverified_completion"
+      ],
+      "enabled": false
+    },
+    {
+      "id": "WF17",
+      "name": "Governança de modelos",
+      "trigger": "model.change_requested",
+      "owner": "technology",
+      "steps": "refresh_catalog>offline_eval>cost_review>security_review>human_approval>canary>monitor_or_rollback",
+      "output": "model.policy_version",
+      "blockers": [
+        "unknown_model",
+        "unknown_price",
+        "regression",
+        "approval_missing"
+      ],
+      "enabled": false
+    }
+  ]
+}
