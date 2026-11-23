@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
-import { ehErro, naoConfigurado } from '@/lib/studio/backend';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
+import { Anunciantes, type ContaCrm, type ContatoCrm } from './Anunciantes';
 import { leadAction, moverEstagioAction, registrarLeadAction } from './actions';
 
 export const metadata: Metadata = { title: 'CRM' };
@@ -37,6 +38,12 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const leads = (ehErro(resLeads) ? [] : resLeads.body) as unknown as Lead[];
   const resQuadro = await api.comercial.oportunidades();
   const colunas = (ehErro(resQuadro) ? [] : resQuadro.body) as unknown as Coluna[];
+  // anunciantes (contas) e contatos (leads ligados à conta pela conversão); contatos sempre de todos os leads, não do filtro
+  const resContas = await api.comercial.contas({ limit: '100' });
+  const resTodos = status ? await api.comercial.leads() : resLeads;
+  const contas = ehErro(resContas) ? [] : (resContas.body.data as ContaCrm[]);
+  const contatos = (ehErro(resTodos) ? [] : resTodos.body) as unknown as ContatoCrm[];
+  const erroContas = ehErro(resContas) ? mensagemErro(resContas) : ehErro(resTodos) ? mensagemErro(resTodos) : null;
   return (
     <>
       <h1>CRM</h1>
@@ -151,6 +158,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           </button>
         </form>
       </section>
+
+      <Anunciantes contas={contas} leads={contatos} erro={erroContas} />
 
       <h2 style={{ marginTop: 24 }}>Oportunidades</h2>
       <div className="st-grid" role="list" aria-label="Quadro de oportunidades">

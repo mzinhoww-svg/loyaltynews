@@ -17,6 +17,7 @@ import * as agendasRoute from '@/app/api/agenda/route';
 import * as agendaRoute from '@/app/api/agenda/[id]/route';
 import * as agendaModeracaoRoute from '@/app/api/agenda/[id]/moderacao/route';
 import * as midiaUploadRoute from '@/app/api/midia/arquivo/route';
+import * as criativoUploadRoute from '@/app/api/commercial/studio/creatives/upload/route';
 import * as siteDocsRoute from '@/app/api/site/documentos/route';
 import * as siteDocRoute from '@/app/api/site/documentos/[tipo]/route';
 import * as siteRascunhoRoute from '@/app/api/site/documentos/[tipo]/rascunho/route';
@@ -254,6 +255,14 @@ export const api = {
     contas: (query: Record<string, string | undefined> = {}) => chamar<Pagina<ContaLinha>>(dispatchCommercial, `${C}/studio/accounts`, { query }),
     criarCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns`, { metodo: 'POST', corpo }),
     campanha: (campaignId: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/detail`, { query: { campaignId } }),
+    /** Posições da campanha: pré-reserva (held) ou confirmação (só com venda ligada); cancelar recusa reserva de campanha ativa. */
+    reservar: (corpo: { positionId: string; accountId: string; campaignId: string; startDate: string; endDate: string; confirm?: boolean }) => chamar<{ id: string }>(dispatchCommercial, `${C}/studio/reservations`, { metodo: 'POST', corpo }),
+    cancelarReserva: (reservationId: string) => chamar(dispatchCommercial, `${C}/studio/reservations/cancel`, { metodo: 'POST', corpo: { reservationId } }),
+    /** Criativos: cadastro (sem arquivo), arquivo medido no servidor (multipart) e aprovação (recusa com a lista do que falta). */
+    adicionarCriativo: (corpo: unknown) => chamar<{ id: string; approved: boolean; issues: { code: string; message: string }[] }>(dispatchCommercial, `${C}/studio/creatives`, { metodo: 'POST', corpo }),
+    conteudoCriativo: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/creatives/content`, { metodo: 'POST', corpo }),
+    enviarArquivoCriativo: (form: FormData) => chamar(criativoUploadRoute.POST as Despachante, `${C}/studio/creatives/upload`, { metodo: 'POST', form }),
+    aprovarCriativo: (creativeId: string) => chamar(dispatchCommercial, `${C}/studio/creatives/approve`, { metodo: 'POST', corpo: { creativeId } }),
     transicaoCampanha: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/campaigns/transition`, { metodo: 'POST', corpo }),
     /** Relatório do anunciante (visíveis e cliques contados, origem, janela e data; nunca estimado). Janela opcional AAAA-MM-DD. */
     relatorio: (campaignId: string, from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report`, { query: { campaignId, from, to } }),
