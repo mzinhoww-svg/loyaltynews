@@ -212,15 +212,16 @@ describe('piloto: parada imediata', () => {
   test('segredo em texto vindo do OpenBot: mascarado, linha marcada e piloto parado (o segredo nunca é gravado)', async () => {
     await dispatch();
     const a = (await pull('opencode'))!;
-    const leaked = 'sk-ABCDEFGHIJKLMNOPQRSTUVWX12345678';
+    // chave FALSA montada em tempo de execução (nenhum segredo, nem de mentira, literal no arquivo; DP-37)
+    const leaked = 'sk-' + 'A'.repeat(32);
     const r = ok<CallbackResult>(await callback(a, {
       outcome: 'failed', error: `falha com a chave ${leaked}`, retryable: false, usage: free(a, 'opencode', 'm'),
-      trace: trace('triage', 'opencode', { notes: 'Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789' }),
+      trace: trace('triage', 'opencode', { notes: `Authorization: Bearer ${'a'.repeat(36)}` }),
     }));
     assert.deepEqual(r.pilotStopped, [STOP.secret]);
     const stored = JSON.stringify([await rows.all(), await deps.queue.get(a.id)]);
     assert.equal(stored.includes(leaked), false);
-    assert.equal(stored.includes('abcdefghijklmnopqrstuvwxyz0123456789'), false);
+    assert.equal(stored.includes('a'.repeat(36)), false);
     assert.equal((await rows.all())[0]!.secret_in_log, true);
   });
 
@@ -307,8 +308,13 @@ describe('planilha e relatório', () => {
 
   test('redactText: máscara e-mail e segredos de vários formatos; texto limpo passa intacto', () => {
     assert.deepEqual(redactText('tudo certo'), { text: 'tudo certo', secretFound: false });
-    const r = redactText('fale com a@b.com; sk-ABCDEFGHIJKLMNOPQRSTUV; ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123; -----BEGIN RSA PRIVATE KEY-----; password: hunter2hunter2');
+    // fixtures FALSAS montadas em tempo de execução (DP-37): nada com cara de segredo fica literal no arquivo
+    const sk = 'sk-' + 'A'.repeat(32);
+    const gh = 'ghp_' + 'A'.repeat(36);
+    const pem = '-----BEGIN ' + 'RSA PRIVATE KEY-----';
+    const pass = 'password: ' + 'h'.repeat(16);
+    const r = redactText(`fale com a@b.com; ${sk}; ${gh}; ${pem}; ${pass}`);
     assert.equal(r.secretFound, true);
-    for (const s of ['a@b.com', 'sk-ABCDEF', 'ghp_ABCDEF', 'BEGIN RSA', 'hunter2hunter2']) assert.equal(r.text.includes(s), false, s);
+    for (const s of ['a@b.com', sk, gh, 'BEGIN RSA', 'h'.repeat(16)]) assert.equal(r.text.includes(s), false, s.slice(0, 8));
   });
 });
