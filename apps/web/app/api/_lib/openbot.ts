@@ -81,15 +81,19 @@ export const openbotRoute =
   async (req, c) => {
     const body = await readRaw(req);
     const deps = await openbotDeps(c);
-    if (kind === 'pull' && !deps.flags().dispatchEnabled && !deps.flags().kill) {
-      // sem despacho ligado nada é entregue; a recusa vale antes de qualquer efeito (a parada tem a própria resposta, abaixo)
-      return err(LOCKED, 'DISPATCH_OFF', 'despacho ao OpenBot desligado (flag openbotDispatch)');
-    }
-    const routes = createOpenBotRoutes(deps);
     const headers: Record<string, string> = {};
     req.headers.forEach((v, k) => {
       if (k === 'x-ln-signature' || k === 'x-ln-timestamp') headers[k] = v; // só os dois cabeçalhos de assinatura; nenhum outro é lido
     });
+    if (kind === 'pull' && !deps.flags().dispatchEnabled && !deps.flags().kill) {
+      // sem despacho ligado nada é entregue (nenhuma tarefa, nenhum efeito); a parada tem a própria resposta, abaixo. A ASSINATURA é conferida antes: quem não tem o segredo
+      // recebe 401 como nas demais rotas e não descobre o estado da flag; o kill switch já se comporta assim (o handler confere a assinatura primeiro).
+      const sig = toSignedRequest({ body, headers });
+      const v = verifySignature({ secrets: deps.secrets(), header: sig.signature, timestampMs: sig.timestampMs, body, now: deps.now() });
+      if (!v.ok) return err(401, 'UNAUTHORIZED', `assinatura recusada: ${v.reason}`);
+      return err(LOCKED, 'DISPATCH_OFF', 'despacho ao OpenBot desligado (flag openbotDispatch)');
+    }
+    const routes = createOpenBotRoutes(deps);
     return send(await routes[kind]({ body, headers }));
   };
 
