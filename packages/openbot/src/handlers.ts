@@ -4,7 +4,7 @@ import { budgetStatus, isApiLane, MONTHLY_CAP_MICRO, validateUsage, type CostLed
 import { evaluateHealth, type HealthStore, type OpenBotHealth } from './health';
 import { LeaseError, type LeaseQueue } from './lease-queue';
 import {
-  awaitingEditorialGate, DP41_ACCOUNTS, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
+  awaitingEditorialGate, DP41_ACCOUNTS, gateRows, PILOT_ACCOUNTS, PILOT_STAGES, redactText, STOP, type PilotControl, type PilotRow, type PilotStop,
 } from './pilot';
 import { verifySignature } from './signing';
 import {
@@ -131,18 +131,24 @@ export function routeProblems(kind: string, route: readonly string[]): string[] 
 }
 
 /**
+ * Status das recusas por DECISÃO de parar (kill switch, despacho desligado, piloto parado): 423 Locked, com o corpo JSON e o mesmo `error.code`. A borda da Vertra troca o corpo de
+ * 502, 503 e 504 por HTML, e o agente perderia o código; 503 fica só para indisponibilidade real. O agente trata 423 como "parar o ciclo, sem repetir" (decisão PM-2026-11-23-I).
+ */
+export const LOCKED = 423;
+
+/**
  * Piloto: se está em parada imediata, ou se o `canDispatchNext` do AgentOps recusa as linhas gravadas, nada é entregue nem
- * despachado (503). A recusa do gate também PARA o piloto (fica parado até `resumePilot`). Sem piloto ativo, não faz nada.
+ * despachado (423 Locked). A recusa do gate também PARA o piloto (fica parado até `resumePilot`). Sem piloto ativo, não faz nada.
  */
 async function pilotBlock(deps: OpenBotDeps): Promise<HandlerResult<never> | null> {
   const p = deps.pilot;
   if (!p?.enabled) return null;
   const st = await p.state.get();
-  if (st) return fail(503, 'PILOT_STOPPED', 'piloto em parada imediata', st.reasons);
-  const gate = p.gate((await p.rows.all()).filter((r) => !awaitingEditorialGate(r)));
+  if (st) return fail(LOCKED, 'PILOT_STOPPED', 'piloto em parada imediata', st.reasons);
+  const gate = p.gate((await gateRows(p)).filter((r) => !awaitingEditorialGate(r)));
   if (!gate.allowed) {
     for (const r of gate.reasons) await p.state.stop(`${STOP.gate}: ${r}`, deps.now().toISOString());
-    return fail(503, 'PILOT_STOPPED', 'o canDispatchNext recusou: piloto parado', gate.reasons);
+    return fail(LOCKED, 'PILOT_STOPPED', 'o canDispatchNext recusou: piloto parado', gate.reasons);
   }
   return null;
 }
@@ -186,7 +192,7 @@ export async function handlePull(deps: OpenBotDeps, req: SignedRequest): Promise
   const p = PullSchema.safeParse(auth.json);
   if (!p.success) return fail(400, 'VALIDATION_ERROR', 'pull inválido', issues(p.error));
   const now = deps.now();
-  if (killed(deps)) return fail(503, 'KILL_SWITCH', 'kill switch ativo: nenhuma tarefa é entregue');
+  if (killed(deps)) return fail(LOCKED, 'KILL_SWITCH', 'kill switch ativo: nenhuma tarefa é entregue');
   if (deps.pilot?.enabled && !p.data.account) return fail(400, 'VALIDATION_ERROR', 'no piloto o pull informa a via (account)', ['account']);
   const allowedPull = pilotAccounts(deps);
   if (allowedPull && p.data.account && !(allowedPull as readonly string[]).includes(p.data.account)) {
@@ -216,7 +222,7 @@ export async function handleHeartbeat(deps: OpenBotDeps, req: SignedRequest): Pr
   if (!auth.ok) return auth.res;
   const p = HeartbeatSchema.safeParse(auth.json);
   if (!p.success) return fail(400, 'VALIDATION_ERROR', 'heartbeat inválido', issues(p.error));
-  if (killed(deps)) return fail(503, 'KILL_SWITCH', 'kill switch ativo');
+  if (killed(deps)) return fail(LOCKED, 'KILL_SWITCH', 'kill switch ativo');
   const blocked = await pilotBlock(deps);
   if (blocked) return blocked;
   try {
@@ -443,7 +449,7 @@ export async function dispatchTask(deps: OpenBotDeps, caller: Caller, raw: unkno
   if (!p.success) return fail(400, 'VALIDATION_ERROR', 'despacho inválido', issues(p.error));
   const d = p.data;
   const flags = deps.flags();
-  if (flags.kill) return fail(503, 'KILL_SWITCH', 'kill switch ativo');
+  if (flags.kill) return fail(LOCKED, 'KILL_SWITCH', 'kill switch ativo');
   if (!flags.dispatchEnabled) return fail(409, 'DISPATCH_OFF', 'despacho ao OpenBot está desligado (flag)');
   if ((NEVER_DISPATCH_KINDS as readonly string[]).includes(d.kind)) {
     await pilotViolation(deps, STOP.publish, { kind: d.kind, refId: d.refId }); // tentativa de publicar = parada imediata do piloto
@@ -526,7 +532,7 @@ export async function resumePilot(deps: OpenBotDeps, caller: Caller): Promise<Ha
   if (!caller.permissions.includes(PILOT_PERMISSIONS.admin)) return fail(403, 'FORBIDDEN', 'sem permissão openbot:pilot_admin');
   const p = deps.pilot;
   if (!p?.enabled) return fail(409, 'PILOT_OFF', 'piloto não está ativo');
-  const gate = p.gate(await p.rows.all());
+  const gate = p.gate(await gateRows(p));
   if (!gate.allowed) return fail(409, 'PILOT_STILL_INVALID', 'o canDispatchNext ainda recusa as linhas', gate.reasons);
   await p.state.clear();
   return ok({ resumed: true });

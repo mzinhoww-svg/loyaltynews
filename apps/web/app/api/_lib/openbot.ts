@@ -4,8 +4,8 @@
 // cofre via ambiente (`OPENBOT_HMAC_SECRET`, `OPENBOT_HMAC_SECRET_PREVIOUS`); sem segredo, tudo é 401.
 // A lógica é dos handlers PUROS de @ln/openbot (Frente 09); aqui só há a ligação: fila/custos/saúde/dedupe/trilha/estado do piloto/conteúdo no PostgreSQL
 // (`@ln/workers/openbot-pg`: `FOR UPDATE SKIP LOCKED`), flag, parada e piloto.
-//  - Flag `openbotDispatch` (desligada por padrão): desligada, `pull` não entrega tarefa (503 DISPATCH_OFF); heartbeat, callback e io seguem para fechar o que já estava em curso.
-//  - Parada (kill switch): a parada GLOBAL ou da rota `openbot` do ledger canônico (`budget_kill_switch`) bloqueia pull, heartbeat e io (503 KILL_SWITCH).
+//  - Flag `openbotDispatch` (desligada por padrão): desligada, `pull` não entrega tarefa (423 DISPATCH_OFF); heartbeat, callback e io seguem para fechar o que já estava em curso.
+//  - Parada (kill switch): a parada GLOBAL ou da rota `openbot` do ledger canônico (`budget_kill_switch`) bloqueia pull, heartbeat e io (423 KILL_SWITCH).
 //    O callback segue aceito durante a parada (handler da Frente 09): fecha a tarefa e REGISTRA o custo já gasto; perder esse registro esconderia gasto.
 //  - Piloto (trilha, parada imediata, `canDispatchNext` do AgentOps): só com `APP_ENV=staging` E `LN_OPENBOT_PILOT=1`. O gate vem de `@ln/agents` quando existir;
 //    sem ele, FALHA FECHADO (o piloto não despacha) com o motivo explícito.
@@ -13,10 +13,10 @@
 //  - Corpo até 64 KB nas rotas de controle. Nunca loga corpo, cabeçalhos, IP nem segredo.
 import { apiError } from '@ln/contracts';
 import {
-  createOpenBotRoutes, ID_RE, openbotFlagsFrom, PILOT_PERMISSIONS, resultRefFor, resumePilot, verifySignature, toSignedRequest,
+  createOpenBotRoutes, ID_RE, LOCKED, openbotFlagsFrom, PILOT_PERMISSIONS, resultRefFor, resumePilot, verifySignature, toSignedRequest,
   type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate,
 } from '@ln/openbot';
-import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
+import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
 import { z } from 'zod';
 import { HttpError, json, type RouteCtx, type RouteFn } from './http';
 import { killFlags } from './orcamento';
@@ -50,7 +50,7 @@ export async function openbotDeps(c: RouteCtx, env: Record<string, string | unde
   const db = c.deps.db;
   const flags = openbotFlagsFrom({ overrides: { openbotDispatch: c.deps.flags.openbotDispatch === true }, kill });
   const pilot: PilotControl | undefined = pilotEnabled(env)
-    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: await loadGate() }
+    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: await loadGate(), resolved: () => new PgPilotResolutionStore(db, c.deps.now).keys() }
     : undefined;
   return {
     queue: new PgLeaseQueue(db),
@@ -83,7 +83,7 @@ export const openbotRoute =
     const deps = await openbotDeps(c);
     if (kind === 'pull' && !deps.flags().dispatchEnabled && !deps.flags().kill) {
       // sem despacho ligado nada é entregue; a recusa vale antes de qualquer efeito (a parada tem a própria resposta, abaixo)
-      return err(503, 'DISPATCH_OFF', 'despacho ao OpenBot desligado (flag openbotDispatch)');
+      return err(LOCKED, 'DISPATCH_OFF', 'despacho ao OpenBot desligado (flag openbotDispatch)');
     }
     const routes = createOpenBotRoutes(deps);
     const headers: Record<string, string> = {};
@@ -118,10 +118,10 @@ async function guarded(req: Request, c: RouteCtx, schemaOf: z.ZodType<{ taskId: 
   }
   const p = schemaOf.safeParse(parsed);
   if (!p.success) return { ok: false as const, res: err(400, 'VALIDATION_ERROR', 'corpo inválido', p.error.issues.map((i) => i.path.join('.') || '(raiz)')) } as const;
-  if (deps.flags().kill) return { ok: false as const, res: err(503, 'KILL_SWITCH', 'kill switch ativo') } as const;
+  if (deps.flags().kill) return { ok: false as const, res: err(LOCKED, 'KILL_SWITCH', 'kill switch ativo') } as const;
   if (deps.pilot?.enabled) {
     const stop = await deps.pilot.state.get();
-    if (stop) return { ok: false as const, res: err(503, 'PILOT_STOPPED', 'piloto em parada imediata', stop.reasons) } as const;
+    if (stop) return { ok: false as const, res: err(LOCKED, 'PILOT_STOPPED', 'piloto em parada imediata', stop.reasons) } as const;
   }
   const task = await deps.queue.get(p.data.taskId);
   if (!task) return { ok: false as const, res: err(404, 'LEASE_ERROR', 'tarefa inexistente', 'tarefa_inexistente') } as const;
