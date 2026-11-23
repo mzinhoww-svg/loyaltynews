@@ -182,6 +182,25 @@ test.describe('api', () => {
   });
 });
 
+test.describe('fake-api do Intelligence = contrato da API real (erros)', () => {
+  test.skip(mode !== 'api' || intel !== '', 'somente no modo api com Intelligence completo');
+  // Mesma porta que portal.config.ts dá ao servidor MOCK (base+4, ou 3104 sem PORTAL_PORT_BASE).
+  const base = Number(process.env.PORTAL_PORT_BASE) || 0;
+  const fake = `http://localhost:${base ? base + 4 : 3104}`;
+
+  test('id fora de UUID = 400 invalid_input (pessoa, Move, empresa); inexistente = 404 not_found', async ({ request }, info) => {
+    test.skip(info.project.name !== 'desktop', 'chamada direta: um projeto basta');
+    for (const rota of ['pessoas', 'moves', 'empresas']) {
+      const r = await request.get(`${fake}/api/publico/intelligence/${rota}/nao-e-uuid`);
+      expect(r.status(), rota).toBe(400);
+      expect((await r.json()).error.code, rota).toBe('invalid_input');
+    }
+    const nf = await request.get(`${fake}/api/publico/intelligence/empresas/10000000-0000-4000-8000-000000000999`);
+    expect(nf.status()).toBe(404);
+    expect((await nf.json()).error.code).toBe('not_found');
+  });
+});
+
 test.describe('api com pessoas desligadas ou sem registros', () => {
   test.skip(mode !== 'api' || (intel !== 'sem-flag' && intel !== 'vazio'), 'somente com PORTAL_API_INTEL=sem-flag|vazio');
 
