@@ -5,6 +5,7 @@ import * as materiaRoute from '@/app/api/materias/[id]/route';
 import * as materiaFontesRoute from '@/app/api/materias/[id]/fontes/route';
 import * as materiaReciboRoute from '@/app/api/materias/[id]/recibos/route';
 import * as materiaTransicaoRoute from '@/app/api/materias/[id]/transicao/route';
+import type { RascunhoFabrica } from '@/lib/studio/cms/fabrica-correcao';
 import * as materiaCorrecaoRoute from '@/app/api/materias/[id]/correcao/route';
 import * as fontesRoute from '@/app/api/fontes/route';
 import * as fonteRoute from '@/app/api/fontes/[id]/route';
@@ -229,6 +230,8 @@ export const api = {
   },
   editorial: {
     fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
+    /** Rascunho editorial completo + última checagem (para a correção de matéria da Fábrica; 404 sem registro editorial). */
+    rascunho: (articleId: string) => chamar<RascunhoFabrica>(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/draft`),
     revisao: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/review`),
     checagem: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/factcheck`),
     rechecar: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/recheck`, { metodo: 'POST', corpo: {} }),
