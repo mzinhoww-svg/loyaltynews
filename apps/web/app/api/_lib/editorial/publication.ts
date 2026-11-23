@@ -1,9 +1,11 @@
 // Registro da publicação editorial (applyPublication → PgEditorialStore.commitPublication) como rota do Studio.
 // POST /api/studio/editorial/articles/:articleId/publication  { receiptId, url }
-// - atrás da flag `publicacaoAutonoma` (desligada por padrão): com ela desligada nada é lido nem gravado;
+// - atrás da flag `publicacaoPortal` (desligada por padrão; ADR-017: publicação disparada pelo CMS/Studio): desligada,
+//   nada é lido nem gravado. `publicacaoAutonoma` é de disparo por agentes/workers e NÃO libera esta rota;
 // - sessão + MFA (dispatcher) e papel com `materias:publish` (admin, editor-chefe);
 // - o recibo precisa existir em publication_receipts para ESTA matéria, ser da VERSÃO atual da matéria e carregar o
-//   sha do conteúdo aprovado (o mesmo da chave `article.published:{id}:{sha}`: articleContentSha256 do corpo do rascunho);
+//   sha do conteúdo aprovado (ADR-017: `draftContentSha256` = publishedContentSha256 do RASCUNHO do CMS; o mesmo valor vai na
+//   chave `article.published:{id}:{sha}` e em publication.contentSha256);
 //   recibo de versão antiga ou de outro conteúdo ⇒ 409 sem efeito; e a identidade de publicação do recibo precisa ser a
 //   de quem chama (ADR-008);
 // - a data da publicação é a do servidor; `isMock`, `publishedAt` e qualquer campo extra são RECUSADOS (sem mock em produção);
@@ -14,7 +16,7 @@ import { z } from 'zod';
 import { apiError } from '@ln/contracts';
 import type { FlagState } from '@ln/contracts';
 import { schema } from '@ln/db';
-import { applyPublication, articleContentSha256, type ApiResponse, type HandlerCtx } from '@ln/editorial';
+import { applyPublication, draftContentSha256, type ApiResponse, type HandlerCtx } from '@ln/editorial';
 import type { Db } from '@ln/auth';
 import { HttpUrl } from '../schemas';
 
@@ -29,8 +31,8 @@ const Input = z.strictObject({
 const err = (status: number, code: string, message: string, details?: unknown): ApiResponse<never> => ({ status, body: apiError(code, message, details) });
 
 export async function registerPublication(ctx: PublicationCtx, input: unknown): Promise<ApiResponse<unknown>> {
-  if (!ctx.flags.publicacaoAutonoma) {
-    return err(403, 'FEATURE_DISABLED', 'Registro de publicação desligado (flag publicacaoAutonoma; só após os gates de R6).');
+  if (!ctx.flags.publicacaoPortal) {
+    return err(403, 'FEATURE_DISABLED', 'Registro de publicação desligado (flag publicacaoPortal).');
   }
   const actor = ctx.actor;
   if (!actor) return err(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
@@ -57,14 +59,15 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   const rec = await ctx.store.getArticle(articleId);
   if (rec?.draft) {
     // já publicada com este recibo: vale o hash gravado na publicação; senão, o do corpo aprovado agora
-    const approvedSha = rec.status === 'publicado' && rec.publication ? rec.publication.contentSha256 : articleContentSha256(rec.draft.body);
+    const approvedSha = rec.status === 'publicado' && rec.publication ? rec.publication.contentSha256 : draftContentSha256(rec.draft);
     if (receipt.sha !== approvedSha) return err(409, 'RECEIPT_CONTENT_MISMATCH', 'O recibo não corresponde ao conteúdo aprovado da matéria.');
   }
 
-  const r = await applyPublication(ctx.store, { articleId, receiptId, url, publishedAt: ctx.now().toISOString() });
+  const r = await applyPublication(ctx.store, { articleId, receiptId, url, publishedAt: ctx.now().toISOString(), expectedContentSha256: receipt.sha });
   if (!r.ok) {
-    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409 }[r.code];
-    return err(status, r.code.toUpperCase(), r.message, r.findings);
+    const status = { not_found: 404, invalid_input: 400, not_approved: 409, gate_failed: 409, no_draft: 409, receipt_stale: 409 }[r.code];
+    const code = r.code === 'receipt_stale' ? 'RECEIPT_CONTENT_MISMATCH' : r.code.toUpperCase();
+    return err(status, code, r.message, r.findings);
   }
   return {
     status: r.alreadyPublished ? 200 : 201,

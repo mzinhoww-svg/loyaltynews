@@ -34,7 +34,7 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   stu('POST', '/articles/:articleId/review', WRITE, submitReview),
   stu('GET', '/articles/:articleId/factcheck', READ, getFactcheck),
   stu('POST', '/articles/:articleId/recheck', WRITE, requestRecheck),
-  // registro da publicação (flag publicacaoAutonoma; recibo e identidade de publicação)
+  // registro da publicação (flag publicacaoPortal; recibo e identidade de publicação)
   stu('POST', '/articles/:articleId/publication', PUBLISH, registerPublication),
   // correções e direito de resposta
   stu('GET', '/corrections', READ, listCorrections),

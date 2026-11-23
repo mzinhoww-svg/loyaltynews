@@ -3,10 +3,13 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FLAG_DEFAULTS } from '@ln/contracts';
 import { sampleArticle } from '@ln/editorial/testing';
-import { articleContentSha256, type ArticleRecord } from '@ln/editorial';
+import { draftContentSha256, type ArticleRecord } from '@ln/editorial';
 import { schema } from '@ln/db';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
-import { call, makeApp } from '../_lib/testkit';
+import { call, makeApp, seedEvidence } from '../_lib/testkit';
+import * as materiasRoute from '../materias/route';
+import * as transicaoRoute from '../materias/[id]/transicao/route';
+import * as recibosRoute from '../materias/[id]/recibos/route';
 import { dispatchEditorial as d, setStoreFactoryForTest } from '../_lib/editorial';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -32,7 +35,7 @@ function approved(id: string, over: Partial<ArticleRecord> = {}): ArticleRecord 
 async function seed(id: string, publisher = chefe.id, rec: ArticleRecord = approved(id), receiptSha?: string) {
   await app.db.insert(schema.articles).values({ id, slug: id, titulo: 'Título', editoria: 'pontos', corpo: 'Corpo', resumo: 'Resumo' });
   await app.db.insert(schema.publicationReceipts).values({
-    id: `rc-${id}`, articleId: id, versao: 1, conteudoSha256: receiptSha ?? articleContentSha256(rec.draft!.body), checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: publisher,
+    id: `rc-${id}`, articleId: id, versao: 1, conteudoSha256: receiptSha ?? draftContentSha256(rec.draft!), checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: publisher,
   });
   await store.putArticle(rec);
 }
@@ -43,7 +46,7 @@ const nothingPublished = async (id: string) => {
 };
 
 beforeAll(async () => {
-  app = await makeApp({ publicacaoAutonoma: true });
+  app = await makeApp({ publicacaoPortal: true });
   store = new PgEditorialStore(app.db);
   [chefe, admin, editor, revisor] = [await app.actor('editor_chefe'), await app.actor('admin'), await app.actor('editor'), await app.actor('revisor')];
 }, 120_000);
@@ -53,16 +56,20 @@ afterAll(async () => {
 });
 
 describe('registro da publicação: portões', () => {
-  it('flag publicacaoAutonoma desligada por padrão no contrato; desligada, nada é lido nem gravado', async () => {
+  it('flag publicacaoPortal desligada por padrão no contrato; desligada, nada é lido nem gravado; publicacaoAutonoma sozinha NÃO libera a rota (ADR-017)', async () => {
+    expect(FLAG_DEFAULTS.publicacaoPortal).toBe(false);
     expect(FLAG_DEFAULTS.publicacaoAutonoma).toBe(false);
     await seed('p-off');
-    app.deps.flags.publicacaoAutonoma = false;
+    app.deps.flags.publicacaoPortal = false;
+    app.deps.flags.publicacaoAutonoma = true; // só a de agentes ligada: não basta
     try {
       const r = await call(d, 'POST', { path: P('p-off'), body: body('p-off'), as: chefe });
       expect(r.status).toBe(403);
       expect(r.body.error.code).toBe('FEATURE_DISABLED');
+      expect(r.body.error.message).toContain('publicacaoPortal');
     } finally {
-      app.deps.flags.publicacaoAutonoma = true;
+      app.deps.flags.publicacaoPortal = true;
+      app.deps.flags.publicacaoAutonoma = false;
     }
     await nothingPublished('p-off');
   });
@@ -132,7 +139,7 @@ describe('recibo prova a versão e o conteúdo aprovados (achado do QA 2 em 283e
     expect(old.body.error.details).toEqual({ versaoDoRecibo: 1, versaoDaMateria: 2 });
     await nothingPublished('p-ver');
     await app.db.insert(schema.publicationReceipts).values({
-      id: 'rc-p-ver-2', articleId: 'p-ver', versao: 2, conteudoSha256: articleContentSha256((await store.getArticle('p-ver'))!.draft!.body),
+      id: 'rc-p-ver-2', articleId: 'p-ver', versao: 2, conteudoSha256: draftContentSha256((await store.getArticle('p-ver'))!.draft!),
       checagens: [{ tipo: 'fatos', resultado: 'aprovado' }], aprovador: chefe.id, identidadePublicacao: chefe.id,
     });
     const ok = await call(d, 'POST', { path: P('p-ver'), body: body('p-ver', { receiptId: 'rc-p-ver-2' }), as: chefe });
@@ -163,7 +170,7 @@ Trecho acrescentado depois da aprovação.` } });
 
   it('caso válido: versão e sha batem com a chave do outbox article.published:{id}:{sha}', async () => {
     await seed('p-valid');
-    const sha256 = articleContentSha256((await store.getArticle('p-valid'))!.draft!.body);
+    const sha256 = draftContentSha256((await store.getArticle('p-valid'))!.draft!);
     const r = await call(d, 'POST', { path: P('p-valid'), body: body('p-valid'), as: chefe });
     expect(r.status).toBe(201);
     const [rcpt] = await app.db.select().from(schema.publicationReceipts).where(eq(schema.publicationReceipts.id, 'rc-p-valid'));
@@ -230,5 +237,79 @@ describe('registro da publicação: sucesso, duplicado e atomicidade', () => {
     expect(ok.status).toBe(201);
     expect((await store.getArticle('p-fault'))?.status).toBe('publicado');
     expect((await store.listOutbox()).filter((o) => o.refId === 'p-fault')).toHaveLength(1);
+  });
+});
+
+describe('ADR-017 ponta a ponta: recibo emitido pelo endpoint REAL → rota de publicação', () => {
+  /** Matéria criada pela API (id do servidor), em checagem; rascunho aprovado no CMS editorial com o MESMO id; recibo pelo endpoint real. */
+  async function setupE2e(tag: string) {
+    const [ev] = await seedEvidence(app.db, 1);
+    const created = await call(materiasRoute.POST, 'POST', {
+      path: '/api/materias', as: editor,
+      body: { slug: `e2e-${tag}`, titulo: 'Título da matéria', editoria: 'pontos', corpo: 'Corpo.', resumo: 'Resumo curto.', evidenceIds: [ev] },
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.data.id as string;
+    expect((await call(transicaoRoute.POST, 'POST', { params: { id }, body: { para: 'em_checagem' }, as: chefe })).status).toBe(200);
+    await store.putArticle(approved(id)); // mesmo id no CMS editorial e em articles (ADR-017, decisão 2)
+    const rc = await call(recibosRoute.POST, 'POST', {
+      params: { id }, as: chefe,
+      body: { versao: 1, checagens: [{ tipo: 'fatos', resultado: 'aprovado', autorModelo: 'openai' }] },
+    });
+    expect(rc.status).toBe(201);
+    return { id, receipt: rc.body.data as { id: string; conteudoSha256: string; identidadePublicacao: string } };
+  }
+  const publish = (id: string, receiptId: string) => call(d, 'POST', { path: P(id), body: { receiptId, url: `${URL_PUB}-${id}` }, as: chefe });
+
+  it('o recibo do endpoint real carrega o hash do RASCUNHO e a rota de publicação o aceita; o mesmo sha vai na chave do outbox e em publication', async () => {
+    const { id, receipt } = await setupE2e('ok');
+    const draft = (await store.getArticle(id))!.draft!;
+    expect(receipt.conteudoSha256).toBe(draftContentSha256(draft));
+    expect(receipt.identidadePublicacao).toBe(chefe.id);
+    const r = await publish(id, receipt.id);
+    expect(r.status).toBe(201);
+    const rec = await store.getArticle(id);
+    expect(rec?.status).toBe('publicado');
+    expect(rec?.publication?.contentSha256).toBe(receipt.conteudoSha256);
+    expect((await store.listOutbox()).find((o) => o.refId === id)?.idempotencyKey).toBe(`article.published:${id}:${receipt.conteudoSha256}`);
+    expect((await publish(id, receipt.id)).status).toBe(200); // repetição idempotente
+  });
+
+  it('manchete trocada DEPOIS do recibo: 409 e nada publicado; reemitir recibo da mesma versão com outro conteúdo também é recusado', async () => {
+    const { id, receipt } = await setupE2e('titulo');
+    const rec = (await store.getArticle(id))!;
+    await store.putArticle({ ...rec, draft: { ...rec.draft!, headline: 'Manchete trocada depois da aprovação' } });
+    const r = await publish(id, receipt.id);
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe('RECEIPT_CONTENT_MISMATCH');
+    await nothingPublished(id);
+    const again = await call(recibosRoute.POST, 'POST', { params: { id }, body: { versao: 1, checagens: [{ tipo: 'fatos', resultado: 'aprovado' }] }, as: chefe });
+    expect(again.status).toBe(409);
+    expect(again.body.error.code).toBe('RECEIPT_STALE');
+  });
+
+  it('imagem trocada (inclusive para base de direito pendente) DEPOIS do recibo: 409 e nada publicado', async () => {
+    const { id, receipt } = await setupE2e('imagem');
+    const rec = (await store.getArticle(id))!;
+    await store.putArticle({
+      ...rec,
+      draft: { ...rec.draft!, image: { mode: 'source_image', sourceId: 'mock-ri', url: 'https://example.org/outra.jpg', credit: 'Outra fonte', creditLink: 'https://example.org', basis: null } },
+    });
+    const r = await publish(id, receipt.id);
+    expect(r.status).toBe(409);
+    expect(r.body.error.code).toBe('RECEIPT_CONTENT_MISMATCH');
+    await nothingPublished(id);
+  });
+
+  it('id único (decisão 2): recibo de OUTRA matéria é recusado; o id da publicação é o do CMS editorial', async () => {
+    const a = await setupE2e('id-a');
+    const b = await setupE2e('id-b');
+    const wrong = await publish(b.id, a.receipt.id); // recibo da matéria A na matéria B
+    expect(wrong.status).toBe(409);
+    expect(wrong.body.error.code).toBe('RECEIPT_NOT_FOUND');
+    await nothingPublished(b.id);
+    expect((await publish(b.id, b.receipt.id)).status).toBe(201);
+    expect((await store.getArticle(b.id))?.articleId).toBe(b.id);
+    expect((await app.db.select().from(schema.articles).where(eq(schema.articles.id, b.id)))).toHaveLength(1);
   });
 });
