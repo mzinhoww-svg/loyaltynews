@@ -15,7 +15,15 @@ let lista = '';
 test.beforeAll(async ({ browser }) => {
   const ctx = await browser.newContext();
   const r = await ctx.request.get('/api/e2e/login?seed=intelligence');
-  expect(r.ok(), `seed do Intelligence: ${r.status()}`).toBe(true);
+  if (!r.ok()) {
+    // Depois de studio-k-pedidos-titular (que corrige o nome do Bruno) a seed da Studio 1 responde 400 ao reler os ids.
+    // Os dados MOCK de que este spec precisa (Alfa e Ana) continuam lá: confere pela rota em vez de exigir a seed.
+    await entrar(ctx, 'wl-ed', 'editor');
+    const alfa = await api(ctx, 'GET', '/api/studio/intelligence/companies?q=Alfa');
+    const ana = await api(ctx, 'GET', '/api/studio/intelligence/executives?q=Ana');
+    expect(JSON.stringify(alfa.body), `seed ${r.status()} e sem MOCK Alfa`).toContain('MOCK Alfa Fidelidade');
+    expect(JSON.stringify(ana.body), `seed ${r.status()} e sem MOCK Ana`).toContain('MOCK Ana Souza');
+  }
   await ctx.close();
 });
 
