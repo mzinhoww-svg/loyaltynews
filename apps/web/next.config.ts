@@ -32,6 +32,10 @@ const config = (phase: string): NextConfig => {
   }
   // Banco PGlite em memória: só no build de e2e e no next dev.
   const devDbSeam = e2eBuild || phase === PHASE_DEVELOPMENT_SERVER ? './lib/studio/dev-db.e2e.mock.ts' : './lib/studio/dev-db.prod.ts';
+  // Decisão do PM (opção e, 23/11/2026): o typecheck sai do build da Vertra (memória do plano) SÓ com LN_BUILD_SKIP_TYPECHECK
+  // exatamente '1', passada pelo build-web.mjs a partir do release.json. O pacote só sai com relatório de typecheck verde do
+  // MESMO commit (build-web/package-web, DevOps). Qualquer outro valor ou ausência = typecheck no build (padrão seguro).
+  const skipTypecheck = process.env.LN_BUILD_SKIP_TYPECHECK === '1';
   return {
     // Pacotes do monorepo são TypeScript-fonte (sem build próprio).
     transpilePackages: [
@@ -48,6 +52,7 @@ const config = (phase: string): NextConfig => {
     ],
     poweredByHeader: false,
     env: { NEXT_PUBLIC_PORTAL_DEMO: portalDemo },
+    typescript: { ignoreBuildErrors: skipTypecheck },
     // Upload de mídia pelo Studio (server action multipart): PDF até 10 MB + metadados.
     experimental: { serverActions: { bodySizeLimit: '11mb' } },
     // Bancos nativos/WASM ficam fora do bundle (pg em produção; PGlite só em dev/e2e: nem a lista de externos o cita em produção).

@@ -47,3 +47,26 @@ describe('next.config: raiz do monorepo explícita (incidente do build na Vertra
     expect(a.turbopack?.root).toBe(raizEsperada);
   });
 });
+
+describe('next.config: typecheck fora do build só com LN_BUILD_SKIP_TYPECHECK=1 (decisão do PM, opção e, 23/11/2026)', () => {
+  const antes = process.env.LN_BUILD_SKIP_TYPECHECK;
+  afterEach(() => {
+    if (antes === undefined) delete process.env.LN_BUILD_SKIP_TYPECHECK;
+    else process.env.LN_BUILD_SKIP_TYPECHECK = antes;
+  });
+
+  it('sem a variável, o build checa tipos (padrão seguro)', () => {
+    delete process.env.LN_BUILD_SKIP_TYPECHECK;
+    expect(config('phase-production-build').typescript?.ignoreBuildErrors).toBe(false);
+  });
+
+  it("com exatamente '1', o build pula o typecheck (o pacote exige relatório verde do mesmo commit)", () => {
+    process.env.LN_BUILD_SKIP_TYPECHECK = '1';
+    expect(config('phase-production-build').typescript?.ignoreBuildErrors).toBe(true);
+  });
+
+  it.each(['0', 'true', 'TRUE', 'yes', ' 1', '1 ', ''])('valor %j não pula o typecheck', (v) => {
+    process.env.LN_BUILD_SKIP_TYPECHECK = v;
+    expect(config('phase-production-build').typescript?.ignoreBuildErrors).toBe(false);
+  });
+});
