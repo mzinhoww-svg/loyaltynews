@@ -35,6 +35,7 @@ test.describe('navegação e menu', () => {
     await page.keyboard.press('Escape');
     await expect(menu).toHaveAttribute('aria-expanded', 'false');
     await expect(mega).toBeHidden();
+    await expect(menu, 'Esc devolve o foco ao botão do menu').toBeFocused();
     // Cabeçalho enxuto: uma única barra
     const h = await page.locator('header').boundingBox();
     expect(h?.height ?? 0, 'altura do cabeçalho').toBeLessThanOrEqual(72);
@@ -66,9 +67,15 @@ test.describe('navegação e menu', () => {
     await expect(nav).toBeHidden();
     await expand(toggle);
     await expect(nav).toBeVisible();
+    // O painel móvel traz as 10 editorias, os conteúdos e o Anuncie; a barra fechada é uma só (≤64 px).
+    for (const nome of ['Mercado & Negócios', 'Programas de Fidelidade', 'Pontos & Milhas', 'Bancos & Cartões', 'Varejo & Cashback', 'Travel & Hospitality', 'LoyaltyTech & IA', 'CRM & CX', 'Global Loyalty', 'Regulação & Dados']) {
+      await expect(nav.getByRole('link', { name: nome, exact: true })).toBeVisible();
+    }
+    await expect(nav.getByRole('link', { name: 'Anuncie' })).toBeVisible();
     await page.screenshot({ path: path.join(SHOTS, 'mobile-menu-aberto.png') });
     await page.keyboard.press('Escape');
     await expect(nav).toBeHidden();
+    await expect(toggle, 'Esc devolve o foco ao botão do menu').toBeFocused();
     await expand(toggle);
     await nav.getByRole('link', { name: 'Pontos & Milhas' }).click();
     await expect(page).toHaveURL(/\/editoria\/pontos$/);
@@ -76,7 +83,7 @@ test.describe('navegação e menu', () => {
 
   test('itens de módulos desligados (The Loyal, Podcast, Market Data) não aparecem no menu', async ({ page }) => {
     await page.goto('/');
-    const header = page.locator('header, .pt-subnav');
+    const header = page.locator('header');
     await expect(header.getByRole('link', { name: 'The Loyal' })).toHaveCount(0);
     await expect(header.getByRole('link', { name: 'Podcast' })).toHaveCount(0);
     await expect(header.getByRole('link', { name: 'Market Data' })).toHaveCount(0);
