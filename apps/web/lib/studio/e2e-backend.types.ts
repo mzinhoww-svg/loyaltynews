@@ -5,6 +5,8 @@ export interface E2eBackend {
   seedEditorial(): Promise<{ articleId: string }>;
   /** Semeia UMA matéria da Fábrica APROVADA e pronta para recibo e publicação oficiais (checagem de outro provedor, todas as afirmações aprovadas). Devolve o rascunho para os testes montarem a correção. Idempotente. */
   seedEditorialAprovada(): Promise<{ articleId: string; draft: Record<string, unknown> }>;
+  /** Semeia duas pautas autorais JÁ PROCESSADAS pelo worker (uma aprovada, uma bloqueada) na trilha de auditoria do e2e (MOCK: o worker não roda no e2e). Idempotente. */
+  seedPautasProcessadas(): Promise<{ aprovada: string; bloqueada: string }>;
   /** Liga/desliga uma flag SÓ no backend de e2e (as rotas e o Studio leem o mesmo getDeps). */
   setFlag(nome: string, ligada: boolean): void;
 }

@@ -6,6 +6,7 @@ import * as materiaFontesRoute from '@/app/api/materias/[id]/fontes/route';
 import * as materiaReciboRoute from '@/app/api/materias/[id]/recibos/route';
 import * as materiaTransicaoRoute from '@/app/api/materias/[id]/transicao/route';
 import type { RascunhoFabrica } from '@/lib/studio/cms/fabrica-correcao';
+import type { PautaVista } from '@/lib/studio/cms/pauta';
 import * as materiaCorrecaoRoute from '@/app/api/materias/[id]/correcao/route';
 import * as fontesRoute from '@/app/api/fontes/route';
 import * as fonteRoute from '@/app/api/fontes/[id]/route';
@@ -265,6 +266,9 @@ export const api = {
     correcoes: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/corrections`, { query }),
     correcao: (id: string) => chamar(dispatchEditorial, `${E}/corrections/${encodeURIComponent(id)}`),
     fontesRegistro: () => chamar(dispatchEditorial, `${E}/sources`),
+    /** Pautas autorais (DP-29): fila com o estado e o resultado do worker. */
+    pautas: () => chamar<{ items: PautaVista[] }>(dispatchEditorial, `${E}/pautas`),
+    enviarPauta: (corpo: unknown) => chamar<{ id: string; estado: 'pendente' }>(dispatchEditorial, `${E}/pautas`, { metodo: 'POST', corpo }),
     abrirCorrecao: (corpo: unknown) => chamar(dispatchEditorial, `${E}/corrections`, { metodo: 'POST', corpo }),
     /** Passos do caso: verify-requester, preserve-evidence, triage, ack-legal, publish-notice, reconcile-social, entities-rebuilt, close. */
     passoCorrecao: (id: string, passo: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/corrections/${encodeURIComponent(id)}/${passo}`, { metodo: 'POST', corpo }),
