@@ -58,7 +58,7 @@ test.describe('Organização agêntica (@ln/agents)', () => {
     await page.goto('/studio/decisoes');
     await expect(page.getByRole('heading', { name: 'Nenhuma decisão registrada' })).toBeVisible();
     await expect(page.locator('[data-vazio="acoes"]')).toBeVisible();
-    await expect(page.getByText('hoje desligada (flag rituais)')).toBeVisible();
+    await expect(page.getByText('hoje desligada nesta fase')).toBeVisible();
     await page.goto('/studio/decisoes?status=zzz');
     await expect(page.getByText('Filtro inválido.')).toBeVisible();
     await entrar(context, 'ed', 'editor');
