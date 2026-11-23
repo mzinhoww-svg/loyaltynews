@@ -13,7 +13,7 @@
 //  - Corpo até 64 KB nas rotas de controle. Nunca loga corpo, cabeçalhos, IP nem segredo.
 import { apiError } from '@ln/contracts';
 import {
-  createOpenBotRoutes, ID_RE, openbotFlagsFrom, resultRefFor, verifySignature, toSignedRequest,
+  createOpenBotRoutes, ID_RE, openbotFlagsFrom, PILOT_PERMISSIONS, resultRefFor, resumePilot, verifySignature, toSignedRequest,
   type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate,
 } from '@ln/openbot';
 import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
@@ -154,4 +154,16 @@ export const openbotIoResult: RouteFn = async (req, c) => {
     throw e;
   }
   return json({ data: { resultRef } }, 200, NO_STORE);
+};
+
+// ---------- retomar o piloto (Studio, só admin) ----------
+
+/**
+ * `POST /api/studio/openbot/pilot/resume`: retoma o piloto depois de uma parada imediata. A rota exige admin (usuarios:update); o handler de @ln/openbot confere a
+ * permissão `openbot:pilot_admin`, que só este caminho concede, e só limpa a parada se o `canDispatchNext` do AgentOps aceita as linhas (409 PILOT_STILL_INVALID
+ * com os motivos, senão). Sem piloto ativo (fora do staging ou sem LN_OPENBOT_PILOT=1): 409 PILOT_OFF. Não liga o despacho nem a flag `openbotDispatch`.
+ */
+export const openbotPilotResume: RouteFn = async (_req, c) => {
+  const deps = await openbotDeps(c);
+  return send(await resumePilot(deps, { id: c.session!.userId, permissions: [PILOT_PERMISSIONS.admin] }));
 };

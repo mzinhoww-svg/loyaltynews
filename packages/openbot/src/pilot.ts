@@ -37,6 +37,10 @@ export interface PilotRow {
   output_valid?: boolean;
   tokens_measured: false;
   unsupported_facts?: number;
+  /** Gravidade dos fatos não suportados (rubrica da Editorial); a soma tem de ser `unsupported_facts`. Espelho do AgentOps (ft/agents 041a74f). */
+  unsupported_high?: number;
+  unsupported_medium?: number;
+  unsupported_low?: number;
   published_attempt: boolean;
   tarifada_api_call: boolean;
   secret_in_log: boolean;
@@ -170,8 +174,8 @@ export function redactText(text: string): { text: string; secretFound: boolean }
 export const PILOT_CSV_COLUMNS = [
   'task_id', 'kind', 'article_id', 'source_id', 'stage', 'account', 'declared_model', 'prompt_version', 'started_at', 'ended_at', 'attempt',
   'reviewed_draft_task_id', 'outcome', 'limit_message', 'limit_at', 'account_resumed_at', 'gate_verdict', 'gate_reasons', 'cross_provider_ok',
-  'packet_chars', 'output_valid', 'tokens_measured', 'unsupported_facts', 'published_attempt', 'tarifada_api_call', 'secret_in_log',
-  'tool_outside_contract', 'notes',
+  'packet_chars', 'output_valid', 'tokens_measured', 'unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low',
+  'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes',
 ] as const;
 
 function cell(v: unknown): string {

@@ -187,7 +187,7 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
 export const PILOT_SHEET_COLUMNS = [
   'task_id', 'kind', 'article_id', 'source_id', 'stage', 'account', 'declared_model', 'prompt_version', 'started_at', 'ended_at', 'attempt',
   'reviewed_draft_task_id', 'outcome', 'limit_message', 'limit_at', 'account_resumed_at', 'gate_verdict', 'gate_reasons', 'cross_provider_ok', 'packet_chars', 'output_valid',
-  'tokens_measured', 'unsupported_facts', 'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes',
+  'tokens_measured', 'unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low', 'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes',
 ] as const;
 
 export interface PilotRow {
@@ -221,6 +221,10 @@ export interface PilotRow {
   tokens_measured: false;
   /** fatos materiais sem evidência, apontados pela rubrica do Editorial nos rascunhos APROVADOS */
   unsupported_facts?: number;
+  /** gravidade dos fatos não suportados (rubrica da Editorial); a soma tem de ser `unsupported_facts`. Sem detalhe, o fato conta como ALTO (falha fechada). */
+  unsupported_high?: number;
+  unsupported_medium?: number;
+  unsupported_low?: number;
   published_attempt: boolean;
   tarifada_api_call: boolean;
   secret_in_log: boolean;
@@ -280,6 +284,11 @@ export function validatePilotRow(r: PilotRow): string[] {
   const independent = INDEPENDENT_STAGES.includes(r.stage);
   if (independent && r.outcome === 'completed' && !r.gate_verdict) e.push(`${r.stage} concluído exige gate_verdict`);
   if (independent && r.outcome === 'completed' && !r.reviewed_draft_task_id) e.push(`${r.stage} concluído exige reviewed_draft_task_id (a etapa precisa apontar a revisão que recebeu)`);
+  const sev = [r.unsupported_high, r.unsupported_medium, r.unsupported_low];
+  if (sev.some((x) => x !== undefined)) {
+    if (sev.some((x) => x !== undefined && (!Number.isInteger(x) || x < 0))) e.push('unsupported_high/medium/low devem ser inteiros >= 0');
+    else if (r.unsupported_facts === undefined || (r.unsupported_high ?? 0) + (r.unsupported_medium ?? 0) + (r.unsupported_low ?? 0) !== r.unsupported_facts) e.push('unsupported_high + medium + low deve ser igual a unsupported_facts: registro contraditório');
+  }
   if (r.gate_verdict === 'approved') {
     const blocking = (r.gate_reasons ?? []).filter((x) => (BLOCKING_GATE_REASONS as readonly string[]).includes(x));
     if (blocking.length) e.push(`veredito approved com motivo bloqueante (${blocking.join(', ')}): registro contraditório`);
@@ -314,7 +323,7 @@ export interface PilotEvaluation {
   independence: { checked: number; ok: number; rate: number | null; failures: string[]; uncheckedFinalDrafts: string[] };
   latencyMsByStage: Partial<Record<PilotStage, Stat>>;
   retries: { tasksWithRetry: number; failed: number; pendingLimit: number };
-  quality: { approvedWithEvaluation: number; approvedWithoutEvaluation: number; unsupportedFacts: number };
+  quality: { approvedWithEvaluation: number; approvedWithoutEvaluation: number; unsupportedFacts: number; high: number; medium: number; low: number; unclassifiedCountedAsHigh: number };
   /** execuções que rodaram num backup (conta diferente da principal da etapa): mede o quanto o backup foi usado */
   backupsUsed: { stage: PilotStage; account: PilotAccount; /** família do modelo de backup dentro da mesma conta, ou null se o backup é outra conta */ model: string | null; tasks: number }[];
   /** custo tarifado: o piloto exige ZERO chamadas à API tarifada */
@@ -435,11 +444,16 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
   const approved = rows.filter((r) => (r.stage === 'review' || r.stage === 'check_edit') && r.gate_verdict === 'approved' && !(r.gate_reasons ?? []).some((x) => (BLOCKING_GATE_REASONS as readonly string[]).includes(x)));
   const withEval = approved.filter((r) => r.unsupported_facts !== undefined);
   const unsupported = withEval.reduce((s, r) => s + (r.unsupported_facts ?? 0), 0);
+  const hasSeverity = (r: PilotRow) => r.unsupported_high !== undefined || r.unsupported_medium !== undefined || r.unsupported_low !== undefined;
+  const unclassified = withEval.reduce((s, r) => s + (hasSeverity(r) ? 0 : (r.unsupported_facts ?? 0)), 0);
+  const high = withEval.reduce((s, r) => s + (hasSeverity(r) ? (r.unsupported_high ?? 0) : 0), 0) + unclassified;
+  const medium = withEval.reduce((s, r) => s + (r.unsupported_medium ?? 0), 0);
+  const low = withEval.reduce((s, r) => s + (r.unsupported_low ?? 0), 0);
 
   const sample: PilotEvaluation['exit']['sample'] = invalidRows.length ? 'invalid' : 'valid';
   const windowsMeasured: PilotEvaluation['exit']['windowsMeasured'] = rows.length === 0 ? 'inconclusive' : limitHits.length > 0 ? 'measured' : 'repeat_with_30';
   const independence: PilotEvaluation['exit']['independence'] = checked === 0 ? 'inconclusive' : failures.length > 0 ? 'fail' : uncheckedFinalDrafts.length > 0 ? 'inconclusive' : 'pass';
-  const quality: PilotEvaluation['exit']['quality'] = approved.length === 0 || withEval.length < approved.length ? 'inconclusive' : unsupported === 0 ? 'pass' : 'fail';
+  const quality: PilotEvaluation['exit']['quality'] = approved.length === 0 || withEval.length < approved.length ? 'inconclusive' : high === 0 && medium <= 1 ? 'pass' : 'fail'; // critério do PM: 0 altas e no máximo 1 média nas 10; baixas só anotadas
   const stopped = stop.length > 0;
   const overall: PilotEvaluation['exit']['overall'] = stopped
     ? 'stopped'
@@ -459,7 +473,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
     independence: { checked, ok, rate: checked ? ok / checked : null, failures, uncheckedFinalDrafts },
     latencyMsByStage,
     retries: { tasksWithRetry: rows.filter((r) => r.attempt > 1).length, failed: rows.filter((r) => r.outcome === 'failed').length, pendingLimit: rows.filter((r) => r.outcome === 'pending_limit').length },
-    quality: { approvedWithEvaluation: withEval.length, approvedWithoutEvaluation: approved.length - withEval.length, unsupportedFacts: unsupported },
+    quality: { approvedWithEvaluation: withEval.length, approvedWithoutEvaluation: approved.length - withEval.length, unsupportedFacts: unsupported, high, medium, low, unclassifiedCountedAsHigh: unclassified },
     backupsUsed: (() => {
       const m = new Map<string, { stage: PilotStage; account: PilotAccount; model: string | null; tasks: number }>();
       for (const r of rows) {
@@ -532,4 +546,24 @@ export class PilotSession {
 
 export function sheetCsvHeader(): string {
   return `${PILOT_SHEET_COLUMNS.join(',')}\n`;
+}
+
+// --- patch da Editorial e da leitura humana sobre a linha do adaptador -------------------------------------------------
+
+/**
+ * Campos que o adaptador NÃO preenche e que chegam depois do callback: veredito do gate (Editorial), motivos, cross-provider,
+ * formato da saída e fatos não suportados (leitura humana). Qualquer outro campo (identidade, tempo, conta, modelo, custo,
+ * parada imediata) é medição do adaptador e NÃO pode ser alterado por patch.
+ */
+export const PATCHABLE_ROW_FIELDS = ['gate_verdict', 'gate_reasons', 'cross_provider_ok', 'output_valid', 'unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low', 'notes'] as const;
+export type PilotRowPatch = Partial<Pick<PilotRow, (typeof PATCHABLE_ROW_FIELDS)[number]>>;
+
+export function applyRowPatch(row: PilotRow, patch: Record<string, unknown>): { row: PilotRow; errors: string[] } {
+  const errors: string[] = [];
+  const allowed = PATCHABLE_ROW_FIELDS as readonly string[];
+  for (const k of Object.keys(patch)) if (!allowed.includes(k)) errors.push(`campo ${k} não pode ser alterado por patch (medição do adaptador)`);
+  if (errors.length) return { row, errors };
+  const next = { ...row, ...(patch as PilotRowPatch) } as PilotRow;
+  errors.push(...validatePilotRow(next).filter((e) => !validatePilotRow(row).includes(e)));
+  return errors.length ? { row, errors } : { row: next, errors: [] };
 }

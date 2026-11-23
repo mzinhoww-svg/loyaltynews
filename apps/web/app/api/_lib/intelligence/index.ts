@@ -98,12 +98,12 @@ async function alertsOfOwner(db: IntelDb, actor: string, input: unknown): Promis
 /** Revisão de alerta só pelo DONO da watchlist do alerta; de outro dono (ou id que não existe) = 404, sem revelar que o alerta existe. */
 async function reviewOwnAlert(db: IntelDb, actor: string, input: unknown): Promise<ApiResult> {
   const id = isObj(input) && typeof input.id === 'string' ? input.id : '';
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-    const a = await db.query<{ watchlist_id: string }>(`SELECT watchlist_id FROM intelligence.alert WHERE id = $1`, [id]);
-    const mine = new Set((await listWatchlists(db, actor)).map((w) => w.id));
-    if (!a.rows[0] || !mine.has(a.rows[0].watchlist_id)) return { status: 404, body: { error: { code: 'not_found', message: 'alerta não encontrado' } } };
-  }
-  return reviewAlertHandler(db, actor, input); // id inválido, status inválido, já revisado: as respostas do pacote do Data
+  const naoEncontrado: ApiResult = { status: 404, body: { error: { code: 'not_found', message: 'alerta não encontrado' } } };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return naoEncontrado; // id que não é UUID também é 404 (QA 7: nada a revelar)
+  const a = await db.query<{ watchlist_id: string }>(`SELECT watchlist_id FROM intelligence.alert WHERE id = $1`, [id]);
+  const mine = new Set((await listWatchlists(db, actor)).map((w) => w.id));
+  if (!a.rows[0] || !mine.has(a.rows[0].watchlist_id)) return naoEncontrado;
+  return reviewAlertHandler(db, actor, input); // status inválido (400) e já revisado (409): as respostas do pacote do Data
 }
 
 export const dispatchIntelligence = createDispatcher<H>({

@@ -6,7 +6,7 @@ import type { Db } from '@ln/auth';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
   Collector, type ReaderPort, StoreReadBudget, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
-  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass,
+  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type ModelGateway, type RefusalCode, type TaskClass,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
 import { PgEditorialStore } from './editorial-store';
@@ -86,6 +86,13 @@ export interface RunEditorialFactoryInput {
   options?: Omit<FactoryOptions, 'dryRun'>;
   /** Deps do gateway de modelos (política, orçamento, cliente). Obrigatório fora do dry-run. */
   gateway?: ModelopsTransportOptions;
+  /**
+   * Gateway do OpenBot (DP-41): em vez do gateway de modelos (OpenRouter), as tarefas vão às contas de assinatura pelo adaptador (`OpenBotModelGateway` de
+   * `@ln/openbot`, montado pelo chamador com os stores PostgreSQL, o TaskIo e o gate do piloto). Exclusivo com `gateway`. Os custos do OpenBot são gravados em
+   * `openbot_cost_entries` (PostgreSQL), então a exigência de ledger persistente está atendida. O gateway recusa sozinho com despacho desligado (`openbotDispatch`),
+   * kill switch ou piloto parado; este arquivo não liga flag nenhuma nem cria o gateway.
+   */
+  openbotGateway?: ModelGateway;
   /** Orçamento persistido em PostgreSQL? Sem isso, `modelosHabilitados` é recusada (o teto de US$ 50/mês não sobreviveria a um restart). */
   persistentLedger?: boolean;
   registry?: SourceRegistry;
@@ -98,16 +105,17 @@ export interface RunEditorialFactoryInput {
 export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<FactoryReport> {
   const flags: FlagState = { ...FLAG_DEFAULTS, ...(i.flags ?? {}) };
   const dryRun = i.dryRun !== false;
-  if (!dryRun && flags.modelosHabilitados && !i.persistentLedger) {
+  if (i.openbotGateway && i.gateway) throw new Error('openbotGateway e gateway de modelos são exclusivos: escolha um');
+  if (!dryRun && flags.modelosHabilitados && !i.persistentLedger && !i.openbotGateway) {
     throw new Error('modelosHabilitados exige ledger de orçamento persistente (PostgreSQL); recusado para não perder o teto mensal em um restart');
   }
-  if (!dryRun && !i.gateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos');
+  if (!dryRun && !i.gateway && !i.openbotGateway) throw new Error('fora do dry-run é preciso informar o gateway de modelos (gateway) ou o do OpenBot (openbotGateway)');
   const store = new PgEditorialStore(i.db);
   const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
   const now = i.now ?? (() => new Date());
   const collector = i.collector ?? new Collector(createNodeFetcher(), { now, resolver: systemResolver, flags, readBudget: new StoreReadBudget(store), ...(i.reader ? { reader: i.reader } : {}) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
-  return runFactory({ store, registry, collector, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
+  return runFactory({ store, registry, collector, gateway: i.openbotGateway ?? createLlmGateway(llm), audit: new InMemoryAuditLog(), flags, now }, { ...(i.options ?? {}), dryRun });
 }
 
 /**

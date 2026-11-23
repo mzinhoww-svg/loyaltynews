@@ -433,3 +433,52 @@ describe('QA 3 (ba51ea2), F1: conta × modelo declarado coerentes (sondas A–H)
     expect(contradiz(base({ task_id: 'q', stage: 'rights_seo_qa', account: 'deterministic', declared_model: 'gpt-6.1-terra', prompt_version: null }))).toHaveLength(1);
   });
 });
+
+describe('patch da linha (veredito da Editorial e leitura humana)', () => {
+  const done = base({ task_id: 'f9', kind: 'fact_check', article_id: 'a9', stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', reviewed_draft_task_id: 'd9' });
+  it('sem veredito a linha concluída é inválida; o patch com o veredito a completa', async () => {
+    const { applyRowPatch } = await import('./pilot');
+    expect(validatePilotRow(done)).toEqual(expect.arrayContaining([expect.stringMatching(/gate_verdict/)]));
+    const r = applyRowPatch(done, { gate_verdict: 'approved', cross_provider_ok: true, output_valid: true });
+    expect(r.errors).toEqual([]);
+    expect(validatePilotRow(r.row)).toEqual([]);
+  });
+  it('só campos do patch: conta, modelo, tempo, custo e parada imediata não mudam; patch contraditório é recusado', async () => {
+    const { applyRowPatch, PATCHABLE_ROW_FIELDS } = await import('./pilot');
+    expect(PATCHABLE_ROW_FIELDS).toEqual(['gate_verdict', 'gate_reasons', 'cross_provider_ok', 'output_valid', 'unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low', 'notes']);
+    for (const bad of [{ account: 'claude' }, { declared_model: 'claude-opus-5-5' }, { tarifada_api_call: false }, { published_attempt: false }, { ended_at: iso(99) }, { secret_in_log: false }]) {
+      const r = applyRowPatch(done, bad);
+      expect(r.errors[0]).toMatch(/não pode ser alterado por patch/);
+      expect(r.row).toBe(done);
+    }
+    const contradictory = applyRowPatch(done, { gate_verdict: 'approved', gate_reasons: ['same_author'] });
+    expect(contradictory.errors[0]).toMatch(/motivo bloqueante/);
+    expect(contradictory.row).toBe(done);
+  });
+});
+
+describe('critério de qualidade aprovado pelo PM: 0 altas e no máximo 1 média nas 10 (baixas só anotadas)', () => {
+  const rev = (n: number, over: Partial<PilotRow> = {}) =>
+    base({ task_id: `r${n}`, kind: 'editorial_review', article_id: `a${n}`, stage: 'review', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', started_at: iso(n * 10 + 3), ended_at: iso(n * 10 + 5), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true, ...over });
+  const fc = (n: number) => base({ task_id: `f${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', started_at: iso(n * 10 + 1), ended_at: iso(n * 10 + 2), reviewed_draft_task_id: `d${n}`, gate_verdict: 'approved', cross_provider_ok: true });
+  const ds = (n: number) => draft(n, n * 10);
+  const run = (revs: (n: number) => Partial<PilotRow>) => {
+    const rows: PilotRow[] = [];
+    for (let n = 1; n <= 10; n++) rows.push(ds(n), fc(n), rev(n, revs(n)));
+    return evaluatePilot(rows);
+  };
+  it('0 altas, 1 média e baixas anotadas passa; 2 médias reprova; 1 alta reprova', () => {
+    const ok = run((n) => (n === 3 ? { unsupported_facts: 3, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 2 } : { unsupported_facts: 0 }));
+    expect(ok.exit.quality).toBe('pass');
+    expect(ok.quality).toMatchObject({ high: 0, medium: 1, low: 2, unsupportedFacts: 3, unclassifiedCountedAsHigh: 0 });
+    expect(run((n) => (n <= 2 ? { unsupported_facts: 1, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 0 } : { unsupported_facts: 0 })).exit.quality).toBe('fail');
+    expect(run((n) => (n === 5 ? { unsupported_facts: 1, unsupported_high: 1, unsupported_medium: 0, unsupported_low: 0 } : { unsupported_facts: 0 })).exit.quality).toBe('fail');
+  });
+  it('sem gravidade informada o fato conta como ALTO (falha fechada); gravidade que não soma é linha inválida', () => {
+    const e = run((n) => (n === 1 ? { unsupported_facts: 1 } : { unsupported_facts: 0 }));
+    expect(e.exit.quality).toBe('fail');
+    expect(e.quality.unclassifiedCountedAsHigh).toBe(1);
+    expect(validatePilotRow(rev(1, { unsupported_facts: 2, unsupported_high: 1, unsupported_medium: 0, unsupported_low: 0 }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve ser igual a unsupported_facts/)]));
+    expect(run((n) => (n === 1 ? { unsupported_facts: 2, unsupported_high: 1 } : { unsupported_facts: 0 })).exit.overall).toBe('invalid');
+  });
+});

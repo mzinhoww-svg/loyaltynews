@@ -343,7 +343,7 @@ export class PgTaskIo implements TaskIo {
     const t = schema.openbotIo;
     const ins = await this.db
       .insert(t)
-      .values({ ref: refId, direction: 'input', content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion, meta: meta.reviewedDraftTaskId ? { reviewedDraftTaskId: meta.reviewedDraftTaskId } : null, createdAt: this.clock() })
+      .values({ ref: refId, direction: 'input', content: input ?? null, taskClass: meta.taskClass, promptVersion: meta.promptVersion, meta: meta.reviewedDraftTaskId || meta.articleId ? { ...(meta.reviewedDraftTaskId ? { reviewedDraftTaskId: meta.reviewedDraftTaskId } : {}), ...(meta.articleId ? { articleId: meta.articleId } : {}) } : null, createdAt: this.clock() })
       .onConflictDoNothing()
       .returning({ ref: t.ref });
     if (ins.length > 0) return;
@@ -358,10 +358,10 @@ export class PgTaskIo implements TaskIo {
   }
 
   /** Para a rota do agente: a entrada de `refId` com a classe, a versão do prompt e os metadados. */
-  async getInputFor(refId: string): Promise<{ input: unknown; taskClass: string | null; promptVersion: string | null; meta: { reviewedDraftTaskId?: string } | null } | null> {
+  async getInputFor(refId: string): Promise<{ input: unknown; taskClass: string | null; promptVersion: string | null; meta: { reviewedDraftTaskId?: string; articleId?: string } | null } | null> {
     const t = schema.openbotIo;
     const [r] = await this.db.select().from(t).where(and(eq(t.ref, refId), eq(t.direction, 'input')));
-    return r ? { input: r.content, taskClass: r.taskClass, promptVersion: r.promptVersion, meta: (r.meta as { reviewedDraftTaskId?: string } | null) ?? null } : null;
+    return r ? { input: r.content, taskClass: r.taskClass, promptVersion: r.promptVersion, meta: (r.meta as { reviewedDraftTaskId?: string; articleId?: string } | null) ?? null } : null;
   }
 
   /** Para a rota do agente: PRIMEIRA gravação vence. Repetir o mesmo conteúdo devolve `false` (nada a fazer); conteúdo diferente = `ResultConflict`. */
