@@ -68,7 +68,7 @@ async function montar() {
         articleId,
         editoria: 'pontos',
         status: 'em_checagem',
-        draft: { id: 'rascunho-fabrica-1', editoria: 'pontos', headline: 'Programa Alfa altera regra de pontos (Fábrica)', slug: 'programa-alfa-altera-regra-de-pontos-fabrica', resumo: 'O Programa Alfa alterou a regra de pontos.', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, body: 'O Programa Alfa alterou a regra de pontos.', claims: [{ id: 'c1', text: 'O Programa Alfa alterou a regra de pontos.', kind: 'fact', evidenceIds: [evidencia.id] }], evidenceIds: [evidencia.id], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem imagem' }, modelProvider: 'openai', promptVersion: 'e2e' },
+        draft: { id: 'rascunho-fabrica-1', editoria: 'pontos', headline: 'Programa Alfa altera regra de pontos (Fábrica)', body: 'O Programa Alfa alterou a regra de pontos.', claims: [{ id: 'c1', text: 'O Programa Alfa alterou a regra de pontos.', kind: 'fact', evidenceIds: [evidencia.id] }], evidenceIds: [evidencia.id], signature: 'Redação Loyalty News', image: { mode: 'none', reason: 'sem imagem' }, modelProvider: 'openai', promptVersion: 'e2e' },
         evidences: [evidencia],
         blockers: [],
         findings: [],
@@ -76,13 +76,6 @@ async function montar() {
         recheckCount: 0,
         updatedAt: agora,
       });
-      // ADR-019: o caso de correção só abre sobre matéria JÁ PUBLICADA em `articles` (a Fábrica é a origem quando há registro editorial
-      // com o mesmo id). Só para o e2e dos casos: a linha publicada é fictícia (MOCK), no banco de e2e. (Ajuste de integração da int/003,
-      // igual ao do ft/studio 41f1152/c2a8ddc, ainda não homologados.)
-      await db
-        .insert(schema.articles)
-        .values({ id: articleId, slug: 'programa-alfa-altera-regra-de-pontos-fabrica', titulo: 'Programa Alfa altera regra de pontos (Fábrica)', editoria: 'pontos', corpo: 'O Programa Alfa alterou a regra de pontos.', resumo: 'O Programa Alfa alterou a regra de pontos.', status: 'publicado', versao: 3, publicadoEm: new Date('2026-11-20T10:00:00Z') } as typeof schema.articles.$inferInsert)
-        .onConflictDoNothing();
       return { articleId };
     },
     async login(user, role, mfa) {
