@@ -27,3 +27,11 @@ for (const rota of ['/studio/modelops', '/studio/organizacao', '/studio/reunioes
     await expect(page.locator('main')).not.toContainText(/\bflag\b|modelosHabilitados|linkedinPublicacao|production_enabled=/i);
   });
 }
+// P2-4 (parte de rota): os links dos agentes em /studio/organizacao tinham 15 px de altura; agora têm o alvo de toque do DS (44 px).
+test('P2-4: links dos agentes em /studio/organizacao com alvo de toque de 44 px', async ({ page, context }) => {
+  await entrar(context, 'uiux-adm', 'admin');
+  await page.goto('/studio/organizacao');
+  const links = page.locator('main a[href^="/studio/organizacao/"]');
+  expect(await links.count()).toBeGreaterThan(10);
+  for (const l of (await links.all()).slice(0, 10)) expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+});

@@ -111,7 +111,7 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
           {lista.map((a) => (
             <tr key={a.id} data-agente={a.id}>
               <th scope="row">
-                <Link href={`/studio/organizacao/${a.id}`}>{a.name}</Link>
+                <Link href={`/studio/organizacao/${a.id}`} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 'var(--ln-touch-target)' }}>{/* P2-4: alvo de toque do DS */}{a.name}</Link>
               </th>
               <td>{a.department}</td>
               <td>{a.reports_to ?? '—'}</td>
