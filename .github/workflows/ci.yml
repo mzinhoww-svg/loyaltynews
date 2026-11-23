@@ -1,0 +1,65 @@
+# CI do produto (frente 01). PREPARADO, NÃO ATIVO.
+# Dupla trava: (1) o bootstrap R0-03 deixa as Actions do produto desligadas; (2) cada job só roda se a variável de repositório
+# LN_ACTIONS_ENABLED for "true" (definida pelo PM ao ativar). Sem ela, mesmo com Actions ligadas, nada executa.
+# Ações fixadas por SHA completo (versões e fonte em r0-preparacao/R0-03/bootstrap/pins.md e infra/docs/deploy-vertra.md).
+# Falha fechada: qualquer verificação reprovada => nenhum merge. IMPORTANTE (QA): `checks` e `migrations` precisam ser checagens
+# OBRIGATÓRIAS no ruleset de main (main-required-checks); sem isso um PR pode entrar sem migrar.
+name: ci
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [staging]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    if: ${{ vars.LN_ACTIONS_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: "26.13.1", cache: npm}
+      - name: ADR-001, segredos e variáveis só de teste
+        run: node infra/scripts/ci-checks.mjs
+      - name: Build
+        run: node infra/scripts/build.mjs
+      - name: Testes (infra e workspaces)
+        run: node infra/scripts/test.mjs --skip-ci-checks
+
+  migrations:
+    # Critério da ADR-001: migrações aplicadas em PostgreSQL 18 LIMPO. Sem `--if-present`: se @ln/db perder o script `migrate`, o job FALHA.
+    # Depois de migrar, verify-migrations exige que as migrações aplicadas sejam exatamente as do journal do repositório.
+    if: ${{ vars.LN_ACTIONS_ENABLED == 'true' }}
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18   # TODO(DevOps): fixar por digest antes de ativar (pendência registrada)
+        env: {POSTGRES_PASSWORD: ci-descartavel, POSTGRES_DB: ln_ci}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"               # só no CI (o scaffold só aceita DB_SSL_MODE=disable com CI=true)
+      DB_SSL_MODE: disable     # banco descartável do CI; na Vertra o TLS com certificado de cliente é obrigatório
+      DATABASE_URL: postgres://postgres@localhost:5432/ln_ci   # sem senha na URL: o pg lê PGPASSWORD (evita string de conexão com senha no repositório)
+      PGPASSWORD: ci-descartavel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: {node-version: "26.13.1", cache: npm}
+      - run: npm ci
+      - name: Migrar banco limpo
+        run: npm run migrate -w @ln/db
+      - name: Conferir que todas as migrações do journal foram aplicadas
+        run: node infra/scripts/verify-migrations.mjs
