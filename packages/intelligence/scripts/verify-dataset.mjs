@@ -6,6 +6,7 @@
  * Grava `<dataset>.verification.json`. Nada é carregado no banco por este script.
  *
  * Uso:  node scripts/verify-dataset.mjs data/seed.public.v1.json
+ *       node scripts/verify-dataset.mjs --robots <url> [<url>…]    (só consulta robots.txt de cada host e diz se o caminho é permitido)
  *       node scripts/verify-dataset.mjs --probe <url> <palavra>     (mostra trechos da página que contêm a palavra; não grava nada)
  *
  * Regras: só HTTP(S) público; sem login, sem cookies; User-Agent identificado; pausa entre requisições; falha vira
@@ -13,6 +14,7 @@
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 const UA = 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)';
 const PAUSE_MS = 1500;
@@ -103,7 +105,27 @@ async function verify(path) {
   const out = { datasetId: ds.datasetId, verifiedAt: new Date().toISOString(), verifier: UA, sources: [], records: [] };
   const texts = new Map();
   for (const s of ds.sources) {
-    const entry = { id: s.id, url: s.url, status: 'unverified', http_status: null, fetched_at: null, content_sha256: null, text_length: 0, robots: null, note: '' };
+    if (s.method === 'browser') {
+      // Página que só renderiza com JavaScript: texto capturado pelo navegador do OpenBot (data/captures/<id>.json).
+      // O verificador NÃO acessa a rede aqui: recalcula o sha256 do texto e compara com o calculado dentro do navegador.
+      const e = { id: s.id, url: s.url, method: 'openbot_browser', status: 'unverified', http_status: null, fetched_at: null, content_sha256: null, text_length: 0, robots: null, note: '' };
+      out.sources.push(e);
+      try {
+        const cap = JSON.parse(readFileSync(join(dirname(path), 'captures', `${s.id}.json`), 'utf8'));
+        const sha = sha256(cap.text);
+        if (cap.url !== s.url) e.note = 'URL da captura difere da fonte';
+        else if (sha !== cap.sha256Claimed) e.note = 'sha256 do texto difere do calculado no navegador (texto alterado ou transcrito errado)';
+        else if (cap.text.length < 200) e.note = 'texto da captura muito curto';
+        else {
+          Object.assign(e, { status: 'fetched', http_status: 200, fetched_at: cap.capturedAt, content_sha256: sha, text_length: cap.text.length, robots: cap.robots, final_url: cap.finalUrl });
+          texts.set(s.id, norm(cap.text));
+        }
+      } catch (err) {
+        e.note = `captura ilegível: ${err.message}`.slice(0, 200);
+      }
+      continue;
+    }
+    const entry = { id: s.id, url: s.url, method: 'http', status: 'unverified', http_status: null, fetched_at: null, content_sha256: null, text_length: 0, robots: null, note: '' };
     out.sources.push(entry);
     try {
       if (!/^https:\/\//i.test(s.url)) { entry.note = 'apenas https'; continue; }
@@ -127,13 +149,15 @@ async function verify(path) {
     await sleep(PAUSE_MS);
   }
   const all = [
-    ...ds.organizations.map((o) => ({ ref: `organization:${o.key}`, sourceId: o.sourceId, quote: o.quote })),
-    ...ds.relations.map((r) => ({ ref: `relation:${r.from}>${r.type}>${r.to}`, sourceId: r.sourceId, quote: r.quote })),
+    ...ds.organizations.map((o) => ({ ref: `organization:${o.key}`, sourceId: o.sourceId, quote: o.quote, contextQuote: o.contextQuote })),
+    ...ds.relations.map((r) => ({ ref: `relation:${r.from}>${r.type}>${r.to}`, sourceId: r.sourceId, quote: r.quote, contextQuote: r.contextQuote })),
     ...(ds.persons ?? []).map((p) => ({ ref: `person:${p.key}`, sourceId: p.sourceId, quote: p.quote })),
   ];
   for (const rec of all) {
     const t = texts.get(rec.sourceId);
-    const found = t !== undefined && typeof rec.quote === 'string' && rec.quote.length >= 20 && t.includes(norm(rec.quote));
+    const has = (q) => t !== undefined && typeof q === 'string' && q.length >= 20 && t.includes(norm(q));
+    // contextQuote (opcional) também precisa estar literalmente na página: é o que dá sentido à lista (ex.: título "Empresas Associadas")
+    const found = has(rec.quote) && (rec.contextQuote === undefined || has(rec.contextQuote));
     out.records.push({ ref: rec.ref, source_id: rec.sourceId, quote_found: found });
   }
   for (const s of out.sources) if (s.status === 'fetched') s.status = out.records.filter((r) => r.source_id === s.id).every((r) => r.quote_found) ? 'verified' : 'partial';
@@ -146,6 +170,12 @@ async function verify(path) {
 }
 
 const [a, b, c] = process.argv.slice(2);
-if (a === '--probe') await probe(b, c);
+if (a === '--robots') {
+  for (const u of process.argv.slice(3)) {
+    const r = await robotsAllows(u);
+    console.log(`${r.allowed ? 'PERMITIDO' : 'BLOQUEADO'}  ${u}  (${r.note})`);
+    await sleep(500);
+  }
+} else if (a === '--probe') await probe(b, c);
 else if (a) await verify(a);
 else console.log('uso: node scripts/verify-dataset.mjs <dataset.json> | --probe <url> <palavra>');

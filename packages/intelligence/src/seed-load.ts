@@ -26,9 +26,10 @@ export const SEED_SCHEMA_VERSION = 'intelligence-seed/1';
 const ORG_KINDS = ['company', 'program', 'association', 'regulator', 'media', 'other'] as const;
 const REL_TYPES = ['parent_of', 'partner_of', 'supplier_of', 'coalition_member', 'acquired', 'other'] as const;
 
-export interface SeedSource { id: string; name: string; url: string }
-export interface SeedOrganization { key: string; legalName: string; tradeName?: string; kind: (typeof ORG_KINDS)[number]; sourceId: string; quote: string }
-export interface SeedRelation { from: string; to: string; type: (typeof REL_TYPES)[number]; sourceId: string; quote: string }
+/** method 'browser' = página que só renderiza com JavaScript; texto capturado pelo navegador do OpenBot em data/captures/<id>.json. */
+export interface SeedSource { id: string; name: string; url: string; method?: 'http' | 'browser' }
+export interface SeedOrganization { key: string; legalName: string; tradeName?: string; kind: (typeof ORG_KINDS)[number]; sourceId: string; quote: string; contextQuote?: string }
+export interface SeedRelation { from: string; to: string; type: (typeof REL_TYPES)[number]; sourceId: string; quote: string; contextQuote?: string }
 export interface SeedDataset {
   schemaVersion: typeof SEED_SCHEMA_VERSION;
   datasetId: string;
@@ -42,7 +43,7 @@ export interface SeedDataset {
 export interface VerificationReport {
   datasetId: string;
   verifiedAt: string;
-  sources: { id: string; url: string; status: string; http_status: number | null; fetched_at: string | null; content_sha256: string | null }[];
+  sources: { id: string; url: string; method?: string; status: string; http_status: number | null; fetched_at: string | null; content_sha256: string | null }[];
   records: { ref: string; source_id: string; quote_found: boolean }[];
 }
 
@@ -94,6 +95,7 @@ export function validateSeed(x: unknown): string[] {
     if (!ORG_KINDS.includes(o.kind as never)) out.push(`organizations[${i}]: kind inválido`);
     if (typeof o.sourceId !== 'string' || !sourceIds.has(o.sourceId)) out.push(`organizations[${i}]: sourceId desconhecido`);
     if (typeof o.quote !== 'string' || o.quote.length < 20 || o.quote.length > 500) out.push(`organizations[${i}]: quote deve ter 20 a 500 caracteres`);
+    out.push(...contextIssues(`organizations[${i}]`, o));
   });
   (Array.isArray(x.relations) ? x.relations : []).forEach((r, i) => {
     if (!isObj(r)) return void out.push(`relations[${i}]: objeto esperado`);
@@ -101,11 +103,22 @@ export function validateSeed(x: unknown): string[] {
     if (!REL_TYPES.includes(r.type as never)) out.push(`relations[${i}]: type inválido`);
     if (typeof r.sourceId !== 'string' || !sourceIds.has(r.sourceId)) out.push(`relations[${i}]: sourceId desconhecido`);
     if (typeof r.quote !== 'string' || r.quote.length < 20 || r.quote.length > 500) out.push(`relations[${i}]: quote deve ter 20 a 500 caracteres`);
-    for (const k of Object.keys(r)) if (!['from', 'to', 'type', 'sourceId', 'quote'].includes(k)) out.push(`relations[${i}]: campo ${k} não permitido (inferência/certeza/data não se declaram aqui)`);
+    out.push(...contextIssues(`relations[${i}]`, r));
+    for (const k of Object.keys(r)) if (!['from', 'to', 'type', 'sourceId', 'quote', 'contextQuote'].includes(k)) out.push(`relations[${i}]: campo ${k} não permitido (inferência/certeza/data não se declaram aqui)`);
   });
   if (Array.isArray(x.persons) && x.persons.length) out.push('persons: não suportado em intelligence-seed/1 (pessoas só pelo contrato role-observation/1, com a flag intelligencePessoas)');
   return out;
 }
+
+/** contextQuote é opcional (ex.: título da lista "Empresas Associadas"); se existir, também precisa estar literalmente na página. */
+function contextIssues(where: string, r: Record<string, unknown>): string[] {
+  if (r.contextQuote === undefined) return [];
+  if (typeof r.contextQuote !== 'string' || r.contextQuote.length < 20) return [`${where}: contextQuote deve ter ao menos 20 caracteres`];
+  if (r.contextQuote.length + (typeof r.quote === 'string' ? r.quote.length : 0) + 7 > 500) return [`${where}: contextQuote + quote excedem 500 caracteres (limite do trecho da evidência)`];
+  return [];
+}
+/** Trecho gravado na evidência: contexto […] citação (nunca mais que 500 caracteres; validado antes). */
+const excerptOf = (q: { quote: string; contextQuote?: string }) => (q.contextQuote ? `${q.contextQuote} […] ${q.quote}` : q.quote);
 
 const orgRef = (key: string) => `organization:${key}`;
 const relRef = (r: SeedRelation) => `relation:${r.from}>${r.type}>${r.to}`;
@@ -193,7 +206,7 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
         orgIds.set(o.key, cur.rows[0]!.id);
         continue;
       }
-      const ev = await evidenceFor(o.sourceId, o.quote);
+      const ev = await evidenceFor(o.sourceId, excerptOf(o));
       const id = await upsertOrganization(db, { legalName: o.legalName, tradeName: o.tradeName, kind: o.kind, evidenceId: ev.id, observedAt: ev.at });
       orgIds.set(o.key, id);
       manifest.organizationsCreated.push(id);
@@ -203,7 +216,7 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
       if (!approved.has(ref)) continue;
       const from = orgIds.get(r.from), to = orgIds.get(r.to);
       if (!from || !to) continue;
-      const ev = await evidenceFor(r.sourceId, r.quote);
+      const ev = await evidenceFor(r.sourceId, excerptOf(r));
       if (exists.has(ref)) {
         const upd = await db.query<{ id: Uuid }>(
           `UPDATE intelligence.org_relation SET validated_at = $4, evidence_id = $5
