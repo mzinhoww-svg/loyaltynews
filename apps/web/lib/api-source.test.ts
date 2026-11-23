@@ -70,6 +70,20 @@ describe('imagem pública', () => {
   });
 });
 
+describe('imagem na listagem pública', () => {
+  const item = (imagem: unknown) => ({ ...article({ slug: 'm1' }), corpo: undefined, imagem });
+  it('card com ilustração: url pública, alt, crédito e rótulo vindo do Backend', async () => {
+    const f = vi.fn(async () => new Response(JSON.stringify({ data: [item({ url: '/api/publico/midia/x', textoAlternativo: 'Ilustração conceitual: teste', credito: 'Loyalty News', rotulo: 'Ilustração conceitual' }), item(null)], total: 2 }), { status: 200 }));
+    const page = await createApiSlice('http://api.test', f as unknown as typeof fetch).getLatest({ pageSize: 12 });
+    expect(page.items[0]!.image).toMatchObject({ src: '/api/publico/midia/x', credit: 'Loyalty News', label: 'Ilustração conceitual' });
+    expect(page.items[1]!.image).toBeUndefined();
+  });
+  it('rotulo null = sem rótulo; o rótulo do Backend prevalece sobre a origem', () => {
+    expect(mapImage({ url: '/u', credito: 'Agência', textoAlternativo: 'Foto', rotulo: null })!.label).toBeNull();
+    expect(mapImage({ url: '/u', origem: 'propria', credito: 'X', textoAlternativo: 'Y', rotulo: 'Ilustração conceitual' })!.label).toBe('Ilustração conceitual');
+  });
+});
+
 describe('mapeamento da matéria', () => {
   it('traz errata como correção, fontes com host e assinatura institucional', () => {
     const a = mapArticle(article());

@@ -12,10 +12,13 @@ const asContentType = (v: unknown): ContentType => (CONTENT_TYPES.includes(v as 
 
 export interface RawImage {
   url: string;
-  origem: string;
+  /** Presente na leitura da matéria; a listagem pública traz só o rótulo pronto. */
+  origem?: string;
   credito: string;
   link?: string;
   textoAlternativo: string;
+  /** Rótulo visível calculado pelo Backend (imageLabel); null = sem rótulo. */
+  rotulo?: string | null;
 }
 export interface RawListItem {
   slug: string;
@@ -29,6 +32,8 @@ export interface RawListItem {
   patrocinado?: boolean;
   publicadoEm: string;
   corrigida?: boolean;
+  /** Imagem do card (url pública, alt, crédito, rótulo) ou null. */
+  imagem?: RawImage | null;
 }
 export interface RawArticle extends Omit<RawListItem, 'corrigida'> {
   corpo: string;
@@ -69,7 +74,8 @@ export function mapImage(img: RawImage | null | undefined): ArticleImage | undef
     src: img.url,
     alt: img.textoAlternativo,
     credit: img.credito,
-    label: imageLabel({ origem: img.origem as never }),
+    // O rótulo vem pronto do Backend; sem ele (resposta antiga), calcula pela origem (ADR-018).
+    label: img.rotulo !== undefined ? img.rotulo : img.origem ? imageLabel({ origem: img.origem as never }) : null,
     link: img.link,
   };
 }
@@ -93,6 +99,7 @@ export function mapListItem(r: RawListItem): Article {
     authorLabel: r.assinatura,
     publishedAt: r.publicadoEm,
     readingMinutes: r.tempoLeituraMin ?? 1,
+    image: mapImage(r.imagem),
     body: [],
     sources: [],
     corrections: [],

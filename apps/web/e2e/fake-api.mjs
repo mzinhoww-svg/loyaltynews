@@ -77,6 +77,7 @@ const listItem = (a) => ({
   slug: a.slug, titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo,
   tempoLeituraMin: a.tempoLeituraMin, editoria: a.editoria, assinatura: a.assinatura, patrocinado: a.patrocinado,
   rotuloPublieditorial: a.rotuloPublieditorial, publicadoEm: a.publicadoEm, corrigida: Boolean(a.corrigida),
+  imagem: a.imagem ? { url: a.imagem.url, textoAlternativo: a.imagem.textoAlternativo, credito: a.imagem.credito, rotulo: a.imagem.origem === 'ilustracao_gerada' ? 'Ilustração conceitual' : null } : null,
 });
 
 const send = (res, status, body) => {
@@ -102,6 +103,7 @@ http
       if (!a) return send(res, 404, { error: { code: 'NOT_FOUND', message: 'Matéria não encontrada.' } });
       const pub = { ...a };
       delete pub.corrigida;
+      if (pub.imagem) pub.imagem = { ...pub.imagem, rotulo: pub.imagem.origem === 'ilustracao_gerada' ? 'Ilustração conceitual' : null };
       return send(res, 200, { data: pub });
     }
     return send(res, 404, { error: { code: 'NOT_FOUND' } });

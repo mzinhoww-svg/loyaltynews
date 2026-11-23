@@ -76,6 +76,18 @@ test.describe('matéria via API pública', () => {
     await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();
   });
 
+  test('cards da listagem mostram a imagem pública e o rótulo da ilustração', async ({ page }) => {
+    await page.goto('/noticias');
+    const card = page.locator('.pt-card-labeled', { hasText: 'ilustração conceitual e errata' });
+    await expect(card.getByTestId('card-image-label')).toHaveText('Ilustração conceitual');
+    await expect(card.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
+    // foto de terceiro: imagem sem selo de ilustração; matéria sem imagem: card sem imagem.
+    await expect(page.locator('.pt-card-labeled')).toHaveCount(1);
+    await expect(page.getByTestId('card-image-label')).toHaveCount(1);
+    await expect(page.locator('article', { hasText: 'foto de terceiro' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/foto-1');
+    await expect(page.locator('article', { hasText: 'imagem venceu' }).locator('img')).toHaveCount(0);
+  });
+
   test('listagens e home usam a API; "em alta" fica vazio e honesto', async ({ page }) => {
     await page.goto('/noticias');
     await expect(page.getByRole('link', { name: /Matéria com ilustração conceitual e errata/ })).toBeVisible();
