@@ -70,3 +70,32 @@ describe('next.config: typecheck fora do build só com LN_BUILD_SKIP_TYPECHECK=1
     expect(config('phase-production-build').typescript?.ignoreBuildErrors).toBe(false);
   });
 });
+
+describe('next.config: build leve só com LN_BUILD_LEVE=1 (v8: geração estática uma página por vez, sem cache de arquivos do Turbopack)', () => {
+  const antes = process.env.LN_BUILD_LEVE;
+  afterEach(() => {
+    if (antes === undefined) delete process.env.LN_BUILD_LEVE;
+    else process.env.LN_BUILD_LEVE = antes;
+  });
+
+  it('sem a variável nada muda (padrão do Next)', () => {
+    delete process.env.LN_BUILD_LEVE;
+    const e = config('phase-production-build').experimental;
+    expect(e?.staticGenerationMaxConcurrency).toBeUndefined();
+    expect(e?.turbopackFileSystemCacheForBuild).toBeUndefined();
+    expect(e?.serverActions).toEqual({ bodySizeLimit: '11mb' });
+  });
+
+  it("com exatamente '1': concorrência 1 e sem cache de arquivos do build; o limite das server actions continua", () => {
+    process.env.LN_BUILD_LEVE = '1';
+    const e = config('phase-production-build').experimental;
+    expect(e?.staticGenerationMaxConcurrency).toBe(1);
+    expect(e?.turbopackFileSystemCacheForBuild).toBe(false);
+    expect(e?.serverActions).toEqual({ bodySizeLimit: '11mb' });
+  });
+
+  it.each(['0', 'true', 'yes', ' 1', '1 ', ''])('valor %j não liga o build leve', (v) => {
+    process.env.LN_BUILD_LEVE = v;
+    expect(config('phase-production-build').experimental?.staticGenerationMaxConcurrency).toBeUndefined();
+  });
+});
