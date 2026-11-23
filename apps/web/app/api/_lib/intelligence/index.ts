@@ -9,6 +9,7 @@ import {
   searchExecutivesHandler, suppressSubjectHandler, type ApiResult, type Db as IntelDb,
 } from '@ln/intelligence';
 import type { Action, Db, Resource } from '@ln/auth';
+import { carregarEfeitos, filtrarPortal } from './titular-publico';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
 import { confirmRoleHandler, discardRoleHandler, listRolesHandler } from './cargos';
 
@@ -114,6 +115,10 @@ export const dispatchIntelligence = createDispatcher<H>({
     if (r.people && !c.deps.flags.intelligencePessoas) {
       return { status: 403, body: apiError('FEATURE_DISABLED', 'Dados de pessoas desligados (flag intelligencePessoas; condições de J-01).') };
     }
-    return r.handler(intelDb(c.deps.db), c.session?.userId ?? '', normalizeBooleans(input));
+    const db = intelDb(c.deps.db);
+    const out = await r.handler(db, c.session?.userId ?? '', normalizeBooleans(input));
+    // Portal (sem login): as decisões da fila do titular (DP-38) valem na resposta; o Studio vê tudo
+    if (r.auth === 'public' && r.people) return filtrarPortal(db, await carregarEfeitos(c.deps.db), r.path, input, out);
+    return out;
   },
 });
