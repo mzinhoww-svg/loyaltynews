@@ -57,6 +57,8 @@ export interface RelationRow {
   valid_from: string;
   valid_to: string | null;
   certainty: Certainty;
+  /** true = a citação deixou de existir na fonte ("validação vencida"): fora do portal até uma nova fonte confirmar; o Studio rotula. */
+  stale_validation: boolean;
   validated_at: string;
   evidence: EvidenceRef;
 }
@@ -64,7 +66,7 @@ export interface RelationRow {
 export async function getOrgRelations(db: Db, organizationId: Uuid, asOf: string, includeInferred: boolean): Promise<RelationRow[]> {
   const r = await db.query<any>(
     `SELECT x.id, x.relation_type AS type, CASE WHEN x.from_org_id = $1 THEN 'from' ELSE 'to' END AS direction,
-            o.id AS other_org_id, o.legal_name AS other_org_name, x.valid_from::text, x.valid_to::text, x.certainty, x.validated_at, ${EVIDENCE_COLS}
+            o.id AS other_org_id, o.legal_name AS other_org_name, x.valid_from::text, x.valid_to::text, x.certainty, x.inference_basis, x.validated_at, ${EVIDENCE_COLS}
        FROM ${S}.org_relation x
        JOIN ${S}.organization o ON o.id = CASE WHEN x.from_org_id = $1 THEN x.to_org_id ELSE x.from_org_id END
        JOIN ${S}.evidence ev ON ev.id = x.evidence_id
@@ -73,7 +75,7 @@ export async function getOrgRelations(db: Db, organizationId: Uuid, asOf: string
       ORDER BY o.legal_name, x.relation_type`,
     [organizationId, asOf, includeInferred],
   );
-  return r.rows.map((x) => ({ ...x, validated_at: new Date(x.validated_at).toISOString(), evidence: toEvidence(x) }));
+  return r.rows.map(({ inference_basis, ...x }) => ({ ...x, stale_validation: typeof inference_basis === 'string' && inference_basis.startsWith('validação vencida'), validated_at: new Date(x.validated_at).toISOString(), evidence: toEvidence(x) }));
 }
 
 export interface PersonRoleRow {

@@ -15,9 +15,11 @@ if (key.startsWith('{')) { try { const j = JSON.parse(key) as Record<string, unk
 const scrub = (s: string) => s.split(key).join('***');
 
 const d = new ExaDiscoverer({ keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 10_000 }], resolveSecret: () => key });
-for (const host of process.argv.slice(2)) {
+for (const arg of process.argv.slice(2)) {
+  // `host` ou `host|consulta` (consulta própria, ex.: "Genial Investimentos organograma")
+  const [host, customQuery] = arg.split('|') as [string, string | undefined];
   try {
-    const links = await d.discover({ host, limit: 8, query: 'diretoria executiva, conselho de administração e administração da companhia' });
+    const links = await d.discover({ host, limit: 8, query: customQuery ?? 'diretoria executiva, conselho de administração e administração da companhia' });
     console.log(scrub(JSON.stringify({ host, links: links.map((l) => ({ url: l.url, titulo: l.title?.slice(0, 90) })) })));
   } catch (e) {
     console.log(scrub(JSON.stringify({ host, erro: String((e as Error).message) })));
