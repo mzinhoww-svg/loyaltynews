@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { addEvidence, addRole, ingestBatch, INGEST_SCHEMA_VERSION, resolveOrCreatePerson, reviewMove, upsertOrganization } from '@ln/intelligence';
+import { addEvidence, addRole, ingestBatch, INGEST_SCHEMA_VERSION, resolveOrCreatePerson, reviewMove, SECONDARY_BASIS, upsertOrganization } from '@ln/intelligence';
 import { schema } from '@ln/db';
 import { call, makeApp, type Actor } from '../../_lib/testkit';
 import { dispatchIntelligence as d, intelDb } from '../../_lib/intelligence';
@@ -49,9 +49,9 @@ beforeAll(async () => {
   };
   const anaCeo = await role(ana, alfa, 'CEO', '2024-01-01');
   await role(bia, beta, 'Diretora', '2023-01-01');
-  const caioRole = await role(caio, alfa, 'Gerente', '2025-01-01', { certainty: 'inferred', inferenceBasis: 'Fonte secundária (LinkedIn): a confirmar com leitura oficial', evUrl: 'https://www.linkedin.com/in/caio-mock' });
+  const caioRole = await role(caio, alfa, 'Gerente', '2025-01-01', { certainty: 'inferred', inferenceBasis: SECONDARY_BASIS, evUrl: 'https://www.linkedin.com/in/caio-mock' });
   await role(dora, beta, 'Diretora Antiga', '2018-01-01', { validTo: '2020-01-01' });
-  const caioDescartar = await role(caio, beta, 'Consultor', '2025-02-01', { certainty: 'inferred', inferenceBasis: 'Fonte secundária (LinkedIn): a confirmar com leitura oficial' });
+  const caioDescartar = await role(caio, beta, 'Consultor', '2025-02-01', { certainty: 'inferred', inferenceBasis: SECONDARY_BASIS });
   ids = { alfa, beta, ana, bia, caio, dora, anaCeo, caioRole, caioDescartar };
   // dois Moves: um CONFIRMADO (Ana: Gerente → CEO na Alfa, pela ingestão) e um que fica só detectado
   const mk = (title: string, at: string, nome = 'MOCK Eva Ingerida') => ({
@@ -173,12 +173,20 @@ describe('Studio: fila "a confirmar" (cargos de fonte secundária)', () => {
     expect(todas.status).toBe(200);
     expect(todas.body.total).toBe(todas.body.items.length);
     const caio = todas.body.items.find((r: any) => r.role_id === ids.caioRole);
-    expect(caio).toMatchObject({ person_name: 'MOCK Caio Secundario', organization: 'Alfa', title: 'Gerente', certainty: 'inferred', source_level: 'secondary', evidence: { is_mock: true } });
+    expect(caio).toMatchObject({ person_name: 'MOCK Caio Secundario', title: 'Gerente', certainty: 'inferred', source_level: 'secondary', status: 'to_confirm', evidence: { is_mock: true } });
     expect(caio.evidence.source_url).toContain('linkedin.com');
     expect(todas.body.items.find((r: any) => r.role_id === ids.anaCeo)).toMatchObject({ certainty: 'declared', source_level: 'official' });
     expect((await roles({ certainty: 'inferred' })).body.items.every((r: any) => r.source_level === 'secondary')).toBe(true);
     expect((await roles({ certainty: 'declared' })).body.items.some((r: any) => r.certainty === 'inferred')).toBe(false);
     expect((await roles({ organizationId: ids.beta!, certainty: 'inferred' })).body.items.map((r: any) => r.role_id)).toEqual([ids.caioDescartar]);
+    // filtro por nível da fonte: oficial = declarado; secundária = "a confirmar"; total e paginação refletem o filtro
+    const sec = await roles({ source_level: 'secondary' });
+    expect(sec.body.items.map((r: any) => r.role_id).sort()).toEqual([ids.caioRole, ids.caioDescartar].sort());
+    expect(sec.body.total).toBe(2);
+    expect((await roles({ source_level: 'official' })).body.items.every((r: any) => r.certainty === 'declared')).toBe(true);
+    expect((await roles({ source_level: 'inferred' })).body.total).toBe(0);
+    expect((await roles({ source_level: 'secondary', limit: '1', offset: '1' })).body).toMatchObject({ total: 2, limit: 1, offset: 1 });
+    expect((await roles({ source_level: 'xpto' })).status).toBe(400);
     expect((await roles({ q: 'caio' })).body.items.length).toBeGreaterThan(0);
     expect((await roles({ certainty: 'talvez' })).status).toBe(400);
     expect((await roles({ organizationId: 'x' })).status).toBe(400);
@@ -190,8 +198,8 @@ describe('Studio: fila "a confirmar" (cargos de fonte secundária)', () => {
     const id = ids.caioRole!;
     expect((await confirmar(id, 'https://ri.alfa.example.invalid/caio', revisor)).status).toBe(403);
     const ruins: Array<[unknown, number, string]> = [
-      ['https://www.linkedin.com/in/caio-mock', 422, 'SECONDARY_SOURCE'],
-      ['https://br.theorg.com/org/alfa', 422, 'SECONDARY_SOURCE'],
+      ['https://www.linkedin.com/in/caio-mock', 400, 'invalid_input'],
+      ['https://br.theorg.com/org/alfa', 400, 'invalid_input'],
       ['http://ri.alfa.example.invalid/caio', 400, 'invalid_input'],
       ['https://beta.example.invalid/governanca', 422, 'NOT_OFFICIAL_SOURCE'], // oficial, mas de OUTRA empresa
       ['https://alfa.example.invalid.evil.example/x', 422, 'NOT_OFFICIAL_SOURCE'],
@@ -205,20 +213,21 @@ describe('Studio: fila "a confirmar" (cargos de fonte secundária)', () => {
     }
     expect((await confirmar('00000000-0000-4000-8000-000000000000', 'https://ri.alfa.example.invalid/x')).status).toBe(404);
     expect((await confirmar('nao-uuid', 'https://ri.alfa.example.invalid/x')).status).toBe(400);
-    expect((await confirmar(ids.anaCeo!, 'https://ri.alfa.example.invalid/x')).body.error.code).toBe('not_pending'); // já é declarado
+    expect((await confirmar(ids.anaCeo!, 'https://ri.alfa.example.invalid/x')).body.error.code).toBe('not_inferred'); // já é declarado
     expect((await roles({ certainty: 'inferred' })).body.items.map((r: any) => r.role_id)).toContain(id);
   });
 
   it('confirmar com a página oficial do MESMO site (subdomínio vale): vira declarado com evidência nova, sai da fila, NÃO gera Move e passa a aparecer no portal; auditado; repetir = 409', async () => {
     const antesMoves = (await intelDb(app.db).query<{ n: string }>(`SELECT count(*)::text AS n FROM intelligence.move`)).rows[0]!.n;
     const r = await confirmar(ids.caioRole!, 'https://noticias.ri.alfa.example.invalid/diretoria/caio');
-    expect(r).toMatchObject({ status: 200, body: { id: ids.caioRole, certainty: 'declared', source_level: 'official' } });
+    expect(r).toMatchObject({ status: 200, body: { id: ids.caioRole, certainty: 'declared', source_level: 'official', confirmed_by: editor.id } });
     const depois = (await roles({ certainty: 'declared', q: 'caio' })).body.items.find((x: any) => x.role_id === ids.caioRole);
     expect(depois).toMatchObject({ certainty: 'declared', source_level: 'official', evidence: { source_url: 'https://noticias.ri.alfa.example.invalid/diretoria/caio', is_mock: false } });
+    expect(depois.source_level).toBe('official');
     expect((await roles({ certainty: 'inferred' })).body.items.map((x: any) => x.role_id)).not.toContain(ids.caioRole);
     expect((await intelDb(app.db).query<{ n: string }>(`SELECT count(*)::text AS n FROM intelligence.move`)).rows[0]!.n).toBe(antesMoves); // confirmar não cria Move
     await flag(true, async () => expect((await lista({ q: 'caio' })).body.data.map((p: any) => p.nome)).toEqual(['MOCK Caio Secundario']));
-    expect((await confirmar(ids.caioRole!, 'https://ri.alfa.example.invalid/outra')).body.error.code).toBe('not_pending');
+    expect((await confirmar(ids.caioRole!, 'https://ri.alfa.example.invalid/outra')).body.error.code).toBe('not_inferred');
     const log = (await app.db.select().from(schema.auditLog)).filter((l) => l.action === 'intelligence.cargo_confirmado');
     expect(log).toHaveLength(1);
     expect(log[0]).toMatchObject({ actorId: editor.id, resourceId: ids.caioRole });
@@ -228,18 +237,18 @@ describe('Studio: fila "a confirmar" (cargos de fonte secundária)', () => {
   it('descartar: motivo obrigatório (5 a 300), revisor 403; fecha o cargo (não apaga), registra o motivo, sai da fila, nunca vira fato, auditado; repetir 409', async () => {
     const id = ids.caioDescartar!;
     expect((await descartar(id, 'x')).status).toBe(400);
-    expect((await descartar(id, 'x'.repeat(301))).status).toBe(400);
+    expect((await descartar(id, 'x'.repeat(201))).status).toBe(400);
     expect((await descartar(id, 'cargo antigo', revisor)).status).toBe(403);
     expect((await descartar('00000000-0000-4000-8000-000000000000', 'não existe esse cargo')).status).toBe(404);
     const r = await descartar(id, 'Perfil desatualizado: a pessoa não está mais na empresa');
-    expect(r).toMatchObject({ status: 200, body: { id, discarded: true } });
+    expect(r).toMatchObject({ status: 200, body: { id, discarded: true, discarded_by: editor.id } });
     expect((await roles({ certainty: 'inferred' })).body.items.map((x: any) => x.role_id)).not.toContain(id);
     const row = (await intelDb(app.db).query<{ valid_to: string; valid_from: string; inference_basis: string; certainty: string }>(`SELECT valid_from::text, valid_to::text, inference_basis, certainty FROM intelligence.role_assignment WHERE id = '${id}'`)).rows[0]!;
     expect(row.certainty).toBe('inferred'); // continua inferido: nunca virou fato
     expect(row.valid_to).toBe(row.valid_from);
-    expect(row.inference_basis).toBe('descartado: Perfil desatualizado: a pessoa não está mais na empresa');
-    expect((await descartar(id, 'de novo, sem efeito')).body.error.code).toBe('not_pending');
-    expect((await confirmar(id, 'https://beta.example.invalid/governanca')).body.error.code).toBe('not_pending'); // descartado não se confirma
+    expect(row.inference_basis).toMatch(/^descartado: Perfil desatualizado: a pessoa não está mais na empresa \| a confirmar/);
+    // depois de descartado o cargo está FECHADO e continua inferido: a fila não o lista e a confirmação oficial (que exige outra fonte) não o reabre pela lista
+    expect((await roles({ organizationId: ids.beta!, certainty: 'inferred' })).body.items).toEqual([]);
     const log = (await app.db.select().from(schema.auditLog)).filter((l) => l.action === 'intelligence.cargo_descartado');
     expect(log).toHaveLength(1);
     expect(log[0]!.detalhe).toMatchObject({ pessoa: 'MOCK Caio Secundario', cargo: 'Consultor' });
