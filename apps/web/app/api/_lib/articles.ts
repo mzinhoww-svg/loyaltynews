@@ -4,12 +4,13 @@
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
-import { ASSINATURA, canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
+import { canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
-import { publishedContentSha256 } from '@ln/contracts/hash';
 import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { issueFromEditorial } from './editorial/receipt';
+import { evidenceIdsOf, gateFailures, rowContentSha, type ArticleRow } from './article-core';
+import { issueRevisionReceipt, openRevision } from './correcao';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
 import {
@@ -21,7 +22,6 @@ import {
   ReceiptInput,
 } from './schemas';
 
-type ArticleRow = typeof schema.articles.$inferSelect;
 const EDITABLE: readonly ArticleStatus[] = ['rascunho', 'bloqueado'];
 const PUBLISH_SET: readonly ArticleStatus[] = ['publicado', 'corrigido', 'despublicado'];
 const NOTE_SET: readonly ArticleStatus[] = ['despublicado', 'corrigido', 'bloqueado'];
@@ -30,14 +30,6 @@ async function load(db: Db, id: string): Promise<ArticleRow> {
   const [row] = await db.select().from(schema.articles).where(eq(schema.articles.id, id));
   if (!row) throw new HttpError(404, 'NOT_FOUND', 'Matéria não encontrada.');
   return row;
-}
-
-async function evidenceIdsOf(db: Db, articleId: string): Promise<string[]> {
-  const rows = await db
-    .select({ id: schema.articleSources.evidenceId })
-    .from(schema.articleSources)
-    .where(eq(schema.articleSources.articleId, articleId));
-  return rows.map((r) => r.id).sort();
 }
 
 async function fontesOf(db: Db, articleId: string) {
@@ -53,22 +45,6 @@ async function fontesOf(db: Db, articleId: string) {
     .innerJoin(schema.evidences, eq(schema.evidences.id, schema.articleSources.evidenceId))
     .where(eq(schema.articleSources.articleId, articleId))
     .orderBy(asc(schema.evidences.id));
-}
-
-/** Regras determinísticas (sem modelo): o que impede aprovar ou publicar. Vazio = passou. */
-export function gateFailures(a: ArticleRow, evidenceCount: number): string[] {
-  const f: string[] = [];
-  if (evidenceCount < 1) f.push('fontes: ao menos uma evidência');
-  if (a.assinatura !== ASSINATURA) f.push('assinatura institucional');
-  if (!a.resumo) f.push('resumo obrigatório (até 300 caracteres)');
-  if (a.patrocinado && !a.rotuloPublieditorial) f.push('conteúdo pago sem rótulo');
-  if (a.classeDeDado !== 'public') f.push(`classe de dado ${a.classeDeDado} não é publicável`);
-  if (a.imagem != null) {
-    const img = ImageRights.safeParse(a.imagem);
-    if (!img.success) f.push('imagem inválida');
-    else if (!isImagePublishable(img.data)) f.push('imagem sem base de direito');
-  }
-  return f;
 }
 
 /** Imagem só sai pública com base de direito (D08): 'pendente' ou inválida vira null. */
@@ -110,10 +86,7 @@ function serialize(a: ArticleRow, withBody = true) {
 async function approvedSha(db: Db, a: ArticleRow, evidenceIds: readonly string[]): Promise<string> {
   const rec = await new PgEditorialStore(db).getArticle(a.id);
   if (rec?.draft) return draftContentSha256(rec.draft);
-  return publishedContentSha256({
-    titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo, editoria: a.editoria, corpo: a.corpo,
-    imagem: a.imagem, classeDeDado: a.classeDeDado, patrocinado: a.patrocinado, rotuloPublieditorial: a.rotuloPublieditorial, fontes: evidenceIds,
-  });
+  return rowContentSha(a, evidenceIds);
 }
 
 async function receiptFor(db: Db, a: ArticleRow) {
@@ -207,6 +180,9 @@ export const createArticle: RouteFn = async (req, c) => {
 export const updateArticle: RouteFn = async (req, c) => {
   const b = await readBody(req, ArticleUpdate);
   const a = await load(c.deps.db, c.params.id ?? '');
+  // ADR-019 §c.5: matéria publicada só muda por revisão de correção (caso aceito); a página fica como está até a publicação oficial
+  if (a.status === 'publicado' || a.status === 'corrigido') return openRevision(c, a, b);
+  if (b.casoCorrecaoId !== undefined) throw new HttpError(422, 'VALIDATION_ERROR', 'casoCorrecaoId só vale para matéria já publicada.', [{ path: 'casoCorrecaoId', message: 'matéria não publicada' }]);
   if (!EDITABLE.includes(a.status)) throw new HttpError(409, 'NOT_EDITABLE', `Matéria em ${a.status} não é editável.`);
   if (b.versaoEsperada !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'A matéria mudou; recarregue.', { versaoAtual: a.versao });
   if (b.editoria) await assertEditoria(c.deps.db, b.editoria);
@@ -218,6 +194,7 @@ export const updateArticle: RouteFn = async (req, c) => {
     throw new HttpError(422, 'VALIDATION_ERROR', 'Tipo patrocinado exige patrocinado=true (rótulo).', [{ path: 'patrocinado', message: 'obrigatório' }]);
   }
   const { versaoEsperada, ...fields } = b;
+  delete fields.casoCorrecaoId; // só vale para matéria publicada (rejeitado acima)
   const updated = await c.deps.db
     .update(schema.articles)
     .set({ ...fields, versao: a.versao + 1 })
@@ -266,6 +243,7 @@ export const issueReceipt: RouteFn = async (req, c) => {
   if (rec) return issueFromEditorial(c, c.params.id ?? '', b, rec);
   if (b.versao === undefined) throw new HttpError(400, 'VALIDATION_ERROR', 'Entrada inválida.', [{ path: 'versao', message: 'obrigatória' }]);
   const a = await load(c.deps.db, c.params.id ?? '');
+  if (a.status === 'publicado' || a.status === 'corrigido') return issueRevisionReceipt(c, a, b); // recibo da revisão de correção (ADR-019 §c.5)
   if (a.status !== 'em_checagem') throw new HttpError(409, 'BAD_STATE', 'Recibo só é emitido para matéria em checagem.');
   if (b.versao !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'Versão do recibo difere da matéria.', { versaoAtual: a.versao });
   const evIds = await evidenceIdsOf(c.deps.db, a.id);

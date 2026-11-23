@@ -115,7 +115,12 @@ export interface Draft {
 export type ImageDecision =
   | { mode: 'none'; reason: string }
   | { mode: 'source_image'; sourceId: string; url: string; credit: string; creditLink: string; basis: ImageRightsBasis | null; /** texto alternativo (acessibilidade) */ alt?: string }
-  | { mode: 'conceptual'; label: string; generatedBy: string };
+  /**
+   * Ilustração conceitual gerada (ADR-018). `generatedBy`, `promptVersion` e `promptSha256` são REGISTRO INTERNO (Blueprint §6):
+   * nunca saem em ImageRights, API pública, EXIF/XMP, nome de arquivo ou texto alternativo. `humanReview` = revisão humana dos
+   * limites de uso (sem detector automático de pessoa/marca/cena documental, o gate exige confirmação humana).
+   */
+  | { mode: 'conceptual'; url: string; alt: string; generatedBy: string; promptVersion: string; promptSha256: string; humanReview?: { reviewedBy: string; at: string; limitsConfirmed: true } };
 
 export interface Finding { code: string; message: string; claimId?: string }
 export interface CheckResult { verdict: Verdict; findings: Finding[] }

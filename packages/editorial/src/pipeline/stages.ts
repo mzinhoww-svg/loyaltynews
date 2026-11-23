@@ -9,7 +9,9 @@ import {
   buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
 } from '../rules/rules';
 import { normalizeText } from '../dedupe/dedupe';
-import { PUBLISHABLE_DEFAULTS, RESUMO_MAX, uniqueSlug } from '../publishable';
+import { PUBLISHABLE_DEFAULTS, RESUMO_MAX, imageToRights, uniqueSlug } from '../publishable';
+import { imageLabel } from '@ln/contracts';
+import type { ImageRights } from '@ln/contracts';
 import { PORTAL_SOURCE_NAME, draftContentSha256 } from '../intelligence/published';
 import type { DroppedMention, IntelligenceHandoff, PublishedArticle, RoleMention } from '../intelligence/types';
 import { extractRoleMentionsDeterministic, mentionKey, minimizeToOrganizations, validateMention } from '../intelligence/roles';
@@ -257,11 +259,14 @@ export async function socialPack(deps: StageDeps, job: ArticleJob, published: Pu
   const url = `${published.url}${published.url.includes('?') ? '&' : '?'}${q}`;
   // Menções: nunca publicadas sem verificação -> '@' removido (fallback texto puro).
   const text = li.replace(/@(\w+)/g, '$1');
+  // Rótulo visível obrigatório da ilustração (ADR-018): o card social leva o mesmo rótulo do portal.
+  const rights = imageToRights(d) as { origem: ImageRights['origem'] } | null;
+  const imgLabel = imageLabel(rights, { rotulagemIa: deps.flags?.rotulagemIa === true });
   const pack: SocialPack = {
     articleId: job.articleId,
     linkedin: { text: `${text}\n\n${url}`, url, utm: u },
     ...(ig ? { instagram: { caption: ig.replace(/@(\w+)/g, '$1') } } : {}),
-    image: d.image.mode === 'none' ? { mode: 'none', reason: d.image.reason } : { mode: d.image.mode },
+    image: d.image.mode === 'none' ? { mode: 'none', reason: d.image.reason } : { mode: d.image.mode, ...(imgLabel ? { label: imgLabel } : {}) },
     mentions: [],
     blockers: d.image.mode === 'none' ? ['no_image'] : [],
   };

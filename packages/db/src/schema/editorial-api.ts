@@ -99,6 +99,45 @@ export const agendaEvents = pgTable(
   ],
 );
 
+/**
+ * Revisão de correção de matéria do CMS já publicada (ADR-019 §c.5). A página pública continua com o conteúdo publicado até a
+ * revisão ser aprovada (recibo) e registrada pela rota oficial de publicação; só então `articles` troca de versão e vira `corrigido`.
+ * `corpo` guarda o texto SEM o aviso; o texto final é `corpo + aviso`, e é ele que entra no hash do recibo.
+ */
+export const articleRevisions = pgTable(
+  'article_revisions',
+  {
+    id: text('id').primaryKey(),
+    articleId: text('article_id').notNull().references(() => articles.id),
+    /** Versão publicada em que a revisão se baseia; a publicação só vale se a matéria ainda estiver nela. */
+    baseVersao: integer('base_versao').notNull(),
+    /** Versão que `articles` terá depois de publicada (recibo desta versão). */
+    versao: integer('versao').notNull(),
+    /** Caso de correção (editorial_correction) aceito que autoriza a revisão. Sem FK: o caso vive no CMS editorial (ADR-019 §3). */
+    casoId: text('caso_id').notNull(),
+    titulo: text('titulo').notNull(),
+    subtitulo: text('subtitulo'),
+    resumo: text('resumo'),
+    corpo: text('corpo').notNull(),
+    imagem: jsonb('imagem'),
+    /** Aviso de errata ou de resposta (público, datado), no fim do corpo. */
+    aviso: text('aviso').notNull(),
+    estado: text('estado').notNull().default('rascunho'),
+    conteudoSha256: text('conteudo_sha256'),
+    receiptId: text('receipt_id'),
+    criadoPor: text('criado_por').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+    publicadoEm: timestamp('publicado_em', { withTimezone: true }),
+  },
+  (t) => [
+    check('article_revisions_estado', sql`${t.estado} IN ('rascunho', 'aprovada', 'publicada', 'descartada')`),
+    check('article_revisions_versao', sql`${t.versao} > ${t.baseVersao}`),
+    check('article_revisions_aprovada_com_recibo', sql`${t.estado} NOT IN ('aprovada', 'publicada') OR (${t.receiptId} IS NOT NULL AND ${t.conteudoSha256} ~ '^[0-9a-f]{64}$')`),
+    uniqueIndex('article_revisions_aberta_uq').on(t.articleId).where(sql`${t.estado} IN ('rascunho', 'aprovada')`),
+    uniqueIndex('article_revisions_versao_uq').on(t.articleId, t.versao).where(sql`${t.estado} <> 'descartada'`),
+  ],
+);
+
 /** Contrato Source.editorias (min 1): as editorias que a fonte cobre. */
 export const sourceEditorias = pgTable(
   'source_editorias',

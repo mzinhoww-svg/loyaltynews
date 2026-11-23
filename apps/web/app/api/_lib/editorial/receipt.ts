@@ -77,13 +77,17 @@ export async function issueFromEditorial(c: RouteCtx, id: string, body: Editoria
     const cited = new Set(draft.evidenceIds);
     for (const e of rec.evidences.filter((x) => cited.has(x.id))) {
       const src = sourceRegistry.get(e.sourceId);
-      await tx
+      // ADR-019 §d: a fonte da Fábrica entra em `sources` com o MESMO id e origem 'fabrica'. Nome e URL vêm do registro (reescritos
+      // a cada projeção); uma linha 'cms' com o mesmo id NÃO é sobrescrita nem reaproveitada: a transação inteira falha (409).
+      const fonte = { nome: src?.name ?? e.sourceId, url: src ? `https://${src.host}${src.pathPrefix ?? ''}` : e.url };
+      const up = await tx
         .insert(schema.sources)
-        .values({
-          id: e.sourceId, nome: src?.name ?? e.sourceId, url: src ? `https://${src.host}${src.pathPrefix ?? ''}` : e.url, tipo: 'site',
-          acesso: 'publico', termosRevisados: false, ativo: false,
-        })
-        .onConflictDoNothing();
+        .values({ id: e.sourceId, ...fonte, tipo: 'site', acesso: 'publico', termosRevisados: false, ativo: false, origem: 'fabrica' })
+        .onConflictDoUpdate({ target: schema.sources.id, set: fonte, setWhere: eq(schema.sources.origem, 'fabrica') })
+        .returning({ id: schema.sources.id });
+      if (up.length === 0) {
+        throw new HttpError(409, 'SOURCE_ID_CONFLICT', 'Já existe uma fonte do CMS com o mesmo id de uma fonte da Fábrica; renomeie ou remova a do CMS.', { sourceId: e.sourceId });
+      }
       await tx
         .insert(schema.evidences)
         .values({ id: e.id, sourceId: e.sourceId, url: e.url, capturadoEm: new Date(e.fetchedAt), sha256: e.contentSha256 })

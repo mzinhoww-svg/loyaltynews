@@ -107,6 +107,13 @@ describe('fila e revisão', () => {
 });
 
 describe('direito de resposta e correções', () => {
+  beforeAll(async () => {
+    // ADR-019 §c: o caso ancora em articles.id JÁ PUBLICADO (aqui, uma matéria da Fábrica: há registro editorial com o mesmo id)
+    await app.db.insert(schema.articles).values({
+      id: 'art-4', slug: 'materia-art-4', titulo: 'Matéria publicada', editoria: 'pontos', corpo: 'Corpo.', resumo: 'Resumo.', status: 'publicado', publicadoEm: new Date('2026-11-20T10:00:00Z'),
+    });
+  });
+
   const intake = (over: Record<string, unknown> = {}) => ({
     articleId: 'art-4', contested: 'trecho contestado da matéria', requester: { name: 'Fulana de Tal' },
     contact: 'fulana@exemplo.test', replyText: 'Texto da resposta com mais de dez caracteres.', ...over,

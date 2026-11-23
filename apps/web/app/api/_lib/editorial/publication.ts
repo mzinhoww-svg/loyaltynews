@@ -20,6 +20,7 @@ import { applyPublication, draftContentSha256, type ApiResponse, type HandlerCtx
 import type { Db } from '@ln/auth';
 import { HttpUrl } from '../schemas';
 import { HttpError, newId } from '../http';
+import { publishFromCms } from './cms-publication';
 
 export type PublicationCtx = HandlerCtx & { flags: FlagState; db: Db };
 
@@ -52,13 +53,16 @@ export async function registerPublication(ctx: PublicationCtx, input: unknown): 
   if (!receipt) return err(409, 'RECEIPT_NOT_FOUND', 'Recibo inexistente para esta matéria.');
   if (receipt.identidade !== actor.userId) return err(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo registra esta publicação.');
 
+  // Matéria que existe só no CMS (sem registro no Editorial): publicação e correção oficiais sobre `articles` (ADR-019 §c.5).
+  const rec = await ctx.store.getArticle(articleId);
+  if (!rec) return publishFromCms(ctx, { userId: actor.userId, role: actor.roles[0], receipt: { id: receiptId, versao: receipt.versao, sha: receipt.sha }, articleId, url });
+
   // O recibo tem de provar ESTA versão e ESTE conteúdo (um recibo antigo da mesma matéria não registra conteúdo novo).
   const [art] = await ctx.db.select({ versao: schema.articles.versao }).from(schema.articles).where(eq(schema.articles.id, articleId));
   if (!art || receipt.versao !== art.versao) {
     return err(409, 'RECEIPT_STALE', 'O recibo é de outra versão da matéria.', { versaoDoRecibo: receipt.versao, versaoDaMateria: art?.versao ?? null });
   }
-  const rec = await ctx.store.getArticle(articleId);
-  if (rec?.draft) {
+  if (rec.draft) {
     // já publicada com este recibo: vale o hash gravado na publicação; senão, o do corpo aprovado agora
     const approvedSha = rec.status === 'publicado' && rec.publication ? rec.publication.contentSha256 : draftContentSha256(rec.draft);
     if (receipt.sha !== approvedSha) return err(409, 'RECEIPT_CONTENT_MISMATCH', 'O recibo não corresponde ao conteúdo aprovado da matéria.');
