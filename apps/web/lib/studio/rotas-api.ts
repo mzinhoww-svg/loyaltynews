@@ -36,6 +36,7 @@ import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha } from '@/
 import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
 import { dispatchTitular } from '@/app/api/_lib/titular-studio';
 import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
+import type { Achado, Leitura, MateriaPiloto } from '@/lib/studio/piloto-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -304,6 +305,16 @@ export const api = {
     atribuir: (id: string, responsavel: string) => chamar<PedidoLinha>(titularEm([id, 'atribuir']), `${T}/${encodeURIComponent(id)}/atribuir`, { metodo: 'POST', corpo: { responsavel } }),
     decidir: (id: string, corpo: { acao: AcaoDecisao; campos?: Record<string, string>; motivo?: string }) =>
       chamar<PedidoLinha>(titularEm([id, 'decidir']), `${T}/${encodeURIComponent(id)}/decidir`, { metodo: 'POST', corpo }),
+  },
+  /**
+   * Leitura do piloto de 10 matérias (Studio 2; PM-2026-11-23-C). Rotas combinadas com o AgentOps; handlers da Editorial montados pelo Backend 1 em
+   * /api/studio/editorial/piloto (AINDA NÃO EXISTEM: até lá a rota responde 404 e a tela diz isso). O conteúdo de cada matéria vem de editorial.revisao.
+   */
+  piloto: {
+    materias: () => chamar<{ items: MateriaPiloto[] }>(dispatchEditorial, `${E}/piloto`),
+    leituras: (materia: string) => chamar<{ items: Leitura[] }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leituras`),
+    registrar: (materia: string, corpo: { leitor: 1; achados: Achado[]; checklist: Leitura['checklist']; veredito: Leitura['veredito'] }) =>
+      chamar<{ leitura: Leitura }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leitura`, { metodo: 'POST', corpo }),
   },
   editorial: {
     fila:(query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
