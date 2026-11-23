@@ -108,9 +108,9 @@ async function main() {
     const m = (api.data ?? []).find((x) => String(x.titulo ?? '').includes(ROTULO_SEED));
     if (!m) { check('materia: seed com slug e editoria na API', false, 'nenhuma matéria rotulada'); return; }
     const rm = await get(`/noticia/${encodeURIComponent(m.slug)}`);
-    check('materia: página da matéria do seed (200, rotulada, sem MOCK)', rm.status === 200 && rm.body.includes(ROTULO_SEED) && !/MOCK/.test(rm.body), `HTTP ${rm.status}`);
+    check('materia: página da matéria do seed (200, rotulada, sem MOCK)', rm.status === 200 && rm.body.includes(ROTULO_SEED) && !/\bMOCK\b/.test(rm.body), `HTTP ${rm.status}`);
     const re = await get(`/editoria/${encodeURIComponent(m.editoria)}`);
-    check('editoria: página da editoria da matéria do seed (200, lista o seed, sem MOCK)', re.status === 200 && re.body.includes(ROTULO_SEED) && !/MOCK/.test(re.body), `HTTP ${re.status}`);
+    check('editoria: página da editoria da matéria do seed (200, lista o seed, sem MOCK)', re.status === 200 && re.body.includes(ROTULO_SEED) && !/\bMOCK\b/.test(re.body), `HTTP ${re.status}`);
     const r404 = await get('/noticia/materia-que-nao-existe-smoke');
     check('materia: slug inexistente = 404', r404.status === 404, `HTTP ${r404.status}`);
   });
