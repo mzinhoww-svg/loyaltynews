@@ -294,6 +294,96 @@ describe('QA: IP só de proxy confiável e limite estrito sob concorrência', ()
   });
 });
 
+describe('limite de tentativas do 2º fator (TOTP e código de recuperação)', () => {
+  const errado = async (raw: Uint8Array) => ((await createOTP(raw).totp()) === '000000' ? '111111' : '000000');
+  const totp = (cookie: string, code: string, ip: string) => handle(req('/two-factor/verify-totp', { body: { code }, cookie, ip }));
+  const backup = (cookie: string, ip: string) => handle(req('/two-factor/verify-backup-code', { body: { code: 'aaaa-bbbb' }, cookie, ip }));
+  /** Novo desafio de 2º fator (senha certa): é o que um atacante com a senha faz a cada 5 códigos. */
+  const desafio = async (email: string, ip: string) => {
+    const r = await login(email, ip);
+    expect(r.status).toBe(200);
+    return cookieOf(r);
+  };
+  const auditoria = async () => (await t.db.select().from(schema.auditLog)).filter((r) => r.action === 'login.2fa_bloqueado');
+
+  it('quem tem a senha: 5 códigos errados em desafios DIFERENTES bloqueiam o usuário; o 6º, mesmo com o código CERTO, recebe 429 com Retry-After, e a auditoria não leva código', async () => {
+    const u = await newUser('editor');
+    const { raw } = await enrollTotp(u.email);
+    clock = new Date('2026-11-22T20:00:00Z');
+    for (let i = 0; i < 5; i++) {
+      const r = await totp(await desafio(u.email, `10.20.0.${i + 1}`), await errado(raw), `10.20.0.${i + 1}`);
+      expect(r.status, `tentativa ${i + 1}`).not.toBe(429);
+      expect(r.ok).toBe(false);
+    }
+    const certo = await createOTP(raw).totp();
+    const bloqueado = await totp(await desafio(u.email, '10.20.0.50'), certo, '10.20.0.50');
+    expect(bloqueado.status).toBe(429);
+    expect(Number(bloqueado.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(Number(bloqueado.headers.get('retry-after'))).toBeLessThanOrEqual(15 * 60);
+    expect(((await bloqueado.json()) as { error?: { code?: string } }).error?.code).toBe('TOO_MANY_ATTEMPTS');
+    const logs = await auditoria();
+    expect(logs.length).toBeGreaterThan(0);
+    const dump = JSON.stringify(logs);
+    expect(dump).toContain(u.id);
+    expect(dump).not.toContain(certo);
+    expect(dump).not.toContain('000000');
+  });
+
+  it('outro usuário não é afetado; depois da janela (15 min) o código certo volta a valer e o contador zera', async () => {
+    const a = await newUser('editor');
+    const b = await newUser('editor');
+    const ea = await enrollTotp(a.email);
+    const eb = await enrollTotp(b.email);
+    clock = new Date('2026-11-22T21:00:00Z');
+    for (let i = 0; i < 5; i++) await totp(await desafio(a.email, `10.21.0.${i + 1}`), await errado(ea.raw), `10.21.0.${i + 1}`);
+    expect((await totp(await desafio(a.email, '10.21.0.60'), await createOTP(ea.raw).totp(), '10.21.0.60')).status).toBe(429);
+    // o usuário B, de outro IP, entra normalmente
+    const cb = await totp(await desafio(b.email, '10.21.1.1'), await createOTP(eb.raw).totp(), '10.21.1.1');
+    expect(cb.status).toBe(200);
+    // passada a janela, A entra com o código certo
+    clock = new Date(clock.getTime() + 16 * 60_000);
+    const ok = await totp(await desafio(a.email, '10.21.0.61'), await createOTP(ea.raw).totp(), '10.21.0.61');
+    expect(ok.status).toBe(200);
+    // e o contador foi zerado: 4 erros seguidos depois do sucesso não bloqueiam
+    for (let i = 0; i < 4; i++) expect((await totp(await desafio(a.email, `10.21.2.${i + 1}`), await errado(ea.raw), `10.21.2.${i + 1}`)).status).not.toBe(429);
+  });
+
+  it('o código de recuperação conta no MESMO limite do TOTP (não dá para alternar para ganhar tentativas)', async () => {
+    const u = await newUser('editor');
+    const { raw } = await enrollTotp(u.email);
+    clock = new Date('2026-11-22T22:00:00Z');
+    for (let i = 0; i < 3; i++) await totp(await desafio(u.email, `10.22.0.${i + 1}`), await errado(raw), `10.22.0.${i + 1}`);
+    for (let i = 0; i < 2; i++) expect((await backup(await desafio(u.email, `10.22.1.${i + 1}`), `10.22.1.${i + 1}`)).status).not.toBe(429);
+    expect((await backup(await desafio(u.email, '10.22.2.1'), '10.22.2.1')).status).toBe(429);
+    expect((await totp(await desafio(u.email, '10.22.2.2'), await createOTP(raw).totp(), '10.22.2.2')).status).toBe(429);
+  });
+
+  it('por IP: 5 códigos errados de um mesmo IP, mesmo em usuários diferentes, bloqueiam o 6º desse IP', async () => {
+    const users = [await newUser('editor'), await newUser('editor'), await newUser('editor'), await newUser('editor')];
+    const enrolled = [];
+    for (const u of users) enrolled.push(await enrollTotp(u.email));
+    clock = new Date('2026-11-22T23:00:00Z');
+    const ip = '203.0.113.77';
+    const plano = [0, 0, 1, 1, 2];
+    for (const idx of plano) expect((await totp(await desafio(users[idx]!.email, ip), await errado(enrolled[idx]!.raw), ip)).status).not.toBe(429);
+    const sexto = await totp(await desafio(users[3]!.email, ip), await createOTP(enrolled[3]!.raw).totp(), ip);
+    expect(sexto.status).toBe(429);
+    // o mesmo usuário, de outro IP, ainda entra
+    expect((await totp(await desafio(users[3]!.email, '203.0.113.78'), await createOTP(enrolled[3]!.raw).totp(), '203.0.113.78')).status).toBe(200);
+  });
+
+  it('20 tentativas simultâneas no mesmo usuário: exatamente 15 são barradas pelo limite (as 5 primeiras chegam ao código)', async () => {
+    const u = await newUser('editor');
+    const { raw } = await enrollTotp(u.email);
+    clock = new Date('2026-11-23T00:00:00Z');
+    const pending = await desafio(u.email, '10.23.0.1');
+    const code = await errado(raw);
+    const rs = await Promise.all(Array.from({ length: 20 }, (_, i) => totp(pending, code, `10.23.1.${i + 1}`)));
+    expect(rs.filter((r) => r.status === 429)).toHaveLength(15);
+    expect(rs.filter((r) => r.status !== 429 && !r.ok)).toHaveLength(5);
+  });
+});
+
 describe('auditoria de login', () => {
   it('grava falha, bloqueio e sucesso sem senha, código nem token', async () => {
     const rows = await t.db.select().from(schema.auditLog);

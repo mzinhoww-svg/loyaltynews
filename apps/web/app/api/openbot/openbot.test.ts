@@ -95,6 +95,10 @@ describe('flag openbotDispatch e kill switch', () => {
     app.deps.flags.openbotDispatch = false;
     const off = await post(pull, { workerId: 'w1' });
     expect(off).toMatchObject({ status: 423, body: { error: { code: 'DISPATCH_OFF' } } });
+    // a assinatura é conferida ANTES: sem o segredo (ou com segredo errado) é 401 e o estado da flag não aparece
+    expect(await post(pull, { workerId: 'w1' }, { secret: null })).toMatchObject({ status: 401, body: { error: { code: 'UNAUTHORIZED' } } });
+    expect(await post(pull, { workerId: 'w1' }, { secret: 'segredo-errado' })).toMatchObject({ status: 401 });
+    expect(await q.counts()).toMatchObject({ leased: 1 }); // nada foi entregue nem tocado
     expect((await post(heartbeat, { taskId: t!.id, leaseId: t!.leaseId })).status).toBe(200);
     expect((await post(callback, { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!) })).status).toBe(200);
   });
