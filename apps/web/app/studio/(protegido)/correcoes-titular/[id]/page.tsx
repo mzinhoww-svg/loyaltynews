@@ -110,6 +110,11 @@ export default async function PedidoTitularPage({ params, searchParams }: { para
           Decisão registrada{p.decidido_por ? ` por ${p.decidido_por === session.userId ? 'você' : p.decidido_por}` : ''} em {quando(p.decidido_em)} UTC.
           {p.estado === 'negado' ? (
             ' O pedido foi negado: nada muda na exibição pública.'
+          ) : p.efeitoPublico === 'aplicado' ? (
+            <span data-efeito="aplicado">
+              {' '}
+              <strong>Efeito na exibição pública: aplicado.</strong> O portal já reflete esta decisão.
+            </span>
           ) : p.efeitoPublico === 'pendente' ? (
             <span data-efeito="pendente">
               {' '}

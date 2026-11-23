@@ -11,6 +11,8 @@ export interface E2eBackend {
   seedIntelligence(): Promise<{ alfa: string; beta: string; pessoa: string; bruno: string; carla: string }>;
   /** Gera os alertas das watchlists sobre os Moves já existentes (função real generateAlerts; o worker não roda no e2e). Idempotente. */
   seedAlertasWatchlist(): Promise<{ gerados: number }>;
+  /** Semeia dois artigos MOCK (sampleArticle da Editorial) para a leitura do piloto; o mapa a1/a2 é fixado pelo teste. Idempotente. */
+  seedPilotoArtigos(): Promise<{ artigos: string[] }>;
   /** Liga/desliga uma flag SÓ no backend de e2e (as rotas e o Studio leem o mesmo getDeps). */
   setFlag(nome: string, ligada: boolean): void;
 }
