@@ -19,7 +19,7 @@ export function conexoesComSenhaReais(txt, rel) {
 }
 
 // ---- Tokens (GitHub, sk-, Slack, AWS) em arquivo de TESTE ou DOCUMENTAÇÃO: só passa o placeholder EVIDENTE; qualquer outro valor reprova.
-// Decisão 23/11/2026 (Security, conferência da ft/backend be051dc): fixtures como `sk-primeira-conta-NAO-VAZAR` e `ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123` não são vazamento,
+// Decisão 23/11/2026 (Security, conferência da ft/backend be051dc): fixtures com marcador de falsidade no valor (a palavra NAO-VAZAR) ou com sequência do alfabeto (ABCDEF…) não são vazamento,
 // mas a exclusão genérica de tests/ NÃO vale: um segredo real colado num teste tem de continuar sendo pego. Fora de teste/doc nenhum token passa.
 const MARCADORES_FALSOS = /nao[-_]?vazar|fake|falso|falsa|dummy|placeholder|example|exemplo|fixture|redact|nunca[-_]?usar/i;
 

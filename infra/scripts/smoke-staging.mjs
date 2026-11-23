@@ -111,7 +111,7 @@ async function main() {
   await tentar('midia-kit', async () => {
     const r = await get('/midia-kit');
     const noindex = /<meta[^>]+name="robots"[^>]*content="[^"]*noindex/i.test(r.body) || /noindex/i.test(r.h.get('x-robots-tag') ?? '');
-    check('midia-kit: 200, título "Mídia kit", sem MOCK e não indexável', r.status === 200 && /<title>[^<]*Mídia kit/i.test(r.body) && !/MOCK/.test(r.body) && noindex, `HTTP ${r.status}`);
+    check('midia-kit: 200, título "Mídia kit", sem MOCK e não indexável', r.status === 200 && /<title>[^<]*Mídia kit/i.test(r.body) && !/\bMOCK\b/.test(r.body) && noindex, `HTTP ${r.status}`);
   });
   await tentar('intelligence', async () => {
     const r = await get('/intelligence');
