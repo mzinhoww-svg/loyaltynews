@@ -41,7 +41,8 @@ export class CrmError extends Error {
   constructor(code: CrmError['code'], msg: string) { super(msg); this.code = code; }
 }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CONTROL = /[\u0000-\u001f\u007f]/;
+/** Caractere de controle (0x00-0x1F e 0x7F)? Conferido pelo código do caractere (sem regex com caracteres de controle). */
+const hasControl = (s: string): boolean => [...s].some((ch) => { const c = ch.charCodeAt(0); return c < 32 || c === 127; });
 const normalizeName = (s: string): string => (s ?? '').normalize('NFC').trim().replace(/\s+/g, ' ');
 const nameKey = (s: string): string => normalizeName(s).toLowerCase();
 const FLOW: Record<OpportunityStage, OpportunityStage[]> = {
@@ -109,7 +110,7 @@ export class Crm {
   /** Conta (anunciante) criada direto pelo comercial. Nome normalizado; repetido (sem diferenciar maiúsculas) => DUPLICATE_ACCOUNT. */
   createAccount(name: string, now: string): Account {
     const clean = normalizeName(name);
-    if (!clean || clean.length > 120 || CONTROL.test(clean)) throw new CrmError('INVALID_ACCOUNT', 'Nome da conta obrigatório (1 a 120 caracteres, sem caracteres de controle).');
+    if (!clean || clean.length > 120 || hasControl(clean)) throw new CrmError('INVALID_ACCOUNT', 'Nome da conta obrigatório (1 a 120 caracteres, sem caracteres de controle).');
     if ([...this.accounts.values()].some((a) => nameKey(a.name) === nameKey(clean))) throw new CrmError('DUPLICATE_ACCOUNT', 'Já existe uma conta com este nome.');
     const a: Account = { id: `acc-${++this.seq}`, name: clean, leadIds: [], createdAt: now };
     this.accounts.set(a.id, a); return a;
@@ -122,7 +123,7 @@ export class Crm {
   addContact(input: { accountId: string; name: string; email: string; whatsapp?: string | null; role?: string | null; basis: ContactBasis }, now: string, registeredBy: string | null = null): Contact {
     if (!this.accounts.has(input.accountId)) throw new CrmError('NOT_FOUND', `Conta ${input.accountId} não existe.`);
     const name = normalizeName(input.name);
-    if (!name || name.length > 120 || CONTROL.test(name)) throw new CrmError('INVALID_CONTACT', 'Nome do contato obrigatório (1 a 120 caracteres, sem caracteres de controle).');
+    if (!name || name.length > 120 || hasControl(name)) throw new CrmError('INVALID_CONTACT', 'Nome do contato obrigatório (1 a 120 caracteres, sem caracteres de controle).');
     const email = (input.email ?? '').trim().toLowerCase();
     if (email.length > 254 || !EMAIL.test(email)) throw new CrmError('INVALID_CONTACT', 'E-mail do contato inválido.');
     let whatsapp: string | null = null;
@@ -132,7 +133,7 @@ export class Crm {
       whatsapp = w;
     }
     const role = input.role === undefined || input.role === null ? null : normalizeName(input.role);
-    if (role !== null && (role.length > 80 || CONTROL.test(role))) throw new CrmError('INVALID_CONTACT', 'Cargo inválido (até 80 caracteres, sem caracteres de controle).');
+    if (role !== null && (role.length > 80 || hasControl(role))) throw new CrmError('INVALID_CONTACT', 'Cargo inválido (até 80 caracteres, sem caracteres de controle).');
     if (!(CONTACT_BASES as readonly string[]).includes(input.basis)) throw new CrmError('INVALID_CONTACT', 'Base legal inválida.');
     if ([...this.contacts.values()].some((c) => c.accountId === input.accountId && c.email === email)) throw new CrmError('DUPLICATE_CONTACT', 'Já existe contato com este e-mail nesta conta.');
     const c: Contact = { id: `ctt-${++this.seq}`, accountId: input.accountId, name, email, whatsapp, role: role === '' ? null : role, basis: input.basis, consentAt: now, registeredBy, classeDeDado: 'personal', createdAt: now };
