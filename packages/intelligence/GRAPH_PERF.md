@@ -40,6 +40,34 @@ Causa (nos planos EXPLAIN do arquivo): a consulta recursiva **enumerava todos os
 - A visão `graph_edge` continua sendo UNION de 3 ramos com junções: com ≥ ~1 milhão de arestas a sonda por lote também cresce; é o gatilho para a adjacência materializada.
 - A medição no staging (1 GB, instância pequena, `shared_buffers` 128 MB) não representa produção; repetir na infraestrutura de produção antes de cravar o critério.
 
+## 2ª rodada (medição real da BFS em lote, 23/11/2026, `bench/results/pg-staging-bfs.json`): ainda reprovou, e a causa é a IDA E VOLTA
+No mesmo servidor e na mesma hora (PostgreSQL 18.6, rodando da máquina do PM, fora da rede da Vertra):
+
+| Consulta | recursiva p95 | BFS em lote p95 | p50 da BFS |
+|---|---|---|---|
+| `neighbors` organização | 1224,7 ms | **464,6 ms** | 444,8 ms |
+| `neighbors` pessoa | 714,4 ms | **453,6 ms** | 415,8 ms |
+| `shortestPath` | 424,4 ms | **463,0 ms** | 438,0 ms |
+
+Leitura: os p50 das três séries são quase iguais (~415–445 ms) e os planos do EXPLAIN tocam só ~850 buffers: **o custo dominante é fixo por ida ao banco**, não a consulta. A BFS em lote faz até 3 idas; a recursiva do `shortestPath`, uma só, e mesmo assim tem p50 de 392 ms. A latência de rede entre a máquina do PM e o banco da Vertra entra em cada ida (ADR-009 mede com o aplicativo perto do banco). O EXPLAIN antigo cortava o texto antes das linhas "Planning/Execution Time"; agora o relatório traz o tempo de **servidor** de cada consulta (`server_side`) e a **ida e volta de `SELECT 1`** (`network.select1_roundtrip`) para separar rede de consulta.
+
+### O que mudou na 2ª rodada
+1. **Uma ida ao banco por consulta** (`neighbors`/`shortestPath` em `src/graph.ts`): os 3 saltos viram 3 CTEs encadeadas numa única consulta, cada nível buscando suas arestas com `= ANY(ARRAY(SELECT b_id FROM <nível anterior>))`, o que mantém a **sondagem por índice**. **Aprendizado medido em PGlite:** a 1ª versão da consulta única juntava a fronteira com a visão inteira e ficou ~6× mais lenta no servidor (p50 225 ms contra 35 ms); com `ANY(ARRAY(...))` voltou ao nível da BFS em lote. O `shortestPath` ganhou saída antecipada dentro da própria consulta (níveis 2/3 só rodam se o destino não apareceu).
+2. A BFS em lote ficou como variante de referência (`neighborsBatched`, `shortestPathBatched`); equivalência das **três** implementações no mesmo teste (`graph-equivalence.test.ts`, 2 variantes × recursiva).
+3. `bench-pg` mede e separa: **ida e volta (SELECT 1)**, **idas ao banco por consulta** (`db_roundtrips_median`), **tempo de servidor** (EXPLAIN) e uma **ESTIMATIVA de p95 com o aplicativo na mesma rede** (`estimate_colocated_p95_ms` = p95 − idas × p50 do SELECT 1; é estimativa, não medição). Com `--with-reference` compara BFS em lote e recursiva; com `--with-indexes` mede de novo depois de criar os índices cobrindo propostos **só dentro do schema de teste**.
+
+### Resultado em PGlite desta rodada (sem rede; só compara o trabalho de servidor; p95 em ms)
+| Consulta | recursiva | BFS em lote (3 idas) | consulta única (1 ida) |
+|---|---|---|---|
+| `neighbors` organização | 451 | 48 | 110 |
+| `neighbors` pessoa | 376 | 30 | 51 |
+| `shortestPath` | 398 | 41 | 30 |
+
+A consulta única custa um pouco mais de servidor (~10–60 ms) e economiza **2 idas** ao banco: com a ida e volta que a medição real sugere (~130 ms por ida, dedução dos p50, **a confirmar pelo `SELECT 1`**), a previsão é ~190–250 ms de p50 e abaixo de 300 ms de p95 de fora da rede da Vertra, e bem menos com o aplicativo colado no banco. **É previsão, não medição.**
+
+### Índices compostos (migração 0030, proposta pronta, NÃO aplicada)
+`proposals/0030_intelligence_graph_indexes.sql`: quatro índices cobrindo (`org_relation` por origem e por destino; `role_assignment` por pessoa e por organização, todos com `INCLUDE (id, extremo, valid_from, valid_to, certainty)`), para a sonda virar varredura só de índice. **Só entram na migração se a medição real mostrar ganho**: `--with-indexes` mede antes e depois no mesmo servidor, sem migração. Se o gargalo for a rede, índice não ajuda.
+
 ## Como medir no PostgreSQL real (o PM roda; o agente de dados não recebe a credencial)
 ```
 # 0) compilar (sem credenciais)
@@ -47,6 +75,6 @@ cd C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence
 npx esbuild packages/intelligence/scripts/bench-pg.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/ln-intelligence/bench-pg.mjs
 
 # 1) medição completa COM o comparativo da versão recursiva antiga no mesmo servidor (minutos)
-node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/bench-pg.mjs --migration C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/db/drizzle/0006_intelligence.sql --with-reference --out C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/bench/results/pg-staging-bfs.json
+node ln-com-credenciais.mjs staging -- node C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/node_modules/.cache/ln-intelligence/bench-pg.mjs --migration C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/db/drizzle/0006_intelligence.sql --with-reference --with-indexes --out C:/Users/mazin/OpenBot/Shared/loyalty-news/code/wt-intelligence/packages/intelligence/bench/results/pg-staging-single.json
 ```
-Esperado: `results.*.p95_ms` abaixo de 300 (critério) e `reference_recursive.*` reproduzindo ~1055/807/415 ms; `schema_dropped: true`. Se `meets_criterion` vier `false`, o `explain` traz o plano da maior fronteira de cada série (próximo passo: os índices acima, depois a adjacência materializada).
+Como ler (2ª rodada): `network.select1_roundtrip.p50_ms` = custo de cada ida; `results.*` = consulta única (1 ida) com `db_roundtrips_median` e `estimate_colocated_p95_ms`; `reference_batched` e `reference_recursive` = as variantes anteriores no mesmo servidor; `with_indexes.*` = o produto depois dos índices cobrindo; `server_side` = tempo de planejamento+execução no servidor. `schema_dropped: true`. Se `meets_criterion` vier `false`, o `explain` traz o plano da maior fronteira de cada série (próximo passo: os índices acima, depois a adjacência materializada).

@@ -56,6 +56,39 @@ describe('medição ADR-009 em PostgreSQL real: schema isolado e descartável (t
     expect(JSON.stringify(r)).not.toMatch(/postgres(ql)?:\/\/|BEGIN (CERT|PRIVATE)/i);
   });
 
+  it('separa REDE de consulta: ida e volta (SELECT 1), idas ao banco por consulta (produto = 1), tempo de SERVIDOR do EXPLAIN e estimativa na mesma rede', async () => {
+    const r = await runPgBench(client, base());
+    expect(r.network.select1_roundtrip.n).toBe(40);
+    expect(r.network.select1_roundtrip.p50_ms).toBeGreaterThanOrEqual(0);
+    for (const s of [r.results.neighbors_from_organization, r.results.neighbors_from_person, r.results.shortest_path_org_to_org]) {
+      expect(s.db_roundtrips_median).toBe(1); // o produto faz UMA ida ao banco por consulta
+      expect(s.estimate_colocated_p95_ms).toBeLessThanOrEqual(s.p95_ms);
+    }
+    expect(r.estimate_worst_p95_colocated_ms).toBeLessThanOrEqual(r.worst_p95_ms);
+    for (const name of ['neighbors_org', 'neighbors_person', 'shortest_path']) {
+      expect(r.server_side[name]![0]!.execution_ms).not.toBeNull(); // tempo de servidor lido do EXPLAIN (antes do corte do texto)
+      expect(r.explain[name]![0]).toMatch(/^-- planning_ms=\d+(\.\d+)? execution_ms=\d+(\.\d+)?/);
+    }
+    expect(r.schema_dropped).toBe(true);
+  });
+
+  it('comparativos no mesmo servidor (--with-reference) e índices cobrindo propostos SÓ no schema de teste (--with-indexes); tudo apagado no fim', async () => {
+    const before = await snapshot();
+    const r = await runPgBench(client, base({ compareReference: true, withIndexes: true }));
+    expect(r.reference_batched!.neighbors_from_organization.db_roundtrips_median).toBeGreaterThanOrEqual(1);
+    expect(r.reference_batched!.neighbors_from_organization.db_roundtrips_median).toBeLessThanOrEqual(3);
+    expect(r.reference_recursive!.neighbors_from_organization.db_roundtrips_median).toBe(1);
+    expect(r.with_indexes!.indexes).toHaveLength(4);
+    expect(r.with_indexes!.indexes.every((x) => /^CREATE INDEX bench_/.test(x) && !x.includes(SCHEMA))).toBe(true); // nada com o nome do schema real/de teste vazado no relatório de índices
+    expect(r.with_indexes!.results.neighbors_from_person.n).toBeGreaterThan(0);
+    expect(r.with_indexes!.server_side.neighbors_org![0]!.execution_ms).not.toBeNull();
+    expect(r.schema_dropped).toBe(true);
+    expect(await schemas()).toEqual([]);
+    expect(await snapshot()).toEqual(before); // o schema intelligence continua sem nenhum índice novo nem dado novo
+    const idx = await pg.query<{ c: string }>(`SELECT count(*)::text c FROM pg_indexes WHERE indexname LIKE 'bench_%'`);
+    expect(idx.rows[0]!.c).toBe('0');
+  });
+
   it('em ERRO (depois de criar, depois de carregar, durante a medição) o schema é apagado e o erro continua', async () => {
     const before = await snapshot();
     for (const failAt of ['after-create', 'after-load', 'during-measure'] as const) {

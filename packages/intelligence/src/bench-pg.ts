@@ -10,7 +10,7 @@
  *    (`neighbors`, `shortestPath`): o cliente troca `intelligence.` pelo schema de teste no texto do SQL (as consultas usam nomes qualificados).
  *  - Nunca imprime URL, usuário, senha ou PEM; o relatório traz só tempos, contagens, versão e planos (EXPLAIN) sobre dados sintéticos.
  */
-import { neighbors, neighborsRecursive, shortestPath, shortestPathRecursive } from './graph';
+import { neighbors, neighborsBatched, neighborsRecursive, shortestPath, shortestPathBatched, shortestPathRecursive } from './graph';
 import type { Db } from './db';
 
 export const BENCH_SCHEMA_RE = /^ln_bench_\d{8}(_[a-z0-9]{1,8})?$/;
@@ -34,12 +34,22 @@ export interface BenchOptions {
   /** Teste: lança neste passo para provar que o schema é apagado em erro. */
   /** Mede também a implementação recursiva de REFERÊNCIA (antes da otimização) nas mesmas entidades: comparativo no mesmo servidor. Mais lento (minutos). */
   compareReference?: boolean;
+  /** Mede o produto de novo DEPOIS de criar os índices cobrindo propostos (só no schema de teste; nenhuma migração): comparativo antes/depois no mesmo servidor. */
+  withIndexes?: boolean;
   failAt?: 'after-create' | 'after-load' | 'during-measure';
   log?: (line: string) => void;
 }
 
 const pct = (xs: number[], p: number) => { const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.ceil((p / 100) * s.length) - 1)]!; };
 const stats = (xs: number[]) => ({ n: xs.length, p50_ms: +pct(xs, 50).toFixed(1), p95_ms: +pct(xs, 95).toFixed(1), p99_ms: +pct(xs, 99).toFixed(1), max_ms: +Math.max(...xs).toFixed(1), mean_ms: +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1) });
+
+/** Índices cobrindo propostos para a visão graph_edge (candidatos à migração; aqui só dentro do schema de teste). `id` entra no INCLUDE porque a visão devolve edge_id. */
+export const proposedIndexes = (schema: string) => [
+  `CREATE INDEX bench_rel_from_cov ON ${schema}.org_relation (from_org_id) INCLUDE (id, to_org_id, valid_from, valid_to, certainty)`,
+  `CREATE INDEX bench_rel_to_cov ON ${schema}.org_relation (to_org_id) INCLUDE (id, from_org_id, valid_from, valid_to, certainty)`,
+  `CREATE INDEX bench_role_person_cov ON ${schema}.role_assignment (person_id) INCLUDE (id, organization_id, valid_from, valid_to, certainty)`,
+  `CREATE INDEX bench_role_org_cov ON ${schema}.role_assignment (organization_id) INCLUDE (id, person_id, valid_from, valid_to, certainty)`,
+];
 
 export const defaultSchemaName = (d = new Date()) => `ln_bench_${d.toISOString().slice(0, 10).replace(/-/g, '')}`;
 
@@ -77,6 +87,8 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
   const db: Db = { query: async <T,>(sql: string, params?: unknown[]) => (await q(sub(sql), params)) as { rows: T[] } };
   const captured: Record<string, { sql: string; params: unknown[] }[]> = {};
   let label = '';
+  const counted = { n: 0 };
+  const counting: Db = { query: async <T,>(sql: string, params?: unknown[]) => { counted.n++; return db.query<T>(sql, params); } };
   const recording: Db = {
     query: async <T,>(sql: string, params?: unknown[]) => {
       const list = (captured[label] ??= []);
@@ -87,7 +99,7 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
         if (at < 0 && list.length < 3) list.push({ sql: sub(sql), params: params ?? [] });
         else if (at >= 0 && size(params ?? []) > size(list[at]!.params)) list[at] = { sql: sub(sql), params: params ?? [] };
       }
-      return db.query<T>(sql, params);
+      return counting.query<T>(sql, params);
     },
   };
 
@@ -147,54 +159,89 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
     const take = QUERIES + WARMUP + 1;
     const orgIds = (await q(`SELECT id FROM ${schema}.organization ORDER BY normalized_name LIMIT ${take} OFFSET ${Math.min(100, Math.floor(ORGS / 3))}`)).rows.map((r) => String(r.id));
     const personIds = (await q(`SELECT id FROM ${schema}.person ORDER BY normalized_name LIMIT ${take} OFFSET ${Math.min(100, Math.floor(PEOPLE / 3))}`)).rows.map((r) => String(r.id));
-    const nbOrg: number[] = [], nbPerson: number[] = [], path: number[] = [], reached: number[] = [];
-    for (let i = 0; i < Math.min(QUERIES + WARMUP, orgIds.length - 1, personIds.length); i++) {
-      if (opts.failAt === 'during-measure' && i === 2) throw new Error('falha simulada (during-measure)');
-      label = i === WARMUP ? 'neighbors_org' : '';
-      let t = performance.now();
-      const a = await neighbors(i === WARMUP ? recording : db, { type: 'organization', id: orgIds[i]! }, { asOf: AS_OF });
-      const d1 = performance.now() - t;
-      label = i === WARMUP ? 'neighbors_person' : '';
-      t = performance.now();
-      await neighbors(i === WARMUP ? recording : db, { type: 'person', id: personIds[i]! }, { asOf: AS_OF });
-      const d2 = performance.now() - t;
-      label = i === WARMUP ? 'shortest_path' : '';
-      t = performance.now();
-      await shortestPath(i === WARMUP ? recording : db, { type: 'organization', id: orgIds[i]! }, { type: 'organization', id: orgIds[i + 1]! }, { asOf: AS_OF });
-      const d3 = performance.now() - t;
-      label = '';
-      if (i >= WARMUP) { nbOrg.push(d1); nbPerson.push(d2); path.push(d3); reached.push(a.length); }
-    }
+    const rounds = Math.min(QUERIES + WARMUP, orgIds.length - 1, personIds.length);
 
-    // 4b) comparativo com a implementação recursiva de referência (opcional), nas mesmas entidades
-    let reference: Record<string, ReturnType<typeof stats>> | undefined;
-    if (opts.compareReference) {
-      const rOrg: number[] = [], rPerson: number[] = [], rPath: number[] = [];
-      for (let i = 0; i < Math.min(QUERIES + WARMUP, orgIds.length - 1, personIds.length); i++) {
+    // 4a) ida e volta (SELECT 1): separa REDE de consulta. Quem roda de fora da rede da Vertra paga isto em cada ida ao banco.
+    const rttSamples: number[] = [];
+    for (let i = 0; i < 45; i++) { const t = performance.now(); await q('SELECT 1'); if (i >= 5) rttSamples.push(performance.now() - t); }
+    const rtt = stats(rttSamples);
+    log(`ida e volta (SELECT 1): p50 ${rtt.p50_ms} ms`);
+
+    type Impl = { nb: typeof neighbors; sp: typeof shortestPath };
+    const median = (xs: number[]) => pct(xs, 50);
+    async function measure(impl: Impl, withPlans: boolean) {
+      const nbOrg: number[] = [], nbPerson: number[] = [], path: number[] = [], reached: number[] = [];
+      const cOrg: number[] = [], cPerson: number[] = [], cPath: number[] = [];
+      for (let i = 0; i < rounds; i++) {
+        if (opts.failAt === 'during-measure' && i === 2) throw new Error('falha simulada (during-measure)');
+        const rec = withPlans && i === WARMUP;
+        label = rec ? 'neighbors_org' : '';
+        let c0 = counted.n;
         let t = performance.now();
-        await neighborsRecursive(db, { type: 'organization', id: orgIds[i]! }, { asOf: AS_OF });
-        const d1 = performance.now() - t;
-        t = performance.now();
-        await neighborsRecursive(db, { type: 'person', id: personIds[i]! }, { asOf: AS_OF });
-        const d2 = performance.now() - t;
-        t = performance.now();
-        await shortestPathRecursive(db, { type: 'organization', id: orgIds[i]! }, { type: 'organization', id: orgIds[i + 1]! }, { asOf: AS_OF });
-        const d3 = performance.now() - t;
-        if (i >= WARMUP) { rOrg.push(d1); rPerson.push(d2); rPath.push(d3); }
+        const a1 = await impl.nb(rec ? recording : counting, { type: 'organization', id: orgIds[i]! }, { asOf: AS_OF });
+        const d1 = performance.now() - t; const k1 = counted.n - c0;
+        label = rec ? 'neighbors_person' : '';
+        c0 = counted.n; t = performance.now();
+        await impl.nb(rec ? recording : counting, { type: 'person', id: personIds[i]! }, { asOf: AS_OF });
+        const d2 = performance.now() - t; const k2 = counted.n - c0;
+        label = rec ? 'shortest_path' : '';
+        c0 = counted.n; t = performance.now();
+        await impl.sp(rec ? recording : counting, { type: 'organization', id: orgIds[i]! }, { type: 'organization', id: orgIds[i + 1]! }, { asOf: AS_OF });
+        const d3 = performance.now() - t; const k3 = counted.n - c0;
+        label = '';
+        if (i >= WARMUP) { nbOrg.push(d1); nbPerson.push(d2); path.push(d3); reached.push(a1.length); cOrg.push(k1); cPerson.push(k2); cPath.push(k3); }
       }
-      reference = { neighbors_from_organization: stats(rOrg), neighbors_from_person: stats(rPerson), shortest_path_org_to_org: stats(rPath) };
+      // ESTIMATIVA: tempo se o aplicativo estivesse na mesma rede do banco = p95 medido − (idas ao banco × ida e volta mediana do SELECT 1)
+      const series = (xs: number[], ks: number[]) => ({ ...stats(xs), db_roundtrips_median: median(ks), estimate_colocated_p95_ms: +Math.max(0, pct(xs, 95) - median(ks) * rtt.p50_ms).toFixed(1) });
+      return {
+        neighbors_from_organization: { ...series(nbOrg, cOrg), entities_reached_median: pct(reached, 50), entities_reached_max: Math.max(...reached) },
+        neighbors_from_person: series(nbPerson, cPerson),
+        shortest_path_org_to_org: series(path, cPath),
+      };
+    }
+    const worstOf = (r: Awaited<ReturnType<typeof measure>>) => Math.max(r.neighbors_from_organization.p95_ms, r.neighbors_from_person.p95_ms, r.shortest_path_org_to_org.p95_ms);
+    const worstEstOf = (r: Awaited<ReturnType<typeof measure>>) => Math.max(r.neighbors_from_organization.estimate_colocated_p95_ms, r.neighbors_from_person.estimate_colocated_p95_ms, r.shortest_path_org_to_org.estimate_colocated_p95_ms);
+
+    const product = await measure({ nb: neighbors, sp: shortestPath }, true);
+
+    // 4b) comparativos no MESMO servidor e na mesma hora (opcional): BFS em lote (variante anterior) e recursiva (referência original)
+    let referenceBatched: Awaited<ReturnType<typeof measure>> | undefined;
+    let referenceRecursive: Awaited<ReturnType<typeof measure>> | undefined;
+    if (opts.compareReference) {
+      referenceBatched = await measure({ nb: neighborsBatched, sp: shortestPathBatched }, false);
+      referenceRecursive = await measure({ nb: neighborsRecursive, sp: shortestPathRecursive }, false);
     }
 
-    // 5) EXPLAIN (ANALYZE, BUFFERS) das mesmas consultas (dados sintéticos; só o plano)
-    const plans: Record<string, string[]> = {};
-    for (const [name, list] of Object.entries(captured)) {
-      plans[name] = [];
-      for (const c of list) {
-        try {
-          const r = await q(`EXPLAIN (ANALYZE, BUFFERS, COSTS OFF, TIMING OFF) ${c.sql}`, c.params);
-          plans[name]!.push(r.rows.map((x) => String(Object.values(x)[0])).join('\n').slice(0, 6000));
-        } catch (e) { plans[name]!.push(`explain_indisponivel: ${(e as { code?: string }).code ?? (e as Error).name}`); }
+    // 5) EXPLAIN (ANALYZE, BUFFERS) das mesmas consultas (dados sintéticos; só o plano) + tempo de SERVIDOR (planejamento e execução)
+    const explainAll = async () => {
+      const plans: Record<string, string[]> = {};
+      const server: Record<string, { planning_ms: number | null; execution_ms: number | null }[]> = {};
+      for (const [name, list] of Object.entries(captured)) {
+        plans[name] = []; server[name] = [];
+        for (const c of list) {
+          try {
+            const r = await q(`EXPLAIN (ANALYZE, BUFFERS, COSTS OFF, TIMING OFF) ${c.sql}`, c.params);
+            const text = r.rows.map((x) => String(Object.values(x)[0])).join('\n');
+            const num = (re: RegExp) => { const m = re.exec(text); return m ? +Number(m[1]).toFixed(2) : null; };
+            const t = { planning_ms: num(/Planning Time: ([\d.]+) ms/), execution_ms: num(/Execution Time: ([\d.]+) ms/) };
+            server[name]!.push(t);
+            plans[name]!.push(`-- planning_ms=${t.planning_ms} execution_ms=${t.execution_ms}\n${text.slice(0, 6000)}`);
+          } catch (e) { plans[name]!.push(`explain_indisponivel: ${(e as { code?: string }).code ?? (e as Error).name}`); server[name]!.push({ planning_ms: null, execution_ms: null }); }
+        }
       }
+      return { plans, server };
+    };
+    const base = await explainAll();
+
+    // 5b) índices cobrindo propostos, SÓ no schema de teste: mede de novo no mesmo servidor (antes/depois)
+    let withIndexes: { results: Awaited<ReturnType<typeof measure>>; server_side: Awaited<ReturnType<typeof explainAll>>['server']; indexes: string[] } | undefined;
+    if (opts.withIndexes) {
+      const idx = proposedIndexes(schema);
+      for (const stmt of idx) await q(stmt);
+      for (const t of ['org_relation', 'role_assignment', 'person', 'organization']) await q(`VACUUM (ANALYZE) ${schema}.${t}`);
+      for (const k of Object.keys(captured)) delete captured[k];
+      const res = await measure({ nb: neighbors, sp: shortestPath }, true);
+      withIndexes = { results: res, server_side: (await explainAll()).server, indexes: idx.map((x) => x.replace(`${schema}.`, '')) };
     }
 
     const settings: Record<string, string> = {};
@@ -202,23 +249,24 @@ export async function runPgBench(client: BenchClient, opts: BenchOptions, onHand
       try { settings[k] = String((await q(`SELECT current_setting($1) AS v`, [k])).rows[0]?.v); } catch { /* ignora */ }
     }
     const version = String((await q(`SELECT version() AS v`)).rows[0]?.v ?? '').split(' on ')[0];
-    const worst = Math.max(pct(nbOrg, 95), pct(nbPerson, 95), pct(path, 95));
+    const worst = worstOf(product);
     const sizeBytes = Number((await q(`SELECT coalesce(sum(pg_total_relation_size(c.oid)),0)::text AS s FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relkind IN ('r','m')`, [schema])).rows[0]?.s ?? 0);
     const result = {
       generated_at: new Date().toISOString(),
       schema, version, settings,
       dataset: { synthetic: true, scale, orgs: ORGS, people: PEOPLE, graph_edges: edges, size_mb: +(sizeBytes / 2 ** 20).toFixed(1), load_seconds: +(loadMs / 1000).toFixed(1), as_of: AS_OF },
-      queries: { per_series: nbOrg.length, warmup_discarded: WARMUP, max_hops: 3 },
-      results: {
-        neighbors_from_organization: { ...stats(nbOrg), entities_reached_median: pct(reached, 50), entities_reached_max: Math.max(...reached) },
-        neighbors_from_person: stats(nbPerson),
-        shortest_path_org_to_org: stats(path),
-      },
-      reference_recursive: reference,
+      queries: { per_series: QUERIES, warmup_discarded: WARMUP, max_hops: 3 },
+      network: { select1_roundtrip: rtt, note: 'ida e volta de SELECT 1 a partir de onde o script roda; ESTIMATE_* = p95 − (idas ao banco × p50 do SELECT 1): estimativa, não medição' },
+      results: product,
+      reference_batched: referenceBatched,
+      reference_recursive: referenceRecursive,
+      with_indexes: withIndexes,
       proposed_criterion: { p95_ms: 300, edges: 100_000 },
       worst_p95_ms: +worst.toFixed(1),
       meets_criterion: edges >= 100_000 ? worst <= 300 : null, // null = carga abaixo de 100 mil arestas (fumaça): não vale como medição
-      explain: plans,
+      estimate_worst_p95_colocated_ms: +worstEstOf(product).toFixed(1),
+      server_side: base.server,
+      explain: base.plans,
     };
     return { ...result, schema_dropped: await finish() };
   } catch (e) {

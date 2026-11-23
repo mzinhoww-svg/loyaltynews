@@ -9,6 +9,7 @@
  *   node ln-com-credenciais.mjs staging -- node <checkout>/node_modules/.cache/ln-intelligence/bench-pg.mjs --migration <checkout>/packages/db/drizzle/0006_intelligence.sql --scale 0.02
  *   node ln-com-credenciais.mjs staging -- node <checkout>/node_modules/.cache/ln-intelligence/bench-pg.mjs --migration <checkout>/packages/db/drizzle/0006_intelligence.sql --out <arquivo.json>
  * --with-reference: mede também a implementação recursiva antiga (antes da otimização), no mesmo servidor, para o comparativo (mais lento).
+ * --with-indexes: depois da medição, cria índices cobrindo PROPOSTOS dentro do schema de teste e mede de novo (antes/depois, mesmo servidor; nenhuma migração).
  * Opções: --schema ln_bench_AAAAMMDD[_sufixo] (padrão: hoje), --scale 0..1 (padrão 1 = ~100 mil arestas), --replace (só apaga schema com a marca deste script).
  * Só APP_ENV=staging. Conexão única (Client).
  */
@@ -23,7 +24,7 @@ const REQUIRED = ['APP_ENV', 'DATABASE_URL', 'DB_SSL_CA_PEM', 'DB_SSL_CERT_PEM',
 const missing = REQUIRED.filter((k) => !process.env[k]);
 const migrationPath = arg('migration');
 if (missing.length || !migrationPath) {
-  console.error('uso: <script de credenciais> -- bench-pg --migration <0006_intelligence.sql> [--schema ln_bench_AAAAMMDD] [--scale 0.02] [--replace] [--with-reference] [--out arquivo.json]');
+  console.error('uso: <script de credenciais> -- bench-pg --migration <0006_intelligence.sql> [--schema ln_bench_AAAAMMDD] [--scale 0.02] [--replace] [--with-reference] [--with-indexes] [--out arquivo.json]');
   if (missing.length) console.error(`variáveis ausentes no ambiente: ${missing.join(', ')}`); // só NOMES
   process.exit(2);
 }
@@ -57,7 +58,7 @@ try {
   const bc: BenchClient = { query: async (sql, params) => ({ rows: (await client.query(sql, params as unknown[])).rows }) };
   const r = await runPgBench(
     bc,
-    { migrationSql: readFileSync(migrationPath, 'utf8'), schema: arg('schema'), scale, replace: flag('replace'), compareReference: flag('with-reference'), log: (l) => console.error(`[bench] ${l}`) },
+    { migrationSql: readFileSync(migrationPath, 'utf8'), schema: arg('schema'), scale, replace: flag('replace'), compareReference: flag('with-reference'), withIndexes: flag('with-indexes'), log: (l) => console.error(`[bench] ${l}`) },
     (h) => { handle = h; },
   );
   const json = JSON.stringify({ env: process.env.APP_ENV, ...r }, null, 2);

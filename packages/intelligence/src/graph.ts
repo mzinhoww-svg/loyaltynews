@@ -116,18 +116,108 @@ async function bfs(db: Db, from: NodeRef, opts: GraphOptions, stopAt?: NodeRef):
   return seen;
 }
 
-/** Entidades alcançáveis em até N (≤3) saltos, uma linha por entidade (menor profundidade; caminho declarado preferido). */
-export async function neighbors(db: Db, from: NodeRef, opts: GraphOptions = {}): Promise<Reached[]> {
+/** Variante EM LOTE (uma consulta por salto, até 3 idas ao banco): referência para teste de equivalência e comparativo. O produto usa `neighbors` (uma ida). */
+export async function neighborsBatched(db: Db, from: NodeRef, opts: GraphOptions = {}): Promise<Reached[]> {
   const seen = await bfs(db, from, opts);
   seen.delete(key(from.type, from.id));
   return [...seen.values()].sort((a, b) => a.depth - b.depth || a.path.join().localeCompare(b.path.join()));
 }
 
-/** Menor caminho entre duas entidades (≤3 saltos). null se não houver caminho com as arestas permitidas. */
-export async function shortestPath(db: Db, from: NodeRef, to: NodeRef, opts: GraphOptions = {}): Promise<Reached | null> {
+/** Variante EM LOTE do menor caminho (referência; ver `neighborsBatched`). */
+export async function shortestPathBatched(db: Db, from: NodeRef, to: NodeRef, opts: GraphOptions = {}): Promise<Reached | null> {
   if (from.type === to.type && from.id === to.id) return null;
   const seen = await bfs(db, from, opts, to);
   return seen.get(key(to.type, to.id)) ?? null;
+}
+
+// ------------------------------------------------------------------------------------------------
+// UMA ida ao banco por consulta (ADR-009, 2ª rodada). No PostgreSQL do staging, medido de fora da rede da Vertra, os p50 de TODAS as variantes
+// ficaram em ~415–445 ms mesmo com planos que tocam só ~850 buffers: o custo dominante é a ida e volta (a BFS em lote faz até 3). Aqui os (no máximo)
+// 3 saltos viram 3 CTEs NÃO recursivas encadeadas, cada uma com DISTINCT ON por entidade (menor profundidade; caminho declarado preferido; empate pelo
+// menor edge_id), excluindo as entidades já vistas nos níveis anteriores. Mesma semântica das outras duas implementações (teste de equivalência).
+// ------------------------------------------------------------------------------------------------
+const EDGES_ONLY = EDGES_CTE.slice(0, EDGES_CTE.indexOf('  walk AS ('));
+
+/**
+ * Arestas vigentes que tocam a fronteira do nível anterior, nas duas direções, buscadas com `= ANY(<array da fronteira>)`: o array vem de um InitPlan
+ * (`ARRAY(SELECT b_id FROM lN)`), então o planejador sonda os ÍNDICES por pessoa/organização/relação em vez de juntar a fronteira com a visão inteira
+ * (a 1ª versão da consulta única juntava com a visão e ficou ~6× mais lenta no servidor). `gate`: condição que faz o nível nem rodar.
+ */
+function frontierEdgesSql(prev: string, gate: string): string {
+  const valid = `valid_from <= $3::date AND (valid_to IS NULL OR valid_to > $3::date) AND ($4::boolean OR certainty = 'declared')`;
+  return `
+    SELECT src_type AS a_type, src_id AS a_id, dst_type AS b_type, dst_id AS b_id, edge_id, certainty
+      FROM ${S}.graph_edge
+     WHERE ${gate} AND src_id = ANY(ARRAY(SELECT b_id FROM ${prev})) AND ${valid}
+    UNION ALL
+    SELECT dst_type, dst_id, src_type, src_id, edge_id, certainty
+      FROM ${S}.graph_edge
+     WHERE ${gate} AND dst_id = ANY(ARRAY(SELECT b_id FROM ${prev})) AND ${valid}`;
+}
+
+/** `stopL2`/`stopL3`: condições extras (terminadas em AND) que fazem os níveis 2/3 nem rodarem (saída antecipada do menor caminho). */
+function levelsSql(stopL2: string, stopL3: string): string {
+  return `
+  l1 AS (
+    SELECT DISTINCT ON (e.b_type, e.b_id) 1 AS depth, e.b_type, e.b_id,
+           ARRAY[$1::text || ':' || $2::text, e.b_type || ':' || e.b_id::text] AS path, ARRAY[e.edge_id] AS edge_ids,
+           (e.certainty = 'declared') AS all_declared
+      FROM edges e
+     WHERE e.a_type = $1 AND e.a_id = $2::uuid AND NOT (e.b_type = $1 AND e.b_id = $2::uuid)
+     ORDER BY e.b_type, e.b_id, (e.certainty = 'declared') DESC, e.edge_id
+  ),
+  e2 AS (${frontierEdgesSql('l1', `$5::int >= 2 AND ${stopL2}`)}
+  ),
+  l2 AS (
+    SELECT DISTINCT ON (e.b_type, e.b_id) 2 AS depth, e.b_type, e.b_id,
+           l.path || (e.b_type || ':' || e.b_id::text) AS path, l.edge_ids || e.edge_id AS edge_ids,
+           (l.all_declared AND e.certainty = 'declared') AS all_declared
+      FROM l1 l JOIN e2 e ON e.a_type = l.b_type AND e.a_id = l.b_id
+     WHERE NOT (e.b_type = $1 AND e.b_id = $2::uuid)
+       AND NOT EXISTS (SELECT 1 FROM l1 x WHERE x.b_type = e.b_type AND x.b_id = e.b_id)
+     ORDER BY e.b_type, e.b_id, (l.all_declared AND e.certainty = 'declared') DESC, e.edge_id
+  ),
+  e3 AS (${frontierEdgesSql('l2', `$5::int >= 3 AND ${stopL3}`)}
+  ),
+  l3 AS (
+    SELECT DISTINCT ON (e.b_type, e.b_id) 3 AS depth, e.b_type, e.b_id,
+           l.path || (e.b_type || ':' || e.b_id::text) AS path, l.edge_ids || e.edge_id AS edge_ids,
+           (l.all_declared AND e.certainty = 'declared') AS all_declared
+      FROM l2 l JOIN e3 e ON e.a_type = l.b_type AND e.a_id = l.b_id
+     WHERE NOT (e.b_type = $1 AND e.b_id = $2::uuid)
+       AND NOT EXISTS (SELECT 1 FROM l1 x WHERE x.b_type = e.b_type AND x.b_id = e.b_id)
+       AND NOT EXISTS (SELECT 1 FROM l2 x WHERE x.b_type = e.b_type AND x.b_id = e.b_id)
+     ORDER BY e.b_type, e.b_id, (l.all_declared AND e.certainty = 'declared') DESC, e.edge_id
+  )`;
+}
+const ALL_LEVELS = `SELECT node_type, node_id, depth, path, edge_ids, all_declared FROM (
+    SELECT b_type AS node_type, b_id AS node_id, depth, path, edge_ids, all_declared FROM l1
+    UNION ALL SELECT b_type, b_id, depth, path, edge_ids, all_declared FROM l2
+    UNION ALL SELECT b_type, b_id, depth, path, edge_ids, all_declared FROM l3) r`;
+// Menor caminho: os níveis 2 e 3 só rodam se o destino ainda não apareceu (InitPlan avaliado uma vez: saída antecipada dentro de UMA consulta).
+const SP_STOP_L2 = 'NOT EXISTS (SELECT 1 FROM l1 t WHERE t.b_type = $6 AND t.b_id = $7::uuid)';
+const SP_STOP_L3 = `${SP_STOP_L2} AND NOT EXISTS (SELECT 1 FROM l2 t WHERE t.b_type = $6 AND t.b_id = $7::uuid)`;
+const WITH_EDGES = EDGES_ONLY.trimEnd().replace(/,$/, '');
+
+/** Entidades alcançáveis em até N (≤3) saltos, uma linha por entidade (menor profundidade; caminho declarado preferido). UMA ida ao banco. */
+export async function neighbors(db: Db, from: NodeRef, opts: GraphOptions = {}): Promise<Reached[]> {
+  const r = await db.query<Reached>(
+    `WITH ${WITH_EDGES},${levelsSql('TRUE', 'TRUE')}
+     ${ALL_LEVELS}`,
+    [from.type, from.id, opts.asOf ?? today(), opts.includeInferred ?? false, hops(opts)],
+  );
+  return r.rows.sort((a, b) => a.depth - b.depth || a.path.join().localeCompare(b.path.join()));
+}
+
+/** Menor caminho entre duas entidades (≤3 saltos). null se não houver caminho com as arestas permitidas. UMA ida ao banco. */
+export async function shortestPath(db: Db, from: NodeRef, to: NodeRef, opts: GraphOptions = {}): Promise<Reached | null> {
+  if (from.type === to.type && from.id === to.id) return null;
+  const r = await db.query<Reached>(
+    `WITH ${WITH_EDGES},${levelsSql(SP_STOP_L2, SP_STOP_L3)}
+     ${ALL_LEVELS} WHERE node_type = $6 AND node_id = $7::uuid ORDER BY depth, all_declared DESC LIMIT 1`,
+    [from.type, from.id, opts.asOf ?? today(), opts.includeInferred ?? false, hops(opts), to.type, to.id],
+  );
+  return r.rows[0] ?? null;
 }
 
 /**
