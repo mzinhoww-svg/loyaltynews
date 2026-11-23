@@ -7,10 +7,13 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Linhas JSON de dataset/candidatos (script de uso único; campos heterogêneos).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = Record<string, any>;
 const DATA = join(dirname(fileURLToPath(import.meta.url)), '..', 'data');
 const NOW = Date.parse('2026-11-23T00:00:00Z');
-const ds = JSON.parse(readFileSync(join(DATA, 'dataset.json'), 'utf8')) as Array<Record<string, any>>;
-const cands = JSON.parse(readFileSync(join(DATA, 'candidates.json'), 'utf8')) as Array<Record<string, any>>;
+const ds = JSON.parse(readFileSync(join(DATA, 'dataset.json'), 'utf8')) as Row[];
+const cands = JSON.parse(readFileSync(join(DATA, 'candidates.json'), 'utf8')) as Row[];
 const age = (iso: string | null) => (iso ? (NOW - Date.parse(iso)) / 864e5 : 0);
 const norm = (u: string) => u.replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
 const used = new Set(ds.map((d) => norm(d.url)));
