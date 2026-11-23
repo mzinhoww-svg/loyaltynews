@@ -98,6 +98,19 @@ describe('watchlists privadas, apagar lista e item, alertas com antes e depois',
     expect((await call(d, 'GET', { path: STU('/alerts'), query: { watchlistId: wid }, as: editor })).body.items.length).toBe(meus.body.items.length);
   });
 
+  it('revisão do alerta só pelo DONO da lista (decisão do PM): outro usuário, mesmo admin com materias:transition, recebe 404 e nada grava', async () => {
+    const [a] = (await call(d, 'GET', { path: STU('/alerts'), query: { status: 'pending_review' }, as: editor })).body.items;
+    const rev = (as: Actor | null, status = 'approved') => call(d, 'POST', { path: STU(`/alerts/${a.id}/review`), body: { status }, as });
+    for (const as of [outro, chefe]) expect((await rev(as)).status).toBe(404);
+    expect((await rev(null)).status).toBe(401);
+    expect((await call(d, 'POST', { path: STU('/alerts/00000000-0000-4000-8000-000000000000/review'), body: { status: 'approved' }, as: editor })).status).toBe(404);
+    const ainda = (await call(d, 'GET', { path: STU('/alerts'), query: { watchlistId: wid, status: 'pending_review' }, as: editor })).body.items;
+    expect(ainda.map((x: any) => x.id)).toContain(a.id); // a recusa não gravou decisão
+    const ok = await rev(editor, 'rejected');
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ id: a.id, status: 'rejected', reviewed_by: editor.id });
+  });
+
   it('remover item: tira só aquele; repetir = 404; tipo inválido 400; depois apagar a lista: 200 {deleted}, some do dono, alertas dela somem; repetir 404', async () => {
     const r = await del(`/watchlists/${wid}/items`, { entityType: 'person', entityId: ids.ana }, editor);
     expect(r.status).toBe(200);

@@ -31,6 +31,11 @@ import * as publicoSitemapRoute from '@/app/api/publico/site/sitemap/route';
 import * as publicoRedirectsRoute from '@/app/api/publico/site/redirects/route';
 import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
+import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
+import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha } from '@/lib/studio/intelligence-view';
+import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
+import { dispatchTitular } from '@/app/api/_lib/titular-studio';
+import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -177,6 +182,10 @@ export interface EventoAgenda {
 
 const E = '/api/studio/editorial';
 const C = '/api/commercial';
+const I = '/api/studio/intelligence';
+const T = '/api/studio/correcoes';
+/** O catch-all opcional lê o caminho de `params.path`, como o App Router entrega. */
+const titularEm = (path: string[]): Despachante => (req) => dispatchTitular(req, { params: Promise.resolve({ path }) });
 
 export const api = {
   materias: {
@@ -257,8 +266,47 @@ export const api = {
     /** O mesmo relatório em CSV ('diario' ou 'resumo'): corpo { filename, contentType, csv }. */
     relatorioCsv: (campaignId: string, kind: 'diario' | 'resumo', from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report-csv`, { query: { campaignId, kind, from, to } }),
   },
+  intelligence: {
+    /** Empresas por nome (GET /api/studio/intelligence/companies?q=). */
+    empresas: (q: string) => chamar<{ items: OrganizacaoLinha[] }>(dispatchIntelligence, `${I}/companies`, { query: { q } }),
+    /** Empresa com pessoas e cargos, relações e evidências. `includeInferred` traz também o que veio de fonte secundária ("a confirmar"). */
+    empresa: (id: string, opts: { asOf?: string; includeInferred?: boolean } = {}) =>
+      chamar<EmpresaDetalhe>(dispatchIntelligence, `${I}/companies/${encodeURIComponent(id)}`, { query: { asOf: opts.asOf, ...(opts.includeInferred ? { includeInferred: 'true' } : {}) } }),
+    executivo: (id: string, opts: { includeInferred?: boolean } = {}) =>
+      chamar<{ person: { id: string; full_name: string; public_profile_url: string | null; evidence: import('@/lib/studio/intelligence-view').EvidenciaRef }; roles: CargoLinha[] }>(
+        dispatchIntelligence, `${I}/executives/${encodeURIComponent(id)}`, { query: opts.includeInferred ? { includeInferred: 'true' } : {} }),
+    executivos: (q: string) => chamar<{ items: { id: string; full_name: string }[] }>(dispatchIntelligence, `${I}/executives`, { query: { q } }),
+    /** Moves por estado (detected = pendente de revisão), com antes e depois quando o Backend os traz. */
+    moves: (query: { status?: 'detected' | 'confirmed' | 'rejected'; organizationId?: string; personId?: string }) => chamar<{ items: MoveLinha[] }>(dispatchIntelligence, `${I}/moves`, { query }),
+    /** Pedido do titular (LGPD / direito de resposta): só admin. kind: access | rectification | suppression. */
+    abrirPedido: (corpo: { personId: string; kind: 'access' | 'rectification' | 'suppression'; note?: string }) => chamar<{ id: string; status: string }>(dispatchIntelligence, `${I}/subject-requests`, { metodo: 'POST', corpo }),
+    exportarPedido: (requestId: string) => chamar<{ requestId: string; data: { person: Record<string, unknown> | null; roles: Record<string, unknown>[] } }>(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/export`, { metodo: 'POST', corpo: {} }),
+    retificarPedido: (requestId: string, fullName: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/rectify`, { metodo: 'POST', corpo: { fullName } }),
+    suprimirPedido: (requestId: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/suppress`, { metodo: 'POST', corpo: {} }),
+    revisarMove: (id: string, status: 'confirmed' | 'rejected') => chamar(dispatchIntelligence, `${I}/moves/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
+    // ---- Watchlists e alertas (Studio 2; WATCHLISTS_API.md). Privadas: o dono é a sessão; lista de outro dono = 404. ----
+    watchlists: () => chamar<{ items: WatchlistLinha[] }>(dispatchIntelligence, `${I}/watchlists`),
+    watchlist: (id: string) => chamar<{ watchlist: WatchlistLinha; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(id)}`),
+    criarWatchlist: (name: string) => chamar<{ id: string }>(dispatchIntelligence, `${I}/watchlists`, { metodo: 'POST', corpo: { name } }),
+    apagarWatchlist: (id: string) => chamar<{ id: string; deleted: true }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(id)}`, { metodo: 'DELETE', corpo: { id } }),
+    adicionarItem: (watchlistId: string, entityType: string, entityId: string) =>
+      chamar<{ watchlistId: string; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(watchlistId)}/items`, { metodo: 'POST', corpo: { watchlistId, entityType, entityId } }),
+    removerItem: (watchlistId: string, entityType: string, entityId: string) =>
+      chamar<{ watchlistId: string; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(watchlistId)}/items`, { metodo: 'DELETE', corpo: { watchlistId, entityType, entityId } }),
+    alertas: (query: { status?: 'pending_review' | 'approved' | 'rejected'; watchlistId?: string }) => chamar<{ items: AlertaLinha[] }>(dispatchIntelligence, `${I}/alerts`, { query }),
+    revisarAlerta: (id: string, status: 'approved' | 'rejected') => chamar<{ id: string; status: string; reviewed_by: string }>(dispatchIntelligence, `${I}/alerts/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
+  },
+  /** Pedidos do titular (DP-38; Studio 2): /api/studio/correcoes/[[...path]] (ft/backend-2). RBAC `titular`: editor-chefe e admin. */
+  titular: {
+    listar: (query: { estado?: string; responsavel?: string } = {}) => chamar<{ items: PedidoLinha[] }>(titularEm([]), T, { query }),
+    /** Detalhe com nome, contato e trilha; a própria consulta entra na auditoria. */
+    obter: (id: string) => chamar<PedidoDetalhe>(titularEm([id]), `${T}/${encodeURIComponent(id)}`),
+    atribuir: (id: string, responsavel: string) => chamar<PedidoLinha>(titularEm([id, 'atribuir']), `${T}/${encodeURIComponent(id)}/atribuir`, { metodo: 'POST', corpo: { responsavel } }),
+    decidir: (id: string, corpo: { acao: AcaoDecisao; campos?: Record<string, string>; motivo?: string }) =>
+      chamar<PedidoLinha>(titularEm([id, 'decidir']), `${T}/${encodeURIComponent(id)}/decidir`, { metodo: 'POST', corpo }),
+  },
   editorial: {
-    fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
+    fila:(query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
     /** Rascunho editorial completo + última checagem (para a correção de matéria da Fábrica; 404 sem registro editorial). */
     rascunho: (articleId: string) => chamar<RascunhoFabrica>(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/draft`),
     revisao: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/review`),
