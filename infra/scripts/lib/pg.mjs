@@ -25,9 +25,9 @@ export function pgEnv({ urlVar, pemPrefix }, tmpDir, env = process.env) {
   const ca = join(tmpDir, `${pemPrefix}.ca.pem`);
   const crt = join(tmpDir, `${pemPrefix}.crt`);
   const key = join(tmpDir, `${pemPrefix}.key`);
-  writeFileSync(ca, env[`${pemPrefix}_CA_PEM`], { mode: 0o600 });
-  writeFileSync(crt, env[`${pemPrefix}_CERT_PEM`], { mode: 0o600 });
-  writeFileSync(key, env[`${pemPrefix}_KEY_PEM`], { mode: 0o600 });
+  writeFileSync(ca, normalizarPem(env[`${pemPrefix}_CA_PEM`]), { mode: 0o600 });
+  writeFileSync(crt, normalizarPem(env[`${pemPrefix}_CERT_PEM`]), { mode: 0o600 });
+  writeFileSync(key, normalizarPem(env[`${pemPrefix}_KEY_PEM`]), { mode: 0o600 });
   return {
     PGHOST: id.host, PGPORT: id.port, PGDATABASE: id.database, PGUSER: id.user, PGPASSWORD: id.password,
     PGSSLMODE: 'verify-full', PGSSLROOTCERT: ca, PGSSLCERT: crt, PGSSLKEY: key,
@@ -43,11 +43,23 @@ export function parseUserTables(rows) {
 
 const SQL_USER_TABLES = "select table_schema||'.'||table_name as t from information_schema.tables where table_type='BASE TABLE' and table_schema not in ('pg_catalog','information_schema','drizzle') order by 1";
 
+/** PEM vindo de variável da Vertra: aspas ao redor, CRLF e \n escapado (a Vertra entrega só a 1ª linha de variável multilinha; por isso os PEM vão em UMA linha com \n escapado). Mesmo critério de packages/db/src/tls.ts. */
+export function normalizarPem(raw) {
+  if (raw === undefined || raw === null) return undefined;
+  const bruto = String(raw);
+  let v = bruto.trim();
+  if (!v) return undefined;
+  if (v.length >= 2 && ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))) v = v.slice(1, -1).trim();
+  if (v.includes('\n') || !v.includes('\\n')) return bruto; // já multilinha (ou sem escape): entrega como veio
+  v = v.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n');
+  return v.endsWith('\n') ? v : v + '\n';
+}
+
 /** Opções de conexão do módulo pg a partir de DATABASE_URL e DB_SSL_*_PEM (TLS verify-full com certificado de cliente; nunca disable aqui). */
 export function pgClientConfig(env = process.env) {
   const faltam = ['DATABASE_URL', 'DB_SSL_CA_PEM', 'DB_SSL_CERT_PEM', 'DB_SSL_KEY_PEM'].filter((k) => !env[k]);
   if (faltam.length) throw new Error(`variáveis ausentes: ${faltam.join(', ')}`);
-  return { connectionString: env.DATABASE_URL, ssl: { ca: env.DB_SSL_CA_PEM, cert: env.DB_SSL_CERT_PEM, key: env.DB_SSL_KEY_PEM, rejectUnauthorized: true }, connectionTimeoutMillis: 10000 };
+  return { connectionString: env.DATABASE_URL, ssl: { ca: normalizarPem(env.DB_SSL_CA_PEM), cert: normalizarPem(env.DB_SSL_CERT_PEM), key: normalizarPem(env.DB_SSL_KEY_PEM), rejectUnauthorized: true }, connectionTimeoutMillis: 10000 };
 }
 
 /** Executa um SQL de leitura com o módulo pg do checkout (precisa de node_modules; não usa psql). Devolve as linhas. */
