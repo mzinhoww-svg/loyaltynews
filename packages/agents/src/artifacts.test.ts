@@ -47,16 +47,29 @@ describe('artefatos versionados (artifacts/)', () => {
     expect(md).toMatch(/G1.*P5 v2/);
   });
 
-  it('o protocolo de qualificação declara que nada roda sem decisão do proprietário e traz as travas, o orçamento e o teste de cache', () => {
+  it('o protocolo de qualificação (DP-26, ADR-021, etapas do PM) declara que nada roda antes do G4 e do modo, e traz travas, etapas e teste de cache', () => {
     const md = generated['model-qualification-protocol.md'];
-    expect(md).toMatch(/Nada roda até o proprietário decidir a política/);
+    expect(md).toMatch(/Nada roda antes do G4 fechado e do modo `qualification` homologado/);
     expect(md).toMatch(/cached_tokens > 0/);
-    expect(md).toMatch(/Teto proposto: US\$ 5/);
-    expect(md).toMatch(/T6 \| \*\*Modo de qualificação no gateway\*\*/);
-    expect(md).toMatch(/não qualifica Fable|\*\*não\*\* qualifica Fable/);
+    expect(md).toMatch(/DP-26/);
+    expect(md).toMatch(/Revogada pela DP-27/);
+    expect(md).toMatch(/ADR-021/);
+    expect(md).toMatch(/\*\*DeepSeek fora\*\*/);
+    expect(md).toMatch(/Este protocolo \*\*não\*\* qualifica Fable/);
+    expect(md).toMatch(/Etapa 1: Haiku 5\.5, Sonnet 5\.5 e GPT-6\.1-terra, uma passada cada/);
+    expect(md).toMatch(/Etapa 2: rotulagem do golden set \(somente\)/);
+    expect(md).toMatch(/Etapa 3 \(pós-lançamento, fora de novembro\): Opus 5\.5 e GPT-6\.2-sol/);
+    expect(md).toMatch(/limite US\$ 15/);
+    expect(md).toMatch(/T10 \| Teto do modo por etapa/);
+    expect(md).toMatch(/T11 \| Fonte de verba da rotulagem/);
+    expect(md).toMatch(/L5 aberta/);
     const plan = JSON.parse(generated['model-qualification-plan.json']);
     expect(plan.plano.ok).toBe(true);
-    expect(plan.plano.totals.calls).toBe(187);
+    expect(plan.plano.stageTotals['2'].calls).toBe(400);
+    expect(plan.plano.stageTotals['1'].calls).toBe(122);
+    expect(plan.plano.novemberTotals.ceilingWithRetriesMicro).toBeLessThanOrEqual(15_000_000);
+    expect(plan.etapas['3'].inNovember).toBe(false);
+    expect(plan.decisoes).toHaveLength(4);
     expect(JSON.stringify(plan)).not.toMatch(/api[_-]?key|password|secret/i);
   });
 });

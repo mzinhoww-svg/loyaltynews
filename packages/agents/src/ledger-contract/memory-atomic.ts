@@ -66,7 +66,8 @@ export class MemoryAtomicLedgerStore implements AtomicLedgerStore {
           const states = replay(visible());
           const prior = states.get(event.reservationId);
           if (prior && prior.monthKey !== event.monthKey) throw new LedgerConflictError('evento em mês diferente da reserva');
-          const bad = checkTransition(states, event);
+          // `idempotent: false` também permite reserva duplicada (defeito simulado: sem unicidade de identidade)
+          const bad = this.opts.idempotent === false && event.type === 'reserve' ? null : checkTransition(states, event);
           if (bad) throw new LedgerConflictError(bad);
           const stored: StoredLedgerEvent = { ...event, seq: b.nextSeq++ };
           buffer.push(stored);

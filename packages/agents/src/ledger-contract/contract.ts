@@ -52,6 +52,10 @@ export interface AtomicLedgerStore extends LedgerStore {
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const EVENT_TYPES = ['reserve', 'pending', 'commit', 'release', 'refill_fee'] as const;
+const PROVIDERS = ['anthropic', 'openai', 'deepseek'] as const;
+const TASK_CLASSES = ['essential', 'non_essential', 'premium', 'reserve'] as const;
+const POOLS = ['allocation', 'reserve'] as const;
+const LANES = ['text', 'image'] as const;
 const isMicro = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
 
 /** Forma de um evento. Todo armazenamento DEVE impor estas regras (no PostgreSQL, também com CHECK). */
@@ -69,6 +73,10 @@ export function validateEventShape(e: NewLedgerEvent): string[] {
     case 'reserve':
       for (const f of ['taskId', 'taskClass', 'pool', 'lane', 'provider', 'model'] as const) if (!e[f]) errors.push(`reserve exige ${f}`);
       if (typeof e.escalation !== 'boolean') errors.push('reserve exige escalation booleano');
+      if (e.provider && !(PROVIDERS as readonly string[]).includes(e.provider)) errors.push(`provider desconhecido: ${e.provider}`);
+      if (e.taskClass && !(TASK_CLASSES as readonly string[]).includes(e.taskClass)) errors.push(`taskClass inválida: ${e.taskClass}`);
+      if (e.pool && !(POOLS as readonly string[]).includes(e.pool)) errors.push(`pool inválido: ${e.pool}`);
+      if (e.lane && !(LANES as readonly string[]).includes(e.lane)) errors.push(`lane inválida: ${e.lane}`);
       if (e.amountMicro === undefined) errors.push('reserve exige amountMicro');
       break;
     case 'pending':

@@ -73,8 +73,8 @@ export const GATES: Gate[] = [
       { id: 'G2.3', text: 'Qualidade PT-BR frente ao golden set', measure: 'avaliação cega comparando o modelo candidato com a referência (claude-sonnet-5-5)', threshold: 'não pior que a referência em fidelidade factual; limiar numérico a definir com a Editorial', owner: 'Editorial + QA' },
       { id: 'G2.4', text: 'ZDR / data_collection=deny disponível por modelo', measure: 'consulta ao endpoint do provedor no OpenRouter', threshold: 'confirmado para 100% dos modelos usados', owner: 'Security' },
       { id: 'G2.5', text: 'Resposta traz usage e evidência de geração (custo conciliável)', measure: 'sampleFromResponse(resposta) != null em 100% das chamadas de teste em staging', threshold: '100%', owner: 'AgentOps + Backend' },
-      { id: 'G2.6', text: 'Orçamento da qualificação cabe na DP-04 (teto proposto de US$ 5, verbas por provedor, 20% do sublimite do Opus, sem reserva de auditoria)', measure: 'buildQualificationPlan(política v5).ok (model-qualification-protocol.md, seção 7)', threshold: 'todas as verificações do plano OK', owner: 'AgentOps + FinOps', proposedThreshold: true },
-      { id: 'G2.7', text: 'Política decidida pelo proprietário e travas T1–T8 do protocolo resolvidas antes de qualquer chamada', measure: 'registro das decisões T1–T3, retenção T4, processador T5, modo de qualificação T6, ledger T7, golden set T8', threshold: '8 de 8 travas resolvidas', owner: 'Proprietário + Backend + FinOps + Security + Editorial' },
+      { id: 'G2.6', text: 'Orçamento da qualificação em etapas cabe na DP-04: etapa 1 ≤ US$ 5, etapa 2 ≤ US$ 10, total de novembro ≤ US$ 15, sem Opus/GPT-6.2-sol, sem DeepSeek/Fable, sem a reserva de auditoria', measure: 'buildQualificationPlan(política).ok (model-qualification-protocol.md, seções 2 e 8)', threshold: 'todas as verificações de erro do plano OK (avisos viram decisão pendente)', owner: 'AgentOps + FinOps', proposedThreshold: true },
+      { id: 'G2.7', text: 'Travas do protocolo resolvidas antes de qualquer chamada: T1–T3 decididas (DP-26) e T6 decidida (ADR-021) mais T4, T5 (efetividade), T6 (implementação e homologação do modo), T7 (G4 fechado), T8, T9 (recarga), T10 (cap por etapa) e T11 (fonte de verba da rotulagem)', measure: 'registro de cada trava em model-qualification-protocol.md, seção 1', threshold: 'todas resolvidas; qualificação real só depois do G4 fechado e do modo qualification homologado', owner: 'Proprietário + PM + Arquiteto + Backend + FinOps + Security + Editorial' },
     ],
   },
   {
@@ -156,8 +156,8 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   for (const id of ['G2.3', 'G2.4']) external(id, 'exige medição/consulta real fora deste pacote');
   const qualSrc = read(join(PKG_DIR, 'src/qualification.ts'));
   const qualPlan = buildQualificationPlan(loadPolicyFile(POLICY_FIXTURE).policy as ModelPolicy);
-  set('G2.6', qualSrc.includes('buildQualificationPlan') && qualPlan.ok, qualPlan.ok ? `plano de qualificação OK: ${qualPlan.totals.calls} chamadas, teto com reexecução US$ ${(qualPlan.totals.ceilingWithRetriesMicro / 1_000_000).toFixed(2)}` : `plano reprovado: ${qualPlan.checks.filter((c) => !c.ok).map((c) => c.id).join(', ')}`);
-  external('G2.7', 'o protocolo existe; as decisões do proprietário e as travas T1–T8 não estão resolvidas (nada roda)');
+  set('G2.6', qualSrc.includes('buildQualificationPlan') && qualPlan.ok, qualPlan.ok ? `plano de qualificação OK: etapa 1 US$ ${(qualPlan.stageTotals[1].ceilingWithRetriesMicro / 1_000_000).toFixed(2)}, etapa 2 US$ ${(qualPlan.stageTotals[2].ceilingWithRetriesMicro / 1_000_000).toFixed(2)} (teto com reexecução; total de novembro ≤ US$ 15)` : `plano reprovado: ${qualPlan.checks.filter((c) => !c.ok).map((c) => c.id).join(', ')}`);
+  external('G2.7', 'DP-26 e ADR-021 decidiram T1–T3 e T6; faltam o G4 fechado (L5), a implementação e homologação do modo, a recarga, o cap por etapa (T10), a fonte de verba da rotulagem (T11) e o golden set humano: nada roda');
   const measureSrc = read(join(PKG_DIR, 'src/measure.ts'));
   out.push({ criterion: 'G2.5', status: 'external', evidence: measureSrc.includes('sampleFromResponse') ? 'sampleFromResponse existe; falta rodar em staging com chamadas reais' : 'harness ausente' });
 

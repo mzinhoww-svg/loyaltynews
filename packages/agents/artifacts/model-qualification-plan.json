@@ -1,16 +1,47 @@
 {
-  "schema": "ln.agents.model-qualification-plan/1",
-  "nota": "GERADO. PROJEÇÃO de custo e casos de teste: NADA foi executado e nada pode ser executado até o proprietário decidir a política (production_enabled=false; flag modelosHabilitados desligada). Perfis de token são estimativas da Frente 07, não medição.",
+  "schema": "ln.agents.model-qualification-plan/2",
+  "nota": "GERADO. PROJEÇÃO de custo e casos de teste: NADA foi executado e nada pode ser executado antes do G4 fechado e do modo qualification homologado (production_enabled=false; flag modelosHabilitados desligada). Perfis de token são estimativas da Frente 07, não medição.",
+  "decisoes": [
+    "DP-26 (proprietário, 23/11/2026): política de modelos de produção = proposta do FinOps; (a) privacidade = ZDR listado no OpenRouter + política de dados do OpenRouter arquivada [REVOGADO pela DP-27]; (b) sem reserva na redação (DeepSeek fora; reserva de US$ 8 só para auditoria); (c) Fable fora de todo trabalho não publicado",
+    "DP-27 (proprietário, 23/11/2026): ZDR NÃO é mais exigido (máquina e assinaturas exclusivas do projeto; retenção aceita); prioridade = executar redação, checagem e rituais por agentes do OpenBot nas assinaturas já pagas (Claude, Codex; fora do teto), com a API tarifada só como complemento dentro de US$ 50; \"sem reserva na redação\" e \"Fable fora do não publicado\" seguem",
+    "ADR-021 (Chief Architect): política v6 = v5 + DP-26; modo qualification (T6) definido e DESLIGADO; tarefa model_qualification, classe public, provider.zdr por chamada, allow_fallbacks=false, pool qualification, cap_usd = 5, exige production_enabled=false",
+    "PM (23/11/2026): qualificação em etapas, total <= US$ 15 em novembro; etapa 1 (<= US$ 5): Haiku, Sonnet e GPT-6.1-terra, uma passada cada; etapa 2 (<= US$ 10, só se a etapa 1 passar e com ok do PM): rotulagem do golden set; Opus sai de novembro (pós-lançamento, sob o sublimite de escalonamento)"
+  ],
   "politica": {
     "arquivo": "packages/modelops/fixtures/model.policy.proposto-DP02-v5.json",
     "sha256": "2641a8fe3d193af283d3984352ebce5464eed39da7941b62a29ed46afd359a71",
-    "version": "2.1-dp02-v5-proposta"
+    "version": "2.1-dp02-v5-proposta",
+    "nota": "preços e IDs dos 5 candidatos; a v6 (DP-26) altera rotas e verbas, não esses preços; migrar o fixture quando a v6 virar contrato"
   },
-  "alinhado_com": "r0-preparacao/finops/proposta-politica-modelos-producao.md (23/11/2026)",
+  "alinhado_com": [
+    "r0-preparacao/finops/proposta-politica-modelos-producao.md (23/11/2026)",
+    "fast-track/decisoes/ADR-021-politica-modelos-dp26-qualificacao.md"
+  ],
+  "etapas": {
+    "1": {
+      "title": "Etapa 1: Haiku 5.5, Sonnet 5.5 e GPT-6.1-terra, uma passada cada",
+      "capUsd": 5,
+      "inNovember": true,
+      "requires": "G4 fechado (L1–L5), modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas"
+    },
+    "2": {
+      "title": "Etapa 2: rotulagem do golden set (somente)",
+      "capUsd": 10,
+      "inNovember": true,
+      "requires": "etapa 1 aprovada e ok explícito do PM"
+    },
+    "3": {
+      "title": "Etapa 3 (pós-lançamento, fora de novembro): Opus 5.5 e GPT-6.2-sol (alternativa lateral)",
+      "capUsd": null,
+      "inNovember": false,
+      "requires": "decisão posterior do PM; o Opus conta no sublimite de escalonamento de US$ 5 (política v6)"
+    }
+  },
   "orcamento_proposto": {
-    "hardCapUsd": 5,
+    "novemberCapUsd": 15,
+    "adr021ModeCapUsd": 5,
     "retryAllowance": 0.2,
-    "escalationShareOfSublimit": 0.2,
+    "verifierAcceptancesUsd": 0.5,
     "usesAuditReserve": false
   },
   "casos": [
@@ -23,6 +54,9 @@
       ],
       "runsPerModel": 20,
       "callsPerRun": 1,
+      "stages": {
+        "claude-haiku-5-5": 1
+      },
       "profile": {
         "promptTokens": 2500,
         "cacheReadTokens": 6000,
@@ -50,6 +84,10 @@
       ],
       "runsPerModel": 20,
       "callsPerRun": 1,
+      "stages": {
+        "openai-text-review": 1,
+        "openai-text-review-alt": 3
+      },
       "profile": {
         "promptTokens": 4000,
         "cacheReadTokens": 5000,
@@ -79,6 +117,10 @@
       ],
       "runsPerModel": 10,
       "callsPerRun": 1,
+      "stages": {
+        "openai-text-review": 1,
+        "openai-text-review-alt": 3
+      },
       "profile": {
         "promptTokens": 4000,
         "cacheReadTokens": 5000,
@@ -106,6 +148,10 @@
       ],
       "runsPerModel": 6,
       "callsPerRun": 1,
+      "stages": {
+        "openai-text-review": 1,
+        "openai-text-review-alt": 3
+      },
       "profile": {
         "promptTokens": 5000,
         "cacheReadTokens": 4000,
@@ -134,6 +180,10 @@
       ],
       "runsPerModel": 12,
       "callsPerRun": 1,
+      "stages": {
+        "claude-haiku-5-5": 1,
+        "claude-sonnet-5-5": 1
+      },
       "profile": {
         "promptTokens": 1500,
         "cacheReadTokens": 6000,
@@ -161,6 +211,11 @@
       ],
       "runsPerModel": 6,
       "callsPerRun": 1,
+      "stages": {
+        "claude-haiku-5-5": 1,
+        "claude-sonnet-5-5": 1,
+        "claude-opus-5-5": 3
+      },
       "profile": {
         "promptTokens": 6000,
         "cacheReadTokens": 6000,
@@ -187,6 +242,9 @@
       ],
       "runsPerModel": 3,
       "callsPerRun": 1,
+      "stages": {
+        "claude-opus-5-5": 3
+      },
       "profile": {
         "promptTokens": 10000,
         "cacheReadTokens": 6000,
@@ -216,6 +274,13 @@
       ],
       "runsPerModel": 5,
       "callsPerRun": 2,
+      "stages": {
+        "claude-haiku-5-5": 1,
+        "claude-sonnet-5-5": 1,
+        "openai-text-review": 1,
+        "openai-text-review-alt": 3,
+        "claude-opus-5-5": 3
+      },
       "profile": {
         "promptTokens": 500,
         "cacheReadTokens": 6000,
@@ -230,6 +295,33 @@
         "QC-COST"
       ],
       "needs": "mínimo de tokens cacheável e TTL por modelo (verificar no catálogo/documentação do provedor)"
+    },
+    {
+      "id": "Q-GOLDEN",
+      "role": "golden_labeling",
+      "title": "Rotulagem assistida do golden set PT-BR (etapa 2): marca erros e critérios em rascunhos públicos; revisão humana obrigatória",
+      "models": [
+        "openai-text-review"
+      ],
+      "stages": {
+        "openai-text-review": 2
+      },
+      "runsPerModel": 400,
+      "callsPerRun": 1,
+      "profile": {
+        "promptTokens": 3500,
+        "cacheReadTokens": 4000,
+        "cacheWriteTokens": 0,
+        "maxOutputTokens": 600
+      },
+      "dataClass": "public",
+      "input": "400 itens públicos (40 por editoria): matérias já publicadas e rascunhos sintéticos; o rótulo do modelo é PROPOSTA e vale só depois da revisão de um humano da Editorial/Trust",
+      "checks": [
+        "QC-USAGE",
+        "QC-COST",
+        "QC-ZDR"
+      ],
+      "needs": "etapa 1 aprovada, ok explícito do PM e decisão da fonte de verba (ver verificação golden_label_funding)"
     }
   ],
   "criterios": [
@@ -256,10 +348,11 @@
     },
     {
       "id": "QC-ZDR",
-      "text": "Endpoint de ZDR de fato usado",
-      "measure": "provider.zdr=true na chamada e provider_name da geração ∈ endpoints ZDR listados do modelo",
-      "threshold": "100% das chamadas",
-      "proposed": false
+      "text": "Endpoint de ZDR usado (INFORMATIVO: a DP-27 revogou a exigência de ZDR)",
+      "measure": "registrar provider.zdr e provider_name da geração; comparar com os endpoints ZDR listados do modelo",
+      "threshold": "só informativo; não reprova",
+      "proposed": false,
+      "required": false
     },
     {
       "id": "QC-CACHE-HIT",
@@ -316,7 +409,6 @@
       "QC-SCHEMA",
       "QC-USAGE",
       "QC-COST",
-      "QC-ZDR",
       "QC-QUALITY-DRAFT",
       "QC-DECISION-SHAPE",
       "QC-CACHE-HIT"
@@ -325,7 +417,6 @@
       "QC-SCHEMA",
       "QC-USAGE",
       "QC-COST",
-      "QC-ZDR",
       "QC-DISTINCT-AUTHOR",
       "QC-SEEDED-RECALL",
       "QC-FALSE-POSITIVE",
@@ -336,7 +427,6 @@
       "QC-SCHEMA",
       "QC-USAGE",
       "QC-COST",
-      "QC-ZDR",
       "QC-DISTINCT-AUTHOR",
       "QC-SEEDED-RECALL",
       "QC-FALSE-POSITIVE",
@@ -347,7 +437,6 @@
       "QC-SCHEMA",
       "QC-USAGE",
       "QC-COST",
-      "QC-ZDR",
       "QC-DECISION-SHAPE",
       "QC-CACHE-HIT"
     ],
@@ -355,7 +444,6 @@
       "QC-SCHEMA",
       "QC-USAGE",
       "QC-COST",
-      "QC-ZDR",
       "QC-DECISION-SHAPE",
       "QC-CACHE-HIT"
     ]
@@ -372,6 +460,9 @@
         ],
         "runsPerModel": 20,
         "callsPerRun": 1,
+        "stages": {
+          "claude-haiku-5-5": 1
+        },
         "profile": {
           "promptTokens": 2500,
           "cacheReadTokens": 6000,
@@ -399,6 +490,10 @@
         ],
         "runsPerModel": 20,
         "callsPerRun": 1,
+        "stages": {
+          "openai-text-review": 1,
+          "openai-text-review-alt": 3
+        },
         "profile": {
           "promptTokens": 4000,
           "cacheReadTokens": 5000,
@@ -428,6 +523,10 @@
         ],
         "runsPerModel": 10,
         "callsPerRun": 1,
+        "stages": {
+          "openai-text-review": 1,
+          "openai-text-review-alt": 3
+        },
         "profile": {
           "promptTokens": 4000,
           "cacheReadTokens": 5000,
@@ -455,6 +554,10 @@
         ],
         "runsPerModel": 6,
         "callsPerRun": 1,
+        "stages": {
+          "openai-text-review": 1,
+          "openai-text-review-alt": 3
+        },
         "profile": {
           "promptTokens": 5000,
           "cacheReadTokens": 4000,
@@ -483,6 +586,10 @@
         ],
         "runsPerModel": 12,
         "callsPerRun": 1,
+        "stages": {
+          "claude-haiku-5-5": 1,
+          "claude-sonnet-5-5": 1
+        },
         "profile": {
           "promptTokens": 1500,
           "cacheReadTokens": 6000,
@@ -510,6 +617,11 @@
         ],
         "runsPerModel": 6,
         "callsPerRun": 1,
+        "stages": {
+          "claude-haiku-5-5": 1,
+          "claude-sonnet-5-5": 1,
+          "claude-opus-5-5": 3
+        },
         "profile": {
           "promptTokens": 6000,
           "cacheReadTokens": 6000,
@@ -536,6 +648,9 @@
         ],
         "runsPerModel": 3,
         "callsPerRun": 1,
+        "stages": {
+          "claude-opus-5-5": 3
+        },
         "profile": {
           "promptTokens": 10000,
           "cacheReadTokens": 6000,
@@ -565,6 +680,13 @@
         ],
         "runsPerModel": 5,
         "callsPerRun": 2,
+        "stages": {
+          "claude-haiku-5-5": 1,
+          "claude-sonnet-5-5": 1,
+          "openai-text-review": 1,
+          "openai-text-review-alt": 3,
+          "claude-opus-5-5": 3
+        },
         "profile": {
           "promptTokens": 500,
           "cacheReadTokens": 6000,
@@ -579,6 +701,33 @@
           "QC-COST"
         ],
         "needs": "mínimo de tokens cacheável e TTL por modelo (verificar no catálogo/documentação do provedor)"
+      },
+      {
+        "id": "Q-GOLDEN",
+        "role": "golden_labeling",
+        "title": "Rotulagem assistida do golden set PT-BR (etapa 2): marca erros e critérios em rascunhos públicos; revisão humana obrigatória",
+        "models": [
+          "openai-text-review"
+        ],
+        "stages": {
+          "openai-text-review": 2
+        },
+        "runsPerModel": 400,
+        "callsPerRun": 1,
+        "profile": {
+          "promptTokens": 3500,
+          "cacheReadTokens": 4000,
+          "cacheWriteTokens": 0,
+          "maxOutputTokens": 600
+        },
+        "dataClass": "public",
+        "input": "400 itens públicos (40 por editoria): matérias já publicadas e rascunhos sintéticos; o rótulo do modelo é PROPOSTA e vale só depois da revisão de um humano da Editorial/Trust",
+        "checks": [
+          "QC-USAGE",
+          "QC-COST",
+          "QC-ZDR"
+        ],
+        "needs": "etapa 1 aprovada, ok explícito do PM e decisão da fonte de verba (ver verificação golden_label_funding)"
       }
     ],
     "costs": [
@@ -586,6 +735,7 @@
         "caseId": "Q-DRAFT",
         "model": "claude-haiku-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 20,
         "ceilingMicro": 121000,
         "expectedMicro": 17000
@@ -594,6 +744,7 @@
         "caseId": "Q-FACT",
         "model": "openai-text-review",
         "provider": "openai",
+        "stage": 1,
         "calls": 20,
         "ceilingMicro": 350000,
         "expectedMicro": 157000
@@ -602,6 +753,7 @@
         "caseId": "Q-FACT",
         "model": "openai-text-review-alt",
         "provider": "openai",
+        "stage": 3,
         "calls": 20,
         "ceilingMicro": 700000,
         "expectedMicro": 314000
@@ -610,6 +762,7 @@
         "caseId": "Q-REVIEW",
         "model": "openai-text-review",
         "provider": "openai",
+        "stage": 1,
         "calls": 10,
         "ceilingMicro": 175000,
         "expectedMicro": 78500
@@ -618,6 +771,7 @@
         "caseId": "Q-REVIEW",
         "model": "openai-text-review-alt",
         "provider": "openai",
+        "stage": 3,
         "calls": 10,
         "ceilingMicro": 350000,
         "expectedMicro": 157000
@@ -626,6 +780,7 @@
         "caseId": "Q-AUDIT",
         "model": "openai-text-review",
         "provider": "openai",
+        "stage": 1,
         "calls": 6,
         "ceilingMicro": 129900,
         "expectedMicro": 58200
@@ -634,6 +789,7 @@
         "caseId": "Q-AUDIT",
         "model": "openai-text-review-alt",
         "provider": "openai",
+        "stage": 3,
         "calls": 6,
         "ceilingMicro": 259800,
         "expectedMicro": 116400
@@ -642,6 +798,7 @@
         "caseId": "Q-RITUAL-IN",
         "model": "claude-haiku-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 12,
         "ceilingMicro": 33600,
         "expectedMicro": 5040
@@ -650,6 +807,7 @@
         "caseId": "Q-RITUAL-IN",
         "model": "claude-sonnet-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 12,
         "ceilingMicro": 127200,
         "expectedMicro": 93600
@@ -658,6 +816,7 @@
         "caseId": "Q-RITUAL-SYN",
         "model": "claude-haiku-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 6,
         "ceilingMicro": 42300,
         "expectedMicro": 6660
@@ -666,6 +825,7 @@
         "caseId": "Q-RITUAL-SYN",
         "model": "claude-sonnet-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 6,
         "ceilingMicro": 165600,
         "expectedMicro": 129600
@@ -674,6 +834,7 @@
         "caseId": "Q-RITUAL-SYN",
         "model": "claude-opus-5-5",
         "provider": "anthropic",
+        "stage": 3,
         "calls": 6,
         "ceilingMicro": 331200,
         "expectedMicro": 259200
@@ -682,6 +843,7 @@
         "caseId": "Q-PREMIUM",
         "model": "claude-opus-5-5",
         "provider": "anthropic",
+        "stage": 3,
         "calls": 3,
         "ceilingMicro": 273600,
         "expectedMicro": 213600
@@ -690,6 +852,7 @@
         "caseId": "Q-CACHE",
         "model": "claude-haiku-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 10,
         "ceilingMicro": 27750,
         "expectedMicro": 5150
@@ -698,6 +861,7 @@
         "caseId": "Q-CACHE",
         "model": "claude-sonnet-5-5",
         "provider": "anthropic",
+        "stage": 1,
         "calls": 10,
         "ceilingMicro": 108000,
         "expectedMicro": 100000
@@ -706,6 +870,7 @@
         "caseId": "Q-CACHE",
         "model": "claude-opus-5-5",
         "provider": "anthropic",
+        "stage": 3,
         "calls": 10,
         "ceilingMicro": 216000,
         "expectedMicro": 200000
@@ -714,6 +879,7 @@
         "caseId": "Q-CACHE",
         "model": "openai-text-review",
         "provider": "openai",
+        "stage": 1,
         "calls": 10,
         "ceilingMicro": 103000,
         "expectedMicro": 50000
@@ -722,74 +888,156 @@
         "caseId": "Q-CACHE",
         "model": "openai-text-review-alt",
         "provider": "openai",
+        "stage": 3,
         "calls": 10,
         "ceilingMicro": 206000,
         "expectedMicro": 100000
+      },
+      {
+        "caseId": "Q-GOLDEN",
+        "model": "openai-text-review",
+        "provider": "openai",
+        "stage": 2,
+        "calls": 400,
+        "ceilingMicro": 4760000,
+        "expectedMicro": 2200000
       }
     ],
-    "totals": {
-      "calls": 187,
-      "ceilingMicro": 3719950,
-      "ceilingWithRetriesMicro": 4463940,
-      "expectedMicro": 2060950,
-      "byProviderCeilingWithRetriesMicro": {
-        "anthropic": 1735500,
-        "openai": 2728440
+    "stageTotals": {
+      "1": {
+        "calls": 122,
+        "ceilingMicro": 1383350,
+        "ceilingWithRetriesMicro": 1660020,
+        "expectedMicro": 700750,
+        "byProviderCeilingWithRetriesMicro": {
+          "anthropic": 750540,
+          "openai": 909480
+        }
       },
-      "escalationCeilingWithRetriesMicro": 984960
+      "2": {
+        "calls": 400,
+        "ceilingMicro": 4760000,
+        "ceilingWithRetriesMicro": 5712000,
+        "expectedMicro": 2200000,
+        "byProviderCeilingWithRetriesMicro": {
+          "openai": 5712000
+        }
+      },
+      "3": {
+        "calls": 65,
+        "ceilingMicro": 2336600,
+        "ceilingWithRetriesMicro": 2803920,
+        "expectedMicro": 1360200,
+        "byProviderCeilingWithRetriesMicro": {
+          "openai": 1818960,
+          "anthropic": 984960
+        }
+      }
+    },
+    "novemberTotals": {
+      "calls": 522,
+      "ceilingMicro": 6143350,
+      "ceilingWithRetriesMicro": 7372020,
+      "expectedMicro": 2900750,
+      "byProviderCeilingWithRetriesMicro": {
+        "anthropic": 750540,
+        "openai": 6621480
+      }
     },
     "caps": {
-      "hardCapMicro": 5000000,
+      "stage1Micro": 5000000,
+      "stage2Micro": 10000000,
+      "novemberMicro": 15000000,
       "anthropicAllocationMicro": 22000000,
       "openaiAllocationMicro": 20000000,
-      "escalationLimitMicro": 1000000,
-      "monthlyCapMicro": 50000000
+      "monthlyCapMicro": 50000000,
+      "adr021ModeCapMicro": 5000000,
+      "escalationSublimitMicro": 5000000
     },
     "checks": [
       {
         "id": "no_unknown_cost",
         "ok": true,
+        "severity": "error",
         "detail": "todo modelo do protocolo tem ID e preço na política"
       },
       {
-        "id": "qualification_cap",
+        "id": "stage1_cap",
         "ok": true,
-        "detail": "teto com reexecuções 4463940 <= teto proposto 5000000 micro-USD"
+        "severity": "error",
+        "detail": "etapa 1 (teto com reexecução) 1660020 <= 5000000 micro-USD (US$ 5)"
+      },
+      {
+        "id": "stage2_cap",
+        "ok": true,
+        "severity": "error",
+        "detail": "etapa 2 5712000 <= 10000000 micro-USD (US$ 10)"
+      },
+      {
+        "id": "november_cap",
+        "ok": true,
+        "severity": "error",
+        "detail": "etapas 1+2 7372020 <= 15000000 micro-USD (US$ 15 em novembro)"
       },
       {
         "id": "within_monthly_cap",
         "ok": true,
-        "detail": "cabe no teto mensal de US$ 50 (a qualificação consome o teto do mês em que roda)"
+        "severity": "error",
+        "detail": "etapas 1+2 mais os aceites do verificador (~US$ 0,50) cabem no teto mensal de US$ 50"
       },
       {
         "id": "anthropic_allocation",
         "ok": true,
-        "detail": "anthropic 1735500 <= 22000000"
+        "severity": "error",
+        "detail": "anthropic 750540 <= 22000000"
       },
       {
         "id": "openai_allocation",
         "ok": true,
-        "detail": "openai 2728440 <= 20000000"
+        "severity": "error",
+        "detail": "openai 6621480 <= 20000000"
       },
       {
-        "id": "opus_escalation_share",
+        "id": "stages_1_2_exclude_deferred_models",
         "ok": true,
-        "detail": "Opus 984960 <= 1000000 (20% do sublimite de US$ 5)"
+        "severity": "error",
+        "detail": "Opus e GPT-6.2-sol ficam na etapa 3 (pós-lançamento); etapas 1 e 2 não os usam"
       },
       {
         "id": "no_fable_no_deepseek_no_images",
         "ok": true,
-        "detail": "Fable (sem ZDR listado), DeepSeek e imagens (verba zero) fora da qualificação"
+        "severity": "error",
+        "detail": "Fable, DeepSeek e imagens fora (DP-26; verba de imagens zero)"
       },
       {
         "id": "audit_reserve_untouched",
         "ok": true,
-        "detail": "a reserva de US$ 8 é só de auditoria e errata"
+        "severity": "error",
+        "detail": "a reserva de US$ 8 é só WF08, WF18 e auditoria pós-publicação (DP-26 b)"
       },
       {
         "id": "public_data_only",
         "ok": true,
+        "severity": "error",
         "detail": "toda entrada é classe public (publicada, sintética ou sanitizada); nenhum dado pessoal, embargado ou confidencial"
+      },
+      {
+        "id": "stage3_opus_under_escalation_sublimit",
+        "ok": true,
+        "severity": "error",
+        "detail": "etapa 3 não conta em novembro"
+      },
+      {
+        "id": "adr021_mode_cap",
+        "ok": false,
+        "severity": "warning",
+        "detail": "a ADR-021 fixa cap_usd = US$ 5 para o modo qualification; a etapa 2 (até US$ 10) e o total de US$ 15 exigem ajustar o cap por etapa (ou pool próprio) antes de rodar"
+      },
+      {
+        "id": "golden_label_funding",
+        "ok": false,
+        "severity": "warning",
+        "detail": "o PM indicou \"verba de auditoria\" para a rotulagem do golden set; a DP-26 (b) e a política v6 restringem a reserva de US$ 8 a WF08/WF18/auditoria pós-publicação, e rotular não é nenhuma delas. Este plano contabiliza a rotulagem na verba da OpenAI (allocation), NÃO na reserva; pedir decisão do PM/Arquiteto"
       }
     ],
     "ok": true

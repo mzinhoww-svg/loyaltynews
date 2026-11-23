@@ -4,8 +4,8 @@ import { loadRegistries } from './config';
 import { emptyOutputFor } from './output';
 import { POLICY_FIXTURE } from './paths';
 import {
-  authorOf, buildQualificationPlan, criteriaFor, decide, evalCacheHit, evalCost, evalDistinctAuthor, evalSchema, evalSeededErrors, evalZdr,
-  QUAL_BUDGET_PROPOSAL, QUAL_CASES, QUAL_CRITERIA, type UsageInfo,
+  authorOf, buildQualificationPlan, criteriaFor, requiredCriteriaFor, decide, evalCacheHit, evalCost, evalDistinctAuthor, evalSchema, evalSeededErrors, evalZdr,
+  QUAL_BUDGET_PROPOSAL, QUAL_CASES, QUAL_CRITERIA, QUAL_STAGES, type UsageInfo,
 } from './qualification';
 
 const policy = loadPolicyFile(POLICY_FIXTURE).policy as ModelPolicy;
@@ -16,7 +16,7 @@ const usage = (over: Partial<UsageInfo> = {}): UsageInfo => ({ promptTokens: 6_5
 describe('protocolo de qualificação: casos e critérios', () => {
   it('cobre os papéis da proposta do FinOps e só usa modelos com ID e preço na política', () => {
     expect(new Set(QUAL_CASES.map((c) => c.role))).toEqual(
-      new Set(['editorial_draft', 'fact_check', 'editorial_review', 'audit', 'ritual_participant_input', 'ritual_chair_synthesis', 'premium_analysis']),
+      new Set(['editorial_draft', 'fact_check', 'editorial_review', 'audit', 'ritual_participant_input', 'ritual_chair_synthesis', 'premium_analysis', 'golden_labeling']),
     );
     const ids = new Set(policy.models.filter((m) => m.binding).map((m) => m.id));
     for (const c of QUAL_CASES) for (const m of c.models) expect(ids.has(m), `${c.id}/${m}`).toBe(true);
@@ -50,26 +50,55 @@ describe('protocolo de qualificação: casos e critérios', () => {
   });
 });
 
-describe('orçamento da qualificação dentro da DP-04', () => {
+describe('orçamento da qualificação em etapas (PM 23/11, DP-26, ADR-021)', () => {
   const plan = buildQualificationPlan(policy);
+  const modelsOf = (stage: 1 | 2 | 3) => [...new Set(plan.costs.filter((c) => c.stage === stage).map((c) => c.model))].sort();
 
-  it('o plano cabe: teto proposto de US$ 5, verbas por provedor, 20% do sublimite do Opus, sem reserva de auditoria', () => {
-    expect(plan.checks.filter((c) => !c.ok)).toEqual([]);
+  it('etapa 1 = Haiku, Sonnet e GPT-6.1-terra; etapa 2 = só rotulagem do golden set (terra); Opus e GPT-6.2-sol na etapa 3', () => {
+    expect(modelsOf(1)).toEqual(['claude-haiku-5-5', 'claude-sonnet-5-5', 'openai-text-review']);
+    expect(modelsOf(2)).toEqual(['openai-text-review']);
+    expect([...new Set(plan.costs.filter((c) => c.stage === 2).map((c) => c.caseId))]).toEqual(['Q-GOLDEN']);
+    expect(modelsOf(3)).toEqual(['claude-opus-5-5', 'openai-text-review-alt']);
+    expect(QUAL_STAGES[3].inNovember).toBe(false);
+    expect(QUAL_STAGES[3].capUsd).toBeNull();
+  });
+
+  it('o plano cabe: etapa 1 ≤ US$ 5, etapa 2 ≤ US$ 10, novembro ≤ US$ 15, sem reserva de auditoria; avisos viram decisão pendente', () => {
+    expect(plan.checks.filter((c) => !c.ok && c.severity === 'error')).toEqual([]);
     expect(plan.ok).toBe(true);
-    expect(plan.totals.ceilingWithRetriesMicro).toBeLessThanOrEqual(QUAL_BUDGET_PROPOSAL.hardCapUsd * 1_000_000);
-    expect(plan.totals.ceilingWithRetriesMicro).toBeGreaterThan(plan.totals.ceilingMicro);
-    expect(plan.totals.expectedMicro).toBeLessThan(plan.totals.ceilingMicro);
-    expect(plan.totals.escalationCeilingWithRetriesMicro).toBeLessThanOrEqual(plan.caps.escalationLimitMicro);
-    expect(Object.keys(plan.totals.byProviderCeilingWithRetriesMicro).sort()).toEqual(['anthropic', 'openai']);
+    expect(plan.stageTotals[1].ceilingWithRetriesMicro).toBeLessThanOrEqual(plan.caps.stage1Micro);
+    expect(plan.stageTotals[2].ceilingWithRetriesMicro).toBeLessThanOrEqual(plan.caps.stage2Micro);
+    expect(plan.novemberTotals.ceilingWithRetriesMicro).toBeLessThanOrEqual(QUAL_BUDGET_PROPOSAL.novemberCapUsd * 1_000_000);
+    expect(plan.novemberTotals.ceilingWithRetriesMicro + QUAL_BUDGET_PROPOSAL.verifierAcceptancesUsd * 1_000_000).toBeLessThanOrEqual(plan.caps.monthlyCapMicro);
+    expect(plan.novemberTotals.expectedMicro).toBeLessThan(plan.novemberTotals.ceilingMicro);
+    expect(QUAL_BUDGET_PROPOSAL.usesAuditReserve).toBe(false);
+    // Opus (escalonamento) só na etapa 3: nenhum custo de Opus nas etapas de novembro
+    expect(plan.costs.filter((c) => c.stage !== 3).some((c) => c.model === 'claude-opus-5-5')).toBe(false);
   });
 
-  it('conta as chamadas: 20+40+20+12+24+18+3+50 conforme os casos', () => {
-    const calls = QUAL_CASES.reduce((s, c) => s + c.models.length * c.runsPerModel * c.callsPerRun, 0);
-    expect(plan.totals.calls).toBe(calls);
-    expect(calls).toBe(20 + 40 + 20 + 12 + 24 + 18 + 3 + 50);
+  it('as decisões pendentes aparecem como AVISO: cap do modo (ADR-021, US$ 5) e fonte de verba da rotulagem', () => {
+    const warnings = plan.checks.filter((c) => c.severity === 'warning' && !c.ok).map((c) => c.id).sort();
+    expect(warnings).toEqual(['adr021_mode_cap', 'golden_label_funding']);
+    expect(plan.caps.adr021ModeCapMicro).toBe(5_000_000);
+    expect(plan.novemberTotals.ceilingWithRetriesMicro).toBeGreaterThan(plan.caps.adr021ModeCapMicro); // por isso o aviso
   });
 
-  it('falha fechada: modelo sem preço, estouro do teto proposto e estouro do escalonamento reprovam', () => {
+  it('conta as chamadas por etapa', () => {
+    const calls = (st: number) => QUAL_CASES.reduce((n, c) => n + c.models.filter((m) => c.stages[m] === st).length * c.runsPerModel * c.callsPerRun, 0);
+    expect(plan.stageTotals[1].calls).toBe(calls(1));
+    expect(plan.stageTotals[2].calls).toBe(calls(2));
+    expect(plan.stageTotals[3].calls).toBe(calls(3));
+    expect(plan.stageTotals[2].calls).toBe(400);
+    // etapa 1: draft 20 + fact 20 + review 10 + audit 6 (terra) + rituais in 12×2 + syn 6×2 + cache 5×2×3
+    expect(plan.stageTotals[1].calls).toBe(20 + 20 + 10 + 6 + 24 + 12 + 30);
+  });
+
+  it('toda chamada tem etapa e modelo na política; DeepSeek, Fable e imagens nunca entram', () => {
+    for (const c of QUAL_CASES) for (const m of c.models) expect(c.stages[m], `${c.id}/${m}`).toBeGreaterThanOrEqual(1);
+    expect(QUAL_CASES.flatMap((c) => c.models).some((m) => m.includes('deepseek') || m.includes('fable') || m.includes('image'))).toBe(false);
+  });
+
+  it('falha fechada: sem preço, estouro da etapa 1 e estouro do total de novembro reprovam', () => {
     const noPrice = structuredClone(policy);
     delete (noPrice.models.find((m) => m.id === 'openai-text-review') as { binding?: unknown }).binding;
     expect(buildQualificationPlan(noPrice).checks.find((c) => c.id === 'no_unknown_cost')!.ok).toBe(false);
@@ -77,10 +106,12 @@ describe('orçamento da qualificação dentro da DP-04', () => {
     const heavy = QUAL_CASES.map((c) => ({ ...c, runsPerModel: c.runsPerModel * 40 }));
     const p = buildQualificationPlan(policy, heavy);
     expect(p.ok).toBe(false);
-    expect(p.checks.find((c) => c.id === 'qualification_cap')!.ok).toBe(false);
+    expect(p.checks.find((c) => c.id === 'stage1_cap')!.ok).toBe(false);
+    expect(p.checks.find((c) => c.id === 'november_cap')!.ok).toBe(false);
 
-    const opus = QUAL_CASES.map((c) => (c.models.includes('claude-opus-5-5') ? { ...c, runsPerModel: c.runsPerModel * 25 } : c));
-    expect(buildQualificationPlan(policy, opus).checks.find((c) => c.id === 'opus_escalation_share')!.ok).toBe(false);
+    // etapa 1 e 2 não podem usar Opus nem GPT-6.2-sol
+    const leaky = QUAL_CASES.map((c) => (c.id === 'Q-PREMIUM' ? { ...c, stages: { 'claude-opus-5-5': 1 as const } } : c));
+    expect(buildQualificationPlan(policy, leaky).checks.find((c) => c.id === 'stages_1_2_exclude_deferred_models')!.ok).toBe(false);
   });
 });
 
@@ -146,8 +177,10 @@ describe('avaliadores (dados SIMULADOS)', () => {
   });
 
   it('decisão: só qualifica com todos os critérios do modelo passando; falta de evidência impede', () => {
-    const required = criteriaFor('openai-text-review');
-    expect(required).toEqual(expect.arrayContaining(['QC-SCHEMA', 'QC-ZDR', 'QC-DISTINCT-AUTHOR', 'QC-SEEDED-RECALL', 'QC-CACHE-HIT']));
+    const required = requiredCriteriaFor('openai-text-review');
+    expect(required).toEqual(expect.arrayContaining(['QC-SCHEMA', 'QC-DISTINCT-AUTHOR', 'QC-SEEDED-RECALL', 'QC-CACHE-HIT']));
+    expect(required).not.toContain('QC-ZDR'); // informativo depois da DP-27
+    expect(criteriaFor('openai-text-review')).toContain('QC-ZDR');
     const allPass = required.map((c) => ({ criterion: c, status: 'pass' as const, detail: 'simulado' }));
     expect(decide('openai-text-review', allPass).qualified).toBe(true);
     expect(decide('openai-text-review', allPass.slice(1)).missing).toEqual([required[0]]);

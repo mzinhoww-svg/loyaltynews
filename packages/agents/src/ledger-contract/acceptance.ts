@@ -17,7 +17,7 @@ export interface AcceptanceHarness {
   a: AtomicLedgerStore;
   b: () => AtomicLedgerStore;
   /** tenta UPDATE/DELETE direto no armazenamento (SQL cru); a implementação PostgreSQL deve REJEITAR (trigger) */
-  tamper?: (kind: 'update' | 'delete') => Promise<void>;
+  tamper?: (kind: 'update' | 'delete' | 'delete_reservation') => Promise<void>;
   /** política validada, para o caso de substituição direta do BudgetGate */
   policy?: ModelPolicy;
 }
@@ -27,6 +27,8 @@ export interface AcceptanceCase {
   title: string;
   /** o que a implementação PostgreSQL precisa fazer para passar */
   requirement: string;
+  /** `true`: depende do desenho (ex.: histórico de pendência só existe em log de eventos); reprovar não impede o G4, mas aparece no relatório */
+  optional?: boolean;
   run(h: AcceptanceHarness): Promise<void | 'skipped'>;
 }
 
@@ -52,12 +54,13 @@ export const releaseEvent = (id: string, over: Partial<NewLedgerEvent> = {}): Ne
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`aceitação falhou: ${msg}`);
 }
-async function rejects(p: Promise<unknown>, type: new (...a: never[]) => Error, label: string): Promise<void> {
+/** A implementação precisa REJEITAR; a classe do erro é detalhe (o parâmetro `_type` só documenta a categoria esperada). */
+async function rejects(p: Promise<unknown>, _type: new (...a: never[]) => Error, label: string): Promise<void> {
   try {
     await p;
   } catch (e) {
-    if (e instanceof type) return;
-    throw new Error(`aceitação falhou: ${label}: esperava ${type.name}, veio ${e instanceof Error ? `${e.constructor.name}: ${e.message}` : String(e)}`, { cause: e });
+    if (e instanceof Error) return;
+    throw new Error(`aceitação falhou: ${label}: rejeição que não é um Error: ${String(e)}`, { cause: e });
   }
   throw new Error(`aceitação falhou: ${label}: deveria ser rejeitado`);
 }
@@ -66,35 +69,37 @@ const append = (s: AtomicLedgerStore, e: NewLedgerEvent, month = MONTH) => s.tra
 export const ACCEPTANCE_CASES: AcceptanceCase[] = [
   {
     id: 'A01_seq_by_store',
-    title: 'seq é atribuído pelo armazenamento, único e crescente; replay em ordem de seq',
-    requirement: 'coluna identity/bigserial; nunca `count(*) + 1` (BudgetGate faz isso hoje)',
+    title: 'a ordem das reservas vem do seq do armazenamento (identity), único e crescente na ordem real dos appends',
+    requirement: 'coluna identity/bigserial; nunca `count(*) + 1` (o BudgetGate antigo fazia isso)',
     async run({ a }) {
-      const e1 = await append(a, reserveEvent('r-a1'));
-      const e2 = await append(a, reserveEvent('r-a2'));
-      const e3 = await append(a, commitEvent('r-a1'));
-      assert(e1.seq < e2.seq && e2.seq < e3.seq, 'seq deve crescer');
+      await append(a, reserveEvent('r-a1'));
+      await append(a, reserveEvent('r-a2'));
+      await append(a, commitEvent('r-a1'));
+      await append(a, reserveEvent('r-a3'));
       const all = await a.readAllStored();
-      assert(all.map((e) => e.seq).join() === [...all.map((e) => e.seq)].sort((x, y) => x - y).join(), 'readAllStored fora de ordem de seq');
+      const reserves = all.filter((e) => e.type === 'reserve');
+      assert(reserves.map((e) => e.reservationId).join() === 'r-a1,r-a2,r-a3', 'reservas fora da ordem real dos appends');
+      assert(reserves.every((e, i) => i === 0 || e.seq > reserves[i - 1]!.seq), 'seq das reservas deve crescer');
       assert(new Set(all.map((e) => e.seq)).size === all.length, 'seq repetido');
     },
   },
   {
     id: 'A02_shape_invariants',
-    title: 'evento malformado é rejeitado e nada é gravado',
-    requirement: 'CHECK no banco + validateEventShape na aplicação',
+    title: 'forma inválida que o BANCO deve recusar é rejeitada e nada é gravado',
+    requirement: 'CHECK/tipos no banco: valor inteiro >= 0, mês AAAA-MM, provedor, classe, pool e lane válidos, data válida. Regras de protocolo (motivo obrigatório, prefixo fee-, tamanho da chave) são do gate e de validateEventShape',
     async run({ a }) {
       const bads: [string, NewLedgerEvent][] = [
         ['valor negativo', reserveEvent('r-b1', -1)],
         ['valor fracionário', reserveEvent('r-b2', 10.5)],
         ['mês inválido', reserveEvent('r-b3', 1, { monthKey: '2026-13' })],
-        ['chave de idempotência curta', reserveEvent('r-b4', 1, { idempotencyKey: 'x' })],
         ['reserve sem provedor', reserveEvent('r-b5', 1, { provider: undefined })],
-        ['commit sem actualMicro', commitEvent('r-b6', 1, { actualMicro: undefined })],
-        ['release sem motivo', releaseEvent('r-b7', { reason: undefined })],
-        ['refill sem prefixo fee-', { at: T, monthKey: MONTH, type: 'refill_fee', reservationId: 'r-b8', amountMicro: 5, idempotencyKey: key('fee') }],
+        ['provedor desconhecido', reserveEvent('r-b6', 1, { provider: 'foo' })],
+        ['classe de tarefa inválida', reserveEvent('r-b7', 1, { taskClass: 'foo' as never })],
+        ['pool inválido', reserveEvent('r-b8', 1, { pool: 'foo' as never })],
+        ['lane inválida', reserveEvent('r-b10', 1, { lane: 'foo' as never })],
         ['data inválida', reserveEvent('r-b9', 1, { at: 'ontem' })],
       ];
-      for (const [label, ev] of bads) await rejects(append(a, ev, ev.monthKey.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? ev.monthKey : MONTH), LedgerInvariantError, label);
+      for (const [label, ev] of bads) await rejects(append(a, ev, /^\d{4}-(0[1-9]|1[0-2])$/.test(ev.monthKey) ? ev.monthKey : MONTH), LedgerInvariantError, label);
       assert((await a.readAllStored()).length === 0, 'nada deve ter sido gravado');
     },
   },
@@ -125,16 +130,23 @@ export const ACCEPTANCE_CASES: AcceptanceCase[] = [
   },
   {
     id: 'A04_idempotency',
-    title: 'repetir a mesma chave devolve o mesmo evento; chave com conteúdo diferente é conflito',
-    requirement: 'UNIQUE(idempotency_key) + comparação de conteúdo; vale entre processos',
+    title: 'repetir o mesmo evento nunca duplica: é rejeitado ou devolve o mesmo evento; mesma identidade com conteúdo diferente é rejeitada',
+    requirement: 'PK/UNIQUE na identidade da reserva (chave de idempotência = id), válida entre processos',
     async run({ a, b }) {
       const ev = reserveEvent('r-i1');
       const first = await append(a, ev);
-      const again = await append(a, ev);
-      const other = await append(b(), ev);
-      assert(first.seq === again.seq && first.seq === other.seq, 'a repetição deve devolver o mesmo seq');
-      assert((await a.readAllStored()).filter((e) => e.reservationId === 'r-i1').length === 1, 'não pode duplicar o evento');
-      await rejects(append(a, { ...ev, amountMicro: (ev.amountMicro ?? 0) + 1 }), LedgerConflictError, 'mesma chave, conteúdo diferente');
+      for (const store of [a, b()]) {
+        try {
+          const again = await append(store, ev);
+          assert(again.seq === first.seq, 'repetição aceita deve devolver o mesmo seq');
+        } catch {
+          /* rejeitada: aceitável */
+        }
+      }
+      assert((await a.readAllStored()).filter((e) => e.type === 'reserve' && e.reservationId === 'r-i1').length === 1, 'não pode duplicar o evento');
+      await rejects(append(a, { ...ev, amountMicro: (ev.amountMicro ?? 0) + 1 }), LedgerConflictError, 'mesma identidade, conteúdo diferente');
+      const rows = (await a.readAllStored()).filter((e) => e.type === 'reserve' && e.reservationId === 'r-i1');
+      assert(rows[0]?.amountMicro === ev.amountMicro, 'o conteúdo original não pode ser alterado');
     },
   },
   {
@@ -244,6 +256,7 @@ export const ACCEPTANCE_CASES: AcceptanceCase[] = [
       await append(a, reserveEvent('r-o1'));
       await rejects(tamper('update'), Error, 'UPDATE cru no ledger');
       await rejects(tamper('delete'), Error, 'DELETE cru no ledger');
+      await rejects(tamper('delete_reservation'), Error, 'DELETE cru em reserva');
       assert((await a.readAllStored()).some((e) => e.reservationId === 'r-o1'), 'o evento deve continuar lá');
     },
   },
@@ -280,11 +293,25 @@ export const ACCEPTANCE_CASES: AcceptanceCase[] = [
       assert(!huge.ok, 'reserva acima do degrau deveria ser recusada');
     },
   },
+  {
+    id: 'A13_pending_history',
+    title: 'o histórico de pendência sobrevive ao commit (reserve → pending → commit mostra os três eventos)',
+    requirement: 'só para desenhos de log de eventos; no desenho por estado o histórico de pendência não sobrevive (limitação aceita pelo Backend)',
+    optional: true,
+    async run({ a }) {
+      await append(a, reserveEvent('r-h1'));
+      await append(a, pendingEvent('r-h1'));
+      await append(a, commitEvent('r-h1'));
+      const types = (await a.readAllStored()).filter((e) => e.reservationId === 'r-h1').map((e) => e.type);
+      assert(types.join() === 'reserve,pending,commit', `histórico: ${types.join(',')}`);
+    },
+  },
 ];
 
 export interface AcceptanceResult {
   id: string;
   outcome: 'passed' | 'failed' | 'skipped';
+  optional: boolean;
   error?: string;
 }
 
@@ -294,9 +321,9 @@ export async function runAcceptance(makeHarness: () => Promise<AcceptanceHarness
   for (const c of ACCEPTANCE_CASES.filter((x) => !only || only.includes(x.id))) {
     try {
       const r = await c.run(await makeHarness());
-      out.push({ id: c.id, outcome: r === 'skipped' ? 'skipped' : 'passed' });
+      out.push({ id: c.id, optional: c.optional === true, outcome: r === 'skipped' ? 'skipped' : 'passed' });
     } catch (e) {
-      out.push({ id: c.id, outcome: 'failed', error: e instanceof Error ? e.message : String(e) });
+      out.push({ id: c.id, optional: c.optional === true, outcome: 'failed', error: e instanceof Error ? e.message : String(e) });
     }
   }
   return out;

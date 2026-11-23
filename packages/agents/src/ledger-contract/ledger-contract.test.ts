@@ -18,7 +18,7 @@ defineLedgerAcceptance('implementação de referência em memória', harness());
 
 describe('a suíte de aceitação tem dentes: reprova armazenamentos defeituosos', () => {
   const failed = async (opts: ConstructorParameters<typeof MemoryAtomicLedgerStore>[1]) =>
-    (await runAcceptance(harness(opts))).filter((r) => r.outcome === 'failed').map((r) => r.id);
+    (await runAcceptance(harness(opts))).filter((r) => r.outcome === 'failed' && !r.optional).map((r) => r.id);
 
   it('sem exclusão mútua por mês: estoura o teto sob concorrência (A07)', async () => {
     expect(await failed({ exclusive: false })).toEqual(['A07_concurrency_cap']);
@@ -26,8 +26,8 @@ describe('a suíte de aceitação tem dentes: reprova armazenamentos defeituosos
   it('sem rollback: eventos de transação desfeita aparecem (A05)', async () => {
     expect(await failed({ rollback: false })).toEqual(['A05_atomic_rollback']);
   });
-  it('sem idempotência: repetir a chave duplica o evento (A04)', async () => {
-    expect(await failed({ idempotent: false })).toEqual(['A04_idempotency']);
+  it('sem unicidade/idempotência: repetir o mesmo evento duplica (A04)', async () => {
+    expect(await failed({ idempotent: false })).toEqual(['A03_transitions', 'A04_idempotency']);
   });
   it('a referência passa tudo e só A10 fica "skipped" (precisa de SQL cru)', async () => {
     const r = await runAcceptance(harness());

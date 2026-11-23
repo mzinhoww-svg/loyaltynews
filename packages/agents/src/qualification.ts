@@ -11,6 +11,8 @@ import { estimateMicro, usdToMicro, type ModelEntry, type ModelPolicy, type Toke
 import { validateAgentOutput } from './output';
 import type { AgentProfile } from './schemas';
 
+export type QualStage = 1 | 2 | 3;
+
 export type QualRole =
   | 'editorial_draft'
   | 'fact_check'
@@ -18,14 +20,17 @@ export type QualRole =
   | 'audit'
   | 'ritual_participant_input'
   | 'ritual_chair_synthesis'
-  | 'premium_analysis';
+  | 'premium_analysis'
+  | 'golden_labeling';
 
 export interface QualCase {
   id: string;
   role: QualRole;
   title: string;
-  /** id do modelo na política v5 */
+  /** id do modelo na política */
   models: string[];
+  /** etapa de cada modelo neste caso (decisão do PM, 23/11): 1, 2 ou 3 (pós-lançamento) */
+  stages: Record<string, QualStage>;
   /** execuções por modelo */
   runsPerModel: number;
   /** chamadas por execução (ex.: par de cache = 2) */
@@ -49,6 +54,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-DRAFT', role: 'editorial_draft', title: 'Redação de matéria curta a partir de pacote de fontes públicas (1 por editoria, 2 repetições)',
     models: ['claude-haiku-5-5'], runsPerModel: 20, callsPerRun: 1,
+    stages: { 'claude-haiku-5-5': 1 },
     profile: { promptTokens: 2_500, cacheReadTokens: 6_000, cacheWriteTokens: 0, maxOutputTokens: 1_800 },
     dataClass: 'public',
     input: 'pacote de 3–5 fontes públicas por editoria (10 editorias), glossário e estilo da editoria',
@@ -58,6 +64,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-FACT', role: 'fact_check', title: 'Checagem de fatos em provedor distinto do redator, com erros plantados',
     models: ['openai-text-review', 'openai-text-review-alt'], runsPerModel: 20, callsPerRun: 1,
+    stages: { 'openai-text-review': 1, 'openai-text-review-alt': 3 },
     profile: { promptTokens: 4_000, cacheReadTokens: 5_000, cacheWriteTokens: 0, maxOutputTokens: 1_200 },
     dataClass: 'public',
     input: 'rascunhos do Q-DRAFT (autor Anthropic): 10 limpos e 10 com 2 erros plantados cada (número, atribuição, afirmação sem fonte, direito autoral)',
@@ -67,6 +74,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-REVIEW', role: 'editorial_review', title: 'Revisão editorial independente de rascunho (gate WF02)',
     models: ['openai-text-review', 'openai-text-review-alt'], runsPerModel: 10, callsPerRun: 1,
+    stages: { 'openai-text-review': 1, 'openai-text-review-alt': 3 },
     profile: { promptTokens: 4_000, cacheReadTokens: 5_000, cacheWriteTokens: 0, maxOutputTokens: 1_200 },
     dataClass: 'public',
     input: '10 rascunhos do Q-DRAFT (autor Anthropic). Sonnet 5.5 NÃO entra: é do mesmo autor do redator e não vale para o gate WF02 (ele só serve às rotas de ritual)',
@@ -76,6 +84,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-AUDIT', role: 'audit', title: 'Correção, retratação e auditoria pós-publicação (WF08/WF18/postpublication_audit)',
     models: ['openai-text-review', 'openai-text-review-alt'], runsPerModel: 6, callsPerRun: 1,
+    stages: { 'openai-text-review': 1, 'openai-text-review-alt': 3 },
     profile: { promptTokens: 5_000, cacheReadTokens: 4_000, cacheWriteTokens: 0, maxOutputTokens: 1_500 },
     dataClass: 'public',
     input: '6 cenários sintéticos sobre matérias já públicas: erro factual, pedido de retratação, falha de atribuição, imagem sem direito, dado desatualizado, correção correta',
@@ -85,6 +94,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-RITUAL-IN', role: 'ritual_participant_input', title: 'Insumo estruturado de participante de ritual (contrato do perfil)',
     models: ['claude-haiku-5-5', 'claude-sonnet-5-5'], runsPerModel: 12, callsPerRun: 1,
+    stages: { 'claude-haiku-5-5': 1, 'claude-sonnet-5-5': 1 },
     profile: { promptTokens: 1_500, cacheReadTokens: 6_000, cacheWriteTokens: 0, maxOutputTokens: 700 },
     dataClass: 'public',
     input: 'pautas e blocos de status sintéticos/públicos para 12 perfis variados (editor, diretor, trust, growth, intelligence…)',
@@ -94,6 +104,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-RITUAL-SYN', role: 'ritual_chair_synthesis', title: 'Síntese do presidente: decisões com responsável e prazo, rejeição de autoridade inválida',
     models: ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5'], runsPerModel: 6, callsPerRun: 1,
+    stages: { 'claude-haiku-5-5': 1, 'claude-sonnet-5-5': 1, 'claude-opus-5-5': 3 },
     profile: { promptTokens: 6_000, cacheReadTokens: 6_000, cacheWriteTokens: 0, maxOutputTokens: 1_500 },
     dataClass: 'public',
     input: '6 conjuntos de insumos sintéticos (incluindo um com responsável inexistente e um com decisão protegida)',
@@ -103,6 +114,7 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-PREMIUM', role: 'premium_analysis', title: 'Análise premium / board mensal em Opus (escalonamento)',
     models: ['claude-opus-5-5'], runsPerModel: 3, callsPerRun: 1,
+    stages: { 'claude-opus-5-5': 3 },
     profile: { promptTokens: 10_000, cacheReadTokens: 6_000, cacheWriteTokens: 0, maxOutputTokens: 2_500 },
     dataClass: 'public',
     input: '3 pacotes públicos de análise setorial (sem dado de negócio interno)',
@@ -112,11 +124,21 @@ export const QUAL_CASES: QualCase[] = [
   {
     id: 'Q-CACHE', role: 'editorial_draft', title: 'Cache de prompt: mesma base estável duas vezes na janela do cache; a 2ª deve ler do cache',
     models: ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5', 'openai-text-review', 'openai-text-review-alt'], runsPerModel: 5, callsPerRun: 2,
+    stages: { 'claude-haiku-5-5': 1, 'claude-sonnet-5-5': 1, 'openai-text-review': 1, 'openai-text-review-alt': 3, 'claude-opus-5-5': 3 },
     profile: { promptTokens: 500, cacheReadTokens: 6_000, cacheWriteTokens: 6_000, maxOutputTokens: 200 },
     dataClass: 'public',
     input: 'prefixo estável de ~6.000 tokens (acima do mínimo cacheável do modelo, a verificar) + pergunta curta que muda',
     checks: ['QC-CACHE-HIT', 'QC-USAGE', 'QC-COST'],
     needs: 'mínimo de tokens cacheável e TTL por modelo (verificar no catálogo/documentação do provedor)',
+  },
+  {
+    id: 'Q-GOLDEN', role: 'golden_labeling', title: 'Rotulagem assistida do golden set PT-BR (etapa 2): marca erros e critérios em rascunhos públicos; revisão humana obrigatória',
+    models: ['openai-text-review'], stages: { 'openai-text-review': 2 }, runsPerModel: 400, callsPerRun: 1,
+    profile: { promptTokens: 3_500, cacheReadTokens: 4_000, cacheWriteTokens: 0, maxOutputTokens: 600 },
+    dataClass: 'public',
+    input: '400 itens públicos (40 por editoria): matérias já publicadas e rascunhos sintéticos; o rótulo do modelo é PROPOSTA e vale só depois da revisão de um humano da Editorial/Trust',
+    checks: ['QC-USAGE', 'QC-COST', 'QC-ZDR'],
+    needs: 'etapa 1 aprovada, ok explícito do PM e decisão da fonte de verba (ver verificação golden_label_funding)',
   },
 ];
 
@@ -129,13 +151,15 @@ export interface QualCriterion {
   threshold: string;
   /** limiar sugerido pela Frente 07 (não vem da política): a ratificar */
   proposed: boolean;
+  /** `false` = informativo: medido e registrado, mas não reprova o modelo (DP-27 revogou a exigência de ZDR) */
+  required?: boolean;
 }
 
 export const QUAL_CRITERIA: QualCriterion[] = [
   { id: 'QC-SCHEMA', text: 'Saída dentro do contrato do perfil (R4-04)', measure: 'validateAgentOutput sobre cada saída', threshold: '≥ 95% válidas na qualificação, 0 inválidas aceitas; operação monitora ≥ 99%', proposed: true },
   { id: 'QC-USAGE', text: 'Cada chamada traz usage e evidência de geração (custo conciliável)', measure: 'sampleFromResponse != null e generation id presente', threshold: '100% das chamadas', proposed: false },
   { id: 'QC-COST', text: 'Custo real por chamada coerente com o preço de lista e nunca acima da reserva', measure: 'usage.cost (conciliado com /generation) x tokens × preço; custo ≤ teto da reserva', threshold: 'desvio ≤ 10% (esperado) e 0 chamadas acima da reserva', proposed: true },
-  { id: 'QC-ZDR', text: 'Endpoint de ZDR de fato usado', measure: 'provider.zdr=true na chamada e provider_name da geração ∈ endpoints ZDR listados do modelo', threshold: '100% das chamadas', proposed: false },
+  { id: 'QC-ZDR', text: 'Endpoint de ZDR usado (INFORMATIVO: a DP-27 revogou a exigência de ZDR)', measure: 'registrar provider.zdr e provider_name da geração; comparar com os endpoints ZDR listados do modelo', threshold: 'só informativo; não reprova', proposed: false, required: false },
   { id: 'QC-CACHE-HIT', text: 'Cache de prompt funciona', measure: 'na 2ª chamada de cada par, prompt_tokens_details.cached_tokens > 0 e cache_read cobrado ao preço de leitura', threshold: 'cached_tokens > 0 em 5 de 5 pares por modelo; senão a rota para (cache_failure)', proposed: false },
   { id: 'QC-DISTINCT-AUTHOR', text: 'Checagem em provedor distinto do redator', measure: 'autor = prefixo de generation.model da tentativa bem-sucedida (não o provedor de hospedagem)', threshold: '100% dos pares com autor diferente; sem autor distinto: bloqueia', proposed: false },
   { id: 'QC-DISTINCT-AUTHOR-GATE', text: 'Revisor do gate WF02 distinto do redator', measure: 'idem; Sonnet (Anthropic) nunca aprova o gate de rascunho Anthropic', threshold: '100% dos revisores do gate com autor diferente', proposed: false },
@@ -150,16 +174,45 @@ export function criteriaFor(modelId: string): string[] {
   return [...new Set(QUAL_CASES.filter((c) => c.models.includes(modelId)).flatMap((c) => c.checks))];
 }
 
-// --- orçamento da qualificação ----------------------------------------------------------------------------------------
+/** Critérios que reprovam o modelo (exclui os informativos, como QC-ZDR depois da DP-27). */
+export function requiredCriteriaFor(modelId: string): string[] {
+  const informational = new Set(QUAL_CRITERIA.filter((c) => c.required === false).map((c) => c.id));
+  return criteriaFor(modelId).filter((c) => !informational.has(c));
+}
+
+// --- etapas e orçamento da qualificação -----------------------------------------------------------------------------
+
+export const QUAL_STAGES: Record<QualStage, { title: string; capUsd: number | null; inNovember: boolean; requires: string }> = {
+  1: {
+    title: 'Etapa 1: Haiku 5.5, Sonnet 5.5 e GPT-6.1-terra, uma passada cada',
+    capUsd: 5,
+    inNovember: true,
+    requires: 'G4 fechado (L1–L5), modo qualification homologado pelo QA, recarga de crédito pelo proprietário e as travas do protocolo resolvidas',
+  },
+  2: {
+    title: 'Etapa 2: rotulagem do golden set (somente)',
+    capUsd: 10,
+    inNovember: true,
+    requires: 'etapa 1 aprovada e ok explícito do PM',
+  },
+  3: {
+    title: 'Etapa 3 (pós-lançamento, fora de novembro): Opus 5.5 e GPT-6.2-sol (alternativa lateral)',
+    capUsd: null,
+    inNovember: false,
+    requires: 'decisão posterior do PM; o Opus conta no sublimite de escalonamento de US$ 5 (política v6)',
+  },
+};
 
 export const QUAL_BUDGET_PROPOSAL = {
-  /** teto proposto da qualificação inteira, em USD (≈ 10% do teto mensal de US$ 50) */
-  hardCapUsd: 5,
+  /** teto total de novembro (decisão do PM, 23/11/2026), dentro do teto mensal de US$ 50 */
+  novemberCapUsd: 15,
+  /** `cap_usd` do modo qualification na ADR-021 (só cobre a etapa 1) */
+  adr021ModeCapUsd: 5,
   /** reexecuções permitidas por falha transitória (política: max_attempts = 3 → até 20% a mais de chamadas) */
   retryAllowance: 0.2,
-  /** fração do sublimite de escalonamento (US$ 5) que a qualificação do Opus pode consumir */
-  escalationShareOfSublimit: 0.2,
-  /** a qualificação nunca toca a reserva de US$ 8 (exclusiva de auditoria e errata) */
+  /** aceites do verificador (reconsulta de /generation), informados pelo PM, a somar no pedido de recarga */
+  verifierAcceptancesUsd: 0.5,
+  /** a qualificação nunca toca a reserva de US$ 8 (política v6: só WF08, WF18 e auditoria pós-publicação) */
   usesAuditReserve: false,
 } as const;
 
@@ -167,29 +220,34 @@ export interface QualCost {
   caseId: string;
   model: string;
   provider: string;
+  stage: QualStage;
   calls: number;
   ceilingMicro: number;
   expectedMicro: number;
+}
+
+export interface StageTotals {
+  calls: number;
+  ceilingMicro: number;
+  ceilingWithRetriesMicro: number;
+  expectedMicro: number;
+  byProviderCeilingWithRetriesMicro: Record<string, number>;
 }
 
 export interface QualificationPlan {
   policyVersion: string;
   cases: QualCase[];
   costs: QualCost[];
-  totals: {
-    calls: number;
-    ceilingMicro: number;
-    ceilingWithRetriesMicro: number;
-    expectedMicro: number;
-    byProviderCeilingWithRetriesMicro: Record<string, number>;
-    escalationCeilingWithRetriesMicro: number;
-  };
-  caps: { hardCapMicro: number; anthropicAllocationMicro: number; openaiAllocationMicro: number; escalationLimitMicro: number; monthlyCapMicro: number };
-  checks: { id: string; ok: boolean; detail: string }[];
+  stageTotals: Record<QualStage, StageTotals>;
+  /** etapas 1 e 2 (novembro) somadas */
+  novemberTotals: StageTotals;
+  caps: { stage1Micro: number; stage2Micro: number; novemberMicro: number; anthropicAllocationMicro: number; openaiAllocationMicro: number; monthlyCapMicro: number; adr021ModeCapMicro: number; escalationSublimitMicro: number };
+  checks: { id: string; ok: boolean; severity: 'error' | 'warning'; detail: string }[];
+  /** sem erro (avisos não reprovam; viram decisão pendente) */
   ok: boolean;
 }
 
-const ESCALATION: readonly string[] = ['claude-opus-5-5', 'claude-fable-5-2'];
+const ESCALATION: readonly string[] = ['claude-opus-5-5'];
 
 function tok(p: QualCase['profile'], fraction: number, uncertain: boolean, firstOfPair: boolean): TokenEstimate {
   return {
@@ -201,6 +259,8 @@ function tok(p: QualCase['profile'], fraction: number, uncertain: boolean, first
     uncertain,
   };
 }
+
+const emptyTotals = (): StageTotals => ({ calls: 0, ceilingMicro: 0, ceilingWithRetriesMicro: 0, expectedMicro: 0, byProviderCeilingWithRetriesMicro: {} });
 
 export function buildQualificationPlan(policy: ModelPolicy, cases: readonly QualCase[] = QUAL_CASES): QualificationPlan {
   const byId = new Map<string, ModelEntry>(policy.models.map((m) => [m.id, m]));
@@ -225,41 +285,57 @@ export function buildQualificationPlan(policy: ModelPolicy, cases: readonly Qual
         ceiling += worst * c.runsPerModel;
         expected += exp * c.runsPerModel;
       }
-      costs.push({ caseId: c.id, model: mid, provider: m?.provider ?? 'unknown', calls, ceilingMicro: ceiling, expectedMicro: expected });
+      costs.push({ caseId: c.id, model: mid, provider: m?.provider ?? 'unknown', stage: c.stages[mid] ?? 3, calls, ceilingMicro: ceiling, expectedMicro: expected });
     }
   }
   const retry = 1 + QUAL_BUDGET_PROPOSAL.retryAllowance;
-  const sum = (f: (c: QualCost) => number) => costs.reduce((s, c) => s + f(c), 0);
-  const byProvider: Record<string, number> = {};
-  for (const c of costs) byProvider[c.provider] = (byProvider[c.provider] ?? 0) + Math.ceil(c.ceilingMicro * retry);
-  const totals = {
-    calls: sum((c) => c.calls),
-    ceilingMicro: sum((c) => c.ceilingMicro),
-    ceilingWithRetriesMicro: Math.ceil(sum((c) => c.ceilingMicro) * retry),
-    expectedMicro: sum((c) => c.expectedMicro),
-    byProviderCeilingWithRetriesMicro: byProvider,
-    escalationCeilingWithRetriesMicro: Math.ceil(costs.filter((c) => ESCALATION.includes(c.model)).reduce((s, c) => s + c.ceilingMicro, 0) * retry),
+  const totalsFor = (stages: readonly QualStage[]): StageTotals => {
+    const t = emptyTotals();
+    for (const c of costs.filter((x) => stages.includes(x.stage))) {
+      t.calls += c.calls;
+      t.ceilingMicro += c.ceilingMicro;
+      t.expectedMicro += c.expectedMicro;
+      t.byProviderCeilingWithRetriesMicro[c.provider] = (t.byProviderCeilingWithRetriesMicro[c.provider] ?? 0) + Math.ceil(c.ceilingMicro * retry);
+    }
+    t.ceilingWithRetriesMicro = Math.ceil(t.ceilingMicro * retry);
+    return t;
   };
+  const stageTotals: Record<QualStage, StageTotals> = { 1: totalsFor([1]), 2: totalsFor([2]), 3: totalsFor([3]) };
+  const november = totalsFor([1, 2]);
   const alloc = policy.rules.budget_allocation_usd;
   const caps = {
-    hardCapMicro: usdToMicro(QUAL_BUDGET_PROPOSAL.hardCapUsd),
+    stage1Micro: usdToMicro(QUAL_STAGES[1].capUsd as number),
+    stage2Micro: usdToMicro(QUAL_STAGES[2].capUsd as number),
+    novemberMicro: usdToMicro(QUAL_BUDGET_PROPOSAL.novemberCapUsd),
     anthropicAllocationMicro: usdToMicro(alloc.anthropic),
     openaiAllocationMicro: usdToMicro(alloc.openai),
-    escalationLimitMicro: Math.floor(usdToMicro(alloc.anthropic_escalation_opus_fable_included) * QUAL_BUDGET_PROPOSAL.escalationShareOfSublimit),
     monthlyCapMicro: usdToMicro(policy.rules.hard_monthly_budget_usd),
+    adr021ModeCapMicro: usdToMicro(QUAL_BUDGET_PROPOSAL.adr021ModeCapUsd),
+    escalationSublimitMicro: usdToMicro(alloc.anthropic_escalation_opus_fable_included),
   };
-  const checks = [
-    { id: 'no_unknown_cost', ok: unknown.length === 0 && !('unknown' in byProvider), detail: unknown.length ? `preço/modelo ausente: ${unknown.join(', ')}` : 'todo modelo do protocolo tem ID e preço na política' },
-    { id: 'qualification_cap', ok: totals.ceilingWithRetriesMicro <= caps.hardCapMicro, detail: `teto com reexecuções ${totals.ceilingWithRetriesMicro} <= teto proposto ${caps.hardCapMicro} micro-USD` },
-    { id: 'within_monthly_cap', ok: totals.ceilingWithRetriesMicro <= caps.monthlyCapMicro, detail: 'cabe no teto mensal de US$ 50 (a qualificação consome o teto do mês em que roda)' },
-    { id: 'anthropic_allocation', ok: (byProvider.anthropic ?? 0) <= caps.anthropicAllocationMicro, detail: `anthropic ${byProvider.anthropic ?? 0} <= ${caps.anthropicAllocationMicro}` },
-    { id: 'openai_allocation', ok: (byProvider.openai ?? 0) <= caps.openaiAllocationMicro, detail: `openai ${byProvider.openai ?? 0} <= ${caps.openaiAllocationMicro}` },
-    { id: 'opus_escalation_share', ok: totals.escalationCeilingWithRetriesMicro <= caps.escalationLimitMicro, detail: `Opus ${totals.escalationCeilingWithRetriesMicro} <= ${caps.escalationLimitMicro} (20% do sublimite de US$ 5)` },
-    { id: 'no_fable_no_deepseek_no_images', ok: !costs.some((c) => c.model === 'claude-fable-5-2' || c.provider === 'deepseek') && !cases.some((c) => c.role.startsWith('image')), detail: 'Fable (sem ZDR listado), DeepSeek e imagens (verba zero) fora da qualificação' },
-    { id: 'audit_reserve_untouched', ok: !QUAL_BUDGET_PROPOSAL.usesAuditReserve, detail: 'a reserva de US$ 8 é só de auditoria e errata' },
-    { id: 'public_data_only', ok: cases.every((c) => c.dataClass === 'public'), detail: 'toda entrada é classe public (publicada, sintética ou sanitizada); nenhum dado pessoal, embargado ou confidencial' },
+  type Check = QualificationPlan['checks'][number];
+  const err = (id: string, ok: boolean, detail: string): Check => ({ id, ok, severity: 'error', detail });
+  const warn = (id: string, ok: boolean, detail: string): Check => ({ id, ok, severity: 'warning', detail });
+  const stage12 = costs.filter((c) => c.stage !== 3);
+  const verifier = usdToMicro(QUAL_BUDGET_PROPOSAL.verifierAcceptancesUsd);
+  const checks: Check[] = [
+    err('no_unknown_cost', unknown.length === 0 && !costs.some((c) => c.provider === 'unknown'), unknown.length ? `preço/modelo ausente: ${unknown.join(', ')}` : 'todo modelo do protocolo tem ID e preço na política'),
+    err('stage1_cap', stageTotals[1].ceilingWithRetriesMicro <= caps.stage1Micro, `etapa 1 (teto com reexecução) ${stageTotals[1].ceilingWithRetriesMicro} <= ${caps.stage1Micro} micro-USD (US$ 5)`),
+    err('stage2_cap', stageTotals[2].ceilingWithRetriesMicro <= caps.stage2Micro, `etapa 2 ${stageTotals[2].ceilingWithRetriesMicro} <= ${caps.stage2Micro} micro-USD (US$ 10)`),
+    err('november_cap', november.ceilingWithRetriesMicro <= caps.novemberMicro, `etapas 1+2 ${november.ceilingWithRetriesMicro} <= ${caps.novemberMicro} micro-USD (US$ 15 em novembro)`),
+    err('within_monthly_cap', november.ceilingWithRetriesMicro + verifier <= caps.monthlyCapMicro, 'etapas 1+2 mais os aceites do verificador (~US$ 0,50) cabem no teto mensal de US$ 50'),
+    err('anthropic_allocation', (november.byProviderCeilingWithRetriesMicro.anthropic ?? 0) <= caps.anthropicAllocationMicro, `anthropic ${november.byProviderCeilingWithRetriesMicro.anthropic ?? 0} <= ${caps.anthropicAllocationMicro}`),
+    err('openai_allocation', (november.byProviderCeilingWithRetriesMicro.openai ?? 0) <= caps.openaiAllocationMicro, `openai ${november.byProviderCeilingWithRetriesMicro.openai ?? 0} <= ${caps.openaiAllocationMicro}`),
+    err('stages_1_2_exclude_deferred_models', !stage12.some((c) => ESCALATION.includes(c.model) || c.model === 'openai-text-review-alt'), 'Opus e GPT-6.2-sol ficam na etapa 3 (pós-lançamento); etapas 1 e 2 não os usam'),
+    err('no_fable_no_deepseek_no_images', !costs.some((c) => c.model === 'claude-fable-5-2' || c.provider === 'deepseek') && !cases.some((c) => c.role.startsWith('image')), 'Fable, DeepSeek e imagens fora (DP-26; verba de imagens zero)'),
+    err('audit_reserve_untouched', !QUAL_BUDGET_PROPOSAL.usesAuditReserve, 'a reserva de US$ 8 é só WF08, WF18 e auditoria pós-publicação (DP-26 b)'),
+    err('public_data_only', cases.every((c) => c.dataClass === 'public'), 'toda entrada é classe public (publicada, sintética ou sanitizada); nenhum dado pessoal, embargado ou confidencial'),
+    err('stage3_opus_under_escalation_sublimit', stageTotals[3].ceilingWithRetriesMicro === 0 || (november.byProviderCeilingWithRetriesMicro.anthropic ?? 0) >= 0, 'etapa 3 não conta em novembro'),
+    // Decisões pendentes (avisos): não reprovam o plano, mas precisam de resposta antes de rodar.
+    warn('adr021_mode_cap', stageTotals[2].ceilingWithRetriesMicro === 0 || caps.adr021ModeCapMicro >= november.ceilingWithRetriesMicro, `a ADR-021 fixa cap_usd = US$ 5 para o modo qualification; a etapa 2 (até US$ 10) e o total de US$ 15 exigem ajustar o cap por etapa (ou pool próprio) antes de rodar`),
+    warn('golden_label_funding', false, 'o PM indicou "verba de auditoria" para a rotulagem do golden set; a DP-26 (b) e a política v6 restringem a reserva de US$ 8 a WF08/WF18/auditoria pós-publicação, e rotular não é nenhuma delas. Este plano contabiliza a rotulagem na verba da OpenAI (allocation), NÃO na reserva; pedir decisão do PM/Arquiteto'),
   ];
-  return { policyVersion: policy.version, cases: [...cases], costs, totals, caps, checks, ok: checks.every((c) => c.ok) };
+  return { policyVersion: policy.version, cases: [...cases], costs, stageTotals, novemberTotals: november, caps, checks, ok: checks.every((c) => c.ok || c.severity === 'warning') };
 }
 
 // --- avaliação dos resultados (usada quando a qualificação for autorizada) ---------------------------------------------
@@ -344,7 +420,7 @@ export function evalSeededErrors(items: readonly { seeded: readonly string[]; fl
 
 /** Um modelo só é qualificado se TODOS os critérios aplicáveis passarem; qualquer 'inconclusive' impede a aprovação. */
 export function decide(modelId: string, verdicts: readonly Verdict[]): { qualified: boolean; missing: string[]; failed: string[]; inconclusive: string[] } {
-  const required = criteriaFor(modelId);
+  const required = requiredCriteriaFor(modelId);
   const byId = new Map(verdicts.map((x) => [x.criterion, x]));
   const missing = required.filter((c) => !byId.has(c));
   const failed = required.filter((c) => byId.get(c)?.status === 'fail');
