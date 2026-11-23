@@ -113,7 +113,7 @@ for (const f of all) {
     continue;
   }
   if (ASSIGN_STUDIO.test(txt)) problems.push(`LN_STUDIO_TEST_SESSION atribuída em ${r}`);
-  if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE/PORTAL_MODE=mock atribuído em ${r}`);
+  if (ASSIGN_PORTAL_MOCK.test(txt)) problems.push(`PORTAL_SOURCE ou PORTAL_MODE com valor mock atribuído em ${r}`);
   if (ASSIGN_WAIVER.test(semComentarios(txt, r))) problems.push(`variável da dispensa de backup (DP-23) atribuída em ${r}: ela vale só no processo da migração`);
   // Vitrine (Security R8): nunca atribuída em configuração de deploy de PRODUÇÃO. Em environments.json vale só a subárvore ambientes.production
   // (o texto de regras e o contrato citam o nome); em workflows, Dockerfile e next.config qualquer atribuição reprova (a vitrine entra pelo release.json).

@@ -15,6 +15,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, fail } from './lib/util.mjs';
 import { VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
+import { ENV_STUDIO_TEST_SESSION, ENV_PORTAL_SOURCE_MOCK } from './fixtures/flags-proibidas.mjs';
 
 const SELF = dirname(fileURLToPath(import.meta.url));
 const args = parseArgs(process.argv.slice(2));
@@ -83,10 +84,10 @@ try {
   if (!step('npm install a partir do pacote', r.status === 0, motivoInstall)) throw new Error('install falhou');
 
   // guard falha fechado (no build e no start)
-  r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, LN_STUDIO_TEST_SESSION: '1' } });
+  r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, ...ENV_STUDIO_TEST_SESSION } });
   step('build RECUSADO com LN_STUDIO_TEST_SESSION definida', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
-  r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_SOURCE: 'mock' } });
-  step('start RECUSADO com PORTAL_SOURCE=mock em staging', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
+  r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, ...ENV_PORTAL_SOURCE_MOCK } });
+  step('start RECUSADO com PORTAL_SOURCE de valor mock em staging', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
   // Vitrine (Security 23/11/2026, testes 2, 3 e 4): production + PORTAL_VITRINE=1 recusa build E start; pacote production com vitrine é recusado; start diverge do release.vitrine
   r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, APP_ENV: 'production', PORTAL_VITRINE: '1' } });
   step('[vitrine 2] build RECUSADO com APP_ENV=production + PORTAL_VITRINE=1', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`) && /PORTAL_VITRINE/.test(`${r.stdout}${r.stderr}`));
