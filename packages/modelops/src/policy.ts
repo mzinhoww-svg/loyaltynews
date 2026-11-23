@@ -78,21 +78,23 @@ export function validatePolicy(raw: unknown): PolicyCheck {
   if (!alloc) {
     errors.push('budget_allocation_usd: ausente');
   } else {
-    for (const key of ['openai', 'anthropic', 'images', 'deepseek', 'audit_errata_reserve']) {
+    // DeepSeek é opcional: a v6 (DP-26) o remove da divisão (ausente = 0)
+    for (const key of ['openai', 'anthropic', 'images', 'audit_errata_reserve']) {
       if (!isNonNeg(alloc[key])) errors.push(`budget_allocation_usd.${key}: deve ser número não negativo`);
     }
     if (
       isNonNeg(alloc.openai) &&
       isNonNeg(alloc.anthropic) &&
       isNonNeg(alloc.images) &&
-      isNonNeg(alloc.deepseek) &&
+      (alloc.deepseek === undefined || isNonNeg(alloc.deepseek)) &&
       isNonNeg(alloc.audit_errata_reserve)
     ) {
-      const total = alloc.openai + alloc.anthropic + alloc.images + alloc.deepseek + alloc.audit_errata_reserve;
+      const total = alloc.openai + alloc.anthropic + alloc.images + (isNonNeg(alloc.deepseek) ? alloc.deepseek : 0) + alloc.audit_errata_reserve;
       if (total !== 50) errors.push(`budget_allocation_usd: soma ${total} difere do teto 50`);
-      const escalation = alloc.anthropic_escalation_opus_fable_included;
+      // v6 chama de `anthropic_escalation_opus_included` (só Opus); a v5, de `..._opus_fable_included`
+      const escalation = alloc.anthropic_escalation_opus_included ?? alloc.anthropic_escalation_opus_fable_included;
       if (!isNonNeg(escalation) || escalation > alloc.anthropic) {
-        errors.push('budget_allocation_usd.anthropic_escalation_opus_fable_included: deve caber dentro de anthropic');
+        errors.push('budget_allocation_usd.anthropic_escalation_opus_included: deve caber dentro de anthropic');
       }
     }
   }

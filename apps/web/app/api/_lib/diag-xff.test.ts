@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GET } from '../health/route';
-import { diagXffEnabled, diagXffHeaders, xffCount } from './diag-xff';
+import { clientIp } from '@ln/auth';
+import { diagXffEnabled, diagXffHeaders, xffCount, xffMatch } from './diag-xff';
 
 const h = (xff?: string) => new Headers(xff === undefined ? {} : { 'x-forwarded-for': xff });
 
@@ -34,6 +35,42 @@ describe('flag DIAG_XFF', () => {
       expect(diagXffEnabled({ DIAG_XFF: '1', APP_ENV: app })).toBe(false);
       expect(diagXffHeaders({ DIAG_XFF: '1', APP_ENV: app }, h('1.2.3.4'))).toEqual({});
     }
+  });
+});
+
+describe('x-ln-xff-match (compara o XFF com CF-Connecting-IP; nenhum IP sai)', () => {
+  const cf = (xff: string, ip: string) => new Headers({ 'x-forwarded-for': xff, 'cf-connecting-ip': ip });
+  const MEDIDO = '203.0.113.9, 198.51.100.1, 10.0.0.2'; // 3 entradas, como no staging; o cliente é a mais à esquerda
+
+  it('cenário medido no staging: N=3 ⇒ a 3ª da direita é o IP do cliente; posição 3; e clientIp com TRUSTED_PROXY_HOPS=3 devolve o mesmo', () => {
+    const headers = cf(MEDIDO, '203.0.113.9');
+    expect(xffMatch(headers, 3)).toEqual({ match: true, pos: 3 });
+    expect(clientIp(headers, 3)).toBe('203.0.113.9');
+    expect(xffMatch(headers, 2)).toEqual({ match: false, pos: 3 }); // N errado é visível
+    expect(clientIp(headers, 2)).toBe('198.51.100.1');
+  });
+  it('IPv6 e caixa: comparação normalizada; IP do Cloudflare ausente do XFF ⇒ pos null', () => {
+    expect(xffMatch(cf('2001:DB8::1, 10.0.0.2', '2001:db8::1'), 2)).toEqual({ match: true, pos: 2 });
+    expect(xffMatch(cf('198.51.100.1, 10.0.0.2', '203.0.113.9'), 2)).toEqual({ match: false, pos: null });
+  });
+  it('sem TRUSTED_PROXY_HOPS ⇒ match null (na); menos entradas que N ⇒ false; sem CF-Connecting-IP (ou inválido) ⇒ null', () => {
+    expect(xffMatch(cf(MEDIDO, '203.0.113.9'), 0)).toEqual({ match: null, pos: 3 });
+    expect(xffMatch(cf('203.0.113.9', '203.0.113.9'), 3)).toEqual({ match: false, pos: 1 });
+    expect(xffMatch(h(MEDIDO), 3)).toBeNull();
+    expect(xffMatch(cf(MEDIDO, 'nao-e-ip'), 3)).toBeNull();
+  });
+  it('cabeçalhos: só com DIAG_XFF=1 fora de produção; true/false/na e posição; NENHUM IP no valor de nenhum cabeçalho', () => {
+    const on = { DIAG_XFF: '1', APP_ENV: 'staging', TRUSTED_PROXY_HOPS: '3' };
+    const r = diagXffHeaders(on, cf(MEDIDO, '203.0.113.9'));
+    expect(r).toEqual({ 'x-ln-xff-count': '3', 'x-ln-xff-match': 'true', 'x-ln-xff-match-pos': '3' });
+    expect(diagXffHeaders({ ...on, TRUSTED_PROXY_HOPS: '2' }, cf(MEDIDO, '203.0.113.9'))['x-ln-xff-match']).toBe('false');
+    expect(diagXffHeaders({ DIAG_XFF: '1' }, cf(MEDIDO, '203.0.113.9'))).toEqual({ 'x-ln-xff-count': '3', 'x-ln-xff-match': 'na', 'x-ln-xff-match-pos': '3' });
+    expect(diagXffHeaders({ ...on }, cf(MEDIDO, '9.9.9.9'))['x-ln-xff-match-pos']).toBe('none');
+    for (const v of Object.values(r)) expect(v).not.toMatch(/\d+\.\d+\.\d+\.\d+|:/);
+    expect(diagXffHeaders({ ...on, DIAG_XFF: '0' }, cf(MEDIDO, '203.0.113.9'))).toEqual({});
+    expect(diagXffHeaders({ ...on, APP_ENV: 'production' }, cf(MEDIDO, '203.0.113.9'))).toEqual({});
+    // sem CF-Connecting-IP: só a contagem, como antes
+    expect(diagXffHeaders(on, h(MEDIDO))).toEqual({ 'x-ln-xff-count': '3' });
   });
 });
 

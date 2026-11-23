@@ -105,7 +105,8 @@ test.describe('matéria via API pública', () => {
     const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
     const r = await request.get('/noticia/api-ilustracao-corrigida');
     expect(r.status()).toBe(200);
-    if (appEnv === 'production') expect(r.headers()['x-robots-tag']).toBeUndefined();
+    // DP-24: produção só é indexável com PORTAL_INDEXAVEL=1 (PORTAL_INDEXAVEL_E2E=0 sobe a produção sem o interruptor).
+    if (appEnv === 'production' && process.env.PORTAL_INDEXAVEL_E2E !== '0') expect(r.headers()['x-robots-tag']).toBeUndefined();
     else expect(r.headers()['x-robots-tag']).toBe('noindex, nofollow');
   });
 });

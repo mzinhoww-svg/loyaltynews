@@ -144,6 +144,10 @@ try {
   if (vitrine || apiSrc) delete buildEnv.PORTAL_VITRINE; else buildEnv.PORTAL_VITRINE = '1'; // a vitrine vem do release.json, nunca do painel (com api o painel hostil com vitrine é recusado, testado acima)
   r = runChain(ca.build, { cwd: work, env: buildEnv });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
+  if (man.semTypecheckNoBuild === true) {
+    const log = `${r.stdout}${r.stderr}`;
+    step('[typecheck] build do pacote SEM checagem de tipos dentro do build (release.json.semTypecheckNoBuild)', r.status === 0 && /typecheck-no-build=dispensado/.test(log) && (/Skipping validation of types/i.test(log) || !/Running TypeScript/.test(log)), /Running TypeScript/.test(log) ? 'o Next AINDA rodou o TypeScript: falta a linha de apps/web/next.config.ts (int/006)' : '');
+  }
   if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : apiSrc ? 'sem PORTAL_VITRINE' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
@@ -171,6 +175,19 @@ try {
     const portal = p !== '/studio/entrar';
     if (vitrine) step(`portal ${p}${portal ? ' (com a faixa da vitrine)' : ''}`, res.status === 200 && (!portal || body.includes(VITRINE_BANNER)), `HTTP ${res.status}`);
     else step(`portal ${p}`, res.status === 200 && !/\bMOCK\b/.test(body) && !VITRINE_MARCADORES.some((m) => body.includes(m)), `HTTP ${res.status}`);
+  }
+  if (apiSrc) {
+    // Decisão 12, A6 (Security): API indisponível/com erro = estado vazio honesto, nunca 500, nunca fixture, e nada interno na resposta (URL base, stack).
+    // Aqui a API própria do pacote responde 503 NOT_CONFIGURED (sem banco): as listagens têm de sair vazias e a matéria inexistente 404 ou 503.
+    for (const p of ['/', '/noticias']) {
+      const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      const body = await res.text();
+      const vaza = /127\.0\.0\.1|localhost|\bat \w+\s*\(|ECONNREFUSED|api\/publico/i.test(body.replace(/https?:\/\/loyaltynews[a-z0-9.-]*\.vertraweb\.app/gi, ''));
+      step(`[A6] ${p} com a API indisponível: 200 vazio, sem MOCK e sem URL interna`, res.status === 200 && !/\bMOCK\b/.test(body) && !vaza, `HTTP ${res.status}${vaza ? ' (vaza detalhe interno)' : ''}`);
+    }
+    const art = await fetch(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+    await art.text();
+    step('[A6] matéria com a API indisponível: 404 ou 503 (nunca 500)', art.status === 404 || art.status === 503, `HTTP ${art.status}`);
   }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
   for (const p of ['/sitemap.xml', '/feed.xml']) {
