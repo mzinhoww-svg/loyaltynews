@@ -110,3 +110,31 @@ test.describe('matéria via API pública', () => {
     else expect(r.headers()['x-robots-tag']).toBe('noindex, nofollow');
   });
 });
+
+test.describe('mídia kit via API comercial', () => {
+  test.skip(mode !== 'api', 'somente no modo api');
+
+  test('audiência com origem, janela e data de coleta; indisponível sem coleta; catálogo com preço de referência e disponibilidade', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const sessoes = page.locator('#audiencia .pt-metric').filter({ hasText: 'Sessões (30 dias)' });
+    await expect(sessoes.locator('strong')).toHaveText('1.234');
+    await expect(sessoes).toContainText('GA4');
+    await expect(sessoes).toContainText('05/11/2026 a 04/12/2026');
+    await expect(sessoes).toContainText('coletado em');
+    const semColeta = page.locator('#audiencia .pt-metric').filter({ hasText: 'Usuários ativos (30 dias)' });
+    await expect(semColeta.locator('strong')).toHaveText('—');
+    await expect(semColeta).toContainText('Indisponível');
+    const precos = page.getByTestId('mk-precos');
+    await expect(precos.getByRole('row', { name: /Banner topo.*R\$ 3\.000\/mês.*Sob consulta/ })).toBeVisible();
+    await expect(precos.getByRole('row', { name: /Banner meio.*Indisponível/ })).toBeVisible();
+    // nenhum motivo interno (flag, P-01/P-02) na página pública
+    expect(await page.locator('main').innerText()).not.toMatch(/\bflag\b|P-0[12]|adServerVendas/i);
+  });
+
+  test('cobertura: contagens reais com origem e horário da consulta, sem selo MOCK', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const card = page.getByTestId('coverage-articles');
+    await expect(card).toHaveAttribute('data-mock', 'false');
+    await expect(card).toContainText('CMS');
+  });
+});

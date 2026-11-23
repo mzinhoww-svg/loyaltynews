@@ -95,3 +95,32 @@ export function renderMediaKitHtml(kit: MediaKit): string {
 <section data-block="contratacao"><h2>7. Contratação</h2><ol>${b.contratacao.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></section>
 <section data-block="formulario"><h2>8. Fale com o comercial</h2><ul>${b.formulario.fields.map((f) => `<li>${esc(f.name)}${f.required ? ' *' : ''}</li>`).join('')}</ul><p>O opt-in da newsletter é separado do contato comercial.</p></section></article>`;
 }
+
+// ---------- modelo de audiência para o portal ----------
+/** Mesma forma de MetricValue do portal (apps/web/app/(portal)/_lib/types.ts). Sem coleta: value null e state 'unavailable'. */
+export interface PortalMetric { label: string; value: string | null; state: 'ok' | 'unavailable' | 'stale'; source: string; window?: string; collectedAt?: string }
+export interface PortalAudience { realtime: PortalMetric[]; historical: PortalMetric[] }
+
+const SOURCE_NAME: Record<string, string> = { ga4_realtime: 'GA4 (tempo real)', ga4_report: 'GA4', esp: 'ESP · The Loyal', linkedin: 'LinkedIn', cms: 'CMS' };
+const dateBR = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso));
+
+/** Audiência do mídia kit no formato do portal. Cada número traz origem, janela e horário da coleta; sem coleta, "indisponível". */
+export function portalAudience(store: MetricStore, now: string): PortalAudience {
+  const out: PortalAudience = { realtime: [], historical: [] };
+  for (const s of METRIC_SLOTS.filter((x) => x.block === 'audiencia')) {
+    const r = store.get({ source: s.source, metric: s.metric }, now, s.klass);
+    const have = r.value !== null && r.status !== 'unavailable';
+    const m: PortalMetric = {
+      label: s.label,
+      value: have ? r.value!.toLocaleString('pt-BR') : null,
+      state: !have ? 'unavailable' : r.status === 'stale' ? 'stale' : 'ok',
+      source: SOURCE_NAME[s.source] ?? s.source,
+    };
+    if (have) {
+      m.window = s.klass === 'realtime' ? 'últimos 30 min' : `${dateBR(r.period_start!)} a ${dateBR(r.period_end!)}`;
+      m.collectedAt = r.fetched_at!;
+    }
+    out[s.klass === 'realtime' ? 'realtime' : 'historical'].push(m);
+  }
+  return out;
+}

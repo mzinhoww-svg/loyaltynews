@@ -87,6 +87,12 @@
 .pt-hero-band { background: var(--ln-color-primary); color: var(--ln-color-white); border-radius: var(--ln-radius-xl); padding: clamp(24px, 4vw, 40px); margin: var(--ln-space-5) 0; }
 .pt-hero-band h1, .pt-hero-band h2 { color: var(--ln-color-white); }
 .pt-hero-band p { color: var(--ln-color-mint); max-width: 680px; }
+/* Botões sobre o fundo escuro do bloco de abertura (auditoria V-04). Primário claro e secundário com contorno; foco visível em branco. */
+.pt-hero-band a.ln-btn--primary, .ln-root .pt-hero-band a.ln-btn--primary { background: var(--ln-color-white); color: var(--ln-color-primary); border-color: var(--ln-color-white); }
+.pt-hero-band a.ln-btn--primary:hover, .ln-root .pt-hero-band a.ln-btn--primary:hover { background: var(--ln-color-mint); border-color: var(--ln-color-mint); color: var(--ln-color-primary); }
+.pt-hero-band a.ln-btn--ghost, .ln-root .pt-hero-band a.ln-btn--ghost { background: transparent; color: var(--ln-color-white); border-color: var(--ln-color-white); }
+.pt-hero-band a.ln-btn--ghost:hover, .ln-root .pt-hero-band a.ln-btn--ghost:hover { background: rgba(255, 255, 255, 0.16); color: var(--ln-color-white); }
+.pt-hero-band a.ln-btn:focus-visible, .ln-root .pt-hero-band a.ln-btn:focus-visible { outline: 3px solid var(--ln-color-white); outline-offset: 3px; }
 
 @media (min-width: 1024px) {
   .pt-wrap { padding: 0 var(--ln-layout-gutter-lg); }

@@ -87,10 +87,37 @@ const send = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
+// MOCK de GET /api/commercial/mediakit (formato do handler getMediaKit do @ln/commercial). Só para o e2e do portal em modo api.
+const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
+const MEDIAKIT = {
+  generatedAt: '2026-12-05T12:00:00-03:00',
+  audience: {
+    realtime: [unavailable('Usuários ativos agora (últimos 30 min)', 'GA4 (tempo real)')],
+    historical: [
+      { label: 'Sessões (30 dias)', value: '1.234', state: 'ok', source: 'GA4', window: '05/11/2026 a 04/12/2026', collectedAt: '2026-12-05T08:00:00-03:00' },
+      unavailable('Usuários ativos (30 dias)', 'GA4'),
+    ],
+  },
+  blocks: {
+    catalogo: {
+      formats: [
+        { id: 'banners--banner-topo', section: 'Banners', name: 'Banner topo', price: 'R$ 3.000/mês', scope: '1280 × 150; 4 cotas; mínimo 3 meses', status: 'sob_consulta' },
+        { id: 'banners--retangulo-sidebar', section: 'Banners', name: 'Retângulo sidebar', price: 'R$ 1.750/mês', scope: '336 × 280; 3 posições; 10 cotas por posição', status: 'sob_consulta' },
+        { id: 'the-loyal--banner-meio', section: 'The Loyal', name: 'Banner meio', price: 'R$ 1.250/mês', scope: 'Todas as edições contratadas', status: 'indisponivel' },
+      ],
+    },
+  },
+  deliveryIntegrity: { gaps: [], note: null },
+};
+
 http
   .createServer((req, res) => {
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
+    if (u.pathname === '/api/commercial/mediakit') {
+      if (forcedStatus) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
+      return send(res, 200, MEDIAKIT);
+    }
     if (forcedStatus && u.pathname.startsWith('/api/publico/')) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
     if (u.pathname === '/api/publico/materias') {
       const limit = Number(u.searchParams.get('limit') ?? 20);
