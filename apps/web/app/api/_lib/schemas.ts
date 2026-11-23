@@ -165,7 +165,32 @@ export const MediaQuery = z.object({
   /** true = só licenças já vencidas. */
   vencida: z.enum(['true', 'false']).optional(),
 });
-export const AgendaQuery = z.object({ from: IsoDate.optional(), to: IsoDate.optional() });
+export const AgendaQuery = z.object({
+  from: IsoDate.optional(),
+  to: IsoDate.optional(),
+  moderacao: z.enum(['pendente', 'aprovado', 'rejeitado']).optional(),
+  origem: z.enum(['interno', 'publico']).optional(),
+});
+
+/** Decisão de moderação de um evento da agenda. Rejeitar exige motivo. */
+export const AgendaModeracao = z
+  .strictObject({ estado: z.enum(['aprovado', 'rejeitado']), motivo: z.string().trim().min(3).max(500).optional() })
+  .refine((m) => m.estado !== 'rejeitado' || Boolean(m.motivo), { message: 'rejeitar exige motivo', path: ['motivo'] });
+
+/**
+ * Sugestão PÚBLICA de evento. Sem dado pessoal (nada de contato), sem patrocínio, sem moderação no corpo.
+ * `site` é o campo armadilha (honeypot): invisível para pessoas; se vier preenchido, é robô.
+ */
+export const AgendaSugestao = z.strictObject({
+  titulo: z.string().trim().min(3).max(200),
+  inicio: IsoDate,
+  fim: IsoDate,
+  local: z.string().trim().min(2).max(200),
+  url: HttpUrl.max(500).optional(),
+  fonteUrl: HttpUrl.max(500),
+  editorias: z.array(EditoriaSlug).max(3).default([]),
+  site: z.string().max(200).optional(),
+});
 
 export const AgendaCreate = z
   .strictObject({

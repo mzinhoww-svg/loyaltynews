@@ -18,7 +18,7 @@ const CRUD = ['read', 'create', 'update', 'delete'] as const;
 const MATRIX: Record<Role, Grant> = {
   admin: Object.fromEntries(RESOURCES.map((r) => [r, [...ACTIONS]])) as Grant,
   editor_chefe: {
-    editorias: CRUD, materias: [...CRUD, 'transition', 'publish'], fontes: CRUD, midia: CRUD, agenda: CRUD,
+    editorias: CRUD, materias: [...CRUD, 'transition', 'publish'], fontes: CRUD, midia: CRUD, agenda: [...CRUD, 'transition'],
     entidades: CRUD, inventario: ['read'], campanhas: ['read'], social: ['read', 'create', 'publish'], auditoria: ['read'],
   },
   editor: {

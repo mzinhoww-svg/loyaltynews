@@ -32,12 +32,13 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 | `GET/POST /api/midia`, `GET/PATCH/DELETE /api/midia/{id}` | midia:* | metadados, base de direito, **evidência e expiração da licença** (licença/autorização/exceção exigem evidência; vencida ⇒ `publicavel=false`; `?vencendo=N`, `?vencida=true`); **deduplicação por sha256** (mesmo conteúdo ⇒ 200 `deduplicada`) |
 | `POST /api/midia/arquivo` | midia:create | upload multipart (`arquivo` + `metadados` JSON): tipo e sha256 do CONTEÚDO (JPEG, PNG, GIF, WebP até 5 MB; PDF até 10 MB; SVG/HTML recusados com 415); arquivo no Blob S3 em `midia/{sha256}`; sem S3 configurado ⇒ 503 |
 | `GET /api/midia/{id}/arquivo` | midia:read | bytes do arquivo com `nosniff` e CSP `sandbox` |
-| `GET/POST /api/agenda`, `GET/PATCH/DELETE /api/agenda/{id}` | agenda:* | `?from&to` (YYYY-MM-DD) |
+| `GET/POST /api/agenda`, `GET/PATCH/DELETE /api/agenda/{id}` | agenda:* | `?from&to` (YYYY-MM-DD), `?moderacao=pendente|aprovado|rejeitado`, `?origem=interno|publico`; evento da redação nasce aprovado |
+| `POST /api/agenda/{id}/moderacao` `{estado: aprovado|rejeitado, motivo?}` | agenda:transition (editor-chefe, admin) | rejeitar exige motivo; auditada com ator e motivo; repetir é inofensivo |
 
 Matéria: `resumo` (até 300, obrigatório para aprovar/publicar), `tipoConteudo` (padrão `noticia`; `patrocinado` exige `patrocinado=true` + rótulo) e `tempoLeituraMin` derivado do corpo.
 
 ## Público (Portal, sem login)
-`GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`, `GET /api/publico/agenda` (eventos que ainda não terminaram).
+`GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`, `GET /api/publico/agenda` (só eventos APROVADOS que ainda não terminaram; sem campos de moderação), `POST /api/publico/agenda/sugestoes` (sugestão pública: entra PENDENTE, resposta 202 sem id; sem dado pessoal; campo armadilha `site`; 5 por 15 min por IP com `TRUSTED_PROXY_HOPS`; teto de 200 pendentes ⇒ 429 `FILA_CHEIA`; sem link no título, datas em janela, duração ≤ 30 dias; idêntica pendente não duplica).
 
 ## Workers (apps/workers)
 `npm run build -w @ln/workers` gera `apps/workers/dist/index.js`; `node dist/index.js` exige `DATABASE_URL` e `REDIS_URL`. BullMQ nas 7 filas do ADR-002; Redis só com IDs; outbox no PostgreSQL com lease e `SKIP LOCKED`; reconciliador recria jobs perdidos; efeito exatamente-uma-vez por `effect_ledger`. Fila sem handler registrado em `src/handlers.ts` não tem worker (os jobs esperam). Produtores gravam com `enqueueOutbox(tx, ...)` na mesma transação do efeito.
