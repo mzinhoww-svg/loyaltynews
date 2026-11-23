@@ -5,6 +5,7 @@ import { makeCtx } from '@ln/commercial';
 import { ROUTES, type Route } from '@ln/commercial/api';
 import type { Db } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
+import { adCall, isAdRoute } from './ads';
 import { COMMERCIAL_LOCK, hydrate, persist, seedCommercial } from './repo';
 
 /** Data de calendário em America/Sao_Paulo (YYYY-MM-DD). */
@@ -24,6 +25,8 @@ export const dispatchCommercial = createDispatcher({
       ? { id: c.session.userId, canManageCommercial: can(c.session.role, 'campanhas', 'update') && can(c.session.role, 'inventario', 'update') }
       : undefined;
     const extra = { now: now.toISOString(), today: saoPauloDate(now), flags: c.deps.flags, actor };
+    // anúncios públicos: Redis, sem hidratar o banco inteiro e sem lock
+    if (isAdRoute(route.path)) return adCall(route as Route, input, c, extra);
     if (route.method === 'GET') {
       const h = await hydrate(c.deps.db);
       return route.handler(makeCtx(h.state, extra), input);
@@ -34,7 +37,7 @@ export const dispatchCommercial = createDispatcher({
       await seedCommercial(db);
       const h = await hydrate(db);
       const res = route.handler(makeCtx(h.state, extra), input);
-      if (res.status < 400) await persist(db, h, h.state, extra.today);
+      if (res.status < 400) await persist(db, h, h.state);
       return res;
     });
   },

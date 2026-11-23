@@ -1,5 +1,8 @@
 // Métricas do mídia kit: sempre com origem, período e horário. Sem conector => "— / não disponível", nunca zero falso.
 import type { MetricRecord, MetricStatus } from './types';
+import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone } from './snapshot';
+
+export interface MetricSnapshot { version: typeof SNAPSHOT_VERSION; records: MetricRecord[] }
 
 export const METHODOLOGY_VERSION = 'mk-1';
 /** Idade máxima (ms) por classe antes de marcar 'stale'. Realtime GA4 ~ minutos; histórico ~ dia. */
@@ -16,6 +19,24 @@ export function unavailable(key: MetricKey): MetricRecord {
 export class MetricStore {
   private last = new Map<string, MetricRecord>();
   private k = (m: MetricKey) => `${m.source}::${m.metric}`;
+
+  // ---------- hidratação e persistência ----------
+  snapshot(): MetricSnapshot { return { version: SNAPSHOT_VERSION, records: clone([...this.last.values()]) }; }
+  /**
+   * Restaura a última coleta de cada (origem, métrica) exatamente como estava, preservando 'stale'.
+   * Registro 'available'/'stale' precisa ter valor, período e horário; 'unavailable' é descartado (ausência já é "não disponível").
+   */
+  load(s: MetricSnapshot): void {
+    assertSnapshot(s, 'MetricStore', ['records']);
+    assertUnique(s.records.map((r) => this.k(r)), 'MetricStore');
+    const next = new Map<string, MetricRecord>();
+    for (const r of clone(s.records)) {
+      if (r.status === 'unavailable') continue;
+      if (r.value === null || !Number.isFinite(r.value) || !r.period_start || !r.period_end || !r.fetched_at) throw new MetricError(`Métrica ${r.source}/${r.metric} sem valor, período e horário: carga recusada.`);
+      next.set(this.k(r), r);
+    }
+    this.last = next;
+  }
 
   /** Registra uma coleta real. Exige origem, período e horário; recusa valor sem esses campos. */
   ingest(r: { source: string; metric: string; value: number; period_start: string; period_end: string; fetched_at: string; methodology_version?: string }): MetricRecord {

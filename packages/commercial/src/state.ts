@@ -31,3 +31,19 @@ export function createCommercialState(): CommercialState {
 export function makeCtx(state: CommercialState, extra: { now: string; today?: string; flags?: Partial<FlagState>; actor?: Actor }): CommercialCtx {
   return { ...state, now: extra.now, today: extra.today ?? extra.now.slice(0, 10), flags: extra.flags ?? {}, actor: extra.actor };
 }
+
+// ---------- snapshot do estado inteiro ----------
+import type { CrmSnapshot } from './crm';
+import type { InventorySnapshot } from './inventory';
+import type { CampaignSnapshot } from './campaigns';
+import type { AdServerSnapshot } from './rotation';
+import type { MetricSnapshot } from './metrics';
+export interface CommercialSnapshot { crm: CrmSnapshot; inventory: InventorySnapshot; campaigns: CampaignSnapshot; ads: AdServerSnapshot; metrics: MetricSnapshot }
+export const snapshotState = (s: CommercialState): CommercialSnapshot => ({ crm: s.crm.snapshot(), inventory: s.inventory.snapshot(), campaigns: s.campaigns.snapshot(), ads: s.ads.snapshot(), metrics: s.metrics.snapshot() });
+/** Carrega num estado existente (as instâncias são preservadas). Se um dos snapshots for inválido, nada do restante é alterado antes da validação. */
+export function loadState(s: CommercialState, snap: CommercialSnapshot): void {
+  // valida tudo numa cópia descartável antes de tocar o estado real (atomicidade)
+  const probe = createCommercialState();
+  probe.crm.load(snap.crm); probe.inventory.load(snap.inventory); probe.campaigns.load(snap.campaigns); probe.ads.load(snap.ads); probe.metrics.load(snap.metrics);
+  s.crm.load(snap.crm); s.inventory.load(snap.inventory); s.campaigns.load(snap.campaigns); s.ads.load(snap.ads); s.metrics.load(snap.metrics);
+}

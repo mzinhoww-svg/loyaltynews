@@ -2,6 +2,9 @@
 // Regra: lead não cria reserva até aprovação; ativação exige reserva e aprovação do cliente.
 import type { Reservation } from './inventory';
 import type { FormatStatus } from './types';
+import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone, maxSeq } from './snapshot';
+
+export interface CampaignSnapshot { version: typeof SNAPSHOT_VERSION; seq: number; campaigns: Campaign[] }
 
 export type CampaignStatus = 'draft' | 'reserved' | 'approved' | 'active' | 'paused' | 'completed' | 'cancelled';
 
@@ -33,6 +36,21 @@ export class CampaignError extends Error {
 export class CampaignBook {
   private items = new Map<string, Campaign>();
   private seq = 0;
+
+  // ---------- hidratação e persistência ----------
+  snapshot(): CampaignSnapshot { return { version: SNAPSHOT_VERSION, seq: this.seq, campaigns: clone([...this.items.values()]) }; }
+  /**
+   * Substitui as campanhas. Carregar NÃO reavalia regras de transição (o estado vem do banco); o contador de ids é recalculado.
+   * Campanha ativa no snapshot sem reserva confirmada continua ativa aqui: quem decide é a próxima tentativa de ativação/retomada.
+   */
+  load(s: CampaignSnapshot): void {
+    assertSnapshot(s, 'CampaignBook', ['campaigns']);
+    assertUnique(s.campaigns.map((c) => c.id), 'CampaignBook');
+    const c = clone(s);
+    this.items = new Map(c.campaigns.map((x) => [x.id, x]));
+    this.seq = Math.max(s.seq ?? 0, maxSeq(this.items.keys()));
+  }
+
   create(input: { name: string; accountId: string; opportunityId?: string | null; formatId: string; positionId?: string | null; startDate: string; endDate: string; sponsoredLabel?: boolean }, now: string): Campaign {
     const c: Campaign = {
       id: `cmp-${++this.seq}`, name: input.name, accountId: input.accountId, opportunityId: input.opportunityId ?? null,

@@ -23,7 +23,9 @@ async function freshDb(): Promise<{ db: Db; client: PGlite }> {
 
 runEditorialStoreContract('PgEditorialStore (PGlite)', async () => {
   const { db, client } = await freshDb();
-  return { store: new PgEditorialStore(db), teardown: () => client.close() };
+  const store = new PgEditorialStore(db);
+  // armFault: prova o rollback da publicação atômica (falha injetada dentro da transação)
+  return { store, teardown: () => client.close(), armFault: (step) => store.armFault(step) };
 });
 
 describe('propriedades próprias da loja PostgreSQL', () => {
