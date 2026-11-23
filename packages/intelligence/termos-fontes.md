@@ -43,3 +43,6 @@ Efeito neste documento:
 
 ## Como reverificar
 `node packages/intelligence/scripts/verify-dataset.mjs packages/intelligence/data/terms.review.v1.json` (busca cada página uma vez, respeita robots.txt; a fonte `dotz-home` usa a captura `data/captures/dotz-home.json`, sem rede).
+
+## Adendo (v3): fontes novas desde a revisão de 23/11
+O seed.public.v3 acrescenta duas fontes: o site da **Esfera** (`esfera.com.vc`, título da página) e o **RI do Santander** (`www.santander.com.br/ri/`, destino do redirecionamento de `ri.santander.com.br`). Os **termos dessas duas páginas não foram lidos** nesta revisão (J-14 caso a caso): valem a DP-28 (fonte de mercado, risco aceito pelo proprietário) e a regra "fato + fonte + link + data, nunca o trecho". A Stix **não** é fonte do conjunto (as relações dela vêm de páginas da ABEMF e da Livelo, já cobertas acima).
