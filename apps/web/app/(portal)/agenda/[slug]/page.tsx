@@ -6,6 +6,7 @@ import { WithSidebar } from '../../_components/Sidebar';
 import { ErrorState } from '../../_components/states';
 import { MockTag, PageHead } from '../../_components/ui';
 import { eventWhen, eventWhere } from '../../_lib/events';
+import { jsonLdString } from '../../_lib/jsonld';
 import { getSource } from '../../_lib/source';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -59,7 +60,7 @@ export default async function EventPage({ params }: Props) {
   const row = { margin: 0 } as const;
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <PageHead title={ev.title} crumbs={[{ label: 'Agenda', href: '/agenda' }, { label: ev.title }]} />
       <WithSidebar>
         <div>

@@ -5,7 +5,7 @@ import path from 'node:path';
 /**
  * Configuração do site publicada no Studio (GET /api/publico/site) lida pelo portal no modo api:
  * home por blocos, menus principal/rodapé, SEO (título, descrição, OG, JSON-LD, noindex) e links internos.
- * O servidor MOCK (e2e/fake-api.mjs) responde conforme PORTAL_API_SITE: (vazio) full | vazio | noindex | invalido.
+ * O servidor MOCK (e2e/fake-api.mjs) responde conforme PORTAL_API_SITE: (vazio) full | vazio | noindex | invalido | malicioso.
  */
 const siteMode = process.env.PORTAL_API_SITE || 'full';
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675"><rect width="1200" height="675" fill="#34877a"/></svg>';
@@ -73,7 +73,7 @@ test.describe('site publicado (full)', () => {
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://cdn.example/og-mock.png');
     const lds = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((t) => JSON.parse(t) as Record<string, unknown>);
     const org = lds.find((l) => l['@type'] === 'Organization');
-    expect(org).toMatchObject({ name: 'Loyalty News MOCK', url: 'https://loyaltynews.example', sameAs: ['https://linkedin.example/mock'] });
+    expect(org).toMatchObject({ name: 'Loyalty News MOCK', url: 'https://loyaltynews.example/', sameAs: ['https://linkedin.example/mock'] });
     expect(lds.some((l) => l['@type'] === 'WebSite')).toBe(true);
     // Em produção indexável o noindex NÃO aparece (indexacao: indexar)
     if ((process.env.PORTAL_APP_ENV ?? 'production') === 'production' && process.env.PORTAL_INDEXAVEL_E2E !== '0') {
@@ -134,5 +134,55 @@ test.describe('noindex publicado no Studio soma-se ao bloqueio', () => {
     expect(await (await request.get('/feed.xml')).text()).not.toContain('<item>');
     // O título publicado continua valendo
     await expect(page).toHaveTitle('Loyalty News — SEO publicado (MOCK)');
+  });
+});
+
+test.describe('conteúdo hostil do Studio (XSS): nada executa, destinos reservados são recusados', () => {
+  test.skip(siteMode !== 'malicioso', 'somente com PORTAL_API_SITE=malicioso');
+
+  const flags = ['name', 'url', 'hash', 'logo', 'sameas', 'menu', 'titulo', 'resumo', 'credito', 'alt'];
+  const executou = (page: Page) =>
+    page.evaluate((fs) => fs.filter((f) => (window as unknown as Record<string, unknown>)[`__xss_${f}`] !== undefined), flags);
+
+  test('home: o </script> do JSON-LD Organization/menu/SEO não injeta script; o JSON-LD continua válido e com o texto original', async ({ page }) => {
+    const dialogs: string[] = [];
+    page.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss(); });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    expect(await executou(page)).toEqual([]);
+    expect(dialogs).toEqual([]);
+    const lds = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((t) => JSON.parse(t) as Record<string, unknown>);
+    const org = lds.find((l) => l['@type'] === 'Organization') as { name: string; url: string; sameAs: string[] } | undefined;
+    expect(org?.name).toBe('</script><script>window.__xss_name=1</script>'); // dado, não código
+    expect(org?.url).not.toMatch(/[<>]/); // URL normalizada: < e > vão como %3C e %3E
+    expect(org?.url).toContain('%3C/script%3E');
+    for (const l of org?.sameAs ?? []) expect(l).not.toMatch(/[<>]/);
+    // O HTML nunca contém um <script> aberto logo depois de um fechamento com o marcador do ataque
+    expect(await page.content()).not.toContain('</script><script>window.__xss');
+  });
+
+  test('menu e rodapé: destinos com dot-segments para /studio, /api e /_next são descartados; destino bom permanece', async ({ page }, info) => {
+    await page.goto('/');
+    const hrefs = await page.locator('header a, footer a').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
+    for (const h of hrefs) {
+      expect(h, h).not.toMatch(/^\/(api|studio|_next)(\/|$)/i);
+      expect(h, h).not.toMatch(/(^|\/)(\.|%2e){1,2}(\/|$)/i);
+      expect(h, h).not.toMatch(/[<>]/);
+    }
+    const bar = await headerLinks(page, info.project.name);
+    await expect(bar.getByRole('link', { name: 'Bom MOCK' })).toHaveAttribute('href', '/agenda');
+    for (const n of ['Dots studio', 'Dots api', 'Dots next', 'Filho dots']) await expect(page.getByRole('link', { name: n })).toHaveCount(0);
+    await expect(page.locator('footer').getByRole('link', { name: 'Sobre MOCK' })).toHaveAttribute('href', '/sobre');
+    for (const n of ['Filho studio', 'Rodapé api']) await expect(page.locator('footer').getByRole('link', { name: n })).toHaveCount(0);
+  });
+
+  test('matéria com título, resumo, crédito e texto alternativo hostis: nada executa e o JSON-LD NewsArticle é seguro', async ({ page }) => {
+    await page.goto('/noticia/api-xss');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Matéria hostil');
+    await page.waitForLoadState('networkidle');
+    expect(await executou(page)).toEqual([]);
+    expect(await page.content()).not.toContain('</script><script>window.__xss');
+    const lds = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((t) => JSON.parse(t) as { headline?: string });
+    expect(lds.some((l) => l.headline?.includes('</script>'))).toBe(true); // o texto chega íntegro como dado
   });
 });

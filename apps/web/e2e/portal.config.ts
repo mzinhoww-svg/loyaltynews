@@ -19,9 +19,9 @@ const indexavel = appEnv === 'production' && (process.env.PORTAL_INDEXAVEL_E2E ?
 // API fora do ar (regra A6): PORTAL_API_DOWN=1 aponta o portal para uma porta sem servidor (conexão recusada);
 // PORTAL_API_DOWN=503 sobe o servidor MOCK respondendo 503 (API sem banco).
 const apiDown = mode === 'api' ? (process.env.PORTAL_API_DOWN ?? '') : '';
-// Configuração do site publicada no Studio (/api/publico/site) no servidor MOCK: full (padrão) | vazio | noindex | invalido.
+// Configuração do site publicada no Studio (/api/publico/site) no servidor MOCK: full (padrão) | vazio | noindex | invalido | malicioso.
 const apiSite = mode === 'api' && !process.env.PORTAL_API_DOWN ? (process.env.PORTAL_API_SITE ?? '') : '';
-const SITE_PORT: Record<string, number> = { vazio: 8, noindex: 9, invalido: 10 };
+const SITE_PORT: Record<string, number> = { vazio: 8, noindex: 9, invalido: 10, malicioso: 11 };
 const prodSemInterruptor = appEnv === 'production' && !indexavel;
 const port = base
   ? base + (mode === 'mock' ? 1 : mode === 'api' ? (apiDown === '503' ? 7 : apiDown ? 6 : (SITE_PORT[apiSite] ?? 2)) : prodSemInterruptor ? 5 : appEnv === 'production' ? 0 : 3)

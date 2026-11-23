@@ -10,6 +10,7 @@ import { CONTENT_TYPE_LABEL, editoriaName } from '../../_lib/editorias';
 import { flags } from '../../_lib/flags';
 import { formatDate } from '../../_lib/format';
 import { linkTerms } from '../../_lib/site-config';
+import { jsonLdString } from '../../_lib/jsonld';
 import { SITE_NAME, SITE_URL } from '../../_lib/site';
 import { getSource } from '../../_lib/source';
 
@@ -78,7 +79,7 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <AdSlot slot="topo" />
       <WithSidebar>
         <article className="pt-article">

@@ -14,14 +14,34 @@ const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object
 const str = (v: unknown, max = 500): string | undefined => (typeof v === 'string' && v.trim().length > 0 && v.length <= max ? v.trim() : undefined);
 const validDate = (v: unknown): v is string => typeof v === 'string' && !Number.isNaN(Date.parse(v));
 
-/** Caminho interno do portal (fora de /api, /studio e /_next) ou URL http(s). Qualquer outra coisa (javascript:, //host, data:) é recusada. */
+/**
+ * Caminho interno do portal (fora de /api, /studio e /_next) ou URL http(s). Qualquer outra coisa (javascript:, //host, data:) é recusada.
+ * O resultado é SEMPRE normalizado pelo parser de URL (o valor cru nunca passa): dot-segments (`/../studio/x`, `/%2e%2e/api/x`) são resolvidos
+ * ANTES do teste das rotas reservadas, que também vale para o caminho decodificado (`/%61pi/x`).
+ */
 export function safeDestino(v: unknown): string | null {
   const s = str(v, 500);
   if (!s) return null;
-  if (INTERNAL.test(s)) return RESERVED.test(s) ? null : s;
+  if (INTERNAL.test(s)) {
+    let u: URL;
+    try {
+      u = new URL(s, 'http://portal.invalid');
+    } catch {
+      return null;
+    }
+    if (u.origin !== 'http://portal.invalid') return null;
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(u.pathname);
+    } catch {
+      return null;
+    }
+    if (RESERVED.test(u.pathname) || RESERVED.test(decoded) || /(^|\/)\.\.?(\/|$)/.test(decoded)) return null;
+    return `${u.pathname}${u.search}${u.hash}`;
+  }
   try {
     const u = new URL(s);
-    return u.protocol === 'http:' || u.protocol === 'https:' ? s : null;
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.href : null;
   } catch {
     return null;
   }
