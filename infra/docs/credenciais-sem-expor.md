@@ -59,3 +59,17 @@ Checkout pronto com `node_modules` e `bindings.json` do staging: `C:\Users\mazin
 1. `node ln-com-credenciais.mjs staging -- node infra/scripts/check-conexoes.mjs --env staging` → `postgres ok …` e `redis ok …`.
 2. `… -- node infra/scripts/migrate.mjs --env staging --dry-run` e depois sem `--dry-run` → `migração OK e verificada em staging`.
 Não precisa de `psql`: a checagem, o `--first-run-empty` e o `verify-migrations` usam o módulo `pg` do checkout.
+
+## Fase 3 do staging (web e worker recebem as credenciais): uma execução do script, mesmo valor nos dois apps
+Ordem (detalhes e argumentos em `releases\staging\PEDIDO-FASE3-staging-completo.md`): 1) migração, checagem e seed com credencial EFÊMERA (cada execução gira a senha; nenhum app usa o banco ainda); 2) criar o app do worker; 3) **uma** execução que gira a senha do PostgreSQL e a do Redis e grava, direto da memória, as variáveis nos DOIS apps; 4) variáveis finais do web e deploy.
+Variáveis (nenhuma é impressa): **web e worker** `DATABASE_URL`, `DB_SSL_CA_PEM`, `DB_SSL_CERT_PEM`, `DB_SSL_KEY_PEM`, `REDIS_URL`, `REDIS_SSL_CA_PEM`, `REDIS_SSL_CERT_PEM`, `REDIS_SSL_KEY_PEM`; **só o web** `BETTER_AUTH_SECRET` (`crypto.randomBytes(48).toString('base64url')`, distinto da produção); **só o worker** `APP_ENV`, `NODE_ENV`, `APP_COMMIT`.
+Esboço do passo 3 (script do PM, fora do repositório; reaproveita `ambienteDe` do modelo acima e o helper de `set_env` que ele já usa):
+```js
+const pg = await ambienteDe(DBS.staging.pg, 'DB_SSL', 'DATABASE_URL', 'postgres');       // gira a senha UMA vez
+const rd = await ambienteDe(DBS.staging.redis, 'REDIS_SSL', 'REDIS_URL', 'rediss');       // gira a senha UMA vez
+const comuns = { ...pg, ...rd };
+for (const app of [WEB_ID, WORKER_ID]) for (const [k, v] of Object.entries(comuns)) await setEnv(app, k, v);   // sem log do valor
+await setEnv(WEB_ID, 'BETTER_AUTH_SECRET', crypto.randomBytes(48).toString('base64url'));
+for (const [k, v] of Object.entries({ APP_ENV: 'staging', NODE_ENV: 'production', APP_COMMIT: COMMIT })) await setEnv(WORKER_ID, k, v);
+```
+Depois dessa execução a senha existe só no ambiente dos dois apps. **Qualquer acesso posterior do DevOps ao banco** (nova migração, seed) gira de novo e exige atualizar `DATABASE_URL`/`REDIS_URL` no web E no worker e reiniciar os dois (ou o proprietário decide guardar a senha no cofre). Um erro comum a evitar: girar a senha numa execução de teste depois que os apps já têm a senha antiga (derruba os dois apps).
