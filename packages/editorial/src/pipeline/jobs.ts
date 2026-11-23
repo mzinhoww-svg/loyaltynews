@@ -18,6 +18,8 @@ export interface ArticleJob {
   duplicateOf?: string | null;
   context?: ContextNote[];
   draft?: Draft;
+  /** Slug gerado na 1ª redação e mantido nas seguintes (muda livremente até a 1ª publicação; depois é imutável). */
+  slug?: string;
   attempt: number;           // redações tentadas (máx. 3, model.policy rules.max_attempts)
   feedback?: Finding[];      // achados que motivaram nova redação
   factcheck?: { provider: string; model: string; verdicts: FactVerdict[] };
@@ -44,7 +46,8 @@ export interface SocialPack {
   linkedin: { text: string; url: string; utm: { source: string; medium: string; campaign: string } };
   /** Instagram só existe com a flag ligada; padrão: ausente. */
   instagram?: { caption: string };
-  image: { mode: 'none' | 'source_image' | 'conceptual'; reason?: string };
+  /** `label` = rótulo visível obrigatório (ADR-018): "Ilustração conceitual"; null/ausente quando a imagem não é ilustração. */
+  image: { mode: 'none' | 'source_image' | 'conceptual'; reason?: string; label?: string };
   mentions: string[];       // sempre vazio: nenhuma menção é publicada sem verificação (fallback texto puro)
   blockers: BlockerCode[];  // ex.: 'no_image' — o Growth decide como tratar
 }

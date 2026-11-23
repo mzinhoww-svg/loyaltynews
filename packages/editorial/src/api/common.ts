@@ -4,6 +4,7 @@ import type { ApiError } from '@ln/contracts';
 import type { JobQueue } from '../pipeline/queue';
 import type { SourceRegistry } from '../sources/registry';
 import type { EditorialStore } from './store';
+import type { PublishedArticleLookup } from './published-lookup';
 
 /** Tipos e utilitários comuns dos handlers (contexto, RBAC por papel de @ln/auth, envelope de resposta, auditoria). */
 
@@ -17,6 +18,10 @@ export interface HandlerCtx {
   queue?: JobQueue;
   /** Cadastro de fontes (imutável). Necessário aos handlers de fontes. */
   sources?: SourceRegistry;
+  /** Consulta de matérias publicadas (ADR-019 §c): âncora dos casos de correção/resposta. Obrigatória para abrir caso. */
+  published?: PublishedArticleLookup;
+  /** URL base do portal (ex.: https://loyaltynews.example), para montar /noticia/{slug} na preservação de evidência. */
+  siteBaseUrl?: string;
 }
 export interface ApiResponse<T> { status: number; body: T | ApiError }
 

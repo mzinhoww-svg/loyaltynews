@@ -12,6 +12,7 @@ import {
 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { registerPublication, type PublicationCtx } from './publication';
+import { articlesPublishedLookup } from './published';
 import { enqueueOutbox } from '@ln/workers/outbox';
 import type { Action, Db, Resource } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
@@ -89,6 +90,17 @@ export function setStoreFactoryForTest(f: ((db: Db) => PgEditorialStore) | null)
   storeFactory = f ?? ((db) => new PgEditorialStore(db));
 }
 
+/** URL base do portal (mesma variável do portal e do Social). Sem ela a preservação de evidência exige a URL no pedido. */
+const siteBaseUrl = (): string | undefined => process.env.NEXT_PUBLIC_SITE_URL?.trim() || undefined;
+
+/** Evidências de apoio do caso (`supportingEvidenceIds` do pedido e do caso já aberto) que a verificação da errata também considera. */
+async function supportingIds(store: PgEditorialStore, input: unknown): Promise<string[]> {
+  const o = (input && typeof input === 'object' ? input : {}) as { supportingEvidenceIds?: unknown; correctionId?: unknown };
+  const ids = Array.isArray(o.supportingEvidenceIds) ? o.supportingEvidenceIds.filter((x): x is string => typeof x === 'string') : [];
+  if (typeof o.correctionId === 'string') ids.push(...((await store.getCorrection(o.correctionId))?.case.supportingEvidenceIds ?? []));
+  return ids;
+}
+
 export const dispatchEditorial = createDispatcher<H>({
   routes: EDITORIAL_ROUTES,
   studioPerm: READ,
@@ -96,13 +108,17 @@ export const dispatchEditorial = createDispatcher<H>({
   limitPublicPosts: true,
   async call(route, input, c) {
     const actor = c.session ? { userId: c.session.userId, roles: [c.session.role], mfa: c.session.mfa } : null;
-    const base = { actor, now: c.deps.now, newId: () => crypto.randomUUID(), sources: sourceRegistry, flags: c.deps.flags, db: c.deps.db };
+    const base = { actor, now: c.deps.now, newId: () => crypto.randomUUID(), sources: sourceRegistry, flags: c.deps.flags, db: c.deps.db, siteBaseUrl: siteBaseUrl() };
     const data = route.method === 'GET' ? coerceQuery(input) : input;
-    if (route.method === 'GET') return route.handler({ ...base, store: storeFactory(c.deps.db) }, data);
+    // ADR-019 §c: a matéria publicada vem de `articles` (porta PublishedArticleLookup); as evidências de apoio do caso entram na checagem
+    const withLookup = (db: Db, store: PgEditorialStore) => ({
+      ...base, db, store, published: articlesPublishedLookup(db, () => supportingIds(store, data)),
+    });
+    if (route.method === 'GET') return route.handler(withLookup(c.deps.db, storeFactory(c.deps.db)), data);
     return c.deps.db.transaction(async (tx) => {
       const db = tx as unknown as Db;
       await db.execute(sql`select pg_advisory_xact_lock(${LOCK})`);
-      return route.handler({ ...base, db, store: storeFactory(db), queue: outboxQueue(db) }, data);
+      return route.handler({ ...withLookup(db, storeFactory(db)), queue: outboxQueue(db) }, data);
     });
   },
 });

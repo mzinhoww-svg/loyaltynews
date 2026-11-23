@@ -23,6 +23,10 @@ export interface SocialPostRef { postId: string; channel: string; reconciled: bo
 export interface CorrectionCase {
   id: string;
   articleId: string;
+  /** `articles.versao` publicada no momento da abertura (ADR-019). */
+  articleVersao?: number;
+  /** Quem origina a matéria: Fábrica editorial ou CMS. */
+  articleOrigem?: 'fabrica' | 'cms';
   kind: CorrectionKind;
   requester: { name: string; identityVerified: boolean; channel: string };
   receivedAt: string;
@@ -53,11 +57,11 @@ function move(c: CorrectionCase, to: CorrectionState, at: string, note?: string)
 const stop = (c: CorrectionCase, blocker: CorrectionBlocker, message: string): Step => ({ ok: false, blocker, message, case: c });
 
 export function openCase(input: {
-  id: string; articleId: string; kind: CorrectionKind; requester: CorrectionCase['requester']; contested: string; receivedAt: string;
+  id: string; articleId: string; articleVersao?: number; articleOrigem?: 'fabrica' | 'cms'; kind: CorrectionKind; requester: CorrectionCase['requester']; contested: string; receivedAt: string;
   deadlineAt?: string | null; supportingEvidenceIds?: string[]; legal?: boolean; socialPosts?: SocialPostRef[];
 }): CorrectionCase {
   return {
-    id: input.id, articleId: input.articleId, kind: input.kind, requester: input.requester, receivedAt: input.receivedAt,
+    id: input.id, articleId: input.articleId, ...(input.articleVersao !== undefined ? { articleVersao: input.articleVersao } : {}), ...(input.articleOrigem ? { articleOrigem: input.articleOrigem } : {}), kind: input.kind, requester: input.requester, receivedAt: input.receivedAt,
     deadlineAt: input.deadlineAt ?? null, contested: input.contested, supportingEvidenceIds: input.supportingEvidenceIds ?? [],
     legal: input.legal ?? input.kind === 'right_of_reply', state: 'received', socialPosts: input.socialPosts ?? [], entitiesRebuilt: false,
     history: [{ at: input.receivedAt, from: null, to: 'received' }],
@@ -111,7 +115,7 @@ export function buildReplyNotice(c: CorrectionCase, replyText: string, at: strin
 /** A correção em si é checada como qualquer afirmação: cada claim precisa constar nas evidências. */
 export function verifyCorrectionClaims(claims: Claim[], evidences: Evidence[]): Finding[] {
   const pseudo: Draft = {
-    id: 'correction', editoria: 'regulacao', headline: '', body: '', claims, evidenceIds: [...new Set(claims.flatMap((c) => c.evidenceIds))],
+    id: 'correction', editoria: 'regulacao', headline: '', body: '', slug: 'correction', resumo: 'n/a', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, claims, evidenceIds: [...new Set(claims.flatMap((c) => c.evidenceIds))],
     signature: SIGNATURE, image: { mode: 'none', reason: 'n/a' }, modelProvider: 'n/a', promptVersion: 'n/a',
   };
   return checkClaims(pseudo, evidences).findings;

@@ -4,11 +4,15 @@
 // `corrigido` registra errata (nota) sobre a versão publicada; corrigir o texto exige despublicar → rascunho.
 import { and, asc, count, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
-import { ASSINATURA, canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
+import { canTransition, isImagePublishable, readingTimeMinutes, ImageRights, type ArticleStatus } from '@ln/contracts';
 import { can } from '@ln/auth';
-import { publishedContentSha256 } from '@ln/contracts/hash';
 import { draftContentSha256 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
+import { issueFromEditorial } from './editorial/receipt';
+import { issueCorrectionReceipt } from './editorial/fabrica-correction';
+import { evidenceIdsOf, gateFailures, rowContentSha, type ArticleRow } from './article-core';
+import { publicImageOf } from './midia';
+import { issueRevisionReceipt, openRevision } from './correcao';
 import { HttpError, json, newId, parse, Paging, queryObject, readBody, type RouteFn } from './http';
 import type { Db } from '@ln/auth';
 import {
@@ -20,7 +24,6 @@ import {
   ReceiptInput,
 } from './schemas';
 
-type ArticleRow = typeof schema.articles.$inferSelect;
 const EDITABLE: readonly ArticleStatus[] = ['rascunho', 'bloqueado'];
 const PUBLISH_SET: readonly ArticleStatus[] = ['publicado', 'corrigido', 'despublicado'];
 const NOTE_SET: readonly ArticleStatus[] = ['despublicado', 'corrigido', 'bloqueado'];
@@ -29,14 +32,6 @@ async function load(db: Db, id: string): Promise<ArticleRow> {
   const [row] = await db.select().from(schema.articles).where(eq(schema.articles.id, id));
   if (!row) throw new HttpError(404, 'NOT_FOUND', 'Matéria não encontrada.');
   return row;
-}
-
-async function evidenceIdsOf(db: Db, articleId: string): Promise<string[]> {
-  const rows = await db
-    .select({ id: schema.articleSources.evidenceId })
-    .from(schema.articleSources)
-    .where(eq(schema.articleSources.articleId, articleId));
-  return rows.map((r) => r.id).sort();
 }
 
 async function fontesOf(db: Db, articleId: string) {
@@ -54,20 +49,11 @@ async function fontesOf(db: Db, articleId: string) {
     .orderBy(asc(schema.evidences.id));
 }
 
-/** Regras determinísticas (sem modelo): o que impede aprovar ou publicar. Vazio = passou. */
-export function gateFailures(a: ArticleRow, evidenceCount: number): string[] {
-  const f: string[] = [];
-  if (evidenceCount < 1) f.push('fontes: ao menos uma evidência');
-  if (a.assinatura !== ASSINATURA) f.push('assinatura institucional');
-  if (!a.resumo) f.push('resumo obrigatório (até 300 caracteres)');
-  if (a.patrocinado && !a.rotuloPublieditorial) f.push('conteúdo pago sem rótulo');
-  if (a.classeDeDado !== 'public') f.push(`classe de dado ${a.classeDeDado} não é publicável`);
-  if (a.imagem != null) {
-    const img = ImageRights.safeParse(a.imagem);
-    if (!img.success) f.push('imagem inválida');
-    else if (!isImagePublishable(img.data)) f.push('imagem sem base de direito');
-  }
-  return f;
+/** Imagem só sai pública com base de direito (D08): 'pendente' ou inválida vira null. */
+function publishableImage(img: unknown): unknown {
+  if (img == null) return null;
+  const p = ImageRights.safeParse(img);
+  return p.success && isImagePublishable(p.data) ? img : null;
 }
 
 function serialize(a: ArticleRow, withBody = true) {
@@ -102,10 +88,7 @@ function serialize(a: ArticleRow, withBody = true) {
 async function approvedSha(db: Db, a: ArticleRow, evidenceIds: readonly string[]): Promise<string> {
   const rec = await new PgEditorialStore(db).getArticle(a.id);
   if (rec?.draft) return draftContentSha256(rec.draft);
-  return publishedContentSha256({
-    titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo, editoria: a.editoria, corpo: a.corpo,
-    imagem: a.imagem, classeDeDado: a.classeDeDado, patrocinado: a.patrocinado, rotuloPublieditorial: a.rotuloPublieditorial, fontes: evidenceIds,
-  });
+  return rowContentSha(a, evidenceIds);
 }
 
 async function receiptFor(db: Db, a: ArticleRow) {
@@ -199,6 +182,9 @@ export const createArticle: RouteFn = async (req, c) => {
 export const updateArticle: RouteFn = async (req, c) => {
   const b = await readBody(req, ArticleUpdate);
   const a = await load(c.deps.db, c.params.id ?? '');
+  // ADR-019 §c.5: matéria publicada só muda por revisão de correção (caso aceito); a página fica como está até a publicação oficial
+  if (a.status === 'publicado' || a.status === 'corrigido') return openRevision(c, a, b);
+  if (b.casoCorrecaoId !== undefined) throw new HttpError(422, 'VALIDATION_ERROR', 'casoCorrecaoId só vale para matéria já publicada.', [{ path: 'casoCorrecaoId', message: 'matéria não publicada' }]);
   if (!EDITABLE.includes(a.status)) throw new HttpError(409, 'NOT_EDITABLE', `Matéria em ${a.status} não é editável.`);
   if (b.versaoEsperada !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'A matéria mudou; recarregue.', { versaoAtual: a.versao });
   if (b.editoria) await assertEditoria(c.deps.db, b.editoria);
@@ -210,6 +196,7 @@ export const updateArticle: RouteFn = async (req, c) => {
     throw new HttpError(422, 'VALIDATION_ERROR', 'Tipo patrocinado exige patrocinado=true (rótulo).', [{ path: 'patrocinado', message: 'obrigatório' }]);
   }
   const { versaoEsperada, ...fields } = b;
+  delete fields.casoCorrecaoId; // só vale para matéria publicada (rejeitado acima)
   const updated = await c.deps.db
     .update(schema.articles)
     .set({ ...fields, versao: a.versao + 1 })
@@ -253,7 +240,14 @@ export const deleteArticle: RouteFn = async (_req, c) => {
 // ---------- recibo de publicação ----------
 export const issueReceipt: RouteFn = async (req, c) => {
   const b = await readBody(req, ReceiptInput);
+  // Com rascunho no CMS editorial (mesmo id), o recibo nasce DELE (ADR-017 §4): upsert em articles + recibo numa transação.
+  const rec = await new PgEditorialStore(c.deps.db).getArticle(c.params.id ?? '');
+  if (rec && b.correcao) return issueCorrectionReceipt(c, c.params.id ?? '', b, b.correcao); // recibo da versão corrigida (ADR-019 §c.5)
+  if (b.correcao) throw new HttpError(409, 'NOT_FACTORY_ARTICLE', 'correcao só vale para matéria da Fábrica; a do CMS usa PATCH com casoCorrecaoId.');
+  if (rec) return issueFromEditorial(c, c.params.id ?? '', b, rec);
+  if (b.versao === undefined) throw new HttpError(400, 'VALIDATION_ERROR', 'Entrada inválida.', [{ path: 'versao', message: 'obrigatória' }]);
   const a = await load(c.deps.db, c.params.id ?? '');
+  if (a.status === 'publicado' || a.status === 'corrigido') return issueRevisionReceipt(c, a, b); // recibo da revisão de correção (ADR-019 §c.5)
   if (a.status !== 'em_checagem') throw new HttpError(409, 'BAD_STATE', 'Recibo só é emitido para matéria em checagem.');
   if (b.versao !== a.versao) throw new HttpError(409, 'VERSION_MISMATCH', 'Versão do recibo difere da matéria.', { versaoAtual: a.versao });
   const evIds = await evidenceIdsOf(c.deps.db, a.id);
@@ -296,6 +290,15 @@ export const transitionArticle: RouteFn = async (req, c) => {
   if (PUBLISH_SET.includes(b.para) && !can(session.role, 'materias', 'publish')) {
     throw new HttpError(403, 'FORBIDDEN', 'Sem permissão para publicar, despublicar ou corrigir.');
   }
+  // Publicar e corrigir só pelo fluxo oficial (POST /api/studio/editorial/articles/{id}/publication): lá a flag, o recibo, o hash do
+  // conteúdo, a projeção, a auditoria e o outbox (`article.published`/`article.corrected`) saem na MESMA transação. Esta rota genérica
+  // nunca muda a matéria para 'publicado' nem 'corrigido' (nem com a flag ligada): recusa sem efeito algum.
+  if (b.para === 'publicado' || b.para === 'corrigido') {
+    if (!c.deps.flags.publicacaoPortal) throw new HttpError(403, 'FEATURE_DISABLED', 'Publicação desligada (flag publicacaoPortal).');
+    throw new HttpError(409, 'USE_PUBLICATION_ROUTE', 'Publique pela rota de publicação do Editorial; esta rota não publica nem corrige.', {
+      rota: `/api/studio/editorial/articles/${a.id}/publication`,
+    });
+  }
   if (NOTE_SET.includes(b.para) && !b.nota) throw new HttpError(422, 'NOTE_REQUIRED', 'Esta transição exige uma nota.');
 
   const evIds = await evidenceIdsOf(c.deps.db, a.id);
@@ -303,22 +306,19 @@ export const transitionArticle: RouteFn = async (req, c) => {
   if (b.para === 'em_checagem' && evIds.length < 1) {
     throw new HttpError(422, 'GATES_FAILED', 'Matéria sem fontes não vai para checagem.', ['fontes: ao menos uma evidência']);
   }
-  if (b.para === 'aprovado' || b.para === 'publicado' || b.para === 'corrigido') {
+  if (b.para === 'aprovado') {
     const failures = gateFailures(a, evIds.length);
     if (failures.length) throw new HttpError(422, 'GATES_FAILED', 'A matéria não passa nas regras determinísticas.', failures);
     const receipt = await validReceipt(c.deps.db, a);
     if (!receipt) throw new HttpError(409, 'RECEIPT_REQUIRED', 'Exige recibo válido da versão atual.');
     receiptId = receipt.id;
-    if (b.para === 'publicado' && receipt.identidadePublicacao !== session.userId) {
-      throw new HttpError(403, 'NOT_PUBLISHER_IDENTITY', 'Só a identidade de publicação do recibo publica esta matéria.');
-    }
   }
 
   const now = c.deps.now();
   const updated = await c.deps.db.transaction(async (tx) => {
     const upd = await tx
       .update(schema.articles)
-      .set({ status: b.para, ...(b.para === 'publicado' ? { publicadoEm: now } : {}) })
+      .set({ status: b.para })
       .where(and(eq(schema.articles.id, a.id), eq(schema.articles.status, a.status), eq(schema.articles.versao, a.versao)))
       .returning();
     if (!upd[0]) throw new HttpError(409, 'STATE_CONFLICT', 'A matéria mudou durante a operação; tente de novo.');
@@ -406,7 +406,7 @@ export const publicGetArticle: RouteFn = async (_req, c) => {
     editoria: a.editoria,
     assinatura: a.assinatura,
     corpo: a.corpo,
-    imagem: a.imagem,
+    imagem: await publicImageOf(c.deps.db, publishableImage(a.imagem), c.deps.now()),
     patrocinado: a.patrocinado,
     rotuloPublieditorial: a.rotuloPublieditorial,
     publicadoEm: a.publicadoEm,

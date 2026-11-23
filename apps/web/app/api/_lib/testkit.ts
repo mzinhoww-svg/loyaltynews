@@ -6,7 +6,22 @@ import { EDITORIAS, FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import { createAuth, createAuthHandler, createStaffUser, type Db, type Role } from '@ln/auth';
 import { schema } from '@ln/db';
 import { createTestDb } from '@ln/db/testing';
+import type { BlobObject, BlobStore } from './blob';
 import { setDepsForTest, type Deps } from './deps';
+
+/** Armazenamento de arquivos em memória: SÓ para testes (produção usa S3BlobStore; sem configuração, 503). */
+export class MemoryBlobStore implements BlobStore {
+  readonly objects = new Map<string, BlobObject>();
+  async put(key: string, bytes: Uint8Array, contentType: string) {
+    this.objects.set(key, { bytes: new Uint8Array(bytes), contentType });
+  }
+  async get(key: string) {
+    return this.objects.get(key) ?? null;
+  }
+  async delete(key: string) {
+    this.objects.delete(key);
+  }
+}
 
 const ORIGIN = 'http://localhost:3000';
 const PASSWORD = 'senha-longa-de-teste-1';

@@ -23,6 +23,15 @@ async function upsertArticle(db: Writer, r: ArticleRecord): Promise<void> {
   });
 }
 
+async function upsertCorrection(db: Writer, r: CorrectionRecord): Promise<void> {
+  const c = r.case;
+  const row = { id: c.id, articleId: c.articleId, state: c.state, kind: c.kind, receivedAt: new Date(c.receivedAt), record: plain(r) };
+  await db.insert(schema.editorialCorrection).values(row).onConflictDoUpdate({
+    target: schema.editorialCorrection.id,
+    set: { articleId: row.articleId, state: row.state, kind: row.kind, receivedAt: row.receivedAt, record: row.record },
+  });
+}
+
 export class PgEditorialStore implements EditorialStore {
   constructor(private readonly db: Db) {}
 
@@ -46,9 +55,10 @@ export class PgEditorialStore implements EditorialStore {
   async commitPublication(c: PublicationCommit): Promise<{ outbox: 'enqueued' | 'duplicate' }> {
     const a = c.article;
     const o = c.outbox;
-    if (!a.articleId || a.status !== 'publicado' || !a.publication || !c.audit.action || !c.audit.target || !o.queue || !o.refId || !o.idempotencyKey) {
+    if (!a.articleId || (a.status !== 'publicado' && a.status !== 'corrigido') || !a.publication || !c.audit.action || !c.audit.target || !o.queue || !o.refId || !o.idempotencyKey) {
       throw new Error('commitPublication: entrada inválida');
     }
+    if (c.correction && !c.correction.case.id) throw new Error('commitPublication: correção inválida');
     return this.db.transaction(async (tx) => {
       const ins = await tx
         .insert(schema.outbox)
@@ -58,6 +68,7 @@ export class PgEditorialStore implements EditorialStore {
       if (ins.length === 0) return { outbox: 'duplicate' as const };
       this.maybeFail('after_outbox');
       await upsertArticle(tx, a);
+      if (c.correction) await upsertCorrection(tx, c.correction); // o caso avança na MESMA transação (ADR-019 §c.5)
       this.maybeFail('after_article');
       await tx.insert(schema.editorialAudit).values({ at: c.audit.at, record: plain(c.audit) });
       this.maybeFail('after_audit');
@@ -89,12 +100,7 @@ export class PgEditorialStore implements EditorialStore {
     return r ? (r.record as CorrectionRecord) : undefined;
   }
   async putCorrection(r: CorrectionRecord) {
-    const c = r.case;
-    const row = { id: c.id, articleId: c.articleId, state: c.state, kind: c.kind, receivedAt: new Date(c.receivedAt), record: plain(r) };
-    await this.db.insert(schema.editorialCorrection).values(row).onConflictDoUpdate({
-      target: schema.editorialCorrection.id,
-      set: { articleId: row.articleId, state: row.state, kind: row.kind, receivedAt: row.receivedAt, record: row.record },
-    });
+    await upsertCorrection(this.db, r);
   }
   async listCorrections() {
     return (await this.db.select({ record: schema.editorialCorrection.record }).from(schema.editorialCorrection)).map((r) => r.record as CorrectionRecord);

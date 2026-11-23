@@ -7,6 +7,7 @@ import {
   buildAttribution, checkClaims, checkImage, checkNoFabricatedReporting, checkOriginality, checkSignature,
   decideImage, runDeterministicChecks,
 } from '../rules/rules';
+import { makeIllustration } from '../publishable';
 import { SIGNATURE } from '../types';
 import type { Draft, Evidence } from '../types';
 
@@ -17,7 +18,7 @@ function mk(over: Partial<Draft> & { body?: string } = {}): Draft {
   const o = goodDraftOutput(ev.id) as { headline: string; body: string; claims: Draft['claims'] };
   const body = `${over.body ?? o.body}\n\n${buildAttribution([ev], [MOCK_SOURCE])}`;
   return {
-    id: 'd', editoria: 'pontos', headline: o.headline, claims: o.claims, evidenceIds: [ev.id], signature: SIGNATURE,
+    id: 'd', editoria: 'pontos', slug: 'mock-programa-alfa', resumo: 'Resumo MOCK do programa fictício.', tipoConteudo: 'noticia', classeDeDado: 'public', patrocinado: false, headline: o.headline, claims: o.claims, evidenceIds: [ev.id], signature: SIGNATURE,
     image: { mode: 'none', reason: 'teste' }, modelProvider: 'deepseek', promptVersion: 't', ...over, body,
   };
 }
@@ -91,8 +92,14 @@ test('imagem (D08): sem base de direito registrada => sem foto; com base + créd
   assert.equal(decideImage(withBasis, { ...cand, credit: '' }).mode, 'none');
   // decisão forjada sem base é barrada pelo gate
   assert.equal(checkImage({ mode: 'source_image', sourceId: 's', url: 'u', credit: 'c', creditLink: 'l', basis: null }).findings[0]?.code, 'rights_basis_unresolved');
-  assert.equal(checkImage({ mode: 'conceptual', label: 'imagem', generatedBy: 'x' }).findings[0]?.code, 'conceptual_unlabeled');
-  assert.equal(checkImage({ mode: 'conceptual', label: 'Ilustração conceitual gerada por IA', generatedBy: 'x' }).verdict, 'pass');
+  // ilustração conceitual (ADR-018): sem revisão humana dos limites o gate bloqueia; com revisão e registro completo passa
+  const ill = makeIllustration({ url: 'https://cdn.loyaltynews.example/ilustracoes/a1.png', alt: 'Ilustração conceitual: pontos viram passagens', generatedBy: 'gerador-MOCK', promptVersion: 'img-0.1', prompt: 'PROMPT MOCK' });
+  assert.deepEqual(checkImage(ill).findings.map((x) => x.code), ['illustration_needs_human_review']);
+  assert.equal(checkImage({ ...ill, humanReview: { reviewedBy: 'revisora', at: '2026-11-24T10:00:00Z', limitsConfirmed: true } }).verdict, 'pass');
+  assert.ok(checkImage({ ...ill, alt: 'Imagem gerada por IA com modelo X' }).findings.some((x) => x.code === 'illustration_mentions_tool'));
+  assert.ok(checkImage({ ...ill, alt: ' ' }).findings.some((x) => x.code === 'illustration_alt_missing'));
+  assert.ok(checkImage({ ...ill, url: 'ftp://x' }).findings.some((x) => x.code === 'illustration_url_invalid'));
+  assert.ok(checkImage({ ...ill, promptSha256: 'xyz' }).findings.some((x) => x.code === 'illustration_registry_incomplete'));
 });
 
 test('bloco "Fontes:" não aceita texto livre: número/citação anexados depois dele não escapam do gate', () => {
