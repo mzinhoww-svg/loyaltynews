@@ -1243,3 +1243,13 @@ export function resolveFlags(env) {
   assert.match(ruim.stdout, /"ok":false/);
   assert.equal(node('prova-flags-producao.mjs', []).status, 2);
 });
+
+test('smoke-staging: avaliarReady com o campo migracoes (ft/backend-2 19cd21e)', async () => {
+  const { avaliarReady } = await import('../scripts/smoke-staging.mjs');
+  const base = { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' };
+  assert.deepEqual(avaliarReady(base), [], 'build anterior, sem o campo');
+  assert.deepEqual(avaliarReady({ ...base, migracoes: 'ok' }), []);
+  assert.match(avaliarReady({ ...base, migracoes: 'pendentes' }).join('|'), /migracoes=pendentes/);
+  assert.match(avaliarReady(base, { exigirMigracoes: true }).join('|'), /campo migracoes ausente/);
+  assert.deepEqual(avaliarReady({ ...base, migracoes: 'ok' }, { exigirMigracoes: true }), []);
+});

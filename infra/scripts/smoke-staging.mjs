@@ -5,6 +5,7 @@
 //        [--expect-seed] [--expect-orgs 29] [--timeout 8000]
 //   --expect-seed   exige o seed de staging (`seed-stg-*`, rótulo "[DEMO · staging]") nas matérias, na agenda e na home (o feed fica SEM itens em staging: R6)
 //   --expect-login-form exige o formulário de e-mail e senha em /studio/entrar (hoje a tela é um aviso fixo; sem a flag vira só uma nota)
+//   --expect-migracoes exige /api/ready com migracoes:"ok" (builds com ft/backend-2 19cd21e em diante); sem a opção o campo, se existir, só pode ser "ok"
 //   --expect-flags a,b  exige que /api/health liste EXATAMENTE essas flags (ADR-022; staging com DP-38: intelligencePessoas); --expect-no-flags exige a lista vazia
 //   --expect-orgs N exige que /intelligence mostre N empresas cadastradas (hoje o adaptador `api` do portal NÃO as lê: só com o adaptador de Intelligence)
 // Login do Studio NÃO é testado aqui (exige usuário e MFA, segredos): só a tela de entrada e a negação sem sessão.
@@ -14,13 +15,16 @@ import { parseArgs, fail } from './lib/util.mjs';
 export const ROTULO_SEED = '[DEMO · staging]';
 
 /** /api/ready de staging COMPLETO: modo completo, banco e Redis ok. Função pura. */
-export function avaliarReady(j) {
+export function avaliarReady(j, opts = {}) {
   const p = [];
   if (!j || typeof j !== 'object') return ['corpo sem JSON'];
   if (j.mode !== 'completo') p.push(`mode=${j.mode} (esperado "completo": o staging ainda está em nodb?)`);
   if (j.db !== 'ok') p.push(`db=${j.db}`);
   if (j.redis !== 'ok') p.push(`redis=${j.redis}`);
   if (j.status !== 'ok') p.push(`status=${j.status}`);
+  // ft/backend-2 19cd21e: /api/ready confere as migrações (corpo migracoes:"ok"). Sem o campo (builds anteriores) só reprova com opts.exigirMigracoes.
+  if (j.migracoes !== undefined && j.migracoes !== 'ok') p.push(`migracoes=${String(j.migracoes).slice(0, 40)}`);
+  if (opts.exigirMigracoes && j.migracoes !== 'ok') p.push('campo migracoes ausente ou diferente de ok (o build não confere as migrações)');
   return p;
 }
 
@@ -65,7 +69,8 @@ async function main() {
   });
   await tentar('ready', async () => {
     const r = await get('/api/ready', { json: true });
-    const p = r.status === 200 ? avaliarReady(r.j) : [`HTTP ${r.status}`];
+    const motivo = String(r.j?.motivo ?? r.j?.reason ?? '').replace(/[^A-Za-z0-9_ -]/g, '').slice(0, 60);
+    const p = r.status === 200 ? avaliarReady(r.j, { exigirMigracoes: Boolean(args['expect-migracoes']) }) : [`HTTP ${r.status}${motivo ? ` (${motivo})` : ''}`];
     check('ready: staging completo (banco e Redis respondem, não é nodb)', p.length === 0, p.join(' | '));
   });
   await tentar('site', async () => {
