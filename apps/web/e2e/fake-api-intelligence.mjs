@@ -42,6 +42,9 @@ const pessoas = [
   { ...ana, cargosAtuais: [anaDepois], historico: [anaAntes], corrigidoPeloTitular: true },
   { ...bia, cargosAtuais: [biaCargo], historico: [] },
 ];
+// Igual à API real (publico.ts / publico-pessoas.ts): id fora do formato UUID = 400 invalid_input, ANTES da flag; códigos em minúsculas.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const idInvalido = () => [400, { error: { code: 'invalid_input', message: 'id deve ser UUID.' } }];
 const vazioOuSemFlag = () => intelMode === 'vazio' || intelMode === 'sem-flag';
 
 function pessoasEMoves(u) {
@@ -63,6 +66,7 @@ function pessoasEMoves(u) {
   }
   const p = /^\/api\/publico\/intelligence\/pessoas\/([^/]+)$/.exec(u.pathname);
   if (p) {
+    if (!UUID.test(decodeURIComponent(p[1]))) return idInvalido();
     const x = !vazioOuSemFlag() && pessoas.find((y) => y.id === decodeURIComponent(p[1]));
     if (!x) return [404, { error: { code: 'not_found', message: 'pessoa não encontrada' } }];
     return [200, { data: { id: x.id, nome: x.nome, ...(x.corrigidoPeloTitular ? { corrigidoPeloTitular: true } : {}), perfilPublico: null, fonte: fonte(`p${x.id.slice(-1)}`), mock: true, cargosAtuais: x.cargosAtuais, historico: x.historico,
@@ -70,6 +74,7 @@ function pessoasEMoves(u) {
   }
   const mv = /^\/api\/publico\/intelligence\/moves\/([^/]+)$/.exec(u.pathname);
   if (mv) {
+    if (!UUID.test(decodeURIComponent(mv[1]))) return idInvalido();
     const x = !vazioOuSemFlag() && moves.find((y) => y.id === decodeURIComponent(mv[1]));
     return x ? [200, { data: x }] : [404, { error: { code: 'not_found', message: 'move não encontrado' } }];
   }
@@ -90,8 +95,9 @@ export function intelligence(u) {
   }
   const m = /^\/api\/publico\/intelligence\/empresas\/([^/]+)$/.exec(u.pathname);
   if (!m) return null;
+  if (!UUID.test(decodeURIComponent(m[1]))) return idInvalido();
   const o = orgs.find((x) => x.id === decodeURIComponent(m[1]));
-  if (!o) return [404, { error: { code: 'NOT_FOUND', message: 'empresa não encontrada' } }];
+  if (!o) return [404, { error: { code: 'not_found', message: 'empresa não encontrada' } }];
   const relacoes = rels
     .filter((r) => r.from === o.id || r.to === o.id)
     .map((r) => {
