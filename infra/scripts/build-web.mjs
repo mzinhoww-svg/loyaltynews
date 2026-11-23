@@ -13,13 +13,15 @@ import { pathToFileURL } from 'node:url';
 import { envProblems, VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
 
 /** Problemas do HTML estático da home em relação ao ambiente esperado. Função pura (testada sem build). */
-export function checkHome(html, siteUrl, appEnv, vitrine = false) {
+export function checkHome(html, siteUrl, appEnv, vitrine = false, indexavel = false) {
   const problems = [];
   const canon = (html.match(/<link[^>]+rel="canonical"[^>]*href="([^"]+)"/i) || html.match(/<link[^>]+href="([^"]+)"[^>]*rel="canonical"/i) || [])[1];
   if (!canon) problems.push('home sem link canonical');
   else if (!canon.startsWith(siteUrl) || /localhost/i.test(canon)) problems.push(`canonical da home é "${canon}"; esperado começar com ${siteUrl}`);
   const noindex = /<meta[^>]+name="robots"[^>]*content="[^"]*noindex/i.test(html) || /<meta[^>]+content="[^"]*noindex[^"]*"[^>]*name="robots"/i.test(html);
-  if (!['production', 'producao'].includes(String(appEnv).toLowerCase()) && !noindex) problems.push('home sem meta robots noindex em ambiente não produtivo');
+  // noindex: obrigatório fora de produção e, em produção, enquanto o pacote NÃO for indexável (DP-24: produção nasce sem indexação até o go-live)
+  const producao = ['production', 'producao'].includes(String(appEnv).toLowerCase());
+  if ((!producao || !indexavel) && !noindex) problems.push(producao ? 'home de produção sem meta robots noindex, mas o pacote não é indexável (DP-24: indexação só no go-live, com --indexavel)' : 'home sem meta robots noindex em ambiente não produtivo');
   // Vitrine do staging (Security R5/R8): com vitrine a home TEM a faixa de demonstração; sem vitrine NÃO pode ter nenhum marcador (nunca fixtures sem rótulo, nunca em produção).
   if (vitrine) { if (!html.includes(VITRINE_BANNER)) problems.push(`vitrine ligada, mas a home não tem a faixa "${VITRINE_BANNER}" (R5): o portal não aplicou PORTAL_VITRINE`); }
   else { const achados = VITRINE_MARCADORES.filter((m) => html.includes(m)); if (achados.length) problems.push(`home sem vitrine contém marcador(es) de demonstração: ${achados.join(' | ')}`); }
@@ -31,7 +33,8 @@ if (direct) {
   const root = process.cwd();
   const rel = join(root, 'release.json');
   if (!existsSync(rel)) { console.error('[build-web] release.json ausente: o pacote não foi gerado por package-web.mjs'); process.exit(2); }
-  const { siteUrl, appEnv, vitrine: vitrineRel } = JSON.parse(readFileSync(rel, 'utf8'));
+  const { siteUrl, appEnv, vitrine: vitrineRel, indexavel: indexavelRel } = JSON.parse(readFileSync(rel, 'utf8'));
+  const indexavel = indexavelRel === true; // DP-24: release.json é a fonte da verdade; ausente = não indexável
   const vitrine = vitrineRel === true; // release.json é a fonte da verdade; ausente = sem vitrine
   if (!siteUrl || !appEnv) { console.error('[build-web] release.json sem siteUrl/appEnv'); process.exit(2); }
 
@@ -39,6 +42,7 @@ if (direct) {
   const painelVitrine = process.env.PORTAL_VITRINE;
   const efetivo = { ...process.env, APP_ENV: appEnv };
   if (vitrine) efetivo.PORTAL_VITRINE = '1'; else delete efetivo.PORTAL_VITRINE;
+  if (indexavel) efetivo.PORTAL_INDEXAVEL = '1'; else delete efetivo.PORTAL_INDEXAVEL;
   const probs = envProblems(efetivo, { deploy: true });
   if (probs.length) { console.error(`[build-web] ambiente reprovado:\n - ${probs.join('\n - ')}`); process.exit(1); }
 
@@ -54,7 +58,7 @@ if (direct) {
   if (!existsSync(home)) {
     console.warn('[build-web] AVISO: apps/web/.next/server/app/index.html não existe (home dinâmica?): verificação do HTML pulada');
   } else {
-    const problems = checkHome(readFileSync(home, 'utf8'), siteUrl, appEnv, vitrine);
+    const problems = checkHome(readFileSync(home, 'utf8'), siteUrl, appEnv, vitrine, indexavel);
     if (problems.length) { console.error(`[build-web] BUILD REPROVADO na verificação da home:\n - ${problems.join('\n - ')}`); process.exit(1); }
     console.log(`[build-web] verificação da home ok (canonical com a URL do ambiente, noindex${vitrine ? ', faixa da vitrine presente' : ', sem marcadores de demonstração'})`);
   }

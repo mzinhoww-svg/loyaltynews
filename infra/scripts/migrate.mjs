@@ -16,6 +16,17 @@ import { assertBound, canonEnv } from './lib/binding.mjs';
 import { envProblems } from './lib/guards.mjs';
 
 const args = parseArgs(process.argv.slice(2));
+
+/** Valida a dispensa de backup externo (DP-23): referencia DP-23, data AAAA-MM-DD ainda nao vencida e a no maximo 60 dias. Devolve o motivo da recusa ou ''. Pura (testada). */
+export function waiverProblem(ate, ref, agora) {
+  if (String(ref ?? '') !== 'DP-23') return 'LN_BACKUP_WAIVER_REF deve ser DP-23 (decisao do proprietario)';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ate)) return 'LN_BACKUP_WAIVER_UNTIL deve ser AAAA-MM-DD';
+  const fim = new Date(`${ate}T23:59:59Z`);
+  if (Number.isNaN(fim.getTime())) return 'LN_BACKUP_WAIVER_UNTIL invalida';
+  if (fim.getTime() < agora.getTime()) return `a dispensa venceu em ${ate}`;
+  if (fim.getTime() - agora.getTime() > 60 * 24 * 3600 * 1000) return 'prazo maior que 60 dias: renove por periodos curtos';
+  return '';
+}
 const envName = canonEnv(args.env);
 if (!envName) fail('use --env staging|production', 2);
 requireEnv(['APP_ENV', 'DATABASE_URL', 'DB_SSL_CA_PEM', 'DB_SSL_CERT_PEM', 'DB_SSL_KEY_PEM']);
@@ -38,6 +49,13 @@ if (envName === 'production') {
     try { tabelas = await userTablesPg(process.env); } catch (e) { fail(`--first-run-empty: não consegui ler o banco (${String(e.message).slice(0, 200)}); recusado`, 2); }
     if (tabelas.length) fail(`--first-run-empty recusado: o banco de produção já tem ${tabelas.length} tabela(s) (ex.: ${tabelas.slice(0, 3).join(', ')}); use o fluxo normal com backup fresco`, 2);
     console.log('first-run-empty: banco de produção sem tabelas de usuário; backup pré-migração dispensado só desta vez');
+  } else if (args['waive-external-backup']) {
+    // DP-23 (proprietario): ate o lancamento a producao roda so com o backup diario da Vertra; o backup externo (ADR-012) fica para depois. A dispensa e EXPLICITA, com prazo
+    // (LN_BACKUP_WAIVER_UNTIL=AAAA-MM-DD, no maximo 60 dias a frente) e referencia (LN_BACKUP_WAIVER_REF=DP-23); sem isso, ou vencida, a migracao recusa como antes.
+    const ate = String(process.env.LN_BACKUP_WAIVER_UNTIL ?? '');
+    const prazo = waiverProblem(ate, process.env.LN_BACKUP_WAIVER_REF, new Date());
+    if (prazo) fail(`--waive-external-backup recusado: ${prazo}`, 2);
+    console.warn(`ATENCAO (DP-23): migracao de producao SEM backup externo fresco (dispensa ate ${ate}); vale o backup diario da Vertra. Risco aceito pelo proprietario; registrar no status.`);
   } else {
     requireEnv(['BACKUP_DEST']);
     const f = run(process.execPath, ['infra/scripts/backup-freshness.mjs', '--env', 'production', '--verify-object']);

@@ -22,6 +22,10 @@ for (const k of ['repo', 'commit', 'out']) if (!args[k] || args[k] === true) fai
 const repo = resolve(String(args.repo));
 const profile = String(args.profile || 'staging-min');
 const vitrine = Boolean(args.vitrine);
+// --indexavel (DP-24): so o web de PRODUCAO, no go-live. Sem ele a producao e NAO indexavel (noindex, robots Disallow: /, sem sitemap).
+const indexavel = Boolean(args.indexavel);
+if (indexavel && (profile !== 'production' || args.app === 'workers')) fail('--indexavel so vale para o web do perfil production (staging nunca e indexavel)', 2);
+if (indexavel && vitrine) fail('--indexavel nao combina com --vitrine', 2);
 // --app web (padrão) | workers: o worker é um app Vertra separado (tipo Bot, sem porta), do mesmo commit; sem subdomínio, sem build-web/start-web
 const appKey = args.app === undefined ? 'web' : String(args.app);
 if (!['web', 'workers'].includes(appKey)) fail('--app deve ser web ou workers', 2);
@@ -79,7 +83,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -140,9 +144,11 @@ try {
     ] : []),
     // Vitrine: também em EXECUÇÃO (start-web.mjs compara com release.json.vitrine e recusa se divergir). Sem vitrine, a variável NÃO deve existir.
     ...(vitrine ? [{ nome: 'PORTAL_VITRINE', valor: '1' }] : []),
+    // Producao indexavel (go-live): tambem em EXECUCAO; start-web compara com release.json.indexavel. Sem --indexavel a variavel NAO deve existir.
+    ...(indexavel ? [{ nome: 'PORTAL_INDEXAVEL', valor: '1' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [

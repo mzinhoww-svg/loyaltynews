@@ -22,6 +22,9 @@ if (!args.manifest || args.manifest === true) fail('use --manifest <arquivo>', 2
 const port = String(args.port ?? 3197);
 const man = JSON.parse(readFileSync(resolve(String(args.manifest)), 'utf8'));
 const ca = man.ferramentas.create_app;
+const apiSrc = man.depois_do_create.set_env.some((e) => e.nome === 'PORTAL_SOURCE' && e.valor === 'api'); // staging completo e producao: dados reais pela API (decisao 12)
+const producao = man.depois_do_create.set_env.some((e) => e.nome === 'APP_ENV' && e.valor === 'production');
+const indexavel = man.indexavel === true; // DP-24: producao so e indexavel no go-live (--indexavel)
 const vitrine = man.vitrine === true; // pacote de VITRINE (staging com fixtures rotuladas) ou pacote normal (fonte vazia)
 const win = process.platform === 'win32';
 const results = [];
@@ -93,13 +96,38 @@ try {
   step('[vitrine 1] start RECUSADO com PORTAL_VITRINE=0 (só o valor 1 vale)', r.status !== 0 && /guard-env REPROVADO/.test(`${r.stdout}${r.stderr}`));
   r = spawnSync(process.execPath, [join(SELF, 'package-web.mjs'), '--repo', work, '--commit', man.commit, '--out', join(dir, 'prod-vitrine'), '--profile', 'production', '--vitrine'], { encoding: 'utf8' });
   step('[vitrine 3] package-web --profile production --vitrine RECUSADO', r.status !== 0 && /vitrine recusado/i.test(`${r.stdout}${r.stderr}`) && !existsSync(join(dir, 'prod-vitrine')));
+  if (apiSrc) {
+    // Decisão 12 do Security (A2, A3, A4): a fonte de dados reais só aceita a grafia exata, não convive com a vitrine e só fala com o próprio servidor
+    r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, PORTAL_SOURCE: 'API' } });
+    step('[api A2] build RECUSADO com PORTAL_SOURCE=API (grafia diferente de api)', r.status !== 0 && /exatamente api/.test(`${r.stdout}${r.stderr}`));
+    r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '1' } });
+    step('[api A3] start RECUSADO com PORTAL_VITRINE junto de PORTAL_SOURCE=api', r.status !== 0 && /uma fonte por pacote/.test(`${r.stdout}${r.stderr}`));
+    r = runChain(ca.build, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '1' } });
+    step('[api A3] build RECUSADO com PORTAL_VITRINE no painel junto de PORTAL_SOURCE=api', r.status !== 0 && /uma fonte por pacote/.test(`${r.stdout}${r.stderr}`));
+    r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_API_BASE_URL: 'https://exemplo.invalid' } });
+    step('[api A4] start RECUSADO com PORTAL_API_BASE_URL fora do loopback', r.status !== 0 && /PORTAL_API_BASE_URL/.test(`${r.stdout}${r.stderr}`));
+  }
+  if (producao) {
+    // DP-24: produção nasce NÃO indexável; PORTAL_INDEXAVEL só com o pacote indexável (go-live) e nunca em staging
+    const e = { ...clean, ...appEnv }; delete e.PORTAL_INDEXAVEL;
+    if (indexavel) {
+      r = runChain(ca.start, { cwd: work, env: e });
+      step('[DP-24] start RECUSADO sem PORTAL_INDEXAVEL em pacote indexável', r.status !== 0 && /PORTAL_INDEXAVEL ausente/.test(`${r.stdout}${r.stderr}`));
+    } else {
+      r = runChain(ca.start, { cwd: work, env: { ...e, PORTAL_INDEXAVEL: '1' } });
+      step('[DP-24] start RECUSADO com PORTAL_INDEXAVEL=1 em pacote NÃO indexável', r.status !== 0 && /pacote NÃO é indexável/.test(`${r.stdout}${r.stderr}`));
+    }
+  }
+  r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, APP_ENV: 'staging', PORTAL_INDEXAVEL: '1' } });
+  step('[DP-24] start RECUSADO com PORTAL_INDEXAVEL=1 fora de produção', r.status !== 0 && /so a producao pode ser indexavel|PORTAL_INDEXAVEL/.test(`${r.stdout}${r.stderr}`));
   if (vitrine) {
     const e = { ...clean, ...appEnv }; delete e.PORTAL_VITRINE;
     r = runChain(ca.start, { cwd: work, env: e });
     step('[vitrine 4] start RECUSADO sem PORTAL_VITRINE em pacote de vitrine (release.vitrine=true)', r.status !== 0 && /PORTAL_VITRINE ausente em execução/.test(`${r.stdout}${r.stderr}`));
   } else {
     r = runChain(ca.start, { cwd: work, env: { ...clean, ...appEnv, PORTAL_VITRINE: '1' } });
-    step('[vitrine 4] start RECUSADO com PORTAL_VITRINE=1 em pacote SEM vitrine (release.vitrine=false)', r.status !== 0 && /pacote NÃO é de vitrine/.test(`${r.stdout}${r.stderr}`));
+    // com PORTAL_SOURCE=api o guard recusa antes (A3: uma fonte por pacote); sem api quem recusa é o start-web (vitrine ≠ release.vitrine)
+    step('[vitrine 4] start RECUSADO com PORTAL_VITRINE=1 em pacote SEM vitrine (release.vitrine=false)', r.status !== 0 && /pacote NÃO é de vitrine|uma fonte por pacote/.test(`${r.stdout}${r.stderr}`));
   }
   if (/start-web.mjs/.test(ca.start)) {
     // start-web.mjs: o ambiente de EXECUÇÃO errado impede o start (APP_COMMIT corrompido, URL ausente ou localhost, APP_ENV trocado)
@@ -113,10 +141,10 @@ try {
 
   // o "painel" aqui traz NEXT_PUBLIC_SITE_URL=localhost (pior caso, como na Vertra em 22/11): o build_command do pacote tem de sobrescrever
   const buildEnv = { ...clean, ...appEnv, NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' };
-  if (vitrine) delete buildEnv.PORTAL_VITRINE; else buildEnv.PORTAL_VITRINE = '1'; // a vitrine vem do release.json, nunca do painel
+  if (vitrine || apiSrc) delete buildEnv.PORTAL_VITRINE; else buildEnv.PORTAL_VITRINE = '1'; // a vitrine vem do release.json, nunca do painel (com api o painel hostil com vitrine é recusado, testado acima)
   r = runChain(ca.build, { cwd: work, env: buildEnv });
   const motivoBuild = r.status === 0 ? '' : `${r.stdout}\n${r.stderr}`.split(/\r?\n/).filter((l) => /ignored package\.json|home directory|Could not find the Next\.js package|Filesystem root|turbopack\.root/i.test(l)).map((l) => l.trim()).slice(0, 4).join(' | ');
-  if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
+  if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : apiSrc ? 'sem PORTAL_VITRINE' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
   server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });

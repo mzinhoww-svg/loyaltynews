@@ -173,7 +173,10 @@ test('build-web: checkHome aprova canonical do ambiente + noindex e reprova loca
   assert.match(checkHome(ok.replace(url, 'http://localhost:3000'), url, 'staging').join('|'), /canonical da home é "http:\/\/localhost:3000"/);
   assert.match(checkHome(ok.replace(url, 'https://loyaltynews-staging.vertraweb.app'), url, 'staging').join('|'), /esperado começar com/);
   assert.match(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'staging').join('|'), /sem meta robots noindex/);
-  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production'), [], 'em produção não exige noindex');
+  // DP-24: produção nasce NÃO indexável (exige noindex) e só dispensa o noindex com o pacote indexável (go-live)
+  assert.match(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production').join('|'), /produção sem meta robots noindex/);
+  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/><meta name="robots" content="noindex"/>`, url, 'production'), []);
+  assert.deepEqual(checkHome(`<link rel="canonical" href="${url}"/>`, url, 'production', false, true), [], 'pacote indexável de produção não exige noindex');
   assert.match(checkHome('<html></html>', url, 'staging').join('|'), /sem link canonical/);
 });
 
@@ -544,4 +547,62 @@ test('decisao 12 caso 5: mock e intelligence continuam reprovados (regressão), 
   const { envProblems } = await import('../scripts/lib/guards.mjs');
   for (const v of ['mock', 'intelligence', 'MOCK']) assert.match(envProblems({ APP_ENV: 'production', PORTAL_SOURCE: v }, { deploy: true }).join('|'), /PORTAL_SOURCE=.* deve ficar vazio ou api/, v);
   assert.match(envProblems({ APP_ENV: 'staging', PORTAL_MODE: 'mock' }, { deploy: true }).join('|'), /PORTAL_MODE=mock/);
+});
+
+// ---------- DP-24: produção NÃO indexável até o go-live; DP-23: dispensa de backup externo com prazo ----------
+test('DP-24: PORTAL_INDEXAVEL=1 só com APP_ENV=production; qualquer outro valor ou ambiente reprova; ausente é o padrão (não indexável)', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const p = (env) => envProblems(env, { deploy: true }).join('|');
+  assert.equal(p({ APP_ENV: 'production' }), '');
+  assert.equal(p({ APP_ENV: 'production', PORTAL_INDEXAVEL: '1' }), '');
+  assert.equal(p({ APP_ENV: 'producao', PORTAL_INDEXAVEL: '1' }), '');
+  assert.match(p({ APP_ENV: 'staging', PORTAL_INDEXAVEL: '1' }), /so a producao pode ser indexavel/);
+  assert.match(p({ APP_ENV: 'production', PORTAL_INDEXAVEL: '0' }), /so o valor 1/);
+  assert.match(p({ APP_ENV: 'production', PORTAL_INDEXAVEL: 'true' }), /so o valor 1/);
+  assert.match(p({ PORTAL_INDEXAVEL: '1' }), /so a producao pode ser indexavel/);
+});
+
+test('DP-24: start-web exige PORTAL_INDEXAVEL igual ao release.json (1 só com pacote indexável; ausente nos demais)', async () => {
+  const { startProblems } = await import('../scripts/start-web.mjs');
+  const sha = 'b'.repeat(40);
+  const rel = { commit: sha, siteUrl: 'https://x.vertraweb.app', appEnv: 'production' };
+  const env = { APP_ENV: 'production', APP_COMMIT: sha, NEXT_PUBLIC_SITE_URL: rel.siteUrl };
+  assert.deepEqual(startProblems(env, rel), [], 'padrão: não indexável');
+  assert.match(startProblems({ ...env, PORTAL_INDEXAVEL: '1' }, rel).join('|'), /pacote NÃO é indexável/);
+  assert.deepEqual(startProblems({ ...env, PORTAL_INDEXAVEL: '1' }, { ...rel, indexavel: true }), []);
+  assert.match(startProblems(env, { ...rel, indexavel: true }).join('|'), /PORTAL_INDEXAVEL ausente em execução/);
+});
+
+test('DP-24: package-web --indexavel só para o web de production (não staging, não worker, não vitrine)', () => {
+  const dir = join(tmp(), 'nada');
+  for (const extra of [['--profile', 'staging'], ['--profile', 'staging-min'], ['--profile', 'production', '--app', 'workers']]) {
+    const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--indexavel', ...extra]);
+    assert.equal(x.status, 2, extra.join(' '));
+    assert.match(x.stderr, /--indexavel so vale para o web do perfil production/);
+  }
+  const v = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', dir, '--profile', 'production', '--indexavel', '--vitrine']);
+  assert.equal(v.status, 2);
+});
+
+test('DP-23: waiverProblem aceita só DP-23, data futura de até 60 dias; recusa referência errada, data inválida, vencida ou longa demais', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(join(S, 'migrate.mjs'), 'utf8');
+  assert.match(src, /export function waiverProblem/);
+  // a função é pura, mas migrate.mjs executa ao ser importado; extrai e avalia só a função
+  const corpo = src.slice(src.indexOf('export function waiverProblem'), src.indexOf('\n}\n', src.indexOf('export function waiverProblem')) + 3).replace('export ', '');
+  const waiverProblem = new Function(corpo + '; return waiverProblem;')();
+  const hoje = new Date('2026-11-23T12:00:00Z');
+  assert.equal(waiverProblem('2026-12-20', 'DP-23', hoje), '');
+  assert.match(waiverProblem('2026-12-20', 'outro', hoje), /DP-23/);
+  assert.match(waiverProblem('20/12/2026', 'DP-23', hoje), /AAAA-MM-DD/);
+  assert.match(waiverProblem('2026-11-20', 'DP-23', hoje), /venceu/);
+  assert.match(waiverProblem('2027-06-01', 'DP-23', hoje), /60 dias/);
+  assert.match(waiverProblem('', 'DP-23', hoje), /AAAA-MM-DD/);
+});
+
+test('DP-23: migrate de produção com --waive-external-backup sem referência/prazo recusa (código 2) e sem a flag exige o backup', () => {
+  const base = { ...cleanEnv(), APP_ENV: 'production', DATABASE_URL: 'postgres://u:p@abc.db.usa1.vertraweb.app:1/vertracloud', DB_SSL_CA_PEM: 'x', DB_SSL_CERT_PEM: 'x', DB_SSL_KEY_PEM: 'x' };
+  const x = node('migrate.mjs', ['--env', 'production', '--confirm-production', '--waive-external-backup'], { env: base });
+  assert.notEqual(x.status, 0);
+  assert.doesNotMatch(x.stdout + x.stderr, /ATENCAO \(DP-23\)/, 'sem vínculo a migração nem chega à dispensa');
 });

@@ -37,6 +37,13 @@ export function envProblems(env = process.env, { deploy = false } = {}) {
       if (vit !== '1') p.push(`PORTAL_VITRINE=${env.PORTAL_VITRINE}: só o valor 1 é aceito (e só no staging)`);
       else if (appEnvVit !== 'staging') p.push(`PORTAL_VITRINE=1 com APP_ENV=${env.APP_ENV || '(vazio)'}: a vitrine de demonstração só existe no staging`);
     }
+    // DP-24 (proprietario) + Security: a PRODUCAO nasce NAO indexavel (noindex, robots Disallow: /, sem sitemap). Indexar so com o interruptor explicito PORTAL_INDEXAVEL=1,
+    // ligado no go-live, e so com APP_ENV=production. Em staging ou com outro valor = reprovado (staging nunca e indexavel).
+    const indexavel = String(env.PORTAL_INDEXAVEL ?? '').trim();
+    if (indexavel !== '') {
+      if (indexavel !== '1') p.push(`PORTAL_INDEXAVEL=${env.PORTAL_INDEXAVEL}: so o valor 1 e aceito (e so em producao)`);
+      else if (!['production', 'producao'].includes(String(env.APP_ENV ?? '').trim().toLowerCase())) p.push(`PORTAL_INDEXAVEL=1 com APP_ENV=${env.APP_ENV || '(vazio)'}: so a producao pode ser indexavel (staging nunca)`);
+    }
     // A4 (Security, decisao 12): PORTAL_API_BASE_URL em deploy so ausente (padrao: o proprio servidor) ou loopback http; outro host publicaria conteudo de fora (injecao de conteudo / SSRF).
     const apiBase = String(env.PORTAL_API_BASE_URL ?? '').trim();
     if (apiBase !== '') {
