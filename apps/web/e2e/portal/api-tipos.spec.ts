@@ -46,6 +46,28 @@ test.describe('páginas por tipo de matéria', () => {
     expect(ok.total).toBe(1);
   });
 
+  test('fake-api segue o contrato real do Backend em /materias (tipo vazio, q aparado, teto de 100, 400)', async ({ request }) => {
+    const base = `http://localhost:${Number(process.env.PORTAL_PORT_BASE) ? Number(process.env.PORTAL_PORT_BASE) + 4 : 3104}`;
+    const get = (qs: string) => request.get(`${base}/api/publico/materias?${qs}`);
+    // tipo= vazio não é ignorado: 400, igual a tipo inválido (ft/backend-3)
+    const vazio = await get('tipo=');
+    expect(vazio.status()).toBe(400);
+    expect((await vazio.json()).error.code).toBe('VALIDATION_ERROR');
+    // q só com espaços: 400
+    expect((await get('q=%20%20%20')).status()).toBe(400);
+    // q com 100 caracteres e espaços nas pontas: a API apara antes do teto e aceita
+    expect((await get(`q=${encodeURIComponent('  ' + 'a'.repeat(100) + '  ')}`)).status()).toBe(200);
+    // 101 caracteres úteis: 400
+    expect((await get(`q=${'a'.repeat(101)}`)).status()).toBe(400);
+    // espaços nas pontas não mudam o resultado
+    const a = await (await get('q=entrevista')).json();
+    const b = await (await get(`q=${encodeURIComponent('  entrevista  ')}`)).json();
+    expect(b.total).toBe(a.total);
+    expect(a.total).toBeGreaterThan(0);
+    // nenhum erro de validação usa 422
+    for (const qs of ['tipo=', 'tipo=invalido', 'q=%20', `q=${'a'.repeat(101)}`]) expect((await get(qs)).status()).not.toBe(422);
+  });
+
   test('axe nas quatro páginas', async ({ page }) => {
     test.setTimeout(120_000);
     for (const p of PAGES) {
