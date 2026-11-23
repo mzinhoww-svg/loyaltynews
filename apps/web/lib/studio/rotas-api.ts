@@ -35,6 +35,8 @@ import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
 import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha, PaginaDeCargos } from '@/lib/studio/intelligence-view';
 import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
 import { dispatchTitular } from '@/app/api/_lib/titular-studio';
+import * as pilotoLinhasRoute from '@/app/api/studio/openbot/piloto/linhas/route';
+import type { LinhaPiloto } from '@/lib/studio/piloto-planilha';
 import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
 import type { Achado, Checklist, Fechamento, Leitura, MateriaId, MateriaPiloto } from '@/lib/studio/piloto-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
@@ -319,6 +321,8 @@ export const api = {
    */
   piloto: {
     materias: () => chamar<{ items: MateriaPiloto[]; fechamento?: Fechamento }>(dispatchEditorial, `${E}/piloto`),
+    /** Linhas da trilha do piloto (planilha do AgentOps), uma por tarefa e tentativa: GET /api/studio/openbot/piloto/linhas (Backend 1, ft/backend 0d886d9). */
+    linhas: () => chamar<{ items: LinhaPiloto[] }>(pilotoLinhasRoute.GET as Despachante, '/api/studio/openbot/piloto/linhas'),
     fixarMapa: (mapa: Partial<Record<MateriaId, string>>) => chamar<{ mapa: Record<string, string> }>(dispatchEditorial, `${E}/piloto/mapa`, { metodo: 'POST', corpo: mapa }),
     leituras: (materia: string) => chamar<{ materia: string; articleId: string; leituras: Leitura[]; ocultas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leituras`),
     /** Registra só o hash da folha do leitor 2 no primeiro envio (sem conteúdo); 200 se o mesmo sha256 já estava; 409 FOLHA_DIFERENTE. */
