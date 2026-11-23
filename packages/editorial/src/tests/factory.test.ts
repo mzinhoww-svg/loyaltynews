@@ -68,7 +68,7 @@ class FakeLlm implements ChatTransport {
 function deps(llm: ChatTransport, over: Partial<FactoryDeps> = {}): FactoryDeps {
   return {
     store, registry, gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags: FLAGS, now: () => NOW,
-    collector: new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }), ...over,
+    collector: new Collector(mockWeb(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }), ...over,
   };
 }
 
@@ -82,7 +82,7 @@ test('prompts: regras fixas, conteúdo externo como dado não confiável, JSON t
   assert.deepEqual(parseModelJson('```json\n{"a":1}\n```'), { a: 1 });
   assert.deepEqual(parseModelJson('Claro! {"a":{"b":2}} fim'), { a: { b: 2 } });
   for (const bad of ['', 'sem json', '[1,2]', '{quebrado', '"texto"']) assert.equal(parseModelJson(bad), null, bad);
-  assert.equal(FACTORY_PROMPT_VERSION, 'editorial-0.1');
+  assert.equal(FACTORY_PROMPT_VERSION, 'editorial-0.3');
 });
 
 test('gateway LLM: recusa do transporte passa adiante; texto que não é JSON vira saída nula (estágio recusa); excludeProviders chega ao transporte', async () => {
@@ -178,7 +178,7 @@ test('coleta: fonte sem feed é relatada (no_feed) e só fontes elegíveis são 
   registry = new SourceRegistry([SOURCE, noFeed]);
   await enableSource();
   assert.equal((await setSourceEnabled(hctx(admin), { sourceId: 'sem-feed', enabled: true })).status, 409, 'sem revisão não habilita');
-  const out = await collectFromSources({ store, registry, collector: new Collector(mockWeb(), { now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }) });
+  const out = await collectFromSources({ store, registry, collector: new Collector(mockWeb(), { minSpacingMs: 0, now: () => NOW, resolver: mockResolver(), flags: COLLECT_ON }) });
   assert.deepEqual(out.sources.map((s) => s.sourceId), ['mock-ri']);
   assert.equal((await store.listArticles()).length, 0);
 });
@@ -279,4 +279,31 @@ test('cliente HTTP das rotas oficiais: caminhos, corpo do recibo e mapeamento de
   assert.equal((await weird.issueReceipt({ articleId: 'a', factcheckProvider: null })).ok, false);
   const down = createHttpPublishingPort(async () => ({ status: 503, body: null }));
   assert.deepEqual(await down.issueReceipt({ articleId: 'a', factcheckProvider: null }), { ok: false, code: 'HTTP_503', message: 'resposta 503' });
+});
+
+// ---------------- modelo SIMULADO: ensaio nunca publica ----------------
+import { SimulatedEditorialModel } from '../../fixtures/simulated-model.mock';
+import { isSimulatedContent } from '../rules/rules';
+
+test('modelo simulado: o pipeline completo roda e aprova o ensaio, mas conteúdo SIMULADO jamais chega à porta nem é publicado', async () => {
+  await enableSource();
+  const sim = new SimulatedEditorialModel('mercado');
+  const r = await runFactory(deps(sim), { maxArticles: 1 });
+  assert.equal(r.articles[0]?.status, 'aprovado', JSON.stringify(r.articles[0]));
+  const rec = (await store.getArticle(r.articles[0]!.articleId))!;
+  assert.ok(isSimulatedContent(rec.draft!));
+  assert.match(rec.draft!.headline, /^SIMULADO: /);
+  assert.notEqual(rec.draft!.modelProvider, rec.factcheck!.provider);
+  // publishApproved: a porta nunca é chamada
+  const port = routePort();
+  const rep = await publishApproved(pdeps(port, { publicacaoPortal: true }));
+  assert.deepEqual([rep.rows[0]?.outcome, rep.rows[0]?.code], ['failed', 'simulated_content']);
+  assert.equal(port.calls.length, 0);
+  // applyPublication direto (é o que a rota oficial chama): recusado sem efeito
+  const direct = await applyPublication(store, { articleId: rec.articleId, receiptId: 'rc', url: 'https://loyaltynews.example/noticia/x', publishedAt: NOW.toISOString() });
+  assert.ok(!direct.ok && direct.code === 'simulated_content');
+  assert.equal((await store.getArticle(rec.articleId))?.status, 'aprovado');
+  assert.equal((await store.listOutbox()).length, 0);
+  // matéria normal não é afetada
+  assert.equal(isSimulatedContent({ headline: 'Programa muda regras', resumo: 'x', body: 'texto simulado em minúsculas não conta' }), false);
 });

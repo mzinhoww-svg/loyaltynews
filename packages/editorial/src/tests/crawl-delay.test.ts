@@ -35,7 +35,7 @@ class TimedFetcher implements Fetcher {
 const mk = (robots: string, over: Partial<ConstructorParameters<typeof Collector>[1]> = {}) => {
   const clock = new Clock();
   const f = new TimedFetcher(clock, robots);
-  const c = new Collector(f, { now: clock.now, sleep: clock.sleep, resolver: mockResolver(), flags: COLLECT_ON, ...over });
+  const c = new Collector(f, { minSpacingMs: 0, now: clock.now, sleep: clock.sleep, resolver: mockResolver(), flags: COLLECT_ON, ...over });
   return { clock, f, c };
 };
 const pages = (f: TimedFetcher) => f.log.filter((l) => !l.url.endsWith('/robots.txt'));

@@ -54,7 +54,7 @@ function web(): MockFetcher {
   const feed = `<rss><channel><item><title>MOCK: Programa Alfa anuncia nova parceria</title><link>${PAGE}</link></item></channel></rss>`;
   return new MockFetcher({ [`https://${bcb.host}/robots.txt`]: 'User-agent: *\nDisallow:', [bcb.feedUrl!]: feed, [PAGE]: html });
 }
-const collector = () => new Collector(web(), { now: () => NOW, resolver: new FakeResolver({ 'www.bcb.gov.br': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON });
+const collector = () => new Collector(web(), { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ 'www.bcb.gov.br': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON });
 const factory = (llm: ChatTransport) => ({ store, registry: sourceRegistry, collector: collector(), gateway: createLlmGateway(llm), audit: new InMemoryAuditLog(), flags: FLAGS, now: () => NOW });
 
 /** Transporte HTTP em processo: leva o cliente da Fábrica às rotas oficiais (sessão do operador). */

@@ -56,9 +56,9 @@ export async function collectFromSources(
 async function collectOne(
   collector: Collector, s: Source, limit: number, out: CollectOutcome, dedupe: Deduper, knownUrls: Set<string>, seenIds: Set<string>,
 ): Promise<SourceCollectReport> {
-  if (!s.feedUrl) return { sourceId: s.id, status: 'no_feed', evidences: 0, skipped: [] };
+  if (!s.feedUrl && !s.sitemapUrl && s.acesso !== 'via-provedor') return { sourceId: s.id, status: 'no_feed', evidences: 0, skipped: [] };
   let res;
-  try { res = await collector.collectFeed(s, limit); } catch (e) {
+  try { res = s.feedUrl || s.acesso === 'via-provedor' ? await collector.collectFeed(s, limit) : await collector.collectSitemap(s, limit); } catch (e) {
     // flag desligada (FlagDisabled) é decisão do dono e sobe; qualquer outra falha de uma fonte não derruba as demais
     if (e instanceof Error && e.name !== 'FlagDisabled' && !/flag desligada/.test(e.message)) {
       return { sourceId: s.id, status: 'error', reasons: [e.message], evidences: 0, skipped: [] };

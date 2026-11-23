@@ -1,0 +1,127 @@
+{
+  "versao": "2026-11-23",
+  "escopo": "Fontes do piloto de 10 matérias (trilha C): Senado, Câmara e fontes de mercado classe D (DP-28). Dossiê completo: docs/termos-fontes.md.",
+  "regraGeral": {
+    "reproducao": "Nunca reproduzir (DP-29): a fábrica lê e reescreve com palavras próprias; trecho literal só curto, entre aspas, atribuído; o gate copy_literal barra 8 palavras iguais seguidas (30% de 5-gramas).",
+    "imagens": "Nenhuma imagem de fonte entra (regra D08: sem base de direito registrada), mesmo onde o termo permite.",
+    "ritmo": "≥ 3 s entre requisições ao mesmo host (padrão do coletor), limite por hora do cadastro, robots.txt respeitado, 429/403/desafio param a coleta da fonte.",
+    "habilitacao": "Ato humano no Studio (/studio/fontes/fabrica): revisão por pessoa diferente da pesquisadora (ln-editorial-engineer) e habilitação por admin ou editor-chefe, com MFA. Nenhuma fonte está habilitada no cadastro."
+  },
+  "fontes": [
+    {
+      "id": "senado-noticias",
+      "nome": "Agência Senado",
+      "classe": "A",
+      "urlListagem": "https://www12.senado.leg.br/noticias",
+      "feed": "https://www12.senado.leg.br/noticias/rss.xml",
+      "sitemap": null,
+      "termos": [{ "tipo": "politica_de_uso", "url": "https://www12.senado.leg.br/noticias/politica-de-uso", "lidoEm": "2026-11-23" }],
+      "trechosLiterais": [
+        "A reprodução de matérias e fotografias é livre, desde que não haja descaracterização de conteúdo",
+        "mediante a citação da Agência Senado e do autor"
+      ],
+      "permitidoColetar": "Matérias da Agência Senado (feed RSS e páginas /noticias). O termo não trata de automação; o robots.txt (162 bytes) não tem regras para o nosso agente nem para agentes de IA.",
+      "permitidoReproduzir": "Reprodução livre de matérias e fotografias sem descaracterizar o conteúdo, citando a Agência Senado e o autor; áudio com crédito à Rádio Senado. A fábrica só reescreve, cita e linka (nunca reproduz).",
+      "restricoes": "Não cobre textos ou fotos de terceiros republicados na página. Imagens não são usadas (D08).",
+      "frequencia": { "rodadasPorDia": 1, "materiasPorRodada": 5, "reqPorHora": 6, "espacamentoSeg": 3 },
+      "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "habilitar", "habilitacaoHumana": "pendente", "motivo": "Classe A: o texto oficial autoriza a reprodução com atribuição; feed confirmado e coletado sem bloqueio na rodada simulada de 23/11." },
+      "notaDeRevisaoSugerida": "Termos da Agência Senado (política de uso) lidos em 23/11/2026: reprodução livre sem descaracterizar, com citação da Agência Senado e do autor; robots.txt conferido (sem regras para o agente); sem login nem paywall; classe A (docs/termos-fontes.md); DP-28.",
+      "ressalvas": ["O revisor reabre a política de uso no dia (os termos mudam)."]
+    },
+    {
+      "id": "camara-noticias",
+      "nome": "Câmara dos Deputados — Câmara Notícias",
+      "classe": "A",
+      "urlListagem": "https://www.camara.leg.br/noticias/",
+      "feed": "https://www.camara.leg.br/noticias/rss/ultimas-noticias",
+      "sitemap": null,
+      "termos": [{ "tipo": "termo_de_uso", "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade", "lidoEm": "2026-11-23" }],
+      "trechosLiterais": [
+        "reproduzir trechos de textos, notícias ou estudos publicados no Portal da Câmara, desde que estejam entre aspas",
+        "Todas as informações publicadas no Portal da Câmara são de domínio público, gratuitas e podem ser reproduzidas",
+        "desde que citada a fonte \"Câmara dos Deputados\" e a autoria da informação, quando houver."
+      ],
+      "permitidoColetar": "Matérias do Câmara Notícias (feed e páginas /noticias). O termo só coíbe robôs que imitam pessoas na participação; o robots.txt tem 35 regras por agente de IA, todas de caminhos administrativos, e libera feed e matérias (conferido na rodada simulada de 23/11).",
+      "permitidoReproduzir": "Trechos entre aspas; informações do portal são de domínio público e podem ser reproduzidas, citando \"Câmara dos Deputados\" e a autoria. A fábrica só reescreve, cita e linka.",
+      "restricoes": "A Câmara respondeu HTTP 429 depois de várias execuções seguidas: coletar no máximo 1 rodada por dia e nunca em rajada. Imagens não são usadas (D08).",
+      "frequencia": { "rodadasPorDia": 1, "materiasPorRodada": 5, "reqPorHora": 6, "espacamentoSeg": 3 },
+      "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "habilitar", "habilitacaoHumana": "pendente", "motivo": "Classe A: o termo oficial permite reproduzir com aspas e fonte; feed e matérias permitidos pelo robots.txt, inclusive para agentes de IA declarados." },
+      "notaDeRevisaoSugerida": "Termo de uso do Portal da Câmara lido em 23/11/2026 (itens 7 e 29: trechos entre aspas, informações de domínio público, citar a Câmara e a autoria); robots.txt conferido (feed e /noticias permitidos); sem login nem paywall; classe A; DP-28.",
+      "ressalvas": ["Atenção ao 429: respeitar Retry-After e não repetir a rodada no mesmo dia."]
+    },
+    {
+      "id": "abemf",
+      "nome": "ABEMF (Associação Brasileira das Empresas de Marketing de Fidelidade)",
+      "classe": "D",
+      "urlListagem": "https://web.abemf.com.br/noticias/",
+      "feed": "https://web.abemf.com.br/feed/",
+      "sitemap": null,
+      "termos": [{ "tipo": "rodape_sem_termos (página lida)", "url": "https://web.abemf.com.br/associados/", "lidoEm": "2026-11-23" }],
+      "trechosLiterais": ["© 2026 ABEMF ... Todos os direitos reservados"],
+      "permitidoColetar": "Nenhum termo de conteúdo foi localizado: o site não autoriza nem proíbe. O robots.txt permite /noticias/ e /feed/ (só Disallow /wp-admin/). Feed com 10 itens (o mais recente é de 22/10/2026).",
+      "permitidoReproduzir": "Nada é autorizado no texto; sob a DP-28 o proprietário aceitou o risco. A fábrica só reescreve com link e fonte (nunca reproduz).",
+      "restricoes": "Só o rodapé de direitos reservados. Pouco volume recente (feed parado há ~1 mês). Um pedido de autorização por escrito à associação reduziria o risco.",
+      "frequencia": { "rodadasPorDia": 1, "materiasPorRodada": 3, "reqPorHora": 6, "espacamentoSeg": 3 },
+      "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "habilitar", "habilitacaoHumana": "pendente", "motivo": "Classe D com feed conferido e robots permitido; entra sob a DP-28 (risco aceito pelo proprietário). Cobre a editoria programas/pontos." },
+      "notaDeRevisaoSugerida": "DP-28, classe D, risco aceito pelo proprietário; site sem termos de conteúdo (só rodapé de direitos reservados, lido em 23/11/2026); robots.txt conferido (/noticias/ e /feed/ permitidos); sem login nem paywall.",
+      "ressalvas": ["Feed com último item de 22/10/2026: pode não render matéria nova no dia."]
+    },
+    {
+      "id": "livelo-imprensa",
+      "nome": "Livelo — Imprensa",
+      "classe": "D",
+      "urlListagem": "https://www.livelo.com.br/imprensa",
+      "feed": null,
+      "sitemap": "https://www.livelo.com.br/sitemap/static-sitemap-0.xml",
+      "termos": [
+        { "tipo": "privacidade_apenas", "url": "https://www.livelo.com.br/politica-de-privacidade", "lidoEm": "2026-11-23" },
+        { "tipo": "regulamentos_do_programa", "url": "https://www.livelo.com.br/regulamentos", "lidoEm": "2026-11-23" }
+      ],
+      "trechosLiterais": ["Livelo S.A. Todos os direitos reservados"],
+      "permitidoColetar": "Sem termos de uso de conteúdo (o rodapé só leva a Regulamentos e Privacidade). O robots.txt permite /imprensa; coleta pelo sitemap, prefixo /imprensa/ (37 páginas; a mais recente é de 26/08/2026). O coletor com o nosso User-Agent respondeu 200 na reavaliação de 23/11.",
+      "permitidoReproduzir": "Nada é autorizado no texto; sob a DP-28 o risco é do proprietário. Só reescrita com link e fonte.",
+      "restricoes": "Paywall 'desconhecido' no cadastro: o revisor confere. Conteúdo de imprensa antigo (agosto): serve ao piloto, não a novidade do dia.",
+      "frequencia": { "rodadasPorDia": 1, "materiasPorRodada": 2, "reqPorHora": 6, "espacamentoSeg": 3 },
+      "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "habilitar", "habilitacaoHumana": "pendente", "motivo": "Classe D, acessível por sitemap com seção de imprensa; programa de fidelidade central para as editorias programas e pontos." },
+      "notaDeRevisaoSugerida": "DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; sem login nem paywall (conferir).",
+      "ressalvas": ["Reabrir a página antes de habilitar e conferir paywall.", "Se o coletor receber 403, registrar bloqueada e NÃO contornar (a menos que a fonte seja marcada via-provedor pelo proprietário)."]
+    },
+    {
+      "id": "abrarec",
+      "nome": "ABRAREC (Associação Brasileira das Relações Empresa Cliente)",
+      "classe": "D",
+      "urlListagem": "https://abrarec.com.br/blog/",
+      "feed": "https://abrarec.com.br/feed/",
+      "sitemap": null,
+      "termos": [
+        { "tipo": "rodape_sem_termos (página lida)", "url": "https://abrarec.com.br/", "lidoEm": "2026-11-23" },
+        { "tipo": "privacidade_apenas", "url": "https://abrarec.com.br/politica-de-privacidade/", "lidoEm": "2026-11-23" }
+      ],
+      "trechosLiterais": ["© ABRAREC Todos os direitos reservados 2026"],
+      "permitidoColetar": "Nenhum termo de conteúdo localizado. O robots.txt só tem Disallow /wp-admin/; /blog/ e /feed/ permitidos. Feed com 8 itens (o mais recente é de 19/11/2026).",
+      "permitidoReproduzir": "Nada é autorizado no texto; sob a DP-28 o risco é do proprietário. Só reescrita com link e fonte.",
+      "restricoes": "Só política de privacidade e rodapé de direitos reservados. Associação: pedido de autorização por escrito é o caminho direto para reduzir o risco.",
+      "frequencia": { "rodadasPorDia": 1, "materiasPorRodada": 3, "reqPorHora": 6, "espacamentoSeg": 3 },
+      "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "habilitar", "habilitacaoHumana": "pendente", "motivo": "Classe D, feed conferido e recente; cobre a editoria crm. Entra no lugar da FEBRABAN." },
+      "notaDeRevisaoSugerida": "DP-28, classe D, risco aceito pelo proprietário; sem termos de conteúdo (rodapé de direitos reservados e política de privacidade, lidos em 23/11/2026); robots.txt conferido (/blog/ e /feed/ permitidos); sem login nem paywall.",
+      "ressalvas": []
+    },
+    {
+      "id": "febraban",
+      "nome": "FEBRABAN",
+      "classe": "D",
+      "urlListagem": "https://portal.febraban.org.br/noticias/",
+      "feed": null,
+      "sitemap": null,
+      "termos": [],
+      "trechosLiterais": [],
+      "permitidoColetar": "Sem termos de conteúdo localizados. O robots.txt só barra parâmetros de rastreamento (utm, gclid etc.) e não declara sitemap; o site não tem feed identificado.",
+      "permitidoReproduzir": "Nada é autorizado no texto e nenhum termo de conteúdo foi localizado; sem coleta, nada é reproduzido.",
+      "restricoes": "O coletor só lê feed ou sitemap com prefixo: sem nenhum dos dois não há como listar as matérias. Paywall 'desconhecido' na pesquisa.",
+      "frequencia": { "rodadasPorDia": 0, "materiasPorRodada": 0, "reqPorHora": 6, "espacamentoSeg": 3 },
+      "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "recusar", "habilitacaoHumana": "não aplicável", "motivo": "Recusada para o piloto por motivo TÉCNICO, não jurídico: sem feed nem sitemap o coletor não consegue ler a listagem, e o paywall está desconhecido. Reavaliar se a FEBRABAN publicar feed ou sitemap." },
+      "notaDeRevisaoSugerida": null,
+      "ressalvas": ["Substituída pela ABRAREC no piloto."]
+    }
+  ]
+}

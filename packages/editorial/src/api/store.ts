@@ -25,7 +25,9 @@ export interface ArticleRecord {
   status: ArticleStatus;
   draft?: Draft;
   evidences: Evidence[];
-  factcheck?: { provider: string; model: string; verdicts: Array<{ claimId: string; verdict: 'pass' | 'fail' | 'inconclusive' }> };
+  factcheck?: { provider: string; model: string; verdicts: Array<{ claimId: string; verdict: 'pass' | 'fail' | 'inconclusive' }>; reviewedDraftTaskId?: string; reviewedDraftSha256?: string };
+  /** Revisão final (auto_gate_editor): modelo e revisão do rascunho avaliada. */
+  review?: { provider: string; model: string; reviewedDraftTaskId: string; reviewedDraftSha256: string };
   blockers: BlockerCode[];
   findings: Finding[];
   reviews: ReviewNote[];
@@ -181,7 +183,7 @@ export async function applyOutcome(store: EditorialStore, job: ArticleJob, outco
   const src = outcome.kind === 'next' ? outcome.next.data : outcome.kind === 'done' ? outcome.data : job;
   const rec: ArticleRecord = {
     ...base, editoria: src.editoria, evidences: src.evidences, updatedAt: at,
-    ...(src.draft ? { draft: src.draft } : {}), ...(src.factcheck ? { factcheck: src.factcheck } : {}),
+    ...(src.draft ? { draft: src.draft } : {}), ...(src.factcheck ? { factcheck: src.factcheck } : {}), ...(src.review ? { review: src.review } : {}),
   };
   if (outcome.kind === 'next') { rec.status = 'em_checagem'; rec.blockers = []; rec.findings = []; }
   else if (outcome.kind === 'done') { rec.status = outcome.event === 'article.approved' ? 'aprovado' : rec.status; rec.blockers = []; rec.findings = []; }

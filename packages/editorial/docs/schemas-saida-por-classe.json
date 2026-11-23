@@ -1,0 +1,307 @@
+{
+  "triage": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "relevant": {
+        "type": "boolean"
+      },
+      "editoria": {
+        "type": "string",
+        "enum": [
+          "mercado",
+          "programas",
+          "pontos",
+          "bancos",
+          "varejo",
+          "travel",
+          "tech",
+          "crm",
+          "global",
+          "regulacao"
+        ]
+      }
+    },
+    "required": [
+      "relevant"
+    ],
+    "additionalProperties": false
+  },
+  "context": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "notes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidenceIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "text",
+            "evidenceIds"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "notes"
+    ],
+    "additionalProperties": false
+  },
+  "draft": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "headline": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "body": {
+        "type": "string",
+        "minLength": 1
+      },
+      "resumo": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "subtitulo": {
+        "type": "string",
+        "maxLength": 300
+      },
+      "claims": {
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "fact",
+                "number",
+                "quote",
+                "date"
+              ]
+            },
+            "evidenceIds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "quote": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "speaker": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "text",
+                "speaker"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "id",
+            "text",
+            "kind",
+            "evidenceIds"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "imageCandidate": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1
+          },
+          "credit": {
+            "type": "string"
+          },
+          "creditLink": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "headline",
+      "body",
+      "resumo",
+      "claims"
+    ],
+    "additionalProperties": false
+  },
+  "factcheck": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "verdicts": {
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "claimId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "pass",
+                "fail",
+                "inconclusive"
+              ]
+            }
+          },
+          "required": [
+            "claimId",
+            "verdict"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "verdicts"
+    ],
+    "additionalProperties": false
+  },
+  "review": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "approve": {
+        "type": "boolean"
+      },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "approve"
+    ],
+    "additionalProperties": false
+  },
+  "social_pack": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "linkedin": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1200
+      },
+      "instagram": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "linkedin"
+    ],
+    "additionalProperties": false
+  },
+  "roles": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "mentions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "personName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "orgName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "present",
+                "left"
+              ]
+            },
+            "announced": {
+              "type": "boolean"
+            },
+            "effectiveDate": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "excerpt": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "personName",
+            "orgName",
+            "title",
+            "kind",
+            "excerpt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "mentions"
+    ],
+    "additionalProperties": false
+  }
+}
