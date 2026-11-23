@@ -16,7 +16,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classifyResponse, parseRobots, robotsDecision } from './crawl-guards.mjs';
+import { classifyResponse, detectChallenge, parseRobots, robotsDecision } from './crawl-guards.mjs';
 
 export const UA = 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)';
 const PAUSE_MS = 1500;
@@ -55,7 +55,13 @@ export async function robotsAllows(url, fetchImpl = fetch) {
     const r = await fetchImpl(`${u.origin}/robots.txt`, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (r.status === 404 || r.status === 410) return { allowed: true, note: 'robots.txt ausente', sitemaps: [] };
     if (!r.ok) return { allowed: false, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca`, sitemaps: [] };
-    const parsed = parseRobots(await r.text());
+    const body = await r.text();
+    // robots.txt que responde 200 com PÁGINA DE DESAFIO/BLOQUEIO não é "sem regras": é inacessível e a página NÃO é buscada.
+    const headers = Object.fromEntries(r.headers.entries());
+    const looksHtml = /html/i.test(r.headers.get('content-type') ?? '') || /^\s*<(?:!doctype|html|head|body|script|meta|title)/i.test(body);
+    const challenge = detectChallenge({ status: r.status, headers, html: looksHtml ? body : '', text: looksHtml ? htmlToText(body) : '' });
+    if (challenge) return { allowed: false, note: `robots.txt inacessivel (resposta de desafio/bloqueio com HTTP ${r.status}: ${challenge}); por precaucao nao busca`, sitemaps: [] };
+    const parsed = parseRobots(body);
     const sitemaps = parsed.sitemaps.slice(0, 5);
     const d = robotsDecision(parsed, UA, u.pathname + u.search);
     if (!d.allowed) return { allowed: false, note: `robots.txt proibe (${d.rule})`, sitemaps };

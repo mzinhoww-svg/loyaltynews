@@ -11,3 +11,5 @@ export function classifyResponse(r: { status: number; headers?: Record<string, s
   estado: 'ok' | 'redirecionada' | 'bloqueada_http' | 'bloqueada_desafio' | 'indisponivel';
   observacao: string;
 };
+export function normalizePath(s: string): string;
+export function agentToken(value: string): string;

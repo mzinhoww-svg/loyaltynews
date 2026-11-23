@@ -78,6 +78,9 @@ describe('carga do v2', () => {
 
   it('v2 sobre v1 já carregado: o que existe é reconhecido, só o novo é criado; nada duplica', async () => {
     await loadSeed(db, V1, V1_VER);
+    const snap = async () => (await db.query<{ id: string; evidence_id: string; validated_at: string }>(`SELECT id, evidence_id, validated_at FROM intelligence.org_relation ORDER BY id`)).rows.map((r) => ({ ...r, validated_at: new Date(r.validated_at).toISOString() }));
+    const antes = await snap();
+    const evidenciasAntes = await count('evidence');
     const plan = await planSeedLoad(db, V2, V2_VER);
     // existentes: 5 organizações do v1 e as 2 relações do v1
     expect(plan.counts).toEqual({ create: 33, exists: 7, rejected: 0 });
@@ -85,9 +88,12 @@ describe('carga do v2', () => {
     expect(manifest!.organizationsCreated).toHaveLength(15);
     expect(manifest!.relationsCreated).toHaveLength(18);
     expect([await count('organization'), await count('org_relation')]).toEqual([20, 20]);
-    // desfazer o v2 deixa o v1 intacto
+    // desfazer o v2 deixa o v1 INTACTO: contagens E também evidência e data de validação das 2 relações que o v2 revalidou
+    expect(manifest!.relationsRevalidatedPrevious).toHaveLength(2);
     await rollbackSeed(db, manifest!);
     expect([await count('organization'), await count('org_relation')]).toEqual([5, 2]);
+    expect(await snap()).toEqual(antes);
+    expect(await count('evidence')).toBe(evidenciasAntes);
   });
 
   it('citação do navegador adulterada é recusada pelo plano (relatório diz não encontrada)', async () => {

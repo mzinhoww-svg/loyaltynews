@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { classifyResponse, detectChallenge, matchesPattern, parseRobots, robotsDecision } from '../../scripts/crawl-guards.mjs';
+import { agentToken, classifyResponse, detectChallenge, matchesPattern, normalizePath, parseRobots, productToken, robotsDecision } from '../../scripts/crawl-guards.mjs';
 import { fetchText, robotsAllows, UA } from '../../scripts/verify-dataset.mjs';
 import { sonda } from '../../scripts/probe-sources.mjs';
 
@@ -199,5 +199,119 @@ describe('sonda de fonte (respostas simuladas)', () => {
     expect(r.estado).toBe('nao_sondada_classe_c');
     expect(t.robots).not.toHaveBeenCalled();
     expect(t.fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('robots.txt — RFC 9309 §2.2.2: normalização de caminhos percent-encoded', () => {
+  it('%XX de caractere NÃO reservado é decodificado (hex em qualquer caixa); regra e URL comparadas na mesma forma', () => {
+    expect(matchesPattern('/%7Efoo', '/~foo')).toBe(true);
+    expect(matchesPattern('/~foo', '/%7Efoo')).toBe(true);
+    expect(matchesPattern('/%7efoo', '/~foo')).toBe(true); // hex minúsculo
+    expect(matchesPattern('/%41bc', '/Abc')).toBe(true); // %41 = 'A' (não reservado)
+    expect(matchesPattern('/%7Efoo', '/~bar')).toBe(false);
+    expect(matchesPattern('/*%7Efoo$', '/x/y/~foo')).toBe(true); // curinga e âncora convivem com a normalização
+  });
+
+  it('caracteres fora do ASCII equivalem aos octetos UTF-8 percent-encoded, nos dois sentidos', () => {
+    expect(matchesPattern('/ツ', '/%E3%83%84')).toBe(true);
+    expect(matchesPattern('/%E3%83%84', '/ツ')).toBe(true);
+    expect(matchesPattern('/%e3%83%84', '/ツ')).toBe(true);
+    expect(matchesPattern('/ação', '/a%C3%A7%C3%A3o')).toBe(true);
+    expect(matchesPattern('/a%C3%A7%C3%A3o/', '/ação/x')).toBe(true);
+    expect(matchesPattern('/ação', '/acao')).toBe(false);
+  });
+
+  it('%XX de caractere RESERVADO permanece codificado: /foo%2Fbar NÃO é /foo/bar (mas %2f e %2F são o mesmo)', () => {
+    expect(matchesPattern('/foo%2Fbar', '/foo/bar')).toBe(false);
+    expect(matchesPattern('/foo/bar', '/foo%2Fbar')).toBe(false);
+    expect(matchesPattern('/foo%2fbar', '/foo%2Fbar')).toBe(true);
+    expect(matchesPattern('/a%3Fb', '/a?b')).toBe(false);
+    expect(normalizePath('/a%2fb/%7e/ç/%41')).toBe('/a%2Fb/~/%C3%A7/A');
+  });
+
+  it('fim a fim com robotsAllows: regra em forma decodificada bloqueia URL codificada e vice-versa', async () => {
+    const make = (body: string) => (async () => new Response(body, { status: 200, headers: { 'content-type': 'text/plain' } })) as unknown as typeof fetch;
+    expect((await robotsAllows('https://h.invalid/%7Esecreto', make('User-agent: *\nDisallow: /~secreto\n'))).allowed).toBe(false);
+    expect((await robotsAllows('https://h.invalid/~secreto', make('User-agent: *\nDisallow: /%7Esecreto\n'))).allowed).toBe(false);
+    expect((await robotsAllows('https://h.invalid/a%C3%A7%C3%A3o/x', make('User-agent: *\nDisallow: /ação\n'))).allowed).toBe(false);
+    expect((await robotsAllows('https://h.invalid/ação/x', make('User-agent: *\nDisallow: /a%C3%A7%C3%A3o\n'))).allowed).toBe(false);
+    // Allow mais longo continua vencendo depois de normalizar
+    expect((await robotsAllows('https://h.invalid/~publico', make('User-agent: *\nDisallow: /~\nAllow: /%7Epublico\n'))).allowed).toBe(true);
+    // %2F reservado não vira '/': a regra de /privado/ não bloqueia /x%2Fprivado/
+    expect((await robotsAllows('https://h.invalid/x%2Fprivado/y', make('User-agent: *\nDisallow: /x/privado/\n'))).allowed).toBe(true);
+  });
+});
+
+describe('robots.txt — grupo do agente: token de produto, sem diferenciar maiúsculas, nunca a string inteira do UA', () => {
+  const dec = (robots: string, path = '/noticias', ua = UA) => robotsDecision(parseRobots(robots), ua, path);
+
+  it('o token de produto do nosso UA é só o nome do agente', () => {
+    expect(productToken(UA)).toBe('loyaltynewssourceverifier');
+    expect(agentToken('LoyaltyNewsSourceVerifier/1.0 (qualquer comentário)')).toBe('loyaltynewssourceverifier');
+    expect(agentToken(' LOYALTYNEWSSOURCEVERIFIER ')).toBe('loyaltynewssourceverifier');
+  });
+
+  it('substring ou prefixo do token, e palavras do restante da string do UA, NÃO formam grupo específico', () => {
+    for (const nome of ['verifier', 'loyaltynews', 'source', 'news', 'sem', 'coleta', 'massa', 'pontual', 'bot', 'loyaltynewssourceverifier2']) {
+      const r = `User-agent: ${nome}\nDisallow: /\n\nUser-agent: *\nAllow: /\n`;
+      const d = dec(r);
+      expect(d, nome).toMatchObject({ allowed: true, group: '*' }); // caiu no grupo '*', como manda o RFC
+    }
+  });
+
+  it('o token exato do agente (qualquer caixa, com ou sem versão) forma o grupo específico e substitui o *', () => {
+    for (const nome of ['LoyaltyNewsSourceVerifier', 'LOYALTYNEWSSOURCEVERIFIER', 'loyaltynewssourceverifier/1.0', 'LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica)']) {
+      const r = `User-agent: *\nAllow: /\n\nUser-agent: ${nome}\nDisallow: /noticias\n`;
+      expect(dec(r), nome).toMatchObject({ allowed: false, group: 'specific' });
+    }
+    // grupo específico sem regra que case: vale só ele (o '*' que bloquearia tudo é ignorado)
+    expect(dec('User-agent: *\nDisallow: /\n\nUser-agent: LoyaltyNewsSourceVerifier\nDisallow: /privado\n')).toMatchObject({ allowed: true, group: 'specific' });
+  });
+
+  it('um grupo "*" continua valendo quando nenhum grupo traz o nosso token', () => {
+    expect(dec('User-agent: *\nDisallow: /noticias\n')).toMatchObject({ allowed: false, group: '*' });
+    expect(dec('User-agent: outrobot\nDisallow: /\n')).toMatchObject({ allowed: true, group: 'none' });
+  });
+});
+
+describe('robots.txt que responde 200 com PÁGINA DE DESAFIO não é "sem regras"', () => {
+  const html200 = (body: string, headers: Record<string, string> = {}) => (async () => new Response(body, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...headers } })) as unknown as typeof fetch;
+
+  it('desafio longo, WAF e cabeçalho cf-mitigated no próprio robots.txt: inacessível, página bloqueada', async () => {
+    const longChallenge = page('Just a moment...', `<p>${filler(4000)}</p>`);
+    const r1 = await robotsAllows('https://h.invalid/ri', html200(longChallenge));
+    expect(r1.allowed).toBe(false);
+    expect(r1.note).toMatch(/^robots\.txt inacessivel \(resposta de desafio/);
+
+    const r2 = await robotsAllows('https://h.invalid/ri', html200(page('Loja', `<script src="https://geo.captcha-delivery.com/captcha/?x=1"></script>${filler(3000)}`)));
+    expect(r2).toMatchObject({ allowed: false });
+    expect(r2.note).toMatch(/^robots\.txt inacessivel/);
+
+    const viaHeader = (async () => new Response('User-agent: *\nAllow: /\n', { status: 200, headers: { 'content-type': 'text/plain', 'cf-mitigated': 'challenge' } })) as unknown as typeof fetch;
+    expect(await robotsAllows('https://h.invalid/ri', viaHeader)).toMatchObject({ allowed: false });
+
+    const phrase = html200(`<html><body><p>${filler(2000)} Please verify you are human to continue.</p></body></html>`);
+    expect((await robotsAllows('https://h.invalid/ri', phrase)).allowed).toBe(false);
+  });
+
+  it('robots.txt normal (texto) e página HTML qualquer SEM sinal de desafio (soft-404 do site) seguem o fluxo normal', async () => {
+    const texto = (async () => new Response('User-agent: *\nDisallow: /privado\n', { status: 200, headers: { 'content-type': 'text/plain' } })) as unknown as typeof fetch;
+    expect((await robotsAllows('https://h.invalid/ri', texto)).allowed).toBe(true);
+    expect((await robotsAllows('https://h.invalid/privado/x', texto)).allowed).toBe(false);
+    const soft404 = html200(page('Página não encontrada', `<p>${filler(2500)}</p>`));
+    expect(await robotsAllows('https://h.invalid/ri', soft404)).toMatchObject({ allowed: true, note: 'robots.txt permite' });
+  });
+
+  it('na sonda: robots.txt com desafio vira "robots_inacessivel_nao_buscada" e a página NÃO é buscada', async () => {
+    const fetchFn = vi.fn();
+    const deps = {
+      robotsAllows: (u: string) => robotsAllows(u, html200(page('Just a moment...', `<p>${filler(4000)}</p>`))),
+      fetchText: fetchFn,
+      sleep: async () => undefined,
+    };
+    const r = await sonda({ id: 'x', nome: 'Fonte X', url: 'https://origem.invalid/ri', tipo: 'ri' }, deps as never);
+    expect(r.estado).toBe('robots_inacessivel_nao_buscada');
+    expect(r.robots).toMatch(/desafio/);
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
