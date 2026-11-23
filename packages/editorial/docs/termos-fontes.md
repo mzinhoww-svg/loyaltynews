@@ -7,7 +7,7 @@ Consulta: 23/11/2026 (horários aproximados dentro da sessão). Fontes: as 40 pe
 ## Como foi lido (limites)
 - **Quem leu:** a leitura dos documentos foi feita por leitores automatizados (3 agentes de pesquisa) com a ferramenta de leitura de páginas, que devolve texto resumido. Eu NÃO li cada página pessoalmente. Para não depender do resumo, **conferi cada trecho citado contra o HTML bruto da página** (uma leitura por documento, sem contornar nenhum bloqueio): ✓ = o trecho existe literalmente no texto bruto; ✗ = não confere; ◐ = parte confere; — = trecho curto demais para conferir. Dos 135 trechos, 133 conferem; os 2 restantes estão marcados abaixo (não conferem, parciais, curtos demais ou em página não verificável).
 - Páginas que só carregam por JavaScript, PDFs e respostas 403 **não puderam ser conferidas** e aparecem como tal. Nada foi deduzido do que não foi lido.
-- **Releitura dos 403 (23/11):** os 403 da primeira leitura vinham, em boa parte, do cliente genérico dos leitores. Com um User-Agent identificado ("LoyaltyNewsSourceVerifier/1.0 — verificação pontual de fonte pública; sem coleta em massa", uma leitura por URL, sem contornar nada), Livelo, LATAM, LATAM Pass, Magalu RI, Itaú e Santander passaram a responder 200 e foram relidos (lote 4). Seguem bloqueados, e NÃO foram contornados: a home do Magalu (www), Star Alliance e ICO.
+- **Releitura dos 403 (23/11):** os 403 da primeira leitura vinham, em boa parte, do cliente genérico dos leitores. Com um User-Agent identificado ("LoyaltyNewsSourceVerifier/1.0 — verificação pontual de fonte pública; sem coleta em massa", uma leitura por URL, sem contornar nada), Livelo, LATAM, LATAM Pass, Magalu RI, Itaú e Santander passaram a responder 200 e foram relidos (lote 4). Resultado da releitura: Livelo, Magalu (RI) e Santander (RI) → classe D (sem termos de conteúdo); Itaú → classe C (item 8); **LATAM e LATAM Pass respondem 200, mas o termo só renderiza por JavaScript: seguem classe E (nada lido)**. Seguem bloqueados, e NÃO foram contornados: a home do Magalu (www), Star Alliance e ICO. BCB: a home responde 200 mas é JavaScript; termo oficial não lido.
 - Termos mudam. Cada trecho vale para a data da consulta; qualquer habilitação deve reabrir a página (a revisão humana da fonte no Studio já é o ponto para isso).
 
 ## Uso que o portal pretende fazer (é contra isso que se lê cada termo)
@@ -23,12 +23,12 @@ Consulta: 23/11/2026 (horários aproximados dentro da sessão). Fontes: as 40 pe
 | **B** — licença com restrição | licença aberta com restrição que pode alcançar a nossa reescrita (ex.: CC BY-ND) | NÃO habilitar até parecer (R0-10) |
 | **C** — texto proíbe ou condiciona | o texto oficial lido proíbe ou condiciona reprodução, extração ou acesso automatizado à autorização | NÃO habilitar; caminho: autorização escrita do titular |
 | **D** — sem termos de conteúdo | nenhum termo de uso de conteúdo localizado (só rodapé "direitos reservados" e/ou privacidade) | NÃO habilitar até haver autorização do titular (nada no site autoriza o reuso) |
-| **E** — inacessível / não lido | 403, bloqueio ou página vazia: nada lido | NÃO habilitar até leitura manual dos termos (leitura manual no navegador) |
+| **E** — inacessível / não lido | 403 ou desafio de bloqueio, página que só renderiza por JavaScript, ou termo oficial não localizado: nada lido | NÃO habilitar até leitura manual dos termos (leitura manual no navegador) |
 
 ## Resumo para decisão
-Domínios lidos: 33 (+ 2 que seguem bloqueados). **3 com reuso autorizado no texto (Senado, Câmara, EDPB)**; 1 com licença restritiva (gov.br); 13 que proíbem ou condicionam; 14 sem termos de conteúdo; 2 inacessíveis.
+Domínios: 35. Com termos lidos e classificados (A–D): 31 — **3 com reuso autorizado no texto (Senado, Câmara, EDPB)**; 1 com licença restritiva (gov.br); 13 que proíbem ou condicionam; 14 sem termos de conteúdo. **4 sem termo oficial lido (classe E):** BCB e LATAM/LATAM Pass (a página responde 200, mas o termo só renderiza por JavaScript; no BCB só há um aviso numa página do Flickr), Star Alliance e ICO (403/desafio, não contornado). Depois da releitura com User-Agent identificado, Livelo, Magalu (RI) e Santander (RI) passaram de "inacessível" para classe D e o Itaú foi lido e é classe C.
 
-**Leitura prática:** só três domínios têm texto oficial que autoriza expressamente a reutilização — Agência Senado, Câmara dos Deputados e EDPB —, todos institucionais e naturais para **Regulação & Dados** (e para o que o Legislativo trate de consumo, cartões e tecnologia). Para as editorias de mercado (programas, milhas, bancos, varejo, viagem, CRM) não há, hoje, fonte com autorização textual: a decisão do proprietário é (a) pedir autorização escrita aos titulares (associações e empresas), (b) obter o parecer R0-10 sobre o caso gov.br/BCB, ou (c) aceitar o risco por escrito. **Recomendação operacional (sujeita à decisão do proprietário): a primeira matéria real deve sair de Senado ou Câmara** (feeds confirmados).
+**Leitura prática:** só três domínios têm texto oficial que autoriza expressamente a reutilização — Agência Senado, Câmara dos Deputados e EDPB —, todos institucionais e naturais para **Regulação & Dados** (e para o que o Legislativo trate de consumo, cartões e tecnologia). Para as editorias de mercado (programas, milhas, bancos, varejo, viagem, CRM) não há, hoje, fonte com autorização textual: o proprietário decidiu pela opção (c), **aceitar o risco**, na **DP-28** (seção abaixo): classes A, B e D podem ser habilitadas depois da revisão humana no Studio, citando e linkando a fonte; classe C só caso a caso; classe E segue sem leitura. As opções (a) autorização escrita dos titulares e (b) parecer R0-10 continuam abertas para reduzir o risco. **A primeira matéria real deve sair de Senado ou Câmara** (feeds confirmados; robots da Câmara conferido na rodada simulada de 23/11: feed e matérias permitidos, inclusive para agentes de IA declarados).
 
 | Fonte | Classe | Termos oficiais lidos | O que o texto permite / proíbe (resumo) | Recomendação |
 |---|---|---|---|---|
@@ -64,7 +64,7 @@ Domínios lidos: 33 (+ 2 que seguem bloqueados). **3 com reuso autorizado no tex
 | Magazine Luiza (RI) | D | [ri.magazineluiza.com.br/show.aspx](https://ri.magazineluiza.com.br/show.aspx?idMateria=r8+jnEVu1+FnJybGBWO3Uw==) | Não informado (o texto só afirma titularidade: o conteúdo pertence "a nós ou a terceiros que licitamente cederam seu direito de uso") | NÃO habilitar |
 | Santander Brasil (RI) | D | — (nenhum documento de termos lido) | Não informado | NÃO habilitar |
 | Banco Central do Brasil | E | [www.flickr.com/photos/bancocentralbr/sets/72](https://www.flickr.com/photos/bancocentralbr/sets/72157655361202251) | NÃO LIDO no site oficial | NÃO habilitar até leitura manual dos termos |
-| LATAM (RI) e LATAM Pass | E | [www.latamairlines.com/us/en/legal/terms-of-use](https://www.latamairlines.com/us/en/legal/terms-of-use) | NÃO LIDO (403) | NÃO habilitar até leitura manual dos termos |
+| LATAM (RI) e LATAM Pass | E | [www.latamairlines.com/us/en/legal/terms-of-use](https://www.latamairlines.com/us/en/legal/terms-of-use) | NÃO LIDO (200 na releitura, mas o termo só renderiza por JavaScript) | NÃO habilitar até leitura manual dos termos |
 | Star Alliance (`star-alliance`) | E | — | robots.txt e site seguem 403 com User-Agent identificado (reconfirmado em 23/11; não contornado) | NÃO habilitar até leitura manual dos termos |
 | ICO (Reino Unido) (`ico-uk`) | E | — | desafio Cloudflare ("Just a moment...") com User-Agent identificado (reconfirmado em 23/11; não contornado) | NÃO habilitar até leitura manual dos termos |
 
@@ -879,11 +879,11 @@ Domínios lidos: 33 (+ 2 que seguem bloqueados). **3 com reuso autorizado no tex
 
 | Tópico | O que o texto diz |
 |---|---|
-| Citar/reproduzir texto | NÃO LIDO (403) |
+| Citar/reproduzir texto | NÃO LIDO (página só renderiza por JavaScript) |
 | Resumir/derivar | NÃO LIDO |
 | Linkar | NÃO LIDO |
 | Imagens/imprensa | NÃO LIDO |
-| Automação, raspagem, IA | NÃO LIDO (robots 403) |
+| Automação, raspagem, IA | NÃO LIDO (o robots.txt foi lido: não bloqueia; só lista agentes de IA com Allow: /llms.txt) |
 | Atribuição | NÃO LIDO |
 
 **Documentos:**
@@ -892,22 +892,64 @@ Domínios lidos: 33 (+ 2 que seguem bloqueados). **3 com reuso autorizado no tex
 
 **robots.txt:** lido — aponta llms.txt e lista GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot com Allow: /llms.txt (sem bloqueio total)
 
+## DP-28 — decisão do proprietário (registrada em 23/11/2026) e o que ela libera
+
+**O que a DP-28 diz** (conforme repassado pelo Program Manager; este arquivo não traz o texto original da decisão): fontes de mercado AUTORIZADAS, **com risco aceito pelo proprietário**, além de Senado, Câmara e EDPB — **citando e linkando a fonte, sem reproduzir além do necessário**. Limites que continuam valendo:
+- `robots.txt` respeitado; **nunca contornar 403/429** (a fábrica já trata 429 como `rate_limited` e para);
+- fontes **classe C** (o texto proíbe automação ou reprodução: Azul, GOL, ABECS, IATA, Nubank, Accor, Marriott, Salesforce, HubSpot, Zendesk, oneworld, ABAV — e, pela leitura deste dossiê, também Itaú) **só com revisão caso a caso, registrada**;
+- Intelligence segue **fato + fonte + link + data, nunca o trecho**.
+
+**O que muda neste dossiê:** a coluna "Recomendação" das classes A, B e D deixa de ser "NÃO habilitar" e passa a ser "pode ser habilitada, sob DP-28, depois da revisão humana no Studio" (abaixo). A DP-28 é aceitação de risco, **não** autorização do titular e **não** parecer jurídico: nenhum texto de classe D autoriza o reuso; apenas não o proíbe nos documentos lidos. Isso fica registrado na nota de revisão de cada fonte.
+
+**Atenção — Intelligence:** a carga `seed.public.v2` traz uma "citação literal curta" por vínculo, e o `RoleMention` descrito em `docs/intelligence-handoff.md` carrega um `trecho` literal (≤ 500 caracteres) que a validação usa como prova do que foi dito. Pela DP-28 o Intelligence guarda só fato, fonte, link e data. Isso exige mudança no lado do Intelligence/Data e, no `RoleMention`, decidir se o trecho continua só como insumo de validação (descartado depois) — fora desta entrega; até lá, a exibição pública dessas citações continua suspensa.
+
+### Fontes que podem ser habilitadas já (sob DP-28, com revisão humana no Studio)
+"Já" = não exige alterar o cadastro: nível de pesquisa `lido` ou `parcial`, robots permitido na pesquisa, sem login/paywall conhecido. Cada uma ainda passa pela revisão humana abaixo (a revisão confere termos, URL, robots e paywall de novo no dia).
+
+| Classe | Fontes (id) | Observações para o revisor |
+|---|---|---|
+| A | `senado-noticias`, `camara-noticias` | feeds confirmados; a rodada simulada de 23/11 coletou as duas sem bloqueio (Câmara respondeu 429 após rajada: coletar espaçado). Fotos/textos de terceiros republicados nas páginas não estão cobertos. |
+| A | `edpb` | sem feed (deu 503): coleta por página. Exige atribuição e não distorcer o sentido. |
+| B | `cvm`, `senacon`, `anac`, `mtur`, `anpd`, `mcti`, `anatel` | gov.br (licença com restrição, CC BY-ND). A DP-28 como repassada fala em "fontes de mercado"; a inclusão da classe B segue a lista do Program Manager. Manter reescrita curta de fatos, com link, sem reproduzir texto. `www.gov.br` é host compartilhado: cada fonte precisa do seu `pathPrefix` (já cadastrado). |
+| D | `abemf`, `abrarec`, `a4a`, `brasscom`, `procon-sp` | **feed conferido em 23/11** (uma leitura por feed, UA identificado): ABEMF 10 itens (mais recente 22/10), ABRAREC 8 (19/11), A4A 10 (23/10), Brasscom 21 (04/11), Procon-SP 10 (19/11). |
+| D | `bb-ri`, `bradesco-ri`, `idv` | sem feed; coleta pela página de listagem. |
+| D | `febraban`, `abras` | exigem atenção do revisor: FEBRABAN com paywall "desconhecido" na pesquisa; ABRAS sem `robots.txt` lido na pesquisa. Só habilitar depois de conferir os dois pontos na revisão. |
+| D (Intelligence) | `dotz`, hotsite Fidelidade/Livelo (`bradesco-ri`) | os Termos da Conta Dotz proíbem cópia do conteúdo **do aplicativo**; o site público não tem termos de conteúdo. Não usar conteúdo do aplicativo. |
+
+**Classe D que ainda NÃO cabe "já":** `livelo-imprensa`, `magalu-ri` e `santander-ri` estão no cadastro com nível de pesquisa `inacessivel` (a pesquisa original recebeu 403). O handler **recusa** aprovar fonte inacessível. A releitura de 23/11 mostrou que as três respondem 200 com UA identificado, mas falta atualizar o cadastro (nível, robots, paywall e, no caso da Santander, endereço de listagem) — trabalho desta Frente, em commit à parte, que depois reabre a revisão.
+
+**Classe C:** nenhuma habilitada. Entra só com revisão caso a caso: a nota da revisão (mín. 20 caracteres, o handler grava revisor, data e nota) deve começar por "CASO A CASO (DP-28):" e dizer qual cláusula do termo foi lida, por que o uso é aceito e quem aceitou. Itaú tem `Crawl-delay: 10` no robots.
+
+**Classe E:** **nenhuma** teve o termo oficial lido, então nenhuma entra "já": BCB (home em JavaScript; o único aviso encontrado está numa página do BCB no Flickr e traz a condição "sem fins lucrativos"), LATAM/LATAM Pass (páginas de termos só renderizam por JavaScript), Star Alliance e ICO (403/desafio Cloudflare, não contornado). Precisam de leitura manual no navegador.
+
+### Piloto de 10 matérias (Senado/Câmara + 2–3 fontes de mercado classe D)
+Sugestão a partir dos feeds conferidos hoje: **ABEMF** (programas/pontos/mercado), **ABRAREC** (CRM) e **A4A** (global/mercado); reservas: Brasscom e Procon-SP. Ressalva: o feed da ABEMF tem 1 mês sem item novo e o da A4A, 1 mês; se a fonte não tiver matéria nova no dia, a rodada coleta menos (a fábrica não inventa).
+
+### Fluxo de habilitação humana no Studio (`/studio/fontes/fabrica`)
+O cadastro é imutável (toda fonte nasce `enabled=false`); o estado efetivo só muda por dois handlers, ambos auditados:
+1. **Revisão** (papéis `admin`, `editor_chefe` ou `revisor`; sessão de staff com MFA): o revisor abre os termos oficiais e confere, no dia, termos, URL, `robots.txt` e paywall. Registra aprovada/negada, a **nota** do que leu (mín. 20 caracteres; para classes B/D, citar a DP-28 e a classe; para C, "CASO A CASO") e marca "URL verificada" e "robots conferido". **O revisor não pode ser o pesquisador da fonte.** Aprovar é recusado com paywall/login ou se a fonte estiver `inacessivel` na pesquisa. A revisão **não habilita**.
+2. **Habilitação** (`admin` ou `editor_chefe`): exige revisão registrada, **atual** (se a definição da fonte mudou, a revisão vence), aprovada e a fonte elegível (termos aprovados, URL verificada, sem paywall, robots respeitado, `pathPrefix` quando o host é compartilhado). Desabilitar é sempre permitido, também para `revisor`.
+3. Com a fonte habilitada, a coleta ainda depende da flag `editorialCollector`; a redação depende de `editorialPipeline` e de `modelosHabilitados`; a publicação, de `publicacaoPortal`.
+4. Qualquer mudança da definição da fonte, nova revisão ou termo alterado **desliga** a habilitação até nova revisão.
+
+Checklist do revisor (classes B/D): (a) reabrir a página de termos e confirmar que nada novo proíbe; (b) abrir `robots.txt` e conferir o caminho do feed/listagem; (c) abrir uma matéria e confirmar que não há login/paywall; (d) anotar na nota "DP-28, classe X, risco aceito pelo proprietário"; (e) não habilitar fonte cuja matéria traga imagem ou texto de terceiro sem crédito (regra D08: nenhuma foto sem base de direito).
+
 ## Fontes do Intelligence (carga `seed.public.v2`) — situação
 A carga usa 6 páginas públicas como evidência de vínculos entre organizações, com **citação literal curta** por registro. Situação dos termos de cada uma:
 | Página usada pelo Intelligence | Termos | Situação |
 |---|---|---|
-| Livelo — /imprensa | não lidos (403) | classe E |
+| Livelo — /imprensa | releitura de 23/11: site e /imprensa respondem 200; rodapé só leva a Regulamentos e Privacidade, sem termos de conteúdo | classe D |
 | Bradesco — hotsite Fidelidade/Livelo | sem termos de conteúdo localizados | classe D |
-| LATAM Pass — Conheça o programa | não lidos (403) | classe E |
+| LATAM Pass — Conheça o programa | releitura de 23/11: responde 200, mas o termo só renderiza por JavaScript (nada de termos lido) | classe E |
 | ABEMF — home e Empresas Associadas | sem termos localizados | classe D |
 | Dotz — home | só Termos da Conta Dotz (aplicativo) | classe D |
-Observação: o Intelligence guarda nome, relação e **trecho literal curto** como evidência e não republica o texto da fonte; nenhum desses sites autoriza nem proíbe isso no texto lido. A decisão de **exibir** a citação ao público (Portal) deve esperar o parecer R0-10.
+Observação: a carga atual guarda nome, relação e **trecho literal curto** como evidência; nenhum desses sites autoriza nem proíbe isso no texto lido. **Pela DP-28 o Intelligence passa a guardar só fato + fonte + link + data, nunca o trecho** — a carga precisa mudar (fora desta Frente) e a exibição pública das citações atuais continua suspensa.
 
 ## O que fica para o proprietário decidir (R0-10)
-1. **Primeira matéria real:** autorizar Senado/Câmara (e EDPB) como fontes habilitáveis, com a revisão humana da fonte no Studio. Conferir antes o `robots.txt` da Câmara (agentes de IA com Disallow em caminhos específicos) e que fotos/textos de terceiros nessas páginas não estão cobertos.
+1. **Primeira matéria real:** Senado/Câmara (e EDPB) habilitáveis, com a revisão humana da fonte no Studio. O `robots.txt` da Câmara foi conferido na rodada simulada de 23/11 (35 regras por agente de IA, nenhuma sobre feed ou matérias); fotos/textos de terceiros nessas páginas continuam fora do que foi lido.
 2. **gov.br (CVM, ANPD, Senacon...) e BCB:** pedir parecer sobre CC BY-ND (a reescrita de fatos com citação é "derivação"?) e sobre o aviso do BCB com "sem fins lucrativos" (o portal vende publicidade). Antes, fazer a leitura manual dos termos oficiais do BCB e dos demais órgãos gov.br.
-3. **Empresas e associações (classe C/D):** decidir se o portal pede autorização escrita (Azul, GOL, ABECS, ABEMF, IDV, ABRAS, FEBRABAN, Brasscom, ABRAREC, Accor, Marriott...) ou se aceita ficar sem essas fontes. A leitura mostra que, sem autorização, o texto de vários desses sites proíbe a reprodução e a coleta automatizada.
-4. **Inacessíveis (LATAM, Magalu, Livelo, Itaú, Santander, Star Alliance, ICO):** alguém precisa abrir os termos no navegador; a fábrica não contorna bloqueios.
+3. **Empresas e associações:** **classe D — decidido pela DP-28** (risco aceito, habilitação pelo Studio). **Classe C (Azul, GOL, ABECS, IATA, Nubank, Accor, Marriott, Salesforce, HubSpot, Zendesk, oneworld, ABAV, Itaú):** o texto proíbe a reprodução e/ou a coleta automatizada; só com revisão caso a caso registrada ou autorização escrita do titular.
+4. **Sem termo lido (classe E: BCB, LATAM/LATAM Pass, Star Alliance, ICO):** alguém precisa abrir os termos no navegador; a fábrica não contorna bloqueios. Magalu (RI), Livelo, Itaú e Santander (RI) foram lidos na releitura de 23/11 e já não estão nesta lista.
 5. **Imagens:** nenhuma fonte lida libera imagens de imprensa de forma geral (exceções textuais: Senado e Câmara reproduzem fotos/dados com crédito; HubSpot libera imagens originais suas). Regra D08 mantida: sem foto sem base de direito registrada.
 
 ## Dados brutos
