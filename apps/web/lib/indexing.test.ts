@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOINDEX_HEADER, indexingBlocked, isProductionEnv, resolveSiteUrl, robotsTxt } from '../app/(portal)/_lib/indexing';
+import { NOINDEX_HEADER, indexingBlocked, isProductionEnv, resolveSiteUrl, resolveSourceKind, robotsTxt } from '../app/(portal)/_lib/indexing';
 
 describe('política de indexação por APP_ENV', () => {
   it('só production libera indexação', () => {
@@ -54,5 +54,44 @@ describe('NEXT_PUBLIC_SITE_URL', () => {
   });
   it('em execução (fora do build) não lança por falta da variável', () => {
     expect(resolveSiteUrl({ APP_ENV: 'production' })).toBe('http://localhost:3000');
+  });
+});
+
+describe('fonte de dados por ambiente (sem abrir caminho para mock em deploy)', () => {
+  it('api vale em staging e em produção, sem cair em mock', () => {
+    for (const APP_ENV of ['staging', 'production', 'producao', 'homologacao', undefined]) {
+      expect(resolveSourceKind({ APP_ENV, PORTAL_SOURCE: 'api', NODE_ENV: 'production' })).toEqual({ kind: 'api', refusedMock: false });
+    }
+  });
+  it('PORTAL_SOURCE=mock só em desenvolvimento/teste ou no build de e2e; em deploy (inclusive staging) é recusado', () => {
+    for (const NODE_ENV of ['development', 'test', undefined]) {
+      expect(resolveSourceKind({ APP_ENV: 'staging', PORTAL_SOURCE: 'mock', NODE_ENV }).kind).toBe('mock');
+    }
+    expect(resolveSourceKind({ APP_ENV: 'staging', PORTAL_SOURCE: 'mock', NODE_ENV: 'production' })).toEqual({ kind: 'empty', refusedMock: true });
+    expect(resolveSourceKind({ APP_ENV: 'staging', PORTAL_SOURCE: 'mock', NODE_ENV: 'production', LN_E2E_BUILD: '1' }).kind).toBe('mock');
+  });
+  it('produção e producao nunca ativam mock, nem com LN_E2E_BUILD ou vitrine', () => {
+    for (const APP_ENV of ['production', 'producao']) {
+      for (const extra of [{ PORTAL_SOURCE: 'mock' }, { PORTAL_SOURCE: 'mock', LN_E2E_BUILD: '1' }, { PORTAL_VITRINE: '1' }, { PORTAL_VITRINE: '1', PORTAL_SOURCE: 'mock' }]) {
+        expect(resolveSourceKind({ APP_ENV, NODE_ENV: 'development', ...extra })).toEqual({ kind: 'empty', refusedMock: true });
+      }
+    }
+  });
+  it('vitrine: só PORTAL_VITRINE=1 com APP_ENV=staging', () => {
+    expect(resolveSourceKind({ APP_ENV: 'staging', PORTAL_VITRINE: '1', NODE_ENV: 'production' })).toEqual({ kind: 'mock', refusedMock: false });
+    for (const v of ['0', 'true', 'yes', ' 1']) {
+      expect(resolveSourceKind({ APP_ENV: 'staging', PORTAL_VITRINE: v, NODE_ENV: 'production' })).toEqual({ kind: 'empty', refusedMock: true });
+    }
+    for (const APP_ENV of ['homologacao', 'development', undefined]) {
+      expect(resolveSourceKind({ APP_ENV, PORTAL_VITRINE: '1', NODE_ENV: 'production' })).toEqual({ kind: 'empty', refusedMock: true });
+    }
+  });
+  it('valor desconhecido ou ausente é fonte vazia', () => {
+    for (const PORTAL_SOURCE of [undefined, '', 'intelligence', 'MOCK', 'mock ', 'api ']) {
+      expect(resolveSourceKind({ APP_ENV: 'production', PORTAL_SOURCE }).kind).toBe('empty');
+    }
+  });
+  it('vitrine pedida bloqueia indexação em qualquer ambiente', () => {
+    expect(indexingBlocked({ APP_ENV: 'production', PORTAL_VITRINE: '1' })).toBe(true);
   });
 });

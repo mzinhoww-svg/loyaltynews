@@ -3,7 +3,15 @@
  * TODO(contracts): substituir por tipos de `packages/contracts` quando publicados (Chief Architect).
  * O portal só depende de `PortalSource` (ver source.ts); trocar a fonte não altera as páginas.
  */
-export type ContentType = 'noticia' | 'flash' | 'analise' | 'entrevista' | 'opiniao';
+export type ContentType =
+  | 'noticia'
+  | 'flash'
+  | 'analise'
+  | 'entrevista'
+  | 'opiniao'
+  | 'estudo'
+  | 'patrocinado'
+  | 'cobertura_evento';
 export type TrendingWindow = '24h' | '7d' | '30d';
 
 export interface Editoria {
@@ -17,6 +25,10 @@ export interface ArticleImage {
   alt: string;
   /** Crédito obrigatório (blueprint §6): nunca omitir. */
   credit: string;
+  /** Rótulo visível obrigatório junto da imagem (ADR-018: "Ilustração conceitual"); null quando não há. */
+  label?: string | null;
+  /** Link da fonte (imagem de terceiro). */
+  link?: string;
 }
 
 export interface ArticleSource {
