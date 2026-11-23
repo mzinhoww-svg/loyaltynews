@@ -14,3 +14,5 @@ export * from './pipeline/media';
 // Adaptadores (simulado e real), a capability de escrita e `bindWriteAuthority` são INTERNOS: só `createSocialPublisher`
 // os cria e os mantém. Não reexporte nada de mlabs/*.internal nem de mlabs/simulated.mock (teste public-surface.test.ts).
 export * from './mlabs/validate';
+export * from './metrics/mlabs-metrics';
+export * from './pipeline/raster-upload';

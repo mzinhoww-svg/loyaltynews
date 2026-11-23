@@ -199,3 +199,6 @@ export function leaseQueueConformanceCases(make: () => Promise<LeaseQueue> | Lea
   ];
   return cases;
 }
+
+// Agente falso do OpenBot para o teste de ponta a ponta local (só testes).
+export * from './fake-agent';

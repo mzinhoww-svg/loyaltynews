@@ -95,6 +95,24 @@ describe('gateway: putInput idempotente, divergência e reviewedDraftTaskId', ()
     assert.equal('reviewedDraftTaskId' in (io3.puts[0]?.meta ?? {}), false);
   });
 
+  test('despacho desligado ou parado: recusa ANTES de gravar a entrada (nenhuma entrada órfã) e sem criar tarefa', async () => {
+    for (const [flags, refusal, detail] of [
+      [{ dispatchEnabled: false, kill: false }, 'model_disabled', 'DISPATCH_OFF'],
+      [{ dispatchEnabled: true, kill: true }, 'kill_switch', 'KILL_SWITCH'],
+    ] as const) {
+      const io = new Io();
+      const deps = mkDeps({ flags: () => flags });
+      const g = new OpenBotModelGateway({
+        deps, io, caller: { id: 'f', permissions: [OPENBOT_PERMISSIONS.dispatch] }, timeoutMs: 20, pollMs: 1,
+        profiles: { triage: 'a', context: 'a', draft: 'a', factcheck: 'a', review: 'a', social_pack: 'a', roles: 'a' },
+      });
+      const r = await g.invoke(req({}));
+      assert.deepEqual([r.ok, !r.ok && r.refusal, !r.ok && r.detail], [false, refusal, detail]);
+      assert.equal(io.puts.length, 0);
+      assert.equal((await deps.queue.counts()).pending, 0);
+    }
+  });
+
   test('entrada divergente vira recusa clara; armazém fora do ar vira recusa e NÃO despacha tarefa', async () => {
     const io = new Io();
     const g = mk(io);
