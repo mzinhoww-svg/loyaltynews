@@ -76,7 +76,7 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
         pronto para o pacote de distribuição. Imagens e direitos ficam na <Link href="/studio/midia">Biblioteca de mídia</Link>.
       </p>
       <p className="st-hint" data-testid="distribuicao">
-        Distribuição no Instagram: <strong>{flagAtiva('instagram') ? 'ligada' : 'desligada'}</strong> (flag instagram).
+        Distribuição no Instagram: <strong>{flagAtiva('instagram') ? 'ligada' : 'desligada nesta fase'}</strong>.
       </p>
       <Flash tipo={sp.tipo} aviso={sp.aviso} />
 

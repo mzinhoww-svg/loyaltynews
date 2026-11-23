@@ -49,13 +49,13 @@ test.describe('Comercial (@ln/commercial)', () => {
     await page.getByLabel('Objetivo').fill('Campanha de cartão');
     await enviar(page, page.getByRole('button', { name: 'Registrar lead' }));
     await sucesso(page, 'Lead registrado');
-    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('novo');
+    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('Novo');
 
     await enviar(page, page.getByRole('button', { name: 'qualificar Maria Souza' }));
     await sucesso(page, 'Lead qualificado.');
     await enviar(page, page.getByRole('button', { name: 'converter Maria Souza' }));
     await sucesso(page, 'Lead convertido em oportunidade.');
-    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('convertido');
+    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('Convertido');
     await expect(page.locator('[data-stage="novo"]')).toContainText('Banco Exemplo');
 
     await page.getByLabel(/Mover .* para/).first().selectOption('perdido');

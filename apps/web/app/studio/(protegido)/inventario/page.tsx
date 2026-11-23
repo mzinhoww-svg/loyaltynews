@@ -43,7 +43,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       <h1>Inventário</h1>
       <p>Posições, capacidade e catálogo de formatos. Nenhum formato sem capacidade operacional fica à venda. Preço é referência comercial; disponibilidade é real.</p>
       <div className="st-alert" role="status">
-        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada'}</strong> (flag adServerVendas). Período da ocupação: {from} a {to}.
+        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada nesta fase'}</strong>. Período da ocupação: {from} a {to}.
       </div>
 
       <h2>Posições</h2>
