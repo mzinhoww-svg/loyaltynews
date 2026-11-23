@@ -148,3 +148,23 @@ export function rejudgeRecord<T extends { technicalSuccess: boolean; editorialSu
   const errorClass = ok ? 'none' : blocked || !r.technicalSuccess ? r.errorClass : r.textLength < MIN_EDITORIAL_CHARS ? (r.errorClass === 'captcha' ? 'captcha' : 'empty_content') : 'title_mismatch';
   return { ...r, titleMatch: +tm.toFixed(3), editorialSuccess: ok, errorClass, criterion: 'v2' };
 }
+
+/**
+ * Evidência de texto editorial sem guardar o texto (parecer QA 3, M2): o começo da página costuma ser navegação, então o trecho
+ * vem do MAIOR parágrafo (tags <p> no HTML; linhas no texto/markdown). Devolve só métricas e um trecho ≤ 200 (DP-29).
+ */
+export interface BodyEvidence {
+  longestParagraphChars: number;
+  longParagraphs: number; // parágrafos com ≥ 200 caracteres
+  excerpt?: string; // ≤ 200, do início do maior parágrafo
+}
+export function bodyEvidence(text: string | undefined, html: string | undefined): BodyEvidence {
+  const clean = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  let paras: string[] = [];
+  if (html && /<p[\s>]/i.test(html)) paras = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map((m) => clean(m[1] ?? ''));
+  if (!paras.length && (text ?? html)) paras = (text ?? html!).split(/\n{1,}/).map((l) => clean(l).replace(/^[#>*\-\s]+/, '').trim());
+  paras = paras.filter((p) => p.length > 0 && !/^(\[.*\]\(.*\)\s*)+$/.test(p)); // descarta linhas só de links (menus em markdown)
+  if (!paras.length) return { longestParagraphChars: 0, longParagraphs: 0 };
+  const longest = paras.reduce((a, b) => (b.length > a.length ? b : a));
+  return { longestParagraphChars: longest.length, longParagraphs: paras.filter((p) => p.length >= 200).length, excerpt: longest.slice(0, SNIPPET_MAX) };
+}

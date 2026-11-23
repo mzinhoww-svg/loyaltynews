@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import type { ReaderPort, ReadResult } from '@ln/intelligence';
 import type { AttemptRecord, DatasetEntry, ErrorClass } from './types';
 import type { BudgetGuard } from './budget';
-import { evaluate, sameDate } from './quality';
+import { evaluate, sameDate, bodyEvidence } from './quality';
 import { isProviderDisabled } from './flags';
 
 export interface BenchProvider {
@@ -146,6 +146,10 @@ export async function runBenchmark(dataset: DatasetEntry[], providers: BenchProv
             textLength: v.textLength,
             contentHash: v.contentHash,
             snippet: v.snippet,
+            ...(() => {
+              const b = bodyEvidence(r.text, r.html);
+              return { longestParagraphChars: b.longestParagraphChars, longParagraphs: b.longParagraphs, bodyExcerpt: b.excerpt };
+            })(),
             titleMatch: +v.titleMatch.toFixed(3),
             sourceMatch: r.ok && r.finalUrl ? domainOf(r.finalUrl).endsWith(e.domain.split('.').slice(-2).join('.')) : undefined, // sem URL final: não verificável
             dateMatch: sameDate(v.meta.publishedAt, e.publishedAt),

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReaderPort, ReadResult, ReadRequest } from '@ln/intelligence';
 import { createReader, ScrapflyReader } from '@ln/intelligence';
-import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord } from '../quality';
+import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord, bodyEvidence } from '../quality';
 import { BudgetGuard } from '../budget';
 import { AdaptiveRouter } from '../router';
 import { computeMetrics, rank, percentile, projectMonthly } from '../metrics';
@@ -379,8 +379,11 @@ describe('shadow ao vivo (MOCK de leitores)', () => {
     expect(lines).toHaveLength(1);
     const c = JSON.parse(lines[0]!);
     expect(c).toMatchObject({ url: 'https://a.com/1', primary: { ok: true, bodyLength: 24 }, shadow: { provider: 'z', ok: true }, divergent: false });
-    expect(lines[0]).not.toContain('corpo atual');
-    expect(lines[0]).not.toContain('Lorem ipsum');
+    // só trecho ≤ 200 do maior parágrafo (evidência de corpo, DP-29); nunca o texto inteiro nem tags
+    expect(c.primary.evidence.excerpt).toBe('corpo atual');
+    expect(c.shadow.evidence.excerpt.length).toBeLessThanOrEqual(200);
+    expect(lines[0]).not.toContain(LONG.slice(0, 400));
+    expect(lines[0]).not.toContain('<html>');
   });
   it('erro na sombra não chega ao coletor', async () => {
     const boom = { provider: 'b', read: async () => { throw new Error('falhou'); } } as unknown as ReaderPort;
@@ -435,5 +438,22 @@ describe('createLiveShadowFromEnv e ritmo por host (sem rede)', () => {
     await sh.drain();
     expect(r.calls).toBe(0);
     expect(seen).toEqual([{ skipped: 'ritmo' }]);
+  });
+});
+
+describe('evidência de corpo (maior parágrafo, ≤ 200)', () => {
+  it('ignora menu no começo e pega o parágrafo da matéria; trecho limitado', () => {
+    const para = 'O Banco Central anunciou nesta segunda-feira novas regras para o Pix, com limite noturno ajustável. ' .repeat(5);
+    const html = `<nav><p>Home</p><p>Economia</p></nav><article><p>${para}</p><p>${para}</p></article>`;
+    const b = bodyEvidence(undefined, html);
+    expect(b.longestParagraphChars).toBeGreaterThan(400);
+    expect(b.longParagraphs).toBe(2);
+    expect(b.excerpt!.startsWith('O Banco Central')).toBe(true);
+    expect(b.excerpt!.length).toBeLessThanOrEqual(200);
+  });
+  it('markdown: descarta linhas só de links; sem texto = zero', () => {
+    const md = '[Home](/) [Economia](/e)\n\nUma matéria com texto corrido suficiente para ser parágrafo editorial de verdade aqui.';
+    expect(bodyEvidence(md, undefined).excerpt).toMatch(/^Uma matéria/);
+    expect(bodyEvidence(undefined, undefined)).toEqual({ longestParagraphChars: 0, longParagraphs: 0 });
   });
 });

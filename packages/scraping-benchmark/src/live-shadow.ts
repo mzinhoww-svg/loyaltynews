@@ -12,13 +12,13 @@ import { dirname } from 'node:path';
 import type { EditorialReaderPort, EditorialReaderResult } from '@ln/intelligence';
 import type { AdaptiveRouter } from './router';
 import { readFlags } from './flags';
-import { sha256 } from './quality';
+import { sha256, bodyEvidence, type BodyEvidence } from './quality';
 
 export interface ShadowComparison {
   at: string;
   url: string;
-  primary: { name: string; status: number; ok: boolean; bodyLength: number; hash?: string; ms: number };
-  shadow: { provider?: string; ok: boolean; failure?: string; textLength: number; hash?: string; ms: number; credits: number; steps: string[] } | { error: string } | { skipped: 'ritmo' };
+  primary: { name: string; status: number; ok: boolean; bodyLength: number; hash?: string; ms: number; evidence?: BodyEvidence };
+  shadow: { provider?: string; ok: boolean; failure?: string; textLength: number; hash?: string; ms: number; credits: number; steps: string[]; evidence?: BodyEvidence } | { error: string } | { skipped: 'ritmo' };
   divergent: boolean;
 }
 
@@ -68,7 +68,7 @@ export class LiveShadow {
     if (!this.enabled) return;
     if (this.count >= (this.o.maxUrlsPerRun ?? 200)) return;
     this.count++;
-    const p = { name: primary.name, status: primary.status, ok: primary.status >= 200 && primary.status < 300 && (primary.body?.length ?? 0) > 0, bodyLength: primary.body?.length ?? 0, hash: primary.body ? sha256(primary.body) : undefined, ms: primary.ms };
+    const p = { name: primary.name, status: primary.status, ok: primary.status >= 200 && primary.status < 300 && (primary.body?.length ?? 0) > 0, bodyLength: primary.body?.length ?? 0, hash: primary.body ? sha256(primary.body) : undefined, ms: primary.ms, evidence: primary.body ? bodyEvidence(primary.body, /<\w+[\s>]/.test(primary.body) ? primary.body : undefined) : undefined };
     this.queue = this.queue.then(() => this.runShadow(url, p)).catch(() => {}); // concorrência 1; erro não propaga
   }
 
@@ -92,7 +92,7 @@ export class LiveShadow {
     try {
       const out = await this.o.router.route(url);
       const text = out.result?.ok ? (out.result.text ?? '') : '';
-      const s = { provider: out.provider, ok: !!out.result?.ok, failure: out.result?.ok ? undefined : out.result?.failure, textLength: text.length, hash: text ? sha256(text) : undefined, ms: this.now() - t0, credits: out.creditsUsed, steps: out.decisions.map((d) => `${d.step}${d.provider ? ':' + d.provider : ''}`) };
+      const s = { provider: out.provider, ok: !!out.result?.ok, failure: out.result?.ok ? undefined : out.result?.failure, textLength: text.length, hash: text ? sha256(text) : undefined, ms: this.now() - t0, credits: out.creditsUsed, steps: out.decisions.map((d) => `${d.step}${d.provider ? ':' + d.provider : ''}`), evidence: out.result?.ok ? bodyEvidence(out.result.text, out.result.html) : undefined };
       c = { at: new Date(t0).toISOString(), url, primary: p, shadow: s, divergent: p.ok !== s.ok };
     } catch (e) {
       c = { at: new Date(t0).toISOString(), url, primary: p, shadow: { error: String((e as Error)?.message ?? e).slice(0, 200) }, divergent: true };
