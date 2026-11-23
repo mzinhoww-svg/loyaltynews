@@ -3,7 +3,7 @@
 import { ImpressionLedger, viewKey, type LedgerSnapshot } from './ledger';
 import { SNAPSHOT_VERSION, assertSnapshot, assertUnique, clone } from './snapshot';
 import { DeliveryAudit, type AuditSnapshot } from './audit';
-import { DEFAULT_AD_URLS, isRealCreative, toPublicAd, type AdUrls, type CreativeAsset, type PublicAd } from './creative';
+import { DEFAULT_AD_URLS, creativeVariant, isRealCreative, toPublicAd, type AdDevice, type AdUrls, type CreativeAsset, type PublicAd } from './creative';
 import { POSITIONS, type BannerPosition } from './inventory';
 
 export interface Creative {
@@ -25,6 +25,8 @@ export interface ServeRequest {
   isBot?: boolean; isInternal?: boolean;
   /** Instante da requisição (epoch ms). Padrão: relógio do ledger. Usado para a janela de suspensão por perda de dedupe. */
   nowMs?: number;
+  /** Dispositivo do visitante. Padrão 'desktop' (como antes). Com 'mobile' só rotaciona criativo de dimensão mobile da posição; sem nenhum => house, sem contar. */
+  device?: AdDevice;
 }
 export interface ServeResult {
   kind: 'creative' | 'house' | 'ignored'; creativeId: string | null; impressionId: string | null; counted: boolean; reason?: string;
@@ -99,12 +101,14 @@ export class AdServer {
   }
   creativesOf(campaignId: string): readonly Creative[] { return this.creatives.filter((c) => c.campaignId === campaignId); }
   listCreatives(): readonly Creative[] { return this.creatives; }
-  eligible(positionId: string, today: string): Creative[] {
-    return this.creatives.filter((c) => c.positionId === positionId && c.approved && c.campaignActive && c.startDate <= today && today <= c.endDate && isRealCreative(c, this.positions));
+  eligible(positionId: string, today: string, device: AdDevice = 'desktop'): Creative[] {
+    return this.creatives.filter((c) => c.positionId === positionId && c.approved && c.campaignActive && c.startDate <= today && today <= c.endDate && isRealCreative(c, this.positions) && creativeVariant(c, this.positions) === device);
   }
 
   serve(req: ServeRequest): ServeResult {
-    const elig = this.eligible(req.positionId, req.today);
+    const device: AdDevice = req.device ?? 'desktop';
+    const elig = this.eligible(req.positionId, req.today, device);
+    const houseReason = device === 'mobile' ? 'sem criativo mobile elegível; house ad' : 'sem criativo elegível; house ad';
     if (req.isBot || req.isInternal) {
       // Serve o anúncio normalmente mas não conta como entrega faturável.
       const pick = this.pick(elig, req.positionId, false);
@@ -115,18 +119,21 @@ export class AdServer {
     if (this.audit.servingSuspended(now)) {
       // Dedupe não confiável: serve o criativo (rotação normal) mas NÃO conta; a lacuna registra quantas ficaram sem contagem.
       const pick = this.pick(elig, req.positionId, true);
-      if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo elegível; house ad' };
+      if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: houseReason };
       this.audit.noteUncountedServe(now);
       return { kind: 'creative', creativeId: pick.id, impressionId: null, counted: false, reason: 'dedupe_suspenso', ...this.adOf(pick, null) };
     }
     const key = viewKey(req.pageViewId, req.positionId);
     const existing = this.ledger.byViewKey(key);
     if (existing) { // auto-refresh/reuso da mesma visualização de página: não infla
+      const prev = this.creatives.find((x) => x.id === existing.creativeId);
+      // a visualização já recebeu um criativo de OUTRA variante (pedido com outro device): não o devolve a este dispositivo
+      if (prev && creativeVariant(prev, this.positions) !== device) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: houseReason };
       this.counter(existing.creativeId).refreshSuppressed++;
       return { kind: 'creative', creativeId: existing.creativeId, impressionId: existing.impressionId, counted: false, reason: 'refresh', ...this.adOf(this.creatives.find((x) => x.id === existing.creativeId), existing.impressionId) };
     }
     const pick = this.pick(elig, req.positionId, true);
-    if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo elegível; house ad' };
+    if (!pick) return { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: houseReason };
     const e = this.ledger.register(key, pick.id);
     this.counter(pick.id).served++;
     return { kind: 'creative', creativeId: pick.id, impressionId: e.impressionId, counted: true, ...this.adOf(pick, e.impressionId) };
