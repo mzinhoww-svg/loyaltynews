@@ -1,6 +1,6 @@
 import type { EditorialFlagOverrides } from '../flags';
 import { isEnabled } from '../flags';
-import { runDeterministicChecks } from '../rules/rules';
+import { isSimulatedContent, runDeterministicChecks } from '../rules/rules';
 import { draftContentSha256 } from '../publishable';
 import { publicArticleUrl } from '../api/published-lookup';
 import type { EditorialStore } from '../api/store';
@@ -47,6 +47,8 @@ export async function publishApproved(deps: PublishDeps, opts: { maxArticles?: n
     report.rows.push(row);
     if (!flagsOk) { row.outcome = 'waiting_flag'; row.message = deps.trigger === 'worker' ? 'exige publicacaoPortal e publicacaoAutonoma' : 'exige publicacaoPortal'; continue; }
     if (report.haltedBy) { row.message = `rodada interrompida: ${report.haltedBy}`; continue; }
+    // conteúdo de ensaio (modelo simulado) nunca chega à porta: nem recibo, nem publicação
+    if (isSimulatedContent(draft)) { row.outcome = 'failed'; row.code = 'simulated_content'; row.message = 'conteúdo SIMULADO não é publicável'; continue; }
     // gate refeito: o que foi aprovado ontem precisa continuar aprovável hoje (rascunho adulterado, checagem sem provedor distinto...)
     const chk = runDeterministicChecks(draft, rec.evidences, { notices: rec.notices?.map((n) => n.text) ?? [] });
     const fc = rec.factcheck;

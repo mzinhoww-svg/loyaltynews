@@ -25,7 +25,7 @@ test('SSRF: redirecionamento para host interno é recusado e a rede interna não
     'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:',
     'https://ri.mock.example/noticias/redir': { status: 302, headers: { location: 'http://169.254.169.254/latest/meta-data' }, body: '' },
   });
-  const r = await new Collector(f, { now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/redir');
+  const r = await new Collector(f, { minSpacingMs: 0, now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/redir');
   assert.equal(r.skip?.code, 'url_rejected');
   assert.ok(!f.calls.some((c) => c.includes('169.254')));
 });
@@ -39,7 +39,7 @@ test('robots.txt: Disallow respeitado, Allow mais específico vence', () => {
 });
 
 test('coleta: evidência com URL, data, hash; HTML ativo removido', async () => {
-  const c = new Collector(mockWeb(), { now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(mockWeb(), { minSpacingMs: 0, now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
   const r = await c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria');
   assert.ok(r.evidence);
   const e = r.evidence;
@@ -52,7 +52,7 @@ test('coleta: evidência com URL, data, hash; HTML ativo removido', async () => 
 });
 
 test('coleta: robots disallow, paywall e fonte inelegível não são ingeridos', async () => {
-  const c = new Collector(mockWeb(), { now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(mockWeb(), { minSpacingMs: 0, now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
   assert.equal((await c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/privado/relatorio')).skip?.code, 'robots_disallow');
   assert.equal((await c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/assinantes')).skip?.code, 'gated');
   const off = { ...MOCK_SOURCE, termsStatus: 'pending' as const };
@@ -61,19 +61,19 @@ test('coleta: robots disallow, paywall e fonte inelegível não são ingeridos',
 
 test('coleta: robots.txt indisponível (403) => fail closed', async () => {
   const f = new MockFetcher({ 'https://ri.mock.example/robots.txt': { status: 403, headers: {}, body: '' } });
-  const r = await new Collector(f, { resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/x');
+  const r = await new Collector(f, { minSpacingMs: 0, resolver: mockResolver(), flags: COLLECT_ON }).collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/x');
   assert.equal(r.skip?.code, 'robots_unavailable');
 });
 
 test('injeção: instrução embutida marca evidência como suspeita e nenhuma ferramenta é chamada', async () => {
-  const c = new Collector(mockWeb(), { now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(mockWeb(), { minSpacingMs: 0, now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
   const r = await c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/injecao');
   assert.equal(r.evidence?.suspicious, true);
   assert.ok(r.evidence!.suspiciousReasons.includes('ignore_instructions'));
 });
 
 test('feed: coleta itens, descarta restritos/paywall e mantém duplicatas para o dedupe', async () => {
-  const res = await new Collector(mockWeb(), { now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON }).collectFeed(MOCK_SOURCE);
+  const res = await new Collector(mockWeb(), { minSpacingMs: 0, now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON }).collectFeed(MOCK_SOURCE);
   assert.equal(res.evidences.length, 3); // alfa(utm), alfa, injecao
   const codes = res.skipped.map((s) => s.code).sort();
   assert.deepEqual(codes, ['gated', 'robots_disallow']);
@@ -114,7 +114,7 @@ test('prefixo: URL fora do prefixo, com .. ou %2e%2e é recusada; dentro é acei
 
 test('prefixo: coletor coleta dentro, recusa fora, aplica robots e não segue redirect para outro órgão', async () => {
   const f = govWeb();
-  const c = new Collector(f, { now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
+  const c = new Collector(f, { minSpacingMs: 0, now: fixedNow, resolver: mockResolver(), flags: COLLECT_ON });
   const inside = await c.collectUrl(GOV, 'https://www.gov.mock/orgao/noticias/a');
   assert.ok(inside.evidence);
   assert.equal((await c.collectUrl(GOV, 'https://www.gov.mock/outro-orgao/noticias/b')).skip?.code, 'url_rejected');
@@ -138,8 +138,23 @@ test('registro: host compartilhado sem pathPrefix é inelegível; com prefixo v�
 
 test('flag editorialCollector desligada (padrão do contrato): coletor recusa executar e não toca a rede', async () => {
   const f = mockWeb();
-  const c = new Collector(f, { resolver: mockResolver() });
+  const c = new Collector(f, { minSpacingMs: 0, resolver: mockResolver() });
   await assert.rejects(c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/alfa-parceria'), /flag desligada: editorialCollector/);
   await assert.rejects(c.collectFeed(MOCK_SOURCE), /flag desligada/);
   assert.equal(f.calls.length, 0);
+});
+
+test('feed RSS sem <link>: o permalink vem no <guid> (formato real da Agência Senado); guid não-URL ou isPermaLink=false é descartado', async () => {
+  const { parseFeed } = await import('../collector/parse');
+  const xml = `<?xml version="1.0"?><rss version="2.0"><channel><title>MOCK</title>
+<item><title>MOCK A</title><description></description><pubDate>Thu, 19 Nov 2026 20:34:19 -0300</pubDate><guid>https://www12.senado.leg.br/noticias/materias/2026/11/19/mock-a</guid></item>
+<item><title>MOCK B</title><guid isPermaLink="false">id-interno-123</guid></item>
+<item><title>MOCK C</title><guid isPermaLink="false">https://exemplo.invalid/c</guid></item>
+<item><title>MOCK D</title><link>https://exemplo.invalid/d</link><guid>https://exemplo.invalid/outro</guid></item>
+<item><title>MOCK E</title><guid><![CDATA[https://exemplo.invalid/e]]></guid></item></channel></rss>`;
+  const items = parseFeed(xml);
+  assert.deepEqual(items.map((i) => [i.title, i.link]), [
+    ['MOCK A', 'https://www12.senado.leg.br/noticias/materias/2026/11/19/mock-a'], ['MOCK D', 'https://exemplo.invalid/d'], ['MOCK E', 'https://exemplo.invalid/e'],
+  ]);
+  assert.equal(items[0]!.publishedAt, '2026-11-19T23:34:19.000Z');
 });

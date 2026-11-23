@@ -29,7 +29,7 @@ export interface ApiResponse<T> { status: number; body: T | ApiError }
 export type Action =
   | 'queue.list' | 'article.read' | 'article.review' | 'factcheck.read' | 'factcheck.recheck'
   | 'correction.list' | 'correction.manage' | 'correction.verify_requester' | 'correction.ack_legal'
-  | 'source.read' | 'source.review' | 'source.enable' | 'source.disable';
+  | 'source.read' | 'source.review' | 'source.enable' | 'source.disable' | 'pauta.read' | 'pauta.submit';
 
 /** Papéis de @ln/auth (stub do scaffold): admin, editor_chefe, editor, revisor, comercial, leitor. `comercial`/`leitor` não têm acesso editorial. */
 export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
@@ -48,6 +48,9 @@ export const ACTION_ROLES: Readonly<Record<Action, readonly string[]>> = {
   'source.review': ['admin', 'editor_chefe', 'revisor'],
   'source.enable': ['admin', 'editor_chefe'],
   'source.disable': ['admin', 'editor_chefe', 'revisor'],
+  // Pauta autoral (DP-29): quem propõe é a redação; revisor lê. A aprovação da matéria segue o fluxo de revisão comum.
+  'pauta.read': ['admin', 'editor_chefe', 'editor', 'revisor'],
+  'pauta.submit': ['admin', 'editor_chefe', 'editor'],
 };
 
 export function authorize(ctx: HandlerCtx, action: Action): ApiError | Actor {
