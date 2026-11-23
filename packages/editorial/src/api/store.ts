@@ -39,6 +39,8 @@ export interface ArticleRecord {
 export interface CorrectionRecord {
   case: CorrectionCase;
   /** Texto do requerente (dado NÃO confiável e pessoal): preservado sem alteração; nunca vai a modelo sem saneamento. */
+  /** Slug público da matéria no momento da abertura (monta /materias/{slug}). */
+  articleSlug?: string;
   replyText?: string;
   /** Contato do requerente (dado pessoal, LGPD): usar só para o caso. */
   contact?: string;
