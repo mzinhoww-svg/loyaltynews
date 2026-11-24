@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Suspense } from 'react';
 import { Sidebar } from './_components/Sidebar';
-import { ErrorState, LoadingState } from './_components/states';
+import { ErrorState } from './_components/states';
 import { AdSlot, ArticleCard, ArticleGrid, EmptyState, Section } from './_components/ui';
 import { editoriaName } from './_lib/editorias';
 import { eventWhere, isUpcoming, noon } from './_lib/events';
@@ -106,12 +105,10 @@ function PublishedHome({ site }: { site: SiteConfig }) {
   );
 }
 
+// Sem Suspense/esqueleto: sem JavaScript o visitante ficava só com o esqueleto (o conteúdo vinha num bloco escondido que só um script
+// troca). A home espera os dados e chega pronta (decisão do PM sobre a recomendação da UI/UX).
 export default function HomePage() {
-  return (
-    <Suspense fallback={<LoadingState label="Carregando a página inicial…" />}>
-      <HomeContent />
-    </Suspense>
-  );
+  return <HomeContent />;
 }
 
 async function HomeContent() {

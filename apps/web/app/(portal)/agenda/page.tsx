@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Suspense } from 'react';
 import { WithSidebar } from '../_components/Sidebar';
-import { ErrorState, LoadingState } from '../_components/states';
+import { ErrorState } from '../_components/states';
 import { AdSlot, EmptyState, MockTag, PageHead } from '../_components/ui';
 import { eventWhen, eventWhere, isUpcoming, noon } from '../_lib/events';
 import { dayOf, monthAbbrev } from '../_lib/format';
@@ -111,9 +110,8 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         ))}
       </ul>
       <WithSidebar>
-        <Suspense fallback={<LoadingState label="Carregando a agenda…" rows={3} />}>
-          <AgendaList filtro={filtro} />
-        </Suspense>
+        {/* Sem Suspense/esqueleto: sem JavaScript o esqueleto ficava no lugar da lista (decisão do PM sobre a recomendação da UI/UX). */}
+        <AgendaList filtro={filtro} />
       </WithSidebar>
     </>
   );
