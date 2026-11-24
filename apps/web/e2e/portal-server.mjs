@@ -9,7 +9,7 @@
 // Uso (pelo portal.config.ts): node e2e/portal-server.mjs <porta> <producao|vitrine>
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const port = process.argv[2] ?? process.env.PORT ?? '3101';
@@ -30,10 +30,16 @@ const RUNTIME_ONLY = ['PORTAL_SOURCE', 'PORTAL_API_BASE_URL', 'PORTAL_INDEXAVEL'
 if (perfil !== 'vitrine') RUNTIME_ONLY.push('PORTAL_VITRINE');
 
 const git = (args) => spawnSync('git', args, { encoding: 'utf8', cwd: '.', shell: false }).stdout ?? '';
+// Só o que entra no bundle conta para o carimbo: specs/e2e, testes unitários e arquivos de teste não refazem o build de minutos.
+const ALVO = [
+  '.', '../../packages',
+  ':(exclude)e2e', ':(exclude)lib/**/*.test.ts', ':(glob,exclude)**/*.spec.ts', ':(glob,exclude)**/*.test.ts', ':(glob,exclude)**/*.test.tsx',
+  ':(exclude).test-results', ':(exclude)../.test-results',
+];
 function carimbo() {
   const head = git(['rev-parse', 'HEAD']).trim();
-  const sujo = git(['status', '--porcelain', '--', '.', '../../packages']);
-  const diff = git(['diff', 'HEAD', '--', '.', '../../packages']);
+  const sujo = git(['status', '--porcelain', '--', ...ALVO]);
+  const diff = git(['diff', 'HEAD', '--', ...ALVO]);
   return createHash('sha256').update(`${perfil}\n${head}\n${sujo}\n${diff}`).digest('hex');
 }
 
@@ -49,6 +55,10 @@ if (precisa) {
 } else {
   console.log(`[portal-e2e] reaproveitando ${DIST} (perfil ${perfil}, código igual ao do build)`);
 }
+
+// Cada subida vale como um deploy novo: o cache de dados do Next (fetch com `next.revalidate`, ex.: plano de anúncios a 60 s) fica gravado
+// na pasta do build e sobreviveria entre modos que usam a MESMA URL do servidor MOCK (ex.: PORTAL_API_ADS=sem e depois =com).
+rmSync(join(DIST, 'cache', 'fetch-cache'), { recursive: true, force: true });
 
 // Runtime: as variáveis do modo + LN_E2E_BUILD/LN_E2E_DIST (o next start lê a pasta do build pela config e só aceita a fonte mock
 // fora do deploy com LN_E2E_BUILD=1).

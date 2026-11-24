@@ -7,11 +7,9 @@ import { defineConfig, devices } from '@playwright/test';
  *   PORTAL_MODE=api    → PORTAL_SOURCE=api contra um servidor MOCK das rotas públicas (e2e/fake-api.mjs).
  * Screenshots: apps/web/e2e/screenshots/<modo>/<projeto>-<página>.png
  *
- * Servidor sob teste = BUILD DE PRODUÇÃO (PM-2026-11-23-L): 
-ext build de e2e (.next-e2e, feito uma vez e reaproveitado entre os
- * modos; refeito só quando o código muda) + 
-ext start com as variáveis do modo em runtime (e2e/portal-server.mjs). O next dev fica
- * só para desenvolvimento local.
+ * Servidor sob teste = BUILD DE PRODUÇÃO (PM-2026-11-23-L): next build de e2e (perfil producao em .next-e2e; perfil vitrine em
+ * .next-e2e-vitrine para o modo mock), feito uma vez e reaproveitado entre as rodadas e refeito só quando o código muda, + next start
+ * com as variáveis do modo em runtime (e2e/portal-server.mjs). O next dev fica só para desenvolvimento local.
  */
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 // APP_ENV do servidor sob teste: production (padrão) ou staging. Portas distintas evitam reaproveitar servidor com outro ambiente.
