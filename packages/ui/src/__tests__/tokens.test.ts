@@ -86,6 +86,11 @@ describe("regras visuais P2 dos cards e do toque (V-07, V-08, V-11)", () => {
     expect(content).toMatch(/\.ln-card__meta \{ flex-wrap: nowrap; \}/);
     expect(content).toMatch(/\.ln-card \.ln-mock-badge \{ flex: none; white-space: nowrap;/);
   });
+  it("D-6: o rótulo da ilustração na miniatura sm tem no mínimo 10px (0.625rem), piso recomendado pelo QA 8", () => {
+    const m = content.match(/\.ln-card--sm \.ln-card__imglabel \{[^}]*font-size: ([0-9.]+)rem/);
+    expect(m, "regra do rótulo na miniatura sm").not.toBeNull();
+    expect(Number(m![1]) * 16).toBeGreaterThanOrEqual(10);
+  });
   it("V-11: tags de editoria (celular) e breadcrumb e botão do cabeçalho (até o tablet) usam o token de alvo de toque", () => {
     expect(content).toMatch(/max-width: 767px\) \{ \.ln-root a\.ln-tag--link \{ min-height: var\(--ln-touch-target\)/);
     const controls = readFileSync(resolve(root, "src/styles/controls.css"), "utf8");
