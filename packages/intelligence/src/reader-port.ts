@@ -240,12 +240,20 @@ const LOGIN_FORM = /<input[^>]+type=["']?password["']?/i;
 const LOGIN_TEXT = /(fa[cç]a (?:o )?login para (?:continuar|ler|acessar)|entre (?:na|com) sua conta para (?:continuar|ler)|sign in to (?:continue|read|view)|log in to (?:continue|read|view)|you must be logged in)/i;
 const PAYWALL_TEXT = /(conte[uú]do exclusivo para assinantes|assine para (?:continuar lendo|ler (?:a )?(?:mat[eé]ria|not[ií]cia) completa)|reservado a assinantes|subscribe to (?:continue reading|read (?:the )?full)|this (?:article|content) is for subscribers|to continue reading,? (?:please )?subscribe)/i;
 
+/** Limites do detector de paywall (iguais aos de detectWall em @ln/scraping-benchmark): até PAYWALL_SHORT_PAGE caracteres a checagem é completa; acima, só o início. */
+export const PAYWALL_SHORT_PAGE = 3000;
+export const PAYWALL_HEAD_CHARS = 1500;
+
 export function detectLoginOrPaywall(r: { text?: string; html?: string; httpStatus?: number }): 'login_required' | 'paywall' | null {
   const html = r.html ?? '';
   const text = r.text ?? '';
   if (r.httpStatus === 401) return 'login_required';
   if (r.httpStatus === 402) return 'paywall';
-  if (PAYWALL_TEXT.test(text) || PAYWALL_TEXT.test(html)) return 'paywall';
+  // paywall: página CURTA (até 3.000 caracteres) é checada inteira; página LONGA só nos primeiros 1.500 (o aviso de paywall vem no topo/corpo curto).
+  // Uma reportagem longa e legítima que CITA "assine para continuar lendo" não é paywall (ressalva R2 do QA 1, 63c16df).
+  const basis = text || html;
+  const paywallText = basis.length <= PAYWALL_SHORT_PAGE ? basis : basis.slice(0, PAYWALL_HEAD_CHARS);
+  if (PAYWALL_TEXT.test(paywallText) || (basis.length <= PAYWALL_SHORT_PAGE && PAYWALL_TEXT.test(html))) return 'paywall';
   // formulário de senha numa página CURTA = tela de login; página longa com campo de senha (ex.: rodapé "área do cliente") não conta
   if (LOGIN_FORM.test(html) && text.length < 1500) return 'login_required';
   if (LOGIN_TEXT.test(text) && text.length < 1500) return 'login_required';

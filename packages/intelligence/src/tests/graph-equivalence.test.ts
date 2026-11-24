@@ -15,7 +15,7 @@ let orgIds: string[] = [];
 let personIds: string[] = [];
 
 beforeAll(async () => {
-  ({ pg } = await newDb());
+  ({ pg } = await newDb({ escopo: 'arquivo' })); // criado em beforeAll e usado por todos os testes do arquivo
   db = pg as unknown as Db;
   await pg.exec(`
     INSERT INTO intelligence.evidence (id, source_url, source_name, source_class, retrieved_at, is_mock) VALUES ('${EV}','https://eq.invalid/x','MOCK eq','public', now(), true);

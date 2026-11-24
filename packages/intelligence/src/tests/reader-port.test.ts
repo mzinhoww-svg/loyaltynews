@@ -178,6 +178,28 @@ describe('login e paywall continuam parando; CAPTCHA resolvido pelo provedor nã
     expect(detectLoginOrPaywall({ text: longText })).toBeNull();
   });
 
+  it('reportagem longa que CITA o aviso de paywall NÃO é descartada; aviso no topo de página longa, página curta e 401/402 continuam parando (ressalva R2 do QA 1)', async () => {
+    const cita = 'O jornal exibe "assine para continuar lendo" a quem não é assinante. ';
+    const longa = longText.repeat(4) + cita + longText.repeat(2); // o aviso aparece DEPOIS dos 1.500 primeiros caracteres
+    expect(longa.length).toBeGreaterThan(3000);
+    expect(longa.indexOf('assine para continuar lendo')).toBeGreaterThan(1500);
+    expect(detectLoginOrPaywall({ text: longa })).toBeNull();
+    expect(detectLoginOrPaywall({ text: longa, html: '<p>' + longa + '</p>' })).toBeNull();
+    // aviso real: página curta, ou no começo de página longa
+    expect(detectLoginOrPaywall({ text: 'Conteúdo exclusivo para assinantes.' })).toBe('paywall');
+    expect(detectLoginOrPaywall({ text: 'Assine para continuar lendo. ' + longText.repeat(4) })).toBe('paywall');
+    expect(longText.length + cita.length).toBeLessThanOrEqual(3000);
+    expect(detectLoginOrPaywall({ text: longText + cita })).toBe('paywall'); // ainda curta (<= 3.000): checagem completa
+    // 401/402 valem sempre, mesmo com texto longo
+    expect(detectLoginOrPaywall({ text: longa, httpStatus: 402 })).toBe('paywall');
+    expect(detectLoginOrPaywall({ text: longa, httpStatus: 401 })).toBe('login_required');
+    // pelo PooledReader: a leitura da reportagem longa que cita o aviso é entregue (ok), não descartada
+    const s = setup(() => ok({ text: longa }));
+    const r = await s.reader.read({ url: 'https://c.invalid/reportagem' });
+    expect(r.ok).toBe(true);
+    expect(r.failure).toBeUndefined();
+  });
+
   it('desafio resolvido pelo próprio provedor NÃO para a leitura (DP-32); desafio devolvido sem resolver é falha', async () => {
     const solved = setup(() => ok({ providerSolvedCaptcha: true }));
     const r = await solved.reader.read({ url: 'https://a.invalid/1' });
