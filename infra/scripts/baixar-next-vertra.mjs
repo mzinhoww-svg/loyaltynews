@@ -2,9 +2,11 @@
 // Baixa o `.next` JÁ CONSTRUÍDO NA VERTRA (Linux, caminhos /app/...) de um app pela API de arquivos, para montar o pacote PRÉ-CONSTRUÍDO (package-prebuilt.mjs). SÓ LEITURA na Vertra (GET).
 // A chave vem SÓ do ambiente do processo (VERTRA_API_KEY, escopo apps:files): não é argumento, nunca é impressa nem gravada, nem em erro. Rode pelo script do PM (credenciais-sem-expor.md).
 // Uso: VERTRA_API_KEY=… node infra/scripts/baixar-next-vertra.mjs --app <id> --dest <pasta nova> [--path apps/web/.next] [--api https://api.vertracloud.app]
-//        [--rpm 200] [--concorrencia 16] [--progresso <arquivo.json>] [--retomar] [--sonda]
+//        [--rpm 200] [--concorrencia 16] [--progresso <arquivo.json>] [--incluir-tudo] [--retomar] [--sonda | --medir]
 //   --sonda    uma listagem + a leitura do BUILD_ID, imprime só o FORMATO (chaves/tipos) e sai; não grava nada. Rode antes do download completo.
 //   --progresso grava, a cada 100 arquivos, um JSON pequeno (baixados, descobertos, erros, fila) para olhar uma execução destacada; não tem limite de tempo próprio.
+//   --medir    mede a latência por pedido e a vazão com 4, 16 e 32 em paralelo lendo o BUILD_ID (162 pedidos, ~1 min com --rpm 280; não grava nada) e recomenda a concorrência.
+//   --incluir-tudo  baixa também *.map e *.nft.json (por padrão ficam de fora: o next start não os usa; ~36% dos arquivos).
 //   --retomar  pula arquivo já baixado com o tamanho certo (cai a conexão ou o limite da API: repita o comando).
 // Fica de fora (não serve ao pacote): cache, diagnostics, trace, trace-build. Em node_modules grava só PASTAS VAZIAS com os nomes dos externos (a restauração recria os links).
 // Binários chegam em base64 (encoding "base64") e são gravados como bytes. Nomes vêm de terceiros: só entram nomes simples (sem /, barra invertida, .., :, controle).
@@ -15,6 +17,17 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from './lib/util.mjs';
 
 export const FORA_DA_RAIZ = new Set(['cache', 'diagnostics', 'trace', 'trace-build']);
+// Arquivos que o `next start` NÃO usa e que são ~36% dos do .next (24/11: 1109 de 3076): source maps do servidor (*.map) e os rastros de build (*.nft.json). Provado com `next start` num .next sem eles:
+// 11 rotas 200, cache 19/0, segurança 8/0, nenhum erro no log, home idêntica à do .next completo. `--incluir-tudo` os baixa.
+export const PADRAO_EXCLUIDO = /\.(?:map|nft\.json)$/;
+
+/** Estatística simples de uma lista de tempos em ms (função pura). */
+export function estatistica(ms) {
+  if (!ms.length) return { n: 0, p50: null, p95: null, max: null, media: null };
+  const o = [...ms].sort((a, b) => a - b);
+  const q = (p) => o[Math.min(o.length - 1, Math.floor((p / 100) * o.length))];
+  return { n: o.length, p50: q(50), p95: q(95), max: o[o.length - 1], media: Math.round(o.reduce((s, x) => s + x, 0) / o.length) };
+}
 
 /** Só nomes simples de arquivo/pasta (os nomes vêm de terceiros). Função pura. */
 export function nomeSeguro(nome) {
@@ -135,10 +148,12 @@ class Limite {
 function cliente({ api, chave, app, rpm, parametro = 'path' }) {
   const limite = new Limite(rpm);
   let pedidos = 0;
+  const lat = []; // tempo (ms) de cada pedido bem-sucedido, DEPOIS da espera do limitador: é a latência da API
   const get = async (rota, caminho) => {
     for (let tentativa = 0; tentativa < 6; tentativa += 1) {
       await limite.esperar();
       pedidos += 1;
+      const t0 = Date.now();
       let r;
       try {
         r = await fetch(`${api}/v1/apps/${encodeURIComponent(app)}/${rota}?${parametro}=${encodeURIComponent(caminho)}`, { headers: { authorization: `Bearer ${chave}`, accept: 'application/json' }, signal: AbortSignal.timeout(60000) });
@@ -156,6 +171,7 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
         try { codigo = String(JSON.parse(corpo.toString('utf8'))?.code ?? ''); } catch { /* sem json */ }
         throw new Error(`HTTP ${r.status}${codigo ? ` ${codigo.replace(/[^A-Z0-9_]/g, '').slice(0, 40)}` : ''}`);
       }
+      lat.push(Date.now() - t0);
       return { corpo, tipo: r.headers.get('content-type') ?? '' };
     }
     throw new Error('limite de tentativas');
@@ -166,12 +182,35 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
     ler: async (c) => { const x = await get('files/content', c); try { formas.leitura = formaDe(JSON.parse(x.corpo.toString('utf8'))); } catch { formas.leitura = 'texto ou binário cru'; } return normalizarConteudo(x.corpo, x.tipo); },
     formas: () => ({ ...formas }),
     pedidos: () => pedidos,
+    latencias: () => estatistica(lat),
   };
 }
 
-export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 200, concorrencia = 16, retomar = false, chave, log = () => {}, progresso = null }) {
+/**
+ * Mede a API de arquivos (só leitura de UM arquivo pequeno, o BUILD_ID): latência por pedido em sequência e a vazão (pedidos/min) com mais pedidos em paralelo, para escolher
+ * a concorrência. Se a vazão não cresce com a concorrência, a API serializa e subir não adianta. Não grava nada. Respeita o limitador (`rpm`): use --rpm alto (<= 280) para medir.
+ */
+export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 280, chave, niveis = [4, 16, 32], por = 3, sequenciais = 6 }) {
   const c = cliente({ api, chave, app, rpm });
-  const rel = { app, raiz, arquivos: 0, bytes: 0, binarios: 0, pulados: 0, externos: [], ignorados: [], erros: [], inicio: new Date().toISOString() };
+  const alvo = `${raiz}/BUILD_ID`;
+  const seq = [];
+  for (let i = 0; i < sequenciais; i += 1) { const t = Date.now(); await c.ler(alvo); seq.push(Date.now() - t); }
+  const resultado = [];
+  for (const n of niveis) {
+    const total = n * por;
+    const t = Date.now();
+    await Promise.all(Array.from({ length: n }, async () => { for (let i = 0; i < por; i += 1) await c.ler(alvo); }));
+    const ms = Date.now() - t;
+    resultado.push({ concorrencia: n, pedidos: total, ms, pedidosPorMin: Math.round((total / Math.max(1, ms)) * 60000) });
+  }
+  let melhor = resultado[0];
+  for (const r of resultado) if (r.pedidosPorMin > melhor.pedidosPorMin * 1.15) melhor = r; // só vale subir se ganhar mais de 15%
+  return { sequencial: estatistica(seq), niveis: resultado, recomendada: melhor.concorrencia, limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
+}
+
+export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 200, concorrencia = 16, retomar = false, incluirTudo = false, chave, log = () => {}, progresso = null }) {
+  const c = cliente({ api, chave, app, rpm });
+  const rel = { app, raiz, arquivos: 0, bytes: 0, binarios: 0, pulados: 0, excluidosPorPadrao: 0, externos: [], ignorados: [], erros: [], inicio: new Date().toISOString() };
   const dest = resolve(destino);
   const dentro = (p) => { const r = resolve(p); return r === dest || r.startsWith(dest + sep); };
   mkdirSync(dest, { recursive: true });
@@ -199,6 +238,7 @@ export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'htt
         if (it.nome.startsWith('@')) fila.push({ tipo: 'dir', remoto, local, nivel: -1 }); else rel.externos.push(it.nome);
         continue;
       }
+      if (!it.dir && !incluirTudo && PADRAO_EXCLUIDO.test(it.nome)) { rel.excluidosPorPadrao += 1; continue; } // *.map e *.nft.json: o next start não usa (ver PADRAO_EXCLUIDO)
       if (it.dir) { mkdirSync(local, { recursive: true }); fila.push({ tipo: 'dir', remoto, local, nivel: d.nivel + 1 }); } else { descobertos += 1; fila.push({ tipo: 'arq', remoto, local, tamanho: it.tamanho }); }
     }
   };
@@ -224,7 +264,7 @@ export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'htt
   };
   await Promise.all(Array.from({ length: Math.max(1, concorrencia) }, trabalhador));
   gravarProgresso();
-  rel.pedidos = c.pedidos(); rel.fim = new Date().toISOString();
+  rel.pedidos = c.pedidos(); rel.latenciaMs = c.latencias(); rel.fim = new Date().toISOString();
   rel.buildId = existsSync(join(dest, 'BUILD_ID')) ? readFileSync(join(dest, 'BUILD_ID'), 'utf8').trim() : null;
   return rel;
 }
@@ -238,6 +278,11 @@ async function main() {
   if (!/^https:\/\//.test(api) && !/^http:\/\/127\.0\.0\.1[:/]/.test(api)) { console.error('--api só aceita https (ou 127.0.0.1 em teste)'); process.exit(2); }
   const raiz = String(args.path && args.path !== true ? args.path : 'apps/web/.next').replace(/^\/+|\/+$/g, '');
   const rpm = Number(args.rpm ?? 200) || 200;
+  if (args.medir) {
+    const m = await medir({ app: String(args.app), raiz, api, rpm: Number(args.rpm ?? 280) || 280, chave });
+    console.log(JSON.stringify({ medir: true, raiz, ...m }, null, 2));
+    return;
+  }
   if (args.sonda) {
     const c = cliente({ api, chave, app: String(args.app), rpm });
     const itens = await c.listar(raiz);
@@ -249,9 +294,9 @@ async function main() {
   if (!args.dest || args.dest === true) { console.error('use --dest <pasta nova>'); process.exit(2); }
   const destino = resolve(String(args.dest));
   if (existsSync(destino) && !args.retomar) { console.error('--dest já existe (use --retomar para continuar um download)'); process.exit(2); }
-  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 16) || 16, retomar: Boolean(args.retomar), progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
+  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 16) || 16, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
   writeFileSync(`${destino}.relatorio.json`, JSON.stringify(rel, null, 2) + '\n');
-  console.log(JSON.stringify({ ok: rel.erros.length === 0, arquivos: rel.arquivos, bytes: rel.bytes, binarios: rel.binarios, pulados: rel.pulados, externos: rel.externos, ignorados: rel.ignorados, pedidos: rel.pedidos, buildId: rel.buildId, erros: rel.erros.slice(0, 10), relatorio: `${destino}.relatorio.json` }, null, 2));
+  console.log(JSON.stringify({ ok: rel.erros.length === 0, arquivos: rel.arquivos, bytes: rel.bytes, binarios: rel.binarios, pulados: rel.pulados, excluidosPorPadrao: rel.excluidosPorPadrao, latenciaMs: rel.latenciaMs, externos: rel.externos, ignorados: rel.ignorados, pedidos: rel.pedidos, buildId: rel.buildId, erros: rel.erros.slice(0, 10), relatorio: `${destino}.relatorio.json` }, null, 2));
   process.exit(rel.erros.length ? 1 : 0);
 }
 

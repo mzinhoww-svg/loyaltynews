@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura } from '../scripts/baixar-next-vertra.mjs';
+import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura, medir, estatistica, PADRAO_EXCLUIDO } from '../scripts/baixar-next-vertra.mjs';
 import { listarExternos } from '../scripts/lib/prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -215,4 +215,59 @@ test('baixar: pastas e arquivos andam EM PARALELO numa fila única (a API real d
     assert.equal(p.erros, 0);
     assert.ok(!JSON.stringify(p).includes(CHAVE));
   } finally { await fecha({ srv }); rmSync(base, { recursive: true, force: true }); }
+});
+
+function servidorGenerico(arvoreFlat, { latenciaMs = 0 } = {}) {
+  // arvoreFlat: { 'dir/relativo': ['arq', ...] ; '': ['nomeDeDir/'...] } montado pelo teste
+  const srv = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    const caminho = u.searchParams.get('path');
+    setTimeout(() => {
+      res.setHeader('content-type', 'application/json');
+      if (u.pathname.endsWith('/files/content')) { const c = Buffer.from('c:' + caminho); res.end(JSON.stringify({ response: { type: 'base64', data: c.toString('base64'), size: c.length, last_modified: 'x' } })); return; }
+      const itens = arvoreFlat[caminho];
+      if (!itens) { res.statusCode = 404; res.end('{"code":"NOT_FOUND"}'); return; }
+      res.end(JSON.stringify({ response: itens.map((n) => (n.endsWith('/') ? { name: n.slice(0, -1), path: caminho + '/' + n.slice(0, -1), type: 'directory', last_modified: 'x', size: '' } : { name: n, path: caminho + '/' + n, type: 'file', last_modified: 'x', size: String(('c:' + caminho + '/' + n).length) })) }));
+    }, latenciaMs);
+  });
+  return new Promise((ok) => srv.listen(0, '127.0.0.1', () => ok({ srv, api: 'http://127.0.0.1:' + srv.address().port })));
+}
+
+test('estatistica e PADRAO_EXCLUIDO: p50/p95 de uma lista de tempos; o padrão pega *.map e *.nft.json e nada além', () => {
+  assert.deepEqual(estatistica([]), { n: 0, p50: null, p95: null, max: null, media: null });
+  const e = estatistica([10, 20, 30, 40, 100]);
+  assert.deepEqual({ n: e.n, p50: e.p50, max: e.max, media: e.media }, { n: 5, p50: 30, max: 100, media: 40 });
+  for (const sim of ['a.js.map', 'x.nft.json', 'page.js.nft.json', 'chunk_1234.js.map', 'next-server.js.nft.json']) assert.equal(PADRAO_EXCLUIDO.test(sim), true, sim);
+  for (const nao of ['a.js', 'routes-manifest.json', 'build-manifest.json', 'BUILD_ID', 'page.rsc', 'mapa.json', 'nft.json.js', 'index.html', 'app-path-routes-manifest.json', 'map']) assert.equal(PADRAO_EXCLUIDO.test(nao), false, nao);
+});
+
+test('baixar: *.map e *.nft.json ficam de fora por padrão (o next start não os usa; ~36% dos arquivos) e entram com incluirTudo; a contagem aparece no relatório', async () => {
+  const flat = { [RAIZ]: ['BUILD_ID', 'server/', 'routes-manifest.json', 'next-server.js.nft.json'], [RAIZ + '/server']: ['a.js', 'a.js.map', 'b.js', 'b.js.map', 'page.js.nft.json', 'index.html'] };
+  const s = await servidorGenerico(flat);
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-excl-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'a'), raiz: RAIZ, api: s.api, rpm: 60000, concorrencia: 4, chave: CHAVE });
+    assert.deepEqual(rel.erros, []);
+    assert.equal(rel.excluidosPorPadrao, 4, '2 .map + 2 .nft.json');
+    assert.deepEqual(readdirSync(join(base, 'a', 'server')).sort(), ['a.js', 'b.js', 'index.html']);
+    assert.ok(existsSync(join(base, 'a', 'routes-manifest.json')), 'json que não é nft continua');
+    assert.equal(existsSync(join(base, 'a', 'next-server.js.nft.json')), false);
+    assert.equal(rel.latenciaMs.n, rel.pedidos, 'a latência de cada pedido entra no relatório');
+    const todos = await baixar({ app: 'APP', destino: join(base, 'b'), raiz: RAIZ, api: s.api, rpm: 60000, concorrencia: 4, chave: CHAVE, incluirTudo: true });
+    assert.equal(todos.excluidosPorPadrao, 0);
+    assert.deepEqual(readdirSync(join(base, 'b', 'server')).sort(), ['a.js', 'a.js.map', 'b.js', 'b.js.map', 'index.html', 'page.js.nft.json']);
+  } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
+});
+
+test('medir: latência por pedido em sequência e vazão com 4/16/32 em paralelo; a vazão cresce com a concorrência numa API que só demora (e recomenda o nível); nada é gravado', async () => {
+  const s = await servidorGenerico({}, { latenciaMs: 40 });
+  try {
+    const m = await medir({ app: 'APP', raiz: RAIZ, api: s.api, rpm: 100000, chave: CHAVE, niveis: [2, 8, 16], por: 3, sequenciais: 4 });
+    assert.equal(m.sequencial.n, 4);
+    assert.ok(m.sequencial.p50 >= 35, 'p50 ' + m.sequencial.p50);
+    assert.deepEqual(m.niveis.map((x) => x.concorrencia), [2, 8, 16]);
+    assert.ok(m.niveis[1].pedidosPorMin > m.niveis[0].pedidosPorMin * 1.5, JSON.stringify(m.niveis));
+    assert.ok(m.recomendada >= 8, 'recomendada ' + m.recomendada);
+    assert.ok(!JSON.stringify(m).includes(CHAVE));
+  } finally { await fecha(s); }
 });
