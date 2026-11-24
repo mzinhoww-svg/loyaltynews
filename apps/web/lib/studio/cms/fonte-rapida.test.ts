@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mensagemDoCodigo, montarEvidencia, montarFonteRapida, novaChave, TRECHO_MAX } from './fonte-rapida';
+import { mensagemDoCodigo, montarEvidencia, montarFonteRapida, novaChave, proximaFonteDaEvidencia, TRECHO_MAX } from './fonte-rapida';
 
 const fonte = { chave: 'fr-1234abcd', url: 'https://www.banco.com.br/imprensa', nome: 'Sala de imprensa do Banco X', tipo: 'site', licenca: 'desconhecida', editoria: 'bancos' };
 
@@ -57,5 +57,18 @@ describe('mensagemDoCodigo', () => {
     expect(mensagemDoCodigo('SOURCE_NOT_FOUND', undefined, 'x')).toContain('fonte escolhida');
     expect(mensagemDoCodigo('IDEMPOTENCY_MISMATCH', undefined, 'x')).toContain('Recarregue');
     expect(mensagemDoCodigo('OUTRO', undefined, 'mensagem padrão')).toBe('mensagem padrão');
+  });
+});
+
+describe('proximaFonteDaEvidencia', () => {
+  it('leva à fonte da primeira evidência que tem fonte', () => {
+    expect(proximaFonteDaEvidencia([{ sourceId: null }, { sourceId: 'rapida-aa11bb22' }, { sourceId: 'outra' }])).toBe('/studio/fontes/rapida-aa11bb22');
+  });
+  it('sem evidência ou sem fonte, leva ao Banco de fontes', () => {
+    expect(proximaFonteDaEvidencia([])).toBe('/studio/fontes');
+    expect(proximaFonteDaEvidencia([{ sourceId: null }])).toBe('/studio/fontes');
+  });
+  it('id estranho nunca vira caminho', () => {
+    expect(proximaFonteDaEvidencia([{ sourceId: '../admin' }, { sourceId: 'a/b' }])).toBe('/studio/fontes');
   });
 });

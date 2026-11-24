@@ -89,6 +89,15 @@ export function montarEvidencia(e: EntradaEvidencia): Validacao<EntradaEvidencia
   return { ok: true, corpo: { chave: e.chave, articleId: e.articleId, url, trecho, ...(e.sourceId ? { sourceId: e.sourceId } : {}) } };
 }
 
+/**
+ * Para onde levar a pessoa quando a matéria não passa para a checagem por falta de fonte: a página da fonte da PRIMEIRA evidência rápida que
+ * tem fonte (é ali que se revisam os termos e se ativa); sem evidência com fonte, a lista do Banco de fontes. O id vira só um segmento de caminho.
+ */
+export function proximaFonteDaEvidencia(evidencias: readonly { sourceId: string | null }[]): string {
+  const id = evidencias.find((e) => e.sourceId && /^[A-Za-z0-9_-]{1,128}$/.test(e.sourceId))?.sourceId;
+  return id ? `/studio/fontes/${id}` : '/studio/fontes';
+}
+
 /** Mensagens para os códigos que o contrato define (o resto passa pelo tradutor de erros comum). */
 export function mensagemDoCodigo(codigo: string | undefined, _detalhes: unknown, padrao: string, nomeDaFonte?: string): string {
   switch (codigo) {
