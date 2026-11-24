@@ -246,3 +246,37 @@ describe('S8: modo --revoke pela CLI', () => {
     expect(de_novo.text).toMatch(/não há administrador para revogar/);
   });
 });
+
+describe('ressalvas do QA 6 no --revoke (739ef4f), pela CLI', () => {
+  const REV = ['--revoke', '--confirm-production-revoke'];
+
+  it('revogar NÃO exige BETTER_AUTH_SECRET nem BETTER_AUTH_URL https (o quebra-vidro funciona sem o segredo do web); criar continua exigindo os dois', async () => {
+    const out: string[] = [];
+    // sem dependências injetadas e SEM os dois: revogar passa da checagem de ambiente e tenta abrir o banco (que aqui é um host inexistente) — a recusa NÃO é sobre o segredo
+    const r = await run(REV, { ...PROD }, (s) => out.push(s), undefined, { bindings: BINDINGS, tty: true, io: { show: () => undefined, clear: () => undefined, ask: async () => { throw Object.assign(new Error('x'), { name: 'ProdAdminAborted' }); }, askHidden: async () => '' } });
+    const txt = out.join('\n');
+    expect(txt).not.toMatch(/BETTER_AUTH_SECRET|BETTER_AUTH_URL/);
+    expect(txt).toMatch(/Cancelado pelo proprietário: nada mudou/); // chegou ao terminal: Ctrl-C na frase
+    expect(r).toBe(2);
+    // criar, no mesmo ambiente, continua pedindo o segredo do web
+    out.length = 0;
+    expect(await run(OK, { ...PROD }, (s) => out.push(s), undefined, { bindings: BINDINGS, tty: true })).toBe(2);
+    expect(out.join('\n')).toMatch(/BETTER_AUTH_SECRET/);
+  });
+
+  it('Ctrl-C na frase é "Cancelado pelo proprietário: nada mudou" (não "falhou"), na revogação e na criação, e não altera nada', async () => {
+    const abortar: ProdAdminIO = { show: () => undefined, clear: () => undefined, ask: async () => { throw Object.assign(new Error('x'), { name: 'ProdAdminAborted' }); }, askHidden: async () => '' };
+    for (const argv of [REV, OK]) {
+      const r = await exec(argv, PROD, { io: abortar });
+      expect(r.code, argv.join(' ')).toBe(2);
+      expect(r.text).toBe('Cancelado pelo proprietário: nada mudou.');
+      expect(r.text).not.toMatch(/falhou|recusado/);
+    }
+  });
+
+  it('revogação incompleta pela CLI usa a mensagem da etapa (saída 1); o texto do banimento não afirma "BANIDO"', async () => {
+    const { revokeIncompleteMessage } = await import('@ln/auth');
+    expect(revokeIncompleteMessage('banimento')).not.toMatch(/está BANIDO/);
+    expect(revokeIncompleteMessage('remocao')).toMatch(/BANIDO e sem sessões/);
+  });
+});

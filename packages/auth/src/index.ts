@@ -40,4 +40,4 @@ export async function requireRole(allowed: readonly Role[], request?: Request): 
   return requireRoleWith(rt.auth, h, allowed);
 }
 export { bootstrapStagingAdmin, assertStagingEmail, STAGING_ADMIN_DEFAULT_EMAIL, type StagingAdminResult, type StagingAdminDeps, type StagingAdminOptions } from './staging-admin';
-export { bootstrapProductionAdmin, revokeProductionAdmin, validateProdEmail, PROD_ADMIN_REVOKE_PHRASE, PROD_ADMIN_CONFIRM_PHRASE, PROD_ADMIN_SAVED_WORD, PROD_ADMIN_MIN_PASSWORD, PROD_ADMIN_MAX_TRIES, type ProdAdminIO, type ProdAdminDeps, type ProdAdminResult, type ProdAdminRevokeResult } from './prod-admin';
+export { bootstrapProductionAdmin, revokeProductionAdmin, revokeIncompleteMessage, validateProdEmail, PROD_ADMIN_REVOKE_PHRASE, PROD_ADMIN_CONFIRM_PHRASE, PROD_ADMIN_SAVED_WORD, PROD_ADMIN_MIN_PASSWORD, PROD_ADMIN_MAX_TRIES, type ProdAdminIO, type ProdAdminDeps, type ProdAdminResult, type ProdAdminRevokeResult } from './prod-admin';

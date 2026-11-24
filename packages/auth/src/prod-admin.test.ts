@@ -5,7 +5,7 @@ import { createOTP } from '@better-auth/utils/otp';
 import { schema } from '@ln/db';
 import { createTestDb } from '@ln/db/testing';
 import {
-  PROD_ADMIN_CONFIRM_PHRASE, PROD_ADMIN_REVOKE_PHRASE, bootstrapProductionAdmin, revokeProductionAdmin, createAuth, createAuthHandler, createStaffUser, validateProdEmail, type ProdAdminIO, type ProdAdminResult,
+  PROD_ADMIN_CONFIRM_PHRASE, PROD_ADMIN_REVOKE_PHRASE, bootstrapProductionAdmin, revokeIncompleteMessage, revokeProductionAdmin, createAuth, createAuthHandler, createStaffUser, validateProdEmail, type ProdAdminIO, type ProdAdminResult,
 } from './index';
 
 // Cerimônia do 1º administrador de PRODUÇÃO (decisão PM-2026-11-23-N; roteiro r0-preparacao/seguranca/20_*; limites P1–P11 e S1–S8). O "proprietário" do teste é um roteiro: responde às
@@ -304,7 +304,7 @@ describe('S8: revogar o administrador de produção', () => {
       e.name = 'ProdAdminAborted';
       throw e;
     });
-    expect(await revogar(term)).toMatchObject({ status: 'refused', reason: 'interrompido pelo proprietário' });
+    expect(await revogar(term)).toEqual({ status: 'cancelled' }); // Ctrl-C antes de qualquer alteração: cancelado, não falha
     expect(await counts()).toMatchObject({ users: 1 });
   });
 
@@ -312,5 +312,56 @@ describe('S8: revogar o administrador de produção', () => {
     await criar();
     await revogar(revogador());
     expect(await run(owner())).toMatchObject({ status: 'created' });
+  });
+});
+
+describe('ressalvas do QA 6 no --revoke (739ef4f)', () => {
+  it('a mensagem de revogação incompleta depende da etapa e nunca afirma um estado que não foi alcançado', () => {
+    const ban = revokeIncompleteMessage('banimento');
+    expect(ban).toMatch(/falhou ao BANIR/);
+    expect(ban).toMatch(/NADA foi alterado/);
+    expect(ban).not.toMatch(/está BANIDO/);
+    const ses = revokeIncompleteMessage('sessoes');
+    expect(ses).toMatch(/está BANIDO/);
+    expect(ses).toMatch(/sessões podem ainda existir/);
+    expect(ses).not.toMatch(/sem sessões/);
+    const rem = revokeIncompleteMessage('remocao');
+    expect(rem).toMatch(/BANIDO e sem sessões/);
+  });
+
+  it('falha NO PRÓPRIO banimento: o núcleo devolve incomplete em banimento, o usuário não é alterado e o evento incompleto é auditado', async () => {
+    await reset();
+    expect((await run(owner())).status).toBe('created');
+    // faz o UPDATE de banimento falhar: o gatilho só nesta tabela recusa a escrita em auth_user.banned
+    const raw = (t.db as unknown as { $client: { query: (q: string) => Promise<unknown> } }).$client;
+    await raw.query(`CREATE OR REPLACE FUNCTION teste_recusa_ban() RETURNS trigger AS $$ BEGIN IF NEW.banned THEN RAISE EXCEPTION 'recusado no teste'; END IF; RETURN NEW; END $$ LANGUAGE plpgsql`);
+    await raw.query(`CREATE TRIGGER teste_recusa_ban BEFORE UPDATE ON auth_user FOR EACH ROW EXECUTE FUNCTION teste_recusa_ban()`);
+    try {
+      const term = new FakeTerm((p) => (p.includes('digite exatamente') ? PROD_ADMIN_REVOKE_PHRASE : p.startsWith('E-mail') ? EMAIL : ''));
+      const r = await revokeProductionAdmin(deps(), term, { commit: 'ban-falhou' });
+      expect(r).toMatchObject({ status: 'incomplete', step: 'banimento' });
+      const [u] = await t.db.select().from(schema.user);
+      expect(u).toMatchObject({ banned: false, twoFactorEnabled: true }); // nada foi alterado
+      expect(await counts()).toMatchObject({ users: 1, twoFactor: 1 });
+      expect(term.everShown.join('\n')).toMatch(/NADA foi alterado/);
+      expect(term.everShown.join('\n')).not.toMatch(/está BANIDO/);
+    } finally {
+      await raw.query('DROP TRIGGER teste_recusa_ban ON auth_user');
+      await raw.query('DROP FUNCTION teste_recusa_ban()');
+    }
+  });
+
+  it('Ctrl-C na frase da revogação e na da criação (antes de qualquer alteração): status cancelled, nada mudou, sem auditoria de falha', async () => {
+    await reset();
+    const abortar = () => new FakeTerm(() => {
+      const e = new Error('abortado');
+      e.name = 'ProdAdminAborted';
+      throw e;
+    });
+    const antes = (await t.db.select().from(schema.auditLog)).length;
+    expect(await revokeProductionAdmin(deps(), abortar())).toEqual({ status: 'cancelled' });
+    expect(await run(abortar())).toEqual({ status: 'cancelled' });
+    expect(await counts()).toEqual({ users: 0, twoFactor: 0, accounts: 0, sessions: 0 });
+    expect((await t.db.select().from(schema.auditLog)).length).toBe(antes);
   });
 });
