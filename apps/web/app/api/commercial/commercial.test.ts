@@ -4,6 +4,13 @@ import { schema } from '@ln/db';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 
+// DP-43 por ambiente: aprovar criativo e levar campanha a approved/active pela API só vale onde a venda foi liberada (staging);
+// em produção é 409 SALE_DISABLED_IN_ENV (venda-ambiente.test.ts). Este arquivo exercita o fluxo de venda, então roda como staging.
+const APP_ENV_ANTES = process.env.APP_ENV;
+beforeAll(() => { process.env.APP_ENV = 'staging'; });
+afterAll(() => { if (APP_ENV_ANTES === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = APP_ENV_ANTES; });
+
+
 let app: Awaited<ReturnType<typeof makeApp>>;
 let comercial: Awaited<ReturnType<typeof app.actor>>;
 let admin: Awaited<ReturnType<typeof app.actor>>;

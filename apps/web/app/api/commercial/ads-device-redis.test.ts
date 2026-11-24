@@ -16,6 +16,13 @@ import { sha256Hex } from '../_lib/commercial/creative-file';
 import { seedCommercial } from '../_lib/commercial/repo';
 import * as upload from './studio/creatives/upload/route';
 
+// DP-43 por ambiente: aprovar criativo e levar campanha a approved/active pela API só vale onde a venda foi liberada (staging);
+// em produção é 409 SALE_DISABLED_IN_ENV (venda-ambiente.test.ts). Este arquivo exercita o fluxo de venda, então roda como staging.
+const APP_ENV_ANTES = process.env.APP_ENV;
+beforeAll(() => { process.env.APP_ENV = 'staging'; });
+afterAll(() => { if (APP_ENV_ANTES === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = APP_ENV_ANTES; });
+
+
 const REAL_REDIS_URL = process.env.LN_TEST_REDIS_URL;
 if (REAL_REDIS_URL) assertLocalTestHost(REAL_REDIS_URL, 'LN_TEST_REDIS_URL');
 let app: Awaited<ReturnType<typeof makeApp>>;

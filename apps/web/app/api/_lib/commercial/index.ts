@@ -1,9 +1,11 @@
 // Rotas /api/commercial/** a partir da tabela ROUTES do módulo comercial (@ln/commercial/api).
 import { sql } from 'drizzle-orm';
 import { can } from '@ln/auth';
+import { apiError } from '@ln/contracts';
 import { makeCtx, type CommercialCtx } from '@ln/commercial';
 import { ROUTES, type Route } from '@ln/commercial/api';
 import type { Db } from '@ln/auth';
+import { AVISO_VENDA_DESLIGADA, vendaLiberadaNoAmbiente } from '../../../../lib/studio/comercial';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
 import type { RouteCtx } from '../http';
 import { adCall, isAdRoute } from './ads';
@@ -12,6 +14,30 @@ import { COMMERCIAL_LOCK, hydrate, loadDelivery, persist, seedCommercial } from 
 
 // relatório de campanha (campaignId) e do anunciante (accountId, contrato do Commercial): só eles recebem as linhas de ad_delivery_daily
 const isReportRoute = (path: string): boolean => /\/(campaigns|accounts)\/report(-csv)?$/.test(path);
+
+/**
+ * DP-43 por ambiente, na API (defesa em profundidade: a tela já esconde isto). Onde a venda NÃO foi liberada pelo proprietário
+ * (FLAG_RELEASES.adServerVendas null: produção hoje; ambiente desconhecido, local ou CI), aprovar criativo e levar campanha a
+ * 'approved' ou 'active' são recusados com 409 SALE_DISABLED_IN_ENV. É a MESMA regra das telas (vendaLiberadaNoAmbiente); staging e
+ * as demais operações (rascunho, reserva, cancelar, pausar...) não mudam.
+ */
+export const SALE_DISABLED_IN_ENV = 'SALE_DISABLED_IN_ENV';
+type AtorApi = { canManageCommercial: boolean; canApprove?: boolean } | undefined;
+/**
+ * A chamada é uma operação de venda que, sem a trava de ambiente, PASSARIA pelas checagens de papel? Só estas são recusadas com
+ * SALE_DISABLED_IN_ENV: o admin ao aprovar (criativo ou campanha) e quem gerencia o comercial ao ativar. Quem não pode aprovar segue
+ * recebendo o 403 APPROVAL_FORBIDDEN da DP-43 em qualquer ambiente (o contrato de papel não muda); sem sessão, o 401 vem antes.
+ */
+export function vendaTravadaNaApi(method: string, path: string, input: unknown, ator: AtorApi): boolean {
+  if (method !== 'POST' || !ator?.canManageCommercial) return false;
+  if (path.endsWith('/studio/creatives/approve')) return ator.canApprove === true;
+  if (path.endsWith('/studio/campaigns/transition')) {
+    const para = input && typeof input === 'object' ? (input as { to?: unknown }).to : undefined;
+    if (para === 'approved') return ator.canApprove === true;
+    return para === 'active';
+  }
+  return false;
+}
 
 /** Data de calendário em America/Sao_Paulo (YYYY-MM-DD). */
 export const saoPauloDate = (d: Date): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(d);
@@ -36,6 +62,10 @@ export const dispatchCommercial = createDispatcher({
       ? { id: c.session.userId, canManageCommercial: can(c.session.role, 'campanhas', 'update') && can(c.session.role, 'inventario', 'update'), canApprove: c.session.role === 'admin' /* DP-43: aprova imagem e campanha só o proprietário */ }
       : undefined;
     const extra = { now: now.toISOString(), today: saoPauloDate(now), flags: c.deps.flags, actor };
+    // DP-43 por ambiente: onde a venda não foi liberada, aprovar e ativar são recusados antes de tocar o banco
+    if (vendaTravadaNaApi(route.method, route.path, input, actor) && !vendaLiberadaNoAmbiente()) {
+      return { status: 409, body: apiError(SALE_DISABLED_IN_ENV, AVISO_VENDA_DESLIGADA) };
+    }
     // anúncios públicos: Redis, sem hidratar o banco inteiro e sem lock
     if (isAdRoute(route.path)) return adCall(route as Route, input, c, extra);
     if (route.method === 'GET') {
