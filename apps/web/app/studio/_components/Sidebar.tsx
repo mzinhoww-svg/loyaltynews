@@ -24,7 +24,7 @@ export function StudioSidebar({ itens }: { itens: NavItem[] }) {
       items: itens
         .filter((i) => i.grupo === g)
         .map((i) => ({
-          label: i.flagDesligada ? `${i.nome} (flag off)` : i.nome,
+          label: i.flagDesligada ? `${i.nome} (desligado nesta fase)` : i.nome,
           href: `/studio/${i.slug}`,
           current: ativo(`/studio/${i.slug}`),
         })),

@@ -28,7 +28,11 @@ export type RefusalCode =
   | 'no_independent_provider' | 'restricted_data';
 
 export type GatewayResponse =
-  | { ok: true; provider: string; model: string; output: unknown; usage: { inputTokens: number; outputTokens: number; costMicrosUsd: number } }
+  | {
+    ok: true; provider: string; model: string; output: unknown; usage: { inputTokens: number; outputTokens: number; costMicrosUsd: number };
+    /** Gateways com tarefa própria (OpenBot) devolvem o id da TAREFA que atendeu a chamada e a tentativa: a Editorial os usa para ligar checagem/revisão ao rascunho avaliado e para gravar o veredito na linha do piloto. Opcional. */
+    taskId?: string; attempt?: number;
+  }
   | { ok: false; refusal: RefusalCode; detail?: string };
 
 export interface ModelGateway {

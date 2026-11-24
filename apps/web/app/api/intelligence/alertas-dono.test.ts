@@ -50,10 +50,10 @@ describe('revisão de alerta: só o dono da lista', () => {
     expect((await pendente(dono)).status).toBe('pending_review');
   });
 
-  it('id que não existe = 404 igual ao de outro dono (não revela existência); id inválido 400; status inválido 400', async () => {
+  it('id que não existe ou que não é UUID = 404 igual ao de outro dono (não revela existência); status inválido 400', async () => {
     const a = await pendente(dono);
     expect((await rev('00000000-0000-4000-8000-000000000000', 'approved', dono)).status).toBe(404);
-    expect((await rev('nao-e-uuid', 'approved', dono)).status).toBe(400);
+    expect((await rev('nao-e-uuid', 'approved', dono)).status).toBe(404);
     expect((await rev(a.id, 'talvez', dono)).status).toBe(400);
   });
 

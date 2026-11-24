@@ -7,6 +7,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
 import { requireStudio } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
+import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { decidirRevisaoAction, rechecarAction } from '../../actions';
 
@@ -66,7 +67,8 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
 
       <h2>Afirmações (claims)</h2>
       {v.rascunho && v.rascunho.claims.length > 0 ? (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Checagem da matéria">
+<table className="st-table">
           <thead>
             <tr>
               <th scope="col">Afirmação</th>
@@ -84,6 +86,7 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       ) : (
         <p className="st-hint">Sem afirmações registradas.</p>
       )}

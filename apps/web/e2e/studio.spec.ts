@@ -101,6 +101,21 @@ test.describe('shell e navegação', () => {
     expect(m.linha / m.fonte).toBeGreaterThanOrEqual(1.2);
   });
 
+  // revisão visual P2-2: o usuário não vê nome de flag nem rótulo técnico; desligado e em uso não aparecem juntos
+  test('painel, menu, CMS, fontes e entidades falam em português, sem nome de flag', async ({ page, context }) => {
+    await entrar(context, 'ana', 'admin');
+    for (const rota of ['/studio', '/studio/cms', '/studio/fontes', '/studio/fontes/fabrica', '/studio/entidades']) {
+      await page.goto(rota);
+      await expect(page.locator('main h1').first()).toBeVisible();
+      const texto = await page.locator('body').innerText();
+      expect(texto, rota).not.toMatch(/\bflag\b|estado vazio/i);
+    }
+    await page.goto('/studio');
+    await expect(page.locator('[data-estado-modulo="desligado"]').first()).toHaveText('Desligado nesta fase');
+    await expect(page.locator('.st-card', { has: page.locator('[data-estado-modulo="desligado"]') }).getByText('Em uso')).toHaveCount(0);
+    await expect(page.getByRole('navigation').getByText(/\(desligado nesta fase\)/).first()).toBeVisible();
+  });
+
   test('flag desligada aparece no módulo', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio/social');

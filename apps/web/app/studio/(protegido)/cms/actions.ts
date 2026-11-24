@@ -26,7 +26,11 @@ function estadoDeErro(r: RespostaApi<unknown>): FormState {
   return { erros, mensagem: Object.keys(erros).length ? 'Corrija os campos destacados e envie de novo.' : mensagemErro(r) };
 }
 
-const ir = (id: string, tipo: 'ok' | 'err', msg: string): never => redirect(`/studio/cms/${encodeURIComponent(id)}?tipo=${tipo}&aviso=${encodeURIComponent(msg)}`);
+const ir = (id: string, tipo: 'ok' | 'err', msg: string, proximo?: string): never =>
+  redirect(`/studio/cms/${encodeURIComponent(id)}?tipo=${tipo}&aviso=${encodeURIComponent(msg)}${proximo ? `&proximo=${encodeURIComponent(proximo)}` : ''}`);
+
+/** Recusa do gate de fontes (nenhuma evidência registrada): a fonte rápida e a evidência rápida NÃO contam; o próximo passo é no Banco de fontes. */
+const FALTA_FONTE = 'Matéria sem fontes não vai para checagem: ela ainda não tem fonte com evidência registrada, e a fonte ou a evidência rápida não contam para a checagem. Próximo passo: no Banco de fontes, revise os termos e ative a fonte, registre a evidência e vincule-a à matéria.';
 
 /** Cria (sem id) ou altera (com id; cada alteração soma 1 à versão no Backend). */
 export async function salvarMateriaAction(_prev: FormState, fd: FormData): Promise<FormState> {
@@ -54,6 +58,9 @@ export async function salvarMateriaAction(_prev: FormState, fd: FormData): Promi
 
 async function transicionar(id: string, para: string, nota: string | undefined, sucesso: string): Promise<never> {
   const r = await api.materias.transicao(id, { para, ...(nota ? { nota } : {}) });
+  if (ehErro(r) && para === 'em_checagem' && (r.body as ErroApi | null)?.error?.code === 'GATES_FAILED' && JSON.stringify((r.body as ErroApi).error.details ?? '').includes('fontes:')) {
+    return ir(id, 'err', FALTA_FONTE, '/studio/fontes');
+  }
   return ir(id, ehErro(r) ? 'err' : 'ok', ehErro(r) ? mensagemErro(r) : sucesso);
 }
 

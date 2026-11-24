@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import { signBody } from '@ln/openbot';
@@ -333,11 +333,22 @@ describe('piloto (só staging, só com decisão registrada) e gate do AgentOps',
     }
   });
 
-  it('piloto ligado: pull exige a via (account); sem o gate do AgentOps (@ln/agents sem canDispatchNext) FALHA FECHADO com o motivo, nada é entregue', async () => {
-    await queue().enqueue(task(7), app.clock.now);
+  it('piloto ligado com o gate REAL do AgentOps (@ln/agents exporta canDispatchNext) e sem linhas pendentes: o pull exige a via e entrega', async () => {
+    await queue().enqueue(task(8), app.clock.now);
     on();
     expect((await post(pull, { workerId: 'w1' })).status).toBe(400); // piloto: o pull informa a via
     const r = await post(pull, { workerId: 'w1', account: 'claude' });
+    expect(r.status).toBe(200);
+    off();
+  });
+
+  it('piloto ligado: sem o gate do AgentOps (@ln/agents sem canDispatchNext) FALHA FECHADO com o motivo, nada é entregue', async () => {
+    await queue().enqueue(task(7), app.clock.now);
+    vi.doMock('@ln/agents', () => ({}));
+    on();
+    expect((await post(pull, { workerId: 'w1' })).status).toBe(400); // piloto: o pull informa a via
+    const r = await post(pull, { workerId: 'w1', account: 'claude' });
+    vi.doUnmock('@ln/agents');
     expect(r).toMatchObject({ status: 503, body: { error: { code: 'PILOT_STOPPED' } } });
     expect(JSON.stringify(r.body)).toMatch(/canDispatchNext/);
     off();

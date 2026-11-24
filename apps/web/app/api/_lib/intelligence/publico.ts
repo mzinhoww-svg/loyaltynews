@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { json, queryObject, type RouteFn } from '../http';
 import { hoje } from '../midia';
 import { intelDb } from './index';
+import { carregarEfeitos } from './titular-publico';
 
 const S = 'intelligence';
 const TIPOS = ['company', 'program', 'association', 'regulator', 'media', 'other'] as const;
@@ -87,10 +88,11 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
     [id, asOf],
   );
   const pessoasLigadas = c.deps.flags.intelligencePessoas === true;
+  const ef = await carregarEfeitos(c.deps.db);
   const pessoas = pessoasLigadas
     ? (
-        await db.query<{ person_id: string; full_name: string; title: string; valid_from: string; validated_at: string; ev_name: string; ev_url: string; ev_retrieved: string; is_mock: boolean }>(
-          `SELECT p.id AS person_id, p.full_name, r.title, r.valid_from::text, r.validated_at,
+        await db.query<{ role_id: string; person_id: string; full_name: string; title: string; valid_from: string; validated_at: string; ev_name: string; ev_url: string; ev_retrieved: string; is_mock: boolean }>(
+          `SELECT r.id AS role_id, p.id AS person_id, p.full_name, r.title, r.valid_from::text, r.validated_at,
                   ev.source_name AS ev_name, ev.source_url AS ev_url, ev.retrieved_at AS ev_retrieved, ev.is_mock
              FROM ${S}.role_assignment r
              JOIN ${S}.person p ON p.id = r.person_id AND p.suppressed_at IS NULL
@@ -99,7 +101,12 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
             ORDER BY p.full_name, r.title`,
           [id, asOf],
         )
-      ).rows.map((r) => ({ id: r.person_id, nome: r.full_name, cargo: r.title, vigenteDesde: r.valid_from, validadoEm: iso(r.validated_at), mock: r.is_mock, fonte: fonte(r) }))
+      ).rows
+        .filter((r) => !ef.pessoaOculta(r.person_id) && !ef.cargoOculto(r.role_id)) // pedidos do titular decididos (DP-38)
+        .map((r) => ({
+          id: r.person_id, nome: ef.campo('pessoa', r.person_id, 'nome') ?? r.full_name, cargo: ef.campo('cargo', r.role_id, 'cargo', 'titulo') ?? r.title, vigenteDesde: r.valid_from,
+          validadoEm: iso(r.validated_at), mock: r.is_mock, fonte: fonte(r), ...(ef.corrigido('pessoa', r.person_id) || ef.corrigido('cargo', r.role_id) ? { corrigidoPeloTitular: true } : {}),
+        }))
     : [];
   return json(
     {

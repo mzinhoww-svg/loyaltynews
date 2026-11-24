@@ -83,6 +83,8 @@ export function decodeEntities(s: string): string {
 
 /** Palavras de cabeçalho/menu que aparecem antes do nome nas tabelas "Nome | Cargo" e nunca fazem parte de um nome. */
 const STOP = new Set(['membros', 'membro', 'cargo', 'nome', 'diretoria', 'designação', 'mandato', 'conselho', 'administração', 'executiva', 'estatutária', 'composição', 'home', 'governança', 'corporativa', 'board', 'officers', 'executive', 'management', 'officer', 'members', 'cargos', 'data', 'eleição', 'prazo', 'início', 'término']);
+/** Tratamentos/honoríficos: nunca fazem parte do nome ("Dr. João Silva" e "João Silva" são o mesmo titular; sem isso a troca de tratamento viraria falsa saída). */
+const HONORIFIC = new Set(['dr', 'dra', 'sr', 'sra', 'srta', 'prof', 'profa', 'eng', 'enga', 'mr', 'mrs', 'ms', 'miss', 'sir', 'dna', 'don', 'doña']);
 const PARTICLE = new Set(['de', 'da', 'do', 'dos', 'das', 'di', 'del', 'van', 'von', 'y', 'e', 'la', 'le']);
 
 /**
@@ -110,7 +112,7 @@ function nameFrom(before: string): string | null {
     const w = words[i]!;
     const bare = w.replace(/[|,;:]/g, '');
     if (!bare) break;
-    const isName = /^\p{Lu}[\p{L}'’.-]*$/u.test(bare) && !STOP.has(bare.toLowerCase());
+    const isName = /^\p{Lu}[\p{L}'’.-]*$/u.test(bare) && !STOP.has(bare.toLowerCase()) && !HONORIFIC.has(bare.toLowerCase().replace(/.$/, ''));
     const isPart = PARTICLE.has(bare.toLowerCase());
     if (!isName && !isPart) break;
     picked.unshift(bare);

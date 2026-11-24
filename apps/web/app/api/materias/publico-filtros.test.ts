@@ -48,6 +48,8 @@ describe('GET /api/publico/materias com tipo', () => {
   it('tipo inválido: erro de validação (400 VALIDATION_ERROR no padrão da API), nunca lista tudo', async () => {
     const r = await list({ tipo: 'inventado' });
     expect([r.status, r.body.error.code]).toEqual([400, 'VALIDATION_ERROR']);
+    const vazio = await list({ tipo: '' }); // tipo= vazio também é 400 (não é ignorado)
+    expect([vazio.status, vazio.body.error.code]).toEqual([400, 'VALIDATION_ERROR']);
   });
 
   it('q também casa com o resumo (e continua com teto de 100 caracteres; % e _ são literais)', async () => {

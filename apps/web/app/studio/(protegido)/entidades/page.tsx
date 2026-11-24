@@ -33,7 +33,7 @@ export default async function EntidadesPage({ searchParams }: { searchParams: Pr
       <h1>Entity intelligence</h1>
       <p>Empresas, relações e cargos com fonte e data de validação. Informação profissional de fonte pública; ausência de registro não prova inexistência. Movimentações só viram fato depois de revisão.</p>
       <div className="st-alert" role="status">
-        Ingestão de pessoas (flag intelligencePessoas): <strong>{pessoasLigadas ? 'ligada' : 'desligada'}</strong>.
+        Ingestão de pessoas: <strong>{pessoasLigadas ? 'ligada' : 'desligada nesta fase'}</strong>.
       </div>
       <Flash tipo={tipo} aviso={aviso} />
       {semBanco ? (

@@ -1,6 +1,6 @@
 # Guia de tom de voz do Loyalty News — proposta v0.2 (para validação do UI/UX Director)
 
-**Status:** PROPOSTA. Não está em produção. O que roda hoje é o `tom-0.1` (provisório, 7 linhas em `src/factory/prompts.ts`); este documento é o que eu proponho colocar no lugar, depois que o UI/UX Director (e o Editor-chefe) validarem ou trocarem. Não existe guia de estilo aprovado no projeto: tudo abaixo é decisão a confirmar, não fato.
+**Status (23/11/2026): ADOTADO COMO VERSÃO DE TRABALHO pelo PM**, com os ajustes do parecer do UI/UX Director (seção 7). Está no prompt `editorial-0.3` (`tom-0.2`, `src/factory/prompts.ts`) e no "tom lint" (`src/rules/tone.ts`). O proprietário pode vetar ou ajustar ao ler as matérias do piloto. Não existe guia de estilo aprovado no projeto: tudo abaixo é decisão a confirmar, não fato.
 
 **Todos os exemplos são fictícios** (empresas, números e datas inventados só para ilustrar o estilo). Nenhum vem de matéria real.
 
@@ -95,3 +95,19 @@ Cinco princípios (em ordem de prioridade):
 5. Existe outro texto do projeto (manifesto, voz da marca, exemplos de matérias que vocês consideram "a cara do Loyalty News") que eu devo usar no lugar desta proposta?
 
 Enquanto não houver resposta, a fábrica continua com o `tom-0.1`.
+
+## 7. Parecer do UI/UX Director (23/11/2026) — identidade e interface; a aprovação editorial final é do Editor-chefe/proprietário
+
+1. **Palavras proibidas:** de acordo com a lista; "exclusivo" e "revolucionário" valem **fora de citação literal e de nome próprio de produto** (evita falso positivo).
+2. **Título:** manter a proibição de "veja/saiba/confira"; **teto de 90 caracteres** (não quebra o layout: card grande até 4 linhas, pequeno até 5) e **meta de até 70** para a home ficar escaneável.
+3. **Tratamento do leitor:** impessoal em notícia; "você" só em explicador.
+4. **Tom lint — dividir:**
+   - **BLOQUEAR** (objetivo, sem falso positivo): emoji; "!" no título; título acima de 90 caracteres; título começando por "veja", "saiba" ou "confira".
+   - **AVISAR o revisor** (depende de contexto): palavras proibidas no corpo; data relativa sem data absoluta; "você" em notícia.
+5. **Texto de voz da marca:** não existe manifesto, guia de voz nem matérias-modelo aprovadas nos materiais do projeto (só a assinatura do Brandkit e a frase em inglês do rodapé, que **não** entra em matéria em pt-BR). Se existirem, só o proprietário ou o PM podem fornecer. "Redação Loyalty News" já é o autor institucional nas bylines do portal.
+
+**Estado:** adotada como versão de trabalho pelo PM (decisão de 23/11/2026) e implementada: prompt `editorial-0.3` com `tom-0.2` e **tom lint** em `src/rules/tone.ts`.
+- **BLOQUEIA** (entra no gate do rascunho; o modelo recebe o achado e reescreve, até 3 tentativas): emoji; "!" no título; título com mais de 90 caracteres; título começando por veja/saiba/confira; a frase em inglês do rodapé da marca dentro da matéria.
+- **AVISA o revisor** (`avisosDeTom` em `getArticleReview`, sem bloquear): palavra proibida no título ou corpo (fora de citação literal e de nome próprio de produto); data relativa sem data absoluta no parágrafo; "você" fora de explicador; título entre 71 e 90 caracteres (meta de 70); "veja/saiba/confira" no meio do título.
+- **Não se aplica** à correção de matéria já publicada (não reprova texto antigo). Símbolos ©, ® e ™ não contam como emoji.
+- Limites: o nome próprio de produto é detectado por heurística (palavra proibida entre palavras com inicial maiúscula); data relativa é conferida por parágrafo; o lint não julga fato nem tom subjetivo.

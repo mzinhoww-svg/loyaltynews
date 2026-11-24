@@ -21,7 +21,7 @@ export default async function StudioHome() {
   return (
     <>
       <h1>LN Studio</h1>
-      <p className="st-hint">Painel administrativo do Loyalty News. Módulos sem backend mostram estado vazio honesto: nenhum número aqui é estimado ou fictício.</p>
+      <p className="st-hint">Painel administrativo do Loyalty News. Módulos sem backend mostram uma tela sem dados: nenhum número aqui é estimado ou fictício.</p>
 
       <h2>Fila editorial</h2>
       <div className="st-grid" aria-label="Contagem da fila editorial">
@@ -46,8 +46,9 @@ export default async function StudioHome() {
             <p className="st-hint">{GRUPOS[m.grupo]}</p>
             <p>{m.descricao}</p>
             <p>
-              <span className="st-badge">{m.implementado ? 'em uso' : 'estado vazio'}</span>{' '}
-              {m.flag ? <span className="st-badge">{flagAtiva(m.flag) ? `flag ${m.flag} ligada` : `flag ${m.flag} desligada`}</span> : null}
+              <span className="st-badge" data-estado-modulo={m.flag && !flagAtiva(m.flag) ? 'desligado' : m.implementado ? 'em-uso' : 'sem-dados'}>
+                {m.flag && !flagAtiva(m.flag) ? 'Desligado nesta fase' : m.implementado ? 'Em uso' : 'Sem dados ainda'}
+              </span>
             </p>
           </div>
         ))}

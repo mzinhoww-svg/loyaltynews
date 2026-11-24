@@ -4,14 +4,14 @@ import { flagAtiva } from '@/lib/studio/flags';
 import { StudioLayout } from '@ln/ui';
 import { visibleModules, GRUPOS, checkAccess } from '@/lib/studio/modules';
 import { StudioSidebar, type NavItem } from '../_components/Sidebar';
-import { currentSession } from '../_lib/guard';
+import { currentSession, urlDeEntrada } from '../_lib/guard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
   const { session } = await currentSession();
   const acesso = checkAccess(session, ['admin', 'editor_chefe', 'editor', 'revisor', 'comercial', 'leitor']);
-  if (!acesso.ok) redirect(`/studio/entrar?motivo=${acesso.reason}`);
+  if (!acesso.ok) redirect(await urlDeEntrada(acesso.reason));
   const itens: NavItem[] = visibleModules(session).map((m) => ({
     slug: m.slug,
     nome: m.nome,
