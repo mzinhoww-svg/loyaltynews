@@ -734,5 +734,45 @@
       "R0-01"
     ],
     "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-44 (sha256 do arquivo-fonte 6dd4880f4b51c1355f7e6b2afaf64d2a5b0905e72ea443738d1f62b86844934a)"
+  },
+  {
+    "id": "DP-45",
+    "status": "registrada",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Aceite com decisão do proprietário sobre o revisor externo: quando o revisor der parecer desfavorável apenas por ponto já decidido pelo proprietário por escrito (uma DP registrada em governance/decisions.yaml), o aceite pode sair mesmo assim, assinado pela chave raiz, citando a DP e o parecer contrário, com registro auditável. Os testes determinísticos (runner, protegidos, GLOBAL-TESTFLAGS) e as regras do GitHub continuam obrigatórios; não vale para falha de teste nem para ponto sem DP.",
+    "efeito": "O verificador ganha o modo accept-override: só depois de um parecer desfavorável do revisor, com o runner limpo aprovado, uma autorização assinada pela chave raiz (formato ln-override/1) que liga cada critério não atendido e cada problema do parecer a DPs registradas neste arquivo no commit alvo. A tag de aceite registra \"override DP-NN\", o hash do parecer contrário e a assinatura da raiz. O revisor continua literal; protegidos, GLOBAL-TESTFLAGS, runner e regras do GitHub continuam obrigatórios.",
+    "vinculo": [
+      "R0-06",
+      "DP-08"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-45 (sha256 do arquivo-fonte ba7e5d2628db5e2feb7a521c47df2e05046f95f80efc9725ce32827caf3b2075)"
+  },
+  {
+    "id": "DP-46",
+    "status": "registrada",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "R0-01, escopo de 2 chaves sem decisão anterior, aceitas como RISCO pelo proprietário: (1) C11 LN_VERTRA_DEPLOY_API_KEY com escrita (apps:write, apps:envs, apps:files), necessária para publicar, usada só pelo PM, revogável no painel da Vertra; (2) C16/C17 Bright Data (mesmo valor, uma conta; DP-36), sem permissão de cobrança e sem prova de escopo restrito à raspagem, revogável no painel. Teto segue pela DP-33.",
+    "efeito": "No inventário da R0-01, C11 e C16/C17 entram na tabela de exceções como \"risco aceito (DP-46)\". O teto de gasto continua pela DP-33. Revogação pelo painel da Vertra (C11) e da Bright Data (C16/C17).",
+    "vinculo": [
+      "DP-33",
+      "DP-36",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-46 (sha256 do arquivo-fonte ba7e5d2628db5e2feb7a521c47df2e05046f95f80efc9725ce32827caf3b2075)"
+  },
+  {
+    "id": "DP-47",
+    "status": "registrada",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "R0-01, C13 conexão mLabs do OpenBot (conta do proprietário, com escrita: criar, apagar e publicar posts): RISCO ACEITO, conexão mantida para leitura de métricas e preparo de posts. Nenhuma publicação sem aprovação do proprietário (regra vigente). Revogável no mLabs.",
+    "efeito": "No inventário da R0-01, C13 (conexão mLabs com escrita) entra na tabela de exceções como \"risco aceito (DP-47)\"; a conexão fica mantida para leitura de métricas e preparo de posts; nenhuma publicação sem aprovação do proprietário. Revogação no mLabs.",
+    "vinculo": [
+      "D05",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-47 (sha256 do arquivo-fonte ba7e5d2628db5e2feb7a521c47df2e05046f95f80efc9725ce32827caf3b2075)"
   }
 ]
