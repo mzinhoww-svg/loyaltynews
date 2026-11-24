@@ -71,6 +71,14 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }
   }
+  // trilha de auditoria editorial (só leitura, só no build de e2e): o teste prova quem habilitou/revisou e quando
+  if (q.get('auditoria') === 'editorial') {
+    try {
+      return Response.json({ ok: true, itens: await (await e2eBackend()).auditoriaEditorial() });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
   // conta NOVA com senha e segredo TOTP conhecidos: o teste digita no formulário de /studio/entrar (nunca devolve cookie de sessão)
   if (q.get('conta')) {
     if (!/^[a-z0-9_-]{1,32}$/.test(q.get('conta')!)) return Response.json({ error: { code: 'BAD_REQUEST', message: 'conta inválida' } }, { status: 400 });

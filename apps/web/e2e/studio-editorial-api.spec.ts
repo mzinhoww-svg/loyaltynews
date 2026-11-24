@@ -205,12 +205,10 @@ test.describe('Fontes da Fábrica (/api/studio/editorial/sources)', () => {
     await enviar(page, azul.getByRole('button', { name: 'Registrar revisão' }));
     await erro(page, /termsNote/);
 
-    await azul.getByText('Registrar revisão dos termos').click();
     await azul.getByLabel(/O que foi conferido/).fill('Termos oficiais lidos em 22/11: vedam reprodução sem autorização.');
     await enviar(page, azul.getByRole('button', { name: 'Registrar revisão' }));
     await erro(page, /URL verificada|robots/i); // aprovação exige URL verificada e robots conferido
 
-    await azul.getByText('Registrar revisão dos termos').click();
     await azul.getByLabel(/O que foi conferido/).fill('Termos oficiais lidos em 22/11: vedam reprodução sem autorização.');
     await azul.getByLabel('URL verificada').check();
     await azul.getByLabel('robots.txt conferido').check();
@@ -226,7 +224,7 @@ test.describe('Fontes da Fábrica (/api/studio/editorial/sources)', () => {
     await page.goto('/studio/fontes/fabrica?q=gol');
     const gol = page.locator('[data-fabrica-fonte="gol-ri"]');
     await enviar(page, gol.getByRole('button', { name: /Habilitar/ }));
-    await erro(page, /sem revisão registrada/i);
+    await expect(gol.locator('[data-cartao-msg]')).toContainText(/ainda não tem revisão/i); // editor-chefe segue o caminho formal (DP-51: só o administrador habilita direto)
 
     await page.goto('/studio/fontes/fabrica?q=azul');
     const azul = page.locator('[data-fabrica-fonte="azul-ri"]');

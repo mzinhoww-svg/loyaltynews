@@ -76,6 +76,10 @@ export interface SourceReview {
   paywall: 'none' | 'login' | 'metered';
   /** Impressão digital da definição da fonte revisada (host, prefixo, URLs, termos). Muda a definição => revisão vencida. */
   fingerprint: string;
+  /** DP-51: revisão IMPLÍCITA gravada pela habilitação direta do administrador (sem revisor independente); ausente = revisão formal. */
+  direta?: boolean;
+  /** DP-51: avisos de segurança que o administrador viu e aceitou ao habilitar (paywall/login, inacessível na pesquisa). */
+  riscoAceito?: string[];
 }
 
 /** Estado mutável de uma fonte; o cadastro (seed) é imutável e `enabled` nunca vem dele. */
