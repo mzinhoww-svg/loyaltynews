@@ -252,3 +252,8 @@
 @media (max-width: 767px) {
   .pt-pagehead .ln-breadcrumb__item:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+
+/* P3-5: categorias de preço do mídia kit recolhíveis (<details>); o título da categoria é o alvo de toque (44 px). */
+.pt-fold { border-top: 1px solid var(--ln-color-border); padding-block: var(--ln-space-1); }
+.pt-fold > summary { display: flex; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); cursor: pointer; font-weight: 700; }
+.pt-fold[open] > summary { margin-bottom: var(--ln-space-2); }

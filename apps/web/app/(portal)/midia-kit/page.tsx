@@ -166,18 +166,24 @@ export default async function MidiaKitPage() {
         {kit && kit.formats.length > 0 && (
           <div data-testid="mk-precos">
             <p className="pt-meta">Valores de referência por formato, ajustáveis; confirmados na proposta. Um formato só é vendido quando está disponível.</p>
-            {bySection(kit.formats).map(([section, rows]) => (
-              <ScrollRegion key={section} label={`Preços de referência: ${section}`}>
-                <table className="pt-table">
-                  <caption>{section}</caption>
-                  <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
-                  <tbody>
-                    {rows.map((f) => (
-                      <tr key={f.id}><td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td><td>{STATUS_LABEL[f.status]}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </ScrollRegion>
+            {/* P3-5 (revisão do staging 56e4cdc): a lista de preços passava de metade da página; cada categoria vira um <details> (a primeira aberta). */}
+            {bySection(kit.formats).map(([section, rows], i) => (
+              <details key={section} className="pt-fold" open={i === 0} data-testid="mk-preco-secao">
+                <summary>
+                  {section} <span className="pt-meta">({rows.length} {rows.length === 1 ? 'formato' : 'formatos'})</span>
+                </summary>
+                <ScrollRegion label={`Preços de referência: ${section}`}>
+                  <table className="pt-table">
+                    <caption className="pt-sr">{section}</caption>
+                    <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
+                    <tbody>
+                      {rows.map((f) => (
+                        <tr key={f.id}><td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td><td>{STATUS_LABEL[f.status]}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </ScrollRegion>
+              </details>
             ))}
             {kit.integrityNote && <p className="pt-meta" role="note" data-testid="mk-integridade">{kit.integrityNote}</p>}
           </div>

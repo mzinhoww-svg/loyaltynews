@@ -191,6 +191,8 @@ test.describe('mídia kit via API comercial', () => {
     await expect(semColeta).toContainText('Indisponível');
     const precos = page.getByTestId('mk-precos');
     await expect(precos.getByRole('row', { name: /Banner topo.*R\$ 3\.000\/mês.*Sob consulta/ })).toBeVisible();
+    // "Banner meio" está na 2ª categoria (P3-5: recolhida por padrão): abre-se pelo título antes de conferir a linha
+    await page.getByTestId('mk-preco-secao').nth(1).locator('summary').click();
     await expect(precos.getByRole('row', { name: /Banner meio.*Indisponível/ })).toBeVisible();
     // nenhum motivo interno (flag, P-01/P-02) na página pública
     expect(await page.locator('main').innerText()).not.toMatch(/\bflag\b|P-0[12]|adServerVendas/i);
@@ -207,6 +209,31 @@ test.describe('mídia kit via API comercial', () => {
     await expect(lista.locator('[data-position-item="AGENDA"]')).toContainText('dimensões em definição');
   });
 
+  test('P3-5: categorias de preço recolhíveis (details): a primeira aberta, as demais fechadas, o título é alvo de 44 px e a página fica mais curta', async ({ page }, info) => {
+    await page.goto('/midia-kit');
+    await aguardarHidratacao(page);
+    const secoes = page.getByTestId('mk-preco-secao');
+    await expect(secoes.nth(1).locator('summary')).toBeVisible(); // a seção chega no streaming e só depois troca de lugar
+    expect(await secoes.count()).toBe(2); // Banners e The Loyal no mock
+    await expect(secoes.nth(0)).toHaveJSProperty('open', true);
+    await expect(secoes.nth(1)).toHaveJSProperty('open', false);
+    // o título mostra a categoria e quantos formatos ela tem
+    await expect(secoes.nth(1).locator('summary')).toContainText('The Loyal');
+    await expect(secoes.nth(1).locator('summary')).toContainText(/\(\d+ formatos?\)/);
+    // alvo de toque do título: >= 44 px de altura
+    const alturaTitulo = (await secoes.nth(1).locator('summary').boundingBox())!.height;
+    expect(alturaTitulo, 'altura do título da categoria').toBeGreaterThanOrEqual(43.5);
+    // fechada: as linhas ficam fora da vista; aberta pelo título: aparecem, e a página cresce
+    const rolagemFechada = await page.evaluate(() => document.documentElement.scrollHeight);
+    await expect(secoes.nth(1).getByRole('row').nth(1)).toBeHidden();
+    await secoes.nth(1).locator('summary').click();
+    await expect(secoes.nth(1)).toHaveJSProperty('open', true);
+    await expect(secoes.nth(1).getByRole('row').nth(1)).toBeVisible();
+    const rolagemAberta = await page.evaluate(() => document.documentElement.scrollHeight);
+    expect(rolagemAberta, `página fechada ${rolagemFechada} px, aberta ${rolagemAberta} px`).toBeGreaterThan(rolagemFechada);
+    expect(info.project.name.length).toBeGreaterThan(0);
+  });
+
   test('P2-1: tabelas de preço por seção (vindas da API) também são regiões focáveis com nome único', async ({ page }) => {
     await page.goto('/midia-kit');
     const precos = page.getByTestId('mk-precos').locator('.pt-scroll');
@@ -221,6 +248,12 @@ test.describe('mídia kit via API comercial', () => {
     expect(nomes[0]).toContain('Preços de referência: Banners');
     expect(nomes[1]).toContain('Preços de referência: The Loyal');
     await aguardarHidratacao(page);
+    // P3-5: a segunda categoria (The Loyal) fica recolhida; abre-se pelo título, POR TECLADO (Enter), antes de focar a tabela: o clique do mouse
+    // faria o foco programático seguinte não mostrar o anel (heurística do :focus-visible).
+    await expect(precos.nth(0)).toBeVisible(); // a seção chega no streaming e só depois troca de lugar: espera a troca terminar antes de abrir a 2ª (senão o estado aberto se perde)
+    await expect(precos.nth(1)).toBeHidden();
+    await page.getByTestId('mk-preco-secao').nth(1).locator('summary').focus();
+    await page.keyboard.press('Enter');
     await expect(precos.nth(1)).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; a tabela chega oculta no streaming e só depois troca de lugar
     const foco = await focarELer(precos.nth(1));
     expect(foco.focado).toBe(true);
