@@ -36,6 +36,20 @@ O app web do staging (`ln-staging-web`, `https://loyaltynews-stg.vertraweb.app`)
 | `pull` manual | HTTP **401** `UNAUTHORIZED: assinatura recusada: sem_segredo` (não é mais o 503 mascarado) | **esperado nesta versão**: a `051a828` contém `0a2e2c8` (423 Locked) **e** `59eed1b` (o `pull` confere a assinatura ANTES de responder 423 `DISPATCH_OFF`) (conferido com `git merge-base --is-ancestor`); sem o segredo o `pull` já dá 401 como as demais rotas |
 Conclusão: o servidor com o 423 chegou ao staging. O `423 DISPATCH_OFF` do `pull` **ainda não foi observado** (precisa do segredo HMAC real no staging e no cofre do agente); com ele, o `pull` com o despacho desligado deve dar 423 e a sonda do `smoke`, 404 `LEASE_ERROR`. A `051a828` **não contém** o cliente com `smoke` (ft/growth `391ae8a`): o comando roda aqui a partir do worktree da ft/growth.
 
+## Sonda sem segredo na int/019: staging na `eac6be5` (24/11/2026, 12:59 UTC)
+Tarefa da linha 3 de `proximas-tarefas-2026-11-24-0920.md`. Staging `https://loyaltynews-stg.vertraweb.app`, versão `eac6be5` (`integracao: merge ft/infra f2de3bc`, pais `6151410` e `f2de3bc`). Só leituras e chamadas sem efeito; **nenhum agente criado; nada gravado**; o único valor de assinatura usado foi um texto FALSO de ensaio (`valor-falso-de-ensaio-nao-e-segredo`), nunca um segredo.
+| # | Chamada | Resposta (código e corpo) | Leitura |
+|---|---|---|---|
+| 1 | `GET /api/health` | **200** `{"status":"ok","service":"loyaltynews-web","version":"eac6be53b883…","env":"staging","flags":["intelligencePessoas"]}` | no ar; só `intelligencePessoas` ligada; **`openbotDispatch` desligada** |
+| 2 | `GET /api/ready` | **200** `{"status":"ok","mode":"completo","db":"ok","redis":"ok","tls":{"db":"ok","redis":"ok"},"migracoes":"ok"}` | banco e Redis ok, migrações ok |
+| 3 | `POST /api/openbot/pull` **sem cabeçalhos de assinatura** (curl) | **401** `{"error":{"code":"UNAUTHORIZED","message":"assinatura recusada: sem_segredo"}}` | falha fechada; a assinatura é conferida ANTES de qualquer 423 (ft/backend `59eed1b`) |
+| 4 | `POST /api/openbot/heartbeat` sem cabeçalhos (curl, tarefa `sonda-inexistente`) | **401** `UNAUTHORIZED` `assinatura recusada: sem_segredo` | idem |
+| 5 | cliente `heartbeat` com valor falso | **401** `UNAUTHORIZED: assinatura recusada: sem_segredo` | o servidor **não tem `OPENBOT_HMAC_SECRET`** (`sem_segredo`) |
+| 6 | cliente `pull --kinds fact_check` com valor falso | **401** `UNAUTHORIZED: assinatura recusada: sem_segredo` | não é mais o 503 mascarado da int/012 e da `1548e30` |
+| 7 | `smoke --expect-dispatch off` (cliente da ft/growth) | health PASS (`staging`, `eac6be53b883…`, `flags: ["intelligencePessoas"]`), flag `openbotDispatch` PASS (desligada), assinatura (`heartbeat` e `io/input`) **FAIL `401 sem_segredo`**; `ok: false` | o FAIL é o esperado sem o segredo no servidor |
+Conferido por `git merge-base --is-ancestor`: a `eac6be5` contém `0a2e2c8` (423 Locked), `59eed1b` (assinatura antes do 423) e `391ae8a` (cliente com `smoke`); **não** contém o `7fd57ac` (merge do main na int/019) nem o `2509f95` (roteiro com segredo), ambos só de docs/governança.
+Conclusão: a parte **sem segredo** está provada na int/019 do staging (401 `UNAUTHORIZED` sem cabeçalho, 401 `sem_segredo` com valor falso, health e ready ok, despacho desligado). **Continua não observado** (precisa do `OPENBOT_HMAC_SECRET` real no staging, pendência do PM): `heartbeat` = 404 `LEASE_ERROR`, `pull` com despacho desligado = 423 `DISPATCH_OFF`, 423 `KILL_SWITCH`/`PILOT_STOPPED`. O roteiro dessa parte, com os resultados esperados, está em `ROTEIRO-AGENTES-STAGING.md` §6 ("Roteiro da parte COM segredo").
+
 ## O que continua não verificado (precisa do segredo no staging, passo (c) do PM)
 - `heartbeat` com o segredo REAL: 404 `LEASE_ERROR` (assinatura aceita), e 401 com um segredo diferente.
 - `pull` com o despacho LIGADO (`LN_FLAGS_ON=openbotDispatch`) e o piloto (`LN_OPENBOT_PILOT=1`): só depois dos itens 5 e 6 do checklist (`ATIVACAO-STAGING.md` §0.2) e do sinal do PM.
