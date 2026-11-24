@@ -29,24 +29,77 @@ export const GATILHO_ADJACENCIA_GRAU = 2_000;
 export const MIN_ARESTAS = 100_000;
 export const RTT_MAX_PADRAO_MS = 20;
 export const GANHO_MIN_LOTE = 0.1;
+/** Piso ABSOLUTO (ms) do ganho do lote: acrescentado após a 4ª rodada (24/11), quando 76,3 × 63 ms deu 17 % mas só 13 ms; com ambas muito abaixo de 300 ms, trocar o código do produto por isso não compensa. */
+export const GANHO_MIN_LOTE_MS = 25;
 export const GANHO_MIN_INDICES = 0.2;
 export const PIORA_MAX_INDICES = 0.1;
 export const SERIES = ['neighbors_from_organization', 'neighbors_from_person', 'shortest_path_org_to_org'];
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
-/** Extrai o objeto JSON de um texto que pode ter linhas de log antes/depois: do primeiro `{` ao `}` que fecha o mesmo nível. */
-export function extractJson(text) {
-  const start = text.indexOf('{');
-  if (start < 0) throw new Error('nenhum objeto JSON encontrado');
+/** Fim do objeto que começa em `start` (índice do `{`): índice do `}` que fecha o mesmo nível, ou -1 se não fecha. */
+function objectEnd(text, start) {
   let depth = 0, inStr = false, esc = false;
   for (let i = start; i < text.length; i++) {
     const c = text[i];
     if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
     if (c === '"') inStr = true;
     else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) return JSON.parse(text.slice(start, i + 1));
+    else if (c === '}' && --depth === 0) return i;
   }
+  return -1;
+}
+
+/** Varre os objetos JSON do texto (pulando o conteúdo dos que já leu): `objs` são todos os objetos lidos; `reports` os que parecem relatório (têm `dataset` ou `results`). */
+function scanObjects(text) {
+  const objs = [], reports = [];
+  let from = text.indexOf('{');
+  while (from >= 0) {
+    const end = objectEnd(text, from);
+    let obj;
+    if (end >= 0) { try { obj = JSON.parse(text.slice(from, end + 1)); } catch { obj = undefined; } }
+    if (obj && typeof obj === 'object') {
+      objs.push(obj);
+      if ('dataset' in obj || 'results' in obj) reports.push(obj);
+      from = text.indexOf('{', end + 1);
+    } else from = text.indexOf('{', from + 1);
+  }
+  return { objs, reports };
+}
+
+const LOG_TS = /^\d{4}-\d\d-\d\dT[\d:.]+Z /gm;
+
+/**
+ * Formato REAL do `get_logs` da Vertra salvo em arquivo (4ª rodada, 24/11): capturas com cabeçalho `===== captura … =====`, cada uma um envelope JSON
+ * `{ "untrusted_content": "<linhas separadas por \n>" }` e cada linha com carimbo `2026-11-24T13:36:30.4Z `. O conteúdo é DADO de terceiros: só se lê o que for JSON
+ * do relatório; nada dele é tratado como instrução. Devolve o texto das capturas sem envelope e sem carimbo (ou o texto sem carimbo, se não houver envelope).
+ */
+function normalizeVertraLog(text, objs) {
+  const conteudos = objs.filter((o) => typeof o.untrusted_content === 'string').map((o) => o.untrusted_content);
+  return (conteudos.length ? conteudos.join('\n') : text).replace(LOG_TS, '');
+}
+
+/**
+ * Extrai o relatório de um texto que pode ser um LOG MISTURADO (stdout + stderr, como o `get_logs` da Vertra): linhas de progresso, objetos JSON de log e chaves soltas
+ * antes/depois; com mais de um relatório (fumaça e medição, ou capturas repetidas), vale o último com ≥ 100 mil arestas; se nenhum parece, o primeiro objeto lido. Se o texto não
+ * traz relatório como está, tenta o formato real do `get_logs` salvo em arquivo (envelope `untrusted_content` e carimbo de data por linha). Sem nenhum `{`: "nenhum objeto";
+ * só `{` que não fecham ou não são JSON: "incompleto".
+ */
+export function extractJson(text) {
+  if (text.indexOf('{') < 0) throw new Error('nenhum objeto JSON encontrado');
+  let { objs, reports } = scanObjects(text);
+  if (!reports.length) {
+    const normalizado = normalizeVertraLog(text, objs);
+    if (normalizado !== text) {
+      const outro = scanObjects(normalizado);
+      if (outro.reports.length) ({ reports } = outro);
+    }
+  }
+  // o log completo traz a FUMAÇA e a medição: vale o ÚLTIMO relatório com ≥ MIN_ARESTAS; sem nenhum assim, o último relatório (a interpretação o chamará de inválido)
+  const medido = reports.filter((r) => (r.dataset?.graph_edges ?? 0) >= MIN_ARESTAS);
+  if (medido.length) return medido[medido.length - 1];
+  if (reports.length) return reports[reports.length - 1];
+  if (objs.length) return objs[0];
   throw new Error('JSON incompleto (chaves não fecham)');
 }
 
@@ -114,9 +167,9 @@ export function interpret(report, opts = {}) {
       usar = 'indefinido';
       motivo = `medição de fora da rede: o p95 inclui a rede e não decide; só por ESTIMATIVA na mesma rede (única ${r1(est(r.results))} ms × lote ${r1(est(r.reference_batched))} ms)`;
     } else if (!cumpre && cumpreLote) { usar = 'lote'; motivo = 'a consulta única não cumpre o critério e o lote cumpre'; }
-    else if (cumpreLote && ganho >= GANHO_MIN_LOTE) { usar = 'lote'; motivo = `o lote tem pior p95 ${r1(ganho * 100)} % menor (≥ ${GANHO_MIN_LOTE * 100} % de histerese)`; }
+    else if (cumpreLote && ganho >= GANHO_MIN_LOTE && piorUnica - piorLote >= GANHO_MIN_LOTE_MS) { usar = 'lote'; motivo = `o lote tem pior p95 ${r1(ganho * 100)} % menor (≥ ${GANHO_MIN_LOTE * 100} % e ≥ ${GANHO_MIN_LOTE_MS} ms de ganho)`; }
     else if (!cumpre && !cumpreLote) { usar = 'nenhuma'; motivo = 'nenhuma das duas cumpre o critério'; }
-    else motivo = ganho > 0 && cumpreLote ? `o lote é só ${r1(ganho * 100)} % melhor (< ${GANHO_MIN_LOTE * 100} %): mantém a consulta única, que já está no produto` : 'a consulta única é igual ou melhor';
+    else motivo = ganho > 0 && cumpreLote ? `o lote é só ${r1(ganho * 100)} % (${r1(piorUnica - piorLote)} ms) melhor, abaixo do mínimo de ${GANHO_MIN_LOTE * 100} % e ${GANHO_MIN_LOTE_MS} ms: mantém a consulta única, que já está no produto (1 ida ao banco, não depende da rede)` : 'a consulta única é igual ou melhor';
     lote = {
       pior_p95_lote: r1(piorLote), cumpre_lote: cumpreLote, ganho_do_lote_sobre_unica_pct: r1(ganho * 100), usar, motivo,
       por_serie: SERIES.map((s) => ({ serie: s, unica: r1(p95Of(r.results, s)), lote: r1(p95Of(r.reference_batched, s)), idas_lote: r.reference_batched[s]?.db_roundtrips_median ?? null })),
