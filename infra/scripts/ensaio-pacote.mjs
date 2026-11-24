@@ -7,9 +7,11 @@
 // Condição da Vertra reproduzida: lá o HOME fica DENTRO da pasta do app (/app/.cache/vertra/tmp/build/home) e o Next recusa /app como raiz do
 // workspace ("ignored package.json ... would include your home directory"). O ensaio roda instalação, build e start com HOME/USERPROFILE
 // dentro da pasta do pacote; `--home outside` roda com o HOME fora (é o paliativo `HOME=/tmp/...` no comando de build).
-// Uso: node infra/scripts/ensaio-pacote.mjs --manifest <arquivo .manifest.json> [--port 3197] [--home inside|outside]
+// Uso: node infra/scripts/ensaio-pacote.mjs --manifest <arquivo .manifest.json> [--port 3197] [--home inside|outside] [--log-servidor <arquivo>] [--espera-servidor 180]
+//   --log-servidor grava a saída do servidor (start_command) para diagnosticar "servidor não subiu"; só o NOME das variáveis e erros, nunca valores (as do ensaio são fictícias).
+//   --espera-servidor segundos até o /api/health responder (padrão 180; máquina carregada por outros agentes deixava o `next start` lento e o padrão antigo de ~42 s reprovava à toa).
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -156,11 +158,16 @@ try {
   if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : apiSrc ? 'sem PORTAL_VITRINE' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
-  server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });
+  const logPath = args['log-servidor'] && args['log-servidor'] !== true ? resolve(String(args['log-servidor'])) : null;
+  const logFd = logPath ? openSync(logPath, 'w') : null;
+  server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: logFd === null ? 'ignore' : ['ignore', logFd, logFd], detached: !win });
   let up = false;
-  for (let i = 0; i < 60 && !up; i++) {
+  const esperaMs = Math.max(30, Number(args['espera-servidor'] ?? 180) || 180) * 1000;
+  const limite = Date.now() + esperaMs;
+  while (!up && Date.now() < limite) {
     try { const res = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(2000) }); up = res.ok; } catch { await new Promise((s) => setTimeout(s, 700)); }
   }
+  if (logFd !== null) closeSync(logFd);
   if (!step('servidor sobe com o start_command do manifesto', up)) throw new Error('servidor não subiu');
 
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', ...(vitrine ? ['--vitrine', '/'] : ['--no-mock', '/'])], { encoding: 'utf8' });

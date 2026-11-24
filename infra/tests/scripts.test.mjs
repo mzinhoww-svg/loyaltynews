@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
@@ -1500,4 +1500,12 @@ test('smoke-producao --expect-cache: reprova sem a política de cache e passa co
     const com = await run(['--expect-cache']);
     assert.ok(com.j.checagens.find((x) => /^cache:/.test(x.nome))?.ok, JSON.stringify(com.j.checagens.filter((x) => !x.ok)));
   } finally { s.close(); }
+});
+
+test('start-web: o next start roda de DENTRO de apps/web, sem o argumento de pasta (next.config.ts com import .ts irmão não carrega a partir da raiz)', async () => {
+  const { nextStartInvocation } = await import('../scripts/start-web.mjs');
+  const inv = nextStartInvocation('/app', '/app/node_modules/next/dist/bin/next', 80, '0.0.0.0');
+  assert.deepEqual(inv.args, ['/app/node_modules/next/dist/bin/next', 'start', '-p', '80', '-H', '0.0.0.0']);
+  assert.equal(inv.cwd.split(sep).join('/').replace(/^[A-Za-z]:/, ''), '/app/apps/web');
+  assert.ok(!inv.args.includes('apps/web'), 'sem o argumento de pasta');
 });
