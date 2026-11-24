@@ -235,7 +235,7 @@
       ],
       "so_staging": true,
       "dono_do_codigo": "packages/openbot (Integration; DP-41)",
-      "nota": "Liga o piloto OpenBot. SO com APP_ENV=staging e valor on; em production (ou qualquer APP_ENV diferente de staging) a variavel DEFINIDA reprova no guard-env (build e start). Fora do release.json: quem liga e o PM por set_env no staging, depois do checklist ATIVACAO-STAGING.md."
+      "nota": "Liga o piloto OpenBot. SO com APP_ENV=staging e valor exato 1 (o codigo compara com \"1\", packages: apps/web/app/api/_lib/openbot.ts pilotEnabled); em production (ou qualquer APP_ENV diferente de staging) a variavel DEFINIDA reprova no guard-env (build e start). Fora do release.json: quem liga e o PM por set_env no staging, depois do checklist ATIVACAO-STAGING.md."
     },
     {
       "nome": "OPENBOT_HMAC_SECRET",
