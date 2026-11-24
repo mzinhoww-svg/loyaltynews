@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe } from '../scripts/baixar-next-vertra.mjs';
+import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura } from '../scripts/baixar-next-vertra.mjs';
 import { listarExternos } from '../scripts/lib/prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -45,9 +45,11 @@ function servidor({ envelope = 'lista', limitarUma = false } = {}) {
     if (u.pathname.endsWith('/files/content')) {
       if (!e.file) { res.statusCode = 400; res.end('{"code":"NOT_A_FILE"}'); return; }
       const bin = e.file.includes(0);
+      if (envelope === 'real') { res.end(JSON.stringify({ response: { type: 'base64', data: e.file.toString('base64'), size: e.file.length, last_modified: '2026-11-24T16:06:17Z' } })); return; } // forma medida pela sonda do PM (24/11): até texto vem em base64
       const corpo = bin ? { content: e.file.toString('base64'), encoding: 'base64' } : { content: e.file.toString('utf8'), encoding: 'utf-8' };
       res.end(JSON.stringify(envelope === 'response' ? { response: corpo } : corpo));
     } else {
+      if (envelope === 'real') { res.end(JSON.stringify({ response: e.dir.map((x) => ({ name: x.name, path: `${u.searchParams.get('path')}/${x.name}`, type: x.dir ? 'directory' : 'file', last_modified: '2026-11-24T16:06:17Z', size: x.dir ? '' : String(x.size) })) })); return; }
       const itens = e.dir.map((x) => (envelope === 'files' ? { name: x.name, is_dir: x.dir, size: x.size } : { name: x.name, type: x.dir ? 'dir' : 'file', size: x.size }));
       res.end(JSON.stringify(envelope === 'lista' ? itens : envelope === 'response' ? { response: { path: u.searchParams.get('path'), entries: itens } } : { files: itens }));
     }
@@ -75,7 +77,7 @@ test('normalizarConteudo: base64 vira bytes; utf-8 vira texto; corpo cru passa c
   assert.equal(normalizarConteudo(Buffer.from('texto cru'), 'text/plain').toString(), 'texto cru');
 });
 
-for (const envelope of ['lista', 'files', 'response']) {
+for (const envelope of ['lista', 'files', 'response', 'real']) {
   test(`baixar (${envelope}): traz o .next sem cache/trace, binário íntegro, externos só como pastas vazias, recusa nome malicioso, retoma 429 e não vaza a chave`, async () => {
     const s = await servidor({ envelope, limitarUma: envelope === 'lista' });
     const dest = join(mkdtempSync(join(tmpdir(), 'ln-baixar-')), 'next');
@@ -152,4 +154,30 @@ test('normalizarConteudo: desembrulha { response: { content, encoding } } e { re
   assert.deepEqual(normalizarConteudo(json, 'application/json'), json, 'um .json cru sem envelope não é reescrito');
   const jsonEmTexto = Buffer.from(JSON.stringify({ response: { content: '{"version":1}', encoding: 'utf-8' } }));
   assert.equal(normalizarConteudo(jsonEmTexto, 'application/json').toString('utf8'), '{"version":1}', 'o conteúdo de um .json NÃO é reaberto como envelope');
+});
+
+test('FORMA REAL medida pela sonda do PM em 24/11 (listagem { response: [{ name, path, type, last_modified, size: string }] } e leitura { response: { type: "base64", data, size: number, last_modified } }): lê tamanho em texto e decodifica o data', () => {
+  const lista = { response: [{ name: 'BUILD_ID', path: 'apps/web/.next/BUILD_ID', type: 'file', last_modified: '2026-11-24T16:06:17Z', size: '21' }, { name: 'server', path: 'apps/web/.next/server', type: 'directory', last_modified: '2026-11-24T16:06:17Z', size: '' }, { name: 'x.js', path: 'apps/web/.next/x.js', type: 'file', last_modified: 'a', size: '1.2 KB' }] };
+  assert.deepEqual(normalizarListagem(lista), [{ nome: 'BUILD_ID', dir: false, tamanho: 21 }, { nome: 'server', dir: true, tamanho: null }, { nome: 'x.js', dir: false, tamanho: null }]);
+  const id = 'abcdefghijklmnopqrstu'; // 21 bytes
+  const leitura = (data, size, type = 'base64') => Buffer.from(JSON.stringify({ response: { type, data, size, last_modified: '2026-11-24T16:06:17Z' } }));
+  const bruto = normalizarConteudo(leitura(Buffer.from(id).toString('base64'), 21), 'application/json');
+  assert.equal(bruto.toString('utf8'), id, 'BUILD_ID de 21 bytes (antes saía o envelope de 121 bytes)');
+  assert.deepEqual(normalizarConteudo(leitura(FONTE.toString('base64'), FONTE.length), 'application/json'), FONTE, 'binário idêntico');
+  assert.equal(normalizarConteudo(leitura('olá', 4, 'text'), 'application/json').toString('utf8'), 'olá', 'texto: o size conta bytes (4)');
+  assert.equal(normalizarConteudo(leitura('olá', 3, 'text'), 'application/json').toString('utf8'), 'olá', 'texto: o size pode contar caracteres (3)');
+});
+
+test('decodificarLeitura/tamanhoDe: o size declarado é CONFERIDO (tamanho errado, tipo desconhecido sem size e base64 corrompido lançam, sem eco do conteúdo); tipo desconhecido só passa se o size resolver', () => {
+  assert.equal(tamanhoDe(21), 21);
+  assert.equal(tamanhoDe('21'), 21);
+  assert.equal(tamanhoDe('21 B'), 21);
+  for (const ruim of ['', '1.2 KB', '12 KB', 'x', null, undefined, -1, NaN, '1e3']) assert.equal(tamanhoDe(ruim), null, String(ruim));
+  assert.throws(() => decodificarLeitura(FONTE.toString('base64'), 'base64', FONTE.length + 1), /tamanho diferente do declarado .type base64, size 11, veio 10./);
+  assert.throws(() => decodificarLeitura('segredo-no-corpo', 'base64', 2), (e) => !/segredo-no-corpo/.test(e.message));
+  assert.throws(() => decodificarLeitura('AAAA', 'misterio', undefined), /tipo de conteúdo desconhecido sem size/);
+  assert.deepEqual(decodificarLeitura(FONTE.toString('base64'), 'misterio', FONTE.length), FONTE, 'tipo desconhecido resolvido pelo size (base64)');
+  assert.equal(decodificarLeitura('abc', 'misterio', 3).toString(), 'abc', 'tipo desconhecido resolvido pelo size (texto de 3 bytes que não é base64 de 3 bytes)');
+  assert.throws(() => decodificarLeitura('abc', 'misterio', 99), /não confere/);
+  assert.throws(() => normalizarConteudo(Buffer.from(JSON.stringify({ response: { type: 'base64', data: 'QUJD', size: 99 } })), 'application/json'), /tamanho diferente do declarado/, 'um arquivo com tamanho errado vira ERRO do arquivo, nunca bytes errados');
 });

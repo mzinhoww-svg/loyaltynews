@@ -74,25 +74,54 @@ export function normalizarListagem(json) {
   if (!lista) throw new Error(`formato de listagem não reconhecido (forma: ${formaDe(json)})`);
   return lista.map((e) => {
     if (typeof e === 'string') return { nome: e.replace(/\/+$/, ''), dir: e.endsWith('/'), tamanho: null };
-    const t = e?.size ?? e?.bytes ?? e?.length;
-    return { nome: nomeDe(e), dir: ehDir(e), tamanho: Number.isFinite(Number(t)) && t !== null && t !== undefined ? Number(t) : null };
+    // size vem como TEXTO na API real ("size: string"): "21" ou "21 B" conferem; tamanho "humano" ("1.2 KB") ou vazio = null (a leitura traz o size em número e confere)
+    return { nome: nomeDe(e), dir: ehDir(e), tamanho: tamanhoDe(e?.size ?? e?.bytes ?? e?.length) };
   });
 }
 
-/** Resposta de leitura -> Buffer. JSON { content, encoding } (base64 para binário); qualquer outra coisa = os bytes como vieram. Função pura. */
+/** Tamanho em bytes de um valor da API: número, "123" ou "123 B". Tamanho "humano" ("1.2 KB"), vazio ou lixo = null (não serve para conferir). Função pura. */
+export function tamanhoDe(v) {
+  if (typeof v === 'number') return Number.isFinite(v) && v >= 0 ? v : null;
+  const m = /^\s*(\d+)\s*(?:B|bytes?)?\s*$/i.exec(String(v ?? ''));
+  return m ? Number(m[1]) : null;
+}
+
+const TIPOS_TEXTO = ['text', 'utf8', 'utf-8', 'string', 'plain'];
+
+/**
+ * Decodifica o `data` de uma leitura pelo `type` declarado e CONFERE o `size` declarado (a leitura não pode sair corrompida em silêncio): base64 -> bytes; texto -> utf-8
+ * (o size pode contar bytes ou caracteres); tipo desconhecido só passa se o size resolver a dúvida. Lança sem eco do conteúdo. Função pura.
+ */
+export function decodificarLeitura(data, tipo, size) {
+  const t = String(tipo ?? '').toLowerCase();
+  const tamanho = tamanhoDe(size);
+  const rotulo = `type ${t.replace(/[^a-z0-9_-]/g, '').slice(0, 20) || '(vazio)'}, size ${tamanho ?? '(ausente)'}`;
+  const b64 = () => Buffer.from(data, 'base64');
+  const txt = () => Buffer.from(data, 'utf8');
+  if (t === 'base64') { const b = b64(); if (tamanho === null || b.length === tamanho) return b; throw new Error(`conteúdo com tamanho diferente do declarado (${rotulo}, veio ${b.length})`); }
+  if (TIPOS_TEXTO.includes(t)) { const b = txt(); if (tamanho === null || b.length === tamanho || data.length === tamanho) return b; throw new Error(`conteúdo com tamanho diferente do declarado (${rotulo}, veio ${b.length})`); }
+  if (tamanho === null) throw new Error(`tipo de conteúdo desconhecido sem size para conferir (${rotulo})`);
+  for (const f of [b64, txt]) { const b = f(); if (b.length === tamanho) return b; }
+  throw new Error(`tipo de conteúdo desconhecido e o size não confere (${rotulo})`);
+}
+
+/**
+ * Resposta de leitura -> Buffer. Formato REAL da Vertra (sonda de 24/11): { response: { type, data, size, last_modified } } (type "base64" em geral; data = bytes em base64).
+ * Também aceita o envelope antigo { content, encoding } e { response: "texto" }; qualquer outra coisa = os bytes como vieram. Função pura.
+ */
 export function normalizarConteudo(corpo, contentType = '') {
   const ehJson = /json/i.test(contentType) || (corpo.length > 1 && corpo[0] === 0x7b);
-  if (ehJson) {
-    try {
-      const bruto = JSON.parse(corpo.toString('utf8'));
-      const j = desembrulhar(bruto); // { response: { content, encoding } } e parentes
-      if (typeof j === 'string' && j !== bruto && bruto && typeof bruto === 'object') return Buffer.from(j, 'utf8'); // { response: "texto do arquivo" }
-      const c = j?.content ?? j?.data?.content;
-      if (typeof c === 'string') {
-        const enc = String(j?.encoding ?? j?.data?.encoding ?? 'utf-8').toLowerCase();
-        return enc === 'base64' ? Buffer.from(c, 'base64') : Buffer.from(c, 'utf8');
-      }
-    } catch { /* não era o envelope: devolve como veio */ }
+  if (!ehJson) return corpo;
+  let bruto;
+  try { bruto = JSON.parse(corpo.toString('utf8')); } catch { return corpo; }
+  const j = desembrulhar(bruto); // { response: ... } e parentes
+  if (typeof j === 'string' && j !== bruto && bruto && typeof bruto === 'object') return Buffer.from(j, 'utf8'); // { response: "texto do arquivo" }
+  if (!j || typeof j !== 'object' || Array.isArray(j)) return corpo;
+  if (typeof j.data === 'string' && 'type' in j) return decodificarLeitura(j.data, j.type, j.size); // a decodificação lança (tamanho/tipo): erro do arquivo, nunca bytes errados
+  const c = j.content ?? j.data?.content;
+  if (typeof c === 'string') {
+    const enc = String(j.encoding ?? j.data?.encoding ?? 'utf-8').toLowerCase();
+    return enc === 'base64' ? Buffer.from(c, 'base64') : Buffer.from(c, 'utf8');
   }
   return corpo;
 }
