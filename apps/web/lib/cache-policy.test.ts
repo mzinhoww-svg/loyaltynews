@@ -1,6 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CACHE_60S as CACHE_60S_ROTAS, NO_STORE as NO_STORE_ROTAS } from './cache-60s';
 import config, { NO_STORE, CACHE_60S, PAGINAS_CACHEAVEIS, PAGINAS_NO_STORE, cacheControlDe, portalCacheHeaders, portalSecurityHeaders } from '../next.config';
 
 /**
@@ -30,6 +31,7 @@ const CLASSIFICACAO: Record<string, 'cacheavel' | 'no-store' | 'padrao-next'> = 
   '/agenda/:slug/ics': 'no-store',
   '/anuncie': 'padrao-next',
   '/busca': 'padrao-next',
+  '/busca/sugestoes': 'padrao-next', // JSON de sugestões da busca do cabeçalho; o handler define o próprio Cache-Control (60 s na resposta boa, no-store no 400 e no indisponível)
   '/em-alta': 'cacheavel',
   '/feed.xml': 'padrao-next',
   '/indicadores': 'padrao-next',
@@ -159,5 +161,12 @@ describe('política de cache do portal: página com pessoas tem de ser dinâmica
       expect(src, `${rel}: falta export const dynamic = 'force-dynamic'`).toMatch(/export const dynamic\s*=\s*'force-dynamic'/);
       expect(src, `${rel}: não pode ter export const revalidate (ISR sobrescreve o Cache-Control)`).not.toMatch(/export const revalidate\b/);
     }
+  });
+});
+
+describe('política de cache do portal: constantes dos Route Handlers = as do next.config.ts', () => {
+  it('lib/cache-60s.ts repete exatamente CACHE_60S e NO_STORE do next.config.ts (única duplicação permitida, com este teste)', () => {
+    expect(CACHE_60S_ROTAS).toBe(CACHE_60S);
+    expect(NO_STORE_ROTAS).toBe(NO_STORE);
   });
 });

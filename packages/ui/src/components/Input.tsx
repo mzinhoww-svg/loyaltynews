@@ -56,6 +56,8 @@ export interface SearchInputProps {
   placeholder?: string;
   label?: string;
   className?: string;
+  /** Foco automático no campo (HTML `autofocus`: vale também sem JavaScript). */
+  autoFocus?: boolean;
 }
 
 /** Busca: <form role="search"> com rótulo acessível e botão. */
@@ -67,6 +69,7 @@ export function SearchInput({
   placeholder = "Buscar no Loyalty News",
   label = "Buscar",
   className,
+  autoFocus,
 }: SearchInputProps) {
   const id = useId();
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -80,7 +83,7 @@ export function SearchInput({
       <label htmlFor={id} className="ln-sr-only">
         {label}
       </label>
-      <input id={id} name={name} type="search" className="ln-field__input ln-search__input" placeholder={placeholder} defaultValue={defaultValue} autoComplete="off" />
+      <input id={id} name={name} type="search" className="ln-field__input ln-search__input" placeholder={placeholder} defaultValue={defaultValue} autoComplete="off" autoFocus={autoFocus} />
       <Button type="submit" variant="primary">
         Buscar
       </Button>
