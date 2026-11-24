@@ -23,20 +23,26 @@ const DRAFT =
 export const INFO_DOCS: Record<string, InfoDoc> = {
   sobre: {
     slug: 'sobre',
-    title: 'Sobre o Loyalty News',
-    lead: 'Veículo especializado em estratégia, tecnologia e economia da fidelização. Nossa missão é contextualizar fatos com rigor, independência e fontes verificáveis.',
+    title: 'Quem somos',
+    lead: 'O Loyalty News é um veículo especializado em estratégia, tecnologia e economia da fidelização. Nossa missão é contextualizar fatos com rigor, independência e fontes verificáveis.',
     sections: [
       {
         heading: 'O que cobrimos',
         paragraphs: [
-          'Programas de fidelidade, pontos e milhas, bancos e cartões, varejo e cashback, travel e hospitality, LoyaltyTech e IA, CRM e CX, Global Loyalty e regulação e dados: dez editorias que formam o mercado brasileiro de fidelização.',
+          'Programas de fidelidade, pontos e milhas, bancos e cartões, varejo e cashback, travel e hospitality, LoyaltyTech e IA, CRM e CX, Global Loyalty e regulação e dados: dez editorias que formam o mercado brasileiro de fidelização, com olhar também para o que acontece fora do Brasil.',
         ],
       },
       {
-        heading: 'Como trabalhamos',
+        heading: 'Quem produz',
         paragraphs: [
-          'As matérias são assinadas pela instituição, como Redação Loyalty News. Não criamos repórteres, entrevistas ou apuração presencial que não existam. Quando uma matéria for baseada em documentos e comunicados públicos, ela diz isso e aponta as fontes.',
-          'Veja a metodologia, a política editorial e a política de correções para os detalhes.',
+          'As matérias são assinadas pela instituição, como Redação Loyalty News. A assinatura é institucional: não criamos repórteres, entrevistas ou apuração presencial que não existam.',
+          'Usamos automação e inteligência artificial em etapas do processo: leitura das fontes públicas, redação, checagem e revisão. A equipe editorial define as fontes, a pauta e os limites, acompanha o resultado e corrige ou retira o que estiver errado. Detalhes na metodologia e na política editorial.',
+        ],
+      },
+      {
+        heading: 'De onde vem a informação',
+        paragraphs: [
+          'Priorizamos fontes primárias e públicas: comunicados oficiais, relações com investidores, regulamentos de programas, órgãos reguladores, governo e associações do setor. Blogs e a imprensa especializada ajudam a descobrir assuntos, mas um fato só vira matéria quando há fonte primária. Cada matéria lista as fontes, com link e data.',
         ],
       },
       {
@@ -44,6 +50,10 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
         paragraphs: [
           'Publicidade e conteúdo patrocinado são sempre identificados e não influenciam a pauta editorial. Posições de ranking editorial não são vendidas.',
         ],
+      },
+      {
+        heading: 'Fale com a gente',
+        paragraphs: ['Correções, direito de resposta, pedidos sobre dados pessoais e demais assuntos: veja a página de contato e o formulário de pedidos em correções.'],
       },
     ],
   },
@@ -96,14 +106,40 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
         ],
       },
       {
+        heading: 'Fontes e atribuição',
+        items: [
+          'Toda matéria lista as fontes usadas, com link, e atribui cada afirmação a quem a fez ("segundo...").',
+          'Números, datas, valores e citações só entram no texto quando constam na fonte. O que não está na fonte não é afirmado.',
+          'Citação literal é curta, entre aspas e atribuída. Não copiamos o texto das fontes nem o disfarçamos trocando palavras: escrevemos com palavras próprias a partir dos fatos.',
+          'Blogs e imprensa especializada servem de pista de pauta. Para virar matéria, o fato precisa de fonte primária citada.',
+        ],
+      },
+      {
+        heading: 'Autoria e uso de inteligência artificial',
+        paragraphs: [
+          'As matérias levam a assinatura Redação Loyalty News. Não inventamos autores, entrevistas, falas ou métricas. Usamos automação e inteligência artificial para ler fontes públicas, redigir, checar e revisar; a checagem das afirmações é feita por um processo independente do que redigiu o texto, e a equipe editorial responde pelo que é publicado.',
+        ],
+      },
+      {
         heading: 'Formatos',
         paragraphs: [
           'Notícia, Loyalty Flash, análise, entrevista, opinião, estudo, conteúdo patrocinado e cobertura de evento. O formato é identificado em cada card e página. Entrevistas só são declaradas quando realizadas; opinião é assinada por autor consentido.',
+          'Conteúdo autoral é a análise própria da redação, feita só a partir de fontes oficiais citadas ao final; leva um aviso no início, não traz falas e não é recomendação de compra, investimento ou contratação.',
+        ],
+      },
+      {
+        heading: 'Imagens e ilustrações',
+        paragraphs: [
+          'Só publicamos imagem com base de uso demonstrável (licença, autorização, domínio público ou exceção validada), com crédito e link. Na dúvida, não publicamos. Quando uma matéria não tem imagem, a vitrine pode exibir uma ilustração conceitual, sempre rotulada como "Ilustração conceitual" e creditada ao Loyalty News; ela não é registro de um fato.',
         ],
       },
       {
         heading: 'Conteúdo patrocinado',
-        paragraphs: ['Sempre rotulado de forma ostensiva no card, na página, nas redes e na newsletter.'],
+        paragraphs: ['Sempre rotulado de forma ostensiva no card, na página, nas redes e na newsletter. Conteúdo patrocinado não é produzido pela redação.'],
+      },
+      {
+        heading: 'Erros e correções',
+        paragraphs: ['Erros são corrigidos de forma visível. Veja como pedir correção e como funciona o direito de resposta na página de correções.'],
       },
     ],
   },
@@ -115,18 +151,25 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Correções',
         paragraphs: [
-          'Erros factuais são corrigidos e registrados no histórico da matéria, com data e descrição. Correções relevantes são propagadas a redes sociais e a perfis relacionados.',
+          'Erros factuais são corrigidos e registrados no histórico da matéria, com data e descrição do que mudou. Correções relevantes são propagadas a redes sociais e a perfis relacionados. Em caso de dúvida sobre um dado, preferimos retirar ou corrigir a manter.',
+        ],
+      },
+      {
+        heading: 'Direito de resposta e pedidos de remoção',
+        paragraphs: [
+          'Pessoas e empresas citadas podem pedir correção de um dado, remoção de um dado ou direito de resposta. Cada pedido é analisado pela redação, e a decisão e a data ficam registradas. Quando a resposta é cabível, ela é publicada junto da matéria.',
+          'A resposta chega ao e-mail informado no pedido.',
         ],
       },
       {
         heading: 'Créditos e direitos autorais',
         paragraphs: [
-          'Todo material de terceiros é creditado. Titulares e autores que identificarem uso indevido podem enviar notificação pelo canal de contato; analisamos, retiramos quando cabível e mantemos registro do prazo e da decisão.',
+          'Todo material de terceiros é creditado. Titulares e autores que identificarem uso indevido podem enviar notificação pelo formulário abaixo; analisamos, retiramos quando cabível e mantemos registro do prazo e da decisão.',
         ],
       },
       {
         heading: 'Pedidos de titulares de dados',
-        paragraphs: ['Para pedir correção ou remoção de dados pessoais, use o formulário desta página (/correcoes#pedido). A resposta chega ao e-mail informado. Os direitos e as bases legais estão na página de privacidade e LGPD.'],
+        paragraphs: ['Para pedir correção ou remoção de dados pessoais, use o formulário desta página (/correcoes#pedido): ele pede só seu nome, um e-mail para resposta, o endereço da página, o tipo do pedido e a descrição. Os direitos e as bases legais estão na página de privacidade e LGPD.'],
       },
       {
         heading: 'Histórico de correções',
@@ -142,7 +185,16 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     sections: [
       {
         heading: 'Controlador e contato do encarregado',
-        paragraphs: ['A definir antes do lançamento (pendência de governança R1-01). Esta página será atualizada com identificação e canal oficiais.'],
+        paragraphs: ['A identificação do controlador e o canal do encarregado de dados serão publicados aqui antes do lançamento (pendência de governança R1-01). Até lá, os pedidos de titulares são recebidos pelo formulário em /correcoes#pedido.'],
+      },
+      {
+        heading: 'Quais dados tratamos',
+        items: [
+          'Leitura do portal: dados técnicos de acesso necessários ao funcionamento e à segurança. A medição de audiência só será ativada com aviso e controle de preferências.',
+          'Pedidos de titulares e de correção: nome, e-mail para resposta, endereço da página, tipo e descrição do pedido, usados apenas para analisar e responder.',
+          'Pessoas citadas na seção Intelligence: nome, cargo, empresa e período, só quando publicados por fonte oficial, relevantes e verificados.',
+          'Newsletter e preferências, quando existirem: e-mail e escolhas, com consentimento específico.',
+        ],
       },
       {
         heading: 'Princípios',
@@ -155,7 +207,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Direitos do titular',
-        paragraphs: ['Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O pedido é feito pelo formulário em /correcoes#pedido, e a resposta chega ao e-mail informado.'],
+        paragraphs: ['Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O pedido é feito pelo formulário em /correcoes#pedido, e a resposta chega ao e-mail informado. Quem aparece na seção de pessoas pode pedir correção ou remoção do dado por esse mesmo caminho.'],
       },
       {
         heading: 'Cookies e medição',
@@ -171,11 +223,19 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     sections: [
       {
         heading: 'Uso do conteúdo',
-        paragraphs: ['O conteúdo do Loyalty News é protegido por direitos autorais. É permitido citar com crédito e link; reprodução integral exige autorização.'],
+        paragraphs: ['O conteúdo do Loyalty News é protegido por direitos autorais. É permitido citar com crédito e link; reprodução integral exige autorização. Textos, dados e fontes de terceiros citados em nossas matérias pertencem aos seus titulares.'],
+      },
+      {
+        heading: 'Natureza das informações',
+        paragraphs: ['As informações têm caráter jornalístico e informativo e não constituem recomendação financeira ou de consumo. Ofertas, bônus, prazos e regras de programas mudam: confira sempre na fonte citada antes de decidir.'],
+      },
+      {
+        heading: 'Publicidade e links',
+        paragraphs: ['Anúncios e conteúdos patrocinados são identificados. Links para sites de terceiros não significam endosso, e não respondemos pelo conteúdo deles.'],
       },
       {
         heading: 'Responsabilidade',
-        paragraphs: ['As informações têm caráter jornalístico e informativo e não constituem recomendação financeira ou de consumo.'],
+        paragraphs: ['Corrigimos erros quando os identificamos ou quando nos são informados, nos termos da política de correções. O portal pode ficar indisponível temporariamente por manutenção ou falha.'],
       },
       {
         heading: 'Alterações',
@@ -209,16 +269,22 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     lead: 'Fale com a redação, o comercial ou o encarregado de dados.',
     sections: [
       {
-        heading: 'Canais',
+        heading: 'Pedidos que já têm canal',
         paragraphs: [
-          'Os canais oficiais (e-mail, redes e formulário) ainda não foram confirmados e não serão exibidos até a configuração oficial. Esta página será atualizada na ativação.',
+          'Correção ou remoção de um dado, direito de resposta, notificação de direitos autorais e pedidos de titulares de dados: use o formulário de pedidos em /correcoes#pedido. A resposta chega ao e-mail informado no formulário.',
+        ],
+      },
+      {
+        heading: 'Demais canais',
+        paragraphs: [
+          'Os canais oficiais de e-mail e redes ainda não foram confirmados e não serão exibidos até a configuração oficial. Esta página será atualizada na ativação.',
         ],
       },
       {
         heading: 'Assuntos',
         items: [
           'Redação: sugestões de pauta, correções e direito de resposta.',
-          'Comercial: propostas e mídia kit.',
+          'Comercial: propostas e mídia kit (veja a página de publicidade).',
           'Titulares de dados: pedidos de acesso, retificação e supressão.',
           'Direitos autorais: notificações de autores e titulares.',
         ],
