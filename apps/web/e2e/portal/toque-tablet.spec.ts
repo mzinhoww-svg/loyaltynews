@@ -12,6 +12,8 @@ const altura = (page: import('@playwright/test').Page, seletor: string) =>
 
 test('home a 768 px: botões do cabeçalho e "Ver todas" com pelo menos 44 px', async ({ page }) => {
   await page.goto('/');
+  // A home faz streaming: espera o conteúdo (e não o esqueleto de carregamento) antes de medir.
+  await expect(page.locator('.pt-more').first()).toBeVisible();
   for (const s of ['.ln-header__cta', '.pt-more']) {
     const hs = await altura(page, s);
     expect(hs.length, `sem elementos para ${s}`).toBeGreaterThan(0);
@@ -21,6 +23,7 @@ test('home a 768 px: botões do cabeçalho e "Ver todas" com pelo menos 44 px', 
 
 test('matéria a 768 px: links do breadcrumb com pelo menos 44 px e respiro de 16 px sob o cabeçalho', async ({ page }) => {
   await page.goto('/noticia/mock-mercado-1');
+  await expect(page.locator('.ln-breadcrumb__item a').first()).toBeVisible();
   for (const h of await altura(page, '.ln-breadcrumb__item a')) expect(h).toBeGreaterThanOrEqual(44);
   const gap = await page.evaluate(() => document.querySelector('.ln-breadcrumb')!.getBoundingClientRect().top - document.querySelector('header')!.getBoundingClientRect().bottom);
   expect(gap).toBeGreaterThanOrEqual(16);
