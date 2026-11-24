@@ -89,10 +89,15 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           Filtro inválido.
         </div>
       ) : (
-        // a tabela da fila vem do @ln/growth/ui: o quadro do Studio dá a ela região com nome e foco no celular (ressalva do QA 7 no bfad5fc)
-        <QuadroRolavel rotulo="Fila de pacotes sociais">
+        // a tabela da fila vem do @ln/growth/ui: o quadro do Studio dá a ela região com nome e foco no celular (ressalva do QA 7 no bfad5fc).
+        // Fila vazia não tem tabela para rolar: sem quadro, para não haver região focável vazia (P3 do QA 7 no 458e5aa).
+        (fila.body as QueueResult).items.length > 0 ? (
+          <QuadroRolavel rotulo="Fila de pacotes sociais">
+            <PackageQueue result={fila.body as QueueResult} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
+          </QuadroRolavel>
+        ) : (
           <PackageQueue result={fila.body as QueueResult} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
-        </QuadroRolavel>
+        )
       )}
 
       {podeGerar ? (
