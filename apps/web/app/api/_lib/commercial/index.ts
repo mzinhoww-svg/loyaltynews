@@ -33,7 +33,7 @@ export const dispatchCommercial = createDispatcher({
   async call(route, input, c) {
     const now = c.deps.now();
     const actor = c.session
-      ? { id: c.session.userId, canManageCommercial: can(c.session.role, 'campanhas', 'update') && can(c.session.role, 'inventario', 'update') }
+      ? { id: c.session.userId, canManageCommercial: can(c.session.role, 'campanhas', 'update') && can(c.session.role, 'inventario', 'update'), canApprove: c.session.role === 'admin' /* DP-43: aprova imagem e campanha só o proprietário */ }
       : undefined;
     const extra = { now: now.toISOString(), today: saoPauloDate(now), flags: c.deps.flags, actor };
     // anúncios públicos: Redis, sem hidratar o banco inteiro e sem lock
