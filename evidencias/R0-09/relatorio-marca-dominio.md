@@ -1,4 +1,5 @@
 # R0-09 — Relatório de busca de marca e de domínio: "Loyalty News" (v2)
+> **Cópia para o repositório público (rev. 2, Security, 24/11/2026):** nomes de pessoas físicas titulares de processos INPI (seções 2.1 e 2.2) omitidos; empresas, números de processo, classes e situações iguais ao original homologado pelo QA 4. A busca no pePI pelo número do processo mostra o titular a quem precisar.
 **v2 (22/11/2026):** atende à revisão do QA (`qa/revisao-R0-09.md`): a consulta INPI foi refeita e a evidência bruta está em `raw/inpi/` (HTML, prints com data, detalhes de 20 processos, hashes); frases de conclusão limitadas à consulta e à data; classe 38 qualificada pela especificação; confirmações do QA incorporadas (§1). A v1 está em `raw/relatorio-marca-dominio-v1.md`.
 Executor: LN Integration Engineer · Consultas em 22/11/2026 (v1: ≈17:45–18:05 BRT / 20:46–20:50 UTC; v2 INPI: 18:19–18:22 BRT) · Tarefa R0-09 (achado F-116) · Status: preparação, **não homologada**; aceite retroativo pelo verificador externo.
 Nada foi registrado, comprado, reservado ou enviado. Só fontes públicas, sem login. Isto é triagem técnica, **não parecer jurídico** (ver R0-10).
@@ -44,7 +45,7 @@ Fonte: https://busca.inpi.gov.br/pePI/ — Pesquisa Básica de marca, tipos Exat
 | "loyal news" | Radical | Nenhum resultado |
 | "news loyalty" | Radical | Nenhum resultado |
 | "loyalty" | Radical | 109 processos (2 páginas; ver §2.2) |
-| "the loyal" / "theloyal" | Radical | 2 processos: BARZILAI – THE LOYAL COFFEE BEAN (926908820) e Z THE LOYAL COFFEE BEAN (927173891), classe 30, ambos indeferidos, titular Paulo Rodrigues Junior |
+| "the loyal" / "theloyal" | Radical | 2 processos: BARZILAI – THE LOYAL COFFEE BEAN (926908820) e Z THE LOYAL COFFEE BEAN (927173891), classe 30, ambos indeferidos, titular pessoa física (nome omitido) |
 | "loyal" | Radical | 236 processos; só a página 1 (100) foi lida; **não verificado**: páginas 2–3 |
 
 Reconfirmado na v2 com os HTML salvos: "loyalty news" (Radical e Exata), "loyaltynews", "loyal news", "news loyalty" → "Nenhum resultado"; "loyalty" → 109; "the loyal" → 2.
@@ -68,16 +69,16 @@ Só os processos em vigor ou ainda em andamento; os arquivados, extintos e indef
 | 933027052 | Flash CRM Loyalty & Cashback | Flash Serviços Inteligentes de Tecnologia Ltda ME | 42 | Registro em vigor |
 | 933683952 / 933684070 | Bee Loyalty | Omnibees Soluções em Tecnologia e Marketing Hoteleiro Ltda | 9 / 42 | Registro em vigor |
 | 934775303 / 934775311 | LOYALTY CAPITAL | Loyalty Capital Ltda. | 35 / 36 | Registro em vigor |
-| 936096195 | Loyalty7 | Icaro Gustavo Serafim Dias | 35 | Registro em vigor |
+| 936096195 | Loyalty7 | pessoa física (nome omitido) | 35 | Registro em vigor |
 | 936335459 / 936335971 / 936336110 | ENTERPRISE LOYALTY PLATFORM GUPER | Guper Solução de Fidelidade Ltda | 9 / 42 / 35 | Registro em vigor |
 | 944832695 | Bonifiq Loyalty | Bonifiq Desenvolvimento e Licenciamento Ltda | 35 | Aguardando prazo de oposição (depósito 14/08/2026) |
 | 501573700 | L Founders of Loyalty | L – founders of loyalty Group B.V. | 35 | Registro em vigor (Madri) |
 | 501717025 | UNLOYALTY PROGRAM | Expedia, Inc. | 35/39/43 | Registro em vigor (Madri) |
 | 501807075 | LOYALTYQUEST | TCC Global N.V. | 9/35 | Parcialmente deferida, em recurso |
-| 941255212 | Loyalty eventos | Thiago Santos Faustino da Silva | **41** | Aguardando exame de mérito |
+| 941255212 | Loyalty eventos | pessoa física (nome omitido) | **41** | Aguardando exame de mérito |
 | 942494431 / 943219973 | LOYALTY BRAZILIAN JIU JITSU / LJ LOYALTY JIU-JITSU | Atos Curitiba Ltda / Centro de Treinamento Loyalty Jiujitsu | 41 | Aguardando exame de mérito (esporte; sem relação) |
 | 840780699 | ALWAYS BELIEVE THE EXHIBIT STORIES … LOYALTY … | Simmetrico S.r.l. | 41 | Registro em vigor (frase longa; baixa relevância) |
-| 938955888 | NEX.loyalty | B S Sevilha Martins Comunicação | 45 | Registro em vigor |
+| 938955888 | NEX.loyalty | empresário individual com nome de pessoa (nome omitido) | 45 | Registro em vigor |
 | 501705950 | Global Loyalty Organisation | Global Loyalty Organisation | 35/41 | Designação definitivamente arquivada |
 
 Os demais processos "LOYALTY" são de classes alheias (químicos, vestuário, cerveja, estética etc.) ou estão arquivados/extintos/indeferidos.

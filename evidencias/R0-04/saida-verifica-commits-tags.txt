@@ -1,0 +1,22 @@
+v1.0 -> commit 4fc096bb322d576d91dbdc3a876a96cec228a187
+v2.0 -> commit 0763b030800e9faf9eae07dcb2bf77cd7fa88ac9
+commit esperado da v1.0: OK
+commit esperado da v2.0: OK
+v1.0 é ancestral da v2.0: True
+v1.0 (4fc096bb322d) alcançável a partir de origin/main: True
+v2.0 (0763b030800e) alcançável a partir de origin/main: True
+v1.0: tipo do objeto = tag (anotada exigida): OK
+v1.0: git verify-tag: OK
+v2.0: tipo do objeto = tag (anotada exigida): OK
+v2.0: git verify-tag: OK
+v1.0: arquivos fora do layout permitido: nenhum
+v2.0: arquivos fora do layout permitido: nenhum
+zip Loyalty_News_v1_0_Baseline.zip: 8a7d0d6f1611837d88897bc78cd92b2637834584ebb8e679fbd57effb14e4f77
+zip Loyalty_News_Projeto_v2_0.zip: 36085264c2f41bdf57867a43a4fa8e2c7e296e0b0edcaf212aab11b33269f931
+v1.0  (manifesto do zip Baseline, arquivos em baseline/): 7/7 blobs conferem  (entradas puladas por decisão: 0)
+   arquivos no commit fora do manifesto (esperado só README.md/manifest_sha256.json): ['baseline-v1.0/README.md', 'baseline-v1.0/manifest_sha256.json']
+v1.0 dentro da árvore da v2.0: 7/7 blobs conferem  (entradas puladas por decisão: 0)
+   arquivos no commit fora do manifesto (esperado só README.md/manifest_sha256.json): ['baseline-v1.0/README.md', 'baseline-v1.0/manifest_sha256.json']
+v2.0  (manifesto do zip Projeto_v2_0): 11/11 blobs conferem  (entradas puladas por decisão: 0)
+   arquivos no commit fora do manifesto (esperado só README.md/manifest_sha256.json): ['spec-v2.0/README.md', 'spec-v2.0/manifest_sha256.json']
+RESULTADO: TUDO CONFERE

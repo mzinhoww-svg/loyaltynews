@@ -1,0 +1,23 @@
+{
+ "tarefa": "R0-07",
+ "teste": "R0-07-TEST: Chamada de escrita com a chave e negada",
+ "casos": [
+  {
+   "id": "escrita-com-chave-leitura",
+   "resultado": "recusado",
+   "registro": "Sonda de 23/11/2026 ~18:49Z (Security, aprovacao do PM): servidor vertra-ln-leitura (chave so leitura), create_personal_folder {\"name\": \"ln-sonda-r007-apagar\"} -> API_KEY_SCOPE_DENIED (required: account:write); get_profile antes e depois: folders = [] e updated_at inalterado (2026-11-22T21:35:19.238Z), nada criado.",
+   "fonte": "sonda-escrita-chave-leitura-20261123.md (nesta pasta)"
+  },
+  {
+   "id": "escrita-apps-com-chave-leitura",
+   "resultado": "recusado",
+   "registro": "Teste de 22/11/2026 ~17h40 BRT (Security, revisado pelo QA): restart_app, set_env e update_app_config contra ID inexistente -> API_KEY_SCOPE_DENIED com o escopo exigido (apps:write, apps:envs), recusa por escopo antes da busca do recurso; leituras funcionaram antes e depois.",
+   "fonte": "teste-escopo-chave-leitura-20261122.md (nesta pasta); inventario-vertra.md secao 2"
+  }
+ ],
+ "limites": [
+  "Nem todo escopo de escrita foi sondado um a um (regra 4a: sem sonda destrutiva).",
+  "A plataforma nao expoe historico de auditoria: \"nenhuma mutacao no historico\" e mostrado pelo antes/depois das leituras e pela recusa por escopo, nao por um log da plataforma.",
+  "O servidor remoto vertra (OAuth, escrita) segue acessivel aos agentes: risco aceito RA-14 (DP-20)."
+ ]
+}

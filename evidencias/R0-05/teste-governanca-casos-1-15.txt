@@ -1,0 +1,35 @@
+commit: 7c197d10a5b30fc8a88061c861c828ff385e9691
+sha256 tests/test_governance.py: 3ae1fec04a31cb8e2086e3ee2cacae316807bd572fc01d653e34b80c1e613577
+sha256 tools/gov.py: 0e679d188b4ca6f5e239058c68e24348dd10f50e9928a9db03316d6f69ca67d0
+gpg: verificando a trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: profundidade: 0 válidas:   1 assinadas:   0 confiáveis: 0-, 0i, 0n, 0m, 0c, 1p
+gpg: verificando a trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: profundidade: 0 válidas:   2 assinadas:   0 confiáveis: 0-, 0i, 0n, 0m, 0c, 2p
+gpg: verificando a trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: profundidade: 0 válidas:   3 assinadas:   0 confiáveis: 0-, 0i, 0n, 0m, 0c, 3p
+gpg: verificando a trustdb
+gpg: marginals needed: 3  completes needed: 1  trust model: pgp
+gpg: profundidade: 0 válidas:   4 assinadas:   0 confiáveis: 0-, 0i, 0n, 0m, 0c, 4p
+test_01_missing_artifact (__main__.TestGov.test_01_missing_artifact) ... ok
+test_02_tamper (__main__.TestGov.test_02_tamper) ... ok
+test_03_dependency (__main__.TestGov.test_03_dependency) ... ok
+test_04_forged_acceptance (__main__.TestGov.test_04_forged_acceptance) ... ok
+test_05_extra_argument (__main__.TestGov.test_05_extra_argument) ... ok
+test_06_concurrent_claim (__main__.TestGov.test_06_concurrent_claim) ... ok
+test_07_idempotent (__main__.TestGov.test_07_idempotent) ... ok
+test_08_protected (__main__.TestGov.test_08_protected) ... ok
+test_09_deterministic (__main__.TestGov.test_09_deterministic) ... ok
+test_10_p0 (__main__.TestGov.test_10_p0) ... ok
+test_11_fail_test (__main__.TestGov.test_11_fail_test) ... ok
+test_12_independent (__main__.TestGov.test_12_independent) ... ok
+test_13_verifier_protected (__main__.TestGov.test_13_verifier_protected) ... ok
+test_14_positive (__main__.TestGov.test_14_positive) ... ok
+test_15_mcp (__main__.TestGov.test_15_mcp) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 74.494s
+
+OK
