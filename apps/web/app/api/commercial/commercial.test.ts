@@ -179,14 +179,25 @@ describe('fluxo comercial persistido no banco entre requisições', () => {
     // criativo SEM arquivo/alt/destino não é real: aprovar é recusado com a lista do que falta, e o banco também o recusa (CHECK ad_creatives_aprovado_completo)
     const vazio = await call(d, 'POST', { path: P('/studio/creatives'), body: { campaignId: cid, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-03-01' }, as: comercial });
     expect(vazio.status).toBe(201);
-    const recusada = await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: vazio.body.id }, as: comercial });
+    const recusada = await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: vazio.body.id }, as: admin }); // DP-43: aprova o proprietário (admin)
     expect([recusada.status, recusada.body.error?.code]).toEqual([422, 'CREATIVE_INVALID']);
     // criativo REAL: arquivo (1280x150 PNG ≤ 200 KB, hash), texto alternativo, anunciante e destino https
     const real = { asset: { key: `anuncios/${'b'.repeat(64)}.png`, mime: 'image/png', width: 1280, height: 150, sizeKB: 90, sha256: 'b'.repeat(64) }, altText: 'Oferta do anunciante', destinationUrl: 'https://anunciante.example/oferta', advertiserName: 'Anunciante Teste' };
     const cr = await call(d, 'POST', { path: P('/studio/creatives'), body: { campaignId: cid, positionId: 'TOP', startDate: '2026-12-01', endDate: '2027-03-01', ...real }, as: comercial });
     expect(cr.status).toBe(201);
-    expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: cr.body.id }, as: comercial })).body).toMatchObject({ approved: true });
-    expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: 'cr-999' }, as: comercial })).status).toBe(404);
+    // DP-43: o comercial prepara e envia, mas NÃO aprova (pela rota, não só pela tela); editor e leitor também não
+    for (const quem of [comercial, editor]) {
+      const r = await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: cr.body.id }, as: quem });
+      expect([r.status, r.body.error?.code]).toEqual(quem === comercial ? [403, 'APPROVAL_FORBIDDEN'] : [403, 'FORBIDDEN']);
+    }
+    expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: cr.body.id }, as: leitor })).status).toBe(403);
+    expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: cr.body.id } })).status).toBeGreaterThanOrEqual(401);
+    const [antes] = await app.db.select().from(schema.adCreatives).where(eq(schema.adCreatives.id, cr.body.id));
+    expect(antes).toMatchObject({ aprovado: false }); // nada mudou no banco
+    const aprovaCampanha = await call(d, 'POST', { path: P('/studio/campaigns/transition'), body: { campaignId: cid, to: 'approved' }, as: comercial });
+    expect([aprovaCampanha.status, aprovaCampanha.body.error?.code]).toEqual([403, 'APPROVAL_FORBIDDEN']);
+    expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: cr.body.id }, as: admin })).body).toMatchObject({ approved: true });
+    expect((await call(d, 'POST', { path: P('/studio/creatives/approve'), body: { creativeId: 'cr-999' }, as: admin })).status).toBe(404);
     const [crRow] = await app.db.select().from(schema.adCreatives).where(eq(schema.adCreatives.id, cr.body.id));
     expect(crRow).toMatchObject({ aprovado: true, campanhaId: cid, slotId: 'TOP', peso: 1 });
 
@@ -218,6 +229,9 @@ describe('fluxo comercial persistido no banco entre requisições', () => {
   it('escritas de Studio são auditadas com ator e papel', async () => {
     const rows = await app.db.select().from(schema.auditLog).where(eq(schema.auditLog.resource, 'comercial'));
     expect(rows.length).toBeGreaterThan(5);
-    expect(rows.every((r) => r.actorRole === 'comercial')).toBe(true);
+    // o comercial prepara; a aprovação de imagem e campanha é do proprietário (admin, DP-43) e também fica auditada com o papel dele
+    expect(rows.every((r) => r.actorRole === 'comercial' || r.actorRole === 'admin')).toBe(true);
+    expect(rows.some((r) => r.actorRole === 'admin')).toBe(true);
+    expect(rows.filter((r) => r.actorRole === 'comercial').length).toBeGreaterThan(5);
   });
 });

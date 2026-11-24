@@ -68,6 +68,7 @@ export const FLAG_RELEASES = {
   intelligencePessoas: { staging: 'DP-38', production: null }, // produção só no go-live (outra mudança registrada)
   openbotDispatch: { staging: 'DP-41', production: null },
   leitorViaProvedor: { staging: 'DP-32', production: null }, // ADR-022 adendo 2: provedores de desbloqueio em páginas públicas, só staging // piloto só no staging, só assinaturas, sem API tarifada nem publicação
+  adServerVendas: { staging: 'DP-43', production: null }, // venda de anúncios só no staging (DP-43); produção só no go-live, com nova decisão do proprietário
 } as const satisfies Partial<Record<FlagName, FlagRelease>>;
 
 /** Hosts públicos da produção (N7). Preenchido quando o domínio existir. */

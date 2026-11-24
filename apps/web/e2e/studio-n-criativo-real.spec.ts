@@ -83,11 +83,13 @@ test.describe('Criativo real ponta a ponta', () => {
       await page.getByLabel('Destino (https').fill('https://criativoreal.example/oferta');
       await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
       await sucesso(page, 'Criativo adicionado');
+      await page.waitForLoadState('networkidle');
       return (await page.locator('li[data-criativo]').last().getAttribute('data-criativo'))!;
     };
     const a = await novo('Oferta Criativo Real');
     const b = await novo('');
     const c = await novo('Sem arquivo');
+    await page.waitForLoadState('networkidle'); // a lista é remontada depois de cada criação: anexar antes disso perde o arquivo
 
     // arquivo na dimensão errada: recusado antes de gravar, o criativo continua sem arquivo
     await page.getByLabel(`Arquivo de ${a}`).setInputFiles({ name: 'errado.png', mimeType: 'image/png', buffer: png(300, 250) });
@@ -125,6 +127,10 @@ test.describe('Criativo real ponta a ponta', () => {
     await expect(page.locator(`li[data-criativo="${m}"]`)).toContainText(/image\/png, 300x250, .* KB, sha256 [0-9a-f]{12}…/);
     // DP-43: o comercial não vê "Aprovar"; quem aprova é o proprietário (admin)
     await expect(page.getByRole('button', { name: `Aprovar ${m}` })).toHaveCount(0);
+    // ...e a API também recusa a aprovação do comercial (ft/commercial-capacity a654afb)
+    const direto = await page.request.post('/api/commercial/studio/creatives/approve', { data: { creativeId: m }, headers: { origin: new URL(page.url()).origin } });
+    expect(direto.status()).toBe(403);
+    expect(((await direto.json()) as { error?: { code?: string } }).error?.code).toBe('APPROVAL_FORBIDDEN');
     await entrar(context, 'dono', 'admin');
     await page.goto(urlCampanha);
     await enviar(page, page.getByRole('button', { name: `Aprovar ${m}` }));

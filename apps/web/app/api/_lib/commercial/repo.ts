@@ -6,10 +6,11 @@
 import { and, eq, getTableColumns, gte, inArray, like, lte, not, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
-  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION,
+  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION, catalogFor, resolveFormatStatus,
   type Account, type BannerPosition, type Contact, type ContactBasis, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
   type DeliveryRow, type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
 } from '@ln/commercial';
+import { flagEnvFrom, type FlagEnv } from '@ln/contracts';
 import { schema } from '@ln/db';
 import { HttpError } from '../http';
 import type { Db } from '@ln/auth';
@@ -50,11 +51,11 @@ const iso = (d: Date): string => d.toISOString();
 const ZERO = (): DeliveryCounters => ({ served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 });
 
 /** Catálogo: o código define o formato; o banco (ajustável no admin) manda no estado de disponibilidade. */
-async function loadCatalog(db: Db): Promise<CommercialFormat[]> {
+async function loadCatalog(db: Db, env: FlagEnv | null): Promise<CommercialFormat[]> {
   const byFmt = new Map((await db.select().from(schema.adFormats)).map((f) => [f.id, f]));
-  return CATALOG.map((f) => {
+  return catalogFor(env).map((f) => {
     const r = byFmt.get(f.id);
-    return r ? { ...f, status: r.disponibilidade, statusReason: r.motivoDisponibilidade } : f;
+    return { ...f, ...resolveFormatStatus(f, r ? { status: r.disponibilidade, reason: r.motivoDisponibilidade } : undefined) };
   });
 }
 
@@ -147,9 +148,10 @@ export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[
   }));
 }
 
-export async function hydrate(db: Db, now: Date = new Date()): Promise<Hydrated> {
+/** `env` = ambiente de flags (APP_ENV): decide quais formatos têm venda liberada (CAPACITY_RELEASES). Local, CI e ausente: nenhum. */
+export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | null = flagEnvFrom(process.env.APP_ENV)): Promise<Hydrated> {
   const [catalog, slots, accs, leads, opps, hist, camps, ress, tkos, creatives, deliv, mets, ctts, cpos] = await Promise.all([
-    loadCatalog(db), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
+    loadCatalog(db, env), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
     db.select().from(schema.crmLeads), db.select().from(schema.crmOpportunities),
     db.select().from(schema.crmOpportunityHistory).orderBy(schema.crmOpportunityHistory.em, schema.crmOpportunityHistory.id),
     db.select().from(schema.campaigns), db.select().from(schema.adReservations), db.select().from(schema.adTakeovers),

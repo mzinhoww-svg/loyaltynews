@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { IsoDate, Id, Lead as LeadContract, isEnabled } from '@ln/contracts';
 import { CATALOG } from '../catalog';
-import { define, fail, ok } from './http';
+import { APPROVAL_MESSAGE, define, fail, ok } from './http';
 import {
   advertiserReport, campaignDetail, campaignReport, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
 } from '../queries';
@@ -213,7 +213,7 @@ export const setCreativeContent = define({ auth: 'studio', schema: z.object({ cr
 });
 
 /** Aprovar exige criativo real: arquivo válido para a posição, alt, anunciante e destino https. */
-export const approveCreative = define({ auth: 'studio', schema: z.object({ creativeId: Id }) }, (ctx, i) => {
+export const approveCreative = define({ auth: 'approver', schema: z.object({ creativeId: Id }) }, (ctx, i) => {
   const cr = ctx.ads.listCreatives().find((x) => x.id === i.creativeId);
   if (!cr) return fail(404, 'NOT_FOUND', 'Criativo não existe.');
   const issues = validateCreative(cr);
@@ -234,6 +234,8 @@ export const transitionCampaign = define({
   auth: 'studio',
   schema: z.object({ campaignId: Id, to: z.enum(['reserved', 'approved', 'active', 'paused', 'completed', 'cancelled']), reservationIds: z.array(Id).optional(), note: z.string().optional() }),
 }, (ctx, i) => {
+  // DP-43: levar a campanha a 'approved' é aprovar a campanha: só o proprietário (admin). As demais transições seguem com o comercial.
+  if (i.to === 'approved' && ctx.actor?.canApprove !== true) return fail(403, 'APPROVAL_FORBIDDEN', APPROVAL_MESSAGE);
   const camp = ctx.campaigns.get(i.campaignId);
   const all = ctx.inventory.list();
   let reservations;
