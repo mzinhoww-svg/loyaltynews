@@ -34,11 +34,12 @@ type Detalhe = {
   report: { utmVisits: number | null };
 };
 
-export default async function CampanhaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string; de?: string; ate?: string }> }) {
+export default async function CampanhaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string; de?: string; ate?: string; codigo?: string }> }) {
   const { session } = await requireModule(findModule('campanhas')!);
   const aprova = podeAprovar(session.roles);
   const id = decodeURIComponent((await params).id);
-  const { tipo, aviso, de, ate } = await searchParams;
+  const { tipo, aviso, de, ate, codigo } = await searchParams;
+  const codigoErro = tipo === 'err' && codigo && /^[A-Z0-9_]{1,60}$/.test(codigo) ? codigo : undefined;
   const r = await api.comercial.campanha(id);
   if (naoConfigurado(r)) return <SemBanco modulo="O módulo de campanhas" />;
   if (r.status === 404) notFound();
@@ -57,7 +58,9 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
       <p>
         <span className="st-badge">{c.status}</span> · {c.startDate} a {c.endDate}
       </p>
-      <Flash tipo={tipo} aviso={aviso} />
+      <div data-erro-codigo={codigoErro}>
+        <Flash tipo={tipo} aviso={aviso} />
+      </div>
       <div className="st-two">
         <div>
           <form method="get" className="st-actions" aria-label="Janela do relatório" style={{ marginBottom: 12 }}>

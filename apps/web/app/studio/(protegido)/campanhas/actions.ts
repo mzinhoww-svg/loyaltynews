@@ -38,11 +38,20 @@ export async function transicaoAction(fd: FormData): Promise<void> {
     reservationIds = ((d.body as { reservations?: { id: string; status: string }[] }).reservations ?? []).filter((x) => x.status !== 'cancelled').map((x) => x.id);
   }
   const r = await api.comercial.transicaoCampanha({ campaignId: id, to: para, ...(reservationIds ? { reservationIds } : {}), ...(texto(fd, 'nota') ? { note: texto(fd, 'nota') } : {}) });
-  voltar(`/studio/campanhas/${encodeURIComponent(id)}`, ehErro(r) ? { ok: false, erros: [mensagemErro(r)] } : { ok: true }, 'Estado da campanha atualizado.');
+  voltarCampanha(id, r, 'Estado da campanha atualizado.');
 }
 
-const voltarCampanha = (id: string, r: Parameters<typeof ehErro>[0], ok: string) =>
-  voltar(`/studio/campanhas/${encodeURIComponent(id)}`, ehErro(r) ? { ok: false, erros: [mensagemErro(r)] } : { ok: true }, ok);
+/**
+ * Volta à campanha com o aviso. Na recusa do domínio, leva também o CÓDIGO do erro (ex.: NO_CONFIRMED_RESERVATION) em `codigo`, só letras
+ * maiúsculas, dígitos e "_": a tela o expõe em `data-erro-codigo` (para teste e suporte), sem mostrar nome técnico à pessoa.
+ */
+function voltarCampanha(id: string, r: Parameters<typeof ehErro>[0], ok: string): never {
+  const caminho = `/studio/campanhas/${encodeURIComponent(id)}`;
+  if (!ehErro(r)) return voltar(caminho, { ok: true }, ok);
+  const codigo = (r.body as { error?: { code?: unknown } } | null)?.error?.code;
+  const q = typeof codigo === 'string' && /^[A-Z0-9_]{1,60}$/.test(codigo) ? `&codigo=${codigo}` : '';
+  redirect(`${caminho}?tipo=err&aviso=${encodeURIComponent(mensagemErro(r))}${q}`);
+}
 
 /** Posição da campanha: pré-reserva (held). Confirmar é venda e exige a flag adServerVendas (o domínio recusa sem ela). */
 export async function reservarPosicaoAction(fd: FormData): Promise<void> {
