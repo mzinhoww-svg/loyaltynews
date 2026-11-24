@@ -61,3 +61,22 @@ describe('rotas /piloto/importacao', () => {
     expect(ls.body.leituras.find((x: any) => x.leitor === 2)).toMatchObject({ origem: 'importacao', importadoPor: expect.any(String), arquivo: { sha256: SHA } });
   });
 });
+
+describe('rota /piloto/importacao/revogar', () => {
+  const SHAX = 'e'.repeat(64);
+  const motivo = 'arquivo errado enviado por engano; o correto é outro (conferido com o QA 3)';
+  it('só admin/chefe revoga (sessão + MFA + RBAC); registro → revogação libera outro hash; 404 na repetição; trilha preservada', async () => {
+    const reg = { arquivo: { nome: 'folha-errada.csv', sha256: SHAX, linhas: 4 }, leitor2Nome: 'QA 3', materias: ['a6'] };
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo } })).status).toBe(401);
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/registro'), body: reg, as: admin })).status).toBe(201);
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/registro'), body: { ...reg, arquivo: { ...reg.arquivo, sha256: 'f'.repeat(64) } }, as: admin })).status).toBe(409);
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: revisor })).status).toBe(403);
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: editor })).status).toBe(403);
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo: 'curto' }, as: admin })).status).toBe(400);
+    const ok = await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: admin });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ sha256: SHAX, materiasLiberadas: ['a6'] });
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: admin })).status).toBe(404);
+    expect((await call(d, 'POST', { path: S('/piloto/importacao/registro'), body: { ...reg, arquivo: { ...reg.arquivo, sha256: 'f'.repeat(64) } }, as: admin })).status).toBe(201);
+  });
+});
