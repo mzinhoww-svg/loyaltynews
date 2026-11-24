@@ -16,7 +16,7 @@ const ALLOWED: ReadonlyArray<{ method: string; path: string }> = [
   { method: 'POST', path: '/revoke-session' },
   { method: 'POST', path: '/revoke-sessions' },
   { method: 'POST', path: '/revoke-other-sessions' },
-  { method: 'POST', path: '/change-password' },
+  // /change-password fica de fora: a troca de senha só passa por changeOwnPassword (change-password.ts: 2º fator, política, limite e auditoria)
   { method: 'POST', path: '/two-factor/enable' },
   { method: 'POST', path: '/two-factor/disable' },
   { method: 'POST', path: '/two-factor/verify-totp' },
@@ -144,7 +144,6 @@ export function createAuthHandler({ auth, db, basePath = '/api/auth', now = () =
       '/revoke-session': 'sessao.revogada',
       '/revoke-sessions': 'sessao.revogada_todas',
       '/revoke-other-sessions': 'sessao.revogada_outras',
-      '/change-password': 'senha.alterada',
     };
     const action = acao[path];
     if (action) await audit(db, { action, resource: 'sessao', ip, detalhe: { status: res.status }, at: t });
