@@ -31,7 +31,12 @@ const code = await runBenchGraphCli({
     try {
       const { connectionString, ssl } = pgPoolConfig(env, { max: 1 }); // a MESMA configuração de TLS (DB_SSL_*_PEM) do worker
       // R1: o ouvinte de 'error' é registrado ANTES de conectar (openBenchClient), com a saída saneada
-      return await openBenchClient(() => new Client({ connectionString, ssl }) as unknown as PgLike);
+      // int/015: o C1 estático (packages/db/src/safe-log.test.ts) exige o ouvinte no mesmo arquivo que cria o cliente.
+      return await openBenchClient(() => {
+        const c = new Client({ connectionString, ssl });
+        c.on('error', (e) => console.error(errLine('[bench-graph] pg (cliente)', e)));
+        return c as unknown as PgLike;
+      });
     } catch (e) {
       console.error(errLine('[bench-graph] conexão', e));
       throw e;

@@ -273,6 +273,7 @@ test.describe('honestidade de dados', () => {
   });
 
   test('P3-b: título de abertura do mídia kit em escala de exibição (≥ 28 px no celular, 44 px no desktop) e sem estourar a tela', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop' && info.project.name !== 'mobile', 'só nos projetos desktop/mobile do e2e/portal.config.ts');
     await page.goto('/midia-kit');
     const h1 = page.locator('.pt-hero-band--mk h1');
     const size = parseFloat(await h1.evaluate((el) => getComputedStyle(el).fontSize));
