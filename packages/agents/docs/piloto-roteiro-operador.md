@@ -23,7 +23,7 @@ Nada disto existe ainda no staging real. **[não verificado]**: os agentes ainda
 ## 1. Conferir que está tudo DESLIGADO
 
 - **Comando:** `node <caminho>\ln-openbot-agent.mjs smoke --expect-dispatch off` (com `LN_API_BASE`, `LN_AGENT_ACCOUNT`, `LN_HMAC_SECRET_FILE`). **[relato]**
-- **Esperado:** health PASS com `flags: []`; assinatura aceita (heartbeat de tarefa inexistente = 404 `LEASE_ERROR`); `pull` = **423 `DISPATCH_OFF`**. Nenhum FAIL.
+- **Esperado:** health PASS com `flags: []`; assinatura aceita (heartbeat de tarefa inexistente = 404 `LEASE_ERROR`); `pull` com assinatura válida = **423 `DISPATCH_OFF`** (o `pull` confere a assinatura antes de recusar, `ft/backend` `59eed1b`: sem segredo ou assinatura inválida = **401**, então ele também serve de sonda de assinatura). Nenhum FAIL.
 - **Se for diferente:** `sem_segredo` = o servidor não tem o segredo; 401 = segredo diferente; 423 `KILL_SWITCH` = o kill está ligado. Corrija antes de seguir.
 
 ## 2. Ligar o piloto (DevOps/PM executa; reversível)
@@ -103,7 +103,7 @@ Uma violação (tentativa de publicar, chamada à API tarifada, segredo em log, 
 Do mais leve ao mais forte; **pare no primeiro que resolver**:
 
 1. **Parar os ciclos:** não mande mais ciclos aos agentes e desligue qualquer rotina deles.
-2. **Desligar o despacho:** remova `LN_FLAGS_ON` no staging (DevOps/PM). **Esperado:** `pull` = **423 `DISPATCH_OFF`**; heartbeat, `io/input`, `io/result` e o callback em curso **seguem**. Despacho da Fábrica = **409** `DISPATCH_OFF`.
+2. **Desligar o despacho:** remova `LN_FLAGS_ON` no staging (DevOps/PM). **Esperado:** `pull` com assinatura válida = **423 `DISPATCH_OFF`** (sem segredo = 401); heartbeat, `io/input`, `io/result` e o callback em curso **seguem**. Despacho da Fábrica = **409** `DISPATCH_OFF`.
 3. **Kill switch** (só admin, MFA, auditado), escopo `route:openbot`:
    - Studio/API: `POST /api/studio/orcamento/kill-switch` com `{ "escopo": "route:openbot", "acionar": true, "motivo": "<≥ 5 caracteres>" }`;
    - ou CLI: `node apps/workers/dist/budget-cli.js kill on "<motivo>" --route openbot --actor <id>` (usa `DATABASE_URL` e `DB_SSL_*_PEM`).
