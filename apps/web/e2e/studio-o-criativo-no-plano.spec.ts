@@ -93,7 +93,7 @@ test.describe('Criativo aprovado no plano (staging, DP-43)', () => {
     await page.goto(url);
     // a pré-reserva (held) não basta para ativar, mesmo com a venda ligada: o domínio recusa e o plano segue vazio (ressalva do QA 7, 4458710)
     await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
-    await expect(page.locator('main .st-alert.err').filter({ hasText: /sem reserva confirmada/ }).first()).toBeVisible();
+    await expect(page.locator('[data-erro-codigo="NO_CONFIRMED_RESERVATION"] .st-alert.err')).toBeVisible(); // pelo código do domínio, não pelo texto (P3 do QA 7, f519112)
     await expect(page.locator('main .st-badge').first()).toHaveText('approved');
     expect(await plano(page)).toMatchObject({ positionId: 'SIDEBAR_1', available: false, mobile: [] });
     // com a venda ligada, a reserva é confirmada (venda) e aí a ativação passa
