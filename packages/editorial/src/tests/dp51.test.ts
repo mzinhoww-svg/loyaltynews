@@ -5,17 +5,18 @@ import { SourceRegistry } from '../sources/registry';
 import { InMemoryEditorialStore } from '../api/store';
 import type { Actor, HandlerCtx } from '../api/handlers';
 import { listSources, reviewSource, setSourceEnabled, type SourceView } from '../api/source-handlers';
-import type { Source } from '../types';
+import type { Source, SourceVerification } from '../types';
 
 // DP-51 (proprietário): habilitar fonte da Fábrica com UM clique do administrador. Grava a revisão implícita (aprovada, URL e robots conferidos
 // pelo admin), audita quem e quando, sem exigir revisão prévia dos termos. As recusas de segurança que não são de termos seguem; paywall/login
 // e "inacessível" viram aviso que o administrador confirma.
 
 const NOW = new Date('2026-11-24T12:00:00.000Z');
-const LIMPA: Source = { ...MOCK_SOURCE, id: 'dp51-limpa', name: 'DP51 Limpa', host: 'limpa.dp51.example', listingUrl: 'https://limpa.dp51.example/', feedUrl: null, termsUrl: null, enabled: false, termsStatus: 'pending', urlVerified: false, paywall: 'unknown', verification: { level: 'verificada', researchedBy: 'pesquisador-1', robots: null, termsExcerpt: null, imageRightsNote: null } as Source['verification'] };
+const VER: SourceVerification = { researchedBy: 'pesquisador-1', level: 'lido', robots: 'permitido', robotsNote: '', termsExcerpt: null, termsFetchedAt: null, consultedAt: null, imageRightsNote: '', notes: '' };
+const LIMPA: Source = { ...MOCK_SOURCE, id: 'dp51-limpa', name: 'DP51 Limpa', host: 'limpa.dp51.example', listingUrl: 'https://limpa.dp51.example/', feedUrl: null, termsUrl: null, enabled: false, termsStatus: 'pending', urlVerified: false, paywall: 'unknown', verification: VER };
 const LOGIN: Source = { ...LIMPA, id: 'dp51-login', name: 'DP51 Login', host: 'login.dp51.example', listingUrl: 'https://login.dp51.example/', paywall: 'login' };
-const INACESSIVEL: Source = { ...LIMPA, id: 'dp51-inacessivel', name: 'DP51 Inacessível', host: 'inacessivel.dp51.example', listingUrl: 'https://inacessivel.dp51.example/', verification: { ...(LIMPA.verification as object), level: 'inacessivel' } as Source['verification'] };
-const SEM_ROBOTS: Source = { ...LIMPA, id: 'dp51-sem-robots', name: 'DP51 Sem robots', host: 'semrobots.dp51.example', listingUrl: 'https://semrobots.dp51.example/', robotsRespected: false };
+const INACESSIVEL: Source = { ...LIMPA, id: 'dp51-inacessivel', name: 'DP51 Inacessível', host: 'inacessivel.dp51.example', listingUrl: 'https://inacessivel.dp51.example/', verification: { ...VER, level: 'inacessivel' } };
+const SEM_ROBOTS: Source = { ...LIMPA, id: 'dp51-sem-robots', name: 'DP51 Sem robots', host: 'semrobots.dp51.example', listingUrl: 'https://semrobots.dp51.example/', robotsRespected: false as unknown as true }; // o tipo só admite true: o teste força o caso recusado
 const COMPARTILHADA: Source = { ...LIMPA, id: 'dp51-gov', name: 'DP51 gov.br', host: 'www.gov.br', listingUrl: 'https://www.gov.br/', pathPrefix: undefined };
 
 const admin: Actor = { userId: 'joao-admin', roles: ['admin'], mfa: true };
