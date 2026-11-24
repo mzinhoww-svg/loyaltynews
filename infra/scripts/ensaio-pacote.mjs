@@ -19,6 +19,12 @@ import { parseArgs, fail } from './lib/util.mjs';
 import { VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
 import { ENV_STUDIO_TEST_SESSION, ENV_PORTAL_SOURCE_MOCK } from './fixtures/flags-proibidas.mjs';
 
+// O Next fecha conexoes keep-alive ociosas apos 5 s; as sondas de saude estavel (3 respostas em ~10 s) deixam a conexao do fetch deste processo ociosa mais que isso, e a proxima
+// requisicao toma ECONNRESET (visto no ensaio da int/020, 24/11: o pacote estava bem, o servidor seguia vivo). Uma nova tentativa abre outra conexao; outro erro continua sendo erro.
+async function fetchTentando(url, init) {
+  try { return await fetch(url, init); } catch (e) { if (e?.cause?.code !== 'ECONNRESET') throw e; return fetch(url, init); }
+}
+
 const SELF = dirname(fileURLToPath(import.meta.url));
 const args = parseArgs(process.argv.slice(2));
 if (!args.manifest || args.manifest === true) fail('use --manifest <arquivo>', 2);
@@ -165,13 +171,13 @@ try {
   const esperaMs = Math.max(30, Number(args['espera-servidor'] ?? 180) || 180) * 1000;
   const limite = Date.now() + esperaMs;
   while (!up && Date.now() < limite) {
-    try { const res = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(2000) }); up = res.ok; } catch { await new Promise((s) => setTimeout(s, 700)); }
+    try { const res = await fetchTentando(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(2000) }); up = res.ok; } catch { await new Promise((s) => setTimeout(s, 700)); }
   }
   if (logFd !== null) closeSync(logFd);
   if (!step('servidor sobe com o start_command do manifesto', up)) throw new Error('servidor não subiu');
   // /api/health devolve env e flags (ADR-022): têm de bater com o pacote (produção/staging; flags = release.json.flagsLigadas). Build anterior à ADR-022 não traz o campo.
   try {
-    const hj = await (await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(5000) })).json();
+    const hj = await (await fetchTentando(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(5000) })).json();
     const esperadoEnv = man.perfil === 'production' ? 'production' : 'staging';
     const esperadasFlags = [...(man.flagsLigadas ?? [])].sort().join(',');
     const flagsOk = Array.isArray(hj.flags) ? [...hj.flags].sort().join(',') === esperadasFlags : esperadasFlags === '';
@@ -184,13 +190,13 @@ try {
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--noindex', '/', '--canonical', man.siteUrl], { encoding: 'utf8' });
   step('staging NÃO indexável (robots Disallow: /, sitemap vazio, noindex) e canonical certo na home e em /noticias', r.status === 0, r.status === 0 ? '' : (() => { try { return JSON.parse(r.stdout).failures.join(' | ').slice(0, 400); } catch { return r.stdout.trim().slice(0, 400); } })());
   {
-    const home = await (await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(8000) })).text();
+    const home = await (await fetchTentando(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(8000) })).text();
     const canon = (home.match(/<link[^>]+rel="canonical"[^>]*href="([^"]+)"/i) || home.match(/<link[^>]+href="([^"]+)"[^>]*rel="canonical"/i) || [])[1];
     step('canonical da home usa a URL do staging (NEXT_PUBLIC_SITE_URL no build)', Boolean(canon) && canon.startsWith(man.siteUrl) && !/localhost/.test(canon), canon || 'sem canonical');
   }
 
   for (const p of ['/', '/noticias', '/agenda', '/busca', '/studio/entrar']) {
-    const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+    const res = await fetchTentando(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
     const body = await res.text();
     const portal = p !== '/studio/entrar';
     if (vitrine) step(`portal ${p}${portal ? ' (com a faixa da vitrine)' : ''}`, res.status === 200 && (!portal || body.includes(VITRINE_BANNER)), `HTTP ${res.status}`);
@@ -200,12 +206,12 @@ try {
     // Decisão 12, A6 (Security): API indisponível/com erro = estado vazio honesto, nunca 500, nunca fixture, e nada interno na resposta (URL base, stack).
     // Aqui a API própria do pacote responde 503 NOT_CONFIGURED (sem banco): as listagens têm de sair vazias e a matéria inexistente 404 ou 503.
     for (const p of ['/', '/noticias']) {
-      const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      const res = await fetchTentando(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
       const body = await res.text();
       const vaza = /127\.0\.0\.1|localhost|\bat \w+\s*\(|ECONNREFUSED|api\/publico/i.test(body.replace(/https?:\/\/loyaltynews[a-z0-9.-]*\.vertraweb\.app/gi, ''));
       step(`[A6] ${p} com a API indisponível: 200 vazio, sem MOCK e sem URL interna`, res.status === 200 && !/\bMOCK\b/.test(body) && !vaza, `HTTP ${res.status}${vaza ? ' (vaza detalhe interno)' : ''}`);
     }
-    const art = await fetch(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
+    const art = await fetchTentando(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
     const artBody = await art.text();
     // Portal int/009: API indisponível = página de erro honesta (200, noindex nos metadados, sem detalhe interno); 404/503 também servem. Nunca 500.
     const artHonesta = art.status === 200 && /não conseguimos carregar esta matéria/i.test(artBody) && /noindex/i.test(artBody) && !/127\.0\.0\.1|ECONNREFUSED|api\/publico|\bat \w+\s*\(/i.test(artBody);
@@ -213,7 +219,7 @@ try {
   }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
   for (const p of ['/sitemap.xml', '/feed.xml']) {
-    const res = await fetch(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+    const res = await fetchTentando(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
     const body = await res.text();
     const vaza = VITRINE_MARCADORES.some((m) => body.includes(m)) || /\bMOCK\b/.test(body) || /<(?:loc|item|entry)\b/i.test(body);
     step(`${vitrine ? '[vitrine 1]' : '[vitrine 5]'} ${p} sem itens nem marcadores de demonstração`, (res.status === 200 || res.status === 404) && !vaza, `HTTP ${res.status}`);
@@ -228,7 +234,8 @@ try {
   }
   ok = results.every((x) => x.ok);
 } catch (e) {
-  step('ensaio interrompido', false, e.message);
+  // 'fetch failed' sozinho nao diz nada: mostra a causa de rede (ECONNREFUSED, UND_ERR_SOCKET...) para separar servidor morto de resposta lenta
+  step('ensaio interrompido', false, e.message + (e.cause ? ` [causa: ${e.cause.code ?? e.cause.name ?? ''} ${String(e.cause.message ?? '').slice(0, 120)}]` : ''));
 } finally {
   stopServer();
   await new Promise((s) => setTimeout(s, 800));

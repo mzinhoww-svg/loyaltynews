@@ -78,6 +78,9 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
   }
   // Segredo HMAC do OpenBot (piloto DP-41, só staging; decisão do Arquiteto/PM de 24/11): em produção as duas variáveis definidas reprovam (sem elas as rotas do OpenBot respondem 401).
   if (prod) for (const nome of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida em produção: o segredo do OpenBot é só do staging (DP-41)`);
+  // Demais variáveis que o código do piloto lê (apps/workers: editorial-factory.ts, openbot-wiring.ts): o módulo de fiação (LN_OPENBOT_PILOT_WIRING é um especificador de import: apontá-lo
+  // para outro módulo em produção seria carregar código arbitrário) e o prazo de espera do gateway. Em produção, definidas reprovam; a mensagem nunca repete o valor.
+  if (prod) for (const nome of ['LN_OPENBOT_PILOT_WIRING', 'LN_OPENBOT_GATEWAY_TIMEOUT_MS']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida em produção: variável do piloto OpenBot, só do staging (DP-41)`);
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
 
   return p;
