@@ -72,7 +72,7 @@
 .ln-card--md .ln-card__title { font-size: var(--ln-text-lg); line-height: 1.33; }
 /* sm: miniatura ao lado (se houver foto) */
 .ln-card--sm { gap: var(--ln-space-3); }
-.ln-card--sm:not(.ln-card--noimg) { grid-template-columns: 112px minmax(0, 1fr); align-items: start; }
+.ln-card--sm:not(.ln-card--noimg) { grid-template-columns: 144px minmax(0, 1fr); align-items: start; } /* 144px (era 112px): o rótulo "Ilustração conceitual" cobria 41% da miniatura; com 144px cobre ~25% (revisão do staging 56e4cdc, P2-2) */
 /* V-07: 16:9 como o criativo (1280×720): em 3:2 o object-fit cortava as laterais e os rótulos da arte saíam das bordas */
 .ln-card--sm .ln-card__media { aspect-ratio: 16 / 9; }
 .ln-card--sm .ln-card__title { font-size: var(--ln-text-md); line-height: 1.33; }
