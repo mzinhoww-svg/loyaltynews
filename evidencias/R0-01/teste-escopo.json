@@ -1,0 +1,119 @@
+{
+  "tarefa": "R0-01",
+  "teste": "R0-01-TEST - cada chave falha fora do seu escopo",
+  "nota": "So sondas sem efeito e sem custo; nenhum valor de chave. Credenciais sem recusa testavel ou nao sondadas (C1, C2, C9, C11, C12, C15, C19, C20, C21, C22) estao listadas no inventario como excecoes (riscos aceitos ou PENDENTE com o fato lido no provedor).",
+  "casos": [
+    {
+      "id": "C8-gestao",
+      "credencial": "C8 LN_OPENROUTER_API_KEY",
+      "sonda": "GET https://openrouter.ai/api/v1/keys (endpoint de gestao; chave comum)",
+      "resultado": "recusado",
+      "registro": "HTTP 401",
+      "data": "2026-11-23T10:20:16Z"
+    },
+    {
+      "id": "C10-N1",
+      "credencial": "C10 LN_VERTRA_RO_API_KEY",
+      "sonda": "restart_app em id inexistente (apps:write)",
+      "resultado": "recusado",
+      "registro": "API_KEY_SCOPE_DENIED required=apps:write",
+      "data": "2026-11-22"
+    },
+    {
+      "id": "C10-N2",
+      "credencial": "C10 LN_VERTRA_RO_API_KEY",
+      "sonda": "set_env em id inexistente (apps:envs)",
+      "resultado": "recusado",
+      "registro": "API_KEY_SCOPE_DENIED required=apps:envs",
+      "data": "2026-11-22"
+    },
+    {
+      "id": "C10-N3",
+      "credencial": "C10 LN_VERTRA_RO_API_KEY",
+      "sonda": "update_app_config em id inexistente (apps:write)",
+      "resultado": "recusado",
+      "registro": "API_KEY_SCOPE_DENIED required=apps:write",
+      "data": "2026-11-22"
+    },
+    {
+      "id": "C4-raiz",
+      "credencial": "C4 GPG raiz 1D4A3E263898E5B0C0590FD7A2A2BB73C4C84309",
+      "sonda": "chaveiro padrao dos agentes: gpg --list-secret-keys",
+      "resultado": "recusado",
+      "registro": "sem chave secreta (exit 2)",
+      "data": "2026-11-23"
+    },
+    {
+      "id": "C5-executor",
+      "credencial": "C5 GPG executor E842D7C1ECA0045D3D7BBFEA47D7C1BC57FD351B",
+      "sonda": "chaveiro padrao dos agentes: gpg --list-secret-keys",
+      "resultado": "recusado",
+      "registro": "sem chave secreta (exit 2)",
+      "data": "2026-11-23"
+    },
+    {
+      "id": "C6-revisor",
+      "credencial": "C6 GPG revisor BA00DAC46FE7488272BC4F6A72099676E263421D",
+      "sonda": "chaveiro padrao dos agentes: gpg --list-secret-keys",
+      "resultado": "recusado",
+      "registro": "sem chave secreta (exit 2); copia local removida em 2026-11-23",
+      "data": "2026-11-23"
+    },
+    {
+      "id": "C7-verificador",
+      "credencial": "C7 GPG verificador 7B4BEE2FE4D42B297A583AF9100957DE6F761D6A",
+      "sonda": "chaveiro padrao dos agentes: gpg --list-secret-keys",
+      "resultado": "recusado",
+      "registro": "sem chave secreta (exit 2); copia local removida em 2026-11-23",
+      "data": "2026-11-23"
+    },
+    {
+      "id": "AMB-verifier-signing",
+      "credencial": "segredos do ambiente verifier-signing (C3, C7)",
+      "sonda": "workflow inocuo na branch prova/ambiente-20261122213516 pedindo o ambiente",
+      "resultado": "recusado",
+      "registro": "not allowed to deploy to verifier-signing due to environment protection rules (run 45089379432)",
+      "data": "2026-11-22T21:39"
+    },
+    {
+      "id": "AMB-reviewer",
+      "credencial": "segredos do ambiente reviewer (C6, C8)",
+      "sonda": "workflow inocuo na branch prova/ambiente-20261122213516 pedindo o ambiente",
+      "resultado": "recusado",
+      "registro": "not allowed to deploy to reviewer due to environment protection rules (run 45089379432)",
+      "data": "2026-11-22T21:39"
+    },
+    {
+      "id": "C16-cobranca",
+      "credencial": "C16 BRIGHTDATA_API_KEY",
+      "sonda": "GET https://api.brightdata.com/customer/balance (cobranca; a chave so le zonas)",
+      "resultado": "recusado",
+      "registro": "HTTP 403: Your API key lacks the required permissions for this action",
+      "data": "2026-11-23T13:07Z"
+    },
+    {
+      "id": "C17-cobranca",
+      "credencial": "C17 BRIGHTDATA_API_KEY_2",
+      "sonda": "GET https://api.brightdata.com/customer/balance (cobranca; a chave so le zonas)",
+      "resultado": "recusado",
+      "registro": "HTTP 403: Your API key lacks the required permissions for this action (mesma chave de C16: dois nomes no cofre, um valor)",
+      "data": "2026-11-23T13:07Z"
+    },
+    {
+      "id": "C8-gestao-2",
+      "credencial": "C8 LN_OPENROUTER_API_KEY",
+      "sonda": "GET https://openrouter.ai/api/v1/keys (repeticao)",
+      "resultado": "recusado",
+      "registro": "HTTP 401",
+      "data": "2026-11-23T13:08:31Z"
+    },
+    {
+      "id": "C18-gestao",
+      "credencial": "C18 EXA_API_KEY",
+      "sonda": "GET https://admin-api.exa.ai/team-management/api-keys (gestao de chaves da equipe; exige chave de servico)",
+      "resultado": "recusado",
+      "registro": "HTTP 401 Unauthorized",
+      "data": "2026-11-23T13:13:49Z"
+    }
+  ]
+}

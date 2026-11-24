@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
 import { schema } from '@ln/db';
@@ -19,6 +19,17 @@ import {
   sessionFromHeaders,
   type Role,
 } from './index';
+/** TOTP gerado e verificado com o relógio (só Date) parado entre os dois passos: nunca na virada da janela de 30 s sob carga. Sem retry.
+ *  Não toca no relógio injetado dos handlers (janela de bloqueio de tentativas). Se o teste já usa relógio falso, não mexe. */
+const relogioParado = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const congelar = !vi.isFakeTimers();
+  if (congelar) vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
+  try {
+    return await fn();
+  } finally {
+    if (congelar) vi.useRealTimers();
+  }
+};
 
 const ORIGIN = 'http://localhost:3000';
 const PASSWORD = 'senha-longa-de-teste-1';
@@ -77,8 +88,7 @@ async function enrollTotp(email: string) {
   expect(en.status).toBe(200);
   const { totpURI } = (await en.json()) as { totpURI: string };
   const raw = base32.decode(new URL(totpURI).searchParams.get('secret')!.toUpperCase());
-  const code = await createOTP(raw).totp();
-  const v = await handle(req('/two-factor/verify-totp', { body: { code }, cookie }));
+  const v = await relogioParado(async () => handle(req('/two-factor/verify-totp', { body: { code: await createOTP(raw).totp() }, cookie })));
   expect(v.status).toBe(200);
   return { raw, cookie: cookieOf(v) || cookie };
 }
@@ -89,8 +99,7 @@ async function fullLogin(email: string, raw: Uint8Array, ip?: string) {
   expect(res.status).toBe(200);
   expect(((await res.json()) as { twoFactorRedirect?: boolean }).twoFactorRedirect).toBe(true);
   const pending = cookieOf(res);
-  const code = await createOTP(raw).totp();
-  const v = await handle(req('/two-factor/verify-totp', { body: { code }, cookie: pending }));
+  const v = await relogioParado(async () => handle(req('/two-factor/verify-totp', { body: { code: await createOTP(raw).totp() }, cookie: pending })));
   expect(v.status).toBe(200);
   return cookieOf(v);
 }

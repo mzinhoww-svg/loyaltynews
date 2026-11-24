@@ -721,5 +721,18 @@
       "DP-38"
     ],
     "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-41 (sha256 do arquivo-fonte 5a2c804590f019a5965f3a0c39bc7069190995a035249b44cb0b2359c9ced41b)"
+  },
+  {
+    "id": "DP-44",
+    "status": "registrada",
+    "data": "2026-11-23",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "R0-01, escopo das chaves de busca e raspagem: o proprietário ACEITA O RISCO de C15 Apify, C19 Scrapfly, C20/C21 Tavily (plano gratuito, sem pagamento cadastrado, sem chave restrita oferecida pelo provedor) e C22 Zyte (não verificado sem gastar crédito). As 5 chaves ficam no cofre como risco aceito, com revogação pelo painel de cada provedor.",
+    "efeito": "No inventário da R0-01, C15, C19, C20, C21 e C22 deixam de ser PENDENTE e passam a \"risco aceito (DP-44)\". O teto de gasto continua pela DP-33 (controles internos). Revogação pelo painel de cada provedor.",
+    "vinculo": [
+      "DP-33",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-44 (sha256 do arquivo-fonte 6dd4880f4b51c1355f7e6b2afaf64d2a5b0905e72ea443738d1f62b86844934a)"
   }
 ]

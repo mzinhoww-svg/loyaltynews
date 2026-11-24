@@ -2,6 +2,7 @@
 // Só para testes (não é importado por rota alguma).
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
+import { vi } from 'vitest';
 import { EDITORIAS, FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import { createAuth, createAuthHandler, createStaffUser, type Db, type Role } from '@ln/auth';
 import { schema } from '@ln/db';
@@ -58,6 +59,20 @@ export async function makeApp(flags: Partial<FlagState> = {}) {
   const cache = new Map<string, Actor>();
   let seq = 0;
 
+  /**
+   * Gera o código TOTP e o verifica no MESMO instante: o relógio (só `Date`) fica parado entre gerar e verificar, então o código nunca cai
+   * na virada da janela de 30 s, por mais carregada que esteja a máquina. Sem retry. Se o teste já usa relógio falso, não mexe nele.
+   */
+  async function verifyTotp(raw: Uint8Array, cookie: string): Promise<Response> {
+    const freeze = !vi.isFakeTimers();
+    if (freeze) vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
+    try {
+      return await handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, cookie));
+    } finally {
+      if (freeze) vi.useRealTimers();
+    }
+  }
+
   /** Usuário do papel, com TOTP ativo e login completo (senha + código). Cache por chave. */
   async function actor(role: Role, key = role): Promise<Actor> {
     const hit = cache.get(key);
@@ -69,9 +84,9 @@ export async function makeApp(flags: Partial<FlagState> = {}) {
     const en = await handle(authReq('/two-factor/enable', { password: PASSWORD }, c0));
     const { totpURI } = (await en.json()) as { totpURI: string };
     const raw = base32.decode(new URL(totpURI).searchParams.get('secret')!.toUpperCase());
-    await handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, c0));
+    await verifyTotp(raw, c0);
     const login = await handle(authReq('/sign-in/email', { email, password: PASSWORD }));
-    const v = await handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, cookieOf(login)));
+    const v = await verifyTotp(raw, cookieOf(login));
     const a = { id, email, cookie: cookieOf(v) };
     cache.set(key, a);
     return a;
