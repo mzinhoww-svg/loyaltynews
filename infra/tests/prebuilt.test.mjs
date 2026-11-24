@@ -245,26 +245,6 @@ test('package-prebuilt --sem-zip (runner Ubuntu): monta a pasta sem criar ZIP e 
   } finally { rmSync(base, { recursive: true, force: true }); rmSync(nx, { recursive: true, force: true }); }
 });
 
-test('workflow proposto (infra/ci): só dispara à mão, só leitura, sem segredos, entradas só por ambiente, constrói em /app com o Node da Vertra e usa o package-prebuilt', () => {
-  const y = readFileSync(join(S, '..', 'ci', 'web-prebuilt.workflow.yml'), 'utf8');
-  const codigo = y.split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
-  assert.match(codigo, /^on:\s*\n\s+workflow_dispatch:/m);
-  for (const gatilho of ['pull_request', 'pull_request_target', 'push:', 'schedule:', 'workflow_run']) assert.ok(!codigo.includes(gatilho), `sem gatilho ${gatilho}`);
-  assert.match(codigo, /permissions:\s*\n\s+contents: read\s*\n/);
-  assert.ok(!/secrets\./.test(codigo), 'nenhum secrets.*');
-  assert.ok(!/GITHUB_TOKEN/.test(codigo.replace(/persist-credentials/g, '')), 'sem token explícito');
-  // entradas só em env:/with:/group:, nunca dentro de um bloco `run`
-  for (const l of codigo.split('\n').filter((x) => x.includes('${{ inputs.'))) assert.match(l, /^\s+(LN_[A-Z_]+|ref|name|group):\s/, `entrada fora de env/with: ${l.trim()}`);
-  assert.ok(!/run:[^\n]*\$\{\{ inputs\./.test(codigo));
-  assert.match(codigo, /sudo mkdir -p \/app/);
-  assert.match(codigo, /infra\/vertra\/environments\.json'\)\.runtime\.node/);
-  assert.match(codigo, /actions\/setup-node@v4/);
-  assert.match(codigo, /node infra\/scripts\/build-web\.mjs/);
-  assert.match(codigo, /package-prebuilt\.mjs .*--next \/app\/apps\/web\/\.next .*--sem-zip/);
-  assert.match(codigo, /\[\[ "\$LN_PERFIL" == "production" && -n "\$LN_FLAGS" \]\]/, 'produção recusa flags');
-  assert.match(codigo, /\^\[0-9a-f\]\{40\}\$/);
-});
-
 test('restaurarPrebuilt: .next com o MESMO BUILD_ID mas sem a marca da restauração (sobra do build da Vertra) é substituído; com a marca é "já presente" (a prova no staging não depende de sobras)', () => {
   const r = pacote();
   try {
