@@ -118,8 +118,18 @@ export class AdaptiveRouter {
     return (creditsPerAttempt * p.usdPerCredit + ATTEMPT_OVERHEAD_USD) / pValid;
   }
 
+  /**
+   * Faixas por domínio (ressalva QA 3, M2): 0 = já teve sucesso; 1 = sem histórico; 2 = só falhou (mesmo com UMA observação).
+   * Dentro da faixa, menor custo esperado por artigo válido. Antes, com uma única falha, um empate de custo podia pôr 1º quem falhou.
+   */
+  tier(domain: string, p: RoutedProvider): 0 | 1 | 2 {
+    const s = this.stats.get(`${domain}|${p.name}`);
+    if (!s || s.attempts === 0) return 1;
+    return s.valid > 0 ? 0 : 2;
+  }
+
   order(domain: string): RoutedProvider[] {
-    return [...this.providers].sort((a, b) => this.expectedCostPerValid(domain, a) - this.expectedCostPerValid(domain, b));
+    return [...this.providers].sort((a, b) => this.tier(domain, a) - this.tier(domain, b) || this.expectedCostPerValid(domain, a) - this.expectedCostPerValid(domain, b));
   }
 
   private note(d: Omit<RouteDecision, 'at'>) {

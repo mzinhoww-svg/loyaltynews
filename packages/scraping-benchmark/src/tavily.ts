@@ -4,6 +4,7 @@
  * plano Researcher 1.000 créditos/mês; 432/433 = limite do plano; 429 = ritmo (ou cota, se o corpo falar de crédito).
  */
 import type { KeyedReader, ProviderResponse, ReadRequest } from '@ln/intelligence';
+import { detectWall } from './quality';
 
 export class TavilyExtractReader implements KeyedReader {
   readonly provider = 'tavily-extract';
@@ -37,6 +38,9 @@ export class TavilyExtractReader implements KeyedReader {
     }
     const first = j.results?.[0];
     if (!first?.raw_content) return { status: 'provider_error', httpStatus: 200 }; // falhou para esta URL (não cobrado)
+    // proteção no próprio adaptador (ressalva QA 3): login/paywall detectado não devolve corpo, mesmo sem o pool
+    const wall = detectWall({ text: first.raw_content });
+    if (wall) return { status: 'ok', credits: 0.2, httpStatus: wall === 'login_required' ? 401 : 402 };
     return { status: 'ok', credits: 0.2, httpStatus: 200, text: first.raw_content, finalUrl: first.url };
   }
 }
