@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import Link from 'next/link';
 import type { AdvertiserReport } from '@ln/commercial';
 import { findModule } from '@/lib/studio/modules';
@@ -69,7 +70,8 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
         </p>
         {r.emptyState ? <p data-testid="rel-vazio">{r.emptyState}</p> : null}
 
-        <table className="st-table" aria-label="Totais da janela">
+        <QuadroRolavel rotulo="Totais da janela">
+<table className="st-table" aria-label="Totais da janela">
           <tbody>
             <tr><th scope="row">Impressões servidas</th><td data-testid="rel-servidas">{n(t?.served)}</td></tr>
             <tr><th scope="row">Impressões visíveis</th><td data-testid="rel-visiveis">{n(t?.visible)}</td></tr>
@@ -81,6 +83,7 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
             <tr><th scope="row">Estimado</th><td data-testid="rel-estimado">não: só o que foi contado</td></tr>
           </tbody>
         </table>
+</QuadroRolavel>
         {r.auditability.note ? <p className="st-alert err" role="note" data-testid="rel-auditavel">{r.auditability.note}</p> : null}
         {r.notes.length > 0 ? (
           <div role="note" data-testid="rel-avisos">
@@ -94,7 +97,8 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
         {r.campaigns.length === 0 ? (
           <p data-vazio="campanhas">Nenhuma campanha deste anunciante toca a janela.</p>
         ) : (
-          <table className="st-table" aria-label="Campanhas do anunciante">
+          <QuadroRolavel rotulo="Campanhas do anunciante">
+<table className="st-table" aria-label="Campanhas do anunciante">
             <thead>
               <tr><th scope="col">Campanha</th><th scope="col">Estado</th><th scope="col">Período</th><th scope="col">Posições</th><th scope="col">Servidas</th><th scope="col">Visíveis</th><th scope="col">Cliques</th></tr>
             </thead>
@@ -112,12 +116,14 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
               ))}
             </tbody>
           </table>
+</QuadroRolavel>
         )}
 
         {r.daily.length > 0 ? (
           <>
             <h3>Por dia</h3>
-            <table className="st-table" data-testid="rel-por-dia">
+            <QuadroRolavel rotulo="Relatório por dia">
+<table className="st-table" data-testid="rel-por-dia">
               <thead><tr><th scope="col">Dia</th><th scope="col">Servidas</th><th scope="col">Visíveis</th><th scope="col">Cliques</th><th scope="col">Visibilidade</th><th scope="col">CTR</th></tr></thead>
               <tbody>
                 {r.daily.map((d) => (
@@ -125,6 +131,7 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
                 ))}
               </tbody>
             </table>
+</QuadroRolavel>
           </>
         ) : null}
         {r.dataIssues.length > 0 ? (
