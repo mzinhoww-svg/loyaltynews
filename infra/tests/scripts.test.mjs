@@ -1635,3 +1635,30 @@ test('smoke-staging: temMarcadorMock só reprova marcadores explícitos de MOCK;
   const src = readFileSync(join(S, 'smoke-staging.mjs'), 'utf8');
   assert.equal((src.match(/bMOCK(?!\s·)/g) ?? []).length, 0, 'nenhum \bMOCK\b solto sobrou no smoke-staging');
 });
+
+test('smoke-producao --expect-icones (achado D-2): favicon.ico em 404 (cache velho do edge) reprova mostrando cf-cache-status e age; com os três ícones servidos passa', async () => {
+  const { rodar } = await import('../scripts/smoke-producao.mjs');
+  const estado = { favicon: 404 };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    if (u === '/favicon.ico') {
+      if (estado.favicon === 404) { res.writeHead(404, { 'content-type': 'text/html; charset=utf-8', 'cf-cache-status': 'HIT', age: '130611' }); return res.end('nao encontrado'); }
+      res.writeHead(200, { 'content-type': 'image/x-icon' }); return res.end('ico');
+    }
+    if (u === '/icon.svg') { res.writeHead(200, { 'content-type': 'image/svg+xml' }); return res.end('<svg/>'); }
+    if (u === '/apple-icon.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end('png'); }
+    res.writeHead(404); res.end();
+  });
+  try {
+    const url = 'http://127.0.0.1:' + s.address().port;
+    const ruim = (await rodar({ url, icones: true, consecutivas: 1, intervaloMs: 0 })).checagens.filter((c) => /^icones:/.test(c.nome));
+    assert.equal(ruim.length, 3);
+    const fav = ruim.find((c) => /favicon/.test(c.nome));
+    assert.equal(fav.ok, false); assert.match(fav.detalhe, /HTTP 404.*cf-cache-status=HIT age=130611/);
+    assert.ok(ruim.filter((c) => !/favicon/.test(c.nome)).every((c) => c.ok));
+    estado.favicon = 200;
+    const bom = (await rodar({ url, icones: true, consecutivas: 1, intervaloMs: 0 })).checagens.filter((c) => /^icones:/.test(c.nome));
+    assert.ok(bom.length === 3 && bom.every((c) => c.ok), JSON.stringify(bom));
+    assert.equal((await rodar({ url, consecutivas: 1, intervaloMs: 0 })).checagens.some((c) => /^icones:/.test(c.nome)), false, 'sem a opção não confere ícones');
+  } finally { s.close(); }
+});
