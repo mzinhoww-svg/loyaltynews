@@ -5,7 +5,8 @@ import { EmptyState, PageHead } from '../_components/ui';
 import { MOVES_EMPTY, MoveCard } from '../intelligence/_components/intel';
 import { getSource } from '../_lib/source';
 
-export const revalidate = 60;
+// Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Loyalty Moves',
   description: 'Movimentações profissionais confirmadas no mercado de fidelização.',

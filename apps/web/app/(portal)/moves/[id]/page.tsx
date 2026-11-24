@@ -8,7 +8,8 @@ import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
 import { getSource } from '../../_lib/source';
 import { MoveCard } from '../../intelligence/_components/intel';
 
-export const revalidate = 60;
+// Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+export const dynamic = 'force-dynamic';
 const load = cache((id: string) => getSource().getMove(id));
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

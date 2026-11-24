@@ -7,7 +7,8 @@ import { formatDate } from '../../_lib/format';
 import { getSource } from '../../_lib/source';
 import { PEOPLE_EMPTY } from '../_components/intel';
 
-export const revalidate = 60;
+// Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Pessoas — Loyalty Intelligence',
   description: 'Executivos do mercado de fidelização com cargos de fonte pública e data de validação.',

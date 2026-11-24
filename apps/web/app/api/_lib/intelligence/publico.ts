@@ -12,6 +12,8 @@ const S = 'intelligence';
 const TIPOS = ['company', 'program', 'association', 'regulator', 'media', 'other'] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CACHE = { 'cache-control': 'public, max-age=60, stale-while-revalidate=300' } as const;
+/** Detalhe de empresa COM pessoas (flag ligada): nunca em cache compartilhado (PM-2026-11-23-O); sem pessoa, mantém o cache curto. */
+const NO_STORE = { 'cache-control': 'private, no-store' } as const;
 
 const Lista = z.object({
   tipo: z.enum(TIPOS).optional(),
@@ -131,6 +133,6 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
       },
     },
     200,
-    CACHE,
+    pessoasLigadas ? NO_STORE : CACHE,
   );
 };

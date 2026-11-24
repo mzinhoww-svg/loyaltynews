@@ -9,7 +9,8 @@ import { KIND_LABEL, relationLabel } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
 import { MoveCard, RolesTable } from '../../_components/intel';
 
-export const revalidate = 60;
+// Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+export const dynamic = 'force-dynamic';
 
 const load = cache((id: string) => getSource().getCompany(id));
 
