@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { TabelaRolavel, TABELA_NO_CONTEINER } from '../../_components/TabelaRolavel';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import type { MediaKitPage } from '@ln/commercial';
 import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
@@ -47,8 +47,8 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       </div>
 
       <h2>Posições</h2>
-      <TabelaRolavel rotulo="Posições do inventário">
-<table className="st-table" style={TABELA_NO_CONTEINER}>
+      <QuadroRolavel rotulo="Posições do inventário">
+<table className="st-table">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
           {posicoes.length} posições do blueprint
         </caption>
@@ -81,7 +81,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           ))}
         </tbody>
       </table>
-</TabelaRolavel>
+</QuadroRolavel>
 
       <h2 style={{ marginTop: 24 }}>Catálogo de formatos</h2>
       <form className="st-filters" method="get" role="search" aria-label="Filtrar formatos">
@@ -114,8 +114,8 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           Filtro inválido.
         </div>
       ) : (
-        <TabelaRolavel rotulo="Formatos do catálogo">
-<table className="st-table" style={TABELA_NO_CONTEINER}>
+        <QuadroRolavel rotulo="Formatos do catálogo">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {view.total} formato(s). {view.note}
           </caption>
@@ -142,7 +142,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
             ))}
           </tbody>
         </table>
-</TabelaRolavel>
+</QuadroRolavel>
       )}
 
       <h2 style={{ marginTop: 24 }}>Mídia kit</h2>

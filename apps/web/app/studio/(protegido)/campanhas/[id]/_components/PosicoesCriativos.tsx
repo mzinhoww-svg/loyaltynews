@@ -1,6 +1,6 @@
 import { POSITIONS } from '@ln/commercial';
 import { ROTULO_DISPOSITIVO, dimensaoEsperada, varianteDoCriativo } from '@/lib/studio/criativo-dispositivo';
-import { TabelaRolavel, TABELA_NO_CONTEINER } from '../../../../_components/TabelaRolavel';
+import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { adicionarCriativoAction, definirPosicoesAction, aprovarCriativoAction, cancelarReservaAction, enviarArquivoCriativoAction, reservarPosicaoAction } from '../../actions';
 
 export type ReservaLinha = { id: string; positionId: string; startDate: string; endDate: string; status: string };
@@ -67,8 +67,8 @@ export function PosicoesCriativos(props: {
         {reservas.length === 0 ? (
           <p data-vazio="posicoes">Nenhuma posição reservada. Para mover a campanha para “reserved”, reserve ao menos uma posição.</p>
         ) : (
-          <TabelaRolavel rotulo="Reservas da campanha">
-<table className="st-table" style={TABELA_NO_CONTEINER} aria-label="Reservas da campanha">
+          <QuadroRolavel rotulo="Reservas da campanha">
+<table className="st-table" aria-label="Reservas da campanha">
             <thead>
               <tr>
                 <th scope="col">Posição</th>
@@ -102,7 +102,7 @@ export function PosicoesCriativos(props: {
               ))}
             </tbody>
           </table>
-</TabelaRolavel>
+</QuadroRolavel>
         )}
         {escreve && DA_CAMPANHA.length > 0 ? (
           <form action={reservarPosicaoAction} aria-label="Reservar posição" style={{ marginTop: 12 }}>

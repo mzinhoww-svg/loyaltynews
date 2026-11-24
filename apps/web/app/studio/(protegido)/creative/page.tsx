@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { TabelaRolavel, TABELA_NO_CONTEINER } from '../../_components/TabelaRolavel';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import Link from 'next/link';
 import { can } from '@ln/auth';
 import { flagAtiva } from '@/lib/studio/flags';
@@ -204,8 +204,8 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
           </section>
         ) : (
           <>
-            <TabelaRolavel rotulo="Cards sociais">
-<table className="st-table" style={TABELA_NO_CONTEINER} aria-label="Cards sociais">
+            <QuadroRolavel rotulo="Cards sociais">
+<table className="st-table" aria-label="Cards sociais">
               <thead>
                 <tr>
                   <th scope="col">Matéria</th>
@@ -258,7 +258,7 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
                 ))}
               </tbody>
             </table>
-</TabelaRolavel>
+</QuadroRolavel>
             <p className="st-hint">
               {total} card(s) · página {pag} de {paginas} {pag > 1 ? <Link href={link(pag - 1)}>Anterior</Link> : null}{' '}
               {pag < paginas ? <Link href={link(pag + 1)}>Próxima</Link> : null}
