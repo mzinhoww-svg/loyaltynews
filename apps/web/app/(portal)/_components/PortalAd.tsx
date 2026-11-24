@@ -2,7 +2,7 @@
 
 import { AdSlot as DsAdSlot, type AdPosition } from '@ln/ui';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { newPageViewId, parseServeAd, trackVisible, type PublicAd } from '../_lib/ads';
 
 /**
@@ -19,14 +19,14 @@ const pageViewFor = (path: string): string => {
 
 /** Uma chamada por (pageViewId, posição): o modo estrito do React em desenvolvimento não duplica a impressão. */
 const inflight = new Map<string, Promise<PublicAd | null>>();
-function serve(positionId: string, pageViewId: string): Promise<PublicAd | null> {
-  const key = `${pageViewId}:${positionId}`;
+function serve(positionId: string, pageViewId: string, mobile: boolean): Promise<PublicAd | null> {
+  const key = `${pageViewId}:${positionId}:${mobile ? 'm' : 'd'}`;
   let p = inflight.get(key);
   if (!p) {
     p = fetch('/api/commercial/ads/serve', {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ positionId, pageViewId }),
+      body: JSON.stringify(mobile ? { positionId, pageViewId, device: 'mobile' } : { positionId, pageViewId }),
       credentials: 'omit',
       cache: 'no-store',
     })
@@ -48,20 +48,37 @@ function reportVisible(impressionId: string): void {
   }).catch(() => undefined);
 }
 
-export function PortalAd({ position, width, height }: { position: AdPosition; width: number; height: number }) {
+/** Formatos de anúncio do mobile (inventário do @ln/commercial). No mobile só estes aparecem: nunca se estica um banner desktop. */
+export const MOBILE_AD_FORMATS: readonly (readonly [number, number])[] = [[320, 100], [300, 250]];
+export const isMobileAdFormat = (w: number, h: number): boolean => MOBILE_AD_FORMATS.some(([mw, mh]) => mw === w && mh === h);
+const MOBILE_QUERY = '(max-width: 767px)';
+
+export function PortalAd({ position, width, height, desktop = true, mobileFormats = null }: { position: AdPosition; width: number; height: number; desktop?: boolean; mobileFormats?: readonly { width: number; height: number }[] | null }) {
   const path = usePathname() ?? '/';
   const [ad, setAd] = useState<PublicAd | null | undefined>(undefined); // undefined = carregando (espaço reservado); null = recolhe
   const box = useRef<HTMLDivElement>(null);
 
+  const [mobile, setMobile] = useState(false);
+
   useEffect(() => {
     let live = true;
-    void serve(position, pageViewFor(path)).then((a) => {
-      if (live) setAd(a);
+    // Viewport lido uma vez por carregamento (uma chamada de serve por página): o formato mobile é pedido ao servidor e conferido ao chegar.
+    const isMobile = window.matchMedia(MOBILE_QUERY).matches;
+    setMobile(isMobile);
+    // O plano diz onde há criativo: mobile sem formato mobile, ou desktop em posição só-mobile, nem chama o serve (nada contado, nada reservado).
+    if (isMobile ? mobileFormats !== null && mobileFormats.length === 0 : !desktop) {
+      setAd(null);
+      return;
+    }
+    void serve(position, pageViewFor(path), isMobile).then((a) => {
+      if (!live) return;
+      // No mobile, criativo que não for 320×100 ou 300×250 não é exibido (a posição recolhe, sem espaço reservado).
+      setAd(a && isMobile && !isMobileAdFormat(a.width, a.height) ? null : a);
     });
     return () => {
       live = false;
     };
-  }, [position, path]);
+  }, [position, path, desktop, mobileFormats]);
 
   // Visível: ≥ 50 % da área por ≥ 1 s, uma vez por anúncio exibido (só com impressionId).
   useEffect(() => {
@@ -82,7 +99,18 @@ export function PortalAd({ position, width, height }: { position: AdPosition; wi
 
   if (ad === null) return null;
   return (
-    <div ref={box} data-testid="portal-ad" data-position={position} data-state={ad ? 'ad' : 'reservado'} data-reserved={`${width}x${height}`} style={{ maxWidth: width }}>
+    <div
+      ref={box}
+      className="pt-ad"
+      data-testid="portal-ad"
+      data-position={position}
+      data-state={ad ? 'ad' : 'reservado'}
+      data-device={mobile ? 'mobile' : 'desktop'}
+      data-desktop={desktop ? 'true' : 'false'}
+      data-mobile-formats={mobileFormats === null ? 'desconhecido' : mobileFormats.length > 0 ? 'sim' : 'nenhum'}
+      data-reserved={`${width}x${height}`}
+      style={{ maxWidth: width, ...(ad ? ({ '--pt-ad-w': ad.width, '--pt-ad-h': ad.height } as CSSProperties) : {}) }}
+    >
       <DsAdSlot position={position}>
         {ad ? (
           <a href={ad.href} rel="sponsored noopener noreferrer" target="_blank" aria-label={`Publicidade: ${ad.advertiser}`}>

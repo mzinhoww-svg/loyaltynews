@@ -104,18 +104,24 @@ test.describe('agenda do Studio', () => {
 });
 
 test.describe('estados de carregando e de erro (modo api)', () => {
-  test('carregando: navegação interna mostra o esqueleto até a resposta chegar, e depois o vazio honesto', async ({ page }) => {
+  test('carregando: navegação interna mostra o esqueleto até a resposta chegar, e depois o vazio honesto', async ({ page, request }, info) => {
     test.setTimeout(90_000);
+    // Portão determinístico no servidor MOCK: a resposta da busca só sai quando este teste a libera, depois de ver o esqueleto
+    // (antes era um atraso fixo de 2,5 s, apertado com muitos workers).
+    const chave = `${info.project.name}-${info.parallelIndex}-${Date.now()}`;
+    const termo = `portao-${chave}`;
+    const fakeApi = `http://localhost:${Number(process.env.PORTAL_PORT_BASE) ? Number(process.env.PORTAL_PORT_BASE) + 4 : 3104}`;
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await page.waitForFunction(() => Boolean((window as unknown as { next?: { router?: unknown } }).next?.router));
-    await page.evaluate(() => (window as unknown as { next: { router: { push: (u: string) => void } } }).next.router.push('/busca?q=lento'));
+    await page.evaluate((u) => (window as unknown as { next: { router: { push: (u: string) => void } } }).next.router.push(u), `/busca?q=${termo}`);
     const loading = page.getByTestId('portal-loading');
     await expect(loading).toBeVisible();
     await expect(loading).toHaveAttribute('aria-busy', 'true');
     await expect(loading.getByText('Carregando…')).toBeAttached();
-    // Depois da resposta (2,5 s no servidor MOCK): resultado vazio, não erro.
-    await expect(page.getByText('Nenhum resultado para “lento”')).toBeVisible({ timeout: 15_000 });
+    // Libera a resposta: resultado vazio, não erro.
+    expect((await request.post(`${fakeApi}/__portao/abrir?chave=${encodeURIComponent(chave)}`)).ok()).toBe(true);
+    await expect(page.getByText(`Nenhum resultado para “${termo}”`)).toBeVisible({ timeout: 15_000 });
     await expect(loading).toHaveCount(0);
     await expect(page.getByTestId('error-state')).toHaveCount(0);
   });

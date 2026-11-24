@@ -25,8 +25,13 @@ export const AD_PLAN_POSITIONS: readonly AdPositionId[] = ['TOP', 'SIDEBAR_1', '
 
 export interface AdPlanSlot {
   positionId: AdPositionId;
+  /** Dimensão do desktop (ou a primeira do mobile, quando a posição só tem criativo mobile). */
   width: number;
   height: number;
+  /** A posição tem criativo elegível no desktop. `false` = só no mobile: no desktop não aparece. */
+  desktop: boolean;
+  /** Formatos mobile do plano (`mobile` aditivo do GET /ads/plan). `null` = API antiga, sem o campo (o mobile tenta e confere ao receber). `[]` = nenhum. */
+  mobile: readonly { width: number; height: number }[] | null;
 }
 /** Posições disponíveis (com criativo real elegível hoje), por id. Vazio = nada a mostrar. */
 export type AdPlan = ReadonlyMap<AdPositionId, AdPlanSlot>;
@@ -67,9 +72,15 @@ export function parseAdPlan(json: unknown): AdPlan {
   const out = new Map<AdPositionId, AdPlanSlot>();
   if (!isObj(json) || !Array.isArray(json.slots)) return out;
   for (const s of json.slots.slice(0, 20)) {
-    if (!isObj(s) || s.available !== true || !dim(s.width) || !dim(s.height)) continue;
+    if (!isObj(s)) continue;
     const id = AD_PLAN_POSITIONS.find((p) => p === s.positionId);
-    if (id) out.set(id, { positionId: id, width: s.width, height: s.height });
+    if (!id) continue;
+    const mobile = Array.isArray(s.mobile)
+      ? s.mobile.slice(0, 10).flatMap((m) => (isObj(m) && dim(m.width) && dim(m.height) ? [{ width: m.width, height: m.height }] : []))
+      : null;
+    const desktop = s.available === true && dim(s.width) && dim(s.height);
+    if (desktop) out.set(id, { positionId: id, width: s.width as number, height: s.height as number, desktop: true, mobile });
+    else if (mobile && mobile.length > 0) out.set(id, { positionId: id, width: mobile[0]!.width, height: mobile[0]!.height, desktop: false, mobile });
   }
   return out;
 }

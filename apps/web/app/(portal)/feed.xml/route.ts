@@ -2,7 +2,8 @@ import { indexingBlocked } from '../_lib/indexing';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '../_lib/site';
 import { getSource } from '../_lib/source';
 
-export const revalidate = 300;
+// Dinâmica: com revalidate o build (sem API) congelava o feed vazio e o servidor passava a servir essa cópia.
+export const dynamic = 'force-dynamic';
 
 const x = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 

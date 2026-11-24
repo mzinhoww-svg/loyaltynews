@@ -3,31 +3,43 @@ import { describe, expect, it } from 'vitest';
 import { desfazerEscapes, marcadoresEm } from '../scripts/scan-marcadores.mjs';
 
 const M = ['[MOCK] Matéria de teste', 'Empresa de Teste (MOCK)'];
-// String.raw: os textos abaixo têm a barra invertida de verdade, como no JS compilado (o .next guarda "Mat\xe9ria", não "Matéria").
-const raw = String.raw;
+// As barras invertidas são montadas por código (BS) para o teste não depender de como o editor grava escapes: o .next guarda "Mat" + BS + "xe9ria".
+const BS = String.fromCharCode(92);
+const mat = (esc: string) => `[MOCK] Mat${esc}ria de teste`;
 
 describe('varredura de marcadores (verify-no-mock)', () => {
   it('acha o marcador literal', () => {
     expect(marcadoresEm('x "[MOCK] Matéria de teste 1" y', M)).toEqual(['[MOCK] Matéria de teste']);
   });
-  it('acha o marcador com o acento escapado como \\xHH (JS compilado)', () => {
-    const js = raw`t=\`[MOCK] Mat\xe9ria de teste \${a+1}\``;
-    expect(js).toContain('Mat\\xe9ria');
+  it('acha o marcador com o acento escapado como xHH (JS compilado)', () => {
+    const js = 't=`' + mat(`${BS}xe9`) + ' ${a+1}`';
+    expect(js).toContain(`${BS}xe9`);
+    expect(js).not.toContain('é');
     expect(marcadoresEm(js, M)).toEqual(['[MOCK] Matéria de teste']);
   });
-  it('acha com \\uHHHH, \\u{...} e entidades numéricas', () => {
-    expect(marcadoresEm(raw`"[MOCK] Matéria de teste"`, M)).toHaveLength(1);
-    expect(marcadoresEm(raw`"[MOCK] Mat\u{e9}ria de teste"`, M)).toHaveLength(1);
-    expect(marcadoresEm('<p>[MOCK] Mat&#233;ria de teste</p>', M)).toHaveLength(1);
-    expect(marcadoresEm('<p>[MOCK] Mat&#xe9;ria de teste</p>', M)).toHaveLength(1);
+  it('acha com uHHHH, u{...} e entidades numéricas (nenhum "é" literal no texto)', () => {
+    for (const t of [mat(`${BS}u00e9`), mat(`${BS}u{e9}`), mat('&#233;'), mat('&#xe9;'), mat('&eacute;')]) {
+      expect(t).not.toContain('é');
+      expect(marcadoresEm(t, M)).toEqual(['[MOCK] Matéria de teste']);
+    }
+  });
+  it('acha escape duplo (JSON dentro de string JS) e forma decomposta NFD', () => {
+    const duplo = mat(`${BS}${BS}u00e9`);
+    expect(duplo).toContain(`${BS}${BS}u00e9`);
+    expect(marcadoresEm(duplo, M)).toHaveLength(1);
+    const agudo = String.fromCharCode(0x301);
+    const nfd = `[MOCK] Mate${agudo}ria de teste`;
+    expect(nfd).not.toContain('é');
+    expect(marcadoresEm(nfd, M)).toEqual(['[MOCK] Matéria de teste']);
   });
   it('controle negativo: texto limpo ou com outra frase escapada não casa', () => {
-    expect(marcadoresEm(raw`Mat\xe9ria publicada de verdade`, M)).toEqual([]);
-    expect(marcadoresEm(raw`[MOCK] Mat\xe9ria de produ\xe7\xe3o`, M)).toEqual([]);
+    expect(marcadoresEm(`Mat${BS}xe9ria publicada de verdade`, M)).toEqual([]);
+    expect(marcadoresEm(`[MOCK] Mat${BS}xe9ria de produ${BS}xe7${BS}xe3o`, M)).toEqual([]);
+    expect(marcadoresEm('[MOCK] Mat&eacute;ria de produ&ccedil;&atilde;o', M)).toEqual([]);
     expect(marcadoresEm('', M)).toEqual([]);
   });
   it('escape inválido (fora do intervalo) fica como está e não quebra', () => {
-    const ruim = raw`\u{110000} \xZZ &#99999999;`;
+    const ruim = `${BS}u{110000} ${BS}xZZ &#99999999; &inexistente;`;
     expect(desfazerEscapes(ruim)).toBe(ruim);
   });
 });
