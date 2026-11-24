@@ -563,3 +563,19 @@ describe('ressalva R5 do QA 3 (ee01f58): marcador por token', () => {
     expect(isWallMarker('AssinanteOnly')).toBe(true);
   });
 });
+
+describe('relatório por fonte do piloto (tarefa 17)', () => {
+  it('cobre todas as fontes de piloto-fontes.data.json, com 0 chamadas tarifadas e 0 chaves', () => {
+    const root = join(__dirname, '..', '..', '..', '..');
+    const rep = JSON.parse(readFileSync(join(root, 'packages', 'scraping-benchmark', 'data', 'pilot', 'pilot-report.json'), 'utf8'));
+    const pilot = JSON.parse(readFileSync(join(root, 'packages', 'editorial', 'docs', 'piloto-fontes.data.json'), 'utf8'));
+    expect(rep.tariffedCalls).toBe(0);
+    expect(rep.keysUsed).toBe(0);
+    const ids = rep.sources.map((s: { id: string }) => s.id);
+    for (const f of pilot.fontes) expect(ids).toContain(f.id);
+    for (const s of rep.sources) {
+      expect(s.tariffedCalls).toBe(0);
+      for (const r of s.reads) expect(JSON.stringify(r).length).toBeLessThan(2000); // só métricas, nada de texto (DP-29)
+    }
+  });
+});
