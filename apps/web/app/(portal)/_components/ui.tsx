@@ -167,7 +167,7 @@ export async function AdSlot({ slot }: { slot: AdSlotId }) {
   if (src.kind === 'api') {
     const planned = (await loadAdPlan()).get(AD_POSITION_OF[slot]);
     if (!planned) return null;
-    return <PortalAd position={planned.positionId as AdPosition} width={planned.width} height={planned.height} />;
+    return <PortalAd position={planned.positionId as AdPosition} width={planned.width} height={planned.height} desktop={planned.desktop} mobileFormats={planned.mobile} />;
   }
   const ad = await src.getAd(slot);
   if (!ad) return null;

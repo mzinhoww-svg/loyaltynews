@@ -53,7 +53,7 @@ export const MOBILE_AD_FORMATS: readonly (readonly [number, number])[] = [[320, 
 export const isMobileAdFormat = (w: number, h: number): boolean => MOBILE_AD_FORMATS.some(([mw, mh]) => mw === w && mh === h);
 const MOBILE_QUERY = '(max-width: 767px)';
 
-export function PortalAd({ position, width, height }: { position: AdPosition; width: number; height: number }) {
+export function PortalAd({ position, width, height, desktop = true, mobileFormats = null }: { position: AdPosition; width: number; height: number; desktop?: boolean; mobileFormats?: readonly { width: number; height: number }[] | null }) {
   const path = usePathname() ?? '/';
   const [ad, setAd] = useState<PublicAd | null | undefined>(undefined); // undefined = carregando (espaço reservado); null = recolhe
   const box = useRef<HTMLDivElement>(null);
@@ -65,6 +65,11 @@ export function PortalAd({ position, width, height }: { position: AdPosition; wi
     // Viewport lido uma vez por carregamento (uma chamada de serve por página): o formato mobile é pedido ao servidor e conferido ao chegar.
     const isMobile = window.matchMedia(MOBILE_QUERY).matches;
     setMobile(isMobile);
+    // O plano diz onde há criativo: mobile sem formato mobile, ou desktop em posição só-mobile, nem chama o serve (nada contado, nada reservado).
+    if (isMobile ? mobileFormats !== null && mobileFormats.length === 0 : !desktop) {
+      setAd(null);
+      return;
+    }
     void serve(position, pageViewFor(path), isMobile).then((a) => {
       if (!live) return;
       // No mobile, criativo que não for 320×100 ou 300×250 não é exibido (a posição recolhe, sem espaço reservado).
@@ -73,7 +78,7 @@ export function PortalAd({ position, width, height }: { position: AdPosition; wi
     return () => {
       live = false;
     };
-  }, [position, path]);
+  }, [position, path, desktop, mobileFormats]);
 
   // Visível: ≥ 50 % da área por ≥ 1 s, uma vez por anúncio exibido (só com impressionId).
   useEffect(() => {
@@ -101,6 +106,8 @@ export function PortalAd({ position, width, height }: { position: AdPosition; wi
       data-position={position}
       data-state={ad ? 'ad' : 'reservado'}
       data-device={mobile ? 'mobile' : 'desktop'}
+      data-desktop={desktop ? 'true' : 'false'}
+      data-mobile-formats={mobileFormats === null ? 'desconhecido' : mobileFormats.length > 0 ? 'sim' : 'nenhum'}
       data-reserved={`${width}x${height}`}
       style={{ maxWidth: width, ...(ad ? ({ '--pt-ad-w': ad.width, '--pt-ad-h': ad.height } as CSSProperties) : {}) }}
     >

@@ -87,6 +87,9 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
     // Dimensão reservada = a do plano (evita deslocamento de layout)
     expect(html).toContain('data-reserved="1280x150"');
     expect(html).toContain('data-reserved="336x280"');
+    // O plano traz o `mobile` aditivo (formatos 320×100 / 300×250): o portal o lê e o expõe por posição
+    expect((html.match(/data-mobile-formats="sim"/g) ?? []).length).toBe(2);
+    expect((html.match(/data-desktop="true"/g) ?? []).length).toBe(2);
   });
 
   test('visível: só depois de ≥ 50 % por ≥ 1 s, uma única vez, com o impressionId', async ({ page }) => {
@@ -183,6 +186,9 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
     await sideBox.scrollIntoViewIfNeeded();
     const t = (await topBox.boundingBox())!;
     const sd = (await sideBox.boundingBox())!;
+    // O formato é o do criativo, não encolhido ao tamanho do texto: 320 px de largura no topo e 300 px na sidebar (a tela do teste tem 412 px)
+    expect(Math.round(t.width)).toBe(320);
+    expect(Math.round(sd.width)).toBe(300);
     expect(Math.round(t.width)).toBeLessThanOrEqual(320);
     expect(Math.abs(t.width / t.height - 3.2)).toBeLessThan(0.05); // 320×100
     expect(Math.round(sd.width)).toBeLessThanOrEqual(300);

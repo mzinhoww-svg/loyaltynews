@@ -172,9 +172,11 @@ const send = (res, status, body) => {
 // GET /api/commercial/ads/plan (formato de adPlan do @ln/commercial). FAKE_API_ADS=com: TOP e SIDEBAR_1 disponíveis; qualquer outro valor: nenhuma.
 const adsMode = process.env.FAKE_API_ADS ?? 'sem';
 const ADS_DIM = { TOP: [1280, 150], SIDEBAR_1: [336, 280] };
+// Formatos mobile do inventário do @ln/commercial (aditivo `mobile` do plano, ft/commercial-device 6f7eb48): topo 320×100 e 300×250; a sidebar só 300×250.
+const ADS_MOBILE = { TOP: [{ width: 320, height: 100 }, { width: 300, height: 250 }], SIDEBAR_1: [{ width: 300, height: 250 }] };
 const adPlan = (positions) => ({
   today: new Date().toISOString().slice(0, 10),
-  slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1] } : { positionId: id, available: false, width: null, height: null })),
+  slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1], mobile: ADS_MOBILE[id] } : { positionId: id, available: false, width: null, height: null, mobile: [] })),
 });
 
 const TIPOS = ['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento'];
