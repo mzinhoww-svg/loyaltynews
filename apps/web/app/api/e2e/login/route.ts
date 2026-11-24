@@ -18,6 +18,10 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }
   }
+  if (q.get('blob') === 'memoria') {
+    (await e2eBackend()).setBlobMemoria(q.get('on') === '1');
+    return Response.json({ ok: true });
+  }
   if (q.get('seed') === 'editorial') {
     try {
       return Response.json({ ok: true, ...(await (await e2eBackend()).seedEditorial()) });

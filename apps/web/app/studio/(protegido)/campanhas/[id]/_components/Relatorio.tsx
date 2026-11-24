@@ -70,9 +70,11 @@ export function Relatorio({ r }: { r: CampaignReport }) {
       )}
 
       {r.notes.length > 0 && (
-        <ul className="st-issues" data-testid="rel-avisos" role="note">
-          {r.notes.map((x, i) => <li key={i}>{x}</li>)}
-        </ul>
+        <div role="note" data-testid="rel-avisos">
+          <ul className="st-issues">
+            {r.notes.map((x, i) => <li key={i}>{x}</li>)}
+          </ul>
+        </div>
       )}
 
       {r.daily.length > 0 && (

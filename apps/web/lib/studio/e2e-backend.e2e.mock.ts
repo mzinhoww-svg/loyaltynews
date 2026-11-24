@@ -66,9 +66,14 @@ async function montar() {
 
   // Flags de e2e ficam numa global compartilhada: o Next carrega uma instância de deps.ts por rota/página, então cada
   // camada sincroniza a sua a partir daqui (sincronizar()), chamado na leitura da sessão do Studio e ao ligar uma flag.
-  const aplicar = () => setDepsForTest({ db, auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flagsGlobais() } as FlagState });
+  const aplicar = () => setDepsForTest({ db, auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flagsGlobais() } as FlagState, ...blobDeps() });
 
   const backend: E2eBackend = {
+    setBlobMemoria(ligado) {
+      blobGlobal().ligado = ligado;
+      if (!ligado) blobGlobal().objetos.clear();
+      aplicar();
+    },
     setFlag(nome, ligada) {
       if (!(nome in FLAG_DEFAULTS)) throw new Error(`flag desconhecida: ${nome}`);
       flagsGlobais()[nome] = ligada;
@@ -212,6 +217,21 @@ Fontes:
 }
 
 // Uma única montagem por processo (promessa memorizada na global: vale entre chunks do bundle).
+// Blob em memória do e2e (MOCK): global compartilhada entre as camadas do bundle, como as flags. Só existe neste arquivo de e2e.
+const BLOB_KEY = Symbol.for('ln.studio.e2e.blob');
+type BlobMemoria = { ligado: boolean; objetos: Map<string, { bytes: Uint8Array; contentType: string }> };
+const blobGlobal = (): BlobMemoria => {
+  const g = globalThis as unknown as Record<symbol, BlobMemoria | undefined>;
+  return (g[BLOB_KEY] ??= { ligado: false, objetos: new Map() });
+};
+const blobMemoria = {
+  async put(key: string, bytes: Uint8Array, contentType: string) { blobGlobal().objetos.set(key, { bytes: new Uint8Array(bytes), contentType }); },
+  async get(key: string) { return blobGlobal().objetos.get(key) ?? null; },
+  async delete(key: string) { blobGlobal().objetos.delete(key); },
+};
+/** Desligado: nada é injetado (as rotas procuram o S3 do ambiente, que no e2e não existe: 503). */
+const blobDeps = () => (blobGlobal().ligado ? { blob: blobMemoria } : {});
+
 const FLAGS_KEY = Symbol.for('ln.studio.e2e.flags');
 const flagsGlobais = (): Record<string, boolean> => {
   const g = globalThis as unknown as Record<symbol, Record<string, boolean> | undefined>;
@@ -225,8 +245,8 @@ const flagsGlobais = (): Record<string, boolean> => {
 export const sincronizarFlagsE2e: (() => void) | null = () => {
   const flags = flagsGlobais();
   const rt = getRuntime();
-  if (!rt || Object.keys(flags).length === 0) return;
-  setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState });
+  if (!rt || (Object.keys(flags).length === 0 && !blobGlobal().ligado)) return;
+  setDepsForTest({ db: rt.db, auth: rt.auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flags } as FlagState, ...blobDeps() });
 };
 
 /** As mesmas flags de teste que as rotas enxergam (setFlag); o Studio as soma ao resolvedor de runtime SÓ no build de e2e. */

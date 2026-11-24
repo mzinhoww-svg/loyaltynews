@@ -19,6 +19,8 @@ export interface E2eBackend {
   seedPilotoViolacoes(): Promise<{ linhas: string[] }>;
   /** Liga/desliga uma flag SÓ no backend de e2e (as rotas e o Studio leem o mesmo getDeps). */
   setFlag(nome: string, ligada: boolean): void;
+  /** Liga/desliga um Blob EM MEMÓRIA (MOCK) só no backend de e2e. Desligado (padrão) = sem armazenamento: as rotas de arquivo respondem 503, como sem S3. */
+  setBlobMemoria(ligado: boolean): void;
 }
 
 export type FabricaE2eBackend = () => Promise<E2eBackend>;

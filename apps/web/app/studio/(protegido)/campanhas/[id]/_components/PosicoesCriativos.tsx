@@ -1,4 +1,6 @@
 import { POSITIONS } from '@ln/commercial';
+import { ROTULO_DISPOSITIVO, dimensaoEsperada, varianteDoCriativo } from '@/lib/studio/criativo-dispositivo';
+import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { adicionarCriativoAction, definirPosicoesAction, aprovarCriativoAction, cancelarReservaAction, enviarArquivoCriativoAction, reservarPosicaoAction } from '../../actions';
 
 export type ReservaLinha = { id: string; positionId: string; startDate: string; endDate: string; status: string };
@@ -28,8 +30,10 @@ export function PosicoesCriativos(props: {
   reservas: ReservaLinha[];
   criativos: CriativoLinha[];
   vendaLigada: boolean;
+  /** DP-43: só o proprietário (admin) aprova criativo. */
+  podeAprovar: boolean;
 }) {
-  const { campanha: c, reservas, criativos, vendaLigada } = props;
+  const { campanha: c, reservas, criativos, vendaLigada, podeAprovar } = props;
   const escreve = c.status !== 'completed' && c.status !== 'cancelled';
   const declaradas = c.positionIds ?? [];
   // reserva e criativo só nas posições da campanha (regra do domínio); sem posição declarada, o formulário não aparece
@@ -63,7 +67,8 @@ export function PosicoesCriativos(props: {
         {reservas.length === 0 ? (
           <p data-vazio="posicoes">Nenhuma posição reservada. Para mover a campanha para “reserved”, reserve ao menos uma posição.</p>
         ) : (
-          <table className="st-table" aria-label="Reservas da campanha">
+          <QuadroRolavel rotulo="Reservas da campanha">
+<table className="st-table" aria-label="Reservas da campanha">
             <thead>
               <tr>
                 <th scope="col">Posição</th>
@@ -97,6 +102,7 @@ export function PosicoesCriativos(props: {
               ))}
             </tbody>
           </table>
+</QuadroRolavel>
         )}
         {escreve && DA_CAMPANHA.length > 0 ? (
           <form action={reservarPosicaoAction} aria-label="Reservar posição" style={{ marginTop: 12 }}>
@@ -142,8 +148,8 @@ export function PosicoesCriativos(props: {
           Criativos
         </h2>
         <p className="st-hint">
-          Só criativo aprovado entra no ar. Aprovar exige arquivo na dimensão e no peso da posição (medidos no servidor), texto alternativo, anunciante e destino https. Trocar o
-          arquivo revoga a aprovação.
+          Só criativo aprovado entra no ar. Cada criativo é desktop ou mobile, pela dimensão do arquivo: para o celular, cadastre outro criativo e envie o arquivo mobile (320x100 no topo e no rodapé, 300x250 nas laterais). Aprovar exige arquivo na dimensão e no peso da posição (medidos no servidor), texto alternativo, anunciante e destino https. Trocar o
+          arquivo revoga a aprovação. Quem aprova cada imagem é o proprietário (papel admin).
         </p>
         {criativos.length === 0 ? (
           <p data-vazio="criativos">Nenhum criativo cadastrado.</p>
@@ -151,7 +157,16 @@ export function PosicoesCriativos(props: {
           <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
             {criativos.map((cr) => (
               <li key={cr.id} data-criativo={cr.id} data-aprovado={cr.approved ? 'sim' : 'nao'} style={{ marginBottom: 14 }}>
-                <strong>{cr.id}</strong> · {cr.positionId} · {cr.startDate} → {cr.endDate} · <span className="st-badge">{cr.approved ? 'aprovado' : 'não aprovado'}</span>
+                <strong>{cr.id}</strong> · {cr.positionId} ·{' '}
+                {(() => {
+                  const v = varianteDoCriativo(cr);
+                  return (
+                    <span className="st-badge" data-variante={v ?? 'sem-arquivo'}>
+                      {v ? `${ROTULO_DISPOSITIVO[v]} ${cr.asset!.width}x${cr.asset!.height}` : 'Sem arquivo'}
+                    </span>
+                  );
+                })()}{' '}
+                · {cr.startDate} → {cr.endDate} · <span className="st-badge">{cr.approved ? 'aprovado' : 'não aprovado'}</span>
                 <div className="st-hint">
                   Arquivo:{' '}
                   {cr.asset ? `${cr.asset.mime}, ${cr.asset.width}x${cr.asset.height}, ${cr.asset.sizeKB} KB, sha256 ${cr.asset.sha256.slice(0, 12)}…` : 'nenhum'} · Alt:{' '}
@@ -162,6 +177,14 @@ export function PosicoesCriativos(props: {
                     <form action={enviarArquivoCriativoAction}>
                       <input type="hidden" name="id" value={c.id} />
                       <input type="hidden" name="criativo" value={cr.id} />
+                      <input type="hidden" name="posicao" value={cr.positionId} />
+                      <label>
+                        Dispositivo de {cr.id}{' '}
+                        <select name="dispositivo" defaultValue="desktop">
+                          <option value="desktop">Desktop ({dimensaoEsperada(cr.positionId, 'desktop') ?? '—'})</option>
+                          {dimensaoEsperada(cr.positionId, 'mobile') ? <option value="mobile">Mobile ({dimensaoEsperada(cr.positionId, 'mobile')})</option> : null}
+                        </select>
+                      </label>{' '}
                       <label>
                         Arquivo de {cr.id} <input type="file" name="arquivo" accept="image/jpeg,image/png,image/gif" />
                       </label>{' '}
@@ -169,7 +192,7 @@ export function PosicoesCriativos(props: {
                         Enviar arquivo de {cr.id}
                       </button>
                     </form>
-                    {!cr.approved ? (
+                    {!cr.approved && podeAprovar ? (
                       <form action={aprovarCriativoAction}>
                         <input type="hidden" name="id" value={c.id} />
                         <input type="hidden" name="criativo" value={cr.id} />

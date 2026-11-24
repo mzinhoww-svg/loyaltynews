@@ -5,6 +5,7 @@ import { findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../../_lib/guard';
+import { podeAprovar } from '@/lib/studio/comercial';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { transicaoAction } from '../actions';
@@ -34,7 +35,8 @@ type Detalhe = {
 };
 
 export default async function CampanhaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string; de?: string; ate?: string }> }) {
-  await requireModule(findModule('campanhas')!);
+  const { session } = await requireModule(findModule('campanhas')!);
+  const aprova = podeAprovar(session.roles);
   const id = decodeURIComponent((await params).id);
   const { tipo, aviso, de, ate } = await searchParams;
   const r = await api.comercial.campanha(id);
@@ -75,13 +77,13 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
           <p className="st-hint">
             Visitas por UTM: {d.report.utmVisits === null ? 'não disponível (sem analytics)' : d.report.utmVisits}
           </p>
-          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={flagAtiva('adServerVendas')} />
+          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={flagAtiva('adServerVendas')} podeAprovar={aprova} />
         </div>
         <aside>
           <div className="st-card">
             <h2 style={{ marginTop: 0 }}>Estado</h2>
             {DESTINOS[c.status]?.length ? (
-              DESTINOS[c.status]!.map((para) => (
+              DESTINOS[c.status]!.filter((para) => para !== 'approved' || aprova).map((para) => (
                 <form action={transicaoAction} key={para} className="st-actions" style={{ marginBottom: 8 }}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="para" value={para} />
@@ -92,6 +94,11 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
               ))
             ) : (
               <p className="st-hint">Estado final.</p>
+            )}
+            {aprova ? null : (
+              <p className="st-hint" data-testid="aprovacao-proprietario">
+                Aprovar a campanha é do proprietário (papel admin).
+              </p>
             )}
             <p className="st-hint">As regras de reserva, criativo aprovado e venda habilitada são do domínio: recusas aparecem acima.</p>
           </div>
