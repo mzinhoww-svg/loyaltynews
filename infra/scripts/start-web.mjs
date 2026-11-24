@@ -12,6 +12,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { envProblems } from './lib/guards.mjs';
+import { restaurarPrebuilt } from './lib/prebuilt.mjs';
 import { parseArgs } from './lib/util.mjs';
 
 /** Problemas do ambiente de EXECUÇÃO em relação ao release.json. Função pura (testada sem subir servidor). */
@@ -57,12 +58,20 @@ if (direct) {
   const root = process.cwd();
   const rel = join(root, 'release.json');
   if (!existsSync(rel)) { console.error('[start-web] release.json ausente: o pacote não foi gerado por package-web.mjs'); process.exit(2); }
-  const problems = startProblems(process.env, JSON.parse(readFileSync(rel, 'utf8')));
+  const release = JSON.parse(readFileSync(rel, 'utf8'));
+  const problems = startProblems(process.env, release);
   if (problems.length) {
     console.error('[start-web] AMBIENTE DE EXECUÇÃO REPROVADO (o app não sobe):\n - ' + problems.join('\n - '));
     process.exit(1);
   }
   console.log(`[start-web] ambiente ok (APP_ENV=${process.env.APP_ENV} NEXT_PUBLIC_SITE_URL=${process.env.NEXT_PUBLIC_SITE_URL} APP_COMMIT=${String(process.env.APP_COMMIT).slice(0, 12)}…)`);
+  // Pacote PRÉ-CONSTRUÍDO (sem next build na Vertra): restaura o .next e confere que ele é deste commit/ambiente; pacote comum = nada a fazer.
+  const pb = restaurarPrebuilt(root, release);
+  if (pb.ativo) {
+    for (const l of pb.log) console.log(`[start-web] prebuilt: ${l}`);
+    if (pb.problemas.length) { console.error(['[start-web] PRÉ-CONSTRUÍDO REPROVADO (o app não sobe):', ...pb.problemas].join('\n - ')); process.exit(1); }
+    console.log('[start-web] prebuilt ok (.next do mesmo commit, ambiente e URL do release.json)');
+  }
   const next = createRequire(join(root, 'package.json')).resolve('next/dist/bin/next');
   const inv = nextStartInvocation(root, next, args.port ?? 80, args.host ?? '0.0.0.0');
   const child = spawn(process.execPath, inv.args, { cwd: inv.cwd, stdio: 'inherit', env: process.env });
