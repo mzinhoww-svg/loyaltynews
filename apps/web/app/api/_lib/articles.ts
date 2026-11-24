@@ -163,7 +163,13 @@ export const getArticle: RouteFn = async (_req, c) => {
       .where(eq(schema.articleTransitions.articleId, a.id))
       .orderBy(asc(schema.articleTransitions.at)),
   ]);
-  return json({ data: { ...serialize(a), fontes, recibo, transicoes } });
+  // P2-02 (auditoria do Studio): o Studio mostra QUEM aprovou pelo nome, não pelo id interno. Só o nome (nunca e-mail); null se o usuário não existe mais.
+  let reciboView = recibo ? { ...recibo, aprovadorNome: null as string | null } : null;
+  if (recibo && reciboView) {
+    const [u] = await c.deps.db.select({ name: schema.user.name }).from(schema.user).where(eq(schema.user.id, recibo.aprovador));
+    reciboView = { ...reciboView, aprovadorNome: u?.name?.trim() || null };
+  }
+  return json({ data: { ...serialize(a), fontes, recibo: reciboView, transicoes } });
 };
 
 // ---------- escrita ----------
