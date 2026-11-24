@@ -73,6 +73,21 @@ test.describe('revisão visual int/012 — Frontend 2', () => {
     }
   });
 
+  test('P2-4 (int/022) nome nos cartões de pessoas e de empresas com 44 px no mobile e menos no desktop', async ({ page }) => {
+    test.skip(mode !== 'mock', 'precisa de cartões (fixtures MOCK)');
+    for (const [rota, id] of [['/intelligence/pessoas', 'person-card-link'], ['/intelligence/empresas', 'company-card-link']] as const) {
+      await mobile(page);
+      await page.goto(rota);
+      const links = page.getByTestId(id);
+      expect(await links.count(), rota).toBeGreaterThan(0);
+      for (let i = 0; i < (await links.count()); i++) expect(await altura(links.nth(i)), ` #${i}`).toBeGreaterThanOrEqual(44);
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(rota);
+      // Desktop sem mudança: a regra de 44 px só vale abaixo de 768 px (a altura em si depende de o nome quebrar linha).
+      expect(await page.getByTestId(id).first().evaluate((e) => getComputedStyle(e).minHeight), ` desktop`).not.toBe('44px');
+    }
+  });
+
   test('P3-3 /moves vazio: texto do aviso em linha própria e bloco "Enquanto isso"', async ({ page }) => {
     test.skip(mode !== 'empty', 'o estado vazio só aparece com a fonte vazia');
     await page.setViewportSize({ width: 1440, height: 900 });
