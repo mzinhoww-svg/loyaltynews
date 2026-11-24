@@ -10,7 +10,8 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const port = process.argv[2] ?? process.env.PORT ?? '3101';
 const perfil = process.argv[3] === 'vitrine' ? 'vitrine' : 'producao';
@@ -36,13 +37,58 @@ const ALVO = [
   ':(exclude)e2e', ':(exclude)lib/**/*.test.ts', ':(glob,exclude)**/*.spec.ts', ':(glob,exclude)**/*.test.ts', ':(glob,exclude)**/*.test.tsx',
   ':(exclude).test-results', ':(exclude)../.test-results',
 ];
+// Dependências da raiz também mudam o bundle (versões de next/react/@ln).
+const RAIZ = ['../../package.json', '../../package-lock.json'];
 function carimbo() {
-  const head = git(['rev-parse', 'HEAD']).trim();
-  const sujo = git(['status', '--porcelain', '--', ...ALVO]);
-  const diff = git(['diff', 'HEAD', '--', ...ALVO]);
-  return createHash('sha256').update(`${perfil}\n${head}\n${sujo}\n${diff}`).digest('hex');
+  const h = createHash('sha256').update(`${perfil}\n${git(['rev-parse', 'HEAD']).trim()}\n`);
+  h.update(git(['status', '--porcelain', '--', ...ALVO, ...RAIZ]));
+  h.update(git(['diff', 'HEAD', '--', ...ALVO, ...RAIZ]));
+  // Arquivo novo não rastreado: o status só traz o nome; o CONTEÚDO entra no carimbo (editar o arquivo novo refaz o build).
+  for (const f of git(['ls-files', '--others', '--exclude-standard', '--', ...ALVO]).split('\n').filter(Boolean).sort()) {
+    try {
+      h.update(`\n${f}\n`).update(readFileSync(f));
+    } catch {
+      h.update(`\n${f}\n(ilegível)`);
+    }
+  }
+  return h.digest('hex');
 }
 
+// Trava por perfil: duas rodadas do mesmo perfil ao mesmo tempo não podem fazer next build na mesma pasta. A segunda espera a primeira
+// terminar o build (até 30 min) e depois confere o carimbo de novo; trava de processo que morreu (pid inexistente) é descartada.
+// Fora do repositório (no temporário do sistema): um arquivo de trava dentro de apps/web entraria no carimbo como arquivo não rastreado.
+const LOCK = join(tmpdir(), `ln-portal-e2e-${createHash('sha256').update(resolve(DIST)).digest('hex').slice(0, 16)}.lock`);
+const vivo = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+function travar() {
+  const limite = Date.now() + 30 * 60_000;
+  for (;;) {
+    try {
+      writeFileSync(LOCK, String(process.pid), { flag: 'wx' });
+      return;
+    } catch {
+      const dono = Number(readFileSync(LOCK, 'utf8')) || 0;
+      if (!dono || !vivo(dono)) {
+        rmSync(LOCK, { force: true });
+        continue;
+      }
+      if (Date.now() > limite) {
+        console.error(`[portal-e2e] outra rodada (pid ${dono}) está com o build de ${DIST} há mais de 30 min`);
+        process.exit(1);
+      }
+      spawnSync(process.execPath, ['-e', 'setTimeout(()=>{},2000)']);
+    }
+  }
+}
+const destravar = () => rmSync(LOCK, { force: true });
+
+travar();
 const atual = carimbo();
 const precisa = process.env.PORTAL_E2E_REBUILD === '1' || !existsSync(join(DIST, 'BUILD_ID')) || !existsSync(STAMP) || readFileSync(STAMP, 'utf8').trim() !== atual;
 if (precisa) {
@@ -50,11 +96,15 @@ if (precisa) {
   const env = { ...process.env, ...BUILD_ENV };
   for (const k of RUNTIME_ONLY) delete env[k];
   const b = spawnSync('npx next build', { stdio: 'inherit', shell: true, env });
-  if (b.status !== 0) process.exit(b.status ?? 1);
+  if (b.status !== 0) {
+    destravar();
+    process.exit(b.status ?? 1);
+  }
   writeFileSync(STAMP, atual);
 } else {
   console.log(`[portal-e2e] reaproveitando ${DIST} (perfil ${perfil}, código igual ao do build)`);
 }
+destravar();
 
 // Cada subida vale como um deploy novo: o cache de dados do Next (fetch com `next.revalidate`, ex.: plano de anúncios a 60 s) fica gravado
 // na pasta do build e sobreviveria entre modos que usam a MESMA URL do servidor MOCK (ex.: PORTAL_API_ADS=sem e depois =com).

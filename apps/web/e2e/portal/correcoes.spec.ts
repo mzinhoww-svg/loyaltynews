@@ -11,7 +11,9 @@ const ROTA = '**/api/publico/correcoes';
 const ENVIO_MS = 5_000;
 
 async function axe(page: Page) {
-  await page.waitForLoadState('networkidle');
+  // 'load', não 'networkidle': no build de produção o prefetch de links do Next mantém a rede ocupada (mesma regra do intelligence.spec).
+  await page.waitForLoadState('load');
+  await expect.poll(() => page.title()).not.toBe('');
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const summary = r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`);
   expect(summary, summary.join('\n')).toEqual([]);
