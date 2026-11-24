@@ -6,6 +6,7 @@ test('V-11 em '+width+'x'+height, async({page})=>{
  await page.setViewportSize({width,height});
  await page.goto('/');
  await page.evaluate(()=>document.fonts.ready);
+ await expect(page.locator('main .ln-card__title').nth(3)).toBeVisible(); // int/017: home dinâmica no build de produção; mede só depois de as manchetes chegarem
  const boxes=await page.locator('main .ln-card__title').evaluateAll(nodes=>nodes.map(n=>[n.getBoundingClientRect().top,n.getBoundingClientRect().bottom]));
  const visible=boxes.filter(([top,bottom])=>top>=0 && bottom<=height).length;
  console.log({width,height,visible,quarta:boxes[3]});

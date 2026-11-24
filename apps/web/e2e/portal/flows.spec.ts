@@ -147,6 +147,7 @@ test.describe('mídia kit: alvos de toque (UI/UX: mínimo de 44 px no mobile)', 
   test('os 10 links de editoria, os botões e os atalhos do mídia kit têm pelo menos 44 × 44 px', async ({ page }, info) => {
     test.skip(info.project.name !== 'mobile');
     await page.goto('/midia-kit');
+    await expect(page.locator('#cobertura .pt-table a').first()).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; conta só depois de o conteúdo chegar
     const alvos = page.locator('#cobertura .pt-table a, main .ln-btn, nav[aria-label="Seções do mídia kit"] a');
     expect(await alvos.count()).toBeGreaterThanOrEqual(13); // 10 editorias + 2 botões + 4 atalhos (a contagem exata muda com o conteúdo)
     const ruins: string[] = [];
