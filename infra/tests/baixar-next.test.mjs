@@ -398,3 +398,33 @@ test('baixar: as pastas de rotas do App Router (catch-all, grupo, slot, privada,
     assert.equal(rel.arquivos, 7);
   } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
 });
+
+test('baixar --somente: completa só as subpastas pedidas sem relistar o resto do .next (poucos pedidos), cria as pastas e recusa caminho inválido', async () => {
+  const R = RAIZ + '/server/app/api';
+  const flat = {
+    [RAIZ]: ['BUILD_ID', 'server/', 'static/'],
+    [RAIZ + '/server']: ['app/'],
+    [RAIZ + '/server/app']: ['api/'],
+    [R]: ['auth/', 'studio/', 'outra/'],
+    [R + '/auth']: ['[...all]/'],
+    [R + '/auth/[...all]']: ['route.js'],
+    [R + '/studio']: ['social/', 'editorial/'],
+    [R + '/studio/social']: ['[...path]/'],
+    [R + '/studio/social/[...path]']: ['route.js'],
+    [R + '/outra']: ['x.js'],
+  };
+  const pedidos = [];
+  const s = await servidorGenerico(flat, { latenciaMs: (caminho, rota) => { pedidos.push(rota.split('/').pop() + ':' + caminho.replace(RAIZ, '')); return 1; } });
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-somente-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: s.api, rpm: 60000, concorrencia: 2, chave: CHAVE, somente: ['server/app/api/auth', 'server/app/api/studio/social'] });
+    assert.deepEqual(rel.erros, []);
+    assert.equal(rel.arquivos, 2);
+    assert.ok(existsSync(join(base, 'n', 'server', 'app', 'api', 'auth', '[...all]', 'route.js')));
+    assert.ok(existsSync(join(base, 'n', 'server', 'app', 'api', 'studio', 'social', '[...path]', 'route.js')));
+    assert.equal(existsSync(join(base, 'n', 'server', 'app', 'api', 'outra')), false, 'o resto não é baixado');
+    assert.ok(!pedidos.some((p) => /outra|editorial|static|BUILD_ID/.test(p)), 'nem listado: ' + pedidos.join(' '));
+    assert.equal(pedidos.length, 6, 'só as duas subárvores: ' + pedidos.join(' '));
+    await assert.rejects(() => baixar({ app: 'APP', destino: join(base, 'n2'), raiz: RAIZ, api: s.api, rpm: 60000, chave: CHAVE, somente: ['server/../x'] }), /--somente com caminho inválido/);
+  } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
+});

@@ -2,11 +2,12 @@
 // Baixa o `.next` JÁ CONSTRUÍDO NA VERTRA (Linux, caminhos /app/...) de um app pela API de arquivos, para montar o pacote PRÉ-CONSTRUÍDO (package-prebuilt.mjs). SÓ LEITURA na Vertra (GET).
 // A chave vem SÓ do ambiente do processo (VERTRA_API_KEY, escopo apps:files): não é argumento, nunca é impressa nem gravada, nem em erro. Rode pelo script do PM (credenciais-sem-expor.md).
 // Uso: VERTRA_API_KEY=… node infra/scripts/baixar-next-vertra.mjs --app <id> --dest <pasta nova> [--path apps/web/.next] [--api https://api.vertracloud.app]
-//        [--rpm 240] [--concorrencia 4] [--progresso <arquivo.json>] [--incluir-tudo] [--timeout-pedido 30] [--retomar] [--sonda | --medir [--sem-carga-real]]
+//        [--rpm 240] [--concorrencia 4] [--progresso <arquivo.json>] [--incluir-tudo] [--somente a/b,c/d] [--timeout-pedido 30] [--retomar] [--sonda | --medir [--sem-carga-real]]
 //   --sonda    uma listagem + a leitura do BUILD_ID, imprime só o FORMATO (chaves/tipos) e sai; não grava nada. Rode antes do download completo.
 //   --progresso grava, a cada 100 arquivos, um JSON pequeno (baixados, descobertos, erros, fila) para olhar uma execução destacada; não tem limite de tempo próprio.
 //   --medir    mede a latência por pedido e a vazão com 1, 2, 4, 8 e 16 em paralelo lendo o BUILD_ID (~100 pedidos, ~1 min com --rpm 280; não grava nada), recomenda a concorrência e avisa se a API colapsa; depois mede a CARGA REAL (listagens das pastas grandes e arquivos distintos com 1, 2 e 4 em paralelo; `--sem-carga-real` pula).
 //   --timeout-pedido <s>  tempo máximo de CADA pedido (padrão 30 s; antes 60 s fixos); estourou = nova tentativa. O relatório traz diagnostico (histograma de latência, pedidos >= 8 s, timeouts, 429, 5xx).
+//   --somente <a/b,c/d>  baixa SÓ essas subpastas da raiz (caminhos relativos à raiz, separados por vírgula; ex.: server/app/api/auth,server/app/api/studio/social), sem relistar o resto: serve para COMPLETAR um download que perdeu pastas (use com --retomar, no mesmo --dest). Depois rode o package-prebuilt: ele confere a completude pelos manifestos do Next.
 //   --incluir-tudo  baixa também *.map e *.nft.json (por padrão ficam de fora: o next start não os usa; ~36% dos arquivos).
 //   --retomar  pula arquivo já baixado com o tamanho certo (cai a conexão ou o limite da API: repita o comando).
 // Fica de fora (não serve ao pacote): cache, diagnostics, trace, trace-build. Em node_modules grava só PASTAS VAZIAS com os nomes dos externos (a restauração recria os links).
@@ -267,7 +268,7 @@ export async function medirCargaReal(c, raiz, { niveis = [1, 2, 4], por = 12, ma
   return { listagens, niveis: resultado, arquivosDistintosAmostrados: Math.min(arquivos.length, ponteiro) };
 }
 
-export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, chave, log = () => {}, progresso = null, timeoutPedidoMs = 30000 }) {
+export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, somente = [], chave, log = () => {}, progresso = null, timeoutPedidoMs = 30000 }) {
   const c = cliente({ api, chave, app, rpm, timeoutPedidoMs });
   const rel = { app, raiz, arquivos: 0, bytes: 0, binarios: 0, pulados: 0, excluidosPorPadrao: 0, externos: [], ignorados: [], erros: [], inicio: new Date().toISOString() };
   const dest = resolve(destino);
@@ -275,7 +276,11 @@ export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'htt
   mkdirSync(dest, { recursive: true });
   // Fila ÚNICA de tarefas (pasta ou arquivo): a listagem das pastas e o download dos arquivos andam JUNTOS e em paralelo. Antes a travessia era sequencial (uma pasta por vez) e só
   // depois baixava (24/11: 1590 arquivos em 1 h com 4 em paralelo = ~26/min, muito abaixo dos 300/min do plano: o gargalo era a latência, não o limite).
-  const fila = [{ tipo: 'dir', remoto: raiz, local: dest, nivel: 0 }];
+  // --somente: só estas subpastas da raiz (caminhos relativos, ex.: server/app/api/auth), sem relistar o resto: para completar um download que perdeu pastas.
+  const partes = somente.map((p) => String(p).split('/').filter(Boolean));
+  for (const seg of partes) if (!seg.length || !seg.every(nomeSeguro)) throw new Error(`--somente com caminho inválido: ${JSON.stringify(seg.join('/')).slice(0, 80)}`);
+  const fila = partes.length ? partes.map((seg) => ({ tipo: 'dir', remoto: `${raiz}/${seg.join('/')}`, local: join(dest, ...seg), nivel: seg.length })) : [{ tipo: 'dir', remoto: raiz, local: dest, nivel: 0 }];
+  for (const t of fila) mkdirSync(t.local, { recursive: true });
   let ativos = 0;
   let descobertos = 0;
   const gravarProgresso = () => {
@@ -354,7 +359,7 @@ async function main() {
   if (!args.dest || args.dest === true) { console.error('use --dest <pasta nova>'); process.exit(2); }
   const destino = resolve(String(args.dest));
   if (existsSync(destino) && !args.retomar) { console.error('--dest já existe (use --retomar para continuar um download)'); process.exit(2); }
-  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 4) || 4, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), timeoutPedidoMs: tPedido, progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
+  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 4) || 4, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), somente: args.somente && args.somente !== true ? String(args.somente).split(',').map((x) => x.trim()).filter(Boolean) : [], timeoutPedidoMs: tPedido, progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
   writeFileSync(`${destino}.relatorio.json`, JSON.stringify(rel, null, 2) + '\n');
   console.log(JSON.stringify({ ok: rel.erros.length === 0, arquivos: rel.arquivos, bytes: rel.bytes, binarios: rel.binarios, pulados: rel.pulados, excluidosPorPadrao: rel.excluidosPorPadrao, latenciaMs: rel.latenciaMs, externos: rel.externos, ignorados: rel.ignorados, pedidos: rel.pedidos, buildId: rel.buildId, erros: rel.erros.slice(0, 10), relatorio: `${destino}.relatorio.json` }, null, 2));
   process.exit(rel.erros.length ? 1 : 0);
