@@ -137,6 +137,9 @@ const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig
 // LN_STUDIO_TEST_SESSION=1 (que o guard proíbe), mas não há motivo para ela existir num app implantado, então fica fora do pacote
 // --prova-png: o comando de build/start chama infra/scripts/prova-png.mjs, que precisa estar no pacote (ele só importa lib/util.mjs, que já entra)
 if (provaPng) INCLUDE.push('infra/scripts/prova-png.mjs');
+// As CLIs do worker (bench-graph, staging-admin, prod-admin, seed-staging) importam infra/vertra/bindings.json NO BUILD (esbuild). Sem ele o build do pacote morre com
+// "Could not resolve ../../../infra/vertra/bindings.json" (24/11/2026: derrubou o app descartável do benchmark). Só host e nome do banco, nenhum segredo.
+if (appKey === 'workers') INCLUDE.push('infra/vertra/bindings.json');
 const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e'];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
@@ -177,6 +180,7 @@ try {
       if (statSync(p).isDirectory()) walk(p); else files.push(relative(folder, p).split(sep).join('/'));
     }
   })(folder);
+  if (appKey === 'workers' && !files.includes('infra/vertra/bindings.json')) fail('pacote de worker sem infra/vertra/bindings.json: o build das CLIs (bench-graph etc.) não resolveria o import');
   if (provaPng && !files.includes('infra/scripts/prova-png.mjs')) fail('--prova-png: infra/scripts/prova-png.mjs não entrou no pacote (o build e o start do worker o chamam)');
   const bad = files.filter((f) => /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f) || /(^|\/)(node_modules|\.next|\.git)\//.test(f) || /playwright\.config\./.test(f) || /(^|\/)e2e\//.test(f));
   if (bad.length) fail(`arquivos proibidos no pacote: ${bad.slice(0, 5).join(', ')}`);

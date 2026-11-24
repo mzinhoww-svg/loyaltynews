@@ -20,6 +20,11 @@ import { configSaude, saudeEstavel } from './lib/saude.mjs';
 export const ROTULO_SEED = '[DEMO · staging]';
 
 /** /api/ready de staging COMPLETO: modo completo, banco e Redis ok. Função pura. */
+/** Marcadores EXPLÍCITOS de fixture/MOCK do portal: "[MOCK]", "MOCK · dados de exemplo" e "MOCK ·". A palavra MOCK solta NÃO conta: pode aparecer em texto editorial (QA 5, 24/11; mesmo critério do smoke-producao). Função pura. */
+export function temMarcadorMock(texto) {
+  return /\[MOCK\]|MOCK · dados de exemplo|\bMOCK ·/.test(String(texto ?? ''));
+}
+
 export function avaliarReady(j, opts = {}) {
   const p = [];
   if (!j || typeof j !== 'object') return ['corpo sem JSON'];
@@ -88,7 +93,7 @@ async function main() {
   });
   await tentar('site', async () => {
     const r = await get('/api/publico/site', { json: true });
-    check('publico/site: 200 JSON, sem MOCK', r.status === 200 && r.j !== null && !/\bMOCK\b/.test(r.body), `HTTP ${r.status}`);
+    check('publico/site: 200 JSON, sem MOCK', r.status === 200 && r.j !== null && !temMarcadorMock(r.body), `HTTP ${r.status}`);
   });
   await tentar('editorias', async () => {
     const r = await get('/api/publico/editorias', { json: true });
@@ -101,7 +106,7 @@ async function main() {
     const rot = lista.filter((m) => String(m.titulo ?? '').includes(ROTULO_SEED)).length;
     check('publico/materias: 200 com lista', r.status === 200 && Array.isArray(r.j?.data), `HTTP ${r.status}, ${lista.length} itens`);
     if (seed) check(`publico/materias: seed publicado, todo item rotulado "${ROTULO_SEED}"`, lista.length >= 5 && rot === lista.length, `${rot} de ${lista.length} rotulados`);
-    check('publico/materias: sem MOCK', !/\bMOCK\b/.test(r.body));
+    check('publico/materias: sem MOCK', !temMarcadorMock(r.body));
   });
   await tentar('agenda', async () => {
     const r = await get('/api/publico/agenda', { json: true });
@@ -110,7 +115,7 @@ async function main() {
   });
   await tentar('home', async () => {
     const r = await get('/');
-    check('home: 200 sem faixa/marcador de vitrine e sem MOCK', r.status === 200 && !/Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK\b/.test(r.body), `HTTP ${r.status}`);
+    check('home: 200 sem faixa/marcador de vitrine e sem MOCK', r.status === 200 && !(/Conteúdo de demonstração/.test(r.body) || temMarcadorMock(r.body)), `HTTP ${r.status}`);
     if (seed) check(`home: mostra matéria do seed ("${ROTULO_SEED}")`, r.body.includes(ROTULO_SEED), 'a home não mostra o seed (portal em fonte vazia ou sem publicação)');
     const noindex = /<meta[^>]+name="robots"[^>]*content="[^"]*noindex/i.test(r.body) || /noindex/i.test(r.h.get('x-robots-tag') ?? '');
     check('home: staging não indexável (noindex)', noindex);
@@ -126,9 +131,9 @@ async function main() {
     const m = (api.data ?? []).find((x) => String(x.titulo ?? '').includes(ROTULO_SEED));
     if (!m) { check('materia: seed com slug e editoria na API', false, 'nenhuma matéria rotulada'); return; }
     const rm = await get(`/noticia/${encodeURIComponent(m.slug)}`);
-    check('materia: página da matéria do seed (200, rotulada, sem MOCK)', rm.status === 200 && rm.body.includes(ROTULO_SEED) && !/\bMOCK\b/.test(rm.body), `HTTP ${rm.status}`);
+    check('materia: página da matéria do seed (200, rotulada, sem MOCK)', rm.status === 200 && rm.body.includes(ROTULO_SEED) && !temMarcadorMock(rm.body), `HTTP ${rm.status}`);
     const re = await get(`/editoria/${encodeURIComponent(m.editoria)}`);
-    check('editoria: página da editoria da matéria do seed (200, lista o seed, sem MOCK)', re.status === 200 && re.body.includes(ROTULO_SEED) && !/\bMOCK\b/.test(re.body), `HTTP ${re.status}`);
+    check('editoria: página da editoria da matéria do seed (200, lista o seed, sem MOCK)', re.status === 200 && re.body.includes(ROTULO_SEED) && !temMarcadorMock(re.body), `HTTP ${re.status}`);
     const r404 = await get('/noticia/materia-que-nao-existe-smoke');
     check('materia: slug inexistente = 404', r404.status === 404, `HTTP ${r404.status}`);
   });
@@ -154,7 +159,7 @@ async function main() {
   await tentar('midia-kit', async () => {
     const r = await get('/midia-kit');
     const noindex = /<meta[^>]+name="robots"[^>]*content="[^"]*noindex/i.test(r.body) || /noindex/i.test(r.h.get('x-robots-tag') ?? '');
-    check('midia-kit: 200, título "Mídia kit", sem MOCK e não indexável', r.status === 200 && /<title>[^<]*Mídia kit/i.test(r.body) && !/\bMOCK\b/.test(r.body) && noindex, `HTTP ${r.status}`);
+    check('midia-kit: 200, título "Mídia kit", sem MOCK e não indexável', r.status === 200 && /<title>[^<]*Mídia kit/i.test(r.body) && !temMarcadorMock(r.body) && noindex, `HTTP ${r.status}`);
   });
   await tentar('intelligence', async () => {
     const r = await get('/intelligence');

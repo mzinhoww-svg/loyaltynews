@@ -1616,3 +1616,22 @@ test('healthcheck CLI e smoke-producao exigem N 200 seguidos: um 200 logo depois
     assert.ok(h && h.ok === false, JSON.stringify(h)); assert.match(h.detalhe, /amostra 2 de 3/);
   } finally { s.close(); }
 });
+
+test('pacote de worker leva infra/vertra/bindings.json (as CLIs do worker o importam no build) e o ensaio-worker-pacote recusa manifesto que não é de worker', () => {
+  const src = readFileSync(join(S, 'package-web.mjs'), 'utf8');
+  assert.match(src, /if \(appKey === 'workers'\) INCLUDE\.push\('infra\/vertra\/bindings\.json'\)/);
+  assert.match(src, /pacote de worker sem infra\/vertra\/bindings\.json/);
+  const d = tmp();
+  put(d, 'm.json', JSON.stringify({ tipo: 'web', ferramentas: { create_app: { path: d, build: 'x' } }, depois_do_create: { set_env: [] } }));
+  const x = node('ensaio-worker-pacote.mjs', ['--manifest', join(d, 'm.json')]);
+  assert.equal(x.status, 2); assert.match(x.stderr, /não é de um pacote de worker/);
+  assert.equal(node('ensaio-worker-pacote.mjs', []).status, 2);
+});
+
+test('smoke-staging: temMarcadorMock só reprova marcadores explícitos de MOCK; a palavra solta em texto editorial não (QA 5, 24/11)', async () => {
+  const { temMarcadorMock } = await import('../scripts/smoke-staging.mjs');
+  for (const ruim of ['<span>[MOCK] Matéria de teste</span>', '<i>MOCK · dados de exemplo</i>', 'Faixa MOCK · demonstração']) assert.equal(temMarcadorMock(ruim), true, ruim);
+  for (const bom of ['Como um MOCK de interface acelera o design', 'o mock-up do app', '[DEMO · staging] Programa fictício', 'Comprador MOCKADO', '', null, undefined]) assert.equal(temMarcadorMock(bom), false, String(bom));
+  const src = readFileSync(join(S, 'smoke-staging.mjs'), 'utf8');
+  assert.equal((src.match(/bMOCK(?!\s·)/g) ?? []).length, 0, 'nenhum \bMOCK\b solto sobrou no smoke-staging');
+});
