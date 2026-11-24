@@ -15,7 +15,7 @@ test.describe('identidade visual: favicon e og:image', () => {
     await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /.+/);
     await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveCount(1);
     const og = page.locator('meta[property="og:image"]').first();
-    await expect(og).toHaveAttribute('content', /opengraph-image/);
+    await expect(og).toHaveAttribute('content', /og-padrao\.png/);
     await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content', '1200');
     await expect(page.locator('meta[property="og:image:height"]')).toHaveAttribute('content', '627');
     const src = new URL((await og.getAttribute('content')) as string);

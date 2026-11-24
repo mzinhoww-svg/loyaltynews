@@ -346,12 +346,20 @@ test.describe('conteúdo MOCK', () => {
     await expect(page.getByTestId('correction-notice')).toHaveCount(0);
   });
 
-  test('cards com ilustração mostram o rótulo visível sobre a imagem (editoria, mobile incluso)', async ({ page }, info) => {
-    await page.goto('/editoria/mercado');
-    const label = page.locator('.ln-card__imglabel').first();
+  test('destaque da home com ilustração mostra o rótulo visível sobre a imagem (mobile incluso)', async ({ page }, info) => {
+    await page.goto('/');
+    const label = page.locator('.pt-hero-main .ln-card__imglabel').first();
     await expect(label).toBeVisible();
     await expect(label).toHaveText('Ilustração conceitual');
     await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-card-rotulo.png`) });
+  });
+
+  test('V-07: grade com item sem imagem não mostra imagem nem rótulo (todos ou nenhum)', async ({ page }) => {
+    await page.goto('/editoria/mercado');
+    const grid = page.locator('#conteudo .pt-grid');
+    await expect(grid.locator('article.ln-card')).not.toHaveCount(0);
+    await expect(grid.locator('.ln-card__media')).toHaveCount(0);
+    await expect(grid.locator('.ln-card__imglabel')).toHaveCount(0);
   });
 
   test('editoria mostra somente matérias da editoria', async ({ page }) => {

@@ -77,15 +77,19 @@ test.describe('matéria via API pública', () => {
     await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();
   });
 
-  test('cards da listagem mostram a imagem pública e o rótulo da ilustração', async ({ page }) => {
+  test('V-07: listagem com matéria sem imagem não mostra imagem nem rótulo em nenhum card (todos ou nenhum)', async ({ page }) => {
     await page.goto('/noticias');
-    const card = page.locator('article.ln-card', { hasText: 'ilustração conceitual e errata' });
-    await expect(card.locator('.ln-card__imglabel')).toHaveText('Ilustração conceitual');
-    await expect(card.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
-    // foto de terceiro: imagem sem selo de ilustração; matéria sem imagem: card sem imagem.
-        await expect(page.locator('.ln-card__imglabel')).toHaveCount(1);
-    await expect(page.locator('article', { hasText: 'foto de terceiro' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/foto-1');
-    await expect(page.locator('article', { hasText: 'imagem venceu' }).locator('img')).toHaveCount(0);
+    await expect(page.locator('article.ln-card', { hasText: 'ilustração conceitual e errata' })).toBeVisible();
+    // A listagem mistura ilustração, foto de terceiro e matéria sem imagem: a grade usa uma única variante, só texto.
+    await expect(page.locator('#conteudo .pt-grid .ln-card__media')).toHaveCount(0);
+    await expect(page.locator('#conteudo .pt-grid .ln-card__imglabel')).toHaveCount(0);
+  });
+
+  test('imagem pública e rótulo da ilustração aparecem na matéria (a imagem de card exige grade só com imagens)', async ({ page }) => {
+    await page.goto('/noticia/api-ilustracao-corrigida');
+    const fig = page.getByTestId('article-image');
+    await expect(fig.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
+    await expect(page.getByTestId('image-label')).toHaveText('Ilustração conceitual');
   });
 
   test('listagens e home usam a API; "em alta" fica vazio e honesto', async ({ page }) => {
