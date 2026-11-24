@@ -17,3 +17,7 @@
 ## NÃO verificado
 - Que o `setup-node` ofereça o Node 26.13.1 (a versão da Vertra); que o `.next` construído no runner rode na imagem da Vertra (nenhum código nativo entra no `.next`, mas não foi provado); que o build da Vertra (com variáveis de painel) e o do runner produzam o mesmo conteúdo estático; a cota de minutos do repositório privado (gratuita até o limite do plano do GitHub; confirme antes de usar em rotina).
 - Isto não substitui o ensaio no staging: a primeira prova é um deploy de staging com build vazio, de qualquer fonte de `.next` (ver o pedido de deploy da prova).
+
+## ANTES DE ATIVAR (obrigatório, pendência do QA 5): fixar as 3 actions por SHA de commit
+O workflow usa `actions/checkout@v4`, `actions/setup-node@v4` e `actions/upload-artifact@v4` por TAG (tag pode ser movida). Antes de copiar para `.github/workflows/`, troque cada uma por `uses: actions/<nome>@<sha de 40 caracteres> # v4`. Não gravei SHAs aqui porque não os verifiquei: obtenha-os no momento (com `gh` autenticado):
+`gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha` (idem `setup-node` e `upload-artifact`). Se o `object.type` for `tag` (tag anotada), siga com `gh api repos/actions/<nome>/git/tags/<sha> --jq .object.sha` até chegar ao commit. Confira o SHA no GitHub (página do release) antes de usar.
