@@ -15,6 +15,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
 import { FonteRapidaPainel } from '../../../_components/FonteRapidaPainel';
+import { rotuloAprovador } from '@/lib/studio/cms/aprovador';
 import { MateriaForm } from '../MateriaForm';
 import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
 
@@ -161,7 +162,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
 
             {m.recibo ? (
               <p className="st-hint">
-                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador} title={m.recibo.aprovador}>Aprovado por {m.recibo.aprovador === session.userId ? 'você' : `outro usuário (${m.recibo.aprovador.slice(0, 8)}…)`}.</span>
+                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador} title={m.recibo.aprovador}>Aprovado por {rotuloAprovador(m.recibo.aprovador, m.recibo.aprovadorNome, session.userId)}.</span>
               </p>
             ) : null}
             <section aria-labelledby="pub-titulo" style={{ marginTop: 12 }}>
