@@ -2,15 +2,15 @@
 // Baixa o `.next` JÁ CONSTRUÍDO NA VERTRA (Linux, caminhos /app/...) de um app pela API de arquivos, para montar o pacote PRÉ-CONSTRUÍDO (package-prebuilt.mjs). SÓ LEITURA na Vertra (GET).
 // A chave vem SÓ do ambiente do processo (VERTRA_API_KEY, escopo apps:files): não é argumento, nunca é impressa nem gravada, nem em erro. Rode pelo script do PM (credenciais-sem-expor.md).
 // Uso: VERTRA_API_KEY=… node infra/scripts/baixar-next-vertra.mjs --app <id> --dest <pasta nova> [--path apps/web/.next] [--api https://api.vertracloud.app]
-//        [--rpm 200] [--concorrencia 16] [--progresso <arquivo.json>] [--incluir-tudo] [--retomar] [--sonda | --medir]
+//        [--rpm 240] [--concorrencia 4] [--progresso <arquivo.json>] [--incluir-tudo] [--retomar] [--sonda | --medir]
 //   --sonda    uma listagem + a leitura do BUILD_ID, imprime só o FORMATO (chaves/tipos) e sai; não grava nada. Rode antes do download completo.
 //   --progresso grava, a cada 100 arquivos, um JSON pequeno (baixados, descobertos, erros, fila) para olhar uma execução destacada; não tem limite de tempo próprio.
-//   --medir    mede a latência por pedido e a vazão com 4, 16 e 32 em paralelo lendo o BUILD_ID (162 pedidos, ~1 min com --rpm 280; não grava nada) e recomenda a concorrência.
+//   --medir    mede a latência por pedido e a vazão com 1, 2, 4, 8 e 16 em paralelo lendo o BUILD_ID (~100 pedidos, ~1 min com --rpm 280; não grava nada), recomenda a concorrência e avisa se a API colapsa.
 //   --incluir-tudo  baixa também *.map e *.nft.json (por padrão ficam de fora: o next start não os usa; ~36% dos arquivos).
 //   --retomar  pula arquivo já baixado com o tamanho certo (cai a conexão ou o limite da API: repita o comando).
 // Fica de fora (não serve ao pacote): cache, diagnostics, trace, trace-build. Em node_modules grava só PASTAS VAZIAS com os nomes dos externos (a restauração recria os links).
 // Binários chegam em base64 (encoding "base64") e são gravados como bytes. Nomes vêm de terceiros: só entram nomes simples (sem /, barra invertida, .., :, controle).
-// Limite da API (pro-8): 300 req/min; o padrão aqui é 200/min com 16 em paralelo (o gargalo medido em 24/11 era a latência, não o limite) e respeita 429 (retry_after). Relatório em <dest>.relatorio.json (contagens e nomes de erro; nenhum conteúdo, nenhuma chave).
+// Limite da API (pro-8): 300 req/min; o padrão aqui é 240/min com **4 em paralelo**: MEDIDO no staging real em 24/11 (`--medir`): 4 em voo = 281 pedidos/min, 16 = 24/min, 32 = 32/min; a API de arquivos COLAPSA acima de ~4 pedidos simultâneos, então NÃO suba a concorrência sem rodar `--medir` de novo. Respeita 429 (retry_after). Relatório em <dest>.relatorio.json (contagens e nomes de erro; nenhum conteúdo, nenhuma chave).
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -190,7 +190,7 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
  * Mede a API de arquivos (só leitura de UM arquivo pequeno, o BUILD_ID): latência por pedido em sequência e a vazão (pedidos/min) com mais pedidos em paralelo, para escolher
  * a concorrência. Se a vazão não cresce com a concorrência, a API serializa e subir não adianta. Não grava nada. Respeita o limitador (`rpm`): use --rpm alto (<= 280) para medir.
  */
-export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 280, chave, niveis = [4, 16, 32], por = 3, sequenciais = 6 }) {
+export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 280, chave, niveis = [1, 2, 4, 8, 16], por = 3, sequenciais = 6 }) {
   const c = cliente({ api, chave, app, rpm });
   const alvo = `${raiz}/BUILD_ID`;
   const seq = [];
@@ -205,10 +205,12 @@ export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.v
   }
   let melhor = resultado[0];
   for (const r of resultado) if (r.pedidosPorMin > melhor.pedidosPorMin * 1.15) melhor = r; // só vale subir se ganhar mais de 15%
-  return { sequencial: estatistica(seq), niveis: resultado, recomendada: melhor.concorrencia, limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
+  // colapso: algum nível acima do melhor rende menos da METADE dele (medido em 24/11: 4 = 281/min, 16 = 24/min)
+  const colapso = resultado.find((r) => r.concorrencia > melhor.concorrencia && r.pedidosPorMin < melhor.pedidosPorMin / 2);
+  return { sequencial: estatistica(seq), niveis: resultado, recomendada: melhor.concorrencia, ...(colapso ? { colapsoAPartirDe: colapso.concorrencia, avisoColapso: `a API COLAPSA com ${colapso.concorrencia} pedidos em voo (${colapso.pedidosPorMin}/min contra ${melhor.pedidosPorMin}/min com ${melhor.concorrencia}): use --concorrencia ${melhor.concorrencia}` } : {}), limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
 }
 
-export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 200, concorrencia = 16, retomar = false, incluirTudo = false, chave, log = () => {}, progresso = null }) {
+export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, chave, log = () => {}, progresso = null }) {
   const c = cliente({ api, chave, app, rpm });
   const rel = { app, raiz, arquivos: 0, bytes: 0, binarios: 0, pulados: 0, excluidosPorPadrao: 0, externos: [], ignorados: [], erros: [], inicio: new Date().toISOString() };
   const dest = resolve(destino);
@@ -277,7 +279,7 @@ async function main() {
   const api = String(args.api && args.api !== true ? args.api : 'https://api.vertracloud.app').replace(/\/+$/, '');
   if (!/^https:\/\//.test(api) && !/^http:\/\/127\.0\.0\.1[:/]/.test(api)) { console.error('--api só aceita https (ou 127.0.0.1 em teste)'); process.exit(2); }
   const raiz = String(args.path && args.path !== true ? args.path : 'apps/web/.next').replace(/^\/+|\/+$/g, '');
-  const rpm = Number(args.rpm ?? 200) || 200;
+  const rpm = Number(args.rpm ?? 240) || 240;
   if (args.medir) {
     const m = await medir({ app: String(args.app), raiz, api, rpm: Number(args.rpm ?? 280) || 280, chave });
     console.log(JSON.stringify({ medir: true, raiz, ...m }, null, 2));
@@ -294,7 +296,7 @@ async function main() {
   if (!args.dest || args.dest === true) { console.error('use --dest <pasta nova>'); process.exit(2); }
   const destino = resolve(String(args.dest));
   if (existsSync(destino) && !args.retomar) { console.error('--dest já existe (use --retomar para continuar um download)'); process.exit(2); }
-  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 16) || 16, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
+  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 4) || 4, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
   writeFileSync(`${destino}.relatorio.json`, JSON.stringify(rel, null, 2) + '\n');
   console.log(JSON.stringify({ ok: rel.erros.length === 0, arquivos: rel.arquivos, bytes: rel.bytes, binarios: rel.binarios, pulados: rel.pulados, excluidosPorPadrao: rel.excluidosPorPadrao, latenciaMs: rel.latenciaMs, externos: rel.externos, ignorados: rel.ignorados, pedidos: rel.pedidos, buildId: rel.buildId, erros: rel.erros.slice(0, 10), relatorio: `${destino}.relatorio.json` }, null, 2));
   process.exit(rel.erros.length ? 1 : 0);

@@ -271,3 +271,53 @@ test('medir: latência por pedido em sequência e vazão com 4/16/32 em paralelo
     assert.ok(!JSON.stringify(m).includes(CHAVE));
   } finally { await fecha(s); }
 });
+
+test('padrão de concorrência = 4 (medido no staging real em 24/11: 4 em voo = 281/min, 16 = 24/min, 32 = 32/min): sem --concorrencia nunca há mais de 4 pedidos em voo', async () => {
+  let simultaneos = 0, maximo = 0;
+  const srv = http.createServer((req, res) => {
+    simultaneos += 1; maximo = Math.max(maximo, simultaneos);
+    const u = new URL(req.url, 'http://x');
+    const caminho = u.searchParams.get('path');
+    setTimeout(() => {
+      simultaneos -= 1;
+      res.setHeader('content-type', 'application/json');
+      if (u.pathname.endsWith('/files/content')) { const c = Buffer.from('c'); res.end(JSON.stringify({ response: { type: 'base64', data: c.toString('base64'), size: 1, last_modified: 'x' } })); return; }
+      if (caminho === RAIZ) { res.end(JSON.stringify({ response: Array.from({ length: 30 }, (_, i) => ({ name: `f${i}.js`, path: `${RAIZ}/f${i}.js`, type: 'file', last_modified: 'x', size: '1' })) })); return; }
+      res.statusCode = 404; res.end('{}');
+    }, 20);
+  });
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-pad-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: `http://127.0.0.1:${srv.address().port}`, rpm: 60000, chave: CHAVE });
+    assert.equal(rel.arquivos, 30);
+    assert.ok(maximo <= 4, `pedidos em voo: ${maximo}`);
+    assert.ok(maximo >= 2, 'e usa o paralelismo que tem');
+  } finally { await fecha({ srv }); rmSync(base, { recursive: true, force: true }); }
+});
+
+test('medir: detecta o COLAPSO da API acima de ~4 em voo (como no staging real) e recomenda 4; sem colapso não há aviso', async () => {
+  let emVoo = 0;
+  const srv = http.createServer((req, res) => {
+    emVoo += 1;
+    const atraso = emVoo <= 4 ? 30 : 400; // acima de 4 em voo cada pedido demora muito mais: a vazão despenca
+    setTimeout(() => { emVoo -= 1; res.setHeader('content-type', 'application/json'); const c = Buffer.from('21 bytes de teste!!'); res.end(JSON.stringify({ response: { type: 'base64', data: c.toString('base64'), size: c.length, last_modified: 'x' } })); }, atraso);
+  });
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+  try {
+    const m = await medir({ app: 'APP', raiz: RAIZ, api: `http://127.0.0.1:${srv.address().port}`, rpm: 100000, chave: CHAVE, niveis: [1, 2, 4, 16], por: 4, sequenciais: 3 });
+    const por = Object.fromEntries(m.niveis.map((x) => [x.concorrencia, x.pedidosPorMin]));
+    assert.ok(por[4] > por[1] * 2, JSON.stringify(m.niveis));
+    assert.ok(por[16] < por[4] / 2, 'o nível 16 colapsa: ' + JSON.stringify(m.niveis));
+    assert.equal(m.recomendada, 4);
+    assert.equal(m.colapsoAPartirDe, 16);
+    assert.match(m.avisoColapso, /COLAPSA com 16 pedidos em voo/);
+    assert.match(m.avisoColapso, /use --concorrencia 4/);
+  } finally { await fecha({ srv }); }
+  const ok = await servidorGenerico({}, { latenciaMs: 30 });
+  try {
+    const m = await medir({ app: 'APP', raiz: RAIZ, api: ok.api, rpm: 100000, chave: CHAVE, niveis: [1, 4], por: 3, sequenciais: 2 });
+    assert.equal(m.colapsoAPartirDe, undefined);
+    assert.equal(m.avisoColapso, undefined);
+  } finally { await fecha(ok); }
+});
