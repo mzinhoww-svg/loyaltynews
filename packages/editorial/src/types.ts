@@ -13,7 +13,9 @@ export const SIGNATURE = ASSINATURA;
 
 export type SourceKind = 'investor_relations' | 'regulator' | 'press_room' | 'association' | 'government'
   // DP-29: blogs especializados e imprensa de nicho. São fonte de PAUTA e contexto; fatos precisam de âncora em fonte primária.
-  | 'blog' | 'trade_media' | 'company_blog';
+  | 'blog' | 'trade_media' | 'company_blog'
+  // DP-51: site oficial do programa de fidelidade (emissor primário dos próprios fatos: regras, regulamentos, campanhas). Só páginas públicas.
+  | 'loyalty_program';
 /** primary = emissor oficial do fato (RI, regulador, governo, associação, sala de imprensa); secondary = blog/imprensa de nicho (relata o que outros disseram). */
 export type AccessMode = 'padrao' | 'via-provedor';
 export const ACESSO_VIA_PROVEDOR: AccessMode = 'via-provedor';
