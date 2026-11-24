@@ -1520,6 +1520,8 @@ test('guard-env (linha 1 do piloto): em produção cada variável do piloto recu
     [{ LN_OPENBOT_PILOT: '1' }, /LN_OPENBOT_PILOT definida em produção/],
     [{ OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET definida em produção/],
     [{ OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET_PREVIOUS definida em produção/],
+    [{ LN_OPENBOT_PILOT_WIRING: 'valor-ficticio-de-teste' }, /LN_OPENBOT_PILOT_WIRING definida em produção/],
+    [{ LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' }, /LN_OPENBOT_GATEWAY_TIMEOUT_MS definida em produção/],
   ];
   for (const [vars, esperado] of casos) {
     const msg = envProblems({ ...PROD, ...vars }, { deploy: true }).join('|');
@@ -1531,9 +1533,26 @@ test('guard-env (linha 1 do piloto): em produção cada variável do piloto recu
   assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /LN_FLAGS_ON definida em produção/);
   assert.doesNotMatch(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /openbotDispatch/, 'só cita openbotDispatch quando ela está no valor');
   const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
-  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT', 'LN_OPENBOT_PILOT_WIRING', 'LN_OPENBOT_GATEWAY_TIMEOUT_MS']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
   assert.equal(c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET').secreto, true);
   assert.doesNotMatch(JSON.stringify(c), /"valor"\s*:\s*"[^"]{8,}"/, 'o contrato só tem nomes, nenhum valor');
+});
+
+test('guard-env (item 5 do piloto): a CLI real sai 1 em produção com QUALQUER variável do piloto e 0 sem elas (controle negativo); staging aceita; toda variável OPENBOT/PILOT lida pelo código do piloto está no contrato como só_staging', () => {
+  const run = (env) => node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), ...env } });
+  const piloto = { LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste', OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste', LN_OPENBOT_PILOT_WIRING: '@ln/outro', LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' };
+  assert.equal(run({ APP_ENV: 'production' }).status, 0, 'controle negativo: produção sem variável do piloto passa');
+  for (const [nome, valor] of Object.entries(piloto)) {
+    const r = run({ APP_ENV: 'production', [nome]: valor });
+    assert.equal(r.status, 1, nome + ' em produção deve reprovar');
+    assert.ok((r.stderr + r.stdout).includes(nome), 'a mensagem cita o nome ' + nome);
+    assert.ok(!(r.stderr + r.stdout).includes(valor) || valor === '1' || valor === '60000', 'a mensagem não repete o valor de ' + nome);
+    assert.equal(run({ APP_ENV: 'staging', [nome]: valor }).status, 0, nome + ' em staging é aceita');
+  }
+  assert.equal(run({ APP_ENV: 'production', ...piloto }).status, 1, 'todas juntas em produção reprovam');
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  const nomes = new Set(c.variaveis.map((v) => v.nome));
+  for (const n of Object.keys(piloto)) assert.ok(nomes.has(n) && c.variaveis.find((v) => v.nome === n).so_staging === true, n + ' no contrato como só_staging');
 });
 
 test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {
