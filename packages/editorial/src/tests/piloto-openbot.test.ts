@@ -68,11 +68,11 @@ test('sem taskId no gateway (modelops): nenhum reviewedDraftTaskId inventado; o 
   assert.deepEqual(s.sink.calls, [], 'sem id de tarefa não há linha a patchar');
 });
 
-test('linha do piloto: output_valid em cada tarefa; veredito do gate na checagem e na revisão (tarefa e tentativa do gateway)', async () => {
+test('linha do piloto: output_valid em cada tarefa; veredito do gate na redação, na checagem e na revisão (tarefa e tentativa do gateway)', async () => {
   const s = setup();
   await run(s);
   const by = (stage: string) => s.sink.calls.filter((c) => c.stage === stage);
-  assert.deepEqual(by('draft').map((c) => [c.taskId, c.attempt, c.patch]), [['task-draft-7', 1, { output_valid: true }]]);
+  assert.deepEqual(by('draft').map((c) => [c.taskId, c.attempt, c.patch]), [['task-draft-7', 1, { output_valid: true }], ['task-draft-7', 1, { gate_verdict: 'approved', gate_reasons: [] }]]);
   assert.deepEqual(by('factcheck').map((c) => [c.taskId, c.attempt, c.patch]), [
     ['task-fc-8', 2, { output_valid: true }],
     ['task-fc-8', 2, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true }],
@@ -122,4 +122,14 @@ test('pilotRowSinkFrom: confere com applyRowPatch contra a linha atual e só ent
   assert.equal(patched.length, 1);
   const sumiu = pilotRowSinkFrom({ ...store, patch: async () => false }, apply);
   await assert.rejects(() => sumiu.patch({ taskId: 't1', attempt: 1, stage: 'review', patch: { output_valid: true } }), /sumiu/);
+});
+
+test('gate da redação barra (cópia/número fora da fonte): a linha da tarefa de redação recebe gate_verdict blocked e os motivos; sem nova tentativa', async () => {
+  const s = setup({ draft: () => withTask('deepseek', goodDraftOutput(ev.id, { body: 'A diretora disse: "frase totalmente inventada pelo modelo de teste".' }), 'task-draft-9') });
+  const o = await draftStage(s.deps, s.job);
+  assert.equal(o.kind, 'blocked');
+  const rows = s.sink.calls.filter((c) => c.stage === 'draft');
+  assert.deepEqual(rows.map((c) => [c.taskId, c.patch.gate_verdict]), [['task-draft-9', undefined], ['task-draft-9', 'blocked']]);
+  assert.ok(rows[1]!.patch.gate_reasons!.length > 0 && !rows[1]!.patch.gate_reasons!.includes('max_attempts'));
+  assert.equal(s.sink.calls.some((c) => c.stage === 'factcheck'), false);
 });

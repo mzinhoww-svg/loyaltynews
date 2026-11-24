@@ -50,8 +50,8 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await page.goto('/studio/campanhas');
     await page.getByLabel('Nome', { exact: true }).fill('Telas Topo');
     await page.getByLabel('Anunciante (conta)').selectOption({ label: 'Fidelidade Telas SA' });
-    await page.getByLabel('Início (AAAA-MM-DD)').fill('2099-03-01');
-    await page.getByLabel('Fim (AAAA-MM-DD)').fill('2099-05-31');
+    await page.getByLabel('Início (obrigatório)').fill('2099-03-01');
+    await page.getByLabel('Fim (obrigatório)').fill('2099-05-31');
     await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
     await sucesso(page, 'Campanha criada em rascunho.');
 
@@ -74,8 +74,8 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(page.getByLabel('Confirmar venda')).toBeDisabled();
 
     // período inválido: o domínio recusa e a página mostra
-    await page.getByLabel('Início da reserva (AAAA-MM-DD)').fill('2099-05-31');
-    await page.getByLabel('Fim da reserva (AAAA-MM-DD)').fill('2099-03-01');
+    await page.getByLabel('Início da reserva').fill('2099-05-31');
+    await page.getByLabel('Fim da reserva').fill('2099-03-01');
     await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
     await expect(page.locator('main .st-alert.err').first()).toBeVisible();
 
@@ -95,7 +95,7 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
 
     // criativo: nasce não aprovado; aprovar sem arquivo é recusado com o que falta
     await page.getByLabel('Texto alternativo').fill('Banner topo Telas');
-    await page.getByLabel('Destino (https)').fill('https://fidelidadetelas.example/oferta');
+    await page.getByLabel('Destino (https').fill('https://fidelidadetelas.example/oferta');
     await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
     await sucesso(page, 'Criativo adicionado');
     const cr = page.locator('li[data-criativo]');
@@ -103,8 +103,17 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(cr).toHaveAttribute('data-aprovado', 'nao');
     await expect(cr).toContainText('Arquivo: nenhum');
     const crId = (await cr.getAttribute('data-criativo'))!;
+    // DP-43: o comercial não aprova (sem botão); o proprietário (admin) tenta e o domínio recusa o criativo incompleto
+    await expect(page.getByRole('button', { name: `Aprovar ${crId}` })).toHaveCount(0);
+    await expect(page.getByTestId('aprovacao-proprietario')).toBeVisible();
+    const urlCamp = page.url().split('?')[0]!;
+    await entrar(context, 'dono', 'admin');
+    await page.goto(urlCamp);
     await enviar(page, page.getByRole('button', { name: `Aprovar ${crId}` }));
     await erro(page, /incompleto|especificação/);
+    await expect(page.getByTestId('aprovacao-proprietario')).toHaveCount(0);
+    await entrar(context, 'caio', 'comercial');
+    await page.goto(urlCamp);
     await expect(page.locator('li[data-criativo]')).toHaveAttribute('data-aprovado', 'nao');
 
     // envio sem arquivo: aviso, nada gravado; com arquivo e sem armazenamento S3 no teste, recusa honesta (nunca sucesso falso)
@@ -183,6 +192,24 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     expect((await diario.text()).replace(/^\uFEFF/, '').trimEnd().split('\r\n')).toHaveLength(1);
     const anonimo = await request.get(href, { maxRedirects: 0 });
     expect(anonimo.headers()['content-type'] ?? '').not.toContain('text/csv');
+  });
+
+  test('revisão visual int/012: axe no celular (tabela rolável focável) e sem nome de flag na tela', async ({ page, context }) => {
+    await entrar(context, 'ana', 'admin');
+    await page.setViewportSize({ width: 390, height: 800 });
+    for (const rota of ['/studio/inventario', '/studio/campanhas', '/studio/crm', '/studio/creative']) {
+      await page.goto(rota);
+      await semViolacoes(page);
+      const texto = await page.locator('main').innerText();
+      expect(texto, rota).not.toMatch(/\(flag |adServerVendas|flag instagram/);
+    }
+    // a região que rola recebe foco pelo teclado e tem nome
+    await page.goto('/studio/inventario');
+    const regiao = page.getByRole('region', { name: 'Posições do inventário' });
+    await expect(regiao).toHaveAttribute('tabindex', '0');
+    // estados do CRM em português, com acento
+    await page.goto('/studio/crm');
+    await expect(page.locator('[data-stage="negociacao"]')).toContainText('Negociação');
   });
 
   test('RBAC: editor não chega às telas nem às actions comerciais', async ({ page, context }) => {

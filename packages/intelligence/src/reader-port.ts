@@ -240,12 +240,58 @@ const LOGIN_FORM = /<input[^>]+type=["']?password["']?/i;
 const LOGIN_TEXT = /(fa[cç]a (?:o )?login para (?:continuar|ler|acessar)|entre (?:na|com) sua conta para (?:continuar|ler)|sign in to (?:continue|read|view)|log in to (?:continue|read|view)|you must be logged in)/i;
 const PAYWALL_TEXT = /(conte[uú]do exclusivo para assinantes|assine para (?:continuar lendo|ler (?:a )?(?:mat[eé]ria|not[ií]cia) completa)|reservado a assinantes|subscribe to (?:continue reading|read (?:the )?full)|this (?:article|content) is for subscribers|to continue reading,? (?:please )?subscribe)/i;
 
+// Elemento candidato a overlay/paywall: o conteúdo vai até o fechamento da PRIMEIRA tag igual; class e id são lidos à parte (marcador por TOKEN, não por substring).
+const WALL_TAG = /<(div|section|aside|dialog)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+const WALL_ATTR = /\b(?:class|id)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+// Marcador de overlay por TOKEN de class/id (R5 do QA 3, ee01f58; mesma regra de isWallMarker em @ln/scraping-benchmark, 5cff1d0), nunca por pedaço de palavra:
+//  - fortes (bastam sozinhos): paywall, regwall, premium, overlay, modal, piano, meter, tp, e tokens que começam com subscri/assinant;
+//  - fracos (gate, wall): só com um qualificador no MESMO atributo (content, pay, reg, member(s), login, article, story, premium, subscriber, assinante).
+// Assim `content-gate`, `pay-wall`, `site-paywall`, `tp-holder` e `subscriber_modal` contam; `gateway`, `firewall`, `aggregate` e um `wall` isolado em volta do corpo, não.
+const WALL_STRONG = new Set(['paywall', 'regwall', 'premium', 'overlay', 'modal', 'piano', 'meter', 'tp']);
+const WALL_STRONG_PREFIX = ['subscri', 'assinant'];
+const WALL_WEAK = new Set(['gate', 'wall']);
+const WALL_QUALIFIER = new Set(['content', 'pay', 'reg', 'member', 'members', 'login', 'article', 'story', 'premium', 'subscriber', 'assinante']);
+export function isWallMarker(attr: string): boolean {
+  const toks = attr.toLowerCase().split(/[\s\-_]+/).filter(Boolean);
+  if (toks.some((t) => WALL_STRONG.has(t) || WALL_STRONG_PREFIX.some((p) => t.startsWith(p)))) return true;
+  return toks.some((t) => WALL_WEAK.has(t)) && toks.some((t) => WALL_QUALIFIER.has(t));
+}
+const hasWallMarker = (attrs: string): boolean => [...attrs.matchAll(WALL_ATTR)].some((m) => isWallMarker(m[1] ?? m[2] ?? ''));
+/** Janela do texto do próprio elemento marcado (overlay é curto por natureza): lê até 6.000 caracteres dele. */
+export const PAYWALL_ELEMENT_CHARS = 6000;
+const stripTags = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** Aviso de paywall só no HTML de página longa: início do texto visível (sem script/style) ou texto de elemento de overlay/paywall/modal (class/id), em qualquer ponto. */
+function htmlHasPaywallOverlay(html: string): boolean {
+  const visible = stripTags(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' '));
+  if (PAYWALL_TEXT.test(visible.slice(0, PAYWALL_HEAD_CHARS))) return true;
+  for (const m of html.matchAll(WALL_TAG)) {
+    if (!hasWallMarker(m[2] ?? '')) continue;
+    const inner = stripTags(m[3] ?? '');
+    if (PAYWALL_TEXT.test(inner.slice(0, PAYWALL_ELEMENT_CHARS))) return true;
+  }
+  return false;
+}
+
+/** Limites do detector de paywall (iguais aos de detectWall em @ln/scraping-benchmark): até PAYWALL_SHORT_PAGE caracteres a checagem é completa; acima, só o início. */
+export const PAYWALL_SHORT_PAGE = 3000;
+export const PAYWALL_HEAD_CHARS = 1500;
+
 export function detectLoginOrPaywall(r: { text?: string; html?: string; httpStatus?: number }): 'login_required' | 'paywall' | null {
   const html = r.html ?? '';
   const text = r.text ?? '';
   if (r.httpStatus === 401) return 'login_required';
   if (r.httpStatus === 402) return 'paywall';
-  if (PAYWALL_TEXT.test(text) || PAYWALL_TEXT.test(html)) return 'paywall';
+  // paywall: página CURTA (até 3.000 caracteres) é checada inteira; página LONGA só nos primeiros 1.500 do texto (R2 do QA 1, 63c16df): uma reportagem longa e
+  // legítima que CITA "assine para continuar lendo" no meio do corpo não é paywall. R4 (QA 3, 542ec10): o aviso que só existe no HTML (overlay/modal) não pode escapar,
+  // então na página longa checa-se também o início do texto visível do HTML e o texto de elementos cujo class/id indica paywall/overlay/modal, em qualquer ponto.
+  const basis = text || html;
+  if (basis.length <= PAYWALL_SHORT_PAGE) {
+    if (PAYWALL_TEXT.test(text) || PAYWALL_TEXT.test(html)) return 'paywall';
+  } else {
+    if (PAYWALL_TEXT.test(basis.slice(0, PAYWALL_HEAD_CHARS))) return 'paywall';
+    if (html && htmlHasPaywallOverlay(html)) return 'paywall';
+  }
   // formulário de senha numa página CURTA = tela de login; página longa com campo de senha (ex.: rodapé "área do cliente") não conta
   if (LOGIN_FORM.test(html) && text.length < 1500) return 'login_required';
   if (LOGIN_TEXT.test(text) && text.length < 1500) return 'login_required';

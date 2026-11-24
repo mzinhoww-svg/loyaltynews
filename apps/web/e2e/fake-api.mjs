@@ -173,13 +173,27 @@ const send = (res, status, body) => {
 // GET /api/commercial/ads/plan (formato de adPlan do @ln/commercial). FAKE_API_ADS=com: TOP e SIDEBAR_1 disponíveis; qualquer outro valor: nenhuma.
 const adsMode = process.env.FAKE_API_ADS ?? 'sem';
 const ADS_DIM = { TOP: [1280, 150], SIDEBAR_1: [336, 280] };
+// Formatos mobile do inventário do @ln/commercial (aditivo `mobile` do plano, ft/commercial-device 6f7eb48): topo 320×100 e 300×250; a sidebar só 300×250.
+const ADS_MOBILE = { TOP: [{ width: 320, height: 100 }, { width: 300, height: 250 }], SIDEBAR_1: [{ width: 300, height: 250 }] };
 const adPlan = (positions) => ({
   today: new Date().toISOString().slice(0, 10),
-  slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1] } : { positionId: id, available: false, width: null, height: null })),
+  slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1], mobile: ADS_MOBILE[id] } : { positionId: id, available: false, width: null, height: null, mobile: [] })),
 });
 
 const TIPOS = ['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Portão de teste do estado "carregando": q=portao-<chave> segura a resposta até POST /__portao/abrir?chave=<chave> (ou 30 s). Determinístico:
+// o teste só libera depois de ver o esqueleto, sem depender de atraso fixo nem da carga da máquina.
+const portoes = new Map();
+const portao = (chave) => {
+  let p = portoes.get(chave);
+  if (!p) {
+    p = {};
+    p.promessa = new Promise((r) => { p.abrir = r; });
+    portoes.set(chave, p);
+  }
+  return p;
+};
 // MOCK de GET /api/commercial/mediakit (formato do handler getMediaKit do @ln/commercial). Só para o e2e do portal em modo api.
 const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
 const MEDIAKIT = {
@@ -198,6 +212,15 @@ const MEDIAKIT = {
     ],
   },
   blocks: {
+    // posições do inventário vindas da API (só 3 com dimensão: prova que o mapa lê a API, não a reserva do portal)
+    especificacoes: {
+      positions: [
+        { id: 'TOP', name: 'Banner topo', desktop: '1280x150' },
+        { id: 'SIDEBAR_1', name: 'Sidebar 1', desktop: '336x280' },
+        { id: 'FOOTER', name: 'Rodapé', desktop: '1280x200' },
+        { id: 'AGENDA', name: 'Agenda', desktop: null },
+      ],
+    },
     catalogo: {
       formats: [
         { id: 'banners--banner-topo', section: 'Banners', name: 'Banner topo', price: 'R$ 3.000/mês', scope: '1280 × 150; 4 cotas; mínimo 3 meses', status: 'sob_consulta' },
@@ -213,6 +236,10 @@ http
   .createServer(async (req, res) => {
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
+    if (u.pathname === '/__portao/abrir' && req.method === 'POST') {
+      portao(`portao-${u.searchParams.get('chave') ?? ''}`).abrir();
+      return send(res, 200, { ok: true });
+    }
     if (u.pathname === '/api/commercial/mediakit') {
       if (forcedStatus) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
       return send(res, 200, MEDIAKIT);
@@ -233,6 +260,7 @@ http
       // Gatilhos de teste dos estados de carregando e de erro (busca): q=lento atrasa a resposta; q=falha responde 503.
       const q0 = u.searchParams.get('q');
       if (q0 === 'lento') await sleep(2500);
+      if (q0?.startsWith('portao-')) await Promise.race([portao(q0).promessa, sleep(30_000)]);
       if (q0 === 'falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);

@@ -3,8 +3,10 @@
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro } from '@/lib/studio/backend';
-import { PAPEIS_COMERCIAIS } from '@/lib/studio/comercial';
+import { PAPEIS_APROVACAO, PAPEIS_COMERCIAIS } from '@/lib/studio/comercial';
 import { requireStudio } from '../../_lib/guard';
+import { readImageInfo } from '@/app/api/_lib/commercial/creative-file';
+import { conferirDimensao, ehDispositivo } from '@/lib/studio/criativo-dispositivo';
 import { texto, voltar } from '../../_lib/flash';
 
 export async function criarCampanhaAction(fd: FormData): Promise<void> {
@@ -26,6 +28,8 @@ export async function transicaoAction(fd: FormData): Promise<void> {
   await requireStudio(PAPEIS_COMERCIAIS);
   const id = texto(fd, 'id');
   const para = texto(fd, 'para');
+  // DP-43: aprovar a campanha é do proprietário (admin)
+  if (para === 'approved') await requireStudio(PAPEIS_APROVACAO);
   // 'reserved' exige as reservas da campanha: o domínio confere que existem, não estão canceladas e são desta campanha
   let reservationIds: string[] | undefined;
   if (para === 'reserved') {
@@ -34,11 +38,20 @@ export async function transicaoAction(fd: FormData): Promise<void> {
     reservationIds = ((d.body as { reservations?: { id: string; status: string }[] }).reservations ?? []).filter((x) => x.status !== 'cancelled').map((x) => x.id);
   }
   const r = await api.comercial.transicaoCampanha({ campaignId: id, to: para, ...(reservationIds ? { reservationIds } : {}), ...(texto(fd, 'nota') ? { note: texto(fd, 'nota') } : {}) });
-  voltar(`/studio/campanhas/${encodeURIComponent(id)}`, ehErro(r) ? { ok: false, erros: [mensagemErro(r)] } : { ok: true }, 'Estado da campanha atualizado.');
+  voltarCampanha(id, r, 'Estado da campanha atualizado.');
 }
 
-const voltarCampanha = (id: string, r: Parameters<typeof ehErro>[0], ok: string) =>
-  voltar(`/studio/campanhas/${encodeURIComponent(id)}`, ehErro(r) ? { ok: false, erros: [mensagemErro(r)] } : { ok: true }, ok);
+/**
+ * Volta à campanha com o aviso. Na recusa do domínio, leva também o CÓDIGO do erro (ex.: NO_CONFIRMED_RESERVATION) em `codigo`, só letras
+ * maiúsculas, dígitos e "_": a tela o expõe em `data-erro-codigo` (para teste e suporte), sem mostrar nome técnico à pessoa.
+ */
+function voltarCampanha(id: string, r: Parameters<typeof ehErro>[0], ok: string): never {
+  const caminho = `/studio/campanhas/${encodeURIComponent(id)}`;
+  if (!ehErro(r)) return voltar(caminho, { ok: true }, ok);
+  const codigo = (r.body as { error?: { code?: unknown } } | null)?.error?.code;
+  const q = typeof codigo === 'string' && /^[A-Z0-9_]{1,60}$/.test(codigo) ? `&codigo=${codigo}` : '';
+  redirect(`${caminho}?tipo=err&aviso=${encodeURIComponent(mensagemErro(r))}${q}`);
+}
 
 /** Posição da campanha: pré-reserva (held). Confirmar é venda e exige a flag adServerVendas (o domínio recusa sem ela). */
 export async function reservarPosicaoAction(fd: FormData): Promise<void> {
@@ -83,6 +96,14 @@ export async function enviarArquivoCriativoAction(fd: FormData): Promise<void> {
   const id = texto(fd, 'id');
   const arquivo = fd.get('arquivo');
   if (!(arquivo instanceof File) || arquivo.size === 0) return voltar(`/studio/campanhas/${encodeURIComponent(id)}`, { ok: false, erros: ['Escolha o arquivo do criativo.'] }, '');
+  // desktop ou mobile: o arquivo é medido aqui no servidor (cabeçalho da imagem) e recusado se não for a dimensão desse dispositivo na posição;
+  // a rota de upload mede de novo e o domínio valida (essa é a regra que vale)
+  const dispositivo = texto(fd, 'dispositivo');
+  if (!ehDispositivo(dispositivo)) return voltar(`/studio/campanhas/${encodeURIComponent(id)}`, { ok: false, erros: ['Escolha se o arquivo é desktop ou mobile.'] }, '');
+  const info = readImageInfo(new Uint8Array(await arquivo.arrayBuffer()));
+  if (!info) return voltar(`/studio/campanhas/${encodeURIComponent(id)}`, { ok: false, erros: ['Só JPEG, PNG ou GIF íntegros.'] }, '');
+  const recusa = conferirDimensao(texto(fd, 'posicao'), dispositivo, info.width, info.height);
+  if (recusa) return voltar(`/studio/campanhas/${encodeURIComponent(id)}`, { ok: false, erros: [recusa] }, '');
   const form = new FormData();
   form.set('creativeId', texto(fd, 'criativo'));
   form.set('arquivo', arquivo);
@@ -90,7 +111,7 @@ export async function enviarArquivoCriativoAction(fd: FormData): Promise<void> {
 }
 
 export async function aprovarCriativoAction(fd: FormData): Promise<void> {
-  await requireStudio(PAPEIS_COMERCIAIS);
+  await requireStudio(PAPEIS_APROVACAO); // DP-43: cada imagem é aprovada pelo proprietário (admin)
   voltarCampanha(texto(fd, 'id'), await api.comercial.aprovarCriativo(texto(fd, 'criativo')), 'Criativo aprovado.');
 }
 

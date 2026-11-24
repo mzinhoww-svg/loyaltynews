@@ -41,7 +41,7 @@ export default async function AgentePage({ params }: { params: Promise<{ id: str
       {subordinados.length === 0 ? <p className="st-hint">Sem subordinados diretos.</p> : <p>{subordinados.map((s) => s.name).join(', ')}</p>}
       <h2>Workflows em que atua ({workflows.length})</h2>
       {workflows.length === 0 ? <p className="st-hint">Nenhum workflow cita este agente.</p> : <p>{workflows.map((w) => `${w.id} ${w.name}`).join('; ')}</p>}
-      <p className="st-hint">A execução do agente (chamadas de modelo) depende da flag modelosHabilitados e de aprovação.</p>
+      <p className="st-hint">A execução do agente (chamadas de modelo) só acontece quando elas forem ligadas, depois desta fase, e com aprovação.</p>
     </>
   );
 }

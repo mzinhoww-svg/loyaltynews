@@ -7,7 +7,9 @@ import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
 import { detectChallenge } from './crawl-guards.mjs';
 import { parseFeed, parseHtml, parseSitemap } from './parse';
+import type { SitemapEntry } from './parse';
 import { sanitize, stripHtml } from './sanitize';
+import { DEFAULT_MAX_DECOMPRESSED_BYTES, GzipError, gunzipCapped, isGzip } from './gzip';
 import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
 import type { Family, Resolver } from './net';
@@ -17,7 +19,8 @@ import { resolvePublic, systemResolver } from './net';
  * Porta de rede. O Fetcher DEVE conectar em `address` (IP já validado como público pelo coletor), sem resolver DNS de novo,
  * sem seguir redirecionamentos e sem credenciais (ver http-fetcher.ts). Isso fecha o DNS rebinding.
  */
-export interface HttpResponse { status: number; headers: Record<string, string>; body: string }
+/** `bytes`: só quando o corpo é gzip (magic 1f 8b); nesse caso `body` vem vazio e o coletor descomprime com teto (sitemap .xml.gz). */
+export interface HttpResponse { status: number; headers: Record<string, string>; body: string; bytes?: Uint8Array }
 export interface FetchOptions { userAgent: string; address: string; family: Family }
 export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpResponse> }
 
@@ -96,7 +99,11 @@ const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
-  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable';
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
+  /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
+  | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large'
+  /** aviso (não para a coleta): sitemap com entradas descartadas (malformadas) ou sem nenhuma página sob o prefixo */
+  | 'sitemap_entries_dropped' | 'sitemap_no_items' | 'sitemap_child_no_items' | 'sitemap_http_upgraded';
 
 /**
  * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
@@ -161,11 +168,25 @@ export interface CollectorOptions {
   dp31MaxPagesPerDay?: number;
   /** DP-31: só se guarda um trecho curto do texto (nunca o texto integral). Padrão 1500 caracteres. */
   dp31MaxStoredChars?: number;
+  /** Teto de bytes de um sitemap DESCOMPRIMIDO (.xml.gz). Padrão 10 MB; acima disso a leitura é recusada ('decompressed_too_large'). */
+  sitemapMaxDecompressedBytes?: number;
+  /** Máximo de filhos que um índice de sitemap SEM lastmod pode ter para ser lido inteiro (cada filho é uma requisição). Padrão 12. */
+  sitemapMaxChildren?: number;
+  /**
+   * Teto de PÁGINAS coletadas por fonte de sitemap em cada rodada, qualquer que seja o `limit` pedido (o worker usa 20 por padrão). Padrão 5
+   * (`materiasPorRodada` do piloto; decisão do PM): é o que faz o limite por hora do HOST (ex.: 40 em www.gov.br) valer em toda rodada, sem depender de
+   * alguém lembrar de passar 5. Só limita; nunca aumenta o `limit` recebido.
+   */
+  sitemapMaxPagesPerRun?: number;
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
 const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
+/** Páginas por fonte de sitemap em cada rodada (decisão do PM): o teto que segura o limite por hora do host. */
+export const SITEMAP_MAX_PAGES_PER_RUN = 5;
+/** Anexos e mídia que aparecem nos sitemaps (gov.br lista as imagens e PDFs de cada matéria): nunca são matéria. */
+const NON_PAGE_EXT = /\.(png|jpe?g|gif|svg|webp|avif|bmp|tiff?|ico|pdf|docx?|xlsx?|pptx?|odt|ods|csv|zip|gz|rar|7z|mp3|mp4|m4a|wav|webm|mov|avi|xml|json)$/i;
 const skipCodeOf = (e: unknown): SkipCode =>
   e instanceof UrlRejected ? ((OWN_SKIP_CODES as readonly string[]).includes(e.code) ? (e.code as SkipCode) : 'url_rejected') : 'http_error';
 
@@ -184,6 +205,9 @@ export class Collector {
   private readonly dp31SpacingMs: number;
   private readonly dp31MaxPagesPerDay: number;
   private readonly dp31MaxStoredChars: number;
+  private readonly sitemapMaxDecompressedBytes: number;
+  private readonly sitemapMaxChildren: number;
+  private readonly sitemapMaxPagesPerRun: number;
   private readonly readBudget: ReadBudget;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
@@ -204,6 +228,9 @@ export class Collector {
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
+    this.sitemapMaxDecompressedBytes = opts.sitemapMaxDecompressedBytes ?? DEFAULT_MAX_DECOMPRESSED_BYTES;
+    this.sitemapMaxChildren = opts.sitemapMaxChildren ?? 12;
+    this.sitemapMaxPagesPerRun = opts.sitemapMaxPagesPerRun ?? SITEMAP_MAX_PAGES_PER_RUN;
   }
 
   /**
@@ -446,24 +473,79 @@ export class Collector {
     if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
     // Sem prefixo de caminho verificado para a seção de notícias, o sitemap traria páginas quaisquer (produtos, institucional): não coletar.
     if (!source.sitemapPathPrefix) { out.skipped.push({ url: source.sitemapUrl, code: 'empty_content', detail: 'sitemap sem sitemapPathPrefix verificado (seção de notícias não identificada)' }); return out; }
-    const top = await this.collectRaw(source, source.sitemapUrl);
+    const prefix = source.sitemapPathPrefix;
+    // http:// do PRÓPRIO host da fonte sobe para https:// (o gov.br serve o espelho http com <loc> corrompido: "http://www.gov.br/anachttps://…").
+    // Só esse caso: outro host continua sendo recusado pelo SSRF/host; nada é reescrito além do esquema.
+    let upgraded = 0;
+    const toHttps = (loc: string): string => {
+      try {
+        const u = new URL(loc);
+        if (u.protocol === 'http:' && u.hostname === source.host) { u.protocol = 'https:'; upgraded++; return u.toString(); }
+      } catch { /* URL inválida: segue como veio e o SSRF recusa */ }
+      return loc;
+    };
+    const sitemapUrl = toHttps(source.sitemapUrl);
+    const top = await this.collectRaw(source, sitemapUrl);
     if (top.skip) { out.skipped.push(top.skip); return out; }
     const parsed = parseSitemap(top.body!);
-    let pages = parsed.entries;
+    // Visibilidade (sitemap malformado não pode virar "0 matérias" em silêncio): cada sitemap lido (índice e cada filho) que descartou
+    // entradas gera um aviso próprio, com contagem por motivo e amostra. O aviso NÃO para a coleta (não é hostilidade da fonte).
+    const stats = { sitemaps: 1, blocos: parsed.blocos, descartadas: parsed.drops.total, foraDoPrefixo: 0, anexos: 0, duplicadas: 0 };
+    const noteDrops = (url: string, p: ReturnType<typeof parseSitemap>) => {
+      if (p.drops.total === 0) return;
+      const mot = [p.drops.sem_loc ? `sem_loc ${p.drops.sem_loc}` : '', p.drops.loc_nao_http ? `loc_nao_http ${p.drops.loc_nao_http}` : '', p.drops.loc_url_embutida ? `loc_url_embutida ${p.drops.loc_url_embutida}` : ''].filter(Boolean).join(', ');
+      out.skipped.push({ url, code: 'sitemap_entries_dropped', detail: `${p.drops.total} de ${p.blocos} entradas descartadas (${mot})${p.drops.amostra.length ? `; amostra: ${p.drops.amostra.map((a) => JSON.stringify(a)).join(' ')}` : ''}` });
+    };
+    noteDrops(sitemapUrl, parsed);
+    // Grupos de páginas: o sitemap simples, ou cada filho do índice (para avisar o filho que não rende nenhuma página).
+    const groups: Array<{ url: string; entries: SitemapEntry[]; blocos: number; descartadas: number; isChild: boolean }> = [];
     if (parsed.kind === 'index') {
-      const children = [...parsed.entries].sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')).slice(0, 2);
-      pages = [];
+      // Com lastmod no índice: os 2 filhos mais recentes. SEM lastmod (gov.br: sitemap1.xml.gz … sitemapN.xml.gz) a ordem dos filhos NÃO
+      // é cronológica (matérias novas aparecem em qualquer filho): lê todos, até `sitemapMaxChildren` (cada filho é 1 requisição, sujeita
+      // ao espaçamento e ao limite por hora do cadastro); índice maior que isso é recusado em vez de ser lido pela metade.
+      const hasLastmod = parsed.entries.some((e) => e.lastmod);
+      let children = parsed.entries;
+      if (hasLastmod) children = [...parsed.entries].sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')).slice(0, 2);
+      else if (children.length > this.sitemapMaxChildren) {
+        out.skipped.push({ url: sitemapUrl, code: 'sitemap_index_too_large', detail: `índice com ${children.length} filhos e sem lastmod (máximo ${this.sitemapMaxChildren})` });
+        return out;
+      }
       for (const c of children) {
-        const sub = await this.collectRaw(source, c.loc);
+        const childUrl = toHttps(c.loc);
+        const sub = await this.collectRaw(source, childUrl);
         if (sub.skip) { out.skipped.push(sub.skip); if (stopsCollection(sub.skip)) return out; continue; }
-        pages.push(...parseSitemap(sub.body!).entries);
+        const child = parseSitemap(sub.body!);
+        stats.sitemaps++; stats.blocos += child.blocos; stats.descartadas += child.drops.total;
+        noteDrops(childUrl, child);
+        groups.push({ url: childUrl, entries: child.entries, blocos: child.blocos, descartadas: child.drops.total, isChild: true });
+      }
+    } else groups.push({ url: sitemapUrl, entries: parsed.entries, blocos: parsed.blocos, descartadas: parsed.drops.total, isChild: false });
+    const seen = new Set<string>();
+    const candidates: SitemapEntry[] = [];
+    for (const g of groups) {
+      const mine = { fora: 0, anexos: 0, duplicadas: 0, boas: 0 };
+      for (const e0 of g.entries) {
+        const loc = toHttps(e0.loc);
+        let path: string;
+        try { path = new URL(loc).pathname; } catch { stats.descartadas++; continue; }
+        if (!path.startsWith(prefix)) { mine.fora++; stats.foraDoPrefixo++; continue; }
+        if (NON_PAGE_EXT.test(path)) { mine.anexos++; stats.anexos++; continue; }
+        if (seen.has(loc)) { mine.duplicadas++; stats.duplicadas++; continue; }
+        seen.add(loc); mine.boas++; candidates.push({ loc, lastmod: e0.lastmod });
+      }
+      // Filho que não rende nenhuma página (pode ser legítimo: filhos do gov.br misturam seções; ou defeito do sitemap): aviso com os números.
+      if (g.isChild && mine.boas === 0) {
+        out.skipped.push({ url: g.url, code: 'sitemap_child_no_items', detail: `0 páginas sob ${prefix}: ${g.blocos} entradas, ${g.descartadas} descartadas, ${mine.fora} fora do prefixo, ${mine.anexos} anexos, ${mine.duplicadas} duplicadas` });
       }
     }
-    const prefix = source.sitemapPathPrefix;
-    const chosen = pages
-      .filter((e) => { try { return new URL(e.loc).pathname.startsWith(prefix); } catch { return false; } })
+    if (upgraded > 0) out.skipped.push({ url: sitemapUrl, code: 'sitemap_http_upgraded', detail: `${upgraded} endereço(s) http:// do próprio host passaram para https://` });
+    // Nenhuma página candidata: pode ser legítimo (sem notícia nova) ou sinal de sitemap quebrado/prefixo errado; o aviso traz os números.
+    if (candidates.length === 0) {
+      out.skipped.push({ url: sitemapUrl, code: 'sitemap_no_items', detail: `0 páginas sob ${prefix}: ${stats.sitemaps} sitemap(s), ${stats.blocos} entradas, ${stats.descartadas} descartadas, ${stats.foraDoPrefixo} fora do prefixo, ${stats.anexos} anexos, ${stats.duplicadas} duplicadas` });
+    }
+    const chosen = candidates
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))
-      .slice(0, limit);
+      .slice(0, Math.min(limit, this.sitemapMaxPagesPerRun));
     const guard = new StopGuard();
     for (const e of chosen) {
       const r = await this.collectUrl(source, e.loc, { publishedAt: e.lastmod });
@@ -488,9 +570,16 @@ export class Collector {
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     try {
-      const r = await this.safeGet(u.toString(), source);
+      let r = await this.safeGet(u.toString(), source);
       if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
       if (r.status !== 200) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+      // Sitemap .xml.gz: descomprime com teto ANTES de qualquer outra leitura do corpo (zip bomb → 'decompressed_too_large').
+      if (r.bytes && isGzip(r.bytes)) {
+        try { r = { ...r, body: await gunzipCapped(r.bytes, this.sitemapMaxDecompressedBytes) }; } catch (e) {
+          if (e instanceof GzipError) return { skip: { url, code: e.code, detail: e.message } };
+          throw e;
+        }
+      }
       const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
       if (chal) return { skip: { url, code: 'challenge', detail: chal } };
       const gate = detectGate(r);

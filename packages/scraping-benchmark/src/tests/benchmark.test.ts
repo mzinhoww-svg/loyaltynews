@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReaderPort, ReadResult, ReadRequest } from '@ln/intelligence';
 import { createReader, ScrapflyReader } from '@ln/intelligence';
-import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord } from '../quality';
+import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord, bodyEvidence, detectWall, isWallMarker } from '../quality';
 import { BudgetGuard } from '../budget';
 import { AdaptiveRouter } from '../router';
 import { computeMetrics, rank, percentile, projectMonthly } from '../metrics';
@@ -18,6 +18,7 @@ import { readFlags, isProviderDisabled } from '../flags';
 import type { DatasetEntry, AttemptRecord } from '../types';
 import { shadowRun } from '../shadow';
 import { FirecrawlReader } from '../firecrawl';
+import { TavilyExtractReader } from '../tavily';
 import { LiveShadow } from '../live-shadow';
 import { createLiveShadowFromEnv, ShadowHostGate } from '../live-shadow-env';
 
@@ -379,8 +380,11 @@ describe('shadow ao vivo (MOCK de leitores)', () => {
     expect(lines).toHaveLength(1);
     const c = JSON.parse(lines[0]!);
     expect(c).toMatchObject({ url: 'https://a.com/1', primary: { ok: true, bodyLength: 24 }, shadow: { provider: 'z', ok: true }, divergent: false });
-    expect(lines[0]).not.toContain('corpo atual');
-    expect(lines[0]).not.toContain('Lorem ipsum');
+    // só trecho ≤ 200 do maior parágrafo (evidência de corpo, DP-29); nunca o texto inteiro nem tags
+    expect(c.primary.evidence.excerpt).toBe('corpo atual');
+    expect(c.shadow.evidence.excerpt.length).toBeLessThanOrEqual(200);
+    expect(lines[0]).not.toContain(LONG.slice(0, 400));
+    expect(lines[0]).not.toContain('<html>');
   });
   it('erro na sombra não chega ao coletor', async () => {
     const boom = { provider: 'b', read: async () => { throw new Error('falhou'); } } as unknown as ReaderPort;
@@ -435,5 +439,127 @@ describe('createLiveShadowFromEnv e ritmo por host (sem rede)', () => {
     await sh.drain();
     expect(r.calls).toBe(0);
     expect(seen).toEqual([{ skipped: 'ritmo' }]);
+  });
+});
+
+describe('evidência de corpo (maior parágrafo, ≤ 200)', () => {
+  it('ignora menu no começo e pega o parágrafo da matéria; trecho limitado', () => {
+    const para = 'O Banco Central anunciou nesta segunda-feira novas regras para o Pix, com limite noturno ajustável. ' .repeat(5);
+    const html = `<nav><p>Home</p><p>Economia</p></nav><article><p>${para}</p><p>${para}</p></article>`;
+    const b = bodyEvidence(undefined, html);
+    expect(b.longestParagraphChars).toBeGreaterThan(400);
+    expect(b.longParagraphs).toBe(2);
+    expect(b.excerpt!.startsWith('O Banco Central')).toBe(true);
+    expect(b.excerpt!.length).toBeLessThanOrEqual(200);
+  });
+  it('markdown: descarta linhas só de links; sem texto = zero', () => {
+    const md = '[Home](/) [Economia](/e)\n\nUma matéria com texto corrido suficiente para ser parágrafo editorial de verdade aqui.';
+    expect(bodyEvidence(md, undefined).excerpt).toMatch(/^Uma matéria/);
+    expect(bodyEvidence(undefined, undefined)).toEqual({ longestParagraphChars: 0, longParagraphs: 0 });
+  });
+});
+
+describe('ressalvas abertas QA 3 (router 1 observação; adaptador cru)', () => {
+  it('com UMA falha no domínio, o provedor vai para trás de quem acertou e de quem não tem histórico', () => {
+    const mk = (n: string, usd: number) => ({ name: n, reader: new MockReader(n, (q) => ok(n, q.url)), worstCaseCredits: 1, usdPerCredit: usd });
+    const r = new AdaptiveRouter([mk('apify', 0.0000001), mk('exa', 0.001), mk('novo', 0.01)]);
+    r.seed('aeroin.net', 'apify', { attempts: 1, valid: 0, credits: 0 });
+    r.seed('aeroin.net', 'exa', { attempts: 1, valid: 1, credits: 1 });
+    expect(r.order('aeroin.net').map((p) => p.name)).toEqual(['exa', 'novo', 'apify']);
+  });
+  it('KeyedReader cru: 401/402 da origem e paywall no texto não devolvem corpo (Firecrawl e Tavily)', async () => {
+    const fc = (status: number, md = LONG) => new FirecrawlReader((async () => new Response(JSON.stringify({ success: true, data: { markdown: md, metadata: { statusCode: status } } }), { status: 200 })) as unknown as typeof fetch);
+    for (const s of [401, 402]) {
+      const r = await fc(s).read({ url: 'https://a.com' }, 'k');
+      expect(r).toMatchObject({ status: 'ok', httpStatus: s });
+      expect(r.text).toBeUndefined();
+    }
+    const pw = await fc(200, `${LONG} Conteúdo exclusivo para assinantes`).read({ url: 'https://a.com' }, 'k');
+    expect(pw).toMatchObject({ httpStatus: 402 });
+    expect(pw.text).toBeUndefined();
+    const tv = new TavilyExtractReader((async () => new Response(JSON.stringify({ results: [{ url: 'https://a.com', raw_content: `${LONG} Assine para continuar lendo a matéria completa` }] }), { status: 200 })) as unknown as typeof fetch);
+    const t = await tv.read({ url: 'https://a.com' }, 'k');
+    expect(t).toMatchObject({ httpStatus: 402 });
+    expect(t.text).toBeUndefined();
+  });
+});
+
+describe('Firecrawl: sucesso diferente de 200 com paywall/login (ressalva QA 3)', () => {
+  it.each([200, 201, 203])('origem %i com paywall → 402; com login → 401; sem corpo; pool classifica', async (code) => {
+    const mk = (md: string) => new FirecrawlReader((async () => new Response(JSON.stringify({ success: true, data: { markdown: md, metadata: { statusCode: code } } }), { status: 200 })) as unknown as typeof fetch);
+    const pw = await mk(`${LONG} Conteúdo exclusivo para assinantes`).read({ url: 'https://a.com' }, 'k');
+    expect(pw).toMatchObject({ status: 'ok', httpStatus: 402 });
+    expect(pw.text).toBeUndefined();
+    const lg = await mk('Faça login para continuar lendo').read({ url: 'https://a.com' }, 'k');
+    expect(lg).toMatchObject({ httpStatus: 401 });
+    const viaPool = await createReader({ keyed: mk(`${LONG} Conteúdo exclusivo para assinantes`), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com' });
+    expect(viaPool).toMatchObject({ ok: false, failure: 'paywall' });
+  });
+});
+
+describe('ressalvas R2/R3 do QA 1 (63c16df)', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  it('R2: matéria longa que CITA o aviso de paywall depois do início não é descartada; aviso no início ou página curta continua parando', () => {
+    expect(detectWall({ text: `${article} Muitos sites exibem "assine para continuar lendo" ao leitor. ${article}` })).toBeNull();
+    expect(detectWall({ text: `Conteúdo exclusivo para assinantes. ${article}` })).toBe('paywall');
+    expect(detectWall({ text: 'Trecho curto. Assine para continuar lendo a matéria completa.' })).toBe('paywall');
+    expect(detectWall({ text: article, httpStatus: 402 })).toBe('paywall');
+    // (teste do campo de senha removido: o QA 3 mostrou que passaria também no código anterior)
+  });
+  it('R3: parágrafo com quebras de linha (hard wrap) é medido inteiro', () => {
+    const wrapped = Array.from({ length: 8 }, () => 'linha curta de um mesmo parágrafo editorial').join('\n');
+    const b = bodyEvidence(`${wrapped}\n\nOutro parágrafo curto.`, undefined);
+    expect(b.longestParagraphChars).toBeGreaterThan(300);
+    expect(b.longParagraphs).toBe(1);
+  });
+});
+
+describe('ressalva R4 do QA 3 (542ec10): paywall só no HTML de página longa', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  it('overlay/modal com aviso de paywall em qualquer ponto do HTML → paywall (reprovaria no 542ec10)', () => {
+    const html = `<article><p>${article}</p></article><div class="paywall-overlay"><h2>Conteúdo exclusivo para assinantes</h2></div>`;
+    expect(detectWall({ text: article, html })).toBe('paywall');
+    expect(evaluate(article, html, 'x').reason).toBe('paywall');
+    const top = `<div id="banner">Conteúdo exclusivo para assinantes</div><p>${article}</p>`;
+    expect(detectWall({ text: article, html: top })).toBe('paywall');
+  });
+  it('reportagem longa que CITA o aviso no meio do corpo continua liberada (R2 preservada)', () => {
+    const html = `<p>${article}</p><p>Muitos sites exibem "assine para continuar lendo" ao leitor.</p><p>${article}</p>`;
+    expect(detectWall({ text: `${article} Muitos sites exibem "assine para continuar lendo". ${article}`, html })).toBeNull();
+  });
+});
+
+describe('lacunas registradas pelo QA 3 (74df503)', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  it('overlay com class "gate" e aviso depois dos 1.500 primeiros caracteres do elemento → paywall', () => {
+    expect(detectWall({ text: article, html: `<p>${article}</p><div class="content-gate"><p>Assine para continuar lendo a matéria completa</p></div>` })).toBe('paywall');
+    const filler = 'texto de chamada do plano anual com desconto. '.repeat(40);
+    expect(detectWall({ text: article, html: `<p>${article}</p><section id="paywall">${filler}<b>Conteúdo exclusivo para assinantes</b></section>` })).toBe('paywall');
+  });
+  it('corpo da matéria num div com class genérica (article-block) citando o aviso não vira paywall', () => {
+    const body = `<div class="article-block">${article}<p>Sites exibem "assine para continuar lendo".</p>${article}</div>`;
+    expect(detectWall({ text: article + article, html: body })).toBeNull();
+  });
+  it('modal de cookies e reportagem que cita o aviso no corpo seguem liberados', () => {
+    expect(detectWall({ text: article, html: `<p>${article}</p><div class="cookie-modal">Usamos cookies para melhorar sua experiência.</div>` })).toBeNull();
+    expect(detectWall({ text: article, html: `<p>${article}</p><p>Sites exibem "assine para continuar lendo".</p>` })).toBeNull();
+  });
+});
+
+describe('ressalva R5 do QA 3 (ee01f58): marcador por token', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  const cite = '<p>Sites exibem "assine para continuar lendo" ao leitor.</p>';
+  it('G7/G9: "gateway", "firewall", "aggregate" e wrapper "wall" isolado citando a frase NÃO viram paywall', () => {
+    for (const cls of ['gateway', 'news-firewall', 'aggregate', 'wall']) {
+      expect(detectWall({ text: article + article, html: `<div class="${cls}">${article}${cite}${article}</div>` })).toBeNull();
+    }
+  });
+  it('casos que já passavam seguem: content-gate, pay-wall, paywall, tp-holder, subscriber-modal → paywall', () => {
+    for (const cls of ['content-gate', 'pay-wall', 'site-paywall', 'tp-holder', 'subscriber_modal', 'overlay']) {
+      expect(detectWall({ text: article, html: `<p>${article}</p><div class="${cls}">Conteúdo exclusivo para assinantes</div>` })).toBe('paywall');
+    }
+    expect(isWallMarker('gateway')).toBe(false);
+    expect(isWallMarker('content gate')).toBe(true);
+    expect(isWallMarker('AssinanteOnly')).toBe(true);
   });
 });

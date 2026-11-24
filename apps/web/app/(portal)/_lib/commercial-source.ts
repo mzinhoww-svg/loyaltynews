@@ -12,8 +12,12 @@ import type { AudienceSnapshot, MetricState, MetricValue } from './types';
 export type FormatStatus = 'disponivel' | 'sob_consulta' | 'indisponivel';
 export interface MediaKitFormat { id: string; section: string; name: string; price: string; scope: string; status: FormatStatus }
 export type CoverageMetric = MetricValue & { id?: string };
+/** Posição de anúncio para o mapa do mídia kit. `dimension` 'LxA' em pixels, ou null quando o inventário ainda não definiu. */
+export interface MapPosition { id: string; name: string; dimension: string | null }
 export interface MediaKitData {
   audience: AudienceSnapshot;
+  /** Posições do inventário (nome e dimensão) para o mapa visual. Vazia se a API não trouxe. */
+  positions: MapPosition[];
   /** Cobertura coletada do CMS (matérias em 30/90 dias, eventos futuros). Vazia se a API não trouxe. */
   coverage: CoverageMetric[];
   formats: MediaKitFormat[];
@@ -66,6 +70,44 @@ function parseMetrics(v: unknown): CoverageMetric[] | null {
   return out;
 }
 
+/** Dimensão válida 'LxA' (inteiros positivos até 4000); qualquer outra coisa = null (posição "em definição"). */
+export function safeDimension(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const m = /^(\d{1,4})x(\d{1,4})$/.exec(v);
+  if (!m) return null;
+  const w = Number(m[1]); const h = Number(m[2]);
+  return w > 0 && h > 0 && w <= 4000 && h <= 4000 ? v : null;
+}
+/** Posições vindas da API. Ausente = []; formato inválido = null (a leitura inteira cai, como no resto do parser). */
+function parsePositions(v: unknown): MapPosition[] | null {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || v.length > 30) return null;
+  const out: MapPosition[] = [];
+  for (const p of v) {
+    if (!isObj(p)) return null;
+    const id = str(p.id, 40); const name = str(p.name, 120);
+    if (!id || !name) return null;
+    out.push({ id, name, dimension: safeDimension(p.desktop) });
+  }
+  return out;
+}
+
+/**
+ * Posições públicas de reserva (quando a API não está disponível ou é a fonte vazia/mock). Espelham o inventário de @ln/commercial
+ * (TOP, SIDEBAR_1-3 e FOOTER têm dimensão; as demais ainda estão em definição). Um teste compara esta lista com o inventário real.
+ */
+export const PUBLIC_POSITIONS: readonly MapPosition[] = [
+  { id: 'TOP', name: 'Banner topo', dimension: '1280x150' },
+  { id: 'SIDEBAR_1', name: 'Sidebar 1', dimension: '336x280' },
+  { id: 'SIDEBAR_2', name: 'Sidebar 2', dimension: '336x280' },
+  { id: 'SIDEBAR_3', name: 'Sidebar 3', dimension: '336x280' },
+  { id: 'FOOTER', name: 'Banner rodapé', dimension: '1280x200' },
+  { id: 'ARTICLE_INLINE', name: 'Banner dentro do artigo', dimension: null },
+  { id: 'HOME_BETWEEN', name: 'Banner entre seções da home', dimension: null },
+  { id: 'AGENDA', name: 'Banner na agenda', dimension: null },
+  { id: 'DATA', name: 'Patrocínio Loyalty Market Data', dimension: null },
+];
+
 export function parseMediaKit(json: unknown): MediaKitData | null {
   if (!isObj(json) || !isObj(json.audience) || !isObj(json.blocks)) return null;
   const realtime = parseMetrics(json.audience.realtime); const historical = parseMetrics(json.audience.historical);
@@ -79,11 +121,13 @@ export function parseMediaKit(json: unknown): MediaKitData | null {
     if (!id || !section || !name || !price || !scope || !STATUSES.includes(f.status as FormatStatus)) return null;
     formats.push({ id, section, name, price, scope, status: f.status as FormatStatus });
   }
+  const positions = parsePositions(isObj(json.blocks.especificacoes) ? json.blocks.especificacoes.positions : undefined);
+  if (!positions) return null;
   const gen = str(json.generatedAt, 40);
   if (!gen) return null;
   const integrity = isObj(json.deliveryIntegrity) ? json.deliveryIntegrity : null;
   const note = integrity && typeof integrity.note === 'string' && integrity.note.length <= 500 ? integrity.note : null;
-  return { audience: { realtime, historical }, coverage, formats, integrityNote: note, generatedAt: gen };
+  return { audience: { realtime, historical }, positions, coverage, formats, integrityNote: note, generatedAt: gen };
 }
 
 /** Busca o mídia kit na API. Qualquer falha (rede, status, JSON, formato) devolve null: a página mostra estado vazio. */

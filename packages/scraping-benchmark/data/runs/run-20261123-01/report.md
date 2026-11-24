@@ -1,6 +1,6 @@
 # Resultados — run-20261123-01 — critério v2 (estrito, reaplicado aos campos gravados; estimativa)
 
-Tentativas reais (com chamada) no dataset vigente: 800 — 800 pares URL × provedor (fora do dataset v1.2, de URLs trocadas: 182; bloqueios por teto sem chamada, depois refeitos: 130; mock: 0). Gerado em 2026-11-23T16:33:07.989Z.
+Tentativas reais (com chamada) no dataset vigente: 800 — 800 pares URL × provedor (fora do dataset v1.2, de URLs trocadas: 182; bloqueios por teto sem chamada, depois refeitos: 130; mock: 0). Gerado em 2026-11-23T21:24:11.750Z.
 
 ## Métricas por provedor
 
@@ -102,14 +102,14 @@ Tentativas reais (com chamada) no dataset vigente: 800 — 800 pares URL × prov
 
 | Domínio | 1º | 2º | 3º |
 |---|---|---|---|
-| aeroin.net | apify-rag-web-browser (0.0006) | direct (0.0006) | tavily-extract (0.0006) |
+| aeroin.net | exa-contents (0.0018) | brightdata-unlocker (0.00255) | firecrawl-scrape (0.006) |
 | airlines.org | direct (0.00024) | scrapfly-basic (0.00042) | zyte-http (0.00048) |
 | bradescori.com.br | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |
 | brasscom.org.br | direct (0.00024) | scrapfly-basic (0.00042) | zyte-http (0.00048) |
 | canaltech.com.br | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |
 | edpb.europa.eu | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |
 | exame.com | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |
-| finextra.com | apify-rag-web-browser (0.0006) | direct (0.0006) | scrapfly-basic (0.0006) |
+| finextra.com | zyte-http (0.0006) | exa-contents (0.0018) | brightdata-unlocker (0.00255) |
 | finsidersbrasil.com.br | direct (0.0004) | scrapfly-basic (0.0007) | zyte-http (0.0008) |
 | gov.br | direct (0.00025) | zyte-http (0.0005) | exa-contents (0.0015) |
 | iata.org | direct (0.00025) | scrapfly-basic (0.000437) | zyte-http (0.0005) |

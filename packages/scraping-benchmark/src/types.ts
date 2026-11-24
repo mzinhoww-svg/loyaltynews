@@ -70,6 +70,10 @@ export interface AttemptRecord {
   textLength: number;
   contentHash?: string;
   snippet?: string;
+  /** Evidência de corpo (maior parágrafo): tamanho, nº de parágrafos ≥ 200 e trecho ≤ 200 do maior parágrafo. */
+  longestParagraphChars?: number;
+  longParagraphs?: number;
+  bodyExcerpt?: string;
   titleMatch?: number; // 0..1 vs referenceTitle
   sourceMatch?: boolean;
   dateMatch?: boolean | null; // null = não verificável

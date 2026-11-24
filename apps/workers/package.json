@@ -8,6 +8,8 @@
     ".": "./src/index.ts",
     "./editorial-store": "./src/editorial-store.ts",
     "./ad-redis": "./src/ad-redis.ts",
+    "./ad-gaps": "./src/ad-gaps.ts",
+    "./ad-redis-watch": "./src/ad-redis-watch.ts",
     "./outbox": "./src/pg-stores.ts",
     "./redis-tls": "./src/redis-tls.ts",
     "./seed-staging": "./src/seed-staging.ts",
@@ -41,6 +43,8 @@
     "build:factory": "esbuild src/editorial-factory.main.ts --bundle --platform=node --format=esm --outfile=dist/editorial-factory.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
     "build:seed-staging": "esbuild src/seed-staging.ts --bundle --platform=node --format=esm --outfile=dist/seed-staging.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
     "build:staging-admin": "esbuild src/staging-admin.ts --bundle --platform=node --format=esm --outfile=dist/staging-admin.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
+    "build:prod-admin": "esbuild src/prod-admin.ts --bundle --platform=node --format=esm --outfile=dist/prod-admin.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
+    "build:bench-graph": "esbuild src/bench-graph.main.ts --bundle --platform=node --format=esm --loader:.sql=text --outfile=dist/bench-graph.js --external:pg --external:drizzle-orm --external:zod --banner:js=\"import {createRequire as __cr} from 'node:module'; const require = __cr(import.meta.url);\"",
     "start": "node dist/index.js",
     "typecheck": "tsc -p ../../tsconfig.json --noEmit"
   }

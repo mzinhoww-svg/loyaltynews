@@ -7,6 +7,7 @@ import { ESTADOS, ROTULO_ALVO, ROTULO_ESTADO, ROTULO_PEDIDO, ROTULO_PRAZO, estad
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'Pedidos do titular' };
 export const dynamic = 'force-dynamic';
@@ -64,7 +65,8 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
           <p>{estado || meus ? 'Nenhum pedido com estes filtros.' : 'Nenhum pedido do titular recebido até agora.'}</p>
         </section>
       ) : (
-        <table className="st-table" aria-label="Fila de pedidos do titular">
+        <QuadroRolavel rotulo="Fila de pedidos do titular">
+        <table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {r.body.items.length} {r.body.items.length === 1 ? 'pedido' : 'pedidos'}, do prazo mais próximo ao mais distante
           </caption>
@@ -98,6 +100,7 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
             })}
           </tbody>
         </table>
+        </QuadroRolavel>
       )}
     </>
   );

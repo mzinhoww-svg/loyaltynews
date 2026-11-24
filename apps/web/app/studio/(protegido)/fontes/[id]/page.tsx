@@ -7,6 +7,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { ESCRITA_EDITORIAL } from '@/lib/studio/papeis';
 import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { capturarEvidenciaAction } from '../actions';
 
@@ -44,7 +45,8 @@ export default async function FontePage({ params, searchParams }: { params: Prom
           Nenhuma evidência capturada.
         </p>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Evidências da fonte">
+<table className="st-table">
           <thead>
             <tr>
               <th scope="col">URL</th>
@@ -64,6 +66,7 @@ export default async function FontePage({ params, searchParams }: { params: Prom
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
       {podeEscrever ? (
         fonte.ativo ? (

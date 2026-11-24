@@ -1,3 +1,4 @@
+import { DECISION_ID, type FlagEnv } from '@ln/contracts';
 import { FORMAT_SEEDS } from './formats.data';
 import type { CommercialFormat, FormatSeed, FormatStatus } from './types';
 
@@ -27,6 +28,56 @@ export function buildCatalog(capacity: CapacityDeclaration = {}): readonly Comme
     const promote = d.status === 'sob_consulta' && capacity[s.id] === true;
     return { ...s, status: promote ? 'disponivel' : d.status, statusReason: promote ? 'Capacidade operacional declarada.' : d.reason, isReferencePrice: true } as CommercialFormat;
   });
+}
+
+/**
+ * Liberação de venda por formato e por ambiente (mesmo padrão do FLAG_RELEASES, ADR-022). Um formato só vira 'disponivel' no ambiente
+ * em que tem aqui o id da decisão do proprietário; sem id (null) fica 'sob_consulta' (nunca promove 'indisponivel').
+ * DP-43 (23/11/2026): no lançamento só Topo, Laterais 1-3 (um formato, 3 posições) e Rodapé. Venda só no staging agora;
+ * produção só no go-live, com NOVA decisão (preencher `production` por commit revisado). Os outros 44 formatos ficam fora.
+ */
+export type CapacityRelease = { staging: string | null; production: string | null };
+export const CAPACITY_RELEASES: Readonly<Record<string, CapacityRelease>> = {
+  'banners--banner-topo': { staging: 'DP-43', production: null },
+  'banners--retangulo-sidebar': { staging: 'DP-43', production: null },
+  'banners--banner-rodape': { staging: 'DP-43', production: null },
+};
+
+/** Id da decisão que libera o formato neste ambiente, ou null (ambiente desconhecido, local ou CI nunca libera nada). */
+export function capacityDecision(formatId: string, env: FlagEnv | null): string | null {
+  if (env === null) return null;
+  const id = CAPACITY_RELEASES[formatId]?.[env] ?? null;
+  return typeof id === 'string' && DECISION_ID.test(id) ? id : null;
+}
+
+/** Capacidade declarada para o ambiente: só os formatos com decisão válida. */
+export function capacityFor(env: FlagEnv | null): CapacityDeclaration {
+  const out: Record<string, boolean> = {};
+  for (const id of Object.keys(CAPACITY_RELEASES)) if (capacityDecision(id, env) !== null) out[id] = true;
+  return out;
+}
+
+/** Catálogo do ambiente: o de `buildCatalog` com a capacidade liberada por decisão (o motivo cita a DP). */
+export function catalogFor(env: FlagEnv | null): readonly CommercialFormat[] {
+  return buildCatalog(capacityFor(env)).map((f) => {
+    const dp = f.status === 'disponivel' ? capacityDecision(f.id, env) : null;
+    return dp ? { ...f, statusReason: `Venda liberada pelo proprietário (${dp}) neste ambiente.` } : f;
+  });
+}
+
+const RANK: Record<FormatStatus, number> = { indisponivel: 0, sob_consulta: 1, disponivel: 2 };
+/**
+ * Disponibilidade efetiva = código (com a liberação do ambiente) + estado gravado no banco. Falha fechada:
+ * - 'indisponivel' no banco SEMPRE rebaixa (retirar um formato da venda não depende de deploy);
+ * - o banco nunca promove acima do código: 'disponivel' no banco sem liberação vale o que o código diz;
+ * - formato liberado pelo código fica 'disponivel' mesmo com o 'sob_consulta' que o seed gravou (o seed não distingue "padrão" de "escolha").
+ */
+export function resolveFormatStatus(code: { status: FormatStatus; statusReason: string }, stored: { status: FormatStatus; reason: string } | undefined): { status: FormatStatus; statusReason: string } {
+  if (!stored) return { status: code.status, statusReason: code.statusReason };
+  if (stored.status === 'indisponivel') return { status: 'indisponivel', statusReason: stored.reason };
+  if (code.status === 'disponivel') return { status: 'disponivel', statusReason: code.statusReason };
+  const lower = RANK[stored.status] <= RANK[code.status] ? stored : { status: code.status, reason: code.statusReason };
+  return { status: lower.status, statusReason: lower.reason };
 }
 
 export const CATALOG: readonly CommercialFormat[] = buildCatalog();

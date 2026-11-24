@@ -17,6 +17,7 @@ const MAPPED = 'piloto.mapped';
 const LEITURA = 'piloto.leitura';
 const IMPORTADO = 'piloto.importado';
 const FOLHA = 'piloto.folha_recebida';
+const FOLHA_REVOGADA = 'piloto.folha_revogada';
 const Materia = z.enum(PILOTO_MATERIAS);
 
 export const ACHADO_TIPOS = ['numero', 'data', 'valor', 'nome', 'condicao', 'causa', 'atribuicao', 'citacao', 'contexto'] as const;
@@ -50,6 +51,8 @@ export interface PilotoItem {
   leituras: { leitor1: boolean; leitor2: boolean };
   /** Hash e data da PRIMEIRA folha do leitor 2 registrada para a matéria (só hash e data, nunca o conteúdo); null se nenhuma. */
   folha: { sha256: string; em: string } | null;
+  /** ÚLTIMA revogação de folha que cobria a matéria (quem, quando, por quê; só hash e motivo, nunca o conteúdo); null se nunca houve. Com `folha: null` a tela mostra isto no lugar de "sem folha". */
+  folhaRevogada: { sha256: string; por: string; em: string; motivo: string } | null;
 }
 
 const isOwner = (a: Actor) => a.roles.some((r) => r === 'admin' || r === 'editor_chefe');
@@ -60,12 +63,18 @@ async function readState(ctx: HandlerCtx) {
   const mapa = new Map<string, string>();
   const leituras: PilotoLeitura[] = [];
   const folhas: FolhaRegistro[] = [];
+  const revogacoes: Array<{ sha256: string; materias: string[]; por: string; em: string; motivo: string }> = [];
   for (const e of log) {
+    if (e.action === FOLHA_REVOGADA) {
+      for (let i = folhas.length - 1; i >= 0; i--) if (folhas[i]!.sha256 === e.target) folhas.splice(i, 1);
+      if (e.detail) { try { const d = JSON.parse(e.detail) as { materias?: string[]; por?: string; em?: string; motivo?: string }; revogacoes.push({ sha256: e.target, materias: d.materias ?? [], por: d.por ?? e.userId ?? '', em: d.em ?? e.at, motivo: d.motivo ?? '' }); } catch { /* linha inválida */ } }
+      continue;
+    }
     if (e.action === FOLHA && e.detail) { try { folhas.push({ sha256: e.target, ...(JSON.parse(e.detail) as Omit<FolhaRegistro, 'sha256'>) }); } catch { /* linha inválida */ } }
     if (e.action === MAPPED && e.detail && !mapa.has(e.target)) { try { mapa.set(e.target, (JSON.parse(e.detail) as { articleId: string }).articleId); } catch { /* linha inválida */ } }
     if (e.action === LEITURA && e.detail) { try { leituras.push(JSON.parse(e.detail) as PilotoLeitura); } catch { /* linha inválida */ } }
   }
-  return { mapa, leituras, folhas };
+  return { mapa, leituras, folhas, revogacoes };
 }
 
 /** Primeira folha registrada que cobre a matéria (a que vale: prova que o arquivo não mudou depois que o leitor 1 o viu). */
@@ -81,7 +90,7 @@ async function fonteOf(ctx: HandlerCtx, articleId: string) {
 /** GET /piloto: as 10 matérias, o artigo de cada uma (null até ser gerada) e o estado da leitura. Adjudicadores veem o fechamento. */
 export async function listPiloto(ctx: HandlerCtx, _input: unknown): Promise<ApiResponse<{ items: PilotoItem[]; fechamento?: Fechamento }>> {
   const a = authorize(ctx, 'piloto.read'); if (isErr(a)) return fail(a);
-  const { mapa, leituras, folhas } = await readState(ctx);
+  const { mapa, leituras, folhas, revogacoes } = await readState(ctx);
   const items: PilotoItem[] = [];
   for (const m of PILOTO_MATERIAS) {
     const articleId = mapa.get(m) ?? null;
@@ -89,7 +98,7 @@ export async function listPiloto(ctx: HandlerCtx, _input: unknown): Promise<ApiR
     const l2 = leituras.some((l) => l.materia === m && l.leitor === 2);
     const need2 = PILOTO_LEITOR2.has(m);
     const estado: PilotoItem['estado'] = !articleId ? 'nao_gerada' : l1 && (!need2 || l2) ? 'lida' : l1 ? 'leitor1_registrou' : l2 ? 'leitor2_registrou' : 'aguardando_leitura';
-    items.push({ materia: m, articleId, fonte: articleId ? await fonteOf(ctx, articleId) : null, leitor2: need2, estado, leituras: { leitor1: l1, leitor2: l2 }, folha: (() => { const x = primeiraFolha(folhas, m); return x ? { sha256: x.sha256, em: x.em } : null; })() });
+    items.push({ materia: m, articleId, fonte: articleId ? await fonteOf(ctx, articleId) : null, leitor2: need2, estado, leituras: { leitor1: l1, leitor2: l2 }, folha: (() => { const x = primeiraFolha(folhas, m); return x ? { sha256: x.sha256, em: x.em } : null; })(), folhaRevogada: (() => { const x = [...revogacoes].reverse().find((r) => r.materias.includes(m)); return x ? { sha256: x.sha256, por: x.por, em: x.em, motivo: x.motivo } : null; })() });
   }
   return ok({ items, ...(isOwner(a) ? { fechamento: fechamento(leituras) } : {}) });
 }
@@ -262,4 +271,31 @@ export async function registerFolha(ctx: HandlerCtx, input: unknown): Promise<Ap
   const em = ctx.now().toISOString();
   await audit(ctx, a.userId, FOLHA, d.arquivo.sha256, JSON.stringify({ nome: d.arquivo.nome, linhas: d.arquivo.linhas, leitor2Nome: d.leitor2Nome, materias: d.materias, por: a.userId, em }));
   return ok({ registradoEm: em, sha256: d.arquivo.sha256 }, 201);
+}
+
+const RevogarIn = z.object({
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  motivo: z.string().trim().min(20).max(500),
+}).strict();
+
+/**
+ * POST /piloto/importacao/revogar (admin/editor_chefe): saída para erro humano no registro da folha do leitor 2 (QA 1, R1 de e6f1855).
+ * O hash é gravado no 1º envio mesmo com a importação bloqueada, e congelava as matérias naquele arquivo (FOLHA_DIFERENTE) sem volta.
+ * Revogar tira a folha do estado ATIVO para que o arquivo correto possa ser registrado; o registro original e a revogação (quem, quando,
+ * motivo de 20+ caracteres) ficam na trilha de auditoria, que é só de acréscimo. Recusa: 404 se a folha não está ativa; 409 FOLHA_COM_LEITURAS
+ * se alguma leitura do leitor 2 já foi importada dessa folha (a leitura é imutável e a folha é a prova dela; nesse caso não há o que corrigir aqui).
+ * A resposta traz só o hash e as matérias liberadas, nunca conteúdo.
+ */
+export async function revogarFolha(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<{ sha256: string; materiasLiberadas: string[]; revogadaEm: string }>> {
+  const a = authorize(ctx, 'piloto.import'); if (isErr(a)) return fail(a);
+  const p = parse(RevogarIn, input); if (bad(p)) return fail(p);
+  const d = p.data;
+  const { folhas, leituras } = await readState(ctx);
+  const f = folhas.find((x) => x.sha256 === d.sha256);
+  if (!f) return fail(apiError('NOT_FOUND', 'folha não registrada (ou já revogada) com esse sha256'));
+  const comLeituras = leituras.filter((l) => l.origem === 'importacao' && l.arquivo?.sha256 === d.sha256).map((l) => l.materia);
+  if (comLeituras.length) return fail(apiError('CONFLICT', `FOLHA_COM_LEITURAS: já há leitura do leitor 2 importada dessa folha (${[...new Set(comLeituras)].join(', ')}); a leitura é imutável`, [...new Set(comLeituras)].map((m) => ({ path: m, message: 'FOLHA_COM_LEITURAS' }))));
+  const em = ctx.now().toISOString();
+  await audit(ctx, a.userId, FOLHA_REVOGADA, d.sha256, JSON.stringify({ motivo: d.motivo, materias: f.materias, nome: f.nome, registradoEm: f.em, por: a.userId, em }));
+  return ok({ sha256: d.sha256, materiasLiberadas: f.materias, revogadaEm: em }, 200);
 }

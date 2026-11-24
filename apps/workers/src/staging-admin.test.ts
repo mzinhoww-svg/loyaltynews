@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
@@ -9,6 +9,18 @@ import { authorize, createAuth, createAuthHandler, createStaffUser, type Db } fr
 import { schema } from '@ln/db';
 import { createTestDb } from '@ln/db/testing';
 import { assertStagingBound, run, type BindingsFile } from './staging-admin';
+
+/** TOTP gerado e verificado com o relógio (só Date) parado entre os dois passos: nunca na virada da janela de 30 s sob carga. Sem retry.
+ *  Não toca no relógio injetado dos handlers (janela de bloqueio de tentativas). Se o teste já usa relógio falso, não mexe. */
+const relogioParado = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const congelar = !vi.isFakeTimers();
+  if (congelar) vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
+  try {
+    return await fn();
+  } finally {
+    if (congelar) vi.useRealTimers();
+  }
+};
 
 // Bootstrap do primeiro administrador de STAGING (decisão de segurança 14): ambiente + vínculo do banco, confirmação explícita, entrega só
 // por terminal (--tty) ou arquivo exclusivo fora do repositório (--secret-file), idempotência, segundo admin recusado, nada de segredo em stdout/auditoria.
@@ -158,7 +170,7 @@ describe('L7 entrega: --tty', () => {
       const pendente = cookieOf(login);
       const req = (cookie: string) => new Request(`${ORIGIN}/api/usuarios`, { headers: { cookie } });
       await expect(authorize(deps.auth, req(pendente).headers, 'usuarios', 'read')).rejects.toBeDefined(); // senha só: sessão pendente
-      const full = await post(deps, '/two-factor/verify-totp', { code: await totp(secret) }, pendente);
+      const full = await relogioParado(async () => post(deps, '/two-factor/verify-totp', { code: await totp(secret) }, pendente));
       expect(full.ok).toBe(true);
       const session = await authorize(deps.auth, req(cookieOf(full)).headers, 'usuarios', 'read');
       expect(session).toMatchObject({ role: 'admin' });
@@ -206,7 +218,7 @@ describe('L7 entrega: --secret-file', () => {
       // o que está no arquivo faz o login completo
       const login = await post(deps, '/sign-in/email', { email: arq.email, password: arq.password });
       expect(login.ok).toBe(true);
-      expect((await post(deps, '/two-factor/verify-totp', { code: await totp(arq.totpSecret) }, cookieOf(login))).ok).toBe(true);
+      expect((await relogioParado(async () => post(deps, '/two-factor/verify-totp', { code: await totp(arq.totpSecret) }, cookieOf(login)))).ok).toBe(true);
       expect(await db.select().from(schema.user)).toHaveLength(1);
     } finally {
       await t.close();

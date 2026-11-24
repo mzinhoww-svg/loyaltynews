@@ -8,6 +8,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { fixarMapaAction } from './actions';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'Leitura do piloto' };
 export const dynamic = 'force-dynamic';
@@ -62,7 +63,8 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
           ) : null}
         </section>
       ) : null}
-      <table className="st-table" aria-label="Matérias do piloto" style={{ marginTop: 14 }}>
+      <QuadroRolavel rotulo="Matérias do piloto">
+      <table className="st-table" style={{ marginTop: 14 }}>
         <thead>
           <tr>
             <th scope="col">Matéria</th>
@@ -82,8 +84,18 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
           ))}
         </tbody>
       </table>
+      </QuadroRolavel>
       <p style={{ marginTop: 10 }}>
         <Link href="/studio/piloto/importar">Importar a leitura do QA 3 (folha do leitor 2)</Link>
+        {' · '}
+        <Link href="/studio/piloto/violacoes">Violações do piloto (só admin resolve)</Link>
+      </p>
+      <p>
+        {/* download (anexo CSV): link comum, não navegação do Next */}
+        <a className="st-btn sec" href="/studio/piloto/planilha" download data-exportar>
+          Exportar planilha
+        </a>{' '}
+        <span className="st-hint">CSV com uma linha por tarefa e tentativa, nas colunas do AgentOps; o leitor 2 só sai nas matérias que você já leu.</span>
       </p>
       {semMapa.length ? (
         <form action={fixarMapaAction} className="st-card" style={{ marginTop: 14 }} aria-label="Fixar mapa do piloto">

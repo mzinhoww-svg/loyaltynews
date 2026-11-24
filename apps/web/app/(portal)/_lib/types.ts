@@ -199,13 +199,18 @@ export interface PersonRole {
   validTo: string | null;
   validatedAt: string;
   source: EvidenceSource;
+  /** Período em texto livre vindo de uma correção do titular (DP-38); quando existe, substitui o período calculado. */
+  periodText?: string;
+  /** O cargo tem correção aplicada a pedido do titular. */
+  correctedByHolder?: boolean;
   mock?: boolean;
 }
 export interface PersonListItem {
   id: string;
   name: string;
-  /** Só cargos vigentes. */
+  /** Cargos vigentes segundo o Backend (inclui cargo com fim no futuro). */
   roles: PersonRole[];
+  correctedByHolder?: boolean;
   mock?: boolean;
 }
 /** Uma leitura de fonte pública num Move (antes ou depois). */
@@ -239,6 +244,7 @@ export interface PersonProfile {
   currentRoles: PersonRole[];
   history: PersonRole[];
   moves: MoveEntry[];
+  correctedByHolder?: boolean;
   mock?: boolean;
 }
 /** `available: false` = dados de pessoas desligados (flag `intelligencePessoas`, J-01): não é falha nem "sem registro". */

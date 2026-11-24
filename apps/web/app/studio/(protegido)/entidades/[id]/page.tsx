@@ -8,6 +8,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { nivelDoCargo, textoDaEvidencia, type CargoLinha } from '@/lib/studio/intelligence-view';
 import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { MovesPendentes } from '../../../_components/MovesPendentes';
 import { CargosAConfirmar } from '../../../_components/CargosEntidades';
@@ -65,7 +66,8 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
           Sem registro de pessoas (ausência de registro não prova inexistência).
         </p>
       ) : (
-        <table className="st-table" aria-label="Pessoas e cargos">
+        <QuadroRolavel rotulo="Pessoas e cargos">
+<table className="st-table" aria-label="Pessoas e cargos">
           <thead>
             <tr>
               <th scope="col">Pessoa</th>
@@ -104,6 +106,7 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
             })}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <CargosAConfirmar organizationId={id} podeAgir={podeAgir} retorno={`/studio/entidades/${id}`} />
@@ -114,7 +117,8 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
           Sem relações registradas.
         </p>
       ) : (
-        <table className="st-table" aria-label="Relações">
+        <QuadroRolavel rotulo="Relações">
+<table className="st-table" aria-label="Relações">
           <thead>
             <tr>
               <th scope="col">Relação</th>
@@ -152,6 +156,7 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
             })}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <MovesPendentes organizationId={id} podeRevisar={podeRevisar} retorno={`/studio/entidades/${id}`} />

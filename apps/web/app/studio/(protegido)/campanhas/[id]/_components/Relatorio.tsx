@@ -1,4 +1,5 @@
 import type { CampaignReport } from '@ln/commercial';
+import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 
 /**
  * Relatório do anunciante (apresentação pura). Regras do PM: só número CONTADO, com origem, janela e data; nunca estimado; sem cobrança.
@@ -24,7 +25,8 @@ export function Relatorio({ r }: { r: CampaignReport }) {
     <section aria-labelledby="rel" data-testid="relatorio">
       <h2 id="rel">Relatório do anunciante</h2>
 
-      <table className="st-table" aria-label="Campanha">
+      <QuadroRolavel rotulo="Campanha">
+<table className="st-table" aria-label="Campanha">
         <tbody>
           <tr><th scope="row">Anunciante</th><td data-testid="rel-anunciante">{r.advertiser.name ?? '—'}</td></tr>
           <tr><th scope="row">Período da campanha</th><td>{dia(r.campaign.startDate)} a {dia(r.campaign.endDate)}</td></tr>
@@ -43,6 +45,7 @@ export function Relatorio({ r }: { r: CampaignReport }) {
           </tr>
         </tbody>
       </table>
+</QuadroRolavel>
 
       <p className="st-hint" data-testid="rel-janela">
         Janela: {dia(r.window.from)} a {dia(r.window.to)}
@@ -51,7 +54,8 @@ export function Relatorio({ r }: { r: CampaignReport }) {
 
       {r.emptyState && <p data-testid="rel-vazio">{r.emptyState}</p>}
 
-      <table className="st-table" aria-label="Totais da janela">
+      <QuadroRolavel rotulo="Totais da janela">
+<table className="st-table" aria-label="Totais da janela">
         <tbody>
           <tr><th scope="row">Impressões servidas</th><td data-testid="rel-servidas">{n(t?.served)}</td></tr>
           <tr><th scope="row">Impressões visíveis</th><td data-testid="rel-visiveis">{n(t?.visible)}</td></tr>
@@ -63,6 +67,7 @@ export function Relatorio({ r }: { r: CampaignReport }) {
           <tr><th scope="row">Estimado</th><td data-testid="rel-estimado">não: só o que foi contado</td></tr>
         </tbody>
       </table>
+</QuadroRolavel>
       {r.excluded && (
         <p className="st-hint" data-testid="rel-excluidos">
           Recebidas e fora da contagem: {n(r.excluded.botOrInternal)} de bots ou tráfego interno · {n(r.excluded.refreshSuppressed)} de auto-refresh.
@@ -70,15 +75,18 @@ export function Relatorio({ r }: { r: CampaignReport }) {
       )}
 
       {r.notes.length > 0 && (
-        <ul className="st-issues" data-testid="rel-avisos" role="note">
-          {r.notes.map((x, i) => <li key={i}>{x}</li>)}
-        </ul>
+        <div role="note" data-testid="rel-avisos">
+          <ul className="st-issues">
+            {r.notes.map((x, i) => <li key={i}>{x}</li>)}
+          </ul>
+        </div>
       )}
 
       {r.daily.length > 0 && (
         <>
           <h3>Por dia</h3>
-          <table className="st-table" data-testid="rel-por-dia">
+          <QuadroRolavel rotulo="Relatório por dia">
+<table className="st-table" data-testid="rel-por-dia">
             <thead><tr><th scope="col">Dia</th><th scope="col">Servidas</th><th scope="col">Visíveis</th><th scope="col">Cliques</th><th scope="col">Visibilidade</th><th scope="col">CTR</th></tr></thead>
             <tbody>
               {r.daily.map((d) => (
@@ -86,8 +94,10 @@ export function Relatorio({ r }: { r: CampaignReport }) {
               ))}
             </tbody>
           </table>
+</QuadroRolavel>
           <h3>Por posição</h3>
-          <table className="st-table" data-testid="rel-por-posicao">
+          <QuadroRolavel rotulo="Relatório por posição">
+<table className="st-table" data-testid="rel-por-posicao">
             <thead><tr><th scope="col">Posição</th><th scope="col">Servidas</th><th scope="col">Visíveis</th><th scope="col">Cliques</th><th scope="col">Visibilidade</th><th scope="col">CTR</th></tr></thead>
             <tbody>
               {r.byPosition.map((x) => (
@@ -95,8 +105,10 @@ export function Relatorio({ r }: { r: CampaignReport }) {
               ))}
             </tbody>
           </table>
+</QuadroRolavel>
           <h3>Por criativo</h3>
-          <table className="st-table" data-testid="rel-por-criativo">
+          <QuadroRolavel rotulo="Relatório por criativo">
+<table className="st-table" data-testid="rel-por-criativo">
             <thead><tr><th scope="col">Criativo</th><th scope="col">Posição</th><th scope="col">Servidas</th><th scope="col">Visíveis</th><th scope="col">Cliques</th><th scope="col">Visibilidade</th><th scope="col">CTR</th></tr></thead>
             <tbody>
               {r.byCreative.map((x) => (
@@ -104,6 +116,7 @@ export function Relatorio({ r }: { r: CampaignReport }) {
               ))}
             </tbody>
           </table>
+</QuadroRolavel>
         </>
       )}
 

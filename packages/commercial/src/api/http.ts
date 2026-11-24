@@ -28,16 +28,20 @@ const CRM_STATUS: Record<CrmError['code'], number> = {
   INVALID_ACCOUNT: 422, DUPLICATE_ACCOUNT: 409, INVALID_CONTACT: 422, DUPLICATE_CONTACT: 409,
 };
 
+export const APPROVAL_MESSAGE = 'Aprovar imagem e campanha é só do proprietário (DP-43).';
+
 /** Valida a entrada com zod e executa; erros de domínio viram o envelope ApiError. Nenhuma exceção escapa. */
 export function define<S extends z.ZodType, O>(
-  opts: { schema: S; auth: 'public' | 'studio' },
+  opts: { schema: S; auth: 'public' | 'studio' | 'approver' },
   run: (ctx: CommercialCtx, input: z.output<S>) => HttpResult<O>,
 ): Handler<unknown, O> {
   return (ctx, raw) => {
-    if (opts.auth === 'studio') {
+    if (opts.auth === 'studio' || opts.auth === 'approver') {
       if (!ctx.actor) return fail(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
       if (!ctx.actor.canManageCommercial) return fail(403, 'FORBIDDEN', 'Sem permissão para o módulo comercial.');
     }
+    // DP-43: aprovação de imagem e de campanha só do proprietário (admin). Quem só gerencia o comercial não aprova.
+    if (opts.auth === 'approver' && ctx.actor?.canApprove !== true) return fail(403, 'APPROVAL_FORBIDDEN', APPROVAL_MESSAGE);
     const parsed = opts.schema.safeParse(raw);
     if (!parsed.success) return fail(400, 'VALIDATION_ERROR', 'Entrada inválida.', parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })));
     try {

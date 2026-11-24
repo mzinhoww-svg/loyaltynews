@@ -115,6 +115,21 @@ export interface PilotControl {
   rows: PilotRowStore;
   state: PilotStateStore;
   gate: PilotGate;
+  /**
+   * Linhas de VIOLAÇÃO já tratadas por um admin (`task_id#attempt`; decisão PM-2026-11-23-D). Só o portão de despacho e a retomada as ignoram, para o piloto poder seguir depois de
+   * uma parada real: a linha continua gravada e CONTA no critério de 0 violações da avaliação final (a planilha a mostra como "tratada"). Ausente = nenhuma linha resolvida.
+   */
+  resolved?: () => Promise<ReadonlySet<string>>;
+}
+
+/** Chave de uma linha em `PilotControl.resolved`. */
+export const pilotRowKey = (r: { task_id: string; attempt: number }): string => `${r.task_id}#${r.attempt}`;
+
+/** Linhas que o portão de despacho avalia: todas, menos as violações já tratadas por um admin. */
+export async function gateRows(p: PilotControl): Promise<PilotRow[]> {
+  const all = await p.rows.all();
+  const resolved = p.resolved ? await p.resolved() : null;
+  return resolved && resolved.size > 0 ? all.filter((r) => !resolved.has(pilotRowKey(r))) : all;
 }
 
 /** Etapas de independência: a linha só fica completa quando a Editorial grava `gate_verdict` (por `patch`), depois do callback. */

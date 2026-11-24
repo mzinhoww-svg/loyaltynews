@@ -7,6 +7,7 @@ import { findModule } from '@/lib/studio/modules';
 import { getCalendarioBr, getOrganizacao, getStoreAgentes } from '@/lib/studio/agentes';
 import { requireModule } from '../../_lib/guard';
 import { SemRotaBackend } from '../../_components/SemBanco';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'Calendário de reuniões' };
 export const dynamic = 'force-dynamic';
@@ -33,7 +34,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
       <h1>Calendário de reuniões</h1>
       <SemRotaBackend o_que="Rituais vêm da configuração; reuniões agendadas aqui são registros do Studio." />
       <p>
-        Rituais no fuso America/Sao_Paulo, com feriados nacionais. Execução dos rituais: <strong>{flagAtiva('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais, ativa só após o gate R4).
+        Rituais no fuso America/Sao_Paulo, com feriados nacionais. Execução dos rituais: <strong>{flagAtiva('rituais') ? 'ligada' : 'desligada'}</strong> (liga só depois do gate R4).
       </p>
       <nav aria-label="Navegar entre dias" className="st-actions" style={{ marginBottom: 12 }}>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, -1)}`}>
@@ -57,6 +58,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
           <p>Fim de semana, feriado ou nenhum ritual agendado para {dia}.</p>
         </section>
       ) : (
+        <QuadroRolavel rotulo="Rituais do dia">
         <table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {ocorrencias.length} ritual(is) em {dia}
@@ -87,9 +89,11 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
             ))}
           </tbody>
         </table>
+        </QuadroRolavel>
       )}
 
       <h2 style={{ marginTop: 24 }}>Todos os rituais ({org.registries.meetings.length})</h2>
+      <QuadroRolavel rotulo="Todos os rituais">
       <table className="st-table">
         <thead>
           <tr>
@@ -112,6 +116,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
           ))}
         </tbody>
       </table>
+      </QuadroRolavel>
     </>
   );
 }

@@ -48,7 +48,7 @@
 /* ---------- KpiCard ---------- */
 .ln-kpi { display: grid; gap: var(--ln-space-2); align-content: start; padding: var(--ln-space-4); background: var(--ln-color-white); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-lg); box-shadow: var(--ln-shadow-sm); }
 .ln-kpi__label { font-family: var(--ln-font-ui) !important; font-size: var(--ln-text-sm) !important; font-weight: var(--ln-weight-medium) !important; color: var(--ln-role-fg-muted) !important; }
-.ln-kpi__value { margin: 0; font-family: var(--ln-font-editorial); font-size: var(--ln-text-3xl); line-height: var(--ln-leading-3xl); font-weight: var(--ln-weight-bold); color: var(--ln-color-primary); }
+.ln-kpi__value { margin: 0; font-family: var(--ln-font-ui); font-size: var(--ln-text-3xl); line-height: var(--ln-leading-3xl); font-weight: var(--ln-weight-bold); color: var(--ln-color-primary); }
 .ln-kpi__value--empty { color: var(--ln-role-fg-muted); }
 .ln-kpi__unit { font-size: var(--ln-text-md); font-weight: var(--ln-weight-regular); color: var(--ln-role-fg-muted); }
 .ln-kpi__note, .ln-kpi__delta { margin: 0; font-size: var(--ln-text-sm); color: var(--ln-role-fg-muted); }

@@ -12,6 +12,10 @@ export interface ReadyReport {
   redis: 'ok' | 'falha' | 'nao_configurado' | 'n/a';
   /** TLS dos certificados lidos do ambiente (sem abrir conexão): só um estado por grupo, sem nome de variável, código do OpenSSL nem formato (o detalhe vai ao log do processo). */
   tls: { db: TlsState; redis: TlsState };
+  /** Só quando o banco respondeu e as migrações aplicadas batem com o journal embarcado no build. */
+  migracoes?: 'ok';
+  /** Motivo da indisponibilidade por migração (sem nome de tabela nem SQL). */
+  motivo?: 'migracoes_pendentes' | 'migracoes_divergentes' | 'migracoes_falha';
 }
 
 export type TlsState = 'ok' | 'invalido' | 'nao_configurado' | 'n/a';
@@ -19,12 +23,27 @@ export type TlsState = 'ok' | 'invalido' | 'nao_configurado' | 'n/a';
 export interface ReadyProbes {
   db?: () => Promise<void>;
   redis?: () => Promise<void>;
+  /** Estado das migrações (só roda se o banco respondeu). */
+  migrations?: () => Promise<MigrationState>;
+}
+
+export type MigrationState = 'ok' | 'pendentes' | 'divergentes' | 'falha';
+
+/** Prazo de cada sonda (dentro do prazo do healthcheck do monitor). */
+export const PROBE_TIMEOUT_MS = 2000;
+
+function withTimeout<T>(p: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const t = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new Error('timeout')), PROBE_TIMEOUT_MS);
+  });
+  return Promise.race([p, t]).finally(() => clearTimeout(timer));
 }
 
 async function probe(fn: (() => Promise<void>) | undefined): Promise<'ok' | 'falha' | 'nao_configurado'> {
   if (!fn) return 'nao_configurado';
   try {
-    await Promise.race([fn(), new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 2000))]);
+    await withTimeout(fn());
     return 'ok';
   } catch {
     return 'falha';
@@ -73,8 +92,78 @@ export async function readiness(env: Record<string, string | undefined>, probes:
   const [db, redis] = await Promise.all([probe(probes.db), probe(probes.redis)]);
   // TLS inválido derruba a prontidão (503), com ou sem sonda: o processo não está apto a falar com o banco/Redis
   const tlsRuim = tls.db === 'invalido' || tls.redis === 'invalido';
-  return { status: db === 'ok' && redis === 'ok' && !tlsRuim ? 'ok' : 'indisponivel', mode: 'completo', db, redis, tls };
+  // Migrações: só com o banco ok (sem banco, a prontidão já cai e a consulta não teria como rodar).
+  let mig: MigrationState | undefined;
+  if (db === 'ok' && probes.migrations) {
+    try {
+      mig = await withTimeout(probes.migrations()); // expirou: falha (503 migracoes_falha)
+    } catch {
+      mig = 'falha';
+    }
+  }
+  const migRuim = mig !== undefined && mig !== 'ok';
+  const status = db === 'ok' && redis === 'ok' && !tlsRuim && !migRuim ? 'ok' : 'indisponivel';
+  const base: ReadyReport = { status, mode: 'completo', db, redis, tls };
+  if (mig === 'ok') return { ...base, migracoes: 'ok' };
+  if (mig === 'pendentes') return { ...base, motivo: 'migracoes_pendentes' };
+  if (mig === 'divergentes') return { ...base, motivo: 'migracoes_divergentes' };
+  if (mig === 'falha') return { ...base, motivo: 'migracoes_falha' };
+  return base;
 }
+
+/** Número de migrações do journal embarcado no build (packages/db/drizzle/meta/_journal.json). */
+export function journalCount(journal: { entries?: unknown[] }): number {
+  return Array.isArray(journal.entries) ? journal.entries.length : 0;
+}
+
+const MIG_TTL_MS = 30_000;
+let migCache: { at: number; expected: number; value: MigrationState } | null = null;
+
+export function resetMigrationCacheForTest(): void {
+  migCache = null;
+}
+
+/** Prazo da consulta no próprio banco (statement_timeout), abaixo do prazo da sonda. */
+const DB_STATEMENT_TIMEOUT_MS = PROBE_TIMEOUT_MS - 500;
+let migSeq = 0;
+
+type Rows = { rows?: Array<{ n: number }> } | Array<{ n: number }>;
+async function countApplied(db: Db): Promise<number> {
+  const q = sql`select count(*)::int as n from drizzle.__drizzle_migrations`;
+  const tx = (db as unknown as { transaction?: (fn: (t: Db) => Promise<Rows>) => Promise<Rows> }).transaction;
+  // Com transação: o banco também corta a consulta (SET LOCAL vale só nela); sem transação (porta de teste), só o prazo da sonda.
+  const r = typeof tx === 'function'
+    ? await tx.call(db, async (t: Db) => {
+        await t.execute(sql.raw(`set local statement_timeout = ${DB_STATEMENT_TIMEOUT_MS}`));
+        return (await t.execute(q)) as unknown as Rows;
+      })
+    : ((await db.execute(q)) as unknown as Rows);
+  const rows = Array.isArray(r) ? r : (r.rows ?? []);
+  return Number(rows[0]?.n ?? 0);
+}
+
+/**
+ * Compara as linhas de drizzle.__drizzle_migrations com o journal do build. UMA consulta, com cache de 30 s.
+ * Aplicadas < journal: `pendentes`; aplicadas > journal (banco à frente do build): `divergentes`; tabela ausente: `pendentes` (nada aplicado).
+ * Resultado tardio (passou do prazo da sonda) ou superado por uma consulta mais nova NUNCA grava o cache (ajuste do QA 6 em 76350ba).
+ */
+export const migrationProbe = (db: Db, expected: number, now: () => number = Date.now) => async (): Promise<MigrationState> => {
+  const t = now();
+  if (migCache && migCache.expected === expected && t - migCache.at < MIG_TTL_MS) return migCache.value;
+  const seq = ++migSeq;
+  let applied: number;
+  try {
+    applied = await countApplied(db);
+  } catch (e) {
+    const code = (e as { code?: string; cause?: { code?: string } } | null)?.cause?.code ?? (e as { code?: string } | null)?.code;
+    if (code !== '42P01' && code !== '3F000') throw e; // undefined_table / invalid_schema_name ⇒ nada aplicado
+    applied = 0;
+  }
+  const value: MigrationState = applied === expected ? 'ok' : applied < expected ? 'pendentes' : 'divergentes';
+  const noPrazo = now() - t < PROBE_TIMEOUT_MS;
+  if (noPrazo && seq === migSeq) migCache = { at: t, expected, value };
+  return value;
+};
 
 export const dbProbe = (db: Db) => async () => {
   await db.execute(sql`select 1`);

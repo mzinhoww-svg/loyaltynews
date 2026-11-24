@@ -136,6 +136,14 @@ describe('currentHolder (titular do cargo único na página)', () => {
     expect(currentHolder('Sra. Ana Paula Teixeira | Diretora', 'Diretora', ' | ')).toBe('Ana Paula Teixeira');
     expect(currentHolder('Prof. Dr. Gustavo Sousa Diretor Presidente', 'Diretor Presidente')).toBe('Gustavo Sousa');
     expect(currentHolder('Dr. Diretor-Presidente', 'Diretor-Presidente')).toBeNull();
+    // forma SEM ponto ("Dr", "Sra", "Prof") também é tratamento
+    expect(currentHolder('Dr Gustavo Sousa Diretor Presidente', 'Diretor Presidente')).toBe('Gustavo Sousa');
+    expect(currentHolder('Sra Ana Paula Teixeira | Diretora', 'Diretora', ' | ')).toBe('Ana Paula Teixeira');
+    expect(currentHolder('Prof Dr Marcelo de Araújo Noronha Diretor-Presidente', 'Diretor-Presidente')).toBe('Marcelo de Araújo Noronha');
+    // ordinal feminino/masculino (QA 3): "Drª", "Srª", "Profª", "Dº"
+    expect(currentHolder('Drª Gustavo Sousa Diretor Presidente', 'Diretor Presidente')).toBe('Gustavo Sousa');
+    expect(currentHolder('Srª. Ana Paula Teixeira | Diretora', 'Diretora', ' | ')).toBe('Ana Paula Teixeira');
+    expect(currentHolder('Profª Drª Marcelo de Araújo Noronha Diretor-Presidente', 'Diretor-Presidente')).toBe('Marcelo de Araújo Noronha');
   });
   it('devolve null quando o que vem antes não parece nome (menu, minúsculas, uma palavra) ou o separador é outro', () => {
     expect(currentHolder('Conselho de Administração Presidente', 'Presidente')).toBeNull();

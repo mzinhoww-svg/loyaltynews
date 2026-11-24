@@ -3,12 +3,15 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { isUpcoming } from '../_lib/events';
 import { formatDateTime } from '../_lib/format';
+import { PositionMap } from '../_components/PositionMap';
+import { ScrollRegion } from '../_components/ScrollRegion';
 import { MockTag } from '../_components/ui';
-import { apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
+import { PUBLIC_POSITIONS, apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
 import { getSource } from '../_lib/source';
 import type { MetricValue } from '../_lib/types';
 
-export const revalidate = 300;
+// Dinâmica: a fonte api lê o mídia kit em runtime (fetch com revalidate de 5 min no cache de dados). Com revalidate na página o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
+export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Mídia kit — Anuncie',
   description: 'Mídia kit do Loyalty News: cobertura, audiência medida com origem e período, formatos publicitários e como pedir uma proposta.',
@@ -63,8 +66,8 @@ export default async function MidiaKitPage() {
 
   return (
     <>
-      <section className="pt-hero-band" aria-labelledby="mk-h">
-        <p className="pt-kicker" style={{ color: 'var(--pt-signal)' }}>Mídia kit · Proposta comercial</p>
+      <section className="pt-hero-band pt-hero-band--mk" aria-labelledby="mk-h">
+        <p className="pt-kicker pt-kicker--signal">Mídia kit · Proposta comercial</p>
         <h1 id="mk-h">Quem decide o futuro da fidelidade precisa estar bem informado.</h1>
         <p>Conecte sua marca ao público que acompanha programas de fidelidade, bancos, varejo, companhias aéreas e tecnologia.</p>
         <p>
@@ -101,7 +104,7 @@ export default async function MidiaKitPage() {
             </div>
           ))}
         </div>
-        <div className="pt-scroll">
+        <ScrollRegion label="Editorias do portal e escopo">
           <table className="pt-table">
             <thead><tr><th>Editoria</th><th>Escopo</th></tr></thead>
             <tbody>
@@ -110,15 +113,21 @@ export default async function MidiaKitPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       </section>
 
       <section id="audiencia" className="pt-section" aria-labelledby="mk-aud">
         <h2 id="mk-aud">02 · Audiência</h2>
-        <h3>Tempo real</h3>
-        <div className="pt-metrics">{audience.realtime.map((m) => <Metric key={m.label} m={m} />)}</div>
-        <h3>Histórico</h3>
-        <div className="pt-metrics">{audience.historical.map((m) => <Metric key={m.label} m={m} />)}</div>
+        <div className="pt-audience" data-testid="audience-groups">
+          <div>
+            <h3>Tempo real</h3>
+            <div className="pt-metrics">{audience.realtime.map((m) => <Metric key={m.label} m={m} />)}</div>
+          </div>
+          <div>
+            <h3>Histórico</h3>
+            <div className="pt-metrics">{audience.historical.map((m) => <Metric key={m.label} m={m} />)}</div>
+          </div>
+        </div>
         <p className="pt-meta" data-testid="audience-stamp">
           {last ? `Última coleta: ${formatDateTime(last)}.` : 'Atualizado: — · Aguardando integração de medição (GA4). Nenhuma métrica é exibida antes disso.'}
         </p>
@@ -136,14 +145,15 @@ export default async function MidiaKitPage() {
 
       <section id="formatos" className="pt-section" aria-labelledby="mk-for">
         <h2 id="mk-for">04 · Formatos e posições</h2>
-        <div className="pt-scroll">
+        <PositionMap positions={kit?.positions.length ? kit.positions : PUBLIC_POSITIONS} />
+        <ScrollRegion label="Formatos e posições: dimensão e onde aparece">
           <table className="pt-table">
             <thead><tr><th>Formato</th><th>Dimensão</th><th>Onde aparece</th></tr></thead>
             <tbody>
               {FORMATS.map((f) => <tr key={f.name}><td>{f.name}</td><td>{f.size}</td><td>{f.where}</td></tr>)}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
         <p className="pt-meta">Conteúdo publicitário é sempre rotulado. Posições de ranking editorial não são vendidas.</p>
       </section>
 
@@ -157,7 +167,7 @@ export default async function MidiaKitPage() {
           <div data-testid="mk-precos">
             <p className="pt-meta">Valores de referência por formato, ajustáveis; confirmados na proposta. Um formato só é vendido quando está disponível.</p>
             {bySection(kit.formats).map(([section, rows]) => (
-              <div className="pt-scroll" key={section}>
+              <ScrollRegion key={section} label={`Preços de referência: ${section}`}>
                 <table className="pt-table">
                   <caption>{section}</caption>
                   <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
@@ -167,7 +177,7 @@ export default async function MidiaKitPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             ))}
             {kit.integrityNote && <p className="pt-meta" role="note" data-testid="mk-integridade">{kit.integrityNote}</p>}
           </div>

@@ -42,15 +42,68 @@ const CAMPOS: Record<string, string> = {
   motivo: 'Motivo',
   casoCorrecaoId: 'Caso de correção',
   versaoEsperada: 'Versão',
+  // comercial (chaves da API em inglês)
+  name: 'Nome',
+  accountId: 'Anunciante',
+  formatId: 'Formato',
+  positionId: 'Posição',
+  positionIds: 'Posições da campanha',
+  startDate: 'Início',
+  endDate: 'Fim',
+  altText: 'Texto alternativo',
+  destinationUrl: 'Destino',
+  advertiserName: 'Anunciante exibido',
+  email: 'E-mail',
+  whatsapp: 'WhatsApp',
+  role: 'Cargo',
+  basis: 'Base legal',
+  campaignId: 'Campanha',
+  creativeId: 'Criativo',
+  reservationId: 'Reserva',
+  reservationIds: 'Reservas',
+  from: 'De',
+  to: 'Até',
+  // Creative studio
+  articleId: 'Matéria',
+  kind: 'Template',
+  format: 'Formato',
+  autoralFormato: 'Formato autoral',
+  para: 'Novo estado',
+  // Studio 2: watchlists, pedidos do titular, leitura e violações do piloto (P1-02 nas telas da frente)
+  watchlistId: 'Watchlist',
+  entityType: 'Tipo de entidade',
+  entityId: 'Entidade',
+  responsavel: 'Responsável',
+  acao: 'Ação',
+  campos: 'Campos corrigidos',
+  acaoTomada: 'Ação tomada',
+  leitor: 'Leitor',
+  trecho: 'Trecho',
+  tipo: 'Tipo do fato',
+  gravidade: 'Gravidade',
+  evidenciaId: 'Evidência',
+  nota: 'Nota',
+  checklist: 'Conferência',
+  'checklist.fatosNasEvidencias': 'Conferência: fatos nas evidências',
+  'checklist.tom': 'Conferência: tom',
+  'checklist.nadaInventado': 'Conferência: nada inventado',
+  veredito: 'Veredito',
+  leitor2Nome: 'Quem leu',
+  'arquivo.nome': 'Arquivo: nome',
+  'arquivo.sha256': 'Arquivo: hash',
+  'arquivo.linhas': 'Arquivo: linhas',
+  materia: 'Matéria',
+  materias: 'Matérias',
 };
 
 const rotuloDoCampo = (caminho: string): string => {
   if (CAMPOS[caminho]) return CAMPOS[caminho]!;
   // blocos[2].limite → "Bloco 3: Limite de itens"; itens[0].rotulo → "Item 1: Rótulo"; regras[1].termo → "Regra 2: Termo"
-  const m = /^(blocos|itens|regras|ancoras|claims)\[(\d+)\]\.?(.*)$/.exec(caminho);
+  const m = /^(blocos|itens|regras|ancoras|claims|achados|leituras)\[(\d+)\]\.?(.*)$/.exec(caminho);
   if (m) {
-    const nome = { blocos: 'Bloco', itens: 'Item', regras: 'Regra', ancoras: 'Âncora', claims: 'Afirmação' }[m[1] as 'blocos'];
-    const resto = m[3] ? CAMPOS[m[3]] ?? m[3] : '';
+    const nome = { blocos: 'Bloco', itens: 'Item', regras: 'Regra', ancoras: 'Âncora', claims: 'Afirmação', achados: 'Achado', leituras: 'Leitura' }[m[1] as 'blocos'];
+    // recursivo: leituras[0].achados[1].trecho → "Leitura 1: Achado 2: Trecho"
+    const resto = m[3] ? rotuloDoCampo(m[3]) : '';
     return `${nome} ${Number(m[2]) + 1}${resto ? `: ${resto}` : ''}`;
   }
   const ultimo = caminho.split('.').pop() ?? caminho;

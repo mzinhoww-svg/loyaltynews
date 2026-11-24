@@ -12,6 +12,7 @@ import { SemBanco } from '../../_components/SemBanco';
 import { gerarPacotesAction } from './actions';
 import { metricasVista, rotuloEstado } from '@/lib/studio/social-metricas';
 import { flagAtiva } from '@/lib/studio/flags'; // ADR-022: flag pelo resolvedor de runtime, só no servidor (página force-dynamic)
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'Social dashboard' };
 export const dynamic = 'force-dynamic';
@@ -48,13 +49,13 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
     <>
       <h1>Social dashboard</h1>
       <p>
-        Pacotes sociais por canal, com bloqueios e recibos, vindos das rotas reais do Backend (<code>/api/studio/social</code>). A publicação é <strong>somente simulada</strong>: nada vai ao mLabs (identidade de publicação separada, ADR-008). Instagram e The Loyal estão construídos e desligados por flag.
+        Pacotes sociais por canal, com bloqueios e recibos, vindos das rotas reais do Backend (<code>/api/studio/social</code>). A publicação é <strong>somente simulada</strong>: nada vai ao mLabs (identidade de publicação separada, ADR-008). Instagram e The Loyal estão construídos e desligados nesta fase.
       </p>
       <Flash tipo={q.tipo} aviso={q.aviso} />
       <DashboardSummaryCards summary={resumo.body as DashboardSummary} />
       <MetricasMlabs metricas={(resumo.body as DashboardSummary).metrics} />
       <p className="st-hint">
-        Flags: linkedinPublicacao {flagAtiva('linkedinPublicacao') ? 'ligada' : 'desligada'} · instagram {flagAtiva('instagram') ? 'ligada' : 'desligada'} · theLoyal {flagAtiva('theLoyal') ? 'ligada' : 'desligada'}.
+        Canais: LinkedIn {flagAtiva('linkedinPublicacao') ? 'ligado' : 'desligado nesta fase'} · Instagram {flagAtiva('instagram') ? 'ligado' : 'desligado nesta fase'} · The Loyal {flagAtiva('theLoyal') ? 'ligado' : 'desligado nesta fase'}.
       </p>
 
       <h2>Fila de pacotes</h2>
@@ -88,7 +89,15 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           Filtro inválido.
         </div>
       ) : (
-        <PackageQueue result={fila.body as QueueResult} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
+        // a tabela da fila vem do @ln/growth/ui: o quadro do Studio dá a ela região com nome e foco no celular (ressalva do QA 7 no bfad5fc).
+        // Fila vazia não tem tabela para rolar: sem quadro, para não haver região focável vazia (P3 do QA 7 no 458e5aa).
+        (fila.body as QueueResult).items.length > 0 ? (
+          <QuadroRolavel rotulo="Fila de pacotes sociais">
+            <PackageQueue result={fila.body as QueueResult} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
+          </QuadroRolavel>
+        ) : (
+          <PackageQueue result={fila.body as QueueResult} hrefFor={(it) => `/studio/social/${encodeURIComponent(it.id)}`} />
+        )
       )}
 
       {podeGerar ? (
@@ -112,7 +121,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
               <label htmlFor="canal">Canal</label>
               <select id="canal" name="canal" defaultValue="linkedin">
                 <option value="linkedin">LinkedIn</option>
-                <option value="instagram">Instagram (flag desligada)</option>
+                <option value="instagram">Instagram (desligado nesta fase)</option>
               </select>
             </div>
             <button className="st-btn" type="submit">
@@ -180,6 +189,7 @@ function MetricasMlabs({ metricas }: { metricas: DashboardSummary['metrics'] }) 
               Nenhum post publicado no período, segundo o mLabs.
             </p>
           ) : (
+            <QuadroRolavel rotulo="Posts publicados no mLabs">
             <table className="st-table">
               <caption>Posts publicados (mLabs){v.cortada ? ' — lista cortada; o total está acima' : ''}</caption>
               <thead>
@@ -203,6 +213,7 @@ function MetricasMlabs({ metricas }: { metricas: DashboardSummary['metrics'] }) 
                 ))}
               </tbody>
             </table>
+            </QuadroRolavel>
           )}
         </>
       )}

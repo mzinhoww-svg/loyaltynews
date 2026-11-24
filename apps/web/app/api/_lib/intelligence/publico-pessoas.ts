@@ -13,7 +13,9 @@ import { carregarEfeitos, type EfeitosPublicos } from './titular-publico';
 
 const S = 'intelligence';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CACHE = { 'cache-control': 'public, max-age=60, stale-while-revalidate=300' } as const;
+// Rotas que trazem pessoa: nunca em cache compartilhado (PM-2026-11-23-O, achado (c) do QA 1): uma remoção pedida pelo titular (DP-38) vale na próxima requisição,
+// sem a borda servir a versão antiga por max-age + stale-while-revalidate. Vale também para a resposta de flag desligada.
+const CACHE = { 'cache-control': 'private, no-store' } as const;
 const iso = (d: unknown) => new Date(d as string | number | Date).toISOString();
 const like = (q: string) => `%${q.replace(/[%_\\]/g, (c) => `\\${c}`).toLowerCase()}%`;
 // minúsculas, como no restante do Intelligence e no contrato do Portal; o envelope de erro do app exige maiúsculas, então responde-se direto

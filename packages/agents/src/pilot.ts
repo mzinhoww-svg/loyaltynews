@@ -249,6 +249,12 @@ export function authorOfDeclaredModel(model: string | null): 'anthropic' | 'open
 export const BLOCKING_GATE_REASONS = [
   'same_author', 'unsupported_claim', 'copy_literal', 'rights_unknown', 'terms_unresolved', 'cross_provider_check_failed',
   'approval_missing', 'rights_basis_unresolved', 'unanchored', 'unanchored_claim', 'needs_primary_anchor',
+  // códigos de barreira da Editorial (ft/editorial 9b3ec79): tom lint bloqueante (guia de tom v0.2) e pauta autoral inválida (DP-29)
+  'tone_lint', 'autoral_invalid',
+  // PM-2026-11-23-K: contraditórios com `approved` (aprovação vencida e saída do modelo fora do esquema). Os demais códigos de barreira da
+  // Editorial (duplicate, suspicious_evidence, not_relevant, budget_blocked, max_attempts, no_image, not_published) são bloqueios operacionais
+  // e NÃO entram aqui, por decisão do PM.
+  'stale_approval', 'invalid_model_output',
 ] as const;
 
 /** Autor do modelo que cada conta serve no piloto (QA 3, F1): conta e modelo declarado que divergem são um registro contraditório. */
@@ -567,3 +573,15 @@ export function applyRowPatch(row: PilotRow, patch: Record<string, unknown>): { 
   errors.push(...validatePilotRow(next).filter((e) => !validatePilotRow(row).includes(e)));
   return errors.length ? { row, errors } : { row: next, errors: [] };
 }
+
+/**
+ * Todos os campos do `PilotRow`, exaustivo: o compilador recusa este objeto se um campo for acrescentado ou removido do `PilotRow` sem
+ * atualizá-lo. O teste `pilot-columns.test.ts` exige que as colunas da planilha sejam exatamente estes campos (a planilha é o `PilotRow`).
+ */
+export const PILOT_ROW_FIELDS: Record<keyof PilotRow, true> = {
+  task_id: true, kind: true, article_id: true, source_id: true, stage: true, account: true, declared_model: true, prompt_version: true,
+  started_at: true, ended_at: true, attempt: true, reviewed_draft_task_id: true, outcome: true, limit_message: true, limit_at: true,
+  account_resumed_at: true, gate_verdict: true, gate_reasons: true, cross_provider_ok: true, packet_chars: true, output_valid: true,
+  tokens_measured: true, unsupported_facts: true, unsupported_high: true, unsupported_medium: true, unsupported_low: true,
+  published_attempt: true, tarifada_api_call: true, secret_in_log: true, tool_outside_contract: true, notes: true,
+};

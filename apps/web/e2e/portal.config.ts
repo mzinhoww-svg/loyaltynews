@@ -6,6 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
  *   PORTAL_MODE=mock   → fixtures MOCK: valida listas, matéria, busca, agenda e a faixa "MOCK".
  *   PORTAL_MODE=api    → PORTAL_SOURCE=api contra um servidor MOCK das rotas públicas (e2e/fake-api.mjs).
  * Screenshots: apps/web/e2e/screenshots/<modo>/<projeto>-<página>.png
+ *
+ * Servidor sob teste = BUILD DE PRODUÇÃO (PM-2026-11-23-L): next build de e2e (perfil producao em .next-e2e; perfil vitrine em
+ * .next-e2e-vitrine para o modo mock), feito uma vez e reaproveitado entre as rodadas e refeito só quando o código muda, + next start
+ * com as variáveis do modo em runtime (e2e/portal-server.mjs). O next dev fica só para desenvolvimento local.
  */
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 // APP_ENV do servidor sob teste: production (padrão) ou staging. Portas distintas evitam reaproveitar servidor com outro ambiente.
@@ -77,11 +81,13 @@ export default defineConfig({
             ]
           : []),
         {
-          command: `npx next dev -p ${port}`,
+          // Perfil do build como no deploy: mock = vitrine do staging (PORTAL_VITRINE=1, APP_ENV=staging); os demais = produção.
+          command: `node e2e/portal-server.mjs ${port} ${mode === 'mock' ? 'vitrine' : 'producao'}`,
           cwd: '..',
           url: `http://localhost:${port}`,
           reuseExistingServer: !base,
-          timeout: 120_000,
+          // Inclui o next build quando o código mudou (minutos nesta máquina); com o build reaproveitado, sobe em segundos.
+          timeout: 1_200_000,
           env: {
             PORTAL_SOURCE: mode,
             ...(mode === 'api' ? { PORTAL_API_BASE_URL: `http://localhost:${fakeApiPort}`, PORT: String(port) } : {}),

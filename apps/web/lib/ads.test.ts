@@ -24,7 +24,23 @@ describe('plano das posições', () => {
       null,
     ]));
     expect([...p.keys()]).toEqual(['TOP', 'FOOTER']);
-    expect(p.get('TOP')).toEqual({ positionId: 'TOP', width: 1280, height: 150 });
+    expect(p.get('TOP')).toEqual({ positionId: 'TOP', width: 1280, height: 150, desktop: true, mobile: null });
+  });
+  it('mobile aditivo do plano: formatos válidos entram; só-mobile vira desktop:false; [] = nenhum; sem o campo = null (API antiga)', () => {
+    const p = parseAdPlan(plan([
+      { positionId: 'TOP', available: true, width: 1280, height: 150, mobile: [{ width: 320, height: 100 }, { width: 300, height: 250 }, { width: 0, height: 5 }, 'x', null] },
+      { positionId: 'SIDEBAR_1', available: false, width: null, height: null, mobile: [{ width: 300, height: 250 }] },
+      { positionId: 'SIDEBAR_2', available: true, width: 336, height: 280, mobile: [] },
+      { positionId: 'FOOTER', available: true, width: 1280, height: 200 },
+      { positionId: 'SIDEBAR_3', available: false, width: null, height: null, mobile: [] },
+      { positionId: 'HOME_BETWEEN', available: true, width: 1280, height: 150, mobile: 'x' },
+    ]));
+    expect(p.get('TOP')).toEqual({ positionId: 'TOP', width: 1280, height: 150, desktop: true, mobile: [{ width: 320, height: 100 }, { width: 300, height: 250 }] });
+    expect(p.get('SIDEBAR_1')).toEqual({ positionId: 'SIDEBAR_1', width: 300, height: 250, desktop: false, mobile: [{ width: 300, height: 250 }] });
+    expect(p.get('SIDEBAR_2')?.mobile).toEqual([]);
+    expect(p.get('FOOTER')?.mobile).toBeNull();
+    expect(p.has('SIDEBAR_3')).toBe(false); // nem desktop nem mobile
+    expect(p.get('HOME_BETWEEN')?.mobile).toBeNull();
   });
   it('formato inesperado = nenhuma posição (nunca lança)', () => {
     for (const j of [null, 'x', {}, { slots: 'x' }, [], { slots: [{}] }]) expect(parseAdPlan(j).size).toBe(0);

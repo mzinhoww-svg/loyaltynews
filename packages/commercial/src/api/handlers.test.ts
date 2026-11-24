@@ -6,7 +6,8 @@ import * as h from './index';
 import { realContent } from '../real-creative.mock';
 
 const NOW = '2026-11-22T12:00:00-03:00';
-const studio = { id: 'u1', canManageCommercial: true };
+// o proprietário (admin): é quem aprova imagem e campanha (DP-43)
+const studio = { id: 'u1', canManageCommercial: true, canApprove: true };
 function ctx(over: Partial<{ flags: CommercialCtx['flags']; actor: CommercialCtx['actor']; today: string }> = {}, state = createCommercialState()) {
   return makeCtx(state, { now: NOW, today: over.today ?? '2026-12-05', flags: over.flags, actor: 'actor' in over ? over.actor : studio });
 }

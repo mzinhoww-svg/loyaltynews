@@ -33,13 +33,16 @@ export const dispatchCommercial = createDispatcher({
   async call(route, input, c) {
     const now = c.deps.now();
     const actor = c.session
-      ? { id: c.session.userId, canManageCommercial: can(c.session.role, 'campanhas', 'update') && can(c.session.role, 'inventario', 'update') }
+      ? { id: c.session.userId, canManageCommercial: can(c.session.role, 'campanhas', 'update') && can(c.session.role, 'inventario', 'update'), canApprove: c.session.role === 'admin' /* DP-43: aprova imagem e campanha só o proprietário */ }
       : undefined;
     const extra = { now: now.toISOString(), today: saoPauloDate(now), flags: c.deps.flags, actor };
     // anúncios públicos: Redis, sem hidratar o banco inteiro e sem lock
     if (isAdRoute(route.path)) return adCall(route as Route, input, c, extra);
     if (route.method === 'GET') {
-      const h = await hydrate(c.deps.db, now);
+      const q = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; accountId?: unknown; from?: unknown; to?: unknown };
+      const txt = (v: unknown) => (typeof v === 'string' ? v : undefined);
+      const scope = { campaignId: txt(q.campaignId), accountId: txt(q.accountId), from: txt(q.from), to: txt(q.to) };
+      const h = await hydrate(c.deps.db, now, undefined, scope);
       // relatório do anunciante: só nestas rotas (e só da campanha e da janela pedidas) as linhas diárias de entrega entram no contexto
       const delivery = isReportRoute(route.path) ? await loadDelivery(c.deps.db, input) : undefined;
       return route.handler(makeCtx(h.state, { ...extra, delivery }), input);

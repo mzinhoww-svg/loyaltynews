@@ -12,6 +12,7 @@ import type { Route } from '@ln/commercial/api';
 import { RedisImpressionStore } from '@ln/workers/ad-redis';
 import type { RouteCtx } from '../http';
 import { getAdRedis } from '../redis';
+import { activeGaps, flushGapCounts, gapCountsOf, loadGapsInto } from './gaps';
 import { loadCreatives } from './repo';
 
 type Extra = { now: string; today: string; flags: CommercialCtx['flags']; actor?: CommercialCtx['actor'] };
@@ -41,6 +42,16 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
   // flag desligada: o handler responde house/counted:false sem tocar em banco nem Redis
   if (!flagOn) return route.handler(makeCtx(freshState(ledger), extra), input);
 
+  // lacunas ativas (perda de dedupe): o domínio suspende a contagem enquanto durarem; o que ele deixar de contar é gravado na lacuna
+  const nowMs = Date.parse(extra.now);
+  const rodar = async (state: ReturnType<typeof freshState>) => {
+    loadGapsInto(state.ads.audit, await activeGaps(c.deps.db, nowMs));
+    const antes = gapCountsOf(state.ads.audit);
+    const res = route.handler(makeCtx(state, extra), input);
+    await flushGapCounts(c.deps.db, state.ads.audit, antes);
+    return res;
+  };
+
   const redis = c.deps.redis === undefined ? await getAdRedis() : c.deps.redis;
   const store = redis ? new RedisImpressionStore(redis) : null;
   const body = (input ?? {}) as Record<string, unknown>;
@@ -51,7 +62,7 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
     const pv = str(body.pageViewId);
     const pos = str(body.positionId);
     if (!store || !pv || !pos) {
-      const res = route.handler(makeCtx(state, extra), input);
+      const res = await rodar(state);
       if (res.status >= 400) return res;
       return { status: res.status, body: store ? res.body : degraded(res.body as ServeResult, state.ads) };
     }
@@ -59,11 +70,11 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
       const existing = await store.loadView(pv, pos);
       if (existing) ledger.preload([existing]);
     } catch {
-      const res = route.handler(makeCtx(state, extra), input);
+      const res = await rodar(state);
       return res.status >= 400 ? res : { status: res.status, body: degraded(res.body as ServeResult, state.ads) };
     }
     const before = state.ads.countersSnapshot();
-    const res = route.handler(makeCtx(state, extra), input);
+    const res = await rodar(state);
     if (res.status >= 400) return res;
     const result = res.body as ServeResult;
     try {
@@ -74,6 +85,12 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
           const w = committed.existing;
           const creativeId = w?.creativeId ?? result.creativeId;
           const impressionId = w?.impressionId ?? null;
+          // a vencedora pode ser de OUTRA variante (pedido com outro device na mesma visualização): nunca a devolve a este dispositivo
+          const device = body.device === 'mobile' ? 'mobile' : 'desktop';
+          const compativel = creativeId ? state.ads.eligible(pos, extra.today, device).some((x) => x.id === creativeId) : false;
+          if (!compativel) {
+            return { status: 200, body: { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: device === 'mobile' ? 'sem criativo mobile elegível; house ad' : 'sem criativo elegível; house ad' } };
+          }
           // a resposta da vencedora também leva o anúncio (sem ele a posição ficaria oculta para quem perdeu a corrida)
           const ad = creativeId ? state.ads.publicAdFor(creativeId, impressionId) : null;
           return { status: 200, body: { kind: 'creative', creativeId, impressionId, counted: false, reason: 'refresh', ...(ad ? { ad } : {}) } };
@@ -96,7 +113,7 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
     if (!entry) return { status: 200, body: { counted: false } };
     ledger.preload([entry]);
     const state = freshState(ledger);
-    const res = route.handler(makeCtx(state, extra), input);
+    const res = await rodar(state);
     if (res.status >= 400 || !(res.body as { counted?: boolean }).counted) return res;
     const event = body.event === 'click' ? 'clicked' : 'visible';
     if (!(await store.claim(id, event))) return { status: 200, body: { counted: false } }; // outra instância contou antes

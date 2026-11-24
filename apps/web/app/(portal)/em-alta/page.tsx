@@ -39,7 +39,7 @@ export default async function EmAltaPage({ searchParams }: { searchParams: Promi
           </li>
         ))}
       </ul>
-      <WithSidebar>
+      <WithSidebar trending={false}>
         <div>
           {items.length ? (
             <RankedList items={items} headingLevel={2} />

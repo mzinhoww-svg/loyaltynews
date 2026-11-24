@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { MockTag } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
+import { linkPedido } from '../../_titular/pedido';
+import s from './intel.module.css';
 import type { EvidenceSource, MoveEntry, MoveReading, PersonRole } from '../../_lib/types';
 
 /** Fonte pública: nome com link (nova aba) e data de coleta. Nunca o trecho da página. */
@@ -20,8 +22,17 @@ export function SourceLink({ source, verb = 'coletada em' }: { source: EvidenceS
 
 const day = (d: string) => formatDate(`${d}T12:00:00Z`);
 
-/** Tabela de cargos (atuais ou histórico) com empresa, período, fonte e validação. */
-export function RolesTable({ roles, caption, testId, showPerson }: { roles: (PersonRole & { personName?: string; personId?: string })[]; caption: string; testId: string; showPerson?: boolean }) {
+/** Aviso discreto: dado corrigido a pedido do titular (DP-38). */
+export function CorrectedTag() {
+  return <span className="pt-meta" data-testid="corrected-tag"> · corrigido a pedido do titular</span>;
+}
+
+/**
+ * Tabela de cargos (atuais ou histórico) com empresa, período, fonte e validação.
+ * `correctionFor` (id da pessoa) acrescenta o link de pedido por cargo: a URL `/intelligence/pessoas/<id>?cargo=<cargo>` é a que o
+ * Backend 2 usa para identificar o cargo como alvo do pedido.
+ */
+export function RolesTable({ roles, caption, testId, showPerson, correctionFor }: { roles: (PersonRole & { personName?: string; personId?: string })[]; caption: string; testId: string; showPerson?: boolean; correctionFor?: string }) {
   return (
     <div className="pt-scroll">
       <table className="pt-table" data-testid={testId}>
@@ -34,6 +45,7 @@ export function RolesTable({ roles, caption, testId, showPerson }: { roles: (Per
             <th scope="col">Período</th>
             <th scope="col">Fonte</th>
             <th scope="col">Validado em</th>
+            {correctionFor && <th scope="col"><span className="pt-sr">Pedir correção</span></th>}
           </tr>
         </thead>
         <tbody>
@@ -42,16 +54,23 @@ export function RolesTable({ roles, caption, testId, showPerson }: { roles: (Per
               {showPerson && (
                 <td>{r.mock && <MockTag />}<Link href={`/intelligence/pessoas/${r.personId}`} style={{ textDecoration: 'underline' }}>{r.personName}</Link></td>
               )}
-              <td>{!showPerson && r.mock && <MockTag />}{r.title}</td>
+              <td>{!showPerson && r.mock && <MockTag />}{r.title}{r.correctedByHolder && <CorrectedTag />}</td>
               {!showPerson && (
                 <td><Link href={`/intelligence/empresas/${r.company.id}`} style={{ textDecoration: 'underline' }}>{r.company.name}</Link></td>
               )}
-              <td>{r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`}</td>
+              <td>{r.periodText ?? (r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`)}</td>
               <td>
                 <a href={r.source.url} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>{r.source.name}</a>
                 <span className="pt-sr"> (abre em nova aba)</span>
               </td>
               <td><time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time></td>
+              {correctionFor && (
+                <td>
+                  <Link href={linkPedido(`/intelligence/pessoas/${correctionFor}?cargo=${r.id}`)} style={{ textDecoration: 'underline' }} data-testid="role-correction">
+                    Pedir correção<span className="pt-sr"> do cargo {r.title}</span>
+                  </Link>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -91,7 +110,7 @@ export function MoveCard({ m, headingLevel = 2, link = true }: { m: MoveEntry; h
       <p className="pt-meta">
         Observado em <time dateTime={m.observedOn}>{day(m.observedOn)}</time>
         {m.effectiveDate ? <> · vigente desde <time dateTime={m.effectiveDate}>{day(m.effectiveDate)}</time></> : ' · data efetiva não declarada pela fonte'}
-        {' · '}<Link href={`/intelligence/pessoas/${m.person.id}`} style={{ textDecoration: 'underline' }}>perfil</Link>
+        {' · '}<Link href={`/intelligence/pessoas/${m.person.id}`} className={s.touch} style={{ textDecoration: 'underline' }}>perfil</Link>
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 8 }}>
         <Reading label="Antes" r={m.before} testId="move-before" />

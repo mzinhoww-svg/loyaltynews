@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
+import { aguardarHidratacao, focarELer } from './hidratacao';
 
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock';
 const SHOTS = path.resolve(import.meta.dirname, '..', 'screenshots', mode);
@@ -146,6 +147,7 @@ test.describe('mídia kit: alvos de toque (UI/UX: mínimo de 44 px no mobile)', 
   test('os 10 links de editoria, os botões e os atalhos do mídia kit têm pelo menos 44 × 44 px', async ({ page }, info) => {
     test.skip(info.project.name !== 'mobile');
     await page.goto('/midia-kit');
+    await expect(page.locator('#cobertura .pt-table a').first()).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; conta só depois de o conteúdo chegar
     const alvos = page.locator('#cobertura .pt-table a, main .ln-btn, nav[aria-label="Seções do mídia kit"] a');
     expect(await alvos.count()).toBeGreaterThanOrEqual(13); // 10 editorias + 2 botões + 4 atalhos (a contagem exata muda com o conteúdo)
     const ruins: string[] = [];
@@ -178,6 +180,168 @@ test.describe('honestidade de dados', () => {
     }
     // Editorias é taxonomia do portal, nunca marcada como demonstração
     await expect(page.getByTestId('coverage-editorias')).toHaveAttribute('data-mock', 'false');
+  });
+
+  test('V-13: mídia kit tem o mapa visual das posições, em texto acessível e sem sair da tela no celular', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const mapa = page.getByTestId('mk-mapa');
+    await expect(mapa).toBeVisible();
+    await expect(mapa.locator('svg')).toHaveAttribute('role', 'img');
+    await expect(mapa.locator('[data-position="TOP"]')).toHaveCount(1);
+    await expect(page.getByTestId('mk-mapa-lista')).toContainText('Banner topo');
+    const box = await mapa.boundingBox();
+    const vw = page.viewportSize()!.width;
+    expect(box!.x + box!.width).toBeLessThanOrEqual(vw + 1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect(await mapa.innerText()).not.toMatch(/R$/);
+  });
+
+  test('P2-1: toda tabela com rolagem do mídia kit é região focável, com nome único, e o foco por teclado fica visível', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const regioes = page.locator('.pt-scroll');
+    const n = await regioes.count();
+    expect(n).toBeGreaterThanOrEqual(2);
+    const nomes: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const r = regioes.nth(i);
+      await expect(r).toHaveAttribute('tabindex', '0');
+      await expect(r).toHaveAttribute('role', 'region');
+      const nome = (await r.getAttribute('aria-label')) ?? '';
+      expect(nome.trim().length).toBeGreaterThan(10);
+      nomes.push(nome);
+    }
+    expect(new Set(nomes).size).toBe(nomes.length); // nomes distintos (leitor de tela diferencia as tabelas)
+    // foco: depois da hidratação a região recebe foco e o anel de foco aparece (foco e leitura no mesmo instante, sem repetir)
+    const primeira = regioes.first();
+    await aguardarHidratacao(page);
+    await expect(primeira).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; a região chega oculta no streaming e só depois troca de lugar
+    const foco = await focarELer(primeira);
+    expect(foco.focado).toBe(true);
+    expect(foco.estiloAnel).not.toBe('none');
+    expect(foco.larguraAnel).toBeGreaterThanOrEqual(2);
+  });
+
+  test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const largo = page.viewportSize()!.width >= 1024; // pela largura da tela, não pelo nome do projeto (a rodada geral só tem 'chromium')
+    await expect(page.locator('[data-testid="mk-mapa"] svg')).toBeVisible(); // int/016: /midia-kit dinâmico (af5ac6c); boundingBox não espera
+    const svg = (await page.locator('[data-testid="mk-mapa"] svg').boundingBox())!;
+    const lista = (await page.getByTestId('mk-mapa-lista').boundingBox())!;
+    const figura = (await page.getByTestId('mk-mapa').boundingBox())!;
+    const vb = (await page.locator('[data-testid="mk-mapa"] svg').getAttribute('viewBox'))!.split(' ').map(Number);
+    expect(svg.height / svg.width).toBeCloseTo(vb[3]! / vb[2]!, 1); // proporção preservada
+    if (largo) {
+      expect(svg.width).toBeLessThanOrEqual(520.5);
+      expect(lista.x).toBeGreaterThanOrEqual(svg.x + svg.width); // lista à direita do mapa
+      expect(lista.y).toBeLessThan(svg.y + svg.height); // e começa na altura do mapa
+      expect(figura.height).toBeLessThan(700); // antes: 1.014 px
+    } else {
+      const vw = page.viewportSize()!.width;
+      expect(svg.width).toBeGreaterThan(vw * 0.8);
+      expect(lista.y).toBeGreaterThanOrEqual(svg.y + svg.height); // empilhado
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
+  test('P2-a: rótulos do mapa legíveis (≥ 11 px reais) e dentro das caixas, no desktop e no celular', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const r = await page.evaluate(() => {
+      const svg = document.querySelector('[data-testid="mk-mapa"] svg') as SVGSVGElement;
+      const k = svg.getScreenCTM()!.a;
+      const px = (sel: string) => [...svg.querySelectorAll(sel)].map((t) => parseFloat(getComputedStyle(t).fontSize) * k);
+      const fora: string[] = [];
+      for (const g of svg.querySelectorAll('g[data-position]')) {
+        const rect = g.querySelector('rect')!.getBBox();
+        for (const t of g.querySelectorAll('text')) {
+          const b = (t as SVGTextElement).getBBox();
+          if (b.x < rect.x || b.x + b.width > rect.x + rect.width || b.y < rect.y || b.y + b.height > rect.y + rect.height) fora.push(`${g.getAttribute('data-position')}: ${t.textContent}`);
+        }
+      }
+      const ed = svg.querySelector('[data-testid="mk-mapa-editorial"]')!;
+      const er = ed.querySelector('rect')!.getBBox();
+      for (const t of ed.querySelectorAll('text')) { const b = (t as SVGTextElement).getBBox(); if (b.x + b.width > er.x + er.width || b.y + b.height > er.y + er.height) fora.push(`editorial: ${t.textContent}`); }
+      return { nomes: px('.pt-map-text'), dims: px('.pt-map-small'), legenda: px('.pt-map-cap'), fora };
+    });
+    for (const v of [...r.nomes, ...r.dims, ...r.legenda]) expect(v).toBeGreaterThanOrEqual(11);
+    expect(r.nomes.length).toBeGreaterThan(5);
+    expect(r.fora).toEqual([]);
+  });
+
+  test('P3-a: kicker do bloco de abertura usa o verde de destaque (#A7DDC9), não branco, e sem estilo inline', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const kicker = page.locator('.pt-hero-band .pt-kicker');
+    await expect(kicker).toHaveText(/Mídia kit · Proposta comercial/i);
+    await expect(kicker).toHaveCSS('color', 'rgb(167, 221, 201)');
+    expect(await kicker.getAttribute('style')).toBeNull();
+  });
+
+  test('P3-b: título de abertura do mídia kit em escala de exibição (≥ 28 px no celular, 44 px no desktop) e sem estourar a tela', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const largo = page.viewportSize()!.width >= 1024; // pela largura da tela, não pelo nome do projeto (a rodada geral só tem 'chromium')
+    const h1 = page.locator('.pt-hero-band--mk h1');
+    await expect(h1).toHaveCSS('line-height', /px$/); // int/016: /midia-kit dinâmico (af5ac6c); espera o CSS da página antes de medir
+    const size = parseFloat(await h1.evaluate((el) => getComputedStyle(el).fontSize));
+    if (largo) expect(size).toBeCloseTo(44, 0); else expect(size).toBeGreaterThanOrEqual(28);
+    const lh = parseFloat(await h1.evaluate((el) => getComputedStyle(el).lineHeight)) / size;
+    expect(lh).toBeCloseTo(1.15, 2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    // outros h1 do portal não mudam de escala
+    await page.goto('/contato');
+    const outro = parseFloat(await page.locator('main h1').first().evaluate((el) => getComputedStyle(el).fontSize));
+    expect(outro).toBeLessThanOrEqual(36);
+  });
+
+  test('P3-d: Audiência em duas colunas no desktop (tempo real ao lado do histórico) e empilhada no celular, sem perder métrica', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const largo = page.viewportSize()!.width >= 768; // as duas colunas começam em 768 px
+    const grupos = page.getByTestId('audience-groups');
+    await expect(grupos).toBeVisible(); // int/016: /midia-kit dinâmico (af5ac6c); boundingBox não espera
+    const [a, b] = await grupos.locator(':scope > div').all();
+    const ba = (await a!.boundingBox())!; const bb = (await b!.boundingBox())!;
+    await expect(a!.locator('h3')).toHaveText('Tempo real');
+    await expect(b!.locator('h3')).toHaveText('Histórico');
+    expect(await grupos.locator('.pt-metric').count()).toBeGreaterThanOrEqual(2);
+    if (largo) {
+      expect(Math.abs(ba.y - bb.y)).toBeLessThan(2); // mesma linha
+      expect(bb.x).toBeGreaterThan(ba.x + ba.width - 1);
+    } else {
+      expect(bb.y).toBeGreaterThanOrEqual(ba.y + ba.height); // empilhado
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
+  test('P2-a: rótulos do mapa com ≥ 11 px reais em 320, 360, 390 e 412 px, dentro das caixas e sem sobrepor nome e dimensão', async ({ page }) => {
+    for (const largura of [320, 360, 390, 412]) {
+      await page.setViewportSize({ width: largura, height: 800 });
+      await page.goto('/midia-kit');
+      const r = await page.evaluate(() => {
+        const svg = document.querySelector('[data-testid="mk-mapa"] svg') as SVGSVGElement;
+        const k = svg.getScreenCTM()!.a;
+        const px = (sel: string) => [...svg.querySelectorAll(sel)].map((t) => parseFloat(getComputedStyle(t).fontSize) * k);
+        const fora: string[] = []; const sobrepoe: string[] = [];
+        for (const g of svg.querySelectorAll('g[data-position]')) {
+          const rect = g.querySelector('rect')!.getBBox();
+          const textos = [...g.querySelectorAll('text')] as SVGTextElement[];
+          for (const t of textos) {
+            const b = t.getBBox();
+            if (b.x < rect.x || b.x + b.width > rect.x + rect.width || b.y < rect.y || b.y + b.height > rect.y + rect.height) fora.push(`${g.getAttribute('data-position')}: ${t.textContent}`);
+          }
+          if (textos.length === 2) {
+            // glifos: o nome desce até a linha de base + 20% do corpo (descendente); a dimensão sobe até a linha de base − 72% (maiúscula/dígito)
+            const [n, d] = textos as [SVGTextElement, SVGTextElement];
+            const corpo = (t: SVGTextElement) => parseFloat(getComputedStyle(t).fontSize);
+            const baseN = parseFloat(n.getAttribute('y')!); const baseD = parseFloat(d.getAttribute('y')!);
+            const folga = (baseD - 0.72 * corpo(d)) - (baseN + 0.2 * corpo(n));
+            if (folga < 2) sobrepoe.push(`${g.getAttribute('data-position')} (folga ${folga.toFixed(1)})`);
+          }
+        }
+        return { nomes: px('.pt-map-text'), dims: px('.pt-map-small'), legenda: px('.pt-map-cap'), fora, sobrepoe };
+      });
+      for (const v of [...r.nomes, ...r.dims, ...r.legenda]) expect(v, `${largura}px`).toBeGreaterThanOrEqual(11);
+      expect(r.nomes.length).toBeGreaterThan(5);
+      expect(r.fora, `${largura}px`).toEqual([]);
+      expect(r.sobrepoe, `${largura}px`).toEqual([]);
+    }
   });
 
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
@@ -332,12 +496,20 @@ test.describe('conteúdo MOCK', () => {
     await expect(page.getByTestId('correction-notice')).toHaveCount(0);
   });
 
-  test('cards com ilustração mostram o rótulo visível sobre a imagem (editoria, mobile incluso)', async ({ page }, info) => {
-    await page.goto('/editoria/mercado');
-    const label = page.locator('.ln-card__imglabel').first();
+  test('destaque da home com ilustração mostra o rótulo visível sobre a imagem (mobile incluso)', async ({ page }, info) => {
+    await page.goto('/');
+    const label = page.locator('.pt-hero-main .ln-card__imglabel').first();
     await expect(label).toBeVisible();
     await expect(label).toHaveText('Ilustração conceitual');
     await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-card-rotulo.png`) });
+  });
+
+  test('V-07: grade com item sem imagem não mostra imagem nem rótulo (todos ou nenhum)', async ({ page }) => {
+    await page.goto('/editoria/mercado');
+    const grid = page.locator('#conteudo .pt-grid');
+    await expect(grid.locator('article.ln-card')).not.toHaveCount(0);
+    await expect(grid.locator('.ln-card__media')).toHaveCount(0);
+    await expect(grid.locator('.ln-card__imglabel')).toHaveCount(0);
   });
 
   test('editoria mostra somente matérias da editoria', async ({ page }) => {

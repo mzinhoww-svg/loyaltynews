@@ -70,7 +70,7 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
       </p>
       <h1>Fontes da Fábrica editorial</h1>
       <p>
-        Cadastro imutável de fontes que a coleta pode usar. Habilitar nunca é automático: exige revisão humana atual dos termos (revisor diferente de quem pesquisou), URL verificada, robots.txt conferido e sem paywall. A coleta segue desligada pela flag editorialCollector.
+        Cadastro imutável de fontes que a coleta pode usar. Habilitar nunca é automático: exige revisão humana atual dos termos (revisor diferente de quem pesquisou), URL verificada, robots.txt conferido e sem paywall. A coleta segue desligada nesta fase.
       </p>
       <Flash tipo={tipo} aviso={aviso} />
       <form className="st-filters" method="get" role="search" aria-label="Buscar fonte da Fábrica">

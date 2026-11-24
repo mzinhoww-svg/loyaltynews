@@ -6,6 +6,7 @@ import { ESCRITA_EDITORIAL, CHEFIA_EDITORIAL } from '@/lib/studio/papeis';
 import { LINKS_PADRAO, SEO_PADRAO, type LinksConteudo, type SeoConteudo } from '@/lib/studio/site-docs';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
 import { PortalAgora } from '../../_components/PortalAgora';
@@ -133,7 +134,8 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           Nenhuma regra de link interno.
         </p>
       ) : (
-        <table className="st-table" aria-label="Regras de links internos">
+        <QuadroRolavel rotulo="Regras de links internos">
+<table className="st-table" aria-label="Regras de links internos">
           <thead>
             <tr>
               <th scope="col">Termo</th>
@@ -162,6 +164,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
       {podeEscrever ? (
         <form action={adicionarLinkAction} aria-label="Nova regra de link interno" className="st-card" style={{ marginTop: 10 }}>
@@ -194,7 +197,8 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           <p>Nenhum redirecionamento cadastrado.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Redirecionamentos">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {redirects.length} redirecionamento(s)
           </caption>
@@ -241,6 +245,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       {chefia ? (

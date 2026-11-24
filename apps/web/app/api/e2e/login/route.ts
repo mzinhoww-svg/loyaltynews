@@ -18,6 +18,10 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }
   }
+  if (q.get('blob') === 'memoria') {
+    (await e2eBackend()).setBlobMemoria(q.get('on') === '1');
+    return Response.json({ ok: true });
+  }
   if (q.get('seed') === 'editorial') {
     try {
       return Response.json({ ok: true, ...(await (await e2eBackend()).seedEditorial()) });
@@ -56,6 +60,22 @@ export async function GET(req: Request): Promise<Response> {
   if (q.get('seed') === 'piloto') {
     try {
       return Response.json({ ok: true, ...(await (await e2eBackend()).seedPilotoArtigos()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
+  if (q.get('seed') === 'piloto-violacoes') {
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).seedPilotoViolacoes()) });
+    } catch (e) {
+      return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
+    }
+  }
+  // conta NOVA com senha e segredo TOTP conhecidos: o teste digita no formulário de /studio/entrar (nunca devolve cookie de sessão)
+  if (q.get('conta')) {
+    if (!/^[a-z0-9_-]{1,32}$/.test(q.get('conta')!)) return Response.json({ error: { code: 'BAD_REQUEST', message: 'conta inválida' } }, { status: 400 });
+    try {
+      return Response.json({ ok: true, ...(await (await e2eBackend()).contaDeTeste(q.get('conta')!, q.get('role') ?? 'editor', q.get('totp') !== '0')) });
     } catch (e) {
       return Response.json({ error: { code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'falha' } }, { status: 400 });
     }

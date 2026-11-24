@@ -6,6 +6,7 @@ import { findModule } from '@/lib/studio/modules';
 import { POLITICA_ROTULO, carregarPolitica } from '@/lib/studio/modelops';
 import { requireModule } from '../../_lib/guard';
 import { SemRotaBackend } from '../../_components/SemBanco';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'ModelOps' };
 export const dynamic = 'force-dynamic';
@@ -49,10 +50,11 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
       <p>Catálogo, roteamento por tarefa e classe de dado. Nenhuma chamada de modelo sai do Studio.</p>
       <div className="st-alert" role="status">
         <strong>{POLITICA_ROTULO}.</strong> Versão {policy.version}, preços de {policy.rate_card_as_of}. Chamadas reais:{' '}
-        <strong data-reais={reais ? 'sim' : 'nao'}>{reais ? 'permitidas' : 'bloqueadas'}</strong> (política production_enabled={String(policy.rules.production_enabled)}, flag modelosHabilitados {flag ? 'ligada' : 'desligada'}).
+        <strong data-reais={reais ? 'sim' : 'nao'}>{reais ? 'permitidas' : 'bloqueadas'}</strong> (política de produção {policy.rules.production_enabled ? 'liberada' : 'bloqueada'}; chamadas de modelo {flag ? 'ligadas' : 'desligadas nesta fase'}).
       </div>
 
       <h2>Catálogo de modelos ({policy.models.length})</h2>
+      <QuadroRolavel rotulo="Catálogo de modelos">
       <table className="st-table">
         <thead>
           <tr>
@@ -75,6 +77,7 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
           ))}
         </tbody>
       </table>
+      </QuadroRolavel>
 
       <h2 style={{ marginTop: 24 }}>Simulação de rota (dry run, não gasta)</h2>
       <p className="st-hint">Decide modelo primário e fallbacks sem chamar provedor nem reservar orçamento. Sem modelo qualificado (R2-07/08), o resultado é bloqueio com os motivos.</p>

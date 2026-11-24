@@ -167,6 +167,9 @@ test.describe('SEO, links internos e redirecionamentos', () => {
     await enviar(page, page.getByRole('button', { name: 'Adicionar regra ao rascunho' }));
     await expect(ok(page, 'Regra de link interno adicionada')).toBeVisible();
     await expect(page.locator('[data-termo="milhas"]')).toContainText('/editoria/milhas');
+    // a região rolável da tabela tem o nome da própria tabela (leitor de tela), não o de outra
+    await expect(page.getByRole('region', { name: 'Regras de links internos' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Metadados por página' })).toHaveCount(0);
 
     await page.locator('#termo').fill('Milhas');
     await page.locator('#destino-link').fill('/editoria/pontos');

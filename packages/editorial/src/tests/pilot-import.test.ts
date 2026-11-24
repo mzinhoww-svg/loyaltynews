@@ -5,7 +5,7 @@ import { sampleArticle } from '../api/store-contract';
 import type { Actor, HandlerCtx } from '../api/handlers';
 import { SourceRegistry } from '../sources/registry';
 import { SEED_SOURCES } from '../sources/seed';
-import { PILOTO_MATERIAS, importLeitura2, listPiloto, mapPiloto, registerFolha, registerLeitura } from '../api/pilot-handlers';
+import { PILOTO_MATERIAS, importLeitura2, listPiloto, mapPiloto, registerFolha, registerLeitura, revogarFolha } from '../api/pilot-handlers';
 import type { PilotoItem, PilotoLeitura } from '../api/pilot-handlers';
 
 // Importação auditada da leitura do leitor 2 (folha lida fora do Studio) e registro do hash da folha no 1º envio.
@@ -114,4 +114,88 @@ test('sem registro prévio, o PRIMEIRO envio da importação grava o hash mesmo 
   assert.equal((await importLeitura2(ctx(dono), imp([lei('a9')]))).status, 201);
   assert.equal((await store.listAudit()).filter((a) => a.action === 'piloto.folha_recebida').length, 1, 'não duplica o registro');
   assert.equal((await importLeitura2(ctx(dono), imp([lei('a9')]))).status, 409, 'o mesmo arquivo não entra duas vezes');
+});
+
+const MOTIVO = 'arquivo errado enviado por engano; o correto é outro (conferido com o QA 3)';
+
+test('revogação da folha (R1 do QA 1): só admin/editor-chefe; motivo de 20+ caracteres; 404 se não está ativa; libera as matérias para o arquivo correto e deixa o histórico na trilha', async () => {
+  const A = { arquivo: arquivo(SHA), leitor2Nome: 'QA 3', materias: ['a1', 'a4'] };
+  assert.equal((await registerFolha(ctx(dono), A)).status, 201);
+  assert.equal((await registerFolha(ctx(dono), { ...A, arquivo: arquivo(SHA2) })).status, 409, 'congelada: outro hash recusado');
+  // permissão e validação
+  assert.equal((await revogarFolha(ctx(null), { sha256: SHA, motivo: MOTIVO })).status, 401);
+  assert.equal((await revogarFolha(ctx(qa3), { sha256: SHA, motivo: MOTIVO })).status, 403, 'o QA 3 (revisor) não revoga');
+  assert.equal((await revogarFolha(ctx(editor), { sha256: SHA, motivo: MOTIVO })).status, 403);
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA, motivo: 'curto' })).status, 400, 'motivo obrigatório (20+)');
+  assert.equal((await revogarFolha(ctx(dono), { sha256: 'xyz', motivo: MOTIVO })).status, 400);
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO, extra: 1 })).status, 400);
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA2, motivo: MOTIVO })).status, 404, 'folha que nunca foi registrada');
+  const antes = (await store.listAudit()).filter((a) => a.action === 'piloto.folha_revogada').length;
+  assert.equal(antes, 0, 'nenhuma tentativa inválida grava');
+  // revoga
+  const r = await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO });
+  assert.equal(r.status, 200);
+  assert.deepEqual(body<{ materiasLiberadas: string[] }>(r).materiasLiberadas, ['a1', 'a4']);
+  assert.ok(!JSON.stringify(r.body).includes('QA 3'), 'a resposta não traz conteúdo da folha');
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO })).status, 404, 'já revogada');
+  // o estado ativo não tem mais a folha; o arquivo correto agora entra e vira a folha da matéria
+  const lista0 = body<{ items: PilotoItem[] }>(await listPiloto(ctx(dono), {})).items;
+  assert.equal(lista0.find((i) => i.materia === 'a1')!.folha, null);
+  assert.equal((await registerFolha(ctx(dono), { ...A, arquivo: arquivo(SHA2) })).status, 201);
+  const lista1 = body<{ items: PilotoItem[] }>(await listPiloto(ctx(dono), {})).items;
+  assert.equal(lista1.find((i) => i.materia === 'a1')!.folha!.sha256, SHA2);
+  // histórico preservado e revogação auditada com quem, quando e por quê
+  const trilha = await store.listAudit();
+  assert.deepEqual(trilha.filter((a) => a.action === 'piloto.folha_recebida').map((a) => a.target), [SHA, SHA2]);
+  const rev = trilha.filter((a) => a.action === 'piloto.folha_revogada');
+  assert.equal(rev.length, 1); assert.equal(rev[0]!.target, SHA);
+  const det = JSON.parse(rev[0]!.detail!) as { motivo: string; por: string; materias: string[] };
+  assert.deepEqual([det.motivo, det.por, det.materias], [MOTIVO, 'dono', ['a1', 'a4']]);
+  // o mesmo hash revogado pode ser registrado de novo (era engano da revogação)
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA2, motivo: MOTIVO })).status, 200);
+  assert.equal((await registerFolha(ctx(dono), A)).status, 201);
+});
+
+test('o caso do QA 1: importação BLOQUEADA no 1º envio congela a folha; revogar destrava e o arquivo correto importa depois do leitor 1', async () => {
+  const bloq = await importLeitura2(ctx(dono), imp([lei('a1')])); // leitor 1 pendente: 409 LEITOR1_PENDENTE, mas o hash foi gravado
+  assert.equal(bloq.status, 409);
+  await leitor1('a1');
+  const outro = await importLeitura2(ctx(dono), imp([lei('a1')], { arquivo: arquivo(SHA2) }));
+  assert.equal(outro.status, 409); assert.match(JSON.stringify(outro.body), /FOLHA_DIFERENTE/, 'sem a revogação o arquivo correto seria recusado para sempre');
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO })).status, 200);
+  assert.equal((await importLeitura2(ctx(dono), imp([lei('a1')], { arquivo: arquivo(SHA2) }))).status, 201);
+});
+
+test('folha com leitura do leitor 2 já importada NÃO se revoga (409 FOLHA_COM_LEITURAS): a leitura é imutável e a folha é a prova dela', async () => {
+  await leitor1('a1');
+  assert.equal((await importLeitura2(ctx(dono), imp([lei('a1')]))).status, 201);
+  const r = await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO });
+  assert.equal(r.status, 409); assert.match(JSON.stringify(r.body), /FOLHA_COM_LEITURAS/);
+  assert.equal((await store.listAudit()).filter((a) => a.action === 'piloto.folha_revogada').length, 0);
+  const it = body<{ items: PilotoItem[] }>(await listPiloto(ctx(dono), {})).items.find((i) => i.materia === 'a1')!;
+  assert.deepEqual(it.folha && it.folha.sha256, SHA);
+});
+
+test('GET /piloto mostra a ÚLTIMA revogação da folha (quem, quando, por quê; só hash e motivo) no lugar de "sem folha"; some das matérias que ela não cobria; a mais recente vence', async () => {
+  const A = { arquivo: arquivo(SHA), leitor2Nome: 'QA 3', materias: ['a1', 'a4'] };
+  const itens = async (a: Actor) => body<{ items: PilotoItem[] }>(await listPiloto(ctx(a), {})).items;
+  assert.equal((await itens(qa3)).find((i) => i.materia === 'a1')!.folhaRevogada, null, 'nunca houve revogação');
+  assert.equal((await registerFolha(ctx(dono), A)).status, 201);
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO })).status, 200);
+  for (const quem of [dono, qa3]) {
+    const l = await itens(quem);
+    const a1 = l.find((i) => i.materia === 'a1')!;
+    assert.equal(a1.folha, null);
+    assert.deepEqual(a1.folhaRevogada, { sha256: SHA, por: 'dono', em: NOW.toISOString(), motivo: MOTIVO });
+    assert.deepEqual(l.find((i) => i.materia === 'a4')!.folhaRevogada, a1.folhaRevogada);
+    assert.equal(l.find((i) => i.materia === 'a6')!.folhaRevogada, null, 'a6 não estava na folha revogada');
+    assert.deepEqual(Object.keys(a1.folhaRevogada!).sort(), ['em', 'motivo', 'por', 'sha256'], 'só hash, quem, quando e motivo');
+    assert.ok(!JSON.stringify(a1).includes('folha-qa3.csv'), 'nem o nome do arquivo');
+  }
+  // nova folha entra: a folha ativa volta e a revogação anterior continua visível ao lado; uma 2ª revogação (outro motivo) vira a "última"
+  assert.equal((await registerFolha(ctx(dono), { ...A, arquivo: arquivo(SHA2) })).status, 201);
+  const motivo2 = 'segunda folha também veio com o cabeçalho errado; refeita pelo QA 3';
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA2, motivo: motivo2 })).status, 200);
+  const a1 = (await itens(dono)).find((i) => i.materia === 'a1')!;
+  assert.equal(a1.folha, null); assert.deepEqual([a1.folhaRevogada!.sha256, a1.folhaRevogada!.motivo], [SHA2, motivo2]);
 });

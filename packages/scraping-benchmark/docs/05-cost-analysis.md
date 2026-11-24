@@ -19,7 +19,7 @@
 > - **Replay v2:**
 >   - caminho atual 89/100;
 >   - cascata fixa 99/100 a US$ 0,000235 por válido;
->   - adaptativo 99/100 a US$ 0,000199 por válido, p95 de 10,1 s contra 10,4 s do atual;
+>   - adaptativo 99/100 a US$ 0,000206 por válido, 119 tentativas, p95 de 7,6 s contra 10,4 s do atual (após as faixas do roteador, f43922c);
 >   - 14 URLs divergem.
 >
 > **Rotulagem independente (QA 3, 40 pares, `r0-preparacao/qa/ft-scraping-benchmark-m2-label-sample.csv`):**

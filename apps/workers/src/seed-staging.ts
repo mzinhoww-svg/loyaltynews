@@ -2,8 +2,9 @@
 //   node dist/seed-staging.js apply    cria o conjunto de demonstração (idempotente: ids fixos `seed-stg-*`)
 //   node dist/seed-staging.js check    confere que TODA linha do seed carrega o rótulo e que o SEO está em noindex
 //   node dist/seed-staging.js remove   apaga só as linhas do seed (por id), nada mais
-// Regras: (1) toda linha tem id `seed-stg-*`; (2) todo texto visível ao leitor (título, resumo, corpo, local, nota) começa com
-// `[DEMO · staging]` ou o traz; (3) a matéria fictícia NUNCA tem fonte ou recibo inventado; (4) o SEO do seed é `noindex` (staging não indexa);
+// Regras: (1) toda linha tem id `seed-stg-*`; (2) todo texto de CONTEÚDO visível ao leitor (matéria: título, subtítulo, resumo, corpo; evento:
+// título, local; nota e SEO) começa com `[DEMO · staging]` ou o traz; o rótulo NUNCA vai em nome de seção (título de bloco da home) nem de
+// editoria: o que é fictício é o conteúdo, não a estrutura do site (reauditoria do staging N-02); (3) a matéria fictícia NUNCA tem fonte ou recibo inventado; (4) o SEO do seed é `noindex` (staging não indexa);
 // (5) nada de e-mail, pessoa ou empresa real; (6) o seed não toca em linha que não seja dele. As dez editorias são dado de referência
 // oficial (@ln/contracts), não demonstração: entram só se faltarem e não contam como seed.
 // Build: npm run build:seed-staging -w @ln/workers. Nunca imprime URL, senha nem PEM.
@@ -108,10 +109,11 @@ export async function applyStagingSeed(db: Db, env: Record<string, string | unde
         tipo: 'home',
         conteudo: {
           blocos: [
-            { tipo: 'destaque', id: 'topo', titulo: tag('Destaques'), materiaSlugs: publicadas.slice(0, 3) },
-            { tipo: 'lista_editoria', id: 'mercado', titulo: tag('Mercado'), editoria: 'mercado', limite: 3 },
-            { tipo: 'ultimas', id: 'ultimas', titulo: tag('Últimas'), limite: 6 },
-            { tipo: 'agenda', id: 'agenda', titulo: tag('Agenda'), limite: 3 },
+            // títulos de SEÇÃO sem rótulo (N-02): o rótulo fica nas matérias e nos eventos que aparecem dentro delas
+            { tipo: 'destaque', id: 'topo', titulo: 'Destaques', materiaSlugs: publicadas.slice(0, 3) },
+            { tipo: 'lista_editoria', id: 'mercado', titulo: 'Mercado', editoria: 'mercado', limite: 3 },
+            { tipo: 'ultimas', id: 'ultimas', titulo: 'Últimas', limite: 6 },
+            { tipo: 'agenda', id: 'agenda', titulo: 'Agenda', limite: 3 },
           ],
         },
       },
@@ -159,6 +161,9 @@ export async function checkStagingSeed(db: Db): Promise<SeedCheck> {
   const linhas: Record<string, number> = {};
   const rotulado = (...textos: Array<string | null | undefined>) => textos.every((t) => typeof t === 'string' && t.includes(SEED_LABEL));
 
+  // editoria é dado de referência: o rótulo de demonstração nunca vai no nome dela
+  for (const e of await db.select().from(schema.editorias)) if (e.nome.includes(SEED_LABEL)) problemas.push(`editoria ${e.slug} com rótulo de demonstração no nome`);
+
   const arts = await db.select().from(schema.articles).where(like(schema.articles.id, `${SEED_PREFIX}%`));
   linhas.articles = arts.length;
   for (const a of arts) if (!rotulado(a.titulo, a.subtitulo, a.resumo, a.corpo)) problemas.push(`matéria ${a.id} sem rótulo em título/subtítulo/resumo/corpo`);
@@ -181,7 +186,8 @@ export async function checkStagingSeed(db: Db): Promise<SeedCheck> {
       if (!rotulado(c.tituloPadrao)) problemas.push(`documento ${d.id} sem rótulo no título padrão`);
       if (c.indexacao !== 'noindex') problemas.push(`documento ${d.id}: o SEO do seed precisa ser noindex`);
     }
-    if (d.tipo === 'home') for (const b of c.blocos ?? []) if (b.titulo !== undefined && !rotulado(b.titulo)) problemas.push(`documento ${d.id}: bloco sem rótulo`);
+    // N-02: nome de seção NÃO leva o rótulo de demonstração (o conteúdo dentro dela é que leva)
+    if (d.tipo === 'home') for (const b of c.blocos ?? []) if (typeof b.titulo === 'string' && b.titulo.includes(SEED_LABEL)) problemas.push(`documento ${d.id}: título de seção "${b.titulo}" com rótulo de demonstração`);
   }
   return { ok: problemas.length === 0, linhas, problemas };
 }

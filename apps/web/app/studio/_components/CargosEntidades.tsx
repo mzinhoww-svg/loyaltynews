@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { QuadroRolavel } from './QuadroRolavel';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro } from '@/lib/studio/backend';
 import { FILTROS_DE_NIVEL, nivelPorFonte, textoDaEvidencia, type CargoDaLista, type NivelDaFonte } from '@/lib/studio/intelligence-view';
@@ -124,7 +125,8 @@ export async function CargosLista({ nivel, q, pagina, base }: { nivel: '' | Nive
         </p>
       ) : (
         <>
-          <table className="st-table" aria-label="Cargos">
+          <QuadroRolavel rotulo="Cargos e relações">
+<table className="st-table" aria-label="Cargos">
             <caption className="st-hint" style={{ textAlign: 'left' }}>
               {r.body.total} cargo(s) aberto(s) · página {pagina} de {Math.max(1, Math.ceil(r.body.total / POR_PAGINA))}
             </caption>
@@ -160,6 +162,7 @@ export async function CargosLista({ nivel, q, pagina, base }: { nivel: '' | Nive
               })}
             </tbody>
           </table>
+</QuadroRolavel>
           {r.body.total > POR_PAGINA ? (
             <nav aria-label="Paginação de cargos" className="st-actions">
               {pagina > 1 ? <Link className="st-btn sec" href={qs(pagina - 1)}>Anterior</Link> : null}

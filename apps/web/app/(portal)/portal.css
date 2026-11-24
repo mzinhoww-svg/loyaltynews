@@ -22,7 +22,7 @@
 .pt-section-head h2 { margin: 0; font-size: var(--ln-text-xl); line-height: var(--ln-leading-xl); color: var(--ln-color-primary); }
 
 /* grades e colunas */
-.pt-grid { display: grid; gap: var(--ln-space-4); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pt-grid { display: grid; gap: var(--ln-space-4); grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; }
 .pt-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .pt-hero { display: grid; gap: var(--ln-space-5); grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; }
 .pt-hero-side { display: grid; gap: var(--ln-space-3); align-content: start; }
@@ -43,6 +43,10 @@
 .pt-panel-title { margin: 0 0 var(--ln-space-2); font-size: var(--ln-text-lg); line-height: var(--ln-leading-lg); color: var(--ln-color-primary); }
 .pt-panel .pt-more { display: inline-block; margin-top: var(--ln-space-2); }
 .pt-panel .ln-card--compact:last-child { border-bottom: 0; }
+/* V-09: "Em alta" nas páginas internas = posição + título (sem data nem autoria), mais baixo que o conteúdo */
+.pt-side--compact .ln-card--ranked .ln-card__byline, .pt-side--compact .ln-card--ranked .ln-card__meta { display: none; }
+.pt-side--compact .ln-card--ranked { padding-block: var(--ln-space-1); }
+.pt-side--compact .ln-card--ranked .ln-card__title { font-size: var(--ln-text-sm); line-height: 1.35; }
 
 .pt-pagehead { padding: var(--ln-space-4) 0 var(--ln-space-2); border-bottom: 1px solid var(--ln-color-border); margin-bottom: var(--ln-space-4); }
 .pt-chips { display: flex; gap: var(--ln-space-2); flex-wrap: wrap; margin: 0 0 var(--ln-space-4); padding: 0; list-style: none; }
@@ -128,3 +132,106 @@
   .pt-chip { min-height: var(--ln-touch-target); }
   .pt-table a.pt-tap { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); }
 }
+
+/* matéria: breadcrumb, selo e kicker com respiro (o selo MOCK encostava no breadcrumb) */
+.pt-article .ln-breadcrumb { margin-bottom: var(--ln-space-3); }
+.pt-article .pt-kicker { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ln-space-2); margin-bottom: var(--ln-space-2); }
+
+/* V-01: destaque da home. O card lg já divide imagem|texto em telas largas; dentro da coluna 7/12 do hero isso espremia o texto
+ * (manchete em 5 linhas, autor cortado). Aqui o card empilha: imagem 16:9 em cima, manchete e linha de autoria embaixo. */
+.pt-hero-main .ln-card--lg:not(.ln-card--noimg) { grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-3); }
+.pt-hero-main .ln-card--lg .ln-card__byline { flex-wrap: wrap; white-space: normal; row-gap: 2px; }
+.pt-hero-main .ln-card--lg .ln-card__excerpt { -webkit-line-clamp: 2; }
+.pt-hero--text .pt-hero-main .ln-card--lg { max-width: 920px; }
+
+/* V-02: topo da matéria com ritmo único (breadcrumb → selos → título → subtítulo → autoria → imagem) */
+.pt-layout:has(> .pt-col > .pt-article) { padding-top: var(--ln-space-4); } /* matéria: coluna e lateral começam na mesma linha, com respiro sob o cabeçalho */
+.pt-article h1 { margin-top: var(--ln-space-1); line-height: var(--ln-leading-3xl); }
+.pt-article .pt-byline { margin-bottom: var(--ln-space-3); padding-bottom: var(--ln-space-3); border-bottom: 1px solid var(--ln-color-border); }
+.pt-article .pt-figure { margin-top: 0; }
+
+/* V-06: grade que se ajusta ao número de itens (sem 2/3 da largura vazios) */
+.pt-grid--n1 { grid-template-columns: minmax(0, 1fr); }
+.pt-grid--n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pt-grid--n1 .ln-card--noimg { max-width: 640px; }
+@media (max-width: 639px) { .pt-grid--n2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* V-10: escala de espaço do DS entre blocos (breadcrumb longe do cabeçalho; busca separada do resultado) */
+.pt-pagehead { padding-top: var(--ln-space-5); }
+.pt-layout:has(> .pt-col > .pt-article) { padding-top: var(--ln-space-5); }
+.pt-main .ln-search { margin-bottom: var(--ln-space-5); }
+
+/* V-11: alvos de toque >= 44px e mais manchetes na primeira dobra do mobile */
+@media (max-width: 767px) {
+  .pt-more { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
+  .pt-event-title, .pt-event h3 a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
+  .pt-chip { min-height: var(--ln-touch-target); }
+  .pt-article li > a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
+}
+@media (max-width: 639px) {
+  /* destaque da home no mobile: sem resumo (a manchete e a autoria bastam), para caber ao menos 4 manchetes na 1ª dobra */
+  .pt-hero-main .ln-card--lg .ln-card__excerpt { display: none; }
+  .pt-section { margin: var(--ln-space-4) 0; }
+  /* V-11 (375x812): manchete do destaque em 22/28 e menos respiro interno no mobile; a 4ª manchete inteira cabe na 1ª dobra */
+  .pt-hero-main .ln-card--lg:not(.ln-card--noimg) { gap: var(--ln-space-2); }
+  .pt-hero-main .ln-card--lg .ln-card__title { font-size: 1.375rem; line-height: 1.75rem; }
+  .pt-hero { gap: var(--ln-space-3); }
+  .pt-section-head { margin-bottom: var(--ln-space-2); }
+}
+
+/* Mapa visual das posições de anúncio do mídia kit (auditoria V-13): esquema em proporção das dimensões do inventário. */
+.pt-map { margin: var(--ln-space-4) 0; }
+.pt-map svg { display: block; width: 100%; max-width: 760px; height: auto; }
+.pt-map .pt-map-page { fill: var(--ln-color-white); stroke: var(--ln-color-border); stroke-width: 1.5; }
+.pt-map .pt-map-slot { fill: var(--ln-color-mint); stroke: var(--ln-color-primary); stroke-width: 2; }
+.pt-map .pt-map-editorial { fill: var(--ln-color-white); stroke: var(--ln-color-border); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.pt-map .pt-map-text { fill: var(--ln-color-primary); font-size: 20px; font-weight: 700; font-family: inherit; }
+.pt-map .pt-map-small { fill: var(--ln-color-primary); font-size: 17px; font-family: inherit; }
+.pt-map .pt-map-cap { fill: var(--ln-color-primary); font-size: 15px; font-family: inherit; }
+.pt-map figcaption { margin-top: var(--ln-space-2); font-size: var(--ln-text-sm); }
+.pt-map-list { margin: var(--ln-space-2) 0 0; padding-left: 1.2em; font-size: var(--ln-text-sm); }
+
+/* P3-5 (UI/UX): no desktop o mapa fica à esquerda e a lista de posições à direita (a página perde ~370 px); no mobile segue empilhado */
+@media (min-width: 1024px) {
+  .pt-map { display: grid; grid-template-columns: minmax(0, 520px) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--ln-space-5); align-items: start; }
+  .pt-map svg { grid-column: 1; grid-row: 1; max-width: 520px; }
+  .pt-map figcaption { grid-column: 1; grid-row: 2; }
+  .pt-map-list { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+}
+
+/* P2-a (UI/UX): o viewBox (672 unidades) vai a ~380 px no celular, escala ~0,56; sobe as fontes (unidades do viewBox) para o texto render >= 11 px */
+@media (max-width: 639px) {
+  .pt-map .pt-map-text { font-size: 26px; }
+  .pt-map .pt-map-small { font-size: 26px; }
+  .pt-map .pt-map-cap { font-size: 26px; }
+}
+
+/* P3-a (UI/UX): kicker do bloco de abertura em verde de destaque do design system (antes: var(--pt-signal), que não existe) */
+.pt-hero-band .pt-kicker--signal { color: var(--ln-color-signal); }
+
+/* P3-b (UI/UX): título de abertura do mídia kit com escala de exibição (só esta página): 28 px no celular, 44 px no desktop largo */
+.pt .pt-hero-band--mk h1 { font-size: clamp(1.75rem, 1rem + 3vw, 2.75rem); line-height: 1.15; }
+
+/* P3-d (UI/UX): Audiência em duas colunas no desktop (tempo real | histórico), cada métrica em cartão de largura natural; empilha no celular */
+.pt-audience { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-2) var(--ln-space-5); }
+.pt-audience .pt-metrics { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+@media (min-width: 768px) { .pt-audience { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
+/* Publicidade no mobile (≤ 767 px): formatos 320×100 e 300×250 do inventário. A caixa do DS traz proporção inline do formato desktop
+   (ex.: 1280×150, que viraria uma faixa de 46 px); aqui ela é trocada pela do formato mobile. Reserva só enquanto o criativo carrega
+   (TOP/rodapé 320×100; sidebars 300×250) e, com o criativo real, usa a dimensão dele. Sem criativo a posição recolhe (nada reservado). */
+@media (max-width: 767px) {
+  /* width: 100% evita que a margem automática encolha o wrapper ao tamanho do texto do rótulo (a caixa de 300×250 saía com 189 px). */
+  .pt-ad[data-device='mobile'] { width: 100%; margin-inline: auto; text-align: center; }
+  .pt-ad[data-device='mobile'][data-state='reservado'] .ln-ad__box { aspect-ratio: 320 / 100 !important; max-width: 320px !important; }
+  .pt-ad[data-device='mobile'][data-state='reservado'][data-position^='SIDEBAR'] .ln-ad__box { aspect-ratio: 300 / 250 !important; max-width: 300px !important; }
+  .pt-ad[data-device='mobile'][data-state='ad'] .ln-ad__box { aspect-ratio: var(--pt-ad-w) / var(--pt-ad-h) !important; max-width: calc(var(--pt-ad-w) * 1px) !important; }
+}
+
+/* O plano manda: posição só-mobile não ocupa espaço no desktop, e posição sem formato mobile não ocupa espaço no mobile (sem salto de layout). */
+@media (min-width: 768px) { .pt-ad[data-desktop='false'] { display: none; } }
+@media (max-width: 767px) { .pt-ad[data-mobile-formats='nenhum'] { display: none; } }
+
+/* Breadcrumb: o separador "/" fica no FIM do item anterior (::after) em vez de no começo do próximo (::before). Com título longo o item quebra de linha e o
+   "/" ficava sozinho no começo da linha (P2-5 da revisão visual int/012). O DS (packages/ui) usa ::before; aqui só se troca o lado, sem editar o pacote. */
+.pt .ln-breadcrumb__item + .ln-breadcrumb__item::before { content: none; margin: 0; }
+.pt .ln-breadcrumb__item:not(:last-child)::after { content: "/"; margin-inline: var(--ln-space-2); color: var(--ln-role-fg-muted); }

@@ -1426,12 +1426,12 @@
       "path": "adaptativo (validação cruzada 2 dobras)",
       "urls": 100,
       "valid": 99,
-      "attempts": 123,
-      "fallbacks": 23,
-      "creditsUsdEquiv": 0.0197,
-      "usdPerValid": 0.000199,
+      "attempts": 119,
+      "fallbacks": 19,
+      "creditsUsdEquiv": 0.02035,
+      "usdPerValid": 0.000206,
       "stopsByRestriction": 0,
-      "decisions": 223,
+      "decisions": 219,
       "perUrl": [
         {
           "url": "https://mercadoeconsumo.com.br/20/10/2026/gestao/renata-araujo-e-a-nova-secretaria-geral-da-aneel-e-a-primeira-mulher-a-ocupar-o-cargo/",
@@ -1939,8 +1939,8 @@
         {
           "url": "https://finsidersbrasil.com.br/pix-6-anos/crescimento-do-pix-coloca-a-prova-a-infraestrutura-do-sfn/",
           "valid": true,
-          "provider": "direct",
-          "latencyMs": 86,
+          "provider": "exa-contents",
+          "latencyMs": 234,
           "attempts": 1
         },
         {
@@ -2066,8 +2066,8 @@
           "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-registra-lucro-liquido-de-us--441-milhoes-no-terceiro-trim",
           "valid": true,
           "provider": "exa-contents",
-          "latencyMs": 15141,
-          "attempts": 5
+          "latencyMs": 218,
+          "attempts": 1
         },
         {
           "url": "https://www.edpb.europa.eu/news/edpb-publishes-statement-on-the-data-protection-challenges-of-smart-glasses_pt",
@@ -2133,8 +2133,8 @@
           "attempts": 1
         }
       ],
-      "latencyP50Ms": 549,
-      "latencyP95Ms": 10065
+      "latencyP50Ms": 534,
+      "latencyP95Ms": 7626
     }
   ],
   "divergences": [
@@ -2209,6 +2209,13 @@
       "latAdaptMs": 4359
     },
     {
+      "url": "https://finsidersbrasil.com.br/pix-6-anos/crescimento-do-pix-coloca-a-prova-a-infraestrutura-do-sfn/",
+      "atual": "direct",
+      "adaptativo": "exa-contents",
+      "latAtualMs": 86,
+      "latAdaptMs": 234
+    },
+    {
       "url": "https://tecnoblog.net/publieditoriais/cupom-nordvpn-como-assinar-a-melhor-vpn-com-ate-75-de-desconto/",
       "atual": "falha",
       "adaptativo": "scrapfly-basic",
@@ -2227,7 +2234,7 @@
       "atual": "falha",
       "adaptativo": "exa-contents",
       "latAtualMs": 10409,
-      "latAdaptMs": 15141
+      "latAdaptMs": 218
     },
     {
       "url": "https://www.latamairlines.com/br/pt/imprensa/noticias/latam-pass-amplia-parceria-com-nubank-e-passa-a-oferecer-transfe",

@@ -8,6 +8,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/.next/**',
       '**/.next-e2e/**',
+      '**/.next-e2e-*/**', // int/017: perfis de build do harness do e2e do portal (ex.: .next-e2e-vitrine; e2e/portal-server.mjs)
       '**/dist/**',
       '**/next-env.d.ts',
       '**/drizzle/**',

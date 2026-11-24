@@ -37,9 +37,15 @@ import * as publicoRedirectsRoute from '@/app/api/publico/site/redirects/route';
 import * as publicoAgendaRoute from '@/app/api/publico/agenda/route';
 import { dispatchCommercial } from '@/app/api/_lib/commercial';
 import { dispatchIntelligence } from '@/app/api/_lib/intelligence';
+import * as fonteRapidaRoute from '@/app/api/studio/editorial/fontes/rapida/route';
+import * as evidenciaRapidaRoute from '@/app/api/studio/editorial/evidencias/route';
+import type { EvidenciaRapida, FonteRapida } from '@/lib/studio/cms/fonte-rapida';
 import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha, PaginaDeCargos } from '@/lib/studio/intelligence-view';
 import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
 import { dispatchTitular } from '@/app/api/_lib/titular-studio';
+import * as pilotoLinhasRoute from '@/app/api/studio/openbot/piloto/linhas/route';
+import * as pilotoResolveRoute from '@/app/api/studio/openbot/pilot/rows/[taskId]/[attempt]/resolve/route';
+import type { LinhaComTratamento, Tratada } from '@/lib/studio/piloto-violacoes';
 import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
 import type { Achado, Checklist, Fechamento, Leitura, MateriaId, MateriaPiloto } from '@/lib/studio/piloto-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
@@ -57,6 +63,8 @@ export interface Fonte {
   acesso: string;
   termosRevisados: boolean;
   ativo: boolean;
+  /** 'a_confirmar' = fonte rápida ainda sem revisão dos termos (pode faltar em fontes antigas). */
+  revisao?: string;
 }
 export interface Evidencia {
   id: string;
@@ -94,7 +102,7 @@ export interface MateriaDetalhe extends MateriaLinha {
   tempoLeituraMin: number;
   fontes: Evidencia[];
   publicadoEm?: string | null;
-  recibo: { id: string; versao: number; aprovador: string; checagens: { tipo: string; resultado: string }[] } | null;
+  recibo: { id: string; versao: number; aprovador: string; /** Nome de quem aprovou (nunca o e-mail); null se o usuário não existe mais; ausente em Backend antigo. */ aprovadorNome?: string | null; checagens: { tipo: string; resultado: string }[] } | null;
   transicoes: Transicao[];
 }
 
@@ -290,6 +298,15 @@ export const api = {
     /** O mesmo relatório em CSV ('diario' ou 'resumo'): corpo { filename, contentType, csv }. */
     relatorioCsv: (campaignId: string, kind: 'diario' | 'resumo', from?: string, to?: string) => chamar(dispatchCommercial, `${C}/studio/campaigns/report-csv`, { query: { campaignId, kind, from, to } }),
   },
+  /**
+   * Fonte rápida e evidência rápida na Nova matéria (P2-05, rotas reais do Backend 3, migração 0029): a fonte nasce "a confirmar" e inativa; a
+   * evidência guarda só o trecho e não conta para os gates de publicação. Contrato: fast-track/contratos/fonte-rapida-evidencia-api.md.
+   */
+  fonteRapida: {
+    criar: (corpo: unknown) => chamar<{ data: FonteRapida; existente: boolean }>(fonteRapidaRoute.POST as Despachante, `${E}/fontes/rapida`, { metodo: 'POST', corpo }),
+    anexarEvidencia: (corpo: unknown) => chamar<{ data: EvidenciaRapida; existente: boolean }>(evidenciaRapidaRoute.POST as Despachante, `${E}/evidencias`, { metodo: 'POST', corpo }),
+    evidencias: (articleId: string) => chamar<{ data: EvidenciaRapida[]; total: number }>(evidenciaRapidaRoute.GET as Despachante, `${E}/evidencias`, { query: { articleId } }),
+  },
   intelligence: {
     /** Empresas por nome (GET /api/studio/intelligence/companies?q=). */
     empresas: (q: string) => chamar<{ items: OrganizacaoLinha[] }>(dispatchIntelligence, `${I}/companies`, { query: { q } }),
@@ -341,6 +358,15 @@ export const api = {
    */
   piloto: {
     materias: () => chamar<{ items: MateriaPiloto[]; fechamento?: Fechamento }>(dispatchEditorial, `${E}/piloto`),
+    /** Linhas da trilha do piloto (planilha do AgentOps), uma por tarefa e tentativa: GET /api/studio/openbot/piloto/linhas (Backend 1, ft/backend 0d886d9). */
+    linhas: () => chamar<{ items: LinhaComTratamento[] }>(pilotoLinhasRoute.GET as Despachante, '/api/studio/openbot/piloto/linhas'),
+    /** Trata uma violação (parada imediata) da linha: só admin, auditada, não apaga nada (ft/backend 0d886d9, PM-2026-11-23-D). 201 nova, 200 já resolvida. */
+    resolverViolacao: (taskId: string, attempt: number, corpo: { motivo: string; acaoTomada: string }) =>
+      chamar<{ taskId: string; attempt: number; violacoes: string[]; tratada: Tratada; jaResolvida: boolean }>(
+        comParams(pilotoResolveRoute.POST as Handler, { taskId, attempt: String(attempt) }),
+        `/api/studio/openbot/pilot/rows/${encodeURIComponent(taskId)}/${attempt}/resolve`,
+        { metodo: 'POST', corpo },
+      ),
     fixarMapa: (mapa: Partial<Record<MateriaId, string>>) => chamar<{ mapa: Record<string, string> }>(dispatchEditorial, `${E}/piloto/mapa`, { metodo: 'POST', corpo: mapa }),
     leituras: (materia: string) => chamar<{ materia: string; articleId: string; leituras: Leitura[]; ocultas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leituras`),
     /** Registra só o hash da folha do leitor 2 no primeiro envio (sem conteúdo); 200 se o mesmo sha256 já estava; 409 FOLHA_DIFERENTE. */

@@ -100,7 +100,7 @@ export default async function CorrigirFabrica({ params, searchParams }: { params
       ) : null}
       {!ligada ? (
         <div className="st-alert" role="status">
-          Publicação desligada neste ambiente (flag publicacaoPortal): o recibo pode ser emitido, a publicação será recusada.
+          Publicação desligada nesta fase: o recibo pode ser emitido, a publicação será recusada.
         </div>
       ) : null}
       {casos.length === 0 ? (

@@ -34,4 +34,11 @@ describe('traduzirDetalhe', () => {
     expect(traduzirDetalhe({ path: 'campoNovo', message: 'Invalid URL' })).toBe('campoNovo: URL inválida (use https://…).');
     expect(traduzirDetalhe({ message: 'Invalid URL' })).toBe('URL inválida (use https://…).');
   });
+  it('campos do comercial e do Creative (chaves da API em inglês) usam o nome da tela', () => {
+    expect(traduzirDetalhe({ path: 'endDate', message: 'endDate anterior a startDate' })).toBe('Fim: endDate anterior a startDate');
+    expect(traduzirDetalhe({ path: 'basis', message: 'Invalid option: expected one of "consentimento"|"legitimo_interesse"' })).toBe('Base legal: opção inválida.');
+    expect(traduzirDetalhe({ path: 'email', message: 'Too small: expected string to have >=1 characters' })).toBe('E-mail: obrigatório.');
+    expect(traduzirDetalhe({ path: 'positionIds', message: 'Too small: expected array to have >=1 items' })).toBe('Posições da campanha: precisa de pelo menos 1.');
+    expect(traduzirDetalhe({ path: 'articleId', message: 'Required' })).toBe('Matéria: obrigatório.');
+  });
 });

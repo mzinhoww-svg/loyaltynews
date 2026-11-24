@@ -92,10 +92,11 @@ Ao detectar a perda, o adaptador chama `ads.audit.reportLoss({ detectedAtMs, las
 - Relatórios: `campaignDetail(...).report.auditability` (`auditable:false` + lacunas + nota "valores mínimos, não totais"), `mediaKitPage(...).deliveryIntegrity`, e item `periodo_nao_auditavel` em `studioDashboard(...).attention`. Sem lacuna, o campo vem vazio (estado honesto), não "100% auditado".
 - A lacuna entra em `AdServer.snapshot()`/`load()` e em `snapshotState`/`loadState`: sobrevive a reinício do processo. O Backend deve persistir as lacunas (proposta: tabela `ad_delivery_gaps` espelhando `AuditGap`, ou JSON em `commercial_metrics`/configuração; o formato do snapshot já é estável).
 
-### Como detectar (protocolo para o adaptador do Backend)
+### Como detectar (protocolo; implementado em `apps/workers/src/ad-redis-watch.ts`, ver `apps/web/app/api/README.md`)
 Uma chave-marcador simples (`ln:ad:epoch`) **não detecta restauração de backup**: o valor restaurado pode ser igual ao que a instância já conhece. Use um **watermark monotônico** com espelho no PostgreSQL:
 
-1. Uma chave `ln:ad:hb` (inteiro) é incrementada por `INCR` a cada minuto por quem estiver vivo; logo após o `INCR`, o valor lido é gravado no PostgreSQL com `GREATEST` (`ad_dedupe_watermark(valor, em)`), junto com o horário.
+1. Uma chave `ln:ad:hb` (inteiro) é incrementada por `INCR` a cada minuto por quem estiver vivo; logo após o `INCR`, o valor lido é gravado no PostgreSQL com `GREATEST` (tabela `ad_redis_watermark(id, value, at)`, id `ln:ad:hb`), junto com o horário.
+- Reforço ao item 2: Ler o `run_id` do `INFO server` e espelhá-lo (`ln:ad:hb:run`): `run_id` diferente do espelho = outro processo (reinício, restauração, failover) ⇒ lacuna `dedupe_regrediu`, mesmo com a chave ≥ espelho. Uma restauração de backup exatamente no último ponto só aparece assim (o watermark sozinho a considera saudável). Queda transitória em que volta o mesmo `run_id` com a chave intacta não abre lacuna.
 2. A cada batida (e na subida do processo), comparar o valor lido do Redis com o do PostgreSQL:
    - chave ausente, ou valor **menor** que o do PostgreSQL → o Redis perdeu ou voltou no tempo → `reportLoss({ detectedAtMs: agora, lastHealthyAtMs: em do PostgreSQL, reason: 'dedupe_perdido' | 'dedupe_regrediu' })`, e então reajustar o PostgreSQL para o valor atual do Redis;
    - valor maior ou igual → saudável; atualizar o PostgreSQL.
@@ -106,4 +107,4 @@ Complementos (decisão do DevOps, não substituem a mitigação): AOF com `appen
 
 ### Cobertura de testes
 `src/audit.test.ts` (18 testes): demonstra a inflação sem a mitigação; suspensão e retomada nos limites exatos de 30 min e 2 h; eventos descartados; antes da detecção nada muda; bots/internos fora; house ad sem criativo; rotação não congela; fusão de lacunas; ida e volta por JSON; snapshot antigo sem o campo; "não auditável" na campanha, painel e mídia kit; bordas do período; handlers públicos usando o instante do contexto.
-Não testado: a detecção em si (precisa do adaptador e de um Redis real). O protocolo acima é a especificação para o Backend implementar e para o QA verificar em staging com um Redis reiniciado de propósito.
+A detecção em si está em `apps/workers/src/ad-redis-watch.test.ts` (ioredis-mock; com `LN_TEST_REDIS_URL`, Redis real). Ainda não verificado: um Redis reiniciado de propósito em staging. O protocolo acima é a especificação para o Backend implementar e para o QA verificar em staging com um Redis reiniciado de propósito.

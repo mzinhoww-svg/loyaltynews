@@ -1,0 +1,10 @@
+{
+  "method": "http",
+  "id": "abemf-noticia2",
+  "url": "https://web.abemf.com.br/sem-bom-atendimento-ate-otimos-beneficios-perdem-valor/",
+  "finalUrl": "https://web.abemf.com.br/sem-bom-atendimento-ate-otimos-beneficios-perdem-valor/",
+  "capturedAt": "2026-11-23T20:37:24.181Z",
+  "robots": "robots.txt permite",
+  "length": 5026,
+  "sha256Claimed": "cd835765f5e47db30083d1c38de05357fa3a3bd472b1497b3d16bfb09237a570"
+}

@@ -6,7 +6,7 @@ import { COLLECT_ON, MOCK_SOURCE, mockResolver } from '../../fixtures/mock-web.m
 import { MockGateway, mockOk } from '../../fixtures/mock-gateway.mock';
 import { mockWebRoles, passAll, rolesDraftOutput } from '../../fixtures/mock-roles.mock';
 import { SourceRegistry } from '../sources/registry';
-import { InMemoryAuditLog } from '../pipeline/stages';
+import { InMemoryAuditLog, draft as draftStage } from '../pipeline/stages';
 import type { StageDeps } from '../pipeline/stages';
 import { InMemoryQueue, makeProcessor } from '../pipeline/queue';
 import type { StageOutcome } from '../pipeline/jobs';
@@ -52,21 +52,19 @@ test('slug: gerado da manchete (sem acento, hífens), estável nas redações e 
   assert.equal((await store.getArticle('a1'))?.draft?.slug, 'mock-alfa-muda-a-diretoria-3');
 });
 
-test('slug se mantém entre redações (re-redação com nova manchete não troca o slug do job)', async () => {
-  let n = 0;
-  const g = gw(() => (++n === 1
-    ? rolesDraftOutput(ev.id, ' O programa teve alta de 87% no ano.') // 1ª tentativa reprovada (número inventado)
-    : { ...rolesDraftOutput(ev.id), headline: 'MOCK: Outra manchete na segunda redação' }));
-  const { store } = await run(g);
-  const d = (await store.getArticle('a1'))!.draft!;
-  assert.equal(n, 2);
-  assert.equal(d.headline, 'MOCK: Outra manchete na segunda redação');
-  assert.equal(d.slug, 'mock-alfa-muda-a-diretoria', 'slug da 1ª redação mantido');
+test('slug se mantém entre redações (re-redação pedida com nova manchete não troca o slug do job)', async () => {
+  const g = gw(() => ({ ...rolesDraftOutput(ev.id), headline: 'MOCK: Outra manchete na segunda redação' }));
+  const deps: StageDeps = { gateway: g, registry: new SourceRegistry([MOCK_SOURCE]), audit: new InMemoryAuditLog(), flags: { editorialPipeline: true }, now: () => NOW };
+  const o = await draftStage(deps, { articleId: 'a1', editoria: 'mercado', evidences: [ev], attempt: 1, slug: 'mock-alfa-muda-a-diretoria' });
+  assert.ok(o.kind === 'next' && o.next.stage === 'factcheck');
+  const d = o.kind === 'next' ? o.next.data.draft! : undefined;
+  assert.equal(d?.headline, 'MOCK: Outra manchete na segunda redação');
+  assert.equal(d?.slug, 'mock-alfa-muda-a-diretoria', 'slug da 1ª redação mantido');
 });
 
 test('gate de aprovação: resumo é obrigatório (≤ 300) e sem ele WF02 bloqueia; tipo/classe/patrocínio são do sistema', async () => {
   const noResumo = await run(gw(() => ({ ...rolesDraftOutput(ev.id), resumo: undefined })));
-  assert.ok(noResumo.last.kind === 'blocked' && noResumo.last.blocked.blockers.includes('max_attempts'));
+  assert.ok(noResumo.last.kind === 'blocked' && noResumo.last.blocked.stage === 'draft' && !noResumo.last.blocked.blockers.includes('max_attempts'));
   assert.ok(noResumo.last.kind === 'blocked' && noResumo.last.blocked.findings.some((f) => f.code === 'resumo_missing'));
   const longo = await run(gw(() => ({ ...rolesDraftOutput(ev.id), resumo: 'x'.repeat(RESUMO_MAX + 1) })));
   assert.ok(longo.last.kind === 'blocked' && longo.last.blocked.findings.some((f) => f.code === 'resumo_too_long'));

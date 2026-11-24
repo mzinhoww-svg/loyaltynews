@@ -155,7 +155,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "host": "www.gov.br",
     "pathPrefix": "/cvm",
     "listingUrl": "https://www.gov.br/cvm/pt-br/assuntos/noticias",
-    "feedUrl": "https://www.gov.br/cvm/pt-br/assuntos/noticias/RSS",
+    "feedUrl": null,
     "termsUrl": "https://www.gov.br/pt-br/termos-de-uso",
     "termsStatus": "pending",
     "urlVerified": false,
@@ -163,7 +163,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 40,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "lido",
@@ -174,7 +174,9 @@ export const SEED_BASE_SOURCES: Source[] = [
       "consultedAt": "2026-11-22",
       "imageRightsNote": "Licença CC BY-ND 3.0 aplicada ao conteúdo do site (atribuição, sem obras derivadas); sem regra específica de imagens. Sem menção a raspagem/automação.",
       "notes": "Horário exato não registrado. Feed é RSS 1.0 (rdf:RDF), confirmado; itens vistos no feed: 21/10/2026 e 03/07/2026 (o feed parece defasado frente à listagem HTML, que tinha itens de 18-19/11/2026: verificar). O rodapé da listagem aponta 'Termos de Uso' para o href relativo /pt-br/termos-de-uso (resolve para www.gov.br/pt-br/termos-de-uso; gov.br/cvm/pt-br/termos-de-uso dá 404); essa página só repetiu a linha da licença CC. Política de privacidade CVM: https://www.gov.br/cvm/pt-br/acesso-a-informacao-cvm/acoes-e-programas/politica-de-privacidade . CC BY-ND implica não adaptar o texto (citar e linkar). | Feed confirmado como XML RSS 2.0 (Plone). O feed raiz mistura pastas de ano (itens '2021', '2026'...) com noticias; o feed util por ano e https://www.gov.br/cvm/pt-br/assuntos/noticias/2026/rss.xml (confirmado: itens reais com titulo, descricao, pubDate, guid; ex.: 06/11/2026). Tambem existe RSS 1.0 em .../noticias/RSS (200, XML rdf). Pagina HTML anuncia link rel=alternate RSS. Manchetes lidas em 19/11/2026 (ex.: acordo com Ibracon). Links de termos no rodape: /pt-br/termos-de-uso e politica de privacidade https://www.gov.br/cvm/pt-br/acesso-a-informacao-cvm/acoes-e-programas/politica-de-privacidade."
-    }
+    },
+    "sitemapUrl": "https://www.gov.br/cvm/sitemap-index.xml",
+    "sitemapPathPrefix": "/cvm/pt-br/assuntos/noticias/"
   },
   {
     "id": "bcb",
@@ -300,7 +302,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 40,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -311,7 +313,9 @@ export const SEED_BASE_SOURCES: Source[] = [
       "consultedAt": "2026-11-22",
       "imageRightsNote": "Rodapé da página de notícias da ANAC declara licença CC BY-ND 3.0 para todo o conteúdo; sem regra específica de imagens.",
       "notes": "Horário exato não registrado. Fonte adicional (não estava na lista obrigatória): regulador de aviação civil, relevante para direitos do passageiro, bagagem e bilhetes/milhas. A listagem de notícias vem sem itens no HTML lido ('Carregando', JS); página modificada em 19/11/2026. /RSS retornou 404 -> feedUrl=null. Verificar manualmente endpoint de listagem ou newsletter 'ANAC Informa'. | A pagina /anac/pt-br/noticias abriu, mas a lista de noticias nao veio no fetch (so cabecalho, banner da newsletter 'ANAC Informa'). Tentativa /anac/pt-br/assuntos/noticias tambem sem itens. Sem RSS visivel. Item util para regulacao de aviacao (direitos do passageiro, bagagem)."
-    }
+    },
+    "sitemapUrl": "https://www.gov.br/anac/sitemap-index.xml",
+    "sitemapPathPrefix": "/anac/pt-br/noticias/"
   },
   {
     "id": "iata",
@@ -907,7 +911,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 40,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -918,7 +922,9 @@ export const SEED_BASE_SOURCES: Source[] = [
       "consultedAt": "2026-11-22T18:43:50-03:00",
       "imageRightsNote": "não informado: a licenca CC BY-ND 3.0 e declarada para 'todo o conteudo do site', mas a pagina de termos nao detalha imagens nem midia de terceiros. SemDerivacoes: nao adaptar/alterar o conteudo; citar fonte.",
       "notes": "Pagina de noticias confirmada (rodape com licenca CC BY-ND 3.0 em https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR; aviso de privacidade em /anpd/pt-br/acesso-a-informacao/aviso-de-privacidade). A lista de noticias e carregada via JS ('Carregando'), entao manchetes nao foram lidas. Testados e 404 (nao sao feed): /anpd/pt-br/assuntos/noticias/RSS, /rss.xml, /search_rss, /anpd/pt-br/RSS, /anpd/pt-br/rss.xml. Sem feed confirmado. Termos gerais do gov.br nao mencionam bots/raspagem; login (conta unica gov.br) so para servicos, nao para noticias."
-    }
+    },
+    "sitemapUrl": "https://www.gov.br/anpd/sitemap-index.xml",
+    "sitemapPathPrefix": "/anpd/pt-br/assuntos/noticias/"
   },
   {
     "id": "mcti",

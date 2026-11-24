@@ -24,7 +24,11 @@ describe('validação do criativo contra a posição', () => {
     expect(codes(base({ asset: { ...asset, mime: 'text/html' as never } }))).toContain('BAD_MIME');
     expect(codes(base({ asset: { ...asset, mime: 'image/gif' } }))).toEqual([]); // GIF é aceito
     expect(codes(base({ asset: { ...asset, width: 1280, height: 151 } }))).toEqual(['BAD_DIMENSIONS']);
-    expect(codes(base({ asset: { ...asset, width: 320, height: 100 } }))).toEqual(['BAD_DIMENSIONS']); // variante mobile ainda não é aceita como criativo da posição
+    // variantes mobile da posição (320x100, 300x250) são criativos válidos (servem só ao mobile; ver device.test.ts); outras dimensões seguem recusadas
+    expect(codes(base({ asset: { ...asset, width: 320, height: 100 } }))).toEqual([]);
+    expect(codes(base({ asset: { ...asset, width: 300, height: 250 } }))).toEqual([]);
+    expect(codes(base({ asset: { ...asset, width: 320, height: 101 } }))).toEqual(['BAD_DIMENSIONS']);
+    expect(codes(base({ asset: { ...asset, width: 336, height: 280 } }))).toEqual(['BAD_DIMENSIONS']); // dimensão desktop de OUTRA posição
     expect(codes(base({ asset: { ...asset, sizeKB: 201 } }))).toEqual(['TOO_HEAVY']);
     expect(codes(base({ asset: { ...asset, sizeKB: 0 } }))).toEqual(['TOO_HEAVY']);
     expect(codes(base({ altText: '   ' }))).toEqual(['NO_ALT']);
@@ -183,7 +187,8 @@ describe('handlers públicos do anúncio', () => {
 });
 
 describe('Studio: aprovar exige criativo real', () => {
-  const studio = { id: 'u', canManageCommercial: true };
+  // o proprietário (admin): é quem aprova imagem e campanha (DP-43)
+  const studio = { id: 'u', canManageCommercial: true, canApprove: true };
   function setup() {
     const state = createCommercialState();
     const acc = state.crm.createAccount('Acme Fidelidade', NOW);
@@ -239,7 +244,8 @@ describe('Studio: aprovar exige criativo real', () => {
 });
 
 describe('portal em modo api, de ponta a ponta (domínio + handlers)', () => {
-  const studio = { id: 'u', canManageCommercial: true };
+  // o proprietário (admin): é quem aprova imagem e campanha (DP-43)
+  const studio = { id: 'u', canManageCommercial: true, canApprove: true };
   it('sem criativo tudo fica oculto; com criativo real a posição aparece, conta, clica e some quando a campanha pausa', () => {
     const state = createCommercialState();
     const on = (actor?: typeof studio) => makeCtx(state, { now: NOW, today: '2026-12-05', flags: { adServerVendas: true }, actor });
@@ -258,7 +264,7 @@ describe('portal em modo api, de ponta a ponta (domínio + handlers)', () => {
     state.ads.setCreative(cid, { campaignActive: true });
 
     const plan = (h.getAdPlan(on(), { positions: 'TOP,FOOTER' }).body as { slots: { positionId: string; available: boolean; width: number | null }[] }).slots;
-    expect(plan).toEqual([{ positionId: 'TOP', available: false, width: null, height: null }, { positionId: 'FOOTER', available: true, width: 1280, height: 200 }]);
+    expect(plan).toEqual([{ positionId: 'TOP', available: false, width: null, height: null, mobile: [] }, { positionId: 'FOOTER', available: true, width: 1280, height: 200, mobile: [] }]);
 
     const served = h.serveAd(on(), { positionId: 'FOOTER', pageViewId: 'p1' }).body as { kind: string; impressionId: string; ad: { href: string; label: string; width: number } };
     expect(served.kind).toBe('creative'); expect(served.ad).toMatchObject({ label: 'Publicidade', width: 1280 });

@@ -130,9 +130,15 @@ describe('pessoas, cargos e Moves', () => {
     expect(mapMove(move({ dataEfetiva: 'ontem' }))?.effectiveDate).toBeNull();
   });
 
-  it('lista de pessoas mostra só cargos vigentes; perfil separa atuais e histórico', () => {
-    const p = mapPersonItem({ id: ID(70), nome: 'Ana', cargos: [cargo(), cargo({ id: ID(51), vigenteAte: '2026-11-10' })] });
-    expect(p?.roles).toHaveLength(1);
+  it('lista confia no Backend para "vigente" (cargo com fim futuro fica); correção do titular é mapeada', () => {
+    const p = mapPersonItem({ id: ID(70), nome: 'Ana', corrigidoPeloTitular: true, cargos: [cargo(), cargo({ id: ID(51), vigenteAte: '2030-12-31' })] });
+    expect(p?.roles).toHaveLength(2);
+    expect(p?.correctedByHolder).toBe(true);
+    expect(mapRole(cargo({ periodo: 'desde 2024', corrigidoPeloTitular: true }))).toMatchObject({ periodText: 'desde 2024', correctedByHolder: true });
+    expect(mapRole(cargo({ periodo: 'x'.repeat(300) }))?.periodText).toHaveLength(120);
+  });
+
+  it('perfil separa atuais e histórico', () => {
     const prof = mapPerson({ id: ID(70), nome: 'Ana', fonte, perfilPublico: 'javascript:alert(1)', cargosAtuais: [cargo()], historico: [cargo({ vigenteAte: '2026-11-10' })], moves: [move(), move({ antes: null })] });
     expect(prof).toMatchObject({ profileUrl: null, currentRoles: [{ title: 'CEO' }], history: [{ validTo: '2026-11-10' }] });
     expect(prof?.moves).toHaveLength(1);

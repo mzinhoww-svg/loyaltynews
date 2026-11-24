@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import Link from 'next/link';
 import { can } from '@ln/auth';
 import { flagAtiva } from '@/lib/studio/flags';
@@ -75,7 +76,7 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
         pronto para o pacote de distribuição. Imagens e direitos ficam na <Link href="/studio/midia">Biblioteca de mídia</Link>.
       </p>
       <p className="st-hint" data-testid="distribuicao">
-        Distribuição no Instagram: <strong>{flagAtiva('instagram') ? 'ligada' : 'desligada'}</strong> (flag instagram).
+        Distribuição no Instagram: <strong>{flagAtiva('instagram') ? 'ligada' : 'desligada nesta fase'}</strong>.
       </p>
       <Flash tipo={sp.tipo} aviso={sp.aviso} />
 
@@ -203,7 +204,8 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
           </section>
         ) : (
           <>
-            <table className="st-table" aria-label="Cards sociais">
+            <QuadroRolavel rotulo="Cards sociais">
+<table className="st-table" aria-label="Cards sociais">
               <thead>
                 <tr>
                   <th scope="col">Matéria</th>
@@ -256,6 +258,7 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
                 ))}
               </tbody>
             </table>
+</QuadroRolavel>
             <p className="st-hint">
               {total} card(s) · página {pag} de {paginas} {pag > 1 ? <Link href={link(pag - 1)}>Anterior</Link> : null}{' '}
               {pag < paginas ? <Link href={link(pag + 1)}>Próxima</Link> : null}

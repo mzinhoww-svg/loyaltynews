@@ -9,11 +9,13 @@ import { expect, test, type Page } from '@playwright/test';
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 /** Modo do Intelligence no servidor MOCK (só api): '' = full | vazio | sem-flag. */
 const intel = process.env.PORTAL_API_INTEL ?? '';
-/** Clique que navega para uma página de detalhe: no next dev a 1ª visita compila a rota e pode passar de 5 s. */
-const NAV_MS = 20_000;
+// Com o e2e contra o build de produção (next start, sem compilação sob demanda) o padrão de 5 s basta.
+const NAV_MS = 5_000;
 
 async function axe(page: Page) {
-  await page.waitForLoadState('networkidle');
+  // 'load', não 'networkidle': no build de produção o Next faz prefetch dos links visíveis e páginas com muitos links (perfil com um
+  // pedido por cargo) não ficam 500 ms sem rede; o axe só precisa do documento carregado e do título.
+  await page.waitForLoadState('load');
   // Na navegação por clique o Next atualiza o <title> logo depois do conteúdo: espera o título antes de auditar.
   await expect.poll(() => page.title()).not.toBe('');
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -66,7 +68,7 @@ test.describe('api', () => {
     const chips = page.getByRole('list', { name: 'Filtrar por tipo' });
     await expect(chips.getByRole('link', { name: 'Todos (5)' })).toHaveAttribute('aria-current', 'true');
     await chips.getByRole('link', { name: 'Empresa (2)' }).click();
-    await expect(page).toHaveURL(/tipo=company/);
+    await expect(page).toHaveURL(/tipo=company/, { timeout: NAV_MS });
     await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(2);
     await expect(page.getByTestId('directory-count')).toContainText('2 organizações · Empresa');
     await expect(chips.getByRole('link', { name: 'Empresa (2)' })).toHaveAttribute('aria-current', 'true');
@@ -135,8 +137,10 @@ test.describe('api', () => {
     await expect(page.locator('main')).not.toContainText('Bia Teste');
     await axe(page);
     await cards.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
-    await expect(page).toHaveURL(/\/moves\/10000000-0000-4000-8000-000000000401$/);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mudança de empresa: [MOCK API] Ana Teste');
+    await expect(page).toHaveURL(/\/moves\/10000000-0000-4000-8000-000000000401$/, { timeout: NAV_MS });
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mudança de empresa: [MOCK API] Ana Teste', { timeout: NAV_MS });
+    // DP-38: o Move tem o próprio pedido; a URL /moves/<id> é a que o Backend 2 usa como alvo.
+    await expect(page.getByTestId('move-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fmoves%2F10000000-0000-4000-8000-000000000401#pedido');
     await axe(page);
     // Move fora do modelo ou inexistente: 404 de verdade.
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000402'))?.status()).toBe(404);
@@ -150,6 +154,8 @@ test.describe('api', () => {
     await axe(page);
     await page.goto('/intelligence/pessoas?q=bia');
     await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(1);
+    // Cargo vigente com fim no futuro (a rota real o manda): não pode sumir da lista.
+    await expect(page.getByTestId('people-list')).toContainText('Presidente (MOCK)');
     await page.goto('/intelligence/pessoas');
     await page.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
@@ -158,6 +164,12 @@ test.describe('api', () => {
     // DP-38: todo perfil público de pessoa tem o caminho de correção ou remoção (direito de resposta / LGPD).
     await expect(page.getByTestId('request-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fintelligence%2Fpessoas%2F10000000-0000-4000-8000-000000000201#pedido');
     await expect(page.getByTestId('move-card')).toHaveCount(1);
+    // Correção do titular (rota real: periodo e corrigidoPeloTitular): período corrigido e aviso visíveis.
+    await expect(page.getByTestId('current-roles')).toContainText('desde nov. 2026 (MOCK, corrigido)');
+    await expect(page.getByTestId('current-roles').getByTestId('corrected-tag')).toBeVisible();
+    await expect(page.getByTestId('person-meta').getByTestId('corrected-tag')).toBeVisible();
+    // Pedido por cargo: ?cargo=<id> na URL do perfil identifica o cargo como alvo (Backend 2).
+    await expect(page.getByTestId('current-roles').getByTestId('role-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fintelligence%2Fpessoas%2F10000000-0000-4000-8000-000000000201%3Fcargo%3D10000000-0000-4000-8000-000000000302#pedido');
     await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
     await axe(page);
     await page.getByTestId('current-roles').getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
@@ -169,6 +181,25 @@ test.describe('api', () => {
     await people.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
+  });
+});
+
+test.describe('fake-api do Intelligence = contrato da API real (erros)', () => {
+  test.skip(mode !== 'api' || intel !== '', 'somente no modo api com Intelligence completo');
+  // Mesma porta que portal.config.ts dá ao servidor MOCK (base+4, ou 3104 sem PORTAL_PORT_BASE).
+  const base = Number(process.env.PORTAL_PORT_BASE) || 0;
+  const fake = `http://localhost:${base ? base + 4 : 3104}`;
+
+  test('id fora de UUID = 400 invalid_input (pessoa, Move, empresa); inexistente = 404 not_found', async ({ request }, info) => {
+    test.skip(info.project.name !== 'desktop', 'chamada direta: um projeto basta');
+    for (const rota of ['pessoas', 'moves', 'empresas']) {
+      const r = await request.get(`${fake}/api/publico/intelligence/${rota}/nao-e-uuid`);
+      expect(r.status(), rota).toBe(400);
+      expect((await r.json()).error.code, rota).toBe('invalid_input');
+    }
+    const nf = await request.get(`${fake}/api/publico/intelligence/empresas/10000000-0000-4000-8000-000000000999`);
+    expect(nf.status()).toBe(404);
+    expect((await nf.json()).error.code).toBe('not_found');
   });
 });
 
@@ -186,6 +217,14 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
       await expect(page.getByTestId('error-state'), rota).toHaveCount(0);
       await axe(page);
     }
+    // P3-3 (revisão visual int/012) também com o vazio vindo da API: texto do aviso abaixo do título e bloco "Enquanto isso".
+    await page.goto('/moves');
+    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const bt = (await titulo.boundingBox())!;
+    const bx = (await page.getByTestId('moves-empty-text').boundingBox())!;
+    expect(bx.y, 'o texto do aviso começa abaixo do título').toBeGreaterThanOrEqual(bt.y + bt.height - 1);
+    await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Diretório de empresas/ })).toHaveAttribute('href', '/intelligence/empresas');
+    await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Pessoas e cargos/ })).toHaveAttribute('href', '/intelligence/pessoas');
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000401'))?.status()).toBe(404);
     await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000001');

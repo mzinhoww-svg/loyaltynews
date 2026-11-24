@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import type { MediaKitPage } from '@ln/commercial';
 import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
@@ -42,11 +43,12 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       <h1>Inventário</h1>
       <p>Posições, capacidade e catálogo de formatos. Nenhum formato sem capacidade operacional fica à venda. Preço é referência comercial; disponibilidade é real.</p>
       <div className="st-alert" role="status">
-        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada'}</strong> (flag adServerVendas). Período da ocupação: {from} a {to}.
+        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada nesta fase'}</strong>. Período da ocupação: {from} a {to}.
       </div>
 
       <h2>Posições</h2>
-      <table className="st-table">
+      <QuadroRolavel rotulo="Posições do inventário">
+<table className="st-table">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
           {posicoes.length} posições do blueprint
         </caption>
@@ -79,6 +81,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           ))}
         </tbody>
       </table>
+</QuadroRolavel>
 
       <h2 style={{ marginTop: 24 }}>Catálogo de formatos</h2>
       <form className="st-filters" method="get" role="search" aria-label="Filtrar formatos">
@@ -111,7 +114,8 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           Filtro inválido.
         </div>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Formatos do catálogo">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {view.total} formato(s). {view.note}
           </caption>
@@ -138,6 +142,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <h2 style={{ marginTop: 24 }}>Mídia kit</h2>

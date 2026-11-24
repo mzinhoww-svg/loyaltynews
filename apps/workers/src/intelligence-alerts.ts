@@ -1,13 +1,12 @@
 // Geração agendada dos ALERTAS das watchlists (Entity Intelligence): quando um Move é CONFIRMADO por revisão humana, cria o alerta (pending_review) para
 // cada watchlist que observa a pessoa ou a organização do Move. Antes deste job nenhum código de produção chamava `generateAlerts`.
-// DESLIGADO por padrão: só roda com as chaves explícitas E a flag `intelligencePessoas` ligada pela ADR-022 (resolveFlags: staging com LN_FLAGS_ON)
-//   LN_INTELLIGENCE_ALERTS=on     (este job)
-//   LN_INTELLIGENCE_PESSOAS=on    (flag `intelligencePessoas`, J-01/DP-38: sem ela não há dado de pessoa em operação)
+// DESLIGADO por padrão: só roda com a chave operacional e a flag pelo resolvedor único do worker (ADR-022)
+//   LN_INTELLIGENCE_ALERTS=on     (chave operacional deste job)
+//   flag `intelligencePessoas` pelo resolvedor (opts.flags = workerFlagResolver; staging com LN_FLAGS_ON; produção nunca)
 // Só Moves `confirmed` entram (detectado e rejeitado nunca geram alerta). Idempotente (UNIQUE watchlist+move + ON CONFLICT DO NOTHING): repetir o ciclo não duplica.
 // Janela: só Moves detectados nos últimos LN_ALERTS_WINDOW_DAYS dias (padrão 30), para uma lista nova não despejar o histórico inteiro.
 // Intervalo: LN_ALERTS_INTERVAL_MIN (padrão 15; piso 5). Logs: só contagens (nunca nome de pessoa, lista ou dono).
 import { randomUUID } from 'node:crypto';
-import { resolveFlags } from '@ln/contracts';
 import { errLine } from '@ln/db/safe-log';
 import { generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 
@@ -47,24 +46,19 @@ const intEnv = (v: string | undefined, def: number, min: number): number => {
   return Number.isFinite(n) && n > 0 ? Math.max(Math.floor(n), min) : def;
 };
 
-export function startIntelligenceAlerts(opts: { db: IntelDb; env?: Env; log?: (line: string) => void; now?: () => Date }): { stop: () => void } | null {
+export function startIntelligenceAlerts(opts: { db: IntelDb; env?: Env; flags?: (f: 'intelligencePessoas') => boolean; log?: (line: string) => void; now?: () => Date }): { stop: () => void } | null {
   const env = opts.env ?? process.env;
   const log = opts.log ?? ((l: string) => console.log(l));
   if (env.LN_INTELLIGENCE_ALERTS !== 'on') return null;
-  if (env.LN_INTELLIGENCE_PESSOAS !== 'on') {
-    log('[intelligence-alerts] desligado: falta LN_INTELLIGENCE_PESSOAS=on (J-01)');
-    return null;
-  }
-  // ADR-022: a mesma flag de produto do web (resolveFlags), ligada só por decisão registrada (staging = DP-38).
+  // ADR-022: a flag de produto vem do resolvedor único do worker (workerFlagResolver); sem resolvedor, desligada. Nenhuma variável própria.
   let flagOn: boolean;
   try {
-    flagOn = resolveFlags(env).state.intelligencePessoas;
-  } catch (e) {
-    log(errLine('[intelligence-alerts] desligado: flags inválidas', e));
-    return null;
+    flagOn = (opts.flags ?? (() => false))('intelligencePessoas') === true;
+  } catch {
+    flagOn = false; // falha fechada
   }
   if (!flagOn) {
-    log('[intelligence-alerts] desligado: flag intelligencePessoas não ligada (ADR-022: APP_ENV=staging e LN_FLAGS_ON)');
+    log('[intelligence-alerts] desligado: flag intelligencePessoas desligada (ADR-022: APP_ENV=staging e LN_FLAGS_ON)');
     return null;
   }
   const windowDays = intEnv(env.LN_ALERTS_WINDOW_DAYS, 30, 1);

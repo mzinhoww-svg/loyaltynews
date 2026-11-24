@@ -12,7 +12,7 @@ import { createOTP } from '@better-auth/utils/otp';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { EDITORIAS, FLAG_DEFAULTS } from '@ln/contracts';
 import { createAuth, createAuthHandler, createStaffUser, type Db, type Role } from '@ln/auth';
 import { schema } from '@ln/db';
@@ -30,6 +30,18 @@ import * as pubOne from '../publico/materias/[slug]/route';
 import { dispatchEditorial as d, setStoreFactoryForTest } from '../_lib/editorial';
 import { assertLocalDisposablePg } from '../../../../../packages/editorial/fixtures/local-pg-guard.mock';
 import { SimulatedEditorialModel } from '../../../../../packages/editorial/fixtures/simulated-model.mock';
+
+/** TOTP gerado e verificado com o relógio (só Date) parado entre os dois passos: nunca na virada da janela de 30 s sob carga. Sem retry.
+ *  Não toca no relógio injetado dos handlers (janela de bloqueio de tentativas). Se o teste já usa relógio falso, não mexe. */
+const relogioParado = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const congelar = !vi.isFakeTimers();
+  if (congelar) vi.useFakeTimers({ toFake: ['Date'], now: Date.now() });
+  try {
+    return await fn();
+  } finally {
+    if (congelar) vi.useRealTimers();
+  }
+};
 
 const URL_LOCAL = process.env['LN_LOCAL_PG_URL'];
 const OUT = fileURLToPath(new URL('../../../../../packages/editorial/docs/rodada-simulada/', import.meta.url));
@@ -80,9 +92,9 @@ describe.skipIf(!URL_LOCAL)('rodada simulada local (PostgreSQL real, modelo simu
       const c0 = cookieOf(await handle(authReq('/sign-in/email', { email, password: PASSWORD })));
       const { totpURI } = (await (await handle(authReq('/two-factor/enable', { password: PASSWORD }, c0))).json()) as { totpURI: string };
       const raw = base32.decode(new URL(totpURI).searchParams.get('secret')!.toUpperCase());
-      await handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, c0));
+      await relogioParado(async () => handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, c0)));
       const login = await handle(authReq('/sign-in/email', { email, password: PASSWORD }));
-      const v2 = await handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, cookieOf(login)));
+      const v2 = await relogioParado(async () => handle(authReq('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, cookieOf(login))));
       return { id, cookie: cookieOf(v2) };
     };
     chefe = await actor('editor_chefe'); admin = await actor('admin');

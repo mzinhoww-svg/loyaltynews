@@ -176,6 +176,32 @@ test.describe('CMS editorial (/api/materias)', () => {
     await expect(page.locator('[data-para-mim]')).toHaveCount(0);
   });
 
+  // revisão visual P2-1: tabela que rola no celular fica num quadro com nome e foco de teclado (axe scrollable-region-focusable)
+  test('lista do CMS no celular: a tabela fica num quadro rolável focável e com nome', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto('/studio/cms');
+    const quadro = page.locator('main .st-quadro').first();
+    await expect(quadro).toHaveAttribute('role', 'region');
+    await expect(quadro).toHaveAttribute('tabindex', '0');
+    await expect(quadro).toHaveAttribute('aria-label', 'Matérias');
+    await expect(quadro.locator('table')).toHaveCount(1);
+    await quadro.focus();
+    await expect(quadro).toBeFocused();
+  });
+
+  // revisão visual P3-2: a célula do título (cabeçalho da linha) não destoa das outras células da linha
+  test('lista do CMS: a célula do título tem o mesmo fundo das outras células', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    await page.goto('/studio/cms');
+    const fundos = await page.evaluate(() => {
+      const linha = document.querySelector('main table tbody tr')!;
+      return [...linha.children].map((c) => getComputedStyle(c).backgroundColor);
+    });
+    expect(fundos.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(fundos).size, fundos.join(' | ')).toBe(1);
+  });
+
   test('filtros por estado, editoria e busca; filtro inválido é recusado pela API', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
     await page.goto('/studio/cms?status=bloqueado');
@@ -242,14 +268,19 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
     await page.getByRole('link', { name: TITULO2 }).click();
     await expect(page.getByRole('heading', { name: 'Publicação' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
-    await expect(page.getByText('Publicação desligada neste ambiente (flag publicacaoPortal).')).toBeVisible();
+    await expect(page.getByText('Publicação desligada nesta fase.')).toBeVisible();
     await expect(page.getByLabel('URL pública da matéria')).toBeVisible();
     // P2-01: matéria aprovada não é editável e a tela diz isso com clareza (campo travado parece travado)
     await expect(page.locator('[data-travada="sim"]')).toContainText('ficam travados');
     const fundo = await page.locator('#titulo').evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(fundo).not.toBe('rgb(255, 255, 255)');
-    // P2-02: quem aprovou aparece como "você" ou "outro usuário", não só um identificador
-    await expect(page.locator('[data-aprovador]')).toContainText(/Aprovado por (você|outro usuário \([0-9a-f]{8}…\))/);
+    // P2-02: quem aprovou aparece como "você", pelo nome (Backend com aprovadorNome) ou como "outro usuário (id curto)", não só um identificador
+    await expect(page.locator('[data-aprovador]')).toContainText(/Aprovado por (você|outro usuário \([0-9a-f]{8}…\)|[^()]+)\./);
+    await expect(page.locator('[data-aprovador]')).not.toContainText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/); // nunca o identificador inteiro
+    // nem na dica nativa (title) do trecho, nem em qualquer elemento dentro dele: a pessoa nunca passa o mouse e vê o UUID
+    const dicas = await page.locator('[data-aprovador], [data-aprovador] *').evaluateAll((els) => els.map((e) => e.getAttribute('title') ?? '').filter(Boolean));
+    expect(dicas.join(' | ')).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/);
+    await expect(page.locator('[data-aprovador]')).not.toHaveAttribute('title', /.+/);
     // a transição genérica não publica nem corrige: a tela não oferece "corrigido"
     await expect(page.getByRole('button', { name: /corrigido|Corrigir/i })).toHaveCount(0);
 
@@ -267,7 +298,7 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
       await page.goto('/studio/cms?status=aprovado');
       await page.getByRole('link', { name: TITULO2 }).click();
       await expect(page.getByRole('button', { name: 'Publicar' })).toBeEnabled();
-      await expect(page.getByText('Publicação desligada neste ambiente')).toHaveCount(0);
+      await expect(page.getByText('Publicação desligada nesta fase')).toHaveCount(0);
 
       // P2-03: a URL pública é a do Portal e não se digita (um erro de digitação gravaria no recibo um link que dá 404)
       await expect(page.getByLabel('URL pública da matéria')).toHaveAttribute('readonly', '');

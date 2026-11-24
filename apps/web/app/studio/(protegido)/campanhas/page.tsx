@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { flagAtiva } from '@/lib/studio/flags';
@@ -64,7 +65,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
       <h1>Campanhas</h1>
       <p>Flights, criativos e entrega. Os 7 estados do blueprint: {ESTADOS.join(' → ')}. Ativar exige reserva confirmada e criativo aprovado; sem venda habilitada a campanha não ativa.</p>
       <div className="st-alert" role="status">
-        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada'}</strong> (flag adServerVendas).
+        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada nesta fase'}</strong>.
       </div>
       <Flash tipo={tipo} aviso={aviso} />
 
@@ -124,7 +125,8 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
               Nenhuma campanha com esses filtros.
             </p>
           ) : (
-            <table className="st-table">
+            <QuadroRolavel rotulo="Lista de campanhas">
+<table className="st-table">
               <caption className="st-hint" style={{ textAlign: 'left' }}>
                 {totalFiltrado} campanha(s) · página {pag} de {paginas}
               </caption>
@@ -153,6 +155,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
                 ))}
               </tbody>
             </table>
+</QuadroRolavel>
           )}
           {paginas > 1 ? (
             <nav aria-label="Paginação de campanhas" className="st-actions">
@@ -215,12 +218,12 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
             </div>
             <div className="st-row">
               <div className="st-field">
-                <label htmlFor="inicio">Início (AAAA-MM-DD)</label>
-                <input id="inicio" name="inicio" type="text" />
+                <label htmlFor="inicio">Início (obrigatório)</label>
+                <input id="inicio" name="inicio" type="date" required />
               </div>
               <div className="st-field">
-                <label htmlFor="fim">Fim (AAAA-MM-DD)</label>
-                <input id="fim" name="fim" type="text" />
+                <label htmlFor="fim">Fim (obrigatório)</label>
+                <input id="fim" name="fim" type="date" required />
               </div>
             </div>
             <div className="st-field">

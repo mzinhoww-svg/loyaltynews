@@ -144,6 +144,7 @@ test('checagem: visão por claim, independência; recheck apenas enfileira (idem
   assert.equal((r2.body as { jobId: string }).jobId, 'a1:factcheck:r2');
   assert.equal((await store.getArticle('a1'))?.recheckCount, 2);
   assert.equal((await requestRecheck(mkctx(revisor, store), { articleId: 'a1' })).status, 503);
+  assert.equal((await store.getArticle('a1'))?.recheckCount, 2, 'o 503 não conta como pedido');
   assert.equal((await requestRecheck(mkctx(editor, store, q), { articleId: 'a1' })).status, 403);
   const pub = (await store.getArticle('a1'))!; await store.putArticle({ ...pub, status: 'publicado' });
   assert.equal((await requestRecheck(mkctx(revisor, store, q), { articleId: 'a1' })).status, 409);
@@ -223,4 +224,30 @@ test('handlers são puros: nenhuma chamada de rede ou modelo (fetch bloqueado du
     assert.equal((await listQueue(mkctx(editor, store), {})).status, 200);
     assert.equal((await getFactcheck(mkctx(editor, store), { articleId: 'p1' })).status, 200);
   } finally { globalThis.fetch = realFetch; }
+});
+
+test('teto de nova checagem (R3 do QA 1): 3 pedidos passam; o 4º é 409 MAX_ATTEMPTS_REACHED, não enfileira, não muda a matéria e deixa a contagem na trilha', async () => {
+  const store = await approvedStore();
+  const q = new InMemoryQueue();
+  for (const n of [1, 2, 3]) {
+    const r = await requestRecheck(mkctx(revisor, store, q), { articleId: 'a1' });
+    assert.equal(r.status, 202, `pedido ${n}`);
+    assert.equal((r.body as { jobId: string }).jobId, `a1:factcheck:r${n}`);
+  }
+  const antes = (await store.getArticle('a1'))!;
+  assert.equal(antes.recheckCount, 3);
+  const r4 = await requestRecheck(mkctx(revisor, store, q), { articleId: 'a1' });
+  assert.equal(r4.status, 409);
+  assert.match(JSON.stringify(r4.body), /MAX_ATTEMPTS_REACHED/);
+  assert.equal(q.seen.has('a1:factcheck:r4'), false, 'nada é enfileirado');
+  const depois = (await store.getArticle('a1'))!;
+  assert.equal(depois.recheckCount, 3, 'a contagem não passa do teto'); assert.equal(depois.status, antes.status); assert.equal(depois.draft?.headline, antes.draft?.headline);
+  // insistir não muda nada além da trilha (cada recusa fica registrada)
+  assert.equal((await requestRecheck(mkctx(revisor, store, q), { articleId: 'a1' })).status, 409);
+  const trilha = await store.listAudit();
+  assert.deepEqual(trilha.filter((e) => e.action === 'factcheck.recheck').map((e) => e.detail), ['a1:factcheck:r1 (pedido 1 de 3)', 'a1:factcheck:r2 (pedido 2 de 3)', 'a1:factcheck:r3 (pedido 3 de 3)']);
+  const lim = trilha.filter((e) => e.action === 'factcheck.recheck_limite');
+  assert.equal(lim.length, 2); assert.match(lim[0]!.detail!, /^MAX_ATTEMPTS_REACHED 3\/3: .*edição manual/);
+  // permissão e validação seguem na frente do teto
+  assert.equal((await requestRecheck(mkctx(editor, store, q), { articleId: 'a1' })).status, 403);
 });

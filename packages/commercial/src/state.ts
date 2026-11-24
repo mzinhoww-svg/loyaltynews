@@ -11,7 +11,16 @@ import { AdServer } from './rotation';
 import type { CommercialFormat } from './types';
 import type { DeliveryRow } from './report';
 
-export interface Actor { id: string; /** Calculado pelo Backend (papel comercial/admin). Handlers de Studio exigem true. */ canManageCommercial: boolean }
+export interface Actor {
+  id: string;
+  /** Calculado pelo Backend (papel comercial/admin). Handlers de Studio exigem true. */
+  canManageCommercial: boolean;
+  /**
+   * DP-43: aprovar cada imagem (criativo) e cada campanha é só do proprietário (papel admin). Calculado pelo Backend.
+   * Ausente ou false = não aprova (falha fechada). O comercial prepara e envia; não aprova.
+   */
+  canApprove?: boolean;
+}
 
 export interface CommercialState {
   catalog: readonly CommercialFormat[];

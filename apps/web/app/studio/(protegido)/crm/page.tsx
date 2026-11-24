@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -10,6 +11,12 @@ import { leadAction, moverEstagioAction, registrarLeadAction } from './actions';
 
 export const metadata: Metadata = { title: 'CRM' };
 export const dynamic = 'force-dynamic';
+
+// Rótulos em português para a tela (revisão visual P2-2); os valores enviados à API continuam os do domínio.
+const ESTADO_LEAD: Record<string, string> = { novo: 'Novo', qualificado: 'Qualificado', descartado: 'Descartado', convertido: 'Convertido' };
+const ESTAGIO: Record<string, string> = { novo: 'Novo', qualificado: 'Qualificado', proposta: 'Proposta', negociacao: 'Negociação', ganho: 'Ganho', perdido: 'Perdido' };
+const ACAO_LEAD: Record<string, string> = { qualificar: 'Qualificar', converter: 'Converter', descartar: 'Descartar' };
+const rotulo = (m: Record<string, string>, k: string) => m[k] ?? k;
 
 const PROXIMOS: Record<string, string[]> = {
   novo: ['qualificado', 'perdido'],
@@ -86,7 +93,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           <p>Nenhum lead recebido. Os leads chegam pelo formulário do mídia kit (portal) ou são registrados abaixo.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Leads">
+<table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
             {leads.length} lead(s)
           </caption>
@@ -108,7 +116,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                 </th>
                 <td>{l.objective}</td>
                 <td>
-                  <span className="st-badge">{l.status}</span>
+                  <span className="st-badge">{rotulo(ESTADO_LEAD, l.status)}</span>
                 </td>
                 <td>
                   <div className="st-actions">
@@ -116,8 +124,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                       <form action={leadAction} key={op}>
                         <input type="hidden" name="id" value={l.id} />
                         <input type="hidden" name="op" value={op} />
-                        <button className={op === 'descartar' ? 'st-btn danger' : 'st-btn sec'} type="submit" aria-label={`${op} ${l.name}`}>
-                          {op}
+                        <button className={op === 'descartar' ? 'st-btn danger' : 'st-btn sec'} type="submit" aria-label={`${rotulo(ACAO_LEAD, op)} ${l.name}`}>
+                          {rotulo(ACAO_LEAD, op)}
                         </button>
                       </form>
                     ))}
@@ -127,6 +135,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
 
       <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="novo-lead">
@@ -175,7 +184,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
         {colunas.map((c) => (
           <div className="st-card" role="listitem" key={c.stage} data-stage={c.stage}>
             <h3 style={{ marginTop: 0 }}>
-              {c.stage} ({c.items.length})
+              {rotulo(ESTAGIO, c.stage)} ({c.items.length})
             </h3>
             {c.items.length === 0 ? (
               <p className="st-hint">Vazio.</p>
@@ -193,7 +202,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                       <select name="para" aria-label={`Mover ${o.title} para`}>
                         {PROXIMOS[c.stage]!.map((p) => (
                           <option key={p} value={p}>
-                            {p}
+                            {rotulo(ESTAGIO, p)}
                           </option>
                         ))}
                       </select>

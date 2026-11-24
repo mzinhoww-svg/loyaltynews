@@ -1,6 +1,6 @@
 {
   "disclaimer": "NÃO VALE COMO MEDIÇÃO DO POSTGRESQL DA VERTRA. PGlite = PostgreSQL em WASM, single-thread, em memória. Critério oficial (ADR-009, p95 <= 300 ms com 100 mil arestas) só se confirma no PG 18 da Vertra em R5-05.",
-  "generated_at": "2026-11-22T22:15:43.983Z",
+  "generated_at": "2026-11-23T20:19:25.501Z",
   "environment": {
     "node": "v26.13.1",
     "os": "win32 10.0.26200",
@@ -14,7 +14,7 @@
     "orgs": 20000,
     "people": 15000,
     "graph_edges": 114990,
-    "load_seconds": 6.1,
+    "load_seconds": 11.5,
     "as_of": "2026-11-22"
   },
   "queries": {
@@ -25,35 +25,87 @@
   "results": {
     "neighbors_from_organization": {
       "n": 60,
-      "p50_ms": 197.6,
-      "p95_ms": 386.4,
-      "p99_ms": 513.1,
-      "max_ms": 513.1,
-      "mean_ms": 225.2,
+      "p50_ms": 50,
+      "p95_ms": 110.2,
+      "p99_ms": 148.8,
+      "max_ms": 148.8,
+      "mean_ms": 57.4,
       "entities_reached_median": 655,
       "entities_reached_max": 1401
     },
     "neighbors_from_person": {
       "n": 60,
-      "p50_ms": 177.9,
-      "p95_ms": 393.6,
-      "p99_ms": 461.8,
-      "max_ms": 461.8,
-      "mean_ms": 196.3
+      "p50_ms": 25.7,
+      "p95_ms": 50.7,
+      "p99_ms": 71.4,
+      "max_ms": 71.4,
+      "mean_ms": 28.7
     },
     "shortest_path_org_to_org": {
       "n": 60,
-      "p50_ms": 185.8,
-      "p95_ms": 380.1,
-      "p99_ms": 433.6,
-      "max_ms": 433.6,
-      "mean_ms": 214.2
+      "p50_ms": 21.7,
+      "p95_ms": 29.5,
+      "p99_ms": 41.7,
+      "max_ms": 41.7,
+      "mean_ms": 22.5
+    }
+  },
+  "reference_batched": {
+    "neighbors_from_organization": {
+      "n": 60,
+      "p50_ms": 27.3,
+      "p95_ms": 47.5,
+      "p99_ms": 57.6,
+      "max_ms": 57.6,
+      "mean_ms": 28.9
+    },
+    "neighbors_from_person": {
+      "n": 60,
+      "p50_ms": 15.4,
+      "p95_ms": 30.3,
+      "p99_ms": 38.1,
+      "max_ms": 38.1,
+      "mean_ms": 16.1
+    },
+    "shortest_path_org_to_org": {
+      "n": 60,
+      "p50_ms": 24.4,
+      "p95_ms": 41.2,
+      "p99_ms": 59.4,
+      "max_ms": 59.4,
+      "mean_ms": 25.6
+    }
+  },
+  "reference_recursive": {
+    "neighbors_from_organization": {
+      "n": 60,
+      "p50_ms": 292.3,
+      "p95_ms": 450.6,
+      "p99_ms": 471.3,
+      "max_ms": 471.3,
+      "mean_ms": 305
+    },
+    "neighbors_from_person": {
+      "n": 60,
+      "p50_ms": 274.8,
+      "p95_ms": 376.3,
+      "p99_ms": 456.4,
+      "max_ms": 456.4,
+      "mean_ms": 257.9
+    },
+    "shortest_path_org_to_org": {
+      "n": 60,
+      "p50_ms": 275.8,
+      "p95_ms": 397.9,
+      "p99_ms": 421,
+      "max_ms": 421,
+      "mean_ms": 285.3
     }
   },
   "proposed_criterion": {
     "p95_ms": 300,
     "edges": 100000
   },
-  "worst_p95_ms": 393.6,
-  "p95_within_proposed_criterion_on_this_machine": false
+  "worst_p95_ms": 110.2,
+  "p95_within_proposed_criterion_on_this_machine": true
 }

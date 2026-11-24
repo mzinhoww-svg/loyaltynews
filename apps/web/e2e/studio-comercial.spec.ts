@@ -49,13 +49,13 @@ test.describe('Comercial (@ln/commercial)', () => {
     await page.getByLabel('Objetivo').fill('Campanha de cartão');
     await enviar(page, page.getByRole('button', { name: 'Registrar lead' }));
     await sucesso(page, 'Lead registrado');
-    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('novo');
+    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('Novo');
 
     await enviar(page, page.getByRole('button', { name: 'qualificar Maria Souza' }));
     await sucesso(page, 'Lead qualificado.');
     await enviar(page, page.getByRole('button', { name: 'converter Maria Souza' }));
     await sucesso(page, 'Lead convertido em oportunidade.');
-    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('convertido');
+    await expect(page.getByRole('row', { name: /Maria Souza/ })).toContainText('Convertido');
     await expect(page.locator('[data-stage="novo"]')).toContainText('Banco Exemplo');
 
     await page.getByLabel(/Mover .* para/).first().selectOption('perdido');
@@ -80,14 +80,14 @@ test.describe('Comercial (@ln/commercial)', () => {
     await expect(page.getByRole('heading', { name: 'Nenhuma campanha' })).toBeVisible();
     await expect(page.locator('[data-estado="draft"]')).toContainText('draft: 0');
     await page.getByLabel('Nome', { exact: true }).fill('Cartão Verão');
-    await page.getByLabel('Início (AAAA-MM-DD)').fill('2099-01-10');
-    await page.getByLabel('Fim (AAAA-MM-DD)').fill('2099-01-09');
+    await page.getByLabel('Início (obrigatório)').fill('2099-01-10');
+    await page.getByLabel('Fim (obrigatório)').fill('2099-01-09');
     await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
     await erro(page, /endDate|anterior/);
 
     await page.getByLabel('Nome', { exact: true }).fill('Cartão Verão');
-    await page.getByLabel('Início (AAAA-MM-DD)').fill('2099-01-10');
-    await page.getByLabel('Fim (AAAA-MM-DD)').fill('2099-01-20');
+    await page.getByLabel('Início (obrigatório)').fill('2099-01-10');
+    await page.getByLabel('Fim (obrigatório)').fill('2099-01-20');
     await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
     await sucesso(page, 'Campanha criada em rascunho.');
     await expect(page.getByRole('heading', { level: 1, name: 'Cartão Verão' })).toBeVisible();
@@ -128,8 +128,8 @@ test.describe('Comercial (@ln/commercial)', () => {
     await entrar(context, 'caio', 'comercial');
     await page.goto('/studio/campanhas');
     await page.getByLabel('Nome', { exact: true }).fill('Relatório Teste');
-    await page.getByLabel('Início (AAAA-MM-DD)').fill('2099-01-10');
-    await page.getByLabel('Fim (AAAA-MM-DD)').fill('2099-01-20');
+    await page.getByLabel('Início (obrigatório)').fill('2099-01-10');
+    await page.getByLabel('Fim (obrigatório)').fill('2099-01-20');
     await enviar(page, page.getByRole('button', { name: 'Criar campanha' }));
     await sucesso(page, 'Campanha criada em rascunho.');
     const id = decodeURIComponent(new URL(page.url()).pathname.split('/').pop()!);

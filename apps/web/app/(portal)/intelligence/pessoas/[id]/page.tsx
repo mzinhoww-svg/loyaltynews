@@ -6,9 +6,12 @@ import { ErrorState } from '../../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { getSource } from '../../../_lib/source';
 import { linkPedido } from '../../../_titular/pedido';
-import { MoveCard, RolesTable, SourceLink } from '../../_components/intel';
+import { CorrectedTag, MoveCard, RolesTable, SourceLink } from '../../_components/intel';
 
-export const revalidate = 60;
+// Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+// Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
+// a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
+export const dynamic = 'force-dynamic';
 const load = cache((id: string) => getSource().getPerson(id));
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -48,6 +51,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
       </p>
       <p className="pt-meta" data-testid="person-meta">
         {p.mock && <MockTag />}Fonte: <SourceLink source={p.source} />
+        {p.correctedByHolder && <CorrectedTag />}
         {p.profileUrl && (
           <> · <a href={p.profileUrl} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>perfil público<span className="pt-sr"> (abre em nova aba)</span></a></>
         )}
@@ -56,7 +60,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
       <section className="pt-section" aria-labelledby="cargos-t">
         <div className="pt-section-head"><h2 id="cargos-t">Cargos atuais</h2></div>
         {p.currentRoles.length ? (
-          <RolesTable roles={p.currentRoles} testId="current-roles" caption="Cargos declarados em fonte pública oficial; nenhum cargo é inferido." />
+          <RolesTable correctionFor={p.id} roles={p.currentRoles} testId="current-roles" caption="Cargos declarados em fonte pública oficial; nenhum cargo é inferido." />
         ) : (
           <EmptyState title="Sem cargo vigente registrado">Ausência de registro não prova inexistência.</EmptyState>
         )}
@@ -65,7 +69,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
       {p.history.length > 0 && (
         <section className="pt-section" aria-labelledby="hist-t">
           <div className="pt-section-head"><h2 id="hist-t">Cargos anteriores</h2></div>
-          <RolesTable roles={p.history} testId="history-roles" caption="Cargos encerrados, com a última fonte que os sustentou." />
+          <RolesTable correctionFor={p.id} roles={p.history} testId="history-roles" caption="Cargos encerrados, com a última fonte que os sustentou." />
         </section>
       )}
 

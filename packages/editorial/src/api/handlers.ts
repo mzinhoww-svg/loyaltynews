@@ -20,6 +20,7 @@ import { isCorrectable, publicArticleUrl } from './published-lookup';
 
 import { audit, authorize, bad, fail, isErr, ok, parse } from './common';
 import type { ApiResponse, HandlerCtx } from './common';
+import { MAX_ATTEMPTS } from '../pipeline/stages';
 export { ACTION_ROLES } from './common';
 export type { Action, Actor, ApiResponse, HandlerCtx } from './common';
 
@@ -130,7 +131,12 @@ export async function getFactcheck(ctx: HandlerCtx, input: unknown): Promise<Api
   return ok({ articleId: r.articleId, independencia: independence(r), claims, resumo: { aprovadas: count('pass'), reprovadas: count('fail'), inconclusivas: count('inconclusive'), semVeredito: count(null) } });
 }
 
-/** Pede nova checagem: só ENFILEIRA (idempotente por contagem). A chamada ao modelo acontece no worker, via gateway. */
+/**
+ * Pede nova checagem: só ENFILEIRA (idempotente por contagem). A chamada ao modelo acontece no worker, via gateway.
+ * TETO (decisão do PM, R3 do QA 1): no máximo `MAX_ATTEMPTS` (3) pedidos por matéria, por custo e para não haver laço. O 4º pedido é recusado com
+ * 409 `MAX_ATTEMPTS_REACHED`, NADA é enfileirado nem reescrito automaticamente e a matéria segue para edição manual por uma pessoa;
+ * a recusa fica na trilha com a contagem (`factcheck.recheck_limite`).
+ */
 export async function requestRecheck(ctx: HandlerCtx, input: unknown): Promise<ApiResponse<{ articleId: string; jobId: string }>> {
   const a = authorize(ctx, 'factcheck.recheck'); if (isErr(a)) return fail(a);
   const p = parse(IdIn, input); if (bad(p)) return fail(p);
@@ -138,6 +144,10 @@ export async function requestRecheck(ctx: HandlerCtx, input: unknown): Promise<A
   if (!r?.draft) return fail(apiError('NOT_FOUND', 'matéria ou rascunho não encontrado'));
   if (!ctx.queue) return fail(apiError('UNAVAILABLE', 'fila indisponível'));
   if (r.status === 'publicado' || r.status === 'despublicado') return fail(apiError('CONFLICT', `matéria ${r.status}: use o fluxo de correção`));
+  if (r.recheckCount >= MAX_ATTEMPTS) {
+    await audit(ctx, a.userId, 'factcheck.recheck_limite', r.articleId, `MAX_ATTEMPTS_REACHED ${r.recheckCount}/${MAX_ATTEMPTS}: sem nova checagem automática; edição manual`);
+    return fail(apiError('CONFLICT', `MAX_ATTEMPTS_REACHED: a matéria já teve ${r.recheckCount} checagens pedidas (teto ${MAX_ATTEMPTS}); a edição agora é manual, por uma pessoa, sem nova checagem ou reescrita automática`, [{ path: 'articleId', message: 'MAX_ATTEMPTS_REACHED' }]));
+  }
   const n = r.recheckCount + 1;
   const jobId = `${r.articleId}:factcheck:r${n}`;
   await ctx.queue.enqueue({
@@ -145,7 +155,7 @@ export async function requestRecheck(ctx: HandlerCtx, input: unknown): Promise<A
     data: { articleId: r.articleId, editoria: r.editoria, evidences: r.evidences, ...(r.draft ? { draft: r.draft } : {}), attempt: n },
   });
   await ctx.store.putArticle({ ...r, recheckCount: n, status: canTransition(r.status, 'em_checagem') ? 'em_checagem' : r.status, updatedAt: ctx.now().toISOString() });
-  await audit(ctx, a.userId, 'factcheck.recheck', r.articleId, jobId);
+  await audit(ctx, a.userId, 'factcheck.recheck', r.articleId, `${jobId} (pedido ${n} de ${MAX_ATTEMPTS})`);
   return ok({ articleId: r.articleId, jobId }, 202);
 }
 

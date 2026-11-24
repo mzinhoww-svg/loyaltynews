@@ -127,7 +127,12 @@ export function mapRole(v: unknown): PersonRole | null {
   const source = mapSource(v.fonte);
   if (!company || !source) return null;
   if (v.vigenteAte != null && !isDay(v.vigenteAte)) return null;
-  return { id: v.id, title: v.titulo, company, validFrom: v.vigenteDesde, validTo: (v.vigenteAte as string | null) ?? null, validatedAt: v.validadoEm, source, mock: v.mock === true };
+  return {
+    id: v.id, title: v.titulo, company, validFrom: v.vigenteDesde, validTo: (v.vigenteAte as string | null) ?? null, validatedAt: v.validadoEm, source,
+    ...(isStr(v.periodo) ? { periodText: v.periodo.slice(0, 120) } : {}),
+    ...(v.corrigidoPeloTitular === true ? { correctedByHolder: true } : {}),
+    mock: v.mock === true,
+  };
 }
 
 export function mapReading(v: unknown): MoveReading | null {
@@ -161,8 +166,9 @@ export function mapMove(v: unknown): MoveEntry | null {
 
 export function mapPersonItem(v: unknown): PersonListItem | null {
   if (!isObj(v) || !isStr(v.id) || !isStr(v.nome)) return null;
-  const roles = (Array.isArray(v.cargos) ? v.cargos : []).map(mapRole).filter((r): r is PersonRole => r !== null && r.validTo === null);
-  return { id: v.id, name: v.nome, roles, mock: v.mock === true };
+  // A rota já manda só os vigentes (fim nulo OU no futuro): o portal não refiltra, para não esconder cargo com fim futuro.
+  const roles = (Array.isArray(v.cargos) ? v.cargos : []).map(mapRole).filter((r): r is PersonRole => r !== null);
+  return { id: v.id, name: v.nome, roles, ...(v.corrigidoPeloTitular === true ? { correctedByHolder: true } : {}), mock: v.mock === true };
 }
 
 export function mapPerson(v: unknown): PersonProfile | null {
@@ -173,7 +179,8 @@ export function mapPerson(v: unknown): PersonProfile | null {
   const moves = (Array.isArray(v.moves) ? v.moves : []).map(mapMove).filter((m): m is MoveEntry => m !== null);
   return {
     id: v.id, name: v.nome, profileUrl: isHttps(v.perfilPublico) ? v.perfilPublico : null, source,
-    currentRoles: roles('cargosAtuais'), history: roles('historico'), moves: sortMoves(moves), mock: v.mock === true,
+    currentRoles: roles('cargosAtuais'), history: roles('historico'), moves: sortMoves(moves),
+    ...(v.corrigidoPeloTitular === true ? { correctedByHolder: true } : {}), mock: v.mock === true,
   };
 }
 

@@ -88,18 +88,22 @@ describe('autenticação (HMAC no corpo cru)', () => {
 });
 
 describe('flag openbotDispatch e kill switch', () => {
-  it('flag desligada: pull não entrega (503 DISPATCH_OFF) e a tarefa fica pendente; heartbeat e callback seguem para fechar o que estava em curso', async () => {
+  it('flag desligada: pull não entrega (423 DISPATCH_OFF) e a tarefa fica pendente; heartbeat e callback seguem para fechar o que estava em curso', async () => {
     const q = queue();
     await q.enqueue(task(1), app.clock.now);
     const [t] = await q.claim({ workerId: 'w1', now: app.clock.now, leaseMs: 120_000, limit: 1 });
     app.deps.flags.openbotDispatch = false;
     const off = await post(pull, { workerId: 'w1' });
-    expect(off).toMatchObject({ status: 503, body: { error: { code: 'DISPATCH_OFF' } } });
+    expect(off).toMatchObject({ status: 423, body: { error: { code: 'DISPATCH_OFF' } } });
+    // a assinatura é conferida ANTES: sem o segredo (ou com segredo errado) é 401 e o estado da flag não aparece
+    expect(await post(pull, { workerId: 'w1' }, { secret: null })).toMatchObject({ status: 401, body: { error: { code: 'UNAUTHORIZED' } } });
+    expect(await post(pull, { workerId: 'w1' }, { secret: 'segredo-errado' })).toMatchObject({ status: 401 });
+    expect(await q.counts()).toMatchObject({ leased: 1 }); // nada foi entregue nem tocado
     expect((await post(heartbeat, { taskId: t!.id, leaseId: t!.leaseId })).status).toBe(200);
     expect((await post(callback, { callbackId: 'cb-1', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!) })).status).toBe(200);
   });
 
-  it('kill switch global ou da rota openbot bloqueia pull e heartbeat (503); rota de outro assunto não bloqueia; o callback segue aceito e registra o custo já gasto', async () => {
+  it('kill switch global ou da rota openbot bloqueia pull e heartbeat (423); rota de outro assunto não bloqueia; o callback segue aceito e registra o custo já gasto', async () => {
     const q = queue();
     await q.enqueue(task(1), app.clock.now);
     const [t] = await q.claim({ workerId: 'w1', now: app.clock.now, leaseMs: 120_000, limit: 1 });
@@ -112,7 +116,7 @@ describe('flag openbotDispatch e kill switch', () => {
     }
     await store.setKill('route:openbot', false, 'voltar', app.clock.now);
     await store.setKill('global', true, 'parada geral', app.clock.now);
-    expect((await post(pull, { workerId: 'w1' })).status).toBe(503);
+    expect((await post(pull, { workerId: 'w1' })).status).toBe(423);
     expect((await q.get(t!.id))!.status).toBe('leased'); // nada mudou durante a parada
     // o custo já gasto não pode se perder: o callback é aceito mesmo parado
     const cb = await post(callback, { callbackId: 'cb-k', taskId: t!.id, leaseId: t!.leaseId, outcome: 'completed', resultRef: R(t!), usage: usage(t!) });
@@ -268,7 +272,7 @@ describe('rotas do agente: io/input e io/result (presas ao lease vivo)', () => {
     expect((await post(ioInput, { taskId: t.id, leaseId: novo!.leaseId })).body.data.input).toEqual({ x: 1 });
   });
 
-  it('kill switch bloqueia a leitura e a gravação (503)', async () => {
+  it('kill switch bloqueia a leitura e a gravação (423)', async () => {
     const { t } = await leased(3);
     await io().putInput('gw-3', { x: 1 }, { taskClass: 'draft', promptVersion: 'v' });
     await new PostgresLedgerStore(app.db as unknown as SqlDatabase).setKill('global', true, 'parada geral', app.clock.now);
@@ -349,7 +353,7 @@ describe('piloto (só staging, só com decisão registrada) e gate do AgentOps',
     expect((await post(pull, { workerId: 'w1' })).status).toBe(400); // piloto: o pull informa a via
     const r = await post(pull, { workerId: 'w1', account: 'claude' });
     vi.doUnmock('@ln/agents');
-    expect(r).toMatchObject({ status: 503, body: { error: { code: 'PILOT_STOPPED' } } });
+    expect(r).toMatchObject({ status: 423, body: { error: { code: 'PILOT_STOPPED' } } });
     expect(JSON.stringify(r.body)).toMatch(/canDispatchNext/);
     off();
     expect(await queue().counts()).toMatchObject({ pending: 1, leased: 0 });

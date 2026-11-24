@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
+import { aguardarHidratacao, focarELer } from './hidratacao';
 
 /**
  * PORTAL_MODE=api: o portal lê as rotas públicas de um servidor MOCK (e2e/fake-api.mjs) no formato real do Backend.
@@ -77,15 +78,40 @@ test.describe('matéria via API pública', () => {
     await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();
   });
 
-  test('cards da listagem mostram a imagem pública e o rótulo da ilustração', async ({ page }) => {
+  test('V-07: na listagem a grade usa uma única variante: ou todos os cards têm imagem ou nenhum tem (e rótulo só onde há imagem)', async ({ page }) => {
     await page.goto('/noticias');
-    const card = page.locator('article.ln-card', { hasText: 'ilustração conceitual e errata' });
+    const grid = page.locator('#conteudo .pt-grid');
+    await expect(grid.locator('article.ln-card').first()).toBeVisible();
+    const cards = await grid.locator('article.ln-card').count();
+    expect(cards).toBeGreaterThanOrEqual(3);
+    const midias = await grid.locator('.ln-card__media').count();
+    // A listagem mistura tipos (entrevista e opinião nunca recebem a ilustração padrão): com 1 inelegível sem imagem, a grade inteira fica só texto.
+    expect([0, cards]).toContain(midias);
+    const rotulos = await grid.locator('.ln-card__imglabel').count();
+    if (midias === 0) expect(rotulos).toBe(0);
+    else await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('.ln-card__imglabel')).toHaveCount(0);
+  });
+
+  test('F-04: notícia sem imagem numa grade só de elegíveis mostra a ilustração conceitual da editoria, com rótulo; a matéria segue sem figura', async ({ page }) => {
+    await page.goto('/editoria/pontos');
+    const card = page.locator('article.ln-card', { hasText: 'imagem venceu' });
+    const img = card.locator('img');
+    await expect(img).toHaveAttribute('src', '/ilustracoes/viagem.svg');
+    await expect(img).toHaveAttribute('alt', 'Ilustração conceitual de Pontos & Milhas');
     await expect(card.locator('.ln-card__imglabel')).toHaveText('Ilustração conceitual');
-    await expect(card.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
-    // foto de terceiro: imagem sem selo de ilustração; matéria sem imagem: card sem imagem.
-        await expect(page.locator('.ln-card__imglabel')).toHaveCount(1);
-    await expect(page.locator('article', { hasText: 'foto de terceiro' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/foto-1');
-    await expect(page.locator('article', { hasText: 'imagem venceu' }).locator('img')).toHaveCount(0);
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+    // alt e texto do card não citam IA, modelo ou ferramenta (D09).
+    expect(await card.innerText()).not.toMatch(/\bIA\b|modelo|prompt|gerad/i);
+    // Só de exibição: a página da matéria sem imagem continua sem figura.
+    await page.goto('/noticia/api-sem-imagem');
+    await expect(page.getByTestId('article-image')).toHaveCount(0);
+  });
+
+  test('imagem pública e rótulo da ilustração aparecem na matéria (a imagem de card exige grade só com imagens)', async ({ page }) => {
+    await page.goto('/noticia/api-ilustracao-corrigida');
+    const fig = page.getByTestId('article-image');
+    await expect(fig.locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
+    await expect(page.getByTestId('image-label')).toHaveText('Ilustração conceitual');
   });
 
   test('listagens e home usam a API; "em alta" fica vazio e honesto', async ({ page }) => {
@@ -130,6 +156,37 @@ test.describe('mídia kit via API comercial', () => {
     await expect(precos.getByRole('row', { name: /Banner meio.*Indisponível/ })).toBeVisible();
     // nenhum motivo interno (flag, P-01/P-02) na página pública
     expect(await page.locator('main').innerText()).not.toMatch(/\bflag\b|P-0[12]|adServerVendas/i);
+  });
+
+  test('V-13: mapa de posições vem da API (3 desenhadas, a sem dimensão só na lista como "em definição")', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const mapa = page.getByTestId('mk-mapa');
+    await expect(mapa.locator('[data-position]')).toHaveCount(3);
+    for (const id of ['TOP', 'SIDEBAR_1', 'FOOTER']) await expect(mapa.locator(`[data-position="${id}"]`)).toHaveCount(1);
+    await expect(mapa.locator('[data-position="SIDEBAR_2"]')).toHaveCount(0);
+    const lista = page.getByTestId('mk-mapa-lista');
+    await expect(lista.locator('li')).toHaveCount(4);
+    await expect(lista.locator('[data-position-item="AGENDA"]')).toContainText('dimensões em definição');
+  });
+
+  test('P2-1: tabelas de preço por seção (vindas da API) também são regiões focáveis com nome único', async ({ page }) => {
+    await page.goto('/midia-kit');
+    const precos = page.getByTestId('mk-precos').locator('.pt-scroll');
+    expect(await precos.count()).toBe(2); // Banners e The Loyal no mock
+    const nomes: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const r = precos.nth(i);
+      await expect(r).toHaveAttribute('tabindex', '0');
+      await expect(r).toHaveAttribute('role', 'region');
+      nomes.push((await r.getAttribute('aria-label')) ?? '');
+    }
+    expect(nomes[0]).toContain('Preços de referência: Banners');
+    expect(nomes[1]).toContain('Preços de referência: The Loyal');
+    await aguardarHidratacao(page);
+    await expect(precos.nth(1)).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; a tabela chega oculta no streaming e só depois troca de lugar
+    const foco = await focarELer(precos.nth(1));
+    expect(foco.focado).toBe(true);
+    expect(foco.estiloAnel).not.toBe('none'); // o anel de foco aparece
   });
 
   test('cobertura: só a coleta da API (origem, janela e data); métrica de demonstração (seed) vira "—" e "sem dado real"', async ({ page }) => {
