@@ -1,8 +1,8 @@
 # Piloto de 10 matérias: checklist de prontidão (revisão, integração, fontes; DP-41)
 
-Estado em 23/11/2026. Dono: AgentOps (Frente 07). Revisor: QA 3. **Nada foi ativado, criado nem chamado**: nenhum agente no OpenBot, nenhuma flag ligada, nenhum modelo chamado.
+Estado em 24/11/2026. Dono: AgentOps (Frente 07). Revisor: QA 3. **Nada foi ativado, criado nem chamado**: nenhum agente no OpenBot, nenhuma flag ligada, nenhum modelo chamado.
 
-Legenda: **✓** feito e conferido por mim (SHA existe e o ancestral confere com `git merge-base --is-ancestor`; parecer lido em `r0-preparacao/qa/`); **◐** relato de outro dono que eu li mas não reproduzi; **○** aberto. "main" = `origin/main` `02ac6d2` (PR #17); eu li os pareceres, não repeti os testes das outras frentes.
+Legenda: **✓** feito e conferido por mim (SHA existe e o ancestral confere com `git merge-base --is-ancestor`; parecer lido em `r0-preparacao/qa/`); **◐** relato de outro dono que eu li mas não reproduzi; **○** aberto. "main" = `origin/main` `ce05999` (PR #23); eu li os pareceres, não repeti os testes das outras frentes.
 
 ## 1. Revisão (QA independente)
 
@@ -14,7 +14,7 @@ Legenda: **✓** feito e conferido por mim (SHA existe e o ancestral confere com
 | R4 | Termos e habilitação documental das fontes (Senado, Câmara, classe D; DP-28) | ✓ documental homologado; **a habilitação em si é ○ (ato humano)** | `676e059` | QA 3, `ft-fabrica-editorial.md` |
 | R5 | Rotas do Backend e adaptador (`cb9e0dd`, merge da `ft/growth`) | ✓ aprovado no escopo offline | `ft/backend` `cb9e0dd` (na main) | QA 2, `ft-backend-cb9e0dd-qa2.md` |
 | R6 | Exportação da planilha em CSV no Studio (leitor 1) | ✓ homologado; **ainda não está na main** | `ft/studio-2` `35fa9c4` | QA 5, `ft-studio-2-35fa9c4-qa5.md` |
-| R7 | Fiação do piloto na Fábrica e checklist da Integration (`d0d0de1`, `752b714`) | ◐ peças prontas; **não estão na main**; sem parecer próprio que eu tenha achado | `ft/growth` `d0d0de1`, `752b714` | — |
+| R7 | Fiação do piloto na Fábrica e checklist da Integration (`d0d0de1`, `752b714`) | ✓ **na main** (conferido: ancestrais de `origin/main`); parecer próprio de QA: não conferi | `ft/growth` `d0d0de1`, `752b714` | — |
 | R8 | Conjunto final antes do disparo (ensaio no staging real) | ○ | — | a cargo do PM |
 
 ## 2. Integração
@@ -25,7 +25,7 @@ Legenda: **✓** feito e conferido por mim (SHA existe e o ancestral confere com
 | I2 | `PgTaskIo` guarda `meta.articleId` | ◐ feito pelo Backend | `ft/backend` `cb9e0dd` | relato da Integration; QA 2 aprovou o merge |
 | I3 | Rota de retomada depois de uma parada (`POST /api/studio/openbot/pilot/resume`, só admin, auditada) | ◐ feito | `cb9e0dd` | idem |
 | I4 | Flag `openbotDispatch` no contrato: `staging = 'DP-41'`, `production = null` | ✓ | `ft/backend-2` `467ba9e` (na main) | em produção a subida é recusada, segundo o ensaio da Integration |
-| I5 | `OpenBotModelGateway` ligado à Fábrica e `pilotSink` (veredito) | ◐ **peças prontas, falta a ligação final** | `ft/editorial` `8262175` (na main) e `ft/growth` `d0d0de1` (fora) | quem grava o veredito usa `applyRowPatch` (`f32358f`) |
+| I5 | `OpenBotModelGateway` ligado à Fábrica e `pilotSink` (veredito) | ◐ **fiação presente na main** (`apps/workers/src/openbot-wiring.ts`, que monta o sink de produção, e `editorial-factory.main.ts`; `pilot-sink.ts` da Editorial é o contrato e roda nos testes); **falta provar no staging real** | `ft/editorial` `8262175` e `ft/growth` `d0d0de1` (ambos na main) | a Editorial grava o veredito, confere com `applyRowPatch` (`f32358f`) e, se falhar, só registra `pilot_row_patch_failed` (melhor esforço); falha fechada sem staging, sem `LN_OPENBOT_PILOT=1` ou sem a flag |
 | I6 | Colunas da planilha: AgentOps = `PilotRow` = Integration = Studio 2 | ✓ **conferido agora** | teste `pilot-columns.test.ts` neste commit; fixture `fixtures/pilot-csv-consumers.json` | ao vivo: `LN_PILOT_COLUMNS_LIVE=1` (9 testes: 7 offline e 2 contra `origin/main` e `ft/studio-2`, todos verdes) |
 | I7 | Contrato de variáveis da Vertra (`OPENBOT_HMAC_SECRET`, `LN_FLAGS_ON`, `LN_OPENBOT_PILOT`) só no staging | ○ | — | DevOps |
 | I8 | Segredo HMAC no cofre (atual e anterior) | ○ não criado | — | proprietário/DevOps; nunca no chat |
@@ -58,11 +58,11 @@ Legenda: **✓** feito e conferido por mim (SHA existe e o ancestral confere com
 
 ## 5. O que bloqueia ligar o piloto (resumo)
 
-1. **Ligação final da Fábrica ao gateway e ao `pilotSink`** (I5), com os vereditos gravados pelo `applyRowPatch`; o código está pronto, falta integrar na main.
+1. **Provar no staging real a fiação da Fábrica ao gateway e ao `pilotSink`** (I5): o código já está na main; falta ensaio com o staging, os agentes e o segredo (um patch que falha só deixa rastro de auditoria e uma linha sem veredito).
 2. **Staging real:** contrato de variáveis (I7), segredo HMAC (I8), ensaio e kill switch no staging (I11).
 3. **Agentes do OpenBot** (sinal do PM) e a prova de que o OpenBot real chama o endpoint assinado (I13).
 4. **Fontes habilitadas** pelo proprietário (F3) e a tela de leitura disponível (I12).
-5. Merge na main de `ft/growth` (R7) e de `ft/studio-2` (R6).
+5. Merge na main de `ft/studio-2` (R6, `35fa9c4`); a `ft/growth` (R7) já está na main.
 
 ## 6. Não verificado por mim
 
