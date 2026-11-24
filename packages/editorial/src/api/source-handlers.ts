@@ -32,6 +32,8 @@ export function riscosDaFonte(src: Source): string[] {
   if (src.paywall === 'login') r.push('exige login');
   if (src.paywall === 'metered') r.push('limite de leituras (paywall)');
   if (src.verification?.level === 'inacessivel' && src.acesso !== 'via-provedor') r.push('inacessível na pesquisa');
+  // DP-31/DP-32: a coleta dessas fontes passa por um provedor de extração TARIFADO. Não se automatiza: o administrador confirma fonte a fonte.
+  if (src.acesso === 'via-provedor') r.push('acesso via provedor tarifado (DP-31/DP-32)');
   return r;
 }
 

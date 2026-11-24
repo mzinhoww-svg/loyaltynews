@@ -123,6 +123,48 @@ test('"Habilitar todas desta página" habilita as desabilitadas sem aviso e deix
   expect(await page.locator('[data-fabrica-fonte][data-habilitada="sim"]').count()).toBeGreaterThanOrEqual(n);
 });
 
+test('fonte via provedor (coleta tarifada, DP-31/DP-32) é exceção visível: aviso no card, fora do lote, só com confirmação, e toda recusa aparece no card com o que fazer', async ({ page, context }) => {
+  await entrar(context, 'adm51', 'admin');
+  const VIA = '[data-fabrica-fonte][data-habilitada="nao"]:has([data-acesso="via-provedor"])';
+  let url = '';
+  for (let pg = 1; pg <= 8; pg++) {
+    url = `/studio/fontes/fabrica?estado=desabilitadas&pagina=${pg}`;
+    await page.goto(url);
+    if ((await page.locator(VIA).count()) > 0) break;
+  }
+  const via = page.locator(VIA).first();
+  await expect(via, 'nenhuma fonte via provedor no cadastro de teste').toBeVisible();
+  const id = await idDe(via);
+  const aqui = page.locator(`[data-fabrica-fonte="${id}"]`);
+  await expect(aqui.locator('[data-acesso="via-provedor"]')).toBeVisible(); // a exceção continua visível
+  await expect(aqui.locator('[data-aviso-seguranca]')).toContainText('provedor tarifado');
+
+  // o lote nunca a inclui: o número do botão é só o das fontes sem aviso desta página
+  const limpas = await page.locator(LIMPA).count();
+  await expect(page.getByRole('button', { name: new RegExp(`Habilitar todas desta página \\(${limpas}\\)`) })).toBeVisible();
+
+  // sem a confirmação: a recusa aparece NO CARD, com o que fazer, e nada habilita
+  await enviar(page, aqui.getByRole('button', { name: /^Habilitar / }));
+  await expect(aqui.locator('[data-cartao-msg]')).toContainText(/provedor tarifado/);
+  await expect(aqui.locator('[data-cartao-msg]')).toContainText(/O que fazer: marque/);
+  await expect(aqui).toHaveAttribute('data-habilitada', 'nao');
+
+  // revisão formal sem citar a DP-31/DP-32: a recusa do Backend aparece no card, com a orientação (antes a tela "travava" sem mostrar nada)
+  await entrar(context, 'rev51', 'revisor');
+  await page.goto(url);
+  const doRevisor = page.locator(`[data-fabrica-fonte="${id}"]`);
+  await doRevisor.getByText('Registrar revisão dos termos').click();
+  await doRevisor.getByLabel(/O que foi conferido/).fill('Termos oficiais lidos e conferidos hoje no site.');
+  await doRevisor.getByLabel('URL verificada').check();
+  await doRevisor.getByLabel('robots.txt conferido').check();
+  await enviar(page, doRevisor.getByRole('button', { name: 'Registrar revisão' }));
+  const msg = doRevisor.locator('[data-cartao-msg]');
+  await expect(msg).toBeVisible();
+  await expect(msg).toContainText(/O que fazer/);
+  await expect(msg).toContainText(/DP-3[12]/);
+  await expect(msg).toBeFocused();
+});
+
 test('papéis: editor-chefe habilita só com revisão (sem o caminho direto), revisor só desabilita, editor não vê nada; o lote é só do administrador', async ({ page, context }) => {
   await entrar(context, 'chefe51', 'editor_chefe');
   await page.goto('/studio/fontes/fabrica?estado=desabilitadas');
@@ -130,7 +172,7 @@ test('papéis: editor-chefe habilita só com revisão (sem o caminho direto), re
   const card = page.locator(LIMPA).first();
   const id = await idDe(card);
   await enviar(page, page.locator(`[data-fabrica-fonte="${id}"]`).getByRole('button', { name: /^Habilitar / }));
-  await expect(page.locator(`[data-fabrica-fonte="${id}"] [data-cartao-msg]`)).toContainText('ainda não tem revisão');
+  await expect(page.locator(`[data-fabrica-fonte="${id}"] [data-cartao-msg]`)).toContainText(/sem revisão registrada[\s\S]*O que fazer: peça a um administrador/);
   await expect(page.locator(`[data-fabrica-fonte="${id}"]`)).toHaveAttribute('data-habilitada', 'nao');
 
   await entrar(context, 'rev51', 'revisor');
