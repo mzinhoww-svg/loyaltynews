@@ -5,7 +5,7 @@ import { findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../../_lib/guard';
-import { podeAprovar } from '@/lib/studio/comercial';
+import { AVISO_VENDA_DESLIGADA, podeAprovar, vendaLiberadaNoAmbiente } from '@/lib/studio/comercial';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { transicaoAction } from '../actions';
@@ -36,7 +36,9 @@ type Detalhe = {
 
 export default async function CampanhaPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string; de?: string; ate?: string; codigo?: string }> }) {
   const { session } = await requireModule(findModule('campanhas')!);
-  const aprova = podeAprovar(session.roles);
+  // DP-43 por ambiente: fora do staging (produção), nada de venda, aprovação nem ativação na tela
+  const venda = vendaLiberadaNoAmbiente();
+  const aprova = venda && podeAprovar(session.roles);
   const id = decodeURIComponent((await params).id);
   const { tipo, aviso, de, ate, codigo } = await searchParams;
   const codigoErro = tipo === 'err' && codigo && /^[A-Z0-9_]{1,60}$/.test(codigo) ? codigo : undefined;
@@ -80,13 +82,13 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
           <p className="st-hint">
             Visitas por UTM: {d.report.utmVisits === null ? 'não disponível (sem analytics)' : d.report.utmVisits}
           </p>
-          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={flagAtiva('adServerVendas')} podeAprovar={aprova} />
+          <PosicoesCriativos campanha={c} reservas={d.reservations ?? []} criativos={d.creatives ?? []} vendaLigada={venda && flagAtiva('adServerVendas')} vendaNoAmbiente={venda} podeAprovar={aprova} />
         </div>
         <aside>
           <div className="st-card">
             <h2 style={{ marginTop: 0 }}>Estado</h2>
             {DESTINOS[c.status]?.length ? (
-              DESTINOS[c.status]!.filter((para) => para !== 'approved' || aprova).map((para) => (
+              DESTINOS[c.status]!.filter((para) => (para !== 'approved' || aprova) && (para !== 'active' || venda)).map((para) => (
                 <form action={transicaoAction} key={para} className="st-actions" style={{ marginBottom: 8 }}>
                   <input type="hidden" name="id" value={c.id} />
                   <input type="hidden" name="para" value={para} />
@@ -98,7 +100,12 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
             ) : (
               <p className="st-hint">Estado final.</p>
             )}
-            {aprova ? null : (
+            {venda ? null : (
+              <p className="st-hint" data-testid="venda-desligada-ambiente">
+                {AVISO_VENDA_DESLIGADA}
+              </p>
+            )}
+            {aprova || !venda ? null : (
               <p className="st-hint" data-testid="aprovacao-proprietario">
                 Aprovar a campanha é do proprietário (papel admin).
               </p>

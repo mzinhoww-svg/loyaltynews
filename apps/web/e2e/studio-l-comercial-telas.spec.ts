@@ -3,6 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { entrar, enviar } from './helpers';
 
 // Telas comerciais do Studio (Studio 3): anunciantes e contatos no CRM; posições, criativos e transição com reservas na campanha.
+// DP-43 por ambiente: venda, aprovação e ativação só no staging; em produção (padrão do e2e) a tela não tem esses controles.
+const STAGING = process.env.APP_ENV === 'staging';
 const erro = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.err').filter({ hasText: txt }).first()).toBeVisible();
 const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
 async function semViolacoes(page: Page) {
@@ -71,7 +73,11 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(page.getByTestId('posicoes-campanha').getByLabel('TOP')).toBeChecked();
     await expect(page.getByLabel('Posição', { exact: true }).locator('option')).toHaveCount(1);
     // venda desligada: confirmar não é oferecido (só pré-reserva)
-    await expect(page.getByLabel('Confirmar venda')).toBeDisabled();
+    if (STAGING) await expect(page.getByLabel('Confirmar venda')).toBeDisabled(); // venda liberada no ambiente, flag desligada
+    else {
+      await expect(page.getByLabel('Confirmar venda')).toHaveCount(0); // produção: nenhum controle de venda
+      await expect(page.getByTestId('venda-desligada-ambiente')).toBeVisible();
+    }
 
     // período inválido: o domínio recusa e a página mostra
     await page.getByLabel('Início da reserva').fill('2099-05-31');
@@ -105,12 +111,17 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     const crId = (await cr.getAttribute('data-criativo'))!;
     // DP-43: o comercial não aprova (sem botão); o proprietário (admin) tenta e o domínio recusa o criativo incompleto
     await expect(page.getByRole('button', { name: `Aprovar ${crId}` })).toHaveCount(0);
-    await expect(page.getByTestId('aprovacao-proprietario')).toBeVisible();
     const urlCamp = page.url().split('?')[0]!;
     await entrar(context, 'dono', 'admin');
     await page.goto(urlCamp);
-    await enviar(page, page.getByRole('button', { name: `Aprovar ${crId}` }));
-    await erro(page, /incompleto|especificação/);
+    if (STAGING) {
+      await enviar(page, page.getByRole('button', { name: `Aprovar ${crId}` }));
+      await erro(page, /incompleto|especificação/);
+    } else {
+      // produção: nem o proprietário vê "Aprovar" (aprovação só no staging)
+      await expect(page.getByRole('button', { name: `Aprovar ${crId}` })).toHaveCount(0);
+      await expect(page.getByTestId('venda-desligada-ambiente')).toBeVisible();
+    }
     await expect(page.getByTestId('aprovacao-proprietario')).toHaveCount(0);
     await entrar(context, 'caio', 'comercial');
     await page.goto(urlCamp);
