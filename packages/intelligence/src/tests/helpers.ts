@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { vi } from 'vitest';
-import { afterEach } from 'vitest';
+import { afterAll, afterEach } from 'vitest';
 import { createTestDb, isRealTestDb } from '@ln/db/testing';
 import { addEvidence } from '../repo';
 import type { Db } from '../db';
@@ -17,14 +17,20 @@ vi.setConfig({ testTimeout: 180_000, hookTimeout: 180_000 });
 // Migra uma vez por arquivo de teste e reaproveita o banco pronto (dump) em cada teste: bem mais rápido que migrar de novo.
 let template: Blob | File | undefined;
 // Modo PostgreSQL real (LN_TEST_PG_URL): cada teste ganha um banco clonado do modelo e o apaga no fim.
+// Escopo do fechamento: 'teste' (padrão, afterEach) para bancos criados DENTRO do teste; 'arquivo' (afterAll) para os criados em beforeAll e usados por vários testes
+// (em PG real o afterEach fecharia o banco depois do 1º teste e os seguintes falhariam com 'Cannot use a pool after calling end').
 const abertos: Array<() => Promise<void>> = [];
+const abertosArquivo: Array<() => Promise<void>> = [];
 afterEach(async () => {
   while (abertos.length) await abertos.pop()!();
 });
-export async function newDb(): Promise<{ db: Db; pg: PGlite }> {
+afterAll(async () => {
+  while (abertosArquivo.length) await abertosArquivo.pop()!();
+});
+export async function newDb(opts: { escopo?: 'teste' | 'arquivo' } = {}): Promise<{ db: Db; pg: PGlite }> {
   if (isRealTestDb()) {
     const t = await createTestDb();
-    abertos.push(t.close);
+    (opts.escopo === 'arquivo' ? abertosArquivo : abertos).push(t.close);
     return { db: t.client as unknown as Db, pg: t.client as unknown as PGlite };
   }
   if (!template) {
