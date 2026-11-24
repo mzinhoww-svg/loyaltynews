@@ -186,5 +186,20 @@ export const WALL_HEAD_CHARS = 1500;
 export function detectWall(r: { text?: string; html?: string; httpStatus?: number }): 'login_required' | 'paywall' | null {
   const text = r.text ?? '';
   if (r.httpStatus === 401 || r.httpStatus === 402 || text.length <= WALL_SHORT_PAGE) return detectLoginOrPaywall(r);
-  return detectLoginOrPaywall({ text: text.slice(0, WALL_HEAD_CHARS), httpStatus: r.httpStatus });
+  const head = detectLoginOrPaywall({ text: text.slice(0, WALL_HEAD_CHARS), httpStatus: r.httpStatus });
+  if (head) return head;
+  // R4 (QA 3, 542ec10): aviso que só existe em overlay/modal no HTML. Checa (a) o início do texto visível do HTML e
+  // (b) o texto de elementos cujo class/id indica paywall/overlay/modal, em qualquer ponto da página.
+  if (r.html) {
+    const visible = r.html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (detectLoginOrPaywall({ text: visible.slice(0, WALL_HEAD_CHARS) }) === 'paywall') return 'paywall';
+    for (const m of r.html.matchAll(WALL_ELEMENT)) {
+      const inner = (m[2] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WALL_HEAD_CHARS);
+      const hit = detectLoginOrPaywall({ text: inner });
+      if (hit === 'paywall') return 'paywall';
+    }
+  }
+  return null;
 }
+/** Elemento de overlay/paywall/modal (class ou id), com o conteúdo até o fechamento da mesma tag. */
+const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*(?:class|id)=["'][^"']*(?:paywall|regwall|subscri|assinant|premium|overlay|modal|piano|meter)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;

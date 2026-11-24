@@ -504,13 +504,27 @@ describe('ressalvas R2/R3 do QA 1 (63c16df)', () => {
     expect(detectWall({ text: `Conteúdo exclusivo para assinantes. ${article}` })).toBe('paywall');
     expect(detectWall({ text: 'Trecho curto. Assine para continuar lendo a matéria completa.' })).toBe('paywall');
     expect(detectWall({ text: article, httpStatus: 402 })).toBe('paywall');
-    // página longa com campo de senha no rodapé não vira login
-    expect(detectWall({ text: article, html: `<p>${article}</p><input type="password">` })).toBeNull();
+    // (teste do campo de senha removido: o QA 3 mostrou que passaria também no código anterior)
   });
   it('R3: parágrafo com quebras de linha (hard wrap) é medido inteiro', () => {
     const wrapped = Array.from({ length: 8 }, () => 'linha curta de um mesmo parágrafo editorial').join('\n');
     const b = bodyEvidence(`${wrapped}\n\nOutro parágrafo curto.`, undefined);
     expect(b.longestParagraphChars).toBeGreaterThan(300);
     expect(b.longParagraphs).toBe(1);
+  });
+});
+
+describe('ressalva R4 do QA 3 (542ec10): paywall só no HTML de página longa', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  it('overlay/modal com aviso de paywall em qualquer ponto do HTML → paywall (reprovaria no 542ec10)', () => {
+    const html = `<article><p>${article}</p></article><div class="paywall-overlay"><h2>Conteúdo exclusivo para assinantes</h2></div>`;
+    expect(detectWall({ text: article, html })).toBe('paywall');
+    expect(evaluate(article, html, 'x').reason).toBe('paywall');
+    const top = `<div id="banner">Conteúdo exclusivo para assinantes</div><p>${article}</p>`;
+    expect(detectWall({ text: article, html: top })).toBe('paywall');
+  });
+  it('reportagem longa que CITA o aviso no meio do corpo continua liberada (R2 preservada)', () => {
+    const html = `<p>${article}</p><p>Muitos sites exibem "assine para continuar lendo" ao leitor.</p><p>${article}</p>`;
+    expect(detectWall({ text: `${article} Muitos sites exibem "assine para continuar lendo". ${article}`, html })).toBeNull();
   });
 });
