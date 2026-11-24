@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { generateArtifacts } from './artifacts';
 import { buildPilotAgents, PILOT_STAGES } from './pilot';
-import { AGENT_BINDINGS, buildCreationPack, initialMessage, PROCEDURE_TEMPLATE, renderCreationPackMd, validateCreationPack, type CreationPack } from './pilot-creation-pack';
+import { AGENT_BINDINGS, AGENT_ROUTES, buildCreationPack, initialMessage, PROCEDURE_TEMPLATE, renderCreationPackMd, validateCreationPack, type CreationPack } from './pilot-creation-pack';
 
 const pack = buildCreationPack();
 const codes = (p: CreationPack) => validateCreationPack(p).map((i) => i.code);
@@ -64,6 +64,23 @@ describe('pacote de criação dos 5 agentes do piloto (nada é criado)', () => {
     expect(social).toMatch(/--stage <etapa da tarefa: social_pack se for social_copy; roles se for entity_resolution>/);
     expect(social).not.toMatch(/--stage social_pack|--stage [^<]* ou /);
     expect(initialMessage(AGENT_BINDINGS[0]!)).toMatch(/--stage triage/);
+  });
+
+  it('rotas /api/openbot por agente: as mesmas 4 obrigatórias e o heartbeat opcional; nenhuma rota fora de /api/openbot', () => {
+    expect(AGENT_ROUTES.map((r) => r.path)).toEqual(['/api/openbot/pull', '/api/openbot/io/input', '/api/openbot/io/result', '/api/openbot/callback', '/api/openbot/heartbeat']);
+    for (const a of pack.agents) {
+      expect(a.routes.required).toEqual(['/api/openbot/pull', '/api/openbot/io/input', '/api/openbot/io/result', '/api/openbot/callback']);
+      expect(a.routes.optional).toEqual(['/api/openbot/heartbeat']);
+      expect(a.routes.never).toMatch(/\/api\/studio/);
+    }
+    expect(renderCreationPackMd(pack)).toMatch(/Rotas `\/api\/openbot` que cada agente chama/);
+    expect(renderCreationPackMd(pack)).toMatch(/Nunca\*\* chamam qualquer outra rota/);
+    const bad = structuredClone(pack);
+    bad.agents[0]!.routes.required.push('/api/studio/piloto/planilha');
+    expect(codes(bad)).toContain('ROUTES');
+    const out = structuredClone(pack);
+    out.agents[1]!.routes.optional = ['/api/openbot/dispatch'];
+    expect(codes(out)).toContain('ROUTES');
   });
 
   it('cabeçalhos HMAC: quem assina é o cliente, não o modelo; segredo por arquivo do cofre, nunca no prompt', () => {
@@ -198,6 +215,14 @@ describe.skipIf(!existsSync(ROTEIRO))('coerência com ROTEIRO-AGENTES-STAGING.md
       expect(linha).toContain(`\`${b.draft_id}\``);
       if (b.backup_model) expect(linha).toContain(b.backup_model);
     }
+  });
+
+  it('as rotas do pacote são exatamente as que o cliente do agente chama (e as do protocolo)', () => {
+    const cliente = readFileSync(new URL('../../openbot/bin/ln-openbot-agent.mjs', import.meta.url), 'utf8');
+    const chamadas = [...cliente.matchAll(/post\(cfg, '([a-z/]+)'/g)].map((m) => `/api/openbot/${m[1]}`);
+    expect(new Set(chamadas)).toEqual(new Set(AGENT_ROUTES.map((r) => r.path)));
+    const proto = existsSync(PROTOCOL) ? readFileSync(PROTOCOL, 'utf8') : '';
+    for (const r of AGENT_ROUTES) expect(proto, r.path).toContain(r.path);
   });
 
   it('os cabeçalhos HMAC do pacote existem no protocolo do adaptador', () => {

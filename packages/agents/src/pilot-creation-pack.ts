@@ -6,6 +6,15 @@
  */
 import { ACCOUNT_AUTHOR, authorOfDeclaredModel, buildPilotAgents, EDITORIAL_PROMPTS_REF, PILOT_STAGES, type PilotAccount, type PilotAgentDraft } from './pilot';
 
+/** Rotas de `/api/openbot` que o cliente do agente chama, por comando (packages/openbot/bin/ln-openbot-agent.mjs). Nenhuma outra. */
+export const AGENT_ROUTES = [
+  { command: 'pull', method: 'POST', path: '/api/openbot/pull', purpose: 'pede tarefas da SUA conta e dos SEUS tipos, com lease; só IDs', required: true },
+  { command: 'input', method: 'POST', path: '/api/openbot/io/input', purpose: 'lê a entrada da tarefa (conteúdo público, promptVersion, meta); só com o lease vivo', required: true },
+  { command: 'result', method: 'POST', path: '/api/openbot/io/result', purpose: 'grava o resultado da tarefa; devolve o resultRef derivado (o agente não escolhe)', required: true },
+  { command: 'done | limit | fail', method: 'POST', path: '/api/openbot/callback', purpose: 'conclui (custo 0, faixa de assinatura), relata o limite da conta (a tarefa espera a janela) ou falha declarada; idempotente por callbackId', required: true },
+  { command: 'heartbeat', method: 'POST', path: '/api/openbot/heartbeat', purpose: 'renova o lease de uma tarefa longa', required: false },
+] as const;
+
 export interface AgentBinding {
   draft_id: string;
   /** provedor do OpenBot (a conta conectada), igual à conta do adaptador */
@@ -53,6 +62,8 @@ export function initialMessage(b: AgentBinding): string {
 
 export interface CreationPackAgent {
   draft_id: string;
+  /** rotas `/api/openbot` que este agente chama: as obrigatórias, a opcional e o que NUNCA chama */
+  routes: { required: string[]; optional: string[]; never: string };
   openbot: { name: string; title: string; description: string; provider: 'claude' | 'codex'; model: string; backup_model: string | null; reasoning_effort: 'alto'; initial_message: string };
   client_env: { LN_AGENT_ACCOUNT: string; LN_WORKER_ID: string; kinds: string[]; stages: string[]; LN_API_BASE: '<https://staging>/api/openbot'; LN_HMAC_SECRET_FILE: '<caminho do arquivo do cofre do OpenBot; nunca o valor>' };
   must_not: string[];
@@ -65,6 +76,7 @@ export interface CreationPack {
   created: false;
   requires: string;
   prompts: typeof EDITORIAL_PROMPTS_REF;
+  routes: typeof AGENT_ROUTES;
   hmac: { who_signs: string; formula: string; headers: { 'x-ln-signature': string; 'x-ln-timestamp': string }; window: string; secret_env: string[]; failures: Record<string, string> };
   agents: CreationPackAgent[];
   checklist: { before: string[]; per_agent: string[]; after: string[]; rollback: string[] };
@@ -77,6 +89,7 @@ export function buildCreationPack(): CreationPack {
     const d = drafts.find((x: PilotAgentDraft) => x.draft_id === b.draft_id)!;
     return {
       draft_id: b.draft_id,
+      routes: { required: AGENT_ROUTES.filter((r) => r.required).map((r) => r.path), optional: AGENT_ROUTES.filter((r) => !r.required).map((r) => r.path), never: 'qualquer outra rota: /api/studio/*, rotas de publicação, despacho da Fábrica (é do LN, não do agente) e a API tarifada' },
       openbot: { name: d.name, title: d.title, description: d.description, provider: b.openbot_provider, model: b.model, backup_model: b.backup_model, reasoning_effort: b.reasoning_effort, initial_message: initialMessage(b) },
       client_env: { LN_AGENT_ACCOUNT: b.account, LN_WORKER_ID: b.worker_id, kinds: [...b.kinds], stages: [...b.stages], LN_API_BASE: '<https://staging>/api/openbot', LN_HMAC_SECRET_FILE: '<caminho do arquivo do cofre do OpenBot; nunca o valor>' },
       must_not: [...d.must_not],
@@ -88,6 +101,7 @@ export function buildCreationPack(): CreationPack {
     created: false,
     requires: 'sinal do PM (PM-2026-11-23-F) e a int/019 no staging com despacho desligado',
     prompts: EDITORIAL_PROMPTS_REF,
+    routes: AGENT_ROUTES,
     hmac: {
       formula: 'HMAC_SHA256(segredo, "<timestampMs>.<corpo cru>"): o timestamp em milissegundos, um ponto e o corpo EXATO enviado, nessa ordem (packages/openbot/src/signing.ts, signBody; PROTOCOL.md). Assinar só o corpo NÃO vale: dá 401',
       who_signs: 'o CLIENTE `ln-openbot-agent.mjs`, nunca o modelo: o agente só roda comandos e lê/escreve JSON; o segredo não entra em prompt, argumento, chat nem log',
@@ -150,6 +164,12 @@ export function validateCreationPack(pack: CreationPack): PackIssue[] {
       && JSON.stringify(a.client_env.kinds) === JSON.stringify(b.kinds) && JSON.stringify(a.client_env.stages) === JSON.stringify(b.stages);
     if (!same) add('BINDING', `${b.draft_id}: conta, modelo, tipos ou etapas diferentes do desenho do piloto`);
   }
+  const allowedPaths = new Set<string>(AGENT_ROUTES.map((r) => r.path));
+  for (const a of pack.agents) {
+    const used = [...a.routes.required, ...a.routes.optional];
+    if (used.some((p) => !allowedPaths.has(p)) || a.routes.required.length !== 4 || a.routes.optional.join() !== '/api/openbot/heartbeat') add('ROUTES', `${a.draft_id}: o agente só chama pull, io/input, io/result, callback e (opcional) heartbeat`);
+    if (used.some((p) => !p.startsWith('/api/openbot/'))) add('ROUTES', `${a.draft_id}: rota fora de /api/openbot`);
+  }
   const names = pack.agents.map((a) => a.openbot.name);
   if (new Set(names).size !== names.length) add('NAMES', 'nomes repetidos');
   const workers = pack.agents.map((a) => a.client_env.LN_WORKER_ID);
@@ -206,6 +226,16 @@ export function renderCreationPackMd(pack: CreationPack): string {
   L.push(`- \`x-ln-signature\`: \`${pack.hmac.headers['x-ln-signature']}\`; \`x-ln-timestamp\`: \`${pack.hmac.headers['x-ln-timestamp']}\`; janela ${pack.hmac.window}.`);
   L.push(`- Variáveis: ${pack.hmac.secret_env.map((x) => `\`${x}\``).join('; ')}.`);
   L.push('- Respostas: ' + Object.entries(pack.hmac.failures).map(([k, v]) => `**${k}**: ${v}`).join('; ') + '.');
+  L.push('');
+  L.push('## 3b. Rotas `/api/openbot` que cada agente chama');
+  L.push('');
+  L.push('Os 5 agentes chamam as MESMAS rotas, pelo cliente `ln-openbot-agent.mjs` (o que muda entre eles é a conta e os tipos de tarefa que cada um puxa). **Nunca** chamam qualquer outra rota: `/api/studio/*`, rotas de publicação, o despacho da Fábrica (que é do LN) ou API tarifada.');
+  L.push('');
+  L.push('| Comando do cliente | Rota | Uso | Obrigatória |');
+  L.push('|---|---|---|---|');
+  for (const r of pack.routes) L.push(`| \`${r.command}\` | \`${r.method} ${r.path}\` | ${r.purpose} | ${r.required ? 'sim' : 'só em tarefa longa'} |`);
+  L.push('');
+  L.push('Respostas de recusa que o agente trata (`stop: true`, para o ciclo): 423 `DISPATCH_OFF`, `KILL_SWITCH` e `PILOT_STOPPED` em `pull`, `heartbeat`, `io/input` e `io/result`; o `callback` em curso segue aceito.');
   L.push('');
   L.push('## 4. Campos do `openbot.create_agent`, por agente');
   L.push('');
