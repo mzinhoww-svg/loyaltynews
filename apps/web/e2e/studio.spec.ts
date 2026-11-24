@@ -106,7 +106,7 @@ test.describe('shell e navegação', () => {
   // revisão visual P2-2: o usuário não vê nome de flag nem rótulo técnico; desligado e em uso não aparecem juntos
   test('painel, menu, CMS, fontes e entidades falam em português, sem nome de flag', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
-    for (const rota of ['/studio', '/studio/cms', '/studio/fontes', '/studio/fontes/fabrica', '/studio/entidades']) {
+    for (const rota of ['/studio', '/studio/cms', '/studio/cms/checagem', '/studio/fontes', '/studio/fontes/fabrica', '/studio/entidades', '/studio/configuracoes', '/studio/permissoes']) {
       await page.goto(rota);
       await expect(page.locator('main h1').first()).toBeVisible();
       const texto = await page.locator('body').innerText();

@@ -80,7 +80,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
       ) : itens.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio-f">
           <h2 id="vazio-f">Nenhuma matéria da Fábrica na fila</h2>
-          <p>A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados por flag). Nada é simulado.</p>
+          <p>A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado.</p>
         </section>
       ) : (
         <QuadroRolavel rotulo="Fila de checagem">

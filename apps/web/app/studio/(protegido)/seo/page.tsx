@@ -134,7 +134,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
           Nenhuma regra de link interno.
         </p>
       ) : (
-        <QuadroRolavel rotulo="Metadados por página">
+        <QuadroRolavel rotulo="Regras de links internos">
 <table className="st-table" aria-label="Regras de links internos">
           <thead>
             <tr>
