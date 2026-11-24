@@ -30,7 +30,7 @@ export async function provar(root, flag) {
   return { flag, ok: provas.every((p) => p.ok), provas };
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = parseArgs(process.argv.slice(2));
   if (!args.root || args.root === true) { console.error('use --root <checkout do commit>'); process.exit(2); }
   const flag = args.flag && args.flag !== true ? String(args.flag) : 'intelligencePessoas';

@@ -23,7 +23,7 @@ export function avaliar(c) {
   return { ok: provas.every((p) => p.ok), provas };
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const fail = (m, code) => { console.error(m); process.exit(code); };
   const env = process.env;
   if (canonEnv(env.APP_ENV) !== 'staging') fail('recusado: APP_ENV tem de ser staging', 2);

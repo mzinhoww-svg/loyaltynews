@@ -61,7 +61,7 @@ async function uma(url, xff) {
   return { status: r.status, count: c === null ? null : Number(c), match: r.headers.get('x-ln-xff-match'), pos: r.headers.get('x-ln-xff-match-pos') };
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = parseArgs(process.argv.slice(2));
   const url = String(args.url ?? '').replace(/\/+$/, '');
   if (!/^https:\/\//.test(url)) { console.error('use --url https://host (staging)'); process.exit(2); }
