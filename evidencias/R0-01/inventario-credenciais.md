@@ -1,5 +1,5 @@
 # R0-01 - Inventario de credenciais (sem valores)
-Preparado por: Security & Governance, 2026-11-23. Base: matriz v2 (r0-preparacao/seguranca/01_matriz_credenciais_R0-01_v2.md) ajustada por DP-14, DP-19, DP-20, DP-25, confirmada pelo proprietario em DP-21 (2026-11-23 07:17 BRT) e aprovada em DP-33 (2026-11-23; registro do teto no painel de cada provedor dispensado, ver registro-teto-DP-33.md). Rev. 4: inclui as credenciais de busca e raspagem adicionadas em 2026-11-23 (C15-C22).
+Preparado por: Security & Governance, 2026-11-23. Base: matriz v2 (r0-preparacao/seguranca/01_matriz_credenciais_R0-01_v2.md) ajustada por DP-14, DP-19, DP-20, DP-25, confirmada pelo proprietario em DP-21 (2026-11-23 07:17 BRT) e aprovada em DP-33 (2026-11-23; registro do teto no painel de cada provedor dispensado, ver registro-teto-DP-33.md). Rev. 4: inclui as credenciais de busca e raspagem adicionadas em 2026-11-23 (C15-C22). Rev. 7: C15, C19, C20, C21 e C22 passam de PENDENTE a risco aceito pelo proprietario (DP-44, RA-16).
 Nenhum valor de chave, senha ou token aparece neste arquivo. Sondas e resultados: teste-escopo-R0-01.log (mesma pasta).
 
 ## 1. Inventario
@@ -37,6 +37,7 @@ Teto de US$ 50/mes (DP-04, confirmado em DP-21): imposto pelos controles interno
 - Novos no inventario (nao estavam na v2): C9 DeepSeek e C11 chave de deploy da Vertra.
 - DP-25: C9 mantida como risco aceito (RA-15). Em 2026-11-23 13:08Z a conta DeepSeek estava indisponivel (saldo -0,01 USD).
 - DP-33: R0-01 aprovada pelo proprietario; registro do teto no painel de cada provedor dispensado.
+- DP-44: o proprietario aceita o risco de escopo de C15 (Apify), C19 (Scrapfly), C20/C21 (Tavily) e C22 (Zyte); ficam no cofre como risco aceito (RA-16), com revogacao pelo painel de cada provedor.
 - Rev. 6: C16 e C17 tem o MESMO valor (comparacao por sha256, sem exibir); ha uma unica chave Bright Data ativa, gravada sob dois nomes no cofre.
 - Rev. 4: C15-C22 (Apify, Bright Data x2, Exa, Scrapfly, Tavily x2, Zyte) presentes no cofre do OpenBot em 2026-11-23, copiados nos cofres de 4 agentes e na raiz do cofre.
 - 2026-11-23: copias locais das chaves secretas do revisor e do verificador removidas (sobrescrita + delete), com ok do PM, apos conferir os segredos no GitHub; os .rev continuam no PC ate o proprietario leva-los para fora (RA-11).
@@ -53,4 +54,4 @@ Teto de US$ 50/mes (DP-04, confirmado em DP-21): imposto pelos controles interno
 | RA-13 | C8 | executor e revisor na mesma chave: gasto nao separado por chave; vazamento afeta os dois papeis | DP-19 |
 | RA-14 | C12 | escrita completa da Vertra ao alcance dos agentes (F-055) | DP-20 |
 | RA-15 | C9 | chave DeepSeek sem limite por chave, no cofre; teto = saldo pre-pago na reserva de US$ 8 | DP-25 |
-| PENDENTE | C15, C19, C20, C21, C22 | sem recusa fora do escopo demonstrada. Fatos: C15, C19, C20 e C21 em plano gratuito sem pagamento (lido nos provedores); C22 nao verificado | sem decisao registrada (DP-33 trata do teto, nao do escopo); C18 saiu da lista (recusa demonstrada) |
+| RA-16 | C15, C19, C20, C21, C22 | sem recusa fora do escopo demonstrada (nenhum dos provedores oferece chave restrita no plano em uso). Fatos lidos em 2026-11-23: C15 Apify plano FREE, isPaying=False, teto no provedor maxMonthlyUsageUsd 5; C19 Scrapfly plano gratuito (plan_price 0, extra_scrape_allowed False); C20 e C21 Tavily plano gratuito Researcher, paygo_usage 0; C22 Zyte nao verificado sem gastar credito. Revogacao pelo painel de cada provedor | DP-44 (proprietario, 2026-11-23: risco aceito); teto pela DP-33; C18 saiu da lista (recusa demonstrada) |
