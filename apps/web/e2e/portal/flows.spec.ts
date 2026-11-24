@@ -213,6 +213,7 @@ test.describe('honestidade de dados', () => {
     // foco: depois da hidratação a região recebe foco e o anel de foco aparece (foco e leitura no mesmo instante, sem repetir)
     const primeira = regioes.first();
     await aguardarHidratacao(page);
+    await expect(primeira).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; a região chega oculta no streaming e só depois troca de lugar
     const foco = await focarELer(primeira);
     expect(foco.focado).toBe(true);
     expect(foco.estiloAnel).not.toBe('none');

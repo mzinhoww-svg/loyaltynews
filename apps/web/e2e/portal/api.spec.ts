@@ -183,6 +183,7 @@ test.describe('mídia kit via API comercial', () => {
     expect(nomes[0]).toContain('Preços de referência: Banners');
     expect(nomes[1]).toContain('Preços de referência: The Loyal');
     await aguardarHidratacao(page);
+    await expect(precos.nth(1)).toBeVisible(); // int/017: /midia-kit dinâmico com esqueleto; a tabela chega oculta no streaming e só depois troca de lugar
     const foco = await focarELer(precos.nth(1));
     expect(foco.focado).toBe(true);
     expect(foco.estiloAnel).not.toBe('none'); // o anel de foco aparece

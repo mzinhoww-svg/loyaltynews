@@ -16,7 +16,7 @@ export default function Loading() {
           <div style={bloco(180, 12, { background: 'var(--ln-color-border-strong)' })} />
           <div style={bloco('70%', 28, { background: 'var(--ln-color-border-strong)' })} />
           <div style={bloco('45%', 28, { background: 'var(--ln-color-border-strong)' })} />
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <div style={bloco(150, 44, { background: 'var(--ln-color-border-strong)' })} />
             <div style={bloco(150, 44, { background: 'var(--ln-color-border-strong)' })} />
           </div>
