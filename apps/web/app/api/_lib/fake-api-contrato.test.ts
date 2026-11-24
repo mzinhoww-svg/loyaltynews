@@ -70,14 +70,10 @@ const CASES: Case[] = [
 
 /**
  * Divergências conhecidas no fake da main, ainda não corrigidas (o caso roda como it.fails). Quem alinhar o fake tira a linha daqui.
- * Fonte: parecer do QA 4 r0-preparacao/qa/qa4-portal-fe-800b0eb.md; a correção da Frontend está em ft/portal-polish-fe (fora da main).
+ * Fonte: parecer do QA 4 r0-preparacao/qa/qa4-portal-fe-800b0eb.md. Tipo e q de matérias saíram daqui quando o fake foi alinhado
+ * (ft/portal-polish-fe 9120163, na int/013+); a Intelligence sai quando ft/portal-intelligence 6c1bbbb entrar.
  */
 const KNOWN: Record<string, string> = {
-  'materias: tipo inválido': 'fake 422, API 400 VALIDATION_ERROR',
-  'materias: tipo vazio': 'fake ignora tipo= vazio (200), API 400',
-  'materias: q com 101 caracteres': 'fake 422, API 400',
-  'materias: q com 100 caracteres e espaços nas pontas': 'fake mede antes de aparar (422), API apara e aceita (200)',
-  'materias: q só com espaços': 'fake aceita (200), API 400 (q aparado vazio)',
   'materias: limit 0': 'fake não valida limit (200), API 400 (1–100)',
   'materias: limit 101': 'fake não valida limit (200), API 400 (1–100)',
   'materias: offset negativo': 'fake não valida offset (200), API 400',
