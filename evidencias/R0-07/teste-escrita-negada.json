@@ -17,7 +17,11 @@
  ],
  "limites": [
   "Nem todo escopo de escrita foi sondado um a um (regra 4a: sem sonda destrutiva).",
-  "A plataforma nao expoe historico de auditoria: \"nenhuma mutacao no historico\" e mostrado pelo antes/depois das leituras e pela recusa por escopo, nao por um log da plataforma.",
+  "A plataforma nao expoe historico de auditoria: \"nenhuma mutacao no historico\" e mostrado pelo antes/depois das leituras e pela recusa por escopo, nao por um log da plataforma. Limitacao aceita pelo proprietario: DP-50 (governance/decisions.yaml).",
   "O servidor remoto vertra (OAuth, escrita) segue acessivel aos agentes: risco aceito RA-14 (DP-20)."
+ ],
+ "decisoes": [
+  "DP-50",
+  "DP-20"
  ]
 }
