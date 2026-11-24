@@ -1,6 +1,7 @@
 import type { Source } from '../types';
 import { SEED_BLOG_SOURCES } from './seed-blogs';
 import { SEED_EMPRESA_SOURCES } from './seed-empresas';
+import { SEED_PROGRAMA_SOURCES } from './seed-programas';
 
 /**
  * Registro de fontes primárias (Frente 06). GERADO da pesquisa somente-leitura de 22/11/2026 (docs/fontes-pesquisa.json,
@@ -1310,4 +1311,4 @@ export const SEED_BASE_SOURCES: Source[] = [
 ] as unknown as Source[];
 
 /** Cadastro completo: fontes primárias da pesquisa de 22/11 + blogs e imprensa de nicho da DP-29 (todas desabilitadas até a revisão humana). */
-export const SEED_SOURCES: Source[] = [...SEED_BASE_SOURCES, ...SEED_EMPRESA_SOURCES, ...SEED_BLOG_SOURCES];
+export const SEED_SOURCES: Source[] = [...SEED_BASE_SOURCES, ...SEED_EMPRESA_SOURCES, ...SEED_BLOG_SOURCES, ...SEED_PROGRAMA_SOURCES];
