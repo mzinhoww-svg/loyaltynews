@@ -130,7 +130,7 @@ async function main() {
   });
   // ADR-022 / DP-38: com --expect-flags ou --expect-no-flags, as rotas públicas de pessoas e Moves têm de refletir a flag (desligada: 200 vazio com disponivel=false; ligada: disponivel=true).
   // Política de cache do portal (PM, 24/11): 60 s só nas páginas SEM pessoas; pessoas/moves/Intelligence/sitemap e a matéria ficam no-store. Prova de caixa-preta: verificar-cache-headers.mjs.
-  if (Boolean(args['expect-cache'])) await tentar('cache', async () => {
+  if (args['expect-cache']) await tentar('cache', async () => {
     const v = await verificar({ url: base, valores: { editoria: 'mercado' } });
     check(`cache: ${v.total} rotas conforme a política (60 s sem pessoas; no-store com pessoas, matéria e sitemap)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
   });
