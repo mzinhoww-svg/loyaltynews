@@ -257,6 +257,10 @@
 .pt-fold { border-top: 1px solid var(--ln-color-border); padding-block: var(--ln-space-1); }
 .pt-fold > summary { display: flex; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); cursor: pointer; font-weight: 700; }
 .pt-fold[open] > summary { margin-bottom: var(--ln-space-2); }
+/* P3-5 (UI/UX): a categoria recolhida precisa parecer expansível. Seta ▸ fechada e ▾ aberta, na cor do título, a 8 px do texto (o gap do resumo),
+   sem ser lida pelo leitor de tela (texto alternativo vazio). Largura fixa para o título não pular ao abrir. */
+.pt-fold > summary::before { content: '▸' / ''; display: inline-block; flex: none; width: 1em; text-align: center; color: inherit; }
+.pt-fold[open] > summary::before { content: '▾' / ''; }
 
 /* P3-5 (UI/UX, exigência): o mídia kit impresso ou salvo em PDF traz TODAS as tabelas de preço. Um <details> fechado esconde o conteúdo também no papel;
    aqui o conteúdo das categorias fechadas passa a sair, com o título de cada uma. Setas e marcadores de abrir/fechar não saem no papel. */
@@ -265,5 +269,5 @@
   .pt-fold > summary { list-style: none; }
   .pt-fold > summary::-webkit-details-marker { display: none; }
   .pt-fold > summary::marker { content: none; }
-  .pt-fold > summary::before { content: none; }
+  .pt-fold > summary::before, .pt-fold[open] > summary::before { content: none; }
 }
