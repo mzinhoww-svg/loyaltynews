@@ -39,6 +39,14 @@ export async function registrarLeituraAction(fd: FormData): Promise<void> {
   voltar(
     materia,
     !ehErro(r),
-    ehErro(r) ? mensagemErro(r) : `Leitura registrada e auditada: ${r.body.unsupportedFacts} fato(s) não suportado(s) (${r.body.altas} alta, ${r.body.medias} média, ${r.body.baixas} baixa).`,
+    ehErro(r) ? mensagemErro(r) : `Leitura registrada e auditada: ${r.body.unsupportedFacts} fato(s) não suportado(s) (${r.body.altas} alta, ${r.body.medias} média, ${r.body.baixas} baixa).${situacaoDaPlanilha(r.body.planilha)}`,
   );
+}
+
+/** O que aconteceu com a linha do piloto depois da leitura (parada no 1º fato ALTO, critério 2 do PM). */
+function situacaoDaPlanilha(p?: { linhas: string[]; parada: boolean; erros: string[]; aviso?: string }): string {
+  if (!p) return '';
+  if (p.erros.length) return ` Atenção: a leitura NÃO foi gravada na linha do piloto (${p.erros.join('; ')}); com fato alto, o despacho pode não parar — avise o operador.`;
+  if (!p.linhas.length) return p.aviso ? ` ${p.aviso}.` : '';
+  return p.parada ? ' Fato de gravidade alta: gravado na linha do piloto, e o despacho para no próximo pedido.' : ' Gravada na linha do piloto.';
 }

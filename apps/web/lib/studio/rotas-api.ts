@@ -376,7 +376,7 @@ export const api = {
     importar: (corpo: { arquivo: ArquivoFolha; leitor2Nome: string; leituras: { materia: string; achados: Achado[]; checklist: Checklist; veredito: 'aprovado' | 'bloqueado' }[] }) =>
       chamar<{ importadas: { materia: string; unsupportedFacts: number; altas: number; medias: number; baixas: number }[] }>(dispatchEditorial, `${E}/piloto/importacao`, { metodo: 'POST', corpo }),
     registrar: (materia: string, corpo: { leitor: 1; achados: Achado[]; checklist: Checklist; veredito: 'aprovado' | 'bloqueado' }) =>
-      chamar<{ materia: string; leitor: number; unsupportedFacts: number; altas: number; medias: number; baixas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leitura`, { metodo: 'POST', corpo }),
+      chamar<{ materia: string; leitor: number; unsupportedFacts: number; altas: number; medias: number; baixas: number; planilha?: { linhas: string[]; parada: boolean; erros: string[]; aviso?: string } }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leitura`, { metodo: 'POST', corpo }),
   },
   editorial: {
     fila:(query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),

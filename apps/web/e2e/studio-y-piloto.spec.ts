@@ -78,6 +78,10 @@ test('leitura de a1: texto ao lado das fontes; "aprovada" com fato alto é recus
   await page.locator('input[name="veredito"][value="bloqueado"]').check();
   await enviar(page, page.getByRole('button', { name: 'Registrar leitura' }));
   await sucesso(page, 'Leitura registrada e auditada: 1 fato(s) não suportado(s) (1 alta');
+  // parada no 1º fato ALTO (critério 2 do PM): a leitura vai para a linha do piloto no banco, e não só para o CSV
+  await sucesso(page, 'o despacho para no próximo pedido');
+  const linhas = await api(context, 'GET', '/api/studio/openbot/piloto/linhas');
+  expect((linhas.body.items as { task_id: string; unsupported_high?: number }[]).find((x) => x.task_id === 'mock-a1-review')).toMatchObject({ unsupported_high: 1 });
   await expect(page.locator('[data-leitura="1"]')).toContainText('bloqueada');
   await expect(page.getByRole('form', { name: 'Registrar leitura' })).toHaveCount(0); // definitiva
   const again = await api(context, 'POST', '/api/studio/editorial/piloto/a1/leitura', { leitor: 1, achados: [], checklist: { fatosNasEvidencias: true, tom: true, nadaInventado: true }, veredito: 'aprovado' });

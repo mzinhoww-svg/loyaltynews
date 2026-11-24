@@ -7,13 +7,14 @@ import { sql } from 'drizzle-orm';
 import {
   acknowledgeLegalCase, closeCorrection, getArticleReview, getCorrection, getFactcheck, intakeRightOfReply, listCorrections, listQueue,
   importLeitura2, listLeituras, listPautas, listPiloto, listSources, mapPiloto, markCorrectionEntitiesRebuilt, openCorrection, preserveCorrectionEvidence, publishCorrectionNotice, reconcileCorrectionSocial,
-  registerFolha, registerLeitura, requestRecheck, revogarFolha, reviewSource, setSourceEnabled, submitPauta, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
+  registerFolha, requestRecheck, revogarFolha, reviewSource, setSourceEnabled, submitPauta, submitReview, triageCorrection, verifyRequester, SEED_SOURCES, SourceRegistry,
   type ApiResponse, type JobQueue,
 } from '@ln/editorial';
 import { PgEditorialStore } from '@ln/workers/editorial-store';
 import { registerPublication, type PublicationCtx } from './publication';
 import { articlesPublishedLookup } from './published';
 import { getArticleDraft } from './draft-view';
+import { registerLeituraComParada } from './piloto-parada';
 import { enqueueOutbox } from '@ln/workers/outbox';
 import type { Action, Db, Resource } from '@ln/auth';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
@@ -66,7 +67,7 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   stu('POST', '/piloto/importacao/revogar', WRITE, revogarFolha),
   stu('POST', '/piloto/importacao', WRITE, importLeitura2),
   stu('GET', '/piloto/:materia/leituras', READ, listLeituras),
-  stu('POST', '/piloto/:materia/leitura', WRITE, registerLeitura),
+  stu('POST', '/piloto/:materia/leitura', WRITE, registerLeituraComParada), // leitura do leitor 1 também vai para a linha do piloto: parada no 1º fato ALTO (PM, 24/11)
   // Portal (sem sessão; limite por IP no dispatcher): formulário de direito de resposta
   { method: 'POST', path: `${PUB}/right-of-reply`, auth: 'public', handler: intakeRightOfReply },
 ];
