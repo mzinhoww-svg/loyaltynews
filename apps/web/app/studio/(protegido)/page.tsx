@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { flagAtiva } from '@/lib/studio/flags';
 import { KpiCard } from '@ln/ui';
-import { GRUPOS, visibleModules } from '@/lib/studio/modules';
+import { GRUPOS, checkAccess, visibleModules, type GrupoId } from '@/lib/studio/modules';
+import { CMS_EDIT } from '@/lib/studio/cms/roles';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, naoConfigurado } from '@/lib/studio/backend';
 import { STATUS_LABEL } from '@/lib/studio/cms/status';
@@ -14,6 +15,16 @@ export const dynamic = 'force-dynamic';
 export default async function StudioHome() {
   const { session } = await requireStudio(['admin', 'editor_chefe', 'editor', 'revisor', 'comercial', 'leitor']);
   const mods = visibleModules(session);
+  const visiveis = new Set(mods.map((m) => m.slug));
+  // atalhos para o que mais se faz; cada um só aparece para quem tem acesso à área
+  const atalhos = [
+    ...(checkAccess(session, CMS_EDIT).ok ? [{ href: '/studio/cms/nova', rotulo: 'Nova matéria' }] : []),
+    ...(visiveis.has('cms') ? [{ href: '/studio/cms/checagem', rotulo: 'Fila de checagem' }] : []),
+    ...(visiveis.has('fontes') ? [{ href: '/studio/fontes/fabrica', rotulo: 'Fontes da Fábrica' }] : []),
+    ...(visiveis.has('piloto') ? [{ href: '/studio/piloto', rotulo: 'Leitura do piloto' }] : []),
+    { href: '/studio/conta', rotulo: 'Minha conta' },
+  ];
+  const grupos = (Object.keys(GRUPOS) as GrupoId[]).map((g) => ({ id: g, nome: GRUPOS[g], itens: mods.filter((m) => m.grupo === g) })).filter((g) => g.itens.length > 0);
   const estados = ['rascunho', 'em_checagem', 'bloqueado', 'aprovado'] as const;
   const contagens = await Promise.all(estados.map((s) => api.materias.listar({ status: s })));
   const semBanco = contagens.some((c) => naoConfigurado(c));
@@ -21,7 +32,20 @@ export default async function StudioHome() {
   return (
     <>
       <h1>LN Studio</h1>
-      <p className="st-hint">Painel administrativo do Loyalty News. Módulos sem backend mostram uma tela sem dados: nenhum número aqui é estimado ou fictício.</p>
+      <p className="st-hint">Visão geral do painel administrativo do Loyalty News: daqui você chega a todas as áreas. Módulos sem backend mostram uma tela sem dados: nenhum número aqui é estimado ou fictício.</p>
+
+      <section aria-labelledby="atalhos">
+        <h2 id="atalhos">Atalhos</h2>
+        <ul className="st-actions" style={{ listStyle: 'none', padding: 0 }} data-atalhos>
+          {atalhos.map((a) => (
+            <li key={a.href}>
+              <Link className="st-btn sec" href={a.href}>
+                {a.rotulo}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <h2>Fila editorial</h2>
       <div className="st-grid" aria-label="Contagem da fila editorial">
@@ -36,23 +60,27 @@ export default async function StudioHome() {
       ) : null}
       <p className="st-hint">Audiência, receita e custos: não disponível.</p>
 
-      <h2>Módulos</h2>
-      <div className="st-grid">
-        {mods.map((m) => (
-          <div className="st-card" key={m.slug}>
-            <h3 style={{ marginTop: 0 }}>
-              <Link href={`/studio/${m.slug}`}>{m.nome}</Link>
-            </h3>
-            <p className="st-hint">{GRUPOS[m.grupo]}</p>
-            <p>{m.descricao}</p>
-            <p>
-              <span className="st-badge" data-estado-modulo={m.flag && !flagAtiva(m.flag) ? 'desligado' : m.implementado ? 'em-uso' : 'sem-dados'}>
-                {m.flag && !flagAtiva(m.flag) ? 'Desligado nesta fase' : m.implementado ? 'Em uso' : 'Sem dados ainda'}
-              </span>
-            </p>
+      <h2>Áreas do Studio</h2>
+      {grupos.map((g) => (
+        <section key={g.id} aria-labelledby={`grupo-${g.id}`} data-grupo={g.id}>
+          <h3 id={`grupo-${g.id}`}>{g.nome}</h3>
+          <div className="st-grid">
+            {g.itens.map((m) => (
+              <div className="st-card" key={m.slug}>
+                <h4 style={{ marginTop: 0 }}>
+                  <Link href={`/studio/${m.slug}`}>{m.nome}</Link>
+                </h4>
+                <p>{m.descricao}</p>
+                <p>
+                  <span className="st-badge" data-estado-modulo={m.flag && !flagAtiva(m.flag) ? 'desligado' : m.implementado ? 'em-uso' : 'sem-dados'}>
+                    {m.flag && !flagAtiva(m.flag) ? 'Desligado nesta fase' : m.implementado ? 'Em uso' : 'Sem dados ainda'}
+                  </span>
+                </p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
+      ))}
     </>
   );
 }
