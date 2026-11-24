@@ -1,5 +1,7 @@
 # Checklist de habilitação das fontes do piloto (1 página) — para o proprietário
 
+> Reconferido em 24/11/2026 (links, robots, feed/sitemap e termos respondendo; ressalvas por fonte e texto de decisão pronto): `docs/dossie-habilitacao-piloto.md`.
+
 **Onde:** Studio → Fontes da Fábrica (`/studio/fontes/fabrica`). **Quem:** você (admin ou editor-chefe, com MFA): uma pessoa pode revisar e habilitar (só não pode ser a pesquisadora das fontes). **Base:** DP-28 (risco aceito). Detalhes e termos lidos: `docs/piloto-fontes.md`. Habilitar não coleta nada sozinho: a coleta só roda quando o job editorial for ligado (flags `editorialCollector`/`editorialPipeline`, a cargo do DevOps/PM).
 
 ## Para CADA fonte (2 passos: revisar, depois habilitar)
