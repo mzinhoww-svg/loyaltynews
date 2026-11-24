@@ -181,6 +181,18 @@ const adPlan = (positions) => ({
 
 const TIPOS = ['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Portão de teste do estado "carregando": q=portao-<chave> segura a resposta até POST /__portao/abrir?chave=<chave> (ou 30 s). Determinístico:
+// o teste só libera depois de ver o esqueleto, sem depender de atraso fixo nem da carga da máquina.
+const portoes = new Map();
+const portao = (chave) => {
+  let p = portoes.get(chave);
+  if (!p) {
+    p = {};
+    p.promessa = new Promise((r) => { p.abrir = r; });
+    portoes.set(chave, p);
+  }
+  return p;
+};
 // MOCK de GET /api/commercial/mediakit (formato do handler getMediaKit do @ln/commercial). Só para o e2e do portal em modo api.
 const unavailable = (label, source) => ({ label, value: null, state: 'unavailable', source });
 const MEDIAKIT = {
@@ -214,6 +226,10 @@ http
   .createServer(async (req, res) => {
     const u = new URL(req.url ?? '/', `http://localhost:${port}`);
     if (u.pathname === '/health') return send(res, 200, { ok: true });
+    if (u.pathname === '/__portao/abrir' && req.method === 'POST') {
+      portao(`portao-${u.searchParams.get('chave') ?? ''}`).abrir();
+      return send(res, 200, { ok: true });
+    }
     if (u.pathname === '/api/commercial/mediakit') {
       if (forcedStatus) return send(res, forcedStatus, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
       return send(res, 200, MEDIAKIT);
@@ -232,6 +248,7 @@ http
       // Gatilhos de teste dos estados de carregando e de erro (busca): q=lento atrasa a resposta; q=falha responde 503.
       const q0 = u.searchParams.get('q');
       if (q0 === 'lento') await sleep(2500);
+      if (q0?.startsWith('portao-')) await Promise.race([portao(q0).promessa, sleep(30_000)]);
       if (q0 === 'falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
       const limit = Number(u.searchParams.get('limit') ?? 20);
       const offset = Number(u.searchParams.get('offset') ?? 0);
