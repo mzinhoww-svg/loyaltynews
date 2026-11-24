@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants';
 import type { NextConfig } from 'next';
+import { portalCacheHeaders } from './cache-policy';
 
 // Raiz do monorepo, explícita: apps/web/next.config.ts -> ../.. . Sem isso o Next infere a raiz do workspace pelo lockfile e RECUSA a pasta que
 // contiver o diretório do usuário. Na Vertra o HOME fica dentro da pasta do app (/app/.cache/vertra/tmp/build/home), então ele ignorava /app e
@@ -68,6 +69,10 @@ const config = (phase: string): NextConfig => {
     outputFileTracingRoot: monorepoRoot,
     // e2e usa diretório de build próprio para não contaminar o artefato de produção.
     distDir: e2eBuild ? '.next-e2e' : '.next',
+    // Cache do documento das páginas do portal (política em lib/portal-cache-policy.ts): 60 s só nas páginas sem pessoas; pessoas e matéria em no-store.
+    async headers() {
+      return portalCacheHeaders();
+    },
     turbopack: {
       root: monorepoRoot,
       resolveAlias: { '@ln-studio/e2e-backend': e2eBackendSeam, '@ln-studio/dev-db': devDbSeam },
