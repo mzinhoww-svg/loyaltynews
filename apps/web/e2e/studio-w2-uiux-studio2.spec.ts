@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { entrar } from './helpers';
+import { api, entrar } from './helpers';
 
 // Revisão visual da UI/UX (revisao-visual-staging-int012.md), telas da frente Studio 2. Celular (390 px), onde as tabelas viram blocos com rolagem.
 test.use({ viewport: { width: 390, height: 844 } });
@@ -40,12 +40,22 @@ test('P2-4: links dos agentes em /studio/organizacao com alvo de toque de 44 px'
   expect(await links.count()).toBeGreaterThan(10);
   for (const l of (await links.all()).slice(0, 10)) expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });
-// Ressalva do QA 7 (bfad5fc): a fila de pacotes do @ln/growth/ui em /studio/social também fica no quadro do Studio (região com nome e foco).
-test('P2-1: fila de pacotes da /studio/social dentro do QuadroRolavel', async ({ page, context }) => {
+// Ressalvas do QA 7: a fila de pacotes do @ln/growth/ui em /studio/social fica no QuadroRolavel quando há pacotes (bfad5fc);
+// com a fila vazia não há tabela para rolar, então não pode haver região focável vazia (P3 do 458e5aa). Vale nos dois casos:
+// isolado a fila está vazia; na suíte completa outros specs já criaram pacotes.
+test('P2-1: fila de pacotes da /studio/social no quadro só quando há pacotes', async ({ page, context }) => {
   await entrar(context, 'uiux-adm', 'admin');
+  const fila = await api(context, 'GET', '/api/studio/social/queue');
+  expect(fila.status).toBe(200);
+  const temPacotes = (fila.body as { items: unknown[] }).items.length > 0;
   await page.goto('/studio/social');
-  const quadro = page.locator('main .st-quadro[role="region"][aria-label="Fila de pacotes sociais"]');
-  await expect(quadro).toHaveAttribute('tabindex', '0');
-  await quadro.focus();
-  await expect(quadro).toBeFocused();
+  await expect(page.getByRole('heading', { level: 1, name: 'Social dashboard' })).toBeVisible();
+  const quadro = page.locator('main .st-quadro[aria-label="Fila de pacotes sociais"]');
+  if (temPacotes) {
+    await expect(quadro).toHaveAttribute('tabindex', '0');
+    await expect(quadro.locator('table')).toHaveCount(1);
+  } else {
+    await expect(quadro).toHaveCount(0);
+  }
+  await expect(page.locator('main .st-quadro')).toHaveCount(await page.locator('main .st-quadro table').count()); // nenhum quadro vazio
 });
