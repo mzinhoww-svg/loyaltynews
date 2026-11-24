@@ -230,3 +230,8 @@
 /* O plano manda: posição só-mobile não ocupa espaço no desktop, e posição sem formato mobile não ocupa espaço no mobile (sem salto de layout). */
 @media (min-width: 768px) { .pt-ad[data-desktop='false'] { display: none; } }
 @media (max-width: 767px) { .pt-ad[data-mobile-formats='nenhum'] { display: none; } }
+
+/* Breadcrumb: o separador "/" fica no FIM do item anterior (::after) em vez de no começo do próximo (::before). Com título longo o item quebra de linha e o
+   "/" ficava sozinho no começo da linha (P2-5 da revisão visual int/012). O DS (packages/ui) usa ::before; aqui só se troca o lado, sem editar o pacote. */
+.pt .ln-breadcrumb__item + .ln-breadcrumb__item::before { content: none; margin: 0; }
+.pt .ln-breadcrumb__item:not(:last-child)::after { content: "/"; margin-inline: var(--ln-space-2); color: var(--ln-role-fg-muted); }
