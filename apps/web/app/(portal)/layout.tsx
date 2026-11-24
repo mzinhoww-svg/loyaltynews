@@ -16,6 +16,12 @@ import { getSource, isMockSource } from './_lib/source';
  * Metadados globais. Com a fonte api, título/descrição/imagem OG vêm do SEO publicado no Studio (seo_global); sem isso valem os padrões.
  * `indexacao: noindex` publicado SOMA-SE ao bloqueio de indexação do ambiente: nunca o relaxa.
  */
+/**
+ * Imagem de compartilhamento padrão (V-14, 1200×627, em public/). Não é arquivo de convenção do App Router (opengraph-image.*),
+ * porque esse tipo de arquivo vence o metadata e ignoraria a imagem publicada no Studio (seo.ogImage, F-29): o publicado vale; o padrão só quando não há nada.
+ */
+const OG_PADRAO = [{ url: '/og-padrao.png', width: 1200, height: 627, alt: 'Loyalty News' }];
+
 export async function generateMetadata(): Promise<Metadata> {
   const seo = (await getSource().getSiteConfig())?.seo ?? null;
   const title = seo?.title ?? `${SITE_NAME} — ${SITE_TAGLINE}`;
@@ -25,8 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: title, template: `%s | ${SITE_NAME}` },
     description,
     applicationName: SITE_NAME,
-    openGraph: { type: 'website', siteName: SITE_NAME, locale: 'pt_BR', title: seo?.title ?? SITE_NAME, description, ...(seo?.ogImage ? { images: [{ url: seo.ogImage }] } : {}) },
-    twitter: { card: 'summary_large_image', title: seo?.title ?? SITE_NAME, description, ...(seo?.ogImage ? { images: [seo.ogImage] } : {}) },
+    openGraph: { type: 'website', siteName: SITE_NAME, locale: 'pt_BR', title: seo?.title ?? SITE_NAME, description, images: seo?.ogImage ? [{ url: seo.ogImage }] : OG_PADRAO },
+    twitter: { card: 'summary_large_image', title: seo?.title ?? SITE_NAME, description, images: seo?.ogImage ? [seo.ogImage] : [OG_PADRAO[0]!.url] },
     alternates: { canonical: '/' },
     // Fora de produção, sem PORTAL_INDEXAVEL=1, com dados MOCK ou com noindex publicado: noindex/nofollow global, herdado por todas as páginas.
     robots: indexingBlocked() || seo?.noindex ? { index: false, follow: false, nocache: true } : undefined,
