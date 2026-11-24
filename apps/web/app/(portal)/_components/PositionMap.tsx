@@ -59,7 +59,7 @@ export function PositionMap({ positions }: { positions: readonly MapPosition[] }
           <g key={d.id} data-position={d.id}>
             <rect className="pt-map-slot" x={d.x} y={d.y} width={d.w} height={d.h} rx="6" data-w={d.w} data-h={d.h} />
             <text className="pt-map-text" x={d.x + d.w / 2} y={d.y + d.h / 2 - 2} textAnchor="middle">{d.name}</text>
-            <text className="pt-map-small" x={d.x + d.w / 2} y={d.y + d.h / 2 + 22} textAnchor="middle">{dimLabel(d.dim)}</text>
+            <text className="pt-map-small" x={d.x + d.w / 2} y={d.y + d.h / 2 + 28} textAnchor="middle">{dimLabel(d.dim)}</text>
           </g>
         ))}
       </svg>

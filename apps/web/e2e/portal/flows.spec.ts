@@ -301,6 +301,40 @@ test.describe('honestidade de dados', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
+  test('P2-a: rótulos do mapa com ≥ 11 px reais em 320, 360, 390 e 412 px, dentro das caixas e sem sobrepor nome e dimensão', async ({ page }) => {
+    for (const largura of [320, 360, 390, 412]) {
+      await page.setViewportSize({ width: largura, height: 800 });
+      await page.goto('/midia-kit');
+      const r = await page.evaluate(() => {
+        const svg = document.querySelector('[data-testid="mk-mapa"] svg') as SVGSVGElement;
+        const k = svg.getScreenCTM()!.a;
+        const px = (sel: string) => [...svg.querySelectorAll(sel)].map((t) => parseFloat(getComputedStyle(t).fontSize) * k);
+        const fora: string[] = []; const sobrepoe: string[] = [];
+        for (const g of svg.querySelectorAll('g[data-position]')) {
+          const rect = g.querySelector('rect')!.getBBox();
+          const textos = [...g.querySelectorAll('text')] as SVGTextElement[];
+          for (const t of textos) {
+            const b = t.getBBox();
+            if (b.x < rect.x || b.x + b.width > rect.x + rect.width || b.y < rect.y || b.y + b.height > rect.y + rect.height) fora.push(`${g.getAttribute('data-position')}: ${t.textContent}`);
+          }
+          if (textos.length === 2) {
+            // glifos: o nome desce até a linha de base + 20% do corpo (descendente); a dimensão sobe até a linha de base − 72% (maiúscula/dígito)
+            const [n, d] = textos as [SVGTextElement, SVGTextElement];
+            const corpo = (t: SVGTextElement) => parseFloat(getComputedStyle(t).fontSize);
+            const baseN = parseFloat(n.getAttribute('y')!); const baseD = parseFloat(d.getAttribute('y')!);
+            const folga = (baseD - 0.72 * corpo(d)) - (baseN + 0.2 * corpo(n));
+            if (folga < 2) sobrepoe.push(`${g.getAttribute('data-position')} (folga ${folga.toFixed(1)})`);
+          }
+        }
+        return { nomes: px('.pt-map-text'), dims: px('.pt-map-small'), legenda: px('.pt-map-cap'), fora, sobrepoe };
+      });
+      for (const v of [...r.nomes, ...r.dims, ...r.legenda]) expect(v, `${largura}px`).toBeGreaterThanOrEqual(11);
+      expect(r.nomes.length).toBeGreaterThan(5);
+      expect(r.fora, `${largura}px`).toEqual([]);
+      expect(r.sobrepoe, `${largura}px`).toEqual([]);
+    }
+  });
+
   test('V-04: botões do bloco de abertura do mídia kit são visíveis (contraste do texto ≥ 4,5:1 e do botão contra o bloco ≥ 3:1)', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
     await page.goto('/midia-kit');
