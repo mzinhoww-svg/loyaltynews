@@ -4,7 +4,7 @@
 // copia prebuilt/web-next para apps/web/.next (só se o BUILD_ID mudou) e recria os links dos externos. FALHA FECHADA: recusa subir se o .next é de outro commit, outro ambiente,
 // outra URL, outra flag/vitrine/indexação, outro `next`, ou se um externo não foi instalado. Pacote comum (sem prebuilt/prebuilt.json) = nada acontece.
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { checkHome } from '../build-web.mjs';
 
 export const PREBUILT_DIR = join('prebuilt', 'web-next');
@@ -44,19 +44,39 @@ export function problemasPrebuilt(pb, release, nextInstalado) {
   if (!/^[A-Za-z0-9_-]{6,}$/.test(String(pb.buildId ?? ''))) p.push('prebuilt.json sem buildId');
   if (pb.nextVersion && nextInstalado && pb.nextVersion !== nextInstalado) p.push(`next ${nextInstalado} instalado difere do next ${pb.nextVersion} que construiu o .next`);
   if (!Array.isArray(pb.externos)) p.push('prebuilt.json sem a lista de externos');
-  else for (const x of pb.externos) if (!x?.pacote) p.push(`externo "${x?.nome}" sem nome de pacote reconhecível (sufixo de 16 hex)`);
+  else {
+    for (const x of pb.externos) {
+      if (!x?.pacote) { p.push(`externo "${String(x?.nome).slice(0, 60)}" sem nome de pacote reconhecível (sufixo de 16 hex)`); continue; }
+      if (!NOME_EXTERNO.test(String(x.nome)) || String(x.nome).includes('..')) p.push(`externo com nome fora do formato (nome de pacote + 16 hex): "${String(x.nome).slice(0, 60)}"`);
+      else if (!NOME_PACOTE.test(String(x.pacote)) || String(x.pacote).includes('..')) p.push(`externo ${String(x.nome).slice(0, 60)} com pacote fora do formato npm: "${String(x.pacote).slice(0, 60)}"`);
+      else if (pacoteDoExterno(x.nome) !== x.pacote) p.push(`externo ${String(x.nome).slice(0, 60)} não corresponde ao pacote "${String(x.pacote).slice(0, 60)}"`);
+    }
+  }
   return p;
+}
+
+/** Remove UMA entrada de .next/node_modules sem seguir links: link/arquivo = unlink (nunca o conteúdo do alvo); pasta de verdade = remoção recursiva (QA 5, P3: antes dava EISDIR/EPERM). */
+function removerEntrada(p) {
+  const st = lstatSync(p);
+  if (st.isSymbolicLink() || !st.isDirectory()) unlinkSync(p);
+  else rmSync(p, { recursive: true, force: true });
 }
 
 function limparLinks(nextDir) {
   const base = join(nextDir, 'node_modules');
   if (!existsSync(base)) return;
-  for (const e of readdirSync(base, { withFileTypes: true })) {
-    const p = join(base, e.name);
-    if (e.name.startsWith('@') && !lstatSync(p).isSymbolicLink()) { for (const f of readdirSync(p)) unlinkSync(join(p, f)); continue; }
-    unlinkSync(p); // só o link/arquivo, nunca o conteúdo do alvo
+  for (const nome of readdirSync(base)) {
+    const p = join(base, nome);
+    const st = lstatSync(p);
+    if (nome.startsWith('@') && st.isDirectory() && !st.isSymbolicLink()) { for (const f of readdirSync(p)) removerEntrada(join(p, f)); continue; }
+    removerEntrada(p);
   }
 }
+
+// nomes de externo/pacote vêm do prebuilt.json e viram CAMINHOS (link dentro de .next/node_modules e alvo em node_modules): só nomes de pacote npm simples (QA 5, P3)
+const NOME_EXTERNO = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[A-Za-z0-9][A-Za-z0-9._-]*-[0-9a-f]{16}$/;
+const NOME_PACOTE = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
+const dentroDe = (base, alvo) => { const b = resolve(base); const a = resolve(alvo); return a === b || a.startsWith(b + sep); };
 
 /**
  * Restaura o pré-construído, se o pacote tem um. Devolve { ativo, problemas, log }. `root` é a raiz do pacote (onde está o release.json).
@@ -95,11 +115,13 @@ export function restaurarPrebuilt(root, release) {
   for (const x of pb.externos) {
     const alvo = join(root, 'node_modules', x.pacote);
     const link = join(destino, 'node_modules', x.nome);
+    // defesa em profundidade (os nomes já foram validados em problemasPrebuilt): link só dentro de .next/node_modules e alvo só dentro de node_modules
+    if (!dentroDe(join(destino, 'node_modules'), link) || !dentroDe(join(root, 'node_modules'), alvo)) { problemas.push(`externo ${String(x.nome).slice(0, 60)} resolve para fora de node_modules: recusado`); continue; }
     if (!existsSync(alvo)) { problemas.push(`externo ${x.pacote} não está em node_modules: a instalação da Vertra não o trouxe (está em dependencies?)`); continue; }
     let ok = false;
     try { ok = lstatSync(link).isSymbolicLink() && existsSync(link); } catch { /* ausente */ }
     if (!ok) {
-      try { if (existsSync(link) || lstatSync(link).isSymbolicLink()) unlinkSync(link); } catch { /* ausente */ }
+      try { removerEntrada(link); } catch { /* ausente */ } // link velho/quebrado, arquivo ou pasta de verdade no lugar do link
       mkdirSync(dirname(link), { recursive: true });
       symlinkSync(alvo, link, process.platform === 'win32' ? 'junction' : 'dir');
       log.push(`link ${x.nome} -> node_modules/${x.pacote}`);

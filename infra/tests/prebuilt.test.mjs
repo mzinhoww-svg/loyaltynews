@@ -274,3 +274,49 @@ test('restaurarPrebuilt: .next com o MESMO BUILD_ID mas sem a marca da restaura�
     assert.match(restaurarPrebuilt(r, release(r)).log.join('|'), /.next restaurado/);
   } finally { limpa(r); }
 });
+
+test('QA 5 P3 — externos[].nome/pacote do prebuilt.json viram caminhos: nomes com .., barras, fora do formato ou que não casam com o pacote são recusados ANTES de qualquer link', () => {
+  const rel = { commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'] };
+  const pb = (externos) => ({ commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'], buildId: 'BUILD_abc123', nextVersion: '16.4.6', externos });
+  assert.deepEqual(problemasPrebuilt(pb([{ nome: 'pg-0123456789abcdef', pacote: 'pg' }, { nome: '@scope/x-0123456789abcdef', pacote: '@scope/x' }]), rel, '16.4.6'), []);
+  const ruins = [
+    [{ nome: '../fora-0123456789abcdef', pacote: 'fora' }, /nome fora do formato/],
+    [{ nome: `a${BARRA}b-0123456789abcdef`, pacote: 'a' }, /nome fora do formato/],
+    [{ nome: 'pg/../../x-0123456789abcdef', pacote: 'x' }, /nome fora do formato/],
+    [{ nome: 'pg-0123456789abcdef', pacote: '../../etc' }, /pacote fora do formato npm/],
+    [{ nome: 'pg-0123456789abcdef', pacote: 'pg/../..' }, /pacote fora do formato npm/],
+    [{ nome: 'pg-0123456789abcdef', pacote: 'sharp' }, /não corresponde ao pacote/],
+    [{ nome: 'sem-sufixo', pacote: null }, /sem nome de pacote reconhecível/],
+  ];
+  for (const [x, esperado] of ruins) assert.match(problemasPrebuilt(pb([x]), rel, '16.4.6').join('|'), esperado, JSON.stringify(x));
+  // e a restauração nem cria o .next quando o manifesto traz um nome malicioso
+  const r = pacote({ pb: { externos: [{ nome: '../escapou-0123456789abcdef', pacote: 'pg' }] } });
+  try {
+    const x = restaurarPrebuilt(r, release(r));
+    assert.match(x.problemas.join('|'), /nome fora do formato/);
+    assert.equal(existsSync(join(r, 'apps/web/.next')), false, 'recusado antes de copiar qualquer coisa');
+    assert.equal(existsSync(join(r, 'apps/web/escapou-0123456789abcdef')), false);
+  } finally { limpa(r); }
+});
+
+test('QA 5 P3 — pasta de verdade (não link) em .next/node_modules: a limpeza e a recriação do link não quebram com EISDIR/EPERM', () => {
+  const r = pacote();
+  try {
+    // (a) sem a marca: o .next velho tem uma PASTA real pg-… com arquivo dentro e uma @escopo com pasta real; a restauração troca tudo
+    put(r, 'apps/web/.next/BUILD_ID', 'BUILD_velho');
+    put(r, 'apps/web/.next/node_modules/pg-0123456789abcdef/index.js', 'pasta real');
+    put(r, 'apps/web/.next/node_modules/@s/x-0123456789abcdef/index.js', 'pasta real em @escopo');
+    const a = restaurarPrebuilt(r, release(r));
+    assert.deepEqual(a.problemas, [], a.problemas.join('|'));
+    assert.equal(lstatSync(join(r, 'apps/web/.next/node_modules/pg-0123456789abcdef')).isSymbolicLink(), true, 'virou link');
+    assert.equal(existsSync(join(r, 'apps/web/.next/node_modules/@s')), false, 'o .next foi refeito do pré-construído');
+    // (b) com a marca ok, mas o link foi trocado por uma pasta real: o link é recriado
+    unlinkSync(join(r, 'apps/web/.next/node_modules/pg-0123456789abcdef'));
+    put(r, 'apps/web/.next/node_modules/pg-0123456789abcdef/sobra.txt', 'x');
+    const b = restaurarPrebuilt(r, release(r));
+    assert.deepEqual(b.problemas, [], b.problemas.join('|'));
+    assert.match(b.log.join('|'), /link pg-0123456789abcdef -> node_modules\/pg/);
+    assert.equal(lstatSync(join(r, 'apps/web/.next/node_modules/pg-0123456789abcdef')).isSymbolicLink(), true);
+    assert.ok(existsSync(join(r, 'node_modules/pg/package.json')), 'o alvo do link NÃO foi apagado');
+  } finally { limpa(r); }
+});

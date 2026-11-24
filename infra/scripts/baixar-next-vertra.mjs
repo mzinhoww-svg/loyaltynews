@@ -29,12 +29,49 @@ const LISTAS = ['files', 'entries', 'items', 'data', 'children', 'contents', 'no
 const ehDir = (e) => e?.type === 'dir' || e?.type === 'directory' || e?.type === 'folder' || e?.is_dir === true || e?.isDir === true || e?.isDirectory === true || e?.directory === true || e?.kind === 'directory';
 const nomeDe = (e) => String(e?.name ?? e?.nome ?? String(e?.path ?? '').split('/').filter(Boolean).pop() ?? '');
 
-/** Normaliza a resposta de listagem em [{ nome, dir, tamanho }]. Formato desconhecido: lança com os NOMES das chaves (nunca valores). Função pura. */
+const ENVELOPES = ['response', 'result', 'untrusted_content', 'payload', 'body'];
+const META_DO_ENVELOPE = /^(status|ok|success|message|meta|request_id)$/;
+
+/**
+ * Desembrulha o envelope da API (`{ response: ... }` e parentes), até 4 níveis, só quando o envelope é a ÚNICA chave de dados (metadados como status/ok/meta podem ficar ao lado).
+ * Com `texto: true` (só listagem) um envelope cujo valor é TEXTO JSON também é aberto; em conteúdo de arquivo isso nunca vale (um arquivo .json seria reescrito). Função pura.
+ */
+export function desembrulhar(j, { texto = false } = {}) {
+  let x = j;
+  for (let i = 0; i < 4; i += 1) {
+    if (texto && typeof x === 'string' && /^\s*[[{]/.test(x)) { try { x = JSON.parse(x); continue; } catch { break; } }
+    if (!x || typeof x !== 'object' || Array.isArray(x)) break;
+    const env = ENVELOPES.find((k) => k in x && Object.keys(x).every((k2) => k2 === k || META_DO_ENVELOPE.test(k2)));
+    if (!env) break;
+    x = x[env];
+  }
+  return x;
+}
+
+/** A FORMA de uma resposta: só nomes de chaves e tipos, nunca valores (para a mensagem de erro e a sonda). Função pura. */
+export function formaDe(j, nivel = 4) {
+  if (Array.isArray(j)) return nivel <= 0 || j.length === 0 ? '[]' : `[${formaDe(j[0], nivel - 1)}]`;
+  if (j && typeof j === 'object') return nivel <= 0 ? '{…}' : `{${Object.keys(j).slice(0, 12).map((k) => `${k}:${formaDe(j[k], nivel - 1)}`).join(',')}}`;
+  return j === null ? 'null' : typeof j;
+}
+
+const pareceEntrada = (e) => typeof e === 'string' || (e && typeof e === 'object' && ('name' in e || 'nome' in e || 'path' in e));
+function acharLista(x, nivel) {
+  if (Array.isArray(x)) return x;
+  if (!x || typeof x !== 'object' || nivel < 0) return null;
+  for (const k of LISTAS) if (Array.isArray(x[k])) return x[k];
+  for (const k of Object.keys(x)) {
+    const v = desembrulhar(x[k], { texto: true });
+    if (Array.isArray(v) && v.length && v.every(pareceEntrada)) return v;
+    if (v && typeof v === 'object' && !Array.isArray(v)) { const r = acharLista(v, nivel - 1); if (r) return r; }
+  }
+  return null;
+}
+
+/** Normaliza a resposta de listagem em [{ nome, dir, tamanho }]. Desembrulha `response`. Formato desconhecido: lança com a FORMA (nomes e tipos, nunca valores). Função pura. */
 export function normalizarListagem(json) {
-  let lista = Array.isArray(json) ? json : null;
-  if (!lista && json && typeof json === 'object') for (const k of LISTAS) if (Array.isArray(json[k])) { lista = json[k]; break; }
-  if (!lista && json?.data && typeof json.data === 'object') for (const k of LISTAS) if (Array.isArray(json.data[k])) { lista = json.data[k]; break; }
-  if (!lista) throw new Error(`formato de listagem não reconhecido (chaves: ${json && typeof json === 'object' ? Object.keys(json).join(',') : typeof json})`);
+  const lista = acharLista(desembrulhar(json, { texto: true }), 3);
+  if (!lista) throw new Error(`formato de listagem não reconhecido (forma: ${formaDe(json)})`);
   return lista.map((e) => {
     if (typeof e === 'string') return { nome: e.replace(/\/+$/, ''), dir: e.endsWith('/'), tamanho: null };
     const t = e?.size ?? e?.bytes ?? e?.length;
@@ -47,7 +84,9 @@ export function normalizarConteudo(corpo, contentType = '') {
   const ehJson = /json/i.test(contentType) || (corpo.length > 1 && corpo[0] === 0x7b);
   if (ehJson) {
     try {
-      const j = JSON.parse(corpo.toString('utf8'));
+      const bruto = JSON.parse(corpo.toString('utf8'));
+      const j = desembrulhar(bruto); // { response: { content, encoding } } e parentes
+      if (typeof j === 'string' && j !== bruto && bruto && typeof bruto === 'object') return Buffer.from(j, 'utf8'); // { response: "texto do arquivo" }
       const c = j?.content ?? j?.data?.content;
       if (typeof c === 'string') {
         const enc = String(j?.encoding ?? j?.data?.encoding ?? 'utf-8').toLowerCase();
@@ -91,7 +130,13 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
     }
     throw new Error('limite de tentativas');
   };
-  return { listar: async (c) => normalizarListagem(JSON.parse((await get('files', c)).corpo.toString('utf8'))), ler: async (c) => { const x = await get('files/content', c); return normalizarConteudo(x.corpo, x.tipo); }, pedidos: () => pedidos };
+  const formas = {};
+  return {
+    listar: async (c) => { const bruto = JSON.parse((await get('files', c)).corpo.toString('utf8')); formas.listagem = formaDe(bruto); return normalizarListagem(bruto); },
+    ler: async (c) => { const x = await get('files/content', c); try { formas.leitura = formaDe(JSON.parse(x.corpo.toString('utf8'))); } catch { formas.leitura = 'texto ou binário cru'; } return normalizarConteudo(x.corpo, x.tipo); },
+    formas: () => ({ ...formas }),
+    pedidos: () => pedidos,
+  };
 }
 
 export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 150, concorrencia = 4, retomar = false, chave, log = () => {} }) {
@@ -158,7 +203,7 @@ async function main() {
     const itens = await c.listar(raiz);
     console.log(JSON.stringify({ sonda: true, raiz, entradas: itens.length, amostra: itens.slice(0, 6).map((x) => ({ nome: x.nome, dir: x.dir, tamanho: x.tamanho })), tipos: { dirs: itens.filter((x) => x.dir).length, arquivos: itens.filter((x) => !x.dir).length } }, null, 2));
     const b = await c.ler(`${raiz}/BUILD_ID`);
-    console.log(JSON.stringify({ BUILD_ID: { bytes: b.length, texto: b.toString('utf8').trim().slice(0, 40) } }));
+    console.log(JSON.stringify({ BUILD_ID: { bytes: b.length, texto: b.toString('utf8').trim().slice(0, 40) }, formas: c.formas() }));
     return;
   }
   if (!args.dest || args.dest === true) { console.error('use --dest <pasta nova>'); process.exit(2); }

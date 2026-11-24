@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo } from '../scripts/baixar-next-vertra.mjs';
+import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe } from '../scripts/baixar-next-vertra.mjs';
 import { listarExternos } from '../scripts/lib/prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -45,10 +45,11 @@ function servidor({ envelope = 'lista', limitarUma = false } = {}) {
     if (u.pathname.endsWith('/files/content')) {
       if (!e.file) { res.statusCode = 400; res.end('{"code":"NOT_A_FILE"}'); return; }
       const bin = e.file.includes(0);
-      res.end(JSON.stringify(bin ? { content: e.file.toString('base64'), encoding: 'base64' } : { content: e.file.toString('utf8'), encoding: 'utf-8' }));
+      const corpo = bin ? { content: e.file.toString('base64'), encoding: 'base64' } : { content: e.file.toString('utf8'), encoding: 'utf-8' };
+      res.end(JSON.stringify(envelope === 'response' ? { response: corpo } : corpo));
     } else {
-      const itens = e.dir.map((x) => (envelope === 'lista' ? { name: x.name, type: x.dir ? 'dir' : 'file', size: x.size } : { name: x.name, is_dir: x.dir, size: x.size }));
-      res.end(JSON.stringify(envelope === 'lista' ? itens : { files: itens }));
+      const itens = e.dir.map((x) => (envelope === 'files' ? { name: x.name, is_dir: x.dir, size: x.size } : { name: x.name, type: x.dir ? 'dir' : 'file', size: x.size }));
+      res.end(JSON.stringify(envelope === 'lista' ? itens : envelope === 'response' ? { response: { path: u.searchParams.get('path'), entries: itens } } : { files: itens }));
     }
   });
   return new Promise((ok) => srv.listen(0, '127.0.0.1', () => ok({ srv, visto, api: `http://127.0.0.1:${srv.address().port}` })));
@@ -65,7 +66,7 @@ test('normalizarListagem: aceita array, { files }, { data: { items } } e is_dir/
   assert.deepEqual(normalizarListagem([{ name: 'a', type: 'dir' }, { name: 'b', type: 'file', size: 3 }]), [{ nome: 'a', dir: true, tamanho: null }, { nome: 'b', dir: false, tamanho: 3 }]);
   assert.deepEqual(normalizarListagem({ files: [{ name: 'a', is_dir: true }] }), [{ nome: 'a', dir: true, tamanho: null }]);
   assert.deepEqual(normalizarListagem({ data: { items: [{ path: 'x/y/z.js', type: 'file', size: 1 }] } }), [{ nome: 'z.js', dir: false, tamanho: 1 }]);
-  assert.throws(() => normalizarListagem({ segredo: 'valor-que-nao-deve-aparecer' }), (e) => /chaves: segredo/.test(e.message) && !/valor-que-nao/.test(e.message));
+  assert.throws(() => normalizarListagem({ segredo: 'valor-que-nao-deve-aparecer' }), (e) => /forma: {segredo:string}/.test(e.message) && !/valor-que-nao/.test(e.message));
 });
 
 test('normalizarConteudo: base64 vira bytes; utf-8 vira texto; corpo cru passa como veio', () => {
@@ -74,7 +75,7 @@ test('normalizarConteudo: base64 vira bytes; utf-8 vira texto; corpo cru passa c
   assert.equal(normalizarConteudo(Buffer.from('texto cru'), 'text/plain').toString(), 'texto cru');
 });
 
-for (const envelope of ['lista', 'files']) {
+for (const envelope of ['lista', 'files', 'response']) {
   test(`baixar (${envelope}): traz o .next sem cache/trace, binário íntegro, externos só como pastas vazias, recusa nome malicioso, retoma 429 e não vaza a chave`, async () => {
     const s = await servidor({ envelope, limitarUma: envelope === 'lista' });
     const dest = join(mkdtempSync(join(tmpdir(), 'ln-baixar-')), 'next');
@@ -121,4 +122,34 @@ test('CLI: sem VERTRA_API_KEY sai 2; --api sem https recusa; --sonda mostra só 
     assert.ok(!ruim.saida.includes('vc_live_errada'), 'nem a chave errada aparece');
     assert.match(ruim.saida, /HTTP 401/);
   } finally { await fecha(s); }
+});
+
+test('desembrulhar/normalizarListagem: o envelope { response } da API (caso real do PM em 24/11) em todas as formas plausíveis; a mensagem de erro mostra só a FORMA', () => {
+  const itens = [{ name: 'a', type: 'dir' }, { name: 'b.js', type: 'file', size: 9 }];
+  const esperado = [{ nome: 'a', dir: true, tamanho: null }, { nome: 'b.js', dir: false, tamanho: 9 }];
+  for (const j of [
+    { response: itens },
+    { response: { entries: itens } },
+    { response: { path: 'apps/web/.next', files: itens }, status: 'ok' },
+    { response: { data: { items: itens } } },
+    { response: JSON.stringify(itens) },
+    { response: { response: itens } },
+    { response: { diretorio: 'x', conteudo_da_pasta: itens } },
+  ]) assert.deepEqual(normalizarListagem(j), esperado, formaDe(j));
+  assert.deepEqual(normalizarListagem({ response: [] }), []);
+  assert.deepEqual(normalizarListagem({ response: { files: [] } }), []);
+  // não desembrulha quando há outra chave de dados ao lado; formas sem lista de entradas continuam erro, sem valores
+  assert.deepEqual(desembrulhar({ response: 1, outra: 2 }), { response: 1, outra: 2 });
+  assert.throws(() => normalizarListagem({ response: { quantidade: 3, nome: 'valor-secreto-123' } }), (e) => /forma: {response:{quantidade:number,nome:string}}/.test(e.message) && !/valor-secreto/.test(e.message));
+  assert.equal(formaDe({ a: [{ b: 1 }], c: null }), '{a:[{b:number}],c:null}');
+});
+
+test('normalizarConteudo: desembrulha { response: { content, encoding } } e { response: "texto" }; arquivo JSON cru e texto cru passam intactos', () => {
+  assert.deepEqual(normalizarConteudo(Buffer.from(JSON.stringify({ response: { content: FONTE.toString('base64'), encoding: 'base64' } })), 'application/json'), FONTE);
+  assert.equal(normalizarConteudo(Buffer.from(JSON.stringify({ response: { content: 'olá', encoding: 'utf-8' }, status: 'ok' })), 'application/json').toString('utf8'), 'olá');
+  assert.equal(normalizarConteudo(Buffer.from(JSON.stringify({ response: 'texto do arquivo' })), 'application/json').toString('utf8'), 'texto do arquivo');
+  const json = Buffer.from('{"version":1,"routes":["a"]}');
+  assert.deepEqual(normalizarConteudo(json, 'application/json'), json, 'um .json cru sem envelope não é reescrito');
+  const jsonEmTexto = Buffer.from(JSON.stringify({ response: { content: '{"version":1}', encoding: 'utf-8' } }));
+  assert.equal(normalizarConteudo(jsonEmTexto, 'application/json').toString('utf8'), '{"version":1}', 'o conteúdo de um .json NÃO é reaberto como envelope');
 });
