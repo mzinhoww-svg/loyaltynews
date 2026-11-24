@@ -1627,3 +1627,11 @@ test('pacote de worker leva infra/vertra/bindings.json (as CLIs do worker o impo
   assert.equal(x.status, 2); assert.match(x.stderr, /não é de um pacote de worker/);
   assert.equal(node('ensaio-worker-pacote.mjs', []).status, 2);
 });
+
+test('smoke-staging: temMarcadorMock só reprova marcadores explícitos de MOCK; a palavra solta em texto editorial não (QA 5, 24/11)', async () => {
+  const { temMarcadorMock } = await import('../scripts/smoke-staging.mjs');
+  for (const ruim of ['<span>[MOCK] Matéria de teste</span>', '<i>MOCK · dados de exemplo</i>', 'Faixa MOCK · demonstração']) assert.equal(temMarcadorMock(ruim), true, ruim);
+  for (const bom of ['Como um MOCK de interface acelera o design', 'o mock-up do app', '[DEMO · staging] Programa fictício', 'Comprador MOCKADO', '', null, undefined]) assert.equal(temMarcadorMock(bom), false, String(bom));
+  const src = readFileSync(join(S, 'smoke-staging.mjs'), 'utf8');
+  assert.equal((src.match(/bMOCK(?!\s·)/g) ?? []).length, 0, 'nenhum \bMOCK\b solto sobrou no smoke-staging');
+});
