@@ -1,7 +1,7 @@
 /**
  * Conteúdo das páginas institucionais. Fonte: Blueprint 2.0 §2/§3 e Blueprint 2.1 §6.
  * Textos jurídicos são MINUTAS: dependem de parecer (R0-10/F-090) e nunca afirmam fatos não definidos
- * (controlador, e-mail, domínio e redes ainda não confirmados).
+ * (CNPJ, demais e-mails, redes, o que a hospedagem registra de IP e prazos de resposta ainda não confirmados).
  */
 export interface InfoSection {
   heading: string;
@@ -185,15 +185,35 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     sections: [
       {
         heading: 'Controlador e contato do encarregado',
-        paragraphs: ['A identificação do controlador e o canal do encarregado de dados serão publicados aqui antes do lançamento (pendência de governança R1-01). Até lá, os pedidos de titulares são recebidos pelo formulário em /correcoes#pedido.'],
+        paragraphs: [
+          'O controlador dos dados pessoais tratados neste portal é, por ora, o proprietário do Loyalty News, Aurimar Nogueira, pessoa física. Esta identificação será substituída pela da empresa quando ela estiver constituída.',
+          'O encarregado pelo tratamento de dados pessoais e o canal para falar sobre privacidade é contato@loyaltynews.com.br. Os pedidos de titulares também podem ser feitos pelo formulário em /correcoes#pedido.',
+        ],
       },
       {
         heading: 'Quais dados tratamos',
         items: [
           'Leitura do portal: dados técnicos de acesso necessários ao funcionamento e à segurança. A medição de audiência só será ativada com aviso e controle de preferências.',
           'Pedidos de titulares e de correção: nome, e-mail para resposta, endereço da página, tipo e descrição do pedido, usados apenas para analisar e responder.',
+          'Pedido de proposta ou de mídia kit (formulário comercial): nome, empresa, e-mail, WhatsApp (opcional), formatos de interesse, objetivo, mensagem, a escolha sobre a newsletter e a data desse consentimento.',
           'Pessoas citadas na seção Intelligence: nome, cargo, empresa e período, só quando publicados por fonte oficial, relevantes e verificados.',
           'Newsletter e preferências, quando existirem: e-mail e escolhas, com consentimento específico.',
+        ],
+      },
+      {
+        heading: 'Pedidos comerciais (mídia kit e propostas)',
+        items: [
+          'Para que usamos: responder ao pedido de proposta ou de mídia kit e conduzir a negociação comercial.',
+          'Base legal: procedimentos preliminares a um contrato, a pedido do titular (LGPD, art. 7º, V). A newsletter, que é opcional, só é enviada com consentimento separado (art. 7º, I), e o descadastro é possível a qualquer momento.',
+          'Quanto tempo guardamos: pedido que não vira contrato, até 12 meses depois do último contato; pedido descartado, 30 dias. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
+          'Quem acessa: só a equipe comercial. Não vendemos esses dados.',
+        ],
+      },
+      {
+        heading: 'Endereço IP e segurança',
+        paragraphs: [
+          'Para limitar tentativas de login e de envio dos formulários públicos e proteger o portal contra abuso, usamos o endereço IP de quem acessa, com base no legítimo interesse em segurança e prevenção a fraude (LGPD, art. 7º, IX). O IP não é guardado em claro: ele é transformado em um código irreversível, que serve só para contar tentativas e é mantido apenas enquanto dura a contagem ou o bloqueio.',
+          'A empresa que hospeda o portal pode registrar IPs nos registros de acesso dela. O que ela guarda e por quanto tempo ainda será confirmado e informado aqui.',
         ],
       },
       {
@@ -277,7 +297,8 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Demais canais',
         paragraphs: [
-          'Os canais oficiais de e-mail e redes ainda não foram confirmados e não serão exibidos até a configuração oficial. Esta página será atualizada na ativação.',
+          'Assuntos comerciais e de privacidade: contato@loyaltynews.com.br, que também é o canal do encarregado de dados.',
+          'Os demais e-mails e as redes sociais oficiais ainda não foram confirmados e não serão exibidos até a configuração oficial. Esta página será atualizada na ativação.',
         ],
       },
       {

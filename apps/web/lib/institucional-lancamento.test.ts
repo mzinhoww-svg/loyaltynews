@@ -33,14 +33,32 @@ describe('institucional do lançamento', () => {
     for (const slug of ['correcoes', 'privacidade', 'contato']) expect(texto(slug), slug).toContain('/correcoes#pedido');
   });
 
-  it('não inventa: sem e-mail, rede social, controlador, prazo legal nem promessa de revisão humana de toda matéria; minutas jurídicas mantêm o aviso', () => {
+  it('não inventa: só o e-mail da DP-54, sem rede social, CNPJ, prazo legal nem promessa de revisão humana de toda matéria; minutas jurídicas mantêm o aviso', () => {
     const tudo = JSON.stringify(INFO_DOCS);
-    expect(tudo).not.toMatch(/@[a-z0-9-]+\.[a-z]{2,}/i); expect(tudo).not.toMatch(/linkedin\.com|instagram\.com|wa\.me|CNPJ|razão social/i);
+    expect(tudo.replace(/contato@loyaltynews\.com\.br/g, '')).not.toMatch(/@[a-z0-9-]+\.[a-z]{2,}/i); expect(tudo).not.toMatch(/linkedin\.com|instagram\.com|wa\.me|CNPJ|razão social/i);
     expect(tudo).not.toMatch(/(toda|cada) matéria (é|foi) (lida|revisada|aprovada) por (uma )?pessoa/i);
     expect(tudo).not.toMatch(/em até \d+ (dias|horas)|prazo de \d+/i);
-    expect(texto('privacidade')).toMatch(/pendência de governança R1-01/); // controlador ainda não definido: segue dito, não inventado
-    expect(texto('contato')).toMatch(/ainda não foram confirmados/);
+    expect(texto('contato')).toMatch(/demais e-mails e as redes sociais oficiais ainda não foram confirmados/);
     for (const s of ['privacidade', 'termos', 'publicidade']) expect(INFO_DOCS[s]?.draftNotice, s).toMatch(/validação jurídica/);
+  });
+
+  it('privacidade: controlador, encarregado, lead comercial e IP dizem o que está decidido (DP-54/DP-55) e deixam em aberto o que não está', () => {
+    const p = texto('privacidade');
+    expect(titulos('privacidade')).toEqual(expect.arrayContaining(['Pedidos comerciais (mídia kit e propostas)', 'Endereço IP e segurança']));
+    // C1: controlador pessoa física por ora; encarregado no e-mail da DP-54; sem CNPJ
+    expect(p).toMatch(/controlador[^]*Aurimar Nogueira, pessoa física[^]*substituída pela da empresa/);
+    expect(p).toMatch(/encarregado[^]*contato@loyaltynews\.com\.br/);
+    // C2: dados, finalidade, bases legais, retenção da DP-55, sem venda
+    for (const campo of ['nome, empresa, e-mail, WhatsApp', 'formatos de interesse', 'objetivo, mensagem']) expect(p, campo).toContain(campo);
+    expect(p).toMatch(/art\. 7º, V/); expect(p).toMatch(/newsletter[^]*consentimento separado \(art\. 7º, I\)/);
+    expect(p).toMatch(/até 12 meses depois do último contato; pedido descartado, 30 dias/);
+    expect(p).toMatch(/Não vendemos esses dados/);
+    // C3: IP só como código irreversível, base do art. 7º IX, hospedagem a confirmar
+    expect(p).toMatch(/legítimo interesse[^]*art\. 7º, IX/); expect(p).toMatch(/não é guardado em claro[^]*código irreversível/);
+    expect(p).toMatch(/hospeda o portal pode registrar IPs[^]*ainda será confirmado/);
+    // o que não está decidido nem implementado não é afirmado: apagamento automático, prazo de 24 h do IP, DP-54 como citação na página
+    expect(p).not.toMatch(/automátic|24 ?h|24 horas|DP-5[45]/i);
+    expect(INFO_DOCS['privacidade']?.draftNotice).toMatch(/validação jurídica/);
   });
 
   it('a política não contradiz o processo real: fonte secundária é só pista, número e citação só com fonte, IA declarada com checagem independente', () => {
