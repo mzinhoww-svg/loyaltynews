@@ -8,6 +8,8 @@ import { getSource } from '../../_lib/source';
 import { PEOPLE_EMPTY } from '../_components/intel';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+// Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
+// a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Pessoas — Loyalty Intelligence',

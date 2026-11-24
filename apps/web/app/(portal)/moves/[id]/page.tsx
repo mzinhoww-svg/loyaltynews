@@ -6,9 +6,12 @@ import { ErrorState } from '../../_components/states';
 import { PageHead } from '../../_components/ui';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
 import { getSource } from '../../_lib/source';
+import { linkPedido } from '../../_titular/pedido';
 import { MoveCard } from '../../intelligence/_components/intel';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
+// Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
+// a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
 export const dynamic = 'force-dynamic';
 const load = cache((id: string) => getSource().getMove(id));
 
@@ -41,6 +44,11 @@ export default async function MovePage({ params }: { params: Promise<{ id: strin
   return (
     <>
       <PageHead title={`${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`} crumbs={[...crumbs, { label: r.move.person.name }]} />
+      <p style={{ margin: '0 0 8px' }}>
+        <Link href={linkPedido(`/moves/${r.move.id}`)} className="ln-btn ln-btn--ghost" data-testid="move-correction">
+          Solicitar correção ou remoção
+        </Link>
+      </p>
       <MoveCard m={r.move} link={false} />
       <p className="pt-meta" style={{ marginTop: 18 }}>
         &quot;Antes&quot; é a última fonte que sustentou o cargo anterior; &quot;depois&quot; é a leitura que registrou a mudança. A data efetiva só aparece quando a fonte a declara.

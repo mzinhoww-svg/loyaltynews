@@ -27,8 +27,10 @@ const leitura = (c) => ({ titulo: c.titulo, empresa: c.empresa, vigenteDesde: c.
 const ana = { id: orgId(201), nome: '[MOCK API] Ana Teste' };
 const bia = { id: orgId(202), nome: '[MOCK API] Bia Teste' };
 const anaAntes = cargo(301, 'Diretora Comercial (MOCK)', orgs[1], '2026-09-01', '2026-11-20', 1);
-const anaDepois = cargo(302, 'CEO (MOCK)', orgs[0], '2026-11-20', null, 2);
-const biaCargo = cargo(303, 'Presidente (MOCK)', orgs[2], '2026-11-23', null, 3);
+// Igual à rota real: correção do titular sobrepõe o período (texto) e marca corrigidoPeloTitular.
+const anaDepois = { ...cargo(302, 'CEO (MOCK)', orgs[0], '2026-11-20', null, 2), periodo: 'desde nov. 2026 (MOCK, corrigido)', corrigidoPeloTitular: true };
+// Cargo VIGENTE com fim no futuro: a rota real o manda na lista de vigentes (valid_to > hoje).
+const biaCargo = cargo(303, 'Presidente (MOCK)', orgs[2], '2026-11-23', '2030-12-31', 3);
 const moves = [
   { id: orgId(401), tipo: 'org_change', base: 'observed_diff', pessoa: ref(ana), dataEfetiva: null, observadoEm: '2026-11-20',
     antes: leitura(anaAntes), depois: leitura(anaDepois), mock: true, quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' },
@@ -37,7 +39,7 @@ const moves = [
     antes: null, depois: leitura(biaCargo), mock: true },
 ];
 const pessoas = [
-  { ...ana, cargosAtuais: [anaDepois], historico: [anaAntes] },
+  { ...ana, cargosAtuais: [anaDepois], historico: [anaAntes], corrigidoPeloTitular: true },
   { ...bia, cargosAtuais: [biaCargo], historico: [] },
 ];
 const vazioOuSemFlag = () => intelMode === 'vazio' || intelMode === 'sem-flag';
@@ -63,7 +65,7 @@ function pessoasEMoves(u) {
   if (p) {
     const x = !vazioOuSemFlag() && pessoas.find((y) => y.id === decodeURIComponent(p[1]));
     if (!x) return [404, { error: { code: 'not_found', message: 'pessoa não encontrada' } }];
-    return [200, { data: { id: x.id, nome: x.nome, perfilPublico: null, fonte: fonte(`p${x.id.slice(-1)}`), mock: true, cargosAtuais: x.cargosAtuais, historico: x.historico,
+    return [200, { data: { id: x.id, nome: x.nome, ...(x.corrigidoPeloTitular ? { corrigidoPeloTitular: true } : {}), perfilPublico: null, fonte: fonte(`p${x.id.slice(-1)}`), mock: true, cargosAtuais: x.cargosAtuais, historico: x.historico,
       moves: moves.filter((m) => m.pessoa.id === x.id) }, disponivel }];
   }
   const mv = /^\/api\/publico\/intelligence\/moves\/([^/]+)$/.exec(u.pathname);
