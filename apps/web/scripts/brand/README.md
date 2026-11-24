@@ -12,4 +12,4 @@
 | Favicon e ícones de app | `app/favicon.ico` (16, 32 e 48), `app/icon.svg`, `app/apple-icon.png` (180), `public/brand/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | PNG |
 | Manifesto do site | `public/site.webmanifest` | JSON |
 
-O brandkit segue marcado como "proposta não aprovada": quando o proprietário aprová-lo ou trocar a arte, basta atualizar as fontes e rodar o gerador de novo. `apps/web/lib/brand-assets.test.ts` guarda dimensões, pesos e a lista de arquivos.
+O endereço exibido nas imagens sociais é a constante `ENDERECO` do gerador (`www.loyaltynews.com.br`, URL canônica, DP-54). O brandkit segue marcado como "proposta não aprovada": quando o proprietário aprová-lo ou trocar a arte, basta atualizar as fontes e rodar o gerador de novo. `apps/web/lib/brand-assets.test.ts` guarda dimensões, pesos e a lista de arquivos.

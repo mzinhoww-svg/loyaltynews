@@ -80,6 +80,7 @@ const fontes = [600, 700, 800].map((p) => `@font-face{font-family:'InterOG';font
 const ARTE = { viagem: CONTEXT_SVG.travel, varejo: CONTEXT_SVG.retail, pagamentos: CONTEXT_SVG.payments };
 const ARTE_DA_EDITORIA = { travel: 'viagem', pontos: 'viagem', global: 'viagem', varejo: 'varejo', programas: 'varejo', crm: 'varejo', bancos: 'pagamentos', mercado: 'pagamentos', tech: 'pagamentos', regulacao: 'pagamentos' };
 const FRASE = 'Inteligência para quem constrói o futuro da fidelidade.';
+const ENDERECO = 'www.loyaltynews.com.br'; // URL canônica (DP-54), exibida no rodapé das imagens sociais
 const arte = (svg, w, h) => svg.replace('<svg ', `<svg width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" `);
 
 const cartaz = ({ w, h, kicker, titulo, tamanho, arteChave, quadrado }) => {
@@ -99,7 +100,7 @@ const cartaz = ({ w, h, kicker, titulo, tamanho, arteChave, quadrado }) => {
   <div class="arte">${arte(ARTE[arteChave], larguraArte, alturaArte)}</div>
   <div class="logo">${logoSvg('reverse', 44)}</div>
   <div class="t">${kicker ? `<p class="k">${kicker}</p>` : ''}<p class="h">${titulo}</p></div>
-  <div class="rodape"><i></i><span>loyaltynews.com.br</span></div></div></body></html>`;
+  <div class="rodape"><i></i><span>${ENDERECO}</span></div></div></body></html>`;
 };
 
 const navegador = await chromium.launch();
