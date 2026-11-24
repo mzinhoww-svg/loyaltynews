@@ -41,7 +41,13 @@ beforeAll(async () => {
   });
   await ingestBatch(db, mk('Gerente', '2026-10-01T00:00:00Z'), ON);
   await ingestBatch(db, mk('Diretora', '2026-11-10T00:00:00Z'), ON);
-  const mv = (await db.query<{ id: string }>(`SELECT id FROM intelligence.move LIMIT 1`)).rows[0]!.id;
+  // id determinístico (achado P3 do QA 6 em 57782d2): o Move da pessoa semeada, o mais recente, nunca um LIMIT 1 sem ordem
+  const movs = (await db.query<{ id: string }>(
+    `SELECT m.id FROM intelligence.move m JOIN intelligence.person p ON p.id = m.person_id WHERE p.full_name = $1 ORDER BY m.detected_at DESC, m.id`,
+    ['MOCK Eva Cache'],
+  )).rows;
+  expect(movs.length).toBe(1);
+  const mv = movs[0]!.id;
   await reviewMove(db, mv, 'confirmed');
   ids = { org, pessoa: p, move: mv };
 }, 180_000);
