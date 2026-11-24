@@ -3,12 +3,13 @@
 // `node_modules` dos ZIPs, e os links dos externos do Turbopack (.next/node_modules/pg-<hash> -> node_modules/pg) não sobrevivem a ZIP. Na subida, o start-web restaura:
 // copia prebuilt/web-next para apps/web/.next (só se o BUILD_ID mudou) e recria os links dos externos. FALHA FECHADA: recusa subir se o .next é de outro commit, outro ambiente,
 // outra URL, outra flag/vitrine/indexação, outro `next`, ou se um externo não foi instalado. Pacote comum (sem prebuilt/prebuilt.json) = nada acontece.
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { checkHome } from '../build-web.mjs';
 
 export const PREBUILT_DIR = join('prebuilt', 'web-next');
 export const PREBUILT_MANIFEST = join('prebuilt', 'prebuilt.json');
+const MARCA = '.ln-prebuilt.json';
 
 /** 'pg-587764f78a6c7a9c' -> 'pg'; '@scope/x-0123456789abcdef' -> '@scope/x'; null se não tem o sufixo de 16 hex do Turbopack. Função pura. */
 export function pacoteDoExterno(nome) {
@@ -77,13 +78,19 @@ export function restaurarPrebuilt(root, release) {
   if (!existsSync(join(origem, 'BUILD_ID'))) return { ativo: true, problemas: [`${PREBUILT_DIR} sem BUILD_ID (pacote incompleto ou o .next foi removido do ZIP)`], log };
   const idOrigem = readFileSync(join(origem, 'BUILD_ID'), 'utf8').trim();
   if (idOrigem !== pb.buildId) return { ativo: true, problemas: [`BUILD_ID da pasta (${idOrigem}) difere do prebuilt.json (${pb.buildId})`], log };
+  // "já presente" só vale com a MARCA gravada por esta restauração: um .next com o mesmo BUILD_ID deixado por um build da Vertra (ou de outra origem) NÃO conta e é substituído;
+  // assim a prova no staging não depende de o volume ter ou não sobras do build anterior.
+  const marca = join(destino, MARCA);
+  let marcaOk = false;
+  try { const m = JSON.parse(readFileSync(marca, 'utf8')); marcaOk = m.buildId === idOrigem && m.geradoEm === pb.geradoEm; } catch { /* sem marca */ }
   const idDestino = existsSync(join(destino, 'BUILD_ID')) ? readFileSync(join(destino, 'BUILD_ID'), 'utf8').trim() : null;
-  if (idDestino !== idOrigem) {
+  if (idDestino !== idOrigem || !marcaOk) {
     if (existsSync(destino)) { limparLinks(destino); rmSync(destino, { recursive: true, force: true }); }
     mkdirSync(dirname(destino), { recursive: true });
     cpSync(origem, destino, { recursive: true });
-    log.push(`.next restaurado de ${PREBUILT_DIR} (BUILD_ID ${idOrigem})`);
-  } else log.push(`.next já presente (BUILD_ID ${idOrigem})`);
+    writeFileSync(marca, JSON.stringify({ buildId: idOrigem, geradoEm: pb.geradoEm, commit: pb.commit }) + '\n');
+    log.push(`.next restaurado de ${PREBUILT_DIR} (BUILD_ID ${idOrigem}${idDestino === idOrigem ? '; havia um .next igual sem a marca da restauração: substituído' : ''})`);
+  } else log.push(`.next já presente (BUILD_ID ${idOrigem}, marca da restauração ok)`);
 
   for (const x of pb.externos) {
     const alvo = join(root, 'node_modules', x.pacote);

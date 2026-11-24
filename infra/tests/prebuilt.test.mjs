@@ -24,7 +24,7 @@ function pacote({ pb = {}, rel = {}, home = HOME(), pg = true, buildIdPasta = 'B
   const r = tmp();
   put(r, 'package.json', '{}');
   put(r, 'release.json', JSON.stringify({ commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'], tipo: 'web', perfil: 'staging', ...rel }));
-  put(r, 'prebuilt/prebuilt.json', JSON.stringify({ schema: 1, commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'], buildId: 'BUILD_abc123', nextVersion: '16.4.6', externos: EXT, ...pb }));
+  put(r, 'prebuilt/prebuilt.json', JSON.stringify({ schema: 1, commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'], buildId: 'BUILD_abc123', nextVersion: '16.4.6', externos: EXT, geradoEm: '2026-11-24T00:00:00.000Z', ...pb }));
   put(r, 'prebuilt/web-next/BUILD_ID', buildIdPasta);
   put(r, 'prebuilt/web-next/server/app/index.html', home);
   put(r, 'node_modules/next/package.json', '{"version":"16.4.6"}');
@@ -257,4 +257,20 @@ test('workflow proposto (infra/ci): só dispara à mão, só leitura, sem segred
   assert.match(codigo, /package-prebuilt\.mjs .*--next \/app\/apps\/web\/\.next .*--sem-zip/);
   assert.match(codigo, /\[\[ "\$LN_PERFIL" == "production" && -n "\$LN_FLAGS" \]\]/, 'produção recusa flags');
   assert.match(codigo, /\^\[0-9a-f\]\{40\}\$/);
+});
+
+test('restaurarPrebuilt: .next com o MESMO BUILD_ID mas sem a marca da restauração (sobra do build da Vertra) é substituído; com a marca é "já presente" (a prova no staging não depende de sobras)', () => {
+  const r = pacote();
+  try {
+    put(r, 'apps/web/.next/BUILD_ID', 'BUILD_abc123');
+    put(r, 'apps/web/.next/server/app/index.html', '<html>SOBRA DO BUILD ANTERIOR</html>');
+    const a = restaurarPrebuilt(r, release(r));
+    assert.match(a.log.join('|'), /.next restaurado .*substituído/);
+    assert.match(readFileSync(join(r, 'apps/web/.next/server/app/index.html'), 'utf8'), /canonical/, 'o conteúdo é o do pré-construído, não o da sobra');
+    assert.ok(existsSync(join(r, 'apps/web/.next/.ln-prebuilt.json')), 'marca gravada');
+    assert.match(restaurarPrebuilt(r, release(r)).log.join('|'), /.next já presente .*marca da restauração ok/);
+    // outro pré-construído (outro geradoEm) com o mesmo BUILD_ID: a marca antiga não vale
+    put(r, 'prebuilt/prebuilt.json', JSON.stringify({ schema: 1, commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'], buildId: 'BUILD_abc123', nextVersion: '16.4.6', externos: EXT, geradoEm: '2026-11-25T00:00:00.000Z' }));
+    assert.match(restaurarPrebuilt(r, release(r)).log.join('|'), /.next restaurado/);
+  } finally { limpa(r); }
 });
