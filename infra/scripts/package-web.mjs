@@ -11,6 +11,7 @@
 // --vitrine (Security 23/11/2026): pacote de STAGING que liga a vitrine de demonstração do portal (fixtures MOCK rotuladas). Grava vitrine:true no
 //   release.json, acrescenta PORTAL_VITRINE=1 às variáveis a definir e põe `-vitrine` no nome. RECUSA perfil production e qualquer APP_ENV ≠ staging.
 import { spawnSync } from 'node:child_process';
+import { TAR } from './lib/tar.mjs';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
@@ -168,7 +169,7 @@ try {
   const tarFile = join(tmp, 'p.tar');
   git(['archive', '--format=tar', '-o', tarFile, sha, '--', ...pathspec]);
   mkdirSync(folder, { recursive: true });
-  const t = spawnSync('tar', ['-xf', tarFile, '-C', folder], { encoding: 'utf8' });
+  const t = spawnSync(TAR, ['-xf', tarFile, '-C', folder], { encoding: 'utf8' });
   if (t.error || t.status !== 0) fail('tar indisponível ou falhou ao extrair (Windows 10+, Linux e macOS trazem tar)');
   for (const [p, c] of Object.entries(virtuals)) writeFileSync(join(folder, p), c);
 
@@ -184,7 +185,7 @@ try {
   if (provaPng && !files.includes('infra/scripts/prova-png.mjs')) fail('--prova-png: infra/scripts/prova-png.mjs não entrou no pacote (o build e o start do worker o chamam)');
   const bad = files.filter((f) => /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f) || /(^|\/)(node_modules|\.next|\.git)\//.test(f) || /playwright\.config\./.test(f) || /(^|\/)e2e\//.test(f));
   if (bad.length) fail(`arquivos proibidos no pacote: ${bad.slice(0, 5).join(', ')}`);
-  const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8' });
+  const l = spawnSync(TAR, ['-tf', zip], { encoding: 'utf8' });
   const zipEntries = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
   if (zipEntries.length !== files.length) fail(`pasta (${files.length} arquivos) e ZIP (${zipEntries.length}) divergem`);
   const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(profile === 'production' ? ['--producao'] : [])], { encoding: 'utf8' });
