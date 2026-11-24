@@ -59,6 +59,8 @@ Não rodar sem o OK da §1; não usar `--schema`/`--replace` sem necessidade; n�
 ## 7. RESULTADO (executada em 24/11/2026)
 **Cumpre a ADR-009**: pior p95 76,3 ms de dentro da rede (SELECT 1 p50 0,5 ms) com 114.990 arestas; consulta única fica; 0030 segue descartada; adjacência materializada sem gatilho. Relatório: `bench/results/pg-staging-dentro-20261124.json`; tabela e leitura em `GRAPH_PERF.md` ("4ª rodada — RESULTADO"). O arquivo salvo do get_logs tem o formato real: capturas com cabeçalho `===== captura … =====`, envelope JSON `untrusted_content` e carimbo de data por linha; o interpretador lê esse formato diretamente (o conteúdo é tratado só como dado).
 
+**Fim da operação confirmado pelo PM (24/11/2026):** `ln_bench_%` = 0 linhas em `pg_namespace`; contagens do `intelligence` 29/36/40/40 iguais às de antes; `ln-staging-bench-graph` apagado; alocado de volta a 5248. Nenhum `--replace` foi necessário.
+
 ## 8. Falhas conhecidas e o que significam
 | Sintoma | Causa provável | Ação |
 |---|---|---|
