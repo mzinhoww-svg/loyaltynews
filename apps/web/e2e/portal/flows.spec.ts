@@ -194,7 +194,8 @@ test.describe('honestidade de dados', () => {
     expect(await mapa.innerText()).not.toMatch(/R$/);
   });
 
-  test('P2-1: toda tabela com rolagem do mídia kit é região focável, com nome único, e o foco por teclado fica visível', async ({ page }) => {
+  test('P2-1: toda tabela com rolagem do mídia kit é região focável, com nome único, e o foco por teclado fica visível', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop' && info.project.name !== 'mobile', 'só nos projetos desktop/mobile do e2e/portal.config.ts');
     await page.goto('/midia-kit');
     const regioes = page.locator('.pt-scroll');
     const n = await regioes.count();
@@ -219,6 +220,7 @@ test.describe('honestidade de dados', () => {
   });
 
   test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop' && info.project.name !== 'mobile', 'só nos projetos desktop/mobile do e2e/portal.config.ts');
     await page.goto('/midia-kit');
     const svg = (await page.locator('[data-testid="mk-mapa"] svg').boundingBox())!;
     const lista = (await page.getByTestId('mk-mapa-lista').boundingBox())!;
@@ -285,6 +287,7 @@ test.describe('honestidade de dados', () => {
   });
 
   test('P3-d: Audiência em duas colunas no desktop (tempo real ao lado do histórico) e empilhada no celular, sem perder métrica', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop' && info.project.name !== 'mobile', 'só nos projetos desktop/mobile do e2e/portal.config.ts');
     await page.goto('/midia-kit');
     const grupos = page.getByTestId('audience-groups');
     const [a, b] = await grupos.locator(':scope > div').all();
