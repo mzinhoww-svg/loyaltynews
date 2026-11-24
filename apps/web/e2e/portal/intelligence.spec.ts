@@ -217,6 +217,14 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
       await expect(page.getByTestId('error-state'), rota).toHaveCount(0);
       await axe(page);
     }
+    // P3-3 (revisão visual int/012) também com o vazio vindo da API: texto do aviso abaixo do título e bloco "Enquanto isso".
+    await page.goto('/moves');
+    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const bt = (await titulo.boundingBox())!;
+    const bx = (await page.getByTestId('moves-empty-text').boundingBox())!;
+    expect(bx.y, 'o texto do aviso começa abaixo do título').toBeGreaterThanOrEqual(bt.y + bt.height - 1);
+    await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Diretório de empresas/ })).toHaveAttribute('href', '/intelligence/empresas');
+    await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Pessoas e cargos/ })).toHaveAttribute('href', '/intelligence/pessoas');
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000401'))?.status()).toBe(404);
     await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000001');
