@@ -34,7 +34,7 @@ export function CorrectedTag() {
  */
 export function RolesTable({ roles, caption, testId, showPerson, correctionFor }: { roles: (PersonRole & { personName?: string; personId?: string })[]; caption: string; testId: string; showPerson?: boolean; correctionFor?: string }) {
   return (
-    <div className="pt-scroll">
+    <div className={`pt-scroll ${s.scrollRef}`}>
       <table className="pt-table" data-testid={testId}>
         <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>{caption}</caption>
         <thead>
