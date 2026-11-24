@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura, medir, estatistica, PADRAO_EXCLUIDO } from '../scripts/baixar-next-vertra.mjs';
+import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura, medir, analisarNiveis, estatistica, PADRAO_EXCLUIDO } from '../scripts/baixar-next-vertra.mjs';
 import { listarExternos } from '../scripts/lib/prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -263,12 +263,12 @@ test('baixar: *.map e *.nft.json ficam de fora por padrão (o next start não os
 test('medir: latência por pedido em sequência e vazão com 4/16/32 em paralelo; a vazão cresce com a concorrência numa API que só demora (e recomenda o nível); nada é gravado', async () => {
   const s = await servidorGenerico({}, { latenciaMs: 40 });
   try {
-    const m = await medir({ app: 'APP', raiz: RAIZ, api: s.api, rpm: 100000, chave: CHAVE, niveis: [2, 8, 16], por: 3, sequenciais: 4 });
+    const m = await medir({ app: 'APP', raiz: RAIZ, api: s.api, rpm: 100000, chave: CHAVE, niveis: [1, 8], por: 3, sequenciais: 4 });
     assert.equal(m.sequencial.n, 4);
     assert.ok(m.sequencial.p50 >= 35, 'p50 ' + m.sequencial.p50);
-    assert.deepEqual(m.niveis.map((x) => x.concorrencia), [2, 8, 16]);
-    assert.ok(m.niveis[1].pedidosPorMin > m.niveis[0].pedidosPorMin * 1.5, JSON.stringify(m.niveis));
-    assert.ok(m.recomendada >= 8, 'recomendada ' + m.recomendada);
+    assert.deepEqual(m.niveis.map((x) => x.concorrencia), [1, 8]);
+    assert.ok(m.niveis[1].pedidosPorMin > m.niveis[0].pedidosPorMin * 3, 'esperado ~8x (40 ms por pedido, 3 pedidos por trabalhador): ' + JSON.stringify(m.niveis));
+    assert.equal(m.recomendada, 8);
     assert.ok(!JSON.stringify(m).includes(CHAVE));
   } finally { await fecha(s); }
 });
@@ -297,30 +297,45 @@ test('padrão de concorrência = 4 (medido no staging real em 24/11: 4 em voo = 
   } finally { await fecha({ srv }); rmSync(base, { recursive: true, force: true }); }
 });
 
-test('medir: detecta o COLAPSO da API acima de ~4 em voo (como no staging real) e recomenda 4; sem colapso não há aviso', async () => {
+test('analisarNiveis (PURA, números FIXOS; sem relógio): recomenda o nível que ganha mais de 15%, detecta o colapso da API e não avisa quando não há', () => {
+  // os números MEDIDOS pelo PM no staging real em 24/11: 4 em voo = 281/min, 16 = 24/min, 32 = 32/min
+  const real = analisarNiveis([{ concorrencia: 4, pedidosPorMin: 281 }, { concorrencia: 16, pedidosPorMin: 24 }, { concorrencia: 32, pedidosPorMin: 32 }]);
+  assert.equal(real.recomendada, 4);
+  assert.equal(real.colapsoAPartirDe, 16);
+  assert.equal(real.avisoColapso, 'a API COLAPSA com 16 pedidos em voo (24/min contra 281/min com 4): use --concorrencia 4');
+  // cresce e não colapsa: sobe até onde ganha mais de 15%
+  const cresce = analisarNiveis([{ concorrencia: 1, pedidosPorMin: 60 }, { concorrencia: 2, pedidosPorMin: 118 }, { concorrencia: 4, pedidosPorMin: 230 }, { concorrencia: 8, pedidosPorMin: 240 }]);
+  assert.equal(cresce.recomendada, 4, '8 só ganha 4% sobre 4: não vale subir');
+  assert.equal(cresce.colapsoAPartirDe, undefined);
+  assert.equal(cresce.avisoColapso, undefined);
+  // platô: ganho menor que 15% = fica no menor
+  assert.equal(analisarNiveis([{ concorrencia: 1, pedidosPorMin: 100 }, { concorrencia: 2, pedidosPorMin: 105 }, { concorrencia: 4, pedidosPorMin: 108 }]).recomendada, 1);
+  // fronteira do colapso: exatamente a metade NÃO é colapso; um pedido a menos que a metade é
+  assert.equal(analisarNiveis([{ concorrencia: 2, pedidosPorMin: 100 }, { concorrencia: 8, pedidosPorMin: 50 }]).colapsoAPartirDe, undefined);
+  assert.equal(analisarNiveis([{ concorrencia: 2, pedidosPorMin: 100 }, { concorrencia: 8, pedidosPorMin: 49 }]).colapsoAPartirDe, 8);
+  // colapso só vale ACIMA da recomendada (um nível abaixo, mais lento, não é colapso)
+  assert.equal(analisarNiveis([{ concorrencia: 1, pedidosPorMin: 10 }, { concorrencia: 4, pedidosPorMin: 200 }]).colapsoAPartirDe, undefined);
+  // o aviso vem do primeiro nível acima que colapsa
+  assert.equal(analisarNiveis([{ concorrencia: 2, pedidosPorMin: 100 }, { concorrencia: 4, pedidosPorMin: 30 }, { concorrencia: 8, pedidosPorMin: 20 }]).colapsoAPartirDe, 4);
+});
+
+test('medir (estrutura, regimes MUITO separados 30 ms contra 700 ms; sem comparar vazões entre níveis): devolve os níveis pedidos, a análise e nenhum segredo; o colapso só é afirmado pela função pura', async () => {
   let emVoo = 0;
   const srv = http.createServer((req, res) => {
     emVoo += 1;
-    const atraso = emVoo <= 4 ? 30 : 400; // acima de 4 em voo cada pedido demora muito mais: a vazão despenca
+    const atraso = emVoo <= 2 ? 30 : 700;
     setTimeout(() => { emVoo -= 1; res.setHeader('content-type', 'application/json'); const c = Buffer.from('21 bytes de teste!!'); res.end(JSON.stringify({ response: { type: 'base64', data: c.toString('base64'), size: c.length, last_modified: 'x' } })); }, atraso);
   });
   await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
   try {
-    const m = await medir({ app: 'APP', raiz: RAIZ, api: `http://127.0.0.1:${srv.address().port}`, rpm: 100000, chave: CHAVE, niveis: [1, 2, 4, 16], por: 4, sequenciais: 3 });
-    const por = Object.fromEntries(m.niveis.map((x) => [x.concorrencia, x.pedidosPorMin]));
-    assert.ok(por[4] > por[1] * 2, JSON.stringify(m.niveis));
-    assert.ok(por[16] < por[4] / 2, 'o nível 16 colapsa: ' + JSON.stringify(m.niveis));
-    assert.equal(m.recomendada, 4);
-    assert.equal(m.colapsoAPartirDe, 16);
-    assert.match(m.avisoColapso, /COLAPSA com 16 pedidos em voo/);
-    assert.match(m.avisoColapso, /use --concorrencia 4/);
+    const m = await medir({ app: 'APP', raiz: RAIZ, api: `http://127.0.0.1:${srv.address().port}`, rpm: 100000, chave: CHAVE, niveis: [1, 6], por: 2, sequenciais: 2, real: false });
+    assert.deepEqual(m.niveis.map((x) => x.concorrencia), [1, 6]);
+    assert.ok(m.niveis.every((x) => Number.isFinite(x.pedidosPorMin) && x.pedidosPorMin > 0 && x.pedidos > 0));
+    assert.ok([1, 6].includes(m.recomendada));
+    assert.deepEqual(analisarNiveis(m.niveis).recomendada, m.recomendada, 'a análise do relatório é a da função pura');
+    assert.equal(m.cargaReal, undefined);
+    assert.ok(!JSON.stringify(m).includes(CHAVE));
   } finally { await fecha({ srv }); }
-  const ok = await servidorGenerico({}, { latenciaMs: 30 });
-  try {
-    const m = await medir({ app: 'APP', raiz: RAIZ, api: ok.api, rpm: 100000, chave: CHAVE, niveis: [1, 4], por: 3, sequenciais: 2 });
-    assert.equal(m.colapsoAPartirDe, undefined);
-    assert.equal(m.avisoColapso, undefined);
-  } finally { await fecha(ok); }
 });
 
 test('medirCargaReal: lista as pastas grandes (tempo e nº de entradas) e lê arquivos DISTINTOS com 1/2/4 em paralelo; uma listagem de 600 entradas lenta aparece no relatório', async () => {
@@ -426,5 +441,78 @@ test('baixar --somente: completa só as subpastas pedidas sem relistar o resto d
     assert.ok(!pedidos.some((p) => /outra|editorial|static|BUILD_ID/.test(p)), 'nem listado: ' + pedidos.join(' '));
     assert.equal(pedidos.length, 6, 'só as duas subárvores: ' + pedidos.join(' '));
     await assert.rejects(() => baixar({ app: 'APP', destino: join(base, 'n2'), raiz: RAIZ, api: s.api, rpm: 60000, chave: CHAVE, somente: ['server/../x'] }), /--somente com caminho inválido/);
+  } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
+});
+
+// servidor que lista RAIZ com N arquivos e os serve; `regra(n, req)` pode devolver { status, headers } para forçar 429 etc. (n = nº do pedido, a partir de 1)
+function servidorLimitado(arquivos, regra) {
+  let n = 0;
+  const srv = http.createServer((req, res) => {
+    n += 1;
+    const forcar = regra(n, req);
+    const u = new URL(req.url, 'http://x');
+    const caminho = u.searchParams.get('path');
+    res.setHeader('content-type', 'application/json');
+    for (const [k, v] of Object.entries(forcar?.headers ?? {})) res.setHeader(k, v);
+    if (forcar?.status && forcar.status !== 200) { res.statusCode = forcar.status; res.end('{"code":"RATE_LIMIT_EXCEEDED"}'); return; }
+    if (u.pathname.endsWith('/files/content')) { const c = Buffer.from('c:' + caminho); res.end(JSON.stringify({ response: { type: 'base64', data: c.toString('base64'), size: c.length, last_modified: 'x' } })); return; }
+    res.end(JSON.stringify({ response: Array.from({ length: arquivos }, (_, i) => { const nome = 'f' + i + '.js'; return { name: nome, path: caminho + '/' + nome, type: 'file', last_modified: 'x', size: String(('c:' + caminho + '/' + nome).length) }; }) }));
+  });
+  return new Promise((ok) => srv.listen(0, '127.0.0.1', () => ok({ srv, api: 'http://127.0.0.1:' + srv.address().port, pedidos: () => n })));
+}
+
+test('429: PAUSA GLOBAL (todos esperam o mesmo retry_after) + taxa adaptativa: uma janela de 429 de 400 ms contra pausa de 800 ms gera no máximo 1 429 por trabalhador em voo, nada se perde e a taxa efetiva cai', async () => {
+  const JANELA_MS = 400;
+  let janelaAte = 0;
+  const s = await servidorLimitado(24, (n) => {
+    if (n === 6) janelaAte = Date.now() + JANELA_MS; // a janela abre no 6º pedido
+    return Date.now() < janelaAte ? { status: 429, headers: { 'retry-after': '0' } } : null;
+  });
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-429-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: s.api, rpm: 6000, concorrencia: 4, chave: CHAVE, espera429MinMs: 800 });
+    assert.deepEqual(rel.erros, []);
+    assert.equal(rel.arquivos, 24, 'nenhum arquivo se perde');
+    const d = rel.diagnostico;
+    assert.ok(d.http429 >= 1, 'a janela foi atingida: ' + d.http429);
+    assert.ok(d.http429 <= 4, 'com a pausa global só os que já estavam em voo tomam 429 (4 trabalhadores): ' + d.http429);
+    assert.equal(d.esperas429.n, d.http429, 'cada 429 registra a espera mandada');
+    assert.ok(d.rpmAtual < 6000, 'a taxa efetiva caiu depois do 429: ' + d.rpmAtual);
+    assert.equal(d.rateLimit, null, 'sem cabeçalhos de limite, nada registrado');
+  } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
+});
+
+test('cabeçalhos x-ratelimit-*: o limite REAL informado é registrado e, com 2 ou menos pedidos sobrando, o cliente espera a janela virar (1 pausa) em vez de tomar 429', async () => {
+  const s = await servidorLimitado(3, (n) => ({ headers: { 'x-ratelimit-limit': '300', 'x-ratelimit-remaining': n === 1 ? '1' : '250', 'x-ratelimit-reset': '1' } }));
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-hdr-'));
+  try {
+    const t0 = Date.now();
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: s.api, rpm: 6000, concorrencia: 2, chave: CHAVE });
+    const ms = Date.now() - t0;
+    assert.deepEqual(rel.erros, []);
+    assert.equal(rel.arquivos, 3);
+    assert.equal(rel.diagnostico.http429, 0);
+    assert.equal(rel.diagnostico.pausasPorCabecalho, 1);
+    assert.equal(rel.diagnostico.rateLimit.limit, 300);
+    assert.ok(ms >= 900, 'esperou a janela de 1 s virar: ' + ms + ' ms');
+    // reset em época (segundos): também entendido e limitado a 65 s
+    const s2 = await servidorLimitado(1, (n) => ({ headers: { 'x-ratelimit-limit': '300', 'x-ratelimit-remaining': n === 1 ? '0' : '250', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 1) } }));
+    try {
+      const t1 = Date.now();
+      const r2 = await baixar({ app: 'APP', destino: join(base, 'n2'), raiz: RAIZ, api: s2.api, rpm: 6000, concorrencia: 1, chave: CHAVE });
+      assert.equal(r2.diagnostico.pausasPorCabecalho, 1);
+      assert.ok(Date.now() - t1 < 5000, 'reset em época de ~1 s não vira espera de minutos');
+    } finally { await fecha(s2); }
+  } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
+});
+
+test('429 persistente: depois de 20 respostas 429 seguidas o pedido vira ERRO do arquivo (não trava para sempre) e as esperas ficam registradas', async () => {
+  const s = await servidorLimitado(1, (n) => (n >= 2 ? { status: 429, headers: { 'retry-after': '0' } } : null));
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-429p-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: s.api, rpm: 60000, concorrencia: 1, chave: CHAVE, espera429MinMs: 5 });
+    assert.equal(rel.arquivos, 0);
+    assert.ok(rel.erros.some((e) => /429 persistente/.test(e)), JSON.stringify(rel.erros));
+    assert.ok(rel.diagnostico.http429 >= 20);
   } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
 });

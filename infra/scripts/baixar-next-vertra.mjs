@@ -147,20 +147,31 @@ export function normalizarConteudo(corpo, contentType = '') {
 }
 
 class Limite {
-  constructor(rpm) { this.intervalo = 60000 / Math.max(1, rpm); this.proximo = 0; }
+  constructor(rpm) { this.base = 60000 / Math.max(1, rpm); this.intervalo = this.base; this.proximo = 0; this.boas = 0; }
+  /** 429: a taxa cai 1,5x (no mínimo 10/min); a espera comum fica mais longa. */
+  reduzir() { this.boas = 0; this.intervalo = Math.min(this.intervalo * 1.5, 6000); }
+  /** Cada 25 respostas boas seguidas: a taxa volta 10% em direção à configurada. */
+  aliviar() { this.boas += 1; if (this.boas >= 25) { this.boas = 0; this.intervalo = Math.max(this.base, this.intervalo * 0.9); } }
+  rpmAtual() { return Math.round(60000 / this.intervalo); }
   async esperar() { const agora = Date.now(); const t = Math.max(agora, this.proximo); this.proximo = t + this.intervalo; if (t > agora) await new Promise((r) => setTimeout(r, t - agora)); }
 }
 
-function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 30000 }) {
+function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 30000, espera429MinMs = 2000, espera429MaxMs = 120000 }) {
   const limite = new Limite(rpm);
   let pedidos = 0;
   const lat = []; // tempo (ms) de cada pedido bem-sucedido, DEPOIS da espera do limitador: é a latência da API
   // Diagnóstico (24/11: o download real fez ~22 pedidos/min contra 281/min do --medir): histograma de latência, pedidos lentos (>= 8 s), timeouts e 429/5xx
-  const diag = { timeouts: 0, http429: 0, http5xx: 0 };
+  const diag = { timeouts: 0, http429: 0, http5xx: 0, pausasPorCabecalho: 0 };
+  const esperas429 = []; // segundos de espera mandados pela API em cada 429
+  let rateLimit = null; // último x-ratelimit-limit/remaining/reset visto (só números)
+  let pausaAte = 0; // PAUSA GLOBAL: um 429 (ou o aviso dos cabeçalhos) para TODOS os pedidos até este instante; antes cada trabalhador dormia sozinho e voltava a bater junto (24/11: ~248 falhas x ~55 s)
   const faixas = { 'ate1s': 0, '1a5s': 0, '5a15s': 0, '15a60s': 0, 'mais60s': 0 };
   const lentos = [];
   const get = async (rota, caminho) => {
+    let vezes429 = 0;
     for (let tentativa = 0; tentativa < 6; tentativa += 1) {
+      const pausa = pausaAte - Date.now();
+      if (pausa > 0) await new Promise((s) => setTimeout(s, pausa));
       await limite.esperar();
       pedidos += 1;
       const t0 = Date.now();
@@ -168,11 +179,27 @@ function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 3
       try {
         r = await fetch(`${api}/v1/apps/${encodeURIComponent(app)}/${rota}?${parametro}=${encodeURIComponent(caminho)}`, { headers: { authorization: `Bearer ${chave}`, accept: 'application/json' }, signal: AbortSignal.timeout(timeoutPedidoMs) });
       } catch (e) { if (e?.name === 'TimeoutError' || e?.cause?.name === 'TimeoutError') diag.timeouts += 1; if (tentativa === 5) throw new Error(`rede: ${e?.cause?.code ?? e?.name}`, { cause: e }); await new Promise((s) => setTimeout(s, 1000 * (tentativa + 1))); continue; }
+      // cabeçalhos de limite (docs: x-ratelimit-limit/remaining/reset em chamadas com chave): registra o limite REAL informado e, com quase nada sobrando, espera a janela virar em vez de tomar 429
+      const hl = r.headers.get('x-ratelimit-limit'); const hr = r.headers.get('x-ratelimit-remaining'); const hs = r.headers.get('x-ratelimit-reset');
+      if (hl !== null && Number.isFinite(Number(hl))) {
+        rateLimit = { limit: Number(hl), remaining: Number(hr), reset: Number(hs) };
+        if (Number.isFinite(rateLimit.remaining) && rateLimit.remaining <= 2 && Number.isFinite(rateLimit.reset) && rateLimit.reset > 0) {
+          const resetMs = rateLimit.reset > 1e9 ? rateLimit.reset * 1000 - Date.now() : rateLimit.reset * 1000; // época em segundos ou segundos até a janela virar
+          const ate = Date.now() + Math.min(Math.max(resetMs, 0), 65000);
+          if (ate > pausaAte) { pausaAte = ate; diag.pausasPorCabecalho += 1; }
+        }
+      }
       if (r.status === 429) {
         diag.http429 += 1;
         let espera = Number(r.headers.get('retry-after')) || 0;
         try { const j = await r.clone().json(); espera = Number(j?.details?.retry_after ?? j?.retry_after ?? espera) || espera; } catch { /* sem corpo */ }
-        await new Promise((s) => setTimeout(s, Math.min(120, Math.max(2, espera)) * 1000));
+        const esperaMs = Math.min(espera429MaxMs, Math.max(espera429MinMs, espera * 1000));
+        esperas429.push(Math.round(esperaMs / 100) / 10);
+        pausaAte = Math.max(pausaAte, Date.now() + esperaMs); // TODOS esperam o mesmo retry_after
+        limite.reduzir();
+        vezes429 += 1;
+        if (vezes429 > 20) throw new Error('429 persistente (20 respostas seguidas)');
+        tentativa -= 1; // 429 não gasta uma das 6 tentativas de falha de rede/5xx
         continue;
       }
       if (r.status >= 500) diag.http5xx += 1;
@@ -185,6 +212,7 @@ function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 3
       }
       const ms = Date.now() - t0;
       lat.push(ms);
+      limite.aliviar();
       faixas[ms < 1000 ? 'ate1s' : ms < 5000 ? '1a5s' : ms < 15000 ? '5a15s' : ms < 60000 ? '15a60s' : 'mais60s'] += 1;
       if (ms >= 8000) lentos.push({ rota, caminho: String(caminho).slice(-110), ms });
       return { corpo, tipo: r.headers.get('content-type') ?? '' };
@@ -198,7 +226,7 @@ function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 3
     formas: () => ({ ...formas }),
     pedidos: () => pedidos,
     latencias: () => estatistica(lat),
-    diag: () => ({ ...diag, faixas: { ...faixas }, lentos: [...lentos].sort((a, b) => b.ms - a.ms).slice(0, 25) }),
+    diag: () => ({ ...diag, esperas429: { ...estatistica(esperas429.map((x) => x * 1000)), unidade: 'ms' }, rateLimit, rpmAtual: limite.rpmAtual(), faixas: { ...faixas }, lentos: [...lentos].sort((a, b) => b.ms - a.ms).slice(0, 25) }),
   };
 }
 
@@ -206,6 +234,20 @@ function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 3
  * Mede a API de arquivos (só leitura de UM arquivo pequeno, o BUILD_ID): latência por pedido em sequência e a vazão (pedidos/min) com mais pedidos em paralelo, para escolher
  * a concorrência. Se a vazão não cresce com a concorrência, a API serializa e subir não adianta. Não grava nada. Respeita o limitador (`rpm`): use --rpm alto (<= 280) para medir.
  */
+/**
+ * PURA (testada com números fixos): dado [{ concorrencia, pedidosPorMin }] devolve a concorrência recomendada (só vale subir se ganhar mais de 15% sobre a melhor até ali) e, se algum nível
+ * ACIMA da recomendada render menos da METADE dela, o aviso de colapso da API (medido no staging real em 24/11: 4 em voo = 281/min, 16 = 24/min, 32 = 32/min).
+ */
+export function analisarNiveis(niveis) {
+  let melhor = niveis[0];
+  for (const r of niveis) if (r.pedidosPorMin > melhor.pedidosPorMin * 1.15) melhor = r;
+  const colapso = niveis.find((r) => r.concorrencia > melhor.concorrencia && r.pedidosPorMin < melhor.pedidosPorMin / 2);
+  return {
+    recomendada: melhor.concorrencia,
+    ...(colapso ? { colapsoAPartirDe: colapso.concorrencia, avisoColapso: `a API COLAPSA com ${colapso.concorrencia} pedidos em voo (${colapso.pedidosPorMin}/min contra ${melhor.pedidosPorMin}/min com ${melhor.concorrencia}): use --concorrencia ${melhor.concorrencia}` } : {}),
+  };
+}
+
 export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 280, chave, niveis = [1, 2, 4, 8, 16], por = 3, sequenciais = 6, real = true, timeoutPedidoMs = 30000 }) {
   const c = cliente({ api, chave, app, rpm, timeoutPedidoMs });
   const alvo = `${raiz}/BUILD_ID`;
@@ -219,12 +261,9 @@ export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.v
     const ms = Date.now() - t;
     resultado.push({ concorrencia: n, pedidos: total, ms, pedidosPorMin: Math.round((total / Math.max(1, ms)) * 60000) });
   }
-  let melhor = resultado[0];
-  for (const r of resultado) if (r.pedidosPorMin > melhor.pedidosPorMin * 1.15) melhor = r; // só vale subir se ganhar mais de 15%
-  // colapso: algum nível acima do melhor rende menos da METADE dele (medido em 24/11: 4 = 281/min, 16 = 24/min)
-  const colapso = resultado.find((r) => r.concorrencia > melhor.concorrencia && r.pedidosPorMin < melhor.pedidosPorMin / 2);
+  const analise = analisarNiveis(resultado);
   const cargaReal = real ? await medirCargaReal(c, raiz) : undefined;
-  return { sequencial: estatistica(seq), niveis: resultado, recomendada: melhor.concorrencia, ...(cargaReal ? { cargaReal } : {}), diagnostico: c.diag(), ...(colapso ? { colapsoAPartirDe: colapso.concorrencia, avisoColapso: `a API COLAPSA com ${colapso.concorrencia} pedidos em voo (${colapso.pedidosPorMin}/min contra ${melhor.pedidosPorMin}/min com ${melhor.concorrencia}): use --concorrencia ${melhor.concorrencia}` } : {}), limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
+  return { sequencial: estatistica(seq), niveis: resultado, ...analise, ...(cargaReal ? { cargaReal } : {}), diagnostico: c.diag(), limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
 }
 
 /**
@@ -268,8 +307,8 @@ export async function medirCargaReal(c, raiz, { niveis = [1, 2, 4], por = 12, ma
   return { listagens, niveis: resultado, arquivosDistintosAmostrados: Math.min(arquivos.length, ponteiro) };
 }
 
-export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, somente = [], chave, log = () => {}, progresso = null, timeoutPedidoMs = 30000 }) {
-  const c = cliente({ api, chave, app, rpm, timeoutPedidoMs });
+export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, somente = [], chave, log = () => {}, progresso = null, timeoutPedidoMs = 30000, espera429MinMs = 2000 }) {
+  const c = cliente({ api, chave, app, rpm, timeoutPedidoMs, espera429MinMs });
   const rel = { app, raiz, arquivos: 0, bytes: 0, binarios: 0, pulados: 0, excluidosPorPadrao: 0, externos: [], ignorados: [], erros: [], inicio: new Date().toISOString() };
   const dest = resolve(destino);
   const dentro = (p) => { const r = resolve(p); return r === dest || r.startsWith(dest + sep); };
