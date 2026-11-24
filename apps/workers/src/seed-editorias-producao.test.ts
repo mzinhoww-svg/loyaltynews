@@ -87,12 +87,12 @@ describe('seed-editorias-producao: barreiras (nada é gravado)', () => {
     }
   });
 
-  it('o bindings.json REAL (o da produção registrada) aceita a URL dele e recusa a de staging', () => {
+  it('o bindings.json REAL (o da produção registrada) aceita o banco dele e recusa o de staging (URL SEM credencial: só host e banco contam)', () => {
     const prod = (bindingsReal as BindingsFile).ambientes.production;
     const stg = (bindingsReal as BindingsFile).ambientes.staging;
     expect(prod.dbHost && prod.dbName, 'produção precisa estar registrada').toBeTruthy();
-    expect(() => assertProductionBound(`postgres://u:p@${prod.dbHost}:5432/${prod.dbName}`)).not.toThrow();
-    if (stg.dbHost && (stg.dbHost !== prod.dbHost || stg.dbName !== prod.dbName)) expect(() => assertProductionBound(`postgres://u:p@${stg.dbHost}:5432/${stg.dbName}`)).toThrow(/NÃO aponta/);
+    expect(() => assertProductionBound(`postgres://${prod.dbHost}:5432/${prod.dbName}`)).not.toThrow();
+    if (stg.dbHost && (stg.dbHost !== prod.dbHost || stg.dbName !== prod.dbName)) expect(() => assertProductionBound(`postgres://${stg.dbHost}:5432/${stg.dbName}`)).toThrow(/NÃO aponta/);
   });
 });
 
