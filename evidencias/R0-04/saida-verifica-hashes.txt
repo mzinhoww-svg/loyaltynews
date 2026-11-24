@@ -1,6 +1,6 @@
-Dossiê  MANIFEST_SHA256.json: 38/38  falhas=[]
-Dossiê  01-baseline-1.0/manifest_sha256.json: 7/7  falhas=[]
-Dossiê  02-versao-2.0/manifest_sha256.json: 10/11  falhas=[('Loyalty_News_v1_0_Baseline.zip', 'AUSENTE')]
+DossiÃª  MANIFEST_SHA256.json: 38/38  falhas=[]
+DossiÃª  01-baseline-1.0/manifest_sha256.json: 7/7  falhas=[]
+DossiÃª  02-versao-2.0/manifest_sha256.json: 10/11  falhas=[('Loyalty_News_v1_0_Baseline.zip', 'AUSENTE')]
 Zip v1_0_Baseline  manifest_sha256.json: 7/7  falhas=[]
 Zip Projeto_v2_0  manifest_sha256.json: 11/11  falhas=[]
 Hash dos zips em originals/:
@@ -10,4 +10,4 @@ Hash dos zips em originals/:
   36085264c2f41bdf57867a43a4fa8e2c7e296e0b0edcaf212aab11b33269f931  Loyalty_News_Projeto_v2_0.zip
   8a7d0d6f1611837d88897bc78cd92b2637834584ebb8e679fbd57effb14e4f77  Loyalty_News_v1_0_Baseline.zip
 Contagens: agentes=64 workflows=17 reunioes=28 tranches=12 tarefas=58
-pasta temporária removida: True
+pasta temporÃ¡ria removida: True
