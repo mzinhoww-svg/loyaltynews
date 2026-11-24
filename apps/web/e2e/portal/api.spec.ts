@@ -73,6 +73,22 @@ test.describe('matéria via API pública', () => {
     }
   });
 
+  test('P3-4: sem lateral a coluna de leitura da matéria fica centralizada a 1440 px (antes: ~40% da largura vazia à direita)', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'largura de desktop');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/noticia/api-foto-terceiro');
+    const artigo = page.locator('article.pt-article');
+    await expect(artigo).toBeVisible();
+    // este modo não tem anúncio de lateral nem "Em alta": sem lateral
+    await expect(page.getByRole('complementary', { name: 'Barra lateral' })).toHaveCount(0);
+    const box = (await artigo.boundingBox())!;
+    const vw = await page.evaluate(() => document.documentElement.clientWidth);
+    const esquerda = box.x;
+    const direita = vw - (box.x + box.width);
+    expect(Math.abs(esquerda - direita), `margens ${Math.round(esquerda)} px à esquerda e ${Math.round(direita)} px à direita`).toBeLessThanOrEqual(2);
+    expect(box.width).toBeLessThanOrEqual(760 + 1);
+  });
+
   test('matéria inexistente dá 404 do portal', async ({ page }) => {
     expect((await page.goto('/noticia/nao-existe'))?.status()).toBe(404);
     await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();

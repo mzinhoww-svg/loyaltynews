@@ -241,3 +241,7 @@
   .pt-hero:not(.pt-hero--text) { align-items: stretch; }
   .pt-hero:not(.pt-hero--text) .pt-hero-side { grid-auto-rows: 1fr; align-content: stretch; }
 }
+
+/* P3-4 (revisão do staging 56e4cdc): sem lateral a matéria é filha direta do .pt-wrap e a coluna de leitura de 760 px ficava à esquerda, com ~40% da
+   largura vazia a 1440 px. Só nesse caso a coluna é centralizada; com lateral ela fica dentro de .pt-col (grade de duas colunas) e não muda. */
+.pt-wrap > .pt-article { margin-inline: auto; }
