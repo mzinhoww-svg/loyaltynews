@@ -1358,3 +1358,28 @@ test('check-ln-links: link @ln/* para dentro do worktree passa; para outro workt
   assert.equal(node('check-ln-links.mjs', ['--root', a]).status, 0);
   assert.equal(node('check-ln-links.mjs', ['--root', b]).status, 1);
 });
+
+test('limpar-node-modules: remove o node_modules sem atravessar junction (o alvo fica intacto); sem --confirmar só mostra o plano', async () => {
+  const { symlinkSync, existsSync: ex, readFileSync: rf, lstatSync: ls } = await import('node:fs');
+  const base = tmp();
+  const a = join(base, 'wt-a'); mkdirSync(join(a, 'packages', 'auth'), { recursive: true }); writeFileSync(join(a, 'package.json'), '{}'); writeFileSync(join(a, 'packages', 'auth', 'index.ts'), 'export const ok = 1;');
+  mkdirSync(join(a, 'node_modules', 'pkg'), { recursive: true }); writeFileSync(join(a, 'node_modules', 'pkg', 'x.js'), 'x');
+  // wt-b: node_modules REAL com @ln/auth = junction para os packages de wt-a, mais arquivos de verdade
+  const b = join(base, 'wt-b'); mkdirSync(join(b, 'node_modules', '@ln'), { recursive: true }); writeFileSync(join(b, 'package.json'), '{}'); writeFileSync(join(b, 'node_modules', 'real.js'), 'r');
+  symlinkSync(join(a, 'packages', 'auth'), join(b, 'node_modules', '@ln', 'auth'), 'junction');
+  // wt-c: node_modules INTEIRO é junction para o de wt-a
+  const c = join(base, 'wt-c'); mkdirSync(c); writeFileSync(join(c, 'package.json'), '{}');
+  symlinkSync(join(a, 'node_modules'), join(c, 'node_modules'), 'junction');
+  const plano = node('limpar-node-modules.mjs', ['--root', b]);
+  assert.equal(plano.status, 0); assert.equal(JSON.parse(plano.stdout).apagou, false); assert.ok(ex(join(b, 'node_modules', 'real.js')), 'sem --confirmar nada some');
+  const r1 = node('limpar-node-modules.mjs', ['--root', b, '--confirmar']);
+  assert.equal(r1.status, 0, r1.stderr); assert.equal(JSON.parse(r1.stdout).links, 1);
+  assert.equal(ex(join(b, 'node_modules')), false, 'node_modules do wt-b sumiu');
+  assert.equal(rf(join(a, 'packages', 'auth', 'index.ts'), 'utf8'), 'export const ok = 1;', 'o ALVO da junction (packages de wt-a) está intacto');
+  const r2 = node('limpar-node-modules.mjs', ['--root', c, '--confirmar']);
+  assert.equal(r2.status, 0, r2.stderr);
+  assert.equal(ex(join(c, 'node_modules')), false, 'o atalho foi removido');
+  assert.equal(rf(join(a, 'node_modules', 'pkg', 'x.js'), 'utf8'), 'x', 'o node_modules do alvo está intacto');
+  assert.equal(node('limpar-node-modules.mjs', ['--root', join(base, 'nao-existe')]).status, 2);
+  assert.ok(!ls(join(a, 'packages', 'auth')).isSymbolicLink());
+});
