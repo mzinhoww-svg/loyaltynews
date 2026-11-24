@@ -10,6 +10,10 @@ export interface Item11Options {
   secretFile?: string;
   confirmoDespachoDesligado?: boolean;
   confirmoFilaVazia?: boolean;
+  /** Estado kill: o operador confirma que o kill switch está LIGADO (sem isso nada assinado é enviado). */
+  confirmoKillLigado?: boolean;
+  /** Estado parado: o operador confirma que o piloto está PARADO (sem isso nada assinado é enviado). */
+  confirmoPilotoParado?: boolean;
 }
 export interface Item11Step {
   n: number;

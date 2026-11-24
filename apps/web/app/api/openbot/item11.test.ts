@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { schema } from '@ln/db';
+import { PgLeaseQueue } from '@ln/workers/openbot-pg';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import { makeApp } from '../_lib/testkit';
 import * as pull from './pull/route';
@@ -176,7 +178,7 @@ describe('item 11, fase com-segredo (o segredo só passa pelo cliente, lido do a
     const store = new PostgresLedgerStore(app.db as unknown as SqlDatabase);
     await store.setKill('route:openbot', true, 'item11', app.clock.now);
     try {
-      const r = await com('kill');
+      const r = await com('kill', { confirmoKillLigado: true });
       expect(r.ok).toBe(true);
       expect(step(r, '6. smoke')).toMatchObject({ veredito: 'PASS', observado: expect.stringContaining('423 KILL_SWITCH') });
       expect(step(r, '6. pull')).toMatchObject({ veredito: 'PASS', observado: '423 KILL_SWITCH stop' });
@@ -186,17 +188,58 @@ describe('item 11, fase com-segredo (o segredo só passa pelo cliente, lido do a
     }
   });
 
-  it('kill switch DESLIGADO quando o estado pedido é kill: FAIL (o script não assume o estado, confere)', async () => {
-    const r = await com('kill');
+  it('kill switch DESLIGADO quando o estado pedido é kill (despacho LIGADO e uma tarefa na fila): o smoke não vê o 423, FAIL e NENHUM pull é enviado, a tarefa não é reservada', async () => {
+    health.flags = ['openbotDispatch'];
+    app.deps.flags.openbotDispatch = true;
+    await new PgLeaseQueue(app.db as any).enqueue({ kind: 'fact_check', profileId: 'ln_pilot_checador', refId: 'gw-item11', idempotencyKey: 'item11-kill-off', dataClass: 'public', maxCostMicro: 1, route: ['codex'] }, app.clock.now);
+    const r = await com('kill', { confirmoKillLigado: true });
     expect(r.ok).toBe(false);
-    expect(step(r, '6. pull').veredito).toBe('FAIL');
+    expect(step(r, '6. smoke').veredito).toBe('FAIL');
+    expect(step(r, '6. pull')).toMatchObject({ veredito: 'FAIL', observado: 'não executado' });
+    expect(calls.filter((c) => c === 'POST /api/openbot/pull')).toEqual([]); // nenhum pull, assinado ou não
+    const pulled = await app.db.select().from(schema.openbotTasks);
+    expect((pulled as any[]).every((t) => !t.leaseId)).toBe(true); // a tarefa continua na fila, sem detentor
+    await app.db.delete(schema.openbotTasks as any);
+  });
+
+  it('kill e parado SEM a confirmação do operador: recusa (precondicao) e NADA assinado é enviado, nem o smoke', async () => {
+    for (const [estado, flag] of [['kill', 'confirmoKillLigado'], ['parado', 'confirmoPilotoParado']] as const) {
+      calls = [];
+      const r = await com(estado);
+      expect([r.ok, r.recusado]).toEqual([false, 'precondicao']);
+      expect(calls).toEqual(['GET /api/health']);
+      const com2 = await com(estado, { [flag]: true });
+      expect(com2.recusado).toBeUndefined(); // com a confirmação segue (o resultado depende do estado real)
+    }
   });
 
   it('piloto parado (423 PILOT_STOPPED): smoke PASS e pull 423 PILOT_STOPPED', async () => {
     override = (m, p) => (m === 'POST' && ['/api/openbot/pull', '/api/openbot/heartbeat', '/api/openbot/io/input'].includes(p) ? Response.json({ error: { code: 'PILOT_STOPPED', message: 'x' } }, { status: 423 }) : null);
-    const r = await com('parado');
+    const r = await com('parado', { confirmoPilotoParado: true });
     expect(r.ok).toBe(true);
     expect(step(r, '8. pull')).toMatchObject({ veredito: 'PASS', observado: '423 PILOT_STOPPED stop' });
+  });
+
+  it('piloto ANDANDO quando o estado pedido é parado: o smoke não vê o 423 PILOT_STOPPED, FAIL e nenhum pull', async () => {
+    const r = await com('parado', { confirmoPilotoParado: true });
+    expect(r.ok).toBe(false);
+    expect(step(r, '8. pull')).toMatchObject({ veredito: 'FAIL', observado: 'não executado' });
+    expect(calls.filter((c) => c === 'POST /api/openbot/pull')).toEqual([]);
+  });
+
+  it('o código de erro do pull passa pelo SAFE_CODE: texto hostil do servidor vira CODIGO_DESCONHECIDO e nunca é impresso', async () => {
+    const hostile = (code: string) => (m: string, p: string) => (m === 'POST' && p === '/api/openbot/pull' ? Response.json({ error: { code, message: 'x' } }, { status: 423 }) : null);
+    override = hostile('<script>alert(1)</script>');
+    const r = await com('desligado', { confirmoDespachoDesligado: true });
+    const out = JSON.stringify(r) + toText(r);
+    expect(step(r, '2.')).toMatchObject({ veredito: 'FAIL', observado: '423 CODIGO_DESCONHECIDO stop' });
+    expect(out).not.toContain('<script>');
+    override = hostile('segredo-' + SECRET); // minúsculas e longo: também fora do padrão
+    const r2 = await com('desligado', { confirmoDespachoDesligado: true });
+    expect(JSON.stringify(r2) + toText(r2)).not.toContain(SECRET);
+    expect(step(r2, '2.').observado).toBe('423 CODIGO_DESCONHECIDO stop');
+    override = hostile('DISPATCH_OFF'); // código legítimo da API segue visível
+    expect(step(await com('desligado', { confirmoDespachoDesligado: true }), '2.').observado).toBe('423 DISPATCH_OFF stop');
   });
 
   it('segredo ausente no arquivo: erro de configuração, sem chamada assinada; produção recusa antes de tudo', async () => {

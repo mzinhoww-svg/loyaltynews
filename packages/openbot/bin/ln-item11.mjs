@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // Item 11 do caminho crítico (piloto de 10 matérias, DP-41, SÓ staging): sonda de assinatura, kill switch e ensaio sem modelo, no staging REAL.
 //   node ln-item11.mjs --fase sem-segredo   [--base https://<staging>] [--saida <pasta>]
-//   node ln-item11.mjs --fase com-segredo --estado desligado|ligado|kill|parado [--confirmo-despacho-desligado] [--confirmo-fila-vazia] [--base ...] [--saida ...]
+//   node ln-item11.mjs --fase com-segredo --estado desligado|ligado|kill|parado [--confirmo-despacho-desligado] [--confirmo-fila-vazia] [--confirmo-kill-ligado] [--confirmo-piloto-parado] [--base ...] [--saida ...]
 // Ambiente: LN_API_BASE (ou --base; só a ORIGEM importa: https://<staging>), LN_AGENT_ACCOUNT (claude|codex; padrão codex), e, só em `com-segredo`,
 // LN_HMAC_SECRET_FILE = caminho do arquivo que o cofre do OpenBot entrega. Este script NUNCA lê, imprime ou grava o segredo: quem lê o arquivo é o cliente do
 // agente (ln-openbot-agent.mjs), que também assina. Na fase `sem-segredo` NENHUM segredo existe: a única "assinatura" é um texto FALSO de ensaio, fixo no código.
 // Saída: uma linha de JSON no stdout + (se --saida) <pasta>/<fase>[-<estado>]-<UTC>.json e .txt. Texto SÓ local ou validado: nunca repete corpo, cabeçalho nem
 // mensagem do servidor fora de um padrão curto e seguro. Recusa o que não for staging ANTES de qualquer chamada que não seja o GET de /api/health.
-// Código de saída 1 se houver FAIL. Nada é criado, ligado ou gravado no LN; `pull` só roda onde o roteiro garante que não reserva tarefa (ver --confirmo-*).
+// Código de saída 1 se houver FAIL. Nada é criado, ligado ou gravado no LN; `pull` só roda onde o roteiro garante que não reserva tarefa: SEMPRE com a confirmação do operador
+// (--confirmo-*) e, nos estados kill e parado, só DEPOIS de o smoke ter visto o 423 esperado (sem o 423 não há pull: o kill pode estar desligado e o despacho ligado).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -30,6 +31,10 @@ async function readJson(res) {
     return { text, json: null };
   }
 }
+/** Código de um CliError impresso na saída: da API (maiúsculas, validado) ou local do cliente (config, uso, rede, erro); qualquer outra coisa vira CODIGO_DESCONHECIDO. */
+const LOCAL_CODE = /^(config|uso|rede|erro)$/;
+const safeCode = (e) => (SAFE_CODE.test(String(e?.code)) || LOCAL_CODE.test(String(e?.code)) ? String(e.code) : 'CODIGO_DESCONHECIDO');
+const safeStatus = (e) => (Number.isInteger(e?.status) ? e.status : 'sem status');
 const codeOf = (json) => (SAFE_CODE.test(String(json?.error?.code)) ? String(json.error.code) : null);
 
 export async function runItem11(opts, io = {}) {
@@ -133,7 +138,7 @@ export async function runItem11(opts, io = {}) {
       const obs = String(hb?.observed ?? '');
       add('smoke (cliente, valor falso, sem pull)', 'assinatura FAIL 401 (sem_segredo ou assinatura recusada)', `ok:${r.ok} assinatura(heartbeat)=${/^401 (sem_segredo|assinatura recusada)$/.test(obs) ? obs : 'inesperado'}`, /^401 (sem_segredo|assinatura recusada)$/.test(obs) ? 'PASS' : 'FAIL');
     } catch (e) {
-      add('smoke (cliente, valor falso, sem pull)', 'assinatura FAIL 401', e instanceof CliError ? e.code : 'erro', 'FAIL');
+      add('smoke (cliente, valor falso, sem pull)', 'assinatura FAIL 401', e instanceof CliError ? safeCode(e) : 'erro', 'FAIL');
     }
     add('kill switch, 404 LEASE_ERROR, 423 DISPATCH_OFF/KILL_SWITCH/PILOT_STOPPED', 'só com o segredo REAL (e o kill switch, por um admin)', 'não executado', 'NAO_EXECUTADO', 'rode `--fase com-segredo` depois de gravar o segredo no cofre');
     return finish({ servidorSemSegredo: reasons.has('sem_segredo') ? 'sim' : reasons.size ? 'nao (provavel)' : 'indeterminado' });
@@ -143,15 +148,18 @@ export async function runItem11(opts, io = {}) {
   if (!opts.secretFile) throw new CliError('config', 'sem LN_HMAC_SECRET_FILE: defina o caminho do arquivo do cofre do OpenBot');
   const realEnv = clientEnv({ LN_HMAC_SECRET_FILE: opts.secretFile });
   const probe = (r, step) => r.checks?.find((c) => c.step === step);
+  /** Roda o smoke e devolve `true` só se o resultado foi exatamente o esperado (é o que libera, ou não, o `pull` dos estados kill e parado). */
   const smokeStep = async (label, expectDispatch, expectedSig) => {
     try {
       const r = await run(['smoke', '--expect-dispatch', expectDispatch], realEnv, clientIo);
       const hb = probe(r, 'assinatura (heartbeat)');
       const io2 = probe(r, 'assinatura (io/input)');
       const ok = r.ok === true && hb?.verdict === 'PASS' && io2?.verdict === 'PASS' && hb.observed === expectedSig && io2.observed === expectedSig;
-      add(label, `ok:true, assinatura PASS ${expectedSig}`, `ok:${r.ok} heartbeat=${hb?.observed ?? '?'} io/input=${io2?.observed ?? '?'}`, ok ? 'PASS' : 'FAIL');
+      add(label, `ok:true, assinatura PASS ${expectedSig}`, `ok:${r.ok} heartbeat=${/^[0-9]{3} [A-Z_]{3,40}$/.test(String(hb?.observed)) ? hb.observed : '?'} io/input=${/^[0-9]{3} [A-Z_]{3,40}$/.test(String(io2?.observed)) ? io2.observed : '?'}`, ok ? 'PASS' : 'FAIL');
+      return ok;
     } catch (e) {
-      add(label, `ok:true, assinatura PASS ${expectedSig}`, e instanceof CliError ? e.code : 'erro', 'FAIL', e instanceof CliError && e.code === 'config' ? 'segredo ilegível ou ausente' : undefined);
+      add(label, `ok:true, assinatura PASS ${expectedSig}`, e instanceof CliError ? safeCode(e) : 'erro', 'FAIL', e instanceof CliError && e.code === 'config' ? 'segredo ilegível ou ausente' : undefined);
+      return false;
     }
   };
   const pullStep = async (label, esperado) => {
@@ -160,7 +168,7 @@ export async function runItem11(opts, io = {}) {
       const vazio = Array.isArray(r?.tasks) && r.tasks.length === 0;
       add(label, esperado, vazio ? 'lista vazia' : `${Array.isArray(r?.tasks) ? r.tasks.length : '?'} tarefa(s)`, esperado === 'lista vazia' && vazio ? 'PASS' : 'FAIL', vazio ? undefined : 'o pull devolveu tarefa ou formato inesperado: PARAR e conferir a fila');
     } catch (e) {
-      const got = e instanceof CliError ? `${e.status ?? 'sem status'} ${e.code}${e.stop ? ' stop' : ''}` : 'erro';
+      const got = e instanceof CliError ? `${safeStatus(e)} ${safeCode(e)}${e.stop ? ' stop' : ''}` : 'erro';
       add(label, esperado, got, got === esperado ? 'PASS' : 'FAIL');
     }
   };
@@ -187,12 +195,22 @@ export async function runItem11(opts, io = {}) {
     await smokeStep('4. smoke --expect-dispatch on', 'on', '404 LEASE_ERROR');
     await pullStep('4. pull com despacho ligado e fila vazia', 'lista vazia');
   } else if (estado === 'kill') {
-    await smokeStep('6. smoke com o kill switch ligado (assinatura aceita, travado)', 'any', '423 KILL_SWITCH');
-    await pullStep('6. pull com o kill switch ligado', '423 KILL_SWITCH stop');
+    if (!opts.confirmoKillLigado) {
+      add('pré-condição do pull', '--confirmo-kill-ligado (o operador confirma que o kill switch está LIGADO)', { confirmado: false }, 'FAIL', 'sem a confirmação nada assinado é enviado: com o kill desligado e o despacho ligado o pull PODE reservar tarefa');
+      return finish({ recusado: 'precondicao' });
+    }
+    const visto = await smokeStep('6. smoke com o kill switch ligado (assinatura aceita, travado)', 'any', '423 KILL_SWITCH');
+    if (visto) await pullStep('6. pull com o kill switch ligado', '423 KILL_SWITCH stop');
+    else add('6. pull com o kill switch ligado', 'só depois de o smoke ver 423 KILL_SWITCH', 'não executado', 'FAIL', 'o smoke não viu o 423 KILL_SWITCH: o kill switch pode estar DESLIGADO; nenhum pull foi enviado (ele poderia reservar tarefa)');
     add('6. callback de tarefa em curso ainda aceito', '200 (callback segue aceito)', 'não executado', 'NAO_EXECUTADO', 'exige uma tarefa em curso: parte do ciclo de ensaio com o agente');
   } else if (estado === 'parado') {
-    await smokeStep('8. smoke com o piloto parado (assinatura aceita, travado)', 'any', '423 PILOT_STOPPED');
-    await pullStep('8. pull com o piloto parado', '423 PILOT_STOPPED stop');
+    if (!opts.confirmoPilotoParado) {
+      add('pré-condição do pull', '--confirmo-piloto-parado (o operador confirma que o piloto está PARADO)', { confirmado: false }, 'FAIL', 'sem a confirmação nada assinado é enviado: com o piloto andando e o despacho ligado o pull PODE reservar tarefa');
+      return finish({ recusado: 'precondicao' });
+    }
+    const visto = await smokeStep('8. smoke com o piloto parado (assinatura aceita, travado)', 'any', '423 PILOT_STOPPED');
+    if (visto) await pullStep('8. pull com o piloto parado', '423 PILOT_STOPPED stop');
+    else add('8. pull com o piloto parado', 'só depois de o smoke ver 423 PILOT_STOPPED', 'não executado', 'FAIL', 'o smoke não viu o 423 PILOT_STOPPED: o piloto pode estar ANDANDO; nenhum pull foi enviado (ele poderia reservar tarefa)');
   }
   add('ciclo de ensaio completo (pauta → ... → linha em /studio/piloto)', 'uma linha, custo 0, subscription', 'não executado', 'NAO_EXECUTADO', 'passo do agente criado (item 7); fora deste script');
   return finish();
@@ -206,7 +224,7 @@ export function toText(r) {
 }
 
 function parse(argv) {
-  const flagsBool = ['confirmo-despacho-desligado', 'confirmo-fila-vazia'];
+  const flagsBool = ['confirmo-despacho-desligado', 'confirmo-fila-vazia', 'confirmo-kill-ligado', 'confirmo-piloto-parado'];
   const out = {};
   for (let i = 0; i < argv.length; i += 1) {
     const k = argv[i];
@@ -228,6 +246,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const r = await runItem11({
         fase: a.fase, estado: a.estado, base: a.base ?? process.env.LN_API_BASE?.replace(/\/api\/openbot\/?$/, ''), account: process.env.LN_AGENT_ACCOUNT ?? 'codex',
         secretFile: process.env.LN_HMAC_SECRET_FILE, confirmoDespachoDesligado: a['confirmo-despacho-desligado'], confirmoFilaVazia: a['confirmo-fila-vazia'],
+        confirmoKillLigado: a['confirmo-kill-ligado'], confirmoPilotoParado: a['confirmo-piloto-parado'],
       });
       if (a.saida) {
         mkdirSync(a.saida, { recursive: true });
