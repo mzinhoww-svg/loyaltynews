@@ -21,8 +21,8 @@ import type { PilotRowPatch, PilotRowSink } from './pilot-sink';
 import { validateModelOutput } from '../factory/output-schemas';
 
 // model.policy.json rules.max_attempts. NÃO é aplicado no estágio `draft` desde 2e232f2 (barreira determinística não refaz a redação) e nenhum bloqueio
-// `max_attempts` é emitido mais (só registros antigos o têm); segue exportado (index.ts); a fila (queue.ts) usa 3 tentativas por valor literal, sem esta constante. Decisão pendente do PM (QA 1, R3):
-// aplicar este teto à re-redação pedida pelo editor (`requestRecheck`) ou declarar o limite só na política.
+// `max_attempts` é emitido mais (só registros antigos o têm). VALE como teto de pedidos de nova checagem por matéria em `requestRecheck` (decisão do PM, QA 1 R3):
+// o 4º pedido é 409 MAX_ATTEMPTS_REACHED e a matéria segue para edição manual. A fila (queue.ts) usa 3 tentativas por valor literal, sem esta constante.
 export const MAX_ATTEMPTS = 3;
 
 /** Registro interno (Blueprint §6): modelo, evidências, versões. Em produção persiste no PostgreSQL. */
