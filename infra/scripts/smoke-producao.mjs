@@ -8,7 +8,8 @@ import { parseArgs } from './lib/util.mjs';
 import { avaliarReady } from './smoke-staging.mjs';
 import { pathToFileURL } from 'node:url';
 
-const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK\b/;
+// Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
+const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
 export async function rodar({ url, commit, indexavel = false, timeout = 20000 }) {
   const base = url.replace(/\/+$/, '');
