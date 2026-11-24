@@ -109,6 +109,20 @@ test.describe('formulário do titular em /correcoes', () => {
     await expect(page.getByTestId('pedido-form').getByLabel('Endereço da página')).toHaveValue('');
   });
 
+  test.describe('sem JavaScript', () => {
+    test.use({ javaScriptEnabled: false });
+    test('aviso visível ANTES do formulário e botão de envio desabilitado (nunca um envio nativo sem estado)', async ({ page }) => {
+      await page.goto('/correcoes');
+      const aviso = page.getByTestId('pedido-noscript');
+      await expect(aviso).toBeVisible();
+      await expect(aviso).toContainText('precisa de JavaScript');
+      const yAviso = (await aviso.boundingBox())!.y;
+      const yForm = (await page.getByTestId('pedido-form').boundingBox())!.y;
+      expect(yAviso).toBeLessThan(yForm);
+      await expect(page.getByRole('button', { name: 'Enviar pedido' })).toBeDisabled();
+    });
+  });
+
   test('honeypot fica fora da leitura e da tabulação', async ({ page }) => {
     await page.goto('/correcoes');
     const hp = page.locator('input[name="site"]');
