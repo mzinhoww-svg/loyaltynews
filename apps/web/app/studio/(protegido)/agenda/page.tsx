@@ -6,6 +6,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { eventoVigente, hojeSP } from '@/lib/studio/datas';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
 import { PortalAgora } from '../../_components/PortalAgora';
 import { criarEventoAction, moderarEventoAction, removerEventoAction } from './actions';
@@ -20,7 +21,8 @@ function Tabela({ id, titulo, eventos, podeRemover, podeModerar }: { id: string;
       {eventos.length === 0 ? (
         <p className="st-hint">Nenhum evento.</p>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Itens da agenda">
+<table className="st-table">
           <thead>
             <tr>
               <th scope="col">Evento</th>
@@ -89,6 +91,7 @@ function Tabela({ id, titulo, eventos, podeRemover, podeModerar }: { id: string;
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
     </section>
   );

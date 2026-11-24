@@ -14,6 +14,7 @@ import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
+import { FonteRapidaPainel } from '../../../_components/FonteRapidaPainel';
 import { MateriaForm } from '../MateriaForm';
 import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
 
@@ -23,10 +24,12 @@ export const dynamic = 'force-dynamic';
 // ids do CMS são UUID; ids de matéria da Fábrica não têm formato fixo: aceita só caracteres seguros e deixa a API dizer se existe
 const ID_SEGURO = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
 
-export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tipo?: string; aviso?: string }> }) {
+export default async function Materia({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { session } = await requireStudio(CMS_READ);
   const { id } = await params;
-  const { tipo, aviso } = await searchParams;
+  const qs = await searchParams;
+  const { tipo, aviso, fonte, proximo } = qs;
+  const valoresRapida = Object.fromEntries(Object.entries(qs).filter(([k, v]) => /^(fr|ev)_/.test(k) && typeof v === 'string')) as Record<string, string>;
   if (!ID_SEGURO.test(id)) notFound();
   const r = await api.materias.obter(id);
   if (naoConfigurado(r)) return <SemBanco modulo="O CMS editorial" />;
@@ -62,7 +65,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
       <p>
         <StatusArtigo status={m.status as Parameters<typeof StatusArtigo>[0]['status']} /> · v{m.versao} · {EDITORIAS.find((e) => e.slug === m.editoria)?.nome ?? m.editoria} · assinatura {m.assinatura} · {m.tempoLeituraMin} min de leitura
       </p>
-      <Flash tipo={tipo} aviso={aviso} />
+      <Flash tipo={tipo} aviso={aviso} proximo={proximo} />
       <div className="st-two">
         <section aria-label="Editor">
           {!editavel ? (
@@ -92,6 +95,11 @@ export default async function Materia({ params, searchParams }: { params: Promis
         <aside aria-label="Revisão">
           <div className="st-card">
             <h2 style={{ marginTop: 0 }}>Fluxo</h2>
+            {m.status === 'rascunho' && podeEditar ? (
+              <p className="st-hint" data-dica="checagem-fontes">
+                Para enviar à checagem, a matéria precisa de fonte <strong>ativa, com termos revisados</strong>, e de evidência registrada no <Link href="/studio/fontes">Banco de fontes</Link>. A fonte e a evidência rápidas (a confirmar) não bastam.
+              </p>
+            ) : null}
             <div className="st-actions" style={{ marginBottom: 10 }}>
               {m.status === 'rascunho' && podeEditar ? (
                 <form action={enviarChecagemAction}>
@@ -187,7 +195,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
               )}
               <p className="st-hint" id="pub-hint">
                 {!publicacaoLigada
-                  ? 'Publicação desligada neste ambiente (flag publicacaoPortal).'
+                  ? 'Publicação desligada nesta fase.'
                   : m.status === 'aprovado' && m.recibo
                     ? podePublicar
                       ? 'Publica quem tem permissão de publicar (editor-chefe, admin), com o recibo válido da versão aprovada; quem aprovou e quem publica podem ser a mesma pessoa.'
@@ -196,6 +204,8 @@ export default async function Materia({ params, searchParams }: { params: Promis
               </p>
             </section>
           </div>
+
+          {podeEditar && !publicada ? <FonteRapidaPainel articleId={m.id} status={m.status} retorno={`/studio/cms/${m.id}`} valores={valoresRapida} {...(fonte ? { fonteNova: fonte } : {})} /> : null}
 
           {publicada ? (
             <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="corr-titulo" data-correcao={rev ? rev.estado : 'nenhuma'}>
@@ -274,7 +284,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
                         <button className="st-btn" type="submit" disabled={!publicacaoLigada}>
                           Publicar correção
                         </button>
-                        {!publicacaoLigada ? <p className="st-hint">Publicação desligada neste ambiente (flag publicacaoPortal).</p> : null}
+                        {!publicacaoLigada ? <p className="st-hint">Publicação desligada nesta fase.</p> : null}
                       </form>
                     ) : (
                       <p className="st-hint">Revisão com recibo: a publicação é do editor-chefe ou do admin.</p>

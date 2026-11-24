@@ -9,6 +9,7 @@ import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { importarFolhaAction } from './actions';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'Importar a leitura do leitor 2' };
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,8 @@ export default async function ImportarFolhaPage({ searchParams }: { searchParams
         </div>
       ) : (
         <>
-          <table className="st-table" aria-label="Matérias com leitor 2" style={{ marginTop: 14 }}>
+          <QuadroRolavel rotulo="Matérias com leitor 2">
+          <table className="st-table" style={{ marginTop: 14 }}>
             <thead>
               <tr>
                 <th scope="col">Matéria</th>
@@ -63,6 +65,7 @@ export default async function ImportarFolhaPage({ searchParams }: { searchParams
                 ))}
             </tbody>
           </table>
+          </QuadroRolavel>
           <form action={importarFolhaAction} className="st-card" style={{ marginTop: 14 }} aria-label="Importar folha do leitor 2">
             <div className="st-field">
               <label htmlFor="arquivo">Arquivo CSV da folha (UTF-8)</label>

@@ -23,7 +23,7 @@ export default async function DecisoesPage({ searchParams }: { searchParams: Pro
       <h1>Decisões e atas</h1>
       <SemRotaBackend o_que="Decisões, atas e ações registradas aqui são do Studio." />
       <p>
-        Action tracker persistente e auditável. Atas e decisões nascem da execução dos rituais, hoje <strong>{flagAtiva('rituais') ? 'ligada' : 'desligada'}</strong> (flag rituais). Decisão de ato reservado vai ao responsável humano; nada é aprovado automaticamente.
+        Action tracker persistente e auditável. Atas e decisões nascem da execução dos rituais, hoje <strong>{flagAtiva('rituais') ? 'ligada' : 'desligada nesta fase'}</strong>. Decisão de ato reservado vai ao responsável humano; nada é aprovado automaticamente.
       </p>
       <form className="st-filters" method="get" role="search" aria-label="Filtrar ações">
         <div className="st-field">

@@ -17,7 +17,8 @@ import { DEFAULT_CONFIG, addEvidence, addOrgRelation, processObservation, upsert
 import { criarClientePglite } from './dev-db.e2e.mock';
 import type { E2eBackend } from './e2e-backend.types';
 
-const ORIGEM = 'http://localhost:3000';
+// o navegador do e2e abre o servidor em 127.0.0.1:E2E_PORT; o Better Auth só aceita POST vindo da própria origem (baseURL)
+const ORIGEM = `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
 const SENHA = 'senha-longa-de-teste-1';
 
 async function montar() {
@@ -45,12 +46,12 @@ async function montar() {
   const cache = new Map<string, { setCookies: string[]; id: string }>();
   let seq = 0;
 
-  async function criarUsuario(key: string, role: Role, comTotp: boolean) {
+  async function criarUsuario(key: string, role: Role, comTotp: boolean): Promise<{ id: string; setCookies: string[]; email: string; segredo: string | null }> {
     const email = `${key}-${++seq}@ln.test`;
     const ip = `10.${(seq >> 8) & 255}.${seq & 255}.7`;
     const { id } = await createStaffUser(auth, { email, name: `Teste ${key}`, password: SENHA, role });
     const primeiro = await handle(req('/sign-in/email', { email, password: SENHA }, undefined, ip));
-    if (!comTotp) return { id, setCookies: primeiro.headers.getSetCookie() };
+    if (!comTotp) return { id, setCookies: primeiro.headers.getSetCookie(), email, segredo: null };
     const c0 = cookieDe(primeiro);
     const en = await handle(req('/two-factor/enable', { password: SENHA }, c0, ip));
     const enTxt = await en.text();
@@ -60,7 +61,7 @@ async function montar() {
     await handle(req('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, c0, ip));
     const login = await handle(req('/sign-in/email', { email, password: SENHA }, undefined, ip));
     const v = await handle(req('/two-factor/verify-totp', { code: await createOTP(raw).totp() }, cookieDe(login), ip));
-    return { id, setCookies: v.headers.getSetCookie() };
+    return { id, setCookies: v.headers.getSetCookie(), email, segredo: new URL(totpURI).searchParams.get('secret')! };
   }
 
   // Flags de e2e ficam numa global compartilhada: o Next carrega uma instância de deps.ts por rota/página, então cada
@@ -190,6 +191,11 @@ Fontes:
       await linhas.upsert({ ...base, task_id: 'mock-viol-segredo', stage: 'draft', started_at: '2026-11-23T13:00:00.000Z', secret_in_log: true } as never);
       await linhas.upsert({ ...base, task_id: 'mock-viol-ferramenta', stage: 'draft', started_at: '2026-11-23T13:01:00.000Z', tool_outside_contract: true } as never);
       return { linhas: ['mock-viol-segredo', 'mock-viol-ferramenta'] };
+    },
+    async contaDeTeste(key, role, totp) {
+      if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
+      const r = await criarUsuario(`login-${key}`, role, totp);
+      return { email: r.email, senha: SENHA, segredo: r.segredo };
     },
     async login(user, role, mfa) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);

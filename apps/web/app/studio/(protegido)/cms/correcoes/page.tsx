@@ -6,6 +6,7 @@ import { CMS_READ } from '@/lib/studio/cms/roles';
 import { checkAccess } from '@/lib/studio/modules';
 import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
+import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { abrirCasoAction } from './actions';
 import { SemBanco } from '../../../_components/SemBanco';
 
@@ -68,7 +69,8 @@ export default async function CorrecoesPage({ searchParams }: { searchParams: Pr
           <p>Nenhuma errata ou pedido de direito de resposta até agora.</p>
         </section>
       ) : (
-        <table className="st-table">
+        <QuadroRolavel rotulo="Correções e direito de resposta">
+<table className="st-table">
           <thead>
             <tr>
               <th scope="col">Caso</th>
@@ -96,6 +98,7 @@ export default async function CorrecoesPage({ searchParams }: { searchParams: Pr
             ))}
           </tbody>
         </table>
+</QuadroRolavel>
       )}
       {podeGerir ? (
         <section className="st-card" style={{ marginTop: 18 }} aria-labelledby="abrir">

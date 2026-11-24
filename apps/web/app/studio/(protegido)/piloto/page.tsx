@@ -8,6 +8,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { fixarMapaAction } from './actions';
+import { QuadroRolavel } from '../../_components/QuadroRolavel';
 
 export const metadata: Metadata = { title: 'Leitura do piloto' };
 export const dynamic = 'force-dynamic';
@@ -62,7 +63,8 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
           ) : null}
         </section>
       ) : null}
-      <table className="st-table" aria-label="Matérias do piloto" style={{ marginTop: 14 }}>
+      <QuadroRolavel rotulo="Matérias do piloto">
+      <table className="st-table" style={{ marginTop: 14 }}>
         <thead>
           <tr>
             <th scope="col">Matéria</th>
@@ -82,6 +84,7 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
           ))}
         </tbody>
       </table>
+      </QuadroRolavel>
       <p style={{ marginTop: 10 }}>
         <Link href="/studio/piloto/importar">Importar a leitura do QA 3 (folha do leitor 2)</Link>
         {' · '}
