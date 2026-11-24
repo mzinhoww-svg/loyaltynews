@@ -72,7 +72,7 @@
         "Sem Crawl-delay no robots.txt; o coletor usa o espaçamento padrão de 3 s.",
         "O revisor reabre a política de uso no dia (os termos mudam)."
       ],
-      "notaDeRevisao": "Termos da Agência Senado (política de uso) lidos em 23/11/2026: reprodução livre sem descaracterizar, com citação da Agência Senado e do autor; robots.txt conferido (sem regras para o agente); sem login nem paywall; classe A (docs/termos-fontes.md); DP-28. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200."
+      "notaDeRevisao": "Termos da Agência Senado (política de uso) lidos em 23/11/2026: reprodução livre sem descaracterizar, com citação da Agência Senado e do autor; robots.txt conferido (sem regras para o agente); sem login nem paywall; classe A (docs/termos-fontes.md); DP-28. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
     },
     {
       "id": "camara-noticias",
@@ -147,7 +147,7 @@
         "O robots.txt tem 28 grupos de agentes; o Crawl-delay: 10 é só de bingbot, msnbot e Slurp. Para o nosso agente (grupo *) vale o espaçamento padrão de 3 s. Com o limite de 6 requisições por hora do cadastro, uma rodada rende cerca de 4 matérias (robots, feed e as páginas).",
         "Respondeu 429 em rajada em 23/11: no máximo 1 rodada por dia; a coleta para no primeiro 429."
       ],
-      "notaDeRevisao": "Termo de uso do Portal da Câmara lido em 23/11/2026 (itens 7 e 29: trechos entre aspas, informações de domínio público, citar a Câmara e a autoria); robots.txt conferido (feed e /noticias permitidos); sem login nem paywall; classe A; DP-28. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200."
+      "notaDeRevisao": "Termo de uso do Portal da Câmara lido em 23/11/2026 (itens 7 e 29: trechos entre aspas, informações de domínio público, citar a Câmara e a autoria); robots.txt conferido (feed e /noticias permitidos); sem login nem paywall; classe A; DP-28. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
     },
     {
       "id": "abemf",
@@ -214,7 +214,7 @@
         "O feed está parado: a matéria mais recente é de 22/10/2026 (33 dias); a fonte pode não render matéria nova.",
         "Classe D: nenhum termo de conteúdo; o rodapé só traz \"direitos reservados\" (o trecho do cadastro tem reticências e não é literal; a página confere \"ABEMF\" e \"todos os direitos reservados\")."
       ],
-      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; site sem termos de conteúdo (só rodapé de direitos reservados, lido em 23/11/2026); robots.txt conferido (/noticias/ e /feed/ permitidos); sem login nem paywall. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200."
+      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; site sem termos de conteúdo (só rodapé de direitos reservados, lido em 23/11/2026); robots.txt conferido (/noticias/ e /feed/ permitidos); sem login nem paywall. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
     },
     {
       "id": "livelo-imprensa",
@@ -287,10 +287,10 @@
       "enabled": false,
       "ressalvas": [
         "Sem feed: coleta por sitemap (37 páginas de /imprensa/; a mais recente é de 26/08/2026).",
-        "O cadastro traz paywall \"unknown\": o revisor abre uma página de /imprensa/ e confirma que não há login nem paywall antes de marcar \"nenhum\".",
+        "Paywall: nenhum. O proprietário confirmou na DP-49 (24/11/2026) que não há paywall, só login (área da conta). A coleta fica só nas páginas públicas de /imprensa/ (sitemapPathPrefix) e nunca atrás do login; se uma página pedir login, o coletor para (`gated`) e não insiste. O revisor marca paywall \"nenhum\" no Studio.",
         "Classe D: o rodapé só leva a Regulamentos e Privacidade, e nenhum dos dois trata de reprodução de conteúdo."
       ],
-      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; sem login nem paywall na listagem /imprensa, que respondeu 200 sem tela de login na conferência de 24/11/2026 (o revisor reabre uma página de /imprensa/ antes de marcar paywall \"nenhum\"). Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, sitemap respondendo 200."
+      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; paywall: nenhum (o proprietário confirmou na DP-49 que não há paywall, só login na área da conta; a listagem /imprensa respondeu 200 sem tela de login em 24/11/2026; a coleta fica nas páginas públicas de /imprensa/ e nunca atrás do login). Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, sitemap respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
     },
     {
       "id": "abrarec",
@@ -369,7 +369,14 @@
         "Classe D: nenhum termo de conteúdo (rodapé de direitos reservados e política de privacidade).",
         "Feed atual: 8 itens, o mais recente de 23/11/2026."
       ],
-      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; sem termos de conteúdo (rodapé de direitos reservados e política de privacidade, lidos em 23/11/2026); robots.txt conferido (/blog/ e /feed/ permitidos); sem login nem paywall. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200."
+      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; sem termos de conteúdo (rodapé de direitos reservados e política de privacidade, lidos em 23/11/2026); robots.txt conferido (/blog/ e /feed/ permitidos); sem login nem paywall. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
     }
-  ]
+  ],
+  "decisao": {
+    "dp": "DP-49",
+    "data": "2026-11-24",
+    "resultado": "proprietário autorizou habilitar as 5 fontes",
+    "habilitacao": "pendente: o admin habilita no Studio quando o staging voltar; não é feita pela Editorial",
+    "arquivo": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  }
 }

@@ -24,6 +24,11 @@ const seed = new Map(SEED_SOURCES.map((s) => [s.id, s]));
 const IDS = ['senado-noticias', 'camara-noticias', 'abemf', 'livelo-imprensa', 'abrarec'];
 
 describe('dossiê de habilitação do piloto (24/11/2026)', () => {
+  it('a decisão do proprietário (DP-49) está registrada e a habilitação segue pendente', () => {
+    expect((data as unknown as { decisao: { dp: string; resultado: string; habilitacao: string } }).decisao).toMatchObject({ dp: 'DP-49' });
+    expect((data as unknown as { decisao: { habilitacao: string } }).decisao.habilitacao).toMatch(/pendente/);
+  });
+
   it('são exatamente as 5 fontes do piloto (Senado, Câmara e 3 de classe D) e TODAS seguem desabilitadas, pendentes e inelegíveis no cadastro', () => {
     expect(data.fontes.map((f) => f.id)).toEqual(IDS);
     expect(data.fontes.filter((f) => f.classe === 'A').map((f) => f.id)).toEqual(['senado-noticias', 'camara-noticias']);
@@ -72,17 +77,22 @@ describe('dossiê de habilitação do piloto (24/11/2026)', () => {
     }
   });
 
-  it('cada fonte tem nota de revisão pronta (≥ 20 caracteres, cita DP-28 e a reconferência) e ressalvas; o Livelo avisa do paywall "desconhecido" e a ABEMF do feed parado', () => {
+  it('cada fonte tem nota de revisão pronta (≥ 20 caracteres, cita DP-28, a DP-49 e a reconferência) e ressalvas; o Livelo é paywall "nenhum" (só login, coleta só em /imprensa pública) e a ABEMF avisa do feed parado', () => {
     for (const f of data.fontes) {
       expect(f.notaDeRevisao.length, f.id).toBeGreaterThanOrEqual(20); expect(f.notaDeRevisao.length).toBeLessThanOrEqual(2000);
-      expect(f.notaDeRevisao, f.id).toMatch(/DP-28/); expect(f.notaDeRevisao).toMatch(/Reconferido em 24\/11\/2026/);
+      expect(f.notaDeRevisao, f.id).toMatch(/DP-28|termos da Agência Senado|Termo de uso do Portal da Câmara/i); expect(f.notaDeRevisao).toMatch(/Reconferido em 24\/11\/2026/);
+      expect(f.notaDeRevisao, `${f.id}: a nota cita a autorização do proprietário`).toMatch(/Autorizada pelo proprietário na DP-49 \(24\/11\/2026\)\.$/);
       // a nota é colada como está num registro de auditoria: nada pendente dentro dela (N1 do QA 3)
       expect(f.notaDeRevisao, `${f.id}: sem pendência na nota`).not.toMatch(/\(conferir\)|\bTODO\b|PREENCHER|\?\?\?/);
       expect(f.ressalvas.length, f.id).toBeGreaterThanOrEqual(1);
     }
     const por = (id: string) => data.fontes.find((f) => f.id === id)!;
-    expect(seed.get('livelo-imprensa')!.paywall).toBe('unknown');
-    expect(por('livelo-imprensa').ressalvas.join(' ')).toMatch(/paywall/);
+    // DP-49: o proprietário confirmou que a Livelo não tem paywall, só login (área da conta); a coleta fica em /imprensa/ público, nunca atrás do login
+    const liv = seed.get('livelo-imprensa')!;
+    expect(liv.paywall).toBe('none'); expect(liv.sitemapPathPrefix).toBe('/imprensa/'); expect(liv.enabled).toBe(false);
+    expect(liv.verification?.notes).toMatch(/DP-49/);
+    expect(por('livelo-imprensa').ressalvas.join(' ')).toMatch(/DP-49[^]*nunca atrás do login/);
+    expect(por('livelo-imprensa').notaDeRevisao).toMatch(/paywall: nenhum[^]*nunca atrás do login/);
     expect(por('abemf').conferencia.entrada.maisRecente! < '2026-11-01').toBe(true);
     expect(por('abemf').ressalvas.join(' ')).toMatch(/parado/);
   });
@@ -97,9 +107,10 @@ describe('dossiê de habilitação do piloto (24/11/2026)', () => {
       expect(md, `${f.id}: entrada conferida`).toContain(`${e.tipo} ${e.status}, ${e.itens ?? e.urls} ${e.itens ? 'itens' : 'URLs'}`);
     }
     expect(md).toContain('Reconferido em 24/11/2026'); expect(md).toContain('reconferido em 24/11/2026');
-    expect(md).toMatch(/Nenhuma fonte foi habilitada/); expect(md).toMatch(/`enabled: false`/);
-    expect(md).toMatch(/## Decisão pedida ao proprietário \(texto pronto para o PM\)/);
-    expect(md).toMatch(/autoriza habilitar as 5 fontes do piloto/);
+    expect(md).toMatch(/nenhuma fonte está habilitada/); expect(md).toMatch(/`enabled: false`/);
+    expect(md).toMatch(/## Decisão do proprietário \(DP-49, 24\/11\/2026\) e como habilitar/);
+    expect(md).toMatch(/o proprietário autorizou habilitar as 5 fontes do piloto/);
+    expect(md).toMatch(/quando o staging voltar/); expect(md).toMatch(/não pode ser a pesquisadora/);
     expect(md).toMatch(/não há autorização do titular/);
     expect(md).toMatch(/Crawl-delay: 10[^\n]*bingbot, msnbot e Slurp/);
     expect(md).toMatch(/Nenhuma matéria foi coletada, nada foi habilitado e não houve custo/);

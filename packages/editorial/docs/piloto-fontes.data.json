@@ -84,7 +84,7 @@
       "frequencia": { "rodadasPorDia": 1, "materiasPorRodada": 2, "reqPorHora": 6, "espacamentoSeg": 3 },
       "status": { "cadastro": "desabilitada", "recomendacaoEditorial": "habilitar", "habilitacaoHumana": "pendente", "motivo": "Classe D, acessível por sitemap com seção de imprensa; programa de fidelidade central para as editorias programas e pontos." },
       "notaDeRevisaoSugerida": "DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; sem login nem paywall (conferir).",
-      "ressalvas": ["Reabrir a página antes de habilitar e conferir paywall.", "Se o coletor receber 403, registrar bloqueada e NÃO contornar (a menos que a fonte seja marcada via-provedor pelo proprietário)."]
+      "ressalvas": ["Paywall: nenhum (confirmado pelo proprietário na DP-49, 24/11/2026: só login na área da conta; coletar só as páginas públicas de /imprensa/, nunca atrás do login).", "Se o coletor receber 403, registrar bloqueada e NÃO contornar (a menos que a fonte seja marcada via-provedor pelo proprietário)."]
     },
     {
       "id": "abrarec",
