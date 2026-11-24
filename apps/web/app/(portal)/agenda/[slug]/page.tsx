@@ -88,7 +88,7 @@ export default async function EventPage({ params }: Props) {
             {ev.sourceUrl && (
               <>
                 <dt>Fonte</dt>
-                <dd style={row}><a href={ev.sourceUrl} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>Fonte da informação</a></dd>
+                <dd style={row}><a href={ev.sourceUrl} rel="noopener noreferrer" target="_blank" className="pt-more" style={{ textDecoration: 'underline' }}>Fonte da informação</a></dd>
               </>
             )}
           </dl>
