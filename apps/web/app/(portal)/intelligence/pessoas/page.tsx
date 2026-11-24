@@ -6,6 +6,7 @@ import { EmptyState, MockTag, PageHead } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
 import { getSource } from '../../_lib/source';
 import { PEOPLE_EMPTY } from '../_components/intel';
+import s from '../_components/intel.module.css';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
@@ -42,7 +43,7 @@ export default async function PessoasPage({ searchParams }: { searchParams: Prom
               <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }} data-testid="people-list">
                 {dir.items.map((p) => (
                   <li key={p.id} className="pt-panel">
-                    <h2 style={{ fontSize: 20 }}>{p.mock && <MockTag />}<Link href={`/intelligence/pessoas/${p.id}`}>{p.name}</Link></h2>
+                    <h2 style={{ fontSize: 20 }}>{p.mock && <MockTag />}<Link href={`/intelligence/pessoas/${p.id}`} className={s.touch} data-testid="person-card-link">{p.name}</Link></h2>
                     {p.roles.length ? (
                       p.roles.map((r) => (
                         <p key={r.id} className="pt-meta">

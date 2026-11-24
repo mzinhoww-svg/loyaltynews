@@ -6,6 +6,7 @@ import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { formatDate } from '../../../_lib/format';
 import { asKind, KIND_FILTER_LABEL, KIND_LABEL } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
+import s from '../../_components/intel.module.css';
 
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
 // a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
@@ -71,7 +72,7 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
                   <li key={c.id} className="pt-panel">
                     <h2 style={{ fontSize: 20 }}>
                       {c.mock && <MockTag />}
-                      <Link href={`/intelligence/empresas/${c.id}`}>{c.name}</Link>
+                      <Link href={`/intelligence/empresas/${c.id}`} className={s.touch} data-testid="company-card-link">{c.name}</Link>
                     </h2>
                     <p className="pt-meta">{KIND_LABEL[c.kind]}</p>
                     <p className="pt-meta">
