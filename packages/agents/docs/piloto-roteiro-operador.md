@@ -56,6 +56,7 @@ Cada ciclo de agente é um turno na assinatura; por isso **não use rotina perma
 
 - **Depois de cada ciclo:** confira que a etapa seguinte apareceu e que a linha da etapa tem `output_valid` e nenhuma violação.
 - **Limite da conta:** o agente roda `limit`; a tarefa **espera a janela**; **não** tente outra conta nem API. Anote mensagem e hora (o piloto mede isso).
+- **Veredito na linha:** depois de cada checagem e revisão, a linha da etapa deve trazer `gate_verdict` (a Editorial o grava; é de melhor esforço). Se faltar, procure o evento de auditoria `pilot_row_patch_failed` da Fábrica (**[não verificado]** onde ele aparece no staging): a matéria fica com linha inválida no avaliador até alguém corrigir; o piloto não para por isso.
 - **Se o agente receber 423** (`DISPATCH_OFF`, `KILL_SWITCH` ou `PILOT_STOPPED`): ele para o ciclo (`stop: true`). Vá ao passo 9 ou 7.
 
 ## 5. Acompanhar em `/studio/piloto`
