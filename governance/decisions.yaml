@@ -774,5 +774,18 @@
       "R0-01"
     ],
     "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-47 (sha256 do arquivo-fonte ba7e5d2628db5e2feb7a521c47df2e05046f95f80efc9725ce32827caf3b2075)"
+  },
+  {
+    "id": "DP-48",
+    "status": "registrada",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "Evidência e alvo do aceite: o commit registrado na evidência (onde os artefatos foram produzidos) vale para o merge avaliado que descende dele e só acrescenta arquivos em governance/evidence; a relação é comprovada pelo histórico do git (ancestralidade e artefatos com o mesmo sha256). Uma objeção do revisor só sobre essa relação é ponto decidido (DP-45). Vale para a R0-01 e para as demais tarefas.",
+    "efeito": "O pacote do revisor passa a trazer a relação calculada pelo verificador entre o commit do registro de evidência e o alvo (ancestralidade, sha256 de cada artefato nos dois commits e os arquivos mudados entre eles). Se o revisor objetar só a essa relação e ela estiver comprovada (ancestral, mesmos sha256, só arquivos em governance/evidence), o ponto é decidido e entra no mapeamento do accept-override (DP-45).",
+    "vinculo": [
+      "DP-45",
+      "R0-01"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-48 (sha256 do arquivo-fonte 71ae049b47755b228302979f08b664fd295968a7010e28d86f4d83fca1308a37)"
   }
 ]
