@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { canDispatchNext } from '@ln/agents';
 import { sampleArticle } from '@ln/editorial/testing';
 import type { PilotRow } from '@ln/openbot';
@@ -84,5 +84,25 @@ describe('POST /piloto/:materia/leitura grava a leitura do leitor 1 na linha do 
     const r = await call(d, 'POST', { path: S('/piloto/a4/leitura'), body: { leitor: 1, achados: [{ trecho: 'valor errado aqui', tipo: 'valor', gravidade: 'alta' }], checklist: OK, veredito: 'bloqueado' }, as: chefe });
     expect(r.status).toBe(201);
     expect(r.body).toMatchObject({ planilha: { linhas: [], parada: true, erros: [], aviso: expect.stringMatching(/nenhuma linha do piloto/) } });
+  });
+});
+
+describe('falha do banco ao gravar na linha (ressalva 3 do QA 9)', () => {
+  it('a leitura fica registrada, a falha volta em planilha.erros (201, não 500) e a linha não muda', async () => {
+    const store = new PgEditorialStore(app.db);
+    await store.putArticle(sampleArticle('art-a6', { status: 'aprovado' }));
+    await rows.upsert(linha({ task_id: 'a6-review', article_id: 'art-a6', stage: 'review', started_at: '2026-11-24T15:00:00.000Z' }));
+    expect((await call(d, 'POST', { path: S('/piloto/mapa'), body: { a6: 'art-a6' }, as: chefe })).status).toBe(201);
+    const spy = vi.spyOn(PgPilotRowStore.prototype, 'patch').mockRejectedValueOnce(new Error('falha simulada do banco'));
+    try {
+      const r = await call(d, 'POST', { path: S('/piloto/a6/leitura'), body: { leitor: 1, achados: [{ trecho: 'valor errado aqui', tipo: 'valor', gravidade: 'alta' }], checklist: OK, veredito: 'bloqueado' }, as: chefe });
+      expect(r.status).toBe(201);
+      expect(r.body).toMatchObject({ materia: 'a6', altas: 1, planilha: { linhas: [], parada: true, erros: [expect.stringMatching(/falha simulada do banco/)] } });
+    } finally {
+      spy.mockRestore();
+    }
+    const ls = await call(d, 'GET', { path: S('/piloto/a6/leituras'), as: chefe });
+    expect(ls.body.leituras.map((l: any) => l.leitor)).toEqual([1]); // a leitura não foi desfeita
+    expect((await linhaDe('a6-review')).unsupported_high).toBeUndefined();
   });
 });

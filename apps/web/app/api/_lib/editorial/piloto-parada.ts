@@ -61,5 +61,14 @@ export async function registerLeituraComParada(ctx: PublicationCtx, input: unkno
   const lista = await listPiloto(ctx as never, {});
   const articleId = 'items' in (lista.body as object) ? (lista.body as { items: { materia: string; articleId: string | null }[] }).items.find((i) => i.materia === b.materia)?.articleId : null;
   if (!articleId) return { status: 201, body: { ...b, planilha: { linhas: [], parada: highFactOf({ unsupported_facts: b.unsupportedFacts, unsupported_high: b.altas, unsupported_medium: b.medias, unsupported_low: b.baixas }), erros: ['matéria sem artigo no mapa'] } } };
-  return { status: 201, body: { ...b, planilha: await gravarLeituraNaLinha(ctx.db, ctx.now, articleId, b) } };
+  // A rota POST já roda dentro de db.transaction (index.ts, com trava consultiva). A gravação na linha fica num savepoint próprio: se o banco falhar
+  // aqui, só o savepoint volta, a leitura (já registrada e auditada) fica, e a falha vai em planilha.erros em vez de virar 500 (ressalva 3 do QA 9).
+  let planilha: PlanilhaDaLeitura;
+  try {
+    planilha = await (ctx.db as unknown as { transaction<T>(f: (tx: unknown) => Promise<T>): Promise<T> }).transaction((tx) => gravarLeituraNaLinha(tx as PublicationCtx['db'], ctx.now, articleId, b));
+  } catch (e) {
+    const parada = highFactOf({ unsupported_facts: b.unsupportedFacts, unsupported_high: b.altas, unsupported_medium: b.medias, unsupported_low: b.baixas });
+    planilha = { linhas: [], parada, erros: [`falha ao gravar na linha do piloto: ${e instanceof Error ? e.message : 'erro desconhecido'}`] };
+  }
+  return { status: 201, body: { ...b, planilha } };
 }
