@@ -5,11 +5,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { envProblems, flagsProblems, jobsProblems } from './lib/guards.mjs';
+import { envProblems, flagsProblems, jobsProblems, ciDoRunnerAceito, LOG_CI_RUNNER } from './lib/guards.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 // Na Vertra APP_ENV vem definido (staging|production); fora dela, --deploy força o modo estrito.
-const problems = envProblems(process.env, { deploy: Boolean(args.deploy) });
+// permitirCiRunner: a exceção estreita do CI=true no runner do GitHub Actions (build do .next de produção; ver lib/guards.mjs); desligada na Vertra pela assinatura HOST/PORT
+const problems = envProblems(process.env, { deploy: Boolean(args.deploy), permitirCiRunner: true });
 // ADR-022: LN_FLAGS_ON tem de bater com o release.json do pacote (web e worker). Sem release.json (CI, desenvolvimento) só valem as regras de ambiente acima.
 const relPath = join(process.cwd(), 'release.json');
 if (existsSync(relPath)) {
@@ -20,4 +21,5 @@ if (problems.length) {
   console.error('guard-env REPROVADO:\n - ' + problems.join('\n - '));
   process.exit(1);
 }
+if (ciDoRunnerAceito(process.env, { permitir: true })) console.log(LOG_CI_RUNNER);
 console.log(`guard-env OK (APP_ENV=${process.env.APP_ENV || 'não definido'})`);
