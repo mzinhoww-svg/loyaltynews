@@ -83,7 +83,7 @@ export default async function CorrecoesPage({ searchParams }: { searchParams: Pr
           <tbody>
             {casos.map((c) => (
               <tr key={c.id}>
-                <th scope="row">
+                <th scope="row" className="st-col-titulo">
                   <Link href={`/studio/cms/correcoes/${encodeURIComponent(c.id)}`}>{c.id}</Link>
                   <br />
                   <span className="st-hint">matéria {c.articleId}</span>

@@ -96,7 +96,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
           <tbody>
             {itens.map((i) => (
               <tr key={i.articleId} data-fabrica={i.articleId}>
-                <th scope="row">
+                <th scope="row" className="st-col-titulo">
                   <Link href={`/studio/cms/checagem/${encodeURIComponent(i.articleId)}`}>{i.titulo ?? i.articleId}</Link>
                 </th>
                 <td>{i.editoria}</td>

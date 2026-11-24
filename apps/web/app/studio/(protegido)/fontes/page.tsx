@@ -71,7 +71,7 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
           <tbody>
             {fontes.map((f) => (
               <tr key={f.id} data-fonte={f.id}>
-                <th scope="row">
+                <th scope="row" className="st-col-titulo">
                   <Link href={`/studio/fontes/${encodeURIComponent(f.id)}`}>{f.nome}</Link>
                   <br />
                   <a href={f.url} rel="noreferrer noopener">

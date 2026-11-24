@@ -101,7 +101,7 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
               const e = estadoDaPauta(p);
               return (
                 <tr key={p.id} data-pauta={p.id} data-estado={e.chave}>
-                  <th scope="row">
+                  <th scope="row" className="st-col-titulo">
                     {p.titulo}
                     <div className="st-hint">
                       <code>{p.id}</code> — {p.angulo}
