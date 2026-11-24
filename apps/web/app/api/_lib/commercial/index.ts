@@ -39,7 +39,10 @@ export const dispatchCommercial = createDispatcher({
     // anúncios públicos: Redis, sem hidratar o banco inteiro e sem lock
     if (isAdRoute(route.path)) return adCall(route as Route, input, c, extra);
     if (route.method === 'GET') {
-      const h = await hydrate(c.deps.db, now);
+      const q = (input && typeof input === 'object' ? input : {}) as { campaignId?: unknown; accountId?: unknown; from?: unknown; to?: unknown };
+      const txt = (v: unknown) => (typeof v === 'string' ? v : undefined);
+      const scope = { campaignId: txt(q.campaignId), accountId: txt(q.accountId), from: txt(q.from), to: txt(q.to) };
+      const h = await hydrate(c.deps.db, now, undefined, scope);
       // relatório do anunciante: só nestas rotas (e só da campanha e da janela pedidas) as linhas diárias de entrega entram no contexto
       const delivery = isReportRoute(route.path) ? await loadDelivery(c.deps.db, input) : undefined;
       return route.handler(makeCtx(h.state, { ...extra, delivery }), input);

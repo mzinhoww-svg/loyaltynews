@@ -43,11 +43,18 @@ export async function activeGaps(db: Db, nowMs: number): Promise<AuditGap[]> {
 export const gapCountsOf = (audit: DeliveryAudit): Map<string, { s: number; e: number }> =>
   new Map(audit.list().map((g) => [g.id, { s: g.uncountedServes, e: g.ignoredEvents }]));
 
-/** Grava no banco o que o handler somou nos contadores das lacunas (best-effort: erro aqui nunca derruba servir nem contar). */
+/**
+ * Grava no banco o que o handler somou nos contadores das lacunas. Best-effort: um erro aqui nunca derruba servir nem contar, mas NÃO é
+ * silencioso: vai ao log de erro (só o id da lacuna e o nome do erro, sem mensagem do banco nem dado de requisição) com o quanto ficou sem gravar.
+ */
 export async function flushGapCounts(db: Db, audit: DeliveryAudit, antes: Map<string, { s: number; e: number }>): Promise<void> {
   for (const g of audit.list()) {
     const a = antes.get(g.id) ?? { s: 0, e: 0 };
     const ds = g.uncountedServes - a.s; const de = g.ignoredEvents - a.e;
-    if (ds > 0 || de > 0) await addGapCounts(db, g.id, { uncountedServes: ds, ignoredEvents: de }).catch(() => undefined);
+    if (ds > 0 || de > 0) {
+      await addGapCounts(db, g.id, { uncountedServes: ds, ignoredEvents: de }).catch((e: unknown) => {
+        console.error(`[ads] lacuna ${g.id}: contadores NÃO gravados (impressões ${ds}, eventos ${de}): ${e instanceof Error ? e.name : 'erro'}`);
+      });
+    }
   }
 }
