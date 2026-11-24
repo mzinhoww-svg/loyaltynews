@@ -2,6 +2,7 @@
 //   node dist/seed-staging.js apply    cria o conjunto de demonstração (idempotente: ids fixos `seed-stg-*`)
 //   node dist/seed-staging.js check    confere que TODA linha do seed carrega o rótulo e que o SEO está em noindex
 //   node dist/seed-staging.js remove   apaga só as linhas do seed (por id), nada mais
+//   node dist/seed-staging.js fix-home acerta NO LUGAR os títulos de seção da home do seed (sem o rótulo de demonstração); idempotente, só staging
 // Regras: (1) toda linha tem id `seed-stg-*`; (2) todo texto de CONTEÚDO visível ao leitor (matéria: título, subtítulo, resumo, corpo; evento:
 // título, local; nota e SEO) começa com `[DEMO · staging]` ou o traz; o rótulo NUNCA vai em nome de seção (título de bloco da home) nem de
 // editoria: o que é fictício é o conteúdo, não a estrutura do site (reauditoria do staging N-02); (3) a matéria fictícia NUNCA tem fonte ou recibo inventado; (4) o SEO do seed é `noindex` (staging não indexa);
@@ -29,6 +30,9 @@ export function assertStaging(env: Record<string, string | undefined>): void {
 }
 
 const tag = (t: string) => `${SEED_LABEL} ${t}`;
+
+/** Títulos REAIS das seções da home do seed (N-02/D-3): o rótulo de demonstração fica no conteúdo e na faixa de vitrine do portal, nunca aqui. */
+export const HOME_TITULOS: Readonly<Record<string, string>> = { topo: 'Destaques', mercado: 'Mercado', ultimas: 'Últimas notícias', agenda: 'Agenda' };
 
 const ARTIGOS = [
   { n: 1, editoria: 'mercado', titulo: 'Programa fictício amplia a rede de parceiros', publicada: true },
@@ -110,10 +114,10 @@ export async function applyStagingSeed(db: Db, env: Record<string, string | unde
         conteudo: {
           blocos: [
             // títulos de SEÇÃO sem rótulo (N-02): o rótulo fica nas matérias e nos eventos que aparecem dentro delas
-            { tipo: 'destaque', id: 'topo', titulo: 'Destaques', materiaSlugs: publicadas.slice(0, 3) },
-            { tipo: 'lista_editoria', id: 'mercado', titulo: 'Mercado', editoria: 'mercado', limite: 3 },
-            { tipo: 'ultimas', id: 'ultimas', titulo: 'Últimas', limite: 6 },
-            { tipo: 'agenda', id: 'agenda', titulo: 'Agenda', limite: 3 },
+            { tipo: 'destaque', id: 'topo', titulo: HOME_TITULOS.topo, materiaSlugs: publicadas.slice(0, 3) },
+            { tipo: 'lista_editoria', id: 'mercado', titulo: HOME_TITULOS.mercado, editoria: 'mercado', limite: 3 },
+            { tipo: 'ultimas', id: 'ultimas', titulo: HOME_TITULOS.ultimas, limite: 6 },
+            { tipo: 'agenda', id: 'agenda', titulo: HOME_TITULOS.agenda, limite: 3 },
           ],
         },
       },
@@ -192,6 +196,56 @@ export async function checkStagingSeed(db: Db): Promise<SeedCheck> {
   return { ok: problemas.length === 0, linhas, problemas };
 }
 
+export interface FixHomeReport {
+  /** O documento `seed-stg-site-home` existe? */
+  documentoDoSeed: boolean;
+  /** Títulos de seção trocados agora (0 = já estava certo: idempotente). */
+  titulosAlterados: number;
+  /** A home EM VIGOR (publicada) é outro documento? Então ele não é tocado aqui (é do Studio); só avisamos. */
+  homePublicadaDeOutro: string | null;
+  /** Títulos com o rótulo na home em vigor de outro documento (precisam de ajuste pelo Studio). */
+  rotuloNaHomeDeOutro: number;
+}
+
+/**
+ * Acerta NO LUGAR os títulos de seção do documento de home DO SEED (`seed-stg-site-home`): staging já semeado com a versão antiga tinha
+ * "[DEMO · staging] Destaques/Últimas/Agenda" (N-02/D-3) e o `apply` não sobrescreve documento existente. Só staging. Só esse documento e só o campo
+ * `titulo` dos blocos conhecidos (topo, mercado, ultimas, agenda); matérias, slugs, limites, versão, estado e datas ficam iguais. Idempotente
+ * (a segunda execução não muda nada). Se a home publicada for OUTRO documento (publicado pelo Studio), ele não é alterado: só aparece no relatório.
+ */
+export async function fixStagingHome(db: Db, env: Record<string, string | undefined>, now: Date = new Date()): Promise<FixHomeReport> {
+  assertStaging(env);
+  const report: FixHomeReport = { documentoDoSeed: false, titulosAlterados: 0, homePublicadaDeOutro: null, rotuloNaHomeDeOutro: 0 };
+  await db.transaction(async (tx) => {
+    const t = tx as unknown as Db;
+    const id = `${SEED_PREFIX}site-home`;
+    const [doc] = await t.select().from(schema.siteDocumentos).where(eq(schema.siteDocumentos.id, id)).for('update');
+    if (doc) {
+      report.documentoDoSeed = true;
+      const c = doc.conteudo as { blocos?: Array<{ id?: string; titulo?: unknown } & Record<string, unknown>> } & Record<string, unknown>;
+      const blocos = (c.blocos ?? []).map((b) => {
+        const certo = typeof b.id === 'string' ? HOME_TITULOS[b.id] : undefined;
+        if (certo !== undefined && b.titulo !== certo) {
+          report.titulosAlterados += 1;
+          return { ...b, titulo: certo };
+        }
+        return b;
+      });
+      if (report.titulosAlterados > 0) {
+        await t.update(schema.siteDocumentos).set({ conteudo: { ...c, blocos } }).where(eq(schema.siteDocumentos.id, id));
+        await audit(t, { actorId: 'seed-staging', actorRole: 'cli', action: 'staging.seed_home_corrigida', resource: 'staging', resourceId: id, detalhe: { titulosAlterados: report.titulosAlterados }, at: now });
+      }
+    }
+    const [vigor] = await t.select().from(schema.siteDocumentos).where(and(eq(schema.siteDocumentos.tipo, 'home'), eq(schema.siteDocumentos.estado, 'publicado')));
+    if (vigor && vigor.id !== id) {
+      report.homePublicadaDeOutro = vigor.id;
+      const blocos = ((vigor.conteudo as { blocos?: Array<{ titulo?: unknown }> }).blocos ?? []);
+      report.rotuloNaHomeDeOutro = blocos.filter((b) => typeof b.titulo === 'string' && b.titulo.includes(SEED_LABEL)).length;
+    }
+  });
+  return report;
+}
+
 /** Apaga só o que é do seed (por id `seed-stg-*`). Matéria vem depois dos documentos que a citam. */
 export async function removeStagingSeed(db: Db, env: Record<string, string | undefined>, now: Date = new Date()): Promise<Record<string, number>> {
   assertStaging(env);
@@ -214,8 +268,8 @@ export async function run(
   injectedDb?: unknown,
 ): Promise<number> {
   const [cmd] = argv;
-  if (cmd !== 'apply' && cmd !== 'check' && cmd !== 'remove') {
-    out('uso: apply | check | remove (somente com APP_ENV=staging)');
+  if (cmd !== 'apply' && cmd !== 'check' && cmd !== 'remove' && cmd !== 'fix-home') {
+    out('uso: apply | check | remove | fix-home (somente com APP_ENV=staging)');
     return 2;
   }
   if (cmd !== 'check') {
@@ -232,6 +286,7 @@ export async function run(
     const db = (injectedDb ?? drizzle(pool!, { schema })) as unknown as Db;
     if (cmd === 'apply') out(JSON.stringify(await applyStagingSeed(db, env)));
     else if (cmd === 'remove') out(JSON.stringify(await removeStagingSeed(db, env)));
+    else if (cmd === 'fix-home') out(JSON.stringify(await fixStagingHome(db, env)));
     else {
       const r = await checkStagingSeed(db);
       out(JSON.stringify(r));
