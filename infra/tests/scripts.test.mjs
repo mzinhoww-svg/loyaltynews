@@ -1276,3 +1276,17 @@ test('smoke-staging --rollback-app-sem-banco: aceita só o 503 migracoes_diverge
     assert.equal((await run(['--rollback-app-sem-banco'])).ok, false, '503 sem motivo reprova');
   } finally { s.close(); }
 });
+
+test('medir-hops: resumir só devolve contagens; hops = contagem − 1; instável, desligado e diferente do atual reprovam', async () => {
+  const { resumir } = await import('../scripts/medir-hops.mjs');
+  const c = (count, pos = null) => ({ count, match: null, pos });
+  const ok = resumir([c(4, '3'), c(4, '3')], [c(3), c(3)], 3);
+  assert.equal(ok.ok, true); assert.equal(ok.hopsMedido, 3); assert.equal(ok.igualAoAtual, true); assert.equal(ok.aviso, undefined);
+  assert.equal(resumir([c(3), c(3)], [c(2), c(2)], 3).ok, false, 'medido 2, atual 3');
+  assert.equal(resumir([c(3), c(3)], [c(2), c(2)], 3).igualAoAtual, false);
+  assert.equal(resumir([c(4), c(5)], [c(3)], undefined).motivo, 'contagem_instavel');
+  assert.equal(resumir([c(null), c(null)].map((x) => ({ ...x, count: null })), [], 3).motivo, 'diagnostico_desligado');
+  assert.equal(resumir([c(1)], [c(0)], undefined).motivo, 'hops_fora_de_1_a_10');
+  assert.equal(resumir([c(4, '2')], [c(3)], undefined).aviso, 'posicao_do_cliente_diferente_de_contagem_menos_1: confira a topologia antes de gravar');
+  assert.doesNotMatch(JSON.stringify(ok), /\d+\.\d+\.\d+\.\d+/, 'nenhum IP na saída');
+});
