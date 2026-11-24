@@ -1,0 +1,13 @@
+ok    v1.0: tag anotada presente
+ok    v1.0: assinatura valida da raiz
+ok    v1.0: baseline-v1.0/manifest_sha256.json
+ok    v1.0: 7/7 blobs conferem com o manifesto (minimo 7)
+ok    v2.0: tag anotada presente
+ok    v2.0: assinatura valida da raiz
+ok    v2.0: spec-v2.0/manifest_sha256.json
+ok    v2.0: 11/11 blobs conferem com o manifesto (minimo 11)
+ok    v1.0 intacta dentro da arvore da v2.0
+ok    v2.0: agents.registry.json = 64 (achou 64)
+ok    v2.0: workflows.registry.json = 17 (achou 17)
+ok    v2.0: meetings.registry.json = 28 (achou 28)
+RESULTADO R0-04: ok
