@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro } from '@/lib/studio/backend';
-import { PAPEIS_APROVACAO, PAPEIS_COMERCIAIS } from '@/lib/studio/comercial';
+import { AVISO_VENDA_DESLIGADA, PAPEIS_APROVACAO, PAPEIS_COMERCIAIS, vendaLiberadaNoAmbiente } from '@/lib/studio/comercial';
 import { requireStudio } from '../../_lib/guard';
 import { readImageInfo } from '@/app/api/_lib/commercial/creative-file';
 import { conferirDimensao, ehDispositivo } from '@/lib/studio/criativo-dispositivo';
@@ -30,6 +30,8 @@ export async function transicaoAction(fd: FormData): Promise<void> {
   const para = texto(fd, 'para');
   // DP-43: aprovar a campanha é do proprietário (admin)
   if (para === 'approved') await requireStudio(PAPEIS_APROVACAO);
+  // DP-43 por ambiente: aprovar e ativar só onde a venda está liberada (staging)
+  if ((para === 'approved' || para === 'active') && !vendaLiberadaNoAmbiente()) return voltar(`/studio/campanhas/${encodeURIComponent(id)}`, { ok: false, erros: [AVISO_VENDA_DESLIGADA] }, '');
   // 'reserved' exige as reservas da campanha: o domínio confere que existem, não estão canceladas e são desta campanha
   let reservationIds: string[] | undefined;
   if (para === 'reserved') {
@@ -63,7 +65,7 @@ export async function reservarPosicaoAction(fd: FormData): Promise<void> {
     positionId: texto(fd, 'posicao'),
     startDate: texto(fd, 'inicio'),
     endDate: texto(fd, 'fim'),
-    confirm: fd.get('confirmar') === 'on',
+    confirm: fd.get('confirmar') === 'on' && vendaLiberadaNoAmbiente(), // em produção, sempre pré-reserva (DP-43)
   });
   voltarCampanha(id, r, 'Posição reservada.');
 }
@@ -112,6 +114,7 @@ export async function enviarArquivoCriativoAction(fd: FormData): Promise<void> {
 
 export async function aprovarCriativoAction(fd: FormData): Promise<void> {
   await requireStudio(PAPEIS_APROVACAO); // DP-43: cada imagem é aprovada pelo proprietário (admin)
+  if (!vendaLiberadaNoAmbiente()) return voltar(`/studio/campanhas/${encodeURIComponent(texto(fd, 'id'))}`, { ok: false, erros: [AVISO_VENDA_DESLIGADA] }, '');
   voltarCampanha(texto(fd, 'id'), await api.comercial.aprovarCriativo(texto(fd, 'criativo')), 'Criativo aprovado.');
 }
 

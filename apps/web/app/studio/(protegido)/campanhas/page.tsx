@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
-import { periodo30 } from '@/lib/studio/comercial';
+import { AVISO_VENDA_DESLIGADA, periodo30, vendaLiberadaNoAmbiente } from '@/lib/studio/comercial';
 import { hojeSP } from '@/lib/studio/datas';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -65,7 +65,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
       <h1>Campanhas</h1>
       <p>Flights, criativos e entrega. Os 7 estados do blueprint: {ESTADOS.join(' → ')}. Ativar exige reserva confirmada e criativo aprovado; sem venda habilitada a campanha não ativa.</p>
       <div className="st-alert" role="status">
-        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada nesta fase'}</strong>.
+        Venda no ad server: <strong>{vendas && vendaLiberadaNoAmbiente() ? 'ligada' : 'desligada nesta fase'}</strong>.{vendaLiberadaNoAmbiente() ? null : <span data-testid="venda-desligada-ambiente"> {AVISO_VENDA_DESLIGADA}</span>}
       </div>
       <Flash tipo={tipo} aviso={aviso} />
 

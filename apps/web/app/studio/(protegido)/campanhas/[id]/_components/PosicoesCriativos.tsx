@@ -32,8 +32,10 @@ export function PosicoesCriativos(props: {
   vendaLigada: boolean;
   /** DP-43: só o proprietário (admin) aprova criativo. */
   podeAprovar: boolean;
+  /** DP-43: o ambiente libera venda (staging). Em produção não há controle de venda na tela. */
+  vendaNoAmbiente: boolean;
 }) {
-  const { campanha: c, reservas, criativos, vendaLigada, podeAprovar } = props;
+  const { campanha: c, reservas, criativos, vendaLigada, podeAprovar, vendaNoAmbiente } = props;
   const escreve = c.status !== 'completed' && c.status !== 'cancelled';
   const declaradas = c.positionIds ?? [];
   // reserva e criativo só nas posições da campanha (regra do domínio); sem posição declarada, o formulário não aparece
@@ -128,12 +130,16 @@ export function PosicoesCriativos(props: {
                 <input id="res-fim" name="fim" type="date" required defaultValue={c.endDate} />
               </div>
             </div>
-            <p>
-              <label>
-                <input type="checkbox" name="confirmar" disabled={!vendaLigada} /> Confirmar venda
-              </label>{' '}
-              {vendaLigada ? null : <span className="st-hint">(venda no ad server desligada: fica como pré-reserva)</span>}
-            </p>
+            {vendaNoAmbiente ? (
+              <p>
+                <label>
+                  <input type="checkbox" name="confirmar" disabled={!vendaLigada} /> Confirmar venda
+                </label>{' '}
+                {vendaLigada ? null : <span className="st-hint">(venda no ad server desligada: fica como pré-reserva)</span>}
+              </p>
+            ) : (
+              <p className="st-hint">Neste ambiente a reserva fica como pré-reserva (venda desligada, DP-43).</p>
+            )}
             <div className="st-actions">
               <button className="st-btn" type="submit">
                 Reservar posição

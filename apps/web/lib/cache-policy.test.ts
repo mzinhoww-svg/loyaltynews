@@ -1,8 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import config from '../next.config';
-import { NO_STORE, CACHE_60S, PAGINAS_CACHEAVEIS, PAGINAS_NO_STORE, cacheControlDe, portalCacheHeaders } from '../cache-policy';
+import config, { NO_STORE, CACHE_60S, PAGINAS_CACHEAVEIS, PAGINAS_NO_STORE, cacheControlDe, portalCacheHeaders } from '../next.config';
 
 /**
  * Classificação de TODA rota do portal (app/(portal)). Uma rota nova sem entrada aqui faz o teste de cobertura falhar:

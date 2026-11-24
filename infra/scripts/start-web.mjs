@@ -41,6 +41,16 @@ export function startProblems(env, release) {
   return p;
 }
 
+/**
+ * Como o `next start` é chamado. O Next carrega o `next.config.ts` com um gancho de require; começando da RAIZ do repositório com `next start apps/web` (como era), um
+ * `next.config.ts` que importa um módulo .ts irmão (ex.: ./cache-policy, int/016 em diante) NÃO acha o módulo ("Cannot find module './cache-policy'": servidor "Ready" mas sem
+ * config, 0 de 200 no /api/health; reproduzido em 24/11 com o build da int/018 e reprovou os ensaios das int/016–018). Começando de DENTRO de apps/web, sem o argumento de pasta,
+ * o mesmo build sobe normalmente. O .next, o distDir e a raiz do workspace não mudam (tudo é relativo ao projeto apps/web).
+ */
+export function nextStartInvocation(root, nextBin, port, host) {
+  return { args: [nextBin, 'start', '-p', String(port), '-H', String(host)], cwd: join(root, 'apps', 'web') };
+}
+
 const direct = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (direct) {
   const args = parseArgs(process.argv.slice(2));
@@ -54,7 +64,8 @@ if (direct) {
   }
   console.log(`[start-web] ambiente ok (APP_ENV=${process.env.APP_ENV} NEXT_PUBLIC_SITE_URL=${process.env.NEXT_PUBLIC_SITE_URL} APP_COMMIT=${String(process.env.APP_COMMIT).slice(0, 12)}…)`);
   const next = createRequire(join(root, 'package.json')).resolve('next/dist/bin/next');
-  const child = spawn(process.execPath, [next, 'start', 'apps/web', '-p', String(args.port ?? 80), '-H', String(args.host ?? '0.0.0.0')], { cwd: root, stdio: 'inherit', env: process.env });
+  const inv = nextStartInvocation(root, next, args.port ?? 80, args.host ?? '0.0.0.0');
+  const child = spawn(process.execPath, inv.args, { cwd: inv.cwd, stdio: 'inherit', env: process.env });
   for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => child.kill(sig));
   child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)));
 }

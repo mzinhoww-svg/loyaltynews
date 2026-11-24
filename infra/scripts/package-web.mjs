@@ -25,6 +25,33 @@ const profile = String(args.profile || 'staging-min');
 const vitrine = Boolean(args.vitrine);
 // --flags nome1,nome2 (ADR-022, DP-38): flags de produto ligadas por variável LN_FLAGS_ON, SÓ no staging (web e worker). Grava flagsLigadas no release.json e a variável nos
 //   passos set_env; o guard-env (build e start) recusa LN_FLAGS_ON diferente do release.json. Produção nunca: lá a flag liga por commit revisado (FLAG_RELEASES).
+// --prova-png (só o worker): registra no log do BUILD e do START, no Linux da Vertra, se o sharp gera PNG (infra/scripts/prova-png.mjs). Nunca falha o build nem o start (|| true);
+//   o resultado fica no release log do deploy e no get_logs do worker. Prova temporária: tire a flag quando o Linux estiver provado.
+const provaPng = Boolean(args['prova-png']);
+if (provaPng && args.app !== 'workers') fail('--prova-png só vale para o worker (--app workers)', 2);
+// --bench-graph [--bench-args "scale=0.02,with-reference,with-indexes"] (só o worker, só staging, APP ÚNICO E DESCARTÁVEL): build também gera dist/bench-graph.js e o start roda a CLI de execução ÚNICA
+//   (Data, ft/intelligence 87ae52e) e depois dorme, para a Vertra não reiniciar o processo e repetir a medição; o relatório sai no stdout (get_logs). Nunca no worker de verdade.
+//   --bench-args é uma lista separada por vírgula SEM "--" (o parseArgs leria "--x" como outra opção): scale=<0.001..1>, with-reference, with-indexes, replace, schema=ln_bench_AAAAMMDD.
+const benchGraph = Boolean(args['bench-graph']);
+// --bench-fumaca: antes da medição roda a CLI com --scale 0.02 (segundos; confirma o CREATE e o DROP no banco) e SÓ SE ela terminar com saída 0 roda a medição com --bench-args (que, para decidir o critério, não deve ter scale).
+const benchFumaca = Boolean(args['bench-fumaca']);
+if (benchFumaca && !benchGraph) fail('--bench-fumaca exige --bench-graph', 2);
+const benchArgsRaw = args['bench-args'] && args['bench-args'] !== true ? String(args['bench-args']).trim() : '';
+const benchTokens = [];
+if (benchGraph && args.app !== 'workers') fail('--bench-graph só vale para o worker (--app workers)', 2);
+if (benchGraph && args.profile !== 'staging') fail('--bench-graph só vale no perfil staging', 2);
+if (!benchGraph && (benchArgsRaw !== '' || args['bench-args'] !== undefined)) fail('--bench-args exige --bench-graph', 2);
+for (const t of benchArgsRaw === '' ? [] : benchArgsRaw.split(',').map((x) => x.trim())) {
+  if (['with-reference', 'with-indexes', 'replace'].includes(t)) benchTokens.push(`--${t}`);
+  else if (/^scale=(0?\.\d{1,3}|1)$/.test(t)) benchTokens.push('--scale', t.slice(6));
+  else if (/^schema=ln_bench_\d{8}$/.test(t)) benchTokens.push('--schema', t.slice(7));
+  else fail(`--bench-args: argumento não permitido "${t.slice(0, 30)}" (use scale=0.02, with-reference, with-indexes, replace, schema=ln_bench_AAAAMMDD, separados por vírgula)`, 2);
+}
+// --intelligence-alertas (só o worker, só staging, exige --flags intelligencePessoas): liga o job de alertas das watchlists (Backend 2, af07005) com LN_INTELLIGENCE_ALERTS=on e
+//   LN_INTELLIGENCE_PESSOAS=on. Grava jobsIntelligence no release.json; o guard-env exige que as três variáveis LN_INTELLIGENCE_* batam com ele (a releitura REREAD nunca é ligada por pacote).
+// --intelligence-releitura (mesmas regras): LN_INTELLIGENCE_REREAD=on + LN_INTELLIGENCE_PESSOAS=on; LN_REREAD_SEED e BRIGHTDATA_API_KEY (opcional) o PM grava pelo cofre, sem valor no pacote.
+const jobsIntelligence = [...(args['intelligence-alertas'] ? ['alertas'] : []), ...(args['intelligence-releitura'] ? ['releitura'] : [])];
+if (jobsIntelligence.length && args.app !== 'workers') fail('--intelligence-alertas/--intelligence-releitura só valem para o worker (--app workers)', 2);
 const flagsLigadas = args.flags === undefined ? [] : [...new Set(String(args.flags === true ? '' : args.flags).split(',').map((s) => s.trim()).filter(Boolean))].sort();
 if (args.flags !== undefined && flagsLigadas.length === 0) fail('--flags exige nomes de flag separados por vírgula (ex.: --flags intelligencePessoas)', 2);
 for (const n of flagsLigadas) if (!/^[A-Za-z][A-Za-z0-9]*$/.test(n)) fail(`--flags: nome inválido "${n}" (só letras e números, como em FLAG_DEFAULTS)`, 2);
@@ -46,6 +73,8 @@ if (!['web', 'workers'].includes(appKey)) fail('--app deve ser web ou workers', 
 if (vitrine && appKey !== 'web') fail('--vitrine só vale para o web', 2);
 const SELF = dirname(fileURLToPath(import.meta.url));
 // Vitrine só no staging (Security R2/R3): recusa ANTES de tocar no repositório.
+if (jobsIntelligence.length && (profile === 'production' || /^prod/i.test(profile))) fail('--intelligence-alertas/--intelligence-releitura recusado: os jobs de Intelligence por variável só existem no staging (ADR-022)', 2);
+if (jobsIntelligence.length && !flagsLigadas.includes('intelligencePessoas')) fail('--intelligence-alertas/--intelligence-releitura exige --flags intelligencePessoas (o job também confere a flag da ADR-022)', 2);
 if (flagsLigadas.length && (profile === 'production' || /^prod/i.test(profile))) fail('--flags recusado: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES', 2);
 if (vitrine && (profile === 'production' || /^prod/i.test(profile))) fail('--vitrine recusado: a vitrine de demonstração do portal só existe no staging (perfil production nunca leva PORTAL_VITRINE)', 2);
 
@@ -92,22 +121,32 @@ const appEnvBuild = web.env?.APP_ENV ?? (profile === 'production' ? 'production'
 if (flagsLigadas.length && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--flags recusado: APP_ENV do perfil é "${appEnvBuild}"; flags por variável só com APP_ENV=staging`, 2);
 if (vitrine && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--vitrine recusado: APP_ENV do perfil é "${appEnvBuild}"; a vitrine só vale com APP_ENV=staging`, 2);
 if (vitrine && !siteUrl) fail('--vitrine exige --subdomain (o build_command com build-web.mjs/release.json é o que liga e confere a vitrine)', 2);
-const buildCmd = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs' : web.build_command;
+const buildBase = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs' : web.build_command;
+const buildCmd = benchGraph ? `${buildBase} && npm run build:bench-graph -w @ln/workers` : provaPng ? `${buildBase} && (node infra/scripts/prova-png.mjs --etapa build || true)` : buildBase;
 // O start_command também falha fechado: start-web.mjs confere APP_COMMIT (40 hex = release.json), NEXT_PUBLIC_SITE_URL e APP_ENV em EXECUÇÃO e só então inicia o Next.
-const startCmd = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/start-web.mjs' : web.start_command;
+const startBase = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/start-web.mjs' : web.start_command;
+if (provaPng && !String(startBase).includes('node apps/workers/dist/index.js')) fail('--prova-png: o start do worker mudou; ajuste o package-web', 2);
+const benchRun = (extra) => `node apps/workers/dist/bench-graph.js --confirm-staging-bench${extra.length ? ' ' + extra.join(' ') : ''}`;
+const benchCorpo = benchFumaca ? `${benchRun(['--scale', '0.02'])} && ${benchRun(benchTokens)}` : benchRun(benchTokens);
+const startCmd = benchGraph ? `node infra/scripts/guard-env.mjs && (${benchCorpo} ; sleep 86400)` : provaPng ? String(startBase).replace('node apps/workers/dist/index.js', '(node infra/scripts/prova-png.mjs --etapa start || true) && node apps/workers/dist/index.js') : startBase;
 
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
   'infra/scripts/guard-env.mjs', 'infra/scripts/build-web.mjs', 'infra/scripts/start-web.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs', 'infra/scripts/lib/typecheck-report.mjs'];
 // a sessão simulada do Studio só existe em teste; a rota de login de e2e (app/api/e2e) vem no código do Studio desde a int/003: em produção responde 404 e exige
 // LN_STUDIO_TEST_SESSION=1 (que o guard proíbe), mas não há motivo para ela existir num app implantado, então fica fora do pacote
+// --prova-png: o comando de build/start chama infra/scripts/prova-png.mjs, que precisa estar no pacote (ele só importa lib/util.mjs, que já entra)
+if (provaPng) INCLUDE.push('infra/scripts/prova-png.mjs');
+// As CLIs do worker (bench-graph, staging-admin, prod-admin, seed-staging) importam infra/vertra/bindings.json NO BUILD (esbuild). Sem ele o build do pacote morre com
+// "Could not resolve ../../../infra/vertra/bindings.json" (24/11/2026: derrubou o app descartável do benchmark). Só host e nome do banco, nenhum segredo.
+if (appKey === 'workers') INCLUDE.push('infra/vertra/bindings.json');
 const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e'];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ benchGraph, benchFumaca, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -115,7 +154,7 @@ const vArgs = Object.entries(virtuals).map(([p, c]) => `--add-virtual-file=${p}:
 
 // 5. destino (nunca sobrescreve sem --force)
 const out = resolve(String(args.out));
-const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}`;
+const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}${jobsIntelligence.length ? `-${jobsIntelligence.join('-')}` : ''}${provaPng ? '-prova-png' : ''}${benchGraph ? '-bench-graph' : ''}`;
 const folder = join(out, name);
 const zip = join(out, `${name}.zip`);
 const manifestPath = join(out, `${name}.manifest.json`);
@@ -141,6 +180,8 @@ try {
       if (statSync(p).isDirectory()) walk(p); else files.push(relative(folder, p).split(sep).join('/'));
     }
   })(folder);
+  if (appKey === 'workers' && !files.includes('infra/vertra/bindings.json')) fail('pacote de worker sem infra/vertra/bindings.json: o build das CLIs (bench-graph etc.) não resolveria o import');
+  if (provaPng && !files.includes('infra/scripts/prova-png.mjs')) fail('--prova-png: infra/scripts/prova-png.mjs não entrou no pacote (o build e o start do worker o chamam)');
   const bad = files.filter((f) => /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f) || /(^|\/)(node_modules|\.next|\.git)\//.test(f) || /playwright\.config\./.test(f) || /(^|\/)e2e\//.test(f));
   if (bad.length) fail(`arquivos proibidos no pacote: ${bad.slice(0, 5).join(', ')}`);
   const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8' });
@@ -172,13 +213,18 @@ try {
     ...(indexavel ? [{ nome: 'PORTAL_INDEXAVEL', valor: '1' }] : []),
     // ADR-022: flags de produto ligadas por variável (só staging); também em EXECUÇÃO o guard-env compara com release.json.flagsLigadas. Sem --flags a variável NÃO deve existir.
     ...(flagsLigadas.length ? [{ nome: 'LN_FLAGS_ON', valor: flagsLigadas.join(',') }] : []),
+    // Worker com o job de alertas das watchlists (só staging; o guard-env confere com release.json.jobsIntelligence). Sem --intelligence-alertas estas variáveis NÃO devem existir.
+    ...(jobsIntelligence.length ? [{ nome: 'LN_INTELLIGENCE_PESSOAS', valor: 'on' }] : []),
+    ...(jobsIntelligence.includes('alertas') ? [{ nome: 'LN_INTELLIGENCE_ALERTS', valor: 'on' }] : []),
+    ...(jobsIntelligence.includes('releitura') ? [{ nome: 'LN_INTELLIGENCE_REREAD', valor: 'on' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [
       { nome: 'BETTER_AUTH_SECRET', quando: 'staging COM banco (ft/backend); aleatório, ao menos 32 caracteres, distinto por ambiente; o proprietário define pelo painel para não passar pelo chat' },
+      ...(jobsIntelligence.includes('releitura') ? [{ nome: 'LN_REREAD_SEED', quando: 'releitura do Intelligence: conjunto de cargos a reler (valor do PM, não secreto, mas definido por ele)' }, { nome: 'BRIGHTDATA_API_KEY', quando: 'opcional, reserva por provedor (leitorViaProvedor); do cofre, só staging' }] : []),
       { nome: 'DATABASE_URL', quando: 'quando existir o banco do ambiente (host e nome devem coincidir com infra/vertra/bindings.json)' },
       { nome: 'DB_SSL_CA_PEM / DB_SSL_CERT_PEM / DB_SSL_KEY_PEM', quando: 'com o banco' },
     ],

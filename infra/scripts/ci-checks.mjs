@@ -11,7 +11,7 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { conexoesComSenhaReais } from './lib/segredos.mjs';
+import { conexoesComSenhaReais, tokensReais } from './lib/segredos.mjs';
 import { achadosDoArquivo, ehCodigoDeProduto } from './lib/erros-log.mjs';
 import { envProblems, ASSIGN_STUDIO, ASSIGN_PORTAL_MOCK, ASSIGN_VITRINE, ASSIGN_WAIVER, ASSIGN_FLAGS } from './lib/guards.mjs';
 
@@ -51,6 +51,15 @@ for (const f of all) {
       const m = name && name.match(FORBIDDEN);
       if (m) problems.push(`ADR-001: pacote instalado "${name}" em ${r}`);
     }
+    // Binário nativo por plataforma (sharp, ft/growth 01798ed): um lockfile gerado no Windows tem de listar também o pacote do Linux da Vertra, com origem e integridade,
+    // senão o `npm ci` no Linux não baixa o binário e o app quebra só em execução.
+    const pk = lock.packages || {};
+    if (pk['node_modules/sharp']) {
+      for (const alvo of ['node_modules/@img/sharp-linux-x64', 'node_modules/@img/sharp-libvips-linux-x64']) {
+        const e = pk[alvo];
+        if (!e || !e.resolved || !e.integrity) problems.push(`sharp no ${r} sem o binário Linux: falta ${alvo.replace('node_modules/', '')} com resolved e integrity (gere o lockfile com todas as plataformas; \`npm ci\` no Linux da Vertra não o baixaria)`);
+      }
+    }
     continue;
   }
   const m = txt.match(FORBIDDEN);
@@ -85,6 +94,8 @@ for (const f of all) {
   for (const [nome, re] of SECRET_PATTERNS) {
     if (nome === 'string de conexão com senha') {
       if (conexoesComSenhaReais(txt, r).length) problems.push(`segredo: ${nome} em ${r}`);
+    } else if (['token GitHub', 'chave sk-', 'token Slack', 'AWS access key'].includes(nome)) {
+      if (tokensReais(txt, re, r).length) problems.push(`segredo: ${nome} em ${r}`); // em teste/doc passa só o placeholder evidente (lib/segredos.mjs)
     } else if (re.test(txt)) problems.push(`segredo: ${nome} em ${r}`);
   }
 }

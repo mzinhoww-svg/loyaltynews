@@ -35,21 +35,4 @@ describe('flagAtiva', () => {
   });
 });
 
-describe('o Studio não lê flag por isEnabled direto (todas as telas, inclusive as do Studio 2)', () => {
-  it('nenhuma tela do Studio usa isEnabled', async () => {
-    const { readFileSync, readdirSync, statSync } = await import('node:fs');
-    const { join } = await import('node:path');
-    const raiz = join(__dirname, '../../app/studio');
-    const achados: string[] = [];
-    const varre = (dir: string) => {
-      for (const n of readdirSync(dir)) {
-        const p = join(dir, n);
-        if (statSync(p).isDirectory()) {
-          varre(p);
-        } else if (/\.(ts|tsx)$/.test(n) && /\bisEnabled\(/.test(readFileSync(p, 'utf8'))) achados.push(p);
-      }
-    };
-    varre(raiz);
-    expect(achados).toEqual([]);
-  });
-});
+// A trava estática "o Studio não lê flag por isEnabled" fica em trava-adr022.test.ts (cobre app/studio e lib/studio, com ocorrência plantada).

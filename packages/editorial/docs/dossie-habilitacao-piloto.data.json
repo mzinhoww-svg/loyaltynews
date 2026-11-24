@@ -1,0 +1,382 @@
+{
+  "conferidoEm": "2026-11-24",
+  "ua": "LoyaltyNewsSourceVerifier/1.0 (verificacao pontual de fonte publica; sem coleta em massa)",
+  "regra": "uma leitura por URL, User-Agent identificado, 3,3 s ou mais por host, parada em 429/403/desafio; nenhuma matéria coletada; nada habilitado",
+  "fontes": [
+    {
+      "id": "senado-noticias",
+      "nome": "Agência Senado",
+      "classe": "A",
+      "links": {
+        "listagem": "https://www12.senado.leg.br/noticias",
+        "entrada": "https://www12.senado.leg.br/noticias/rss.xml",
+        "tipoEntrada": "feed",
+        "robots": "https://www12.senado.leg.br/robots.txt",
+        "termos": [
+          "https://www12.senado.leg.br/noticias/politica-de-uso"
+        ]
+      },
+      "conferencia": {
+        "data": "2026-11-24",
+        "robots": {
+          "status": 200,
+          "crawlDelaySeg": null,
+          "crawlDelayDeOutrosAgentes": null,
+          "caminhosPermitidos": true,
+          "caminhos": [
+            {
+              "caminho": "/noticias",
+              "permitido": true
+            },
+            {
+              "caminho": "/noticias/rss.xml",
+              "permitido": true
+            }
+          ]
+        },
+        "entrada": {
+          "status": 200,
+          "tipo": "feed",
+          "itens": 15,
+          "urls": null,
+          "noPrefixo": null,
+          "maisRecente": "2026-11-24"
+        },
+        "listagem": {
+          "status": 200,
+          "titulo": "Senado Notícias"
+        },
+        "termos": [
+          {
+            "tipo": "politica_de_uso",
+            "url": "https://www12.senado.leg.br/noticias/politica-de-uso",
+            "status": 200,
+            "trechosConferidos": [
+              {
+                "trecho": "A reprodução de matérias e fotografias é livre, desde que não haja des",
+                "presente": true
+              },
+              {
+                "trecho": "mediante a citação da Agência Senado e do autor",
+                "presente": true
+              }
+            ]
+          }
+        ]
+      },
+      "limitePorHora": 6,
+      "espacamentoSeg": 3,
+      "rodadasPorDia": 1,
+      "enabled": false,
+      "ressalvas": [
+        "Sem Crawl-delay no robots.txt; o coletor usa o espaçamento padrão de 3 s.",
+        "O revisor reabre a política de uso no dia (os termos mudam)."
+      ],
+      "notaDeRevisao": "Termos da Agência Senado (política de uso) lidos em 23/11/2026: reprodução livre sem descaracterizar, com citação da Agência Senado e do autor; robots.txt conferido (sem regras para o agente); sem login nem paywall; classe A (docs/termos-fontes.md); DP-28. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
+    },
+    {
+      "id": "camara-noticias",
+      "nome": "Câmara Notícias",
+      "classe": "A",
+      "links": {
+        "listagem": "https://www.camara.leg.br/noticias/",
+        "entrada": "https://www.camara.leg.br/noticias/rss/ultimas-noticias",
+        "tipoEntrada": "feed",
+        "robots": "https://www.camara.leg.br/robots.txt",
+        "termos": [
+          "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade"
+        ]
+      },
+      "conferencia": {
+        "data": "2026-11-24",
+        "robots": {
+          "status": 200,
+          "crawlDelaySeg": null,
+          "crawlDelayDeOutrosAgentes": "Crawl-delay: 10 só para bingbot, msnbot e Slurp (grupo próprio); o grupo * não tem Crawl-delay",
+          "caminhosPermitidos": true,
+          "caminhos": [
+            {
+              "caminho": "/noticias/",
+              "permitido": true
+            },
+            {
+              "caminho": "/noticias/rss/ultimas-noticias",
+              "permitido": true
+            }
+          ]
+        },
+        "entrada": {
+          "status": 200,
+          "tipo": "feed",
+          "itens": 20,
+          "urls": null,
+          "noPrefixo": null,
+          "maisRecente": "2026-11-24"
+        },
+        "listagem": {
+          "status": 200,
+          "titulo": "Agência Câmara de Notícias - Portal da Câmara dos Deputados"
+        },
+        "termos": [
+          {
+            "tipo": "termo_de_uso",
+            "url": "https://www2.camara.leg.br/termo-de-uso-e-politica-de-privacidade",
+            "status": 200,
+            "trechosConferidos": [
+              {
+                "trecho": "reproduzir trechos de textos, notícias ou estudos publicados no Portal",
+                "presente": true
+              },
+              {
+                "trecho": "Todas as informações publicadas no Portal da Câmara são de domínio púb",
+                "presente": true
+              },
+              {
+                "trecho": "desde que citada a fonte \"Câmara dos Deputados\" e a autoria da informa",
+                "presente": true
+              }
+            ]
+          }
+        ]
+      },
+      "limitePorHora": 6,
+      "espacamentoSeg": 3,
+      "rodadasPorDia": 1,
+      "enabled": false,
+      "ressalvas": [
+        "O robots.txt tem 28 grupos de agentes; o Crawl-delay: 10 é só de bingbot, msnbot e Slurp. Para o nosso agente (grupo *) vale o espaçamento padrão de 3 s. Com o limite de 6 requisições por hora do cadastro, uma rodada rende cerca de 4 matérias (robots, feed e as páginas).",
+        "Respondeu 429 em rajada em 23/11: no máximo 1 rodada por dia; a coleta para no primeiro 429."
+      ],
+      "notaDeRevisao": "Termo de uso do Portal da Câmara lido em 23/11/2026 (itens 7 e 29: trechos entre aspas, informações de domínio público, citar a Câmara e a autoria); robots.txt conferido (feed e /noticias permitidos); sem login nem paywall; classe A; DP-28. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
+    },
+    {
+      "id": "abemf",
+      "nome": "ABEMF",
+      "classe": "D",
+      "links": {
+        "listagem": "https://web.abemf.com.br/noticias/",
+        "entrada": "https://web.abemf.com.br/feed/",
+        "tipoEntrada": "feed",
+        "robots": "https://web.abemf.com.br/robots.txt",
+        "termos": [
+          "https://web.abemf.com.br/associados/"
+        ]
+      },
+      "conferencia": {
+        "data": "2026-11-24",
+        "robots": {
+          "status": 200,
+          "crawlDelaySeg": null,
+          "crawlDelayDeOutrosAgentes": null,
+          "caminhosPermitidos": true,
+          "caminhos": [
+            {
+              "caminho": "/noticias/",
+              "permitido": true
+            },
+            {
+              "caminho": "/feed/",
+              "permitido": true
+            }
+          ]
+        },
+        "entrada": {
+          "status": 200,
+          "tipo": "feed",
+          "itens": 10,
+          "urls": null,
+          "noPrefixo": null,
+          "maisRecente": "2026-10-22"
+        },
+        "listagem": {
+          "status": 200,
+          "titulo": "Notícias – ABEMF"
+        },
+        "termos": [
+          {
+            "tipo": "rodape_sem_termos (página lida)",
+            "url": "https://web.abemf.com.br/associados/",
+            "status": 200,
+            "trechosConferidos": [
+              {
+                "trecho": "ABEMF + \"todos os direitos reservados\" + 2026 na página",
+                "presente": true
+              }
+            ]
+          }
+        ]
+      },
+      "limitePorHora": 6,
+      "espacamentoSeg": 3,
+      "rodadasPorDia": 1,
+      "enabled": false,
+      "ressalvas": [
+        "O feed está parado: a matéria mais recente é de 22/10/2026 (33 dias); a fonte pode não render matéria nova.",
+        "Classe D: nenhum termo de conteúdo; o rodapé só traz \"direitos reservados\" (o trecho do cadastro tem reticências e não é literal; a página confere \"ABEMF\" e \"todos os direitos reservados\")."
+      ],
+      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; site sem termos de conteúdo (só rodapé de direitos reservados, lido em 23/11/2026); robots.txt conferido (/noticias/ e /feed/ permitidos); sem login nem paywall. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
+    },
+    {
+      "id": "livelo-imprensa",
+      "nome": "Livelo (imprensa)",
+      "classe": "D",
+      "links": {
+        "listagem": "https://www.livelo.com.br/imprensa",
+        "entrada": "https://www.livelo.com.br/sitemap/static-sitemap-0.xml",
+        "tipoEntrada": "sitemap",
+        "robots": "https://www.livelo.com.br/robots.txt",
+        "termos": [
+          "https://www.livelo.com.br/politica-de-privacidade",
+          "https://www.livelo.com.br/regulamentos"
+        ]
+      },
+      "conferencia": {
+        "data": "2026-11-24",
+        "robots": {
+          "status": 200,
+          "crawlDelaySeg": null,
+          "crawlDelayDeOutrosAgentes": null,
+          "caminhosPermitidos": true,
+          "caminhos": [
+            {
+              "caminho": "/imprensa",
+              "permitido": true
+            },
+            {
+              "caminho": "/sitemap/static-sitemap-0.xml",
+              "permitido": true
+            }
+          ]
+        },
+        "entrada": {
+          "status": 200,
+          "tipo": "sitemap",
+          "itens": null,
+          "urls": 669,
+          "noPrefixo": 37,
+          "maisRecente": "2026-08-26"
+        },
+        "listagem": {
+          "status": 200,
+          "titulo": "Tudo vira pontos. Pontos viram tudo."
+        },
+        "termos": [
+          {
+            "tipo": "privacidade_apenas",
+            "url": "https://www.livelo.com.br/politica-de-privacidade",
+            "status": 200,
+            "trechosConferidos": [
+              {
+                "trecho": "Livelo S.A. Todos os direitos reservados",
+                "presente": true
+              }
+            ]
+          },
+          {
+            "tipo": "regulamentos_do_programa",
+            "url": "https://www.livelo.com.br/regulamentos",
+            "status": 200,
+            "trechosConferidos": null,
+            "observacao": "releitura manual em 24/11: 200, \"Regulamentos Livelo\""
+          }
+        ]
+      },
+      "limitePorHora": 6,
+      "espacamentoSeg": 3,
+      "rodadasPorDia": 1,
+      "enabled": false,
+      "ressalvas": [
+        "Sem feed: coleta por sitemap (37 páginas de /imprensa/; a mais recente é de 26/08/2026).",
+        "Paywall: nenhum. O proprietário confirmou na DP-49 (24/11/2026) que não há paywall, só login (área da conta). A coleta fica só nas páginas públicas de /imprensa/ (sitemapPathPrefix) e nunca atrás do login; se uma página pedir login, o coletor para (`gated`) e não insiste. O revisor marca paywall \"nenhum\" no Studio.",
+        "Classe D: o rodapé só leva a Regulamentos e Privacidade, e nenhum dos dois trata de reprodução de conteúdo."
+      ],
+      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; paywall: nenhum (o proprietário confirmou na DP-49 que não há paywall, só login na área da conta; a listagem /imprensa respondeu 200 sem tela de login em 24/11/2026; a coleta fica nas páginas públicas de /imprensa/ e nunca atrás do login). Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, sitemap respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
+    },
+    {
+      "id": "abrarec",
+      "nome": "ABRAREC",
+      "classe": "D",
+      "links": {
+        "listagem": "https://abrarec.com.br/blog/",
+        "entrada": "https://abrarec.com.br/feed/",
+        "tipoEntrada": "feed",
+        "robots": "https://abrarec.com.br/robots.txt",
+        "termos": [
+          "https://abrarec.com.br/",
+          "https://abrarec.com.br/politica-de-privacidade/"
+        ]
+      },
+      "conferencia": {
+        "data": "2026-11-24",
+        "robots": {
+          "status": 200,
+          "crawlDelaySeg": null,
+          "crawlDelayDeOutrosAgentes": null,
+          "caminhosPermitidos": true,
+          "caminhos": [
+            {
+              "caminho": "/blog/",
+              "permitido": true
+            },
+            {
+              "caminho": "/feed/",
+              "permitido": true
+            }
+          ]
+        },
+        "entrada": {
+          "status": 200,
+          "tipo": "feed",
+          "itens": 8,
+          "urls": null,
+          "noPrefixo": null,
+          "maisRecente": "2026-11-23"
+        },
+        "listagem": {
+          "status": 200,
+          "titulo": "Notícias – ABRAREC"
+        },
+        "termos": [
+          {
+            "tipo": "rodape_sem_termos (página lida)",
+            "url": "https://abrarec.com.br/",
+            "status": 200,
+            "trechosConferidos": [
+              {
+                "trecho": "© ABRAREC Todos os direitos reservados 2026",
+                "presente": true
+              }
+            ]
+          },
+          {
+            "tipo": "privacidade_apenas",
+            "url": "https://abrarec.com.br/politica-de-privacidade/",
+            "status": 200,
+            "trechosConferidos": [
+              {
+                "trecho": "© ABRAREC Todos os direitos reservados 2026",
+                "presente": true
+              }
+            ]
+          }
+        ]
+      },
+      "limitePorHora": 6,
+      "espacamentoSeg": 3,
+      "rodadasPorDia": 1,
+      "enabled": false,
+      "ressalvas": [
+        "Classe D: nenhum termo de conteúdo (rodapé de direitos reservados e política de privacidade).",
+        "Feed atual: 8 itens, o mais recente de 23/11/2026."
+      ],
+      "notaDeRevisao": "DP-28, classe D, risco aceito pelo proprietário; sem termos de conteúdo (rodapé de direitos reservados e política de privacidade, lidos em 23/11/2026); robots.txt conferido (/blog/ e /feed/ permitidos); sem login nem paywall. Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, feed respondendo 200. Autorizada pelo proprietário na DP-49 (24/11/2026)."
+    }
+  ],
+  "decisao": {
+    "dp": "DP-49",
+    "data": "2026-11-24",
+    "resultado": "proprietário autorizou habilitar as 5 fontes",
+    "habilitacao": "pendente: o admin habilita no Studio quando o staging voltar; não é feita pela Editorial",
+    "arquivo": "r0-preparacao/decisoes-proprietario-2026-11-22.md"
+  }
+}
