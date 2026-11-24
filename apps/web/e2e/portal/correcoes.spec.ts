@@ -7,8 +7,8 @@ import { expect, test, type Page, type Route } from '@playwright/test';
  * Roda nos três modos (empty, mock, api): a página é institucional e não depende da fonte de dados.
  */
 const ROTA = '**/api/publico/correcoes';
-/** Depois do clique, a troca de estado é JavaScript do cliente: sob carga (workers padrão) passa de 5 s. Prazo fixo, sem retry. */
-const ENVIO_MS = 15_000;
+/** Espera depois do envio: com o build de produção (sem compilação sob demanda) o padrão de 5 s basta. */
+const ENVIO_MS = 5_000;
 
 async function axe(page: Page) {
   await page.waitForLoadState('networkidle');
@@ -19,7 +19,7 @@ async function axe(page: Page) {
 
 /** Espera a hidratação do formulário (data-pronto): clicar antes faria o envio nativo, sem o estado da tela. */
 async function pronto(page: Page) {
-  await expect(page.getByTestId('pedido-form')).toHaveAttribute('data-pronto', '1', { timeout: 20_000 });
+  await expect(page.getByTestId('pedido-form')).toHaveAttribute('data-pronto', '1');
 }
 
 async function preencher(page: Page, over: { url?: string; texto?: string } = {}) {
