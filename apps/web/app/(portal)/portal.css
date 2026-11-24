@@ -251,6 +251,8 @@
    aria-current para leitor de tela; no desktop nada muda. O breadcrumb da matéria (.pt-article) não é afetado. */
 @media (max-width: 767px) {
   .pt-pagehead .ln-breadcrumb__item:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* o item antes do escondido não leva o "/" (ficava uma barra pendurada no fim da linha; ressalva P3 do QA 8) */
+  .pt-pagehead .ln-breadcrumb__item:nth-last-child(2)::after { content: none; }
 }
 
 /* P3-5: categorias de preço do mídia kit recolhíveis (<details>); o título da categoria é o alvo de toque (44 px). */

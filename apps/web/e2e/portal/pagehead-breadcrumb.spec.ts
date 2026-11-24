@@ -21,6 +21,10 @@ test.describe('breadcrumb do cabeçalho de página', () => {
       await expect(ultimo).toHaveText(titulo); // continua no DOM (leitor de tela)
       const box = (await ultimo.boundingBox())!;
       expect(Math.max(box.width, box.height), 'fora da vista (1 px)').toBeLessThanOrEqual(1);
+      // sem barra pendurada: o item antes do escondido não tem separador, e os anteriores a ele continuam com "/"
+      const seps = await page.locator('.pt-pagehead .ln-breadcrumb__item').evaluateAll((els) => els.map((e) => getComputedStyle(e, '::after').content));
+      expect(seps[seps.length - 2], 'item antes do último: ::after').toBe('none');
+      for (const c of seps.slice(0, -2)) expect(c, 'itens anteriores mantêm o separador').toBe('"/"');
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(titulo);
       // a navegação do breadcrumb continua com os itens anteriores à vista
       await expect(page.locator('.pt-pagehead .ln-breadcrumb__item').first()).toBeVisible();
@@ -33,6 +37,9 @@ test.describe('breadcrumb do cabeçalho de página', () => {
       await page.goto(rota);
       const box = (await page.locator('.pt-pagehead .ln-breadcrumb__item:last-child').boundingBox())!;
       expect(box.width, 'visível no desktop').toBeGreaterThan(20);
+      // no desktop o separador antes do último item continua
+      const seps = await page.locator('.pt-pagehead .ln-breadcrumb__item').evaluateAll((els) => els.map((e) => getComputedStyle(e, '::after').content));
+      expect(seps[seps.length - 2], 'desktop: item antes do último mantém o "/"').toBe('"/"');
     });
   }
 });
