@@ -13,6 +13,7 @@
 import { spawnSync } from 'node:child_process';
 import { TAR } from './lib/tar.mjs';
 import { arquivosDoZip } from './lib/zip.mjs';
+import { ambienteDoPacote } from './lib/ambiente-pacote.mjs';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
@@ -190,7 +191,9 @@ try {
   let zipEntries;
   try { zipEntries = arquivosDoZip(zip); } catch (e) { fail(`não consegui ler o índice do ZIP: ${e.message}`); }
   if (zipEntries.length !== files.length) fail(`pasta (${files.length} arquivos) e ZIP (${zipEntries.length}) divergem`);
-  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(profile === 'production' ? ['--producao'] : [])], { encoding: 'utf8' });
+  // ambiente SANEADO + o declarado do pacote: o CI=true do runner do Actions não é variável do app (ver lib/ambiente-pacote.mjs); o que o pacote DECLARA continua sendo avaliado
+  const ckEnv = ambienteDoPacote({ declarado: web.env, appEnv: web.env?.APP_ENV ?? (profile === 'production' ? 'production' : 'staging') });
+  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(profile === 'production' ? ['--producao'] : [])], { encoding: 'utf8', env: ckEnv });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote:\n${ck.stderr}`);
   const bytes = statSync(zip).size;
   if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);

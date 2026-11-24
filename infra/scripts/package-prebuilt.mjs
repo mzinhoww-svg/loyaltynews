@@ -8,6 +8,7 @@
 import { spawnSync } from 'node:child_process';
 import { TAR } from './lib/tar.mjs';
 import { arquivosDoZip } from './lib/zip.mjs';
+import { ambienteDoPacote } from './lib/ambiente-pacote.mjs';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -101,7 +102,11 @@ async function main() {
   // pastas que o painel e o deploy_app removem do upload (get_docs: node_modules, .local, venv, .venv, __pycache__, .next, vendor, .bundle, target, .gradle, .npm) não podem aparecer no caminho
   const ruins = files.filter((f) => /(^|\/)(\.next|node_modules|vendor|target|venv|\.venv|__pycache__|\.bundle|\.gradle|\.local|\.npm)\//.test(f) || /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f));
   if (ruins.length) fail(`arquivos proibidos no pacote: ${ruins.slice(0, 5).join(', ')}`);
-  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(release.perfil === 'production' ? ['--producao'] : [])], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  // ambiente SANEADO + o declarado do pacote (infra/vertra/environments.json do próprio pacote): o CI=true do runner não é variável do app (lib/ambiente-pacote.mjs)
+  let declarado = {};
+  try { declarado = JSON.parse(readFileSync(join(folder, 'infra/vertra/environments.json'), 'utf8').replace(/^\uFEFF/, '')).ambientes?.[release.perfil]?.recursos?.web?.env ?? {}; } catch { /* sem environments.json: só o APP_ENV do release */ }
+  const ckEnv = ambienteDoPacote({ declarado, appEnv: release.appEnv });
+  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(release.perfil === 'production' ? ['--producao'] : [])], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: ckEnv });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote pré-construído:\n${ck.stderr || ck.stdout}`);
   // --tar: DEPOIS da varredura de segredos (que lê os arquivos soltos), o .next vira um único web-next.tar e a pasta solta sai do pacote
   if (tar) {
