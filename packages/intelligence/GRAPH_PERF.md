@@ -65,8 +65,29 @@ Leitura: os p50 das três séries são quase iguais (~415–445 ms) e os planos 
 
 A consulta única custa um pouco mais de servidor (~10–60 ms) e economiza **2 idas** ao banco: com a ida e volta que a medição real sugere (~130 ms por ida, dedução dos p50, **a confirmar pelo `SELECT 1`**), a previsão é ~190–250 ms de p50 e abaixo de 300 ms de p95 de fora da rede da Vertra, e bem menos com o aplicativo colado no banco. **É previsão, não medição.**
 
-### Índices compostos (migração 0030, proposta pronta, NÃO aplicada)
+### Índices compostos (migração 0030): DESCARTADA na 3ª rodada (pioraram a consulta de organização; ver abaixo). Texto original da proposta:
 `proposals/0030_intelligence_graph_indexes.sql`: quatro índices cobrindo (`org_relation` por origem e por destino; `role_assignment` por pessoa e por organização, todos com `INCLUDE (id, extremo, valid_from, valid_to, certainty)`), para a sonda virar varredura só de índice. **Só entram na migração se a medição real mostrar ganho**: `--with-indexes` mede antes e depois no mesmo servidor, sem migração. Se o gargalo for a rede, índice não ajuda.
+
+## 3ª rodada (medição real da consulta única, a2c4255, 23/11/2026, `bench/results/pg-staging-single.json`): critério cumprido por ESTIMATIVA na mesma rede, não por medição
+PostgreSQL 18.6 (staging), 114.990 arestas sintéticas, rodando da máquina do PM (fora da rede da Vertra). **Ida e volta de `SELECT 1`: p50 124,8 ms** (p95 127,2). Schema descartável apagado (`schema_dropped: true`). p95 em ms (e p50), com a **estimativa de p95 com o aplicativo na mesma rede** = p95 − idas × 124,8 (**ESTIMATIVA, não medição**):
+
+| Consulta | consulta única (produto) | estimativa mesma rede | BFS em lote (3 idas) | est. mesma rede | recursiva | est. mesma rede |
+|---|---|---|---|---|---|---|
+| `neighbors` organização | **412,8** (p50 293,6) | **288** | 459,4 | 85 | 1088,8 | 964 |
+| `neighbors` pessoa | **276,5** (p50 158,8) | **151,7** | 443,2 | 68,8 | 678,4 | 553,6 |
+| `shortestPath` | **173,3** (p50 159,7) | **48,5** | 439,7 | 65,3 | 423,0 | 298,2 |
+
+**Veredito (do PM, registrado aqui):** de **fora** da rede, o pior p95 é 412,8 ms (`meets_criterion: false`). **Na mesma rede** (o caso real: web e banco ficam na Vertra), as três séries ficam abaixo de 300 ms **por estimativa**, com a consulta de **organização no limite (288 ms, sem margem)**. **Isto é estimativa, não medição na mesma rede**; o critério ADR-009 só estará medido quando se medir de dentro do web do staging (próximo passo abaixo).
+
+### O que esta rodada também mostrou (para decidir com dados)
+1. **A consulta única custa mais trabalho de servidor/transferência nas fronteiras grandes** do que a BFS em lote. Tirando a ida e volta, a estimativa na mesma rede da BFS em lote (85 / 69 / 65 ms) é **melhor** que a da consulta única nas vizinhanças (288 / 152 ms); só no `shortestPath` a única empata ou ganha (48,5 contra 65,3). O tempo de EXPLAIN da amostra (planejamento ~11 ms + execução ~6 ms) é de **uma** chamada de fronteira pequena e **não representa o p95**: o p95 vem das organizações com ~1400 entidades alcançadas. Moral: a consulta única só vence quando a ida e volta é grande (de fora da rede); **com o aplicativo colado no banco a BFS em lote pode ser a melhor** para `neighbors`. A escolha entre as duas deve sair da medição de dentro da rede, não da de fora.
+2. **A estimativa é conservadora para a consulta única** em um ponto: o p95 de fora inclui o tempo de **transferir** até ~1400 linhas com caminhos pela rede de longa distância (não só a ida e volta), que some na mesma rede; por outro lado, a estimativa da BFS em lote multiplica por 3 o erro de qualquer desvio da ida e volta mediana. Por isso a faixa real é incerta e **só a medição de dentro da rede confirma**.
+3. **Índices cobrindo da 0030 PIORARAM** a consulta de organização (p95 **603,8 ms** contra 412,8 sem índices; estimativa 479 contra 288; execução do plano amostrado 39,5 ms contra 5,8 ms: o planejador escolheu um plano pior com os índices); pessoa e `shortestPath` melhoraram pouco (241,8 e 166,5). **Decisão do PM: não aplicar a 0030.** `proposals/0030_intelligence_graph_indexes.sql` fica marcado como **DESCARTADO**. Não criar índice sem nova medição que mostre ganho no pior caso.
+
+### Próximo passo (se valer o esforço) e gatilho
+- **Medir de dentro da rede da Vertra:** uma **rota de diagnóstico só no staging** (atrás de `APP_ENV=staging`, autenticada, desligada por padrão, nunca em produção) no web, que roda as três implementações (`neighbors`/`neighborsBatched`/`neighborsRecursive` e as de menor caminho) sobre os dados SINTÉTICOS de um schema descartável, ou o `bench-pg` como job de uma só execução dentro da rede do staging (DevOps). Critério: p95 ≤ 300 ms **medido** na mesma rede. Com esse número, escolher `neighbors` única ou em lote (a troca é só apontar o produto para outra função; as três são equivalentes e testadas).
+- **Gatilho da adjacência materializada** (tabela com uma linha por aresta direcionada, vigência e certeza, chave por nó): qualquer um destes: (a) p95 medido **na mesma rede** acima de 250 ms na consulta de organização (hoje a estimativa é 288); (b) **≥ 500 mil arestas** reais; (c) algum nó com **grau acima de ~2 mil** (a fronteira cresce linearmente); (d) o EXPLAIN do pior caso mostrar a visão `graph_edge` dominando. Exige migração, gatilho/rotina de manutenção e decisão de consistência (dono: `@ln/db`).
+- O dado real hoje é pequeno (29 organizações, 40 pessoas): nada disto bloqueia 24/11. A a2c4255 **pode seguir para integração** (decisão do PM): a consulta única é equivalente (QA 3) e cumpre o critério por estimativa; manter a BFS em lote no código como alternativa medida.
 
 ## Como medir no PostgreSQL real (o PM roda; o agente de dados não recebe a credencial)
 ```

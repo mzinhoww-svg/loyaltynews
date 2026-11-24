@@ -1,3 +1,7 @@
+-- *** DESCARTADA (23/11/2026, decisão do PM): NÃO APLICAR. Na medição real (pg-staging-single.json) estes índices PIORARAM a consulta de organização
+-- (p95 603,8 ms contra 412,8 ms sem índices; o planejador escolheu um plano pior) e melhoraram pouco as outras. Só reabrir com nova medição que mostre ganho
+-- no PIOR caso. Ver GRAPH_PERF.md (3ª rodada). Texto mantido só como registro. ***
+--
 -- PROPOSTA (NÃO APLICADA) — migração 0030: índices cobrindo para as consultas de grafo (ADR-009), depois da 0029 do Backend 3.
 -- Dono do schema `intelligence`: @ln/db (Chief Architect/DevOps). Este arquivo é só o texto candidato; entra no drizzle como migração customizada
 -- (drizzle-kit generate --custom) SE a medição no PostgreSQL real mostrar ganho (bench-pg --with-indexes: compara antes/depois no mesmo servidor).
