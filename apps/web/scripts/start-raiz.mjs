@@ -94,6 +94,50 @@ export async function startFromRoot({ root, timeout }) {
   }
 }
 
+/**
+ * Subida que TEM de ser recusada (achado do QA 8 em 26be6bb): `next start` com o `env` dado (ex.: produção + flag sem decisão), consultando
+ * /api/health a cada 25 ms DESDE o spawn até o processo sair ou o prazo vencer. Resolve { exitCode, vistos, ms, ultimas }: `vistos` conta
+ * cada status HTTP (e "recusada" para conexão recusada). Roda com cwd = apps/web (não depende do início pela raiz).
+ */
+export async function refusedStartProbe({ root, env, timeout }) {
+  if (!existsSync(join(root, 'apps', 'web', '.next', 'BUILD_ID'))) return { exitCode: null, vistos: {}, ms: 0, ultimas: ['sem build'], semBuild: true };
+  const port = await freePort();
+  const nextBin = join(root, 'node_modules', 'next', 'dist', 'bin', 'next');
+  const t0 = Date.now();
+  const child = spawn(process.execPath, [nextBin, 'start', '-p', String(port), '-H', '127.0.0.1'], {
+    cwd: join(root, 'apps', 'web'),
+    env: { ...process.env, ...env, NODE_ENV: 'production' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: process.platform !== 'win32',
+  });
+  const linhas = [];
+  const guarda = (b) => {
+    for (const l of String(b).split(/\r?\n/)) if (l.trim()) linhas.push(`${Date.now() - t0}ms ${l.slice(0, 200)}`);
+    if (linhas.length > 40) linhas.splice(0, linhas.length - 40);
+  };
+  child.stdout.on('data', guarda);
+  child.stderr.on('data', guarda);
+  let saiu = null;
+  child.on('exit', (code) => {
+    saiu = code;
+  });
+  const vistos = {};
+  try {
+    while (saiu === null && Date.now() - t0 < timeout * 1000) {
+      try {
+        const r = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(1000) });
+        vistos[r.status] = (vistos[r.status] ?? 0) + 1;
+      } catch {
+        vistos.recusada = (vistos.recusada ?? 0) + 1;
+      }
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    return { exitCode: saiu, vistos, ms: Date.now() - t0, ultimas: linhas.slice(-10) };
+  } finally {
+    killTree(child);
+  }
+}
+
 const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   let args;
