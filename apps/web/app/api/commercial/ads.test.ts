@@ -52,6 +52,93 @@ afterAll(async () => {
   await app.close();
 });
 
+/** Criativo mobile (320x100) real e completo para a posição TOP: serve só ao device 'mobile'. */
+const SHA_TOP_MOBILE = 'b'.repeat(64);
+const ARQUIVO_TOP_MOBILE = {
+  arquivoRef: `anuncios/${SHA_TOP_MOBILE}.png`, arquivoMime: 'image/png', largura: 320, altura: 100, tamanhoKb: 30, arquivoSha256: SHA_TOP_MOBILE,
+  textoAlternativo: 'Oferta do anunciante teste (celular)', destinoUrl: 'https://anunciante.example/oferta',
+} as const;
+
+describe('device no ad server público (Redis): desktop e mobile nunca se misturam', () => {
+  beforeAll(async () => {
+    await app.db.insert(schema.adCreatives).values({ id: 'cr-m1', campanhaId: 'cmp-1', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true, ...ARQUIVO_TOP_MOBILE });
+  });
+  afterAll(async () => {
+    await app.db.delete(schema.adCreatives).where(eq(schema.adCreatives.id, 'cr-m1'));
+  });
+
+  it('mobile recebe o criativo 320x100 e conta; desktop e sem device recebem o 1280x150; o mobile não vira desktop', async () => {
+    const m = await serve('pv-dev-m', { device: 'mobile' });
+    expect(m.body).toMatchObject({ kind: 'creative', creativeId: 'cr-m1', counted: true, ad: { width: 320, height: 100 } });
+    const d1 = await serve('pv-dev-d', { device: 'desktop' });
+    expect(d1.body).toMatchObject({ kind: 'creative', creativeId: 'cr-1', counted: true, ad: { width: 1280, height: 150 } });
+    const n = await serve('pv-dev-n');
+    expect(n.body).toMatchObject({ kind: 'creative', creativeId: 'cr-1', counted: true });
+    expect(await readCounters(R(), 'cr-m1', DAY)).toEqual({ s: 1 });
+    expect((await serve('pv-dev-x', { device: 'tablet' })).status).toBeGreaterThanOrEqual(400);
+  });
+
+  it('visualização de outra variante já gravada: o pedido do outro device recebe house, sem contar (caminho sem corrida)', async () => {
+    expect((await serve('pv-outra', { device: 'desktop' })).body).toMatchObject({ creativeId: 'cr-1', counted: true });
+    const m = await serve('pv-outra', { device: 'mobile' });
+    expect(m.body).toEqual({ kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo mobile elegível; house ad' });
+    expect(await readCounters(R(), 'cr-1', DAY)).toEqual({ s: 1 });
+  });
+
+  /**
+   * Simula a janela da corrida entre duas instâncias: a leitura PRÉVIA da visualização ainda não enxerga a gravação da outra instância
+   * (só a primeira leitura devolve vazio); o SET NX da gravação então perde, e o pedido segue pelo ramo de quem perde a corrida.
+   */
+  const comJanelaDeCorrida = async (pv: string, fn: () => Promise<void>) => {
+    const real = R() as unknown as Record<string, unknown>;
+    let consumida = false;
+    app.deps.redis = new Proxy(real, {
+      get(alvo, prop) {
+        if (prop === 'get') {
+          return async (chave: string, ...resto: unknown[]) => {
+            if (!consumida && chave === adKeys.view(pv, 'TOP')) { consumida = true; return null; }
+            return (alvo.get as (...a: unknown[]) => Promise<unknown>).call(alvo, chave, ...resto);
+          };
+        }
+        const v = alvo[prop as string];
+        return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(alvo) : v;
+      },
+    }) as unknown as AdRedis;
+    try { await fn(); } finally { app.deps.redis = R(); }
+    expect(consumida, 'a janela da corrida foi simulada').toBe(true);
+  };
+
+  it('perdeu a corrida contra a OUTRA variante (desktop venceu, pedido mobile): house sem contar, nunca o criativo desktop', async () => {
+    expect((await serve('pv-lose-m', { device: 'desktop' })).body).toMatchObject({ creativeId: 'cr-1', counted: true });
+    await comJanelaDeCorrida('pv-lose-m', async () => {
+      const r = await serve('pv-lose-m', { device: 'mobile' });
+      expect(r.status).toBe(200);
+      expect(r.body).toEqual({ kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo mobile elegível; house ad' });
+    });
+    expect(await readCounters(R(), 'cr-1', DAY)).toEqual({ s: 1 }); // só a impressão da vencedora
+    expect(await readCounters(R(), 'cr-m1', DAY)).toEqual({});
+  });
+
+  it('o inverso: mobile venceu e o pedido desktop perde a corrida: house sem contar, nunca o criativo mobile', async () => {
+    expect((await serve('pv-lose-d', { device: 'mobile' })).body).toMatchObject({ creativeId: 'cr-m1', counted: true });
+    await comJanelaDeCorrida('pv-lose-d', async () => {
+      const r = await serve('pv-lose-d', { device: 'desktop' });
+      expect(r.body).toEqual({ kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'sem criativo elegível; house ad' });
+    });
+    expect(await readCounters(R(), 'cr-m1', DAY)).toEqual({ s: 1 });
+    expect(await readCounters(R(), 'cr-1', DAY)).toEqual({});
+  });
+
+  it('perdeu a corrida na MESMA variante: devolve o criativo vencedor com o anúncio, sem contar (comportamento mantido)', async () => {
+    const venc = await serve('pv-lose-s', { device: 'mobile' });
+    await comJanelaDeCorrida('pv-lose-s', async () => {
+      const r = await serve('pv-lose-s', { device: 'mobile' });
+      expect(r.body).toMatchObject({ kind: 'creative', creativeId: 'cr-m1', counted: false, reason: 'refresh', impressionId: venc.body.impressionId, ad: { width: 320, height: 100 } });
+    });
+    expect(await readCounters(R(), 'cr-m1', DAY)).toEqual({ s: 1 });
+  });
+});
+
 describe('ad server público sobre Redis', () => {
   it('flag desligada: house, sem tocar em Redis nem banco', async () => {
     app.deps.flags.adServerVendas = false;
