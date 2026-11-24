@@ -61,7 +61,7 @@ try {
     step('bench-graph sem --confirm-staging-bench: recusa (saída 2) sem abrir conexão', semConfirm.status === 2 && /confirm-staging-bench/.test(`${semConfirm.stdout}${semConfirm.stderr}`), `saída ${semConfirm.status}: ${cauda(semConfirm, 2)}`);
     const prod = spawnSync(process.execPath, [bin, '--confirm-staging-bench'], { cwd: work, env: { ...env, APP_ENV: 'production' }, encoding: 'utf8' });
     step('bench-graph com APP_ENV=production: recusa (saída 2)', prod.status === 2 && /APP_ENV|staging/.test(`${prod.stdout}${prod.stderr}`), `saída ${prod.status}: ${cauda(prod, 2)}`);
-    const outroBanco = spawnSync(process.execPath, [bin, '--confirm-staging-bench'], { cwd: work, env: { ...env, APP_ENV: 'staging', DATABASE_URL: 'postgres://u:p@banco-que-nao-e-o-de-staging.example.invalid:5432/x' }, encoding: 'utf8' });
+    const outroBanco = spawnSync(process.execPath, [bin, '--confirm-staging-bench'], { cwd: work, env: { ...env, APP_ENV: 'staging', DATABASE_URL: 'postgres://banco-que-nao-e-o-de-staging.example.invalid:5432/x' }, encoding: 'utf8' });
     step('bench-graph com DATABASE_URL de outro banco: recusa (saída 2), sem repetir a URL', outroBanco.status === 2 && !/banco-que-nao-e-o-de-staging/.test(`${outroBanco.stdout}${outroBanco.stderr}`), `saída ${outroBanco.status}`);
   } else {
     const rodou = spawnSync(process.execPath, ['--check', join(work, espera)], { encoding: 'utf8' });
