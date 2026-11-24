@@ -98,7 +98,7 @@ export async function rodar({ url, commit, indexavel = false, cache = false, ico
   // Cabeçalhos de segurança (achado P2-6, 24/11): HSTS de produção (1 ano, sem includeSubDomains/preload), nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP.
   if (seguranca) await tentar('seguranca', async () => {
     const v = await verificarSeguranca({ url: base, ambiente: 'production' });
-    check(`seguranca: ${v.total} rotas com os cabeçalhos de segurança (HSTS de produção)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
+    check(`seguranca: ${v.total} rotas/estáticos com os cabeçalhos de segurança (HSTS de produção; estáticos: só nosniff)${v.avisos ? ` [AVISO: ${v.avisos} cópia(s) antiga(s) na borda sem cabeçalhos, origem OK; purge_cache por URL completa: ${v.purgar.join(' ')}]` : ''}`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
   });
   if (cache) await tentar('cache', async () => {
     const v = await verificar({ url: base, valores: { editoria: 'mercado' } });
