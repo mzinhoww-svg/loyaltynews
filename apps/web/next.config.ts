@@ -70,6 +70,59 @@ export function cacheControlDe(pathname: string): string | null {
 }
 // ---- fim da política de cache -------------------------------------------------------------------------------------------------------------
 
+// ---- Cabeçalhos de segurança do portal (INLINE, junto da política de cache; achado P2-6 da auditoria de design, 24/11/2026) ---------------------
+/**
+ * Conjunto MÍNIMO, em todas as rotas (`/:path*`), sem tocar no Cache-Control (nenhuma chave em comum com a política de cache; o teste confere).
+ *  - X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, X-Frame-Options SAMEORIGIN (o portal e o Studio não usam iframe),
+ *    Permissions-Policy negando o que o app não usa (câmera, microfone, geolocalização, pagamento, USB, FLoC).
+ *  - Strict-Transport-Security: 1 dia no staging, 1 ano em produção, SEM includeSubDomains e SEM preload (o host é *.vertraweb.app, que não é nosso).
+ *    Só com APP_ENV staging/production (em dev/teste não se envia HSTS).
+ *  - CSP em DUAS partes: (1) APLICADA agora: só diretivas que não carregam recurso (frame-ancestors 'self', base-uri 'self', object-src 'none'), sem risco de
+ *    quebrar a página; (2) em MODO RELATÓRIO (Content-Security-Policy-Report-Only): a política completa (default-src 'self' etc.) para o UI/UX/QA olharem o
+ *    console e só então promoverem a política a "aplicada". LIMITE HONESTO: o script-src leva 'unsafe-inline' porque o Next injeta scripts de hidratação e o
+ *    portal tem cache de borda de 60 s (a CSP com nonce por requisição exige HTML diferente por requisição e derrubaria o cache); esta CSP endurece
+ *    frames, <base>, plugins e (depois) origens de recurso, mas NÃO é proteção completa contra XSS. O JSON-LD (type application/ld+json) é dado, não script.
+ */
+export const CSP_APLICADA = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
+export const CSP_RELATORIO = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "media-src 'self' https:",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+].join('; ');
+export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()';
+
+/** HSTS por ambiente (APP_ENV no BUILD: o headers() entra no routes-manifest). `null` = não envia. */
+export function hstsDe(appEnv: string | undefined): string | null {
+  const a = String(appEnv ?? '').trim().toLowerCase();
+  if (a === 'production' || a === 'producao') return 'max-age=31536000';
+  if (a === 'staging') return 'max-age=86400';
+  return null;
+}
+
+/** Regras de segurança para o `headers()` do next.config.ts (uma regra para todas as rotas). */
+export function portalSecurityHeaders(appEnv: string | undefined = process.env.APP_ENV): PortalHeaderRule[] {
+  const headers = [
+    { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+    { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+    { key: 'Permissions-Policy', value: PERMISSIONS_POLICY },
+    { key: 'Content-Security-Policy', value: CSP_APLICADA },
+    { key: 'Content-Security-Policy-Report-Only', value: CSP_RELATORIO },
+  ];
+  const hsts = hstsDe(appEnv);
+  if (hsts) headers.push({ key: 'Strict-Transport-Security', value: hsts });
+  return [{ source: '/:path*', headers }];
+}
+// ---- fim dos cabeçalhos de segurança ------------------------------------------------------------------------------------------------------
+
 // Raiz do monorepo, explícita: apps/web/next.config.ts -> ../.. . Sem isso o Next infere a raiz do workspace pelo lockfile e RECUSA a pasta que
 // contiver o diretório do usuário. Na Vertra o HOME fica dentro da pasta do app (/app/.cache/vertra/tmp/build/home), então ele ignorava /app e
 // não achava o `next` içado em /app/node_modules ("Could not find the Next.js package", build falhou em 22/11/2026). Fixar a raiz torna o build
@@ -137,8 +190,9 @@ const config = (phase: string): NextConfig => {
     // LN_E2E_DIST: pasta própria por perfil de build do e2e do portal (produção e vitrine; e2e/portal-server.mjs). Só vale no build de e2e.
     distDir: e2eBuild ? (process.env.LN_E2E_DIST || '.next-e2e') : '.next',
     // Cache do documento das páginas do portal (política acima, neste arquivo): 60 s só nas páginas sem pessoas; pessoas e matéria em no-store.
+    // Segurança primeiro (uma regra para todas as rotas), depois o cache (regras por rota): nenhuma chave em comum, nenhuma sobrescreve a outra.
     async headers() {
-      return portalCacheHeaders();
+      return [...portalSecurityHeaders(), ...portalCacheHeaders()];
     },
     turbopack: {
       root: monorepoRoot,
