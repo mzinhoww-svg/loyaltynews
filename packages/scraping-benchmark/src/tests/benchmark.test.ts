@@ -528,3 +528,20 @@ describe('ressalva R4 do QA 3 (542ec10): paywall só no HTML de página longa', 
     expect(detectWall({ text: `${article} Muitos sites exibem "assine para continuar lendo". ${article}`, html })).toBeNull();
   });
 });
+
+describe('lacunas registradas pelo QA 3 (74df503)', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  it('overlay com class "gate" e aviso depois dos 1.500 primeiros caracteres do elemento → paywall', () => {
+    expect(detectWall({ text: article, html: `<p>${article}</p><div class="content-gate"><p>Assine para continuar lendo a matéria completa</p></div>` })).toBe('paywall');
+    const filler = 'texto de chamada do plano anual com desconto. '.repeat(40);
+    expect(detectWall({ text: article, html: `<p>${article}</p><section id="paywall">${filler}<b>Conteúdo exclusivo para assinantes</b></section>` })).toBe('paywall');
+  });
+  it('corpo da matéria num div com class genérica (article-block) citando o aviso não vira paywall', () => {
+    const body = `<div class="article-block">${article}<p>Sites exibem "assine para continuar lendo".</p>${article}</div>`;
+    expect(detectWall({ text: article + article, html: body })).toBeNull();
+  });
+  it('modal de cookies e reportagem que cita o aviso no corpo seguem liberados', () => {
+    expect(detectWall({ text: article, html: `<p>${article}</p><div class="cookie-modal">Usamos cookies para melhorar sua experiência.</div>` })).toBeNull();
+    expect(detectWall({ text: article, html: `<p>${article}</p><p>Sites exibem "assine para continuar lendo".</p>` })).toBeNull();
+  });
+});

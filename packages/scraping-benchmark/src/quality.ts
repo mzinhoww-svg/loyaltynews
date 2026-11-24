@@ -183,6 +183,7 @@ export function bodyEvidence(text: string | undefined, html: string | undefined)
  */
 export const WALL_SHORT_PAGE = 3000;
 export const WALL_HEAD_CHARS = 1500;
+export const WALL_ELEMENT_CHARS = 6000;
 export function detectWall(r: { text?: string; html?: string; httpStatus?: number }): 'login_required' | 'paywall' | null {
   const text = r.text ?? '';
   if (r.httpStatus === 401 || r.httpStatus === 402 || text.length <= WALL_SHORT_PAGE) return detectLoginOrPaywall(r);
@@ -194,7 +195,8 @@ export function detectWall(r: { text?: string; html?: string; httpStatus?: numbe
     const visible = r.html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     if (detectLoginOrPaywall({ text: visible.slice(0, WALL_HEAD_CHARS) }) === 'paywall') return 'paywall';
     for (const m of r.html.matchAll(WALL_ELEMENT)) {
-      const inner = (m[2] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WALL_HEAD_CHARS);
+      // elemento de overlay é curto por natureza: lê até 6.000 caracteres dele (antes 1.500), lacuna registrada pelo QA 3
+      const inner = (m[2] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WALL_ELEMENT_CHARS);
       const hit = detectLoginOrPaywall({ text: inner });
       if (hit === 'paywall') return 'paywall';
     }
@@ -202,4 +204,4 @@ export function detectWall(r: { text?: string; html?: string; httpStatus?: numbe
   return null;
 }
 /** Elemento de overlay/paywall/modal (class ou id), com o conteúdo até o fechamento da mesma tag. */
-const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*(?:class|id)=["'][^"']*(?:paywall|regwall|subscri|assinant|premium|overlay|modal|piano|meter)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;
+const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*(?:class|id)=["'][^"']*(?:paywall|regwall|subscri|assinant|premium|overlay|modal|piano|meter|gate|wall|tp-)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;
