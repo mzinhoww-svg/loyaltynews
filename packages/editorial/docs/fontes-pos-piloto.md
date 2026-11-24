@@ -13,11 +13,11 @@
 | 5 | FCA, Reino Unido (`uk-fca`) | A | feed Atom | `bancos` | Sim |
 | 6 | FTC, EUA (`ftc-consumidor`) | A | feed RSS | `regulacao` | Sim |
 | 7 | Banco Central Europeu (`ecb-imprensa`) | A | feed RSS | `bancos` | Sim |
-| 8 | ANAC (`anac`, já no cadastro sem feed) | B | sitemap `.xml.gz` | `travel` | **Não**: o coletor não lê `.gz` |
-| 9 | CVM (`cvm`, já no cadastro) | B | sitemap `.xml.gz` | `mercado` | **Não**: idem |
-| 10 | ANPD (`anpd`, já no cadastro sem feed) | B | sitemap `.xml.gz` | `regulacao` | **Não**: idem |
+| 8 | ANAC (`anac`, já no cadastro sem feed) | B | sitemap `.xml.gz` | `travel` | Sim, com o suporte a `.gz` (branch `ft/editorial-sitemap-gz`) |
+| 9 | CVM (`cvm`, já no cadastro) | B | sitemap `.xml.gz` | `mercado` | Sim: idem |
+| 10 | ANPD (`anpd`, já no cadastro sem feed) | B | sitemap `.xml.gz` | `regulacao` | Sim: idem |
 
-- **Sete fontes (1 a 7) têm feed confirmado e se cadastram sem mudar código.** As três de gov.br (8 a 10) têm sitemap, mas só em `.xml.gz` e sem `lastmod` no índice; hoje o coletor não descompacta (não há `gzip` no código) e escolhe os 2 filhos "mais recentes" por `lastmod`. Entram na lista porque a regra do PM é "feed ou sitemap", com a **dependência técnica** descrita na seção "Dependência das fontes 8 a 10".
+- **Sete fontes (1 a 7) têm feed confirmado e se cadastram sem mudar código.** As três de gov.br (8 a 10) têm sitemap só em `.xml.gz` e sem `lastmod` no índice; o suporte a isso foi implementado na branch `ft/editorial-sitemap-gz` (seção "Fontes 8 a 10").
 - Seis fontes (2 a 7) são estrangeiras e em inglês. A fábrica reescreve em português, com as mesmas regras (nunca reproduzir, citar e linkar). Quem decide se a matéria de fonte estrangeira entra na editoria é o editor-chefe; sugeri a editoria mais próxima.
 - Frequência sugerida segue o padrão do piloto (1 rodada por dia, no máximo 5 matérias por rodada, 6 requisições por hora no cadastro, espaçamento do coletor de 3 s ou o `Crawl-delay` do `robots.txt`, o que for maior).
 
@@ -99,7 +99,7 @@
 
 ## 9. CVM — Comissão de Valores Mobiliários — classe B
 
-- **Sitemap:** `https://www.gov.br/cvm/sitemap-index.xml` (índice com **4 filhos** `.xml.gz`; `sitemap1` com 5.000 URLs, das quais 4.661 sob `/cvm/pt-br/assuntos/noticias/`, **inclusive anexos** em `/anexos/` — `.png`, `.pdf` — a excluir). **Atenção ao cadastro atual:** o `feedUrl` de `cvm` (`…/assuntos/noticias/RSS`) devolveu **404** em 23/11/2026; corrigir (remover o feed e passar a sitemap) antes de habilitar.
+- **Sitemap:** `https://www.gov.br/cvm/sitemap-index.xml` (índice com **4 filhos** `.xml.gz`; `sitemap1` com 5.000 URLs, das quais 4.661 sob `/cvm/pt-br/assuntos/noticias/`, **inclusive anexos** em `/anexos/` — `.png`, `.pdf` — a excluir). O `feedUrl` antigo de `cvm` (`…/assuntos/noticias/RSS`) devolveu **404** em 23/11/2026 (e a nota do cadastro já o dava como defasado): na branch `ft/editorial-sitemap-gz` o seed passou a `feedUrl: null` + sitemap.
 - **Termos:** mesmo rodapé CC BY-ND 3.0 (lido em `https://www.gov.br/cvm/pt-br/assuntos/noticias`); Termo de Uso do gov.br sem regra de reprodução. Dossiê: `docs/termos-fontes.md`, seção do gov.br.
 - **robots.txt:** o do gov.br (item 8); `/cvm/…` não bloqueado.
 - **Frequência:** 1 rodada/dia, 5 matérias.
@@ -117,9 +117,16 @@
 
 ---
 
-## Dependência das fontes 8 a 10 (gov.br: sitemap `.xml.gz`)
+## Fontes 8 a 10 (gov.br: sitemap `.xml.gz`) — suporte implementado na branch `ft/editorial-sitemap-gz`
 
-Para coletar essas três, o coletor precisa de: (a) **descompactar** os filhos `.xml.gz` (hoje o corpo é tratado como texto; o código não tem `gzip`); (b) **escolher os filhos pela posição** (o índice não traz `lastmod`; nos testes, `sitemap1` é o mais antigo e o último filho é o mais recente), em vez de ordenar por data; (c) **excluir anexos** (`.png`, `.jpg`, `.pdf`, `/anexos/`) e manter só as URLs de matéria, pelo `sitemapPathPrefix` mais o filtro de extensão; (d) manter as salvaguardas atuais (robots, 3 s, parada em 429/403). É trabalho da Editorial (pequeno, com teste) e **não foi feito**: esta entrega é só a lista. Enquanto isso, 1 a 7 cobrem a próxima rodada sem mudar código.
+O coletor agora lê os filhos `.xml.gz` (e um índice `.gz`). Como funciona, e o que ainda decide uma pessoa:
+
+- **Descompressão com teto:** só gzip (cabeçalho `1f 8b`); a saída é limitada a 10 MB por sitemap (`sitemapMaxDecompressedBytes`) e a entrada, a 2 MB pelo fetcher. Passou do teto: o filho é pulado com `decompressed_too_large` (proteção contra zip bomb); gzip corrompido ou truncado: `gzip_invalid`. Nenhuma das duas paralisa a fonte; 429, 403 e desafio continuam parando a coleta.
+- **Filhos sem `lastmod` (o caso do gov.br):** a ordem dos filhos não é cronológica (matérias novas aparecem em qualquer um), então o coletor lê **todos** os filhos, até 12 (`sitemapMaxChildren`); índice maior que isso é recusado inteiro (`sitemap_index_too_large`) em vez de lido pela metade. Índice **com** `lastmod` mantém o comportamento anterior (os 2 filhos mais recentes).
+- **Anexos fora:** URLs terminadas em imagem, PDF, planilha, áudio, vídeo, compactado etc. nunca são matéria e são descartadas; sobram só as páginas sob o `sitemapPathPrefix`; duplicatas saem; as mais recentes (`lastmod`) vêm primeiro. Cuidado: no gov.br o `lastmod` é a última modificação, não a data de publicação.
+- **Salvaguardas intactas em cada filho:** `robots.txt`, host/prefixo, espaçamento de 3 s, limite por hora do cadastro, parada em 429/403/desafio.
+- **Cadastro (seed) atualizado, tudo desabilitado:** `anac` (`/anac/pt-br/noticias/`, 9 filhos), `cvm` (`/cvm/pt-br/assuntos/noticias/`, 4 filhos; `feedUrl` passou a `null`, o RSS responde 404) e `anpd` (`/anpd/pt-br/assuntos/noticias/`, 2 filhos) ganharam `sitemapUrl` e `sitemapPathPrefix`, e `maxRequestsPerHour` **24** (índice + até 9 filhos + `robots.txt` + até 5 páginas por rodada; com o limite antigo de 6 a leitura pararia em `rate_limited` no meio dos filhos). **Isso é decisão do revisor/PM:** o custo é cerca de 10 requisições por rodada na ANAC (3 s entre elas) e 5 na CVM.
+- **Continua dependendo de pessoa:** revisão dos termos (CC BY-ND) e habilitação no Studio; nada foi coletado de verdade (testes offline com bytes gzip montados no teste e fetcher falso).
 
 ## Reserva (mesma situação das 8 a 10; não entram nas 10)
 
@@ -149,4 +156,4 @@ Para coletar essas três, o coletor precisa de: (a) **descompactar** os filhos `
 
 ## Como cadastrar (quando o PM mandar)
 
-Para cada fonte de 1 a 7: `Source` novo (ou `feedUrl` preenchido, no caso do `edpb`) com `host`, `pathPrefix`/`listingUrl`, `feedUrl`, `termsUrl`, `editorias`, `maxRequestsPerHour: 6`, `verification` com a nota do item correspondente, `enabled: false`, `termsStatus: 'pending'`, `urlVerified: false`; teste do cadastro como o de `piloto-fontes`. Para 8 a 10: só depois da dependência `.gz`.
+Para cada fonte de 1 a 7: `Source` novo (ou `feedUrl` preenchido, no caso do `edpb`) com `host`, `pathPrefix`/`listingUrl`, `feedUrl`, `termsUrl`, `editorias`, `maxRequestsPerHour: 6`, `verification` com a nota do item correspondente, `enabled: false`, `termsStatus: 'pending'`, `urlVerified: false`; teste do cadastro como o de `piloto-fontes`. Para 8 a 10: já estão no seed (desabilitadas), com sitemap, prefixo e limite por hora; falta só a revisão e a habilitação humanas.

@@ -8,6 +8,7 @@ import { detectGate } from './paywall';
 import { detectChallenge } from './crawl-guards.mjs';
 import { parseFeed, parseHtml, parseSitemap } from './parse';
 import { sanitize, stripHtml } from './sanitize';
+import { DEFAULT_MAX_DECOMPRESSED_BYTES, GzipError, gunzipCapped, isGzip } from './gzip';
 import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
 import type { Family, Resolver } from './net';
@@ -17,7 +18,8 @@ import { resolvePublic, systemResolver } from './net';
  * Porta de rede. O Fetcher DEVE conectar em `address` (IP já validado como público pelo coletor), sem resolver DNS de novo,
  * sem seguir redirecionamentos e sem credenciais (ver http-fetcher.ts). Isso fecha o DNS rebinding.
  */
-export interface HttpResponse { status: number; headers: Record<string, string>; body: string }
+/** `bytes`: só quando o corpo é gzip (magic 1f 8b); nesse caso `body` vem vazio e o coletor descomprime com teto (sitemap .xml.gz). */
+export interface HttpResponse { status: number; headers: Record<string, string>; body: string; bytes?: Uint8Array }
 export interface FetchOptions { userAgent: string; address: string; family: Family }
 export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpResponse> }
 
@@ -96,7 +98,9 @@ const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
-  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable';
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
+  /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
+  | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large';
 
 /**
  * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
@@ -161,11 +165,17 @@ export interface CollectorOptions {
   dp31MaxPagesPerDay?: number;
   /** DP-31: só se guarda um trecho curto do texto (nunca o texto integral). Padrão 1500 caracteres. */
   dp31MaxStoredChars?: number;
+  /** Teto de bytes de um sitemap DESCOMPRIMIDO (.xml.gz). Padrão 10 MB; acima disso a leitura é recusada ('decompressed_too_large'). */
+  sitemapMaxDecompressedBytes?: number;
+  /** Máximo de filhos que um índice de sitemap SEM lastmod pode ter para ser lido inteiro (cada filho é uma requisição). Padrão 12. */
+  sitemapMaxChildren?: number;
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
 const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
+/** Anexos e mídia que aparecem nos sitemaps (gov.br lista as imagens e PDFs de cada matéria): nunca são matéria. */
+const NON_PAGE_EXT = /\.(png|jpe?g|gif|svg|webp|avif|bmp|tiff?|ico|pdf|docx?|xlsx?|pptx?|odt|ods|csv|zip|gz|rar|7z|mp3|mp4|m4a|wav|webm|mov|avi|xml|json)$/i;
 const skipCodeOf = (e: unknown): SkipCode =>
   e instanceof UrlRejected ? ((OWN_SKIP_CODES as readonly string[]).includes(e.code) ? (e.code as SkipCode) : 'url_rejected') : 'http_error';
 
@@ -184,6 +194,8 @@ export class Collector {
   private readonly dp31SpacingMs: number;
   private readonly dp31MaxPagesPerDay: number;
   private readonly dp31MaxStoredChars: number;
+  private readonly sitemapMaxDecompressedBytes: number;
+  private readonly sitemapMaxChildren: number;
   private readonly readBudget: ReadBudget;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
@@ -204,6 +216,8 @@ export class Collector {
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
+    this.sitemapMaxDecompressedBytes = opts.sitemapMaxDecompressedBytes ?? DEFAULT_MAX_DECOMPRESSED_BYTES;
+    this.sitemapMaxChildren = opts.sitemapMaxChildren ?? 12;
   }
 
   /**
@@ -451,7 +465,16 @@ export class Collector {
     const parsed = parseSitemap(top.body!);
     let pages = parsed.entries;
     if (parsed.kind === 'index') {
-      const children = [...parsed.entries].sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')).slice(0, 2);
+      // Com lastmod no índice: os 2 filhos mais recentes. SEM lastmod (gov.br: sitemap1.xml.gz … sitemapN.xml.gz) a ordem dos filhos NÃO
+      // é cronológica (matérias novas aparecem em qualquer filho): lê todos, até `sitemapMaxChildren` (cada filho é 1 requisição, sujeita
+      // ao espaçamento e ao limite por hora do cadastro); índice maior que isso é recusado em vez de ser lido pela metade.
+      const hasLastmod = parsed.entries.some((e) => e.lastmod);
+      let children = parsed.entries;
+      if (hasLastmod) children = [...parsed.entries].sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')).slice(0, 2);
+      else if (children.length > this.sitemapMaxChildren) {
+        out.skipped.push({ url: source.sitemapUrl, code: 'sitemap_index_too_large', detail: `índice com ${children.length} filhos e sem lastmod (máximo ${this.sitemapMaxChildren})` });
+        return out;
+      }
       pages = [];
       for (const c of children) {
         const sub = await this.collectRaw(source, c.loc);
@@ -460,8 +483,10 @@ export class Collector {
       }
     }
     const prefix = source.sitemapPathPrefix;
+    const seen = new Set<string>();
     const chosen = pages
-      .filter((e) => { try { return new URL(e.loc).pathname.startsWith(prefix); } catch { return false; } })
+      .filter((e) => { try { const p = new URL(e.loc).pathname; return p.startsWith(prefix) && !NON_PAGE_EXT.test(p); } catch { return false; } })
+      .filter((e) => !seen.has(e.loc) && !!seen.add(e.loc))
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))
       .slice(0, limit);
     const guard = new StopGuard();
@@ -488,9 +513,16 @@ export class Collector {
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     try {
-      const r = await this.safeGet(u.toString(), source);
+      let r = await this.safeGet(u.toString(), source);
       if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
       if (r.status !== 200) return { skip: { url, code: 'http_error', detail: String(r.status) } };
+      // Sitemap .xml.gz: descomprime com teto ANTES de qualquer outra leitura do corpo (zip bomb → 'decompressed_too_large').
+      if (r.bytes && isGzip(r.bytes)) {
+        try { r = { ...r, body: await gunzipCapped(r.bytes, this.sitemapMaxDecompressedBytes) }; } catch (e) {
+          if (e instanceof GzipError) return { skip: { url, code: e.code, detail: e.message } };
+          throw e;
+        }
+      }
       const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
       if (chal) return { skip: { url, code: 'challenge', detail: chal } };
       const gate = detectGate(r);
