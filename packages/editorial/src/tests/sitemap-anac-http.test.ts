@@ -41,11 +41,11 @@ describe('amostras reais do sitemap1 da ANAC (QA 10)', () => {
     expect(good.entries).toHaveLength(7); expect(good.drops.total).toBe(0);
   });
 
-  it('seed: gov.br (ANAC, CVM, ANPD e demais) só com https; a lista de fontes que ainda usam http:// é conhecida e fechada', () => {
-    const http = SEED_SOURCES.filter((s) => [s.sitemapUrl, s.feedUrl].some((u) => u && u.startsWith('http://'))).map((s) => s.id).sort();
-    // dois blogs (secundários, DP-29) cadastrados em http:// pela pesquisa de 22/11; não foram testados em https, então ficam como estão
-    // (o coletor sobe o sitemap http do próprio host para https; o feed não). Qualquer fonte nova em http:// quebra este teste de propósito.
-    expect(http).toEqual(['loyalty-magazine', 'travel-codex']);
+  it('seed: nenhuma fonte do cadastro usa http:// em sitemap, feed ou listagem (gov.br incluído)', () => {
+    // loyalty-magazine (sitemap) e travel-codex (feed) estavam em http:// pela pesquisa de 22/11; o QA 10 conferiu ao vivo em 24/11:
+    // https responde 200 nos dois (e o http do loyalty-magazine redireciona 301). Fonte nova em http:// quebra este teste de propósito.
+    const http = SEED_SOURCES.flatMap((s) => [s.sitemapUrl, s.feedUrl, s.listingUrl].filter((u): u is string => !!u && u.startsWith('http://')).map((u) => `${s.id}: ${u}`));
+    expect(http).toEqual([]);
     for (const s of SEED_SOURCES.filter((x) => x.host === 'www.gov.br')) for (const u of [s.sitemapUrl, s.feedUrl, s.listingUrl]) if (u) expect(u.startsWith('https://'), `${s.id}: ${u}`).toBe(true);
   });
 });
@@ -96,5 +96,7 @@ describe('collectSitemap com o índice listando filhos http:// (caso real)', () 
     const r = await collector.collectSitemap(source, 20);
     expect(r.skipped.map((k) => k.code)).toContain('url_rejected');
     expect(fetcher.calls.some((u) => u.includes('outro-host'))).toBe(false);
+    // o aviso de upgrade conta só o que de fato subiu (próprio host): endereço de outro host recusado não pode inflar a contagem
+    expect(r.skipped.some((k) => k.code === 'sitemap_http_upgraded')).toBe(false);
   });
 });
