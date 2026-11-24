@@ -7,7 +7,7 @@
 // auditoria `change_password` em todo resultado, sem senha (o detalhe só leva o resultado).
 import { audit } from './audit';
 import { chargePasswordAttempt, passwordNotChecked, passwordOk } from './password-attempts';
-import { sessionFromHeaders } from './guard';
+import { SessionLookupError, sessionFromHeaders } from './guard';
 import type { Auth } from './server';
 import type { Db } from './types';
 
@@ -36,6 +36,7 @@ export type ChangeOwnPasswordCode =
   | 'VALIDATION_ERROR'
   | 'INVALID_CURRENT_PASSWORD'
   | 'TOO_MANY_ATTEMPTS'
+  | 'SESSION_UNAVAILABLE'
   | 'INTERNAL_ERROR';
 
 export type ChangeOwnPasswordResult =
@@ -66,7 +67,13 @@ function codigoBetterAuth(e: unknown): string | undefined {
 export async function changeOwnPassword(deps: ChangeOwnPasswordDeps, input: ChangeOwnPasswordInput): Promise<ChangeOwnPasswordResult> {
   const { auth, db, headers, ip } = deps;
   const t = (deps.now ?? (() => new Date()))();
-  const session = await sessionFromHeaders(auth, headers);
+  let session;
+  try {
+    session = await sessionFromHeaders(auth, headers);
+  } catch (e) {
+    if (e instanceof SessionLookupError) return { ok: false, status: 503, code: 'SESSION_UNAVAILABLE', mensagem: e.message };
+    throw e;
+  }
   if (!session) return { ok: false, status: 401, code: 'UNAUTHENTICATED', mensagem: 'Sua sessão terminou. Entre de novo para trocar a senha.' };
   if (!session.mfa) return { ok: false, status: 403, code: 'MFA_REQUIRED', mensagem: 'A troca de senha exige a verificação em duas etapas ativa.' };
 
