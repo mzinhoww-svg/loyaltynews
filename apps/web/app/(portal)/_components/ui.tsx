@@ -12,6 +12,7 @@ import { cache, type ReactNode } from 'react';
 import { AD_POSITION_OF, fetchAdPlan, type AdPlan } from '../_lib/ads';
 import { portalApiBase } from '../_lib/commercial-source';
 import { editoriaName } from '../_lib/editorias';
+import { imagemDoCard } from '../_lib/ilustracao';
 import { getSource } from '../_lib/source';
 import type { AdSlotId, Article, Page } from '../_lib/types';
 import { PortalAd } from './PortalAd';
@@ -90,6 +91,7 @@ export function ArticleCard({
   withImage?: boolean;
 }) {
   const nome = editoriaName(article.editoriaSlug);
+  const imagem = imagemDoCard(article);
   return (
     <DsArticleCard
       title={article.title}
@@ -100,9 +102,9 @@ export function ArticleCard({
       publishedAt={article.publishedAt}
       readingMinutes={article.readingMinutes}
       author={article.authorLabel}
-      imageSrc={withImage ? article.image?.src : undefined}
-      imageAlt={withImage ? article.image?.alt : undefined}
-      imageLabel={withImage ? (article.image?.label ?? undefined) : undefined}
+      imageSrc={withImage ? imagem?.src : undefined}
+      imageAlt={withImage ? imagem?.alt : undefined}
+      imageLabel={withImage ? (imagem?.label ?? undefined) : undefined}
       headingLevel={headingLevel}
       rank={rank}
       isMock={article.mock}
@@ -113,8 +115,8 @@ export function ArticleCard({
 
 /** `headingLevel`: use 2 quando a grade vem logo abaixo do h1 (listagens); 3 dentro de uma Section (h2). */
 export function ArticleGrid({ items, cols = 4, headingLevel = 3 }: { items: Article[]; cols?: 3 | 4; headingLevel?: 2 | 3 | 4 }) {
-  // Uma única variante de card por grade: com foto só se TODAS as matérias têm foto; senão todas só texto.
-  const withImage = items.length > 0 && items.every((a) => Boolean(a.image?.src));
+  // Uma única variante de card por grade: com imagem só se TODAS as matérias têm imagem (publicada ou ilustração padrão da editoria, F-04); senão todas só texto.
+  const withImage = items.length > 0 && items.every((a) => Boolean(imagemDoCard(a)?.src));
   // A grade se ajusta ao número de itens: 1 item = linha única (miniatura ao lado), 2 itens = 2 colunas.
   const n = Math.min(items.length, cols);
   const cls = ['pt-grid', cols === 3 && 'pt-grid-3', n <= 2 && `pt-grid--n${n}`].filter(Boolean).join(' ');

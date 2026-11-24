@@ -10,6 +10,7 @@ import { dayOf, formatDate, monthAbbrev } from './_lib/format';
 import { prepareHome } from './_lib/home';
 import { jsonLdString } from './_lib/jsonld';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
+import { imagemDoCard } from './_lib/ilustracao';
 import { getSource } from './_lib/source';
 import { flags } from './_lib/flags';
 import type { Article, SiteConfig, SiteEvent } from './_lib/types';
@@ -70,7 +71,7 @@ function PublishedHome({ site }: { site: SiteConfig }) {
       )}
       {home.hero && (
         <Section title={home.hero.title ?? 'Destaques'} id="destaques">
-          <div className={home.hero.articles[0]?.image?.src ? 'pt-hero' : 'pt-hero pt-hero--text'}>
+          <div className={(home.hero.articles[0] ? imagemDoCard(home.hero.articles[0])?.src : undefined) ? 'pt-hero' : 'pt-hero pt-hero--text'}>
             <div className="pt-hero-main">{home.hero.articles[0] && <ArticleCard article={home.hero.articles[0]} size="lg" headingLevel={3} />}</div>
             <div className="pt-hero-side">
               {home.hero.articles.slice(1).map((a) => (
@@ -196,7 +197,7 @@ async function HomeContent() {
 
       {main && (
         <Section title="Destaques" id="destaques">
-          <div className={main.image?.src ? 'pt-hero' : 'pt-hero pt-hero--text'}>
+          <div className={imagemDoCard(main)?.src ? 'pt-hero' : 'pt-hero pt-hero--text'}>
             <div className="pt-hero-main">
               <ArticleCard article={main} size="lg" headingLevel={3} />
             </div>
