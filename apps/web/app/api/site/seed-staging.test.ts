@@ -26,7 +26,7 @@ describe('seed de staging nas rotas públicas', () => {
     for (const d of docs) expect(CONTEUDO[d.tipo as keyof typeof CONTEUDO]!.safeParse(d.conteudo).success, d.tipo).toBe(true);
   });
 
-  it('o Portal vê a home resolvida (destaques, editoria, últimas e agenda), tudo rotulado, e o SEO noindex', async () => {
+  it('o Portal vê a home resolvida (destaques, editoria, últimas e agenda): matérias e eventos rotulados, seções sem rótulo, e o SEO noindex', async () => {
     const r = await call(pubSite.GET, 'GET', {});
     expect(r.status).toBe(200);
     const { home, seo } = r.body.data;
@@ -37,6 +37,8 @@ describe('seed de staging nas rotas públicas', () => {
     expect(por('agenda').eventos).toHaveLength(3);
     for (const m of [...por('topo').materias, ...por('ultimas').materias]) expect(m.titulo).toContain(SEED_LABEL);
     for (const e of por('agenda').eventos) expect(e.titulo).toContain(SEED_LABEL);
+    // N-02: o rótulo fica no conteúdo, nunca no nome da seção
+    for (const b of home.blocos) if (typeof b.titulo === 'string') expect(b.titulo).not.toContain(SEED_LABEL);
     expect(seo).toMatchObject({ indexacao: 'noindex' });
     expect(seo.tituloPadrao).toContain(SEED_LABEL);
   });
