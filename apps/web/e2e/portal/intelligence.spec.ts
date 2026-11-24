@@ -9,14 +9,13 @@ import { expect, test, type Page } from '@playwright/test';
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 /** Modo do Intelligence no servidor MOCK (só api): '' = full | vazio | sem-flag. */
 const intel = process.env.PORTAL_API_INTEL ?? '';
-/** Clique que navega para uma página de detalhe: no next dev a 1ª visita compila a rota e pode passar de 5 s. */
-const NAV_MS = 20_000;
-// Testes de jornada (várias navegações com compilação sob demanda, cada uma com até NAV_MS): com os workers padrão o orçamento de
-// 30 s do teste estourava no meio de uma espera já correta. Orçamento maior e fixo por teste — sem retry.
-test.describe.configure({ timeout: 90_000 });
+// Com o e2e contra o build de produção (next start, sem compilação sob demanda) o padrão de 5 s basta.
+const NAV_MS = 5_000;
 
 async function axe(page: Page) {
-  await page.waitForLoadState('networkidle');
+  // 'load', não 'networkidle': no build de produção o Next faz prefetch dos links visíveis e páginas com muitos links (perfil com um
+  // pedido por cargo) não ficam 500 ms sem rede; o axe só precisa do documento carregado e do título.
+  await page.waitForLoadState('load');
   // Na navegação por clique o Next atualiza o <title> logo depois do conteúdo: espera o título antes de auditar.
   await expect.poll(() => page.title()).not.toBe('');
   const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -218,6 +217,14 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
       await expect(page.getByTestId('error-state'), rota).toHaveCount(0);
       await axe(page);
     }
+    // P3-3 (revisão visual int/012) também com o vazio vindo da API: texto do aviso abaixo do título e bloco "Enquanto isso".
+    await page.goto('/moves');
+    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const bt = (await titulo.boundingBox())!;
+    const bx = (await page.getByTestId('moves-empty-text').boundingBox())!;
+    expect(bx.y, 'o texto do aviso começa abaixo do título').toBeGreaterThanOrEqual(bt.y + bt.height - 1);
+    await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Diretório de empresas/ })).toHaveAttribute('href', '/intelligence/empresas');
+    await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Pessoas e cargos/ })).toHaveAttribute('href', '/intelligence/pessoas');
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000401'))?.status()).toBe(404);
     await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000001');
