@@ -7,6 +7,7 @@ import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
 import { detectChallenge } from './crawl-guards.mjs';
 import { parseFeed, parseHtml, parseSitemap } from './parse';
+import type { SitemapEntry } from './parse';
 import { sanitize, stripHtml } from './sanitize';
 import { DEFAULT_MAX_DECOMPRESSED_BYTES, GzipError, gunzipCapped, isGzip } from './gzip';
 import type { EditorialFlagOverrides } from '../flags';
@@ -100,7 +101,9 @@ export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
   | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
   /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
-  | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large';
+  | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large'
+  /** aviso (não para a coleta): sitemap com entradas descartadas (malformadas) ou sem nenhuma página sob o prefixo */
+  | 'sitemap_entries_dropped' | 'sitemap_no_items';
 
 /**
  * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
@@ -464,6 +467,15 @@ export class Collector {
     if (top.skip) { out.skipped.push(top.skip); return out; }
     const parsed = parseSitemap(top.body!);
     let pages = parsed.entries;
+    // Visibilidade (sitemap malformado não pode virar "0 matérias" em silêncio): cada sitemap lido (índice e cada filho) que descartou
+    // entradas gera um aviso próprio, com contagem por motivo e amostra. O aviso NÃO para a coleta (não é hostilidade da fonte).
+    const stats = { sitemaps: 1, blocos: parsed.blocos, descartadas: parsed.drops.total, foraDoPrefixo: 0, anexos: 0, duplicadas: 0 };
+    const noteDrops = (url: string, p: ReturnType<typeof parseSitemap>) => {
+      if (p.drops.total === 0) return;
+      const mot = [p.drops.sem_loc ? `sem_loc ${p.drops.sem_loc}` : '', p.drops.loc_nao_http ? `loc_nao_http ${p.drops.loc_nao_http}` : ''].filter(Boolean).join(', ');
+      out.skipped.push({ url, code: 'sitemap_entries_dropped', detail: `${p.drops.total} de ${p.blocos} entradas descartadas (${mot})${p.drops.amostra.length ? `; amostra: ${p.drops.amostra.map((a) => JSON.stringify(a)).join(' ')}` : ''}` });
+    };
+    noteDrops(source.sitemapUrl, parsed);
     if (parsed.kind === 'index') {
       // Com lastmod no índice: os 2 filhos mais recentes. SEM lastmod (gov.br: sitemap1.xml.gz … sitemapN.xml.gz) a ordem dos filhos NÃO
       // é cronológica (matérias novas aparecem em qualquer filho): lê todos, até `sitemapMaxChildren` (cada filho é 1 requisição, sujeita
@@ -479,14 +491,28 @@ export class Collector {
       for (const c of children) {
         const sub = await this.collectRaw(source, c.loc);
         if (sub.skip) { out.skipped.push(sub.skip); if (stopsCollection(sub.skip)) return out; continue; }
-        pages.push(...parseSitemap(sub.body!).entries);
+        const child = parseSitemap(sub.body!);
+        stats.sitemaps++; stats.blocos += child.blocos; stats.descartadas += child.drops.total;
+        noteDrops(c.loc, child);
+        pages.push(...child.entries);
       }
     }
     const prefix = source.sitemapPathPrefix;
     const seen = new Set<string>();
-    const chosen = pages
-      .filter((e) => { try { const p = new URL(e.loc).pathname; return p.startsWith(prefix) && !NON_PAGE_EXT.test(p); } catch { return false; } })
-      .filter((e) => !seen.has(e.loc) && !!seen.add(e.loc))
+    const candidates: SitemapEntry[] = [];
+    for (const e of pages) {
+      let path: string;
+      try { path = new URL(e.loc).pathname; } catch { stats.descartadas++; continue; }
+      if (!path.startsWith(prefix)) { stats.foraDoPrefixo++; continue; }
+      if (NON_PAGE_EXT.test(path)) { stats.anexos++; continue; }
+      if (seen.has(e.loc)) { stats.duplicadas++; continue; }
+      seen.add(e.loc); candidates.push(e);
+    }
+    // Nenhuma página candidata: pode ser legítimo (sem notícia nova) ou sinal de sitemap quebrado/prefixo errado; o aviso traz os números.
+    if (candidates.length === 0) {
+      out.skipped.push({ url: source.sitemapUrl, code: 'sitemap_no_items', detail: `0 páginas sob ${prefix}: ${stats.sitemaps} sitemap(s), ${stats.blocos} entradas, ${stats.descartadas} descartadas, ${stats.foraDoPrefixo} fora do prefixo, ${stats.anexos} anexos, ${stats.duplicadas} duplicadas` });
+    }
+    const chosen = candidates
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))
       .slice(0, limit);
     const guard = new StopGuard();
