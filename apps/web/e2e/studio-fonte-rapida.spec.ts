@@ -131,6 +131,23 @@ test('enviar à checagem só com evidência rápida: a tela avisa antes e a recu
   await expect(alerta.locator('a[data-proximo]')).toHaveAttribute('href', '/studio/fontes');
 });
 
+test('com a evidência apontando uma fonte, a recusa da checagem leva direto à página dessa fonte', async ({ page, context }) => {
+  await entrar(context, 'ed', 'editor');
+  await page.goto(materiaUrl);
+  const form = page.locator('[data-painel="fonte-rapida"]').getByRole('form', { name: 'Anexar evidência' });
+  await form.getByLabel(/Fonte \(opcional\)/).selectOption({ label: 'Agência de notícias de teste (a confirmar)' });
+  const fonte = await form.getByLabel(/Fonte \(opcional\)/).inputValue();
+  expect(fonte).toMatch(/^rapida-/);
+  await form.getByLabel(/URL da evidência/).fill('https://www.agencia-teste.example/noticias/tarifa');
+  await form.getByLabel(/Trecho que sustenta/).fill('A agência confirmou o reajuste da tarifa do pacote básico.');
+  await enviar(page, form.getByRole('button', { name: 'Anexar evidência (a confirmar)' }));
+  await sucesso(page, 'Evidência anexada como a confirmar');
+  await enviar(page, page.getByRole('button', { name: 'Enviar para checagem' }));
+  const alerta = page.locator('main .st-alert.err').filter({ hasText: 'Próximo passo' });
+  await expect(alerta.locator('a[data-proximo]')).toHaveAttribute('href', `/studio/fontes/${fonte}`);
+  await expect(alerta.locator('a[data-proximo]')).toHaveText('Abrir a fonte no Banco de fontes');
+});
+
 test('só quem edita vê o painel; revisor e leitor não', async ({ page, context }) => {
   for (const role of ['revisor', 'leitor']) {
     await entrar(context, 'x', role);

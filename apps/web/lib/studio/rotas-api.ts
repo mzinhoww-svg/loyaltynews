@@ -102,7 +102,7 @@ export interface MateriaDetalhe extends MateriaLinha {
   tempoLeituraMin: number;
   fontes: Evidencia[];
   publicadoEm?: string | null;
-  recibo: { id: string; versao: number; aprovador: string; checagens: { tipo: string; resultado: string }[] } | null;
+  recibo: { id: string; versao: number; aprovador: string; /** Nome de quem aprovou (nunca o e-mail); null se o usuário não existe mais; ausente em Backend antigo. */ aprovadorNome?: string | null; checagens: { tipo: string; resultado: string }[] } | null;
   transicoes: Transicao[];
 }
 
