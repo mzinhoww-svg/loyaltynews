@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import config, { NO_STORE, CACHE_60S, PAGINAS_CACHEAVEIS, PAGINAS_NO_STORE, cacheControlDe, portalCacheHeaders } from '../next.config';
+import config, { NO_STORE, CACHE_60S, PAGINAS_CACHEAVEIS, PAGINAS_NO_STORE, cacheControlDe, portalCacheHeaders, portalSecurityHeaders } from '../next.config';
 
 /**
  * Classificação de TODA rota do portal (app/(portal)). Uma rota nova sem entrada aqui faz o teste de cobertura falhar:
@@ -97,9 +97,11 @@ describe('política de cache do portal: páginas com pessoas e matéria ficam em
       expect(publicas.length).toBe(PAGINAS_CACHEAVEIS.length);
     }
   });
-  it('o headers() do next.config.ts entrega exatamente essas regras', async () => {
+  it('o headers() do next.config.ts entrega as regras de cache (mais as de segurança, que não têm Cache-Control)', async () => {
     const cfg = config('phase-production-server');
-    expect(await cfg.headers!()).toEqual(portalCacheHeaders());
+    const todas = await cfg.headers!();
+    expect(todas.filter((r) => r.headers.some((h) => h.key.toLowerCase() === 'cache-control'))).toEqual(portalCacheHeaders());
+    expect(todas.length).toBe(portalCacheHeaders().length + portalSecurityHeaders().length);
   });
 });
 
