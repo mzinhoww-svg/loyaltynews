@@ -8,6 +8,7 @@
 //   --rollback-app-sem-banco aceita SO o 503 "migracoes_divergentes" do /api/ready (rollback do app com o banco já migrado, build antigo com a sonda)
 //   --expect-migracoes exige /api/ready com migracoes:"ok" (builds com ft/backend-2 19cd21e em diante); sem a opção o campo, se existir, só pode ser "ok"
 //   --consecutivas N --intervalo MS: o /api/health tem de responder 200 N vezes seguidas (padrão 3, a cada 5000 ms), sempre com a mesma versão (QA 8, 24/11: um 200 logo depois do start não prova nada)
+//   --expect-seguranca confere os cabeçalhos de segurança do portal (verificar-seguranca-headers.mjs; achado P2-6)
 //   --expect-icones confere /favicon.ico, /icon.svg e /apple-icon.png (200 com content-type de imagem; achado D-2 do Senior Auditor)
 //   --expect-cache confere a política de cache do portal (verificar-cache-headers.mjs): s-maxage=60 nas páginas sem pessoas, no-store nas com pessoas, na matéria e no sitemap
 //   --expect-flags a,b  exige que /api/health liste EXATAMENTE essas flags (ADR-022; staging com DP-38: intelligencePessoas); --expect-no-flags exige a lista vazia
@@ -16,6 +17,7 @@
 import { pathToFileURL } from 'node:url';
 import { parseArgs, fail } from './lib/util.mjs';
 import { verificar } from './verificar-cache-headers.mjs';
+import { verificarSeguranca } from './verificar-seguranca-headers.mjs';
 import { configSaude, saudeEstavel } from './lib/saude.mjs';
 
 export const ROTULO_SEED = '[DEMO · staging]';
@@ -152,6 +154,11 @@ async function main() {
   if (args['expect-cache']) await tentar('cache', async () => {
     const v = await verificar({ url: base, valores: { editoria: 'mercado' } });
     check(`cache: ${v.total} rotas conforme a política (60 s sem pessoas; no-store com pessoas, matéria e sitemap)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
+  });
+  // Cabeçalhos de segurança (achado P2-6, 24/11): nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP aplicada e em relatório, HSTS do staging.
+  if (args['expect-seguranca']) await tentar('seguranca', async () => {
+    const v = await verificarSeguranca({ url: base, ambiente: 'staging' });
+    check(`seguranca: ${v.total} rotas com os cabeçalhos de segurança (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP, HSTS)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
   });
   if (flagsEsp !== null) await tentar('pessoas-moves', async () => {
     const ligada = flagsEsp.includes('intelligencePessoas');

@@ -22,6 +22,16 @@ export default async function ModulePage({ params }: { params: Promise<{ modulo:
       <h1>{mod.nome}</h1>
       <p className="st-hint">{GRUPOS[mod.grupo]}</p>
       <p>{mod.descricao}</p>
+      {mod.slug === 'configuracoes' ? (
+        <section aria-labelledby="minha-conta">
+          <h2 id="minha-conta">Minha conta</h2>
+          <p>
+            <a href="/studio/conta" data-link-conta>
+              Trocar a minha senha
+            </a>
+          </p>
+        </section>
+      ) : null}
       <section className="st-empty" aria-labelledby="vazio">
         <h2 id="vazio">Nenhum dado disponível</h2>
         <p>

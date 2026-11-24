@@ -22,7 +22,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
     <StudioLayout sidebar={<StudioSidebar itens={itens} />}>
       <header className="st-top">
         <p>
-          Sessão: <strong>{session!.email ?? session!.userId}</strong> · papéis: {session!.roles.join(', ')}
+          Sessão: <strong>{session!.email ?? session!.userId}</strong> · papéis: {session!.roles.join(', ')} · <a href="/studio/conta" data-link-conta>Minha conta</a>
         </p>
       </header>
       {children}
