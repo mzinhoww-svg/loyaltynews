@@ -240,14 +240,36 @@ const LOGIN_FORM = /<input[^>]+type=["']?password["']?/i;
 const LOGIN_TEXT = /(fa[cç]a (?:o )?login para (?:continuar|ler|acessar)|entre (?:na|com) sua conta para (?:continuar|ler)|sign in to (?:continue|read|view)|log in to (?:continue|read|view)|you must be logged in)/i;
 const PAYWALL_TEXT = /(conte[uú]do exclusivo para assinantes|assine para (?:continuar lendo|ler (?:a )?(?:mat[eé]ria|not[ií]cia) completa)|reservado a assinantes|subscribe to (?:continue reading|read (?:the )?full)|this (?:article|content) is for subscribers|to continue reading,? (?:please )?subscribe)/i;
 
-const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*(?:class|id)=["'][^"']*(?:paywall|regwall|subscri|assinant|premium|overlay|modal|piano|meter)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;
+// Elemento candidato a overlay/paywall: o conteúdo vai até o fechamento da PRIMEIRA tag igual; class e id são lidos à parte (marcador por TOKEN, não por substring).
+const WALL_TAG = /<(div|section|aside|dialog)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+const WALL_ATTR = /\b(?:class|id)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+// Marcadores exatos (um token inteiro de class/id, separado por espaço, hífen, sublinhado ou camelCase) e por prefixo (subscribe/subscriber/subscription, assinante/assinatura).
+const WALL_TOKEN_EXACT = new Set(['paywall', 'regwall', 'premium', 'overlay', 'modal', 'piano', 'meter', 'gate', 'wall', 'tp']);
+const WALL_TOKEN_PREFIX = ['subscri', 'assinant'];
+/** R5 (QA 3, ee01f58): `gateway`, `firewall`, `aggregate` NÃO são marcadores; `content-gate`, `paywall-box`, `tp-modal`, `subscribeModal` são. */
+export function hasWallMarker(attrs: string): boolean {
+  for (const m of attrs.matchAll(WALL_ATTR)) {
+    const value = (m[1] ?? m[2] ?? '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+    for (const t of value.split(/[\s\-_]+/)) {
+      if (!t) continue;
+      if (WALL_TOKEN_EXACT.has(t) || (t.endsWith('s') && WALL_TOKEN_EXACT.has(t.slice(0, -1))) || WALL_TOKEN_PREFIX.some((p) => t.startsWith(p))) return true;
+    }
+  }
+  return false;
+}
+/** Overlay é curto por natureza: elemento marcado com mais texto que isto é wrapper do CORPO (ex.: `class="wall"` em volta da matéria) e não conta. */
+export const PAYWALL_ELEMENT_CHARS = 6000;
 const stripTags = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** Aviso de paywall só no HTML de página longa: início do texto visível (sem script/style) ou texto de elemento de overlay/paywall/modal (class/id), em qualquer ponto. */
 function htmlHasPaywallOverlay(html: string): boolean {
   const visible = stripTags(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' '));
   if (PAYWALL_TEXT.test(visible.slice(0, PAYWALL_HEAD_CHARS))) return true;
-  for (const m of html.matchAll(WALL_ELEMENT)) if (PAYWALL_TEXT.test(stripTags(m[2] ?? '').slice(0, PAYWALL_HEAD_CHARS))) return true;
+  for (const m of html.matchAll(WALL_TAG)) {
+    if (!hasWallMarker(m[2] ?? '')) continue;
+    const inner = stripTags(m[3] ?? '');
+    if (inner.length <= PAYWALL_ELEMENT_CHARS && PAYWALL_TEXT.test(inner)) return true;
+  }
   return false;
 }
 

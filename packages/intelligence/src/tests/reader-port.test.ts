@@ -219,6 +219,35 @@ describe('login e paywall continuam parando; CAPTCHA resolvido pelo provedor nã
     expect(detectLoginOrPaywall({ text: corpo, httpStatus: 402 })).toBe('paywall');
   });
 
+  it('R5 (QA 3, ee01f58): marcador de overlay é TOKEN de class/id, não substring; overlay curto com gate/wall/tp para; wrapper do corpo e gateway/firewall não', () => {
+    const corpo = 'Conteudo publico da pagina com texto legitimo suficiente para parecer uma noticia. '.repeat(40);
+    const cita = corpo + ' O jornal exibe "assine para continuar lendo" a quem nao e assinante. ' + corpo;
+    expect(cita.length).toBeGreaterThan(6000);
+    const aviso = '<p>Conteudo exclusivo para assinantes</p>';
+    const fim = (cls: string) => detectLoginOrPaywall({ text: corpo, html: `<article>${corpo}</article><div class="${cls}">${aviso}</div>` });
+    // overlay curto no fim: marcadores exatos, com hífen/sublinhado/camelCase/plural e prefixos de subscribe/assinante
+    for (const cls of ['content-gate', 'gate', 'wall', 'tp-holder', 'site_paywall', 'regwall', 'Overlay', 'modals', 'subscribeModal', 'assinante-box', 'subscription-wall', 'premium-barrier']) {
+      expect(fim(cls), cls).toBe('paywall');
+    }
+    expect(detectLoginOrPaywall({ text: corpo, html: `<article>${corpo}</article><section id="paywall">${'chamada do plano. '.repeat(300)}<b>Conteudo exclusivo para assinantes</b></section>` })).toBe('paywall'); // 5.400 caracteres do próprio elemento
+    // NÃO são marcadores: gateway, firewall, aggregate, lock, content-body
+    for (const cls of ['gateway', 'firewall', 'aggregate-wrapper', 'lock', 'article-body', 'paywallish-not']) {
+      expect(fim(cls), cls).toBeNull();
+    }
+    // G9: wrapper "gateway" em volta da matéria que cita o aviso: passa. G7: wrapper "wall" com o CORPO inteiro (> 6.000 caracteres) não é overlay: passa
+    expect(detectLoginOrPaywall({ text: cita, html: `<div class="gateway"><p>${cita}</p></div>` })).toBeNull();
+    expect(detectLoginOrPaywall({ text: cita, html: `<div class="wall"><p>${cita}</p></div>` })).toBeNull();
+    expect(detectLoginOrPaywall({ text: cita, html: `<div class="article-body"><p>${cita}</p></div>` })).toBeNull();
+    expect(detectLoginOrPaywall({ text: cita, html: `<article><p>${cita}</p></article>` })).toBeNull();
+    // aviso fora da janela do próprio elemento (7.500 caracteres): fica de fora, como o wrapper de corpo
+    expect(detectLoginOrPaywall({ text: corpo, html: `<section id="paywall">${'chamada do plano. '.repeat(420)}<b>Conteudo exclusivo para assinantes</b></section>` })).toBeNull();
+    // página curta com overlay "gate": checagem completa
+    expect(detectLoginOrPaywall({ text: 'texto curto', html: '<div class="gate">Conteudo exclusivo para assinantes</div>' })).toBe('paywall');
+    expect(detectLoginOrPaywall({ text: corpo, httpStatus: 401 })).toBe('login_required');
+    // class e id na mesma tag, aspas simples, atributos antes/depois
+    expect(detectLoginOrPaywall({ text: corpo, html: `<article>${corpo}</article><div data-x="1" id='main' class='box gate' hidden>${aviso}</div>` })).toBe('paywall');
+  });
+
   it('desafio resolvido pelo próprio provedor NÃO para a leitura (DP-32); desafio devolvido sem resolver é falha', async () => {
     const solved = setup(() => ok({ providerSolvedCaptcha: true }));
     const r = await solved.reader.read({ url: 'https://a.invalid/1' });
