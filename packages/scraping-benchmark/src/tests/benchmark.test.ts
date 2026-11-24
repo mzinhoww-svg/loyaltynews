@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReaderPort, ReadResult, ReadRequest } from '@ln/intelligence';
 import { createReader, ScrapflyReader } from '@ln/intelligence';
-import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord, bodyEvidence, detectWall } from '../quality';
+import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord, bodyEvidence, detectWall, isWallMarker } from '../quality';
 import { BudgetGuard } from '../budget';
 import { AdaptiveRouter } from '../router';
 import { computeMetrics, rank, percentile, projectMonthly } from '../metrics';
@@ -543,5 +543,23 @@ describe('lacunas registradas pelo QA 3 (74df503)', () => {
   it('modal de cookies e reportagem que cita o aviso no corpo seguem liberados', () => {
     expect(detectWall({ text: article, html: `<p>${article}</p><div class="cookie-modal">Usamos cookies para melhorar sua experiência.</div>` })).toBeNull();
     expect(detectWall({ text: article, html: `<p>${article}</p><p>Sites exibem "assine para continuar lendo".</p>` })).toBeNull();
+  });
+});
+
+describe('ressalva R5 do QA 3 (ee01f58): marcador por token', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  const cite = '<p>Sites exibem "assine para continuar lendo" ao leitor.</p>';
+  it('G7/G9: "gateway", "firewall", "aggregate" e wrapper "wall" isolado citando a frase NÃO viram paywall', () => {
+    for (const cls of ['gateway', 'news-firewall', 'aggregate', 'wall']) {
+      expect(detectWall({ text: article + article, html: `<div class="${cls}">${article}${cite}${article}</div>` })).toBeNull();
+    }
+  });
+  it('casos que já passavam seguem: content-gate, pay-wall, paywall, tp-holder, subscriber-modal → paywall', () => {
+    for (const cls of ['content-gate', 'pay-wall', 'site-paywall', 'tp-holder', 'subscriber_modal', 'overlay']) {
+      expect(detectWall({ text: article, html: `<p>${article}</p><div class="${cls}">Conteúdo exclusivo para assinantes</div>` })).toBe('paywall');
+    }
+    expect(isWallMarker('gateway')).toBe(false);
+    expect(isWallMarker('content gate')).toBe(true);
+    expect(isWallMarker('AssinanteOnly')).toBe(true);
   });
 });
