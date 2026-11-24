@@ -11,6 +11,7 @@ import { SemBanco } from '../../../_components/SemBanco';
 import { transicaoAction } from '../actions';
 import type { CampaignReport } from '@ln/commercial';
 import { Relatorio } from './_components/Relatorio';
+import { MarcaHidratada } from './_components/MarcaHidratada';
 import { PosicoesCriativos, type CriativoLinha, type ReservaLinha } from './_components/PosicoesCriativos';
 import { flagAtiva } from '@/lib/studio/flags';
 
@@ -60,6 +61,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
       <p>
         <span className="st-badge">{c.status}</span> · {c.startDate} a {c.endDate}
       </p>
+      <MarcaHidratada />
       <div data-erro-codigo={codigoErro}>
         <Flash tipo={tipo} aviso={aviso} />
       </div>
