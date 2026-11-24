@@ -195,8 +195,9 @@ export function detectWall(r: { text?: string; html?: string; httpStatus?: numbe
     const visible = r.html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     if (detectLoginOrPaywall({ text: visible.slice(0, WALL_HEAD_CHARS) }) === 'paywall') return 'paywall';
     for (const m of r.html.matchAll(WALL_ELEMENT)) {
+      if (!isWallMarker(m[2] ?? '')) continue;
       // elemento de overlay é curto por natureza: lê até 6.000 caracteres dele (antes 1.500), lacuna registrada pelo QA 3
-      const inner = (m[2] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WALL_ELEMENT_CHARS);
+      const inner = (m[3] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, WALL_ELEMENT_CHARS);
       const hit = detectLoginOrPaywall({ text: inner });
       if (hit === 'paywall') return 'paywall';
     }
@@ -204,4 +205,21 @@ export function detectWall(r: { text?: string; html?: string; httpStatus?: numbe
   return null;
 }
 /** Elemento de overlay/paywall/modal (class ou id), com o conteúdo até o fechamento da mesma tag. */
-const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*(?:class|id)=["'][^"']*(?:paywall|regwall|subscri|assinant|premium|overlay|modal|piano|meter|gate|wall|tp-)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;
+const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*?(?:class|id)=["']([^"']*)["'][^>]*>([\s\S]*?)<\/\1>/gi;
+
+/**
+ * Marcador por TOKEN de class/id (ressalva R5 do QA 3, ee01f58): divide em espaço, hífen e underscore.
+ *  - fortes (bastam sozinhos): paywall, regwall, subscri*, assinant*, premium, overlay, modal, piano, meter, tp;
+ *  - fracos (gate, wall): só com um qualificador no mesmo atributo (content, pay, reg, member, login, article, story, premium,
+ *    subscriber, assinante) — assim "content-gate" e "pay-wall" contam, mas "gateway", "firewall", "aggregate" e um
+ *    wrapper "wall" isolado do corpo não.
+ */
+const STRONG = new Set(['paywall', 'regwall', 'premium', 'overlay', 'modal', 'piano', 'meter', 'tp']);
+const STRONG_PREFIX = ['subscri', 'assinant'];
+const WEAK = new Set(['gate', 'wall']);
+const QUALIFIER = new Set(['content', 'pay', 'reg', 'member', 'members', 'login', 'article', 'story', 'premium', 'subscriber', 'assinante']);
+export function isWallMarker(attr: string): boolean {
+  const toks = attr.toLowerCase().split(/[\s\-_]+/).filter(Boolean);
+  if (toks.some((t) => STRONG.has(t) || STRONG_PREFIX.some((p) => t.startsWith(p)))) return true;
+  return toks.some((t) => WEAK.has(t)) && toks.some((t) => QUALIFIER.has(t));
+}
