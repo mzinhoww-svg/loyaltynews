@@ -13,7 +13,7 @@ import { verificar as verificarCache } from './verificar-cache-headers.mjs';
 import { pathToFileURL } from 'node:url';
 
 export const HSTS = { staging: 'max-age=86400', production: 'max-age=31536000' };
-export const ROTAS = ['/', '/noticias', '/noticia/materia-que-nao-existe-ensaio', '/studio/entrar', '/api/health', '/robots.txt', '/sitemap.xml'];
+export const ROTAS = ['/', '/noticias', '/noticia/materia-que-nao-existe-ensaio', '/studio/entrar', '/api/health', '/robots.txt', '/sitemap.xml', '/busca/sugestoes?q=milhas'];
 
 /**
  * Pura: problemas dos cabeçalhos de UMA resposta (`h` = objeto com nomes em minúsculas).

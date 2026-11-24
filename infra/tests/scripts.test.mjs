@@ -1430,6 +1430,16 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
   } finally { s.close(); }
 });
 
+/** Imita o handler real de /busca/sugestoes (int/025): 400 em no-store para q fora de 2 a 80 caracteres; 200 estado ok em CACHE_60S; 200 estado indisponivel em no-store; sempre noindex. */
+function respostaBusca(req, res, { indisponivel = false } = {}) {
+  const q = (new URL(req.url, 'http://x').searchParams.get('q') ?? '').trim();
+  const base = { 'content-type': 'application/json', 'x-robots-tag': 'noindex' };
+  if (q.length < 2 || q.length > 80) { res.writeHead(400, { ...base, 'cache-control': 'no-store' }); return res.end('{"erro":"q_invalido"}'); }
+  if (indisponivel) { res.writeHead(200, { ...base, 'cache-control': 'no-store' }); return res.end(JSON.stringify({ q, total: 0, estado: 'indisponivel', itens: [] })); }
+  res.writeHead(200, { ...base, 'cache-control': 'public, s-maxage=60, stale-while-revalidate=30' });
+  return res.end(JSON.stringify({ q, total: 0, estado: 'ok', itens: [] }));
+}
+
 test('verificar-cache-headers: avaliar 60s e no-store; verificar contra servidor falso (pessoas ficam no-store, sitemap público reprova)', async () => {
   const { avaliar, verificar, CACHE_60S, NO_STORE } = await import('../scripts/verificar-cache-headers.mjs');
   assert.deepEqual(avaliar('60s', 'public, s-maxage=60, stale-while-revalidate=300', null), []);
@@ -1445,6 +1455,7 @@ test('verificar-cache-headers: avaliar 60s e no-store; verificar contra servidor
   const estado = { sitemap: 'public, max-age=0, must-revalidate', pessoasCC: 'private, no-cache, no-store, max-age=0' };
   const s = await server((req, res) => {
     const u = req.url.split('?')[0];
+    if (u === '/busca/sugestoes') return respostaBusca(req, res);
     const h = (cc) => { res.writeHead(200, { 'cache-control': cc }); res.end('x'); };
     if (CACHE_60S.map((r) => r.replace('{editoria}', 'mercado')).includes(u)) return h('public, s-maxage=60, stale-while-revalidate=300');
     if (u === '/sitemap.xml') return h(estado.sitemap);
@@ -1471,6 +1482,7 @@ test('smoke-producao --expect-cache: reprova sem a política de cache e passa co
   const s = await server((req, res) => {
     const u = req.url.split('?')[0];
     const cc = estado.politica ? (cacheavel.has(u) ? 'public, s-maxage=60, stale-while-revalidate=30' : pessoas.test(u) ? 'private, no-cache, no-store' : undefined) : undefined;
+    if (u === '/busca/sugestoes') return respostaBusca(req, res);
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json', ...(cc ? { 'cache-control': cc } : {}) }); res.end(JSON.stringify(o)); };
     const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...(cc ? { 'cache-control': cc } : {}), ...h }); res.end(b); };
     if (u === '/api/health') return json(200, { status: 'ok', version: SHA, env: 'production', flags: [] });
