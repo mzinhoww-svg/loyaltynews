@@ -243,21 +243,21 @@ const PAYWALL_TEXT = /(conte[uú]do exclusivo para assinantes|assine para (?:con
 // Elemento candidato a overlay/paywall: o conteúdo vai até o fechamento da PRIMEIRA tag igual; class e id são lidos à parte (marcador por TOKEN, não por substring).
 const WALL_TAG = /<(div|section|aside|dialog)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
 const WALL_ATTR = /\b(?:class|id)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
-// Marcadores exatos (um token inteiro de class/id, separado por espaço, hífen, sublinhado ou camelCase) e por prefixo (subscribe/subscriber/subscription, assinante/assinatura).
-const WALL_TOKEN_EXACT = new Set(['paywall', 'regwall', 'premium', 'overlay', 'modal', 'piano', 'meter', 'gate', 'wall', 'tp']);
-const WALL_TOKEN_PREFIX = ['subscri', 'assinant'];
-/** R5 (QA 3, ee01f58): `gateway`, `firewall`, `aggregate` NÃO são marcadores; `content-gate`, `paywall-box`, `tp-modal`, `subscribeModal` são. */
-export function hasWallMarker(attrs: string): boolean {
-  for (const m of attrs.matchAll(WALL_ATTR)) {
-    const value = (m[1] ?? m[2] ?? '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-    for (const t of value.split(/[\s\-_]+/)) {
-      if (!t) continue;
-      if (WALL_TOKEN_EXACT.has(t) || (t.endsWith('s') && WALL_TOKEN_EXACT.has(t.slice(0, -1))) || WALL_TOKEN_PREFIX.some((p) => t.startsWith(p))) return true;
-    }
-  }
-  return false;
+// Marcador de overlay por TOKEN de class/id (R5 do QA 3, ee01f58; mesma regra de isWallMarker em @ln/scraping-benchmark, 5cff1d0), nunca por pedaço de palavra:
+//  - fortes (bastam sozinhos): paywall, regwall, premium, overlay, modal, piano, meter, tp, e tokens que começam com subscri/assinant;
+//  - fracos (gate, wall): só com um qualificador no MESMO atributo (content, pay, reg, member(s), login, article, story, premium, subscriber, assinante).
+// Assim `content-gate`, `pay-wall`, `site-paywall`, `tp-holder` e `subscriber_modal` contam; `gateway`, `firewall`, `aggregate` e um `wall` isolado em volta do corpo, não.
+const WALL_STRONG = new Set(['paywall', 'regwall', 'premium', 'overlay', 'modal', 'piano', 'meter', 'tp']);
+const WALL_STRONG_PREFIX = ['subscri', 'assinant'];
+const WALL_WEAK = new Set(['gate', 'wall']);
+const WALL_QUALIFIER = new Set(['content', 'pay', 'reg', 'member', 'members', 'login', 'article', 'story', 'premium', 'subscriber', 'assinante']);
+export function isWallMarker(attr: string): boolean {
+  const toks = attr.toLowerCase().split(/[\s\-_]+/).filter(Boolean);
+  if (toks.some((t) => WALL_STRONG.has(t) || WALL_STRONG_PREFIX.some((p) => t.startsWith(p)))) return true;
+  return toks.some((t) => WALL_WEAK.has(t)) && toks.some((t) => WALL_QUALIFIER.has(t));
 }
-/** Overlay é curto por natureza: elemento marcado com mais texto que isto é wrapper do CORPO (ex.: `class="wall"` em volta da matéria) e não conta. */
+const hasWallMarker = (attrs: string): boolean => [...attrs.matchAll(WALL_ATTR)].some((m) => isWallMarker(m[1] ?? m[2] ?? ''));
+/** Janela do texto do próprio elemento marcado (overlay é curto por natureza): lê até 6.000 caracteres dele. */
 export const PAYWALL_ELEMENT_CHARS = 6000;
 const stripTags = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -268,7 +268,7 @@ function htmlHasPaywallOverlay(html: string): boolean {
   for (const m of html.matchAll(WALL_TAG)) {
     if (!hasWallMarker(m[2] ?? '')) continue;
     const inner = stripTags(m[3] ?? '');
-    if (inner.length <= PAYWALL_ELEMENT_CHARS && PAYWALL_TEXT.test(inner)) return true;
+    if (PAYWALL_TEXT.test(inner.slice(0, PAYWALL_ELEMENT_CHARS))) return true;
   }
   return false;
 }
