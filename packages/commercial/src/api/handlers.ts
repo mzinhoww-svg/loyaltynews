@@ -10,7 +10,7 @@ import {
 import type { FormatStatus } from '../types';
 import { adPlan, ALLOWED_MIME, resolveClickDestination, validateCreative } from '../creative';
 import type { ServeResult } from '../rotation';
-import { reportCsv } from '../report';
+import { MAX_WINDOW_DAYS, reportCsv } from '../report';
 import { advertiserCsv } from '../advertiser-report';
 import { CONTACT_BASES } from '../crm';
 
@@ -83,7 +83,17 @@ export const resolveCreativeImage = define({ auth: 'public', schema: z.object({ 
 });
 
 // ---------- Studio (exige ctx.actor.canManageCommercial) ----------
-export const getStudioDashboard = define({ auth: 'studio', schema: z.object({ from: IsoDate, to: IsoDate }) }, (ctx, i) => ok(studioDashboard(ctx, i.from, i.to)));
+/** Dias de calendário de [from, to] inclusive (negativo ou zero se a ponta final vier antes). */
+const spanDays = (from: string, to: string): number => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+/**
+ * Painel do Studio. A janela é limitada a MAX_WINDOW_DAYS (a mesma dos relatórios, 366 dias inclusive): uma janela maior é recusada com 400
+ * WINDOW_TOO_LARGE, em vez de varrer todo o histórico (lacunas de auditoria, entrega) para montar o painel.
+ */
+export const getStudioDashboard = define({ auth: 'studio', schema: z.object({ from: IsoDate, to: IsoDate }) }, (ctx, i) => {
+  const dias = spanDays(i.from, i.to);
+  if (dias > MAX_WINDOW_DAYS) return fail(400, 'WINDOW_TOO_LARGE', `Janela máxima do painel: ${MAX_WINDOW_DAYS} dias (pedida: ${dias}).`, { maxDays: MAX_WINDOW_DAYS, requestedDays: dias });
+  return ok(studioDashboard(ctx, i.from, i.to));
+});
 export const getInventoryOverview = define({ auth: 'studio', schema: z.object({ from: IsoDate, to: IsoDate }) }, (ctx, i) => ok(inventoryOverview(ctx, i.from, i.to)));
 export const getInventoryCalendar = define({ auth: 'studio', schema: z.object({ positionId: PositionId, from: IsoDate, to: IsoDate }) }, (ctx, i) => ok(inventoryCalendar(ctx, i.positionId, i.from, i.to)));
 export const getLeadInbox = define({ auth: 'studio', schema: z.object({ status: z.enum(['novo', 'qualificado', 'descartado', 'convertido']).optional() }) }, (ctx, i) => ok(leadInbox(ctx, i)));
