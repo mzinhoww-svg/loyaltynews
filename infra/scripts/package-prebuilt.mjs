@@ -7,6 +7,8 @@
 // Sobrepõe no pacote (e registra o SHA-256) infra/scripts/start-web.mjs e infra/scripts/lib/prebuilt.mjs DESTA árvore: são o que restaura o .next na subida.
 import { spawnSync } from 'node:child_process';
 import { TAR } from './lib/tar.mjs';
+import { arquivosDoZip } from './lib/zip.mjs';
+import { ambienteDoPacote } from './lib/ambiente-pacote.mjs';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -100,7 +102,11 @@ async function main() {
   // pastas que o painel e o deploy_app removem do upload (get_docs: node_modules, .local, venv, .venv, __pycache__, .next, vendor, .bundle, target, .gradle, .npm) não podem aparecer no caminho
   const ruins = files.filter((f) => /(^|\/)(\.next|node_modules|vendor|target|venv|\.venv|__pycache__|\.bundle|\.gradle|\.local|\.npm)\//.test(f) || /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f));
   if (ruins.length) fail(`arquivos proibidos no pacote: ${ruins.slice(0, 5).join(', ')}`);
-  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(release.perfil === 'production' ? ['--producao'] : [])], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  // ambiente SANEADO + o declarado do pacote (infra/vertra/environments.json do próprio pacote): o CI=true do runner não é variável do app (lib/ambiente-pacote.mjs)
+  let declarado = {};
+  try { declarado = JSON.parse(readFileSync(join(folder, 'infra/vertra/environments.json'), 'utf8').replace(/^\uFEFF/, '')).ambientes?.[release.perfil]?.recursos?.web?.env ?? {}; } catch { /* sem environments.json: só o APP_ENV do release */ }
+  const ckEnv = ambienteDoPacote({ declarado, appEnv: release.appEnv });
+  const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(release.perfil === 'production' ? ['--producao'] : [])], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env: ckEnv });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote pré-construído:\n${ck.stderr || ck.stdout}`);
   // --tar: DEPOIS da varredura de segredos (que lê os arquivos soltos), o .next vira um único web-next.tar e a pasta solta sai do pacote
   if (tar) {
@@ -117,9 +123,9 @@ async function main() {
     if (bytes > 100 * 1024 * 1024) fail(`pasta de ${(bytes / 1048576).toFixed(1)} MB (descomprimida) passa do limite de 100 MB do upload; confira o ZIP real antes de enviar`);
   } else {
     const z = spawnSync(TAR, ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
-    if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP: ${z.stderr || z.error}`);
-    const l = spawnSync(TAR, ['-tf', zip], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    const entradas = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
+    if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP (o tar GNU do Linux não escreve ZIP: use --sem-zip e envie a PASTA, ou rode no Windows/macOS com bsdtar): ${z.stderr || z.error}`);
+    let entradas;
+    try { entradas = arquivosDoZip(zip); } catch (e) { fail(`não consegui ler o índice do ZIP: ${e.message}`); }
     if (entradas.length !== files.length) fail(`pasta (${files.length}) e ZIP (${entradas.length}) divergem`);
     bytes = statSync(zip).size;
     if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);

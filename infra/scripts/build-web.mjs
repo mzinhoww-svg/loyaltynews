@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { envProblems, VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
+import { envProblems, VITRINE_BANNER, VITRINE_MARCADORES, ciDoRunnerAceito, LOG_CI_RUNNER } from './lib/guards.mjs';
 import { buildLeveEnv, typecheckEnv } from './lib/typecheck-report.mjs';
 
 /** Problemas do HTML estático da home em relação ao ambiente esperado. Função pura (testada sem build). */
@@ -52,8 +52,9 @@ if (direct) {
   delete efetivo.CIRCLE_NODE_TOTAL;
   delete efetivo.LN_BUILD_LEVE;
   Object.assign(efetivo, buildLeveEnv(releaseJson));
-  const probs = envProblems(efetivo, { deploy: true });
+  const probs = envProblems(efetivo, { deploy: true, permitirCiRunner: true });
   if (probs.length) { console.error(`[build-web] ambiente reprovado:\n - ${probs.join('\n - ')}`); process.exit(1); }
+  if (ciDoRunnerAceito(efetivo, { permitir: true })) console.log(`[build-web] ${LOG_CI_RUNNER}`);
 
   console.log(`[build-web] APP_ENV=${appEnv} NEXT_PUBLIC_SITE_URL=${siteUrl} PORTAL_VITRINE=${vitrine ? '1' : '(ausente)'} build-leve=${efetivo.CIRCLE_NODE_TOTAL ? '1 worker' : 'padrao'} typecheck-no-build=${efetivo.LN_BUILD_SKIP_TYPECHECK === '1' ? 'dispensado (relatorio ' + (releaseJson.typecheckRelatorio ?? '?') + ')' : 'ligado'}`);
   console.log(`[build-web] valores que o painel tinha: APP_ENV=${process.env.APP_ENV ?? '(indefinida)'} NEXT_PUBLIC_SITE_URL=${process.env.NEXT_PUBLIC_SITE_URL ?? '(indefinida)'} (sobrescritos acima); PORTAL_VITRINE do painel=${painelVitrine === undefined ? '(indefinida)' : painelVitrine}`);
