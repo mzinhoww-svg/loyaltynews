@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { avaliarSeguranca, verificarSeguranca, HSTS } from '../scripts/verificar-seguranca-headers.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
+const S_DIR = S;
 const BOM = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'strict-origin-when-cross-origin',
@@ -92,4 +93,58 @@ test('smoke-producao com seguranca=true confere o HSTS de produção (1 ano): pa
     assert.match(String(pega(reprovado)?.detalhe), /esperado "max-age=31536000" \(production\)/);
     assert.equal((await rodar({ url: a.url, consecutivas: 1, intervaloMs: 1, timeout: 3000 })).checagens.some((c) => /^seguranca:/.test(c.nome)), false, 'sem a opção, a checagem não existe');
   } finally { await fecha(a); await fecha(b); }
+});
+
+test('estáticos: avaliarSeguranca com { estatico: true } exige SÓ nosniff (CSP, XFO, Permissions-Policy e HSTS valem para documentos)', () => {
+  assert.deepEqual(avaliarSeguranca({ 'x-content-type-options': 'nosniff' }, 'staging', { estatico: true }), []);
+  assert.match(avaliarSeguranca({}, 'staging', { estatico: true }).join('|'), /x-content-type-options/);
+  assert.equal(avaliarSeguranca({}, 'staging', { estatico: true }).length, 1);
+  assert.ok(avaliarSeguranca({ 'x-content-type-options': 'nosniff' }, 'staging').length > 1, 'sem a opção, o conjunto completo continua exigido');
+});
+
+// borda: URLs SEM ln-seg vêm de uma cópia antiga (HIT, sem cabeçalhos); com ln-seg a origem responde com tudo (ou sem, no cenário "origem também falha")
+function servidorBorda({ origemOk = true, estaticoSemNosniffMiss = false } = {}) {
+  const srv = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    const estatico = u.pathname.startsWith('/_next/static/');
+    const velha = (u.pathname === '/robots.txt' || estatico) && !u.searchParams.has('ln-seg');
+    const completa = origemOk && !velha;
+    if (velha) { res.setHeader('cf-cache-status', 'HIT'); res.setHeader('age', '117679'); } else res.setHeader('cf-cache-status', 'MISS');
+    if (estaticoSemNosniffMiss && estatico) { res.setHeader('cf-cache-status', 'MISS'); res.end('x'); return; }
+    if (completa) for (const [k, v] of Object.entries(BOM)) res.setHeader(k, v);
+    else if (!velha && !origemOk) { /* origem sem cabeçalhos */ }
+    res.end(u.pathname === '/' ? '<link rel="stylesheet" href="/_next/static/chunks/a.css"/><script src="/_next/static/chunks/b.js"></script><link rel="stylesheet" href="/_next/static/chunks/a.css"/>' : 'x');
+  });
+  return new Promise((ok) => srv.listen(0, '127.0.0.1', () => ok({ srv, url: `http://127.0.0.1:${srv.address().port}` })));
+}
+
+test('borda: cópia antiga do Cloudflare (HIT, sem cabeçalhos) com a ORIGEM OK vira AVISO (não falha) e lista as URLs completas a purgar; estáticos distintos da home são todos sondados', async () => {
+  const s = await servidorBorda();
+  try {
+    const r = await verificarSeguranca({ url: s.url, ambiente: 'staging' });
+    assert.equal(r.violacoes, 0, JSON.stringify(r.resultados.filter((x) => !x.ok)));
+    assert.equal(r.avisos, 3, 'robots.txt + 2 estáticos distintos (o CSS repetido na home conta uma vez)');
+    assert.deepEqual([...r.purgar].sort(), [s.url + '/_next/static/chunks/a.css', s.url + '/_next/static/chunks/b.js', s.url + '/robots.txt'].sort());
+    assert.ok(r.resultados.filter((x) => x.aviso).every((x) => /HIT, age=117679 s/.test(x.aviso) && /ORIGEM entrega tudo/.test(x.aviso)));
+    const cli = await new Promise((ok) => { const p = spawn(process.execPath, [join(S_DIR, 'verificar-seguranca-headers.mjs'), '--url', s.url, '--ambiente', 'staging'], { stdio: ['ignore', 'pipe', 'pipe'] }); let o = ''; p.stdout.on('data', (d) => { o += d; }); p.on('close', (status) => ok({ status, o })); });
+    assert.equal(cli.status, 0, 'avisos não derrubam o código de saída');
+    assert.ok(cli.o.includes('"purgar":[') && cli.o.includes('/robots.txt'), 'a linha com a lista de URLs a purgar sai na CLI');
+    assert.ok(cli.o.includes(s.url + '/robots.txt'), 'a URL é COMPLETA (esquema, host e caminho)');
+    assert.match(cli.o, /"avisos":3/);
+  } finally { await fecha(s); }
+});
+
+test('borda: se a ORIGEM também falha (cache-buster sem cabeçalhos), é VIOLAÇÃO real com prefixo "origem:"; estático sem nosniff e sem HIT também reprova', async () => {
+  const s = await servidorBorda({ origemOk: false });
+  try {
+    const r = await verificarSeguranca({ url: s.url, ambiente: 'staging' });
+    assert.ok(r.violacoes >= 3);
+    assert.equal(r.avisos, 0);
+    assert.match(JSON.stringify(r.resultados), /origem: x-content-type-options/);
+  } finally { await fecha(s); }
+  const t = await servidorBorda({ estaticoSemNosniffMiss: true });
+  try {
+    const r = await verificarSeguranca({ url: t.url, ambiente: 'staging' });
+    assert.ok(r.resultados.filter((x) => x.rota.startsWith('/_next/static/')).every((x) => !x.ok && /x-content-type-options/.test(x.problemas.join('|'))));
+  } finally { await fecha(t); }
 });

@@ -158,7 +158,7 @@ async function main() {
   // Cabeçalhos de segurança (achado P2-6, 24/11): nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP aplicada e em relatório, HSTS do staging.
   if (args['expect-seguranca']) await tentar('seguranca', async () => {
     const v = await verificarSeguranca({ url: base, ambiente: 'staging' });
-    check(`seguranca: ${v.total} rotas com os cabeçalhos de segurança (nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP, HSTS)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
+    check(`seguranca: ${v.total} rotas/estáticos com os cabeçalhos de segurança (estáticos: só nosniff)${v.avisos ? ` [AVISO: ${v.avisos} cópia(s) antiga(s) na borda sem cabeçalhos, origem OK; purge_cache por URL completa: ${v.purgar.join(' ')}]` : ''}`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
   });
   if (flagsEsp !== null) await tentar('pessoas-moves', async () => {
     const ligada = flagsEsp.includes('intelligencePessoas');

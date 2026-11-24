@@ -1,9 +1,10 @@
 'use client';
 
-import { Button, Header, SearchIconLink, type HeaderLink, type HeaderMenu } from '@ln/ui';
+import { Button, Header, type HeaderLink, type HeaderMenu } from '@ln/ui';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Editoria, SiteMenuItem } from '../_lib/types';
+import { HeaderSearch } from './HeaderSearch';
 
 export interface NavFlags {
   theLoyal: boolean;
@@ -66,7 +67,7 @@ export function SiteHeader({
               The Loyal
             </Button>
           )}
-          <SearchIconLink linkAs={Link} label="Busca" />
+          <HeaderSearch />
         </>
       }
     />
