@@ -13,6 +13,31 @@ import { pathToFileURL } from 'node:url';
 export const CACHE_60S = ['/', '/noticias', '/editoria/{editoria}', '/analises', '/entrevistas', '/opiniao', '/flash', '/em-alta', '/agenda'];
 export const NO_STORE = ['/noticia/{materia}', '/agenda/{evento}', '/intelligence', '/intelligence/empresas', '/intelligence/empresas/{empresa}', '/intelligence/pessoas', '/intelligence/pessoas/{pessoa}', '/moves', '/moves/{move}', '/sitemap.xml'];
 
+// Sugestões da busca do cabeçalho (int/025): GET /busca/sugestoes?q=<termo>. O Cache-Control vem do PRÓPRIO handler (apps/web/app/(portal)/busca/sugestoes/route.ts): resposta boa
+// (200, estado "ok") = CACHE_60S; termo fora de 2 a 80 caracteres = 400 em no-store; fonte indisponível = 200 { estado: "indisponivel" } em no-store (NUNCA fixar um erro: é correto, não
+// violação, e a sonda avisa). Sempre com x-robots-tag noindex. Sonda com GET (o corpo traz o estado); HEAD não serve aqui.
+export const BUSCA = [
+  { rota: '/busca/sugestoes?q=milhas', regra: '60s', status: 200 },
+  { rota: '/busca/sugestoes?q=a', regra: 'no-store', status: 400 },
+];
+
+/** Pura: avalia a resposta de uma sugestão da busca. Devolve { problemas, nota }. */
+export function avaliarBusca({ status, cacheControl, setCookie, robots, corpo }, esperado) {
+  const p = [];
+  let regra = esperado.regra;
+  let nota;
+  if (status !== esperado.status) p.push(`status ${status}, esperado ${esperado.status}`);
+  if (esperado.status === 200) {
+    let estado;
+    try { estado = JSON.parse(corpo).estado; } catch { /* corpo não é JSON */ }
+    if (estado === 'indisponivel') { regra = 'no-store'; nota = 'a fonte de dados está indisponível: a resposta honesta é 200 em no-store (não é violação); repita quando a fonte voltar para provar o CACHE_60S'; }
+    else if (estado !== 'ok') p.push('corpo sem estado "ok" nem "indisponivel"');
+  }
+  p.push(...avaliar(regra, cacheControl, setCookie));
+  if (!/noindex/i.test(String(robots ?? ''))) p.push('x-robots-tag sem noindex');
+  return { problemas: p, ...(nota ? { nota } : {}) };
+}
+
 /** Pura: avalia um cabeçalho Cache-Control contra a regra. `regra` = '60s' | 'no-store'. */
 export function avaliar(regra, cacheControl, setCookie) {
   const cc = String(cacheControl ?? '').toLowerCase();
@@ -42,6 +67,16 @@ export async function verificar({ url, valores = {}, artigoCache = false, timeou
       resultados.push({ rota: caminho, regra, status: r.status, ok: problemas.length === 0, ...(problemas.length ? { problemas } : {}) });
     } catch (e) {
       resultados.push({ rota: caminho, regra, ok: false, problemas: [`a sonda falhou (${e?.name ?? 'Erro'})`] });
+    }
+  }
+  for (const b of BUSCA) {
+    try {
+      const r = await fetch(base + b.rota, { redirect: 'manual', signal: AbortSignal.timeout(timeout), headers: { 'user-agent': 'ln-cache-check/1' } });
+      const corpo = await r.text();
+      const { problemas, nota } = avaliarBusca({ status: r.status, cacheControl: r.headers.get('cache-control'), setCookie: r.headers.get('set-cookie'), robots: r.headers.get('x-robots-tag'), corpo }, b);
+      resultados.push({ rota: b.rota, regra: b.regra, status: r.status, ok: problemas.length === 0, ...(problemas.length ? { problemas } : {}), ...(nota ? { nota } : {}) });
+    } catch (e) {
+      resultados.push({ rota: b.rota, regra: b.regra, ok: false, problemas: [`a sonda falhou (${e?.name ?? 'Erro'})`] });
     }
   }
   return { url: base, total: resultados.length, violacoes: resultados.filter((x) => !x.ok).length, resultados };
