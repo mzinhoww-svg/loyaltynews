@@ -277,6 +277,10 @@ test.describe('Publicação pela rota oficial (/api/studio/editorial/articles/:i
     // P2-02: quem aprovou aparece como "você", pelo nome (Backend com aprovadorNome) ou como "outro usuário (id curto)", não só um identificador
     await expect(page.locator('[data-aprovador]')).toContainText(/Aprovado por (você|outro usuário \([0-9a-f]{8}…\)|[^()]+)\./);
     await expect(page.locator('[data-aprovador]')).not.toContainText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/); // nunca o identificador inteiro
+    // nem na dica nativa (title) do trecho, nem em qualquer elemento dentro dele: a pessoa nunca passa o mouse e vê o UUID
+    const dicas = await page.locator('[data-aprovador], [data-aprovador] *').evaluateAll((els) => els.map((e) => e.getAttribute('title') ?? '').filter(Boolean));
+    expect(dicas.join(' | ')).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/);
+    await expect(page.locator('[data-aprovador]')).not.toHaveAttribute('title', /.+/);
     // a transição genérica não publica nem corrige: a tela não oferece "corrigido"
     await expect(page.getByRole('button', { name: /corrigido|Corrigir/i })).toHaveCount(0);
 

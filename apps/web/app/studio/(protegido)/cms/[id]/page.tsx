@@ -162,7 +162,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
 
             {m.recibo ? (
               <p className="st-hint">
-                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador} title={m.recibo.aprovador}>Aprovado por {rotuloAprovador(m.recibo.aprovador, m.recibo.aprovadorNome, session.userId)}.</span>
+                Recibo da v{m.recibo.versao}: {m.recibo.checagens.map((c) => c.tipo).join(', ')}. <span data-aprovador={m.recibo.aprovador}>Aprovado por {rotuloAprovador(m.recibo.aprovador, m.recibo.aprovadorNome, session.userId)}.</span>
               </p>
             ) : null}
             <section aria-labelledby="pub-titulo" style={{ marginTop: 12 }}>
