@@ -1,5 +1,5 @@
 # R0-04: contagens, tags históricas e teste (evidência)
-Preparado por Security & Governance em 23/11/2026, sobre o plano do DevOps (`conferencia-hashes-v2.md`) e a cerimônia R0-04 executada pelo PM.
+Preparado por Security & Governance em 23/11/2026 (rev. 2 em 24/11: as saídas dos scripts agora em UTF-8, antes cp1252 e ilegíveis no pacote do revisor; trecho da seção 4 do Blueprint incluído), sobre o plano do DevOps (`conferencia-hashes-v2.md`) e a cerimônia R0-04 executada pelo PM.
 
 ## Critério de aceite: contagens 64/17/28/12/58/47
 | Contagem | Fonte | Valor | Como foi conferido |
@@ -7,9 +7,9 @@ Preparado por Security & Governance em 23/11/2026, sobre o plano do DevOps (`con
 | 64 funções/agentes | `spec-v2.0/contracts/agents.registry.json` (tag `v2.0`) | 64 | `check_r0-R0-04.txt` e `saida-verifica-hashes.txt` |
 | 17 workflows | `spec-v2.0/contracts/workflows.registry.json` | 17 | idem |
 | 28 rituais/reuniões | `spec-v2.0/contracts/meetings.registry.json` | 28 | idem |
-| 12 tranches | dossiê, `03-implantacao/deployment/tranches.csv` | 12 | `saida-verifica-hashes.txt` |
-| 58 tarefas | dossiê, `03-implantacao/deployment/tarefas.csv` | 58 | `saida-verifica-hashes.txt` |
-| 47 formatos comerciais | `spec-v2.0/Loyalty_News_Blueprint_v2_0.md`, seção 4 "Mídia kit dinâmico e monetização" | 47 | contagem das linhas de oferta das tabelas abaixo, sem os pacotes |
+| 12 tranches | dossiê, `03-implantacao/deployment/tranches.csv` | 12 | `saida-verifica-hashes.txt`, linha "Contagens: … tranches=12 tarefas=58" |
+| 58 tarefas | dossiê, `03-implantacao/deployment/tarefas.csv` | 58 | idem (mesma linha da saída) |
+| 47 formatos comerciais | `spec-v2.0/Loyalty_News_Blueprint_v2_0.md`, seção 4 "Mídia kit dinâmico e monetização" | 47 | trecho da seção 4 tirado da tag em `blueprint-v2.0-secao4.md` (nesta pasta), com sha256 do blob e contagem por subseção, sem os pacotes |
 
 ### Os 47 formatos (seção 4 do Blueprint v2.0, tag `v2.0`)
 | Categoria (subseção) | Qtde | Formatos |
