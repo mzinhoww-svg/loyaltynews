@@ -27,6 +27,15 @@ Mesmo procedimento (valor falso; nada gravado; nenhum agente criado), agora com 
 | `pull` manual | HTTP **503** mascarado pela borda (`UPSTREAM_503` no cliente) | **esperado nesta versão**: a `1548e30` contém o gateway unificado (`dcd6d30`), mas **NÃO** contém o servidor com 423 (`0a2e2c8`) **nem** a conferência da assinatura antes do 423 (`59eed1b`) (conferido com `git merge-base --is-ancestor`) |
 Conclusão: o 423 Locked só chegará ao staging na próxima integração que levar a ft/backend `0a2e2c8` e `59eed1b`; até lá o `pull` com o despacho desligado continua 503 mascarado e o cliente trata como "parar o ciclo".
 
+## Atualização de 24/11/2026 (~10:30 UTC): staging na `051a828` (ft/integracao-d20d47f, merge de ft/infra `f6a181f`)
+O app web do staging (`ln-staging-web`, `https://loyaltynews-stg.vertraweb.app`) foi reimplantado às 10:21 UTC. Mesmo procedimento (valor falso; nada gravado; nenhum agente criado):
+| Chamada | Resposta | Leitura |
+|---|---|---|
+| `GET /api/health` | 200, `version: 051a828…`, `env: staging`, `flags: []` | no ar; nenhuma flag ligada (`openbotDispatch` desligada) |
+| `smoke --expect-dispatch off` | health PASS, flag PASS (desligada), assinatura (`heartbeat` e `io/input`) FAIL `401 sem_segredo` | o staging **ainda não tem `OPENBOT_HMAC_SECRET`** (pendência do PM); falha fechada |
+| `pull` manual | HTTP **401** `UNAUTHORIZED: assinatura recusada: sem_segredo` (não é mais o 503 mascarado) | **esperado nesta versão**: a `051a828` contém `0a2e2c8` (423 Locked) **e** `59eed1b` (o `pull` confere a assinatura ANTES de responder 423 `DISPATCH_OFF`) (conferido com `git merge-base --is-ancestor`); sem o segredo o `pull` já dá 401 como as demais rotas |
+Conclusão: o servidor com o 423 chegou ao staging. O `423 DISPATCH_OFF` do `pull` **ainda não foi observado** (precisa do segredo HMAC real no staging e no cofre do agente); com ele, o `pull` com o despacho desligado deve dar 423 e a sonda do `smoke`, 404 `LEASE_ERROR`. A `051a828` **não contém** o cliente com `smoke` (ft/growth `391ae8a`): o comando roda aqui a partir do worktree da ft/growth.
+
 ## O que continua não verificado (precisa do segredo no staging, passo (c) do PM)
 - `heartbeat` com o segredo REAL: 404 `LEASE_ERROR` (assinatura aceita), e 401 com um segredo diferente.
 - `pull` com o despacho LIGADO (`LN_FLAGS_ON=openbotDispatch`) e o piloto (`LN_OPENBOT_PILOT=1`): só depois dos itens 5 e 6 do checklist (`ATIVACAO-STAGING.md` §0.2) e do sinal do PM.
