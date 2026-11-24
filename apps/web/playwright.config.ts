@@ -5,6 +5,8 @@ const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: './e2e',
+  // e2e/portal-real tem config própria (e2e/portal-real.config.ts: harness do build de produção, seed real e flags por ambiente); fora dela roda sem o ambiente e semeia o banco compartilhado (int/021).
+  testIgnore: ['**/portal-real/**'],
   timeout: 60_000,
   retries: 0,
   // Um worker: o backend de e2e usa um PGlite de conexão única (transações de requisições concorrentes se intercalariam) e o banco é compartilhado entre os specs.
