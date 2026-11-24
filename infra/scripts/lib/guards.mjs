@@ -4,8 +4,26 @@
 // Também só de CI (scaffold, packages/db/src/migrate.ts): CI=true libera DB_SSL_MODE=disable; em deploy nenhum dos dois pode existir.
 const DEPLOY_ENVS = ['staging', 'production', 'homologacao', 'producao']; // o scaffold cita homologacao/producao; aceitamos os dois vocabulários
 
-/** Problemas no ambiente do processo. `deploy` força o modo estrito (staging/produção/build de deploy). */
-export function envProblems(env = process.env, { deploy = false, migracao = false } = {}) {
+/**
+ * Exceção ESTREITA do CI=true (decisão do PM 24/11/2026, opção A apertada; requisitos da Security): o build do .next de produção roda no runner do GitHub Actions, que define CI=true.
+ * Vale SÓ se: (1) o chamador pediu (`permitir`; padrão DESLIGADO: start-web, migrate.mjs e ci-checks nunca pedem; só guard-env e build-web, que o workflow chama sem flag);
+ * (2) não é o processo da migração; (3) CI === 'true' (sem diferença de caixa, como a regra antiga) E GITHUB_ACTIONS === 'true' (comparação EXATA, sem trim nem caixa);
+ * (4) o processo NÃO tem a assinatura de um app da Vertra (HOST=0.0.0.0 e PORT=80, definidos pela plataforma; o usuário não os forja; o workflow não os define).
+ * O que o CI destravaria (DB_SSL_MODE=disable, REDIS_SSL_MODE=disable) continua reprovado em deploy, com ou sem esta exceção.
+ */
+export function ciDoRunnerAceito(env, { permitir = false, migracao = false } = {}) {
+  if (!permitir || migracao) return false;
+  if (String(env.CI ?? '').toLowerCase() !== 'true') return false;
+  if (String(env.GITHUB_ACTIONS ?? '') !== 'true') return false;
+  if (String(env.HOST ?? '') === '0.0.0.0' && String(env.PORT ?? '') === '80') return false;
+  return true;
+}
+
+/** Linha de log quando a exceção se aplica (guard-env e build-web imprimem). */
+export const LOG_CI_RUNNER = 'CI=true aceito: runner do GitHub Actions';
+
+/** Problemas no ambiente do processo. `deploy` força o modo estrito (staging/produção/build de deploy). `permitirCiRunner` liga a exceção ciDoRunnerAceito (só guard-env e build-web). */
+export function envProblems(env = process.env, { deploy = false, migracao = false, permitirCiRunner = false } = {}) {
   const p = [];
   const v = env.LN_STUDIO_TEST_SESSION;
   if (v !== undefined && v !== '') {
@@ -59,7 +77,12 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
       if (!u || u.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(u.hostname)) p.push('PORTAL_API_BASE_URL em ambiente de deploy: so ausente ou http://127.0.0.1 / http://localhost (outro host e reprovado)');
     }
     if (String(env.DB_SSL_MODE ?? '').toLowerCase() === 'disable') p.push('DB_SSL_MODE=disable em ambiente de deploy: TLS com certificado de cliente é obrigatório na Vertra (disable é só do CI)');
-    if (String(env.CI ?? '').toLowerCase() === 'true') p.push('CI=true em ambiente de deploy: essa variável libera DB_SSL_MODE=disable e é só do CI');
+    // TLS desligado (banco e Redis) é o que CI=true destrava no código do app (packages/db/src/tls.ts, migrate.ts, apps/workers/src/redis-tls.ts, verify-migrations.mjs): em deploy nunca, com CI ou sem.
+    if (String(env.REDIS_SSL_MODE ?? '').toLowerCase() === 'disable') p.push('REDIS_SSL_MODE=disable em ambiente de deploy: TLS com certificado de cliente é obrigatório na Vertra (disable é só do CI)');
+    // CI=true: reprova, exceto na exceção estreita ciDoRunnerAceito (acima) para o build no runner do GitHub Actions; o TLS desligado já foi reprovado acima, com ou sem ela.
+    if (String(env.CI ?? '').toLowerCase() === 'true' && !ciDoRunnerAceito(env, { permitir: permitirCiRunner, migracao })) p.push('CI=true em ambiente de deploy: essa variável libera DB_SSL_MODE=disable e é só do CI');
+    // A Vertra aceita GITHUB_ACTIONS no painel; com a assinatura de app da Vertra (HOST=0.0.0.0, PORT=80) a variável é do runner do GitHub e não pode existir ali (Security 24/11).
+    if (String(env.GITHUB_ACTIONS ?? '') !== '' && String(env.HOST ?? '') === '0.0.0.0' && String(env.PORT ?? '') === '80') p.push('GITHUB_ACTIONS definida em app da Vertra (HOST=0.0.0.0, PORT=80): a variável é do runner do GitHub Actions e não pode existir no ambiente do app');
   }
   const prod = ['production', 'producao'].includes(String(env.APP_ENV ?? '').toLowerCase());
   // ADR-022 (DP-38): flags de produto por variável SÓ no staging, lista de nomes separada por vírgula. Produção liga por commit revisado (FLAG_RELEASES), nunca por variável.

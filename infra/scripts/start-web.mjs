@@ -24,6 +24,8 @@ export function startProblems(env, release) {
   const appEnv = String(env.APP_ENV ?? '');
   if (appEnv.toLowerCase() !== String(release.appEnv).toLowerCase()) p.push(`APP_ENV="${appEnv}" difere do release.json ("${release.appEnv}")`);
   p.push(...envProblems({ ...env, APP_ENV: release.appEnv }, { deploy: true }));
+  // o start NUNCA usa a exceção do CI=true do runner do GitHub (só o build): GITHUB_ACTIONS no app em execução é recusado (Security 24/11)
+  if (String(env.GITHUB_ACTIONS ?? '') !== '') p.push('GITHUB_ACTIONS definida em execução: a variável é do runner do GitHub Actions e não pode existir no app da Vertra; apague-a');
   const url = String(env.NEXT_PUBLIC_SITE_URL ?? '');
   if (!url) p.push(`NEXT_PUBLIC_SITE_URL ausente em execução: páginas dinâmicas e a revalidação da home voltariam a http://localhost:3000; defina ${release.siteUrl}`);
   else if (url !== release.siteUrl) p.push(`NEXT_PUBLIC_SITE_URL="${url}" difere do release.json ("${release.siteUrl}"; sem barra no fim, sem espaços)`);

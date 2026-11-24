@@ -28,7 +28,8 @@ const ciChecks = (raiz, env) => spawnSync(process.execPath, [join(S, 'ci-checks.
 test('ci-checks --deploy: o CI=true do processo reprova (a regra de runtime está intacta) e o ambiente saneado do pacote passa', () => {
   const d = raizMinima();
   try {
-    const comCi = ciChecks(d, { ...process.env, CI: 'true', APP_ENV: 'production' });
+    const semRunner = { ...process.env, CI: 'true', APP_ENV: 'production' }; delete semRunner.GITHUB_ACTIONS; // o runner do GitHub é a única isenção (guards-ci.test.mjs)
+    const comCi = ciChecks(d, semRunner);
     assert.equal(comCi.status, 1);
     assert.match(comCi.stderr + comCi.stdout, /CI=true em ambiente de deploy/);
     const saneado = ciChecks(d, ambienteDoPacote({ declarado: { NODE_ENV: 'production' }, appEnv: 'production', base: { ...process.env, CI: 'true', GITHUB_ACTIONS: 'true' } }));
