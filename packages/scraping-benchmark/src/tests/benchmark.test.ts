@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ReaderPort, ReadResult, ReadRequest } from '@ln/intelligence';
 import { createReader, ScrapflyReader } from '@ln/intelligence';
-import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord, bodyEvidence } from '../quality';
+import { evaluate, titleSimilarity, sameDate, extractMeta, MIN_EDITORIAL_CHARS, rejudgeRecord, bodyEvidence, detectWall } from '../quality';
 import { BudgetGuard } from '../budget';
 import { AdaptiveRouter } from '../router';
 import { computeMetrics, rank, percentile, projectMonthly } from '../metrics';
@@ -494,5 +494,23 @@ describe('Firecrawl: sucesso diferente de 200 com paywall/login (ressalva QA 3)'
     expect(lg).toMatchObject({ httpStatus: 401 });
     const viaPool = await createReader({ keyed: mk(`${LONG} Conteúdo exclusivo para assinantes`), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com' });
     expect(viaPool).toMatchObject({ ok: false, failure: 'paywall' });
+  });
+});
+
+describe('ressalvas R2/R3 do QA 1 (63c16df)', () => {
+  const article = 'O mercado de assinaturas digitais cresce no Brasil e editores discutem modelos de cobrança. '.repeat(40);
+  it('R2: matéria longa que CITA o aviso de paywall depois do início não é descartada; aviso no início ou página curta continua parando', () => {
+    expect(detectWall({ text: `${article} Muitos sites exibem "assine para continuar lendo" ao leitor. ${article}` })).toBeNull();
+    expect(detectWall({ text: `Conteúdo exclusivo para assinantes. ${article}` })).toBe('paywall');
+    expect(detectWall({ text: 'Trecho curto. Assine para continuar lendo a matéria completa.' })).toBe('paywall');
+    expect(detectWall({ text: article, httpStatus: 402 })).toBe('paywall');
+    // página longa com campo de senha no rodapé não vira login
+    expect(detectWall({ text: article, html: `<p>${article}</p><input type="password">` })).toBeNull();
+  });
+  it('R3: parágrafo com quebras de linha (hard wrap) é medido inteiro', () => {
+    const wrapped = Array.from({ length: 8 }, () => 'linha curta de um mesmo parágrafo editorial').join('\n');
+    const b = bodyEvidence(`${wrapped}\n\nOutro parágrafo curto.`, undefined);
+    expect(b.longestParagraphChars).toBeGreaterThan(300);
+    expect(b.longParagraphs).toBe(1);
   });
 });

@@ -125,7 +125,7 @@ export function evaluate(text: string | undefined, html: string | undefined, ref
   // título só pelos metadados/H1 (ressalva QA 3, M2: o atalho pelo corpo aceitava divergências); sem metadados, 1ª linha do texto
   const tm = titleSimilarity(m.title, referenceTitle);
   const base = { meta: m, textLength: body.length, titleMatch: tm, contentHash: body ? sha256(body) : undefined, snippet: body ? snippetOf(body) : undefined };
-  const lp = detectLoginOrPaywall({ text: body, html, httpStatus });
+  const lp = detectWall({ text: body, html, httpStatus });
   if (lp) return { ...base, editorialSuccess: false, reason: lp };
   if (body.length < MIN_EDITORIAL_CHARS) {
     if (CAPTCHA_RE.test(body) || CAPTCHA_RE.test(html?.slice(0, 5000) ?? '')) return { ...base, editorialSuccess: false, reason: 'captcha' };
@@ -162,9 +162,29 @@ export function bodyEvidence(text: string | undefined, html: string | undefined)
   const clean = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
   let paras: string[] = [];
   if (html && /<p[\s>]/i.test(html)) paras = [...html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].map((m) => clean(m[1] ?? ''));
-  if (!paras.length && (text ?? html)) paras = (text ?? html!).split(/\n{1,}/).map((l) => clean(l).replace(/^[#>*\-\s]+/, '').trim());
+  if (!paras.length && (text ?? html)) {
+    const src = text ?? html!;
+    // R3 (QA 1): parágrafo = bloco entre linhas em branco, com as linhas do bloco juntadas (hard wrap); sem linha em branco, por linha
+    const blocks = /\n\s*\n/.test(src) ? src.split(/\n\s*\n/) : src.split(/\n/);
+    paras = blocks.map((b) => b.split(/\n/).map((l) => clean(l).replace(/^[#>*\-\s]+/, '').trim()).filter(Boolean).join(' ').trim());
+  }
   paras = paras.filter((p) => p.length > 0 && !/^(\[.*\]\(.*\)\s*)+$/.test(p)); // descarta linhas só de links (menus em markdown)
   if (!paras.length) return { longestParagraphChars: 0, longParagraphs: 0 };
   const longest = paras.reduce((a, b) => (b.length > a.length ? b : a));
   return { longestParagraphChars: longest.length, longParagraphs: paras.filter((p) => p.length >= 200).length, excerpt: longest.slice(0, SNIPPET_MAX) };
+}
+
+/**
+ * Guarda de login/paywall com limite de tamanho (ressalva R2 do QA 1, 63c16df). O detector do Data testa o aviso de paywall no
+ * texto inteiro: uma reportagem longa que CITE "assine para continuar lendo" seria descartada. Aqui:
+ *  - página curta (≤ 3.000 caracteres): checagem completa, como antes (paywall/login costumam ser páginas curtas);
+ *  - página longa: só os primeiros 1.500 caracteres, sem o teste de formulário de senha (rodapé de "área do cliente").
+ * 401/402 da origem continuam valendo sempre.
+ */
+export const WALL_SHORT_PAGE = 3000;
+export const WALL_HEAD_CHARS = 1500;
+export function detectWall(r: { text?: string; html?: string; httpStatus?: number }): 'login_required' | 'paywall' | null {
+  const text = r.text ?? '';
+  if (r.httpStatus === 401 || r.httpStatus === 402 || text.length <= WALL_SHORT_PAGE) return detectLoginOrPaywall(r);
+  return detectLoginOrPaywall({ text: text.slice(0, WALL_HEAD_CHARS), httpStatus: r.httpStatus });
 }
