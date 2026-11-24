@@ -382,3 +382,40 @@ test('restaurarPrebuilt: um pré-construído INCOMPLETO (rota perdida) não sobe
     assert.ok(x.problemas.join('|').includes('route.js'));
   } finally { limpa(q); }
 });
+
+test('restaurarPrebuilt: home DINÂMICA (o build real do staging não tem server/app/index.html) NÃO é erro: registra no log e segue; home estática errada continua reprovando', () => {
+  const r = pacote();
+  try {
+    rmSync(join(r, 'prebuilt/web-next/server/app/index.html'));
+    put(r, 'prebuilt/web-next/server/app-paths-manifest.json', JSON.stringify({ '/api/auth/[...all]/route': 'app/api/auth/[...all]/route.js' }));
+    const x = restaurarPrebuilt(r, release(r));
+    assert.deepEqual(x.problemas, [], x.problemas.join('|'));
+    assert.match(x.log.join('|'), /home dinâmica: sem server\/app\/index\.html estático/);
+  } finally { limpa(r); }
+  const e = pacote({ home: HOME('http://localhost:3000') });
+  try {
+    assert.match(restaurarPrebuilt(e, release(e)).problemas.join('|'), /canonical da home/, 'com index.html estático errado reprova como antes');
+  } finally { limpa(e); }
+});
+
+test('provar-restauracao-prebuilt: pacote pré-construído coerente passa (exit 0, 2ª subida não copia de novo, links e marca); pacote com rota perdida reprova (exit 1) citando o arquivo', () => {
+  const r = pacote();
+  const rodar = (pasta) => spawnSync(process.execPath, [join(S, 'provar-restauracao-prebuilt.mjs'), '--pacote', pasta], { encoding: 'utf8' });
+  try {
+    const ok = rodar(r);
+    assert.equal(ok.status, 0, ok.stderr + ok.stdout);
+    const j = JSON.parse(ok.stdout);
+    assert.equal(j.ok, true);
+    assert.deepEqual(j.primeira.problemas, []);
+    assert.match(j.segunda.log.join('|'), /já presente/);
+    assert.ok(j.links.every((l) => l.link) && j.marca);
+    assert.equal(rodar(join(r, 'nao-existe')).status, 2);
+  } finally { limpa(r); }
+  const q = pacote();
+  try {
+    rmSync(join(q, 'prebuilt/web-next/server/app/api'), { recursive: true });
+    const ruim = rodar(q);
+    assert.equal(ruim.status, 1);
+    assert.ok(ruim.stdout.includes('INCOMPLETO'), ruim.stdout.slice(0, 300));
+  } finally { limpa(q); }
+});

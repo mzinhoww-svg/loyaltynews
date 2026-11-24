@@ -157,7 +157,9 @@ export function restaurarPrebuilt(root, release) {
   if (faltam.length) problemas.push(`.next restaurado INCOMPLETO: faltam ${faltam.length} arquivo(s) citado(s) pelos manifestos do Next (${faltam.slice(0, 5).join(' | ')}${faltam.length > 5 ? ' | …' : ''}): refaça o download com --retomar e o pacote`);
   // o mesmo conferido que o build-web faz depois do build: canonical com a URL do ambiente e noindex fora de produção/antes do go-live
   const idx = join(destino, 'server', 'app', 'index.html');
-  if (!existsSync(idx)) problemas.push('.next/server/app/index.html ausente: o pré-construído não tem a home estática para conferir');
+  // Home DINÂMICA (o build real do staging não gera server/app/index.html; o build-web só AVISA e pula): sem HTML estático não há o que conferir aqui; o canonical e o noindex dessa
+  // home vêm do ambiente em execução (NEXT_PUBLIC_SITE_URL e APP_ENV, que o start-web já confere contra o release.json). NÃO é erro.
+  if (!existsSync(idx)) log.push('home dinâmica: sem server/app/index.html estático; canonical e noindex vêm do ambiente em execução (conferido pelo start-web)');
   else problemas.push(...checkHome(readFileSync(idx, 'utf8'), release.siteUrl, release.appEnv, Boolean(release.vitrine), Boolean(release.indexavel)));
   return { ativo: true, problemas, log };
 }
