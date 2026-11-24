@@ -9,7 +9,7 @@
    "id": "1",
    "verificacao": "Identidade do canal do executor (get_me)",
    "resultado": "conforme",
-   "registro": "get_me = mzinhoww-svg (login publico da conta do proprietario, admin; e o dono do repositorio do produto); registro-R0-03.md, \"Riscos registrados\": a App OpenBot age em nome dessa conta; risco aceito RA-01 (DP-01)"
+   "registro": "get_me = conta pessoal do proprietario (admin), a mesma que e dona do repositorio do produto; login omitido por ser identificador de pessoa. registro-R0-03.md, \"Riscos registrados\": a App OpenBot age em nome dessa conta; risco aceito RA-01 (DP-01)"
   },
   {
    "id": "2",
