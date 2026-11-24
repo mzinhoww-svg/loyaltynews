@@ -163,6 +163,39 @@ describe('painel com janela histórica (from/to): as lacunas antigas dessa janel
   });
 });
 
+describe('datas fora da faixa (mês 13, dia 32, mês 00): ignoradas, nunca 500', () => {
+  const FORA = ['2026-13-01', '2026-01-32', '2026-00-10', '2026-12-00', '9999-99-99'];
+  const ids = async (scope: { from?: string; to?: string }) => (await hydrate(app.db, new Date(T), null, scope)).state.ads.audit.list().map((g) => g.id).sort();
+
+  it('hydrate não lança e não carrega além do recente, em qualquer das pontas', async () => {
+    await velha();
+    for (const ruim of FORA) {
+      expect(await ids({ from: ruim, to: '2026-12-31' }), `from=${ruim}`).toEqual([]);
+      expect(await ids({ from: '2026-03-01', to: ruim }), `to=${ruim}`).toEqual([]);
+    }
+  });
+  it('painel com data fora da faixa: nunca 500 (a rota responde pelo próprio schema)', async () => {
+    await velha();
+    for (const ruim of FORA) {
+      expect((await painel(ruim, '2026-12-31')).status, `from=${ruim}`).toBeLessThan(500);
+      expect((await painel('2026-03-01', ruim)).status, `to=${ruim}`).toBeLessThan(500);
+    }
+  });
+  it('relatório de campanha e do anunciante com janela fora da faixa: nunca 500 (leitura das linhas de entrega também)', async () => {
+    for (const ruim of FORA) {
+      const c = await call(d, 'GET', { path: P('/studio/campaigns/report'), query: { campaignId: 'cmp-1', from: ruim, to: '2026-12-31' }, as: comercial });
+      expect(c.status, `campanha from=${ruim}`).toBeLessThan(500);
+      const a = await call(d, 'GET', { path: P('/studio/accounts/report'), query: { accountId: 'acc-1', from: '2026-03-01', to: ruim }, as: comercial });
+      expect(a.status, `anunciante to=${ruim}`).toBeLessThan(500);
+    }
+  });
+  it('as datas boas continuam funcionando (mês 12, dia 31, 29/02 de ano bissexto não existe em 2026)', async () => {
+    await velha();
+    expect(await ids({ from: '2026-03-01', to: '2026-12-31' })).toEqual(['gap-marco']);
+    expect((await painel('2026-03-01', '2026-12-31')).status).toBe(200);
+  });
+});
+
 describe('a gravação dos contadores da lacuna deixa de ser silenciosa', () => {
   it('falha do banco ao somar: o serve segue (200, sem contar) e o erro vai ao log com o id da lacuna e o nome do erro, sem a mensagem do banco', async () => {
     await gap('gap-1', -15, -1, 29, 119);
