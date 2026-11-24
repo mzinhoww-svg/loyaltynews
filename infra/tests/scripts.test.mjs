@@ -1383,3 +1383,48 @@ test('limpar-node-modules: remove o node_modules sem atravessar junction (o alvo
   assert.equal(node('limpar-node-modules.mjs', ['--root', join(base, 'nao-existe')]).status, 2);
   assert.ok(!ls(join(a, 'packages', 'auth')).isSymbolicLink());
 });
+
+test('smoke-producao: produção limpa e não indexável passa; demonstração, flag ligada, indexável antes do go-live e Studio aberto reprovam', async () => {
+  const SHA = 'a'.repeat(40);
+  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...h }); res.end(b); };
+    const rot = estado.demo ? '[DEMO · staging] ' : '';
+    const meta = estado.indexavel ? '' : '<meta name="robots" content="noindex, nofollow"/>';
+    if (u === '/api/health') return json(200, { status: 'ok', version: SHA, env: estado.env, flags: estado.flags });
+    if (u === '/api/ready') return json(200, { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok', migracoes: 'ok' });
+    if (u === '/api/publico/site') return json(200, { nome: 'Loyalty News' });
+    if (u === '/api/publico/editorias') return json(200, { data: Array.from({ length: 10 }, (_, i) => ({ slug: 'e' + i })) });
+    if (u === '/api/publico/materias') return json(200, { data: estado.demo ? [{ slug: 'a', titulo: rot + 'x' }] : [], total: 0 });
+    if (u === '/api/publico/agenda') return json(200, { data: [] });
+    if (u === '/api/publico/intelligence/pessoas' || u === '/api/publico/intelligence/moves') return json(200, { data: [], total: 0, disponivel: estado.pessoas });
+    if (['/', '/noticias', '/midia-kit', '/intelligence'].includes(u)) return html(200, meta + rot + 'ok');
+    if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(estado.indexavel ? 'User-agent: *\nAllow: /\n' : 'User-agent: *\nDisallow: /\n'); }
+    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml' }); return res.end(estado.indexavel ? '<urlset><url><loc>https://x/</loc></url></urlset>' : '<urlset></urlset>'); }
+    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.indexavel ? '<item></item>' : '') + '</rss>'); }
+    if (u === '/studio') { if (estado.studioAberto) return html(200, 'painel'); res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
+    if (u === '/studio/entrar') return html(200, 'login');
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  const run = (extra = []) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', SHA, ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, j: stdout ? JSON.parse(stdout) : null }));
+  });
+  try {
+    const ok = await run();
+    assert.equal(ok.status, 0, JSON.stringify(ok.j?.checagens?.filter((c) => !c.ok)));
+    estado.demo = true; assert.equal((await run()).status, 1, 'demonstração em produção reprova'); estado.demo = false;
+    estado.flags = ['intelligencePessoas']; assert.equal((await run()).status, 1, 'flag ligada reprova'); estado.flags = [];
+    estado.env = 'staging'; assert.equal((await run()).status, 1, 'APP_ENV diferente de production reprova'); estado.env = 'production';
+    estado.pessoas = true; assert.equal((await run()).status, 1, 'pessoas ligadas reprovam'); estado.pessoas = false;
+    estado.studioAberto = true; assert.equal((await run()).status, 1, 'Studio sem login reprova'); estado.studioAberto = false;
+    estado.indexavel = true; assert.equal((await run()).status, 1, 'indexável antes do go-live reprova');
+    assert.equal((await run(['--indexavel'])).status, 0, 'com --indexavel (go-live) passa'); estado.indexavel = false;
+    assert.equal((await run(['--indexavel'])).status, 1, 'não indexável com --indexavel reprova');
+  } finally { s.close(); }
+});
