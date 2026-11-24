@@ -103,7 +103,7 @@ export type SkipCode =
   /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
   | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large'
   /** aviso (não para a coleta): sitemap com entradas descartadas (malformadas) ou sem nenhuma página sob o prefixo */
-  | 'sitemap_entries_dropped' | 'sitemap_no_items';
+  | 'sitemap_entries_dropped' | 'sitemap_no_items' | 'sitemap_child_no_items' | 'sitemap_http_upgraded';
 
 /**
  * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
@@ -463,19 +463,32 @@ export class Collector {
     if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
     // Sem prefixo de caminho verificado para a seção de notícias, o sitemap traria páginas quaisquer (produtos, institucional): não coletar.
     if (!source.sitemapPathPrefix) { out.skipped.push({ url: source.sitemapUrl, code: 'empty_content', detail: 'sitemap sem sitemapPathPrefix verificado (seção de notícias não identificada)' }); return out; }
-    const top = await this.collectRaw(source, source.sitemapUrl);
+    const prefix = source.sitemapPathPrefix;
+    // http:// do PRÓPRIO host da fonte sobe para https:// (o gov.br serve o espelho http com <loc> corrompido: "http://www.gov.br/anachttps://…").
+    // Só esse caso: outro host continua sendo recusado pelo SSRF/host; nada é reescrito além do esquema.
+    let upgraded = 0;
+    const toHttps = (loc: string): string => {
+      try {
+        const u = new URL(loc);
+        if (u.protocol === 'http:' && u.hostname === source.host) { u.protocol = 'https:'; upgraded++; return u.toString(); }
+      } catch { /* URL inválida: segue como veio e o SSRF recusa */ }
+      return loc;
+    };
+    const sitemapUrl = toHttps(source.sitemapUrl);
+    const top = await this.collectRaw(source, sitemapUrl);
     if (top.skip) { out.skipped.push(top.skip); return out; }
     const parsed = parseSitemap(top.body!);
-    let pages = parsed.entries;
     // Visibilidade (sitemap malformado não pode virar "0 matérias" em silêncio): cada sitemap lido (índice e cada filho) que descartou
     // entradas gera um aviso próprio, com contagem por motivo e amostra. O aviso NÃO para a coleta (não é hostilidade da fonte).
     const stats = { sitemaps: 1, blocos: parsed.blocos, descartadas: parsed.drops.total, foraDoPrefixo: 0, anexos: 0, duplicadas: 0 };
     const noteDrops = (url: string, p: ReturnType<typeof parseSitemap>) => {
       if (p.drops.total === 0) return;
-      const mot = [p.drops.sem_loc ? `sem_loc ${p.drops.sem_loc}` : '', p.drops.loc_nao_http ? `loc_nao_http ${p.drops.loc_nao_http}` : ''].filter(Boolean).join(', ');
+      const mot = [p.drops.sem_loc ? `sem_loc ${p.drops.sem_loc}` : '', p.drops.loc_nao_http ? `loc_nao_http ${p.drops.loc_nao_http}` : '', p.drops.loc_url_embutida ? `loc_url_embutida ${p.drops.loc_url_embutida}` : ''].filter(Boolean).join(', ');
       out.skipped.push({ url, code: 'sitemap_entries_dropped', detail: `${p.drops.total} de ${p.blocos} entradas descartadas (${mot})${p.drops.amostra.length ? `; amostra: ${p.drops.amostra.map((a) => JSON.stringify(a)).join(' ')}` : ''}` });
     };
-    noteDrops(source.sitemapUrl, parsed);
+    noteDrops(sitemapUrl, parsed);
+    // Grupos de páginas: o sitemap simples, ou cada filho do índice (para avisar o filho que não rende nenhuma página).
+    const groups: Array<{ url: string; entries: SitemapEntry[]; blocos: number; descartadas: number; isChild: boolean }> = [];
     if (parsed.kind === 'index') {
       // Com lastmod no índice: os 2 filhos mais recentes. SEM lastmod (gov.br: sitemap1.xml.gz … sitemapN.xml.gz) a ordem dos filhos NÃO
       // é cronológica (matérias novas aparecem em qualquer filho): lê todos, até `sitemapMaxChildren` (cada filho é 1 requisição, sujeita
@@ -484,33 +497,41 @@ export class Collector {
       let children = parsed.entries;
       if (hasLastmod) children = [...parsed.entries].sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? '')).slice(0, 2);
       else if (children.length > this.sitemapMaxChildren) {
-        out.skipped.push({ url: source.sitemapUrl, code: 'sitemap_index_too_large', detail: `índice com ${children.length} filhos e sem lastmod (máximo ${this.sitemapMaxChildren})` });
+        out.skipped.push({ url: sitemapUrl, code: 'sitemap_index_too_large', detail: `índice com ${children.length} filhos e sem lastmod (máximo ${this.sitemapMaxChildren})` });
         return out;
       }
-      pages = [];
       for (const c of children) {
-        const sub = await this.collectRaw(source, c.loc);
+        const childUrl = toHttps(c.loc);
+        const sub = await this.collectRaw(source, childUrl);
         if (sub.skip) { out.skipped.push(sub.skip); if (stopsCollection(sub.skip)) return out; continue; }
         const child = parseSitemap(sub.body!);
         stats.sitemaps++; stats.blocos += child.blocos; stats.descartadas += child.drops.total;
-        noteDrops(c.loc, child);
-        pages.push(...child.entries);
+        noteDrops(childUrl, child);
+        groups.push({ url: childUrl, entries: child.entries, blocos: child.blocos, descartadas: child.drops.total, isChild: true });
       }
-    }
-    const prefix = source.sitemapPathPrefix;
+    } else groups.push({ url: sitemapUrl, entries: parsed.entries, blocos: parsed.blocos, descartadas: parsed.drops.total, isChild: false });
     const seen = new Set<string>();
     const candidates: SitemapEntry[] = [];
-    for (const e of pages) {
-      let path: string;
-      try { path = new URL(e.loc).pathname; } catch { stats.descartadas++; continue; }
-      if (!path.startsWith(prefix)) { stats.foraDoPrefixo++; continue; }
-      if (NON_PAGE_EXT.test(path)) { stats.anexos++; continue; }
-      if (seen.has(e.loc)) { stats.duplicadas++; continue; }
-      seen.add(e.loc); candidates.push(e);
+    for (const g of groups) {
+      const mine = { fora: 0, anexos: 0, duplicadas: 0, boas: 0 };
+      for (const e0 of g.entries) {
+        const loc = toHttps(e0.loc);
+        let path: string;
+        try { path = new URL(loc).pathname; } catch { stats.descartadas++; continue; }
+        if (!path.startsWith(prefix)) { mine.fora++; stats.foraDoPrefixo++; continue; }
+        if (NON_PAGE_EXT.test(path)) { mine.anexos++; stats.anexos++; continue; }
+        if (seen.has(loc)) { mine.duplicadas++; stats.duplicadas++; continue; }
+        seen.add(loc); mine.boas++; candidates.push({ loc, lastmod: e0.lastmod });
+      }
+      // Filho que não rende nenhuma página (pode ser legítimo: filhos do gov.br misturam seções; ou defeito do sitemap): aviso com os números.
+      if (g.isChild && mine.boas === 0) {
+        out.skipped.push({ url: g.url, code: 'sitemap_child_no_items', detail: `0 páginas sob ${prefix}: ${g.blocos} entradas, ${g.descartadas} descartadas, ${mine.fora} fora do prefixo, ${mine.anexos} anexos, ${mine.duplicadas} duplicadas` });
+      }
     }
+    if (upgraded > 0) out.skipped.push({ url: sitemapUrl, code: 'sitemap_http_upgraded', detail: `${upgraded} endereço(s) http:// do próprio host passaram para https://` });
     // Nenhuma página candidata: pode ser legítimo (sem notícia nova) ou sinal de sitemap quebrado/prefixo errado; o aviso traz os números.
     if (candidates.length === 0) {
-      out.skipped.push({ url: source.sitemapUrl, code: 'sitemap_no_items', detail: `0 páginas sob ${prefix}: ${stats.sitemaps} sitemap(s), ${stats.blocos} entradas, ${stats.descartadas} descartadas, ${stats.foraDoPrefixo} fora do prefixo, ${stats.anexos} anexos, ${stats.duplicadas} duplicadas` });
+      out.skipped.push({ url: sitemapUrl, code: 'sitemap_no_items', detail: `0 páginas sob ${prefix}: ${stats.sitemaps} sitemap(s), ${stats.blocos} entradas, ${stats.descartadas} descartadas, ${stats.foraDoPrefixo} fora do prefixo, ${stats.anexos} anexos, ${stats.duplicadas} duplicadas` });
     }
     const chosen = candidates
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))

@@ -39,7 +39,7 @@ describe('parseSitemap conta o que descarta', () => {
     expect(p.drops).toMatchObject({ total: 6, sem_loc: 1, loc_nao_http: 5 });
     expect(p.drops.amostra).toHaveLength(3);
     expect(p.drops.amostra.join('')).not.toContain(String.fromCharCode(0));
-    expect(parseSitemap(urlset([block('https://a.example/1')])).drops).toEqual({ total: 0, sem_loc: 0, loc_nao_http: 0, amostra: [] });
+    expect(parseSitemap(urlset([block('https://a.example/1')])).drops).toEqual({ total: 0, sem_loc: 0, loc_nao_http: 0, loc_url_embutida: 0, amostra: [] });
     expect(parseSitemap('<html>não é sitemap</html>')).toMatchObject({ blocos: 0, entries: [], drops: { total: 0 } });
   });
 });
@@ -68,8 +68,8 @@ describe('Collector.collectSitemap: avisos de visibilidade', () => {
     const { collector } = setup({ [SRC.sitemapUrl!]: xmlOk(index([CH(1)])), [CH(1)]: gz(urlset(bad)) });
     const r = await collector.collectSitemap(SRC, 20);
     expect(r.evidences).toEqual([]);
-    expect(r.skipped.map((k) => k.code)).toEqual(['sitemap_entries_dropped', 'sitemap_no_items']);
-    expect(r.skipped[1]!.detail).toBe('0 páginas sob /org/pt-br/noticias/: 2 sitemap(s), 6 entradas, 5 descartadas, 0 fora do prefixo, 0 anexos, 0 duplicadas');
+    expect(r.skipped.map((k) => k.code)).toEqual(['sitemap_entries_dropped', 'sitemap_child_no_items', 'sitemap_no_items']);
+    expect(r.skipped[2]!.detail).toBe('0 páginas sob /org/pt-br/noticias/: 2 sitemap(s), 6 entradas, 5 descartadas, 0 fora do prefixo, 0 anexos, 0 duplicadas');
   });
 
   it('entrada malformada no próprio índice (ou sitemap simples) também gera aviso', async () => {
@@ -91,8 +91,8 @@ describe('Collector.collectSitemap: avisos de visibilidade', () => {
     });
     const r = await collector.collectSitemap(SRC, 20);
     expect(r.evidences).toEqual([]);
-    expect(r.skipped.map((k) => k.code)).toEqual(['sitemap_no_items']);
-    expect(r.skipped[0]!.detail).toBe('0 páginas sob /org/pt-br/noticias/: 2 sitemap(s), 4 entradas, 0 descartadas, 1 fora do prefixo, 2 anexos, 0 duplicadas');
+    expect(r.skipped.map((k) => k.code)).toEqual(['sitemap_child_no_items', 'sitemap_no_items']);
+    expect(r.skipped[1]!.detail).toBe('0 páginas sob /org/pt-br/noticias/: 2 sitemap(s), 4 entradas, 0 descartadas, 1 fora do prefixo, 2 anexos, 0 duplicadas');
   });
 
   it('sitemap limpo não gera aviso nenhum (e duplicata não vira alerta enquanto houver página)', async () => {

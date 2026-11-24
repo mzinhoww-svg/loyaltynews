@@ -106,8 +106,11 @@ export function parseHtml(html: string, base?: string): HtmlMeta {
 }
 
 export interface SitemapEntry { loc: string; lastmod: string | null }
-/** Entradas do sitemap que NÃO viraram URL, por motivo: bloco sem <loc> ou <loc> que não começa com http(s) (nunca é requisitado). */
-export interface SitemapDrops { total: number; sem_loc: number; loc_nao_http: number; amostra: string[] }
+/**
+ * Entradas do sitemap que NÃO viraram URL, por motivo (nunca são requisitadas): bloco sem <loc>; <loc> que não começa com http(s);
+ * <loc> com URL absoluta EMBUTIDA no caminho (ex.: "http://www.gov.br/anachttps://www.gov.br/anac/…", defeito do espelho http do gov.br).
+ */
+export interface SitemapDrops { total: number; sem_loc: number; loc_nao_http: number; loc_url_embutida: number; amostra: string[] }
 /**
  * sitemap.xml: <urlset> (páginas) ou <sitemapindex> (outros sitemaps). Sem dependências; não aproveita entrada sem http(s) (fail closed),
  * mas CONTA o que descartou e por quê (`drops`), para um sitemap malformado não virar "0 matérias" em silêncio. `blocos` = <url>/<sitemap> lidos.
@@ -115,17 +118,19 @@ export interface SitemapDrops { total: number; sem_loc: number; loc_nao_http: nu
 export function parseSitemap(xml: string): { kind: 'urlset' | 'index'; entries: SitemapEntry[]; blocos: number; drops: SitemapDrops } {
   const kind = /<sitemapindex(?=[\s>])/i.test(xml) ? 'index' : 'urlset';
   const entries: SitemapEntry[] = [];
-  const drops: SitemapDrops = { total: 0, sem_loc: 0, loc_nao_http: 0, amostra: [] };
+  const drops: SitemapDrops = { total: 0, sem_loc: 0, loc_nao_http: 0, loc_url_embutida: 0, amostra: [] };
+  const amostrar = (loc: string) => { if (drops.amostra.length < 3) drops.amostra.push(loc.replace(/\p{Cc}/gu, '?').slice(0, 100)); };
   let blocos = 0;
   for (const m of xml.matchAll(/<(url|sitemap)(?=[\s>])[^>]*>([\s\S]*?)<\/\1>/gi)) {
     blocos++;
     const loc = tag(m[2]!, 'loc')?.replace(/&amp;/g, '&').trim();
     if (!loc) { drops.sem_loc++; drops.total++; continue; }
     if (!/^https?:\/\//i.test(loc)) {
-      drops.loc_nao_http++; drops.total++;
-      if (drops.amostra.length < 3) drops.amostra.push(loc.replace(/\p{Cc}/gu, '?').slice(0, 80));
+      drops.loc_nao_http++; drops.total++; amostrar(loc);
       continue;
     }
+    // URL absoluta dentro do caminho (antes de ? e #): endereço quebrado, não existe como página; descartar e contar.
+    if (/^https?:\/\/[^?#]*https?:\/\//i.test(loc)) { drops.loc_url_embutida++; drops.total++; amostrar(loc); continue; }
     entries.push({ loc, lastmod: isoOrNull(tag(m[2]!, 'lastmod')) });
   }
   return { kind, entries, blocos, drops };
