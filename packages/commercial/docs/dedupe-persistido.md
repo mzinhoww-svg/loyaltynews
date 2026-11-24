@@ -96,6 +96,7 @@ Ao detectar a perda, o adaptador chama `ads.audit.reportLoss({ detectedAtMs, las
 Uma chave-marcador simples (`ln:ad:epoch`) **não detecta restauração de backup**: o valor restaurado pode ser igual ao que a instância já conhece. Use um **watermark monotônico** com espelho no PostgreSQL:
 
 1. Uma chave `ln:ad:hb` (inteiro) é incrementada por `INCR` a cada minuto por quem estiver vivo; logo após o `INCR`, o valor lido é gravado no PostgreSQL com `GREATEST` (tabela `ad_redis_watermark(id, value, at)`, id `ln:ad:hb`), junto com o horário.
+- Reforço ao item 2: Ler o `run_id` do `INFO server` e espelhá-lo (`ln:ad:hb:run`): `run_id` diferente do espelho = outro processo (reinício, restauração, failover) ⇒ lacuna `dedupe_regrediu`, mesmo com a chave ≥ espelho. Uma restauração de backup exatamente no último ponto só aparece assim (o watermark sozinho a considera saudável). Queda transitória em que volta o mesmo `run_id` com a chave intacta não abre lacuna.
 2. A cada batida (e na subida do processo), comparar o valor lido do Redis com o do PostgreSQL:
    - chave ausente, ou valor **menor** que o do PostgreSQL → o Redis perdeu ou voltou no tempo → `reportLoss({ detectedAtMs: agora, lastHealthyAtMs: em do PostgreSQL, reason: 'dedupe_perdido' | 'dedupe_regrediu' })`, e então reajustar o PostgreSQL para o valor atual do Redis;
    - valor maior ou igual → saudável; atualizar o PostgreSQL.

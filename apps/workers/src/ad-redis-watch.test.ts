@@ -6,7 +6,7 @@ import { schema } from '@ln/db';
 import { assertLocalTestHost, createTestDb } from '@ln/db/testing';
 import { DeliveryAudit, IMPRESSION_TTL_MS, VIEW_TTL_MS } from '@ln/commercial';
 import { addGapCounts, gapsSnapshot, loadGaps, readWatermark, saveGap, writeWatermark } from './ad-gaps';
-import { describeHeartbeat, HB_DOWN_ID, HB_KEY, heartbeatOnce, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
+import { describeHeartbeat, HB_DOWN_ID, HB_KEY, HB_RUN_ID, heartbeatOnce, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
 
 // Padrão: ioredis-mock. Com LN_TEST_REDIS_URL (Redis LOCAL de teste: o teste faz flushall) usa Redis REAL.
 const REAL_REDIS_URL = process.env.LN_TEST_REDIS_URL;
@@ -21,7 +21,9 @@ let redis: R;
 let t: Awaited<ReturnType<typeof createTestDb>>;
 const db = () => t.db as unknown as Db;
 const rows = () => t.client.query<{ id: string; reason: string; uncounted_serves: number; ignored_events: number }>('SELECT id, reason, uncounted_serves, ignored_events FROM ad_delivery_gaps ORDER BY id');
-const beat = (min: number) => heartbeatOnce(db(), redis, { now: at(min) });
+// `beat` não consulta o INFO: testa só o watermark (a geração do processo tem a sua seção, com run_id controlado)
+const noInfo = (): HeartbeatRedis => ({ get: (k) => redis.get(k), incr: (k) => redis.incr(k), del: (k) => redis.del(k) });
+const beat = (min: number) => heartbeatOnce(db(), noInfo(), { now: at(min) });
 
 beforeEach(async () => {
   t = await createTestDb();
@@ -174,6 +176,101 @@ describe('heartbeatOnce: Redis inacessível', () => {
     const r = await beat(4);
     expect(r).toMatchObject({ state: 'loss', cause: 'indisponibilidade' });
     expect((await loadGaps(db()))[0]!.from).toBe(new Date(T0).toISOString());
+  });
+});
+
+// Geração do processo Redis (run_id do INFO): ponto cego do watermark e falso positivo de indisponibilidade transitória.
+describe('heartbeatOnce: geração do processo (run_id)', () => {
+  const hex = (n: number) => n.toString(16).padStart(12, '0') + '0'.repeat(28);
+  let run = 1;
+  const withRun = (): HeartbeatRedis => ({
+    ...noInfo(),
+    info: async () => `# Server
+redis_version:8.2.1
+run_id:${hex(run)}
+uptime_in_seconds:5
+`,
+  });
+  const gen = (min: number, r: HeartbeatRedis = withRun()) => heartbeatOnce(db(), r, { now: at(min) });
+  const down: HeartbeatRedis = { get: () => Promise.reject(new Error('x')), incr: () => Promise.reject(new Error('x')), del: () => Promise.reject(new Error('x')) };
+  beforeEach(() => { run = 1; });
+
+  it('grava a geração a cada batida e não acusa nada enquanto o processo é o mesmo', async () => {
+    expect((await gen(0)).state).toBe('baseline');
+    expect((await gen(1)).state).toBe('healthy');
+    expect((await readWatermark(db(), HB_RUN_ID))?.value).toBe(1);
+    expect((await rows()).rows).toEqual([]);
+  });
+
+  it('PONTO CEGO FECHADO: backup restaurado no último ponto (chave = espelho) com outro processo ⇒ lacuna dedupe_regrediu (antes: "saudável")', async () => {
+    await gen(0);
+    await gen(1); // espelho = 2
+    await redis.set(HB_KEY, '2'); // restaurado exatamente no último ponto
+    run = 2; // processo novo (restauração, reinício ou failover)
+    const r = await gen(2);
+    expect(r).toMatchObject({ state: 'loss', reason: 'dedupe_regrediu', cause: 'reinicio' });
+    expect((await rows()).rows).toEqual([expect.objectContaining({ id: 'gap-1', reason: 'dedupe_regrediu' })]);
+    expect((await readWatermark(db(), HB_RUN_ID))?.value).toBe(2); // a nova geração vira a referência
+    expect((await gen(3)).state).toBe('healthy'); // e a batida seguinte não acusa de novo
+    expect((await rows()).rows).toHaveLength(1);
+  });
+
+  it('o mesmo valor com o MESMO processo continua saudável (o teste do ponto cego não é falso positivo)', async () => {
+    await gen(0);
+    await gen(1);
+    await redis.set(HB_KEY, '2');
+    expect((await gen(2)).state).toBe('healthy');
+  });
+
+  it('indisponibilidade transitória: volta o MESMO processo com a chave intacta ⇒ recovered, SEM lacuna, marca encerrada', async () => {
+    await gen(0);
+    await gen(1);
+    expect((await gen(2, down)).state).toBe('unreachable');
+    expect((await readWatermark(db(), HB_DOWN_ID))).not.toBeNull();
+    expect(await gen(8)).toEqual({ state: 'recovered', value: 3 });
+    expect((await readWatermark(db(), HB_DOWN_ID))).toBeNull();
+    expect((await rows()).rows).toEqual([]);
+    expect((await gen(9)).state).toBe('healthy');
+  });
+
+  it('indisponibilidade e o processo mudou ⇒ lacuna (reinício); indisponibilidade e a chave sumiu ⇒ lacuna (chave ausente)', async () => {
+    await gen(0);
+    await gen(1);
+    await gen(2, down);
+    run = 2;
+    expect(await gen(5)).toMatchObject({ state: 'loss', cause: 'reinicio' });
+    expect((await readWatermark(db(), HB_DOWN_ID))).toBeNull();
+    await gen(6);
+    await gen(7, down);
+    await redis.flushall(); // mesmo processo, mas esvaziado
+    expect(await gen(9)).toMatchObject({ state: 'loss', cause: 'chave_ausente' });
+  });
+
+  it('sem prova de continuidade (INFO sem run_id, ou sem espelho de geração ainda) a indisponibilidade continua abrindo lacuna', async () => {
+    await gen(0, { ...withRun(), info: undefined }); // sem INFO: nenhuma geração gravada
+    await gen(1, down);
+    expect(await gen(2)).toMatchObject({ state: 'loss', cause: 'indisponibilidade' }); // INFO ok agora, mas sem referência anterior
+  });
+
+  it('INFO que falha ou devolve lixo não derruba a batida: só vale o watermark', async () => {
+    await gen(0);
+    expect((await gen(1, { ...withRun(), info: () => Promise.reject(new Error('NOPERM')) })).state).toBe('healthy');
+    expect((await gen(2, { ...withRun(), info: async () => 'sem run_id aqui' })).state).toBe('healthy');
+    expect((await readWatermark(db(), HB_RUN_ID))?.value).toBe(1); // sem leitura, a referência não muda
+  });
+
+  it('o INFO REAL do Redis (ou do mock) é lido: a geração fica gravada e não muda de uma batida para a outra', async () => {
+    const real = redis as unknown as HeartbeatRedis;
+    await heartbeatOnce(db(), real, { now: at(0) });
+    const first = (await readWatermark(db(), HB_RUN_ID))?.value;
+    expect(first).toBeGreaterThan(0);
+    expect(Number.isSafeInteger(first)).toBe(true);
+    expect((await heartbeatOnce(db(), real, { now: at(1) })).state).toBe('healthy');
+    expect((await readWatermark(db(), HB_RUN_ID))?.value).toBe(first);
+  });
+
+  it('o log de recuperação não carrega segredo', () => {
+    expect(describeHeartbeat({ state: 'recovered', value: 3 })).toBe('redis voltou com o mesmo processo e o estado intacto (3); sem lacuna');
   });
 });
 
