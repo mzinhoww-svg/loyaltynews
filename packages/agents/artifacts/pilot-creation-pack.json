@@ -20,6 +20,43 @@
       "roles": 1200
     }
   },
+  "routes": [
+    {
+      "command": "pull",
+      "method": "POST",
+      "path": "/api/openbot/pull",
+      "purpose": "pede tarefas da SUA conta e dos SEUS tipos, com lease; só IDs",
+      "required": true
+    },
+    {
+      "command": "input",
+      "method": "POST",
+      "path": "/api/openbot/io/input",
+      "purpose": "lê a entrada da tarefa (conteúdo público, promptVersion, meta); só com o lease vivo",
+      "required": true
+    },
+    {
+      "command": "result",
+      "method": "POST",
+      "path": "/api/openbot/io/result",
+      "purpose": "grava o resultado da tarefa; devolve o resultRef derivado (o agente não escolhe)",
+      "required": true
+    },
+    {
+      "command": "done | limit | fail",
+      "method": "POST",
+      "path": "/api/openbot/callback",
+      "purpose": "conclui (custo 0, faixa de assinatura), relata o limite da conta (a tarefa espera a janela) ou falha declarada; idempotente por callbackId",
+      "required": true
+    },
+    {
+      "command": "heartbeat",
+      "method": "POST",
+      "path": "/api/openbot/heartbeat",
+      "purpose": "renova o lease de uma tarefa longa",
+      "required": false
+    }
+  ],
   "hmac": {
     "formula": "HMAC_SHA256(segredo, \"<timestampMs>.<corpo cru>\"): o timestamp em milissegundos, um ponto e o corpo EXATO enviado, nessa ordem (packages/openbot/src/signing.ts, signBody; PROTOCOL.md). Assinar só o corpo NÃO vale: dá 401",
     "who_signs": "o CLIENTE `ln-openbot-agent.mjs`, nunca o modelo: o agente só roda comandos e lê/escreve JSON; o segredo não entra em prompt, argumento, chat nem log",
@@ -43,6 +80,18 @@
   "agents": [
     {
       "draft_id": "ln_pilot_pauta",
+      "routes": {
+        "required": [
+          "/api/openbot/pull",
+          "/api/openbot/io/input",
+          "/api/openbot/io/result",
+          "/api/openbot/callback"
+        ],
+        "optional": [
+          "/api/openbot/heartbeat"
+        ],
+        "never": "qualquer outra rota: /api/studio/*, rotas de publicação, despacho da Fábrica (é do LN, não do agente) e a API tarifada"
+      },
       "openbot": {
         "name": "LN Piloto — Pauta",
         "title": "Pauta e triagem do piloto (OpenBot, assinatura Claude: Haiku, backup Sonnet)",
@@ -77,6 +126,18 @@
     },
     {
       "draft_id": "ln_pilot_redator",
+      "routes": {
+        "required": [
+          "/api/openbot/pull",
+          "/api/openbot/io/input",
+          "/api/openbot/io/result",
+          "/api/openbot/callback"
+        ],
+        "optional": [
+          "/api/openbot/heartbeat"
+        ],
+        "never": "qualquer outra rota: /api/studio/*, rotas de publicação, despacho da Fábrica (é do LN, não do agente) e a API tarifada"
+      },
       "openbot": {
         "name": "LN Piloto — Redação",
         "title": "Redação do piloto (OpenBot, assinatura Claude)",
@@ -111,6 +172,18 @@
     },
     {
       "draft_id": "ln_pilot_checador",
+      "routes": {
+        "required": [
+          "/api/openbot/pull",
+          "/api/openbot/io/input",
+          "/api/openbot/io/result",
+          "/api/openbot/callback"
+        ],
+        "optional": [
+          "/api/openbot/heartbeat"
+        ],
+        "never": "qualquer outra rota: /api/studio/*, rotas de publicação, despacho da Fábrica (é do LN, não do agente) e a API tarifada"
+      },
       "openbot": {
         "name": "LN Piloto — Checagem",
         "title": "Checagem de fatos do piloto (OpenBot, assinatura Codex)",
@@ -145,6 +218,18 @@
     },
     {
       "draft_id": "ln_pilot_revisor",
+      "routes": {
+        "required": [
+          "/api/openbot/pull",
+          "/api/openbot/io/input",
+          "/api/openbot/io/result",
+          "/api/openbot/callback"
+        ],
+        "optional": [
+          "/api/openbot/heartbeat"
+        ],
+        "never": "qualquer outra rota: /api/studio/*, rotas de publicação, despacho da Fábrica (é do LN, não do agente) e a API tarifada"
+      },
       "openbot": {
         "name": "LN Piloto — Revisão",
         "title": "Revisão editorial independente do piloto (OpenBot, assinatura Codex)",
@@ -179,6 +264,18 @@
     },
     {
       "draft_id": "ln_pilot_social",
+      "routes": {
+        "required": [
+          "/api/openbot/pull",
+          "/api/openbot/io/input",
+          "/api/openbot/io/result",
+          "/api/openbot/callback"
+        ],
+        "optional": [
+          "/api/openbot/heartbeat"
+        ],
+        "never": "qualquer outra rota: /api/studio/*, rotas de publicação, despacho da Fábrica (é do LN, não do agente) e a API tarifada"
+      },
       "openbot": {
         "name": "LN Piloto — Social e Entidades",
         "title": "Texto social e entidades do piloto (OpenBot, assinatura Claude)",

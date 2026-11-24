@@ -32,6 +32,20 @@ Prompts: `editorial-0.3` (ft/editorial `b040e53`, blob `a7e58bdc24fd`), tom `tom
 - Variáveis: `OPENBOT_HMAC_SECRET (staging)`; `OPENBOT_HMAC_SECRET_PREVIOUS (só durante a rotação)`; `LN_HMAC_SECRET_FILE (caminho do arquivo no cofre do OpenBot; o conteúdo nunca vai ao prompt)`.
 - Respostas: **401**: sem segredo no servidor, ou assinatura/segredo diferente; com o despacho desligado o pull também confere a assinatura antes (ft/backend 59eed1b); **423 DISPATCH_OFF**: assinatura válida e despacho desligado; **423 KILL_SWITCH / PILOT_STOPPED**: kill switch ligado ou piloto parado; o agente PARA o ciclo; **404 LEASE_ERROR**: assinatura aceita, tarefa ou lease inexistente (sonda).
 
+## 3b. Rotas `/api/openbot` que cada agente chama
+
+Os 5 agentes chamam as MESMAS rotas, pelo cliente `ln-openbot-agent.mjs` (o que muda entre eles é a conta e os tipos de tarefa que cada um puxa). **Nunca** chamam qualquer outra rota: `/api/studio/*`, rotas de publicação, o despacho da Fábrica (que é do LN) ou API tarifada.
+
+| Comando do cliente | Rota | Uso | Obrigatória |
+|---|---|---|---|
+| `pull` | `POST /api/openbot/pull` | pede tarefas da SUA conta e dos SEUS tipos, com lease; só IDs | sim |
+| `input` | `POST /api/openbot/io/input` | lê a entrada da tarefa (conteúdo público, promptVersion, meta); só com o lease vivo | sim |
+| `result` | `POST /api/openbot/io/result` | grava o resultado da tarefa; devolve o resultRef derivado (o agente não escolhe) | sim |
+| `done | limit | fail` | `POST /api/openbot/callback` | conclui (custo 0, faixa de assinatura), relata o limite da conta (a tarefa espera a janela) ou falha declarada; idempotente por callbackId | sim |
+| `heartbeat` | `POST /api/openbot/heartbeat` | renova o lease de uma tarefa longa | só em tarefa longa |
+
+Respostas de recusa que o agente trata (`stop: true`, para o ciclo): 423 `DISPATCH_OFF`, `KILL_SWITCH` e `PILOT_STOPPED` em `pull`, `heartbeat`, `io/input` e `io/result`; o `callback` em curso segue aceito.
+
 ## 4. Campos do `openbot.create_agent`, por agente
 
 ### LN Piloto — Pauta (`ln_pilot_pauta`)
