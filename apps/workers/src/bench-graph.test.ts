@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createTestDb } from '@ln/db/testing';
-import { assertStagingBound, runBenchGraphCli, type BenchCliDeps } from './bench-graph';
+import { EventEmitter } from 'node:events';
+import { assertStagingBound, openBenchClient, runBenchGraphCli, type BenchCliDeps, type PgLike } from './bench-graph';
 
 const MIGRATION = readFileSync(fileURLToPath(new URL('../../../packages/db/drizzle/0006_intelligence.sql', import.meta.url)), 'utf8');
 const HOST = 'staging-db.example.invalid';
@@ -38,7 +39,7 @@ describe('medição ADR-009 de dentro da rede: recusas ANTES de abrir qualquer c
   });
 
   it('DATABASE_URL de OUTRO banco, ausente, inválida ou de outro protocolo: recusa sem repetir a URL', async () => {
-    for (const DATABASE_URL of [url('outro-host.example.invalid'), url(HOST, 'outrobanco'), undefined, 'isto não é url', 'mysql://u:p@' + HOST + '/' + NAME]) {
+    for (const DATABASE_URL of [url('outro-host.example.invalid'), url(HOST, 'outrobanco'), undefined, 'isto não é url', ['mysql', '://u:p@'].join('') + HOST + '/' + NAME]) {
       const { d, err, out, connect } = deps({ env: { ...ENV, DATABASE_URL } });
       expect(await runBenchGraphCli(d)).toBe(2);
       expect(connect).not.toHaveBeenCalled();
@@ -94,5 +95,31 @@ describe('medição ADR-009 de dentro da rede: execução (PGlite)', () => {
     const b = deps({ argv: [CONFIRM, '--schema', 'public'], connect: async () => ({ client: { query: async () => ({ rows: [] }) }, close: closed }) });
     expect(await runBenchGraphCli(b.d)).toBe(1);
     expect(b.err.join(' ')).toMatch(/bench_schema_invalido/);
+  });
+});
+
+describe('R1 (incidente de 23/11): o cliente de banco tem ouvinte de erro ANTES de conectar, com saída saneada', () => {
+  class FakePg extends EventEmitter {
+    order: string[] = [];
+    override on(event: string | symbol, l: (...a: unknown[]) => void): this { if (event === 'error') this.order.push('on-error'); return super.on(event, l); }
+    async connect() { this.order.push('connect'); }
+    async query() { return { rows: [] }; }
+    async end() { this.order.push('end'); }
+  }
+
+  it('registra o ouvinte antes de conectar; um erro de conexão com o objeto do TLS NÃO vaza chave/PEM e NÃO derruba o processo', async () => {
+    const fake = new FakePg();
+    const lines: string[] = [];
+    const { close } = await openBenchClient(() => fake as unknown as PgLike, (l) => lines.push(l));
+    expect(fake.order).toEqual(['on-error', 'connect']); // ouvinte primeiro
+    const pem = ['-----BEGIN ', 'PRIVATE KEY-----'].join('') + 'segredo-do-certificado';
+    const boom = Object.assign(new Error('conexão caiu em ' + HOST), { code: 'ECONNRESET', name: 'Error', socket: { key: pem }, options: { ssl: { key: pem } } });
+    expect(() => fake.emit('error', boom)).not.toThrow(); // com ouvinte, o EventEmitter não lança
+    const all = lines.join(' | ');
+    expect(all).toContain('ECONNRESET');
+    expect(all).toMatch(/--replace/);
+    expect(all).not.toMatch(/BEGIN|PRIVATE KEY|segredo-do-certificado/);
+    await close();
+    expect(fake.order.at(-1)).toBe('end');
   });
 });

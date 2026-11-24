@@ -6,7 +6,7 @@ import { errLine, installOutputFilter, installProcessGuards } from '@ln/db/safe-
 import type { BenchHandle } from '@ln/intelligence/bench-pg';
 import bindingsFile from '../../../infra/vertra/bindings.json';
 import migrationSql from '../../../packages/db/drizzle/0006_intelligence.sql';
-import { runBenchGraphCli, type BindingsFile } from './bench-graph';
+import { openBenchClient, runBenchGraphCli, type BindingsFile, type PgLike } from './bench-graph';
 
 installOutputFilter(); // nenhum PEM/URL sai na saída, nem em erro
 installProcessGuards();
@@ -30,9 +30,8 @@ const code = await runBenchGraphCli({
   connect: async (env) => {
     try {
       const { connectionString, ssl } = pgPoolConfig(env, { max: 1 }); // a MESMA configuração de TLS (DB_SSL_*_PEM) do worker
-      const client = new Client({ connectionString, ssl });
-      await client.connect();
-      return { client: { query: async (sql, params) => ({ rows: (await client.query(sql, params as unknown[])).rows }) }, close: () => client.end() };
+      // R1: o ouvinte de 'error' é registrado ANTES de conectar (openBenchClient), com a saída saneada
+      return await openBenchClient(() => new Client({ connectionString, ssl }) as unknown as PgLike);
     } catch (e) {
       console.error(errLine('[bench-graph] conexão', e));
       throw e;

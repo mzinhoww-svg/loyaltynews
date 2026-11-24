@@ -13,7 +13,32 @@
 import type { BenchClient, BenchHandle, BenchOptions } from '@ln/intelligence/bench-pg';
 import { runPgBench } from '@ln/intelligence/bench-pg';
 
+import { onClientError } from '@ln/db/safe-log';
+
 export class BenchRefused extends Error {}
+
+/** Cliente mínimo que o CLI usa (pg.Client ou um falso nos testes). */
+export interface PgLike {
+  on(event: 'error', listener: (e: unknown) => void): unknown;
+  connect(): Promise<unknown>;
+  query(sql: string, params?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+  end(): Promise<void>;
+}
+
+/**
+ * R1 (incidente de 23/11): TODO cliente de banco registra o ouvinte de 'error' ANTES de conectar, com a saída saneada (só nome/código/mensagem do erro,
+ * nunca o objeto com o socket TLS e a chave do certificado de cliente). Sem o ouvinte, uma queda da conexão derrubaria o processo imprimindo o erro inteiro.
+ * Se a conexão cair no meio, a medição falha e o DROP não consegue rodar: o schema `ln_bench_<data>` fica COM A MARCA do script; rode de novo com `--replace`.
+ */
+export async function openBenchClient(
+  make: () => PgLike,
+  log: (line: string) => void = (l) => console.error(l),
+): Promise<{ client: BenchClient; close: () => Promise<void> }> {
+  const pg = make();
+  pg.on('error', onClientError('[bench-graph] pg (conexão)', (l) => log(`${l} — se sobrou um schema ln_bench_*, rode de novo com --replace`)));
+  await pg.connect();
+  return { client: { query: async (sql, params) => ({ rows: (await pg.query(sql, params)).rows }) }, close: () => pg.end() };
+}
 
 export interface BindingsFile { ambientes?: Record<string, { dbHost: string | null; dbName: string | null } | undefined> }
 
