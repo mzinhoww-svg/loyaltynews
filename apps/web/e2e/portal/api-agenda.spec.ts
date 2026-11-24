@@ -104,26 +104,24 @@ test.describe('agenda do Studio', () => {
 });
 
 test.describe('estados de carregando e de erro (modo api)', () => {
-  test('carregando: navegação interna mostra o esqueleto até a resposta chegar, e depois o vazio honesto', async ({ page, request }, info) => {
+  test('carregando: a busca do cabeçalho mostra "Buscando…" com esqueleto até a resposta chegar, e depois o vazio honesto', async ({ page, request }, info) => {
     test.setTimeout(90_000);
-    // Portão determinístico no servidor MOCK: a resposta da busca só sai quando este teste a libera, depois de ver o esqueleto
-    // (antes era um atraso fixo de 2,5 s, apertado com muitos workers).
+    // /busca não tem mais loading.tsx (o streaming esconde o conteúdo sem JavaScript; a busca precisa funcionar sem JS). O estado "carregando" da busca
+    // é o do campo do cabeçalho. Portão determinístico no servidor MOCK: a resposta só sai quando este teste a libera, depois de ver o estado.
     const chave = `${info.project.name}-${info.parallelIndex}-${Date.now()}`;
     const termo = `portao-${chave}`;
     const fakeApi = `http://localhost:${Number(process.env.PORTAL_PORT_BASE) ? Number(process.env.PORTAL_PORT_BASE) + 4 : 3104}`;
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
     await page.waitForFunction(() => Boolean((window as unknown as { next?: { router?: unknown } }).next?.router));
-    await page.evaluate((u) => (window as unknown as { next: { router: { push: (u: string) => void } } }).next.router.push(u), `/busca?q=${termo}`);
-    const loading = page.getByTestId('portal-loading');
-    await expect(loading).toBeVisible();
-    await expect(loading).toHaveAttribute('aria-busy', 'true');
-    await expect(loading.getByText('Carregando…')).toBeAttached();
-    // Libera a resposta: resultado vazio, não erro.
+    await page.getByRole('button', { name: 'Abrir busca' }).click();
+    await page.getByRole('combobox', { name: 'Buscar matérias' }).fill(termo);
+    await expect(page.getByTestId('busca-carregando')).toHaveText('Buscando…');
+    await expect(page.locator('.ln-hsearch__panel')).toHaveAttribute('aria-busy', 'true');
+    // Libera a resposta: nada encontrado (honesto), não erro.
     expect((await request.post(`${fakeApi}/__portao/abrir?chave=${encodeURIComponent(chave)}`)).ok()).toBe(true);
-    await expect(page.getByText(`Nenhum resultado para “${termo}”`)).toBeVisible({ timeout: 15_000 });
-    await expect(loading).toHaveCount(0);
-    await expect(page.getByTestId('error-state')).toHaveCount(0);
+    await expect(page.getByTestId('busca-vazio')).toContainText(`Nada encontrado para “${termo}”`, { timeout: 15_000 });
+    await expect(page.getByTestId('busca-carregando')).toHaveCount(0);
+    await expect(page.getByTestId('busca-erro')).toHaveCount(0);
   });
 
   test('erro: a busca com a API em falha mostra erro (não "Nenhum resultado"), sem 500, sem detalhe interno, sem MOCK', async ({ page }) => {

@@ -21,7 +21,8 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHead title="Busca" lead="Pesquise por matérias, empresas, programas ou temas." crumbs={[{ label: 'Busca' }]} />
-      <SearchInput action="/busca" defaultValue={q} label="Buscar no portal" />
+      {/* Sem termo o campo já vem com foco (autofocus do HTML): a lupa do cabeçalho sem JavaScript leva a esta página e cai direto no campo. */}
+      <SearchInput action="/busca" defaultValue={q} label="Buscar no portal" autoFocus={!q} />
       <WithSidebar>
         <div aria-live="polite">
           {!result ? (

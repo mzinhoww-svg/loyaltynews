@@ -52,7 +52,7 @@ export default defineConfig({
             ? /api-ads\.spec\.ts/
           : apiIntel
             ? /intelligence\.spec\.ts/
-          : /(api|api-site|api-agenda|api-tipos|env|intelligence|correcoes)\.spec\.ts/
+          : /(api|api-site|api-agenda|api-tipos|env|intelligence|correcoes|header-busca)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
         : /env\.spec\.ts/,
