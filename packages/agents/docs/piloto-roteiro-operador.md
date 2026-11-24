@@ -16,7 +16,7 @@ Legenda: **[verificado]** conferido no código ou em parecer; **[relato]** descr
 | 0.4 | Segredo HMAC no cofre do staging e no cofre do OpenBot (mesmo valor) | **nunca** no chat, em prompt ou em arquivo versionado |
 | 0.5 | Os 5 agentes do OpenBot criados pelo roteiro da Integration (`packages/openbot/docs/ROTEIRO-AGENTES-STAGING.md`), cada um com **uma via**: Pauta (claude, Haiku; backup Sonnet), Redação (claude), Checagem (codex), Revisão (codex), Social (claude; opcional) | `openbot.read_agent` de cada um; acesso restrito |
 | 0.6 | Login de admin no Studio com MFA | você entra em `/studio` |
-| 0.7 | Cliente do agente (`ln-openbot-agent.mjs`, da Integration) **integrado** e copiado na máquina do OpenBot, Node ≥ 20; sem ele, o `smoke` não existe e vale o roteiro manual do passo 1a | `node --version`; o arquivo existe na branch a integrar |
+| 0.7 | Cliente do agente (`ln-openbot-agent.mjs`, da Integration) **integrado** (`ft/growth` ≥ `391ae8a`) e copiado na máquina do OpenBot, Node ≥ 20; sem ele, o `smoke` não existe na árvore do staging e vale o roteiro manual do passo 1a | `node --version`; o arquivo existe na branch a integrar |
 
 Nada disto existe ainda no staging real. **[não verificado]**: os agentes ainda não foram criados e o OpenBot real ainda não chamou o endpoint assinado.
 
@@ -24,15 +24,15 @@ Nada disto existe ainda no staging real. **[não verificado]**: os agentes ainda
 
 São **duas verificações separadas**: o *smoke* (saúde e assinatura, **sem `pull`**) e o *pull manual* (que prova a recusa `423 DISPATCH_OFF`). Faça as duas.
 
-**Dependência:** o comando `ln-openbot-agent.mjs smoke` pertence ao cliente da Integration e **só vale depois de esse cliente estar integrado** (hoje ele existe fora das branches a integrar; a Integration o está levando para uma branch). Enquanto isso, use as alternativas manuais abaixo (`GET /api/health` e o heartbeat manual).
+**Dependência:** o comando `ln-openbot-agent.mjs smoke` existe na `ft/growth` (`391ae8a`, que contém `9f4cdfb` e `0a41204`; aprovado pelo QA 2) e **só vale depois de a `ft/growth` estar integrada** à branch do staging; hoje ela **não** está na main. Enquanto isso, use as alternativas manuais abaixo (`GET /api/health` e o heartbeat manual).
 
 ### 1a. Smoke: saúde e assinatura (sem pull)
 
-- **Com o cliente integrado:** `node <caminho>\ln-openbot-agent.mjs smoke --expect-dispatch off` (com `LN_API_BASE`, `LN_AGENT_ACCOUNT`, `LN_HMAC_SECRET_FILE`). Ele faz **só** `GET /api/health` e um heartbeat de tarefa que não existe; **não faz `pull`**, então não tira lease de ninguém. **[relato]**
+- **Com a `ft/growth` integrada:** `node <caminho>\ln-openbot-agent.mjs smoke --expect-dispatch off` (com `LN_API_BASE`, `LN_AGENT_ACCOUNT`, `LN_HMAC_SECRET_FILE`). Ele faz `GET /api/health` e uma sonda de assinatura (heartbeat e `io/input` de uma tarefa que não existe); **nunca faz `pull`**, então não tira lease de ninguém. **PASS** da sonda = **404 `LEASE_ERROR`** (assinatura aceita) ou **423 `KILL_SWITCH` / `PILOT_STOPPED`** (assinatura aceita, mas o LN está travado de propósito). O **423 `DISPATCH_OFF` não sai do smoke**: ele só vem do pull manual do passo 1b. **[relato; aprovado pelo QA 2]**
 - **Sem o cliente (alternativa manual):**
   1. `GET /api/health` (sem assinatura). **Esperado:** resposta 200 com `flags: []`.
   2. **Heartbeat manual** de uma tarefa que não existe, `POST /api/openbot/heartbeat` assinado (HMAC-SHA256 do corpo cru com `x-ln-signature` e `x-ln-timestamp`, janela de 5 minutos; formato em `packages/openbot/docs/PROTOCOL.md`), feito por quem tem acesso ao segredo (Integration ou DevOps). O segredo **nunca** vai ao chat nem a argumento de linha de comando. **Esperado:** **404 `LEASE_ERROR`** (a assinatura foi aceita e nada foi criado).
-- **Se for diferente:** 401 ou `sem_segredo` = o servidor não tem o segredo, ou ele é diferente do do cofre do OpenBot; 423 `KILL_SWITCH` = o kill está ligado. Corrija antes de seguir.
+- **Se for diferente:** 401 ou `sem_segredo` = o servidor não tem o segredo, ou ele é diferente do do cofre do OpenBot; 423 `KILL_SWITCH` ou `PILOT_STOPPED` = o kill ou a parada do piloto está ligada (para o smoke isso é PASS, mas para **ligar** o piloto, desligue o kill ou resolva a parada antes). Corrija antes de seguir.
 
 ### 1b. Pull manual: a recusa `423 DISPATCH_OFF` (fora do smoke)
 
@@ -44,7 +44,7 @@ São **duas verificações separadas**: o *smoke* (saúde e assinatura, **sem `p
 
 1. `LN_OPENBOT_PILOT=1` no staging. 2. Depois `LN_FLAGS_ON=openbotDispatch`. (Em produção a subida é recusada. **[relato]** Integration.)
 - **Esperado:** `GET /api/health` mostra `flags: ["openbotDispatch"]`; o log da subida diz "flags ligadas: openbotDispatch (DP-41, staging)".
-- **Confira:** `GET /api/health` com `flags: ["openbotDispatch"]` e, com o cliente integrado, `smoke --expect-dispatch on` (saúde e heartbeat; não faz `pull`, para não tomar lease). Sem o cliente, vale o health e o heartbeat manual do passo 1a.
+- **Confira:** `GET /api/health` com `flags: ["openbotDispatch"]` e, com a `ft/growth` integrada, `smoke --expect-dispatch on` (saúde e heartbeat; não faz `pull`, para não tomar lease). Sem o cliente, vale o health e o heartbeat manual do passo 1a.
 - **Reverter:** passo 9.
 
 ## 3. Disparar uma matéria (comando manual da Fábrica)
