@@ -1323,3 +1323,8 @@ test('package-web --bench-graph: só worker, só staging; --bench-args em lista 
     assert.equal(x.status, 2, ruim); assert.match(x.stderr, /argumento não permitido/, ruim);
   }
 });
+
+test('package-web --bench-fumaca exige --bench-graph', () => {
+  const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--profile', 'staging', '--app', 'workers', '--bench-fumaca']);
+  assert.equal(x.status, 2); assert.match(x.stderr, /--bench-fumaca exige --bench-graph/);
+});

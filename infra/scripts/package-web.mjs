@@ -33,6 +33,9 @@ if (provaPng && args.app !== 'workers') fail('--prova-png só vale para o worker
 //   (Data, ft/intelligence 87ae52e) e depois dorme, para a Vertra não reiniciar o processo e repetir a medição; o relatório sai no stdout (get_logs). Nunca no worker de verdade.
 //   --bench-args é uma lista separada por vírgula SEM "--" (o parseArgs leria "--x" como outra opção): scale=<0.001..1>, with-reference, with-indexes, replace, schema=ln_bench_AAAAMMDD.
 const benchGraph = Boolean(args['bench-graph']);
+// --bench-fumaca: antes da medição roda a CLI com --scale 0.02 (segundos; confirma o CREATE e o DROP no banco) e SÓ SE ela terminar com saída 0 roda a medição com --bench-args (que, para decidir o critério, não deve ter scale).
+const benchFumaca = Boolean(args['bench-fumaca']);
+if (benchFumaca && !benchGraph) fail('--bench-fumaca exige --bench-graph', 2);
 const benchArgsRaw = args['bench-args'] && args['bench-args'] !== true ? String(args['bench-args']).trim() : '';
 const benchTokens = [];
 if (benchGraph && args.app !== 'workers') fail('--bench-graph só vale para o worker (--app workers)', 2);
@@ -123,7 +126,9 @@ const buildCmd = benchGraph ? `${buildBase} && npm run build:bench-graph -w @ln/
 // O start_command também falha fechado: start-web.mjs confere APP_COMMIT (40 hex = release.json), NEXT_PUBLIC_SITE_URL e APP_ENV em EXECUÇÃO e só então inicia o Next.
 const startBase = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/start-web.mjs' : web.start_command;
 if (provaPng && !String(startBase).includes('node apps/workers/dist/index.js')) fail('--prova-png: o start do worker mudou; ajuste o package-web', 2);
-const startCmd = benchGraph ? `node infra/scripts/guard-env.mjs && (node apps/workers/dist/bench-graph.js --confirm-staging-bench${benchTokens.length ? ' ' + benchTokens.join(' ') : ''} ; sleep 86400)` : provaPng ? String(startBase).replace('node apps/workers/dist/index.js', '(node infra/scripts/prova-png.mjs --etapa start || true) && node apps/workers/dist/index.js') : startBase;
+const benchRun = (extra) => `node apps/workers/dist/bench-graph.js --confirm-staging-bench${extra.length ? ' ' + extra.join(' ') : ''}`;
+const benchCorpo = benchFumaca ? `${benchRun(['--scale', '0.02'])} && ${benchRun(benchTokens)}` : benchRun(benchTokens);
+const startCmd = benchGraph ? `node infra/scripts/guard-env.mjs && (${benchCorpo} ; sleep 86400)` : provaPng ? String(startBase).replace('node apps/workers/dist/index.js', '(node infra/scripts/prova-png.mjs --etapa start || true) && node apps/workers/dist/index.js') : startBase;
 
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
@@ -138,7 +143,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ benchGraph, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ benchGraph, benchFumaca, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
