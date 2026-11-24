@@ -2,7 +2,7 @@
 Estado: **pronto para o staging, desligado** (22–23/11; **a DP-41 de 23/11 substitui as rotas com OpenCode e Antigravity abaixo: ver §0**). Nada foi ativado, criado ou chamado: nenhum agente no OpenBot, nenhuma rota no ar, nenhuma flag ligada, nenhuma chamada de modelo. Dono: Integration. Combinado com o AgentOps (kit em `packages/agents`: `pilot-protocol.md`, `pilot.ts`) e com o desenho do Chief Architect (`fast-track/custo/piloto-10-materias-openbot.md`). Ligar qualquer coisa abaixo exige o OK do PM, depois do parecer do QA.
 
 ## 0. Checklist de ativação do piloto no staging (DP-41) — estado de 23/11/2026
-Base conferida: **ft/backend 1173425** (rotas `/api/openbot`, `PgTaskIo`, fila com lease, flag DP-41 de Backend 2 `467ba9e`), **ft/growth** (este adaptador), **ft/agents f32358f** (kit do piloto do AgentOps). Prova: `apps/web/app/api/openbot/staging-dryrun.test.ts` (ver §0.4). **Nada foi ativado, criado nem chamado**: nenhum OpenBot, modelo, rede ou mLabs; agentes de mentira em processo.
+Base conferida: **ft/backend 1173425 + 59eed1b** (o 423 Locked vale desde a `0a2e2c8` e o `pull` conferir a assinatura antes do 423, desde a `59eed1b`; rotas `/api/openbot`, `PgTaskIo`, fila com lease, flag DP-41 de Backend 2 `467ba9e`), **ft/growth** (este adaptador), **ft/agents f32358f** (kit do piloto do AgentOps). Prova: `apps/web/app/api/openbot/staging-dryrun.test.ts` (ver §0.4). **Nada foi ativado, criado nem chamado**: nenhum OpenBot, modelo, rede ou mLabs; agentes de mentira em processo.
 
 ### 0.1 O que a DP-41 exige e como o código a cumpre
 | Exigência (proprietário, 23/11) | Como é cumprida | Prova |
