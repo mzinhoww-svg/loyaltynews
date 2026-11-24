@@ -72,7 +72,7 @@ Uma leitura por URL (`robots.txt`, feed ou sitemap, listagem e páginas de termo
 
 **Livelo (imprensa) (`livelo-imprensa`)**
 
-> DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; sem login nem paywall (conferir). Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, sitemap respondendo 200.
+> DP-28, classe D, risco aceito pelo proprietário; rodapé só com Regulamentos e Privacidade (lidos em 23/11/2026); robots.txt permite /imprensa; coleta por sitemap /imprensa/; sem login nem paywall na listagem /imprensa, que respondeu 200 sem tela de login na conferência de 24/11/2026 (o revisor reabre uma página de /imprensa/ antes de marcar paywall "nenhum"). Reconferido em 24/11/2026: termos acessíveis, robots.txt sem bloqueio do caminho de coleta, sitemap respondendo 200.
 
 **ABRAREC (`abrarec`)**
 

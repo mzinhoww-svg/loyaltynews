@@ -76,6 +76,8 @@ describe('dossiê de habilitação do piloto (24/11/2026)', () => {
     for (const f of data.fontes) {
       expect(f.notaDeRevisao.length, f.id).toBeGreaterThanOrEqual(20); expect(f.notaDeRevisao.length).toBeLessThanOrEqual(2000);
       expect(f.notaDeRevisao, f.id).toMatch(/DP-28/); expect(f.notaDeRevisao).toMatch(/Reconferido em 24\/11\/2026/);
+      // a nota é colada como está num registro de auditoria: nada pendente dentro dela (N1 do QA 3)
+      expect(f.notaDeRevisao, `${f.id}: sem pendência na nota`).not.toMatch(/\(conferir\)|\bTODO\b|PREENCHER|\?\?\?/);
       expect(f.ressalvas.length, f.id).toBeGreaterThanOrEqual(1);
     }
     const por = (id: string) => data.fontes.find((f) => f.id === id)!;
