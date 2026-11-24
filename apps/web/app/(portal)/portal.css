@@ -257,3 +257,13 @@
 .pt-fold { border-top: 1px solid var(--ln-color-border); padding-block: var(--ln-space-1); }
 .pt-fold > summary { display: flex; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); cursor: pointer; font-weight: 700; }
 .pt-fold[open] > summary { margin-bottom: var(--ln-space-2); }
+
+/* P3-5 (UI/UX, exigência): o mídia kit impresso ou salvo em PDF traz TODAS as tabelas de preço. Um <details> fechado esconde o conteúdo também no papel;
+   aqui o conteúdo das categorias fechadas passa a sair, com o título de cada uma. Setas e marcadores de abrir/fechar não saem no papel. */
+@media print {
+  .pt-fold::details-content { content-visibility: visible; }
+  .pt-fold > summary { list-style: none; }
+  .pt-fold > summary::-webkit-details-marker { display: none; }
+  .pt-fold > summary::marker { content: none; }
+  .pt-fold > summary::before { content: none; }
+}

@@ -234,6 +234,37 @@ test.describe('mídia kit via API comercial', () => {
     expect(info.project.name.length).toBeGreaterThan(0);
   });
 
+  test('P3-5 impressão: todas as categorias de preço saem no papel (tabela e título visíveis), sem seta nem marcador de abrir', async ({ page }) => {
+    await page.goto('/midia-kit');
+    await aguardarHidratacao(page);
+    const secoes = page.getByTestId('mk-preco-secao');
+    await expect(secoes.nth(1).locator('summary')).toBeVisible(); // a seção chega no streaming e só depois troca de lugar
+    const n = await secoes.count();
+    expect(n).toBeGreaterThanOrEqual(2);
+    // na tela, a 2ª categoria segue recolhida
+    await expect(secoes.nth(1)).toHaveJSProperty('open', false);
+    await expect(secoes.nth(1).locator('table')).toBeHidden();
+
+    await page.emulateMedia({ media: 'print' });
+    for (let i = 0; i < n; i++) {
+      const secao = secoes.nth(i);
+      await expect(secao.locator('summary'), `título ${i}`).toBeVisible();
+      await expect(secao.locator('summary'), `título ${i}`).toContainText(/\(\d+ formatos?\)/);
+      await expect(secao.locator('table'), `tabela ${i}`).toBeVisible();
+      await expect(secao.getByRole('row').nth(1), `primeira linha de dados ${i}`).toBeVisible();
+      // nem o marcador padrão (list-item) nem uma seta gerada (::before): nada de "abrir/fechar" no papel
+      const marcador = await secao.locator('summary').evaluate((el) => ({ display: getComputedStyle(el).display, antes: getComputedStyle(el, '::before').content, listStyle: getComputedStyle(el).listStyleType }));
+      expect(marcador.display, `marcador ${i}`).not.toBe('list-item');
+      expect(['none', 'normal'], `seta ${i}`).toContain(marcador.antes);
+      expect(marcador.listStyle, `estilo de lista ${i}`).toBe('none');
+    }
+    // imprimir não abre nem fecha nada: o estado do <details> é o mesmo, só o conteúdo aparece
+    await expect(secoes.nth(1)).toHaveJSProperty('open', false);
+
+    await page.emulateMedia({ media: 'screen' });
+    await expect(secoes.nth(1).locator('table')).toBeHidden(); // de volta à tela: recolhida de novo
+  });
+
   test('P2-1: tabelas de preço por seção (vindas da API) também são regiões focáveis com nome único', async ({ page }) => {
     await page.goto('/midia-kit');
     const precos = page.getByTestId('mk-precos').locator('.pt-scroll');
