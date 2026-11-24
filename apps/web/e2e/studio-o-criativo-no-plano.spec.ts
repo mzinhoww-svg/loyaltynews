@@ -91,7 +91,13 @@ test.describe('Criativo aprovado no plano (staging, DP-43)', () => {
     // venda ligada (só no backend de e2e): ativar passa e o plano mostra a posição (desktop 336x280) e a variante mobile 300x250
     await definirFlag(context, 'adServerVendas', true);
     await page.goto(url);
-    // a pré-reserva não basta para ativar: com a venda ligada, a reserva é confirmada (venda)
+    // a pré-reserva (held) não basta para ativar, mesmo com a venda ligada: o domínio recusa e o plano segue vazio (ressalva do QA 7, 4458710)
+    await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
+    await expect(page.locator('main .st-alert.err').filter({ hasText: /sem reserva confirmada/ }).first()).toBeVisible();
+    await expect(page.locator('main .st-badge').first()).toHaveText('approved');
+    expect(await plano(page)).toMatchObject({ positionId: 'SIDEBAR_1', available: false, mobile: [] });
+    // com a venda ligada, a reserva é confirmada (venda) e aí a ativação passa
+    await page.goto(url);
     await page.getByLabel('Confirmar venda').check();
     await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
     await sucesso(page, 'Posição reservada.');
