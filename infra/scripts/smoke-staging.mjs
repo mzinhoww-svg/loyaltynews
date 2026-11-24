@@ -7,6 +7,7 @@
 //   --expect-login-form exige o formulário de e-mail e senha em /studio/entrar (hoje a tela é um aviso fixo; sem a flag vira só uma nota)
 //   --rollback-app-sem-banco aceita SO o 503 "migracoes_divergentes" do /api/ready (rollback do app com o banco já migrado, build antigo com a sonda)
 //   --expect-migracoes exige /api/ready com migracoes:"ok" (builds com ft/backend-2 19cd21e em diante); sem a opção o campo, se existir, só pode ser "ok"
+//   --consecutivas N --intervalo MS: o /api/health tem de responder 200 N vezes seguidas (padrão 3, a cada 5000 ms), sempre com a mesma versão (QA 8, 24/11: um 200 logo depois do start não prova nada)
 //   --expect-cache confere a política de cache do portal (verificar-cache-headers.mjs): s-maxage=60 nas páginas sem pessoas, no-store nas com pessoas, na matéria e no sitemap
 //   --expect-flags a,b  exige que /api/health liste EXATAMENTE essas flags (ADR-022; staging com DP-38: intelligencePessoas); --expect-no-flags exige a lista vazia
 //   --expect-orgs N exige que /intelligence mostre N empresas cadastradas (hoje o adaptador `api` do portal NÃO as lê: só com o adaptador de Intelligence)
@@ -14,6 +15,7 @@
 import { pathToFileURL } from 'node:url';
 import { parseArgs, fail } from './lib/util.mjs';
 import { verificar } from './verificar-cache-headers.mjs';
+import { configSaude, saudeEstavel } from './lib/saude.mjs';
 
 export const ROTULO_SEED = '[DEMO · staging]';
 
@@ -62,9 +64,11 @@ async function main() {
   const tentar = async (nome, fn) => { try { await fn(); } catch (e) { check(nome, false, e.name === 'TimeoutError' ? `timeout ${timeout} ms` : String(e.message).slice(0, 160)); } };
 
   await tentar('health', async () => {
-    const r = await get('/api/health', { json: true });
-    const ok = r.status === 200 && r.j?.status === 'ok' && (!args['expect-commit'] || r.j?.version === args['expect-commit']);
-    check('health: processo vivo' + (args['expect-commit'] ? ' com o commit certo' : ''), ok, ok ? '' : `HTTP ${r.status} version=${r.j?.version}`);
+    // Nunca um único 200 logo depois do start (QA 8, 24/11): N respostas 200 seguidas (padrão 3 em ~10 s), mesma versão e, se pedida, a versão esperada.
+    const cfg = configSaude(args);
+    const est = await saudeEstavel({ amostrar: () => get('/api/health', { json: true }), n: cfg.n, intervaloMs: cfg.intervaloMs, commit: args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : undefined });
+    const r = est.ultima ?? { status: 0, j: null };
+    check(`health: ${cfg.n} resposta(s) 200 seguidas (~${Math.round(((cfg.n - 1) * cfg.intervaloMs) / 1000)} s)` + (args['expect-commit'] ? ' com o commit certo' : ''), est.ok, est.problemas.join(' | '));
     if (flagsEsp) {
       const got = Array.isArray(r.j?.flags) ? [...new Set(r.j.flags.map(String))].sort() : null;
       check(`health: flags ligadas = [${flagsEsp.join(',')}] (ADR-022)`, got !== null && got.join(',') === flagsEsp.join(','), got === null ? 'o /api/health não tem o campo flags (código sem a ADR-022)' : `flags=[${got.join(',')}]`);

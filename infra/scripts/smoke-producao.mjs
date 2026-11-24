@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 // Smoke da PRODUÇÃO (só leitura, nenhum POST, nenhuma credencial). Contraparte do smoke-staging, que EXIGE conteúdo de demonstração; aqui o conteúdo de demonstração é falha.
-// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--expect-cache] [--timeout 20000]
+// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--expect-cache] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
 // Confere: /api/health com APP_ENV production, o commit certo e flags [] (ADR-022: produção não liga flag por variável); /api/ready completo (banco e Redis; migrações se o build as confere);
 //   API pública e portal sem MOCK, sem "[DEMO" e sem marcador de vitrine; produção NÃO indexável até o go-live (DP-24: noindex, robots Disallow, sitemap e feed sem itens) ou, com --indexavel (depois
 //   do go-live), indexável; Studio sem sessão = 307 para o login; pessoas e moves desligados (disponivel=false). Código 0 = tudo ok; 1 = alguma falha; 2 = uso errado.
 import { parseArgs } from './lib/util.mjs';
 import { avaliarReady } from './smoke-staging.mjs';
 import { verificar } from './verificar-cache-headers.mjs';
+import { configSaude, saudeEstavel } from './lib/saude.mjs';
 import { pathToFileURL } from 'node:url';
 
 // Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
 const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
-export async function rodar({ url, commit, indexavel = false, cache = false, timeout = 20000 }) {
+export async function rodar({ url, commit, indexavel = false, cache = false, timeout = 20000, consecutivas, intervaloMs }) {
   const base = url.replace(/\/+$/, '');
   const out = [];
   const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
@@ -27,10 +28,12 @@ export async function rodar({ url, commit, indexavel = false, cache = false, tim
   const noindex = (r) => /<meta[^>]+name="robots"[^>]*content="[^"]*noindex/i.test(r.body) || /noindex/i.test(r.h.get('x-robots-tag') ?? '');
 
   await tentar('health', async () => {
-    const r = await get('/api/health', true);
-    check('health: 200, status ok', r.status === 200 && r.j?.status === 'ok', `HTTP ${r.status}`);
+    // Nunca um único 200 logo depois do start (QA 8, 24/11): N respostas 200 seguidas (padrão 3 em ~10 s), mesma versão e o commit esperado.
+    const cfg = configSaude({ consecutivas, intervalo: intervaloMs });
+    const est = await saudeEstavel({ amostrar: () => get('/api/health', true), n: cfg.n, intervaloMs: cfg.intervaloMs, commit });
+    const r = est.ultima ?? { status: 0, j: null };
+    check(`health: ${cfg.n} resposta(s) 200 seguidas (~${Math.round(((cfg.n - 1) * cfg.intervaloMs) / 1000)} s), status ok, mesma versão` + (commit ? ' e o commit certo' : ''), est.ok, est.problemas.join(' | '));
     check('health: APP_ENV production', r.j?.env === 'production', `env=${r.j?.env}`);
-    if (commit) check('health: commit certo', r.j?.version === commit, `version=${String(r.j?.version).slice(0, 12)}`);
     check('health: flags ligadas = [] (ADR-022)', Array.isArray(r.j?.flags) && r.j.flags.length === 0, Array.isArray(r.j?.flags) ? `flags=${r.j.flags.join(',')}` : 'campo flags ausente');
   });
   await tentar('ready', async () => {
@@ -96,7 +99,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!/^https:\/\/|^http:\/\/127\.0\.0\.1[:/]/.test(url)) { console.error('use --url https://host'); process.exit(2); }
   const commit = args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : undefined;
   if (commit !== undefined && !/^[0-9a-f]{40}$/.test(commit)) { console.error('--expect-commit exige o SHA de 40 caracteres'); process.exit(2); }
-  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), cache: Boolean(args['expect-cache']), timeout: Number(args.timeout ?? 20000) || 20000 });
+  const cfgS = configSaude(args);
+  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), cache: Boolean(args['expect-cache']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
   console.log(JSON.stringify(r, null, 2));
   process.exit(r.falhas ? 1 : 0);
 }

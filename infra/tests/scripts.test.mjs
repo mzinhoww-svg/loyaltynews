@@ -9,6 +9,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import { compareStats } from '../scripts/lib/pg.mjs';
 
+process.env.LN_SAUDE_INTERVALO_MS ??= '20'; // testes: janela de estabilidade do health curta (padrão real: 5000 ms)
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
 const node = (script, args, opts = {}) => spawnSync(process.execPath, [join(S, script), ...args], { encoding: 'utf8', ...opts });
 const tmp = () => mkdtempSync(join(tmpdir(), 'ln-infra-test-'));
@@ -1553,4 +1554,65 @@ test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o 
   const prod = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes' });
   assert.equal(prod.ok, false);
   assert.match(prod.problemas.join('|'), /pico seria 9088 de 8192/);
+});
+
+test('saude estável (QA 8, 24/11): saudeEstavel e configSaude; um 200 seguido de queda, versão que muda ou erro reprovam', async () => {
+  const { saudeEstavel, configSaude } = await import('../scripts/lib/saude.mjs');
+  assert.deepEqual(configSaude({}), { n: 3, intervaloMs: 20 }, 'padrão: 3 amostras; intervalo vem do LN_SAUDE_INTERVALO_MS dos testes');
+  assert.deepEqual(configSaude({ consecutivas: '5', intervalo: '100' }), { n: 5, intervaloMs: 100 });
+  assert.equal(configSaude({ consecutivas: '999' }).n, 3, 'fora de 1..20 volta ao padrão');
+  const sha = 'a'.repeat(40);
+  const ok = (v = sha) => async () => ({ status: 200, j: { status: 'ok', version: v } });
+  const sem = async () => {};
+  assert.equal((await saudeEstavel({ amostrar: ok(), n: 3, commit: sha, dormir: sem })).ok, true);
+  // a janela do achado: 200 uma vez, depois o servidor cai
+  let k = 0;
+  const caiu = await saudeEstavel({ amostrar: async () => { k++; if (k === 1) return { status: 200, j: { status: 'ok', version: sha } }; throw Object.assign(new Error('x'), { name: 'TypeError' }); }, n: 3, commit: sha, dormir: sem });
+  assert.equal(caiu.ok, false); assert.match(caiu.problemas.join('|'), /amostra 2 de 3: a requisição falhou/);
+  let m = 0;
+  const cinco = await saudeEstavel({ amostrar: async () => { m++; return m === 1 ? { status: 200, j: { status: 'ok', version: sha } } : { status: 503, j: { status: 'indisponivel' } }; }, n: 3, dormir: sem });
+  assert.equal(cinco.ok, false); assert.match(cinco.problemas.join('|'), /HTTP 503/);
+  let v = 0;
+  const muda = await saudeEstavel({ amostrar: async () => ({ status: 200, j: { status: 'ok', version: v++ === 0 ? 'a'.repeat(40) : 'b'.repeat(40) } }), n: 2, dormir: sem });
+  assert.equal(muda.ok, false); assert.match(muda.problemas.join('|'), /a versão mudou entre as amostras/);
+  assert.match((await saudeEstavel({ amostrar: ok('c'.repeat(40)), n: 2, commit: sha, dormir: sem })).problemas.join('|'), /version=.* != /);
+  assert.equal((await saudeEstavel({ amostrar: ok(), n: 1, dormir: sem })).ok, true, 'n=1 é o comportamento antigo (não use no aceite)');
+});
+
+test('healthcheck CLI e smoke-producao exigem N 200 seguidos: um 200 logo depois do start e depois queda REPROVA (--consecutivas 1 mostra o risco antigo)', async () => {
+  const SHA = 'd'.repeat(40);
+  const estado = { vezes: 0, quedaApos: 1 };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    if (u === '/api/health') {
+      estado.vezes++;
+      if (estado.vezes > estado.quedaApos) { res.writeHead(503, { 'content-type': 'application/json' }); return res.end('{"status":"indisponivel"}'); }
+      res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ status: 'ok', version: SHA, env: 'production', flags: [] }));
+    }
+    res.writeHead(404); res.end();
+  });
+  try {
+    const port = s.address().port;
+    // 200 uma vez e depois 503: 3 seguidas reprovam; 1 aprova (o risco que o QA 8 achou)
+    estado.vezes = 0;
+    const tres = await hc(port, ['--expect-commit', SHA, '--consecutivas', '3']);
+    assert.equal(tres.status, 1, tres.stdout); assert.match(tres.stdout, /instável/);
+    estado.vezes = 0;
+    const um = await hc(port, ['--expect-commit', SHA, '--consecutivas', '1']);
+    assert.equal(um.status, 0, um.stdout);
+    assert.match(um.stdout, /não prova estabilidade/);
+    // estável de verdade: passa e informa
+    estado.vezes = 0; estado.quedaApos = 99;
+    const estavel = await hc(port, ['--expect-commit', SHA]);
+    assert.equal(estavel.status, 0, estavel.stdout);
+    assert.deepEqual(JSON.parse(estavel.stdout).estabilidade, { consecutivas: 3, intervaloMs: 20, ok: true });
+    // smoke-producao: a checagem de health reprova quando cai depois do 1º 200
+    estado.vezes = 0; estado.quedaApos = 1;
+    const r = await new Promise((resolve) => {
+      const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', SHA]);
+      let out = ''; c.stdout.on('data', (d) => { out += d; }); c.on('close', () => resolve(JSON.parse(out)));
+    });
+    const h = r.checagens.find((x) => /^health: \d+ resposta/.test(x.nome));
+    assert.ok(h && h.ok === false, JSON.stringify(h)); assert.match(h.detalhe, /amostra 2 de 3/);
+  } finally { s.close(); }
 });
