@@ -10,6 +10,7 @@ __pycache__/
 node_modules/
 .next/
 .next-e2e/
+.next-e2e-vitrine/
 next-env.d.ts
 *.tsbuildinfo
 playwright-report/

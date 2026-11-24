@@ -55,7 +55,8 @@ const config = (phase: string): NextConfig => {
     // Mesma raiz para o rastreamento de arquivos do build (evita aviso de múltiplos lockfiles e inferência por HOME).
     outputFileTracingRoot: monorepoRoot,
     // e2e usa diretório de build próprio para não contaminar o artefato de produção.
-    distDir: e2eBuild ? '.next-e2e' : '.next',
+    // LN_E2E_DIST: pasta própria por perfil de build do e2e do portal (produção e vitrine; e2e/portal-server.mjs). Só vale no build de e2e.
+    distDir: e2eBuild ? (process.env.LN_E2E_DIST || '.next-e2e') : '.next',
     turbopack: {
       root: monorepoRoot,
       resolveAlias: { '@ln-studio/e2e-backend': e2eBackendSeam, '@ln-studio/dev-db': devDbSeam },
