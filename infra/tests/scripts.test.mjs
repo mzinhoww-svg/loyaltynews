@@ -1290,3 +1290,13 @@ test('medir-hops: resumir só devolve contagens; hops = contagem − 1; instáve
   assert.equal(resumir([c(4, '2')], [c(3)], undefined).aviso, 'posicao_do_cliente_diferente_de_contagem_menos_1: confira a topologia antes de gravar');
   assert.doesNotMatch(JSON.stringify(ok), /\d+\.\d+\.\d+\.\d+/, 'nenhum IP na saída');
 });
+
+test('conferir-staging-admin: avaliar aprova só com um admin .invalid, 2º fator ativo, sem sessão e com auditoria; recusa fora do staging', async () => {
+  const { avaliar } = await import('../scripts/conferir-staging-admin.mjs');
+  const ok = { admins: 1, adminsInvalid: 1, adminsComDoisFatores: 1, doisFatoresVerificados: 1, sessoes: 0, auditorias: 1 };
+  assert.equal(avaliar(ok).ok, true);
+  for (const [k, v] of [['admins', 2], ['adminsInvalid', 0], ['adminsComDoisFatores', 0], ['doisFatoresVerificados', 0], ['sessoes', 1], ['auditorias', 0]]) assert.equal(avaliar({ ...ok, [k]: v }).ok, false, k);
+  const x = node('conferir-staging-admin.mjs', [], { env: { ...process.env, APP_ENV: 'production' } });
+  assert.equal(x.status, 2);
+  assert.match(x.stderr, /APP_ENV tem de ser staging/);
+});
