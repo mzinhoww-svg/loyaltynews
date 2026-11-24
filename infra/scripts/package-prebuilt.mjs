@@ -7,6 +7,7 @@
 // Sobrepõe no pacote (e registra o SHA-256) infra/scripts/start-web.mjs e infra/scripts/lib/prebuilt.mjs DESTA árvore: são o que restaura o .next na subida.
 import { spawnSync } from 'node:child_process';
 import { TAR } from './lib/tar.mjs';
+import { arquivosDoZip } from './lib/zip.mjs';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -117,9 +118,9 @@ async function main() {
     if (bytes > 100 * 1024 * 1024) fail(`pasta de ${(bytes / 1048576).toFixed(1)} MB (descomprimida) passa do limite de 100 MB do upload; confira o ZIP real antes de enviar`);
   } else {
     const z = spawnSync(TAR, ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
-    if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP: ${z.stderr || z.error}`);
-    const l = spawnSync(TAR, ['-tf', zip], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    const entradas = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
+    if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP (o tar GNU do Linux não escreve ZIP: use --sem-zip e envie a PASTA, ou rode no Windows/macOS com bsdtar): ${z.stderr || z.error}`);
+    let entradas;
+    try { entradas = arquivosDoZip(zip); } catch (e) { fail(`não consegui ler o índice do ZIP: ${e.message}`); }
     if (entradas.length !== files.length) fail(`pasta (${files.length}) e ZIP (${entradas.length}) divergem`);
     bytes = statSync(zip).size;
     if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
