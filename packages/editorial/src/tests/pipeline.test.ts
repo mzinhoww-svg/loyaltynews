@@ -4,7 +4,7 @@ import { Collector } from '../collector/collector';
 import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { goodDraftOutput, MockGateway, mockOk } from '../../fixtures/mock-gateway.mock';
 import { SourceRegistry } from '../sources/registry';
-import { InMemoryAuditLog, MAX_ATTEMPTS, socialPack } from '../pipeline/stages';
+import { InMemoryAuditLog, socialPack } from '../pipeline/stages';
 import type { StageDeps } from '../pipeline/stages';
 import { InMemoryQueue, createBullmqPipeline, jobOptions, makeProcessor } from '../pipeline/queue';
 import type { BullmqLike } from '../pipeline/queue';
@@ -75,18 +75,16 @@ test('checagem inconclusiva ou com claim sem veredito bloqueia (fail closed)', a
   assert.equal(r2.done.length, 0);
 });
 
-test('redator inventa fala: rascunho é rejeitado, refeito com feedback e, persistindo, bloqueia em max_attempts', async () => {
+test('redator inventa fala: barreira determinística bloqueia na 1ª redação, SEM nova tentativa (não gasta mais chamadas)', async () => {
   const gw = new MockGateway(ev.id, {
     draft: () => mockOk('deepseek', goodDraftOutput(ev.id, { body: 'A diretora disse: "frase totalmente inventada pelo modelo de teste".' })),
   });
   const r = await run(deps(gw), baseJob());
-  assert.equal(gw.requests.filter((x) => x.taskClass === 'draft').length, MAX_ATTEMPTS);
+  assert.equal(gw.requests.filter((x) => x.taskClass === 'draft').length, 1, 'uma única chamada de redação');
   const b = r.blockedList[0]!;
-  assert.ok(b.kind === 'blocked' && b.blocked.blockers.includes('max_attempts'));
+  assert.ok(b.kind === 'blocked' && b.blocked.blockers.length > 0 && !b.blocked.blockers.includes('max_attempts'));
+  assert.ok(b.kind === 'blocked' && b.blocked.stage === 'draft' && b.blocked.findings.length > 0);
   assert.equal(r.done.length, 0);
-  // o feedback da tentativa anterior foi entregue ao redator
-  const second = gw.requests.filter((x) => x.taskClass === 'draft')[1]!.input as { feedback: unknown[] };
-  assert.ok(second.feedback.length > 0);
 });
 
 test('redator tenta assinar como pessoa: assinatura é sobrescrita; byline no corpo é barrada', async () => {

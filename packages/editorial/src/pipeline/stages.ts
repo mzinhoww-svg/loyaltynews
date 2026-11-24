@@ -173,7 +173,8 @@ const FINDING_TO_BLOCKER: Record<string, BlockerCode> = {
   needs_primary_anchor: 'unanchored', unanchored_claim: 'unanchored',
   autoral_needs_anchors: 'autoral_invalid', autoral_label_missing: 'autoral_invalid', autoral_wrong_type: 'autoral_invalid', autoral_quote: 'autoral_invalid',
 };
-const toBlockers = (fs: Finding[]): BlockerCode[] => [...new Set(fs.map((x) => FINDING_TO_BLOCKER[x.code] ?? 'unsupported_claim'))];
+const blockerOf = (code: string): BlockerCode => FINDING_TO_BLOCKER[code] ?? (code.startsWith('tone_') ? 'tone_lint' : 'unsupported_claim');
+const toBlockers = (fs: Finding[]): BlockerCode[] => [...new Set(fs.map((x) => blockerOf(x.code)))];
 
 const withAlt = (img: Draft['image'], alt: string): Draft['image'] => (img.mode === 'source_image' && alt ? { ...img, alt } : img);
 
@@ -215,9 +216,12 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
     modelProvider: r.provider, promptVersion: PROMPT_VERSION,
   };
   const chk = runDeterministicChecks(d, job.evidences);
+  // Veredito do gate da redação na linha do piloto (planilha): quem mede bloqueios por gate lê a linha, não só o registro da matéria.
+  await patchRow(deps, job, 'draft', r, chk.verdict === 'pass' ? { gate_verdict: 'approved', gate_reasons: [] } : { gate_verdict: 'blocked', gate_reasons: toBlockers(chk.findings) });
   if (chk.verdict !== 'pass') {
-    if (job.attempt + 1 >= MAX_ATTEMPTS) return blocked(job, 'draft', ['max_attempts', ...toBlockers(chk.findings)], chk.findings);
-    return next('draft', { ...job, slug, attempt: job.attempt + 1, feedback: chk.findings });
+    // Barreira DETERMINÍSTICA (cópia, número fora da fonte, tom, resumo...): refazer com o mesmo modelo e a mesma evidência só gasta cota
+    // (ensaio do piloto: 3 chamadas por matéria barrada). Não há nova tentativa; nova tentativa é só para falha transitória (fila/gateway).
+    return blocked(job, 'draft', toBlockers(chk.findings), chk.findings);
   }
   return next('factcheck', { ...job, slug, draft: d, feedback: undefined, ...(r.taskId ? { draftTaskId: r.taskId } : { draftTaskId: undefined }) });
 }
