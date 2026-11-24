@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +18,7 @@ const sha = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
 const put = (p, t) => { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, t); };
 const node = (script, args, opts = {}) => spawnSync(process.execPath, [join(S, script), ...args], { encoding: 'utf8', ...opts });
 
-/** Pacote pré-construído de staging SEM flags, como o artefato do Actions (pasta + manifesto ao lado). */
+/** Pacote pré-construído de staging SEM flags, como o artefato do Actions (pasta + manifesto ao lado, com o resolvedor de flags igual ao da raiz). */
 function pacote({ appEnv = 'staging', flags = [], prebuilt = true, perfil = 'staging' } = {}) {
   const base = mkdtempSync(join(tmpdir(), 'ln-carimbo-'));
   const pasta = join(base, 'ln-web-staging-bbbbbbbbbbbb-loyaltynews-stg-prebuilt');
@@ -28,9 +28,13 @@ function pacote({ appEnv = 'staging', flags = [], prebuilt = true, perfil = 'sta
   put(join(pasta, 'prebuilt', 'web-next', 'BUILD_ID'), 'build_abc123');
   put(join(pasta, 'prebuilt', 'web-next', 'server', 'app', 'page.js'), 'conteudo-do-next');
   put(join(pasta, 'package.json'), '{"name":"x"}\n');
-  put(join(base, 'ln-web-staging-bbbbbbbbbbbb-loyaltynews-stg-prebuilt.manifest.json'), JSON.stringify({ schema: 1, perfil: 'staging', flagsLigadas: flags, depois_do_create: { set_env: [{ nome: 'APP_ENV', valor: 'staging' }, { nome: 'APP_COMMIT', valor: COMMIT }] } }, null, 2) + '\n');
-  return { base, pasta, manifesto: join(base, 'ln-web-staging-bbbbbbbbbbbb-loyaltynews-stg-prebuilt.manifest.json') };
+  mkdirSync(join(pasta, 'packages', 'contracts', 'src'), { recursive: true });
+  cpSync(join(RAIZ, 'packages', 'contracts', 'src', 'flags.ts'), join(pasta, 'packages', 'contracts', 'src', 'flags.ts')); // o resolvedor do pacote = o da raiz
+  const manifesto = join(base, 'ln-web-staging-bbbbbbbbbbbb-loyaltynews-stg-prebuilt.manifest.json');
+  put(manifesto, JSON.stringify({ schema: 1, perfil: 'staging', flagsLigadas: flags, depois_do_create: { set_env: [{ nome: 'APP_ENV', valor: 'staging' }, { nome: 'APP_COMMIT', valor: COMMIT }] } }, null, 2) + '\n');
+  return { base, pasta, manifesto };
 }
+const carimbar = (p, extra = [], { soma = somaArvore(p.pasta), flags = 'intelligencePessoas' } = {}) => node('carimbar-flags-prebuilt.mjs', ['--pasta', p.pasta, '--flags', flags, '--soma-esperada', soma, '--raiz', RAIZ, ...extra]);
 
 test('normalizarFlags: únicas, ordenadas, formato exato; vazio e nome estranho são recusados', () => {
   assert.deepEqual(normalizarFlags('b, a,a'), ['a', 'b']);
@@ -48,6 +52,7 @@ test('carimbarManifesto: acrescenta LN_FLAGS_ON às listas de variáveis (as que
   carimbarManifesto(m, ['a', 'b']);
   assert.equal(m.depois_do_create.set_env.filter((v) => v.nome === 'LN_FLAGS_ON').length, 1);
   assert.equal(m.depois_do_create.set_env.find((v) => v.nome === 'LN_FLAGS_ON').valor, 'a,b');
+  assert.equal(carimbarManifesto({ depois_do_create: { set_env: [{ nome: 'APP_ENV' }] } }, ['a']), 0, 'sem a lista de variáveis do deploy devolve 0');
 });
 
 test('carimbar (CLI): grava as flags em release.json, prebuilt.json e manifesto; NÃO toca o .next; a restauração e o guard-env passam a exigir a flag; somas antes e depois', () => {
@@ -56,7 +61,7 @@ test('carimbar (CLI): grava as flags em release.json, prebuilt.json e manifesto;
     const next = join(p.pasta, 'prebuilt', 'web-next', 'server', 'app', 'page.js');
     const shaNext = sha(next);
     const somaAntes = somaArvore(p.pasta);
-    const r = node('carimbar-flags-prebuilt.mjs', ['--pasta', p.pasta, '--flags', 'intelligencePessoas', '--raiz', RAIZ]);
+    const r = carimbar(p, [], { soma: somaAntes });
     assert.equal(r.status, 0, r.stderr + r.stdout);
     const j = JSON.parse(r.stdout);
     assert.equal(j.ok, true);
@@ -81,15 +86,14 @@ test('carimbar (CLI): grava as flags em release.json, prebuilt.json e manifesto;
     const sem = guard({});
     assert.equal(sem.status, 1);
     assert.match(sem.stderr, /LN_FLAGS_ON=""|difere do release\.json/);
-    // idempotente
-    const de_novo = node('carimbar-flags-prebuilt.mjs', ['--pasta', p.pasta, '--flags', 'intelligencePessoas', '--raiz', RAIZ]);
+    // idempotente (a soma esperada continua sendo a do run, que já não bate com a pasta carimbada: o carimbo já feito não reclama)
+    const de_novo = carimbar(p, [], { soma: somaAntes });
     assert.equal(de_novo.status, 0, de_novo.stderr);
     assert.equal(JSON.parse(de_novo.stdout).jaCarimbado, true);
   } finally { rmSync(p.base, { recursive: true, force: true }); }
 });
 
 test('carimbar (CLI) recusa: produção, perfil de produção, flag desconhecida, outras flags já ligadas, pacote que não é pré-construído e ZIP ao lado', () => {
-  const rodar = (p, flags = 'intelligencePessoas') => node('carimbar-flags-prebuilt.mjs', ['--pasta', p.pasta, '--flags', flags, '--raiz', RAIZ]);
   const casos = [
     [{ appEnv: 'production', perfil: 'production' }, 'intelligencePessoas', /staging|produção/],
     [{}, 'flagQueNaoExiste', /contrato de flags/],
@@ -100,7 +104,7 @@ test('carimbar (CLI) recusa: produção, perfil de produção, flag desconhecida
     const p = pacote(opts);
     try {
       const antes = somaArvore(p.pasta);
-      const r = rodar(p, flags);
+      const r = carimbar(p, [], { flags });
       assert.equal(r.status, 1, `${JSON.stringify(opts)}: ${r.stdout}${r.stderr}`);
       assert.match(r.stderr, esperado);
       assert.equal(somaArvore(p.pasta), antes, 'recusa não altera nada');
@@ -109,12 +113,72 @@ test('carimbar (CLI) recusa: produção, perfil de produção, flag desconhecida
   const z = pacote();
   try {
     writeFileSync(z.pasta + '.zip', 'x');
-    const r = rodar(z);
+    const r = carimbar(z);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /\.zip ao lado/);
   } finally { rmSync(z.base, { recursive: true, force: true }); }
   const u = pacote();
   try { assert.equal(node('carimbar-flags-prebuilt.mjs', ['--pasta', u.pasta]).status, 2); } finally { rmSync(u.base, { recursive: true, force: true }); }
+});
+
+test('carimbar (CLI): --soma-esperada é OBRIGATÓRIA e tem de ser a soma do run; soma diferente (pasta adulterada ou de outro run) recusa sem alterar nada', () => {
+  const p = pacote();
+  try {
+    const soma = somaArvore(p.pasta);
+    const base = ['--pasta', p.pasta, '--flags', 'intelligencePessoas', '--raiz', RAIZ];
+    const sem = node('carimbar-flags-prebuilt.mjs', base);
+    assert.equal(sem.status, 2);
+    assert.match(sem.stderr, /--soma-esperada é obrigatória/);
+    const ruim = node('carimbar-flags-prebuilt.mjs', [...base, '--soma-esperada', 'f'.repeat(64)]);
+    assert.equal(ruim.status, 1);
+    assert.match(ruim.stderr, /NÃO é a do run/);
+    assert.equal(node('carimbar-flags-prebuilt.mjs', [...base, '--soma-esperada', 'abc']).status, 2);
+    // adulterar a pasta depois do "download": a soma do run deixa de bater
+    writeFileSync(join(p.pasta, 'package.json'), '{"name":"adulterado"}\n');
+    const adulterada = node('carimbar-flags-prebuilt.mjs', [...base, '--soma-esperada', soma]);
+    assert.equal(adulterada.status, 1);
+    assert.match(adulterada.stderr, /NÃO é a do run/);
+    assert.deepEqual(JSON.parse(readFileSync(join(p.pasta, 'release.json'), 'utf8')).flagsLigadas, [], 'nada foi carimbado');
+  } finally { rmSync(p.base, { recursive: true, force: true }); }
+});
+
+test('carimbar (CLI): manifesto ausente ou sem a lista de variáveis do deploy = RECUSA, nada é gravado; flags.ts do pacote diferente da raiz (ou ausente) recusa', () => {
+  const semMan = pacote();
+  try {
+    rmSync(semMan.manifesto);
+    const antes = somaArvore(semMan.pasta);
+    const r = carimbar(semMan);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stderr, /manifesto .* ausente/);
+    assert.equal(somaArvore(semMan.pasta), antes);
+    assert.ok(!existsSync(semMan.manifesto));
+  } finally { rmSync(semMan.base, { recursive: true, force: true }); }
+  const semLista = pacote();
+  try {
+    writeFileSync(semLista.manifesto, JSON.stringify({ schema: 1, depois_do_create: { set_env: [{ nome: 'APP_ENV', valor: 'staging' }] } }));
+    const antes = somaArvore(semLista.pasta);
+    const r = carimbar(semLista);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stderr, /não tem a lista de variáveis do deploy/);
+    assert.equal(somaArvore(semLista.pasta), antes, 'release.json e prebuilt.json não foram tocados');
+  } finally { rmSync(semLista.base, { recursive: true, force: true }); }
+  const flagsDiferente = pacote();
+  try {
+    const f = join(flagsDiferente.pasta, 'packages', 'contracts', 'src', 'flags.ts');
+    writeFileSync(f, readFileSync(f, 'utf8') + '\n// alterado\n');
+    const antes = somaArvore(flagsDiferente.pasta);
+    const r = carimbar(flagsDiferente);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.match(r.stderr, /flags\.ts do pacote DIFERE/);
+    assert.equal(somaArvore(flagsDiferente.pasta), antes);
+  } finally { rmSync(flagsDiferente.base, { recursive: true, force: true }); }
+  const semFlagsTs = pacote();
+  try {
+    rmSync(join(semFlagsTs.pasta, 'packages'), { recursive: true, force: true });
+    const r = carimbar(semFlagsTs);
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /não tem packages\/contracts\/src\/flags\.ts/);
+  } finally { rmSync(semFlagsTs.base, { recursive: true, force: true }); }
 });
 
 // ---- ci-checks: LN_FLAGS_ON só lida no resolvedor ----
