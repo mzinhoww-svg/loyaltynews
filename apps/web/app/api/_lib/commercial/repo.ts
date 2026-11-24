@@ -6,7 +6,7 @@
 import { and, eq, getTableColumns, gte, inArray, like, lte, not, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
-  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION, catalogFor, resolveFormatStatus,
+  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION, campaignPeriodMs, catalogFor, resolveFormatStatus,
   type Account, type BannerPosition, type Contact, type ContactBasis, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
   type DeliveryRow, type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
 } from '@ln/commercial';
@@ -149,8 +149,13 @@ export async function loadDelivery(db: Db, input: unknown): Promise<DeliveryRow[
   }));
 }
 
+/** Lacunas de auditoria recentes sempre carregadas (painel e atenção). As mais antigas só entram quando tocam a campanha ou a conta pedida. */
+export const GAP_RECENT_DAYS = 30;
+/** Campanha ou conta da requisição (query do relatório e do detalhe): define o período em que as lacunas antigas também importam. */
+export interface GapScope { campaignId?: string; accountId?: string }
+
 /** `env` = ambiente de flags (APP_ENV): decide quais formatos têm venda liberada (CAPACITY_RELEASES). Local, CI e ausente: nenhum. */
-export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | null = flagEnvFrom(process.env.APP_ENV)): Promise<Hydrated> {
+export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | null = flagEnvFrom(process.env.APP_ENV), scope: GapScope = {}): Promise<Hydrated> {
   const [catalog, slots, accs, leads, opps, hist, camps, ress, tkos, creatives, deliv, mets, ctts, cpos] = await Promise.all([
     loadCatalog(db, env), db.select().from(schema.adSlots), db.select().from(schema.crmAccounts),
     db.select().from(schema.crmLeads), db.select().from(schema.crmOpportunities),
@@ -227,8 +232,15 @@ export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | nul
     c.ignoredBotOrInternal += d.ignoradasBotInterno; c.refreshSuppressed += d.refreshSuprimido;
   }
   server.loadCounters(counters);
-  // lacunas de auditoria (perda de dedupe no Redis): os relatórios marcam o período como "não auditável" (piso, não total)
-  loadGapsInto(server.audit, await loadGaps(db));
+  // lacunas de auditoria (perda de dedupe no Redis): os relatórios marcam o período como "não auditável" (piso, não total).
+  // Não carrega todas: as dos últimos GAP_RECENT_DAYS (painel e atenção) + as que tocam o período da campanha ou da conta pedida
+  // (relatório, detalhe). Assim nunca sai "auditável" por falta de leitura, e a leitura não cresce com o histórico.
+  const own = scope.campaignId ? campaigns.list().filter((c) => c.id === scope.campaignId)
+    : scope.accountId ? campaigns.list().filter((c) => c.accountId === scope.accountId) : [];
+  const spans: [number, number][] = [[now.getTime() - GAP_RECENT_DAYS * 86_400_000, Number.POSITIVE_INFINITY], ...own.map((c) => campaignPeriodMs(c.startDate, c.endDate))];
+  const earliest = Math.min(...spans.map(([a]) => a));
+  const gaps = (await loadGaps(db, { activeAt: new Date(earliest) })).filter((g) => spans.some(([a, b]) => Date.parse(g.from) < b && a < Date.parse(g.to)));
+  loadGapsInto(server.audit, gaps);
 
   const metrics = new MetricStore();
   // a cobertura `cms` é CONTADA agora, só com conteúdo real (nunca o seed); o que estiver gravado para essas três métricas não vale mais
