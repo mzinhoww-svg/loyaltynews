@@ -13,6 +13,13 @@ import * as click from './ads/click/route';
 import * as image from './ads/creative-image/route';
 import * as upload from './studio/creatives/upload/route';
 
+// DP-43 por ambiente: aprovar criativo e levar campanha a approved/active pela API só vale onde a venda foi liberada (staging);
+// em produção é 409 SALE_DISABLED_IN_ENV (venda-ambiente.test.ts). Este arquivo exercita o fluxo de venda, então roda como staging.
+const APP_ENV_ANTES = process.env.APP_ENV;
+beforeAll(() => { process.env.APP_ENV = 'staging'; });
+afterAll(() => { if (APP_ENV_ANTES === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = APP_ENV_ANTES; });
+
+
 // Posições de anúncio no portal: só criativo REAL aparece; plano sem contar; clique 302 com destino do cadastro; imagem com cabeçalhos defensivos e conferência de hash;
 // upload do arquivo medido no servidor.
 let app: Awaited<ReturnType<typeof makeApp>>;
