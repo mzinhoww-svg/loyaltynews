@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { apiError } from '@ln/contracts';
-import { AccessDeniedError, audit, authorize, clientIp, type Action, type Resource, type FullSession } from '@ln/auth';
+import { AccessDeniedError, SessionLookupError, audit, authorize, clientIp, type Action, type Resource, type FullSession } from '@ln/auth';
 import { getDeps, type Deps } from './deps';
 
 export class HttpError extends Error {
@@ -84,6 +84,8 @@ export function toResponse(e: unknown, requestId: string): Response {
     return json({ error: { ...body.error, requestId } }, status, h);
   };
   if (e instanceof HttpError) return env(e.status, e.code, e.message, e.details);
+  // falha ao CONFERIR a sessão (banco/conexão): 503, nunca 401 (o cliente não deve tratar como deslogado)
+  if (e instanceof SessionLookupError) return env(503, 'SESSION_UNAVAILABLE', e.message);
   if (e instanceof AccessDeniedError) {
     if (e.reason === 'NO_SESSION') return env(401, 'UNAUTHENTICATED', 'Autenticação obrigatória.');
     if (e.reason === 'NO_MFA') return env(403, 'MFA_REQUIRED', 'Segundo fator (TOTP) obrigatório.');

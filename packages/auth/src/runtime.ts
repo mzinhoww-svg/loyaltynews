@@ -30,7 +30,9 @@ export function getRuntime(env: Record<string, string | undefined> = process.env
   let pool: Pool;
   try {
     // TLS com certificado de cliente (Vertra, R0-07): DB_SSL_*_PEM. Configuração de TLS inválida = banco não configurado (rotas negam) + log SEM segredo.
-    pool = new Pool(pgPoolConfig(env, { max: 5 }));
+    // Conexão ociosa derrubada pela rede/servidor fazia a leitura da sessão falhar (e, antes, a pessoa "cair"): ociosas saem do pool em 30 s,
+    // keep-alive de TCP e no máximo 10 s esperando conexão (falha vira erro explícito, não espera infinita).
+    pool = new Pool({ ...pgPoolConfig(env, { max: 5 }), idleTimeoutMillis: 30_000, connectionTimeoutMillis: 10_000, keepAlive: true });
     pool.on('error', onClientError('[auth] pg (conexão ociosa)')); // C1: nunca o objeto de erro (traz o TLS com a chave)
   } catch (e) {
     console.error(errLine('[auth] banco não configurado', e));
