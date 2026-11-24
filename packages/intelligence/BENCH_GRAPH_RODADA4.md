@@ -40,7 +40,7 @@ Opções: `--with-reference` mede também o lote (`reference_batched`) e o recur
 4. Depois da medição: `delete_app` do descartável (DevOps §3.F do roteiro dele); não reiniciar o app (rodaria tudo de novo).
 
 ## 5. Leitura do resultado (script homologado pelo QA 3: `interpret-bench-graph`)
-Salvar o texto **inteiro** do `get_logs` em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.log` assim que cada relatório aparecer (o log da Vertra é zerado a cada reinício; a pasta `releases\staging` fica no diretório compartilhado, FORA do repositório do código, por isso o caminho absoluto). **O `get_logs` mistura stdout e stderr** (a CLI imprime o JSON no stdout e o progresso `[bench] …` no stderr), então não dá para separar na origem: o interpretador **aceita o log misturado** e extrai sozinho o relatório (objeto JSON com `dataset`/`results`; linhas de progresso, objetos de log e chaves soltas são ignorados; se o log tiver a **fumaça e a medição**, vale o último relatório com ≥ 100 mil arestas, e um log só com a fumaça dá saída 2, "fumaça, não vale"). Se o `get_logs` colocar prefixo (data/hora) em cada linha e o JSON não for reconhecido, o script sai com 2 e "entrada ilegível": nesse caso mande o texto bruto ao Data. Depois, **do computador do PM** (o script só lê o arquivo; não abre rede nem banco):
+Salvar o texto **inteiro** do `get_logs` em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.log` assim que cada relatório aparecer (o log da Vertra é zerado a cada reinício; a pasta `releases\staging` fica no diretório compartilhado, FORA do repositório do código, por isso o caminho absoluto). **O `get_logs` mistura stdout e stderr** (a CLI imprime o JSON no stdout e o progresso `[bench] …` no stderr), então não dá para separar na origem: o interpretador **aceita o log misturado** e extrai sozinho o relatório (objeto JSON com `dataset`/`results`; linhas de progresso, objetos de log e chaves soltas são ignorados; se o log tiver a **fumaça e a medição**, vale o último relatório com ≥ 100 mil arestas, e um log só com a fumaça dá saída 2, "fumaça, não vale"). O formato real salvo do `get_logs` (envelope `untrusted_content` e carimbo de data em cada linha) **é lido diretamente** (visto na 4ª rodada); qualquer outro prefixo que o JSON não reconheça faz o script sair com 2: mande o texto bruto ao Data. Depois, **do computador do PM** (o script só lê o arquivo; não abre rede nem banco):
 
 `node packages/intelligence/scripts/interpret-bench-graph.mjs C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.log` (acrescente `--json` para a saída de máquina; `--real-edges N` e `--max-degree N` se houver esses números)
 
@@ -56,7 +56,10 @@ Sempre também: se `gatilhos_adjacencia` vier não vazio (p95 de organização >
 ## 6. O que NÃO fazer
 Não rodar sem o OK da §1; não usar `--schema`/`--replace` sem necessidade; não apontar para banco que não seja o de staging (L3 recusa); não deixar o app descartável vivo; não copiar variáveis além das 4 do banco; não rodar em produção (L1); não colar o relatório com segredo (ele não traz, mas confira antes de publicar); não comparar com o resultado de fora para "cumprir".
 
-## 7. Falhas conhecidas e o que significam
+## 7. RESULTADO (executada em 24/11/2026)
+**Cumpre a ADR-009**: pior p95 76,3 ms de dentro da rede (SELECT 1 p50 0,5 ms) com 114.990 arestas; consulta única fica; 0030 segue descartada; adjacência materializada sem gatilho. Relatório: `bench/results/pg-staging-dentro-20261124.json`; tabela e leitura em `GRAPH_PERF.md` ("4ª rodada — RESULTADO"). O arquivo salvo do get_logs tem o formato real: capturas com cabeçalho `===== captura … =====`, envelope JSON `untrusted_content` e carimbo de data por linha; o interpretador lê esse formato diretamente (o conteúdo é tratado só como dado).
+
+## 8. Falhas conhecidas e o que significam
 | Sintoma | Causa provável | Ação |
 |---|---|---|
 | saída 2, `medição recusada: APP_ENV=…` | ambiente errado | corrigir `APP_ENV=staging` no app descartável |

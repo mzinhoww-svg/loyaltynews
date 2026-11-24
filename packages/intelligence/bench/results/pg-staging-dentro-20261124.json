@@ -1,0 +1,242 @@
+{
+  "env": "staging",
+  "origem": "dentro da rede (worker de staging)",
+  "generated_at": "2026-11-24T13:38:18.513Z",
+  "schema": "ln_bench_20261124",
+  "version": "PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2)",
+  "settings": {
+    "shared_buffers": "128MB",
+    "work_mem": "4MB",
+    "effective_cache_size": "4GB",
+    "max_parallel_workers_per_gather": "2"
+  },
+  "dataset": {
+    "synthetic": true,
+    "scale": 1,
+    "orgs": 20000,
+    "people": 15000,
+    "graph_edges": 114990,
+    "size_mb": 69.4,
+    "load_seconds": 8.6,
+    "as_of": "2026-11-22"
+  },
+  "queries": {
+    "per_series": 60,
+    "warmup_discarded": 5,
+    "max_hops": 3
+  },
+  "network": {
+    "select1_roundtrip": {
+      "n": 40,
+      "p50_ms": 0.5,
+      "p95_ms": 0.8,
+      "p99_ms": 1.8,
+      "max_ms": 1.8,
+      "mean_ms": 0.6
+    },
+    "note": "ida e volta de SELECT 1 a partir de onde o script roda; ESTIMATE_* = p95 − (idas ao banco × p50 do SELECT 1): estimativa, não medição"
+  },
+  "results": {
+    "neighbors_from_organization": {
+      "n": 60,
+      "p50_ms": 48.8,
+      "p95_ms": 76.3,
+      "p99_ms": 97,
+      "max_ms": 97,
+      "mean_ms": 50.2,
+      "db_roundtrips_median": 1,
+      "estimate_colocated_p95_ms": 75.8,
+      "entities_reached_median": 655,
+      "entities_reached_max": 1401
+    },
+    "neighbors_from_person": {
+      "n": 60,
+      "p50_ms": 27.3,
+      "p95_ms": 46,
+      "p99_ms": 57,
+      "max_ms": 57,
+      "mean_ms": 28.6,
+      "db_roundtrips_median": 1,
+      "estimate_colocated_p95_ms": 45.5
+    },
+    "shortest_path_org_to_org": {
+      "n": 60,
+      "p50_ms": 20.2,
+      "p95_ms": 26.7,
+      "p99_ms": 29.5,
+      "max_ms": 29.5,
+      "mean_ms": 21.1,
+      "db_roundtrips_median": 1,
+      "estimate_colocated_p95_ms": 26.2
+    }
+  },
+  "reference_batched": {
+    "neighbors_from_organization": {
+      "n": 60,
+      "p50_ms": 39.8,
+      "p95_ms": 63,
+      "p99_ms": 82.8,
+      "max_ms": 82.8,
+      "mean_ms": 40.5,
+      "db_roundtrips_median": 3,
+      "estimate_colocated_p95_ms": 61.5,
+      "entities_reached_median": 655,
+      "entities_reached_max": 1401
+    },
+    "neighbors_from_person": {
+      "n": 60,
+      "p50_ms": 19.9,
+      "p95_ms": 39.1,
+      "p99_ms": 44.4,
+      "max_ms": 44.4,
+      "mean_ms": 22,
+      "db_roundtrips_median": 3,
+      "estimate_colocated_p95_ms": 37.6
+    },
+    "shortest_path_org_to_org": {
+      "n": 60,
+      "p50_ms": 32.1,
+      "p95_ms": 45.1,
+      "p99_ms": 54.5,
+      "max_ms": 54.5,
+      "mean_ms": 31.7,
+      "db_roundtrips_median": 3,
+      "estimate_colocated_p95_ms": 43.6
+    }
+  },
+  "reference_recursive": {
+    "neighbors_from_organization": {
+      "n": 60,
+      "p50_ms": 460.7,
+      "p95_ms": 692.9,
+      "p99_ms": 708.1,
+      "max_ms": 708.1,
+      "mean_ms": 432.2,
+      "db_roundtrips_median": 1,
+      "estimate_colocated_p95_ms": 692.4,
+      "entities_reached_median": 655,
+      "entities_reached_max": 1401
+    },
+    "neighbors_from_person": {
+      "n": 60,
+      "p50_ms": 289.6,
+      "p95_ms": 496.5,
+      "p99_ms": 934.8,
+      "max_ms": 934.8,
+      "mean_ms": 328,
+      "db_roundtrips_median": 1,
+      "estimate_colocated_p95_ms": 496
+    },
+    "shortest_path_org_to_org": {
+      "n": 60,
+      "p50_ms": 245,
+      "p95_ms": 264.9,
+      "p99_ms": 276.7,
+      "max_ms": 276.7,
+      "mean_ms": 248.7,
+      "db_roundtrips_median": 1,
+      "estimate_colocated_p95_ms": 264.4
+    }
+  },
+  "with_indexes": {
+    "results": {
+      "neighbors_from_organization": {
+        "n": 60,
+        "p50_ms": 123.1,
+        "p95_ms": 303.5,
+        "p99_ms": 452.7,
+        "max_ms": 452.7,
+        "mean_ms": 141.5,
+        "db_roundtrips_median": 1,
+        "estimate_colocated_p95_ms": 303,
+        "entities_reached_median": 655,
+        "entities_reached_max": 1401
+      },
+      "neighbors_from_person": {
+        "n": 60,
+        "p50_ms": 33.8,
+        "p95_ms": 105,
+        "p99_ms": 214.8,
+        "max_ms": 214.8,
+        "mean_ms": 45.9,
+        "db_roundtrips_median": 1,
+        "estimate_colocated_p95_ms": 104.5
+      },
+      "shortest_path_org_to_org": {
+        "n": 60,
+        "p50_ms": 16.4,
+        "p95_ms": 21.7,
+        "p99_ms": 25.8,
+        "max_ms": 25.8,
+        "mean_ms": 16.9,
+        "db_roundtrips_median": 1,
+        "estimate_colocated_p95_ms": 21.2
+      }
+    },
+    "server_side": {
+      "neighbors_org": [
+        {
+          "planning_ms": 13.46,
+          "execution_ms": 24.45
+        }
+      ],
+      "neighbors_person": [
+        {
+          "planning_ms": 8.38,
+          "execution_ms": 2.23
+        }
+      ],
+      "shortest_path": [
+        {
+          "planning_ms": 11.77,
+          "execution_ms": 1.41
+        }
+      ]
+    },
+    "indexes": [
+      "CREATE INDEX bench_rel_from_cov ON org_relation (from_org_id) INCLUDE (id, to_org_id, valid_from, valid_to, certainty)",
+      "CREATE INDEX bench_rel_to_cov ON org_relation (to_org_id) INCLUDE (id, from_org_id, valid_from, valid_to, certainty)",
+      "CREATE INDEX bench_role_person_cov ON role_assignment (person_id) INCLUDE (id, organization_id, valid_from, valid_to, certainty)",
+      "CREATE INDEX bench_role_org_cov ON role_assignment (organization_id) INCLUDE (id, person_id, valid_from, valid_to, certainty)"
+    ]
+  },
+  "proposed_criterion": {
+    "p95_ms": 300,
+    "edges": 100000
+  },
+  "worst_p95_ms": 76.3,
+  "meets_criterion": true,
+  "estimate_worst_p95_colocated_ms": 75.8,
+  "server_side": {
+    "neighbors_org": [
+      {
+        "planning_ms": 12.74,
+        "execution_ms": 5.75
+      }
+    ],
+    "neighbors_person": [
+      {
+        "planning_ms": 8.88,
+        "execution_ms": 1.54
+      }
+    ],
+    "shortest_path": [
+      {
+        "planning_ms": 10.47,
+        "execution_ms": 2.09
+      }
+    ]
+  },
+  "explain": {
+    "neighbors_org": [
+      "-- planning_ms=12.74 execution_ms=5.75\nAppend (actual rows=295.00 loops=1)\n  Buffers: shared hit=791\n  CTE l1\n    ->  Unique (actual rows=5.00 loops=1)\n          Buffers: shared hit=13\n          ->  Sort (actual rows=5.00 loops=1)\n                Sort Key: \"*SELECT* 1_3\".b_type, \"*SELECT* 1_3\".b_id, ((\"*SELECT* 1_3\".certainty = 'declared'::text)) DESC, \"*SELECT* 1_3\".edge_id\n                Sort Method: quicksort  Memory: 26kB\n                Buffers: shared hit=13\n                ->  Result (actual rows=5.00 loops=1)\n                      Buffers: shared hit=13\n                      ->  Append (actual rows=5.00 loops=1)\n                            Buffers: shared hit=13\n                            ->  Subquery Scan on \"*SELECT* 1_3\" (actual rows=2.00 loops=1)\n                                  Buffers: shared hit=3\n                                  ->  Result (actual rows=2.00 loops=1)\n                                        Buffers: shared hit=3\n                                        ->  Bitmap Heap Scan on org_relation o_2 (actual rows=2.00 loops=1)\n                                              Recheck Cond: (from_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                              Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (to_org_id <> '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid) AND (certainty = 'declared'::text))\n                                              Heap Blocks: exact=1\n                                              Buffers: shared hit=3\n                                              ->  Bitmap Index Scan on org_relation_from_idx (actual rows=2.00 loops=1)\n                                                    Index Cond: (from_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                    Index Searches: 1\n                                                    Buffers: shared hit=2\n                            ->  Subquery Scan on \"*SELECT* 2_1\" (actual rows=3.00 loops=1)\n                                  Buffers: shared hit=10\n                                  ->  Result (actual rows=3.00 loops=1)\n                                        Buffers: shared hit=10\n                                        ->  Append (actual rows=3.00 loops=1)\n                                              Buffers: shared hit=10\n                                              ->  Subquery Scan on \"*SELECT* 1_4\" (actual rows=1.00 loops=1)\n                                                    Buffers: shared hit=6\n                                                    ->  Nested Loop (actual rows=1.00 loops=1)\n                                                          Buffers: shared hit=6\n                                                          ->  Bitmap Heap Scan on role_assignment r_3 (actual rows=1.00 loops=1)\n                                                                Recheck Cond: (organization_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                                Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (certainty = 'declared'::text))\n                                                                Heap Blocks: exact=1\n                                                                Buffers: shared hit=3\n                                                                ->  Bitmap Index Scan on role_assignment_org_idx (actual rows=1.00 loops=1)\n                                                                      Index Cond: (organization_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                                      Index Searches: 1\n                                                                      Buffers: shared hit=2\n                                                          ->  Index Scan using person_pkey on person p_2 (actual rows=1.00 loops=1)\n                                                                Index Cond: (id = r_3.person_id)\n                                                                Filter: (suppressed_at IS NULL)\n                                                                Index Searches: 1\n                                                                Buffers: shared hit=3\n                                              ->  Bitmap Heap Scan on org_relation o_3 (actual rows=2.00 loops=1)\n                                                    Recheck Cond: (to_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                    Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (from_org_id <> '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid) AND (certainty = 'declared'::text))\n                                                    Heap Blocks: exact=2\n                                                    Buffers: shared hit=4\n                                                    ->  Bitmap Index Scan on org_relation_to_idx (actual rows=2.00 loops=1)\n                                                          Index Cond: (to_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                          Index Searches: 1\n                                                          Buffers: shared hit=2\n  CTE l2\n    ->  Unique (actual rows=35.00 loops=1)\n          Buffers: shared hit=106\n          ->  Incremental Sort (actual rows=37.00 loops=1)\n                Sort Key: \"*SELECT* 1_5\".b_type, \"*SELECT* 1_5\".b_id, ((l_1.all_declared AND (\"*SELECT* 1_5\".certainty = 'declared'::text))) DESC, \"*SELECT* 1_5\".edge_id\n                Presorted Key: \"*SELECT* 1_5\".b_type, \"*SELECT* 1_5\".b_id\n                Full-sort Groups: 2  Sort Method: quicksort  Average Memory: 34kB  Peak Memory: 34kB\n                Buffers: shared hit=106\n                ->  Merge Anti Join (actual rows=37.00 loops=1)\n                      Merge Cond:"
+    ],
+    "neighbors_person": [
+      "-- planning_ms=8.88 execution_ms=1.54\nAppend (actual rows=75.00 loops=1)\n  Buffers: shared hit=162\n  CTE l1\n    ->  Unique (actual rows=1.00 loops=1)\n          Buffers: shared hit=6\n          ->  Sort (actual rows=1.00 loops=1)\n                Sort Key: \"*SELECT* 1_3\".b_type, \"*SELECT* 1_3\".b_id, ((\"*SELECT* 1_3\".certainty = 'declared'::text)) DESC, \"*SELECT* 1_3\".edge_id\n                Sort Method: quicksort  Memory: 25kB\n                Buffers: shared hit=6\n                ->  Result (actual rows=1.00 loops=1)\n                      Buffers: shared hit=6\n                      ->  Append (actual rows=1.00 loops=1)\n                            Buffers: shared hit=6\n                            ->  Subquery Scan on \"*SELECT* 1_3\" (actual rows=1.00 loops=1)\n                                  Buffers: shared hit=6\n                                  ->  Result (actual rows=1.00 loops=1)\n                                        Buffers: shared hit=6\n                                        ->  Append (actual rows=1.00 loops=1)\n                                              Buffers: shared hit=6\n                                              ->  Subquery Scan on \"*SELECT* 1_4\" (actual rows=1.00 loops=1)\n                                                    Buffers: shared hit=6\n                                                    ->  Nested Loop (actual rows=1.00 loops=1)\n                                                          Buffers: shared hit=6\n                                                          ->  Index Scan using person_pkey on person p_2 (actual rows=1.00 loops=1)\n                                                                Index Cond: (id = '7167f8ce-7ae6-41e8-8f57-887f72517f4d'::uuid)\n                                                                Filter: (suppressed_at IS NULL)\n                                                                Index Searches: 1\n                                                                Buffers: shared hit=3\n                                                          ->  Bitmap Heap Scan on role_assignment r_3 (actual rows=1.00 loops=1)\n                                                                Recheck Cond: (person_id = '7167f8ce-7ae6-41e8-8f57-887f72517f4d'::uuid)\n                                                                Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (certainty = 'declared'::text))\n                                                                Heap Blocks: exact=1\n                                                                Buffers: shared hit=3\n                                                                ->  Bitmap Index Scan on role_assignment_person_idx (actual rows=1.00 loops=1)\n                                                                      Index Cond: (person_id = '7167f8ce-7ae6-41e8-8f57-887f72517f4d'::uuid)\n                                                                      Index Searches: 1\n                                                                      Buffers: shared hit=2\n                                              ->  Subquery Scan on \"*SELECT* 3_2\" (actual rows=0.00 loops=1)\n                                                    ->  Nested Loop (actual rows=0.00 loops=1)\n                                                          ->  Nested Loop (actual rows=0.00 loops=1)\n                                                                ->  Nested Loop (actual rows=0.00 loops=1)\n                                                                      ->  Nested Loop (actual rows=0.00 loops=1)\n                                                                            ->  Seq Scan on org_chart_edge e_4 (actual rows=0.00 loops=1)\n                                                                                  Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (certainty = 'declared'::text))\n                                                                            ->  Index Scan using role_assignment_pkey on role_assignment sup_2 (never executed)\n                                                                                  Index Cond: (id = e_4.superior_role_id)\n                                                                                  Filter: (person_id = '7167f8ce-7ae6-41e8-8f57-887f72517f4d'::uuid)\n                                                                                  Index Searches: 0\n                                                                      ->  Index Scan using role_assignment_pkey on role_assignment sub_2 (never executed)\n                                                                            Index Cond: (id = e_4.subordinate_role_id)\n                                                                            Filter: (person_id <> '7167f8ce-7ae6-41e8-8f57-887f72517f4d'::uuid)\n                                                                            Index Searches: 0\n                                                                ->  Index Scan using person_pkey on person ps_2 (never executed)\n                                                                      Index Cond: (id = '7167f8ce-7ae6-41e8-8f57-887f72517f4d'::uuid)\n                                                                      Filter: (suppressed_at IS NULL)\n                                                                      Index Searches: 0\n                                                          ->  Index Scan using person_pkey on person pb_2 (never executed)\n                                                                Index Cond: (id = sub_2.person_id)\n                                                                Filter: (suppressed_at IS NULL)\n                                                                Index Searches: 0\n                            ->  Subquery Scan on \"*SELECT* 2_1\" (actual rows=0.00 loops=1)\n                                  ->  Result (actual rows=0.00 loops=1)\n       "
+    ],
+    "shortest_path": [
+      "-- planning_ms=10.47 execution_ms=2.09\nLimit (actual rows=0.00 loops=1)\n  Buffers: shared hit=469\n  CTE l1\n    ->  Unique (actual rows=5.00 loops=1)\n          Buffers: shared hit=13\n          ->  Sort (actual rows=5.00 loops=1)\n                Sort Key: \"*SELECT* 1_2\".b_type, \"*SELECT* 1_2\".b_id, ((\"*SELECT* 1_2\".certainty = 'declared'::text)) DESC, \"*SELECT* 1_2\".edge_id\n                Sort Method: quicksort  Memory: 26kB\n                Buffers: shared hit=13\n                ->  Result (actual rows=5.00 loops=1)\n                      Buffers: shared hit=13\n                      ->  Append (actual rows=5.00 loops=1)\n                            Buffers: shared hit=13\n                            ->  Subquery Scan on \"*SELECT* 1_2\" (actual rows=2.00 loops=1)\n                                  Buffers: shared hit=3\n                                  ->  Result (actual rows=2.00 loops=1)\n                                        Buffers: shared hit=3\n                                        ->  Bitmap Heap Scan on org_relation o_2 (actual rows=2.00 loops=1)\n                                              Recheck Cond: (from_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                              Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (to_org_id <> '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid) AND (certainty = 'declared'::text))\n                                              Heap Blocks: exact=1\n                                              Buffers: shared hit=3\n                                              ->  Bitmap Index Scan on org_relation_from_idx (actual rows=2.00 loops=1)\n                                                    Index Cond: (from_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                    Index Searches: 1\n                                                    Buffers: shared hit=2\n                            ->  Subquery Scan on \"*SELECT* 2_1\" (actual rows=3.00 loops=1)\n                                  Buffers: shared hit=10\n                                  ->  Result (actual rows=3.00 loops=1)\n                                        Buffers: shared hit=10\n                                        ->  Append (actual rows=3.00 loops=1)\n                                              Buffers: shared hit=10\n                                              ->  Subquery Scan on \"*SELECT* 1_3\" (actual rows=1.00 loops=1)\n                                                    Buffers: shared hit=6\n                                                    ->  Nested Loop (actual rows=1.00 loops=1)\n                                                          Buffers: shared hit=6\n                                                          ->  Bitmap Heap Scan on role_assignment r_2 (actual rows=1.00 loops=1)\n                                                                Recheck Cond: (organization_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                                Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (certainty = 'declared'::text))\n                                                                Heap Blocks: exact=1\n                                                                Buffers: shared hit=3\n                                                                ->  Bitmap Index Scan on role_assignment_org_idx (actual rows=1.00 loops=1)\n                                                                      Index Cond: (organization_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                                      Index Searches: 1\n                                                                      Buffers: shared hit=2\n                                                          ->  Index Scan using person_pkey on person p_1 (actual rows=1.00 loops=1)\n                                                                Index Cond: (id = r_2.person_id)\n                                                                Filter: (suppressed_at IS NULL)\n                                                                Index Searches: 1\n                                                                Buffers: shared hit=3\n                                              ->  Bitmap Heap Scan on org_relation o_3 (actual rows=2.00 loops=1)\n                                                    Recheck Cond: (to_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                    Filter: ((valid_from <= '2026-11-22'::date) AND ((valid_to IS NULL) OR (valid_to > '2026-11-22'::date)) AND (from_org_id <> '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid) AND (certainty = 'declared'::text))\n                                                    Heap Blocks: exact=2\n                                                    Buffers: shared hit=4\n                                                    ->  Bitmap Index Scan on org_relation_to_idx (actual rows=2.00 loops=1)\n                                                          Index Cond: (to_org_id = '469924ad-bc44-4ecd-ab6f-83660acc574d'::uuid)\n                                                          Index Searches: 1\n                                                          Buffers: shared hit=2\n  CTE l2\n    ->  Unique (actual rows=35.00 loops=1)\n          Buffers: shared hit=106\n          ->  Incremental Sort (actual rows=37.00 loops=1)\n                Sort Key: \"*SELECT* 1_4\".b_type, \"*SELECT* 1_4\".b_id, ((l_1.all_declared AND (\"*SELECT* 1_4\".certainty = 'declared'::text))) DESC, \"*SELECT* 1_4\".edge_id\n                Presorted Key: \"*SELECT* 1_4\".b_type, \"*SELECT* 1_4\".b_id\n                Full-sort Groups: 2  Sort Method: quicksort  Average Memory: 34kB  Peak Memory: 34kB\n                Buffers: shared hit=106\n                ->  Merge Anti Join (actual rows=37.00 loops=1)\n                      Merge Cond: (("
+    ]
+  },
+  "schema_dropped": true
+}
