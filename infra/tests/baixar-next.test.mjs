@@ -58,10 +58,11 @@ function servidor({ envelope = 'lista', limitarUma = false } = {}) {
 }
 const fecha = (s) => new Promise((r) => s.srv.close(r));
 
-test('nomeSeguro: só nomes simples; recusa .., barras, dois-pontos, controle e vazio', () => {
+test('nomeSeguro: aceita os segmentos REAIS do App Router (catch-all [...x], [[...x]], (grupo), @slot, _privado, rotas interceptadas (..)x); recusa .., só pontos, barras, dois-pontos, controle, ponto/espaço no fim e vazio', () => {
   const barra = String.fromCharCode(92);
-  for (const ok of ['BUILD_ID', 'pg-0123456789abcdef', 'index.html', '@s', '[doc].html']) assert.equal(nomeSeguro(ok), true, ok);
-  for (const ruim of ['', '.', '..', 'a/b', `a${barra}b`, 'C:x', 'a..b', 'a\u0000b', 'a\nb']) assert.equal(nomeSeguro(ruim), false, JSON.stringify(ruim));
+  const reais = ['BUILD_ID', 'pg-0123456789abcdef', 'index.html', '@s', '[doc].html', '[...all]', '[...path]', '[[...slug]]', '[id]', '[slug]', '(portal)', '(protegido)', '(grupo)', '@modal', '_privado', '_components', '(.)foto', '(..)foto', '(...)foto', '(..)(..)foto', 'route.js', 'page_client-reference-manifest.js', 'a..b', '0abc.js', '$x'];
+  for (const ok of reais) assert.equal(nomeSeguro(ok), true, ok);
+  for (const ruim of ['', '.', '..', '...', '....', 'a/b', '../x', '..' + barra + 'x', 'a' + barra + 'b', 'C:x', 'a:b', 'x.', 'x ', 'a\u0000b', 'a\nb', 'a'.repeat(256)]) assert.equal(nomeSeguro(ruim), false, JSON.stringify(ruim));
 });
 
 test('normalizarListagem: aceita array, { files }, { data: { items } } e is_dir/type; formato desconhecido lança só com NOMES de chaves', () => {
@@ -367,4 +368,33 @@ test('timeout por pedido: um pedido que trava estoura o timeout configurado, é 
     assert.equal(Object.values(rel.diagnostico.faixas).reduce((a, b) => a + b, 0), rel.latenciaMs.n, 'o histograma soma os pedidos bem-sucedidos');
     assert.ok(Array.isArray(rel.diagnostico.lentos));
   } finally { for (const r of presos) r.destroy(); await new Promise((ok) => srv.close(ok)); rmSync(base, { recursive: true, force: true }); }
+});
+
+test('baixar: as pastas de rotas do App Router (catch-all, grupo, slot, privada, interceptada) VÃO para o disco; ".." e "..." continuam recusados e o erro mostra o nome; nada escapa do destino', async () => {
+  const R = RAIZ + '/server/app';
+  const flat = {
+    [RAIZ]: ['BUILD_ID', 'server/'],
+    [RAIZ + '/server']: ['app/'],
+    [R]: ['api/', '(portal)/', '@modal/', '_privado/', '(..)foto/', '..', '...'],
+    [R + '/api']: ['auth/', 'studio/'],
+    [R + '/api/auth']: ['[...all]/'],
+    [R + '/api/auth/[...all]']: ['route.js'],
+    [R + '/api/studio']: ['[[...slug]]/'],
+    [R + '/api/studio/[[...slug]]']: ['route.js'],
+    [R + '/(portal)']: ['[doc]/'],
+    [R + '/(portal)/[doc]']: ['page.js'],
+    [R + '/@modal']: ['default.js'],
+    [R + '/_privado']: ['x.js'],
+    [R + '/(..)foto']: ['page.js'],
+  };
+  const s = await servidorGenerico(flat);
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-rotas-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: s.api, rpm: 60000, concorrencia: 4, chave: CHAVE });
+    for (const p of ['api/auth/[...all]/route.js', 'api/studio/[[...slug]]/route.js', '(portal)/[doc]/page.js', '@modal/default.js', '_privado/x.js', '(..)foto/page.js']) assert.ok(existsSync(join(base, 'n', 'server', 'app', ...p.split('/'))), p);
+    assert.equal(rel.erros.length, 2, JSON.stringify(rel.erros));
+    assert.ok(rel.erros.every((e) => /nome recusado em .*server\/app: "(\.\.|\.\.\.)"/.test(e)), 'o erro traz o nome recusado: ' + JSON.stringify(rel.erros));
+    assert.equal(existsSync(join(base, 'server')), false, 'nada fora do destino');
+    assert.equal(rel.arquivos, 7);
+  } finally { await fecha(s); rmSync(base, { recursive: true, force: true }); }
 });

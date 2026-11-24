@@ -30,6 +30,30 @@ export function listarExternos(nextDir) {
   return out;
 }
 
+// Arquivos que o next start NÃO usa e que o baixar deixa de fora por padrão: não contam como "faltando".
+const OPCIONAIS = /\.(?:map|nft\.json)$/;
+
+/**
+ * COMPLETUDE do .next: todo arquivo que os manifestos do PRÓPRIO Next citam tem de existir. Fontes: required-server-files.json (`files`; separadores e o prefixo .next normalizados),
+ * server/app-paths-manifest.json (cada rota do App Router -> o .js da rota, inclusive as pastas catch-all como app/api/auth/[...all]/route.js) e server/pages-manifest.json.
+ * Existe para pegar um download que perdeu pastas (24/11: 8 pastas de rotas de API foram recusadas por engano e o .next ficou sem login e sem APIs). Devolve as faltas (vazio = completo).
+ */
+export function arquivosFaltando(nextDir) {
+  const faltam = [];
+  const barra = String.fromCharCode(92);
+  const ler = (rel) => { try { return JSON.parse(readFileSync(join(nextDir, rel), 'utf8').replace(/^\uFEFF/, '')); } catch { return null; } };
+  const existe = (rel) => existsSync(join(nextDir, ...rel.split('/')));
+  const rsf = ler('required-server-files.json');
+  if (!rsf || !Array.isArray(rsf.files)) faltam.push('required-server-files.json (ausente, ilegível ou sem a lista files)');
+  else for (const f of rsf.files) { const rel = String(f).split(barra).join('/').replace(/^\.\//, '').replace(/^\.next\//, ''); if (!OPCIONAIS.test(rel) && !existe(rel)) faltam.push(rel); }
+  for (const man of ['server/app-paths-manifest.json', 'server/pages-manifest.json']) {
+    const m = ler(man);
+    if (m === null) { if (man.includes('app-paths')) faltam.push(`${man} (ausente ou ilegível)`); continue; }
+    for (const [rota, arq] of Object.entries(m)) { if (typeof arq !== 'string') continue; const rel = `server/${arq.split(barra).join('/')}`; if (!OPCIONAIS.test(rel) && !existe(rel)) faltam.push(`${rel} (rota ${rota})`); }
+  }
+  return [...new Set(faltam)];
+}
+
 /** Problemas entre o manifesto do pré-construído e o release.json do pacote. Função pura. */
 export function problemasPrebuilt(pb, release, nextInstalado) {
   if (!pb || typeof pb !== 'object' || Array.isArray(pb)) return ['prebuilt.json ilegível'];
@@ -128,6 +152,9 @@ export function restaurarPrebuilt(root, release) {
     }
   }
 
+  // completude: nenhum arquivo citado pelos manifestos do Next pode faltar (um .next com pasta de rota perdida subiria sem login/API)
+  const faltam = arquivosFaltando(destino);
+  if (faltam.length) problemas.push(`.next restaurado INCOMPLETO: faltam ${faltam.length} arquivo(s) citado(s) pelos manifestos do Next (${faltam.slice(0, 5).join(' | ')}${faltam.length > 5 ? ' | …' : ''}): refaça o download com --retomar e o pacote`);
   // o mesmo conferido que o build-web faz depois do build: canonical com a URL do ambiente e noindex fora de produção/antes do go-live
   const idx = join(destino, 'server', 'app', 'index.html');
   if (!existsSync(idx)) problemas.push('.next/server/app/index.html ausente: o pré-construído não tem a home estática para conferir');

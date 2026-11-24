@@ -10,7 +10,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statS
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fail, parseArgs, sha256File } from './lib/util.mjs';
-import { PREBUILT_DIR, PREBUILT_MANIFEST, listarExternos } from './lib/prebuilt.mjs';
+import { PREBUILT_DIR, PREBUILT_MANIFEST, arquivosFaltando, listarExternos } from './lib/prebuilt.mjs';
 
 const SELF = dirname(fileURLToPath(import.meta.url));
 const EXCLUIR = new Set(['cache', 'node_modules', 'trace', 'trace-build', 'diagnostics']);
@@ -56,6 +56,9 @@ async function main() {
     const ruins = caminhosNaoPortaveis(readFileSync(join(nextSrc, f), 'utf8'));
     if (ruins.length) fail(`.next/${f} tem caminho(s) do host de build (${ruins.slice(0, 3).join(' | ')}): construído fora de um Linux em /app, não roda na Vertra`, 2);
   }
+  // completude pelos manifestos do próprio Next (rotas do App Router incluídas): um download que perdeu pastas NÃO vira pacote
+  const faltam = arquivosFaltando(nextSrc);
+  if (faltam.length) fail(`.next INCOMPLETO: faltam ${faltam.length} arquivo(s) que os manifestos do Next citam (${faltam.slice(0, 8).join(' | ')}${faltam.length > 8 ? ' | …' : ''}). Repita o download com --retomar (confira erros no relatório) e refaça o pacote`, 2);
   let nextVersion = null;
   try { nextVersion = JSON.parse(readFileSync(join(pacote, 'package-lock.json'), 'utf8')).packages?.['node_modules/next']?.version ?? null; } catch { /* sem lock */ }
   const externos = listarExternos(nextSrc);

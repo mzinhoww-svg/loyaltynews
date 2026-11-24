@@ -34,8 +34,12 @@ export function estatistica(ms) {
 export function nomeSeguro(nome) {
   const n = String(nome ?? '');
   const barra = String.fromCharCode(92);
-  if (!n || n === '.' || n === '..' || n.length > 255) return false;
-  if (n.includes('/') || n.includes(barra) || n.includes(':') || n.includes('..')) return false;
+  if (!n || n.length > 255) return false;
+  // Nome só de pontos ('.', '..', '...'): no Windows os pontos finais somem e o nome vira a pasta pai. Ponto ou espaço NO FIM também some no Windows e apelida outro arquivo.
+  if (/^\.+$/.test(n) || /[. ]$/.test(n)) return false;
+  // Nunca separador de caminho nem ':' (unidade/fluxo do Windows). `..` DENTRO de um único segmento é legítimo e inofensivo (sem separador não há como sair da pasta):
+  // pastas catch-all do App Router ([...all], [[...slug]]) e rotas interceptadas ((..)foto, (...)foto, (..)(..)foto). O erro de 24/11 foi recusar qualquer nome com '..'.
+  if (n.includes('/') || n.includes(barra) || n.includes(':')) return false;
   for (let i = 0; i < n.length; i += 1) if (n.charCodeAt(i) < 32 || n.charCodeAt(i) === 127) return false;
   return true;
 }
@@ -282,7 +286,7 @@ export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'htt
     let itens;
     try { itens = await c.listar(d.remoto); } catch (e) { rel.erros.push(`listar ${d.remoto}: ${e.message}`); return; }
     for (const it of itens) {
-      if (!nomeSeguro(it.nome)) { rel.erros.push(`nome recusado em ${d.remoto}`); continue; }
+      if (!nomeSeguro(it.nome)) { rel.erros.push(`nome recusado em ${d.remoto}: ${JSON.stringify(String(it.nome)).slice(0, 80)}`); continue; }
       const remoto = `${d.remoto}/${it.nome}`;
       const local = join(d.local, it.nome);
       if (!dentro(local)) { rel.erros.push(`caminho fora do destino em ${d.remoto}`); continue; }

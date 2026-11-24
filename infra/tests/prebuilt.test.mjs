@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { pacoteDoExterno, problemasPrebuilt, restaurarPrebuilt } from '../scripts/lib/prebuilt.mjs';
+import { arquivosFaltando, pacoteDoExterno, problemasPrebuilt, restaurarPrebuilt } from '../scripts/lib/prebuilt.mjs';
 import { caminhosNaoPortaveis } from '../scripts/package-prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -27,6 +27,10 @@ function pacote({ pb = {}, rel = {}, home = HOME(), pg = true, buildIdPasta = 'B
   put(r, 'prebuilt/prebuilt.json', JSON.stringify({ schema: 1, commit: SHA, appEnv: 'staging', siteUrl: SITE, vitrine: false, indexavel: false, flagsLigadas: ['intelligencePessoas'], buildId: 'BUILD_abc123', nextVersion: '16.4.6', externos: EXT, geradoEm: '2026-11-24T00:00:00.000Z', ...pb }));
   put(r, 'prebuilt/web-next/BUILD_ID', buildIdPasta);
   put(r, 'prebuilt/web-next/server/app/index.html', home);
+  // um .next COMPLETO tem os manifestos e os arquivos que eles citam (a restauração confere; antes de 24/11 não conferia)
+  put(r, 'prebuilt/web-next/required-server-files.json', JSON.stringify({ version: 1, appDir: '/app/apps/web', files: ['.next/BUILD_ID', '.next/server/app-paths-manifest.json', '.next/required-server-files.json'] }));
+  put(r, 'prebuilt/web-next/server/app-paths-manifest.json', JSON.stringify({ '/api/auth/[...all]/route': 'app/api/auth/[...all]/route.js', '/page': 'app/index.html' }));
+  put(r, 'prebuilt/web-next/server/app/api/auth/[...all]/route.js', 'x');
   put(r, 'node_modules/next/package.json', '{"version":"16.4.6"}');
   put(r, 'node_modules/next/dist/bin/next', 'console.log("stub-next " + process.argv.slice(2).join(" "));');
   if (pg) put(r, 'node_modules/pg/package.json', '{}');
@@ -137,13 +141,15 @@ test('caminhosNaoPortaveis: acha caminho de host Windows/usuário e ignora camin
   assert.deepEqual(caminhosNaoPortaveis('{"appDir":"/app/apps/web","outputFileTracingRoot":"/app"}'), []);
 });
 
-function nextFalso({ requerido = '{"version":1,"appDir":"/app/apps/web"}' } = {}) {
+function nextFalso({ requerido = '{"version":1,"appDir":"/app/apps/web","files":[".next/BUILD_ID",".next/server/app-paths-manifest.json"]}' } = {}) {
   const n = tmp();
   put(n, 'BUILD_ID', 'BUILD_abc123');
   put(n, 'required-server-files.json', requerido);
   put(n, 'routes-manifest.json', '{"version":3}');
   put(n, 'build-manifest.json', '{}');
   put(n, 'server/app/index.html', HOME());
+  put(n, 'server/app-paths-manifest.json', JSON.stringify({ '/api/auth/[...all]/route': 'app/api/auth/[...all]/route.js', '/page': 'app/index.html' }));
+  put(n, 'server/app/api/auth/[...all]/route.js', 'x');
   put(n, 'static/chunks/a.js', 'x');
   put(n, 'cache/grande.bin', 'nao deve entrar');
   put(n, 'trace', 'nao deve entrar');
@@ -319,4 +325,60 @@ test('QA 5 P3 — pasta de verdade (não link) em .next/node_modules: a limpeza 
     assert.equal(lstatSync(join(r, 'apps/web/.next/node_modules/pg-0123456789abcdef')).isSymbolicLink(), true);
     assert.ok(existsSync(join(r, 'node_modules/pg/package.json')), 'o alvo do link NÃO foi apagado');
   } finally { limpa(r); }
+});
+
+test('arquivosFaltando: completo = vazio; rota catch-all, arquivo do required-server-files e manifesto ausentes são apontados; *.map e *.nft.json citados NÃO contam', () => {
+  const n = nextFalso();
+  try {
+    assert.deepEqual(arquivosFaltando(n), []);
+    rmSync(join(n, 'server/app/api/auth/[...all]'), { recursive: true });
+    assert.match(arquivosFaltando(n).join('|'), /server\/app\/api\/auth\/\[\.\.\.all\]\/route\.js/);
+    assert.match(arquivosFaltando(n).join('|'), /rota \/api\/auth\/\[\.\.\.all\]\/route/);
+    put(n, 'server/app/api/auth/[...all]/route.js', 'x');
+    rmSync(join(n, 'BUILD_ID'));
+    assert.match(arquivosFaltando(n).join('|'), /BUILD_ID/);
+    put(n, 'BUILD_ID', 'BUILD_abc123');
+    // citar um .map/.nft.json que o download deixa de fora não é falta
+    put(n, 'required-server-files.json', JSON.stringify({ files: ['.next/BUILD_ID', '.next/next-server.js.nft.json', '.next/server/x.js.map'] }));
+    assert.deepEqual(arquivosFaltando(n), []);
+    // separadores do Windows e o prefixo ./.next também são entendidos
+    put(n, 'required-server-files.json', JSON.stringify({ files: ['.next' + BARRA + 'BUILD_ID', './.next/server/app-paths-manifest.json'] }));
+    assert.deepEqual(arquivosFaltando(n), []);
+    // manifestos ausentes
+    rmSync(join(n, 'server/app-paths-manifest.json'));
+    assert.match(arquivosFaltando(n).join('|'), /app-paths-manifest\.json/);
+    rmSync(join(n, 'required-server-files.json'));
+    assert.match(arquivosFaltando(n).join('|'), /required-server-files\.json .ausente/);
+  } finally { rmSync(n, { recursive: true, force: true }); }
+});
+
+test('package-prebuilt RECUSA um .next incompleto (pasta de rota catch-all perdida no download) e diz quais arquivos faltam; completo passa e leva a rota', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const completo = nextFalso();
+  const incompleto = nextFalso();
+  rmSync(join(incompleto, 'server/app/api/auth'), { recursive: true });
+  try {
+    const ruim = spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', incompleto, '--out', join(base, 'a'), '--origem', 'teste'], { encoding: 'utf8' });
+    assert.equal(ruim.status, 2);
+    assert.ok(ruim.stderr.includes('.next INCOMPLETO: faltam 1 arquivo(s)'), ruim.stderr);
+    assert.ok(ruim.stderr.includes('app/api/auth/[...all]/route.js'), ruim.stderr);
+    assert.equal(existsSync(join(base, 'a')), false, 'recusado antes de criar saída');
+    const bom = spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', completo, '--out', join(base, 'b'), '--origem', 'teste', '--sem-zip'], { encoding: 'utf8' });
+    assert.equal(bom.status, 0, bom.stderr + bom.stdout);
+    assert.ok(existsSync(join(JSON.parse(bom.stdout).pasta, 'prebuilt/web-next/server/app/api/auth/[...all]/route.js')), 'a rota catch-all vai no pacote');
+  } finally { rmSync(base, { recursive: true, force: true }); rmSync(completo, { recursive: true, force: true }); rmSync(incompleto, { recursive: true, force: true }); }
+});
+
+test('restaurarPrebuilt: um pré-construído INCOMPLETO (rota perdida) não sobe: problema com o nome do arquivo; completo passa', () => {
+  const r = pacote();
+  try {
+    assert.deepEqual(restaurarPrebuilt(r, release(r)).problemas, []);
+  } finally { limpa(r); }
+  const q = pacote();
+  try {
+    rmSync(join(q, 'prebuilt/web-next/server/app/api'), { recursive: true });
+    const x = restaurarPrebuilt(q, release(q));
+    assert.ok(x.problemas.join('|').includes('INCOMPLETO: faltam 1 arquivo(s)'), x.problemas.join('|'));
+    assert.ok(x.problemas.join('|').includes('route.js'));
+  } finally { limpa(q); }
 });
