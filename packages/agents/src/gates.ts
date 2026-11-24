@@ -165,7 +165,7 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   set('G3.1', journal.includes('0004_agentic_org') && journal.includes('0005_agents_reschedule'), 'packages/db/drizzle/meta/_journal.json');
   const pgTest = read(join(PKG_DIR, 'src/pg.test.ts'));
   set('G3.2', pgTest.includes('PgStore sobre as migrações oficiais'), 'pg.test.ts presente (execução verde é de `npm test`)');
-  external('G3.3', 'não existe banco de staging');
+  external('G3.3', 'o staging existe (int/012, 82decac; `/api/ready` com db ok em 23/11, segundo a Integration; migrações até a 0027, segundo o PM), mas a conferência das 6 tabelas e restrições da organização NO staging não foi feita por esta frente');
 
   external('G4.0', 'passou 12 de 12 obrigatórios em PostgreSQL 18.7 local no ft/modelops c354b89 (suíte já no canônico); falta rodar no staging, só com banco de teste próprio (G3)');
   external('G4.1', 'passou em PostgreSQL 18.7 local no c354b89: estresse de 1.000 reservas → 440 aceitas e dois processos de SO → 220 + 220; falta o staging (G3)');
@@ -175,7 +175,9 @@ export function evaluateGatesOffline(repoRoot = join(PKG_DIR, '../..')): GateEva
   const draft = buildOpenBotDraft(reg);
   const issues = validateOpenBotDraft(draft, reg);
   set('G5.1', issues.length === 0, issues.length ? issues.map((i) => i.code).join(', ') : '8 agentes cobrem 64 perfis, 28 rituais e 19 workflows; created=false');
-  for (const id of ['G5.2', 'G5.3', 'G5.4', 'G5.5', 'G5.6']) external(id, 'depende de aval, adaptador e agentes que não existem');
+  external('G5.2', 'o PM aprovou nomes e títulos dos 8 perfis COMO PROPOSTA (23/11) e o piloto usa 5 agentes próprios (DP-41); o aval para CRIAR os agentes é o sinal do PM (PM-2026-11-23-F), ainda não dado');
+  external('G5.3', 'o adaptador existe (ft/growth) e as rotas estão no Backend (ft/backend); aprovados offline pelo QA 2 (ft-backend-cb9e0dd-qa2.md); falta o OpenBot real chamando o endpoint assinado');
+  for (const id of ['G5.4', 'G5.5', 'G5.6']) external(id, 'depende de os agentes do OpenBot serem criados (sinal do PM); o adaptador já existe');
 
   const schemas = read(join(PKG_DIR, 'src/schemas.ts'));
   const sched = read(join(PKG_DIR, 'src/scheduler.ts'));

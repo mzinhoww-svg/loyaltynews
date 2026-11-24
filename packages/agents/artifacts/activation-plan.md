@@ -12,9 +12,9 @@
 |---|---|---|---|
 | G1 | Ratificar P5 v2 (item 11 das mudanças protegidas) em lote separado, depois do aceite de R4-11 | Proprietário + verificador | proposta aprovada pelo QA; **não ratificada** |
 | G2 | Qualificar modelos (R2-07/08): ID exato, preço, ZDR, avaliação PT-BR | Verificador / FinOps | nenhum modelo qualificado |
-| G3 | Banco de staging com as migrações 0004 e 0005 | DevOps | não existe |
-| G4 | Ledger de orçamento e saldo do provedor persistidos em PostgreSQL (modelops) | Backend + FinOps | pendente no pacote modelops |
-| G5 | Adaptador OpenBot (disparo, webhooks, custos) e mapeamento perfil → agente | Integration + PM | **não criado**; exige aval do PM |
+| G3 | Banco de staging com as migrações 0004 e 0005 | DevOps | o staging existe (int/012; migrações até a 0027, segundo o PM); falta conferir as tabelas da organização nele |
+| G4 | Ledger de orçamento e saldo do provedor persistidos em PostgreSQL (modelops) | Backend + FinOps | persistência e saldo prontos (ft/modelops c354b89: A01–A12, 1.000 reservas → 440, saldo antes da 1ª chamada); falta o replay com gerações reais (G4.2) e rodar no staging |
+| G5 | Adaptador OpenBot (disparo, webhooks, custos) e mapeamento perfil → agente | Integration + PM | adaptador e rotas existem (ft/growth, ft/backend; aprovados offline pelo QA 2); agentes do OpenBot **não criados**: exigem o sinal do PM |
 | G6 | Worker determinístico de insumos (05:30, ADR-014) e coletor de insumos estruturados | Backend/Editorial | não existe |
 | G7 | Ligar flags em ambiente: `rituais` (primeiro só em staging), depois `modelosHabilitados` | Proprietário | desligadas |
 

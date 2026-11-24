@@ -32,7 +32,7 @@ Decide: DevOps
 |---|---|---|---|---|
 | G3.1 Migrações 0004_agentic_org e 0005_agents_reschedule existem e estão no journal | packages/db/drizzle/meta/_journal.json | ambas presentes | Arquiteto | OK offline — packages/db/drizzle/meta/_journal.json |
 | G3.2 As migrações aplicam e o PgStore passa os testes de idempotência, atomicidade e CHECKs | pg.test.ts (PGlite) | 100% dos testes | AgentOps | OK offline — pg.test.ts presente (execução verde é de `npm test`) |
-| G3.3 Aplicadas no PostgreSQL de staging | select das 6 tabelas no staging | 6 tabelas e as restrições presentes | DevOps | externo — não existe banco de staging |
+| G3.3 Aplicadas no PostgreSQL de staging | select das 6 tabelas no staging | 6 tabelas e as restrições presentes | DevOps | externo — o staging existe (int/012, 82decac; `/api/ready` com db ok em 23/11, segundo a Integration; migrações até a 0027, segundo o PM), mas a conferência das 6 tabelas e restrições da organização NO staging não foi feita por esta frente |
 
 ## G4 — Ledger de orçamento e saldo persistidos em PostgreSQL
 Decide: Backend + FinOps (pacote modelops)
@@ -50,11 +50,11 @@ Decide: Integration + Program Manager (aval para criar agentes)
 | Critério | Como medir | Limiar | Dono | Hoje |
 |---|---|---|---|---|
 | G5.1 O rascunho de perfis cobre os 64 perfis exatamente uma vez, preside os 28 rituais e é dono dos 19 workflows | validateOpenBotDraft | 0 problemas | AgentOps | OK offline — 8 agentes cobrem 64 perfis, 28 rituais e 19 workflows; created=false |
-| G5.2 Aval do Program Manager ao rascunho (nome, título, divisão da Editorial) | mensagem registrada | aval explícito | Program Manager | externo — depende de aval, adaptador e agentes que não existem |
-| G5.3 Adaptador por pull com lease, só conexão de saída, callback assinado e idempotente (R2-10, testes 2, 3, 6 e 7) | suíte do adaptador | 100% | Integration | externo — depende de aval, adaptador e agentes que não existem |
-| G5.4 Teste negativo por agente: nenhum agente lê credencial ou memória de produção que não é sua (R2-09, teste 11) | teste por agente criado | 8 de 8 agentes negam | Security | externo — depende de aval, adaptador e agentes que não existem |
-| G5.5 Nenhuma credencial de provedor na configuração dos agentes | varredura da configuração (ADR-003) | 0 ocorrências | Security | externo — depende de aval, adaptador e agentes que não existem |
-| G5.6 Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas | editorial_split_criteria do rascunho + harness de tokens/latência | S1, S2 e S3 dentro do limiar; senão dividir (proposta) | AgentOps + PM | externo — depende de aval, adaptador e agentes que não existem |
+| G5.2 Aval do Program Manager ao rascunho (nome, título, divisão da Editorial) | mensagem registrada | aval explícito | Program Manager | externo — o PM aprovou nomes e títulos dos 8 perfis COMO PROPOSTA (23/11) e o piloto usa 5 agentes próprios (DP-41); o aval para CRIAR os agentes é o sinal do PM (PM-2026-11-23-F), ainda não dado |
+| G5.3 Adaptador por pull com lease, só conexão de saída, callback assinado e idempotente (R2-10, testes 2, 3, 6 e 7) | suíte do adaptador | 100% | Integration | externo — o adaptador existe (ft/growth) e as rotas estão no Backend (ft/backend); aprovados offline pelo QA 2 (ft-backend-cb9e0dd-qa2.md); falta o OpenBot real chamando o endpoint assinado |
+| G5.4 Teste negativo por agente: nenhum agente lê credencial ou memória de produção que não é sua (R2-09, teste 11) | teste por agente criado | 8 de 8 agentes negam | Security | externo — depende de os agentes do OpenBot serem criados (sinal do PM); o adaptador já existe |
+| G5.5 Nenhuma credencial de provedor na configuração dos agentes | varredura da configuração (ADR-003) | 0 ocorrências | Security | externo — depende de os agentes do OpenBot serem criados (sinal do PM); o adaptador já existe |
+| G5.6 Editorial em 1 agente até a medição; critérios S1–S3 de divisão avaliados com 30+ execuções medidas | editorial_split_criteria do rascunho + harness de tokens/latência | S1, S2 e S3 dentro do limiar; senão dividir (proposta) | AgentOps + PM | externo — depende de os agentes do OpenBot serem criados (sinal do PM); o adaptador já existe |
 
 ## G6 — Insumos dos rituais: digest determinístico e coletor
 Decide: Backend + Editorial
