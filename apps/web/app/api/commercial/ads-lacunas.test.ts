@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { schema } from '@ln/db';
 import { adKeys, readCounters, type AdRedis } from '@ln/workers/ad-redis';
+import { HB_KEY, heartbeatOnce, type HeartbeatRedis } from '@ln/workers/ad-redis-watch';
 import { call, makeApp, type Actor } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 import { GAP_CACHE_MS, resetGapCache } from '../_lib/commercial/gaps';
@@ -48,6 +49,7 @@ beforeEach(async () => {
   app.deps.redis = R();
   app.deps.flags.adServerVendas = true;
   await app.db.delete(schema.adDeliveryGaps);
+  await app.db.delete(schema.adRedisWatermark); // espelho do monitor: cada teste começa sem histórico de batidas
   resetGapCache();
 });
 afterEach(() => { vi.restoreAllMocks(); });
@@ -148,5 +150,44 @@ describe('/ads/serve e /ads/event com lacuna ativa: sub-conta, nunca infla', () 
     expect((await serve('pv-normal')).body).toMatchObject({ counted: false, reason: 'refresh' });
     expect(await readCounters(R(), 'cr-1', DAY)).toEqual({ s: 1, r: 1 });
     expect((await redis.keys('ln:ad:*')).includes(adKeys.view('pv-normal', 'TOP'))).toBe(true);
+  });
+});
+
+describe('ponta a ponta com o monitor do Backend (heartbeat ln:ad:hb): perda detectada → suspende e marca, sem inflar', () => {
+  const batida = (deMin: number) => heartbeatOnce(app.db as never, redis as unknown as HeartbeatRedis, { now: () => min(deMin) });
+
+  it('Redis esvaziado: o monitor abre a lacuna, o serve suspende, o relatório fica não auditável, e o monitor não zera os contadores que o serve incrementa', async () => {
+    expect((await batida(-3)).state).toBe('baseline');
+    await redis.flushall(); // perda do Redis (reinício sem persistência, ADR-012)
+    const perda = await batida(-1);
+    expect(perda).toMatchObject({ state: 'loss', reason: 'dedupe_perdido', cause: 'chave_ausente' });
+    resetGapCache();
+    const r = await serve('pv-monitor');
+    expect(r.body).toMatchObject({ kind: 'creative', counted: false, reason: 'dedupe_suspenso', impressionId: null });
+    expect(await readCounters(R(), 'cr-1', DAY)).toEqual({});
+    const antes = await app.db.select().from(schema.adDeliveryGaps);
+    expect(antes).toHaveLength(1);
+    expect(antes[0]).toMatchObject({ reason: 'dedupe_perdido', uncountedServes: 1, ignoredEvents: 0 });
+    expect((await batida(0)).state).toBe('healthy'); // o Redis voltou a bater; a lacuna continua valendo até as janelas acabarem
+    expect((await app.db.select().from(schema.adDeliveryGaps))[0]).toMatchObject({ uncountedServes: 1 }); // contrato: o monitor nunca altera os contadores
+    const rel = await relatorio();
+    expect(rel.body.auditability).toMatchObject({ auditable: false, lowerBound: true });
+    expect(rel.body.auditability.gaps[0]).toMatchObject({ reason: 'dedupe_perdido', uncountedServes: 1 });
+  });
+
+  it('Redis restaurado de um ponto antigo (valor menor que o espelho): lacuna dedupe_regrediu, mesma suspensão', async () => {
+    await batida(-5); await batida(-4); // espelho = 2
+    await redis.set(HB_KEY, '0');
+    expect(await batida(-1)).toMatchObject({ state: 'loss', reason: 'dedupe_regrediu', cause: 'regrediu' });
+    resetGapCache();
+    expect((await serve('pv-regrediu')).body).toMatchObject({ counted: false, reason: 'dedupe_suspenso' });
+    expect((await relatorio()).body.auditability.gaps[0]).toMatchObject({ reason: 'dedupe_regrediu' });
+  });
+
+  it('batidas saudáveis: nenhuma lacuna, o serve conta e o relatório segue auditável', async () => {
+    await batida(-3); await batida(-2); await batida(-1);
+    expect(await app.db.select().from(schema.adDeliveryGaps)).toEqual([]);
+    expect((await serve('pv-saudavel')).body).toMatchObject({ counted: true });
+    expect((await relatorio()).body.auditability).toMatchObject({ auditable: true });
   });
 });

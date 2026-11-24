@@ -5,42 +5,13 @@
 //  - /ads/serve e /ads/event (ads.ts): carrega as lacunas ATIVAS para o domínio suspender a contagem enquanto durarem
 //    (impressão nova até `servedUntil`, visível/clique até `to`) e grava de volta quantas impressões/eventos deixaram de contar.
 //
-// PROVISÓRIO: loadGaps, gapsSnapshot e addGapCounts espelham, com a mesma assinatura, os helpers que o Backend exporta em
-// '@ln/workers/ad-gaps'. Quando o ft/backend-redis-audit entrar, trocar os três pelo import e apagar o SQL daqui.
-import { gte, sql } from 'drizzle-orm';
-import { SNAPSHOT_VERSION, type AuditGap, type AuditSnapshot, type DeliveryAudit } from '@ln/commercial';
-import { schema } from '@ln/db';
+// loadGaps, gapsSnapshot e addGapCounts vêm do Backend ('@ln/workers/ad-gaps', ft/backend-redis-audit): a mesma tabela, o mesmo formato do AuditGap.
+import type { AuditGap, DeliveryAudit } from '@ln/commercial';
+import { addGapCounts, gapsSnapshot, loadGaps } from '@ln/workers/ad-gaps';
 import type { Db } from '@ln/auth';
 
-const iso = (d: Date): string => d.toISOString();
-
-/** Lacunas gravadas. Com `activeAt`, só as que ainda não terminaram nesse instante (`to` > activeAt). */
-export async function loadGaps(db: Db, opts: { activeAt?: Date } = {}): Promise<AuditGap[]> {
-  const t = schema.adDeliveryGaps;
-  const q = db.select().from(t);
-  const rows = await (opts.activeAt ? q.where(gte(t.to, new Date(opts.activeAt.getTime() + 1))) : q);
-  return rows.map((r): AuditGap => ({
-    id: r.id, reason: r.reason, from: iso(r.from), servedUntil: iso(r.servedUntil), to: iso(r.to), detectedAt: iso(r.detectedAt),
-    uncountedServes: r.uncountedServes, ignoredEvents: r.ignoredEvents,
-  }));
-}
-
-/** Snapshot pronto para `DeliveryAudit.load()`. */
-export function gapsSnapshot(gaps: readonly AuditGap[]): AuditSnapshot {
-  return { version: SNAPSHOT_VERSION, seq: 0, gaps: gaps.map((g) => ({ ...g })) };
-}
-
-/** Soma atômica nos contadores da lacuna (col = col + n). Só incrementa; o monitor nunca sobrescreve estes campos. */
-export async function addGapCounts(db: Db, gapId: string, n: { uncountedServes?: number; ignoredEvents?: number }): Promise<void> {
-  const serves = Math.max(0, Math.trunc(n.uncountedServes ?? 0));
-  const events = Math.max(0, Math.trunc(n.ignoredEvents ?? 0));
-  if (serves === 0 && events === 0) return;
-  const t = schema.adDeliveryGaps;
-  await db.update(t).set({
-    uncountedServes: sql`${t.uncountedServes} + ${serves}`,
-    ignoredEvents: sql`${t.ignoredEvents} + ${events}`,
-  }).where(sql`${t.id} = ${gapId}`);
-}
+// o repo.ts usa loadGaps; reexporta para quem já importa daqui
+export { addGapCounts, gapsSnapshot, loadGaps };
 
 /** Carrega as lacunas no auditor do domínio. */
 export function loadGapsInto(audit: DeliveryAudit, gaps: readonly AuditGap[]): void {
