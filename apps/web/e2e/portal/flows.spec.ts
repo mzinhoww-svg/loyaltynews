@@ -221,6 +221,7 @@ test.describe('honestidade de dados', () => {
   test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }) => {
     await page.goto('/midia-kit');
     const largo = page.viewportSize()!.width >= 1024; // pela largura da tela, não pelo nome do projeto (a rodada geral só tem 'chromium')
+    await expect(page.locator('[data-testid="mk-mapa"] svg')).toBeVisible(); // int/016: /midia-kit dinâmico (af5ac6c); boundingBox não espera
     const svg = (await page.locator('[data-testid="mk-mapa"] svg').boundingBox())!;
     const lista = (await page.getByTestId('mk-mapa-lista').boundingBox())!;
     const figura = (await page.getByTestId('mk-mapa').boundingBox())!;
@@ -275,6 +276,7 @@ test.describe('honestidade de dados', () => {
     await page.goto('/midia-kit');
     const largo = page.viewportSize()!.width >= 1024; // pela largura da tela, não pelo nome do projeto (a rodada geral só tem 'chromium')
     const h1 = page.locator('.pt-hero-band--mk h1');
+    await expect(h1).toHaveCSS('line-height', /px$/); // int/016: /midia-kit dinâmico (af5ac6c); espera o CSS da página antes de medir
     const size = parseFloat(await h1.evaluate((el) => getComputedStyle(el).fontSize));
     if (largo) expect(size).toBeCloseTo(44, 0); else expect(size).toBeGreaterThanOrEqual(28);
     const lh = parseFloat(await h1.evaluate((el) => getComputedStyle(el).lineHeight)) / size;
@@ -290,6 +292,7 @@ test.describe('honestidade de dados', () => {
     await page.goto('/midia-kit');
     const largo = page.viewportSize()!.width >= 768; // as duas colunas começam em 768 px
     const grupos = page.getByTestId('audience-groups');
+    await expect(grupos).toBeVisible(); // int/016: /midia-kit dinâmico (af5ac6c); boundingBox não espera
     const [a, b] = await grupos.locator(':scope > div').all();
     const ba = (await a!.boundingBox())!; const bb = (await b!.boundingBox())!;
     await expect(a!.locator('h3')).toHaveText('Tempo real');
