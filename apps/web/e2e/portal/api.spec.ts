@@ -265,6 +265,73 @@ test.describe('mídia kit via API comercial', () => {
     await expect(secoes.nth(1).locator('table')).toBeHidden(); // de volta à tela: recolhida de novo
   });
 
+  test('P3-5 indicador: na tela o resumo mostra ▸ fechado e ▾ aberto (sem ser lido), na cor do título, a 8 px do texto, com 44 px e foco visível', async ({ page }) => {
+    await page.goto('/midia-kit');
+    await aguardarHidratacao(page);
+    const secoes = page.getByTestId('mk-preco-secao');
+    await expect(secoes.nth(1).locator('summary')).toBeVisible();
+    const seta = (i: number) => secoes.nth(i).locator('summary').evaluate((el) => {
+      const antes = getComputedStyle(el, '::before'); const resumo = getComputedStyle(el);
+      return { conteudo: antes.content, cor: antes.color, corTitulo: resumo.color, largura: antes.width, espaco: resumo.columnGap, fonte: resumo.fontSize, altura: el.getBoundingClientRect().height };
+    });
+    // 1ª aberta: ▾; 2ª fechada: ▸. O texto alternativo é vazio (/ ""): o leitor de tela não lê o símbolo.
+    const aberta = await seta(0); const fechada = await seta(1);
+    expect(aberta.conteudo).toContain('▾'); expect(fechada.conteudo).toContain('▸');
+    for (const s of [aberta, fechada]) {
+      expect(s.conteudo).toMatch(/\/\s*""$/);
+      expect(s.cor).toBe(s.corTitulo); // cor do texto do título
+      expect(s.espaco).toBe('8px'); // 8 px entre a seta e o texto
+      expect(s.altura).toBeGreaterThanOrEqual(43.5); // o resumo continua com 44 px
+    }
+    // largura fixa de 1em nos dois estados: o título não pula ao abrir (só igualar as duas não basta: os dois glifos têm a mesma largura natural)
+    for (const s of [aberta, fechada]) expect(parseFloat(s.largura)).toBeCloseTo(parseFloat(s.fonte), 1);
+    // foco visível no resumo (anel do design system), lido antes de qualquer clique (depois de um clique o Chromium não mostra o anel em foco programático)
+    const foco = await focarELer(secoes.nth(1).locator('summary'));
+    expect(foco.focado).toBe(true);
+    expect(foco.estiloAnel).not.toBe('none');
+    expect(foco.larguraAnel).toBeGreaterThan(0);
+    // abrir e fechar troca a seta
+    await secoes.nth(1).locator('summary').click();
+    expect((await seta(1)).conteudo).toContain('▾');
+    await secoes.nth(1).locator('summary').click();
+    expect((await seta(1)).conteudo).toContain('▸');
+  });
+
+  test('P3-5 indicador: em impressão não há seta em nenhum estado (aberta nem fechada)', async ({ page }) => {
+    await page.goto('/midia-kit');
+    await aguardarHidratacao(page);
+    const secoes = page.getByTestId('mk-preco-secao');
+    await expect(secoes.nth(1).locator('summary')).toBeVisible();
+    await page.emulateMedia({ media: 'print' });
+    const n = await secoes.count();
+    for (let i = 0; i < n; i++) {
+      const aberta = await secoes.nth(i).evaluate((e) => (e as HTMLDetailsElement).open);
+      const antes = await secoes.nth(i).locator('summary').evaluate((el) => getComputedStyle(el, '::before').content);
+      expect(['none', 'normal'], `categoria ${i} (aberta: ${aberta})`).toContain(antes);
+    }
+    // a categoria aberta é o caso de maior especificidade ([open]): garante que ela também perde a seta no papel
+    expect(await secoes.nth(0).evaluate((e) => (e as HTMLDetailsElement).open)).toBe(true);
+  });
+
+  test('P3-5 indicador: axe sem violações (padrão e todas abertas) e sem rolagem horizontal a 390 e 320 px', async ({ page }) => {
+    await page.goto('/midia-kit');
+    await aguardarHidratacao(page);
+    await expect(page.getByTestId('mk-preco-secao').nth(1).locator('summary')).toBeVisible();
+    const axe = async () => (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()).violations.map((v) => `${v.id}: ${v.nodes.length}`);
+    expect(await axe()).toEqual([]);
+    await page.evaluate(() => document.querySelectorAll<HTMLDetailsElement>('details.pt-fold').forEach((d) => { d.open = true; }));
+    expect(await axe()).toEqual([]);
+    for (const largura of [390, 320]) {
+      await page.setViewportSize({ width: largura, height: 800 });
+      await page.goto('/midia-kit');
+      await aguardarHidratacao(page);
+      await expect(page.getByTestId('mk-preco-secao').nth(1).locator('summary')).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${largura}px recolhidas`).toBe(true);
+      await page.evaluate(() => document.querySelectorAll<HTMLDetailsElement>('details.pt-fold').forEach((d) => { d.open = true; }));
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${largura}px todas abertas`).toBe(true);
+    }
+  });
+
   test('P2-1: tabelas de preço por seção (vindas da API) também são regiões focáveis com nome único', async ({ page }) => {
     await page.goto('/midia-kit');
     const precos = page.getByTestId('mk-precos').locator('.pt-scroll');
