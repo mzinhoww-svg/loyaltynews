@@ -46,13 +46,13 @@ describe('institucional do lançamento', () => {
     const p = texto('privacidade');
     expect(titulos('privacidade')).toEqual(expect.arrayContaining(['Pedidos comerciais (mídia kit e propostas)', 'Endereço IP e segurança']));
     // C1: controlador pessoa física por ora; encarregado no e-mail da DP-54; sem CNPJ
-    expect(p).toMatch(/controlador[^]*Aurimar Nogueira, pessoa física[^]*substituída pela da empresa/);
+    expect(p).toMatch(/controlador[^]*Aurimar Nogueira, pessoa física[^]*substituída pela da empresa quando os dados dela forem informados/);
     expect(p).toMatch(/encarregado[^]*contato@loyaltynews\.com\.br/);
     // C2: dados, finalidade, bases legais, retenção da DP-55, sem venda
     for (const campo of ['nome, empresa, e-mail, WhatsApp', 'formatos de interesse', 'objetivo, mensagem']) expect(p, campo).toContain(campo);
     expect(p).toMatch(/art\. 7º, V/); expect(p).toMatch(/newsletter[^]*consentimento separado \(art\. 7º, I\)/);
     expect(p).toMatch(/até 12 meses depois do último contato; pedido descartado, 30 dias/);
-    expect(p).toMatch(/Não vendemos esses dados/);
+    expect(p).toMatch(/Quem acessa: só a equipe comercial e a administração do portal/); expect(p).toMatch(/Não vendemos esses dados/);
     // C3: IP só como código irreversível, base do art. 7º IX, hospedagem a confirmar
     expect(p).toMatch(/legítimo interesse[^]*art\. 7º, IX/); expect(p).toMatch(/não é guardado em claro[^]*código irreversível/);
     expect(p).toMatch(/hospeda o portal pode registrar IPs[^]*ainda será confirmado/);

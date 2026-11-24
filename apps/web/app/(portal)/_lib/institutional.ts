@@ -186,7 +186,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Controlador e contato do encarregado',
         paragraphs: [
-          'O controlador dos dados pessoais tratados neste portal é, por ora, o proprietário do Loyalty News, Aurimar Nogueira, pessoa física. Esta identificação será substituída pela da empresa quando ela estiver constituída.',
+          'O controlador dos dados pessoais tratados neste portal é, por ora, o proprietário do Loyalty News, Aurimar Nogueira, pessoa física. Esta identificação será substituída pela da empresa quando os dados dela forem informados.',
           'O encarregado pelo tratamento de dados pessoais e o canal para falar sobre privacidade é contato@loyaltynews.com.br. Os pedidos de titulares também podem ser feitos pelo formulário em /correcoes#pedido.',
         ],
       },
@@ -206,7 +206,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
           'Para que usamos: responder ao pedido de proposta ou de mídia kit e conduzir a negociação comercial.',
           'Base legal: procedimentos preliminares a um contrato, a pedido do titular (LGPD, art. 7º, V). A newsletter, que é opcional, só é enviada com consentimento separado (art. 7º, I), e o descadastro é possível a qualquer momento.',
           'Quanto tempo guardamos: pedido que não vira contrato, até 12 meses depois do último contato; pedido descartado, 30 dias. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
-          'Quem acessa: só a equipe comercial. Não vendemos esses dados.',
+          'Quem acessa: só a equipe comercial e a administração do portal. Não vendemos esses dados.',
         ],
       },
       {
