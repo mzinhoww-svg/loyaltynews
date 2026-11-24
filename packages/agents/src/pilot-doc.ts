@@ -1,5 +1,6 @@
 /** Artefatos do piloto de 10 matérias pelo OpenBot (DP-27/DP-28/DP-30). Não exportado por `index.ts`. */
 import type { LoadedRegistries } from './config';
+import { buildCreationPack, renderCreationPackMd, validateCreationPack } from './pilot-creation-pack';
 import { buildPilotAgents, CLASS_C_EXCLUDED, EDITORIAL_PROMPTS_REF, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, sheetCsvHeader } from './pilot';
 
 export interface PilotArtifacts {
@@ -7,6 +8,8 @@ export interface PilotArtifacts {
   'pilot-measurement-sheet.csv': string;
   'pilot-protocol.md': string;
   'pilot-reading-pack.md': string;
+  'pilot-creation-pack.md': string;
+  'pilot-creation-pack.json': string;
 }
 
 export function buildPilotArtifacts(registries: Pick<LoadedRegistries, 'agents'>): PilotArtifacts {
@@ -211,10 +214,17 @@ export function buildPilotArtifacts(registries: Pick<LoadedRegistries, 'agents'>
     '',
   ].join('\n');
 
+  const creationPack = buildCreationPack();
+  const packIssues = validateCreationPack(creationPack);
+  if (packIssues.length) throw new Error(`pacote de criação inválido: ${packIssues.map((i) => i.code).join(', ')}`);
+
   return {
     'pilot-agents.draft.json': `${JSON.stringify(agentsJson, null, 2)}\n`,
     'pilot-measurement-sheet.csv': sheetCsvHeader(),
     'pilot-protocol.md': protocol,
     'pilot-reading-pack.md': readingPack,
+    'pilot-creation-pack.md': renderCreationPackMd(creationPack),
+    'pilot-creation-pack.json': `${JSON.stringify(creationPack, null, 2)}
+`,
   };
 }
