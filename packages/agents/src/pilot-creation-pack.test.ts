@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { generateArtifacts } from './artifacts';
 import { buildPilotAgents, PILOT_STAGES } from './pilot';
 import { AGENT_BINDINGS, buildCreationPack, initialMessage, PROCEDURE_TEMPLATE, renderCreationPackMd, validateCreationPack, type CreationPack } from './pilot-creation-pack';
 
@@ -14,6 +15,8 @@ describe('pacote de criação dos 5 agentes do piloto (nada é criado)', () => {
     expect(pack.agents).toHaveLength(5);
     expect(validateCreationPack(pack)).toEqual([]);
     expect(renderCreationPackMd(pack)).toMatch(/NADA CRIADO/);
+    // os artefatos do pacote entram no gerador de artefatos (a deriva é pega pelo artifacts.test.ts, que confere cada arquivo)
+    expect(Object.keys(generateArtifacts())).toEqual(expect.arrayContaining(['pilot-creation-pack.md', 'pilot-creation-pack.json']));
     expect(renderCreationPackMd(pack)).toMatch(/Nenhum agente foi criado e nenhum modelo foi chamado/);
     for (const a of pack.agents) expect(renderCreationPackMd(pack)).toContain(a.openbot.name);
   });
@@ -56,13 +59,22 @@ describe('pacote de criação dos 5 agentes do piloto (nada é criado)', () => {
       expect(m).toMatch(/Nunca:\*\* publicar/);
       expect(JSON.stringify(a)).not.toMatch(/sk-[A-Za-z0-9]{10,}|Bearer\s+[A-Za-z0-9._-]{10,}/);
     }
-    expect(initialMessage(AGENT_BINDINGS[4]!)).toMatch(/--stage social_pack \(tarefa social_copy\) ou roles \(tarefa entity_resolution\)/);
+    // agente com duas etapas: a etapa é a da tarefa; nunca um valor literal inválido com "ou"
+    const social = initialMessage(AGENT_BINDINGS[4]!);
+    expect(social).toMatch(/--stage <etapa da tarefa: social_pack se for social_copy; roles se for entity_resolution>/);
+    expect(social).not.toMatch(/--stage social_pack|--stage [^<]* ou /);
+    expect(initialMessage(AGENT_BINDINGS[0]!)).toMatch(/--stage triage/);
   });
 
   it('cabeçalhos HMAC: quem assina é o cliente, não o modelo; segredo por arquivo do cofre, nunca no prompt', () => {
     expect(pack.hmac.who_signs).toMatch(/CLIENTE/);
     expect(Object.keys(pack.hmac.headers)).toEqual(['x-ln-signature', 'x-ln-timestamp']);
     expect(pack.hmac.headers['x-ln-signature']).toMatch(/^v1=/);
+    // a fórmula é HMAC(segredo, "<timestampMs>.<corpo>"), não só o corpo (signing.ts)
+    expect(pack.hmac.headers['x-ln-signature']).toMatch(/<x-ln-timestamp>\.<corpo cru>/);
+    expect(pack.hmac.formula).toMatch(/<timestampMs>\.<corpo cru>/);
+    expect(pack.hmac.formula).toMatch(/signBody/);
+    expect(renderCreationPackMd(pack)).toMatch(/Fórmula:\*\* HMAC_SHA256\(segredo, "<timestampMs>\.<corpo cru>"\)/);
     expect(pack.hmac.window).toMatch(/5 minutos/);
     expect(pack.hmac.secret_env.join(' ')).toMatch(/OPENBOT_HMAC_SECRET.*OPENBOT_HMAC_SECRET_PREVIOUS.*LN_HMAC_SECRET_FILE/);
     expect(Object.keys(pack.hmac.failures)).toEqual(expect.arrayContaining(['401', '423 DISPATCH_OFF', '404 LEASE_ERROR']));
@@ -110,6 +122,29 @@ describe('pacote de criação: falha fechada', () => {
     const r = clone();
     by(r, 'ln_pilot_redator').openbot.backup_model = 'claude-haiku-5-5';
     expect(codes(r)).toEqual(expect.arrayContaining(['REDATOR_BACKUP']));
+  });
+
+  it('o conjunto dos 5 agentes é exato: trocar um por outro, mesmo coerente, reprova (SET e BINDING)', () => {
+    const t = clone();
+    const social = by(t, 'ln_pilot_social');
+    social.draft_id = 'ln_pilot_generico';
+    social.openbot.name = 'Agente genérico';
+    social.client_env.LN_WORKER_ID = 'openbot-claude-generico';
+    social.client_env.kinds = ['editorial_draft'];
+    social.client_env.stages = ['draft'];
+    expect(codes(t)).toContain('SET');
+    const b = clone();
+    by(b, 'ln_pilot_redator').openbot.model = 'claude-opus-5-5';
+    expect(codes(b)).toContain('BINDING');
+    const k = clone();
+    by(k, 'ln_pilot_checador').client_env.kinds = ['editorial_review'];
+    expect(codes(k)).toContain('BINDING');
+  });
+
+  it('--stage com valor literal inválido (duas etapas com "ou") reprova', () => {
+    const t = clone();
+    by(t, 'ln_pilot_social').openbot.initial_message = by(t, 'ln_pilot_social').openbot.initial_message.replace('--stage <etapa da tarefa: social_pack se for social_copy; roles se for entity_resolution>', '--stage social_pack (tarefa social_copy) ou roles (tarefa entity_resolution)');
+    expect(codes(t)).toContain('PLACEHOLDER');
   });
 
   it('pauta sem backup ou com backup fora da conta; mensagem com campo sem preencher; descrição grande; texto com cara de segredo; created true', () => {

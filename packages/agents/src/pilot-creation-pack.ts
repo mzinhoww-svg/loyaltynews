@@ -44,7 +44,8 @@ export const PROCEDURE_TEMPLATE = [
 ];
 
 export function initialMessage(b: AgentBinding): string {
-  const stage = b.stages.length === 1 ? b.stages[0]! : b.kinds.map((k, i) => `${b.stages[i]} (tarefa ${k})`).join(' ou ');
+  // agente com mais de uma etapa: a etapa é a da TAREFA que ele está concluindo (nunca um valor literal com "ou")
+  const stage = b.stages.length === 1 ? b.stages[0]! : `<etapa da tarefa: ${b.kinds.map((k, i) => `${b.stages[i]} se for ${k}`).join('; ')}>`;
   return PROCEDURE_TEMPLATE
     .map((l) => l.replace('<kinds>', b.kinds.join(',')).replace('<conta>', b.account).replace('<id>', b.worker_id).replace('<stage>', stage))
     .join('\n');
@@ -64,7 +65,7 @@ export interface CreationPack {
   created: false;
   requires: string;
   prompts: typeof EDITORIAL_PROMPTS_REF;
-  hmac: { who_signs: string; headers: { 'x-ln-signature': string; 'x-ln-timestamp': string }; window: string; secret_env: string[]; failures: Record<string, string> };
+  hmac: { who_signs: string; formula: string; headers: { 'x-ln-signature': string; 'x-ln-timestamp': string }; window: string; secret_env: string[]; failures: Record<string, string> };
   agents: CreationPackAgent[];
   checklist: { before: string[]; per_agent: string[]; after: string[]; rollback: string[] };
   not_verified: string[];
@@ -88,8 +89,9 @@ export function buildCreationPack(): CreationPack {
     requires: 'sinal do PM (PM-2026-11-23-F) e a int/019 no staging com despacho desligado',
     prompts: EDITORIAL_PROMPTS_REF,
     hmac: {
+      formula: 'HMAC_SHA256(segredo, "<timestampMs>.<corpo cru>"): o timestamp em milissegundos, um ponto e o corpo EXATO enviado, nessa ordem (packages/openbot/src/signing.ts, signBody; PROTOCOL.md). Assinar só o corpo NÃO vale: dá 401',
       who_signs: 'o CLIENTE `ln-openbot-agent.mjs`, nunca o modelo: o agente só roda comandos e lê/escreve JSON; o segredo não entra em prompt, argumento, chat nem log',
-      headers: { 'x-ln-signature': 'v1=<hex do HMAC-SHA256 do corpo CRU, com OPENBOT_HMAC_SECRET>', 'x-ln-timestamp': '<epoch em milissegundos>' },
+      headers: { 'x-ln-signature': 'v1=<hex>, com hex = HMAC_SHA256(OPENBOT_HMAC_SECRET, "<x-ln-timestamp>.<corpo cru>")', 'x-ln-timestamp': '<epoch em milissegundos>' },
       window: '±5 minutos; corpo até 64 KB; só HTTPS',
       secret_env: ['OPENBOT_HMAC_SECRET (staging)', 'OPENBOT_HMAC_SECRET_PREVIOUS (só durante a rotação)', 'LN_HMAC_SECRET_FILE (caminho do arquivo no cofre do OpenBot; o conteúdo nunca vai ao prompt)'],
       failures: { '401': 'sem segredo no servidor, ou assinatura/segredo diferente; com o despacho desligado o pull também confere a assinatura antes (ft/backend 59eed1b)', '423 DISPATCH_OFF': 'assinatura válida e despacho desligado', '423 KILL_SWITCH / PILOT_STOPPED': 'kill switch ligado ou piloto parado; o agente PARA o ciclo', '404 LEASE_ERROR': 'assinatura aceita, tarefa ou lease inexistente (sonda)' },
@@ -138,6 +140,16 @@ export function validateCreationPack(pack: CreationPack): PackIssue[] {
   const add = (code: string, message: string) => issues.push({ code, message });
   if (pack.created !== false) add('CREATED', 'o pacote não pode afirmar criação');
   if (pack.agents.length !== 5) add('COUNT', `esperados 5 agentes, encontrados ${pack.agents.length}`);
+  const ids = pack.agents.map((a) => a.draft_id).sort();
+  const expectedIds = AGENT_BINDINGS.map((b) => b.draft_id).sort();
+  if (JSON.stringify(ids) !== JSON.stringify(expectedIds)) add('SET', `os agentes têm de ser exatamente ${expectedIds.join(', ')}; encontrado: ${ids.join(', ')}`);
+  for (const b of AGENT_BINDINGS) {
+    const a = pack.agents.find((x) => x.draft_id === b.draft_id);
+    if (!a) continue;
+    const same = a.openbot.provider === b.openbot_provider && a.openbot.model === b.model && a.openbot.backup_model === b.backup_model && a.client_env.LN_AGENT_ACCOUNT === b.account && a.client_env.LN_WORKER_ID === b.worker_id
+      && JSON.stringify(a.client_env.kinds) === JSON.stringify(b.kinds) && JSON.stringify(a.client_env.stages) === JSON.stringify(b.stages);
+    if (!same) add('BINDING', `${b.draft_id}: conta, modelo, tipos ou etapas diferentes do desenho do piloto`);
+  }
   const names = pack.agents.map((a) => a.openbot.name);
   if (new Set(names).size !== names.length) add('NAMES', 'nomes repetidos');
   const workers = pack.agents.map((a) => a.client_env.LN_WORKER_ID);
@@ -152,7 +164,7 @@ export function validateCreationPack(pack: CreationPack): PackIssue[] {
     if (authorOfDeclaredModel(o.model) !== ACCOUNT_AUTHOR[o.provider]) add('MODEL_AUTHOR', `${id}: modelo ${o.model} não é do provedor ${o.provider}`);
     if (o.backup_model && (o.provider !== 'claude' || authorOfDeclaredModel(o.backup_model) !== ACCOUNT_AUTHOR.claude)) add('BACKUP', `${id}: o backup tem de ser outro modelo da MESMA conta`);
     if (!stage || stage.account !== a.client_env.LN_AGENT_ACCOUNT) add('STAGE_ACCOUNT', `${id}: etapa ${a.client_env.stages[0]} roda em ${stage?.account}, não em ${a.client_env.LN_AGENT_ACCOUNT}`);
-    if (/<kinds>|<conta>|<id>|<stage>/.test(o.initial_message)) add('PLACEHOLDER', `${id}: mensagem inicial com campo sem preencher`);
+    if (/<kinds>|<conta>|<id>|<stage>/.test(o.initial_message) || /--stage [^<`\s]+ \(tarefa|--stage [^<\s]+ ou /.test(o.initial_message)) add('PLACEHOLDER', `${id}: mensagem inicial com campo sem preencher`);
     if (/sk-[A-Za-z0-9]{10,}|Bearer\s+[A-Za-z0-9._-]{10,}|(api[_-]?key|password|secret)\s*[:=]\s*\S+/i.test(JSON.stringify(a))) add('SECRET_LIKE', `${id}: texto com aparência de segredo`);
     if (!a.must_not.some((m) => /publicar/.test(m)) || !a.must_not.some((m) => /API tarifada|OpenRouter/.test(m))) add('MUST_NOT', `${id}: restrições de publicar e de API tarifada ausentes`);
   }
@@ -190,6 +202,7 @@ export function renderCreationPackMd(pack: CreationPack): string {
   L.push('## 3. Cabeçalhos HMAC (quem assina e como)');
   L.push('');
   L.push(`- **Quem assina:** ${pack.hmac.who_signs}.`);
+  L.push(`- **Fórmula:** ${pack.hmac.formula}.`);
   L.push(`- \`x-ln-signature\`: \`${pack.hmac.headers['x-ln-signature']}\`; \`x-ln-timestamp\`: \`${pack.hmac.headers['x-ln-timestamp']}\`; janela ${pack.hmac.window}.`);
   L.push(`- Variáveis: ${pack.hmac.secret_env.map((x) => `\`${x}\``).join('; ')}.`);
   L.push('- Respostas: ' + Object.entries(pack.hmac.failures).map(([k, v]) => `**${k}**: ${v}`).join('; ') + '.');
