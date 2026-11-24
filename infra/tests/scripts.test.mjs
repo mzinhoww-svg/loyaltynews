@@ -1428,3 +1428,36 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     assert.equal((await run(['--indexavel'])).status, 1, 'não indexável com --indexavel reprova');
   } finally { s.close(); }
 });
+
+test('verificar-cache-headers: avaliar 60s e no-store; verificar contra servidor falso (pessoas ficam no-store, sitemap público reprova)', async () => {
+  const { avaliar, verificar, CACHE_60S, NO_STORE } = await import('../scripts/verificar-cache-headers.mjs');
+  assert.deepEqual(avaliar('60s', 'public, s-maxage=60, stale-while-revalidate=300', null), []);
+  assert.match(avaliar('60s', 'private, no-cache, no-store, max-age=0, must-revalidate', null).join('|'), /falta s-maxage=60.*tem no-store/);
+  assert.match(avaliar('60s', 'public, s-maxage=60, stale-while-revalidate=300', 'sid=1').join('|'), /Set-Cookie/);
+  assert.match(avaliar('60s', 'public, s-maxage=600, stale-while-revalidate=300', null).join('|'), /falta s-maxage=60/, 's-maxage=600 não é 60');
+  assert.deepEqual(avaliar('no-store', 'private, no-cache, no-store, max-age=0', null), []);
+  assert.match(avaliar('no-store', 'public, max-age=0, must-revalidate', null).join('|'), /esperado no-store/);
+  assert.match(avaliar('no-store', undefined, null).join('|'), /sem Cache-Control/);
+  const pessoas = /^\/(intelligence|moves)/;
+  assert.ok(CACHE_60S.every((r) => !pessoas.test(r)), 'nenhuma rota com pessoas na lista de cache');
+  assert.ok(NO_STORE.some((r) => r.startsWith('/intelligence/pessoas')) && NO_STORE.some((r) => r.startsWith('/moves')));
+  const estado = { sitemap: 'public, max-age=0, must-revalidate', pessoasCC: 'private, no-cache, no-store, max-age=0' };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const h = (cc) => { res.writeHead(200, { 'cache-control': cc }); res.end('x'); };
+    if (CACHE_60S.map((r) => r.replace('{editoria}', 'mercado')).includes(u)) return h('public, s-maxage=60, stale-while-revalidate=300');
+    if (u === '/sitemap.xml') return h(estado.sitemap);
+    if (/^\/(intelligence|moves)/.test(u)) return h(estado.pessoasCC);
+    return h('private, no-cache, no-store, max-age=0');
+  });
+  try {
+    const url = 'http://127.0.0.1:' + s.address().port;
+    const r1 = await verificar({ url, valores: { editoria: 'mercado' } });
+    assert.equal(r1.violacoes, 1, JSON.stringify(r1.resultados.filter((x) => !x.ok)));
+    assert.equal(r1.resultados.find((x) => !x.ok).rota, '/sitemap.xml');
+    estado.sitemap = 'private, no-store'; estado.pessoasCC = 'public, s-maxage=60, stale-while-revalidate=300';
+    const r2 = await verificar({ url, valores: { editoria: 'mercado' } });
+    assert.ok(r2.resultados.filter((x) => !x.ok).every((x) => /intelligence|moves/.test(x.rota)), 'pessoas com cache público reprovam');
+    assert.ok(r2.violacoes >= 5);
+  } finally { s.close(); }
+});
