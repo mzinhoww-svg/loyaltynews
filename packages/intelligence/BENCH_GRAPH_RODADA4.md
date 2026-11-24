@@ -40,9 +40,9 @@ Opções: `--with-reference` mede também o lote (`reference_batched`) e o recur
 4. Depois da medição: `delete_app` do descartável (DevOps §3.F do roteiro dele); não reiniciar o app (rodaria tudo de novo).
 
 ## 5. Leitura do resultado (script homologado pelo QA 3: `interpret-bench-graph`)
-Salvar **só o stdout** (o JSON; o log de progresso vai ao stderr) em `releases/staging/bench-graph-relatorio-AAAAMMDD.json` assim que sair (o `get_logs` da Vertra é zerado a cada reinício). Depois, **do computador do PM** (o script só lê o arquivo; não abre rede nem banco):
+Salvar **só o stdout** (o JSON; o log de progresso vai ao stderr) em `C:UsersmazinOpenBotSharedloyalty-newseleasesstagingench-graph-relatorio-AAAAMMDD.json` assim que sair (o `get_logs` da Vertra é zerado a cada reinício). (a pasta `releasesstaging` fica no diretório compartilhado, FORA do repositório do código, por isso o caminho absoluto) Depois, **do computador do PM** (o script só lê o arquivo; não abre rede nem banco):
 
-`node packages/intelligence/scripts/interpret-bench-graph.mjs releases/staging/bench-graph-relatorio-AAAAMMDD.json` (acrescente `--json` para a saída de máquina; `--real-edges N` e `--max-degree N` se houver esses números)
+`node packages/intelligence/scripts/interpret-bench-graph.mjs C:UsersmazinOpenBotSharedloyalty-newseleasesstagingench-graph-relatorio-AAAAMMDD.json` (acrescente `--json` para a saída de máquina; `--real-edges N` e `--max-degree N` se houver esses números)
 
 | Saída | Veredito | O que fazer |
 |---|---|---|
