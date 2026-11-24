@@ -104,8 +104,8 @@ test('restaurarPrebuilt: recusa .next de outro commit, externo não instalado, B
 });
 
 test('start-web: com pré-construído coerente sobe (chama o next) e imprime prebuilt ok; com .next de outro commit recusa com exit 1 SEM chamar o next; pacote comum não imprime nada de prebuilt', () => {
-  const env = (r) => ({ ...process.env, APP_ENV: 'staging', NEXT_PUBLIC_SITE_URL: SITE, APP_COMMIT: SHA, LN_FLAGS_ON: 'intelligencePessoas', PORTAL_SOURCE: 'api' });
-  const rodar = (r) => spawnSync(process.execPath, [join(S, 'start-web.mjs'), '--port', '3999', '--host', '127.0.0.1'], { cwd: r, encoding: 'utf8', env: env(r) });
+  const env = () => ({ ...process.env, APP_ENV: 'staging', NEXT_PUBLIC_SITE_URL: SITE, APP_COMMIT: SHA, LN_FLAGS_ON: 'intelligencePessoas', PORTAL_SOURCE: 'api' });
+  const rodar = (r) => spawnSync(process.execPath, [join(S, 'start-web.mjs'), '--port', '3999', '--host', '127.0.0.1'], { cwd: r, encoding: 'utf8', env: env() });
   const ok = pacote();
   try {
     const x = rodar(ok);

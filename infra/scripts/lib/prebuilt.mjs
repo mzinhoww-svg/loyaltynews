@@ -66,7 +66,7 @@ export function restaurarPrebuilt(root, release) {
   const man = join(root, PREBUILT_MANIFEST);
   if (!existsSync(man)) return { ativo: false, problemas: [], log };
   let pb;
-  try { pb = JSON.parse(readFileSync(man, 'utf8').replace(/^﻿/, '')); } catch { return { ativo: true, problemas: ['prebuilt.json ilegível'], log }; }
+  try { pb = JSON.parse(readFileSync(man, 'utf8').replace(/^\uFEFF/, '')); } catch { return { ativo: true, problemas: ['prebuilt.json ilegível'], log }; }
   let nextInstalado = null;
   try { nextInstalado = JSON.parse(readFileSync(join(root, 'node_modules', 'next', 'package.json'), 'utf8')).version; } catch { /* sem next instalado: o start falha adiante */ }
   const problemas = problemasPrebuilt(pb, release, nextInstalado);

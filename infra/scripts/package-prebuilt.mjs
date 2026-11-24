@@ -104,7 +104,7 @@ async function main() {
   const bytes = statSync(zip).size;
   if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
 
-  const man = JSON.parse(readFileSync(manifestOrigem, 'utf8').replace(/^﻿/, ''));
+  const man = JSON.parse(readFileSync(manifestOrigem, 'utf8').replace(/^\uFEFF/, ''));
   const novo = { ...man, pasta: folder, zip, zipSha256: await sha256File(zip), zipBytes: bytes, arquivos: files.length, prebuilt: { ...pb, externos: externos.length, overlays, buildCommand: '(vazio)' } };
   writeFileSync(manifestPath, JSON.stringify(novo, null, 2) + '\n');
   console.log(JSON.stringify({ ok: true, pasta: folder, zip, zipSha256: novo.zipSha256, zipBytes: bytes, arquivos: files.length, commit: release.commit, buildId, externos, overlays, manifesto: manifestPath }, null, 2));
