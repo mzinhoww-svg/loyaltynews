@@ -103,8 +103,17 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(cr).toHaveAttribute('data-aprovado', 'nao');
     await expect(cr).toContainText('Arquivo: nenhum');
     const crId = (await cr.getAttribute('data-criativo'))!;
+    // DP-43: o comercial não aprova (sem botão); o proprietário (admin) tenta e o domínio recusa o criativo incompleto
+    await expect(page.getByRole('button', { name: `Aprovar ${crId}` })).toHaveCount(0);
+    await expect(page.getByTestId('aprovacao-proprietario')).toBeVisible();
+    const urlCamp = page.url().split('?')[0]!;
+    await entrar(context, 'dono', 'admin');
+    await page.goto(urlCamp);
     await enviar(page, page.getByRole('button', { name: `Aprovar ${crId}` }));
     await erro(page, /incompleto|especificação/);
+    await expect(page.getByTestId('aprovacao-proprietario')).toHaveCount(0);
+    await entrar(context, 'caio', 'comercial');
+    await page.goto(urlCamp);
     await expect(page.locator('li[data-criativo]')).toHaveAttribute('data-aprovado', 'nao');
 
     // envio sem arquivo: aviso, nada gravado; com arquivo e sem armazenamento S3 no teste, recusa honesta (nunca sucesso falso)

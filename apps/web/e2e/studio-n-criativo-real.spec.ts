@@ -1,5 +1,6 @@
 import { deflateSync } from 'node:zlib';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { definirFlag, entrar, enviar } from './helpers';
 
 // Criativo real ponta a ponta no Studio (Studio 3): arquivo enviado e medido no servidor → aprovação com as regras do domínio → plano público /ads/plan.
@@ -91,7 +92,7 @@ test.describe('Criativo real ponta a ponta', () => {
     // arquivo na dimensão errada: recusado antes de gravar, o criativo continua sem arquivo
     await page.getByLabel(`Arquivo de ${a}`).setInputFiles({ name: 'errado.png', mimeType: 'image/png', buffer: png(300, 250) });
     await enviar(page, page.getByRole('button', { name: `Enviar arquivo de ${a}` }));
-    await erro(page, /não atende à posição|dimens/i);
+    await erro(page, /não serve como desktop de SIDEBAR_1: o esperado é 336x280/);
     await expect(page.locator(`li[data-criativo="${a}"]`)).toContainText('Arquivo: nenhum');
 
     // arquivo certo: tipo, dimensão, peso e hash medidos no servidor
@@ -101,6 +102,36 @@ test.describe('Criativo real ponta a ponta', () => {
       await sucesso(page, 'Arquivo do criativo enviado');
       await expect(page.locator(`li[data-criativo="${id}"]`)).toContainText(/image\/png, 336x280, .* KB, sha256 [0-9a-f]{12}…/);
     }
+
+    for (const id of [a, b]) await expect(page.locator(`li[data-criativo="${id}"] [data-variante]`)).toHaveText('Desktop 336x280');
+
+    // criativo MOBILE (laterais = 300x250): a mobile do topo (320x100) e a desktop marcada como mobile são recusadas; a certa vira "Mobile 300x250"
+    await page.goto(urlCampanha);
+    const m = await novo('Oferta Criativo Real no celular');
+    await expect(page.locator(`li[data-criativo="${m}"] [data-variante]`)).toHaveText('Sem arquivo');
+    const enviarMobile = async (w: number, h: number) => {
+      await page.getByLabel(`Dispositivo de ${m}`).selectOption('mobile');
+      await page.getByLabel(`Arquivo de ${m}`).setInputFiles({ name: `${m}.png`, mimeType: 'image/png', buffer: png(w, h) });
+      await enviar(page, page.getByRole('button', { name: `Enviar arquivo de ${m}` }));
+    };
+    await enviarMobile(320, 100);
+    await erro(page, 'Arquivo 320x100 não serve como mobile de SIDEBAR_1: o esperado é 300x250.');
+    await enviarMobile(336, 280);
+    await erro(page, /não serve como mobile de SIDEBAR_1/);
+    await expect(page.locator(`li[data-criativo="${m}"]`)).toContainText('Arquivo: nenhum');
+    await enviarMobile(300, 250);
+    await sucesso(page, 'Arquivo do criativo enviado');
+    await expect(page.locator(`li[data-criativo="${m}"] [data-variante]`)).toHaveText('Mobile 300x250');
+    await expect(page.locator(`li[data-criativo="${m}"]`)).toContainText(/image\/png, 300x250, .* KB, sha256 [0-9a-f]{12}…/);
+    // DP-43: o comercial não vê "Aprovar"; quem aprova é o proprietário (admin)
+    await expect(page.getByRole('button', { name: `Aprovar ${m}` })).toHaveCount(0);
+    await entrar(context, 'dono', 'admin');
+    await page.goto(urlCampanha);
+    await enviar(page, page.getByRole('button', { name: `Aprovar ${m}` }));
+    await sucesso(page, 'Criativo aprovado.');
+    await expect(page.locator(`li[data-criativo="${m}"]`)).toHaveAttribute('data-aprovado', 'sim');
+    const ax = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+    expect(ax.violations.map((v) => v.id)).toEqual([]);
 
     // sem alt não aprova; sem arquivo (sem hash) não aprova; o completo aprova
     await enviar(page, page.getByRole('button', { name: `Aprovar ${b}` }));
@@ -119,12 +150,17 @@ test.describe('Criativo real ponta a ponta', () => {
     // plano público: venda desligada (padrão) ⇒ posição sem anúncio
     expect((await plano(page)).slots).toEqual([expect.objectContaining({ positionId: 'SIDEBAR_1', available: false })]);
 
-    // reservar e aprovar a campanha; ativar é recusado sem venda ligada
+    // reservar (comercial) e aprovar a campanha (proprietário); ativar é recusado sem venda ligada
+    await entrar(context, 'caio', 'comercial');
     await page.goto(urlCampanha);
     await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
     await sucesso(page, 'Posição reservada.');
     await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
     await sucesso(page, 'Estado da campanha atualizado.');
+    // o comercial não aprova a campanha (sem o botão); o proprietário aprova
+    await expect(page.getByRole('button', { name: 'Mover para approved' })).toHaveCount(0);
+    await entrar(context, 'dono', 'admin');
+    await page.goto(urlCampanha);
     await enviar(page, page.getByRole('button', { name: 'Mover para approved' }));
     await sucesso(page, 'Estado da campanha atualizado.');
     await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
