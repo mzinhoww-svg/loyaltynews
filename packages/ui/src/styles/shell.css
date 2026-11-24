@@ -112,3 +112,64 @@
 @media (max-width: 1023px) { .ln-header__actions .ln-btn, .ln-header .ln-header__cta { min-height: var(--ln-touch-target); } }
 /* A-2: lista de editorias do rodapé em 2 colunas também no celular (o rodapé a 390px passava de 1.350px) */
 @media (min-width: 360px) and (max-width: 767px) { .ln-footer__list--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-3); } }
+
+/* =====================================================================================================================
+ * HeaderSearch: busca expansível no cabeçalho (desenho: UI/UX Director, auditoria-design/busca-header). Só tokens do design system.
+ * ===================================================================================================================== */
+.ln-header__bar { position: relative; }
+.ln-hsearch { position: static; }                                  /* <1024px: o campo cobre a barra inteira */
+.ln-hsearch[data-open="true"] .ln-hsearch__btn { visibility: hidden; }
+
+/* campo (form role="search"): sobreposição, sem alterar a altura nem empurrar nada */
+.ln-hsearch__field {
+  position: absolute; z-index: 45; inset: 0; display: flex; align-items: center; gap: var(--ln-space-1);
+  padding-inline: var(--ln-layout-gutter); background: var(--ln-color-white);
+  animation: ln-hs-in 150ms ease-out;
+}
+@keyframes ln-hs-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ln-hsearch__field { animation: none; } }
+
+.ln-hsearch__icon { flex: none; display: inline-flex; width: var(--ln-touch-target); height: var(--ln-touch-target); align-items: center; justify-content: center; color: var(--ln-color-primary); margin-right: calc(-1 * var(--ln-touch-target)); z-index: 1; pointer-events: none; }
+.ln-hsearch__input {
+  flex: 1 1 auto; min-width: 0; height: var(--ln-touch-target); padding: 0 var(--ln-touch-target) 0 var(--ln-touch-target);
+  font: inherit; font-size: 1rem;                                  /* 16px: o iOS não dá zoom ao focar */
+  color: var(--ln-color-black); background: var(--ln-color-white);
+  border: 2px solid var(--ln-color-primary); border-radius: var(--ln-radius-md);
+}
+.ln-hsearch__input::placeholder { color: var(--ln-color-text-muted); }
+.ln-hsearch__input:focus-visible { outline: var(--ln-focus-width) solid var(--ln-focus-color); outline-offset: var(--ln-focus-offset); }
+.ln-hsearch__input::-webkit-search-cancel-button { display: none; }   /* o botão de limpar é o nosso */
+
+.ln-hsearch__clear { flex: none; width: var(--ln-touch-target); height: var(--ln-touch-target); margin-left: calc(-1 * var(--ln-touch-target)); display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 0; border-radius: var(--ln-radius-md); color: var(--ln-color-primary); cursor: pointer; z-index: 1; }
+.ln-hsearch__clear:hover { background: var(--ln-color-mint); }
+.ln-hsearch__clear:focus-visible, .ln-hsearch__cancel:focus-visible { outline: var(--ln-focus-width) solid var(--ln-focus-color); outline-offset: -2px; }
+.ln-hsearch__cancel { flex: none; min-height: var(--ln-touch-target); padding: 0 var(--ln-space-3); font: inherit; font-size: var(--ln-text-sm); font-weight: var(--ln-weight-bold); color: var(--ln-color-primary); background: transparent; border: 0; border-radius: var(--ln-radius-md); cursor: pointer; }
+
+/* lista suspensa (celular: largura da tela, colada sob a barra) */
+.ln-hsearch__panel {
+  position: absolute; top: 100%; left: 0; right: 0; max-height: calc(100dvh - 72px); overflow-y: auto; overscroll-behavior: contain;
+  background: var(--ln-color-white); border-bottom: 1px solid var(--ln-color-border); box-shadow: var(--ln-shadow-md);
+}
+.ln-hsearch__list { list-style: none; margin: 0; padding: 0; }
+.ln-hsearch__opt { display: block; min-height: var(--ln-touch-target); padding: 10px var(--ln-layout-gutter); color: var(--ln-color-black); text-decoration: none; }
+.ln-hsearch__opt[aria-selected="true"], .ln-hsearch__opt:hover { background: var(--ln-color-mint); box-shadow: inset 3px 0 0 var(--ln-color-primary); }
+.ln-hsearch__opt:focus-visible { outline: var(--ln-focus-width) solid var(--ln-focus-color); outline-offset: -3px; }
+.ln-hsearch__opt-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.9375rem; line-height: 1.25rem; font-weight: var(--ln-weight-semibold, 600); }
+.ln-hsearch__opt-title b { font-weight: 800; }                     /* trecho que casou com o termo */
+.ln-hsearch__opt-meta { display: block; margin-top: 2px; font-size: 0.8125rem; line-height: 1.25rem; color: var(--ln-color-text-muted); }
+.ln-hsearch__opt.ln-hsearch__opt--all { display: flex; align-items: center; justify-content: space-between; gap: var(--ln-space-2); min-height: 48px; border-top: 1px solid var(--ln-color-border); font-weight: var(--ln-weight-bold); color: var(--ln-color-primary); }
+.ln-hsearch__msg { margin: 0; padding: 12px var(--ln-layout-gutter); font-size: var(--ln-text-sm); line-height: 1.4; color: var(--ln-color-black); }
+.ln-hsearch__skel { display: grid; gap: 10px; padding: 4px var(--ln-layout-gutter) 14px; }
+.ln-hsearch__skel span { display: block; height: 14px; border-radius: 4px; background: var(--ln-color-border); }
+.ln-hsearch__skel span:nth-child(1) { width: 85%; } .ln-hsearch__skel span:nth-child(2) { width: 60%; } .ln-hsearch__skel span:nth-child(3) { width: 72%; }
+
+/* desktop: o campo expande à esquerda da lupa, sem empurrar o logo nem o botão Anuncie; os links do menu somem enquanto está aberto */
+@media (min-width: 1024px) {
+  .ln-hsearch { position: relative; }
+  .ln-hsearch__field { inset: auto 0 auto auto; top: 50%; transform: translateY(-50%); width: clamp(360px, 46vw, 560px); height: var(--ln-touch-target); padding-inline: 0; }
+  .ln-hsearch__cancel { display: none; }                           /* no desktop fecham: Esc e clique fora */
+  .ln-header[data-search-open="true"] .ln-header__main { visibility: hidden; }
+  .ln-hsearch__panel { top: calc(100% + 6px); max-height: min(70vh, 440px); border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-md); }
+  .ln-hsearch__opt, .ln-hsearch__msg, .ln-hsearch__skel { padding-inline: var(--ln-space-4); }
+}
+@media (max-width: 1023px) { .ln-hsearch__cancel { display: inline-flex; align-items: center; } }
