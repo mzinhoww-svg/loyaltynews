@@ -74,6 +74,12 @@ export async function adCall(route: Route, input: unknown, c: RouteCtx, extra: E
           const w = committed.existing;
           const creativeId = w?.creativeId ?? result.creativeId;
           const impressionId = w?.impressionId ?? null;
+          // a vencedora pode ser de OUTRA variante (pedido com outro device na mesma visualização): nunca a devolve a este dispositivo
+          const device = body.device === 'mobile' ? 'mobile' : 'desktop';
+          const compativel = creativeId ? state.ads.eligible(pos, extra.today, device).some((x) => x.id === creativeId) : false;
+          if (!compativel) {
+            return { status: 200, body: { kind: 'house', creativeId: null, impressionId: null, counted: false, reason: device === 'mobile' ? 'sem criativo mobile elegível; house ad' : 'sem criativo elegível; house ad' } };
+          }
           // a resposta da vencedora também leva o anúncio (sem ele a posição ficaria oculta para quem perdeu a corrida)
           const ad = creativeId ? state.ads.publicAdFor(creativeId, impressionId) : null;
           return { status: 200, body: { kind: 'creative', creativeId, impressionId, counted: false, reason: 'refresh', ...(ad ? { ad } : {}) } };
