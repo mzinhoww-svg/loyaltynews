@@ -1,0 +1,64 @@
+{
+ "tarefa": "R0-03",
+ "fonte": "02_desenho_R0-03_github_v3.md, \"Substitui \u00a76 (matriz de recusas)\"",
+ "nao_aplicavel": [
+  "8"
+ ],
+ "casos": [
+  {
+   "id": "1",
+   "verificacao": "Identidade do canal do executor (get_me)",
+   "resultado": "conforme",
+   "registro": "get_me = conta pessoal do proprietario (admin), a mesma que e dona do repositorio do produto; login omitido por ser identificador de pessoa. registro-R0-03.md, \"Riscos registrados\": a App OpenBot age em nome dessa conta; risco aceito RA-01 (DP-01)"
+  },
+  {
+   "id": "2",
+   "verificacao": "Escrita direta na main do produto",
+   "resultado": "recusado",
+   "registro": "tentativas-recusadas-20261123.jsonl#T1 (create_or_update_file, HTTP 409): Repository rule violations found. Changes must be made through a pull request. 2 of 2 required status checks are expecte"
+  },
+  {
+   "id": "3",
+   "verificacao": "Merge sem os checks obrigatorios",
+   "resultado": "recusado",
+   "registro": "tentativas-recusadas-20261123.jsonl#T4 (merge_pull_request, HTTP 405): Repository rule violations found. 2 of 2 required status checks are expected."
+  },
+  {
+   "id": "4",
+   "verificacao": "Merge squash/rebase",
+   "resultado": "conforme",
+   "registro": "provas-negativas-bootstrap-20261122.jsonl#merge_config_produto: allow_merge_commit=True allow_squash_merge=False allow_rebase_merge=False (configuracao do repositorio lida; squash e rebase desligados)"
+  },
+  {
+   "id": "5",
+   "verificacao": "Apagar arquivo na main do produto",
+   "resultado": "recusado",
+   "registro": "tentativas-recusadas-20261123.jsonl#T3 (delete_file): failed to update reference: Repository rule violations found Changes must be made through a pull request. 2 of 2 require"
+  },
+  {
+   "id": "6",
+   "verificacao": "Escrita direta na main do repositorio verificador",
+   "resultado": "recusado",
+   "registro": "tentativas-recusadas-20261123.jsonl#T2 (create_or_update_file, HTTP 409): Repository rule violations found. Cannot update this protected ref."
+  },
+  {
+   "id": "7",
+   "verificacao": "Workflow de branch fora da main pedindo o ambiente verifier-signing",
+   "resultado": "recusado",
+   "registro": "provas-negativas-bootstrap-20261122.jsonl#ambiente_verifier_signing (e #ambiente_reviewer): Branch \"prova/ambiente-20261122213516\" is not allowed to deploy to verifier-signing due to environment protection rules. | The deployment was rejected or didn't"
+  },
+  {
+   "id": "8",
+   "verificacao": "Leitura do repositorio verificador (so se a mitigacao 5.1 do desenho 06 fosse aplicada)",
+   "resultado": "conforme",
+   "registro": "Nao se aplica: o repositorio verificador e publico por decisao do proprietario (DP-06), entao a mitigacao 5.1 nao foi aplicada; a definicao do verificador so muda por commit assinado pela raiz (caso 6 e trust-gate)"
+  },
+  {
+   "id": "9",
+   "verificacao": "Configuracao ativa: rulesets ativos, papel admin fora do bypass",
+   "resultado": "conforme",
+   "registro": "leitura-05-main-20261123.txt (05-rulesets -Fase Main: main-protection ativo; main-required-checks = equal, \"conjunto confere\"); provas-negativas-bootstrap-20261122.jsonl#protecao_main_produto_config e #protecao_main_verificador_config (enforcement=active); bypass_actors vazio"
+  }
+ ],
+ "catalogo": "tentativas-recusadas-20261123.jsonl#T5 e #T6: o MCP github nao expoe criacao de tag, rulesets, segredos, variaveis nem ambientes (ferramentas de admin ausentes)"
+}
