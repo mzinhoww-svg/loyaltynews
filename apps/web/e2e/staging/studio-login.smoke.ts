@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { segundosRestantes, totp } from './totp';
 
@@ -13,12 +14,26 @@ const SENHA = process.env.STUDIO_SMOKE_SENHA ?? '';
 const SEGREDO = process.env.STUDIO_SMOKE_TOTP ?? '';
 const faltando = ['STUDIO_SMOKE_URL', 'STUDIO_SMOKE_EMAIL', 'STUDIO_SMOKE_SENHA', 'STUDIO_SMOKE_TOTP'].filter((k) => !process.env[k]);
 
-// Trava de alvo: só staging ou máquina local, salvo liberação explícita (nunca produção por engano).
-const alvoPermitido = (() => {
-  if (!URL_ALVO) return false;
-  const host = new URL(URL_ALVO).hostname;
-  return /(^|[.-])(stg|staging)([.-]|$)/.test(host) || host === 'localhost' || host === '127.0.0.1' || process.env.STUDIO_SMOKE_PERMITIR_HOST === host;
-})();
+// Trava de alvo (QA 7, fd63672): só origens desta lista, comparadas por inteiro (esquema + host + porta). Fora da máquina local, só https.
+// Para outro staging, edite a lista num commit revisado (não há liberação por variável).
+const ORIGENS_STAGING = ['https://loyaltynews-stg.vertraweb.app'] as const;
+const ehLocal = (u: URL) => (u.hostname === 'localhost' || u.hostname === '127.0.0.1') && (u.protocol === 'http:' || u.protocol === 'https:');
+function origemPermitida(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  return ehLocal(u) || (u.protocol === 'https:' && (ORIGENS_STAGING as readonly string[]).includes(u.origin));
+}
+const alvoPermitido = origemPermitida(URL_ALVO);
+const ORIGEM = alvoPermitido ? new URL(URL_ALVO).origin : '';
+
+/** Antes de digitar qualquer credencial: a página ainda está na origem permitida (sem redirecionamento para outro lugar). */
+async function conferirOrigemFinal(p: Page) {
+  expect(new URL(p.url()).origin, 'a página saiu da origem permitida antes do preenchimento').toBe(ORIGEM);
+}
 
 const usuario = (p: Page) => p.locator('input[autocomplete="username"]');
 const senha = (p: Page) => p.locator('input[autocomplete="current-password"]');
@@ -43,18 +58,24 @@ test.describe('Studio: smoke de login real', () => {
 
   test('entra com senha e TOTP, /studio abre e sai', async ({ page }) => {
     test.skip(faltando.length > 0, `variáveis ausentes: ${faltando.join(', ')}`);
-    expect(alvoPermitido, `alvo recusado (só staging/local): ${URL_ALVO && new URL(URL_ALVO).hostname}`).toBe(true);
+    expect(alvoPermitido, `alvo recusado: só ${ORIGENS_STAGING.join(', ')} ou máquina local (https fora dela)`).toBe(true);
 
     await page.goto('/studio/entrar');
     await expect(usuario(page)).toBeVisible();
+    await conferirOrigemFinal(page);
     await usuario(page).fill(EMAIL);
     await senha(page).fill(SENHA);
+    const respSenha = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/auth/sign-in/email' && r.request().method() === 'POST');
     await senha(page).press('Enter');
+    expect((await respSenha).status(), 'sign-in/email deveria responder 200').toBe(200);
 
     // 2º fator obrigatório para o Studio
     await expect(codigo(page)).toBeVisible({ timeout: 15_000 });
+    await conferirOrigemFinal(page);
     await codigo(page).fill(await codigoAtual());
+    const respCodigo = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/auth/two-factor/verify-totp' && r.request().method() === 'POST');
     await codigo(page).press('Enter');
+    expect((await respCodigo).status(), 'verify-totp deveria responder 200').toBe(200);
 
     await page.waitForURL((u) => u.pathname.startsWith('/studio') && !u.pathname.startsWith('/studio/entrar'), { timeout: 20_000 });
     await expect(page.locator('main h1').first()).toBeVisible();
@@ -67,7 +88,7 @@ test.describe('Studio: smoke de login real', () => {
     // sair: pelo botão da tela, se existir; senão pela rota oficial (mesma origem)
     const sair = page.getByRole('button', { name: /^sair$/i });
     if (await sair.count()) await sair.first().click();
-    else expect((await page.request.post('/api/auth/sign-out', { headers: { origin: new URL(URL_ALVO).origin }, data: {} })).ok()).toBe(true);
+    else expect((await page.request.post('/api/auth/sign-out', { headers: { origin: ORIGEM }, data: {} })).ok()).toBe(true);
     await page.goto('/studio');
     await expect(page).toHaveURL(/\/studio\/entrar/);
   });
@@ -77,17 +98,19 @@ test.describe('Studio: smoke de login real', () => {
     expect(alvoPermitido).toBe(true);
     // conta 1 tentativa no limitador (5 por conta); roda depois do login certo, que zera o contador da conta
     await page.goto('/studio/entrar');
+    await expect(usuario(page)).toBeVisible();
+    await conferirOrigemFinal(page);
     await usuario(page).fill(EMAIL);
-    await senha(page).fill(`${SENHA}-errada`);
+    await senha(page).fill(`errada-${randomUUID()}`); // independente da senha real
+    const resp = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/auth/sign-in/email' && r.request().method() === 'POST');
     await senha(page).press('Enter');
-    const alerta = page.getByRole('alert').filter({ hasText: /\S/ });
-    await expect(alerta.first()).toBeVisible({ timeout: 15_000 });
-    const texto = (await alerta.allInnerTexts()).join(' ');
-    expect(texto).not.toMatch(/n[aã]o existe|inexistente|n[aã]o encontrad|desconhecid|not found|user/i);
+    // só a recusa de credencial vale: 429 (limite), 503 (login desligado) e 5xx reprovam o smoke
+    expect((await resp).status(), 'sign-in/email com senha errada deveria responder 401').toBe(401);
+    await expect(page.locator('[data-login-erro]')).toHaveText('E-mail ou senha incorretos.', { timeout: 15_000 });
     await expect(codigo(page)).toHaveCount(0);
     await expect(page).toHaveURL(/\/studio\/entrar/);
     const s = await page.request.get('/api/auth/get-session');
-    const corpo = s.ok() ? ((await s.json()) as { user?: unknown } | null) : null;
-    expect(corpo?.user ?? null).toBeNull();
+    expect(s.status(), 'get-session deveria responder 200').toBe(200);
+    expect(await s.json()).toBeNull();
   });
 });
