@@ -348,8 +348,48 @@ export interface PilotEvaluation {
 }
 
 /** Condições de PARADA IMEDIATA de UMA linha (avaliadas a cada linha gravada, não só no fim). */
+/**
+ * Parada conservadora do PM (24/11, critério 2): o primeiro fato de gravidade ALTA lido. Sem gravidade informada, o fato conta como ALTO (falha fechada).
+ * ATENÇÃO: só dispara quando a leitura está GRAVADA na linha (`unsupported_*`); hoje o export do Studio as junta só no CSV, então no piloto ao vivo
+ * isto vale na avaliação (`avaliar-piloto`) e no `PilotSession`, e depende de a leitura ser gravada na linha para parar o despacho.
+ */
+export function highFactOf(r: Pick<PilotRow, 'unsupported_facts' | 'unsupported_high' | 'unsupported_medium' | 'unsupported_low'>): boolean {
+  const classified = r.unsupported_high !== undefined || r.unsupported_medium !== undefined || r.unsupported_low !== undefined;
+  return (r.unsupported_high ?? 0) > 0 || (!classified && (r.unsupported_facts ?? 0) > 0);
+}
+
+/** Quantas falhas SEGUIDAS do patch do veredito param o piloto (decisão do PM, 24/11, critério 3). */
+export const VERDICT_STREAK_LIMIT = 2;
+
+/**
+ * Falha do patch do veredito = linha concluída de etapa independente (checagem, revisão) SEM `gate_verdict` (a Fábrica registra `pilot_row_patch_failed`).
+ * Devolve a maior sequência de falhas seguidas, na ordem de início; uma linha com veredito zera a sequência.
+ */
+export function missingVerdictStreak(rows: readonly PilotRow[]): { longest: number; ids: string[] } {
+  const ind = rows
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => INDEPENDENT_STAGES.includes(r.stage) && r.outcome === 'completed')
+    .sort((a, b) => Date.parse(a.r.started_at) - Date.parse(b.r.started_at) || a.i - b.i);
+  let run: string[] = [];
+  let best: string[] = [];
+  for (const { r } of ind) {
+    if (r.gate_verdict) run = [];
+    else {
+      run = [...run, r.task_id];
+      if (run.length > best.length) best = run;
+    }
+  }
+  return { longest: best.length, ids: best };
+}
+
+export function verdictStreakReasons(rows: readonly PilotRow[]): string[] {
+  const s = missingVerdictStreak(rows);
+  return s.longest >= VERDICT_STREAK_LIMIT ? [`patch do veredito falhou ${s.longest} vezes seguidas (pilot_row_patch_failed; linhas sem gate_verdict: ${s.ids.join(', ')}); parada conservadora do PM`] : [];
+}
+
 export function stopReasonsOf(r: PilotRow): string[] {
   const out: string[] = [];
+  if (highFactOf(r)) out.push(`${r.task_id}: fato não suportado de gravidade ALTA (parada conservadora do PM)`);
   if (r.published_attempt) out.push(`${r.task_id}: tentativa de publicar`);
   if (r.tarifada_api_call) out.push(`${r.task_id}: chamada à API tarifada`);
   if (r.secret_in_log) out.push(`${r.task_id}: segredo em log`);
@@ -361,6 +401,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
   const invalidRows = rows.map((r) => ({ task_id: r.task_id, errors: validatePilotRow(r) })).filter((x) => x.errors.length);
   const stop: string[] = [];
   rows.forEach((r, idx) => stopReasonsOf(r).forEach((m) => stop.push(`linha ${idx + 1}: ${m}`)));
+  verdictStreakReasons(rows).forEach((m) => stop.push(m));
 
   // janelas por conta: abre na primeira atividade (ou na retomada) e fecha na tarefa que bateu o limite
   const windows: WindowStat[] = [];
@@ -509,6 +550,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
 export function canDispatchNext(rows: readonly PilotRow[]): { allowed: boolean; reasons: string[] } {
   const reasons: string[] = [];
   rows.forEach((r, idx) => stopReasonsOf(r).forEach((m) => reasons.push(`PARADA IMEDIATA, linha ${idx + 1}: ${m}`)));
+  verdictStreakReasons(rows).forEach((m) => reasons.push(`PARADA IMEDIATA: ${m}`));
   rows.forEach((r, idx) => {
     const errs = validatePilotRow(r);
     if (errs.length) reasons.push(`linha ${idx + 1} inválida (${r.task_id}): ${errs.join('; ')}`);

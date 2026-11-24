@@ -8,6 +8,7 @@ import { formatDate } from '../../../_lib/format';
 import { KIND_LABEL, relationLabel } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
 import { MoveCard, RolesTable } from '../../_components/intel';
+import { ScrollRegion } from '../../../_components/ScrollRegion';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
@@ -61,7 +62,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
       <section className="pt-section" aria-labelledby="rel-t">
         <div className="pt-section-head"><h2 id="rel-t">Vínculos declarados</h2></div>
         {c.relations.length ? (
-          <div className="pt-scroll">
+          <ScrollRegion label="Vínculos declarados, organizações e fontes">
             <table className="pt-table" data-testid="relations">
               <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>
                 Somente o que a fonte pública afirma; nenhum vínculo é inferido. Associação ou parceria não indica participação societária.
@@ -86,7 +87,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         ) : (
           <EmptyState title="Sem vínculos declarados">Nenhuma fonte pública verificada afirma vínculos desta organização. Ausência de registro não prova inexistência.</EmptyState>
         )}
