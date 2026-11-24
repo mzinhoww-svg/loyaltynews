@@ -11,7 +11,7 @@ Legenda: **[verificado]** conferido no código ou em parecer; **[relato]** descr
 | # | Condição | Como conferir |
 |---|---|---|
 | 0.1 | Sinal do PM para criar e ligar o piloto | mensagem do PM registrada |
-| 0.2 | Staging com a int/013 (ou superior) e o Studio do Studio 2 (telas `/studio/piloto*`; `ft/studio-2` `35fa9c4`, ainda fora da main) | `GET /api/health`: build e `flags: []` |
+| 0.2 | Staging com a int/013 (ou superior) e o Studio do Studio 2 (telas `/studio/piloto*`; `ft/studio-2` `35fa9c4`, já na main) | `GET /api/health`: build e `flags: []` |
 | 0.3 | Fontes habilitadas pelo proprietário em `/studio/fontes/fabrica` (Senado, Câmara, ABEMF, Livelo, ABRAREC) | lista mostra as 5 habilitadas; checklist em `packages/editorial/docs/piloto-checklist-habilitacao.md` |
 | 0.4 | Segredo HMAC no cofre do staging e no cofre do OpenBot (mesmo valor) | **nunca** no chat, em prompt ou em arquivo versionado |
 | 0.5 | Os 5 agentes do OpenBot criados pelo roteiro da Integration (`packages/openbot/docs/ROTEIRO-AGENTES-STAGING.md`), cada um com **uma via**: Pauta (claude, Haiku; backup Sonnet), Redação (claude), Checagem (codex), Revisão (codex), Social (claude; opcional) | `openbot.read_agent` de cada um; acesso restrito |
@@ -24,7 +24,7 @@ Nada disto existe ainda no staging real. **[não verificado]**: os agentes ainda
 
 São **duas verificações separadas**: o *smoke* (saúde e assinatura, **sem `pull`**) e o *pull manual* (que prova a recusa `423 DISPATCH_OFF`). Faça as duas.
 
-**Dependência:** o comando `ln-openbot-agent.mjs smoke` existe na `ft/growth` (`391ae8a`, que contém `9f4cdfb` e `0a41204`; aprovado pelo QA 2) e **só vale depois de a `ft/growth` estar integrada** à branch do staging; hoje ela **não** está na main. Enquanto isso, use as alternativas manuais abaixo (`GET /api/health` e o heartbeat manual).
+**Dependência:** o comando `ln-openbot-agent.mjs smoke` existe na `ft/growth` (`391ae8a`, que contém `9f4cdfb` e `0a41204`; aprovado pelo QA 2) e **só vale com a `ft/growth` integrada** à versão do staging; ela **já está na main** (`c4587e0`). Se a versão no ar for anterior, use as alternativas manuais abaixo (`GET /api/health` e o heartbeat manual).
 
 ### 1a. Smoke: saúde e assinatura (sem pull)
 
@@ -75,7 +75,7 @@ Cada ciclo de agente é um turno na assinatura; por isso **não use rotina perma
 
 ## 5. Acompanhar em `/studio/piloto`
 
-- **Tela:** `/studio/piloto` (admin ou editor-chefe). **[relato; `ft/studio-2`, fora da main]**
+- **Tela:** `/studio/piloto` (admin ou editor-chefe). **[relato; `ft/studio-2`, na main]**
 - **Esperado:** tabela das matérias a1 a a10 com a fonte e o **estado** de cada uma; enquanto nenhuma matéria estiver ligada a um rascunho, a tela mostra "Piloto ainda não executado" (é o estado honesto, não um erro).
 - **Por tarefa:** as linhas (uma por tarefa e tentativa) saem em `GET /api/studio/openbot/piloto/linhas` e na planilha (passo 8).
 - **Ligar matéria ao rascunho** (a tela foi desenhada para depois da rodada; se ela aceita mapa parcial, durante a rodada, **[não verificado]**), no mesmo `/studio/piloto`, "Ligar matérias aos rascunhos": informe o id do artigo de cada matéria (da coluna `article_id` da planilha), marque "Confirmo o mapa" e **Fixar mapa**. **Não dá para alterar depois.**
@@ -126,6 +126,11 @@ Do mais leve ao mais forte; **pare no primeiro que resolver**:
 4. **Parada do piloto** (violação): é automática (`PILOT_STOPPED`, 423); só o passo 7 a libera.
 5. **Reverter de vez:** rotacione o segredo HMAC (o antigo vai em `OPENBOT_HMAC_SECRET_PREVIOUS` até trocar o arquivo do cofre do OpenBot, depois remova o `_PREVIOUS`). `delete_agent` exige o OK do proprietário e não é necessário para parar.
 
+**Paradas conservadoras (decisão do PM, 24/11): PARE nestes três casos, mesmo que o despacho ainda não tenha parado sozinho.**
+- **Primeira linha INVÁLIDA:** o próprio gate já recusa e o piloto fica em `PILOT_STOPPED`; não retome sem entender e corrigir a linha (a retomada só limpa se o gate aceitar).
+- **Primeiro fato de gravidade ALTA lido** (leitor 1 ou 2): pare de despachar novas matérias. Hoje a leitura não é gravada na linha do banco (só entra no CSV do Studio), então **o código não para o despacho sozinho: é critério seu**. O `avaliar-piloto` mostra `PARADO`.
+- **`pilot_row_patch_failed` duas vezes seguidas** (duas linhas seguidas de checagem ou revisão concluídas sem `gate_verdict`): pare. O adaptador hoje filtra essas linhas antes do gate, então **também é critério seu** até o `pilotBlock` ser ajustado.
+
 Depois de parar: registre hora, quem parou, o motivo e o que o agente viu (código da API, sem segredo).
 
 ## 10. Encerrar o piloto
@@ -140,4 +145,4 @@ Depois de parar: registre hora, quem parou, o motivo e o que o agente viu (códi
 - Que o OpenBot real roda `node` e alcança o HTTPS do staging, e que o modelo segue o procedimento sem desvio.
 - O caminho de `dist/editorial-factory.js` e `dist/budget-cli.js` no staging; se `/studio/piloto/violacoes` tem botão de retomada.
 - Limites das contas Claude e Codex, texto e hora de retomada que cada uma informa.
-- As telas e rotas do Studio 2 estão em `ft/studio-2` (`35fa9c4`), fora da main; os comandos e rotas de outros donos são relato dos respectivos pareceres e documentos.
+- As telas e rotas do Studio 2 estão na main (`ft/studio-2` `35fa9c4`); os comandos e rotas de outros donos são relato dos respectivos pareceres e documentos.

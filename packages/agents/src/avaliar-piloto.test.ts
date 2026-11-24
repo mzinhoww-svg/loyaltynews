@@ -41,12 +41,36 @@ describe('avaliar-piloto: veredito e código de saída sobre o CSV exportado', (
     expect(readFileSync(FIX('simulado-aprovado-so-31-colunas.csv'), 'utf8')).toContain(`"'=1+1, com vírgula e ""aspas"""`);
   });
 
-  it('CSV reprovado (1 alta e 2 médias): REPROVADO, saída 1, com o motivo e as contagens', () => {
+  it('CSV reprovado (2 médias, 0 altas): REPROVADO, saída 1, com o motivo e as contagens', () => {
     const r = run('--csv', FIX('simulado-reprovado.csv'));
     expect(r.code).toBe(1);
     expect(r.out).toMatch(/VEREDITO: REPROVADO/);
-    expect(r.out).toMatch(/qualidade: 1 alta\(s\) \(máximo 0\) e 2 média\(s\) \(máximo 1\)/);
+    expect(r.out).toMatch(/qualidade: 0 alta\(s\) \(máximo 0\) e 2 média\(s\) \(máximo 1\)/);
     expect(r.out).toMatch(/Motivos:/);
+  });
+
+  it('CSV com UM fato de gravidade ALTA: PARADO (parada conservadora do PM), saída 1, nomeia a linha', () => {
+    const r = run('--csv', FIX('simulado-parado-fato-alto.csv'));
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/VEREDITO: PARADO/);
+    expect(r.out).toMatch(/parada imediata: linha 20: a5-review: fato não suportado de gravidade ALTA/);
+    expect(r.out).toMatch(/qualidade: 1 alta\(s\)/);
+  });
+
+  it('duas falhas seguidas do patch do veredito (linhas de checagem e revisão sem gate_verdict) dão PARADO', () => {
+    const t = fixText().split('\n');
+    const cab = t[0]!.split(',');
+    const iV = cab.indexOf('gate_verdict');
+    for (const id of ['a1-factcheck,', 'a1-review,']) { // as duas etapas independentes SEGUIDAS da matéria a1
+      const k = t.findIndex((l) => l.startsWith(id));
+      const cols = t[k]!.split(',');
+      cols[iV] = '';
+      t[k] = cols.join(',');
+    }
+    const r = run('--csv', escreve('sem-veredito.csv', t.join('\n')));
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/VEREDITO: PARADO/);
+    expect(r.out).toMatch(/pilot_row_patch_failed/);
   });
 
   it('CSV inválido (approved com motivo bloqueante tone_lint): INVÁLIDO, saída 1, nomeia a tarefa', () => {

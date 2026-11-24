@@ -502,3 +502,95 @@ describe('linha concluída que ainda espera o veredito da Editorial não para o 
     assert.equal((await handlePull(deps, signed({ workerId: 'w', account: 'codex' }))).status, 423);
   });
 });
+
+describe('critério 3 do PM: o patch do veredito falha 2 vezes seguidas e o piloto PARA (423 PILOT_STOPPED)', () => {
+  // gate estrito (linha concluída de checagem/revisão sem veredito é inválida) e a regra do AgentOps para a sequência (verdictStreakReasons, limite 2)
+  const strictGate: PilotGate = (rows) => {
+    const reasons = rows.flatMap((r, i) => (['factcheck', 'review', 'check_edit'].includes(r.stage) && r.outcome === 'completed' && !r.gate_verdict ? [`linha ${i + 1} inválida: ${r.stage} concluído exige gate_verdict`] : []));
+    return { allowed: reasons.length === 0, reasons };
+  };
+  const streakOf = (rows: readonly PilotRow[]): string[] => {
+    const ind = rows.filter((r) => ['factcheck', 'review', 'check_edit'].includes(r.stage) && r.outcome === 'completed').sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
+    let run = 0;
+    let best = 0;
+    for (const r of ind) {
+      run = r.gate_verdict ? 0 : run + 1;
+      best = Math.max(best, run);
+    }
+    return best >= 2 ? [`patch do veredito falhou ${best} vezes seguidas (parada conservadora do PM)`] : [];
+  };
+  let streakInput: PilotRow[][];
+  let gateInput: PilotRow[][];
+  beforeEach(() => {
+    streakInput = [];
+    gateInput = [];
+    gateImpl = (r) => { gateInput.push([...r]); return strictGate(r); };
+    deps.pilot = { ...deps.pilot!, verdictStreak: (r) => { streakInput.push([...r]); return streakOf(r); } };
+  });
+  /** Uma checagem concluída pelo codex, SEM o patch da Editorial (a linha fica esperando o veredito). */
+  async function factcheckDone(key: string) {
+    tick(60_000);
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: key }));
+    const a = (await pull('codex'))!;
+    ok<CallbackResult>(await callback(a, {
+      outcome: 'completed', resultRef: `res-${a.id}-a1`, usage: free(a, 'codex', 'gpt-5.1-codex'),
+      trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', promptVersion: 'editorial-0.3', outputValid: true }),
+    }));
+  }
+  const patchAll = async () => {
+    for (const r of await rows.all()) if (r.gate_verdict === undefined) await rows.patch(r.task_id, r.attempt, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true, unsupported_facts: 0 });
+  };
+
+  test('UMA linha esperando o veredito não para; DUAS seguidas param o despacho e o pull com 423 PILOT_STOPPED, e a parada fica gravada com o motivo', async () => {
+    await factcheckDone('v-1');
+    assert.equal(await state.get(), null);
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'v-2' })); // com 1 linha esperando, o despacho segue
+    const a = (await pull('codex'))!;
+    ok<CallbackResult>(await callback(a, {
+      outcome: 'completed', resultRef: `res-${a.id}-a1`, usage: free(a, 'codex', 'gpt-5.1-codex'),
+      trace: trace('factcheck', 'codex', { reviewedDraftTaskId: 'task-rascunho-1', promptVersion: 'editorial-0.3', outputValid: true }),
+    }));
+    assert.equal((await rows.all()).filter((r) => r.gate_verdict === undefined).length, 2);
+    const blocked = await dispatch({ kind: 'fact_check', idempotencyKey: 'v-3' });
+    assert.equal(blocked.status, 423);
+    assert.equal(code(blocked.body), 'PILOT_STOPPED');
+    assert.match(String((await state.get())?.reasons.join(' ')), new RegExp(STOP.verdictStreak));
+    assert.equal((await handlePull(deps, signed({ workerId: 'w', account: 'codex' }))).status, 423);
+    assert.equal(code((await handlePull(deps, signed({ workerId: 'w', account: 'claude' }))).body), 'PILOT_STOPPED');
+  });
+
+  test('o critério recebe TODAS as linhas (inclusive as que esperam o veredito) e o gate continua recebendo só as que não esperam', async () => {
+    await factcheckDone('w-1');
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'w-2' }));
+    assert.equal(streakInput.at(-1)!.length, 1);
+    assert.equal(awaitingEditorialGate(streakInput.at(-1)![0]!), true, 'a linha que espera o veredito chegou ao critério');
+    assert.equal(gateInput.at(-1)!.length, 0, 'o gate não vê a linha que espera');
+  });
+
+  test('o veredito entre duas falhas zera a sequência: falha, patch, falha não para', async () => {
+    await factcheckDone('z-1');
+    await patchAll();
+    await factcheckDone('z-2');
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'z-3' }));
+    assert.equal(await state.get(), null);
+  });
+
+  test('depois da parada, a retomada só vale com os vereditos gravados (patch) e o piloto volta a despachar', async () => {
+    await factcheckDone('r-1');
+    await factcheckDone('r-2');
+    assert.equal((await dispatch({ kind: 'fact_check', idempotencyKey: 'r-3' })).status, 423);
+    assert.equal(code((await resumePilot(deps, ADMIN)).body), 'PILOT_STILL_INVALID'); // as 2 linhas seguem sem veredito
+    await patchAll();
+    assert.deepEqual(ok(await resumePilot(deps, ADMIN)), { resumed: true });
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 'r-4' }));
+  });
+
+  test('sem a porta `verdictStreak` o critério não é avaliado (compatibilidade dos testes antigos); a ligação real a exige (rotas e Fábrica)', async () => {
+    deps.pilot = { ...deps.pilot!, verdictStreak: undefined };
+    gateImpl = (r) => ({ allowed: true, reasons: r.length ? [] : [] });
+    await factcheckDone('s-1');
+    await factcheckDone('s-2');
+    ok(await dispatch({ kind: 'fact_check', idempotencyKey: 's-3' }));
+    assert.equal(await state.get(), null);
+  });
+});

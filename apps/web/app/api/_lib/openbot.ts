@@ -14,7 +14,7 @@
 import { apiError } from '@ln/contracts';
 import {
   createOpenBotRoutes, ID_RE, LOCKED, openbotFlagsFrom, PILOT_PERMISSIONS, resultRefFor, resumePilot, verifySignature, toSignedRequest,
-  type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate,
+  type HandlerResult, type OpenBotDeps, type PilotControl, type PilotGate, type PilotVerdictStreak,
 } from '@ln/openbot';
 import { IoTooLargeError, MAX_RESULT_BYTES, PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo, ResultConflict } from '@ln/workers/openbot-pg';
 import { z } from 'zod';
@@ -32,14 +32,31 @@ export function openbotSecrets(env: Record<string, string | undefined> = process
 export const pilotEnabled = (env: Record<string, string | undefined> = process.env): boolean => env.APP_ENV === 'staging' && env.LN_OPENBOT_PILOT === '1';
 
 const closedGate: PilotGate = () => ({ allowed: false, reasons: ['canDispatchNext do AgentOps indisponível neste build (@ln/agents sem o piloto): o piloto não despacha'] });
+const closedStreak: PilotVerdictStreak = () => ['verdictStreakReasons do AgentOps indisponível neste build (@ln/agents sem o critério 3 do PM): o piloto não despacha'];
 
-/** `canDispatchNext` de @ln/agents (AgentOps) quando o pacote o exporta; sem ele, o gate recusa tudo (falha fechada). */
-async function loadGate(): Promise<PilotGate> {
+/**
+ * `canDispatchNext` e `verdictStreakReasons` de @ln/agents (AgentOps) quando o pacote os exporta; sem eles, o gate recusa tudo (falha fechada). O segundo é o critério 3 de parada
+ * do PM (2 falhas seguidas do patch do veredito): sem ele o piloto também não despacha.
+ */
+async function loadGate(): Promise<{ gate: PilotGate; verdictStreak: PilotVerdictStreak }> {
   try {
-    const mod = (await import('@ln/agents')) as unknown as { canDispatchNext?: unknown };
-    return typeof mod.canDispatchNext === 'function' ? (mod.canDispatchNext as PilotGate) : closedGate;
+    const mod = (await import('@ln/agents')) as unknown as Record<string, unknown>;
+    // cada exportação é lida à parte: um módulo (ou mock estrito) sem uma delas não pode derrubar a outra
+    const pick = (name: string): unknown => {
+      try {
+        return mod[name];
+      } catch {
+        return undefined;
+      }
+    };
+    const gate = pick('canDispatchNext');
+    const streak = pick('verdictStreakReasons');
+    return {
+      gate: typeof gate === 'function' ? (gate as PilotGate) : closedGate,
+      verdictStreak: typeof streak === 'function' ? (streak as PilotVerdictStreak) : closedStreak,
+    };
   } catch {
-    return closedGate;
+    return { gate: closedGate, verdictStreak: closedStreak };
   }
 }
 
@@ -49,8 +66,9 @@ export async function openbotDeps(c: RouteCtx, env: Record<string, string | unde
   const kill = k.killGlobal || k.killedRoutes.includes(OPENBOT_KILL_ROUTE);
   const db = c.deps.db;
   const flags = openbotFlagsFrom({ overrides: { openbotDispatch: c.deps.flags.openbotDispatch === true }, kill });
-  const pilot: PilotControl | undefined = pilotEnabled(env)
-    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: await loadGate(), resolved: () => new PgPilotResolutionStore(db, c.deps.now).keys() }
+  const kit = pilotEnabled(env) ? await loadGate() : null;
+  const pilot: PilotControl | undefined = kit
+    ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: kit.gate, verdictStreak: kit.verdictStreak, resolved: () => new PgPilotResolutionStore(db, c.deps.now).keys() }
     : undefined;
   return {
     queue: new PgLeaseQueue(db),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadRegistries } from './config';
-import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, canDispatchNext, CLASS_C_EXCLUDED, EDITORIAL_PROMPTS_REF, evaluatePilot, INDEPENDENT_STAGES, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, type PilotRow } from './pilot';
+import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, canDispatchNext, CLASS_C_EXCLUDED, EDITORIAL_PROMPTS_REF, evaluatePilot, highFactOf, INDEPENDENT_STAGES, missingVerdictStreak, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, VERDICT_STREAK_LIMIT, verdictStreakReasons, type PilotRow } from './pilot';
 
 const reg = loadRegistries();
 
@@ -477,9 +477,10 @@ describe('critério de qualidade aprovado pelo PM: 0 altas e no máximo 1 média
   it('sem gravidade informada o fato conta como ALTO (falha fechada); gravidade que não soma é linha inválida', () => {
     const e = run((n) => (n === 1 ? { unsupported_facts: 1 } : { unsupported_facts: 0 }));
     expect(e.exit.quality).toBe('fail');
+    expect(e.exit.overall).toBe('stopped'); // a parada conservadora (fato ALTO) vem antes do reprovado
     expect(e.quality.unclassifiedCountedAsHigh).toBe(1);
     expect(validatePilotRow(rev(1, { unsupported_facts: 2, unsupported_high: 1, unsupported_medium: 0, unsupported_low: 0 }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve ser igual a unsupported_facts/)]));
-    expect(run((n) => (n === 1 ? { unsupported_facts: 2, unsupported_high: 1 } : { unsupported_facts: 0 })).exit.overall).toBe('invalid');
+    expect(run((n) => (n === 1 ? { unsupported_facts: 2, unsupported_medium: 1 } : { unsupported_facts: 0 })).exit.overall).toBe('invalid');
   });
 });
 
@@ -533,5 +534,75 @@ describe('PM-2026-11-23-K: stale_approval e invalid_model_output também são mo
   it.each(['duplicate', 'suspicious_evidence', 'not_relevant', 'budget_blocked', 'max_attempts', 'no_image', 'not_published'])('%s continua FORA da lista (bloqueio operacional): com blocked é válido e a lista não o contém', (reason) => {
     expect(BLOCKING_GATE_REASONS as readonly string[]).not.toContain(reason);
     expect(validatePilotRow(rev({ gate_verdict: 'blocked', gate_reasons: [reason] }))).toEqual([]);
+  });
+});
+
+describe('paradas conservadoras do PM (24/11): 1º INVÁLIDO, 1º fato ALTO e 2 falhas seguidas do patch do veredito', () => {
+  const rev = (n: number, over: Partial<PilotRow> = {}) =>
+    base({ task_id: `r${n}`, kind: 'editorial_review', article_id: `a${n}`, stage: 'review', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', started_at: iso(n * 10 + 3), ended_at: iso(n * 10 + 5), reviewed_draft_task_id: `d${n}`, cross_provider_ok: true, ...over });
+  const fc = (n: number, over: Partial<PilotRow> = {}) =>
+    base({ task_id: `f${n}`, kind: 'fact_check', article_id: `a${n}`, stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.1-terra', prompt_version: 'editorial-0.3', started_at: iso(n * 10 + 1), ended_at: iso(n * 10 + 2), reviewed_draft_task_id: `d${n}`, cross_provider_ok: true, ...over });
+
+  it('(1) o PRIMEIRO registro inválido recusa o despacho (já imposto: canDispatchNext) e fecha a sessão na linha', () => {
+    const bom = draft(1, 0);
+    const ruim = rev(1, { gate_verdict: 'approved', gate_reasons: ['tone_lint'] });
+    expect(canDispatchNext([bom]).allowed).toBe(true);
+    const g = canDispatchNext([bom, ruim]);
+    expect(g.allowed).toBe(false);
+    expect(g.reasons.join(' ')).toMatch(/linha 2 inválida \(r1\)/);
+    const s = new PilotSession();
+    expect(s.append(bom).stopped).toBe(false);
+    expect(s.append(ruim)).toMatchObject({ accepted: true, stopped: true });
+    expect(s.canDispatch()).toBe(false);
+    expect(s.append(draft(2, 30)).accepted).toBe(false); // nada novo entra depois
+  });
+
+  it('(2) o PRIMEIRO fato de gravidade ALTA para: gravidade alta, ou fato sem gravidade (conta como alto); média e baixa não param', () => {
+    const base0 = { gate_verdict: 'approved' as const };
+    expect(stopReasonsOf(rev(1, { ...base0, unsupported_facts: 1, unsupported_high: 1, unsupported_medium: 0, unsupported_low: 0 })).join(' ')).toMatch(/gravidade ALTA/);
+    expect(stopReasonsOf(rev(1, { ...base0, unsupported_facts: 1 })).join(' ')).toMatch(/gravidade ALTA/); // sem gravidade = alto
+    expect(stopReasonsOf(rev(1, { ...base0, unsupported_facts: 1, unsupported_high: 0, unsupported_medium: 1, unsupported_low: 0 }))).toEqual([]);
+    expect(stopReasonsOf(rev(1, { ...base0, unsupported_facts: 3, unsupported_high: 0, unsupported_medium: 0, unsupported_low: 3 }))).toEqual([]);
+    expect(stopReasonsOf(rev(1, { ...base0, unsupported_facts: 0 }))).toEqual([]);
+    expect(highFactOf({ unsupported_facts: 1, unsupported_high: 1 })).toBe(true);
+    expect(highFactOf({})).toBe(false);
+    const alta = rev(5, { ...base0, unsupported_facts: 1, unsupported_high: 1, unsupported_medium: 0, unsupported_low: 0 });
+    expect(canDispatchNext([draft(5, 50), fc(5, base0), alta]).allowed).toBe(false);
+    expect(canDispatchNext([draft(5, 50), fc(5, base0), alta]).reasons.join(' ')).toMatch(/PARADA IMEDIATA, linha 3/);
+    const e = evaluatePilot([draft(5, 50), fc(5, base0), alta]);
+    expect(e.exit.overall).toBe('stopped');
+    expect(e.exit.stopped).toBe(true);
+    const s = new PilotSession();
+    s.append(draft(5, 50));
+    s.append(fc(5, base0));
+    expect(s.append(alta)).toMatchObject({ stopped: true });
+  });
+
+  it('(3) duas falhas SEGUIDAS do patch do veredito (linhas concluídas sem gate_verdict) param; uma só, ou uma com veredito no meio, não', () => {
+    expect(VERDICT_STREAK_LIMIT).toBe(2);
+    expect(missingVerdictStreak([fc(1)]).longest).toBe(1);
+    expect(verdictStreakReasons([draft(1, 0), fc(1)])).toEqual([]);
+    const duas = [draft(1, 0), fc(1), draft(2, 20), fc(2)]; // f1 e f2 sem veredito, em sequência
+    expect(missingVerdictStreak(duas)).toEqual({ longest: 2, ids: ['f1', 'f2'] });
+    expect(verdictStreakReasons(duas)[0]).toMatch(/falhou 2 vezes seguidas \(pilot_row_patch_failed; linhas sem gate_verdict: f1, f2\)/);
+    // um veredito entre as duas zera a sequência
+    const meio = [fc(1), fc(2, { gate_verdict: 'approved' }), fc(3)];
+    expect(missingVerdictStreak(meio).longest).toBe(1);
+    expect(verdictStreakReasons(meio)).toEqual([]);
+    // a ordem é a do início, não a da lista
+    expect(missingVerdictStreak([fc(3), fc(1, { gate_verdict: 'approved' }), fc(2)]).longest).toBe(2);
+    // linha que não está concluída (pending_limit) não conta; etapa que não é independente não conta
+    expect(missingVerdictStreak([fc(1, { outcome: 'pending_limit', limit_message: 'limite (SIMULADO)', limit_at: iso(5) }), fc(2), draft(3, 40)]).longest).toBe(1);
+  });
+
+  it('(3) a sequência para o piloto no avaliador e no gate: canDispatchNext, PilotSession e evaluatePilot (PARADO)', () => {
+    const duas = [draft(1, 0), fc(1), rev(1), draft(2, 20)];
+    const g = canDispatchNext(duas);
+    expect(g.allowed).toBe(false);
+    expect(g.reasons.join(' ')).toMatch(/PARADA IMEDIATA: patch do veredito falhou 2 vezes seguidas/);
+    const e = evaluatePilot(duas);
+    expect(e.exit.overall).toBe('stopped');
+    expect(e.stop.join(' ')).toMatch(/pilot_row_patch_failed/);
+    expect(evaluatePilot([draft(1, 0), fc(1)]).exit.overall).not.toBe('stopped');
   });
 });

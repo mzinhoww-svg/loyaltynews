@@ -9,7 +9,7 @@ import type { Db } from '@ln/auth';
 import { resolveFlags } from '@ln/contracts';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import {
-  openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate,
+  openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate, type PilotVerdictStreak,
 } from '@ln/openbot';
 import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
 
@@ -38,6 +38,8 @@ export interface PilotWiring {
 type ApplyRowPatch = (row: never, patch: Record<string, unknown>) => { row: unknown; errors: string[] };
 interface AgentsKit {
   canDispatchNext: PilotGate;
+  /** Critério 3 de parada do PM (2 falhas seguidas do patch do veredito): sem ele o piloto não despacha. */
+  verdictStreakReasons: PilotVerdictStreak;
   applyRowPatch: ApplyRowPatch;
 }
 
@@ -67,8 +69,8 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
   const dispatchOn = resolveFlags(env).state.openbotDispatch === true; // staging + LN_FLAGS_ON=openbotDispatch (decisão DP-41); produção recusa a subida
   if (!dispatchOn) throw new Error('openbotDispatch está desligada (LN_FLAGS_ON=openbotDispatch em staging, DP-41): o piloto não despacha');
   const kit = await (opts.loadKit ?? loadAgentsKit)();
-  if (typeof kit?.canDispatchNext !== 'function' || typeof kit.applyRowPatch !== 'function') {
-    throw new Error('@ln/agents sem canDispatchNext/applyRowPatch neste build (integrar a ft/agents): o piloto não despacha');
+  if (typeof kit?.canDispatchNext !== 'function' || typeof kit.applyRowPatch !== 'function' || typeof kit.verdictStreakReasons !== 'function') {
+    throw new Error('@ln/agents sem canDispatchNext/applyRowPatch/verdictStreakReasons neste build (integrar a ft/agents, ab7bba3 ou posterior): o piloto não despacha');
   }
   const now = opts.now ?? (() => new Date());
   const rows = new PgPilotRowStore(db, now);
@@ -87,7 +89,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
     queue: new PgLeaseQueue(db), ledger: new PgCostLedger(db, now), health: new PgHealthStore(db), callbacks: new PgCallbackStore(db),
     secrets: () => [], // o gateway não verifica assinatura (as rotas verificam)
     flags, now, requireDerivedResultRef: true,
-    pilot: { enabled: true, rows, state, gate: kit.canDispatchNext },
+    pilot: { enabled: true, rows, state, gate: kit.canDispatchNext, verdictStreak: kit.verdictStreakReasons },
   };
   const timeoutMs = Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) > 0 ? Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) : 10 * 60_000;
   const wait = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
