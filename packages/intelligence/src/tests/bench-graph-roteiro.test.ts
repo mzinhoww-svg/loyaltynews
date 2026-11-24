@@ -51,6 +51,7 @@ describe('roteiro da 4ª rodada do bench-graph', () => {
     expect(secao5).toContain('C:\\Users\\mazin\\OpenBot\\Shared\\loyalty-news\\releases\\staging\\bench-graph-relatorio-AAAAMMDD.log');
     expect(secao5).toMatch(/mistura stdout e stderr/);
     expect(secao5).not.toMatch(/AAAAMMDD\.json/);
-    expect(/[\x00-\x08\x0b-\x1f]/.test(ROTEIRO)).toBe(false); // sem caracteres de controle (barras invertidas perdidas)
+    // sem caracteres de controle (sinal de barras invertidas perdidas): CR, BS e outros abaixo de 0x20, exceto tab e quebra de linha
+    expect([...ROTEIRO].filter((c) => c.charCodeAt(0) < 32 && c !== '\n' && c !== '\t')).toEqual([]);
   });
 });
