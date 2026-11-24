@@ -136,7 +136,9 @@ test.describe('api', () => {
     await axe(page);
     await cards.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page).toHaveURL(/\/moves\/10000000-0000-4000-8000-000000000401$/);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mudança de empresa: [MOCK API] Ana Teste');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mudança de empresa: [MOCK API] Ana Teste', { timeout: NAV_MS });
+    // DP-38: o Move tem o próprio pedido; a URL /moves/<id> é a que o Backend 2 usa como alvo.
+    await expect(page.getByTestId('move-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fmoves%2F10000000-0000-4000-8000-000000000401#pedido');
     await axe(page);
     // Move fora do modelo ou inexistente: 404 de verdade.
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000402'))?.status()).toBe(404);
@@ -150,6 +152,8 @@ test.describe('api', () => {
     await axe(page);
     await page.goto('/intelligence/pessoas?q=bia');
     await expect(page.getByTestId('people-list').getByRole('listitem')).toHaveCount(1);
+    // Cargo vigente com fim no futuro (a rota real o manda): não pode sumir da lista.
+    await expect(page.getByTestId('people-list')).toContainText('Presidente (MOCK)');
     await page.goto('/intelligence/pessoas');
     await page.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
@@ -158,6 +162,12 @@ test.describe('api', () => {
     // DP-38: todo perfil público de pessoa tem o caminho de correção ou remoção (direito de resposta / LGPD).
     await expect(page.getByTestId('request-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fintelligence%2Fpessoas%2F10000000-0000-4000-8000-000000000201#pedido');
     await expect(page.getByTestId('move-card')).toHaveCount(1);
+    // Correção do titular (rota real: periodo e corrigidoPeloTitular): período corrigido e aviso visíveis.
+    await expect(page.getByTestId('current-roles')).toContainText('desde nov. 2026 (MOCK, corrigido)');
+    await expect(page.getByTestId('current-roles').getByTestId('corrected-tag')).toBeVisible();
+    await expect(page.getByTestId('person-meta').getByTestId('corrected-tag')).toBeVisible();
+    // Pedido por cargo: ?cargo=<id> na URL do perfil identifica o cargo como alvo (Backend 2).
+    await expect(page.getByTestId('current-roles').getByTestId('role-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fintelligence%2Fpessoas%2F10000000-0000-4000-8000-000000000201%3Fcargo%3D10000000-0000-4000-8000-000000000302#pedido');
     await expect(page.locator('main')).not.toContainText('TRECHO LITERAL');
     await axe(page);
     await page.getByTestId('current-roles').getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
