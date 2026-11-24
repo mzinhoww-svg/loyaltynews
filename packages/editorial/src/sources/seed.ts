@@ -163,7 +163,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 24,
+    "maxRequestsPerHour": 40,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "lido",
@@ -302,7 +302,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 24,
+    "maxRequestsPerHour": 40,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -911,7 +911,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 24,
+    "maxRequestsPerHour": 40,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",

@@ -100,8 +100,16 @@ test('por sitemap: as 3 empresas conferidas + ANAC, CVM e ANPD (gov.br, .xml.gz)
     assert.equal(g.host, 'www.gov.br'); assert.equal(g.sitemapUrl, `https://www.gov.br/${id}/sitemap-index.xml`);
     assert.ok(g.sitemapPathPrefix!.startsWith(g.pathPrefix + '/'), `${id}: prefixo do sitemap dentro do pathPrefix da fonte`);
     assert.equal(g.feedUrl, null, `${id}: sem feed (o RSS do Plone responde 404)`);
-    assert.ok(g.maxRequestsPerHour >= 24, `${id}: limite por hora comporta o índice, os filhos .gz e as páginas`);
+    assert.ok(g.maxRequestsPerHour >= 40, `${id}: limite por hora (janela do HOST www.gov.br) comporta uma rodada conjunta das três`);
   }
+  // Orçamento do HOST: a janela de 1 h é por host e as 3 fontes dividem www.gov.br. Pior caso por rodada com 5 páginas por fonte (materiasPorRodada do piloto)
+  // e os filhos lidos em 24/11: 1 robots (uma vez por host) + por fonte (1 índice + filhos .gz + 5 páginas). O limite de cada fonte precisa cobrir o total,
+  // porque a checagem do último a rodar já vê as requisições dos anteriores.
+  const filhos: Record<string, number> = { anac: 9, cvm: 4, anpd: 2 };
+  const PAGINAS = 5;
+  const rodada = 1 + Object.values(filhos).reduce((n, k) => n + 1 + k + PAGINAS, 0);
+  assert.equal(rodada, 34);
+  for (const id of Object.keys(filhos)) assert.ok(ALL.find((s) => s.id === id)!.maxRequestsPerHour >= rodada, `${id}: cobre a rodada conjunta de ${rodada} requisições`);
   const nat = ALL.find((s) => s.id === 'natura-ri')!;
   assert.equal(nat.kind, 'investor_relations'); assert.equal(nat.verification?.researchedBy, 'ln-editorial-engineer');
 });
