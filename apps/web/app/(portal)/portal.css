@@ -54,7 +54,7 @@
 .pt-chip[aria-current='true'], .pt-chip[aria-current='page'] { background: var(--ln-color-primary); color: var(--ln-color-white); border-color: var(--ln-color-primary); }
 
 /* matéria */
-.pt-article { max-width: 760px; }
+.pt-article { max-width: 760px; padding-top: var(--ln-space-5); } /* N-01: o respiro sob o cabeçalho é da matéria, não do .pt-layout (que não existe sem lateral) */
 .pt-article h1 { margin-bottom: var(--ln-space-2); }
 .pt-article-sub { font-size: var(--ln-text-xl); line-height: var(--ln-leading-xl); color: var(--ln-color-text-muted); font-family: var(--ln-font-editorial, Georgia, serif); margin-bottom: var(--ln-space-3); }
 .pt-byline { font-size: var(--ln-text-sm); color: var(--ln-color-text-muted); display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: var(--ln-space-4); }
@@ -145,7 +145,7 @@
 .pt-hero--text .pt-hero-main .ln-card--lg { max-width: 920px; }
 
 /* V-02: topo da matéria com ritmo único (breadcrumb → selos → título → subtítulo → autoria → imagem) */
-.pt-layout:has(> .pt-col > .pt-article) { padding-top: var(--ln-space-4); } /* matéria: coluna e lateral começam na mesma linha, com respiro sob o cabeçalho */
+.pt-layout:has(> .pt-col > .pt-article) { padding-top: 0; } /* matéria: coluna e lateral começam na mesma linha, com respiro sob o cabeçalho */
 .pt-article h1 { margin-top: var(--ln-space-1); line-height: var(--ln-leading-3xl); }
 .pt-article .pt-byline { margin-bottom: var(--ln-space-3); padding-bottom: var(--ln-space-3); border-bottom: 1px solid var(--ln-color-border); }
 .pt-article .pt-figure { margin-top: 0; }
@@ -158,11 +158,11 @@
 
 /* V-10: escala de espaço do DS entre blocos (breadcrumb longe do cabeçalho; busca separada do resultado) */
 .pt-pagehead { padding-top: var(--ln-space-5); }
-.pt-layout:has(> .pt-col > .pt-article) { padding-top: var(--ln-space-5); }
+.pt-layout:has(> .pt-col > .pt-article) { padding-top: 0; }
 .pt-main .ln-search { margin-bottom: var(--ln-space-5); }
 
 /* V-11: alvos de toque >= 44px e mais manchetes na primeira dobra do mobile */
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .pt-more { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
   .pt-event-title, .pt-event h3 a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
   .pt-chip { min-height: var(--ln-touch-target); }
@@ -235,3 +235,9 @@
    "/" ficava sozinho no começo da linha (P2-5 da revisão visual int/012). O DS (packages/ui) usa ::before; aqui só se troca o lado, sem editar o pacote. */
 .pt .ln-breadcrumb__item + .ln-breadcrumb__item::before { content: none; margin: 0; }
 .pt .ln-breadcrumb__item:not(:last-child)::after { content: "/"; margin-inline: var(--ln-space-2); color: var(--ln-role-fg-muted); }
+
+/* A-3: destaque com imagem em tela larga: a coluna de itens acompanha a altura do card principal (linhas de mesma altura), sem o vazio sob o 4º item */
+@media (min-width: 1024px) {
+  .pt-hero:not(.pt-hero--text) { align-items: stretch; }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side { grid-auto-rows: 1fr; align-content: stretch; }
+}

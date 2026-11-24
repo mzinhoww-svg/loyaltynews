@@ -90,4 +90,4 @@
 }
 
 /* V-11: em telas de toque o link do breadcrumb tem alvo de 44px (WCAG 2.5.5/2.5.8 recomendado) */
-@media (max-width: 767px) { .ln-breadcrumb__item a { min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); } }
+@media (max-width: 1023px) { .ln-breadcrumb__item a { min-height: var(--ln-touch-target); min-width: var(--ln-touch-target); } }
