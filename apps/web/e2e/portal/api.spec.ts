@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
+import { aguardarHidratacao, focarELer } from './hidratacao';
 
 /**
  * PORTAL_MODE=api: o portal lê as rotas públicas de um servidor MOCK (e2e/fake-api.mjs) no formato real do Backend.
@@ -181,8 +182,10 @@ test.describe('mídia kit via API comercial', () => {
     }
     expect(nomes[0]).toContain('Preços de referência: Banners');
     expect(nomes[1]).toContain('Preços de referência: The Loyal');
-    await page.waitForLoadState('networkidle'); // hidratado antes de focar
-    await expect.poll(async () => { await precos.nth(1).focus(); return precos.nth(1).evaluate((el) => el === document.activeElement); }, { timeout: 10_000 }).toBe(true);
+    await aguardarHidratacao(page);
+    const foco = await focarELer(precos.nth(1));
+    expect(foco.focado).toBe(true);
+    expect(foco.estiloAnel).not.toBe('none'); // o anel de foco aparece
   });
 
   test('cobertura: só a coleta da API (origem, janela e data); métrica de demonstração (seed) vira "—" e "sem dado real"', async ({ page }) => {

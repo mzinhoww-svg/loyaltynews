@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
+import { aguardarHidratacao, focarELer } from './hidratacao';
 
 const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock';
 const SHOTS = path.resolve(import.meta.dirname, '..', 'screenshots', mode);
@@ -209,13 +210,13 @@ test.describe('honestidade de dados', () => {
       nomes.push(nome);
     }
     expect(new Set(nomes).size).toBe(nomes.length); // nomes distintos (leitor de tela diferencia as tabelas)
-    // foco por teclado: Tab chega a uma região e o anel de foco aparece
+    // foco: depois da hidratação a região recebe foco e o anel de foco aparece (foco e leitura no mesmo instante, sem repetir)
     const primeira = regioes.first();
-    await page.waitForLoadState('networkidle'); // hidratado: o foco dado antes disso se perdia na remontagem
-    await expect.poll(async () => { await primeira.focus(); return primeira.evaluate((el) => el === document.activeElement); }, { timeout: 10_000 }).toBe(true);
-    const outline = await primeira.evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) }; });
-    expect(outline.style).not.toBe('none');
-    expect(outline.width).toBeGreaterThanOrEqual(2);
+    await aguardarHidratacao(page);
+    const foco = await focarELer(primeira);
+    expect(foco.focado).toBe(true);
+    expect(foco.estiloAnel).not.toBe('none');
+    expect(foco.larguraAnel).toBeGreaterThanOrEqual(2);
   });
 
   test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }) => {
