@@ -46,6 +46,8 @@
 .st-table th { background: var(--ln-color-neutral-bg); font-size: 13px; }
 /* revisão visual P3-2: o cabeçalho da linha (célula do título) não tem fundo diferente das outras células */
 .st-table tbody th { background: transparent; font-size: inherit; }
+/* revisão visual int/019 (A-1): a célula do título tem largura mínima; no celular o quadro rola, e o título não quebra em uma palavra por linha */
+.st-table th.st-col-titulo { min-width: 14rem; overflow-wrap: break-word; }
 .st-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 14px; }
 .st-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; min-width: 0; }
 .st-field label, .st-field legend { font-weight: 600; font-size: 14px; }

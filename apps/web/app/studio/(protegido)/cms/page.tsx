@@ -141,7 +141,7 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           <tbody>
             {lista.map((a) => (
               <tr key={a.id}>
-                <th scope="row">
+                <th scope="row" className="st-col-titulo">
                   <Link href={`/studio/cms/${a.id}`}>{a.titulo}</Link>
                 </th>
                 <td>{EDITORIAS.find((e) => e.slug === a.editoria)?.nome ?? a.editoria}</td>

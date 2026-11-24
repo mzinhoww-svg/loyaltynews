@@ -36,7 +36,7 @@ function Tabela({ id, titulo, eventos, podeRemover, podeModerar }: { id: string;
           <tbody>
             {eventos.map((e) => (
               <tr key={e.id}>
-                <th scope="row">
+                <th scope="row" className="st-col-titulo">
                   {e.titulo}
                   {e.patrocinado ? <span className="st-hint"> (patrocinado)</span> : null}
                 </th>

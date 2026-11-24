@@ -190,6 +190,29 @@ test.describe('CMS editorial (/api/materias)', () => {
     await expect(quadro).toBeFocused();
   });
 
+  // revisão visual int/019 (A-1): no celular a célula do título tem largura legível (não uma palavra por linha, nem cortada)
+  test('lista do CMS a 390 px: o título tem largura legível e a linha não vira uma torre', async ({ page, context }) => {
+    await entrar(context, 'ana', 'editor');
+    // a matéria nasce dentro do teste (não depende de outro teste do arquivo), com título longo
+    const longo = 'Programa de fidelidade muda a regra de pontos para clientes premium em todo o país';
+    await criarMateria(page, longo, { evidencia: false });
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto('/studio/cms');
+    await expect(page.getByRole('link', { name: longo })).toBeVisible();
+    const m = await page.evaluate((titulo) => {
+      const a = [...document.querySelectorAll('main table tbody th a')].find((x) => x.textContent === titulo) as HTMLElement;
+      const th = a.closest('th') as HTMLElement;
+      const linha = th.parentElement as HTMLElement;
+      const lh = parseFloat(getComputedStyle(a).lineHeight) || parseFloat(getComputedStyle(a).fontSize) * 1.5;
+      return { largura: th.getBoundingClientRect().width, linhasDoTitulo: Math.round(a.getBoundingClientRect().height / lh), alturaDaLinha: linha.getBoundingClientRect().height, quadro: (document.querySelector('main .st-quadro') as HTMLElement).clientWidth };
+    }, longo);
+    expect(m.largura, `largura da célula do título: ${m.largura}`).toBeGreaterThanOrEqual(220); // 14 rem
+    expect(m.linhasDoTitulo, `linhas do título: ${m.linhasDoTitulo}`).toBeLessThanOrEqual(4);
+    expect(m.alturaDaLinha, `altura da linha: ${m.alturaDaLinha}`).toBeLessThan(200);
+    // a tabela continua rolando dentro do quadro, não a página
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+
   // revisão visual P3-2: a célula do título (cabeçalho da linha) não destoa das outras células da linha
   test('lista do CMS: a célula do título tem o mesmo fundo das outras células', async ({ page, context }) => {
     await entrar(context, 'ana', 'editor');
