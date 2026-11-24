@@ -1,14 +1,15 @@
 // Testes dos scripts de infra (node:test, sem dependências). Rodar: node --test infra/tests/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import { compareStats } from '../scripts/lib/pg.mjs';
 
+process.env.LN_SAUDE_INTERVALO_MS ??= '20'; // testes: janela de estabilidade do health curta (padrão real: 5000 ms)
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
 const node = (script, args, opts = {}) => spawnSync(process.execPath, [join(S, script), ...args], { encoding: 'utf8', ...opts });
 const tmp = () => mkdtempSync(join(tmpdir(), 'ln-infra-test-'));
@@ -726,7 +727,7 @@ test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /inte
     const u = req.url.split('?')[0];
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
     const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...h }); res.end(b); };
-    const itensSeed = estado.semSeed ? [] : [1, 2, 3, 4, 5].map((n) => ({ slug: 'a' + n, titulo: '[' + R + '] Matéria ' + n }));
+    const itensSeed = estado.semSeed ? [] : [1, 2, 3, 4, 5].map((n) => ({ slug: 'a' + n, editoria: 'e0', titulo: '[' + R + '] Matéria ' + n }));
     if (u === '/api/health') return json(200, { status: 'ok', version: 'abc' });
     if (u === '/api/ready') return json(200, estado.mode === 'nodb' ? { status: 'ok', mode: 'nodb', db: 'n/a', redis: 'n/a' } : { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' });
     if (u === '/api/publico/site') return json(200, { nome: 'Loyalty News' });
@@ -735,6 +736,8 @@ test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /inte
     if (u === '/api/publico/agenda') return json(200, { data: [{ titulo: '[' + R + '] Evento' }] });
     if (u === '/') return html(200, '<meta name="robots" content="noindex, nofollow"/>' + (estado.semSeed ? '' : '[' + R + '] Matéria 1'));
     if (u === '/noticias') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
+    if (u === '/noticia/a1' || u === '/editoria/e0') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
+    if (u === '/midia-kit') return html(200, '<title>Mídia kit — Anuncie | Loyalty News</title><meta name="robots" content="noindex, nofollow"/>');
     if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.feedComItem ? '<item><title>x</title></item>' : '') + '</rss>'); }
     if (u === '/intelligence') return html(200, estado.orgs ? '<p data-testid="count-empresas">' + estado.orgs + ' cadastrado(s) e verificado(s)</p>' : '<p data-testid="count-empresas">Cadastros verificados: em breve</p>');
     if (u === '/studio') { res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
@@ -856,38 +859,38 @@ test('memoria-build: regime (7552 de 8192) pode subir um web a 880; pico 7920; v
   const p = lerPerfil(perfilFalso());
   assert.equal(p.used, 7552);
   assert.equal(p.soma, 7552);
-  const a = avaliar(p, 'prod-web', { fase: 'antes' });
+  const a = avaliar(p, 'prod-web', { fase: 'antes', build: 880 });
   assert.equal(a.ok, true, a.problemas.join('|'));
-  const s = passos(p, 'prod-web', { pacote: 'C:/pacote' });
+  const s = passos(p, 'prod-web', { pacote: 'C:/pacote', build: 880 });
   assert.deepEqual(s.map((x) => x.usedEsperado), [7552, 7920, 7920, 7920, 7920, 7920, 7552, 7552]);
   assert.deepEqual(s[1].args, { id: 'prod-web', memory: 880 });
   assert.deepEqual(s[6].args, { id: 'prod-web', memory: 512 });
   assert.equal(s[4].args.path, 'C:/pacote');
   // durante: com o alvo em 880 o estado está certo; depois: ainda em 880 é problema (memória esquecida alta)
   const alto = lerPerfil(perfilFalso({ prodWeb: 880 }));
-  assert.equal(avaliar(alto, 'prod-web', { fase: 'durante' }).ok, true);
-  const d = avaliar(alto, 'prod-web', { fase: 'depois' });
+  assert.equal(avaliar(alto, 'prod-web', { fase: 'durante', build: 880 }).ok, true);
+  const d = avaliar(alto, 'prod-web', { fase: 'depois', build: 880 });
   assert.equal(d.ok, false);
   assert.match(d.problemas.join('|'), /continua em 880 MB: baixe para 512/);
-  assert.equal(avaliar(p, 'prod-web', { fase: 'depois' }).ok, true);
+  assert.equal(avaliar(p, 'prod-web', { fase: 'depois', build: 880 }).ok, true);
 });
 
 test('memoria-build: recusa dois webs altos, falta de folga, regime errado, perfil que não fecha e app desconhecido', async () => {
   const { lerPerfil, avaliar } = await import('../scripts/memoria-build.mjs');
   // outro web do LN já está em 880: só um por vez
-  const dois = avaliar(lerPerfil(perfilFalso({ stgWeb: 880 })), 'prod-web', { fase: 'antes' });
+  const dois = avaliar(lerPerfil(perfilFalso({ stgWeb: 880 })), 'prod-web', { fase: 'antes', build: 880 });
   assert.equal(dois.ok, false);
   assert.match(dois.problemas.join('|'), /ln-staging-web está em 880 MB .*só um web sobe por vez/);
   // sem folga: staging com worker 256 e worker de produção 384 (7808 de 8192, sobram 384): subir +368 deixaria 16 MB
-  const semFolga = avaliar(lerPerfil(perfilFalso({ stgWorker: 256, prodWorker: 384 })), 'prod-web', { fase: 'antes' });
+  const semFolga = avaliar(lerPerfil(perfilFalso({ stgWorker: 256, prodWorker: 384 })), 'prod-web', { fase: 'antes', build: 880 });
   assert.equal(semFolga.ok, false);
   assert.match(semFolga.problemas.join('|'), /faltam 112 MB.*pico seria 8176 de 8192/);
   // margem mínima: com 8192 e margem 300 o pico (7920, livre 272) é recusado
-  const margem = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes', margem: 300 });
+  const margem = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes', margem: 300, build: 880 });
   assert.equal(margem.ok, false);
   assert.match(margem.problemas.join('|'), /faltam 28 MB.*pico seria 7920 de 8192/);
   // regime errado (um build anterior deixou o web alto)
-  assert.match(avaliar(lerPerfil(perfilFalso({ prodWeb: 880 })), 'prod-web', { fase: 'antes' }).problemas.join('|'), /não no regime de 512/);
+  assert.match(avaliar(lerPerfil(perfilFalso({ prodWeb: 880 })), 'prod-web', { fase: 'antes', build: 880 }).problemas.join('|'), /não no regime de 512/);
   // leitura que não fecha (used diferente da soma)
   assert.match(avaliar(lerPerfil(perfilFalso({ extraUsed: 256 })), 'prod-web', { fase: 'antes' }).problemas.join('|'), /não fecha/);
   // app desconhecido e envelope { response }
@@ -899,7 +902,7 @@ test('memoria-build: CLI plano/conferir (códigos de saída, sem e-mail nem nome
   const r = tmp();
   put(r, 'perfil.json', JSON.stringify(perfilFalso()));
   put(r, 'perfil-alto.json', JSON.stringify(perfilFalso({ prodWeb: 880 })));
-  const ok = node('memoria-build.mjs', ['plano', '--profile', join(r, 'perfil.json'), '--app', 'prod-web', '--pacote', 'C:/p']);
+  const ok = node('memoria-build.mjs', ['plano', '--profile', join(r, 'perfil.json'), '--app', 'prod-web', '--pacote', 'C:/p', '--build', '880']);
   assert.equal(ok.status, 0, ok.stderr);
   const j = JSON.parse(ok.stdout);
   assert.equal(j.ok, true);
@@ -908,7 +911,7 @@ test('memoria-build: CLI plano/conferir (códigos de saída, sem e-mail nem nome
   const ruim = node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'depois']);
   assert.equal(ruim.status, 1);
   assert.equal(JSON.parse(ruim.stdout).ok, false);
-  assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'durante']).status, 0);
+  assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'durante', '--build', '880']).status, 0);
   assert.equal(node('memoria-build.mjs', ['plano', '--app', 'x']).status, 2);
   assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil.json'), '--app', 'prod-web']).status, 2);
   rmSync(r, { recursive: true, force: true });
@@ -1020,3 +1023,596 @@ test('guard-env: release.json do pacote manda em LN_FLAGS_ON (web e worker); ci-
   rmSync(c, { recursive: true, force: true });
 });
 function cleanEnvFlags() { const e = { ...process.env }; for (const k of ['APP_ENV', 'LN_FLAGS_ON', 'CI', 'PORTAL_SOURCE', 'PORTAL_MODE', 'LN_STUDIO_TEST_SESSION', 'PORTAL_VITRINE', 'PORTAL_INDEXAVEL', 'DIAG_XFF']) delete e[k]; return e; }
+
+// ---- sharp (binário nativo por plataforma): lockfile do Windows precisa listar o Linux; prova-png.mjs
+test('ci-checks: lockfile com sharp exige o binário Linux (sharp-linux-x64 e libvips) com resolved e integrity', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const lock = (pk) => JSON.stringify({ lockfileVersion: 3, packages: { '': {}, ...pk } });
+  const base = { 'node_modules/sharp': { version: '0.35.5', resolved: 'https://r/sharp.tgz', integrity: 'sha512-x' } };
+  const linux = { 'node_modules/@img/sharp-linux-x64': { resolved: 'https://r/l.tgz', integrity: 'sha512-y' }, 'node_modules/@img/sharp-libvips-linux-x64': { resolved: 'https://r/v.tgz', integrity: 'sha512-z' } };
+  const win = { 'node_modules/@img/sharp-win32-x64': { resolved: 'https://r/w.tgz', integrity: 'sha512-w' } };
+  put(r, 'package-lock.json', lock({ ...base, ...win }));
+  const sem = node('ci-checks.mjs', ['--root', r]);
+  assert.equal(sem.status, 1);
+  assert.match(sem.stderr, /sem o binário Linux: falta @img\/sharp-linux-x64/);
+  assert.match(sem.stderr, /falta @img\/sharp-libvips-linux-x64/);
+  put(r, 'package-lock.json', lock({ ...base, ...win, ...linux }));
+  assert.equal(node('ci-checks.mjs', ['--root', r]).status, 0);
+  put(r, 'package-lock.json', lock({ ...base, ...win, '@x': {}, 'node_modules/@img/sharp-linux-x64': { resolved: 'https://r/l.tgz' }, 'node_modules/@img/sharp-libvips-linux-x64': linux['node_modules/@img/sharp-libvips-linux-x64'] }));
+  assert.match(node('ci-checks.mjs', ['--root', r]).stderr, /falta @img\/sharp-linux-x64/);
+  put(r, 'package-lock.json', lock({ 'node_modules/next': { version: '1' } })); // sem sharp: nada a exigir
+  assert.equal(node('ci-checks.mjs', ['--root', r]).status, 0);
+  rmSync(r, { recursive: true, force: true });
+});
+
+test('prova-png: sem sharp instalado devolve 3 com a plataforma e sem caminho de usuário; sem --root usa a pasta atual', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const x = node('prova-png.mjs', ['--root', r]);
+  assert.equal(x.status, 3);
+  const j = JSON.parse(x.stdout);
+  assert.equal(j.ok, false);
+  assert.match(j.plataforma, /^[a-z0-9]+-[a-z0-9]+$/);
+  assert.equal(j.erro, 'sharp não carrega nesta plataforma');
+  assert.doesNotMatch(x.stdout, /Users[/\\]/);
+  rmSync(r, { recursive: true, force: true });
+});
+
+test('ensaio-worker-tls: vazamentoDeChave acha o marcador e trechos do corpo da chave (inclusive quebrados em linhas de log); uso e build ausente', async () => {
+  const { vazamentoDeChave } = await import('../scripts/ensaio-worker-tls.mjs');
+  const corpo = 'MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ';
+  const chave = ['-----BEGIN ' + 'PRIVATE KEY-----', corpo.slice(0, 40), corpo.slice(40), '-----END ' + 'PRIVATE KEY-----'].join('\n');
+  assert.deepEqual(vazamentoDeChave('tudo certo; connect ECONNREFUSED 127.0.0.1:5', chave), []);
+  assert.deepEqual(vazamentoDeChave('key: ' + "'-----BEGIN " + "PRIVATE KEY-----\n'", chave), ['marcador PRIVATE KEY']);
+  // o corpo aparece como no util.inspect: aspas, "+" e \n entre pedaços
+  const inspecionado = `key: '${corpo.slice(0, 40)}\n' +\n  '${corpo.slice(40)}\n'`;
+  assert.deepEqual(vazamentoDeChave(inspecionado, chave), ['trecho do corpo da chave']);
+  const r = tmp();
+  assert.equal(node('ensaio-worker-tls.mjs', []).status, 2);
+  const sem = node('ensaio-worker-tls.mjs', ['--root', r]);
+  assert.equal(sem.status, 3);
+  assert.match(sem.stdout, /sem apps\/workers\/dist\/index\.js/);
+  rmSync(r, { recursive: true, force: true });
+});
+
+// ---- ADR-022 N8: /api/health expõe flags (string[]); healthcheck e smoke conferem; --prova-png do worker
+test('healthcheck --expect-flags e --expect-no-flags: conjunto exato, sem ordem; campo ausente reprova (código sem a ADR-022)', async () => {
+  const estado = { flags: ['intelligencePessoas'] };
+  const s = await server((req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: 'abc123', env: 'staging', ...(estado.flags === undefined ? {} : { flags: estado.flags }) }));
+  });
+  const port = s.address().port;
+  try {
+    assert.equal((await hc(port, ['--expect-flags', 'intelligencePessoas'])).status, 0);
+    assert.equal((await hc(port, ['--expect-flags', ' intelligencePessoas , '])).status, 0, 'espaços e vírgula sobrando');
+    const outra = await hc(port, ['--expect-flags', 'openbotDispatch']);
+    assert.equal(outra.status, 1);
+    assert.match(outra.stdout, /flags=\[intelligencePessoas\] != esperado \[openbotDispatch\]/);
+    assert.equal((await hc(port, ['--expect-no-flags'])).status, 1, 'staging com flag ligada reprova a sonda de produção');
+    estado.flags = [];
+    assert.equal((await hc(port, ['--expect-no-flags'])).status, 0);
+    assert.equal((await hc(port, ['--expect-flags', 'intelligencePessoas'])).status, 1);
+    estado.flags = ['b', 'a'];
+    assert.equal((await hc(port, ['--expect-flags', 'a,b'])).status, 0);
+    estado.flags = undefined;
+    const sem = await hc(port, ['--expect-no-flags']);
+    assert.equal(sem.status, 1);
+    assert.match(sem.stdout, /sem o campo flags/);
+    assert.equal((await hc(port)).status, 0, 'sem a opção o campo não é exigido');
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+test('smoke-staging --expect-flags / --expect-no-flags confere o campo flags do /api/health', async () => {
+  const estado = { flags: ['intelligencePessoas'] };
+  const s = await server((req, res) => {
+    res.writeHead(req.url.startsWith('/api/health') ? 200 : 404, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: 'abc', ...(estado.flags === undefined ? {} : { flags: estado.flags }) }));
+  });
+  const port = s.address().port;
+  const run = (extra) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-staging.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', 'abc', ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, stdout }));
+  });
+  const flagsCheck = (r) => JSON.parse(r.stdout).checagens.find((c) => /flags ligadas/.test(c.nome));
+  try {
+    assert.equal(flagsCheck(await run(['--expect-flags', 'intelligencePessoas'])).ok, true);
+    const errada = flagsCheck(await run(['--expect-flags', 'openbotDispatch']));
+    assert.equal(errada.ok, false);
+    assert.match(errada.detalhe, /flags=\[intelligencePessoas\]/);
+    assert.equal(flagsCheck(await run(['--expect-no-flags'])).ok, false);
+    estado.flags = [];
+    assert.equal(flagsCheck(await run(['--expect-no-flags'])).ok, true);
+    estado.flags = undefined;
+    assert.match(flagsCheck(await run(['--expect-no-flags'])).detalhe, /não tem o campo flags/);
+    assert.equal((await run([])).stdout.includes('flags ligadas'), false, 'sem a opção não há checagem de flags');
+  } finally { s.closeAllConnections?.(); s.close(); }
+});
+
+test('prova-png --etapa: uma linha [prova-png:<etapa>] {json} para o log do build e do start da Vertra', () => {
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  const x = node('prova-png.mjs', ['--root', r, '--etapa', 'build']);
+  assert.equal(x.status, 3);
+  const linhas = x.stdout.trim().split('\n');
+  assert.equal(linhas.length, 1);
+  assert.match(linhas[0], /^\[prova-png:build\] \{"etapa":"build","ok":false,"plataforma":"[a-z0-9]+-[a-z0-9]+"/);
+  rmSync(r, { recursive: true, force: true });
+});
+
+test('ci-checks: token em teste/doc passa só como placeholder evidente; token real em teste, e qualquer token fora de teste, reprova', async () => {
+  const { tokenEhPlaceholder, tokensReais } = await import('../scripts/lib/segredos.mjs');
+  // placeholders evidentes (os da ft/backend be051dc): marcador de falsidade no valor, sequência ascendente de 16+ caracteres, poucos caracteres distintos
+  for (const p of ['sk-primeira-conta-NAO-VAZAR', 'sk-segunda-conta-nao_vazar', 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123', 'sk-ABCDEFGHIJKLMNOPQRSTUVWX12345678', 'sk-' + 'A'.repeat(32), 'ghp_' + 'ab'.repeat(18), 'AKIAIOSFODNN7EXAMPLE', 'sk-fake-key-for-the-test-1234', 'xoxb-1234567890-exemplo']) assert.equal(tokenEhPlaceholder(p), true, p);
+  // aparência de segredo real: mistura aleatória, sem marcador e sem sequência
+  for (const p of ['sk-' + 'q8Zr3KmV9tYw2LpX6nBd4HsJ7cFa', 'ghp_' + 'aB3dE5gH7jK9mN1pQ3sT5vW7yZ2bD4', 'sk-proj-' + 'T3blaH9xQ2mZ8vK1cR7wY5nD4sJ6']) assert.equal(tokenEhPlaceholder(p), false, p);
+  const re = /\bsk-[A-Za-z0-9_-]{24,}/;
+  const misto = "const A = 'sk-primeira-conta-NAO-VAZAR'; const B = 'sk-" + 'q8Zr3KmV9tYw2LpX6nBd4HsJ7cFa' + "';";
+  assert.deepEqual(tokensReais(misto, re, 'packages/x/src/a.test.ts'), ['sk-q8Zr3KmV9tYw2LpX6nBd4HsJ7cFa']);
+  assert.equal(tokensReais("'sk-primeira-conta-NAO-VAZAR'", re, 'packages/x/src/a.test.ts').length, 0);
+  assert.equal(tokensReais("'sk-primeira-conta-NAO-VAZAR'", re, 'packages/x/src/a.ts').length, 1, 'fora de teste nenhum token passa, nem placeholder');
+  assert.equal(tokensReais("sk-primeira-conta-NAO-VAZAR", re, 'docs/guia.md').length, 0, 'documentação com placeholder passa');
+  // ponta a ponta no ci-checks
+  const r = tmp();
+  put(r, 'package.json', '{"name":"x"}');
+  put(r, 'packages/openbot/src/__tests__/pilot.test.ts', "const a = 'sk-ABCDEFGHIJKLMNOPQRSTUVWX12345678'; const b = 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123';\n");
+  put(r, 'packages/intelligence/src/tests/reader-port.test.ts', "const S = { A: 'sk-primeira-conta-NAO-VAZAR' };\n");
+  assert.equal(node('ci-checks.mjs', ['--root', r]).status, 0);
+  put(r, 'packages/intelligence/src/tests/colado.test.ts', "const real = 'ghp_" + 'aB3dE5gH7jK9mN1pQ3sT5vW7yZ2bD4' + "';\n");
+  const x = node('ci-checks.mjs', ['--root', r]);
+  assert.equal(x.status, 1);
+  assert.match(x.stderr, /segredo: token GitHub em packages\/intelligence\/src\/tests\/colado\.test\.ts/);
+  rmSync(join(r, 'packages/intelligence/src/tests/colado.test.ts'));
+  put(r, 'packages/openbot/src/prod.ts', "export const k = 'sk-primeira-conta-NAO-VAZAR';\n");
+  assert.match(node('ci-checks.mjs', ['--root', r]).stderr, /segredo: chave sk- em packages\/openbot\/src\/prod\.ts/);
+  rmSync(r, { recursive: true, force: true });
+});
+
+// ---- Worker com o job de alertas (Backend 2, af07005): LN_INTELLIGENCE_* amarradas ao release.json.jobsIntelligence
+test('guards: jobsProblems exige LN_INTELLIGENCE_ALERTS/PESSOAS = release.json.jobsIntelligence, só staging e com a flag da ADR-022', async () => {
+  const { jobsProblems } = await import('../scripts/lib/guards.mjs');
+  const ok = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas', LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on' };
+  assert.deepEqual(jobsProblems(ok, { jobsIntelligence: ['alertas'] }), []);
+  assert.deepEqual(jobsProblems({ APP_ENV: 'staging' }, { jobsIntelligence: [] }), []);
+  assert.deepEqual(jobsProblems({ APP_ENV: 'staging' }, {}), [], 'release.json antigo sem o campo');
+  assert.match(jobsProblems({ APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas' }, { jobsIntelligence: ['alertas'] }).join('|'), /defina LN_INTELLIGENCE_ALERTS=on/);
+  assert.match(jobsProblems({ APP_ENV: 'staging', LN_INTELLIGENCE_ALERTS: 'on' }, { jobsIntelligence: [] }).join('|'), /LN_INTELLIGENCE_ALERTS definida, mas o pacote não liga/);
+  assert.match(jobsProblems({ APP_ENV: 'production', LN_INTELLIGENCE_PESSOAS: 'on' }, {}).join('|'), /LN_INTELLIGENCE_PESSOAS definida/);
+  assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_REREAD: 'on' }, { jobsIntelligence: ['alertas'] }).join('|'), /LN_INTELLIGENCE_REREAD definida/);
+  assert.match(jobsProblems({ ...ok, LN_FLAGS_ON: '' }, { jobsIntelligence: ['alertas'] }).join('|'), /exige LN_FLAGS_ON com intelligencePessoas/);
+  assert.match(jobsProblems({ ...ok, APP_ENV: 'production' }, { jobsIntelligence: ['alertas'] }).join('|'), /só o staging/);
+});
+
+test('guards: LN_OPENBOT_PILOT só no staging; LN_FLAGS_ON=openbotDispatch em produção reprova; contrato declara as variáveis do piloto', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', LN_OPENBOT_PILOT: 'on' }, { deploy: true }).filter((m) => /LN_OPENBOT_PILOT/.test(m)), []);
+  assert.match(envProblems({ APP_ENV: 'production', LN_OPENBOT_PILOT: 'on' }).join('|'), /LN_OPENBOT_PILOT definida em produção/);
+  assert.match(envProblems({ APP_ENV: 'producao', LN_OPENBOT_PILOT: 'on' }).join('|'), /LN_OPENBOT_PILOT definida em produção/);
+  assert.match(envProblems({ APP_ENV: 'homolog', LN_OPENBOT_PILOT: 'on' }, { deploy: true }).join('|'), /só existe com APP_ENV=staging/);
+  assert.deepEqual(envProblems({ APP_ENV: 'production' }).filter((m) => /OPENBOT/.test(m)), []);
+  assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'openbotDispatch' }).join('|'), /LN_FLAGS_ON definida em produção/);
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  const nomes = c.variaveis.map((v) => v.nome);
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT', 'MLABS_MCP_TOKEN', 'MLABS_MCP_URL', 'MLABS_PROFILE_ID', 'MLABS_CHANNEL_ID']) assert.ok(nomes.includes(n), n);
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'MLABS_MCP_TOKEN']) assert.equal(c.variaveis.find((v) => v.nome === n).secreto, true, n);
+});
+
+test('guards: jobsProblems da releitura (LN_INTELLIGENCE_REREAD + LN_REREAD_SEED + BRIGHTDATA_API_KEY só staging) e contrato declara as variáveis', async () => {
+  const { jobsProblems } = await import('../scripts/lib/guards.mjs');
+  const ok = { APP_ENV: 'staging', LN_FLAGS_ON: 'intelligencePessoas,leitorViaProvedor', LN_INTELLIGENCE_PESSOAS: 'on', LN_INTELLIGENCE_REREAD: 'on', LN_REREAD_SEED: 'seed.public.v7.json', BRIGHTDATA_API_KEY: 'definida-pelo-pm' };
+  assert.deepEqual(jobsProblems(ok, { jobsIntelligence: ['releitura'] }), []);
+  assert.deepEqual(jobsProblems({ ...ok, LN_INTELLIGENCE_ALERTS: 'on' }, { jobsIntelligence: ['alertas', 'releitura'] }), []);
+  assert.match(jobsProblems({ ...ok, LN_REREAD_SEED: '' }, { jobsIntelligence: ['releitura'] }).join('|'), /exige LN_REREAD_SEED/);
+  assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_REREAD: undefined }, { jobsIntelligence: ['releitura'] }).join('|'), /defina LN_INTELLIGENCE_REREAD=on/);
+  assert.match(jobsProblems({ ...ok, LN_INTELLIGENCE_ALERTS: 'on' }, { jobsIntelligence: ['releitura'] }).join('|'), /LN_INTELLIGENCE_ALERTS definida, mas o pacote não liga/);
+  assert.match(jobsProblems({ APP_ENV: 'staging', LN_REREAD_SEED: 'x' }, {}).join('|'), /LN_REREAD_SEED definida, mas o pacote não liga/);
+  assert.match(jobsProblems({ APP_ENV: 'production', BRIGHTDATA_API_KEY: 'x' }, {}).join('|'), /BRIGHTDATA_API_KEY definida fora do staging/);
+  assert.deepEqual(jobsProblems({ APP_ENV: 'staging', BRIGHTDATA_API_KEY: 'x' }, {}), [], 'staging com a chave e sem releitura (leitor por provedor) é permitido');
+  assert.match(jobsProblems({ ...ok, APP_ENV: 'production' }, { jobsIntelligence: ['releitura'] }).join('|'), /só o staging/);
+  assert.match(jobsProblems({ ...ok, LN_FLAGS_ON: '' }, { jobsIntelligence: ['releitura'] }).join('|'), /exige LN_FLAGS_ON com intelligencePessoas/);
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  for (const n of ['LN_INTELLIGENCE_ALERTS', 'LN_INTELLIGENCE_PESSOAS', 'LN_INTELLIGENCE_REREAD', 'LN_REREAD_SEED', 'BRIGHTDATA_API_KEY']) assert.ok(c.variaveis.some((v) => v.nome === n && v.so_staging), n);
+  assert.equal(c.variaveis.find((v) => v.nome === 'BRIGHTDATA_API_KEY').secreto, true);
+});
+
+test('prova-flags-producao: resolvedor que recusa a flag em produção passa; resolvedor frouxo reprova', () => {
+  const mk = (frouxo) => {
+    const r = tmp();
+    mkdirSync(join(r, 'packages', 'contracts', 'src'), { recursive: true });
+    writeFileSync(join(r, 'packages', 'contracts', 'src', 'flags.ts'), `
+const OK = ['intelligencePessoas'];
+export function resolveFlags(env) {
+  const amb = String(env.APP_ENV ?? '').toLowerCase();
+  const nomes = String(env.LN_FLAGS_ON ?? '').split(',').filter(Boolean);
+  for (const n of nomes) {
+    if (!OK.includes(n)) throw new Error('Subida recusada: flag desconhecida ' + n + ' em LN_FLAGS_ON (ADR-022)');
+    if (amb === 'production' && ${frouxo ? 'false' : 'true'}) throw new Error('Subida recusada: flag ' + n + ' sem decisão para production (ADR-022)');
+  }
+  return { state: Object.fromEntries(nomes.map((n) => [n, true])), logLine: nomes.length ? 'flags ligadas: ' + nomes.join(',') : 'flags ligadas: nenhuma' };
+}
+`);
+    return r;
+  };
+  const bom = node('prova-flags-producao.mjs', ['--root', mk(false)]);
+  assert.equal(bom.status, 0, bom.stdout + bom.stderr);
+  assert.equal(JSON.parse(bom.stdout).ok, true);
+  const ruim = node('prova-flags-producao.mjs', ['--root', mk(true)]);
+  assert.equal(ruim.status, 1);
+  assert.match(ruim.stdout, /"ok":false/);
+  assert.equal(node('prova-flags-producao.mjs', []).status, 2);
+});
+
+test('smoke-staging: avaliarReady com o campo migracoes (ft/backend-2 19cd21e)', async () => {
+  const { avaliarReady } = await import('../scripts/smoke-staging.mjs');
+  const base = { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' };
+  assert.deepEqual(avaliarReady(base), [], 'build anterior, sem o campo');
+  assert.deepEqual(avaliarReady({ ...base, migracoes: 'ok' }), []);
+  assert.match(avaliarReady({ ...base, migracoes: 'pendentes' }).join('|'), /migracoes=pendentes/);
+  assert.match(avaliarReady(base, { exigirMigracoes: true }).join('|'), /campo migracoes ausente/);
+  assert.deepEqual(avaliarReady({ ...base, migracoes: 'ok' }, { exigirMigracoes: true }), []);
+});
+
+test('smoke-staging --rollback-app-sem-banco: aceita só o 503 migracoes_divergentes do /api/ready', async () => {
+  let corpo = { status: 'indisponivel', motivo: 'migracoes_divergentes' };
+  const s = await server((req, res) => {
+    if (req.url.split('?')[0] === '/api/ready') { res.writeHead(503, { 'content-type': 'application/json' }); return res.end(JSON.stringify(corpo)); }
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  const run = (extra) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-staging.mjs'), '--url', 'http://127.0.0.1:' + port, ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', () => resolve(JSON.parse(stdout).checagens.find((x) => /^ready:/.test(x.nome))));
+  });
+  try {
+    assert.equal((await run(['--rollback-app-sem-banco'])).ok, true);
+    assert.equal((await run([])).ok, false, 'sem a opção o 503 reprova');
+    corpo = { status: 'indisponivel', motivo: 'migracoes_pendentes' };
+    assert.equal((await run(['--rollback-app-sem-banco'])).ok, false, 'outro motivo continua reprovando');
+    corpo = { status: 'indisponivel' };
+    assert.equal((await run(['--rollback-app-sem-banco'])).ok, false, '503 sem motivo reprova');
+  } finally { s.close(); }
+});
+
+test('medir-hops: borda que reescreve usa a posição do cliente; borda que anexa usa contagem − 1; instável, desligado e diferente do atual reprovam', async () => {
+  const { resumir } = await import('../scripts/medir-hops.mjs');
+  const c = (count, pos = null, match = null) => ({ count, match, pos });
+  const cinco = (x) => [x, x, x, x, x];
+  // Medição real de 23/11 (staging): contagem 3 com e sem entrada falsa, cliente na 3ª posição da direita.
+  const real = resumir(cinco(c(3, '3', 'true')), cinco(c(3)), 3, cinco(c(3, '3', 'true')));
+  assert.equal(real.ok, true); assert.equal(real.borda, 'reescreve'); assert.equal(real.hopsMedido, 3); assert.equal(real.metodo, 'posicao_do_cliente');
+  assert.equal(real.clienteForjaEntradas, false); assert.equal(real.igualAoAtual, true);
+  assert.equal(resumir(cinco(c(3, '3')), cinco(c(3)), 2).ok, false, 'medido 3, atual 2');
+  assert.equal(resumir(cinco(c(3)), cinco(c(3)), 3).motivo, 'borda_reescreve_sem_posicao_do_cliente', 'reescreve sem CF-Connecting-IP é inconclusivo');
+  assert.equal(resumir(cinco(c(3, 'none')), cinco(c(3)), 3).motivo, 'borda_reescreve_sem_posicao_do_cliente');
+  assert.match(resumir(cinco(c(3, '3')), cinco(c(3)), 3, cinco(c(6, '3'))).aviso, /nao confie na posicao/);
+  // Borda que anexa: contagem com falso = sem falso + 1.
+  const anexa = resumir([c(4, '3'), c(4, '3')], [c(3), c(3)], 3);
+  assert.equal(anexa.ok, true); assert.equal(anexa.borda, 'anexa'); assert.equal(anexa.hopsMedido, 3); assert.equal(anexa.metodo, 'contagem_menos_1'); assert.equal(anexa.aviso, undefined);
+  assert.equal(resumir([c(3), c(3)], [c(2), c(2)], 3).ok, false, 'medido 2, atual 3');
+  assert.equal(resumir([c(4), c(5)], [c(3)], undefined).motivo, 'contagem_instavel');
+  assert.equal(resumir([c(null), c(null)], [], 3).motivo, 'diagnostico_desligado');
+  assert.equal(resumir([c(1)], [c(0)], undefined).motivo, 'hops_fora_de_1_a_10');
+  assert.equal(resumir([c(4, '2')], [c(3)], undefined).aviso, 'posicao_do_cliente_diferente_de_contagem_menos_1: confira a topologia antes de gravar');
+  assert.doesNotMatch(JSON.stringify(real), /d+.d+.d+.d+/, 'nenhum IP na saída');
+});
+
+test('conferir-staging-admin: avaliar aprova só com um admin .invalid, 2º fator ativo, sem sessão e com auditoria; recusa fora do staging', async () => {
+  const { avaliar } = await import('../scripts/conferir-staging-admin.mjs');
+  const ok = { admins: 1, adminsInvalid: 1, adminsComDoisFatores: 1, doisFatoresVerificados: 1, sessoes: 0, auditorias: 1 };
+  assert.equal(avaliar(ok).ok, true);
+  for (const [k, v] of [['admins', 2], ['adminsInvalid', 0], ['adminsComDoisFatores', 0], ['doisFatoresVerificados', 0], ['sessoes', 1], ['auditorias', 0]]) assert.equal(avaliar({ ...ok, [k]: v }).ok, false, k);
+  const x = node('conferir-staging-admin.mjs', [], { env: { ...process.env, APP_ENV: 'production' } });
+  assert.equal(x.status, 2);
+  assert.match(x.stderr, /APP_ENV tem de ser staging/);
+});
+
+test('package-web --bench-graph: só worker, só staging; --bench-args em lista fechada separada por vírgula', () => {
+  const base = ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada')];
+  const web = node('package-web.mjs', [...base, '--profile', 'staging', '--bench-graph']);
+  assert.equal(web.status, 2); assert.match(web.stderr, /--bench-graph só vale para o worker/);
+  const prod = node('package-web.mjs', [...base, '--profile', 'production', '--app', 'workers', '--bench-graph']);
+  assert.equal(prod.status, 2); assert.match(prod.stderr, /só vale no perfil staging/);
+  const solto = node('package-web.mjs', [...base, '--profile', 'staging', '--app', 'workers', '--bench-args', 'replace']);
+  assert.equal(solto.status, 2); assert.match(solto.stderr, /--bench-args exige --bench-graph/);
+  for (const ruim of ['scale=9;rm', 'scale=2', 'rm -rf', 'schema=intelligence', 'with-reference;x']) {
+    const x = node('package-web.mjs', [...base, '--profile', 'staging', '--app', 'workers', '--bench-graph', '--bench-args', ruim]);
+    assert.equal(x.status, 2, ruim); assert.match(x.stderr, /argumento não permitido/, ruim);
+  }
+});
+
+test('package-web --bench-fumaca exige --bench-graph', () => {
+  const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--profile', 'staging', '--app', 'workers', '--bench-fumaca']);
+  assert.equal(x.status, 2); assert.match(x.stderr, /--bench-fumaca exige --bench-graph/);
+});
+
+test('check-ln-links: link @ln/* para dentro do worktree passa; para outro worktree, node_modules atalhado e link quebrado reprovam', async () => {
+  const { symlinkSync } = await import('node:fs');
+  const { checarWorktree, dentro } = await import('../scripts/check-ln-links.mjs');
+  const base = tmp();
+  const mk = (nome) => { const r = join(base, nome); mkdirSync(join(r, 'packages', 'auth'), { recursive: true }); writeFileSync(join(r, 'package.json'), '{}'); mkdirSync(join(r, 'node_modules', '@ln'), { recursive: true }); return r; };
+  const a = mk('wt-a'), b = mk('wt-b');
+  symlinkSync(join(a, 'packages', 'auth'), join(a, 'node_modules', '@ln', 'auth'), 'junction');
+  const ok = checarWorktree(a);
+  assert.equal(ok.ok, true); assert.equal(ok.links, 1);
+  // link do worktree b apontando para os packages do worktree a: FALSO resultado de teste
+  symlinkSync(join(a, 'packages', 'auth'), join(b, 'node_modules', '@ln', 'auth'), 'junction');
+  const fora = checarWorktree(b);
+  assert.equal(fora.ok, false); assert.equal(fora.fora[0].pacote, '@ln/auth');
+  // node_modules inteiro atalhado para o de outro worktree
+  const c = join(base, 'wt-c'); mkdirSync(join(c, 'packages'), { recursive: true }); writeFileSync(join(c, 'package.json'), '{}');
+  symlinkSync(join(a, 'node_modules'), join(c, 'node_modules'), 'junction');
+  const atalho = checarWorktree(c);
+  assert.equal(atalho.ok, false); assert.ok(atalho.fora.some((x) => x.pacote === '(node_modules inteiro)'));
+  // link quebrado
+  const d = mk('wt-d'); symlinkSync(join(base, 'nao-existe'), join(d, 'node_modules', '@ln', 'x'), 'junction');
+  assert.equal(checarWorktree(d).ok, false);
+  // sem node_modules: só aviso (exigir=false) ou reprova (exigir=true)
+  const e = join(base, 'wt-e'); mkdirSync(e); writeFileSync(join(e, 'package.json'), '{}');
+  assert.equal(checarWorktree(e).ok, true); assert.equal(checarWorktree(e, { exigir: true }).ok, false);
+  assert.equal(dentro('/x/wt-a', '/x/wt-a/packages/auth'), true); assert.equal(dentro('/x/wt-a', '/x/wt-b/packages/auth'), false);
+  // CLI: código de saída
+  assert.equal(node('check-ln-links.mjs', ['--root', a]).status, 0);
+  assert.equal(node('check-ln-links.mjs', ['--root', b]).status, 1);
+});
+
+test('limpar-node-modules: remove o node_modules sem atravessar junction (o alvo fica intacto); sem --confirmar só mostra o plano', async () => {
+  const { symlinkSync, existsSync: ex, readFileSync: rf, lstatSync: ls } = await import('node:fs');
+  const base = tmp();
+  const a = join(base, 'wt-a'); mkdirSync(join(a, 'packages', 'auth'), { recursive: true }); writeFileSync(join(a, 'package.json'), '{}'); writeFileSync(join(a, 'packages', 'auth', 'index.ts'), 'export const ok = 1;');
+  mkdirSync(join(a, 'node_modules', 'pkg'), { recursive: true }); writeFileSync(join(a, 'node_modules', 'pkg', 'x.js'), 'x');
+  // wt-b: node_modules REAL com @ln/auth = junction para os packages de wt-a, mais arquivos de verdade
+  const b = join(base, 'wt-b'); mkdirSync(join(b, 'node_modules', '@ln'), { recursive: true }); writeFileSync(join(b, 'package.json'), '{}'); writeFileSync(join(b, 'node_modules', 'real.js'), 'r');
+  symlinkSync(join(a, 'packages', 'auth'), join(b, 'node_modules', '@ln', 'auth'), 'junction');
+  // wt-c: node_modules INTEIRO é junction para o de wt-a
+  const c = join(base, 'wt-c'); mkdirSync(c); writeFileSync(join(c, 'package.json'), '{}');
+  symlinkSync(join(a, 'node_modules'), join(c, 'node_modules'), 'junction');
+  const plano = node('limpar-node-modules.mjs', ['--root', b]);
+  assert.equal(plano.status, 0); assert.equal(JSON.parse(plano.stdout).apagou, false); assert.ok(ex(join(b, 'node_modules', 'real.js')), 'sem --confirmar nada some');
+  const r1 = node('limpar-node-modules.mjs', ['--root', b, '--confirmar']);
+  assert.equal(r1.status, 0, r1.stderr); assert.equal(JSON.parse(r1.stdout).links, 1);
+  assert.equal(ex(join(b, 'node_modules')), false, 'node_modules do wt-b sumiu');
+  assert.equal(rf(join(a, 'packages', 'auth', 'index.ts'), 'utf8'), 'export const ok = 1;', 'o ALVO da junction (packages de wt-a) está intacto');
+  const r2 = node('limpar-node-modules.mjs', ['--root', c, '--confirmar']);
+  assert.equal(r2.status, 0, r2.stderr);
+  assert.equal(ex(join(c, 'node_modules')), false, 'o atalho foi removido');
+  assert.equal(rf(join(a, 'node_modules', 'pkg', 'x.js'), 'utf8'), 'x', 'o node_modules do alvo está intacto');
+  assert.equal(node('limpar-node-modules.mjs', ['--root', join(base, 'nao-existe')]).status, 2);
+  assert.ok(!ls(join(a, 'packages', 'auth')).isSymbolicLink());
+});
+
+test('smoke-producao: produção limpa e não indexável passa; demonstração, flag ligada, indexável antes do go-live e Studio aberto reprovam', async () => {
+  const SHA = 'a'.repeat(40);
+  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...h }); res.end(b); };
+    const rot = estado.demo ? '[DEMO · staging] ' : '';
+    const meta = estado.indexavel ? '' : '<meta name="robots" content="noindex, nofollow"/>';
+    if (u === '/api/health') return json(200, { status: 'ok', version: SHA, env: estado.env, flags: estado.flags });
+    if (u === '/api/ready') return json(200, { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok', migracoes: 'ok' });
+    if (u === '/api/publico/site') return json(200, { nome: 'Loyalty News' });
+    if (u === '/api/publico/editorias') return json(200, { data: Array.from({ length: 10 }, (_, i) => ({ slug: 'e' + i })) });
+    if (u === '/api/publico/materias') return json(200, { data: estado.demo ? [{ slug: 'a', titulo: rot + 'x' }] : [], total: 0 });
+    if (u === '/api/publico/agenda') return json(200, { data: [] });
+    if (u === '/api/publico/intelligence/pessoas' || u === '/api/publico/intelligence/moves') return json(200, { data: [], total: 0, disponivel: estado.pessoas });
+    if (['/', '/noticias', '/midia-kit', '/intelligence'].includes(u)) return html(200, meta + rot + 'ok');
+    if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(estado.indexavel ? 'User-agent: *\nAllow: /\n' : 'User-agent: *\nDisallow: /\n'); }
+    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml' }); return res.end(estado.indexavel ? '<urlset><url><loc>https://x/</loc></url></urlset>' : '<urlset></urlset>'); }
+    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.indexavel ? '<item></item>' : '') + '</rss>'); }
+    if (u === '/studio') { if (estado.studioAberto) return html(200, 'painel'); res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
+    if (u === '/studio/entrar') return html(200, 'login');
+    res.writeHead(404); res.end();
+  });
+  const port = s.address().port;
+  const run = (extra = []) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', SHA, ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, j: stdout ? JSON.parse(stdout) : null }));
+  });
+  try {
+    const ok = await run();
+    assert.equal(ok.status, 0, JSON.stringify(ok.j?.checagens?.filter((c) => !c.ok)));
+    estado.demo = true; assert.equal((await run()).status, 1, 'demonstração em produção reprova'); estado.demo = false;
+    estado.flags = ['intelligencePessoas']; assert.equal((await run()).status, 1, 'flag ligada reprova'); estado.flags = [];
+    estado.env = 'staging'; assert.equal((await run()).status, 1, 'APP_ENV diferente de production reprova'); estado.env = 'production';
+    estado.pessoas = true; assert.equal((await run()).status, 1, 'pessoas ligadas reprovam'); estado.pessoas = false;
+    estado.studioAberto = true; assert.equal((await run()).status, 1, 'Studio sem login reprova'); estado.studioAberto = false;
+    estado.indexavel = true; assert.equal((await run()).status, 1, 'indexável antes do go-live reprova');
+    assert.equal((await run(['--indexavel'])).status, 0, 'com --indexavel (go-live) passa'); estado.indexavel = false;
+    assert.equal((await run(['--indexavel'])).status, 1, 'não indexável com --indexavel reprova');
+  } finally { s.close(); }
+});
+
+test('verificar-cache-headers: avaliar 60s e no-store; verificar contra servidor falso (pessoas ficam no-store, sitemap público reprova)', async () => {
+  const { avaliar, verificar, CACHE_60S, NO_STORE } = await import('../scripts/verificar-cache-headers.mjs');
+  assert.deepEqual(avaliar('60s', 'public, s-maxage=60, stale-while-revalidate=300', null), []);
+  assert.match(avaliar('60s', 'private, no-cache, no-store, max-age=0, must-revalidate', null).join('|'), /falta s-maxage=60.*tem no-store/);
+  assert.match(avaliar('60s', 'public, s-maxage=60, stale-while-revalidate=300', 'sid=1').join('|'), /Set-Cookie/);
+  assert.match(avaliar('60s', 'public, s-maxage=600, stale-while-revalidate=300', null).join('|'), /falta s-maxage=60/, 's-maxage=600 não é 60');
+  assert.deepEqual(avaliar('no-store', 'private, no-cache, no-store, max-age=0', null), []);
+  assert.match(avaliar('no-store', 'public, max-age=0, must-revalidate', null).join('|'), /esperado no-store/);
+  assert.match(avaliar('no-store', undefined, null).join('|'), /sem Cache-Control/);
+  const pessoas = /^\/(intelligence|moves)/;
+  assert.ok(CACHE_60S.every((r) => !pessoas.test(r)), 'nenhuma rota com pessoas na lista de cache');
+  assert.ok(NO_STORE.some((r) => r.startsWith('/intelligence/pessoas')) && NO_STORE.some((r) => r.startsWith('/moves')));
+  const estado = { sitemap: 'public, max-age=0, must-revalidate', pessoasCC: 'private, no-cache, no-store, max-age=0' };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const h = (cc) => { res.writeHead(200, { 'cache-control': cc }); res.end('x'); };
+    if (CACHE_60S.map((r) => r.replace('{editoria}', 'mercado')).includes(u)) return h('public, s-maxage=60, stale-while-revalidate=300');
+    if (u === '/sitemap.xml') return h(estado.sitemap);
+    if (/^\/(intelligence|moves)/.test(u)) return h(estado.pessoasCC);
+    return h('private, no-cache, no-store, max-age=0');
+  });
+  try {
+    const url = 'http://127.0.0.1:' + s.address().port;
+    const r1 = await verificar({ url, valores: { editoria: 'mercado' } });
+    assert.equal(r1.violacoes, 1, JSON.stringify(r1.resultados.filter((x) => !x.ok)));
+    assert.equal(r1.resultados.find((x) => !x.ok).rota, '/sitemap.xml');
+    estado.sitemap = 'private, no-store'; estado.pessoasCC = 'public, s-maxage=60, stale-while-revalidate=300';
+    const r2 = await verificar({ url, valores: { editoria: 'mercado' } });
+    assert.ok(r2.resultados.filter((x) => !x.ok).every((x) => /intelligence|moves/.test(x.rota)), 'pessoas com cache público reprovam');
+    assert.ok(r2.violacoes >= 5);
+  } finally { s.close(); }
+});
+
+test('smoke-producao --expect-cache: reprova sem a política de cache e passa com ela', async () => {
+  const SHA = 'b'.repeat(40);
+  const pessoas = /^\/(intelligence|moves|noticia|agenda\/|sitemap)/;
+  const cacheavel = new Set(['/', '/noticias', '/editoria/mercado', '/analises', '/entrevistas', '/opiniao', '/flash', '/em-alta', '/agenda']);
+  const estado = { politica: false };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const cc = estado.politica ? (cacheavel.has(u) ? 'public, s-maxage=60, stale-while-revalidate=30' : pessoas.test(u) ? 'private, no-cache, no-store' : undefined) : undefined;
+    const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json', ...(cc ? { 'cache-control': cc } : {}) }); res.end(JSON.stringify(o)); };
+    const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...(cc ? { 'cache-control': cc } : {}), ...h }); res.end(b); };
+    if (u === '/api/health') return json(200, { status: 'ok', version: SHA, env: 'production', flags: [] });
+    if (u === '/api/ready') return json(200, { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' });
+    if (u === '/api/publico/site') return json(200, { nome: 'LN' });
+    if (u === '/api/publico/editorias') return json(200, { data: Array.from({ length: 10 }, (_, i) => ({ slug: 'e' + i })) });
+    if (u === '/api/publico/materias' || u === '/api/publico/agenda') return json(200, { data: [] });
+    if (u.startsWith('/api/publico/intelligence/')) return json(200, { data: [], total: 0, disponivel: false });
+    if (['/', '/noticias', '/midia-kit', '/intelligence'].includes(u)) return html(200, '<meta name="robots" content="noindex"/>ok');
+    if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('User-agent: *\nDisallow: /\n'); }
+    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml', ...(cc ? { 'cache-control': 'private, no-store' } : {}) }); return res.end('<urlset></urlset>'); }
+    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss></rss>'); }
+    if (u === '/studio') { res.writeHead(307, { location: '/studio/entrar' }); return res.end(); }
+    if (u === '/studio/entrar') return html(200, 'login');
+    return html(200, 'ok');
+  });
+  const run = (extra) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + s.address().port, '--expect-commit', SHA, ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, j: JSON.parse(stdout) }));
+  });
+  try {
+    assert.equal((await run([])).j.checagens.some((x) => /^cache:/.test(x.nome)), false, 'sem a opção não confere cache');
+    const sem = await run(['--expect-cache']);
+    assert.equal(sem.status, 1); assert.ok(sem.j.checagens.some((x) => /^cache:/.test(x.nome) && !x.ok));
+    estado.politica = true;
+    const com = await run(['--expect-cache']);
+    assert.ok(com.j.checagens.find((x) => /^cache:/.test(x.nome))?.ok, JSON.stringify(com.j.checagens.filter((x) => !x.ok)));
+  } finally { s.close(); }
+});
+
+test('start-web: o next start roda de DENTRO de apps/web, sem o argumento de pasta (next.config.ts com import .ts irmão não carrega a partir da raiz)', async () => {
+  const { nextStartInvocation } = await import('../scripts/start-web.mjs');
+  const inv = nextStartInvocation('/app', '/app/node_modules/next/dist/bin/next', 80, '0.0.0.0');
+  assert.deepEqual(inv.args, ['/app/node_modules/next/dist/bin/next', 'start', '-p', '80', '-H', '0.0.0.0']);
+  assert.equal(inv.cwd.split(sep).join('/').replace(/^[A-Za-z]:/, ''), '/app/apps/web');
+  assert.ok(!inv.args.includes('apps/web'), 'sem o argumento de pasta');
+});
+
+test('guard-env (linha 1 do piloto): em produção cada variável do piloto recusa com o NOME dela; em staging aceita; o contrato marca as quatro como só_staging', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const PROD = { APP_ENV: 'production' };
+  const casos = [
+    [{ LN_FLAGS_ON: 'openbotDispatch' }, /LN_FLAGS_ON definida em produção.*openbotDispatch.*nunca liga em produção/],
+    [{ LN_FLAGS_ON: 'intelligencePessoas,openbotDispatch' }, /LN_FLAGS_ON definida em produção.*openbotDispatch/],
+    [{ LN_OPENBOT_PILOT: '1' }, /LN_OPENBOT_PILOT definida em produção/],
+    [{ OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET definida em produção/],
+    [{ OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET_PREVIOUS definida em produção/],
+  ];
+  for (const [vars, esperado] of casos) {
+    const msg = envProblems({ ...PROD, ...vars }, { deploy: true }).join('|');
+    assert.match(msg, esperado, JSON.stringify(Object.keys(vars)));
+    assert.doesNotMatch(msg, /valor-ficticio-de-teste/, 'a mensagem nunca repete o valor');
+    assert.doesNotMatch(envProblems({ APP_ENV: 'staging', ...vars }, { deploy: true }).join('|'), /definida em produção/, 'staging aceita');
+  }
+  assert.deepEqual(envProblems({ APP_ENV: 'production' }, { deploy: true }).filter((m) => /OPENBOT|LN_FLAGS_ON|PILOT/.test(m)), [], 'produção limpa não reprova');
+  assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /LN_FLAGS_ON definida em produção/);
+  assert.doesNotMatch(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /openbotDispatch/, 'só cita openbotDispatch quando ela está no valor');
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
+  assert.equal(c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET').secreto, true);
+  assert.doesNotMatch(JSON.stringify(c), /"valor"\s*:\s*"[^"]{8,}"/, 'o contrato só tem nomes, nenhum valor');
+});
+
+test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {
+  const { lerPerfil, avaliar, passos, BUILD_PADRAO } = await import('../scripts/memoria-build.mjs');
+  assert.equal(BUILD_PADRAO, 2048);
+  const base = perfilFalso();
+  const apps = base.applications.filter((a) => !a.id.startsWith('prod-'));
+  const databases = base.databases.filter((d) => d.id !== 'd4');
+  const soma = apps.reduce((t, a) => t + a.ram, 0) + databases.reduce((t, d) => t + d.ram, 0);
+  const stg = lerPerfil({ ...base, applications: apps, databases, plan: { name: 'pro-8', memory: { limit: 8192, used: soma } } });
+  const a = avaliar(stg, 'stg-web', { fase: 'antes' });
+  assert.equal(a.ok, true, a.problemas.join('|'));
+  const pico = soma + (2048 - 512);
+  const st = passos(stg, 'stg-web', { pacote: 'C:/pacote' });
+  assert.deepEqual(st.map((x) => x.usedEsperado), [soma, pico, pico, pico, pico, pico, soma, soma]);
+  assert.deepEqual(st[1].args, { id: 'stg-web', memory: 2048 });
+  assert.match(st[1].nota, /4096 MB/);
+  const prod = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes' });
+  assert.equal(prod.ok, false);
+  assert.match(prod.problemas.join('|'), /pico seria 9088 de 8192/);
+});
+
+test('saude estável (QA 8, 24/11): saudeEstavel e configSaude; um 200 seguido de queda, versão que muda ou erro reprovam', async () => {
+  const { saudeEstavel, configSaude } = await import('../scripts/lib/saude.mjs');
+  assert.deepEqual(configSaude({}), { n: 3, intervaloMs: 20 }, 'padrão: 3 amostras; intervalo vem do LN_SAUDE_INTERVALO_MS dos testes');
+  assert.deepEqual(configSaude({ consecutivas: '5', intervalo: '100' }), { n: 5, intervaloMs: 100 });
+  assert.equal(configSaude({ consecutivas: '999' }).n, 3, 'fora de 1..20 volta ao padrão');
+  const sha = 'a'.repeat(40);
+  const ok = (v = sha) => async () => ({ status: 200, j: { status: 'ok', version: v } });
+  const sem = async () => {};
+  assert.equal((await saudeEstavel({ amostrar: ok(), n: 3, commit: sha, dormir: sem })).ok, true);
+  // a janela do achado: 200 uma vez, depois o servidor cai
+  let k = 0;
+  const caiu = await saudeEstavel({ amostrar: async () => { k++; if (k === 1) return { status: 200, j: { status: 'ok', version: sha } }; throw Object.assign(new Error('x'), { name: 'TypeError' }); }, n: 3, commit: sha, dormir: sem });
+  assert.equal(caiu.ok, false); assert.match(caiu.problemas.join('|'), /amostra 2 de 3: a requisição falhou/);
+  let m = 0;
+  const cinco = await saudeEstavel({ amostrar: async () => { m++; return m === 1 ? { status: 200, j: { status: 'ok', version: sha } } : { status: 503, j: { status: 'indisponivel' } }; }, n: 3, dormir: sem });
+  assert.equal(cinco.ok, false); assert.match(cinco.problemas.join('|'), /HTTP 503/);
+  let v = 0;
+  const muda = await saudeEstavel({ amostrar: async () => ({ status: 200, j: { status: 'ok', version: v++ === 0 ? 'a'.repeat(40) : 'b'.repeat(40) } }), n: 2, dormir: sem });
+  assert.equal(muda.ok, false); assert.match(muda.problemas.join('|'), /a versão mudou entre as amostras/);
+  assert.match((await saudeEstavel({ amostrar: ok('c'.repeat(40)), n: 2, commit: sha, dormir: sem })).problemas.join('|'), /version=.* != /);
+  assert.equal((await saudeEstavel({ amostrar: ok(), n: 1, dormir: sem })).ok, true, 'n=1 é o comportamento antigo (não use no aceite)');
+});
+
+test('healthcheck CLI e smoke-producao exigem N 200 seguidos: um 200 logo depois do start e depois queda REPROVA (--consecutivas 1 mostra o risco antigo)', async () => {
+  const SHA = 'd'.repeat(40);
+  const estado = { vezes: 0, quedaApos: 1 };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    if (u === '/api/health') {
+      estado.vezes++;
+      if (estado.vezes > estado.quedaApos) { res.writeHead(503, { 'content-type': 'application/json' }); return res.end('{"status":"indisponivel"}'); }
+      res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ status: 'ok', version: SHA, env: 'production', flags: [] }));
+    }
+    res.writeHead(404); res.end();
+  });
+  try {
+    const port = s.address().port;
+    // 200 uma vez e depois 503: 3 seguidas reprovam; 1 aprova (o risco que o QA 8 achou)
+    estado.vezes = 0;
+    const tres = await hc(port, ['--expect-commit', SHA, '--consecutivas', '3']);
+    assert.equal(tres.status, 1, tres.stdout); assert.match(tres.stdout, /instável/);
+    estado.vezes = 0;
+    const um = await hc(port, ['--expect-commit', SHA, '--consecutivas', '1']);
+    assert.equal(um.status, 0, um.stdout);
+    assert.match(um.stdout, /não prova estabilidade/);
+    // estável de verdade: passa e informa
+    estado.vezes = 0; estado.quedaApos = 99;
+    const estavel = await hc(port, ['--expect-commit', SHA]);
+    assert.equal(estavel.status, 0, estavel.stdout);
+    assert.deepEqual(JSON.parse(estavel.stdout).estabilidade, { consecutivas: 3, intervaloMs: 20, ok: true });
+    // smoke-producao: a checagem de health reprova quando cai depois do 1º 200
+    estado.vezes = 0; estado.quedaApos = 1;
+    const r = await new Promise((resolve) => {
+      const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', SHA]);
+      let out = ''; c.stdout.on('data', (d) => { out += d; }); c.on('close', () => resolve(JSON.parse(out)));
+    });
+    const h = r.checagens.find((x) => /^health: \d+ resposta/.test(x.nome));
+    assert.ok(h && h.ok === false, JSON.stringify(h)); assert.match(h.detalhe, /amostra 2 de 3/);
+  } finally { s.close(); }
+});

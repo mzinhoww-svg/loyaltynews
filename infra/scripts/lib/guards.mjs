@@ -66,10 +66,18 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
   const flagsOn = String(env.LN_FLAGS_ON ?? '');
   if (flagsOn.trim() !== '') {
     const ambFlags = String(env.APP_ENV ?? '').trim().toLowerCase();
-    if (prod) p.push('LN_FLAGS_ON definida em produção: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES');
+    if (prod) p.push(`LN_FLAGS_ON definida em produção: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES${/openbotDispatch/.test(flagsOn) ? ' (a flag openbotDispatch, DP-41, nunca liga em produção)' : ''}`);
     else if (ambFlags === 'staging' && !/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
     else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
   }
+  // Piloto OpenBot (DP-41): LN_OPENBOT_PILOT só com APP_ENV=staging; em produção (ou qualquer outro ambiente de deploy) a variável DEFINIDA reprova.
+  if (String(env.LN_OPENBOT_PILOT ?? '').trim() !== '') {
+    const ambPiloto = String(env.APP_ENV ?? '').trim().toLowerCase();
+    if (prod) p.push('LN_OPENBOT_PILOT definida em produção: o piloto OpenBot é só do staging (DP-41)');
+    else if (ambPiloto !== 'staging' && deploy) p.push(`LN_OPENBOT_PILOT com APP_ENV=${env.APP_ENV || '(vazio)'}: o piloto OpenBot só existe com APP_ENV=staging (DP-41)`);
+  }
+  // Segredo HMAC do OpenBot (piloto DP-41, só staging; decisão do Arquiteto/PM de 24/11): em produção as duas variáveis definidas reprovam (sem elas as rotas do OpenBot respondem 401).
+  if (prod) for (const nome of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida em produção: o segredo do OpenBot é só do staging (DP-41)`);
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
 
   return p;
@@ -87,6 +95,30 @@ export function flagsProblems(env, release) {
     ? `LN_FLAGS_ON="${env.LN_FLAGS_ON ?? ''}" difere do release.json (flagsLigadas=${rel}): defina LN_FLAGS_ON=${rel}`
     : `LN_FLAGS_ON="${env.LN_FLAGS_ON}" definida, mas o pacote não liga nenhuma flag (release.json.flagsLigadas vazio): apague a variável do app`];
 };
+
+/** Jobs de Intelligence por variável (só staging, só o que o release.json.jobsIntelligence liga). 'alertas' = LN_INTELLIGENCE_ALERTS + LN_INTELLIGENCE_PESSOAS;
+ *  'releitura' = LN_INTELLIGENCE_REREAD + LN_INTELLIGENCE_PESSOAS + LN_REREAD_SEED (valor definido pelo PM, não vazio). Em produção nada disto liga (nem BRIGHTDATA_API_KEY). */
+export function jobsProblems(env, release) {
+  const rel = Array.isArray(release?.jobsIntelligence) ? release.jobsIntelligence : [];
+  const alertas = rel.includes('alertas'), releitura = rel.includes('releitura');
+  const want = { LN_INTELLIGENCE_ALERTS: alertas, LN_INTELLIGENCE_PESSOAS: alertas || releitura, LN_INTELLIGENCE_REREAD: releitura };
+  const amb = String(env.APP_ENV ?? '').trim().toLowerCase();
+  const p = [];
+  for (const [nome, ligada] of Object.entries(want)) {
+    const cur = String(env[nome] ?? '').trim();
+    if (ligada && cur !== 'on') p.push(`${nome}="${env[nome] ?? ''}" difere do release.json (jobsIntelligence=${rel.join(',')}): defina ${nome}=on`);
+    else if (!ligada && cur !== '') p.push(`${nome} definida, mas o pacote não liga esse job (release.json.jobsIntelligence=[${rel.join(',')}]): apague a variável do app`);
+  }
+  const seed = String(env.LN_REREAD_SEED ?? '').trim();
+  if (releitura && seed === '') p.push('jobsIntelligence=releitura exige LN_REREAD_SEED (conjunto de cargos a reler; valor definido pelo PM)');
+  else if (!releitura && seed !== '') p.push('LN_REREAD_SEED definida, mas o pacote não liga a releitura: apague a variável do app');
+  if (!releitura && String(env.BRIGHTDATA_API_KEY ?? '').trim() !== '' && amb !== 'staging') p.push('BRIGHTDATA_API_KEY definida fora do staging: a leitura por provedor é só do staging (ADR-022 adendo 2)');
+  if (rel.length) {
+    if (amb !== 'staging') p.push(`jobsIntelligence=${rel.join(',')} com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging`);
+    if (!flagsNormalizadas(env.LN_FLAGS_ON).split(',').includes('intelligencePessoas')) p.push(`jobsIntelligence=${rel.join(',')} exige LN_FLAGS_ON com intelligencePessoas (ADR-022)`);
+  }
+  return p;
+}
 
 // Atribuições em arquivos de deploy/IaC/scripts de produção. Citar o NOME (ex.: no contrato de variáveis, como proibida) não reprova.
 export const ASSIGN_STUDIO = /LN_STUDIO_TEST_SESSION["']?\s*[=:]/;

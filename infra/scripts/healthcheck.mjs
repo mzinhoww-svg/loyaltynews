@@ -12,10 +12,23 @@
 //   --canonical <url>    o canonical da home (estática) E de /noticias (dinâmica) precisa começar com <url> (sem localhost): prova que NEXT_PUBLIC_SITE_URL existe no build e em execução
 //   --noindex <caminho>  staging NÃO pode ser indexado: robots.txt com Disallow: / (e sem Allow: /), sitemap sem URLs e o caminho com
 //                        X-Robots-Tag ou meta robots contendo noindex
-// Uso: node infra/scripts/healthcheck.mjs --url https://host [--ready] [--expect-commit <sha>] [--timeout 5000] [--retries 2]
+//   --expect-flags a,b   o campo `flags` de /api/health (ADR-022, só nomes) tem de ser EXATAMENTE essas flags (staging com DP-38: intelligencePessoas)
+//   --expect-no-flags    o campo `flags` tem de existir e estar vazio (produção: APP_ENV=production e flags:[])
+// Uso: node infra/scripts/healthcheck.mjs --url https://host [--ready] [--expect-commit <sha>] [--timeout 5000] [--retries 2] [--consecutivas 3] [--intervalo 5000]
+//   --consecutivas N (padrão 3) --intervalo MS (padrão 5000): no /api/health exige N respostas 200 SEGUIDAS com a mesma versão (QA 8, 24/11); --consecutivas 1 volta ao comportamento antigo (não use no aceite de deploy)
 //        [--denied /studio] [--no-mock /] [--noindex /]
 import { parseArgs, fail } from './lib/util.mjs';
 import { VITRINE_BANNER, VITRINE_MARCADORES } from './lib/guards.mjs';
+import { configSaude, saudeEstavel } from './lib/saude.mjs';
+
+/** Compara a lista `flags` do /api/health com a esperada (conjunto exato, sem ordem). Função pura. */
+function flagsProblemas(obtida, esperada) {
+  const esp = [...new Set(esperada.map((s) => String(s).trim()).filter(Boolean))].sort();
+  if (!Array.isArray(obtida)) return [`/api/health sem o campo flags (string[]): o código não tem a ADR-022 (esperado: ${esp.length ? esp.join(',') : 'lista vazia'})`];
+  const got = [...new Set(obtida.map(String))].sort();
+  if (got.join(',') === esp.join(',')) return [];
+  return [`flags=[${got.join(',')}] != esperado [${esp.join(',')}]`];
+}
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.url || args.url === true) fail('use --url https://host', 2);
@@ -44,6 +57,11 @@ for (let i = 0; i <= retries && !healthy; i++) {
     if (!last.body || !['ok', 'degraded'].includes(last.body.status)) problems.push('corpo sem status ok/degraded');
     if (!args.ready && last.body && last.body.status !== 'ok') problems.push(`status=${last.body.status}`);
     if (args['expect-commit'] && last.body?.version !== args['expect-commit']) problems.push(`version=${last.body?.version} != ${args['expect-commit']}`);
+    // ADR-022 (N8 da Security): /api/health expõe `flags: string[]` (só nomes). --expect-flags a,b exige EXATAMENTE essas; --expect-no-flags exige a lista vazia (produção).
+    if (args['expect-flags'] || args['expect-no-flags']) {
+      const problemasFlags = flagsProblemas(last.body?.flags, args['expect-no-flags'] ? [] : String(args['expect-flags']).split(','));
+      problems.push(...problemasFlags);
+    }
     if (problems.length === 0) healthy = true; else last.problems = problems;
   } catch (e) {
     last = { error: e.name === 'TimeoutError' ? `timeout ${timeout} ms` : e.message };
@@ -55,7 +73,27 @@ if (!healthy) {
   process.exit(1);
 }
 
-const out = { ok: true, url: base + path, ms: last.ms, status: last.body?.status, version: last.body?.version, checks: last.body?.checks };
+// Estabilidade (QA 8, 24/11): um único 200 logo depois do start não prova que o app está de pé (uma subida recusada pode responder 200 por uma janela curta antes de sair).
+// Só no /api/health (o /api/ready não traz versão): mais N−1 respostas 200 seguidas (padrão N=3, a cada 5000 ms), com a mesma versão da 1ª e a esperada.
+let estabilidade = null;
+if (!args.ready) {
+  const cfg = configSaude(args);
+  if (cfg.n > 1) {
+    const versao1 = last.body?.version;
+    if (cfg.intervaloMs > 0) await new Promise((r) => setTimeout(r, cfg.intervaloMs));
+    const est = await saudeEstavel({
+      amostrar: async () => { const r = await get(path, { json: true }); return { status: r.status, j: r.body }; },
+      n: cfg.n - 1, intervaloMs: cfg.intervaloMs, commit: args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : versao1,
+    });
+    estabilidade = { consecutivas: cfg.n, intervaloMs: cfg.intervaloMs, ok: est.ok };
+    if (!est.ok) {
+      console.log(JSON.stringify({ ok: false, url: base + path, problems: [`instável: ${est.problemas.join(' | ')} (a 1ª resposta foi 200; exigimos ${cfg.n} seguidas, mesma versão)`], estabilidade }));
+      process.exit(1);
+    }
+  } else estabilidade = { consecutivas: 1, aviso: 'uma única resposta: não prova estabilidade logo depois do start' };
+}
+
+const out = { ok: true, url: base + path, ms: last.ms, status: last.body?.status, version: last.body?.version, checks: last.body?.checks, ...(estabilidade ? { estabilidade } : {}) };
 const failures = [];
 if (args.denied) {
   const p = String(args.denied);

@@ -7,9 +7,11 @@
 // Condição da Vertra reproduzida: lá o HOME fica DENTRO da pasta do app (/app/.cache/vertra/tmp/build/home) e o Next recusa /app como raiz do
 // workspace ("ignored package.json ... would include your home directory"). O ensaio roda instalação, build e start com HOME/USERPROFILE
 // dentro da pasta do pacote; `--home outside` roda com o HOME fora (é o paliativo `HOME=/tmp/...` no comando de build).
-// Uso: node infra/scripts/ensaio-pacote.mjs --manifest <arquivo .manifest.json> [--port 3197] [--home inside|outside]
+// Uso: node infra/scripts/ensaio-pacote.mjs --manifest <arquivo .manifest.json> [--port 3197] [--home inside|outside] [--log-servidor <arquivo>] [--espera-servidor 180]
+//   --log-servidor grava a saída do servidor (start_command) para diagnosticar "servidor não subiu"; só o NOME das variáveis e erros, nunca valores (as do ensaio são fictícias).
+//   --espera-servidor segundos até o /api/health responder (padrão 180; máquina carregada por outros agentes deixava o `next start` lento e o padrão antigo de ~42 s reprovava à toa).
 import { spawn, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -156,12 +158,25 @@ try {
   if (!step(`build com o build_command do manifesto (painel com NEXT_PUBLIC_SITE_URL=localhost e ${vitrine ? 'SEM PORTAL_VITRINE: vem do release.json' : apiSrc ? 'sem PORTAL_VITRINE' : 'PORTAL_VITRINE=1: ignorada'})`, r.status === 0, motivoBuild)) throw new Error('build falhou');
 
   const start = /start-web.mjs/.test(ca.start) ? `${ca.start} --port ${port} --host 127.0.0.1` : ca.start.replace('-p 80 -H 0.0.0.0', `-p ${port} -H 127.0.0.1`);
-  server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: 'ignore', detached: !win });
+  const logPath = args['log-servidor'] && args['log-servidor'] !== true ? resolve(String(args['log-servidor'])) : null;
+  const logFd = logPath ? openSync(logPath, 'w') : null;
+  server = spawn(start, { cwd: work, env: { ...clean, ...appEnv }, shell: true, stdio: logFd === null ? 'ignore' : ['ignore', logFd, logFd], detached: !win });
   let up = false;
-  for (let i = 0; i < 60 && !up; i++) {
+  const esperaMs = Math.max(30, Number(args['espera-servidor'] ?? 180) || 180) * 1000;
+  const limite = Date.now() + esperaMs;
+  while (!up && Date.now() < limite) {
     try { const res = await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(2000) }); up = res.ok; } catch { await new Promise((s) => setTimeout(s, 700)); }
   }
+  if (logFd !== null) closeSync(logFd);
   if (!step('servidor sobe com o start_command do manifesto', up)) throw new Error('servidor não subiu');
+  // /api/health devolve env e flags (ADR-022): têm de bater com o pacote (produção/staging; flags = release.json.flagsLigadas). Build anterior à ADR-022 não traz o campo.
+  try {
+    const hj = await (await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(5000) })).json();
+    const esperadoEnv = man.perfil === 'production' ? 'production' : 'staging';
+    const esperadasFlags = [...(man.flagsLigadas ?? [])].sort().join(',');
+    const flagsOk = Array.isArray(hj.flags) ? [...hj.flags].sort().join(',') === esperadasFlags : esperadasFlags === '';
+    step(`health: env=${esperadoEnv} e flags=[${esperadasFlags}] conforme o pacote`, hj.env === esperadoEnv && flagsOk, `env=${hj.env} flags=${Array.isArray(hj.flags) ? hj.flags.join(',') : '(campo ausente)'}`);
+  } catch (e) { step('health: env e flags conforme o pacote', false, String(e?.name ?? 'Erro')); }
 
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', ...(vitrine ? ['--vitrine', '/'] : ['--no-mock', '/'])], { encoding: 'utf8' });
   step(vitrine ? 'sondas: saúde com o commit certo, Studio nega sem login, home COM a faixa da vitrine' : 'sondas: saúde com o commit certo, Studio nega sem login, sem MOCK nem marcador da vitrine', r.status === 0, r.status === 0 ? JSON.parse(r.stdout).denied?.status + ' ' + (JSON.parse(r.stdout).denied?.location ?? '') : r.stdout.trim().slice(0, 300));
@@ -191,8 +206,10 @@ try {
       step(`[A6] ${p} com a API indisponível: 200 vazio, sem MOCK e sem URL interna`, res.status === 200 && !/\bMOCK\b/.test(body) && !vaza, `HTTP ${res.status}${vaza ? ' (vaza detalhe interno)' : ''}`);
     }
     const art = await fetch(`http://127.0.0.1:${port}/noticia/materia-que-nao-existe-ensaio`, { redirect: 'manual', signal: AbortSignal.timeout(15000) });
-    await art.text();
-    step('[A6] matéria com a API indisponível: 404 ou 503 (nunca 500)', art.status === 404 || art.status === 503, `HTTP ${art.status}`);
+    const artBody = await art.text();
+    // Portal int/009: API indisponível = página de erro honesta (200, noindex nos metadados, sem detalhe interno); 404/503 também servem. Nunca 500.
+    const artHonesta = art.status === 200 && /não conseguimos carregar esta matéria/i.test(artBody) && /noindex/i.test(artBody) && !/127\.0\.0\.1|ECONNREFUSED|api\/publico|\bat \w+\s*\(/i.test(artBody);
+    step('[A6] matéria com a API indisponível: 404, 503 ou página de erro honesta noindex (nunca 500)', art.status === 404 || art.status === 503 || artHonesta, `HTTP ${art.status}`);
   }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
   for (const p of ['/sitemap.xml', '/feed.xml']) {

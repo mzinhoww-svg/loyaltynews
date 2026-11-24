@@ -5,7 +5,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from './lib/util.mjs';
-import { envProblems, flagsProblems } from './lib/guards.mjs';
+import { envProblems, flagsProblems, jobsProblems } from './lib/guards.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 // Na Vertra APP_ENV vem definido (staging|production); fora dela, --deploy força o modo estrito.
@@ -13,7 +13,7 @@ const problems = envProblems(process.env, { deploy: Boolean(args.deploy) });
 // ADR-022: LN_FLAGS_ON tem de bater com o release.json do pacote (web e worker). Sem release.json (CI, desenvolvimento) só valem as regras de ambiente acima.
 const relPath = join(process.cwd(), 'release.json');
 if (existsSync(relPath)) {
-  try { problems.push(...flagsProblems(process.env, JSON.parse(readFileSync(relPath, 'utf8')))); }
+  try { const rel = JSON.parse(readFileSync(relPath, 'utf8')); problems.push(...flagsProblems(process.env, rel), ...jobsProblems(process.env, rel)); }
   catch { problems.push('release.json ilegível (JSON inválido)'); }
 }
 if (problems.length) {
