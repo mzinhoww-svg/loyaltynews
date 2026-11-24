@@ -72,11 +72,23 @@ describe('rota /piloto/importacao/revogar', () => {
     expect((await call(d, 'POST', { path: S('/piloto/importacao/registro'), body: { ...reg, arquivo: { ...reg.arquivo, sha256: 'f'.repeat(64) } }, as: admin })).status).toBe(409);
     expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: revisor })).status).toBe(403);
     expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: editor })).status).toBe(403);
+    // sessão autenticada, mas SEM o segundo fator: mesmo sendo admin a rota recusa (MFA_REQUIRED) e nada é gravado
+    const solo = await app.passwordOnly('admin');
+    const semMfa = await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: solo });
+    expect(semMfa.status).toBe(403); expect(semMfa.body.error.code).toBe('MFA_REQUIRED');
+    expect((await store.listAudit()).filter((e) => e.action === 'piloto.folha_revogada')).toHaveLength(0);
     expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo: 'curto' }, as: admin })).status).toBe(400);
     const ok = await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: admin });
     expect(ok.status).toBe(200);
     expect(ok.body).toMatchObject({ sha256: SHAX, materiasLiberadas: ['a6'] });
     expect((await call(d, 'POST', { path: S('/piloto/importacao/revogar'), body: { sha256: SHAX, motivo }, as: admin })).status).toBe(404);
+    // a lista (qualquer leitor) mostra a última revogação no lugar de "sem folha": quem, quando, por quê; nunca o conteúdo
+    const lista = await call(d, 'GET', { path: S('/piloto'), as: revisor });
+    const a6 = lista.body.items.find((i: { materia: string }) => i.materia === 'a6');
+    expect(a6.folhaRevogada).toMatchObject({ sha256: SHAX, por: expect.any(String), em: expect.any(String), motivo });
+    expect(JSON.stringify(a6.folhaRevogada)).not.toContain('folha-errada.csv');
     expect((await call(d, 'POST', { path: S('/piloto/importacao/registro'), body: { ...reg, arquivo: { ...reg.arquivo, sha256: 'f'.repeat(64) } }, as: admin })).status).toBe(201);
+    const depois = (await call(d, 'GET', { path: S('/piloto'), as: revisor })).body.items.find((i: { materia: string }) => i.materia === 'a6');
+    expect(depois.folha.sha256).toBe('f'.repeat(64)); expect(depois.folhaRevogada.sha256).toBe(SHAX);
   });
 });

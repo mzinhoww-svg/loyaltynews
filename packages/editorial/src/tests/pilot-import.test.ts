@@ -175,3 +175,27 @@ test('folha com leitura do leitor 2 já importada NÃO se revoga (409 FOLHA_COM_
   const it = body<{ items: PilotoItem[] }>(await listPiloto(ctx(dono), {})).items.find((i) => i.materia === 'a1')!;
   assert.deepEqual(it.folha && it.folha.sha256, SHA);
 });
+
+test('GET /piloto mostra a ÚLTIMA revogação da folha (quem, quando, por quê; só hash e motivo) no lugar de "sem folha"; some das matérias que ela não cobria; a mais recente vence', async () => {
+  const A = { arquivo: arquivo(SHA), leitor2Nome: 'QA 3', materias: ['a1', 'a4'] };
+  const itens = async (a: Actor) => body<{ items: PilotoItem[] }>(await listPiloto(ctx(a), {})).items;
+  assert.equal((await itens(qa3)).find((i) => i.materia === 'a1')!.folhaRevogada, null, 'nunca houve revogação');
+  assert.equal((await registerFolha(ctx(dono), A)).status, 201);
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA, motivo: MOTIVO })).status, 200);
+  for (const quem of [dono, qa3]) {
+    const l = await itens(quem);
+    const a1 = l.find((i) => i.materia === 'a1')!;
+    assert.equal(a1.folha, null);
+    assert.deepEqual(a1.folhaRevogada, { sha256: SHA, por: 'dono', em: NOW.toISOString(), motivo: MOTIVO });
+    assert.deepEqual(l.find((i) => i.materia === 'a4')!.folhaRevogada, a1.folhaRevogada);
+    assert.equal(l.find((i) => i.materia === 'a6')!.folhaRevogada, null, 'a6 não estava na folha revogada');
+    assert.deepEqual(Object.keys(a1.folhaRevogada!).sort(), ['em', 'motivo', 'por', 'sha256'], 'só hash, quem, quando e motivo');
+    assert.ok(!JSON.stringify(a1).includes('folha-qa3.csv'), 'nem o nome do arquivo');
+  }
+  // nova folha entra: a folha ativa volta e a revogação anterior continua visível ao lado; uma 2ª revogação (outro motivo) vira a "última"
+  assert.equal((await registerFolha(ctx(dono), { ...A, arquivo: arquivo(SHA2) })).status, 201);
+  const motivo2 = 'segunda folha também veio com o cabeçalho errado; refeita pelo QA 3';
+  assert.equal((await revogarFolha(ctx(dono), { sha256: SHA2, motivo: motivo2 })).status, 200);
+  const a1 = (await itens(dono)).find((i) => i.materia === 'a1')!;
+  assert.equal(a1.folha, null); assert.deepEqual([a1.folhaRevogada!.sha256, a1.folhaRevogada!.motivo], [SHA2, motivo2]);
+});

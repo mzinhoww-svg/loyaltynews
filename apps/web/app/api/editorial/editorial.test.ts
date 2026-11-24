@@ -104,6 +104,28 @@ describe('fila e revisão', () => {
     expect(await app.db.$count(schema.outbox, eq(schema.outbox.refId, 'art-4'))).toBe(2);
     await expect(outboxQueue(app.db).enqueue({ stage: 'inventada' as never, jobId: 'x', data: { articleId: 'a' } as never })).rejects.toThrow(/sem fila/);
   });
+
+  it('teto de 3 pedidos (R3 do QA 1): o 4º é 409 MAX_ATTEMPTS_REACHED pela rota real; nada vai ao outbox, a matéria não muda e a recusa fica na auditoria do banco com a contagem', async () => {
+    await store.putArticle(sampleArticle('art-teto', { status: 'em_checagem' }));
+    const recheck = (as: typeof revisor) => call(d, 'POST', { path: S('/articles/art-teto/recheck'), as });
+    for (const n of [1, 2, 3]) { const r = await recheck(revisor); expect(r.status, `pedido ${n}`).toBe(202); expect(r.body.jobId).toBe(`art-teto:factcheck:r${n}`); }
+    const antes = await store.getArticle('art-teto');
+    const r4 = await recheck(revisor);
+    expect(r4.status).toBe(409);
+    expect(r4.body.error.code).toBe('CONFLICT'); expect(r4.body.error.message).toMatch(/^MAX_ATTEMPTS_REACHED/);
+    expect(await app.db.$count(schema.outbox, eq(schema.outbox.refId, 'art-teto'))).toBe(3); // nada novo no outbox
+    const depois = await store.getArticle('art-teto');
+    expect(depois?.recheckCount).toBe(3); expect(depois?.status).toBe(antes?.status); expect(depois?.updatedAt).toBe(antes?.updatedAt);
+    // auditoria no BANCO (tabela editorial_audit): 3 pedidos "n de 3" e 1 recusa com a contagem
+    const trilha = (await app.db.select({ record: schema.editorialAudit.record }).from(schema.editorialAudit)).map((r) => r.record as { action: string; target: string; detail?: string }).filter((e) => e.target === 'art-teto');
+    expect(trilha.filter((e) => e.action === 'factcheck.recheck').map((e) => e.detail)).toEqual(['art-teto:factcheck:r1 (pedido 1 de 3)', 'art-teto:factcheck:r2 (pedido 2 de 3)', 'art-teto:factcheck:r3 (pedido 3 de 3)']);
+    const lim = trilha.filter((e) => e.action === 'factcheck.recheck_limite');
+    expect(lim).toHaveLength(1); expect(lim[0]!.detail).toMatch(/^MAX_ATTEMPTS_REACHED 3\/3: .*edição manual/);
+    // papel e sessão continuam na frente do teto: editor 403 e só senha MFA_REQUIRED não gravam recusa
+    expect((await recheck(editor)).status).toBe(403);
+    expect((await call(d, 'POST', { path: S('/articles/art-teto/recheck'), as: await app.passwordOnly('revisor') })).body.error.code).toBe('MFA_REQUIRED');
+    expect((await app.db.select({ record: schema.editorialAudit.record }).from(schema.editorialAudit)).filter((r) => (r.record as { action: string; target: string }).action === 'factcheck.recheck_limite' && (r.record as { target: string }).target === 'art-teto')).toHaveLength(1);
+  });
 });
 
 describe('direito de resposta e correções', () => {
