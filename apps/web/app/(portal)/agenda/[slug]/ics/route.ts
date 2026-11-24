@@ -1,5 +1,8 @@
 import { getSource } from '../../../_lib/source';
 
+// Dinâmica e explícita: evento em no-store até haver purge automático (política de cache do portal; um revalidate/ISR sobrescreveria o cabeçalho).
+export const dynamic = 'force-dynamic';
+
 const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 const utc = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 const day = (d: string) => d.replace(/-/g, '');

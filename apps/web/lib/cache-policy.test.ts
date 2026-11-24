@@ -132,3 +132,31 @@ describe('política de cache do portal: o que NUNCA pode estar no cache de 60 s'
     for (const s of publicas) expect(s, 'allowlist não pode conter rota com pessoas').not.toMatch(/sitemap|intelligence|moves|noticia\/|studio/);
   });
 });
+
+describe('política de cache do portal: página com pessoas tem de ser dinâmica, não estática/ISR', () => {
+  // O Next sobrescreve o Cache-Control de página com `revalidate` (ISR): s-maxage + HIT, ignorando o headers() do config. A proteção real
+  // para pessoas é a página ser force-dynamic. Vale para Intelligence, Moves, a matéria e o evento (no-store até haver purge).
+  const PASTAS = ['intelligence', 'moves', 'noticia', 'agenda'];
+  const raiz = path.resolve(import.meta.dirname, '..', 'app', '(portal)');
+  const arquivos = (dir: string): string[] =>
+    readdirSync(dir).flatMap((n) => {
+      const p = path.join(dir, n);
+      if (statSync(p).isDirectory()) return arquivos(p);
+      return n === 'page.tsx' || n === 'route.ts' ? [p] : [];
+    });
+  // /agenda (a lista) é cacheável e fica de fora; só as páginas de evento ([slug]) entram.
+  const alvo = PASTAS.flatMap((d) => arquivos(path.join(raiz, d)).filter((f) => d !== 'agenda' || f.includes('[slug]')));
+
+  it('há páginas a conferir (o teste não passa vazio)', () => {
+    expect(alvo.length).toBeGreaterThanOrEqual(8);
+  });
+  it("toda página/rota de Intelligence, Moves, matéria e evento exporta dynamic = 'force-dynamic' e nenhuma exporta revalidate", async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const f of alvo) {
+      const src = readFileSync(f, 'utf8');
+      const rel = path.relative(raiz, f);
+      expect(src, `${rel}: falta export const dynamic = 'force-dynamic'`).toMatch(/export const dynamic\s*=\s*'force-dynamic'/);
+      expect(src, `${rel}: não pode ter export const revalidate (ISR sobrescreve o Cache-Control)`).not.toMatch(/export const revalidate\b/);
+    }
+  });
+});
