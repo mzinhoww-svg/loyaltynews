@@ -135,6 +135,29 @@ describe('interpretação do bench-graph (ADR-009)', () => {
     expect(() => extractJson('{ "a": 1, ')).toThrow(/incompleto/);
   });
 
+  it('extractJson em LOG MISTURADO (stdout + stderr do get_logs): ignora linhas de progresso, objetos JSON de log e chaves soltas; devolve o relatório', () => {
+    const rel = dentro([180, 120, 60], [120, 100, 90]);
+    const log = [
+      '[bench] criando schema ln_bench_20261124',
+      JSON.stringify({ level: 'info', msg: 'start', pid: 7 }), // objeto JSON de log ANTES do relatório (reparo do QA 3)
+      '[bench] erro { sem fechar',
+      JSON.stringify(rel, null, 2),
+      '[bench] fim',
+      JSON.stringify({ level: 'info', msg: 'depois' }),
+    ].join('\n');
+    expect(extractJson(log)).toEqual(rel);
+    expect(interpret(extractJson(log)).saida).toBe(0);
+    // log completo com DOIS relatórios (fumaça e medição): vale o último com ≥ 100 mil arestas; só a fumaça no log = inválida (saída 2)
+    const fumaca = real();
+    fumaca.dataset.graph_edges = 2300;
+    const dois = `${JSON.stringify(fumaca, null, 2)}\n[bench] 2º passo\n${JSON.stringify(rel, null, 2)}`;
+    expect(interpret(extractJson(dois)).saida).toBe(0);
+    expect(extractJson(dois)).toEqual(rel);
+    expect(interpret(extractJson(`${JSON.stringify(fumaca, null, 2)}\n[bench] fim`)).saida).toBe(2);
+    // sem nenhum relatório, devolve o primeiro objeto (comportamento anterior) e a interpretação diz que é inválida
+    expect(interpret(extractJson(`${JSON.stringify({ msg: 'só log' })}\n[bench] x`)).saida).toBe(2);
+  });
+
   it('formatMarkdown: tabela com as três séries, veredito e itens não avaliados; inválida lista os problemas', () => {
     const md = formatMarkdown(interpret(dentro([180, 120, 60], [120, 100, 90])));
     expect(md).toMatch(/CUMPRE a ADR-009/);

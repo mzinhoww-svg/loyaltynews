@@ -36,11 +36,21 @@ describe('roteiro da 4ª rodada do bench-graph', () => {
     expect(ROTEIRO).toMatch(/ln_bench_AAAAMMDD\[_sufixo\]/);
   });
 
-  it('nenhum OK está registrado (a execução depende do PM e do DevOps) e o texto não traz segredo, URL de conexão nem PEM', () => {
+  it('os dois OK (PM e DevOps) estão REGISTRADOS com a origem; a permissão CREATE SCHEMA segue desconhecida; o Data não executa; sem segredo, URL de conexão nem PEM', () => {
     const portoes = ROTEIRO.slice(ROTEIRO.indexOf('## 1.'), ROTEIRO.indexOf('## 2.'));
-    expect(portoes).toMatch(/OK para criar o schema[^\n]*\*\*pendente\*\*/);
-    expect(portoes).toMatch(/OK de capacidade[^\n]*\*\*pendente\*\*/);
-    expect(ROTEIRO).toMatch(/NÃO executado/);
+    expect(portoes).toMatch(/OK para criar o schema[^\n]*\| PM \| \*\*OK registrado\*\*[^\n]*79ff90ec/);
+    expect(portoes).toMatch(/OK de capacidade[^\n]*\| DevOps \| \*\*OK registrado\*\*[^\n]*19863c6e/);
+    expect(portoes).toMatch(/Permissão `CREATE SCHEMA`[^\n]*\*\*desconhecida\*\*/); // só a fumaça descobre
+    expect(ROTEIRO).toMatch(/não sobrepor a um deploy do web/i);
+    expect(ROTEIRO).toMatch(/Nada deste arquivo foi executado pelo Data/);
     expect(ROTEIRO).not.toMatch(/postgres(ql)?:\/\/|BEGIN (CERT|PRIVATE)|sk-[A-Za-z0-9]{10,}|password=/i);
+  });
+
+  it('a leitura do resultado usa o LOG misturado salvo (get_logs mistura stdout e stderr), com caminho absoluto e extensão .log', () => {
+    const secao5 = ROTEIRO.slice(ROTEIRO.indexOf('## 5.'), ROTEIRO.indexOf('## 6.'));
+    expect(secao5).toContain('C:\\Users\\mazin\\OpenBot\\Shared\\loyalty-news\\releases\\staging\\bench-graph-relatorio-AAAAMMDD.log');
+    expect(secao5).toMatch(/mistura stdout e stderr/);
+    expect(secao5).not.toMatch(/AAAAMMDD\.json/);
+    expect(/[\x00-\x08\x0b-\x1f]/.test(ROTEIRO)).toBe(false); // sem caracteres de controle (barras invertidas perdidas)
   });
 });

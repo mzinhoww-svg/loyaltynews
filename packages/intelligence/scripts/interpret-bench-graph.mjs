@@ -35,18 +35,44 @@ export const SERIES = ['neighbors_from_organization', 'neighbors_from_person', '
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
-/** Extrai o objeto JSON de um texto que pode ter linhas de log antes/depois: do primeiro `{` ao `}` que fecha o mesmo nível. */
-export function extractJson(text) {
-  const start = text.indexOf('{');
-  if (start < 0) throw new Error('nenhum objeto JSON encontrado');
+/** Fim do objeto que começa em `start` (índice do `{`): índice do `}` que fecha o mesmo nível, ou -1 se não fecha. */
+function objectEnd(text, start) {
   let depth = 0, inStr = false, esc = false;
   for (let i = start; i < text.length; i++) {
     const c = text[i];
     if (inStr) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') inStr = false; continue; }
     if (c === '"') inStr = true;
     else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) return JSON.parse(text.slice(start, i + 1));
+    else if (c === '}' && --depth === 0) return i;
   }
+  return -1;
+}
+
+/**
+ * Extrai o relatório de um texto que pode ser um LOG MISTURADO (stdout + stderr, como o `get_logs` da Vertra): linhas de progresso, objetos JSON de log e chaves soltas
+ * antes/depois. Percorre os objetos JSON do texto (pulando o conteúdo dos que já leu) e devolve o relatório (tem `dataset` ou `results`): com mais de um (fumaça e medição),
+ * o último com ≥ 100 mil arestas; se nenhum parece, devolve o primeiro objeto lido (comportamento anterior). Sem nenhum `{`: "nenhum objeto"; só `{` que não fecham ou não são JSON: "incompleto".
+ */
+export function extractJson(text) {
+  let from = text.indexOf('{');
+  if (from < 0) throw new Error('nenhum objeto JSON encontrado');
+  let first;
+  const reports = [];
+  while (from >= 0) {
+    const end = objectEnd(text, from);
+    let obj;
+    if (end >= 0) { try { obj = JSON.parse(text.slice(from, end + 1)); } catch { obj = undefined; } }
+    if (obj && typeof obj === 'object') {
+      if ('dataset' in obj || 'results' in obj) reports.push(obj);
+      first ??= obj;
+      from = text.indexOf('{', end + 1);
+    } else from = text.indexOf('{', from + 1);
+  }
+  // o log completo traz a FUMAÇA e a medição: vale o ÚLTIMO relatório com ≥ MIN_ARESTAS; sem nenhum assim, o último relatório (a interpretação o chamará de inválido)
+  const medido = reports.filter((r) => (r.dataset?.graph_edges ?? 0) >= MIN_ARESTAS);
+  if (medido.length) return medido[medido.length - 1];
+  if (reports.length) return reports[reports.length - 1];
+  if (first) return first;
   throw new Error('JSON incompleto (chaves não fecham)');
 }
 

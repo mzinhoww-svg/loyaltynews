@@ -1,6 +1,6 @@
 # Roteiro do Data — 4ª rodada da ADR-009: `bench-graph` DE DENTRO da rede da Vertra (preparado, NÃO executado)
 
-Dono do roteiro: Data (Frente 08). **Nada deste arquivo foi executado.** Executar só com o OK do PM **e** do DevOps registrado na §1 (cria um schema temporário `ln_bench_*` no banco do staging). Sem segredo neste arquivo. Base: int/019 `7fd57ac` (inclui `ft/intelligence` `0d8bc43`, homologado pelo QA 3). Complementa, sem substituir, o roteiro de operação do DevOps: `releases/staging/ROTEIRO-BENCH-GRAPH.md` (app descartável, `create_app`, variáveis, desmontagem). Este aqui cobre o que é do Data: **o que rodar, os limites, a limpeza e como ler o resultado**.
+Dono do roteiro: Data (Frente 08). **Nada deste arquivo foi executado pelo Data** (quem executa é o PM, com a chave de deploy; o Data só lê o relatório). Executar só com o OK do PM **e** do DevOps registrado na §1 (**registrados em 24/11/2026**) (cria um schema temporário `ln_bench_*` no banco do staging). Sem segredo neste arquivo. Base: int/019 `7fd57ac` (inclui `ft/intelligence` `0d8bc43`, homologado pelo QA 3). Complementa, sem substituir, o roteiro de operação do DevOps: `releases/staging/ROTEIRO-BENCH-GRAPH.md` (app descartável, `create_app`, variáveis, desmontagem). Este aqui cobre o que é do Data: **o que rodar, os limites, a limpeza e como ler o resultado**.
 
 ## 0. Para que serve
 A ADR-009 pede p95 ≤ 300 ms com ~100 mil arestas. De **fora** da rede o p95 inclui ~125 ms de ida e volta por consulta (resultado real em `bench/results/pg-staging-single.json`: pior p95 412,8 ms, estimativa na mesma rede 288 ms; só estimativa). Esta rodada mede **de dentro** (SELECT 1 em poucos ms), que é o número que fecha o critério e decide consulta única × lote. O dado real hoje é pequeno (29 organizações, 40 pessoas): **o go-live não depende desta medição**; ela fecha o risco de escala.
@@ -8,8 +8,8 @@ A ADR-009 pede p95 ≤ 300 ms com ~100 mil arestas. De **fora** da rede o p95 in
 ## 1. Portões e registro do OK (preencher ANTES de rodar; sem OK registrado, não roda)
 | Portão | Quem | Estado | Registro (data/hora, onde) |
 |---|---|---|---|
-| OK para criar o schema `ln_bench_*` no banco de staging | PM | **pendente** | _(vazio)_ |
-| OK de capacidade/operação (app descartável 384 MB, sem custo novo, sem mexer em web/worker/banco) | DevOps | **pendente** | _(vazio)_ |
+| OK para criar o schema `ln_bench_*` no banco de staging | PM | **OK registrado** (24/11/2026, int/019 no ar no staging; limites: schema temporário `ln_bench_*`, limpeza com `--replace`, sem gasto novo; o PM executa todas as escritas na Vertra) | mensagem do PM ao Data e ao DevOps (79ff90ec), sobre o `120e7d5` aprovado pelo QA 3 |
+| OK de capacidade/operação (app descartável 384 MB, sem custo novo, sem mexer em web/worker/banco) | DevOps | **OK registrado** (24/11/2026; regra: **não sobrepor a um deploy do web**, pois o build do web usa 2048 MB; apagar o descartável antes de qualquer deploy) | mensagem do DevOps (19863c6e) e `releases/staging/ROTEIRO-BENCH-GRAPH.md` §2b; pacote refeito sobre a int/019 `eac6be5` (a CLI faz parte dela), pasta `releases/staging/bench-graph-eac6be5/` |
 | Código da CLI homologado | QA 3 | feito (`ft-intelligence.md`: 87ae52e/8d9bd4b; 0d8bc43 sem mudança na CLI) | `r0-preparacao/qa/ft-intelligence.md` |
 | Permissão `CREATE SCHEMA` da credencial do app | DevOps/PM | **desconhecida** (a fumaça descobre em segundos; sem permissão a CLI sai com `42501`, não escala privilégio) | _(vazio)_ |
 | Staging na int/019 sem outra operação de banco em curso (carga, migração) | PM | **pendente** | _(vazio)_ |
@@ -40,9 +40,9 @@ Opções: `--with-reference` mede também o lote (`reference_batched`) e o recur
 4. Depois da medição: `delete_app` do descartável (DevOps §3.F do roteiro dele); não reiniciar o app (rodaria tudo de novo).
 
 ## 5. Leitura do resultado (script homologado pelo QA 3: `interpret-bench-graph`)
-Salvar **só o stdout** (o JSON; o log de progresso vai ao stderr) em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.json` assim que sair (o `get_logs` da Vertra é zerado a cada reinício). (a pasta `releases\staging` fica no diretório compartilhado, FORA do repositório do código, por isso o caminho absoluto) Depois, **do computador do PM** (o script só lê o arquivo; não abre rede nem banco):
+Salvar o texto **inteiro** do `get_logs` em `C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.log` assim que cada relatório aparecer (o log da Vertra é zerado a cada reinício; a pasta `releases\staging` fica no diretório compartilhado, FORA do repositório do código, por isso o caminho absoluto). **O `get_logs` mistura stdout e stderr** (a CLI imprime o JSON no stdout e o progresso `[bench] …` no stderr), então não dá para separar na origem: o interpretador **aceita o log misturado** e extrai sozinho o relatório (objeto JSON com `dataset`/`results`; linhas de progresso, objetos de log e chaves soltas são ignorados; se o log tiver a **fumaça e a medição**, vale o último relatório com ≥ 100 mil arestas, e um log só com a fumaça dá saída 2, "fumaça, não vale"). Se o `get_logs` colocar prefixo (data/hora) em cada linha e o JSON não for reconhecido, o script sai com 2 e "entrada ilegível": nesse caso mande o texto bruto ao Data. Depois, **do computador do PM** (o script só lê o arquivo; não abre rede nem banco):
 
-`node packages/intelligence/scripts/interpret-bench-graph.mjs C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.json` (acrescente `--json` para a saída de máquina; `--real-edges N` e `--max-degree N` se houver esses números)
+`node packages/intelligence/scripts/interpret-bench-graph.mjs C:\Users\mazin\OpenBot\Shared\loyalty-news\releases\staging\bench-graph-relatorio-AAAAMMDD.log` (acrescente `--json` para a saída de máquina; `--real-edges N` e `--max-degree N` se houver esses números)
 
 | Saída | Veredito | O que fazer |
 |---|---|---|
