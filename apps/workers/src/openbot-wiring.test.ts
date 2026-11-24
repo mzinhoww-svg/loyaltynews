@@ -14,6 +14,7 @@ const SECRET = 'segredo-de-teste-fiacao';
 const NOW = new Date('2026-11-23T12:00:00.000Z');
 const kitOk: LoadAgentsKit = async () => ({
   canDispatchNext: () => ({ allowed: true, reasons: [] }),
+  verdictStreakReasons: () => [], // critério 3 do PM (2 falhas seguidas do patch do veredito): sem falha
   // o applyRowPatch do AgentOps recusa campo de medição do adaptador: o de teste recusa só `declared_model`
   applyRowPatch: ((row: unknown, patch: Record<string, unknown>) => ({ row, errors: 'declared_model' in patch ? ['campo de medição do adaptador'] : [] })) as never,
 });
@@ -63,6 +64,10 @@ describe('createPilotWiring: falha fechada (nada é criado)', () => {
     await expect(createPilotWiring({ APP_ENV: 'staging', LN_OPENBOT_PILOT: '1' }, db, { loadKit: kitOk })).rejects.toThrow(/openbotDispatch está desligada/);
     await expect(createPilotWiring({ ...STAGING }, db, { loadKit: async () => null })).rejects.toThrow(/canDispatchNext\/applyRowPatch/);
     await expect(createPilotWiring({ ...STAGING }, db, { loadKit: async () => ({ canDispatchNext: () => ({ allowed: true, reasons: [] }) }) })).rejects.toThrow(/applyRowPatch/);
+    // kit anterior ao critério 3 do PM (sem verdictStreakReasons): o piloto não despacha
+    const kitSemCriterio3 = { ...(await kitOk()) } as Record<string, unknown>;
+    delete kitSemCriterio3['verdictStreakReasons'];
+    await expect(createPilotWiring({ ...STAGING }, db, { loadKit: async () => kitSemCriterio3 as never })).rejects.toThrow(/verdictStreakReasons/);
     expect(await db.select().from(schema.openbotTasks)).toHaveLength(0);
   });
 
@@ -135,8 +140,8 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
 });
 
 // Com o kit REAL do AgentOps (gate e applyRowPatch de @ln/agents): só roda quando o pacote da árvore os exporta; senão fica PULADO (nunca aprovado).
-const real = (await import('@ln/agents').catch(() => ({}))) as { canDispatchNext?: unknown; applyRowPatch?: unknown };
-describe.skipIf(typeof real.canDispatchNext !== 'function' || typeof real.applyRowPatch !== 'function')('createPilotWiring com o kit REAL do AgentOps', () => {
+const real = (await import('@ln/agents').catch(() => ({}))) as { canDispatchNext?: unknown; applyRowPatch?: unknown; verdictStreakReasons?: unknown };
+describe.skipIf(typeof real.canDispatchNext !== 'function' || typeof real.applyRowPatch !== 'function' || typeof real.verdictStreakReasons !== 'function')('createPilotWiring com o kit REAL do AgentOps', () => {
   it('o carregador padrão acha o gate e o applyRowPatch; o ciclo conclui e o patch passa pela validação oficial (recusa campo de medição)', async () => {
     const db = await fresh();
     const agent = agentFor(db);

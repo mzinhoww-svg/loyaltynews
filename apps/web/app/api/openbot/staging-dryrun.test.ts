@@ -148,6 +148,12 @@ describe('2. o gate do AgentOps está ao alcance da rota?', () => {
 });
 
 describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL (uma matéria, só claude e codex)', () => {
+  const APPROVED = { gate_verdict: 'approved' as const, gate_reasons: [] as string[], cross_provider_ok: true, unsupported_facts: 0 };
+  /** A Editorial grava o veredito (patch) logo depois da etapa independente. Sem isso, 2 linhas seguidas sem veredito PARAM o piloto (critério 3 do PM). */
+  async function editorialPatch(stage: string) {
+    const rs = rowsStore();
+    for (const r of (await rs.all()).filter((x) => x.stage === stage && x.gate_verdict === undefined)) await rs.patch(r.task_id, r.attempt, APPROVED);
+  }
   /** Roda as 6 etapas de uma matéria pela Fábrica; a checagem e a revisão recebem o id do rascunho (independência). */
   async function oneArticle() {
     const { gw } = factory();
@@ -157,7 +163,9 @@ describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL 
     const draft = (await tasks()).find((t) => t.kind === 'editorial_draft');
     const reviewed = { reviewedDraftTaskId: draft.id, claims: ['x'] };
     out.factcheck = await gw.invoke(req('factcheck', { excludeProviders: ['anthropic'], input: reviewed }));
+    await editorialPatch('factcheck');
     out.review = await gw.invoke(req('review', { excludeProviders: ['anthropic'], input: reviewed }));
+    await editorialPatch('review');
     out.social_pack = await gw.invoke(req('social_pack'));
     out.roles = await gw.invoke(req('roles'));
     return { out, draft, gw };
@@ -175,25 +183,29 @@ describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL 
     expect(await stateStore().get()).toBeNull();
   });
 
-  it('o gate real aceita as linhas: checagem/revisão ficam PENDENTES do veredito sem parar o piloto; depois do patch da Editorial o gate libera e a planilha tem as colunas do AgentOps', async () => {
-    const { out } = await oneArticle();
-    expect(Object.values(out).every((r: any) => r.ok)).toBe(true);
+  it('o gate real aceita as linhas: UMA checagem esperando o veredito não para o piloto; depois do patch da Editorial o gate libera e a planilha tem as colunas do AgentOps', async () => {
+    const { gw } = factory();
+    expect((await gw.invoke(req('triage'))).ok).toBe(true);
+    expect((await gw.invoke(req('draft'))).ok).toBe(true);
+    const draft = (await tasks()).find((t) => t.kind === 'editorial_draft');
+    const reviewed = { reviewedDraftTaskId: draft.id, claims: ['x'] };
+    expect((await gw.invoke(req('factcheck', { excludeProviders: ['anthropic'], input: reviewed }))).ok).toBe(true);
     const rs = rowsStore();
-    const rows = await rs.all();
-    const waiting = rows.filter((r) => ['factcheck', 'review'].includes(r.stage));
-    expect(waiting.map((r) => r.gate_verdict)).toEqual([undefined, undefined]);
+    const waiting = (await rs.all()).filter((r) => r.stage === 'factcheck');
+    expect(waiting.map((r) => r.gate_verdict)).toEqual([undefined]);
     expect(waiting.every((r) => !!r.reviewed_draft_task_id)).toBe(true); // a prova de independência chegou à linha
-    expect(await stateStore().get()).toBeNull(); // sem veredito, mas sem parada
+    expect(await stateStore().get()).toBeNull(); // sem veredito, mas sem parada: uma linha esperando é o intervalo normal entre o callback e o patch
     const next = await factory().gw.invoke(req('triage', { idempotencyKey: 'art-2026-0002:triage:1', input: { pauta: 'outra' } }));
     expect(next.ok).toBe(true); // o despacho seguinte não foi bloqueado pela espera do veredito
     const apply = (agents as unknown as { applyRowPatch: (row: unknown, patch: Record<string, unknown>) => { row: unknown; errors: string[] } }).applyRowPatch;
-    const patch = { gate_verdict: 'approved' as const, gate_reasons: [] as string[], cross_provider_ok: true, unsupported_facts: 0 };
-    for (const r of waiting) {
-      expect(apply(r, patch).errors).toEqual([]); // o patch passa pela validação OFICIAL antes de gravar
-      await rs.patch(r.task_id, r.attempt, patch);
-    }
+    expect(apply(waiting[0], APPROVED).errors).toEqual([]); // o patch passa pela validação OFICIAL antes de gravar
     // o AgentOps recusa campo que é medição do adaptador (a Editorial não pode mexer em conta/modelo/horários)
     expect(apply(waiting[0], { declared_model: 'x' }).errors.length).toBeGreaterThan(0);
+    await editorialPatch('factcheck');
+    expect((await gw.invoke(req('review', { excludeProviders: ['anthropic'], input: reviewed }))).ok).toBe(true);
+    await editorialPatch('review');
+    expect((await gw.invoke(req('social_pack'))).ok).toBe(true);
+    expect((await gw.invoke(req('roles'))).ok).toBe(true);
     const final = await rs.all();
     expect(GATE!(final)).toEqual({ allowed: true, reasons: [] });
     const rep = adapterReport(final);

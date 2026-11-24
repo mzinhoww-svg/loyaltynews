@@ -145,10 +145,18 @@ async function pilotBlock(deps: OpenBotDeps): Promise<HandlerResult<never> | nul
   if (!p?.enabled) return null;
   const st = await p.state.get();
   if (st) return fail(LOCKED, 'PILOT_STOPPED', 'piloto em parada imediata', st.reasons);
-  const gate = p.gate((await gateRows(p)).filter((r) => !awaitingEditorialGate(r)));
+  const all = await gateRows(p);
+  const gate = p.gate(all.filter((r) => !awaitingEditorialGate(r)));
   if (!gate.allowed) {
     for (const r of gate.reasons) await p.state.stop(`${STOP.gate}: ${r}`, deps.now().toISOString());
     return fail(LOCKED, 'PILOT_STOPPED', 'o canDispatchNext recusou: piloto parado', gate.reasons);
+  }
+  // Critério 3 do PM: o patch do veredito falhou em 2 linhas SEGUIDAS. A sequência só existe nas linhas que o portão acima NÃO vê (concluídas, sem `gate_verdict`), por isso é
+  // avaliada à parte, sobre TODAS as linhas. Uma linha esperando o veredito sozinha não para nada (é o intervalo normal entre o callback e o patch da Editorial).
+  const streak = p.verdictStreak ? p.verdictStreak(all) : [];
+  if (streak.length > 0) {
+    for (const r of streak) await p.state.stop(`${STOP.verdictStreak}: ${r}`, deps.now().toISOString());
+    return fail(LOCKED, 'PILOT_STOPPED', 'o patch do veredito falhou em sequência: piloto parado', streak);
   }
   return null;
 }

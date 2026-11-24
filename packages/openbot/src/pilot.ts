@@ -51,6 +51,12 @@ export interface PilotRow {
 /** Porta do AgentOps: `canDispatchNext(rows)` de packages/agents. Injetada; este pacote não importa o kit do AgentOps. */
 export type PilotGate = (rows: readonly PilotRow[]) => { allowed: boolean; reasons: string[] };
 
+/**
+ * Porta do AgentOps: `verdictStreakReasons(rows)` de packages/agents (critério 3 do PM, 24/11: 2 linhas SEGUIDAS de checagem/revisão concluídas sem `gate_verdict`, isto é, o patch
+ * do veredito falhou em sequência, `pilot_row_patch_failed`). Vazio = nada a parar. Avaliada sobre TODAS as linhas, inclusive as que ainda esperam o veredito.
+ */
+export type PilotVerdictStreak = (rows: readonly PilotRow[]) => string[];
+
 export interface PilotRowStore {
   /** Insere ou substitui a linha de (task_id, attempt). */
   upsert(row: PilotRow): Promise<void>;
@@ -116,6 +122,11 @@ export interface PilotControl {
   state: PilotStateStore;
   gate: PilotGate;
   /**
+   * Critério 3 de parada do PM: falhas seguidas do patch do veredito. O `gate` NÃO enxerga isto no despacho, porque o portão recebe só as linhas SEM a espera do veredito
+   * (`awaitingEditorialGate`), e é justamente nelas que a sequência aparece. Ausente = o critério não é avaliado (testes antigos); nas ligações reais (rotas e Fábrica) é obrigatório.
+   */
+  verdictStreak?: PilotVerdictStreak;
+  /**
    * Linhas de VIOLAÇÃO já tratadas por um admin (`task_id#attempt`; decisão PM-2026-11-23-D). Só o portão de despacho e a retomada as ignoram, para o piloto poder seguir depois de
    * uma parada real: a linha continua gravada e CONTA no critério de 0 violações da avaliação final (a planilha a mostra como "tratada"). Ausente = nenhuma linha resolvida.
    */
@@ -152,6 +163,7 @@ export const STOP = {
   tool: 'ferramenta_fora_do_contrato',
   route: 'conta_fora_da_rota',
   gate: 'canDispatchNext_recusou',
+  verdictStreak: 'patch_do_veredito_falhou_em_sequencia',
 } as const;
 
 // ---------- segredo em texto ----------
