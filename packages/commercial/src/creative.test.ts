@@ -187,7 +187,8 @@ describe('handlers públicos do anúncio', () => {
 });
 
 describe('Studio: aprovar exige criativo real', () => {
-  const studio = { id: 'u', canManageCommercial: true };
+  // o proprietário (admin): é quem aprova imagem e campanha (DP-43)
+  const studio = { id: 'u', canManageCommercial: true, canApprove: true };
   function setup() {
     const state = createCommercialState();
     const acc = state.crm.createAccount('Acme Fidelidade', NOW);
@@ -243,7 +244,8 @@ describe('Studio: aprovar exige criativo real', () => {
 });
 
 describe('portal em modo api, de ponta a ponta (domínio + handlers)', () => {
-  const studio = { id: 'u', canManageCommercial: true };
+  // o proprietário (admin): é quem aprova imagem e campanha (DP-43)
+  const studio = { id: 'u', canManageCommercial: true, canApprove: true };
   it('sem criativo tudo fica oculto; com criativo real a posição aparece, conta, clica e some quando a campanha pausa', () => {
     const state = createCommercialState();
     const on = (actor?: typeof studio) => makeCtx(state, { now: NOW, today: '2026-12-05', flags: { adServerVendas: true }, actor });

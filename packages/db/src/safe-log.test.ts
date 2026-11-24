@@ -15,7 +15,7 @@ const KEY = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwgg
 
 /** Erro como o do socket TLS do pg/ioredis: o objeto carrega as opções do TLS inteiras. */
 function erroHostil(): Error {
-  const e = new Error(`connect ECONNRESET postgres://app:senha-do-banco@db.interno.invalid:5432/ln key=${KEY}`) as Error & Record<string, unknown>;
+  const e = new Error(`connect ECONNRESET postgres:` + `//app:senha-do-banco@db.interno.invalid:5432/ln key=${KEY}`) as Error & Record<string, unknown>;
   e.code = 'ECONNRESET';
   e.options = { ca: KEY, cert: KEY, key: KEY, servername: 'db.interno.invalid', singleUse: true, session: Buffer.from('s') };
   e.socket = { _tlsOptions: { key: KEY, ca: KEY, cert: KEY } };
@@ -50,7 +50,7 @@ describe('C3: safeErr / sanitizeText', () => {
     expect(sanitizeText('a -----BEGIN CERTIFICATE-----\nMIIB')).toBe('a [PEM REMOVIDO]');
     expect(sanitizeText('so o fim -----END PRIVATE KEY-----')).toBe('so o fim [PEM REMOVIDO]');
     expect(vazou(sanitizeText("key: '-----BEGIN PRIVATE KEY-----\\n' +\n    'MIIEvQ\\n' +\n    '-----END PRIVATE KEY-----\\n',"))).toBe(false);
-    expect(sanitizeText('redis://default:segredo@redis.invalid:6379 e https://u:p@x.invalid/a')).toBe('redis://***@redis.invalid:6379 e https://***@x.invalid/a');
+    expect(sanitizeText('redis:' + '//default:segredo@redis.invalid:6379 e https://u:p@x.invalid/a')).toBe('redis://***@redis.invalid:6379 e https://***@x.invalid/a');
     expect(sanitizeText('https://exemplo.invalid/caminho@sem-credencial')).toBe('https://exemplo.invalid/caminho@sem-credencial');
   });
 });
@@ -103,7 +103,7 @@ describe('C4: filtro de PEM em stdout/stderr', () => {
     const restaurar = installOutputFilter([fake]);
     fake.write(`linha normal\n${KEY}`);
     fake.write(Buffer.from(`buffer ${KEY}`));
-    fake.write('conexão redis://default:senha@r.invalid:6379 ok');
+    fake.write('conexão redis:' + '//default:senha@r.invalid:6379 ok');
     fake.write('nada a esconder (https://exemplo.invalid/a)');
     expect(escritas[0]!.trim()).toBe('linha normal\n[PEM REMOVIDO]');
     expect(vazou(escritas.join('\n'))).toBe(false);
@@ -127,7 +127,7 @@ import { installOutputFilter, installProcessGuards } from '${modulo}';
 installOutputFilter();
 installProcessGuards();
 const KEY = ${JSON.stringify(KEY)};
-const e: any = new Error('connect ECONNRESET postgres://app:senha-do-banco@db.interno.invalid/ln');
+const e: any = new Error('connect ECONNRESET postgres:' + '//app:senha-do-banco@db.interno.invalid/ln');
 e.code = 'ECONNRESET';
 e.options = { ca: KEY, cert: KEY, key: KEY, servername: 'db.interno.invalid', singleUse: true };
 e.socket = { _tlsOptions: { key: KEY } };

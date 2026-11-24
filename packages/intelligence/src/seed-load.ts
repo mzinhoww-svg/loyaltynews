@@ -62,8 +62,7 @@ export interface SeedOrganization { key: string; legalName: string; tradeName?: 
 export interface SeedRelation { from: string; to: string; type: (typeof REL_TYPES)[number]; sourceId: string; quote: string; contextQuote?: string }
 /**
  * Relação cuja citação DEIXOU de existir na fonte (a página mudou): não se apaga; marca-se "validação vencida". Fica fora da exibição pública
- * (vira inferida, com a base "validação vencida em AAAA-MM-DD: motivo") até uma nova fonte verificada confirmar (aí a relação nova entra declarada
- * e esta é encerrada). Referencia as organizações pelo nome como estão no cadastro (podem nem estar mais no conjunto).
+ * (vira inferida, com a base "validação vencida em AAAA-MM-DD: motivo") até uma nova fonte verificada confirmar (aí a MESMA relação volta a declarada, com a evidência nova). Referencia as organizações pelo nome como estão no cadastro (podem nem estar mais no conjunto).
  */
 export interface SeedExpiredRelation { fromName: string; toName: string; type: (typeof REL_TYPES)[number]; expiredOn: string; reason: string }
 export const STALE_BASIS_PREFIX = 'validação vencida';
@@ -118,8 +117,8 @@ export interface LoadManifest {
   rolesSkippedSuppressed?: number;
   /** Relações marcadas "validação vencida" (valores anteriores, para o desfazer). */
   relationsExpiredPrevious?: { id: Uuid; certainty: string; inference_basis: string | null }[];
-  /** Relações vencidas encerradas porque uma nova fonte confirmou (o desfazer as reabre). */
-  relationsStaleClosed?: Uuid[];
+  /** Relações "validação vencida" que uma nova fonte verificada confirmou: voltam a declaradas com a evidência nova (valores anteriores aqui, para o desfazer). */
+  relationsStaleRestored?: { id: Uuid; evidence_id: Uuid; validated_at: string; certainty: string; inference_basis: string | null }[];
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
@@ -178,6 +177,8 @@ export function validateSeed(x: unknown): string[] {
   return out;
 }
 
+/** Citação de cargo = nome + cargo literais; pode ser curta. Igual ao MIN_ROLE_QUOTE do verificador. */
+export const ROLE_QUOTE_MIN = 12;
 const ROLE_KEYS = ['personName', 'orgKey', 'title', 'body', 'sourceId', 'sourceLevel', 'quote', 'validFrom'];
 const hostOf = (u: string) => { try { return new URL(u).hostname; } catch { return ''; } };
 const squash = (q: string) => q.normalize('NFC').replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
@@ -205,7 +206,7 @@ function roleIssues(roles: unknown, sources: unknown[], orgKeys: Set<string>): s
       if (SECONDARY_HOSTS.test(hostOf(src.url)) && r.sourceLevel !== 'secundaria') out.push(`${w}: LinkedIn/The Org são fonte SECUNDÁRIA (status "a confirmar"), nunca oficial`);
       if (/linkedin\.com\/(login|uas|checkpoint|authwall)/i.test(src.url)) out.push(`${w}: página de login não é fonte`);
     }
-    if (typeof quote !== 'string' || quote.length < 20 || quote.length > 300) out.push(`${w}: quote deve ter 20 a 300 caracteres`);
+    if (typeof quote !== 'string' || quote.length < ROLE_QUOTE_MIN || quote.length > 300) out.push(`${w}: quote deve ter ${ROLE_QUOTE_MIN} a 300 caracteres`);
     else {
       if (typeof name === 'string' && !squash(quote).includes(squash(name))) out.push(`${w}: a citação não contém o nome`);
       if (typeof title === 'string' && !squash(quote).includes(squash(title))) out.push(`${w}: a citação não contém o cargo`);
@@ -380,13 +381,20 @@ export async function loadSeed(db: Db, ds: SeedDataset, ver: VerificationReport 
         manifest.relationsRevalidated.push(...upd.rows.map((x) => x.id));
         (manifest.relationsRevalidatedPrevious ??= []).push(...prev.rows.map((x) => ({ id: x.id, evidence_id: x.evidence_id, validated_at: new Date(x.validated_at).toISOString() })));
       } else {
-        // nova fonte verificada confirma uma relação que estava "validação vencida": a vencida é encerrada (não se apaga) e a nova entra declarada
-        const stale = await db.query<{ id: Uuid }>(
-          `UPDATE intelligence.org_relation SET valid_to = GREATEST(valid_from, $5::date)
-            WHERE from_org_id = $1 AND to_org_id = $2 AND relation_type = $3 AND valid_to IS NULL AND certainty = 'inferred' AND inference_basis LIKE $4 RETURNING id`,
-          [from, to, r.type, `${STALE_BASIS_PREFIX}%`, ev.at.slice(0, 10)],
+        // nova fonte verificada confirma uma relação que estava "validação vencida": a MESMA relação volta a declarada, com a evidência e a validação novas
+        // (não se cria linha nova: a vigência original continua; guarda-se o estado anterior para o desfazer)
+        const stale = await db.query<{ id: Uuid; evidence_id: Uuid; validated_at: string | Date; certainty: string; inference_basis: string | null }>(
+          `SELECT id, evidence_id, validated_at, certainty, inference_basis FROM intelligence.org_relation
+            WHERE from_org_id = $1 AND to_org_id = $2 AND relation_type = $3 AND valid_to IS NULL AND certainty = 'inferred' AND inference_basis LIKE $4`,
+          [from, to, r.type, `${STALE_BASIS_PREFIX}%`],
         );
-        if (stale.rows.length) (manifest.relationsStaleClosed ??= []).push(...stale.rows.map((x) => x.id));
+        if (stale.rows.length) {
+          for (const x of stale.rows) {
+            (manifest.relationsStaleRestored ??= []).push({ id: x.id, evidence_id: x.evidence_id, validated_at: new Date(x.validated_at).toISOString(), certainty: x.certainty, inference_basis: x.inference_basis });
+            await db.query(`UPDATE intelligence.org_relation SET certainty = 'declared', inference_basis = NULL, evidence_id = $2, validated_at = $3 WHERE id = $1`, [x.id, ev.id, ev.at]);
+          }
+          continue;
+        }
         manifest.relationsCreated.push(await addOrgRelation(db, {
           fromOrgId: from, toOrgId: to, type: r.type, validFrom: ev.at.slice(0, 10), certainty: 'declared', evidenceId: ev.id, observedAt: ev.at, validatedAt: ev.at,
         }));
@@ -480,7 +488,9 @@ export async function rollbackSeed(db: Db, m: LoadManifest): Promise<{ relations
     for (const p of m.relationsExpiredPrevious ?? []) {
       await db.query(`UPDATE intelligence.org_relation SET certainty = $2, inference_basis = $3 WHERE id = $1::uuid`, [p.id, p.certainty, p.inference_basis]);
     }
-    if (m.relationsStaleClosed?.length) await db.query(`UPDATE intelligence.org_relation SET valid_to = NULL WHERE id = ANY($1::uuid[])`, [m.relationsStaleClosed]);
+    for (const p of m.relationsStaleRestored ?? []) {
+      await db.query(`UPDATE intelligence.org_relation SET certainty = $2, inference_basis = $3, evidence_id = $4::uuid, validated_at = $5::timestamptz WHERE id = $1::uuid`, [p.id, p.certainty, p.inference_basis, p.evidence_id, p.validated_at]);
+    }
     const rel = m.relationsCreated.length ? await db.query(`DELETE FROM intelligence.org_relation WHERE id = ANY($1::uuid[]) RETURNING id`, [m.relationsCreated]) : { rows: [] };
     // restaura evidência e data de validação que a carga trocou nas relações já existentes (antes de apagar a evidência nova)
     for (const p of m.relationsRevalidatedPrevious ?? []) {

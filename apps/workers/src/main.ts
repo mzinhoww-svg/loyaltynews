@@ -11,6 +11,7 @@ import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
 import { redisTlsOptions } from './redis-tls';
 import { startIntelligenceAlerts } from './intelligence-alerts';
+import { workerFlagResolver } from './worker-flags';
 import { startIntelligenceReread } from './intelligence-reread';
 import { BullQueueSink, startReconciler, startWorkers } from './runtime';
 
@@ -66,10 +67,12 @@ async function main() {
       .then((r) => { if (r.rows) console.log('[workers] entrega de anúncios gravada', JSON.stringify(r)); })
       .catch((e) => console.error(errLine('[workers] flush de anúncios falhou', e)));
   }, 60_000);
-  // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on e LN_INTELLIGENCE_PESSOAS=on
+  // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on, LN_REREAD_SEED e a flag intelligencePessoas (ADR-022)
   const intelDbPort = { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb;
-  const reread = startIntelligenceReread({ db: intelDbPort });
-  // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on e LN_INTELLIGENCE_PESSOAS=on)
+  // flags de produto pelo resolvedor da ADR-022 (o mesmo do web): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
+  const flags = workerFlagResolver(process.env);
+  const reread = startIntelligenceReread({ db: intelDbPort, flags });
+  // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on, LN_INTELLIGENCE_PESSOAS=on e a flag)
   const alerts = startIntelligenceAlerts({ db: intelDbPort });
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 

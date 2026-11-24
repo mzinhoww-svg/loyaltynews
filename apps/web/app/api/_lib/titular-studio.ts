@@ -1,5 +1,5 @@
 // Fila de pedidos do titular no Studio (DP-38). RBAC `titular` (editor-chefe e admin; demais 403). Toda escrita é auditada com ator e data.
-//   GET  /api/studio/correcoes?estado=&responsavel=          lista, ordenada pelo prazo (sem nome/contato do titular)
+//   GET  /api/studio/correcoes?estado=&responsavel=          lista, ordenada pelo prazo (sem nome, contato, texto, url nem decisão)
 //   GET  /api/studio/correcoes/{id}                          detalhe + texto + nome + contato + trilha de auditoria (a consulta é auditada)
 //   POST /api/studio/correcoes/{id}/atribuir {responsavel}   recebido|em_analise → em_analise
 //   POST /api/studio/correcoes/{id}/decidir  {acao,...}      → corrigido | removido | negado; 409 ALREADY_DECIDED se já decidido
@@ -20,6 +20,7 @@ const ESTADOS = ['recebido', 'em_analise', 'corrigido', 'removido', 'negado'] as
 const ABERTOS = ['recebido', 'em_analise'];
 const RESPONSAVEIS = ['admin', 'editor_chefe'];
 
+/** Projeção da LISTA (consulta não auditada): sem texto livre do titular (resumo, url, decisão). Achado 3 do QA 7. */
 export const itemTitular = (r: Row) => ({
   id: r.id,
   recebido_em: r.recebidoEm.toISOString(),
@@ -28,12 +29,13 @@ export const itemTitular = (r: Row) => ({
   responsavel: r.responsavel,
   alvo: r.alvoTipo && r.alvoId ? { tipo: r.alvoTipo, id: r.alvoId, nome: null, empresa: null } : null,
   pedido: r.tipo,
-  url: r.url,
-  resumo: r.texto.length > 140 ? `${r.texto.slice(0, 139)}…` : r.texto,
   ...(r.decididoEm
-    ? { decisao: r.decisao, decidido_por: r.decididoPor, decidido_em: r.decididoEm.toISOString(), efeitoPublico: (EFEITO_APLICADO ? 'aplicado' : 'pendente') as 'aplicado' | 'pendente' }
+    ? { decidido_por: r.decididoPor, decidido_em: r.decididoEm.toISOString(), efeitoPublico: (EFEITO_APLICADO ? 'aplicado' : 'pendente') as 'aplicado' | 'pendente' }
     : {}),
 });
+
+/** Projeção completa: só em respostas auditadas (detalhe, atribuir, decidir). */
+export const itemTitularCompleto = (r: Row) => ({ ...itemTitular(r), url: r.url, ...(r.decididoEm ? { decisao: r.decisao } : {}) });
 
 const ListQ = z.object({ estado: z.enum(ESTADOS).optional(), responsavel: z.string().trim().min(1).max(200).optional() });
 const Atribuir = z.object({ responsavel: z.string().trim().min(1).max(200) });
@@ -95,7 +97,7 @@ export async function dispatchTitular(req: Request, next?: Next): Promise<Respon
         .where(and(eq(schema.auditLog.resource, 'titular_pedidos'), eq(schema.auditLog.resourceId, r.id)))
         .orderBy(desc(schema.auditLog.at));
       res = json({
-        ...itemTitular(r),
+        ...itemTitularCompleto(r),
         texto: r.texto,
         nome: r.nome,
         contato: r.contato,
@@ -119,7 +121,7 @@ export async function dispatchTitular(req: Request, next?: Next): Promise<Respon
         .returning();
       if (!upd) throw new HttpError(409, 'ALREADY_DECIDED', 'Pedido já decidido.');
       await trail(r.id, 'pedido_atribuido', { responsavel: u.id });
-      res = json(itemTitular(upd));
+      res = json(itemTitularCompleto(upd));
     } else if (m === 'POST' && path.length === 2 && path[1] === 'decidir') {
       const b = await readBody(req, Decidir);
       const r = await load(path[0]!);
@@ -134,7 +136,7 @@ export async function dispatchTitular(req: Request, next?: Next): Promise<Respon
       await trail(r.id, 'pedido_decidido', {
         acao: b.acao, estado, ...(b.motivo ? { motivo: b.motivo } : {}), ...('campos' in b ? { campos: Object.keys(b.campos) } : {}),
       });
-      res = json(itemTitular(upd));
+      res = json(itemTitularCompleto(upd));
     } else {
       throw new HttpError(404, 'NOT_FOUND', 'Rota não encontrada.');
     }

@@ -1,0 +1,56 @@
+# R0-01 - Inventario de credenciais (sem valores)
+Preparado por: Security & Governance, 2026-11-23. Base: matriz v2 (r0-preparacao/seguranca/01_matriz_credenciais_R0-01_v2.md) ajustada por DP-14, DP-19, DP-20, DP-25, confirmada pelo proprietario em DP-21 (2026-11-23 07:17 BRT) e aprovada em DP-33 (2026-11-23; registro do teto no painel de cada provedor dispensado, ver registro-teto-DP-33.md). Rev. 4: inclui as credenciais de busca e raspagem adicionadas em 2026-11-23 (C15-C22).
+Nenhum valor de chave, senha ou token aparece neste arquivo. Sondas e resultados: teste-escopo-R0-01.log (mesma pasta).
+
+## 1. Inventario
+| # | Credencial (nome, sem valor) | Servico | Funcao | Escopo | Onde fica | Teto / barreira de gasto | Rollback |
+|---|---|---|---|---|---|---|---|
+| C1 | Integracao GitHub do OpenBot (conta do proprietario) | GitHub | executor (agentes) | admin da conta (DP-01 rev.); limitado por rulesets: main so por PR com merge commit, sem force push nem delecao; tags reservadas so pela App | integracao do OpenBot | sem custo (plano gratuito) | revogar a autorizacao do OpenBot |
+| C2 | Token OAuth do gh da sessao de bootstrap | GitHub | raiz/bootstrap (PM, DP-08) | repo + workflow | sessao C:\LN-raiz\sessao-bootstrap | sem custo | gh auth logout + revogar (RA-10) |
+| C3 | App "LN Verifier" (App ID 5880659), chave privada | GitHub | verificador | Contents RW, Checks RW, Statuses RW, PR R, Metadata R; instalada so em loyaltynews; bypass so no ruleset tags-acceptance | segredo LN_VERIFIER_APP_PRIVATE_KEY no ambiente verifier-signing do repo verificador | sem custo | suspender/desinstalar a App |
+| C4 | GPG raiz 1D4A3E263898E5B0C0590FD7A2A2BB73C4C84309 (subchave [S] 8C3E2CA0BB1033342C7C02C7A0D3FD3AC05992D7) | GPG | raiz | [C] na primaria, [S] na subchave; assina so baseline e ancora | C:\LN-raiz\gnupg (DP-07); senha no cofre do OpenBot LN_GPG_ROOT_PASSPHRASE (RA-09) | n/a | revogar com o .rev; atualizar trust |
+| C5 | GPG executor E842D7C1ECA0045D3D7BBFEA47D7C1BC57FD351B | GPG | executor | [SC], certificada pela raiz; sem senha (RA-12); nao produz aceite | C:\LN-raiz\executor-gnupg | n/a | revogar; trust |
+| C6 | GPG revisor BA00DAC46FE7488272BC4F6A72099676E263421D | GPG | revisor | [SC], certificada pela raiz | segredos REVIEWER_GPG_PRIVATE_KEY e REVIEWER_GPG_PASSPHRASE do ambiente reviewer do repo verificador (listagem conferida em 2026-11-23); copia local removida em 2026-11-23 | n/a | revogar; trust |
+| C7 | GPG verificador 7B4BEE2FE4D42B297A583AF9100957DE6F761D6A | GPG | verificador | [SC], certificada pela raiz | segredos VERIFIER_GPG_PRIVATE_KEY e VERIFIER_GPG_PASSPHRASE do ambiente verifier-signing do repo verificador (listagem conferida em 2026-11-23); copia local removida em 2026-11-23 | n/a | revogar; trust |
+| C8 | LN_OPENROUTER_API_KEY (rotacionada em 2026-11-22, DP-14) | OpenRouter | executor/runtime e revisor (DP-19) | chave comum (nao de gestao, nao de provisionamento) | cofre do OpenBot; para o revisor, sera gravada como segredo do ambiente reviewer do repo verificador na R0-06 (DP-19; ainda nao gravada em 2026-11-23) | limite da propria chave US$ 50 (sem reset; cumulativo) + saldo pre-pago da conta; teto mensal de US$ 50 tambem no gateway (DP-04) | desativar/rotacionar no painel OpenRouter |
+| C9 | DEEPSEEK_API_KEY | DeepSeek | modelos tarifados ligados pelo proprietario (2026-11-22) | chave da API (sem escopos no provedor) | cofre do OpenBot | sem limite proprio na chave; teto = saldo pre-pago, dentro da reserva de US$ 8 (DP-25); conta no teto de US$ 50 pelo gateway (DP-04) | revogar no painel DeepSeek |
+| C10 | LN_VERTRA_RO_API_KEY (ln-r0-inventory-ro) | Vertra | inventario R0-07 (servidor local vertra-ln-leitura) | so leitura (apps/databases/stacks/snapshots/blob/images/workspaces/account :read) | cofre do OpenBot; lida pelo wrapper do servidor local | sem custo | revogar no painel Vertra ao fim da R0-07 |
+| C11 | LN_VERTRA_DEPLOY_API_KEY | Vertra | deploy staging/producao (so o PM executa) | apps:read apps:write apps:envs apps:files databases:read snapshots:read (+ criacao de banco segundo o proprietario); sem *:delete e sem billing:* (pedido de provisionamento v1 secao 3) | cofre do OpenBot | plano Vertra pro-8 (custo fixo do proprietario, fora do teto) | revogar no painel Vertra |
+| C12 | Sessao OAuth do servidor vertra remoto | Vertra | agentes | escrita completa da conta | conexao do OpenBot | n/a | desligar o servidor para os agentes / revogar OAuth |
+| C13 | mLabs (conexao do OpenBot) | mLabs | futura publicacao (R1) | conexao do proprietario | conexao do OpenBot | n/a | desligar para os agentes |
+| C14 | Assinaturas OpenBot (Claude, Codex, Antigravity) | OpenBot | agentes | sem chave exposta | conta do OpenBot | fora do teto (DP-04) | n/a |
+| C15 | APIFY_API_TOKEN | Apify | raspagem | token da conta; sem recusa demonstrada. Fato: plano FREE, isPaying=False, monthlyBasePriceUsd=0 (lido em 2026-11-23) | cofre do OpenBot | teto mensal NO PROVEDOR: maxMonthlyUsageUsd = 5 (lido em 2026-11-23); uso do ciclo US$ 0,008 | revogar no console Apify |
+| C16 | BRIGHTDATA_API_KEY | Bright Data (mesmo valor de C17; conta 1 ainda em configuracao, DP-33) | raspagem (zonas unblocker e browser_api) | chave SEM permissao de cobranca (403 em /customer/balance) | cofre do OpenBot | nao lido (a chave nao tem permissao de cobranca); DP-33 | revogar no painel Bright Data |
+| C17 | BRIGHTDATA_API_KEY_2 | Bright Data (conta 2; C16 e copia deste valor, conferido por hash em 2026-11-23) | raspagem (zonas unblocker e browser_api) | chave SEM permissao de cobranca (403 em /customer/balance) | cofre do OpenBot | nao lido (idem); DP-33 | revogar no painel Bright Data |
+| C18 | EXA_API_KEY | Exa | busca | chave comum: RECUSADA na API de gestao de chaves (401 em admin-api team-management/api-keys) | cofre do OpenBot | nao verificado; DP-33 | revogar no painel Exa |
+| C19 | SCRAPFLY_API_KEY | Scrapfly | raspagem | chave do projeto; sem recusa demonstrada. Fato: plano gratuito, sem uso extra | cofre do OpenBot | plano gratuito (plan_price 0; extra_scrape_allowed False; lido em 2026-11-23) | revogar no painel Scrapfly |
+| C20 | TAVILY_API_KEY | Tavily (conta 1) | busca | chave da API; sem recusa demonstrada. Fato: plano gratuito Researcher, paygo_usage 0 | cofre do OpenBot | plano gratuito Researcher, limite 1500 creditos/mes; paygo_usage 0 (lido em 2026-11-23) | revogar no painel Tavily |
+| C21 | TAVILY_API_KEY_2 | Tavily (conta 2) | busca | chave da API; sem recusa demonstrada. Fato: plano gratuito Researcher, paygo_usage 0 | cofre do OpenBot | plano gratuito Researcher, limite 1000 creditos/mes; paygo_usage 0 (lido em 2026-11-23) | revogar no painel Tavily |
+| C22 | ZYTE_API_KEY | Zyte | raspagem | chave da API; nao verificado (rotas de conta testadas deram 404; sem endpoint gratuito conhecido; nenhuma chamada paga feita) | cofre do OpenBot | nao verificado; DP-33 | revogar no painel Zyte |
+
+Teto de US$ 50/mes (DP-04, confirmado em DP-21): imposto pelos controles internos (gateway/BalanceGuard, ledger, FinOps) sobre todo gasto tarifado; degraus 35/40/42/50; recarga nao aumenta o teto. Registro no painel de cada provedor DISPENSADO pelo proprietario em DP-33 (so cota gratuita e credito pre-pago; revisitar quando os creditos acabarem). Situacao lida nos provedores em 2026-11-23: ver registro-teto-DP-33.md.
+
+## 2. Ajustes desde a matriz v2
+- DP-14: C8 rotacionada; limite US$ 50 na propria chave (substitui "sem limite" de DP-05).
+- DP-19: nao ha chave separada do revisor; a linha 6 da matriz v2 ("ln-reviewer") deixa de existir; o revisor usa C8.
+- DP-20: o servidor vertra remoto (C12) continua disponivel para os agentes; F-055 = risco aceito pelo proprietario, NAO remediado.
+- Novos no inventario (nao estavam na v2): C9 DeepSeek e C11 chave de deploy da Vertra.
+- DP-25: C9 mantida como risco aceito (RA-15). Em 2026-11-23 13:08Z a conta DeepSeek estava indisponivel (saldo -0,01 USD).
+- DP-33: R0-01 aprovada pelo proprietario; registro do teto no painel de cada provedor dispensado.
+- Rev. 6: C16 e C17 tem o MESMO valor (comparacao por sha256, sem exibir); ha uma unica chave Bright Data ativa, gravada sob dois nomes no cofre.
+- Rev. 4: C15-C22 (Apify, Bright Data x2, Exa, Scrapfly, Tavily x2, Zyte) presentes no cofre do OpenBot em 2026-11-23, copiados nos cofres de 4 agentes e na raiz do cofre.
+- 2026-11-23: copias locais das chaves secretas do revisor e do verificador removidas (sobrescrita + delete), com ok do PM, apos conferir os segredos no GitHub; os .rev continuam no PC ate o proprietario leva-los para fora (RA-11).
+
+## 3. Excecoes ao criterio "nenhuma chave de escrita onde leitura basta" e riscos aceitos
+| Risco | Credencial | Situacao | Aceite |
+|---|---|---|---|
+| RA-01 | C1 | agentes com admin do GitHub; contencao por rulesets e aceite so por tag assinada | DP-01 rev. |
+| RA-06 | C8, C9, C11, C4 (senha) | os arquivos do cofre do OpenBot sao legiveis por qualquer processo local; as 13 credenciais do cofre estao copiadas nos cofres de 4 agentes e na raiz do cofre (2026-11-23) | DP-03 (consequencia) |
+| RA-07 / RA-09 | C4 | raiz neste PC e senha no cofre | DP-07 / DP-08 |
+| RA-08 | C6, C7 | o executor (PM) manuseou as chaves na geracao; copias locais removidas em 2026-11-23; rotacao antes do gate R2 (P6) | DP-08 |
+| RA-10 | C2 | token gh com repo+workflow ate o fim do bootstrap | DP-08 |
+| RA-12 | C5 | executor sem senha | DP-08 |
+| RA-13 | C8 | executor e revisor na mesma chave: gasto nao separado por chave; vazamento afeta os dois papeis | DP-19 |
+| RA-14 | C12 | escrita completa da Vertra ao alcance dos agentes (F-055) | DP-20 |
+| RA-15 | C9 | chave DeepSeek sem limite por chave, no cofre; teto = saldo pre-pago na reserva de US$ 8 | DP-25 |
+| PENDENTE | C15, C19, C20, C21, C22 | sem recusa fora do escopo demonstrada. Fatos: C15, C19, C20 e C21 em plano gratuito sem pagamento (lido nos provedores); C22 nao verificado | sem decisao registrada (DP-33 trata do teto, nao do escopo); C18 saiu da lista (recusa demonstrada) |

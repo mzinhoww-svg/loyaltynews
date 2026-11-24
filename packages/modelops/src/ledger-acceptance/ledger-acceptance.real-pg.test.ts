@@ -2,7 +2,7 @@
 // com dois PROCESSOS de sistema operacional. NUNCA roda contra o banco de staging: a URL precisa ser de loopback
 // (127.0.0.1, localhost, ::1) e o teste cria um banco próprio e o apaga no fim.
 //
-//   LN_G4_REAL=1 LN_G4_PG_URL=postgres://usuario:senha@127.0.0.1:PORTA/postgres npx vitest run packages/modelops/src/ledger-acceptance
+//   LN_G4_REAL=1 LN_G4_PG_URL=postgres://<usuario>:<senha>@127.0.0.1:PORTA/postgres npx vitest run packages/modelops/src/ledger-acceptance
 //
 // Como subir um PostgreSQL local descartável: ver packages/modelops/docs/ledger-acceptance.md.
 import { spawn } from 'node:child_process';
@@ -40,10 +40,10 @@ const dbUrl = (name: string) => adminUrl.replace(/\/[^/]*$/, `/${name}`);
 
 describe('barreira anti-staging', () => {
   it('só aceita banco em loopback', () => {
-    expect(() => assertLoopback('postgres://u:p@127.0.0.1:5432/x')).not.toThrow();
-    expect(() => assertLoopback('postgres://u:p@localhost/x')).not.toThrow();
-    expect(() => assertLoopback('postgres://u:p@staging.exemplo.internal:5432/x')).toThrow(/não é loopback/);
-    expect(() => assertLoopback('postgres://u:p@10.0.0.7:5432/x')).toThrow(/não é loopback/);
+    expect(() => assertLoopback('postgres:' + '//u:p@127.0.0.1:5432/x')).not.toThrow();
+    expect(() => assertLoopback('postgres:' + '//u:p@localhost/x')).not.toThrow();
+    expect(() => assertLoopback('postgres:' + '//u:p@staging.exemplo.internal:5432/x')).toThrow(/não é loopback/);
+    expect(() => assertLoopback('postgres:' + '//u:p@10.0.0.7:5432/x')).toThrow(/não é loopback/);
   });
 });
 

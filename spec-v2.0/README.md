@@ -1,0 +1,2 @@
+# Loyalty News 2.0 — entrega de projeto
+Comece por Loyalty_News_Blueprint_v2_0.md. A precedência é 2.0 sobre baseline 1.0. A pasta contracts contém registries lógicos, não imports nativos, e prompt de implementação. As regras e workflows estão desativados. O PDF completo reúne 25 novas pranchas e os PDFs históricos. O HTML novo é local, responsivo e navegável por seletor. Nenhuma integração está conectada.

@@ -41,6 +41,8 @@ export const FLAG_DEFAULTS = {
   editorialPipeline: false,
   /** Despacho de tarefas ao OpenBot pelo adaptador `@ln/openbot` (ADR-003, R2-10; protocolo em packages/openbot/docs/PROTOCOL.md). */
   openbotDispatch: false,
+  /** Leitores externos por provedor (DP-32; DP-36: Bright Data com uma conta). Liga o createReader do @ln/intelligence só pelo resolvedor (ADR-022, adendo 2). */
+  leitorViaProvedor: false,
 } as const satisfies Record<string, false>;
 
 export type FlagName = keyof typeof FLAG_DEFAULTS;
@@ -64,7 +66,9 @@ export type FlagRelease = { staging: string | null; production: string | null };
  */
 export const FLAG_RELEASES = {
   intelligencePessoas: { staging: 'DP-38', production: null }, // produção só no go-live (outra mudança registrada)
-  openbotDispatch: { staging: 'DP-41', production: null }, // piloto só no staging, só assinaturas, sem API tarifada nem publicação
+  openbotDispatch: { staging: 'DP-41', production: null },
+  leitorViaProvedor: { staging: 'DP-32', production: null }, // ADR-022 adendo 2: provedores de desbloqueio em páginas públicas, só staging // piloto só no staging, só assinaturas, sem API tarifada nem publicação
+  adServerVendas: { staging: 'DP-43', production: null }, // venda de anúncios só no staging (DP-43); produção só no go-live, com nova decisão do proprietário
 } as const satisfies Partial<Record<FlagName, FlagRelease>>;
 
 /** Hosts públicos da produção (N7). Preenchido quando o domínio existir. */

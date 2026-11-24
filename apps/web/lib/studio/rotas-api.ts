@@ -41,6 +41,10 @@ import * as fonteRapidaRoute from '@/app/api/studio/editorial/fontes/rapida/rout
 import * as evidenciaRapidaRoute from '@/app/api/studio/editorial/evidencias/route';
 import type { EvidenciaRapida, FonteRapida } from '@/lib/studio/cms/fonte-rapida';
 import type { CargoLinha, EmpresaDetalhe, MoveLinha, OrganizacaoLinha, PaginaDeCargos } from '@/lib/studio/intelligence-view';
+import type { AlertaLinha, WatchlistItem, WatchlistLinha } from '@/lib/studio/watchlists-view';
+import { dispatchTitular } from '@/app/api/_lib/titular-studio';
+import type { AcaoDecisao, PedidoDetalhe, PedidoLinha } from '@/lib/studio/titular-view';
+import type { Achado, Checklist, Fechamento, Leitura, MateriaId, MateriaPiloto } from '@/lib/studio/piloto-view';
 import { dispatchEditorial } from '@/app/api/_lib/editorial';
 import { chamar, type Despachante } from './backend';
 
@@ -190,6 +194,10 @@ export interface EventoAgenda {
 const E = '/api/studio/editorial';
 const C = '/api/commercial';
 const I = '/api/studio/intelligence';
+const T = '/api/studio/correcoes';
+type ArquivoFolha = { nome: string; sha256: string; linhas: number };
+/** O catch-all opcional lê o caminho de `params.path`, como o App Router entrega. */
+const titularEm = (path: string[]): Despachante => (req) => dispatchTitular(req, { params: Promise.resolve({ path }) });
 
 export const api = {
   materias: {
@@ -320,9 +328,46 @@ export const api = {
     retificarPedido: (requestId: string, fullName: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/rectify`, { metodo: 'POST', corpo: { fullName } }),
     suprimirPedido: (requestId: string) => chamar(dispatchIntelligence, `${I}/subject-requests/${encodeURIComponent(requestId)}/suppress`, { metodo: 'POST', corpo: {} }),
     revisarMove: (id: string, status: 'confirmed' | 'rejected') => chamar(dispatchIntelligence, `${I}/moves/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
+    // ---- Watchlists e alertas (Studio 2; WATCHLISTS_API.md). Privadas: o dono é a sessão; lista de outro dono = 404. ----
+    watchlists: () => chamar<{ items: WatchlistLinha[] }>(dispatchIntelligence, `${I}/watchlists`),
+    watchlist: (id: string) => chamar<{ watchlist: WatchlistLinha; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(id)}`),
+    criarWatchlist: (name: string) => chamar<{ id: string }>(dispatchIntelligence, `${I}/watchlists`, { metodo: 'POST', corpo: { name } }),
+    apagarWatchlist: (id: string) => chamar<{ id: string; deleted: true }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(id)}`, { metodo: 'DELETE', corpo: { id } }),
+    adicionarItem: (watchlistId: string, entityType: string, entityId: string) =>
+      chamar<{ watchlistId: string; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(watchlistId)}/items`, { metodo: 'POST', corpo: { watchlistId, entityType, entityId } }),
+    removerItem: (watchlistId: string, entityType: string, entityId: string) =>
+      chamar<{ watchlistId: string; items: WatchlistItem[] }>(dispatchIntelligence, `${I}/watchlists/${encodeURIComponent(watchlistId)}/items`, { metodo: 'DELETE', corpo: { watchlistId, entityType, entityId } }),
+    alertas: (query: { status?: 'pending_review' | 'approved' | 'rejected'; watchlistId?: string }) => chamar<{ items: AlertaLinha[] }>(dispatchIntelligence, `${I}/alerts`, { query }),
+    revisarAlerta: (id: string, status: 'approved' | 'rejected') => chamar<{ id: string; status: string; reviewed_by: string }>(dispatchIntelligence, `${I}/alerts/${encodeURIComponent(id)}/review`, { metodo: 'POST', corpo: { id, status } }),
+  },
+  /** Pedidos do titular (DP-38; Studio 2): /api/studio/correcoes/[[...path]] (ft/backend-2). RBAC `titular`: editor-chefe e admin. */
+  titular: {
+    listar: (query: { estado?: string; responsavel?: string } = {}) => chamar<{ items: PedidoLinha[] }>(titularEm([]), T, { query }),
+    /** Detalhe com nome, contato e trilha; a própria consulta entra na auditoria. */
+    obter: (id: string) => chamar<PedidoDetalhe>(titularEm([id]), `${T}/${encodeURIComponent(id)}`),
+    atribuir: (id: string, responsavel: string) => chamar<PedidoLinha>(titularEm([id, 'atribuir']), `${T}/${encodeURIComponent(id)}/atribuir`, { metodo: 'POST', corpo: { responsavel } }),
+    decidir: (id: string, corpo: { acao: AcaoDecisao; campos?: Record<string, string>; motivo?: string }) =>
+      chamar<PedidoLinha>(titularEm([id, 'decidir']), `${T}/${encodeURIComponent(id)}/decidir`, { metodo: 'POST', corpo }),
+  },
+  /**
+   * Leitura do piloto de 10 matérias (Studio 2; PM-2026-11-23-C). Contrato da Editorial (packages/editorial/docs/piloto-leitura-api.md, ft/editorial ccfb23c),
+   * rotas em /api/studio/editorial/piloto. O conteúdo de cada matéria vem de editorial.revisao. Leitura e mapa são imutáveis (409).
+   */
+  piloto: {
+    materias: () => chamar<{ items: MateriaPiloto[]; fechamento?: Fechamento }>(dispatchEditorial, `${E}/piloto`),
+    fixarMapa: (mapa: Partial<Record<MateriaId, string>>) => chamar<{ mapa: Record<string, string> }>(dispatchEditorial, `${E}/piloto/mapa`, { metodo: 'POST', corpo: mapa }),
+    leituras: (materia: string) => chamar<{ materia: string; articleId: string; leituras: Leitura[]; ocultas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leituras`),
+    /** Registra só o hash da folha do leitor 2 no primeiro envio (sem conteúdo); 200 se o mesmo sha256 já estava; 409 FOLHA_DIFERENTE. */
+    registrarFolha: (corpo: { arquivo: ArquivoFolha; leitor2Nome: string; materias: string[] }) =>
+      chamar<{ registradoEm: string; sha256: string }>(dispatchEditorial, `${E}/piloto/importacao/registro`, { metodo: 'POST', corpo }),
+    /** Importa as leituras do leitor 2 (tudo ou nada; 409 LEITOR1_PENDENTE, FOLHA_DIFERENTE). A resposta nunca traz o conteúdo. */
+    importar: (corpo: { arquivo: ArquivoFolha; leitor2Nome: string; leituras: { materia: string; achados: Achado[]; checklist: Checklist; veredito: 'aprovado' | 'bloqueado' }[] }) =>
+      chamar<{ importadas: { materia: string; unsupportedFacts: number; altas: number; medias: number; baixas: number }[] }>(dispatchEditorial, `${E}/piloto/importacao`, { metodo: 'POST', corpo }),
+    registrar: (materia: string, corpo: { leitor: 1; achados: Achado[]; checklist: Checklist; veredito: 'aprovado' | 'bloqueado' }) =>
+      chamar<{ materia: string; leitor: number; unsupportedFacts: number; altas: number; medias: number; baixas: number }>(dispatchEditorial, `${E}/piloto/${encodeURIComponent(materia)}/leitura`, { metodo: 'POST', corpo }),
   },
   editorial: {
-    fila: (query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
+    fila:(query: Record<string, string | undefined>) => chamar(dispatchEditorial, `${E}/queue`, { query }),
     /** Rascunho editorial completo + última checagem (para a correção de matéria da Fábrica; 404 sem registro editorial). */
     rascunho: (articleId: string) => chamar<RascunhoFabrica>(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/draft`),
     revisao: (articleId: string) => chamar(dispatchEditorial, `${E}/articles/${encodeURIComponent(articleId)}/review`),

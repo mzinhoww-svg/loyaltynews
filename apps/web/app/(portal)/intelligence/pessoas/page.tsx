@@ -1,37 +1,65 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { SearchInput } from '../../_components/ds-client';
+import { ErrorState } from '../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
 import { getSource } from '../../_lib/source';
+import { PEOPLE_EMPTY } from '../_components/intel';
 
 export const revalidate = 60;
 export const metadata: Metadata = {
   title: 'Pessoas — Loyalty Intelligence',
-  description: 'Perfis profissionais verificados do mercado de fidelização.',
+  description: 'Executivos do mercado de fidelização com cargos de fonte pública e data de validação.',
   alternates: { canonical: '/intelligence/pessoas' },
 };
 
-export default async function PessoasPage() {
-  const items = await getSource().listPeople();
+export default async function PessoasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const q = ((await searchParams).q ?? '').trim().slice(0, 100);
+  const dir = await getSource().getPeopleDirectory({ q: q || undefined });
   return (
     <>
       <PageHead
         title="Pessoas"
-        lead="Somente dados profissionais relevantes e verificáveis. Sem relações privadas ou sensíveis."
+        lead="Somente dados profissionais relevantes e verificáveis: nome, cargo e empresa, com fonte pública e data de validação."
         crumbs={[{ label: 'Intelligence', href: '/intelligence' }, { label: 'Pessoas' }]}
       />
-      {items.length ? (
-        <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }}>
-          {items.map((p) => (
-            <li key={p.slug} className="pt-panel">
-              <h2 style={{ fontSize: 20 }}>{p.mock && <MockTag />}{p.name}</h2>
-              <p className="pt-meta">{p.lastReviewedAt ? `Revisado em ${formatDate(p.lastReviewedAt)}` : 'Revisão pendente'}</p>
-            </li>
-          ))}
-        </ul>
+      {dir.status === 'unavailable' ? (
+        <ErrorState title="Pessoas temporariamente indisponíveis" retryHref={q ? `/intelligence/pessoas?q=${encodeURIComponent(q)}` : '/intelligence/pessoas'}>
+          Não conseguimos carregar os perfis agora. Isso não significa que não existam; tente de novo em instantes.
+        </ErrorState>
+      ) : !dir.available ? (
+        <EmptyState title="Em breve: primeiros perfis verificados">{PEOPLE_EMPTY}</EmptyState>
       ) : (
-        <EmptyState title="Em breve: primeiros perfis verificados">
-          Perfis de pessoas só são publicados com identidade e vínculo verificáveis por fonte pública. Titulares podem solicitar correção ou remoção.
-        </EmptyState>
+        <>
+          <SearchInput action="/intelligence/pessoas" label="Buscar pessoa" placeholder="Buscar pelo nome" defaultValue={q} />
+          {dir.items.length ? (
+            <>
+              <p className="pt-meta" data-testid="people-count">{dir.total} {dir.total === 1 ? 'pessoa' : 'pessoas'}</p>
+              <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }} data-testid="people-list">
+                {dir.items.map((p) => (
+                  <li key={p.id} className="pt-panel">
+                    <h2 style={{ fontSize: 20 }}>{p.mock && <MockTag />}<Link href={`/intelligence/pessoas/${p.id}`}>{p.name}</Link></h2>
+                    {p.roles.length ? (
+                      p.roles.map((r) => (
+                        <p key={r.id} className="pt-meta">
+                          {r.title} · <Link href={`/intelligence/empresas/${r.company.id}`} style={{ textDecoration: 'underline' }}>{r.company.name}</Link>
+                          {' · '}validado em <time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time>
+                        </p>
+                      ))
+                    ) : (
+                      <p className="pt-meta">Sem cargo vigente registrado</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <EmptyState title={q ? `Nenhuma pessoa para “${q}”` : 'Em breve: primeiros perfis verificados'}>
+              {q ? <Link href="/intelligence/pessoas" style={{ textDecoration: 'underline' }}>Ver todas as pessoas</Link> : PEOPLE_EMPTY}
+            </EmptyState>
+          )}
+        </>
       )}
     </>
   );

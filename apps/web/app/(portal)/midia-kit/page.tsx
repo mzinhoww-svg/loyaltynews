@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
+import { isUpcoming } from '../_lib/events';
 import { formatDateTime } from '../_lib/format';
 import { PositionMap } from '../_components/PositionMap';
 import { ScrollRegion } from '../_components/ScrollRegion';
@@ -55,7 +56,7 @@ export default async function MidiaKitPage() {
   // Em modo api, audiência e catálogo vêm da API comercial (origem, janela e data em cada número). Falha => estado vazio honesto.
   const kit = src.kind === 'api' ? await fetchMediaKit(portalApiBase()) : null;
   const [audience, latest, events] = await Promise.all([kit ? Promise.resolve(kit.audience) : src.getAudience(), src.getLatest({ pageSize: 1 }), src.listEvents()]);
-  const upcoming = events.filter((e) => e.status === 'validado' && new Date(e.startsAt) >= new Date()).length;
+  const upcoming = events.items.filter((e) => e.status === 'validado' && isUpcoming(e, new Date())).length;
   const stamps = [...audience.realtime, ...audience.historical].map((m) => m.collectedAt).filter(Boolean) as string[];
   const last = stamps.sort().at(-1);
   // Em modo api a cobertura vem SÓ da coleta da API comercial (origem, janela, data); a contagem ao vivo da listagem não entra: em staging

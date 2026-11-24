@@ -5,7 +5,8 @@ import * as h from './api/index';
 import { realContent } from './real-creative.mock';
 
 const NOW = '2026-12-05T12:00:00-03:00';
-const studio = { id: 'u', canManageCommercial: true };
+// o proprietário (admin): é quem aprova imagem e campanha (DP-43)
+const studio = { id: 'u', canManageCommercial: true, canApprove: true };
 const code = (r: h.HttpResult) => ApiError.parse(r.body).error.code;
 // Banners disponíveis para venda: sem capacidade declarada o formato é 'sob_consulta' e a ativação recusa.
 const READY = buildCatalog({ 'banners--banner-rodape': true, 'banners--retangulo-sidebar': true, 'banners--banner-topo': true });

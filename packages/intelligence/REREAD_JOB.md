@@ -4,10 +4,11 @@ Código: `packages/intelligence/src/reread.ts` (lógica e regras, testada), `src
 
 ## Desligado por padrão (três travas)
 O worker só agenda o job se **todas** valerem; qualquer falta é registrada em log e nada é lido nem gravado:
-1. `LN_INTELLIGENCE_REREAD=on` (liga este job);
-2. `LN_INTELLIGENCE_PESSOAS=on` (equivale à flag `intelligencePessoas`, J-01 — só com decisão registrada);
-3. `LN_REREAD_SEED=<caminho do seed.public.v5.json>` (conjunto de cargos que o job relê; validado pelo mesmo `validateSeed`).
-Opcionais: `LN_REREAD_INTERVAL_HOURS` (padrão 168 = semanal por página; piso 24); `ZYTE_API_KEY` no ambiente (reserva por provedor, DP-32; nunca em log). Proposta ao Chief Architect: virar flag própria em `@ln/contracts` (`intelligenceReleitura`); enquanto isso as variáveis acima são a trava (arquivo de flags não é meu).
+1. `LN_INTELLIGENCE_REREAD=on` (chave operacional deste job);
+2. a flag `intelligencePessoas` (J-01) **pelo resolvedor de flags do app** (ADR-022: `startIntelligenceReread({ flags })`, ex.: `(f) => isEnabled(f, runtimeFlags())`). **Nenhuma flag de produto é lida de variável de ambiente própria**; sem resolvedor, toda flag está desligada (hoje `main.ts` ainda não passa o resolvedor: o Backend o liga quando o ADR-022 entrar);
+3. `LN_REREAD_SEED=<caminho do seed.public.v5/v7.json>` (conjunto de cargos que o job relê; validado pelo mesmo `validateSeed`).
+Opcional: `LN_REREAD_INTERVAL_HOURS` (padrão 168 = semanal por página; piso 24).
+**Reserva por provedor** (só quando a leitura direta recusa): Bright Data do staging (DP-36: uma conta `conta-2`, `BRIGHTDATA_API_KEY`, teto 5000, zone `web_unlocker1`, sem troca de conta), ligada **só pela flag `leitorViaProvedor`** (ADR-022, adendo 2; consultada a cada leitura; sem flag, nenhum `fetch` ao provedor). Código: `createReaderViaFlag`/`createBrightDataStagingReader` em `src/readers/flagged.ts`; testes em `src/tests/reader-flag.test.ts`. O valor da chave vem do ambiente do app, nunca do repositório.
 
 ## O que faz em cada ciclo (a cada 6 h; só as páginas vencidas, no máximo 5 por ciclo)
 1. A página só é relida se a última validação dos cargos dela (no banco) for mais velha que o intervalo. Não há tabela de estado nova.
