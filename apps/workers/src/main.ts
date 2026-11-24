@@ -7,6 +7,7 @@ import { anyPemSet, pgPoolConfig, selfCheckPemSet } from '@ln/db/tls';
 import { errLine, installOutputFilter, installProcessGuards, onClientError } from '@ln/db/safe-log';
 import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
+import { describeHeartbeat, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
 import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
 import { redisTlsOptions } from './redis-tls';
@@ -67,6 +68,18 @@ async function main() {
       .then((r) => { if (r.rows) console.log('[workers] entrega de anúncios gravada', JSON.stringify(r)); })
       .catch((e) => console.error(errLine('[workers] flush de anúncios falhou', e)));
   }, 60_000);
+  // auditoria de perda do Redis do ad server (C1): batida ln:ad:hb a cada minuto + espelho no PostgreSQL; perda/regressão/indisponibilidade abre lacuna.
+  // Conexão PRÓPRIA e sem fila offline: com Redis fora, o comando falha rápido (a conexão do BullMQ espera para sempre) e isso conta como indisponibilidade.
+  const hbRedis = new IORedis(REDIS_URL, { maxRetriesPerRequest: 1, enableOfflineQueue: false, connectTimeout: 1500, ...redisTls });
+  hbRedis.on('error', onClientError('[workers] redis (batida do ad server)'));
+  // sem fila offline o comando falha enquanto a conexão não está pronta: espera até 3 s para a subida não parecer indisponibilidade do Redis
+  await new Promise<void>((resolve) => { const t = setTimeout(resolve, 3000); hbRedis.once('ready', () => { clearTimeout(t); resolve(); }); });
+  const adWatch = startAdRedisWatch({
+    db,
+    redis: hbRedis as unknown as HeartbeatRedis,
+    onResult: (r) => { if (r.state !== 'healthy') console.log('[workers] auditoria do dedupe de anúncios:', describeHeartbeat(r)); },
+    onError: (e) => console.error(errLine('[workers] batida do ad server falhou', e)),
+  });
   // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on, LN_REREAD_SEED e a flag intelligencePessoas (ADR-022)
   const intelDbPort = { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb;
   // flags de produto pelo resolvedor da ADR-022 (o mesmo do web): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
@@ -81,6 +94,8 @@ async function main() {
     reread?.stop();
     alerts?.stop();
     clearInterval(adFlush);
+    adWatch.stop();
+    hbRedis.disconnect();
     await workers.close();
     await sink.close();
     connection.disconnect();
