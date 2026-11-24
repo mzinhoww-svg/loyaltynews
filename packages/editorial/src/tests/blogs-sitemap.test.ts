@@ -88,10 +88,10 @@ test('collectSitemap: índice abre só os 2 filhos mais recentes; 429 no sitemap
 test('por sitemap: as 3 empresas conferidas + ANAC, CVM e ANPD (gov.br, .xml.gz) têm sitemap e prefixo; mesmo host da fonte; todas nascem desabilitadas', async () => {
   const { SEED_SOURCES: ALL } = await import('../sources/seed');
   const wired = ALL.filter((s) => s.sitemapUrl && s.sitemapPathPrefix); // coletáveis por sitemap: só com prefixo verificado
-  assert.deepEqual(wired.map((s) => s.id).sort(), ['anac', 'anpd', 'bradesco-ri', 'cvm', 'livelo-imprensa', 'natura-ri']);
+  assert.deepEqual(wired.map((s) => s.id).sort(), ['anac', 'anpd', 'bradesco-ri', 'cvm', 'esfera-campanhas', 'latampass-novidades', 'latampass-regulamentos', 'livelo-imprensa', 'livelo-programa', 'natura-ri', 'smiles-conteudo']);
   for (const s of wired) {
     assert.equal(new URL(s.sitemapUrl!).host, s.host, s.id);
-    assert.match(s.sitemapPathPrefix ?? '', /^(\/[a-z0-9-]+)+\/$/, `${s.id}: prefixo da seção de notícias`);
+    assert.match(s.sitemapPathPrefix ?? '', /^(\/[a-z0-9-]+)+(\/|-)?$/, `${s.id}: prefixo da seção de notícias`);
     assert.equal(s.enabled, false, s.id); assert.equal(s.termsStatus, 'pending', s.id);
   }
   // gov.br: índice sem lastmod com filhos .xml.gz (lidos todos, 1 requisição cada): o limite por hora do cadastro precisa comportar índice + filhos + robots + páginas

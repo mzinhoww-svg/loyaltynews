@@ -3,36 +3,20 @@ import Link from 'next/link';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
+import { elegiveisParaLote, filtrarFontes, filtroEstado, type FonteFabrica } from '@/lib/studio/fabrica-fontes';
 import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
-import { habilitarFonteFabricaAction, revisarFonteFabricaAction } from './actions';
+import { CartaoFonte } from './CartaoFonte';
+import { habilitarPaginaAction } from './actions';
 
 export const metadata: Metadata = { title: 'Fontes da Fábrica editorial' };
 export const dynamic = 'force-dynamic';
 
-interface FonteFabrica {
-  id: string;
-  /** 'padrao' | 'via-provedor' (DP-31/DP-32: lida por serviço de extração, risco aceito pelo proprietário) */
-  acesso?: string;
-  nome: string;
-  kind: string;
-  host: string;
-  editorias: string[];
-  termsUrl: string | null;
-  pesquisa: { nivel: string | null; pesquisadoPor: string | null; trechoTermos: string | null };
-  habilitada: boolean;
-  termsStatus: string;
-  urlVerificada: boolean;
-  paywall: string;
-  elegivel: boolean;
-  motivosInelegivel: string[];
-  revisao: { revisor: string; em: string; termos: string; vencida: boolean } | null;
-}
-
-export default async function FontesFabricaPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; q?: string; pagina?: string }> }) {
+export default async function FontesFabricaPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; q?: string; pagina?: string; estado?: string }> }) {
   const { session } = await requireModule(findModule('fontes')!);
-  const { tipo, aviso, q = '', pagina: paginaParam = '1' } = await searchParams;
+  const { tipo, aviso, q = '', pagina: paginaParam = '1', estado: estadoParam } = await searchParams;
+  const estado = filtroEstado(estadoParam);
   const r = await api.editorial.fontesRegistro();
   if (naoConfigurado(r)) {
     return (
@@ -53,16 +37,17 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
     );
   }
   const todas = (r.body as { items: FonteFabrica[] }).items;
-  const termo = q.trim().toLowerCase();
-  const itens = termo ? todas.filter((f) => f.nome.toLowerCase().includes(termo) || f.host.toLowerCase().includes(termo)) : todas;
-  // P2-09: o cadastro tem mais de 100 fontes; a tela mostra 20 por vez (a busca por nome ou host continua)
+  const itens = filtrarFontes(todas, q, estado);
+  // P2-09: o cadastro tem mais de 100 fontes; a tela mostra 20 por vez (a busca por nome ou host e o filtro de estado continuam)
   const POR_PAGINA = 20;
   const totalPaginas = Math.max(1, Math.ceil(itens.length / POR_PAGINA));
   const pagina = Math.min(Math.max(1, Math.floor(Number(paginaParam)) || 1), totalPaginas);
   const daPagina = itens.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
-  const irPara = (n: number) => `/studio/fontes/fabrica?${new URLSearchParams({ ...(q ? { q } : {}), pagina: String(n) }).toString()}`;
+  const irPara = (n: number) => `/studio/fontes/fabrica?${new URLSearchParams({ ...(q ? { q } : {}), ...(estado ? { estado } : {}), pagina: String(n) }).toString()}`;
   const podeRevisar = checkAccess(session, ['admin', 'editor_chefe', 'revisor']).ok;
   const podeHabilitar = checkAccess(session, ['admin', 'editor_chefe']).ok;
+  const ehAdmin = session.roles.includes('admin');
+  const paraLote = ehAdmin ? elegiveisParaLote(daPagina) : [];
   return (
     <>
       <p>
@@ -70,13 +55,18 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
       </p>
       <h1>Fontes da Fábrica editorial</h1>
       <p>
-        Cadastro imutável de fontes que a coleta pode usar. Habilitar nunca é automático: exige revisão humana atual dos termos (revisor diferente de quem pesquisou), URL verificada, robots.txt conferido e sem paywall. A coleta segue desligada nesta fase.
+        Cadastro imutável de fontes que a coleta pode usar. O administrador habilita com um clique e a habilitação fica registrada (quem e quando); fontes com aviso de segurança (login, paywall, inacessível) pedem a sua confirmação. A observação é opcional. A coleta segue desligada nesta fase.
       </p>
       <Flash tipo={tipo} aviso={aviso} />
       <form className="st-filters" method="get" role="search" aria-label="Buscar fonte da Fábrica">
         <div className="st-field">
           <label htmlFor="q">Buscar por nome ou host</label>
           <input id="q" name="q" type="search" defaultValue={q} />
+        </div>
+        <div className="st-field">
+          <label>
+            <input type="checkbox" name="estado" value="desabilitadas" defaultChecked={estado === 'desabilitadas'} /> Só desabilitadas
+          </label>
         </div>
         <button className="st-btn sec" type="submit">
           Buscar
@@ -92,92 +82,20 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
           <p className="st-hint">
             {itens.length} fonte(s); {itens.filter((f) => f.habilitada).length} habilitada(s) · página {pagina} de {totalPaginas}.
           </p>
+          {ehAdmin ? (
+            <form action={habilitarPaginaAction} aria-label="Habilitar todas desta página" className="st-actions" style={{ marginBottom: 12 }}>
+              <input type="hidden" name="ids" value={daPagina.map((f) => f.id).join(',')} />
+              <input type="hidden" name="q" value={q} />
+              <input type="hidden" name="estado" value={estado} />
+              <input type="hidden" name="pagina" value={pagina} />
+              <button className="st-btn sec" type="submit" disabled={paraLote.length === 0}>
+                Habilitar todas desta página ({paraLote.length})
+              </button>
+              <span className="st-hint">Só as desabilitadas e sem aviso de segurança; as com aviso ficam para você confirmar uma a uma.</span>
+            </form>
+          ) : null}
           {daPagina.map((f) => (
-            <section key={f.id} className="st-card" style={{ marginBottom: 12 }} aria-label={f.nome} data-fabrica-fonte={f.id} data-habilitada={f.habilitada ? 'sim' : 'nao'}>
-              <h2 style={{ marginTop: 0 }}>{f.nome}</h2>
-              {f.acesso === 'via-provedor' ? (
-                <p className="st-alert" role="note" data-acesso="via-provedor">
-                  <strong>Acesso via provedor</strong> (risco aceito, DP-31/DP-32): a página é lida por um serviço de extração, não pela coleta direta.
-                </p>
-              ) : null}
-              <p className="st-hint">
-                {f.host} · {f.kind} · {f.editorias.join(', ')} · pesquisada por {f.pesquisa.pesquisadoPor ?? 'desconhecido'}
-              </p>
-              <p>
-                Estado: <strong>{f.habilitada ? 'habilitada' : 'desabilitada'}</strong> · termos {f.termsStatus} · URL {f.urlVerificada ? 'verificada' : 'não verificada'} · paywall {f.paywall} · {f.elegivel ? 'elegível' : `inelegível (${f.motivosInelegivel.join('; ')})`}
-              </p>
-              {f.revisao ? (
-                <p className="st-hint">
-                  Última revisão: {f.revisao.revisor} em {f.revisao.em.slice(0, 16).replace('T', ' ')} ({f.revisao.termos}){f.revisao.vencida ? ' — VENCIDA: a definição da fonte mudou' : ''}.
-                </p>
-              ) : (
-                <p className="st-hint">Sem revisão registrada.</p>
-              )}
-              <div className="st-actions">
-                {podeHabilitar && !f.habilitada ? (
-                  <form action={habilitarFonteFabricaAction}>
-                    <input type="hidden" name="sourceId" value={f.id} />
-                    <input type="hidden" name="q" value={q} />
-                    <input type="hidden" name="pagina" value={pagina} />
-                    <input type="hidden" name="ligar" value="1" />
-                    <button className="st-btn" type="submit" aria-label={`Habilitar ${f.nome}`}>
-                      Habilitar
-                    </button>
-                  </form>
-                ) : null}
-                {podeRevisar && f.habilitada ? (
-                  <form action={habilitarFonteFabricaAction}>
-                    <input type="hidden" name="sourceId" value={f.id} />
-                    <input type="hidden" name="q" value={q} />
-                    <input type="hidden" name="pagina" value={pagina} />
-                    <input type="hidden" name="ligar" value="0" />
-                    <button className="st-btn danger" type="submit" aria-label={`Desabilitar ${f.nome}`}>
-                      Desabilitar
-                    </button>
-                  </form>
-                ) : null}
-              </div>
-              {podeRevisar ? (
-                <details style={{ marginTop: 10 }}>
-                  <summary>Registrar revisão dos termos</summary>
-                  <form action={revisarFonteFabricaAction} aria-label={`Revisar ${f.nome}`}>
-                    <input type="hidden" name="sourceId" value={f.id} />
-                    <input type="hidden" name="q" value={q} />
-                    <input type="hidden" name="pagina" value={pagina} />
-                    <div className="st-field">
-                      <label htmlFor={`termos-${f.id}`}>Termos</label>
-                      <select id={`termos-${f.id}`} name="termos" defaultValue="approved">
-                        <option value="approved">Aprovados</option>
-                        <option value="denied">Negados</option>
-                      </select>
-                    </div>
-                    <div className="st-field">
-                      <label htmlFor={`nota-${f.id}`}>O que foi conferido nos termos oficiais (mínimo 20 caracteres)</label>
-                      <input id={`nota-${f.id}`} name="nota" type="text" />
-                    </div>
-                    <div className="st-field">
-                      <label>
-                        <input type="checkbox" name="urlVerificada" /> URL verificada
-                      </label>
-                      <label>
-                        <input type="checkbox" name="robots" /> robots.txt conferido
-                      </label>
-                    </div>
-                    <div className="st-field">
-                      <label htmlFor={`paywall-${f.id}`}>Paywall / login</label>
-                      <select id={`paywall-${f.id}`} name="paywall" defaultValue="none">
-                        <option value="none">Nenhum</option>
-                        <option value="login">Exige login</option>
-                        <option value="metered">Limite de leituras</option>
-                      </select>
-                    </div>
-                    <button className="st-btn" type="submit">
-                      Registrar revisão
-                    </button>
-                  </form>
-                </details>
-              ) : null}
-            </section>
+            <CartaoFonte key={f.id} inicial={f} podeHabilitar={podeHabilitar} podeRevisar={podeRevisar} ehAdmin={ehAdmin} />
           ))}
           {totalPaginas > 1 ? (
             <nav aria-label="Paginação das fontes" className="st-actions">

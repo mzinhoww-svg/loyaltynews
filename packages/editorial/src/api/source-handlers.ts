@@ -20,7 +20,21 @@ export interface SourceView {
   /** 'via-provedor' = lida por serviço de extração, com risco aceito pelo proprietário (a tela deve destacar). */
   acesso: string;
   habilitada: boolean; termsStatus: string; urlVerificada: boolean; paywall: string;
-  elegivel: boolean; motivosInelegivel: string[]; revisao: { revisor: string; em: string; termos: string; vencida: boolean } | null;
+  elegivel: boolean; motivosInelegivel: string[];
+  /** DP-51: avisos de segurança da fonte (paywall/login, inacessível na pesquisa). Habilitar com aviso exige a confirmação explícita do administrador. */
+  riscos: string[];
+  revisao: { revisor: string; em: string; termos: string; vencida: boolean; observacao: string | null; direta: boolean } | null;
+}
+
+/** Avisos de segurança que NÃO são de termos: o administrador decide, mas só depois de ver o aviso (confirmarRisco). */
+export function riscosDaFonte(src: Source): string[] {
+  const r: string[] = [];
+  if (src.paywall === 'login') r.push('exige login');
+  if (src.paywall === 'metered') r.push('limite de leituras (paywall)');
+  if (src.verification?.level === 'inacessivel' && src.acesso !== 'via-provedor') r.push('inacessível na pesquisa');
+  // DP-31/DP-32: a coleta dessas fontes passa por um provedor de extração TARIFADO. Não se automatiza: o administrador confirma fonte a fonte.
+  if (src.acesso === 'via-provedor') r.push('acesso via provedor tarifado (DP-31/DP-32)');
+  return r;
 }
 
 function viewOf(src: Source, st: SourceState | undefined): SourceView {
@@ -35,7 +49,10 @@ function viewOf(src: Source, st: SourceState | undefined): SourceView {
     },
     acesso: src.acesso ?? 'padrao', habilitada: eff.enabled, termsStatus: eff.termsStatus, urlVerificada: eff.urlVerified, paywall: eff.paywall,
     elegivel: el.ok, motivosInelegivel: el.ok ? [] : el.reasons,
-    revisao: st?.review ? { revisor: st.review.reviewer, em: st.review.at, termos: st.review.termsStatus, vencida: st.review.fingerprint !== sourceFingerprint(src) } : null,
+    riscos: riscosDaFonte(src),
+    revisao: st?.review
+      ? { revisor: st.review.reviewer, em: st.review.at, termos: st.review.termsStatus, vencida: st.review.fingerprint !== sourceFingerprint(src), observacao: st.review.termsNote || null, direta: st.review.direta === true }
+      : null,
   };
 }
 
@@ -100,7 +117,16 @@ export async function reviewSource(ctx: HandlerCtx, input: unknown): Promise<Api
   return ok(viewOf(src, st));
 }
 
-const EnableIn = z.object({ sourceId: z.string().min(1).max(128), enabled: z.boolean() });
+const EnableIn = z.object({
+  sourceId: z.string().min(1).max(128),
+  enabled: z.boolean(),
+  /** DP-51: habilitação DIRETA do administrador (um clique): grava a revisão implícita aprovada, sem exigir revisão prévia dos termos. */
+  direto: z.boolean().optional(),
+  /** Observação OPCIONAL (sem mínimo) que fica na revisão implícita. */
+  observacao: z.string().trim().max(2000).optional(),
+  /** Aceite explícito dos avisos de segurança da fonte (paywall/login, inacessível). */
+  confirmarRisco: z.boolean().optional(),
+});
 
 /**
  * Habilita/desabilita. Desabilitar é sempre permitido (fail-safe). Habilitar exige revisão registrada, ATUAL
@@ -121,6 +147,24 @@ export async function setSourceEnabled(ctx: HandlerCtx, input: unknown): Promise
     await ctx.store.putSourceState(next);
     await audit(ctx, a.userId, 'source.disable', src.id);
     return ok(viewOf(src, next));
+  }
+  if (p.data.direto) {
+    // DP-51: só o administrador habilita direto. A revisão implícita registra quem e quando; recusas de segurança que não são de termos continuam.
+    if (!a.roles.includes('admin')) return fail(apiError('FORBIDDEN', 'a habilitação direta é do administrador'));
+    const riscos = riscosDaFonte(src);
+    if (riscos.length && p.data.confirmarRisco !== true) return fail(apiError('BLOCKED', `a fonte tem aviso de segurança (${riscos.join('; ')}): confirme para habilitar mesmo assim`, { riscos, precisaConfirmar: true }));
+    const review: SourceReview = {
+      reviewer: a.userId, at, termsStatus: 'approved',
+      termsNote: p.data.observacao || 'Habilitação direta pelo administrador (DP-51), sem revisão formal dos termos.',
+      urlVerified: true, robotsChecked: true, paywall: 'none', fingerprint: sourceFingerprint(src), direta: true,
+      ...(riscos.length ? { riscoAceito: riscos } : {}),
+    };
+    const direto: SourceState = { sourceId: src.id, enabled: true, termsStatus: 'approved', urlVerified: true, paywall: 'none', review, updatedAt: at, updatedBy: a.userId };
+    const elD = eligibility(effectiveSource(src, direto));
+    if (!elD.ok) return fail(apiError('BLOCKED', 'fonte inelegível', { reasons: elD.reasons }));
+    await ctx.store.putSourceState(direto);
+    await audit(ctx, a.userId, 'source.enable_direct', src.id, `DP-51 por ${a.userId}${riscos.length ? `; risco aceito: ${riscos.join(', ')}` : ''}${p.data.observacao ? `; observação: ${p.data.observacao.slice(0, 200)}` : ''}`);
+    return ok(viewOf(src, direto));
   }
   const rv = st?.review;
   if (!st || !rv) return fail(apiError('BLOCKED', 'sem revisão registrada: revise a fonte antes de habilitar'));

@@ -398,7 +398,8 @@ export const api = {
     /** Passos do caso: verify-requester, preserve-evidence, triage, ack-legal, publish-notice, reconcile-social, entities-rebuilt, close. */
     passoCorrecao: (id: string, passo: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/corrections/${encodeURIComponent(id)}/${passo}`, { metodo: 'POST', corpo }),
     revisarFonte: (sourceId: string, corpo: unknown) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/review`, { metodo: 'POST', corpo }),
-    habilitarFonte: (sourceId: string, enabled: boolean) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/enabled`, { metodo: 'POST', corpo: { enabled } }),
+    /** `extra.direto` = habilitação direta do administrador (DP-51, revisão implícita auditada); `confirmarRisco` aceita os avisos de segurança da fonte. */
+    habilitarFonte: (sourceId: string, enabled: boolean, extra?: { direto?: boolean; observacao?: string; confirmarRisco?: boolean }) => chamar(dispatchEditorial, `${E}/sources/${encodeURIComponent(sourceId)}/enabled`, { metodo: 'POST', corpo: { enabled, ...(extra ?? {}) } }),
   },
   /** Creative Studio (contrato fast-track/contratos/creative-studio-api.md): cards sociais por template; nada publica nem chama o mLabs. */
   creative: {

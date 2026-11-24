@@ -4,6 +4,7 @@ import { flagAtiva } from '@/lib/studio/flags';
 import { StudioLayout } from '@ln/ui';
 import { visibleModules, GRUPOS, checkAccess } from '@/lib/studio/modules';
 import { StudioSidebar, type NavItem } from '../_components/Sidebar';
+import { MigalhasStudio } from '../_components/MigalhasStudio';
 import { currentSession, urlDeEntrada } from '../_lib/guard';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
           Sessão: <strong>{session!.email ?? session!.userId}</strong> · papéis: {session!.roles.join(', ')} · <a href="/studio/conta" data-link-conta>Minha conta</a>
         </p>
       </header>
+      <MigalhasStudio />
       {children}
     </StudioLayout>
   );

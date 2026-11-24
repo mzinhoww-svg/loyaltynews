@@ -197,6 +197,9 @@ Fontes:
       await linhas.upsert({ ...base, task_id: 'mock-viol-ferramenta', stage: 'draft', started_at: '2026-11-23T13:01:00.000Z', tool_outside_contract: true } as never);
       return { linhas: ['mock-viol-segredo', 'mock-viol-ferramenta'] };
     },
+    async auditoriaEditorial() {
+      return new PgEditorialStore(db).listAudit();
+    },
     async contaDeTeste(key, role, totp) {
       if (!isRole(role)) throw new Error(`papel inválido: ${role}`);
       const r = await criarUsuario(`login-${key}`, role, totp);
