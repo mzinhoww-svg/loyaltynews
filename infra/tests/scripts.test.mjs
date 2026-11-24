@@ -1509,3 +1509,28 @@ test('start-web: o next start roda de DENTRO de apps/web, sem o argumento de pas
   assert.equal(inv.cwd.split(sep).join('/').replace(/^[A-Za-z]:/, ''), '/app/apps/web');
   assert.ok(!inv.args.includes('apps/web'), 'sem o argumento de pasta');
 });
+
+test('guard-env (linha 1 do piloto): em produção cada variável do piloto recusa com o NOME dela; em staging aceita; o contrato marca as quatro como só_staging', async () => {
+  const { envProblems } = await import('../scripts/lib/guards.mjs');
+  const PROD = { APP_ENV: 'production' };
+  const casos = [
+    [{ LN_FLAGS_ON: 'openbotDispatch' }, /LN_FLAGS_ON definida em produção.*openbotDispatch.*nunca liga em produção/],
+    [{ LN_FLAGS_ON: 'intelligencePessoas,openbotDispatch' }, /LN_FLAGS_ON definida em produção.*openbotDispatch/],
+    [{ LN_OPENBOT_PILOT: '1' }, /LN_OPENBOT_PILOT definida em produção/],
+    [{ OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET definida em produção/],
+    [{ OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET_PREVIOUS definida em produção/],
+  ];
+  for (const [vars, esperado] of casos) {
+    const msg = envProblems({ ...PROD, ...vars }, { deploy: true }).join('|');
+    assert.match(msg, esperado, JSON.stringify(Object.keys(vars)));
+    assert.doesNotMatch(msg, /valor-ficticio-de-teste/, 'a mensagem nunca repete o valor');
+    assert.doesNotMatch(envProblems({ APP_ENV: 'staging', ...vars }, { deploy: true }).join('|'), /definida em produção/, 'staging aceita');
+  }
+  assert.deepEqual(envProblems({ APP_ENV: 'production' }, { deploy: true }).filter((m) => /OPENBOT|LN_FLAGS_ON|PILOT/.test(m)), [], 'produção limpa não reprova');
+  assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /LN_FLAGS_ON definida em produção/);
+  assert.doesNotMatch(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /openbotDispatch/, 'só cita openbotDispatch quando ela está no valor');
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
+  assert.equal(c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET').secreto, true);
+  assert.doesNotMatch(JSON.stringify(c), /"valor"\s*:\s*"[^"]{8,}"/, 'o contrato só tem nomes, nenhum valor');
+});

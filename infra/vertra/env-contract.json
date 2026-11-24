@@ -245,7 +245,8 @@
         "workers"
       ],
       "dono_do_codigo": "packages/openbot (Integration)",
-      "nota": "Segredo HMAC das tarefas do OpenBot. Do cofre, via set_env, nunca em arquivo, chat ou commit. Valor DISTINTO em staging e producao."
+      "nota": "Segredo HMAC das tarefas do OpenBot (piloto DP-41). SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start); sem ela as rotas do OpenBot respondem 401. Do cofre, via set_env, nunca em arquivo, chat, log ou commit.",
+      "so_staging": true
     },
     {
       "nome": "OPENBOT_HMAC_SECRET_PREVIOUS",
@@ -256,7 +257,8 @@
       ],
       "opcional": true,
       "dono_do_codigo": "packages/openbot (Integration)",
-      "nota": "Segredo anterior, aceito so durante a rotacao; apagar depois. Mesmas regras de OPENBOT_HMAC_SECRET."
+      "nota": "Segredo anterior, aceito so durante a rotacao; apagar depois. SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start); sem ela as rotas do OpenBot respondem 401. Do cofre, via set_env, nunca em arquivo, chat, log ou commit.",
+      "so_staging": true
     },
     {
       "nome": "MLABS_MCP_TOKEN",
