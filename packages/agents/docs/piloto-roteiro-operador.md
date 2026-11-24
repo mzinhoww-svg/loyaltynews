@@ -126,6 +126,11 @@ Do mais leve ao mais forte; **pare no primeiro que resolver**:
 4. **Parada do piloto** (violação): é automática (`PILOT_STOPPED`, 423); só o passo 7 a libera.
 5. **Reverter de vez:** rotacione o segredo HMAC (o antigo vai em `OPENBOT_HMAC_SECRET_PREVIOUS` até trocar o arquivo do cofre do OpenBot, depois remova o `_PREVIOUS`). `delete_agent` exige o OK do proprietário e não é necessário para parar.
 
+**Paradas conservadoras (decisão do PM, 24/11): PARE nestes três casos, mesmo que o despacho ainda não tenha parado sozinho.**
+- **Primeira linha INVÁLIDA:** o próprio gate já recusa e o piloto fica em `PILOT_STOPPED`; não retome sem entender e corrigir a linha (a retomada só limpa se o gate aceitar).
+- **Primeiro fato de gravidade ALTA lido** (leitor 1 ou 2): pare de despachar novas matérias. Hoje a leitura não é gravada na linha do banco (só entra no CSV do Studio), então **o código não para o despacho sozinho: é critério seu**. O `avaliar-piloto` mostra `PARADO`.
+- **`pilot_row_patch_failed` duas vezes seguidas** (duas linhas seguidas de checagem ou revisão concluídas sem `gate_verdict`): pare. O adaptador hoje filtra essas linhas antes do gate, então **também é critério seu** até o `pilotBlock` ser ajustado.
+
 Depois de parar: registre hora, quem parou, o motivo e o que o agente viu (código da API, sem segredo).
 
 ## 10. Encerrar o piloto

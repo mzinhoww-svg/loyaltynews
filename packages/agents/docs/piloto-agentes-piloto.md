@@ -1,6 +1,6 @@
 # Agentes do piloto de 10 matérias: briefing, roteiro de ativação e critérios de parada (NADA CRIADO)
 
-Dono: AgentOps (Frente 07). Estado em 24/11/2026, **conferido contra a main `c4587e0`** (int/022 `56e4cdc` no ar, segundo o PM). **Nenhum agente foi criado no OpenBot, nenhuma flag foi ligada, nenhum modelo foi chamado, sem despesa.** Criar só com o sinal do PM e o segredo HMAC no cofre (PM-2026-11-23-F; item 6 do caminho crítico).
+Dono: AgentOps (Frente 07). Estado em 24/11/2026, **conferido contra a main `c4587e0`** (int/022 `56e4cdc` no ar, segundo o PM). **Nenhum agente foi criado no OpenBot, nenhuma flag foi ligada, nenhum modelo foi chamado, sem despesa.** Segundo o PM (24/11), `OPENBOT_HMAC_SECRET` já está definido no staging e o despacho segue DESLIGADO; os agentes só são criados **depois de a fase com segredo passar e com o sinal do PM** (PM-2026-11-23-F).
 
 Fontes únicas, geradas do código e testadas: o pacote de criação (`packages/agents/artifacts/pilot-creation-pack.md` e `.json`, cópia em `fast-track/piloto/pacote-criacao-agentes.*`) e o roteiro do operador (`fast-track/piloto/roteiro-operador.md`). Este arquivo é o briefing consolidado e a conferência contra a main; **não substitui** o pacote (os campos exatos do `openbot.create_agent` e a mensagem inicial de cada agente estão lá).
 
@@ -17,7 +17,7 @@ Resultado: **o material existente está de acordo com a main**; as diferenças a
 | 5 | Prompts `editorial-0.3` (blob `a7e58bdc24fd`, ft/editorial `b040e53`) | blob de `prompts.ts` **idêntico** (`a7e58bdc24fdbca7e78ab9875c992632439d49aa`) | nenhuma |
 | 6 | Só as contas Claude e Codex (DP-41) | `DP41_ACCOUNTS = [claude, codex]` e o teste `DP-41: openbotDispatch liga só no staging` seguem na main | nenhuma |
 | 7 | Fórmula HMAC, rotas e procedimento do agente | `pilot-creation-pack.test.ts` roda contra o `ROTEIRO-AGENTES-STAGING.md`, o `PROTOCOL.md` e o cliente da main e **passa** (procedimento linha a linha, tabela de modelos, rotas, cabeçalhos) | nenhuma |
-| 8 | Estado do staging | A última evidência versionada (`EVIDENCIA-STAGING-2026-11-23.md`, 24/11 ~10:30, versão `051a828`) mostra `flags: []` e **sem segredo HMAC** (`401 sem_segredo`). O PM informa a int/022 no ar com as variáveis do piloto: **não reverifiquei o staging** | pedir nova sonda (Integration, item 3 da lista de tarefas) antes de criar |
+| 8 | Estado do staging | A última evidência versionada (`EVIDENCIA-STAGING-2026-11-23.md`, 24/11 ~10:30, versão `051a828`) mostra `flags: []` e **sem segredo HMAC** (`401 sem_segredo`). O PM informa a int/022 no ar, o segredo já definido no staging e o despacho desligado: **não reverifiquei o staging** | pedir nova sonda (Integration, item 3 da lista de tarefas) antes de criar |
 
 Testes rodados na main `c4587e0` (worktree próprio, `check-ln-links` ok): vitest de `packages/agents` e `packages/openbot` **494 passam, 8 pulados**; eslint 0.
 
@@ -110,18 +110,26 @@ Testes rodados na main `c4587e0` (worktree próprio, `check-ln-links` ok): vites
 
 **4.2 Manuais e reversíveis (qualquer momento):** remover `LN_FLAGS_ON` (pull 423 `DISPATCH_OFF`); kill switch da rota `openbot` (423 `KILL_SWITCH`; admin, MFA, auditado; callback em curso fecha); parar de mandar ciclos aos agentes; rotacionar o segredo.
 
-**4.3 Do avaliador (não param o despacho, mas invalidam ou reprovam a amostra):** linha inválida (conta × modelo contraditório, `approved` com motivo bloqueante, soma de gravidades errada etc.) = amostra inválida; independência reprovada (checagem ou revisão no provedor do redator); qualidade (mais de 0 altas ou mais de 1 média). `output_valid` abaixo de 95% é só destaque (PM-2026-11-23-J).
+**4.3 Do avaliador (não param o despacho, mas invalidam ou reprovam a amostra):** independência reprovada (checagem ou revisão no provedor do redator); qualidade (mais de 0 altas ou mais de 1 média). `output_valid` abaixo de 95% é só destaque (PM-2026-11-23-J).
 
-**4.4 Propostas ao PM (não são regra hoje; decidir antes de ligar):** (a) parar de despachar novas matérias ao primeiro `INVÁLIDO` ou independência reprovada, até entender a causa; (b) parar ao primeiro fato de gravidade ALTA lido, para corrigir o prompt antes de seguir (o critério já reprovaria o piloto); (c) tratar `pilot_row_patch_failed` repetido como parada, porque a linha fica sem veredito. **Limite da conta Claude ou Codex NÃO é parada**: a tarefa espera a janela, sem outra conta e sem API; o piloto mede a janela.
+**4.4 Paradas conservadoras (decisão do PM, 24/11: pilot conservador).** O piloto para: (1) na PRIMEIRA linha inválida, (2) no PRIMEIRO fato de gravidade ALTA e (3) quando o `pilot_row_patch_failed` se repete (2 seguidas). Estado de cada uma no código:
+
+| # | Critério | No código do kit (`packages/agents/src/pilot.ts`) | No piloto ao vivo | O que falta para valer no despacho |
+|---|---|---|---|---|
+| 1 | Primeira linha INVÁLIDA | `canDispatchNext` recusa qualquer linha inválida; `PilotSession` fecha a sessão na linha; o avaliador dá INVÁLIDO | **Já imposto:** o adaptador chama o gate em todo pull, heartbeat, `io` e despacho (423 `PILOT_STOPPED`); a retomada só limpa se o gate aceitar. Exceção: linha de checagem ou revisão concluída ainda SEM veredito (`awaitingEditorialGate`) fica fora da consulta | nada |
+| 2 | Primeiro fato de gravidade ALTA | `highFactOf` e `stopReasonsOf`: `unsupported_high > 0`, ou fato sem gravidade (conta como ALTO), para o `canDispatchNext`, o `PilotSession` e o avaliador (PARADO; `avaliar-piloto` também) | **Só quando a leitura estiver GRAVADA na linha** (`unsupported_*`). Hoje o export do Studio junta a leitura só no CSV; a linha no banco não a recebe | Editorial/Studio/Backend gravarem a leitura do leitor na linha (`applyRowPatch`) ao registrá-la. Até lá é **critério do operador**: ao registrar uma leitura com fato ALTO, parar (passo 9 do roteiro) |
+| 3 | `pilot_row_patch_failed` 2 seguidas | `missingVerdictStreak`, `verdictStreakReasons` e `VERDICT_STREAK_LIMIT = 2`: duas linhas seguidas de checagem ou revisão concluídas sem `gate_verdict`; entram no `canDispatchNext`, no `PilotSession` e no avaliador (PARADO) | **Não vale no adaptador hoje:** o `pilotBlock` (`packages/openbot/src/handlers.ts`) tira essas linhas da consulta antes de chamar o gate, então o gate nunca as vê | Integration/Backend: em `pilotBlock`, calcular `verdictStreakReasons` sobre as linhas SEM o filtro e parar o piloto se houver motivo. Até lá é **critério do operador**: se o evento ou duas linhas seguidas sem veredito aparecerem, parar (passo 9) |
+
+Resumo: o critério 1 está imposto no piloto ao vivo; os critérios 2 e 3 estão no código do kit e no avaliador, mas dependem de código FORA do kit (a Fábrica ou o Studio gravando a leitura na linha, e o `pilotBlock` do adaptador) para parar o despacho; **por ora ficam como critério do operador**. Resolver uma parada por fato ALTO não é possível pelo fluxo de violações (ele só trata as quatro violações); a linha continua contando, então a parada vale até o fim da rodada. **Limite da conta Claude ou Codex NÃO é parada**: a tarefa espera a janela, sem outra conta e sem API; o piloto mede a janela.
 
 ## 5. O que falta (nada disto é criar agente)
 
 1. **Sinal do PM** para criar os agentes e aprovação deste briefing (revisor independente: o PM define).
 2. **Segredo HMAC** criado pelo proprietário e nos dois cofres (item 6); sem ele o `pull` dá 401.
-3. **Nova sonda do staging** (Integration): confirmar a versão no ar (int/022), `flags`, o segredo e o contrato de variáveis; a última evidência versionada é anterior.
+3. **Fase com segredo** (Integration): sonda do staging com o segredo agora definido (heartbeat 404 `LEASE_ERROR`, pull 423 `DISPATCH_OFF`, `/api/health` `flags: []`); só se ela passar o PM dá o sinal para criar.
 4. **Fontes habilitadas** pelo proprietário (ato humano, MFA).
 5. **Prova no staging real** da fiação da Fábrica ao gateway e ao sink (o código está na main; falta o ensaio com agentes de mentira) e do kill switch.
-6. **Decisão do PM** sobre as propostas da seção 4.4.
+6. **Código fora do kit** para impor os critérios 2 e 3 da seção 4.4 (Editorial/Studio/Backend gravam a leitura na linha; Integration/Backend ajustam o `pilotBlock`).
 
 ## 6. Não verificado
 
