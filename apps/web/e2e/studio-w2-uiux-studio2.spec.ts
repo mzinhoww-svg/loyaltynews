@@ -12,9 +12,14 @@ for (const rota of ['/studio/modelops', '/studio/organizacao', '/studio/reunioes
     await page.goto(rota);
     const r = await new AxeBuilder({ page }).include('main').withRules(['scrollable-region-focusable']).analyze();
     expect(r.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
-    for (const t of await page.locator('main table.st-table').all()) {
-      await expect(t).toHaveAttribute('tabindex', '0');
-      await expect(t).toHaveAttribute('aria-label', /.+/);
+    // padrão único do DS (UI/UX): a tabela fica dentro do QuadroRolavel (região com nome e foco); a tabela não tem tabindex
+    const tabelas = page.locator('main table.st-table');
+    for (const t of await tabelas.all()) {
+      await expect(t).not.toHaveAttribute('tabindex', /.*/);
+      const quadro = t.locator('xpath=ancestor::div[contains(@class,"st-quadro")][1]');
+      await expect(quadro).toHaveAttribute('role', 'region');
+      await expect(quadro).toHaveAttribute('tabindex', '0');
+      await expect(quadro).toHaveAttribute('aria-label', /.+/);
     }
   });
 }
