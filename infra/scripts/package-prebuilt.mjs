@@ -3,7 +3,7 @@
 // pacote leva o `.next` construído num Linux, em prebuilt/web-next (o painel remove `.next` dos ZIPs; ver lib/prebuilt.mjs). Não escreve na Vertra nem no GitHub.
 // O `.next` TEM de vir de um build Linux do MESMO commit, com as MESMAS variáveis de build (APP_ENV, NEXT_PUBLIC_SITE_URL, vitrine, indexação, flags) do pacote: por exemplo, o que a própria
 // Vertra construiu num app (snapshot/download_app) ou um runner Linux construindo em /app. Um .next feito no Windows é RECUSADO aqui (caminhos absolutos do host: não roda na Vertra).
-// Uso: node infra/scripts/package-prebuilt.mjs --pacote <pasta do package-web> --next <pasta .next de origem> --out <pasta> --origem "<de onde veio o .next>" [--force]
+// Uso: node infra/scripts/package-prebuilt.mjs --pacote <pasta do package-web> --next <pasta .next de origem> --out <pasta> --origem "<de onde veio o .next>" [--force] [--sem-zip]
 // Sobrepõe no pacote (e registra o SHA-256) infra/scripts/start-web.mjs e infra/scripts/lib/prebuilt.mjs DESTA árvore: são o que restaura o .next na subida.
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -92,22 +92,30 @@ async function main() {
 
   // verificações: nada de .next/node_modules no caminho (o painel os remove), ci-checks do pacote, ZIP íntegro e dentro do limite
   const files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
-  const ruins = files.filter((f) => /(^|\/)\.next\//.test(f) || /(^|\/)node_modules\//.test(f) || /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f));
+  // pastas que o painel e o deploy_app removem do upload (get_docs: node_modules, .local, venv, .venv, __pycache__, .next, vendor, .bundle, target, .gradle, .npm) não podem aparecer no caminho
+  const ruins = files.filter((f) => /(^|\/)(\.next|node_modules|vendor|target|venv|\.venv|__pycache__|\.bundle|\.gradle|\.local|\.npm)\//.test(f) || /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f));
   if (ruins.length) fail(`arquivos proibidos no pacote: ${ruins.slice(0, 5).join(', ')}`);
   const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(release.perfil === 'production' ? ['--producao'] : [])], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote pré-construído:\n${ck.stderr || ck.stdout}`);
-  const z = spawnSync('tar', ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
-  if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP: ${z.stderr || z.error}`);
-  const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  const entradas = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
-  if (entradas.length !== files.length) fail(`pasta (${files.length}) e ZIP (${entradas.length}) divergem`);
-  const bytes = statSync(zip).size;
-  if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
+  // --sem-zip (runner Ubuntu do GitHub Actions: o tar GNU não cria ZIP; o deploy_app envia a PASTA): só confere o tamanho total contra o limite de 100 MB do upload
+  let bytes = 0;
+  if (args['sem-zip']) {
+    for (const f of files) bytes += statSync(join(folder, f)).size;
+    if (bytes > 100 * 1024 * 1024) fail(`pasta de ${(bytes / 1048576).toFixed(1)} MB (descomprimida) passa do limite de 100 MB do upload; confira o ZIP real antes de enviar`);
+  } else {
+    const z = spawnSync('tar', ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
+    if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP: ${z.stderr || z.error}`);
+    const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const entradas = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
+    if (entradas.length !== files.length) fail(`pasta (${files.length}) e ZIP (${entradas.length}) divergem`);
+    bytes = statSync(zip).size;
+    if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
+  }
 
   const man = JSON.parse(readFileSync(manifestOrigem, 'utf8').replace(/^\uFEFF/, ''));
-  const novo = { ...man, pasta: folder, zip, zipSha256: await sha256File(zip), zipBytes: bytes, arquivos: files.length, prebuilt: { ...pb, externos: externos.length, overlays, buildCommand: '(vazio)' } };
+  const novo = { ...man, pasta: folder, zip: args['sem-zip'] ? null : zip, zipSha256: args['sem-zip'] ? null : await sha256File(zip), zipBytes: args['sem-zip'] ? null : bytes, bytesDescomprimidos: args['sem-zip'] ? bytes : null, arquivos: files.length, prebuilt: { ...pb, externos: externos.length, overlays, buildCommand: '(vazio)' } };
   writeFileSync(manifestPath, JSON.stringify(novo, null, 2) + '\n');
-  console.log(JSON.stringify({ ok: true, pasta: folder, zip, zipSha256: novo.zipSha256, zipBytes: bytes, arquivos: files.length, commit: release.commit, buildId, externos, overlays, manifesto: manifestPath }, null, 2));
+  console.log(JSON.stringify({ ok: true, pasta: folder, zip: novo.zip, zipSha256: novo.zipSha256, zipBytes: novo.zipBytes, bytesDescomprimidos: novo.bytesDescomprimidos, arquivos: files.length, commit: release.commit, buildId, externos, overlays, manifesto: manifestPath }, null, 2));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

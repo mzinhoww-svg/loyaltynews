@@ -1,7 +1,7 @@
 // Testes do web PRÉ-CONSTRUÍDO (opção B, 24/11/2026): lib/prebuilt.mjs, o gancho do start-web e o package-prebuilt. Rodar: node --test infra/tests/ (pelo PowerShell: o package-prebuilt usa o tar do sistema para o ZIP)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, lstatSync, unlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync, lstatSync, unlinkSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -196,6 +196,13 @@ test('package-prebuilt: monta o pacote com build vazio, .next em prebuilt/web-ne
       assert.match(x.stderr, /caminho\(s\) do host de build/);
       assert.equal(existsSync(join(base, 'saida2')), false, 'recusado antes de criar saída');
     } finally { rmSync(ruim, { recursive: true, force: true }); }
+    // controle negativo: pasta que o deploy_app/painel remove do upload (vendor) dentro do .next
+    const comVendor = nextFalso(); put(comVendor, 'server/vendor/x.js', 'x');
+    try {
+      const v = spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', comVendor, '--out', join(base, 'saida3'), '--origem', 'teste'], { encoding: 'utf8' });
+      assert.notEqual(v.status, 0);
+      assert.match(v.stderr, /arquivos proibidos no pacote: .*vendor/);
+    } finally { rmSync(comVendor, { recursive: true, force: true }); }
     // segunda execução sem --force não sobrescreve
     const dup = spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', out, '--origem', 'teste'], { encoding: 'utf8' });
     assert.notEqual(dup.status, 0);
@@ -214,4 +221,40 @@ test('package-web inclui no pacote TUDO que o start-web importa (lib/prebuilt.mj
   }
   // o que lib/prebuilt.mjs importa (build-web.mjs) também entra
   for (const m of readFileSync(join(S, 'lib', 'prebuilt.mjs'), 'utf8').matchAll(/from '\.\.\/([^']+\.mjs)'/g)) assert.ok(incluidos.includes('infra/scripts/' + m[1]), `prebuilt.mjs importa ../${m[1]}`);
+});
+
+test('package-prebuilt --sem-zip (runner Ubuntu): monta a pasta sem criar ZIP e o manifesto diz zip null', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const nx = nextFalso();
+  try {
+    const r = spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', join(base, 'saida'), '--origem', 'teste', '--sem-zip'], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr + r.stdout);
+    const j = JSON.parse(r.stdout);
+    assert.equal(j.zip, null);
+    assert.equal(j.zipSha256, null);
+    assert.ok(j.bytesDescomprimidos > 0);
+    assert.ok(existsSync(join(j.pasta, 'prebuilt/web-next/BUILD_ID')));
+    assert.equal(readdirSync(join(base, 'saida')).some((n) => n.endsWith('.zip')), false, 'nenhum ZIP criado');
+    assert.equal(JSON.parse(readFileSync(j.manifesto, 'utf8')).zip, null);
+  } finally { rmSync(base, { recursive: true, force: true }); rmSync(nx, { recursive: true, force: true }); }
+});
+
+test('workflow proposto (infra/ci): só dispara à mão, só leitura, sem segredos, entradas só por ambiente, constrói em /app com o Node da Vertra e usa o package-prebuilt', () => {
+  const y = readFileSync(join(S, '..', 'ci', 'web-prebuilt.workflow.yml'), 'utf8');
+  const codigo = y.split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
+  assert.match(codigo, /^on:\s*\n\s+workflow_dispatch:/m);
+  for (const gatilho of ['pull_request', 'pull_request_target', 'push:', 'schedule:', 'workflow_run']) assert.ok(!codigo.includes(gatilho), `sem gatilho ${gatilho}`);
+  assert.match(codigo, /permissions:\s*\n\s+contents: read\s*\n/);
+  assert.ok(!/secrets\./.test(codigo), 'nenhum secrets.*');
+  assert.ok(!/GITHUB_TOKEN/.test(codigo.replace(/persist-credentials/g, '')), 'sem token explícito');
+  // entradas só em env:/with:/group:, nunca dentro de um bloco `run`
+  for (const l of codigo.split('\n').filter((x) => x.includes('${{ inputs.'))) assert.match(l, /^\s+(LN_[A-Z_]+|ref|name|group):\s/, `entrada fora de env/with: ${l.trim()}`);
+  assert.ok(!/run:[^\n]*\$\{\{ inputs\./.test(codigo));
+  assert.match(codigo, /sudo mkdir -p \/app/);
+  assert.match(codigo, /infra\/vertra\/environments\.json'\)\.runtime\.node/);
+  assert.match(codigo, /actions\/setup-node@v4/);
+  assert.match(codigo, /node infra\/scripts\/build-web\.mjs/);
+  assert.match(codigo, /package-prebuilt\.mjs .*--next \/app\/apps\/web\/\.next .*--sem-zip/);
+  assert.match(codigo, /\[\[ "\$LN_PERFIL" == "production" && -n "\$LN_FLAGS" \]\]/, 'produção recusa flags');
+  assert.match(codigo, /\^\[0-9a-f\]\{40\}\$/);
 });
