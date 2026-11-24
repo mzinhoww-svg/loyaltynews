@@ -172,11 +172,19 @@ export interface CollectorOptions {
   sitemapMaxDecompressedBytes?: number;
   /** Máximo de filhos que um índice de sitemap SEM lastmod pode ter para ser lido inteiro (cada filho é uma requisição). Padrão 12. */
   sitemapMaxChildren?: number;
+  /**
+   * Teto de PÁGINAS coletadas por fonte de sitemap em cada rodada, qualquer que seja o `limit` pedido (o worker usa 20 por padrão). Padrão 5
+   * (`materiasPorRodada` do piloto; decisão do PM): é o que faz o limite por hora do HOST (ex.: 40 em www.gov.br) valer em toda rodada, sem depender de
+   * alguém lembrar de passar 5. Só limita; nunca aumenta o `limit` recebido.
+   */
+  sitemapMaxPagesPerRun?: number;
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
 const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
+/** Páginas por fonte de sitemap em cada rodada (decisão do PM): o teto que segura o limite por hora do host. */
+export const SITEMAP_MAX_PAGES_PER_RUN = 5;
 /** Anexos e mídia que aparecem nos sitemaps (gov.br lista as imagens e PDFs de cada matéria): nunca são matéria. */
 const NON_PAGE_EXT = /\.(png|jpe?g|gif|svg|webp|avif|bmp|tiff?|ico|pdf|docx?|xlsx?|pptx?|odt|ods|csv|zip|gz|rar|7z|mp3|mp4|m4a|wav|webm|mov|avi|xml|json)$/i;
 const skipCodeOf = (e: unknown): SkipCode =>
@@ -199,6 +207,7 @@ export class Collector {
   private readonly dp31MaxStoredChars: number;
   private readonly sitemapMaxDecompressedBytes: number;
   private readonly sitemapMaxChildren: number;
+  private readonly sitemapMaxPagesPerRun: number;
   private readonly readBudget: ReadBudget;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
@@ -221,6 +230,7 @@ export class Collector {
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
     this.sitemapMaxDecompressedBytes = opts.sitemapMaxDecompressedBytes ?? DEFAULT_MAX_DECOMPRESSED_BYTES;
     this.sitemapMaxChildren = opts.sitemapMaxChildren ?? 12;
+    this.sitemapMaxPagesPerRun = opts.sitemapMaxPagesPerRun ?? SITEMAP_MAX_PAGES_PER_RUN;
   }
 
   /**
@@ -535,7 +545,7 @@ export class Collector {
     }
     const chosen = candidates
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))
-      .slice(0, limit);
+      .slice(0, Math.min(limit, this.sitemapMaxPagesPerRun));
     const guard = new StopGuard();
     for (const e of chosen) {
       const r = await this.collectUrl(source, e.loc, { publishedAt: e.lastmod });
