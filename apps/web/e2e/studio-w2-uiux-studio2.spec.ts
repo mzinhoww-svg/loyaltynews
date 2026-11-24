@@ -40,3 +40,12 @@ test('P2-4: links dos agentes em /studio/organizacao com alvo de toque de 44 px'
   expect(await links.count()).toBeGreaterThan(10);
   for (const l of (await links.all()).slice(0, 10)) expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });
+// Ressalva do QA 7 (bfad5fc): a fila de pacotes do @ln/growth/ui em /studio/social também fica no quadro do Studio (região com nome e foco).
+test('P2-1: fila de pacotes da /studio/social dentro do QuadroRolavel', async ({ page, context }) => {
+  await entrar(context, 'uiux-adm', 'admin');
+  await page.goto('/studio/social');
+  const quadro = page.locator('main .st-quadro[role="region"][aria-label="Fila de pacotes sociais"]');
+  await expect(quadro).toHaveAttribute('tabindex', '0');
+  await quadro.focus();
+  await expect(quadro).toBeFocused();
+});
