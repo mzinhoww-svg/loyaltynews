@@ -48,7 +48,7 @@ describe('dossiê de habilitação do piloto (24/11/2026)', () => {
       const s = seed.get(f.id)!;
       expect(f.links.listagem, `${f.id}: listagem`).toBe(s.listingUrl);
       expect(f.links.entrada, `${f.id}: feed/sitemap`).toBe(f.links.tipoEntrada === 'feed' ? s.feedUrl : s.sitemapUrl);
-      expect(f.links.robots).toBe(`${new URL(s.listingUrl).origin}/robots.txt`);
+      expect(f.links.robots).toBe(`${new URL(s.listingUrl!).origin}/robots.txt`); // int/020: listingUrl é string | null no tipo; a linha acima já confere que é igual ao do dossiê
       expect(f.limitePorHora, `${f.id}: limite por hora`).toBe(s.maxRequestsPerHour);
       expect(f.espacamentoSeg).toBeGreaterThanOrEqual(3); expect(f.rodadasPorDia).toBe(1);
       expect(f.links.termos.length).toBeGreaterThanOrEqual(1);
