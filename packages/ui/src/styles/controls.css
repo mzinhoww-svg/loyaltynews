@@ -11,7 +11,7 @@
 .ln-root a.ln-btn--primary:hover, .ln-btn--primary:hover:not(:disabled) { background: var(--ln-color-black); border-color: var(--ln-color-black); }
 .ln-root a.ln-btn--secondary, .ln-btn--secondary { background: var(--ln-color-white); color: var(--ln-color-primary); border-color: var(--ln-color-primary); }
 .ln-root a.ln-btn--secondary:hover, .ln-btn--secondary:hover:not(:disabled) { background: var(--ln-color-mint); }
-.ln-root a.ln-btn--ghost, .ln-btn--ghost { background: transparent; color: var(--ln-color-primary); }
+.ln-root a.ln-btn--ghost, .ln-btn--ghost { background: transparent; color: var(--ln-color-primary); border-color: var(--ln-color-primary); } /* revisão do staging 56e4cdc (P2-1): sem contorno o botão parecia texto solto em fundo claro */
 .ln-root a.ln-btn--ghost:hover, .ln-btn--ghost:hover:not(:disabled) { background: var(--ln-color-mint); }
 .ln-btn:disabled, .ln-btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 
