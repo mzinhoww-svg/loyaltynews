@@ -211,21 +211,22 @@ test.describe('honestidade de dados', () => {
     expect(new Set(nomes).size).toBe(nomes.length); // nomes distintos (leitor de tela diferencia as tabelas)
     // foco por teclado: Tab chega a uma região e o anel de foco aparece
     const primeira = regioes.first();
-    await primeira.focus();
-    await expect(primeira).toBeFocused();
+    await page.waitForLoadState('networkidle'); // hidratado: o foco dado antes disso se perdia na remontagem
+    await expect.poll(async () => { await primeira.focus(); return primeira.evaluate((el) => el === document.activeElement); }, { timeout: 10_000 }).toBe(true);
     const outline = await primeira.evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: parseFloat(s.outlineWidth) }; });
     expect(outline.style).not.toBe('none');
     expect(outline.width).toBeGreaterThanOrEqual(2);
   });
 
-  test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }, info) => {
+  test('P3-5: no desktop o mapa (≤ 520 px) e a lista ficam lado a lado e a figura é baixa; no celular ficam empilhados', async ({ page }) => {
     await page.goto('/midia-kit');
+    const largo = page.viewportSize()!.width >= 1024; // pela largura da tela, não pelo nome do projeto (a rodada geral só tem 'chromium')
     const svg = (await page.locator('[data-testid="mk-mapa"] svg').boundingBox())!;
     const lista = (await page.getByTestId('mk-mapa-lista').boundingBox())!;
     const figura = (await page.getByTestId('mk-mapa').boundingBox())!;
     const vb = (await page.locator('[data-testid="mk-mapa"] svg').getAttribute('viewBox'))!.split(' ').map(Number);
     expect(svg.height / svg.width).toBeCloseTo(vb[3]! / vb[2]!, 1); // proporção preservada
-    if (info.project.name === 'desktop') {
+    if (largo) {
       expect(svg.width).toBeLessThanOrEqual(520.5);
       expect(lista.x).toBeGreaterThanOrEqual(svg.x + svg.width); // lista à direita do mapa
       expect(lista.y).toBeLessThan(svg.y + svg.height); // e começa na altura do mapa
@@ -270,11 +271,12 @@ test.describe('honestidade de dados', () => {
     expect(await kicker.getAttribute('style')).toBeNull();
   });
 
-  test('P3-b: título de abertura do mídia kit em escala de exibição (≥ 28 px no celular, 44 px no desktop) e sem estourar a tela', async ({ page }, info) => {
+  test('P3-b: título de abertura do mídia kit em escala de exibição (≥ 28 px no celular, 44 px no desktop) e sem estourar a tela', async ({ page }) => {
     await page.goto('/midia-kit');
+    const largo = page.viewportSize()!.width >= 1024; // pela largura da tela, não pelo nome do projeto (a rodada geral só tem 'chromium')
     const h1 = page.locator('.pt-hero-band--mk h1');
     const size = parseFloat(await h1.evaluate((el) => getComputedStyle(el).fontSize));
-    if (info.project.name === 'desktop') expect(size).toBeCloseTo(44, 0); else expect(size).toBeGreaterThanOrEqual(28);
+    if (largo) expect(size).toBeCloseTo(44, 0); else expect(size).toBeGreaterThanOrEqual(28);
     const lh = parseFloat(await h1.evaluate((el) => getComputedStyle(el).lineHeight)) / size;
     expect(lh).toBeCloseTo(1.15, 2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -284,15 +286,16 @@ test.describe('honestidade de dados', () => {
     expect(outro).toBeLessThanOrEqual(36);
   });
 
-  test('P3-d: Audiência em duas colunas no desktop (tempo real ao lado do histórico) e empilhada no celular, sem perder métrica', async ({ page }, info) => {
+  test('P3-d: Audiência em duas colunas no desktop (tempo real ao lado do histórico) e empilhada no celular, sem perder métrica', async ({ page }) => {
     await page.goto('/midia-kit');
+    const largo = page.viewportSize()!.width >= 768; // as duas colunas começam em 768 px
     const grupos = page.getByTestId('audience-groups');
     const [a, b] = await grupos.locator(':scope > div').all();
     const ba = (await a!.boundingBox())!; const bb = (await b!.boundingBox())!;
     await expect(a!.locator('h3')).toHaveText('Tempo real');
     await expect(b!.locator('h3')).toHaveText('Histórico');
     expect(await grupos.locator('.pt-metric').count()).toBeGreaterThanOrEqual(2);
-    if (info.project.name === 'desktop') {
+    if (largo) {
       expect(Math.abs(ba.y - bb.y)).toBeLessThan(2); // mesma linha
       expect(bb.x).toBeGreaterThan(ba.x + ba.width - 1);
     } else {

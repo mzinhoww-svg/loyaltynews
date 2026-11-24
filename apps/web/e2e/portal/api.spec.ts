@@ -155,8 +155,8 @@ test.describe('mídia kit via API comercial', () => {
     }
     expect(nomes[0]).toContain('Preços de referência: Banners');
     expect(nomes[1]).toContain('Preços de referência: The Loyal');
-    await precos.nth(1).focus();
-    await expect(precos.nth(1)).toBeFocused();
+    await page.waitForLoadState('networkidle'); // hidratado antes de focar
+    await expect.poll(async () => { await precos.nth(1).focus(); return precos.nth(1).evaluate((el) => el === document.activeElement); }, { timeout: 10_000 }).toBe(true);
   });
 
   test('cobertura: só a coleta da API (origem, janela e data); métrica de demonstração (seed) vira "—" e "sem dado real"', async ({ page }) => {
