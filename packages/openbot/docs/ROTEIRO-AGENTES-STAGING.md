@@ -75,3 +75,6 @@ Remover `LN_FLAGS_ON` (pull **423** `DISPATCH_OFF`) ou acionar o kill switch (42
 - Se o modelo segue o procedimento sem desvio (medir na planilha: `output_valid`, `tool_outside_contract`).
 - Texto e hora de retomada que cada conta informa no limite; id exato do modelo declarado por conta.
 - Consumo de assinatura por ciclo de `pull` vazio.
+
+## 9. Pacote de criação do AgentOps (campo a campo, nada criado)
+O AgentOps gera, a partir do mesmo código dos rascunhos, o pacote com os campos do `openbot.create_agent` de cada um dos 5 agentes (nome, título, descrição ≤ 2000 caracteres, provedor, modelo, backup Sonnet da Pauta na mesma conta, esforço, `initialMessage` = o procedimento do §4 com os campos preenchidos), os cabeçalhos HMAC (quem assina é o cliente; `x-ln-signature` e `x-ln-timestamp`), o checklist de criação e a reversão: `packages/agents/artifacts/pilot-creation-pack.md` e `.json` (cópia em `fast-track/piloto/`). Um teste do AgentOps (`pilot-creation-pack.test.ts`) confere que o procedimento e a tabela do §2 deste roteiro são os mesmos do pacote; se você mudar um dos dois, o teste falha. **Nada foi criado**: continua valendo o sinal do PM (PM-2026-11-23-F).
