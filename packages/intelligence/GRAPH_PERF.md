@@ -89,6 +89,23 @@ PostgreSQL 18.6 (staging), 114.990 arestas sintéticas, rodando da máquina do P
 - **Gatilho da adjacência materializada** (tabela com uma linha por aresta direcionada, vigência e certeza, chave por nó): qualquer um destes: (a) p95 medido **na mesma rede** acima de 250 ms na consulta de organização (hoje a estimativa é 288); (b) **≥ 500 mil arestas** reais; (c) algum nó com **grau acima de ~2 mil** (a fronteira cresce linearmente); (d) o EXPLAIN do pior caso mostrar a visão `graph_edge` dominando. Exige migração, gatilho/rotina de manutenção e decisão de consistência (dono: `@ln/db`).
 - O dado real hoje é pequeno (29 organizações, 40 pessoas): nada disto bloqueia 24/11. A a2c4255 **pode seguir para integração** (decisão do PM): a consulta única é equivalente (QA 3) e cumpre o critério por estimativa; manter a BFS em lote no código como alternativa medida.
 
+## 4ª rodada (desenho): medir de DENTRO da rede da Vertra, pelo caminho mais barato
+**Escolha: execução ÚNICA no worker de staging (`dist/bench-graph.js`), saída só no log, schema descartável.** Não é rota de diagnóstico no web.
+
+| | Execução única no worker (escolhida) | Rota de diagnóstico só no staging |
+|---|---|---|
+| Custo | zero (o worker e a conexão TLS já existem) | zero, mas é código novo exposto em HTTP |
+| Superfície de ataque | **nenhuma**: não é rota, não escuta porta; só roda se alguém executa o comando com `--confirm-staging-bench` | rota autenticada num serviço público: precisa de papel, limite de taxa e flag, e a medição de 1–2 min prende uma requisição HTTP (timeout do proxy) |
+| Credencial | a que o worker **já tem** no ambiente (`DATABASE_URL` + `DB_SSL_*_PEM`); nada novo, nada impresso | idem, mas a resposta HTTP vira canal de saída |
+| Dados carregados | intocados: só o schema `ln_bench_<data>` (sintético), apagado no fim, em erro e em SIGINT/SIGTERM | idem |
+| Esforço | pronto (commit abaixo) | maior: rota, autorização, testes, retirada depois |
+
+**O que foi feito** (`apps/workers/src/bench-graph.ts` + `bench-graph.main.ts`, `npm run build:bench-graph -w @ln/workers`; testes `bench-graph.test.ts`): mesmo padrão de `staging-admin`/`seed-staging`. Limites **antes** de abrir qualquer conexão: (L1) `APP_ENV=staging` exato, (L2) `--confirm-staging-bench` obrigatório, (L3) `DATABASE_URL` tem de ser o banco de staging registrado em `infra/vertra/bindings.json` (host e nome, embutido no build), (L4) nada de URL/usuário/senha/PEM na saída (filtro de saída do worker + só tipo/código do erro). A migração oficial 0006 vai embutida no bundle como texto; a lógica é a **mesma** de `packages/intelligence/src/bench-pg.ts` (homologada pelo QA 3). Recusas (produção, sem confirmação, banco errado) saem com código 2 sem abrir conexão (conferido no binário). O relatório inclui `origem: "dentro da rede (worker de staging)"` e a ida e volta do `SELECT 1` **medida dali** (o valor que faltava).
+
+**Como rodar (DevOps/PM, uma vez):** `node apps/workers/dist/bench-graph.js --confirm-staging-bench --with-reference --with-indexes` no ambiente do worker de staging (mesmas variáveis do worker; não precisa de `REDIS_URL`), capturando o stdout do processo. Fumaça antes: `--scale 0.02`. Se faltar `CREATE` no banco para essa credencial, falha com `42501` e mensagem clara (não escala privilégio). **O método de execução em si (terminal da Vertra, comando de início temporário do worker ou job) é do DevOps**: o código só precisa de um `node` com as variáveis do worker.
+
+**Leitura do resultado:** com `network.select1_roundtrip.p50_ms` pequeno (poucos ms), `results.*.p95_ms` já é a medição **na mesma rede**: critério cumprido se todos < 300 (`meets_criterion`). Compare `results` (consulta única) com `reference_batched`: a diferença decide qual implementação o produto usa (ver o achado da 3ª rodada). Se `meets_criterion` vier falso mesmo de dentro, o `explain` e `server_side` mostram o que sobra de consulta; aí valem a adjacência materializada e/ou outra estratégia, **não** a 0030 (descartada).
+
 ## Como medir no PostgreSQL real (o PM roda; o agente de dados não recebe a credencial)
 ```
 # 0) compilar (sem credenciais)
