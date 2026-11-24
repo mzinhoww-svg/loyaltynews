@@ -64,6 +64,13 @@ test.describe('páginas por tipo de matéria', () => {
     const b = await (await get(`q=${encodeURIComponent('  entrevista  ')}`)).json();
     expect(b.total).toBe(a.total);
     expect(a.total).toBeGreaterThan(0);
+    // limit: inteiro de 1 a 100; offset: inteiro >= 0; editoria: do catálogo (fora disso 400, nunca lista vazia) — contrato do Backend 3
+    for (const qs of ['limit=0', 'limit=101', 'limit=abc', 'limit=1.5', 'limit=-1', 'offset=-1', 'offset=abc', 'editoria=nao-existe', 'editoria=']) {
+      const r = await get(qs);
+      expect(r.status(), qs).toBe(400);
+      expect((await r.json()).error.code, qs).toBe('VALIDATION_ERROR');
+    }
+    for (const qs of ['limit=1', 'limit=100', 'offset=0', 'editoria=global', 'editoria=regulacao']) expect((await get(qs)).status(), qs).toBe(200);
     // nenhum erro de validação usa 422
     for (const qs of ['tipo=', 'tipo=invalido', 'q=%20', `q=${'a'.repeat(101)}`]) expect((await get(qs)).status()).not.toBe(422);
   });

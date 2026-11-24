@@ -180,6 +180,8 @@ const adPlan = (positions) => ({
   slots: positions.map((id) => (adsMode === 'com' && ADS_DIM[id] ? { positionId: id, available: true, width: ADS_DIM[id][0], height: ADS_DIM[id][1], mobile: ADS_MOBILE[id] } : { positionId: id, available: false, width: null, height: null, mobile: [] })),
 });
 
+// Catálogo de editorias do @ln/contracts (editorias.data.ts): fora dele a API responde 400, não lista vazia.
+const EDITORIAS = ['mercado', 'programas', 'pontos', 'bancos', 'varejo', 'travel', 'tech', 'crm', 'global', 'regulacao'];
 const TIPOS = ['noticia', 'flash', 'analise', 'entrevista', 'opiniao', 'estudo', 'patrocinado', 'cobertura_evento'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Portão de teste do estado "carregando": q=portao-<chave> segura a resposta até POST /__portao/abrir?chave=<chave> (ou 30 s). Determinístico:
@@ -262,9 +264,15 @@ http
       if (q0 === 'lento') await sleep(2500);
       if (q0?.startsWith('portao-')) await Promise.race([portao(q0).promessa, sleep(30_000)]);
       if (q0 === 'falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'Banco não configurado (detalhe interno de teste).' } });
-      const limit = Number(u.searchParams.get('limit') ?? 20);
-      const offset = Number(u.searchParams.get('offset') ?? 0);
+      // Contrato (Backend 3): limit inteiro de 1 a 100; offset inteiro >= 0; editoria do catálogo. Fora disso = 400 VALIDATION_ERROR.
+      const limRaw = u.searchParams.get('limit');
+      const offRaw = u.searchParams.get('offset');
+      const limit = limRaw === null ? 20 : /^\d+$/.test(limRaw) ? Number(limRaw) : NaN;
+      const offset = offRaw === null ? 0 : /^\d+$/.test(offRaw) ? Number(offRaw) : NaN;
+      if (!(limit >= 1 && limit <= 100)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'limit inválido (1 a 100)' } });
+      if (!(offset >= 0 && offset <= 100_000)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'offset inválido' } });
       const ed = u.searchParams.get('editoria');
+      if (ed !== null && !EDITORIAS.includes(ed)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'editoria inválida' } });
       const q = u.searchParams.get('q')?.trim().toLowerCase();
       // Contrato: `tipo` filtra por tipoConteudo (valor inválido ou vazio = 400 VALIDATION_ERROR, não é ignorado); q aparado, até 100 caracteres (acima disso ou só espaços = 400), casando título OU resumo, como o Backend (ft/backend-3).
       const tipo = u.searchParams.get('tipo');

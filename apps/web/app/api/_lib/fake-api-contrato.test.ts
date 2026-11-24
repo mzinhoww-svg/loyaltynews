@@ -76,10 +76,6 @@ const CASES: Case[] = [
 // int/015: tipo e q de matérias saíram da lista porque o fake da int/014 já está alinhado nesses casos (os 5 passaram a reprovar como it.fails).
 // int/016: os 4 casos do Intelligence saíram da lista porque o fake da ft/portal-intelligence (6c1bbbb) já está alinhado à API (mesmo efeito do ft/backend-3 a4b6f01, ainda sem parecer).
 const KNOWN: Record<string, string> = {
-  'materias: limit 0': 'fake não valida limit (200), API 400 (1–100)',
-  'materias: limit 101': 'fake não valida limit (200), API 400 (1–100)',
-  'materias: offset negativo': 'fake não valida offset (200), API 400',
-  'materias: editoria inexistente': 'fake devolve lista vazia (200), API 400 (editoria fora do catálogo)',
 };
 
 let app: Awaited<ReturnType<typeof makeApp>>;
