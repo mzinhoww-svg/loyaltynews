@@ -27,6 +27,29 @@ const ALLOWED: ReadonlyArray<{ method: string; path: string }> = [
 
 const notFound = () => Response.json(apiError('NOT_FOUND', 'Rota inexistente.'), { status: 404 });
 
+// Limite de tentativas do 2º FATOR (mesmos parâmetros do sign-in: 5 por 15 min, bloqueio de 15 min): sem ele um atacante que já tem a senha cria um desafio novo a cada
+// 5 códigos (o Better Auth só limita por desafio, e o login correto zera o contador da conta) e adivinha os 6 dígitos. O sujeito é o USUÁRIO do desafio (cookie two_factor
+// pendente) ou da sessão, e o IP; os contadores são separados dos do sign-in (prefixo `2fa:`) e valem para TOTP e código de recuperação juntos.
+const TWO_FACTOR_VERIFY: ReadonlySet<string> = new Set(['/two-factor/verify-totp', '/two-factor/verify-backup-code']);
+
+/** Id do usuário que está tentando o 2º fator: o do desafio pendente (cookie assinado `two_factor`) ou o da sessão. Sem nenhum dos dois: null (só vale o limite por IP). */
+async function twoFactorUserId(auth: Auth, request: Request): Promise<string | null> {
+  try {
+    const ctx = await auth.$context;
+    const name = ctx.createAuthCookie('two_factor').name;
+    const raw = (request.headers.get('cookie') ?? '').split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1);
+    if (raw) {
+      const identifier = decodeURIComponent(raw).split('.')[0] ?? '';
+      const found = identifier ? await ctx.internalAdapter.findVerificationValue(identifier) : null;
+      if (found && new Date(found.expiresAt).getTime() > Date.now() && found.value) return String(found.value);
+    }
+    const session = await auth.api.getSession({ headers: request.headers });
+    return session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export interface AuthHandlerOptions {
   auth: Auth;
   db: Db;
@@ -87,9 +110,34 @@ export function createAuthHandler({ auth, db, basePath = '/api/auth', now = () =
       return res;
     }
 
+    let userSubject: string | null = null;
+    let ipSubject: string | null = null;
+    if (TWO_FACTOR_VERIFY.has(path)) {
+      const userId = await twoFactorUserId(auth, request);
+      userSubject = userId ? `2fa:${userId}` : null;
+      ipSubject = ip ? `2fa:${ip}` : null;
+      // pré-cobra (atômico por sujeito) ANTES de verificar o código: N simultâneas não passam de 5
+      const byUser: Acquire = userSubject ? await acquireAttempt(db, 'conta', userSubject, t) : { allowed: true };
+      const byIp: Acquire = ipSubject ? await acquireAttempt(db, 'ip', ipSubject, t) : { allowed: true };
+      if (!byUser.allowed || !byIp.allowed) {
+        if (byUser.allowed && userSubject) await releaseAttempt(db, 'conta', userSubject);
+        if (byIp.allowed && ipSubject) await releaseAttempt(db, 'ip', ipSubject);
+        const until = !byUser.allowed ? byUser.until : (byIp as { until: Date }).until;
+        await audit(db, { action: 'login.2fa_bloqueado', resource: 'sessao', ip, detalhe: { ...(userId ? { usuario: userId } : {}), via: path === '/two-factor/verify-totp' ? 'totp' : 'codigo_recuperacao', ate: until.toISOString() }, at: t });
+        const retry = Math.max(1, Math.ceil((until.getTime() - t.getTime()) / 1000));
+        return Response.json(apiError('TOO_MANY_ATTEMPTS', 'Muitas tentativas. Tente novamente mais tarde.'), { status: 429, headers: { 'Retry-After': String(retry) } });
+      }
+    }
+
     const res = await auth.handler(request);
+    if (TWO_FACTOR_VERIFY.has(path) && res.ok) {
+      // código certo: zera o contador do usuário e devolve a cobrança do IP (como no sign-in)
+      if (userSubject) await resetAccount(db, userSubject);
+      if (ipSubject) await releaseAttempt(db, 'ip', ipSubject);
+    }
     const acao: Record<string, string> = {
       '/two-factor/verify-totp': res.ok ? 'login.2fa_ok' : 'login.2fa_falha',
+      '/two-factor/verify-backup-code': res.ok ? 'login.2fa_codigo_recuperacao_ok' : 'login.2fa_codigo_recuperacao_falha',
       '/two-factor/enable': 'mfa.ativacao_iniciada',
       '/two-factor/disable': 'mfa.desativado',
       '/sign-out': 'sessao.encerrada',

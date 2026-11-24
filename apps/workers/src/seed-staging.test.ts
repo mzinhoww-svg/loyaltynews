@@ -49,6 +49,11 @@ describe('seed de staging', () => {
       // nada de recibo, fonte ou evidência inventados
       expect(await db.select().from(schema.articleSources)).toHaveLength(0);
       expect(await db.select().from(schema.evidences)).toHaveLength(0);
+      // N-02: títulos de seção da home e nomes de editoria SEM o rótulo (o rótulo fica no conteúdo)
+      const [home] = await db.select().from(schema.siteDocumentos).where(eq(schema.siteDocumentos.id, `${SEED_PREFIX}site-home`));
+      const titulos = (home!.conteudo as { blocos: { titulo: string }[] }).blocos.map((b) => b.titulo);
+      expect(titulos).toEqual(['Destaques', 'Mercado', 'Últimas', 'Agenda']);
+      for (const e of await db.select().from(schema.editorias)) expect(e.nome).not.toContain(SEED_LABEL);
       // SEO do seed é noindex
       const [seo] = await db.select().from(schema.siteDocumentos).where(eq(schema.siteDocumentos.id, `${SEED_PREFIX}site-seo_global`));
       expect((seo!.conteudo as { indexacao: string }).indexacao).toBe('noindex');
@@ -71,6 +76,25 @@ describe('seed de staging', () => {
       expect(c.problemas).toEqual(expect.arrayContaining([expect.stringContaining('art-1 sem rótulo'), expect.stringContaining('precisa ser noindex')]));
       const out: string[] = [];
       expect(await run(['check'], {}, (s) => out.push(s), t.db)).toBe(1); // check é só leitura: roda em qualquer ambiente
+    } finally {
+      await t.close();
+    }
+  });
+
+  it('N-02: a conferência recusa o rótulo de demonstração em título de seção da home e em nome de editoria', async () => {
+    const t = await createTestDb();
+    try {
+      const db = t.db as unknown as Db;
+      await applyStagingSeed(db, STG, NOW);
+      expect((await checkStagingSeed(db)).ok).toBe(true);
+      const id = `${SEED_PREFIX}site-home`;
+      const [home] = await db.select().from(schema.siteDocumentos).where(eq(schema.siteDocumentos.id, id));
+      const c0 = home!.conteudo as { blocos: { titulo: string }[] };
+      await db.update(schema.siteDocumentos).set({ conteudo: { ...c0, blocos: c0.blocos.map((b, i) => (i === 1 ? { ...b, titulo: `${SEED_LABEL} Mercado` } : b)) } }).where(eq(schema.siteDocumentos.id, id));
+      await db.update(schema.editorias).set({ nome: `${SEED_LABEL} Bancos` }).where(eq(schema.editorias.slug, 'bancos'));
+      const c = await checkStagingSeed(db);
+      expect(c.ok).toBe(false);
+      expect(c.problemas).toEqual(expect.arrayContaining([expect.stringContaining('título de seção'), expect.stringContaining('editoria bancos')]));
     } finally {
       await t.close();
     }

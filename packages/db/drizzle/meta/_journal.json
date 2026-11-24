@@ -204,6 +204,13 @@
       "when": 1795463954203,
       "tag": "0028_openbot_pilot_resolutions",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795464275839,
+      "tag": "0029_fonte_rapida_evidencias",
+      "breakpoints": true
     }
   ]
 }

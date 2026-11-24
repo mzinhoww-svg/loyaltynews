@@ -14,3 +14,9 @@ export function realContent(positionId: string = 'TOP', over: Partial<{ asset: C
     ...over,
   };
 }
+
+/** Criativo real na variante MOBILE da posição (320x100 ou 300x250). Hash e chave diferentes do desktop. */
+export function realMobileContent(positionId: string = 'TOP', size: '320x100' | '300x250' = '320x100') {
+  const [width, height] = size.split('x').map(Number) as [number, number];
+  return realContent(positionId, { asset: { key: `ads/teste/${positionId}-${size}.png`, mime: 'image/png', width, height, sizeKB: 30, sha256: 'cd'.repeat(32) } });
+}

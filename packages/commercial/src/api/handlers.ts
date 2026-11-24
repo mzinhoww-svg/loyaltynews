@@ -43,11 +43,11 @@ export const submitLead = define({
 });
 
 // ---------- ad server público ----------
-const ServeInput = z.object({ positionId: PositionId, pageViewId: z.string().min(1).max(128), isBot: z.boolean().optional(), isInternal: z.boolean().optional() });
+const ServeInput = z.object({ positionId: PositionId, pageViewId: z.string().min(1).max(128), isBot: z.boolean().optional(), isInternal: z.boolean().optional(), device: z.enum(['mobile', 'desktop']).optional() });
 /** Serve o anúncio da posição. Com a flag `adServerVendas` desligada nada é servido (house) e nada é contado. */
 export const serveAd = define({ auth: 'public', schema: ServeInput }, (ctx, i) => {
   if (!isEnabled('adServerVendas', ctx.flags)) return ok<ServeResult>({ kind: 'house', creativeId: null, impressionId: null, counted: false, reason: 'ad server desligado (flag adServerVendas)' });
-  return ok(ctx.ads.serve({ positionId: i.positionId, today: ctx.today, pageViewId: i.pageViewId, isBot: i.isBot, isInternal: i.isInternal, nowMs: Date.parse(ctx.now) }));
+  return ok(ctx.ads.serve({ positionId: i.positionId, today: ctx.today, pageViewId: i.pageViewId, isBot: i.isBot, isInternal: i.isInternal, device: i.device, nowMs: Date.parse(ctx.now) }));
 });
 export const recordAdEvent = define({ auth: 'public', schema: z.object({ impressionId: z.string().min(1), event: z.enum(['visible', 'click']) }) }, (ctx, i) => {
   if (!isEnabled('adServerVendas', ctx.flags)) return ok({ counted: false });
