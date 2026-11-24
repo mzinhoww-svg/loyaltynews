@@ -39,6 +39,8 @@ export interface ProdAdminDeps {
 export type ProdAdminResult =
   | { status: 'created'; userId: string; emailDomain: string }
   | { status: 'refused'; reason: string }
+  /** O proprietário interrompeu (Ctrl-C) ANTES de qualquer alteração: nada mudou. */
+  | { status: 'cancelled' }
   | { status: 'failed'; step: string; reason: string };
 
 export interface ProdAdminOptions {
@@ -217,6 +219,7 @@ export async function bootstrapProductionAdmin(deps: ProdAdminDeps, io: ProdAdmi
     return { status: 'created', userId, emailDomain };
   } catch (e) {
     io.clear(); // nada de segredo fica na tela depois de uma falha
+    if (!userId && (e as Error).name === 'ProdAdminAborted') return { status: 'cancelled' }; // antes de criar qualquer coisa: nada mudou
     const reason = e instanceof Step ? e.message : (e as Error).name === 'ProdAdminAborted' ? 'interrompido pelo proprietário' : 'erro inesperado';
     const failedStep = e instanceof Step ? e.step : step;
     if (userId) {
@@ -225,4 +228,79 @@ export async function bootstrapProductionAdmin(deps: ProdAdminDeps, io: ProdAdmi
     }
     return { status: 'failed', step: failedStep, reason };
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// S8: REVOGAR o administrador de produção (credencial vazada, celular e códigos perdidos). Mesmos P1–P3 da criação (CLI só do proprietário, TTY, ambiente e banco de produção), frase PRÓPRIA,
+// e a ordem importa: primeiro `banned` (a guarda nega qualquer sessão de usuário banido) e as sessões são apagadas; só depois se apaga o resto. Se a remoção falhar no meio o usuário
+// continua BANIDO e sem sessão (estado seguro) e o evento `revogacao_admin_producao_incompleta` é auditado. Depois da revogação não há administrador: a cerimônia de criação pode ser repetida.
+// Auditoria `revogacao_admin_producao`: id e DOMÍNIO do e-mail, nunca o endereço nem segredo.
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** Frase digitada pelo proprietário para revogar (diferente da de criação). */
+export const PROD_ADMIN_REVOKE_PHRASE = 'REVOGAR O ADMINISTRADOR DE PRODUCAO';
+
+export type ProdAdminRevokeResult =
+  | { status: 'revoked'; userId: string; emailDomain: string }
+  | { status: 'refused'; reason: string }
+  /** Ctrl-C antes de qualquer alteração: nada mudou. */
+  | { status: 'cancelled' }
+  | { status: 'incomplete'; userId: string; step: string };
+
+/** O que dizer ao proprietário conforme ONDE a revogação parou: a mensagem nunca afirma um estado que não foi alcançado. */
+export function revokeIncompleteMessage(step: string): string {
+  if (step === 'banimento') return 'A revogação falhou ao BANIR o administrador: NADA foi alterado (ele continua ativo, com sessões e 2º fator). Rode de novo; se persistir, chame o Security (quebra-vidro).';
+  if (step === 'sessoes') return 'A revogação parou ao apagar as sessões: o administrador está BANIDO (a guarda nega qualquer sessão de banido), mas as sessões podem ainda existir no banco. Rode de novo ou chame o Security.';
+  return 'A revogação parou na remoção: o administrador está BANIDO e sem sessões (estado seguro), mas a remoção dos dados não terminou. Rode de novo ou chame o Security.';
+}
+
+export async function revokeProductionAdmin(deps: Pick<ProdAdminDeps, 'db'>, io: ProdAdminIO, opts: ProdAdminOptions = {}): Promise<ProdAdminRevokeResult> {
+  const { db } = deps;
+  io.show('REVOGAÇÃO DO ADMINISTRADOR DE PRODUÇÃO. Nenhum agente deve estar em execução neste computador (OpenBot fechado).');
+  let phrase: string;
+  try {
+    phrase = await io.ask(`Para continuar, digite exatamente: ${PROD_ADMIN_REVOKE_PHRASE}\n> `);
+  } catch (e) {
+    if ((e as Error).name === 'ProdAdminAborted') return { status: 'cancelled' }; // Ctrl-C antes de qualquer alteração: nada mudou
+    throw e;
+  }
+  if (phrase.trim() !== PROD_ADMIN_REVOKE_PHRASE) return { status: 'refused', reason: 'frase de confirmação incorreta: nada foi feito' };
+  const admins = await db.select({ id: schema.user.id, email: schema.user.email }).from(schema.user).where(eq(schema.user.role, 'admin'));
+  if (admins.length === 0) return { status: 'refused', reason: 'não há administrador para revogar' };
+  let alvo: { id: string; email: string } | undefined;
+  try {
+    alvo = await tries(io, 'identidade', async () => {
+      const e = (await io.ask('E-mail do administrador a revogar: ')).trim().toLowerCase();
+      const achado = admins.find((a) => a.email.toLowerCase() === e);
+      if (!achado) throw new Error('nenhum administrador com esse e-mail');
+      return achado;
+    });
+  } catch (e) {
+    if ((e as Error).name === 'ProdAdminAborted') return { status: 'cancelled' };
+    return { status: 'refused', reason: 'administrador não identificado: nada foi feito' };
+  }
+  const emailDomain = alvo.email.split('@')[1] ?? '';
+  const userId = alvo.id;
+  let step = 'banimento';
+  try {
+    // 1) banido primeiro: a guarda nega qualquer sessão de usuário banido, mesmo que o resto falhe
+    await db.update(schema.user).set({ banned: true }).where(eq(schema.user.id, userId));
+    // 2) sessões
+    step = 'sessoes';
+    await db.delete(schema.session).where(eq(schema.session.userId, userId));
+    // 3) o resto (cada passo é obrigatório aqui: se algo falhar, o usuário fica banido e o evento é incompleto)
+    step = 'remocao';
+    await db.delete(schema.twoFactor).where(eq(schema.twoFactor.userId, userId));
+    await db.delete(schema.account).where(eq(schema.account.userId, userId));
+    await db.delete(schema.verification).where(eq(schema.verification.value, userId));
+    await db.delete(schema.authAttempt).where(or(eq(schema.authAttempt.subject, alvo.email), eq(schema.authAttempt.subject, `2fa:${userId}`)));
+    await db.delete(schema.user).where(eq(schema.user.id, userId));
+  } catch {
+    await audit(db, { actorId: null, actorRole: 'cli', action: 'revogacao_admin_producao_incompleta', resource: 'usuarios', resourceId: userId, detalhe: { etapa: step, commit: opts.commit ?? null } }).catch(() => undefined);
+    io.show(revokeIncompleteMessage(step));
+    return { status: 'incomplete', userId, step };
+  }
+  await audit(db, { actorId: null, actorRole: 'cli', action: 'revogacao_admin_producao', resource: 'usuarios', resourceId: userId, detalhe: { emailDominio: emailDomain, etapas: ['banido', 'sessoes_apagadas', 'removido'], commit: opts.commit ?? null } });
+  io.show('Administrador revogado: banido, sessões apagadas e removido (auditado como revogacao_admin_producao). Para voltar a ter um administrador, repita a cerimônia de criação.');
+  return { status: 'revoked', userId, emailDomain };
 }

@@ -1,6 +1,7 @@
 // CLI da cerimônia do PRIMEIRO administrador de PRODUÇÃO. ATO RESERVADO DO PROPRIETÁRIO (decisão 14 do Security; roteiro r0-preparacao/seguranca/20_cerimonia-primeiro-admin-producao.md;
 // decisão PM-2026-11-23-N): roda NA MÁQUINA DO PROPRIETÁRIO, em terminal interativo (Windows Terminal ou PowerShell), com os valores de conexão do banco injetados só em memória.
-//   node dist/prod-admin.js --confirm-production-bootstrap
+//   node dist/prod-admin.js --confirm-production-bootstrap             (criar o 1º administrador)
+//   node dist/prod-admin.js --revoke --confirm-production-revoke       (S8: revogar o administrador; frase própria; banned + sessões antes de apagar)
 // Limites (todos ANTES de abrir qualquer conexão):
 //   P1 APP_ENV exatamente `production` E DATABASE_URL = o banco de produção registrado em infra/vertra/bindings.json (host e nome; produção sem vínculo = recusa);
 //   P2 a flag `--confirm-production-bootstrap` E a frase digitada (pedida pela cerimônia);
@@ -10,9 +11,13 @@
 //   S5 nada vai para a área de transferência (a CLI não oferece "copiar").
 // Build: npm run build:prod-admin -w @ln/workers. Variáveis: DATABASE_URL + DB_SSL_*_PEM (do script de credenciais, só no ambiente do processo), BETTER_AUTH_SECRET (≥ 32, O MESMO do app web:
 // o segredo do TOTP é cifrado com ele; rotacioná-lo depois invalida o 2º fator), BETTER_AUTH_URL (https://, origem do Studio), LN_COMMIT_SHA (opcional, vai na auditoria).
-import { bootstrapProductionAdmin, type Auth, type Db, type ProdAdminDeps, type ProdAdminIO } from '@ln/auth';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { bootstrapProductionAdmin, revokeIncompleteMessage, revokeProductionAdmin, type Auth, type Db, type ProdAdminDeps, type ProdAdminIO } from '@ln/auth';
 import { getRuntime } from '@ln/auth/runtime';
-import { installOutputFilter, installProcessGuards } from '@ln/db/safe-log';
+import { schema } from '@ln/db';
+import { installOutputFilter, installProcessGuards, onClientError } from '@ln/db/safe-log';
+import { pgPoolConfig } from '@ln/db/tls';
 import bindingsFile from '../../../infra/vertra/bindings.json';
 import type { BindingsFile } from './staging-admin';
 
@@ -136,7 +141,7 @@ export interface CliContext {
   io?: ProdAdminIO;
 }
 
-const USAGE = 'uso: prod-admin --confirm-production-bootstrap   (sem outros argumentos: senha, e-mail e códigos são digitados no terminal)';
+const USAGE = 'uso: prod-admin --confirm-production-bootstrap   (criar o 1º administrador)   |   prod-admin --revoke --confirm-production-revoke   (revogar o administrador). Sem outros argumentos: senha, e-mail e códigos são digitados no terminal.';
 
 export async function run(
   argv: string[],
@@ -146,8 +151,10 @@ export async function run(
   injected?: ProdAdminDeps,
   ctx: CliContext = {},
 ): Promise<number> {
-  // P3: nenhum argumento além da confirmação (nada de --secret-file, --tty, --email ...)
-  if (argv.some((a) => a !== '--confirm-production-bootstrap')) {
+  // P3: nenhum argumento além da confirmação (nada de --secret-file, --tty, --email ...). Dois modos, sem mistura: criar OU revogar (S8)
+  const create = argv.length === 1 && argv[0] === '--confirm-production-bootstrap';
+  const revoke = argv.length === 2 && argv.includes('--revoke') && argv.includes('--confirm-production-revoke');
+  if (argv.length > 0 && !create && !revoke) {
     out(USAGE);
     return 2;
   }
@@ -160,8 +167,8 @@ export async function run(
     return 2;
   }
   // P2: confirmação explícita por flag
-  if (!argv.includes('--confirm-production-bootstrap')) {
-    out(`recusado: falta --confirm-production-bootstrap. ${USAGE}`);
+  if (!create && !revoke) {
+    out(`recusado: falta --confirm-production-bootstrap (criar) ou --revoke --confirm-production-revoke (revogar). ${USAGE}`);
     return 2;
   }
   // P3: só interativo (S3: Windows Terminal ou PowerShell; mintty/Git Bash costuma não ser TTY para o Node)
@@ -170,6 +177,44 @@ export async function run(
     out('recusado: a cerimônia exige terminal interativo na entrada E na saída (sem pipe, arquivo ou CI). Use o Windows Terminal ou o PowerShell; o Git Bash (mintty) costuma não ser TTY para o Node.');
     return 2;
   }
+  const io = ctx.io ?? new TerminalIO();
+
+  // S8 — REVOGAR: só precisa do banco. NÃO exige BETTER_AUTH_SECRET nem BETTER_AUTH_URL (o quebra-vidro tem de funcionar sem o segredo do app web).
+  if (revoke) {
+    let rdeps: Pick<ProdAdminDeps, 'db'> | undefined = injected;
+    let pool: Pool | undefined;
+    if (!rdeps) {
+      try {
+        pool = new Pool(pgPoolConfig(env, { max: 2 })); // TLS com certificado de cliente (DB_SSL_*_PEM)
+        pool.on('error', onClientError('[prod-admin] pg (conexão ociosa)')); // C1: nunca o objeto de erro (traz o TLS com a chave)
+        rdeps = { db: drizzle(pool, { schema }) as unknown as Db };
+      } catch {
+        out('banco não configurado (confira DATABASE_URL e DB_SSL_*_PEM).');
+        return 2;
+      }
+    }
+    try {
+      const v = await revokeProductionAdmin(rdeps, io, { commit: env.LN_COMMIT_SHA ?? null });
+      if (v.status === 'revoked') {
+        out(`Administrador de produção revogado (domínio ${v.emailDomain}): banido, sessões apagadas e removido; auditado como revogacao_admin_producao. Feche este terminal. Para ter um administrador de novo, repita a cerimônia de criação.`);
+        return 0;
+      }
+      if (v.status === 'cancelled') {
+        out('Cancelado pelo proprietário: nada mudou.');
+        return 2;
+      }
+      if (v.status === 'refused') {
+        out(`recusado: ${v.reason}`);
+        return 2;
+      }
+      out(`${revokeIncompleteMessage(v.step)} O evento revogacao_admin_producao_incompleta foi auditado.`);
+      return 1;
+    } finally {
+      await pool?.end().catch(() => undefined);
+    }
+  }
+
+  // CRIAR: precisa do MESMO BETTER_AUTH_SECRET do app web (o segredo do TOTP é cifrado com ele) e da origem https do Studio
   let deps = injected;
   if (!deps) {
     const secret = env.BETTER_AUTH_SECRET ?? '';
@@ -188,11 +233,14 @@ export async function run(
     }
     deps = { db: rt.db as Db, auth: rt.auth as Auth, handle: rt.handle, baseURL: env.BETTER_AUTH_URL! };
   }
-  const io = ctx.io ?? new TerminalIO();
   const r = await bootstrapProductionAdmin(deps, io, { commit: env.LN_COMMIT_SHA ?? null });
   if (r.status === 'created') {
     out(`Administrador de produção criado (domínio ${r.emailDomain}) e auditado como bootstrap_admin_producao. Feche este terminal. Nenhum segredo foi gravado.`);
     return 0;
+  }
+  if (r.status === 'cancelled') {
+    out('Cancelado pelo proprietário: nada mudou.');
+    return 2;
   }
   if (r.status === 'refused') {
     out(`recusado: ${r.reason}`);

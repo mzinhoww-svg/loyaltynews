@@ -198,3 +198,85 @@ describe('TerminalIO: entrada sem eco, Ctrl-C e limpeza da tela e do histórico 
     expect(nucleo).not.toMatch(/console\.(log|error|info)|process\.stdout/); // todo texto sai pela interface de terminal
   });
 });
+
+describe('S8: modo --revoke pela CLI', () => {
+  const REV = ['--revoke', '--confirm-production-revoke'];
+
+  it('exige os DOIS argumentos e nada mais; não mistura com a criação; as mesmas barreiras P1/P3 valem (ambiente, vínculo, TTY)', async () => {
+    for (const ruim of [['--revoke'], ['--confirm-production-revoke'], [...REV, '--confirm-production-bootstrap'], [...REV, '--secret-file', '/tmp/x'], [...REV, 'x@y.com'], ['--revoke', '--confirm-production-bootstrap']]) {
+      const r = await exec(ruim);
+      expect(r.code, ruim.join(' ')).toBe(2);
+      expect(r.text).toMatch(/^uso: prod-admin/);
+    }
+    expect((await exec(REV, { APP_ENV: 'staging', DATABASE_URL: DB })).code).toBe(2);
+    expect((await exec(REV, PROD, { bindings: SEM_PROD })).text).toMatch(/sem vínculo de banco/);
+    expect((await exec(REV, { APP_ENV: 'production', DATABASE_URL: 'postgres://u:SENHA@outro.vertra.invalid/ln_prod' })).code).toBe(2);
+    const sem = await exec(REV, PROD, { tty: false });
+    expect(sem.code).toBe(2);
+    expect(sem.text).toMatch(/Windows Terminal ou o PowerShell/);
+  });
+
+  it('revoga pelo terminal (saída 0): a mensagem só leva o domínio; frase errada = saída 2 sem alterar; depois de revogada, repetir recusa (não há administrador)', async () => {
+    // cria o administrador pela própria CLI (terminal falso)
+    const mostrado: string[] = [];
+    const criador: ProdAdminIO = {
+      show: (l) => mostrado.push(l),
+      clear: () => undefined,
+      ask: async (p) => (p.includes('digite exatamente') ? PROD_ADMIN_CONFIRM_PHRASE : p.startsWith('E-mail') ? 'dona@exemplo-real.com' : p.startsWith('Nome') ? 'Fulana' : 'SALVEI'),
+      askHidden: async (p) => {
+        if (p.startsWith('Senha') || p.startsWith('Repita')) return SENHA;
+        const l = mostrado.find((x) => x.trim().startsWith('chave:'))!;
+        const key = base32.decode(l.replace('chave:', '').replace(/\s+/g, '').toUpperCase());
+        return p.includes('Segundo') ? createOTP(key).hotp(Math.floor(Date.now() / 1000 / 30) + 1) : createOTP(key).totp();
+      },
+    };
+    await t.db.delete(schema.user as never);
+    expect((await exec(OK, PROD, { io: criador })).code).toBe(0);
+    const revogador = (frase: string): ProdAdminIO => ({ show: () => undefined, clear: () => undefined, ask: async (p) => (p.includes('digite exatamente') ? frase : 'dona@exemplo-real.com'), askHidden: async () => '' });
+    const errada = await exec(REV, PROD, { io: revogador('revogar') });
+    expect(errada.code).toBe(2);
+    expect(await t.db.select().from(schema.user)).toHaveLength(1);
+    const ok = await exec(REV, PROD, { io: revogador('REVOGAR O ADMINISTRADOR DE PRODUCAO') });
+    expect(ok.code).toBe(0);
+    expect(ok.text).toMatch(/revogado \(domínio exemplo-real\.com\)/);
+    for (const proibido of [SENHA, 'dona@exemplo-real.com', 'otpauth', DB]) expect(ok.text, proibido).not.toContain(proibido);
+    await nenhumUsuario();
+    const de_novo = await exec(REV, PROD, { io: revogador('REVOGAR O ADMINISTRADOR DE PRODUCAO') });
+    expect(de_novo.code).toBe(2);
+    expect(de_novo.text).toMatch(/não há administrador para revogar/);
+  });
+});
+
+describe('ressalvas do QA 6 no --revoke (739ef4f), pela CLI', () => {
+  const REV = ['--revoke', '--confirm-production-revoke'];
+
+  it('revogar NÃO exige BETTER_AUTH_SECRET nem BETTER_AUTH_URL https (o quebra-vidro funciona sem o segredo do web); criar continua exigindo os dois', async () => {
+    const out: string[] = [];
+    // sem dependências injetadas e SEM os dois: revogar passa da checagem de ambiente e tenta abrir o banco (que aqui é um host inexistente) — a recusa NÃO é sobre o segredo
+    const r = await run(REV, { ...PROD }, (s) => out.push(s), undefined, { bindings: BINDINGS, tty: true, io: { show: () => undefined, clear: () => undefined, ask: async () => { throw Object.assign(new Error('x'), { name: 'ProdAdminAborted' }); }, askHidden: async () => '' } });
+    const txt = out.join('\n');
+    expect(txt).not.toMatch(/BETTER_AUTH_SECRET|BETTER_AUTH_URL/);
+    expect(txt).toMatch(/Cancelado pelo proprietário: nada mudou/); // chegou ao terminal: Ctrl-C na frase
+    expect(r).toBe(2);
+    // criar, no mesmo ambiente, continua pedindo o segredo do web
+    out.length = 0;
+    expect(await run(OK, { ...PROD }, (s) => out.push(s), undefined, { bindings: BINDINGS, tty: true })).toBe(2);
+    expect(out.join('\n')).toMatch(/BETTER_AUTH_SECRET/);
+  });
+
+  it('Ctrl-C na frase é "Cancelado pelo proprietário: nada mudou" (não "falhou"), na revogação e na criação, e não altera nada', async () => {
+    const abortar: ProdAdminIO = { show: () => undefined, clear: () => undefined, ask: async () => { throw Object.assign(new Error('x'), { name: 'ProdAdminAborted' }); }, askHidden: async () => '' };
+    for (const argv of [REV, OK]) {
+      const r = await exec(argv, PROD, { io: abortar });
+      expect(r.code, argv.join(' ')).toBe(2);
+      expect(r.text).toBe('Cancelado pelo proprietário: nada mudou.');
+      expect(r.text).not.toMatch(/falhou|recusado/);
+    }
+  });
+
+  it('revogação incompleta pela CLI usa a mensagem da etapa (saída 1); o texto do banimento não afirma "BANIDO"', async () => {
+    const { revokeIncompleteMessage } = await import('@ln/auth');
+    expect(revokeIncompleteMessage('banimento')).not.toMatch(/está BANIDO/);
+    expect(revokeIncompleteMessage('remocao')).toMatch(/BANIDO e sem sessões/);
+  });
+});
