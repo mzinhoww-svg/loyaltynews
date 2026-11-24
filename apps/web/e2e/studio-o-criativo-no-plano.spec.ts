@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { definirFlag, entrar, enviar } from './helpers';
+import { anexarEEnviar } from './upload-teste';
 import { png } from './png-teste';
 
 // Criativo aprovado chegando ao plano público (/api/commercial/ads/plan) — fecha a pendência do 15e42eb depois da DP-43 (capacidade liberada
@@ -56,15 +57,12 @@ test.describe('Criativo aprovado no plano (staging, DP-43)', () => {
       await page.getByLabel('Destino (https').fill('https://planostaging.example/oferta');
       await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
       await sucesso(page, 'Criativo adicionado');
-      await page.waitForLoadState('networkidle');
       return (await page.locator('li[data-criativo]').last().getAttribute('data-criativo'))!;
     };
     const enviarArquivo = async (id: string, dispositivo: 'desktop' | 'mobile', w: number, h: number) => {
       await page.getByLabel(`Dispositivo de ${id}`).selectOption(dispositivo);
-      await page.getByLabel(`Arquivo de ${id}`).setInputFiles({ name: `${id}.png`, mimeType: 'image/png', buffer: png(w, h) });
-      await enviar(page, page.getByRole('button', { name: `Enviar arquivo de ${id}` }));
+      await anexarEEnviar(page, id, { name: `${id}.png`, mimeType: 'image/png', buffer: png(w, h) });
       await sucesso(page, 'Arquivo do criativo enviado');
-      await page.waitForLoadState('networkidle');
     };
     const d = await novo('Lateral no ar, desktop');
     const m = await novo('Lateral no ar, celular');

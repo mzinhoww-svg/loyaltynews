@@ -2,6 +2,7 @@ import { deflateSync } from 'node:zlib';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { definirFlag, entrar, enviar } from './helpers';
+import { anexarEEnviar } from './upload-teste';
 
 // Criativo real ponta a ponta no Studio (Studio 3): arquivo enviado e medido no servidor → aprovação com as regras do domínio → plano público /ads/plan.
 // Armazenamento: Blob EM MEMÓRIA (MOCK) ligado só neste spec, pelo backend de e2e. adServerVendas fica desligada por padrão; ela só é ligada no
@@ -83,24 +84,20 @@ test.describe('Criativo real ponta a ponta', () => {
       await page.getByLabel('Destino (https').fill('https://criativoreal.example/oferta');
       await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
       await sucesso(page, 'Criativo adicionado');
-      await page.waitForLoadState('networkidle');
       return (await page.locator('li[data-criativo]').last().getAttribute('data-criativo'))!;
     };
     const a = await novo('Oferta Criativo Real');
     const b = await novo('');
     const c = await novo('Sem arquivo');
-    await page.waitForLoadState('networkidle'); // a lista é remontada depois de cada criação: anexar antes disso perde o arquivo
 
     // arquivo na dimensão errada: recusado antes de gravar, o criativo continua sem arquivo
-    await page.getByLabel(`Arquivo de ${a}`).setInputFiles({ name: 'errado.png', mimeType: 'image/png', buffer: png(300, 250) });
-    await enviar(page, page.getByRole('button', { name: `Enviar arquivo de ${a}` }));
+    await anexarEEnviar(page, a, { name: 'errado.png', mimeType: 'image/png', buffer: png(300, 250) });
     await erro(page, /não serve como desktop de SIDEBAR_1: o esperado é 336x280/);
     await expect(page.locator(`li[data-criativo="${a}"]`)).toContainText('Arquivo: nenhum');
 
     // arquivo certo: tipo, dimensão, peso e hash medidos no servidor
     for (const id of [a, b]) {
-      await page.getByLabel(`Arquivo de ${id}`).setInputFiles({ name: `${id}.png`, mimeType: 'image/png', buffer: png(336, 280) });
-      await enviar(page, page.getByRole('button', { name: `Enviar arquivo de ${id}` }));
+      await anexarEEnviar(page, id, { name: `${id}.png`, mimeType: 'image/png', buffer: png(336, 280) });
       await sucesso(page, 'Arquivo do criativo enviado');
       await expect(page.locator(`li[data-criativo="${id}"]`)).toContainText(/image\/png, 336x280, .* KB, sha256 [0-9a-f]{12}…/);
     }
@@ -113,8 +110,7 @@ test.describe('Criativo real ponta a ponta', () => {
     await expect(page.locator(`li[data-criativo="${m}"] [data-variante]`)).toHaveText('Sem arquivo');
     const enviarMobile = async (w: number, h: number) => {
       await page.getByLabel(`Dispositivo de ${m}`).selectOption('mobile');
-      await page.getByLabel(`Arquivo de ${m}`).setInputFiles({ name: `${m}.png`, mimeType: 'image/png', buffer: png(w, h) });
-      await enviar(page, page.getByRole('button', { name: `Enviar arquivo de ${m}` }));
+      await anexarEEnviar(page, m, { name: `${m}.png`, mimeType: 'image/png', buffer: png(w, h) });
     };
     await enviarMobile(320, 100);
     await erro(page, 'Arquivo 320x100 não serve como mobile de SIDEBAR_1: o esperado é 300x250.');
