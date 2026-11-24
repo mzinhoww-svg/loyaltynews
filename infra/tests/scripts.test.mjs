@@ -1309,3 +1309,17 @@ test('conferir-staging-admin: avaliar aprova só com um admin .invalid, 2º fato
   assert.equal(x.status, 2);
   assert.match(x.stderr, /APP_ENV tem de ser staging/);
 });
+
+test('package-web --bench-graph: só worker, só staging; --bench-args em lista fechada separada por vírgula', () => {
+  const base = ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada')];
+  const web = node('package-web.mjs', [...base, '--profile', 'staging', '--bench-graph']);
+  assert.equal(web.status, 2); assert.match(web.stderr, /--bench-graph só vale para o worker/);
+  const prod = node('package-web.mjs', [...base, '--profile', 'production', '--app', 'workers', '--bench-graph']);
+  assert.equal(prod.status, 2); assert.match(prod.stderr, /só vale no perfil staging/);
+  const solto = node('package-web.mjs', [...base, '--profile', 'staging', '--app', 'workers', '--bench-args', 'replace']);
+  assert.equal(solto.status, 2); assert.match(solto.stderr, /--bench-args exige --bench-graph/);
+  for (const ruim of ['scale=9;rm', 'scale=2', 'rm -rf', 'schema=intelligence', 'with-reference;x']) {
+    const x = node('package-web.mjs', [...base, '--profile', 'staging', '--app', 'workers', '--bench-graph', '--bench-args', ruim]);
+    assert.equal(x.status, 2, ruim); assert.match(x.stderr, /argumento não permitido/, ruim);
+  }
+});

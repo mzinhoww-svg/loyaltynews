@@ -29,6 +29,21 @@ const vitrine = Boolean(args.vitrine);
 //   o resultado fica no release log do deploy e no get_logs do worker. Prova temporária: tire a flag quando o Linux estiver provado.
 const provaPng = Boolean(args['prova-png']);
 if (provaPng && args.app !== 'workers') fail('--prova-png só vale para o worker (--app workers)', 2);
+// --bench-graph [--bench-args "scale=0.02,with-reference,with-indexes"] (só o worker, só staging, APP ÚNICO E DESCARTÁVEL): build também gera dist/bench-graph.js e o start roda a CLI de execução ÚNICA
+//   (Data, ft/intelligence 87ae52e) e depois dorme, para a Vertra não reiniciar o processo e repetir a medição; o relatório sai no stdout (get_logs). Nunca no worker de verdade.
+//   --bench-args é uma lista separada por vírgula SEM "--" (o parseArgs leria "--x" como outra opção): scale=<0.001..1>, with-reference, with-indexes, replace, schema=ln_bench_AAAAMMDD.
+const benchGraph = Boolean(args['bench-graph']);
+const benchArgsRaw = args['bench-args'] && args['bench-args'] !== true ? String(args['bench-args']).trim() : '';
+const benchTokens = [];
+if (benchGraph && args.app !== 'workers') fail('--bench-graph só vale para o worker (--app workers)', 2);
+if (benchGraph && args.profile !== 'staging') fail('--bench-graph só vale no perfil staging', 2);
+if (!benchGraph && (benchArgsRaw !== '' || args['bench-args'] !== undefined)) fail('--bench-args exige --bench-graph', 2);
+for (const t of benchArgsRaw === '' ? [] : benchArgsRaw.split(',').map((x) => x.trim())) {
+  if (['with-reference', 'with-indexes', 'replace'].includes(t)) benchTokens.push(`--${t}`);
+  else if (/^scale=(0?\.\d{1,3}|1)$/.test(t)) benchTokens.push('--scale', t.slice(6));
+  else if (/^schema=ln_bench_\d{8}$/.test(t)) benchTokens.push('--schema', t.slice(7));
+  else fail(`--bench-args: argumento não permitido "${t.slice(0, 30)}" (use scale=0.02, with-reference, with-indexes, replace, schema=ln_bench_AAAAMMDD, separados por vírgula)`, 2);
+}
 // --intelligence-alertas (só o worker, só staging, exige --flags intelligencePessoas): liga o job de alertas das watchlists (Backend 2, af07005) com LN_INTELLIGENCE_ALERTS=on e
 //   LN_INTELLIGENCE_PESSOAS=on. Grava jobsIntelligence no release.json; o guard-env exige que as três variáveis LN_INTELLIGENCE_* batam com ele (a releitura REREAD nunca é ligada por pacote).
 // --intelligence-releitura (mesmas regras): LN_INTELLIGENCE_REREAD=on + LN_INTELLIGENCE_PESSOAS=on; LN_REREAD_SEED e BRIGHTDATA_API_KEY (opcional) o PM grava pelo cofre, sem valor no pacote.
@@ -104,11 +119,11 @@ if (flagsLigadas.length && String(appEnvBuild).toLowerCase() !== 'staging') fail
 if (vitrine && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--vitrine recusado: APP_ENV do perfil é "${appEnvBuild}"; a vitrine só vale com APP_ENV=staging`, 2);
 if (vitrine && !siteUrl) fail('--vitrine exige --subdomain (o build_command com build-web.mjs/release.json é o que liga e confere a vitrine)', 2);
 const buildBase = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs' : web.build_command;
-const buildCmd = provaPng ? `${buildBase} && (node infra/scripts/prova-png.mjs --etapa build || true)` : buildBase;
+const buildCmd = benchGraph ? `${buildBase} && npm run build:bench-graph -w @ln/workers` : provaPng ? `${buildBase} && (node infra/scripts/prova-png.mjs --etapa build || true)` : buildBase;
 // O start_command também falha fechado: start-web.mjs confere APP_COMMIT (40 hex = release.json), NEXT_PUBLIC_SITE_URL e APP_ENV em EXECUÇÃO e só então inicia o Next.
 const startBase = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/start-web.mjs' : web.start_command;
 if (provaPng && !String(startBase).includes('node apps/workers/dist/index.js')) fail('--prova-png: o start do worker mudou; ajuste o package-web', 2);
-const startCmd = provaPng ? String(startBase).replace('node apps/workers/dist/index.js', '(node infra/scripts/prova-png.mjs --etapa start || true) && node apps/workers/dist/index.js') : startBase;
+const startCmd = benchGraph ? `node infra/scripts/guard-env.mjs && (node apps/workers/dist/bench-graph.js --confirm-staging-bench${benchTokens.length ? ' ' + benchTokens.join(' ') : ''} ; sleep 86400)` : provaPng ? String(startBase).replace('node apps/workers/dist/index.js', '(node infra/scripts/prova-png.mjs --etapa start || true) && node apps/workers/dist/index.js') : startBase;
 
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
@@ -123,7 +138,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ benchGraph, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -131,7 +146,7 @@ const vArgs = Object.entries(virtuals).map(([p, c]) => `--add-virtual-file=${p}:
 
 // 5. destino (nunca sobrescreve sem --force)
 const out = resolve(String(args.out));
-const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}${jobsIntelligence.length ? `-${jobsIntelligence.join('-')}` : ''}${provaPng ? '-prova-png' : ''}`;
+const name = `ln-${appKey === 'workers' ? 'workers' : 'web'}-${profile}-${sha12}${appKey === 'web' && args.subdomain && args.subdomain !== true ? `-${sub}` : ''}${vitrine ? '-vitrine' : ''}${flagsLigadas.length ? '-flags' : ''}${jobsIntelligence.length ? `-${jobsIntelligence.join('-')}` : ''}${provaPng ? '-prova-png' : ''}${benchGraph ? '-bench-graph' : ''}`;
 const folder = join(out, name);
 const zip = join(out, `${name}.zip`);
 const manifestPath = join(out, `${name}.manifest.json`);
