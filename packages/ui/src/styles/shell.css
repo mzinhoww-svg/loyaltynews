@@ -107,3 +107,8 @@
 @media (min-width: 1024px) {
   .ln-footer__list a { min-height: 30px; }
 }
+
+/* Tablet e celular: botões do cabeçalho com alvo de toque de 44px (a 768px o "Anuncie" tinha 40px) */
+@media (max-width: 1023px) { .ln-header__actions .ln-btn, .ln-header .ln-header__cta { min-height: var(--ln-touch-target); } }
+/* A-2: lista de editorias do rodapé em 2 colunas também no celular (o rodapé a 390px passava de 1.350px) */
+@media (min-width: 360px) and (max-width: 767px) { .ln-footer__list--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-3); } }

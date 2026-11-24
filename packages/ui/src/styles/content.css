@@ -99,3 +99,6 @@
 /* V-11: tags/links de editoria com alvo de toque de 44px no mobile */
 @media (max-width: 767px) { .ln-root a.ln-tag--link { min-height: var(--ln-touch-target); } }
 .ln-card .ln-badge { font-size: 0.6875rem; line-height: 1rem; letter-spacing: 0.03em; padding: 1px 6px; }
+
+/* D-6: na miniatura pequena (card sm, 112px) o rótulo "Ilustração conceitual" quebra em 2 linhas e fica menor, sem cobrir metade da imagem; o texto continua o mesmo e visível */
+.ln-card--sm .ln-card__imglabel { left: var(--ln-space-1); bottom: var(--ln-space-1); max-width: calc(100% - var(--ln-space-2)); white-space: normal; font-size: 0.625rem; line-height: 0.8125rem; padding: 1px var(--ln-space-1); }

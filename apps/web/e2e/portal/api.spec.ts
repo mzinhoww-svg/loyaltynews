@@ -92,6 +92,28 @@ test.describe('matéria via API pública', () => {
     else await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('.ln-card__imglabel')).toHaveCount(0);
   });
 
+  test('N-01: a matéria vinda da API (sem lateral) começa pelo menos 16 px abaixo do cabeçalho', async ({ page }) => {
+    await page.goto('/noticia/api-ilustracao-corrigida');
+    await expect(page.locator('.ln-breadcrumb')).toBeVisible();
+    // A API de teste não traz ranking nem anúncio: não há .pt-layout, e o respiro tem de vir da própria matéria.
+    await expect(page.locator('.pt-layout')).toHaveCount(0);
+    const gap = await page.evaluate(() => document.querySelector('.ln-breadcrumb')!.getBoundingClientRect().top - document.querySelector('header')!.getBoundingClientRect().bottom);
+    expect(gap).toBeGreaterThanOrEqual(16);
+  });
+
+  test('D-6: o rótulo da ilustração na miniatura pequena (card sm) tem pelo menos 10 px e cobre no máximo metade da imagem', async ({ page }) => {
+    await page.goto('/editoria/pontos');
+    const card = page.locator('article.ln-card--sm', { hasText: 'imagem venceu' });
+    await expect(card.locator('.ln-card__imglabel')).toBeVisible();
+    const m = await card.evaluate((c) => {
+      const l = c.querySelector('.ln-card__imglabel')!.getBoundingClientRect();
+      const i = c.querySelector('.ln-card__media')!.getBoundingClientRect();
+      return { px: parseFloat(getComputedStyle(c.querySelector('.ln-card__imglabel')!).fontSize), cobertura: (l.width * l.height) / (i.width * i.height) };
+    });
+    expect(m.px).toBeGreaterThanOrEqual(10);
+    expect(m.cobertura).toBeLessThanOrEqual(0.5);
+  });
+
   test('F-04: notícia sem imagem numa grade só de elegíveis mostra a ilustração conceitual da editoria, com rótulo; a matéria segue sem figura', async ({ page }) => {
     await page.goto('/editoria/pontos');
     const card = page.locator('article.ln-card', { hasText: 'imagem venceu' });
