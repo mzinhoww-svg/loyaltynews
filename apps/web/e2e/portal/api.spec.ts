@@ -77,12 +77,31 @@ test.describe('matéria via API pública', () => {
     await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();
   });
 
-  test('V-07: listagem com matéria sem imagem não mostra imagem nem rótulo em nenhum card (todos ou nenhum)', async ({ page }) => {
+  test('V-07 + F-04: na listagem todos os cards têm imagem (publicada ou ilustração padrão) e cada um com o seu rótulo', async ({ page }) => {
     await page.goto('/noticias');
-    await expect(page.locator('article.ln-card', { hasText: 'ilustração conceitual e errata' })).toBeVisible();
-    // A listagem mistura ilustração, foto de terceiro e matéria sem imagem: a grade usa uma única variante, só texto.
-    await expect(page.locator('#conteudo .pt-grid .ln-card__media')).toHaveCount(0);
-    await expect(page.locator('#conteudo .pt-grid .ln-card__imglabel')).toHaveCount(0);
+    const grid = page.locator('#conteudo .pt-grid');
+    // As 3 matérias de teste: ilustração publicada (analítica), foto de terceiro e notícia sem imagem (ilustração padrão da editoria).
+    await expect(grid.locator('.ln-card__media')).toHaveCount(3);
+    await expect(grid.locator('article', { hasText: 'ilustração conceitual e errata' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
+    await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/foto-1');
+    await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('.ln-card__imglabel')).toHaveCount(0);
+    await expect(grid.locator('article', { hasText: 'imagem venceu' }).locator('img')).toHaveAttribute('src', '/ilustracoes/viagem.svg');
+    await expect(grid.locator('.ln-card__imglabel')).toHaveCount(2);
+  });
+
+  test('F-04: notícia sem imagem numa grade só de elegíveis mostra a ilustração conceitual da editoria, com rótulo; a matéria segue sem figura', async ({ page }) => {
+    await page.goto('/editoria/pontos');
+    const card = page.locator('article.ln-card', { hasText: 'imagem venceu' });
+    const img = card.locator('img');
+    await expect(img).toHaveAttribute('src', '/ilustracoes/viagem.svg');
+    await expect(img).toHaveAttribute('alt', 'Ilustração conceitual de Pontos & Milhas');
+    await expect(card.locator('.ln-card__imglabel')).toHaveText('Ilustração conceitual');
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+    // alt e texto do card não citam IA, modelo ou ferramenta (D09).
+    expect(await card.innerText()).not.toMatch(/\bIA\b|modelo|prompt|gerad/i);
+    // Só de exibição: a página da matéria sem imagem continua sem figura.
+    await page.goto('/noticia/api-sem-imagem');
+    await expect(page.getByTestId('article-image')).toHaveCount(0);
   });
 
   test('imagem pública e rótulo da ilustração aparecem na matéria (a imagem de card exige grade só com imagens)', async ({ page }) => {
