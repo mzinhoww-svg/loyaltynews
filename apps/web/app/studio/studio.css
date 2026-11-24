@@ -74,6 +74,8 @@
 
 /* P2-11: título da tela não encosta nos botões logo abaixo */
 .studio h1 { line-height: 1.25; margin: 0 0 var(--ln-space-3); }
+/* migalhas (Studio › Seção › Página): respiro antes do título; no celular o link da trilha tem alvo de toque do DS */
+.studio .st-migalhas { margin: 0 0 var(--ln-space-3); }
 /* revisão visual P2-3: subtítulo respira acima e abaixo; no topo de cartão e de quadro vazio não sobra espaço */
 .studio h2 { margin: var(--ln-space-4) 0 var(--ln-space-2); }
 .studio .st-card > h2:first-child, .studio .st-empty > h2:first-child, .studio aside > h2:first-child { margin-top: 0; }
