@@ -242,3 +242,31 @@
   .pt-hero:not(.pt-hero--text) { align-items: stretch; }
   .pt-hero:not(.pt-hero--text) .pt-hero-side { grid-auto-rows: 1fr; align-content: stretch; }
 }
+
+/* P3-4 (revisão do staging 56e4cdc): sem lateral a matéria é filha direta do .pt-wrap e a coluna de leitura de 760 px ficava à esquerda, com ~40% da
+   largura vazia a 1440 px. Só nesse caso a coluna é centralizada; com lateral ela fica dentro de .pt-col (grade de duas colunas) e não muda. */
+.pt-wrap > .pt-article { margin-inline: auto; }
+
+/* P3-1 (revisão do staging 56e4cdc): nos perfis de pessoa e de empresa o nome aparecia 3 vezes a 390 px (último item do breadcrumb, que quebrava numa
+   2ª linha, e o h1). No celular o último item do breadcrumb do cabeçalho de página (a própria página) sai da vista, mas continua no DOM e com
+   aria-current para leitor de tela; no desktop nada muda. O breadcrumb da matéria (.pt-article) não é afetado. */
+@media (max-width: 767px) {
+  .pt-pagehead .ln-breadcrumb__item:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* o item antes do escondido não leva o "/" (ficava uma barra pendurada no fim da linha; ressalva P3 do QA 8) */
+  .pt-pagehead .ln-breadcrumb__item:nth-last-child(2)::after { content: none; }
+}
+
+/* P3-5: categorias de preço do mídia kit recolhíveis (<details>); o título da categoria é o alvo de toque (44 px). */
+.pt-fold { border-top: 1px solid var(--ln-color-border); padding-block: var(--ln-space-1); }
+.pt-fold > summary { display: flex; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); cursor: pointer; font-weight: 700; }
+.pt-fold[open] > summary { margin-bottom: var(--ln-space-2); }
+
+/* P3-5 (UI/UX, exigência): o mídia kit impresso ou salvo em PDF traz TODAS as tabelas de preço. Um <details> fechado esconde o conteúdo também no papel;
+   aqui o conteúdo das categorias fechadas passa a sair, com o título de cada uma. Setas e marcadores de abrir/fechar não saem no papel. */
+@media print {
+  .pt-fold::details-content { content-visibility: visible; }
+  .pt-fold > summary { list-style: none; }
+  .pt-fold > summary::-webkit-details-marker { display: none; }
+  .pt-fold > summary::marker { content: none; }
+  .pt-fold > summary::before { content: none; }
+}

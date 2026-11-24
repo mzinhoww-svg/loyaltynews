@@ -146,6 +146,19 @@ test.describe('plano com criativo (TOP e SIDEBAR_1)', () => {
     await expect(page.locator('aside [data-testid="portal-ad"][data-position="SIDEBAR_1"]')).toHaveAttribute('data-state', 'ad');
   });
 
+  test('P3-4: com lateral a matéria continua na coluna da esquerda (não é centralizada) a 1440 px', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'largura de desktop');
+    await mockAds(page, (p) => creative(p, ...dims(p, page)));
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/noticia/api-foto-terceiro');
+    await expect(page.getByRole('complementary', { name: 'Barra lateral' })).toBeVisible();
+    const col = (await page.locator('.pt-col').boundingBox())!;
+    const artigo = (await page.locator('article.pt-article').boundingBox())!;
+    const lateral = (await page.getByRole('complementary', { name: 'Barra lateral' }).boundingBox())!;
+    expect(artigo.x, 'o artigo começa na borda esquerda da coluna').toBeLessThanOrEqual(col.x + 1);
+    expect(lateral.x, 'a lateral fica à direita do artigo').toBeGreaterThan(artigo.x + artigo.width);
+  });
+
   test('axe com anúncios no ar', async ({ page }) => {
     test.setTimeout(90_000);
     await mockAds(page, (p) => creative(p, ...dims(p, page)));
