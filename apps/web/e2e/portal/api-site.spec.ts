@@ -81,6 +81,24 @@ test.describe('site publicado (full)', () => {
     }
   });
 
+  test('destaque com 1 item ao lado: o item fica vertical e a coluna acompanha a altura do card principal (revisão 56e4cdc, A-3)', async ({ page }, info) => {
+    test.skip(info.project.name === 'mobile', 'só em tela larga');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    const hero = page.locator('.pt-hero:not(.pt-hero--text)').first();
+    await expect(hero).toBeVisible();
+    const m = await hero.evaluate((h) => {
+      const side = h.querySelector('.pt-hero-side') as HTMLElement;
+      const main = h.querySelector('.pt-hero-main') as HTMLElement;
+      const card = side.querySelector('.ln-card--sm') as HTMLElement;
+      return { itens: side.children.length, colunas: getComputedStyle(card).gridTemplateColumns.split(' ').length, sideH: side.getBoundingClientRect().height, mainH: main.getBoundingClientRect().height, cardH: card.getBoundingClientRect().height };
+    });
+    expect(m.itens).toBeLessThanOrEqual(2);
+    expect(m.colunas, 'com até 2 itens laterais, o card é vertical (1 coluna)').toBe(1);
+    // o vazio sob o item lateral não passa de 40% da altura da coluna
+    expect(m.cardH / m.sideH).toBeGreaterThanOrEqual(0.6);
+  });
+
   test('links internos publicados: 1ª ocorrência do termo vira link na matéria', async ({ page }) => {
     await page.goto('/noticia/api-ilustracao-corrigida');
     const link = page.getByTestId('internal-link');

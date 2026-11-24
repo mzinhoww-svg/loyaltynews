@@ -91,6 +91,11 @@ describe("regras visuais P2 dos cards e do toque (V-07, V-08, V-11)", () => {
     expect(m, "regra do rótulo na miniatura sm").not.toBeNull();
     expect(Number(m![1]) * 16).toBeGreaterThanOrEqual(10);
   });
+  it("revisão do staging 56e4cdc: o botão ghost tem contorno (P2-1) e a miniatura sm tem 144px (P2-2)", () => {
+    const controls = readFileSync(resolve(root, "src/styles/controls.css"), "utf8");
+    expect(controls).toMatch(/\.ln-btn--ghost \{ background: transparent; color: var\(--ln-color-primary\); border-color: var\(--ln-color-primary\); \}/);
+    expect(content).toMatch(/\.ln-card--sm:not\(\.ln-card--noimg\) \{ grid-template-columns: 144px minmax\(0, 1fr\);/);
+  });
   it("V-11: tags de editoria (celular) e breadcrumb e botão do cabeçalho (até o tablet) usam o token de alvo de toque", () => {
     expect(content).toMatch(/max-width: 767px\) \{ \.ln-root a\.ln-tag--link \{ min-height: var\(--ln-touch-target\)/);
     const controls = readFileSync(resolve(root, "src/styles/controls.css"), "utf8");

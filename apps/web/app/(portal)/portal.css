@@ -241,3 +241,11 @@
   .pt-hero:not(.pt-hero--text) { align-items: stretch; }
   .pt-hero:not(.pt-hero--text) .pt-hero-side { grid-auto-rows: 1fr; align-content: stretch; }
 }
+
+/* Revisão do staging 56e4cdc (A-3): com só 1 ou 2 itens ao lado do destaque, a linha de miniatura de 112px deixava ~170px vazios por item mesmo com as linhas esticadas.
+ * Nesse caso os itens ficam verticais (imagem 16:6 em cima, título embaixo) e preenchem a altura do card principal. 3 ou mais itens continuam em lista. */
+@media (min-width: 1024px) {
+  .pt-hero:not(.pt-hero--text) .pt-hero-side:not(:has(> :nth-child(3))) .ln-card--sm:not(.ln-card--noimg) { grid-template-columns: minmax(0, 1fr); align-content: start; }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side:not(:has(> :nth-child(3))) .ln-card--sm .ln-card__media { aspect-ratio: 16 / 6; }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side:not(:has(> :nth-child(3))) .ln-card--sm .ln-card__title { font-size: var(--ln-text-lg); line-height: 1.3; }
+}
