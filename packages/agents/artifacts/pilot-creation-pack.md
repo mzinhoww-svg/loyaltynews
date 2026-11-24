@@ -6,7 +6,7 @@
 
 1. Sinal do PM registrado (mensagem) para criar os agentes; sem ele, NÃO criar.
 2. int/019 (ou superior) no staging, `LN_FLAGS_ON` e `LN_OPENBOT_PILOT` AUSENTES (despacho desligado) e `GET /api/health` com `flags: []`.
-3. Contrato de variáveis da Vertra declara `OPENBOT_HMAC_SECRET`, `OPENBOT_HMAC_SECRET_PREVIOUS`, `LN_FLAGS_ON` e `LN_OPENBOT_PILOT` como SÓ staging (DevOps; o `guard-env` recusa em produção).
+3. Contrato de variáveis da Vertra declara `OPENBOT_HMAC_SECRET`, `OPENBOT_HMAC_SECRET_PREVIOUS`, `LN_FLAGS_ON` e `LN_OPENBOT_PILOT` como SÓ staging (DevOps; o `guard-env` recusa em produção); `LN_OPENBOT_PILOT_WIRING` é opcional e só staging, e em geral NÃO deve ser definida.
 4. Segredo HMAC criado pelo proprietário e guardado nos dois cofres (staging e OpenBot) com o MESMO valor; o caminho do arquivo do cofre do OpenBot vem de `openbot.list_api_keys`; nunca no chat.
 5. Cliente `ln-openbot-agent.mjs` copiado para uma pasta fixa da máquina do OpenBot; `node --version` ≥ 20; prompts `editorial-0.3` (ft/editorial `b040e53`) e `schemas-saida-por-classe.json` acessíveis ao agente.
 6. `openbot.list_models` reconferido: os ids `claude-haiku-5-5`, `claude-sonnet-5-5` e `gpt-6.2-sol` existem nas contas Claude e Codex.
