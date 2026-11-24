@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ScrollRegion } from '../../_components/ScrollRegion';
 import { MockTag } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
@@ -34,7 +35,7 @@ export function CorrectedTag() {
  */
 export function RolesTable({ roles, caption, testId, showPerson, correctionFor }: { roles: (PersonRole & { personName?: string; personId?: string })[]; caption: string; testId: string; showPerson?: boolean; correctionFor?: string }) {
   return (
-    <div className={`pt-scroll ${s.scrollRef}`}>
+    <ScrollRegion label={showPerson ? 'Pessoas, cargos e fontes' : 'Cargos, organizações e fontes'}>
       <table className="pt-table" data-testid={testId}>
         <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>{caption}</caption>
         <thead>
@@ -75,7 +76,7 @@ export function RolesTable({ roles, caption, testId, showPerson, correctionFor }
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 

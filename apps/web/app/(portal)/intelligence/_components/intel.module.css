@@ -22,9 +22,3 @@
   margin: var(--ln-space-2, 8px) 0 0;
   padding-left: 1.2em;
 }
-
-/* P1-1 (revisão visual do staging, int/022): a região de rolagem da tabela é o bloco de referência dos filhos com position: absolute
-   (texto para leitor de tela, .pt-sr). Sem isso eles eram posicionados em relação a um ancestral fora da região e esticavam a página a 390 px. */
-.scrollRef {
-  position: relative;
-}
