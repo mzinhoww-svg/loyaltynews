@@ -224,7 +224,7 @@ test.describe('Fontes da Fábrica (/api/studio/editorial/sources)', () => {
     await page.goto('/studio/fontes/fabrica?q=gol');
     const gol = page.locator('[data-fabrica-fonte="gol-ri"]');
     await enviar(page, gol.getByRole('button', { name: /Habilitar/ }));
-    await expect(gol.locator('[data-cartao-msg]')).toContainText(/ainda não tem revisão/i); // editor-chefe segue o caminho formal (DP-51: só o administrador habilita direto)
+    await expect(gol.locator('[data-cartao-msg]')).toContainText(/sem revisão registrada[\s\S]*O que fazer/i); // editor-chefe segue o caminho formal (DP-51: só o administrador habilita direto), com a orientação no card
 
     await page.goto('/studio/fontes/fabrica?q=azul');
     const azul = page.locator('[data-fabrica-fonte="azul-ri"]');

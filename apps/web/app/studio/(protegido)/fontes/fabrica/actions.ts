@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, type ErroApi, type RespostaApi } from '@/lib/studio/backend';
-import { elegiveisParaLote, filtroEstado, mensagemDeHabilitar, resumoDoLote, type FonteFabrica, type ResultadoCartao } from '@/lib/studio/fabrica-fontes';
+import { elegiveisParaLote, explicarRecusa, filtroEstado, resumoDoLote, type FonteFabrica, type ResultadoCartao } from '@/lib/studio/fabrica-fontes';
 import { requireStudio } from '../../../_lib/guard';
 
 const t = (fd: FormData, k: string) => (typeof fd.get(k) === 'string' ? (fd.get(k) as string).trim() : '');
@@ -24,7 +24,7 @@ export async function alternarFonteAction(_anterior: ResultadoCartao | null, fd:
   if (ehErro(r)) {
     const e = erroDe(r);
     const riscos = (e?.details as { riscos?: string[]; precisaConfirmar?: boolean } | undefined)?.precisaConfirmar ? (e!.details as { riscos: string[] }).riscos : undefined;
-    return { ok: false, mensagem: mensagemDeHabilitar(e?.code, mensagemErro(r), ehAdmin), ...(riscos ? { confirmar: riscos } : {}) };
+    return { ok: false, mensagem: explicarRecusa(r.status, mensagemErro(r), e?.details), ...(riscos ? { confirmar: riscos } : {}) };
   }
   const fonte = r.body as unknown as FonteFabrica;
   return { ok: true, fonte, mensagem: ligar ? (ehAdmin ? 'Fonte habilitada. Ficou registrado quem habilitou e quando.' : 'Fonte habilitada.') : 'Fonte desabilitada.' };
@@ -41,7 +41,7 @@ export async function revisarFonteCartaoAction(_anterior: ResultadoCartao | null
     robotsChecked: fd.get('robots') === 'on',
     paywall: t(fd, 'paywall') || 'none',
   });
-  if (ehErro(r)) return { ok: false, mensagem: mensagemErro(r) };
+  if (ehErro(r)) return { ok: false, mensagem: explicarRecusa(r.status, mensagemErro(r), erroDe(r)?.details) };
   return { ok: true, fonte: r.body as unknown as FonteFabrica, mensagem: 'Revisão registrada. A fonte continua desabilitada até a habilitação.' };
 }
 

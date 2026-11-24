@@ -16,6 +16,7 @@ const VER: SourceVerification = { researchedBy: 'pesquisador-1', level: 'lido', 
 const LIMPA: Source = { ...MOCK_SOURCE, id: 'dp51-limpa', name: 'DP51 Limpa', host: 'limpa.dp51.example', listingUrl: 'https://limpa.dp51.example/', feedUrl: null, termsUrl: null, enabled: false, termsStatus: 'pending', urlVerified: false, paywall: 'unknown', verification: VER };
 const LOGIN: Source = { ...LIMPA, id: 'dp51-login', name: 'DP51 Login', host: 'login.dp51.example', listingUrl: 'https://login.dp51.example/', paywall: 'login' };
 const INACESSIVEL: Source = { ...LIMPA, id: 'dp51-inacessivel', name: 'DP51 Inacessível', host: 'inacessivel.dp51.example', listingUrl: 'https://inacessivel.dp51.example/', verification: { ...VER, level: 'inacessivel' } };
+const VIA: Source = { ...LIMPA, id: 'dp51-via', name: 'DP51 Via provedor', host: 'via.dp51.example', listingUrl: 'https://via.dp51.example/', acesso: 'via-provedor', verification: { ...VER, level: 'inacessivel' } };
 const SEM_ROBOTS: Source = { ...LIMPA, id: 'dp51-sem-robots', name: 'DP51 Sem robots', host: 'semrobots.dp51.example', listingUrl: 'https://semrobots.dp51.example/', robotsRespected: false as unknown as true }; // o tipo só admite true: o teste força o caso recusado
 const COMPARTILHADA: Source = { ...LIMPA, id: 'dp51-gov', name: 'DP51 gov.br', host: 'www.gov.br', listingUrl: 'https://www.gov.br/', pathPrefix: undefined };
 
@@ -25,7 +26,7 @@ const revisor: Actor = { userId: 'rui-revisor', roles: ['revisor'], mfa: true };
 
 function mk() {
   const store = new InMemoryEditorialStore();
-  const reg = new SourceRegistry([LIMPA, LOGIN, INACESSIVEL, SEM_ROBOTS, COMPARTILHADA]);
+  const reg = new SourceRegistry([LIMPA, LOGIN, INACESSIVEL, VIA, SEM_ROBOTS, COMPARTILHADA]);
   const ctx = (a: Actor | null): HandlerCtx => ({ actor: a, store, sources: reg, now: () => NOW, newId: () => 'id' });
   return { store, ctx };
 }
@@ -101,6 +102,17 @@ test('DP-51: paywall/login e "inacessível" viram aviso: sem confirmação recus
   assert.ok((await store.listAudit()).some((a) => a.action === 'source.enable_direct' && /risco aceito/.test(a.detail ?? '')));
 });
 
+test('DP-51: fonte via provedor (coleta tarifada, DP-31/DP-32) é exceção visível: nunca habilita sem a confirmação do administrador, fonte a fonte', async () => {
+  const { store, ctx } = mk();
+  const sem = await setSourceEnabled(ctx(admin), { sourceId: 'dp51-via', enabled: true, direto: true });
+  assert.equal(sem.status, 409);
+  assert.match(JSON.stringify(sem.body), /provedor tarifado/);
+  assert.equal(await store.getSourceState('dp51-via'), undefined);
+  const com = await setSourceEnabled(ctx(admin), { sourceId: 'dp51-via', enabled: true, direto: true, confirmarRisco: true, observacao: 'DP-32 aceita pelo proprietário' });
+  assert.equal(com.status, 200, JSON.stringify(com.body));
+  assert.deepEqual((await store.getSourceState('dp51-via'))?.review?.riscoAceito, ['acesso via provedor tarifado (DP-31/DP-32)']);
+});
+
 test('DP-51: as recusas de segurança que não são de termos continuam (robots não respeitado; host compartilhado sem prefixo)', async () => {
   const { store, ctx } = mk();
   for (const id of ['dp51-sem-robots', 'dp51-gov']) {
@@ -122,5 +134,6 @@ test('DP-51: desabilitar continua direto, a lista traz os avisos de cada fonte e
   assert.deepEqual(por.get('dp51-login')?.riscos, ['exige login']);
   assert.deepEqual(por.get('dp51-inacessivel')?.riscos, ['inacessível na pesquisa']);
   assert.deepEqual(por.get('dp51-limpa')?.riscos, []);
+  assert.deepEqual(por.get('dp51-via')?.riscos, ['acesso via provedor tarifado (DP-31/DP-32)']);
   assert.equal(por.get('dp51-limpa')?.revisao?.direta, true);
 });
