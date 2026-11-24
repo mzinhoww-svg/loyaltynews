@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 // Smoke da PRODUÇÃO (só leitura, nenhum POST, nenhuma credencial). Contraparte do smoke-staging, que EXIGE conteúdo de demonstração; aqui o conteúdo de demonstração é falha.
-// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--timeout 20000]
+// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--expect-cache] [--timeout 20000]
 // Confere: /api/health com APP_ENV production, o commit certo e flags [] (ADR-022: produção não liga flag por variável); /api/ready completo (banco e Redis; migrações se o build as confere);
 //   API pública e portal sem MOCK, sem "[DEMO" e sem marcador de vitrine; produção NÃO indexável até o go-live (DP-24: noindex, robots Disallow, sitemap e feed sem itens) ou, com --indexavel (depois
 //   do go-live), indexável; Studio sem sessão = 307 para o login; pessoas e moves desligados (disponivel=false). Código 0 = tudo ok; 1 = alguma falha; 2 = uso errado.
 import { parseArgs } from './lib/util.mjs';
 import { avaliarReady } from './smoke-staging.mjs';
+import { verificar } from './verificar-cache-headers.mjs';
 import { pathToFileURL } from 'node:url';
 
 // Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
 const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
-export async function rodar({ url, commit, indexavel = false, timeout = 20000 }) {
+export async function rodar({ url, commit, indexavel = false, cache = false, timeout = 20000 }) {
   const base = url.replace(/\/+$/, '');
   const out = [];
   const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
@@ -80,6 +81,11 @@ export async function rodar({ url, commit, indexavel = false, timeout = 20000 })
       check(`intelligence/${rota}: desligada em produção (disponivel=false, sem dado de pessoa)`, r.status === 200 && r.j?.disponivel === false, `HTTP ${r.status} disponivel=${r.j?.disponivel}`);
     }
   });
+  // Política de cache do portal (PM, 24/11): 60 s só nas páginas SEM pessoas; pessoas/moves/Intelligence/sitemap e a matéria ficam no-store. Prova de caixa-preta: verificar-cache-headers.mjs.
+  if (cache) await tentar('cache', async () => {
+    const v = await verificar({ url: base, valores: { editoria: 'mercado' } });
+    check(`cache: ${v.total} rotas conforme a política (60 s sem pessoas; no-store com pessoas, matéria e sitemap)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
+  });
   const falhas = out.filter((c) => !c.ok).length;
   return { url: base, exigiu: { commit: commit ?? null, indexavel }, total: out.length, falhas, checagens: out };
 }
@@ -90,7 +96,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!/^https:\/\/|^http:\/\/127\.0\.0\.1[:/]/.test(url)) { console.error('use --url https://host'); process.exit(2); }
   const commit = args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : undefined;
   if (commit !== undefined && !/^[0-9a-f]{40}$/.test(commit)) { console.error('--expect-commit exige o SHA de 40 caracteres'); process.exit(2); }
-  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), timeout: Number(args.timeout ?? 20000) || 20000 });
+  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), cache: Boolean(args['expect-cache']), timeout: Number(args.timeout ?? 20000) || 20000 });
   console.log(JSON.stringify(r, null, 2));
   process.exit(r.falhas ? 1 : 0);
 }

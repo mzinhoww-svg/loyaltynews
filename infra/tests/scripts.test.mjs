@@ -1461,3 +1461,43 @@ test('verificar-cache-headers: avaliar 60s e no-store; verificar contra servidor
     assert.ok(r2.violacoes >= 5);
   } finally { s.close(); }
 });
+
+test('smoke-producao --expect-cache: reprova sem a política de cache e passa com ela', async () => {
+  const SHA = 'b'.repeat(40);
+  const pessoas = /^\/(intelligence|moves|noticia|agenda\/|sitemap)/;
+  const cacheavel = new Set(['/', '/noticias', '/editoria/mercado', '/analises', '/entrevistas', '/opiniao', '/flash', '/em-alta', '/agenda']);
+  const estado = { politica: false };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    const cc = estado.politica ? (cacheavel.has(u) ? 'public, s-maxage=60, stale-while-revalidate=30' : pessoas.test(u) ? 'private, no-cache, no-store' : undefined) : undefined;
+    const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json', ...(cc ? { 'cache-control': cc } : {}) }); res.end(JSON.stringify(o)); };
+    const html = (c, b, h = {}) => { res.writeHead(c, { 'content-type': 'text/html', ...(cc ? { 'cache-control': cc } : {}), ...h }); res.end(b); };
+    if (u === '/api/health') return json(200, { status: 'ok', version: SHA, env: 'production', flags: [] });
+    if (u === '/api/ready') return json(200, { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' });
+    if (u === '/api/publico/site') return json(200, { nome: 'LN' });
+    if (u === '/api/publico/editorias') return json(200, { data: Array.from({ length: 10 }, (_, i) => ({ slug: 'e' + i })) });
+    if (u === '/api/publico/materias' || u === '/api/publico/agenda') return json(200, { data: [] });
+    if (u.startsWith('/api/publico/intelligence/')) return json(200, { data: [], total: 0, disponivel: false });
+    if (['/', '/noticias', '/midia-kit', '/intelligence'].includes(u)) return html(200, '<meta name="robots" content="noindex"/>ok');
+    if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('User-agent: *\nDisallow: /\n'); }
+    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml', ...(cc ? { 'cache-control': 'private, no-store' } : {}) }); return res.end('<urlset></urlset>'); }
+    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss></rss>'); }
+    if (u === '/studio') { res.writeHead(307, { location: '/studio/entrar' }); return res.end(); }
+    if (u === '/studio/entrar') return html(200, 'login');
+    return html(200, 'ok');
+  });
+  const run = (extra) => new Promise((resolve) => {
+    const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + s.address().port, '--expect-commit', SHA, ...extra]);
+    let stdout = '';
+    c.stdout.on('data', (d) => { stdout += d; });
+    c.on('close', (status) => resolve({ status, j: JSON.parse(stdout) }));
+  });
+  try {
+    assert.equal((await run([])).j.checagens.some((x) => /^cache:/.test(x.nome)), false, 'sem a opção não confere cache');
+    const sem = await run(['--expect-cache']);
+    assert.equal(sem.status, 1); assert.ok(sem.j.checagens.some((x) => /^cache:/.test(x.nome) && !x.ok));
+    estado.politica = true;
+    const com = await run(['--expect-cache']);
+    assert.ok(com.j.checagens.find((x) => /^cache:/.test(x.nome))?.ok, JSON.stringify(com.j.checagens.filter((x) => !x.ok)));
+  } finally { s.close(); }
+});

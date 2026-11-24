@@ -7,11 +7,13 @@
 //   --expect-login-form exige o formulário de e-mail e senha em /studio/entrar (hoje a tela é um aviso fixo; sem a flag vira só uma nota)
 //   --rollback-app-sem-banco aceita SO o 503 "migracoes_divergentes" do /api/ready (rollback do app com o banco já migrado, build antigo com a sonda)
 //   --expect-migracoes exige /api/ready com migracoes:"ok" (builds com ft/backend-2 19cd21e em diante); sem a opção o campo, se existir, só pode ser "ok"
+//   --expect-cache confere a política de cache do portal (verificar-cache-headers.mjs): s-maxage=60 nas páginas sem pessoas, no-store nas com pessoas, na matéria e no sitemap
 //   --expect-flags a,b  exige que /api/health liste EXATAMENTE essas flags (ADR-022; staging com DP-38: intelligencePessoas); --expect-no-flags exige a lista vazia
 //   --expect-orgs N exige que /intelligence mostre N empresas cadastradas (hoje o adaptador `api` do portal NÃO as lê: só com o adaptador de Intelligence)
 // Login do Studio NÃO é testado aqui (exige usuário e MFA, segredos): só a tela de entrada e a negação sem sessão.
 import { pathToFileURL } from 'node:url';
 import { parseArgs, fail } from './lib/util.mjs';
+import { verificar } from './verificar-cache-headers.mjs';
 
 export const ROTULO_SEED = '[DEMO · staging]';
 
@@ -127,6 +129,11 @@ async function main() {
     check('materia: slug inexistente = 404', r404.status === 404, `HTTP ${r404.status}`);
   });
   // ADR-022 / DP-38: com --expect-flags ou --expect-no-flags, as rotas públicas de pessoas e Moves têm de refletir a flag (desligada: 200 vazio com disponivel=false; ligada: disponivel=true).
+  // Política de cache do portal (PM, 24/11): 60 s só nas páginas SEM pessoas; pessoas/moves/Intelligence/sitemap e a matéria ficam no-store. Prova de caixa-preta: verificar-cache-headers.mjs.
+  if (Boolean(args['expect-cache'])) await tentar('cache', async () => {
+    const v = await verificar({ url: base, valores: { editoria: 'mercado' } });
+    check(`cache: ${v.total} rotas conforme a política (60 s sem pessoas; no-store com pessoas, matéria e sitemap)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
+  });
   if (flagsEsp !== null) await tentar('pessoas-moves', async () => {
     const ligada = flagsEsp.includes('intelligencePessoas');
     for (const rota of ['pessoas', 'moves']) {
