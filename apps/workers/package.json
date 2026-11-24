@@ -8,6 +8,8 @@
     ".": "./src/index.ts",
     "./editorial-store": "./src/editorial-store.ts",
     "./ad-redis": "./src/ad-redis.ts",
+    "./ad-gaps": "./src/ad-gaps.ts",
+    "./ad-redis-watch": "./src/ad-redis-watch.ts",
     "./outbox": "./src/pg-stores.ts",
     "./redis-tls": "./src/redis-tls.ts",
     "./seed-staging": "./src/seed-staging.ts",

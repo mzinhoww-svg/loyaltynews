@@ -13,6 +13,7 @@ import {
 import { flagEnvFrom, type FlagEnv } from '@ln/contracts';
 import { schema } from '@ln/db';
 import { HttpError } from '../http';
+import { loadGaps, loadGapsInto } from './gaps';
 import type { Db } from '@ln/auth';
 
 export const COMMERCIAL_LOCK = 7_010_001;
@@ -226,6 +227,8 @@ export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | nul
     c.ignoredBotOrInternal += d.ignoradasBotInterno; c.refreshSuppressed += d.refreshSuprimido;
   }
   server.loadCounters(counters);
+  // lacunas de auditoria (perda de dedupe no Redis): os relatórios marcam o período como "não auditável" (piso, não total)
+  loadGapsInto(server.audit, await loadGaps(db));
 
   const metrics = new MetricStore();
   // a cobertura `cms` é CONTADA agora, só com conteúdo real (nunca o seed); o que estiver gravado para essas três métricas não vale mais
