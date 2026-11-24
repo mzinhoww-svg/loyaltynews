@@ -3,6 +3,7 @@ import https from 'node:https';
 import type { LookupFunction } from 'node:net';
 import type { Fetcher, FetchOptions, HttpResponse } from './collector';
 import { isPublicIp } from './net';
+import { isGzip } from './gzip';
 
 /**
  * Única peça deste pacote que abre socket. Conecta SOMENTE no IP já validado pelo coletor (`opts.address`):
@@ -55,7 +56,10 @@ export function createNodeFetcher(o: NodeFetcherOptions = {}): Fetcher {
           res.on('end', () => {
             const headers: Record<string, string> = {};
             for (const [k, v] of Object.entries(res.headers)) if (typeof v === 'string') headers[k.toLowerCase()] = v;
-            resolve({ status: res.statusCode ?? 0, headers, body: Buffer.concat(chunks).toString('utf8') });
+            const raw = Buffer.concat(chunks);
+            // Corpo gzip (ex.: filhos .xml.gz de sitemap): entrega os BYTES (o coletor descomprime com teto) e nenhum texto lixo.
+            if (isGzip(raw)) resolve({ status: res.statusCode ?? 0, headers, body: '', bytes: new Uint8Array(raw) });
+            else resolve({ status: res.statusCode ?? 0, headers, body: raw.toString('utf8') });
           });
         });
         req.on('timeout', () => req.destroy(new Error('timeout')));

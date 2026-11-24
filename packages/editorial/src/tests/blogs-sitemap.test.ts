@@ -85,14 +85,22 @@ test('collectSitemap: índice abre só os 2 filhos mais recentes; 429 no sitemap
   assert.deepEqual(r2.skipped.map((s) => s.code), ['empty_content']);
 });
 
-test('empresas por sitemap: só as 3 conferidas têm sitemap e prefixo; mesmo host da fonte; Natura RI nasce desabilitada', async () => {
+test('por sitemap: as 3 empresas conferidas + ANAC, CVM e ANPD (gov.br, .xml.gz) têm sitemap e prefixo; mesmo host da fonte; todas nascem desabilitadas', async () => {
   const { SEED_SOURCES: ALL } = await import('../sources/seed');
   const wired = ALL.filter((s) => s.sitemapUrl && s.sitemapPathPrefix); // coletáveis por sitemap: só com prefixo verificado
-  assert.deepEqual(wired.map((s) => s.id).sort(), ['bradesco-ri', 'livelo-imprensa', 'natura-ri']);
+  assert.deepEqual(wired.map((s) => s.id).sort(), ['anac', 'anpd', 'bradesco-ri', 'cvm', 'livelo-imprensa', 'natura-ri']);
   for (const s of wired) {
     assert.equal(new URL(s.sitemapUrl!).host, s.host, s.id);
-    assert.match(s.sitemapPathPrefix ?? '', /^\/[a-z0-9-]+\/$/, `${s.id}: prefixo da seção de notícias`);
+    assert.match(s.sitemapPathPrefix ?? '', /^(\/[a-z0-9-]+)+\/$/, `${s.id}: prefixo da seção de notícias`);
     assert.equal(s.enabled, false, s.id); assert.equal(s.termsStatus, 'pending', s.id);
+  }
+  // gov.br: índice sem lastmod com filhos .xml.gz (lidos todos, 1 requisição cada): o limite por hora do cadastro precisa comportar índice + filhos + robots + páginas
+  for (const id of ['anac', 'cvm', 'anpd']) {
+    const g = ALL.find((s) => s.id === id)!;
+    assert.equal(g.host, 'www.gov.br'); assert.equal(g.sitemapUrl, `https://www.gov.br/${id}/sitemap-index.xml`);
+    assert.ok(g.sitemapPathPrefix!.startsWith(g.pathPrefix + '/'), `${id}: prefixo do sitemap dentro do pathPrefix da fonte`);
+    assert.equal(g.feedUrl, null, `${id}: sem feed (o RSS do Plone responde 404)`);
+    assert.ok(g.maxRequestsPerHour >= 24, `${id}: limite por hora comporta o índice, os filhos .gz e as páginas`);
   }
   const nat = ALL.find((s) => s.id === 'natura-ri')!;
   assert.equal(nat.kind, 'investor_relations'); assert.equal(nat.verification?.researchedBy, 'ln-editorial-engineer');
