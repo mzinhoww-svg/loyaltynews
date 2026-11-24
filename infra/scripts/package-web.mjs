@@ -132,7 +132,7 @@ const startCmd = benchGraph ? `node infra/scripts/guard-env.mjs && (${benchCorpo
 
 // 3. o que entra no pacote (o mínimo para instalar, compilar e iniciar o apps/web)
 const INCLUDE = ['package.json', 'package-lock.json', 'tsconfig.json', 'tsconfig.base.json', 'apps', 'packages',
-  'infra/scripts/guard-env.mjs', 'infra/scripts/build-web.mjs', 'infra/scripts/start-web.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs', 'infra/scripts/lib/typecheck-report.mjs'];
+  'infra/scripts/guard-env.mjs', 'infra/scripts/build-web.mjs', 'infra/scripts/start-web.mjs', 'infra/scripts/lib/guards.mjs', 'infra/scripts/lib/util.mjs', 'infra/scripts/lib/typecheck-report.mjs', 'infra/scripts/lib/prebuilt.mjs'];
 // a sessão simulada do Studio só existe em teste; a rota de login de e2e (app/api/e2e) vem no código do Studio desde a int/003: em produção responde 404 e exige
 // LN_STUDIO_TEST_SESSION=1 (que o guard proíbe), mas não há motivo para ela existir num app implantado, então fica fora do pacote
 // --prova-png: o comando de build/start chama infra/scripts/prova-png.mjs, que precisa estar no pacote (ele só importa lib/util.mjs, que já entra)

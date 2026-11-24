@@ -145,7 +145,8 @@ try {
     recusa('start RECUSADO com APP_COMMIT diferente do release.json', { APP_COMMIT: 'a'.repeat(40) }, /difere do release.json/);
     recusa('start RECUSADO sem NEXT_PUBLIC_SITE_URL em execução', { NEXT_PUBLIC_SITE_URL: '' }, /NEXT_PUBLIC_SITE_URL ausente/);
     recusa('start RECUSADO com NEXT_PUBLIC_SITE_URL=localhost', { NEXT_PUBLIC_SITE_URL: 'http://localhost:3000' }, /NEXT_PUBLIC_SITE_URL/);
-    recusa('start RECUSADO com APP_ENV diferente do release.json', { APP_ENV: 'production' }, /APP_ENV/);
+    // pacote com flag (LN_FLAGS_ON): o guard-env recusa APP_ENV=production por 'LN_FLAGS_ON definida em produção' (ADR-022) antes de falar de APP_ENV; as duas mensagens sao recusa valida
+    recusa('start RECUSADO com APP_ENV diferente do release.json', { APP_ENV: 'production' }, /APP_ENV|LN_FLAGS_ON definida em produção/);
   }
 
   // o "painel" aqui traz NEXT_PUBLIC_SITE_URL=localhost (pior caso, como na Vertra em 22/11): o build_command do pacote tem de sobrescrever
