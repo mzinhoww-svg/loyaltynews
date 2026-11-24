@@ -32,6 +32,8 @@ const event = (impressionId: string, ev: 'visible' | 'click') => call(d, 'POST',
 const relatorio = (campaignId = 'cmp-1') => call(d, 'GET', { path: P('/studio/campaigns/report'), query: { campaignId }, as: comercial });
 const detalhe = (campaignId: string) => call(d, 'GET', { path: P('/studio/campaigns/detail'), query: { campaignId }, as: comercial });
 const anunciante = () => call(d, 'GET', { path: P('/studio/accounts/report'), query: { accountId: 'acc-1' }, as: comercial });
+const painel = (from: string, to: string) => call(d, 'GET', { path: P('/studio/dashboard'), query: { from, to }, as: comercial });
+const naoAuditaveis = (r: { body: any }) => (r.body.attention ?? []).filter((a: { kind: string }) => a.kind === 'periodo_nao_auditavel').map((a: { ref: string }) => a.ref).sort(); // eslint-disable-line @typescript-eslint/no-explicit-any
 const velha = () => app.db.insert(schema.adDeliveryGaps).values({ id: 'gap-marco', reason: 'dedupe_perdido', from: new Date('2026-03-10T10:00:00Z'), servedUntil: new Date('2026-03-10T10:30:00Z'), to: new Date('2026-03-10T12:00:00Z'), detectedAt: new Date('2026-03-10T10:00:00Z'), uncountedServes: 7, ignoredEvents: 3 });
 const dias = (n: number) => new Date(T - n * 86_400_000);
 const gapAntiga = (id: string, atras: number) => app.db.insert(schema.adDeliveryGaps).values({ id, reason: 'dedupe_regrediu', from: dias(atras), servedUntil: new Date(dias(atras).getTime() + 1_800_000), to: new Date(dias(atras).getTime() + 7_200_000), detectedAt: dias(atras) });
@@ -132,6 +134,32 @@ describe('quais lacunas o hydrate carrega: as recentes e as do período pedido, 
     expect(a.status).toBe(200);
     expect(a.body.auditability).toMatchObject({ auditable: false });
     expect(a.body.auditability.gaps.map((g: { id: string }) => g.id)).toContain('gap-marco');
+  });
+});
+
+describe('painel com janela histórica (from/to): as lacunas antigas dessa janela também entram', () => {
+  const ids = async (scope: { from?: string; to?: string }) => (await hydrate(app.db, new Date(T), null, scope)).state.ads.audit.list().map((g) => g.id).sort();
+
+  it('janela de março: a lacuna de março aparece na lista de atenção; sem janela histórica, não', async () => {
+    await velha(); await gap('gap-recente', -15, -1, 29, 119);
+    const marco = await painel('2026-03-01', '2026-03-31');
+    expect(marco.status).toBe(200);
+    expect(naoAuditaveis(marco)).toEqual(['gap-marco', 'gap-recente']); // a recente sempre vem; a de março só pela janela
+    expect(naoAuditaveis(await painel('2026-11-01', '2026-11-30'))).toEqual(['gap-recente']);
+  });
+  it('hydrate: só valem datas de calendário reais com from <= to; o resto é ignorado (sem erro e sem carregar tudo)', async () => {
+    await velha();
+    expect(await ids({ from: '2026-03-01', to: '2026-03-31' })).toEqual(['gap-marco']);
+    expect(await ids({ from: '2026-03-31', to: '2026-03-01' })).toEqual([]); // invertida
+    expect(await ids({ from: '2026-02-30', to: '2026-03-31' })).toEqual([]); // 30/02 não existe
+    expect(await ids({ from: 'ontem', to: '2026-03-31' })).toEqual([]);
+    expect(await ids({ from: '2026-03-01' })).toEqual([]); // só uma ponta
+  });
+  it('janela inválida na rota não derruba o painel (nada de data inválida indo ao banco)', async () => {
+    await velha();
+    const r = await painel('2026-02-30', '2026-03-31');
+    expect(r.status).toBeLessThan(500);
+    if (r.status === 200) expect(naoAuditaveis(r)).toEqual([]);
   });
 });
 
