@@ -6,7 +6,8 @@
 .ln-header { background: var(--ln-role-bg); position: relative; z-index: 40; }
 .ln-header__top { position: relative; border-bottom: 1px solid var(--ln-color-border); background: var(--ln-color-white); }
 .ln-header__bar { display: flex; align-items: center; gap: var(--ln-space-3); min-height: 60px; }
-.ln-header__brand { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); margin-right: auto; }
+.ln-header__brand { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); margin-right: auto; min-width: 0; flex: 0 1 auto; }
+.ln-header__brand > svg, .ln-header__brand > img { max-width: 100%; height: auto; max-height: 36px; } /* 320px: o logo encolhe em vez de empurrar o botão Menu para fora (estouro de 22px) */
 .ln-header__actions { display: flex; align-items: center; gap: var(--ln-space-2); }
 .ln-header__actions .ln-btn { min-height: 40px; padding: 0 var(--ln-space-3); }
 .ln-root .ln-icon-link { display: inline-flex; align-items: center; justify-content: center; width: var(--ln-touch-target); height: var(--ln-touch-target); color: var(--ln-color-primary); background: var(--ln-color-white); border: 1px solid var(--ln-color-border-strong); border-radius: var(--ln-radius-md); text-decoration: none; }
