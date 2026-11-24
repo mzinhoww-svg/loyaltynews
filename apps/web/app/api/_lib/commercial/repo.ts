@@ -6,7 +6,7 @@
 import { and, eq, getTableColumns, gte, inArray, like, lte, not, sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import {
-  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, POSITIONS, SNAPSHOT_VERSION, campaignPeriodMs, catalogFor, resolveFormatStatus,
+  AdServer, CampaignBook, CATALOG, Crm, ImpressionLedger, InventoryBook, MetricStore, MAX_WINDOW_DAYS, POSITIONS, SNAPSHOT_VERSION, campaignPeriodMs, catalogFor, resolveFormatStatus,
   type Account, type BannerPosition, type Contact, type ContactBasis, type Campaign, type CommercialFormat, type CommercialState, type Creative, type DeliveryCounters,
   type DeliveryRow, type Lead, type MetricRecord, type Opportunity, type Reservation, type Takeover,
 } from '@ln/commercial';
@@ -249,7 +249,9 @@ export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | nul
   // (relatório, detalhe). Assim nunca sai "auditável" por falta de leitura, e a leitura não cresce com o histórico.
   const own = scope.campaignId ? campaigns.list().filter((c) => c.id === scope.campaignId)
     : scope.accountId ? campaigns.list().filter((c) => c.accountId === scope.accountId) : [];
-  const janela: [number, number][] = realDay(scope.from) && realDay(scope.to) && scope.from <= scope.to ? [campaignPeriodMs(scope.from, scope.to)] : [];
+  // a janela pedida só vale até MAX_WINDOW_DAYS (a mesma dos relatórios e do painel): as maiores são recusadas pela rota (400) e não fazem a leitura varrer o histórico
+  const janela: [number, number][] = realDay(scope.from) && realDay(scope.to) && scope.from <= scope.to
+    && Math.round((Date.parse(`${scope.to}T00:00:00Z`) - Date.parse(`${scope.from}T00:00:00Z`)) / 86_400_000) + 1 <= MAX_WINDOW_DAYS ? [campaignPeriodMs(scope.from, scope.to)] : [];
   const spans: [number, number][] = [[now.getTime() - GAP_RECENT_DAYS * 86_400_000, Number.POSITIVE_INFINITY], ...own.map((c) => campaignPeriodMs(c.startDate, c.endDate)), ...janela];
   const earliest = Math.min(...spans.map(([a]) => a));
   const gaps = (await loadGaps(db, { activeAt: new Date(earliest) })).filter((g) => spans.some(([a, b]) => Date.parse(g.from) < b && a < Date.parse(g.to)));

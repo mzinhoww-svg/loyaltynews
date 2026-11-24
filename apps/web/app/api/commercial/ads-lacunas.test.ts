@@ -196,6 +196,45 @@ describe('datas fora da faixa (mês 13, dia 32, mês 00): ignoradas, nunca 500',
   });
 });
 
+describe('teto da janela do painel (MAX_WINDOW_DAYS = 366): a fronteira não lê o histórico nem dá 500', () => {
+  const mais = (de: string, n: number) => new Date(Date.parse(`${de}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+  const DE = '2026-03-01'; // a lacuna de março está dentro da janela
+  const idsHydrate = async (to: string) => (await hydrate(app.db, new Date(T), null, { from: DE, to })).state.ads.audit.list().map((g) => g.id).sort();
+
+  it('366 dias: 200 e a lacuna de março aparece na lista de atenção', async () => {
+    await velha();
+    const r = await painel(DE, mais(DE, 365));
+    expect(r.status).toBe(200);
+    expect(naoAuditaveis(r)).toContain('gap-marco');
+  });
+  it('367 dias: 400 WINDOW_TOO_LARGE nomeado, sem 500, e sem dados do painel', async () => {
+    await velha();
+    const r = await painel(DE, mais(DE, 366));
+    expect(r.status).toBe(400);
+    expect(r.body.error.code).toBe('WINDOW_TOO_LARGE');
+    expect(r.body.error.details).toMatchObject({ maxDays: 366, requestedDays: 367 });
+    expect(r.body.attention).toBeUndefined();
+  });
+  it('hydrate: a janela de 366 dias carrega a lacuna antiga; a de 367 não é lida (só o recente), e nada lança', async () => {
+    await velha();
+    expect(await idsHydrate(mais(DE, 365))).toEqual(['gap-marco']);
+    expect(await idsHydrate(mais(DE, 366))).toEqual([]);
+  });
+  it('janela absurda (anos) não varre o histórico: 400 nomeado em vez de 500 ou leitura total', async () => {
+    await velha();
+    for (const [from, to] of [['2000-01-01', '2026-12-31'], ['0001-01-01', '9999-12-31']] as const) {
+      const r = await painel(from, to);
+      expect([r.status, r.body.error?.code], `${from}..${to}`).toEqual([400, 'WINDOW_TOO_LARGE']);
+    }
+  });
+  it('o painel de 30 dias do Studio segue 200 e traz as lacunas recentes', async () => {
+    await gap('gap-recente', -15, -1, 29, 119);
+    const r = await painel('2026-11-22', '2026-12-21');
+    expect(r.status).toBe(200);
+    expect(naoAuditaveis(r)).toEqual(['gap-recente']);
+  });
+});
+
 describe('a gravação dos contadores da lacuna deixa de ser silenciosa', () => {
   it('falha do banco ao somar: o serve segue (200, sem contar) e o erro vai ao log com o id da lacuna e o nome do erro, sem a mensagem do banco', async () => {
     await gap('gap-1', -15, -1, 29, 119);
