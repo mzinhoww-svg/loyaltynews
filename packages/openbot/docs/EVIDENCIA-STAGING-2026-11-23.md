@@ -50,6 +50,19 @@ Tarefa da linha 3 de `proximas-tarefas-2026-11-24-0920.md`. Staging `https://loy
 Conferido por `git merge-base --is-ancestor`: a `eac6be5` contém `0a2e2c8` (423 Locked), `59eed1b` (assinatura antes do 423) e `391ae8a` (cliente com `smoke`); **não** contém o `7fd57ac` (merge do main na int/019) nem o `2509f95` (roteiro com segredo), ambos só de docs/governança.
 Conclusão: a parte **sem segredo** está provada na int/019 do staging (401 `UNAUTHORIZED` sem cabeçalho, 401 `sem_segredo` com valor falso, health e ready ok, despacho desligado). **Continua não observado** (precisa do `OPENBOT_HMAC_SECRET` real no staging, pendência do PM): `heartbeat` = 404 `LEASE_ERROR`, `pull` com despacho desligado = 423 `DISPATCH_OFF`, 423 `KILL_SWITCH`/`PILOT_STOPPED`. O roteiro dessa parte, com os resultados esperados, está em `ROTEIRO-AGENTES-STAGING.md` §6 ("Roteiro da parte COM segredo").
 
+## Item 11 no staging `56e4cdc` (int/022), 24/11/2026: sonda de assinatura COM o segredo real, estado "desligado"
+Script `packages/openbot/bin/ln-item11.mjs` (ft/growth `720a742`; SHA-256 `0ad227a6…e06d`). Staging `https://loyaltynews-stg.vertraweb.app`, versão `56e4cdc711dc…`, `flags: ["intelligencePessoas"]` (**`openbotDispatch` desligada**; as variáveis do piloto `LN_OPENBOT_PILOT` e a flag ainda NÃO foram ligadas). O `OPENBOT_HMAC_SECRET` foi gravado no staging pelo PM; **o segredo ficou no cofre do PM** e não passou pela Integration: o script só recebe o caminho do arquivo (`LN_HMAC_SECRET_FILE`), o cliente o lê e assina, e a saída só tem códigos. Arquivos (sem segredo): `releases\staging\piloto-item11\`.
+**Fase sem segredo** (Integration, 16:37:02 UTC, `sem-segredo-20261124T163702Z.*`): 11 PASS, 0 FAIL, 1 NAO_EXECUTADO. As 5 rotas sem cabeçalho = 401 `UNAUTHORIZED`; a assinatura falsa passou a dar **`assinatura_recusada`** (antes do segredo era `sem_segredo`, na rodada de 16:25 UTC `sem-segredo-20261124T162528Z.*`): o servidor agora **tem** segredo.
+**Fase com segredo, estado `desligado`** (PM, 16:37:37 UTC, `com-segredo-desligado-20261124T163737Z.json`, SHA-256 `f397017e…dec0`; `ok: true`, saída 0):
+| # | Passo | Esperado | Observado | |
+|---|---|---|---|---|
+| 1 | `GET /api/health` | 200, staging, despacho desligado | staging, `56e4cdc…`, `openbotDispatch: desligada` | PASS |
+| 2 | `smoke --expect-dispatch off` (assinatura REAL) | `ok:true`, assinatura 404 `LEASE_ERROR` | `heartbeat=404 LEASE_ERROR`, `io/input=404 LEASE_ERROR` | PASS |
+| 3 | `pull` com o despacho desligado | **423 `DISPATCH_OFF`**, `stop` | `423 DISPATCH_OFF stop` | PASS |
+| 4 | `heartbeat` com segredo ERRADO (valor falso) | 401 `assinatura_recusada` | `401 assinatura_recusada` | PASS |
+| 5 | ciclo de ensaio completo (linha em `/studio/piloto`) | uma linha, custo 0, `subscription` | não executado | NAO_EXECUTADO (precisa dos agentes, item 7) |
+Isso fecha o que a seção anterior deixava "não verificado": com o segredo real, `heartbeat`/`io/input` = **404 `LEASE_ERROR`** (assinatura aceita) e o `pull` com o despacho desligado = **423 `DISPATCH_OFF`** (decisão PM-2026-11-23-I, observada no staging real pela primeira vez). **Continua não verificado:** `pull` com o despacho LIGADO e fila vazia, **423 `KILL_SWITCH`** e **423 `PILOT_STOPPED`** (estados `ligado`, `kill` e `parado` do script; dependem das variáveis do piloto e de um admin ligar o kill switch) e o ciclo de ensaio com o agente (item 7). Nada foi gravado no LN; nenhum agente foi criado.
+
 ## O que continua não verificado (precisa do segredo no staging, passo (c) do PM)
 - `heartbeat` com o segredo REAL: 404 `LEASE_ERROR` (assinatura aceita), e 401 com um segredo diferente.
 - `pull` com o despacho LIGADO (`LN_FLAGS_ON=openbotDispatch`) e o piloto (`LN_OPENBOT_PILOT=1`): só depois dos itens 5 e 6 do checklist (`ATIVACAO-STAGING.md` §0.2) e do sinal do PM.
