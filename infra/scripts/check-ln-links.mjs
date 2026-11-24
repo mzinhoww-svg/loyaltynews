@@ -35,7 +35,7 @@ export function checarWorktree(root, { exigir = false } = {}) {
   if (!existsSync(dirLn)) { out.avisos.push('node_modules/@ln ausente'); if (exigir) out.ok = false; return out; }
   for (const nome of readdirSync(dirLn)) {
     const p = join(dirLn, nome);
-    let st; try { st = lstatSync(p); } catch { continue; }
+    try { lstatSync(p); } catch { continue; }
     out.links++;
     let real;
     try { real = realpathSync(p); } catch { out.ok = false; out.fora.push({ pacote: `@ln/${nome}`, destino: '(link quebrado)' }); continue; }

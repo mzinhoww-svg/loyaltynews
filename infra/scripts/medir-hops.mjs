@@ -35,7 +35,7 @@ export function resumir(com, sem, atual, multi = []) {
   out.borda = reescreve ? 'reescreve' : 'anexa';
   // O cliente consegue colocar entradas à esquerda? (contagem com vários falsos maior que a sem falso). Com a borda que reescreve, não.
   if (ms.length > 0 && ss.length > 0) out.clienteForjaEntradas = ms[0] !== ss[0];
-  let hops = null;
+  let hops;
   if (reescreve) {
     const p = out.posicaoDoClienteAPartirDaDireita.filter((x) => x !== 'none');
     if (p.length === 1 && Number.isInteger(Number(p[0]))) { hops = Number(p[0]); out.metodo = 'posicao_do_cliente'; }
