@@ -1,0 +1,5 @@
+# Leitura de volta do 05-rulesets.ps1 -Fase Main -AppId 5880659 (sessao-r0dpr, executado pelo PM em 23/11/2026; extrato do cerimonia.log, sem segredo)
+2026-11-23T17:30:02.5978688-03:00  05[Main]: main-protection = final
+2026-11-23T17:30:03.8597697-03:00  05[Main]: main-protection FINAL ativo e lido de volta (PR obrigatorio, so merge commit, sem force push, sem delecao)
+2026-11-23T17:30:04.7590739-03:00  05[Main] auditoria: main-required-checks = equal
+2026-11-23T17:30:05.7220066-03:00  05[Main]: conjunto confere (main-required-checks)
