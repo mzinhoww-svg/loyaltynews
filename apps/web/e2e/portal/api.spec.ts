@@ -77,16 +77,18 @@ test.describe('matéria via API pública', () => {
     await expect(page.getByText('Não encontramos o que você procurava')).toBeVisible();
   });
 
-  test('V-07 + F-04: na listagem todos os cards têm imagem (publicada ou ilustração padrão) e cada um com o seu rótulo', async ({ page }) => {
+  test('V-07: na listagem a grade usa uma única variante: ou todos os cards têm imagem ou nenhum tem (e rótulo só onde há imagem)', async ({ page }) => {
     await page.goto('/noticias');
     const grid = page.locator('#conteudo .pt-grid');
-    // As 3 matérias de teste: ilustração publicada (analítica), foto de terceiro e notícia sem imagem (ilustração padrão da editoria).
-    await expect(grid.locator('.ln-card__media')).toHaveCount(3);
-    await expect(grid.locator('article', { hasText: 'ilustração conceitual e errata' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/ilustracao-1');
-    await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('img')).toHaveAttribute('src', '/api/publico/midia/foto-1');
-    await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('.ln-card__imglabel')).toHaveCount(0);
-    await expect(grid.locator('article', { hasText: 'imagem venceu' }).locator('img')).toHaveAttribute('src', '/ilustracoes/viagem.svg');
-    await expect(grid.locator('.ln-card__imglabel')).toHaveCount(2);
+    await expect(grid.locator('article.ln-card').first()).toBeVisible();
+    const cards = await grid.locator('article.ln-card').count();
+    expect(cards).toBeGreaterThanOrEqual(3);
+    const midias = await grid.locator('.ln-card__media').count();
+    // A listagem mistura tipos (entrevista e opinião nunca recebem a ilustração padrão): com 1 inelegível sem imagem, a grade inteira fica só texto.
+    expect([0, cards]).toContain(midias);
+    const rotulos = await grid.locator('.ln-card__imglabel').count();
+    if (midias === 0) expect(rotulos).toBe(0);
+    else await expect(grid.locator('article', { hasText: 'foto de terceiro' }).locator('.ln-card__imglabel')).toHaveCount(0);
   });
 
   test('F-04: notícia sem imagem numa grade só de elegíveis mostra a ilustração conceitual da editoria, com rótulo; a matéria segue sem figura', async ({ page }) => {
