@@ -3,14 +3,14 @@
 // pacote leva o `.next` construído num Linux, em prebuilt/web-next (o painel remove `.next` dos ZIPs; ver lib/prebuilt.mjs). Não escreve na Vertra nem no GitHub.
 // O `.next` TEM de vir de um build Linux do MESMO commit, com as MESMAS variáveis de build (APP_ENV, NEXT_PUBLIC_SITE_URL, vitrine, indexação, flags) do pacote: por exemplo, o que a própria
 // Vertra construiu num app (snapshot/download_app) ou um runner Linux construindo em /app. Um .next feito no Windows é RECUSADO aqui (caminhos absolutos do host: não roda na Vertra).
-// Uso: node infra/scripts/package-prebuilt.mjs --pacote <pasta do package-web> --next <pasta .next de origem> --out <pasta> --origem "<de onde veio o .next>" [--force] [--sem-zip]
+// Uso: node infra/scripts/package-prebuilt.mjs --pacote <pasta do package-web> --next <pasta .next de origem> --out <pasta> --origem "<de onde veio o .next>" [--force] [--sem-zip] [--tar]
 // Sobrepõe no pacote (e registra o SHA-256) infra/scripts/start-web.mjs e infra/scripts/lib/prebuilt.mjs DESTA árvore: são o que restaura o .next na subida.
 import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fail, parseArgs, sha256File } from './lib/util.mjs';
-import { PREBUILT_DIR, PREBUILT_MANIFEST, arquivosFaltando, listarExternos } from './lib/prebuilt.mjs';
+import { PREBUILT_DIR, PREBUILT_MANIFEST, PREBUILT_TAR, arquivosFaltando, listarExternos } from './lib/prebuilt.mjs';
 
 const SELF = dirname(fileURLToPath(import.meta.url));
 const EXCLUIR = new Set(['cache', 'node_modules', 'trace', 'trace-build', 'diagnostics']);
@@ -63,7 +63,8 @@ async function main() {
   try { nextVersion = JSON.parse(readFileSync(join(pacote, 'package-lock.json'), 'utf8')).packages?.['node_modules/next']?.version ?? null; } catch { /* sem lock */ }
   const externos = listarExternos(nextSrc);
 
-  const nome = `${basename(pacote)}-prebuilt`;
+  const tar = Boolean(args.tar); // reserva: .next num único web-next.tar (menos entradas no upload)
+  const nome = `${basename(pacote)}-prebuilt${tar ? '-tar' : ''}`;
   const folder = join(out, nome);
   const zip = join(out, `${nome}.zip`);
   const manifestPath = join(out, `${nome}.manifest.json`);
@@ -86,7 +87,7 @@ async function main() {
   }
   const pb = {
     schema: 1, commit: release.commit, appEnv: release.appEnv, siteUrl: release.siteUrl, vitrine: Boolean(release.vitrine), indexavel: Boolean(release.indexavel),
-    flagsLigadas: release.flagsLigadas ?? [], buildId, nextVersion, externos, origem: String(args.origem), geradoEm: new Date().toISOString(),
+    flagsLigadas: release.flagsLigadas ?? [], formato: tar ? 'tar' : 'pasta', buildId, nextVersion, externos, origem: String(args.origem), geradoEm: new Date().toISOString(),
   };
   writeFileSync(join(folder, PREBUILT_MANIFEST), JSON.stringify(pb, null, 2) + '\n');
   writeFileSync(join(folder, 'release.json'), JSON.stringify({ ...release, prebuilt: true, buildCommandVazio: true }));
@@ -94,12 +95,20 @@ async function main() {
   writeFileSync(cfgPath, readFileSync(cfgPath, 'utf8').split(/\r?\n/).map((l) => (l.startsWith('BUILD=') ? 'BUILD=' : l)).join('\n'));
 
   // verificações: nada de .next/node_modules no caminho (o painel os remove), ci-checks do pacote, ZIP íntegro e dentro do limite
-  const files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
+  let files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
   // pastas que o painel e o deploy_app removem do upload (get_docs: node_modules, .local, venv, .venv, __pycache__, .next, vendor, .bundle, target, .gradle, .npm) não podem aparecer no caminho
   const ruins = files.filter((f) => /(^|\/)(\.next|node_modules|vendor|target|venv|\.venv|__pycache__|\.bundle|\.gradle|\.local|\.npm)\//.test(f) || /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f));
   if (ruins.length) fail(`arquivos proibidos no pacote: ${ruins.slice(0, 5).join(', ')}`);
   const ck = spawnSync(process.execPath, [join(SELF, 'ci-checks.mjs'), '--root', folder, '--deploy', ...(release.perfil === 'production' ? ['--producao'] : [])], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (ck.status !== 0) fail(`ci-checks reprovou o pacote pré-construído:\n${ck.stderr || ck.stdout}`);
+  // --tar: DEPOIS da varredura de segredos (que lê os arquivos soltos), o .next vira um único web-next.tar e a pasta solta sai do pacote
+  if (tar) {
+    const arq = join(folder, PREBUILT_TAR);
+    const t = spawnSync('tar', ['-cf', arq, '-C', destNext, '.'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    if (t.error || t.status !== 0) fail(`tar falhou ao criar web-next.tar: ${t.stderr || t.error}`);
+    rmSync(destNext, { recursive: true, force: true });
+    files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
+  }
   // --sem-zip (runner Ubuntu do GitHub Actions: o tar GNU não cria ZIP; o deploy_app envia a PASTA): só confere o tamanho total contra o limite de 100 MB do upload
   let bytes = 0;
   if (args['sem-zip']) {

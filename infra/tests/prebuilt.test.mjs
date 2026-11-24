@@ -419,3 +419,36 @@ test('provar-restauracao-prebuilt: pacote pré-construído coerente passa (exit 
     assert.ok(ruim.stdout.includes('INCOMPLETO'), ruim.stdout.slice(0, 300));
   } finally { limpa(q); }
 });
+
+test('package-prebuilt --tar (reserva para o limite de entradas do upload): o .next vira UM web-next.tar, o pacote tem bem menos entradas, e a restauração extrai, confere o BUILD_ID e é idempotente; tar corrompido ou de outro build reprova', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const nx = nextFalso();
+  for (let i = 0; i < 40; i += 1) put(nx, `server/chunks/c${i}.js`, 'x'); // muitos arquivos soltos: é isso que o tar junta
+  const rodar = (extra) => spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', join(base, extra[0]), '--origem', 'teste', ...extra.slice(1)], { encoding: 'utf8' });
+  try {
+    const plano = rodar(['plano']);
+    const comTar = rodar(['tar', '--tar']);
+    assert.equal(plano.status, 0, plano.stderr + plano.stdout);
+    assert.equal(comTar.status, 0, comTar.stderr + comTar.stdout);
+    const jp = JSON.parse(plano.stdout);
+    const jt = JSON.parse(comTar.stdout);
+    assert.ok(jt.pasta.endsWith('-prebuilt-tar'), jt.pasta);
+    assert.ok(existsSync(join(jt.pasta, 'prebuilt/web-next.tar')));
+    assert.equal(existsSync(join(jt.pasta, 'prebuilt/web-next')), false, 'a pasta solta sai do pacote');
+    assert.ok(jt.arquivos <= jp.arquivos - 40, 'entradas: tar=' + jt.arquivos + ' contra pasta=' + jp.arquivos);
+    assert.equal(JSON.parse(readFileSync(join(jt.pasta, 'prebuilt/prebuilt.json'), 'utf8')).formato, 'tar');
+    assert.equal(JSON.parse(readFileSync(join(jp.pasta, 'prebuilt/prebuilt.json'), 'utf8')).formato, 'pasta');
+    const prova = spawnSync(process.execPath, [join(S, 'provar-restauracao-prebuilt.mjs'), '--pacote', jt.pasta], { encoding: 'utf8' });
+    assert.equal(prova.status, 0, prova.stdout.slice(0, 600) + prova.stderr);
+    const pj = JSON.parse(prova.stdout);
+    assert.ok(pj.primeira.log.join('|').includes('web-next.tar'), 'restaurou do tar');
+    assert.ok(pj.segunda.log.join('|').includes('já presente'), 'a 2ª subida não extrai de novo');
+    assert.equal(pj.buildIdRestaurado, 'BUILD_abc123');
+    assert.ok(pj.links.every((l) => l.link));
+    // tar corrompido
+    writeFileSync(join(jt.pasta, 'prebuilt/web-next.tar'), 'isto não é um tar');
+    const ruim = spawnSync(process.execPath, [join(S, 'provar-restauracao-prebuilt.mjs'), '--pacote', jt.pasta], { encoding: 'utf8' });
+    assert.equal(ruim.status, 1);
+    assert.ok(ruim.stdout.includes('falha ao extrair') || ruim.stdout.includes('BUILD_ID extraído'), ruim.stdout.slice(0, 500));
+  } finally { rmSync(base, { recursive: true, force: true }); rmSync(nx, { recursive: true, force: true }); }
+});
