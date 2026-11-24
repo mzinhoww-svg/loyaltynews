@@ -52,8 +52,12 @@ export default async function InfoPage({ params }: Props) {
       {d.slug === 'correcoes' && (
         <section id="pedido" className="pt-section" aria-labelledby="pedido-t" style={{ margin: '24px 0' }}>
           <h2 id="pedido-t">Pedir correção ou remoção de um dado</h2>
+          <noscript>
+            <p className="pt-panel" role="note" data-testid="pedido-noscript">
+              Este formulário precisa de JavaScript ligado no navegador. Sem ele, o botão de envio fica desabilitado.
+            </p>
+          </noscript>
           <PedidoTitularForm />
-          <noscript><p>Este formulário precisa de JavaScript ligado no navegador.</p></noscript>
         </section>
       )}
       {d.slug === 'publicidade' && (

@@ -1,0 +1,24 @@
+/* Ajustes visuais das páginas da Frontend 2 (revisão visual do staging da int/012, P2-4 e P3-3).
+   Mesmo padrão do V-11 (portal.css): alvo de toque >= 44px só no mobile; o desktop não muda. */
+@media (max-width: 767px) {
+  .touch {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--ln-touch-target);
+  }
+}
+
+/* Texto do estado vazio em linha própria: o título em negrito não cola na explicação. */
+.emptyText {
+  display: block;
+  margin-top: var(--ln-space-2, 8px);
+}
+
+/* Bloco "Enquanto isso" do /moves vazio. */
+.meanwhile {
+  margin-top: var(--ln-space-5, 24px);
+}
+.meanwhile ul {
+  margin: var(--ln-space-2, 8px) 0 0;
+  padding-left: 1.2em;
+}

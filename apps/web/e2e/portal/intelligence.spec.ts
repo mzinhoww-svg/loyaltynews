@@ -11,6 +11,9 @@ const mode = (process.env.PORTAL_MODE ?? 'empty') as 'empty' | 'mock' | 'api';
 const intel = process.env.PORTAL_API_INTEL ?? '';
 /** Clique que navega para uma página de detalhe: no next dev a 1ª visita compila a rota e pode passar de 5 s. */
 const NAV_MS = 20_000;
+// Testes de jornada (várias navegações com compilação sob demanda, cada uma com até NAV_MS): com os workers padrão o orçamento de
+// 30 s do teste estourava no meio de uma espera já correta. Orçamento maior e fixo por teste — sem retry.
+test.describe.configure({ timeout: 90_000 });
 
 async function axe(page: Page) {
   await page.waitForLoadState('networkidle');
@@ -66,7 +69,7 @@ test.describe('api', () => {
     const chips = page.getByRole('list', { name: 'Filtrar por tipo' });
     await expect(chips.getByRole('link', { name: 'Todos (5)' })).toHaveAttribute('aria-current', 'true');
     await chips.getByRole('link', { name: 'Empresa (2)' }).click();
-    await expect(page).toHaveURL(/tipo=company/);
+    await expect(page).toHaveURL(/tipo=company/, { timeout: NAV_MS });
     await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(2);
     await expect(page.getByTestId('directory-count')).toContainText('2 organizações · Empresa');
     await expect(chips.getByRole('link', { name: 'Empresa (2)' })).toHaveAttribute('aria-current', 'true');
@@ -135,7 +138,7 @@ test.describe('api', () => {
     await expect(page.locator('main')).not.toContainText('Bia Teste');
     await axe(page);
     await cards.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
-    await expect(page).toHaveURL(/\/moves\/10000000-0000-4000-8000-000000000401$/);
+    await expect(page).toHaveURL(/\/moves\/10000000-0000-4000-8000-000000000401$/, { timeout: NAV_MS });
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mudança de empresa: [MOCK API] Ana Teste', { timeout: NAV_MS });
     // DP-38: o Move tem o próprio pedido; a URL /moves/<id> é a que o Backend 2 usa como alvo.
     await expect(page.getByTestId('move-correction')).toHaveAttribute('href', '/correcoes?alvo=%2Fmoves%2F10000000-0000-4000-8000-000000000401#pedido');
@@ -179,6 +182,25 @@ test.describe('api', () => {
     await people.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
+  });
+});
+
+test.describe('fake-api do Intelligence = contrato da API real (erros)', () => {
+  test.skip(mode !== 'api' || intel !== '', 'somente no modo api com Intelligence completo');
+  // Mesma porta que portal.config.ts dá ao servidor MOCK (base+4, ou 3104 sem PORTAL_PORT_BASE).
+  const base = Number(process.env.PORTAL_PORT_BASE) || 0;
+  const fake = `http://localhost:${base ? base + 4 : 3104}`;
+
+  test('id fora de UUID = 400 invalid_input (pessoa, Move, empresa); inexistente = 404 not_found', async ({ request }, info) => {
+    test.skip(info.project.name !== 'desktop', 'chamada direta: um projeto basta');
+    for (const rota of ['pessoas', 'moves', 'empresas']) {
+      const r = await request.get(`${fake}/api/publico/intelligence/${rota}/nao-e-uuid`);
+      expect(r.status(), rota).toBe(400);
+      expect((await r.json()).error.code, rota).toBe('invalid_input');
+    }
+    const nf = await request.get(`${fake}/api/publico/intelligence/empresas/10000000-0000-4000-8000-000000000999`);
+    expect(nf.status()).toBe(404);
+    expect((await nf.json()).error.code).toBe('not_found');
   });
 });
 

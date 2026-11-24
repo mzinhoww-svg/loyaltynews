@@ -4,6 +4,9 @@ import { Button, Input } from '@ln/ui';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { estadoDaResposta, ROTA_PEDIDO, urlDoAlvo, validarPedido, type EstadoEnvio, type PedidoErros, type PedidoValores } from './pedido';
 
+/** Botão de rádio com 24px (WCAG 2.5.8); a linha inteira (label, 44px) é a área de toque. Revisão visual int/012, P2-4. */
+const RADIO = { width: 24, height: 24, margin: 0, flex: 'none' } as const;
+
 const MENSAGEM: Record<Exclude<EstadoEnvio, 'recebido'>, string> = {
   invalido: 'Não conseguimos aceitar o pedido. Revise os campos e envie de novo.',
   muitos: 'Recebemos muitos pedidos deste contato ou desta rede em pouco tempo. Tente novamente mais tarde.',
@@ -18,12 +21,15 @@ export function PedidoTitularForm() {
   const [erros, setErros] = useState<PedidoErros>({});
   const [estado, setEstado] = useState<'idle' | 'enviando' | EstadoEnvio>('idle');
   const [urlInicial, setUrlInicial] = useState('');
+  // Pronto = hidratado: antes disso o clique faria o envio nativo do formulário (recarga, sem estado). O botão só habilita aqui.
+  const [pronto, setPronto] = useState(false);
   const textoId = useId();
   const tipoId = useId();
   const avisoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setUrlInicial(urlDoAlvo(new URLSearchParams(window.location.search).get('alvo'), window.location.origin));
+    setPronto(true);
   }, []);
 
   useEffect(() => {
@@ -74,7 +80,7 @@ export function PedidoTitularForm() {
 
   const enviando = estado === 'enviando';
   return (
-    <form onSubmit={enviar} noValidate aria-describedby={`${textoId}-legenda`} data-testid="pedido-form" style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
+    <form onSubmit={enviar} noValidate aria-describedby={`${textoId}-legenda`} data-testid="pedido-form" data-pronto={pronto ? '1' : undefined} style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
       <p id={`${textoId}-legenda`} className="pt-meta" style={{ margin: 0 }}>Todos os campos marcados com * são obrigatórios.</p>
       {(estado === 'invalido' || estado === 'muitos' || estado === 'falha') && (
         <div className="pt-panel" role="alert" tabIndex={-1} ref={avisoRef} data-testid="pedido-erro">
@@ -97,10 +103,10 @@ export function PedidoTitularForm() {
       <fieldset className={erros.tipo ? 'ln-field ln-field--error' : 'ln-field'} aria-describedby={erros.tipo ? `${tipoId}-err` : undefined} style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="ln-field__label">O que você pede?<span aria-hidden="true"> *</span></legend>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
-          <input type="radio" name="tipo" value="correcao" defaultChecked /> Correção de um dado
+          <input type="radio" name="tipo" value="correcao" style={RADIO} defaultChecked /> Correção de um dado
         </label>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
-          <input type="radio" name="tipo" value="remocao" /> Remoção de um dado
+          <input type="radio" name="tipo" value="remocao" style={RADIO} /> Remoção de um dado
         </label>
         {erros.tipo && <p id={`${tipoId}-err`} className="ln-field__error"><span className="ln-sr-only">Erro: </span>{erros.tipo}</p>}
       </fieldset>
@@ -128,7 +134,7 @@ export function PedidoTitularForm() {
         </label>
       </div>
       <div>
-        <Button type="submit" variant="primary" disabled={enviando} aria-busy={enviando || undefined}>
+        <Button type="submit" variant="primary" disabled={enviando || !pronto} aria-busy={enviando || undefined}>
           {enviando ? 'Enviando…' : 'Enviar pedido'}
         </Button>
       </div>
