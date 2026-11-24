@@ -181,3 +181,38 @@ test('decodificarLeitura/tamanhoDe: o size declarado é CONFERIDO (tamanho errad
   assert.throws(() => decodificarLeitura('abc', 'misterio', 99), /não confere/);
   assert.throws(() => normalizarConteudo(Buffer.from(JSON.stringify({ response: { type: 'base64', data: 'QUJD', size: 99 } })), 'application/json'), /tamanho diferente do declarado/, 'um arquivo com tamanho errado vira ERRO do arquivo, nunca bytes errados');
 });
+
+test('baixar: pastas e arquivos andam EM PARALELO numa fila única (a API real demora ~segundos por pedido): com 16 em paralelo há >= 8 pedidos simultâneos, nada se perde e o arquivo de progresso é gravado', async () => {
+  const PASTAS = 6, POR_PASTA = 25;
+  let simultaneos = 0, maximo = 0;
+  const srv = http.createServer((req, res) => {
+    simultaneos += 1; maximo = Math.max(maximo, simultaneos);
+    const u = new URL(req.url, 'http://x');
+    const caminho = u.searchParams.get('path');
+    setTimeout(() => {
+      simultaneos -= 1;
+      res.setHeader('content-type', 'application/json');
+      if (u.pathname.endsWith('/files/content')) { const corpo = Buffer.from(`conteudo de ${caminho}`); res.end(JSON.stringify({ response: { type: 'base64', data: corpo.toString('base64'), size: corpo.length, last_modified: 'x' } })); return; }
+      if (caminho === RAIZ) { res.end(JSON.stringify({ response: Array.from({ length: PASTAS }, (_, i) => ({ name: `p${i}`, path: `${RAIZ}/p${i}`, type: 'directory', last_modified: 'x', size: '' })) })); return; }
+      res.end(JSON.stringify({ response: Array.from({ length: POR_PASTA }, (_, i) => { const t = `conteudo de ${caminho}/f${i}.js`.length; return { name: `f${i}.js`, path: `${caminho}/f${i}.js`, type: 'file', last_modified: 'x', size: String(t) }; }) }));
+    }, 60);
+  });
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-par-'));
+  const dest = join(base, 'next');
+  const progresso = join(base, 'progresso.json');
+  try {
+    const t0 = Date.now();
+    const rel = await baixar({ app: 'APP', destino: dest, raiz: RAIZ, api: `http://127.0.0.1:${srv.address().port}`, rpm: 60000, concorrencia: 16, chave: CHAVE, progresso });
+    const ms = Date.now() - t0;
+    assert.deepEqual(rel.erros, []);
+    assert.equal(rel.arquivos, PASTAS * POR_PASTA);
+    assert.ok(maximo >= 8, `pedidos simultâneos: ${maximo}`);
+    assert.ok(ms < 3000, `150 arquivos + 7 listagens em ${ms} ms com 60 ms por pedido (sequencial levaria > 9 s)`);
+    assert.equal(readFileSync(join(dest, 'p3', 'f7.js'), 'utf8'), `conteudo de ${RAIZ}/p3/f7.js`);
+    const p = JSON.parse(readFileSync(progresso, 'utf8'));
+    assert.equal(p.baixados, PASTAS * POR_PASTA);
+    assert.equal(p.erros, 0);
+    assert.ok(!JSON.stringify(p).includes(CHAVE));
+  } finally { await fecha({ srv }); rmSync(base, { recursive: true, force: true }); }
+});
