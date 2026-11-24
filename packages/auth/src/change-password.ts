@@ -2,10 +2,11 @@
 // /api/auth/change-password do Better Auth fica fora da lista do handler (sem ela este limite e a política seriam contornáveis).
 // Regras: sessão com 2º fator; nova senha com 12+ caracteres (até 128), igual à confirmação e diferente da atual; a troca em si é o
 // changePassword do Better Auth (hash e gravação dele, nada próprio) com revokeOtherSessions (apaga todas as sessões e abre uma nova
-// para quem trocou); limite de senha atual errada: 5 por 15 min, bloqueio de 15 min, por usuário e por IP (pré-cobrado, atômico);
+// para quem trocou); limite de senha atual errada: 5 por 15 min, bloqueio de 15 min, por usuário e por IP (pré-cobrado, atômico,
+// compartilhado com as rotas do 2º fator que conferem a senha);
 // auditoria `change_password` em todo resultado, sem senha (o detalhe só leva o resultado).
 import { audit } from './audit';
-import { acquireAttempt, releaseAttempt, resetAccount, type Acquire } from './attempts';
+import { chargePasswordAttempt, passwordNotChecked, passwordOk } from './password-attempts';
 import { sessionFromHeaders } from './guard';
 import type { Auth } from './server';
 import type { Db } from './types';
@@ -81,19 +82,13 @@ export async function changeOwnPassword(deps: ChangeOwnPasswordDeps, input: Chan
     return { ok: false, status: 400, code: 'VALIDATION_ERROR', mensagem: erros.join(' '), erros };
   }
 
-  // pré-cobra a tentativa (atômico por sujeito) ANTES de verificar a senha atual: N simultâneas não passam de 5
-  const userSubject = `senha:${session.userId}`;
-  const ipSubject = ip ? `senha:${ip}` : null;
-  const byUser: Acquire = await acquireAttempt(db, 'conta', userSubject, t);
-  const byIp: Acquire = ipSubject ? await acquireAttempt(db, 'ip', ipSubject, t) : { allowed: true };
-  if (!byUser.allowed || !byIp.allowed) {
-    if (byUser.allowed) await releaseAttempt(db, 'conta', userSubject);
-    if (byIp.allowed && ipSubject) await releaseAttempt(db, 'ip', ipSubject);
-    const until = !byUser.allowed ? byUser.until : (byIp as { until: Date }).until;
-    await registrar('bloqueada', { ate: until.toISOString() });
-    const retryAfter = Math.max(1, Math.ceil((until.getTime() - t.getTime()) / 1000));
-    const minutos = Math.max(1, Math.ceil(retryAfter / 60));
-    return { ok: false, status: 429, code: 'TOO_MANY_ATTEMPTS', mensagem: `Muitas tentativas com a senha atual errada. Tente de novo em ${minutos} min.`, retryAfter };
+  // pré-cobra a tentativa (atômico por sujeito) ANTES de verificar a senha atual: N simultâneas não passam de 5.
+  // Contador compartilhado com as rotas do 2º fator que conferem a senha (password-attempts.ts).
+  const gate = await chargePasswordAttempt(db, session.userId, ip, t);
+  if (!gate.allowed) {
+    await registrar('bloqueada', { ate: gate.until.toISOString() });
+    const minutos = Math.max(1, Math.ceil(gate.retryAfter / 60));
+    return { ok: false, status: 429, code: 'TOO_MANY_ATTEMPTS', mensagem: `Muitas tentativas com a senha atual errada. Tente de novo em ${minutos} min.`, retryAfter: gate.retryAfter };
   }
 
   let setCookies: string[];
@@ -107,8 +102,7 @@ export async function changeOwnPassword(deps: ChangeOwnPasswordDeps, input: Chan
       return { ok: false, status: 400, code: 'INVALID_CURRENT_PASSWORD', mensagem: 'A senha atual está incorreta.' };
     }
     // erro inesperado: devolve a cobrança (não foi senha errada) e registra só o código
-    await releaseAttempt(db, 'conta', userSubject);
-    if (ipSubject) await releaseAttempt(db, 'ip', ipSubject);
+    await passwordNotChecked(db, gate.charge);
     if (code === 'UNAUTHORIZED') {
       await registrar('sem_sessao');
       return { ok: false, status: 401, code: 'UNAUTHENTICATED', mensagem: 'Sua sessão terminou. Entre de novo para trocar a senha.' };
@@ -118,8 +112,7 @@ export async function changeOwnPassword(deps: ChangeOwnPasswordDeps, input: Chan
   }
 
   // senha certa: zera o contador do usuário e devolve a cobrança do IP
-  await resetAccount(db, userSubject);
-  if (ipSubject) await releaseAttempt(db, 'ip', ipSubject);
+  await passwordOk(db, gate.charge);
   await registrar('ok', { outrasSessoesRevogadas: true });
   return { ok: true, status: 200, mensagem: 'Senha trocada. As outras sessões foram encerradas.', setCookies };
 }

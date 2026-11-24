@@ -107,4 +107,25 @@ describe('POST /api/studio/conta/senha', () => {
     expect((await post('{nao-json', cookie)).status).toBe(400);
     expect((await post({ senhaAtual: 'x'.repeat(5000) }, cookie)).status).toBe(413);
   });
+
+  it('Content-Length acima de 4 KB: 413 sem ler o corpo', async () => {
+    let lido = false;
+    const corpo = new ReadableStream<Uint8Array>({
+      pull(c) {
+        lido = true;
+        c.enqueue(new TextEncoder().encode('{}'));
+        c.close();
+      },
+    }, { highWaterMark: 0 }); // só puxa quando alguém lê
+    const req = new Request(`${ORIGIN}/api/studio/conta/senha`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, host: 'localhost:3000', 'content-length': '5000' },
+      body: corpo,
+      duplex: 'half',
+    } as RequestInit);
+    const r = await trocarSenhaHandler(req, { auth, db, now: () => clock.now, trustedProxyHops: 0 });
+    expect(r.status).toBe(413);
+    expect(req.bodyUsed).toBe(false);
+    expect(lido).toBe(false);
+  });
 });

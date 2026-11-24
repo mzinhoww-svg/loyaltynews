@@ -37,6 +37,9 @@ export async function trocarSenhaHandler(req: Request, deps: ContaSenhaDeps): Pr
     return Response.json({ error: { ...body.error, requestId } }, { status, headers: { ...SEM_CACHE, 'x-request-id': requestId, ...headers } });
   };
   if (!mesmaOrigem(req.headers)) return erro(403, 'FORBIDDEN_ORIGIN', 'Origem não permitida.');
+  // recusa pelo Content-Length declarado ANTES de ler o corpo (sem ele, o limite abaixo vale sobre o texto lido)
+  const declarado = Number(req.headers.get('content-length') ?? '');
+  if (Number.isFinite(declarado) && declarado > MAX_BODY) return erro(413, 'PAYLOAD_TOO_LARGE', 'Corpo grande demais.');
   const texto = await req.text();
   if (texto.length > MAX_BODY) return erro(413, 'PAYLOAD_TOO_LARGE', 'Corpo grande demais.');
   let corpo: Record<string, unknown>;

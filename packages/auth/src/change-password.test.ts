@@ -174,3 +174,50 @@ describe('changeOwnPassword', () => {
     expect((await signIn(u.email, PASSWORD, u.raw)).status).toBe(200);
   });
 });
+
+describe('rotas do 2º fator que conferem a senha: mesmo contador da troca (senha:<userId> e IP)', () => {
+  const ROTAS = ['/two-factor/enable', '/two-factor/disable', '/two-factor/get-totp-uri', '/two-factor/generate-backup-codes'] as const;
+  const bloqueios = async () => (await t.db.select().from(schema.auditLog)).filter((r) => r.action === 'senha.verificacao_bloqueada');
+
+  for (const [i, rota] of ROTAS.entries()) {
+    it(`${rota}: 5 senhas erradas bloqueiam a rota (429 + Retry-After, mesmo com a certa) e também a troca de senha`, async () => {
+      clock = new Date(`2026-11-25T0${i}:00:00Z`);
+      const u = await usuarioMfa();
+      for (let n = 0; n < 5; n++) {
+        const r = await handle(req(rota, { password: `errada-${n}-errada-xx` }, u.cookie, `10.90.${i}.${n}`));
+        expect(r.status).toBe(400);
+      }
+      const b = await handle(req(rota, { password: PASSWORD }, u.cookie, `10.91.${i}.1`));
+      expect(b.status).toBe(429);
+      expect(b.headers.get('retry-after')).toBe('900');
+      expect(((await b.json()) as { error: { code: string } }).error.code).toBe('TOO_MANY_ATTEMPTS');
+      expect(await trocar(u.cookie, PASSWORD, NOVA, NOVA, `10.92.${i}.1`)).toMatchObject({ status: 429 });
+      const a = (await bloqueios()).filter((x) => x.actorId === u.id);
+      expect(a.length).toBe(1);
+      expect(JSON.stringify(await t.db.select().from(schema.auditLog))).not.toContain('errada-0-errada-xx');
+      // passada a janela, a senha certa volta a valer na rota e zera o contador
+      clock = new Date(`2026-11-25T0${i}:16:00Z`);
+      expect((await handle(req('/two-factor/get-totp-uri', { password: PASSWORD }, u.cookie, `10.93.${i}.1`))).status).toBe(200);
+    });
+  }
+
+  it('erros somam entre a troca e as rotas do 2º fator (3 na troca + 2 em rotas = bloqueio)', async () => {
+    clock = new Date('2026-11-25T08:00:00Z');
+    const u = await usuarioMfa();
+    for (let n = 0; n < 3; n++) await trocar(u.cookie, `errada-${n}-errada-xx`, NOVA, NOVA, `10.94.0.${n}`);
+    expect((await handle(req('/two-factor/get-totp-uri', { password: 'errada-x-errada-xx' }, u.cookie, '10.94.1.1'))).status).toBe(400);
+    expect((await handle(req('/two-factor/generate-backup-codes', { password: 'errada-y-errada-xx' }, u.cookie, '10.94.1.2'))).status).toBe(400);
+    expect((await handle(req('/two-factor/enable', { password: PASSWORD }, u.cookie, '10.94.1.3'))).status).toBe(429);
+  });
+
+  it('por IP: 5 erradas de um IP nas rotas bloqueiam outra conta nesse IP; senha certa não gasta tentativa', async () => {
+    clock = new Date('2026-11-25T09:00:00Z');
+    const a = await usuarioMfa();
+    const b = await usuarioMfa();
+    const ip = '10.95.5.5';
+    for (let n = 0; n < 10; n++) expect((await handle(req('/two-factor/get-totp-uri', { password: PASSWORD }, a.cookie, ip))).status).toBe(200);
+    for (let n = 0; n < 5; n++) await handle(req('/two-factor/get-totp-uri', { password: `errada-${n}-errada-xx` }, a.cookie, ip));
+    expect((await handle(req('/two-factor/get-totp-uri', { password: PASSWORD }, b.cookie, ip))).status).toBe(429);
+    expect((await handle(req('/two-factor/get-totp-uri', { password: PASSWORD }, b.cookie, '10.95.5.6'))).status).toBe(200);
+  });
+});

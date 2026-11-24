@@ -4,6 +4,7 @@
 import { apiError } from '@ln/contracts';
 import { audit } from './audit';
 import { acquireAttempt, releaseAttempt, resetAccount, type Acquire } from './attempts';
+import { chargePasswordAttempt, passwordNotChecked, passwordOk, type PasswordCharge } from './password-attempts';
 import { clientIp, trustedProxyHops } from './client-ip';
 import type { Auth } from './server';
 import type { Db } from './types';
@@ -31,6 +32,18 @@ const notFound = () => Response.json(apiError('NOT_FOUND', 'Rota inexistente.'),
 // 5 códigos (o Better Auth só limita por desafio, e o login correto zera o contador da conta) e adivinha os 6 dígitos. O sujeito é o USUÁRIO do desafio (cookie two_factor
 // pendente) ou da sessão, e o IP; os contadores são separados dos do sign-in (prefixo `2fa:`) e valem para TOTP e código de recuperação juntos.
 const TWO_FACTOR_VERIFY: ReadonlySet<string> = new Set(['/two-factor/verify-totp', '/two-factor/verify-backup-code']);
+
+// Rotas do 2º fator que CONFEREM A SENHA da sessão: sem limite próprio, com uma sessão roubada viram oráculo da senha atual (o Better Auth
+// só limita em memória, ~1000/h). Usam o MESMO contador da troca de senha (password-attempts.ts: `senha:<userId>` e `senha:<ip>`),
+// pré-cobrado; só senha errada (400 INVALID_PASSWORD) fica cobrada. Auditoria `senha.verificacao_*` sem senha.
+const PASSWORD_CHECKED: ReadonlySet<string> = new Set(['/two-factor/enable', '/two-factor/disable', '/two-factor/get-totp-uri', '/two-factor/generate-backup-codes']);
+
+/** true quando o Better Auth recusou pela senha (400 INVALID_PASSWORD). */
+async function wrongPassword(res: Response): Promise<boolean> {
+  if (res.status !== 400) return false;
+  const body = (await res.clone().json().catch(() => null)) as { code?: unknown } | null;
+  return body?.code === 'INVALID_PASSWORD';
+}
 
 /** Id do usuário que está tentando o 2º fator: o do desafio pendente (cookie assinado `two_factor`) ou o da sessão. Sem nenhum dos dois: null (só vale o limite por IP). */
 async function twoFactorUserId(auth: Auth, request: Request): Promise<string | null> {
@@ -129,7 +142,30 @@ export function createAuthHandler({ auth, db, basePath = '/api/auth', now = () =
       }
     }
 
+    let passwordCharge: PasswordCharge | null = null;
+    let passwordUser: string | null = null;
+    if (PASSWORD_CHECKED.has(path)) {
+      let userId: string | null = null;
+      try {
+        userId = (await auth.api.getSession({ headers: request.headers }))?.user?.id ?? null;
+      } catch {
+        // sem sessão legível: só o limite por IP se aplica (o Better Auth responde 401)
+      }
+      const gate = await chargePasswordAttempt(db, userId, ip, t);
+      if (!gate.allowed) {
+        await audit(db, { actorId: userId, action: 'senha.verificacao_bloqueada', resource: 'sessao', resourceId: userId, ip, detalhe: { rota: path, ate: gate.until.toISOString() }, at: t });
+        return Response.json(apiError('TOO_MANY_ATTEMPTS', 'Muitas tentativas com a senha errada. Tente novamente mais tarde.'), { status: 429, headers: { 'Retry-After': String(gate.retryAfter) } });
+      }
+      passwordCharge = gate.charge;
+      passwordUser = userId;
+    }
+
     const res = await auth.handler(request);
+    if (passwordCharge) {
+      if (res.ok) await passwordOk(db, passwordCharge);
+      else if (await wrongPassword(res)) await audit(db, { actorId: passwordUser, action: 'senha.verificacao_falha', resource: 'sessao', resourceId: passwordUser, ip, detalhe: { rota: path }, at: t });
+      else await passwordNotChecked(db, passwordCharge);
+    }
     if (TWO_FACTOR_VERIFY.has(path) && res.ok) {
       // código certo: zera o contador do usuário e devolve a cobrança do IP (como no sign-in)
       if (userSubject) await resetAccount(db, userSubject);
