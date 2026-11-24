@@ -2,10 +2,11 @@
 // Baixa o `.next` JÁ CONSTRUÍDO NA VERTRA (Linux, caminhos /app/...) de um app pela API de arquivos, para montar o pacote PRÉ-CONSTRUÍDO (package-prebuilt.mjs). SÓ LEITURA na Vertra (GET).
 // A chave vem SÓ do ambiente do processo (VERTRA_API_KEY, escopo apps:files): não é argumento, nunca é impressa nem gravada, nem em erro. Rode pelo script do PM (credenciais-sem-expor.md).
 // Uso: VERTRA_API_KEY=… node infra/scripts/baixar-next-vertra.mjs --app <id> --dest <pasta nova> [--path apps/web/.next] [--api https://api.vertracloud.app]
-//        [--rpm 240] [--concorrencia 4] [--progresso <arquivo.json>] [--incluir-tudo] [--retomar] [--sonda | --medir]
+//        [--rpm 240] [--concorrencia 4] [--progresso <arquivo.json>] [--incluir-tudo] [--timeout-pedido 30] [--retomar] [--sonda | --medir [--sem-carga-real]]
 //   --sonda    uma listagem + a leitura do BUILD_ID, imprime só o FORMATO (chaves/tipos) e sai; não grava nada. Rode antes do download completo.
 //   --progresso grava, a cada 100 arquivos, um JSON pequeno (baixados, descobertos, erros, fila) para olhar uma execução destacada; não tem limite de tempo próprio.
-//   --medir    mede a latência por pedido e a vazão com 1, 2, 4, 8 e 16 em paralelo lendo o BUILD_ID (~100 pedidos, ~1 min com --rpm 280; não grava nada), recomenda a concorrência e avisa se a API colapsa.
+//   --medir    mede a latência por pedido e a vazão com 1, 2, 4, 8 e 16 em paralelo lendo o BUILD_ID (~100 pedidos, ~1 min com --rpm 280; não grava nada), recomenda a concorrência e avisa se a API colapsa; depois mede a CARGA REAL (listagens das pastas grandes e arquivos distintos com 1, 2 e 4 em paralelo; `--sem-carga-real` pula).
+//   --timeout-pedido <s>  tempo máximo de CADA pedido (padrão 30 s; antes 60 s fixos); estourou = nova tentativa. O relatório traz diagnostico (histograma de latência, pedidos >= 8 s, timeouts, 429, 5xx).
 //   --incluir-tudo  baixa também *.map e *.nft.json (por padrão ficam de fora: o next start não os usa; ~36% dos arquivos).
 //   --retomar  pula arquivo já baixado com o tamanho certo (cai a conexão ou o limite da API: repita o comando).
 // Fica de fora (não serve ao pacote): cache, diagnostics, trace, trace-build. Em node_modules grava só PASTAS VAZIAS com os nomes dos externos (a restauração recria os links).
@@ -145,10 +146,14 @@ class Limite {
   async esperar() { const agora = Date.now(); const t = Math.max(agora, this.proximo); this.proximo = t + this.intervalo; if (t > agora) await new Promise((r) => setTimeout(r, t - agora)); }
 }
 
-function cliente({ api, chave, app, rpm, parametro = 'path' }) {
+function cliente({ api, chave, app, rpm, parametro = 'path', timeoutPedidoMs = 30000 }) {
   const limite = new Limite(rpm);
   let pedidos = 0;
   const lat = []; // tempo (ms) de cada pedido bem-sucedido, DEPOIS da espera do limitador: é a latência da API
+  // Diagnóstico (24/11: o download real fez ~22 pedidos/min contra 281/min do --medir): histograma de latência, pedidos lentos (>= 8 s), timeouts e 429/5xx
+  const diag = { timeouts: 0, http429: 0, http5xx: 0 };
+  const faixas = { 'ate1s': 0, '1a5s': 0, '5a15s': 0, '15a60s': 0, 'mais60s': 0 };
+  const lentos = [];
   const get = async (rota, caminho) => {
     for (let tentativa = 0; tentativa < 6; tentativa += 1) {
       await limite.esperar();
@@ -156,14 +161,16 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
       const t0 = Date.now();
       let r;
       try {
-        r = await fetch(`${api}/v1/apps/${encodeURIComponent(app)}/${rota}?${parametro}=${encodeURIComponent(caminho)}`, { headers: { authorization: `Bearer ${chave}`, accept: 'application/json' }, signal: AbortSignal.timeout(60000) });
-      } catch (e) { if (tentativa === 5) throw new Error(`rede: ${e?.cause?.code ?? e?.name}`, { cause: e }); await new Promise((s) => setTimeout(s, 1000 * (tentativa + 1))); continue; }
+        r = await fetch(`${api}/v1/apps/${encodeURIComponent(app)}/${rota}?${parametro}=${encodeURIComponent(caminho)}`, { headers: { authorization: `Bearer ${chave}`, accept: 'application/json' }, signal: AbortSignal.timeout(timeoutPedidoMs) });
+      } catch (e) { if (e?.name === 'TimeoutError' || e?.cause?.name === 'TimeoutError') diag.timeouts += 1; if (tentativa === 5) throw new Error(`rede: ${e?.cause?.code ?? e?.name}`, { cause: e }); await new Promise((s) => setTimeout(s, 1000 * (tentativa + 1))); continue; }
       if (r.status === 429) {
+        diag.http429 += 1;
         let espera = Number(r.headers.get('retry-after')) || 0;
         try { const j = await r.clone().json(); espera = Number(j?.details?.retry_after ?? j?.retry_after ?? espera) || espera; } catch { /* sem corpo */ }
         await new Promise((s) => setTimeout(s, Math.min(120, Math.max(2, espera)) * 1000));
         continue;
       }
+      if (r.status >= 500) diag.http5xx += 1;
       if (r.status >= 500 && tentativa < 5) { await new Promise((s) => setTimeout(s, 1000 * (tentativa + 1))); continue; }
       const corpo = Buffer.from(await r.arrayBuffer());
       if (!r.ok) {
@@ -171,7 +178,10 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
         try { codigo = String(JSON.parse(corpo.toString('utf8'))?.code ?? ''); } catch { /* sem json */ }
         throw new Error(`HTTP ${r.status}${codigo ? ` ${codigo.replace(/[^A-Z0-9_]/g, '').slice(0, 40)}` : ''}`);
       }
-      lat.push(Date.now() - t0);
+      const ms = Date.now() - t0;
+      lat.push(ms);
+      faixas[ms < 1000 ? 'ate1s' : ms < 5000 ? '1a5s' : ms < 15000 ? '5a15s' : ms < 60000 ? '15a60s' : 'mais60s'] += 1;
+      if (ms >= 8000) lentos.push({ rota, caminho: String(caminho).slice(-110), ms });
       return { corpo, tipo: r.headers.get('content-type') ?? '' };
     }
     throw new Error('limite de tentativas');
@@ -183,6 +193,7 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
     formas: () => ({ ...formas }),
     pedidos: () => pedidos,
     latencias: () => estatistica(lat),
+    diag: () => ({ ...diag, faixas: { ...faixas }, lentos: [...lentos].sort((a, b) => b.ms - a.ms).slice(0, 25) }),
   };
 }
 
@@ -190,8 +201,8 @@ function cliente({ api, chave, app, rpm, parametro = 'path' }) {
  * Mede a API de arquivos (só leitura de UM arquivo pequeno, o BUILD_ID): latência por pedido em sequência e a vazão (pedidos/min) com mais pedidos em paralelo, para escolher
  * a concorrência. Se a vazão não cresce com a concorrência, a API serializa e subir não adianta. Não grava nada. Respeita o limitador (`rpm`): use --rpm alto (<= 280) para medir.
  */
-export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 280, chave, niveis = [1, 2, 4, 8, 16], por = 3, sequenciais = 6 }) {
-  const c = cliente({ api, chave, app, rpm });
+export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 280, chave, niveis = [1, 2, 4, 8, 16], por = 3, sequenciais = 6, real = true, timeoutPedidoMs = 30000 }) {
+  const c = cliente({ api, chave, app, rpm, timeoutPedidoMs });
   const alvo = `${raiz}/BUILD_ID`;
   const seq = [];
   for (let i = 0; i < sequenciais; i += 1) { const t = Date.now(); await c.ler(alvo); seq.push(Date.now() - t); }
@@ -207,11 +218,53 @@ export async function medir({ app, raiz = 'apps/web/.next', api = 'https://api.v
   for (const r of resultado) if (r.pedidosPorMin > melhor.pedidosPorMin * 1.15) melhor = r; // só vale subir se ganhar mais de 15%
   // colapso: algum nível acima do melhor rende menos da METADE dele (medido em 24/11: 4 = 281/min, 16 = 24/min)
   const colapso = resultado.find((r) => r.concorrencia > melhor.concorrencia && r.pedidosPorMin < melhor.pedidosPorMin / 2);
-  return { sequencial: estatistica(seq), niveis: resultado, recomendada: melhor.concorrencia, ...(colapso ? { colapsoAPartirDe: colapso.concorrencia, avisoColapso: `a API COLAPSA com ${colapso.concorrencia} pedidos em voo (${colapso.pedidosPorMin}/min contra ${melhor.pedidosPorMin}/min com ${melhor.concorrencia}): use --concorrencia ${melhor.concorrencia}` } : {}), limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
+  const cargaReal = real ? await medirCargaReal(c, raiz) : undefined;
+  return { sequencial: estatistica(seq), niveis: resultado, recomendada: melhor.concorrencia, ...(cargaReal ? { cargaReal } : {}), diagnostico: c.diag(), ...(colapso ? { colapsoAPartirDe: colapso.concorrencia, avisoColapso: `a API COLAPSA com ${colapso.concorrencia} pedidos em voo (${colapso.pedidosPorMin}/min contra ${melhor.pedidosPorMin}/min com ${melhor.concorrencia}): use --concorrencia ${melhor.concorrencia}` } : {}), limiteRpmUsado: rpm, aviso: 'a vazão máxima possível é o rpm configurado; se pedidosPorMin ficar perto do rpm, o limitador é o gargalo, não a API' };
 }
 
-export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, chave, log = () => {}, progresso = null }) {
-  const c = cliente({ api, chave, app, rpm });
+/**
+ * Carga REAL (24/11: o --medir lendo sempre o BUILD_ID deu 281 pedidos/min e o download real só ~22/min): o mesmo BUILD_ID pode vir de cache do servidor, enquanto o download lê arquivos
+ * DISTINTOS e lista pastas com ~1000 entradas. Aqui: lista as pastas grandes conhecidas do Turbopack (server/chunks/ssr, server/chunks, server/app, static/chunks) e a raiz, medindo o tempo
+ * de cada listagem e o número de entradas; depois lê ARQUIVOS DISTINTOS (nunca o mesmo duas vezes) com 1, 2 e 4 em paralelo. Só leitura; nada é gravado.
+ */
+export async function medirCargaReal(c, raiz, { niveis = [1, 2, 4], por = 12, maxListagens = 12 } = {}) {
+  const listagens = [];
+  const arquivos = [];
+  const precisa = por * niveis.length;
+  const fila = ['server/chunks/ssr', 'server/chunks', 'server/app', 'static/chunks', ''];
+  const vistos = new Set();
+  while (fila.length && listagens.length < maxListagens && arquivos.length < precisa) {
+    const rel = fila.shift();
+    if (vistos.has(rel)) continue;
+    vistos.add(rel);
+    const caminho = rel ? `${raiz}/${rel}` : raiz;
+    const t = Date.now();
+    let itens;
+    try { itens = await c.listar(caminho); } catch { listagens.push({ pasta: rel || '(raiz)', erro: true, ms: Date.now() - t }); continue; }
+    listagens.push({ pasta: rel || '(raiz)', entradas: itens.length, ms: Date.now() - t });
+    for (const it of itens) {
+      if (!nomeSeguro(it.nome)) continue;
+      if (it.dir) { if (!rel && !FORA_DA_RAIZ.has(it.nome) && it.nome !== 'node_modules') fila.push(it.nome); } else if (!PADRAO_EXCLUIDO.test(it.nome)) arquivos.push(rel ? `${rel}/${it.nome}` : it.nome);
+    }
+  }
+  const resultado = [];
+  let ponteiro = 0;
+  for (const n of niveis) {
+    const lote = arquivos.slice(ponteiro, ponteiro + por);
+    ponteiro += por;
+    if (lote.length < por) { resultado.push({ concorrencia: n, aviso: `só ${lote.length} arquivo(s) distintos disponíveis` }); continue; }
+    let i = 0;
+    let bytes = 0;
+    const t = Date.now();
+    await Promise.all(Array.from({ length: n }, async () => { while (i < lote.length) { const a = lote[i]; i += 1; try { bytes += (await c.ler(`${raiz}/${a}`)).length; } catch { /* conta como lento/erro no diagnóstico */ } } }));
+    const ms = Date.now() - t;
+    resultado.push({ concorrencia: n, pedidos: lote.length, ms, bytes, pedidosPorMin: Math.round((lote.length / Math.max(1, ms)) * 60000), kbPorSeg: Math.round(bytes / 1024 / Math.max(0.001, ms / 1000)) });
+  }
+  return { listagens, niveis: resultado, arquivosDistintosAmostrados: Math.min(arquivos.length, ponteiro) };
+}
+
+export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'https://api.vertracloud.app', rpm = 240, concorrencia = 4, retomar = false, incluirTudo = false, chave, log = () => {}, progresso = null, timeoutPedidoMs = 30000 }) {
+  const c = cliente({ api, chave, app, rpm, timeoutPedidoMs });
   const rel = { app, raiz, arquivos: 0, bytes: 0, binarios: 0, pulados: 0, excluidosPorPadrao: 0, externos: [], ignorados: [], erros: [], inicio: new Date().toISOString() };
   const dest = resolve(destino);
   const dentro = (p) => { const r = resolve(p); return r === dest || r.startsWith(dest + sep); };
@@ -266,7 +319,7 @@ export async function baixar({ app, destino, raiz = 'apps/web/.next', api = 'htt
   };
   await Promise.all(Array.from({ length: Math.max(1, concorrencia) }, trabalhador));
   gravarProgresso();
-  rel.pedidos = c.pedidos(); rel.latenciaMs = c.latencias(); rel.fim = new Date().toISOString();
+  rel.pedidos = c.pedidos(); rel.latenciaMs = c.latencias(); rel.diagnostico = c.diag(); rel.fim = new Date().toISOString();
   rel.buildId = existsSync(join(dest, 'BUILD_ID')) ? readFileSync(join(dest, 'BUILD_ID'), 'utf8').trim() : null;
   return rel;
 }
@@ -280,13 +333,14 @@ async function main() {
   if (!/^https:\/\//.test(api) && !/^http:\/\/127\.0\.0\.1[:/]/.test(api)) { console.error('--api só aceita https (ou 127.0.0.1 em teste)'); process.exit(2); }
   const raiz = String(args.path && args.path !== true ? args.path : 'apps/web/.next').replace(/^\/+|\/+$/g, '');
   const rpm = Number(args.rpm ?? 240) || 240;
+  const tPedido = (Number(args['timeout-pedido']) > 0 ? Number(args['timeout-pedido']) : 30) * 1000;
   if (args.medir) {
-    const m = await medir({ app: String(args.app), raiz, api, rpm: Number(args.rpm ?? 280) || 280, chave });
+    const m = await medir({ app: String(args.app), raiz, api, rpm: Number(args.rpm ?? 280) || 280, chave, real: !args['sem-carga-real'], timeoutPedidoMs: tPedido });
     console.log(JSON.stringify({ medir: true, raiz, ...m }, null, 2));
     return;
   }
   if (args.sonda) {
-    const c = cliente({ api, chave, app: String(args.app), rpm });
+    const c = cliente({ api, chave, app: String(args.app), rpm, timeoutPedidoMs: tPedido });
     const itens = await c.listar(raiz);
     console.log(JSON.stringify({ sonda: true, raiz, entradas: itens.length, amostra: itens.slice(0, 6).map((x) => ({ nome: x.nome, dir: x.dir, tamanho: x.tamanho })), tipos: { dirs: itens.filter((x) => x.dir).length, arquivos: itens.filter((x) => !x.dir).length } }, null, 2));
     const b = await c.ler(`${raiz}/BUILD_ID`);
@@ -296,7 +350,7 @@ async function main() {
   if (!args.dest || args.dest === true) { console.error('use --dest <pasta nova>'); process.exit(2); }
   const destino = resolve(String(args.dest));
   if (existsSync(destino) && !args.retomar) { console.error('--dest já existe (use --retomar para continuar um download)'); process.exit(2); }
-  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 4) || 4, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
+  const rel = await baixar({ app: String(args.app), destino, raiz, api, rpm, concorrencia: Number(args.concorrencia ?? 4) || 4, retomar: Boolean(args.retomar), incluirTudo: Boolean(args['incluir-tudo']), timeoutPedidoMs: tPedido, progresso: args.progresso && args.progresso !== true ? resolve(String(args.progresso)) : null, chave, log: (m) => console.error(`[baixar] ${m}`) });
   writeFileSync(`${destino}.relatorio.json`, JSON.stringify(rel, null, 2) + '\n');
   console.log(JSON.stringify({ ok: rel.erros.length === 0, arquivos: rel.arquivos, bytes: rel.bytes, binarios: rel.binarios, pulados: rel.pulados, excluidosPorPadrao: rel.excluidosPorPadrao, latenciaMs: rel.latenciaMs, externos: rel.externos, ignorados: rel.ignorados, pedidos: rel.pedidos, buildId: rel.buildId, erros: rel.erros.slice(0, 10), relatorio: `${destino}.relatorio.json` }, null, 2));
   process.exit(rel.erros.length ? 1 : 0);

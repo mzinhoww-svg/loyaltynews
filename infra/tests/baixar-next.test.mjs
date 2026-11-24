@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
-import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura, medir, estatistica, PADRAO_EXCLUIDO } from '../scripts/baixar-next-vertra.mjs';
+import { baixar, nomeSeguro, normalizarListagem, normalizarConteudo, desembrulhar, formaDe, tamanhoDe, decodificarLeitura, medir, medirCargaReal, estatistica, PADRAO_EXCLUIDO } from '../scripts/baixar-next-vertra.mjs';
 import { listarExternos } from '../scripts/lib/prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -228,7 +228,7 @@ function servidorGenerico(arvoreFlat, { latenciaMs = 0 } = {}) {
       const itens = arvoreFlat[caminho];
       if (!itens) { res.statusCode = 404; res.end('{"code":"NOT_FOUND"}'); return; }
       res.end(JSON.stringify({ response: itens.map((n) => (n.endsWith('/') ? { name: n.slice(0, -1), path: caminho + '/' + n.slice(0, -1), type: 'directory', last_modified: 'x', size: '' } : { name: n, path: caminho + '/' + n, type: 'file', last_modified: 'x', size: String(('c:' + caminho + '/' + n).length) })) }));
-    }, latenciaMs);
+    }, typeof latenciaMs === 'function' ? latenciaMs(caminho, u.pathname) : latenciaMs);
   });
   return new Promise((ok) => srv.listen(0, '127.0.0.1', () => ok({ srv, api: 'http://127.0.0.1:' + srv.address().port })));
 }
@@ -320,4 +320,51 @@ test('medir: detecta o COLAPSO da API acima de ~4 em voo (como no staging real) 
     assert.equal(m.colapsoAPartirDe, undefined);
     assert.equal(m.avisoColapso, undefined);
   } finally { await fecha(ok); }
+});
+
+test('medirCargaReal: lista as pastas grandes (tempo e nº de entradas) e lê arquivos DISTINTOS com 1/2/4 em paralelo; uma listagem de 600 entradas lenta aparece no relatório', async () => {
+  const grandes = Array.from({ length: 600 }, (_, i) => `c${i}.js`);
+  const flat = { [RAIZ]: ['BUILD_ID', 'server/', 'static/'], [RAIZ + '/server']: ['chunks/', 'app/'], [RAIZ + '/server/chunks']: ['ssr/'], [RAIZ + '/server/chunks/ssr']: [...grandes, 'x.js.map'], [RAIZ + '/static']: ['a.css'] };
+  const lido = [];
+  const s = await servidorGenerico(flat, { latenciaMs: (caminho, rota) => { if (rota.endsWith('/files/content')) lido.push(caminho); return caminho.endsWith('/ssr') ? 250 : 15; } });
+  try {
+    const cli = (await import('../scripts/baixar-next-vertra.mjs'));
+    const m = await cli.medir({ app: 'APP', raiz: RAIZ, api: s.api, rpm: 100000, chave: CHAVE, niveis: [1, 2], por: 2, sequenciais: 1 });
+    const real = m.cargaReal;
+    assert.ok(real, 'a medição inclui a carga real por padrão');
+    const grande = real.listagens.find((l) => l.pasta === 'server/chunks/ssr');
+    assert.equal(grande.entradas, 601);
+    assert.ok(grande.ms >= 200, 'listagem grande lenta: ' + grande.ms);
+    assert.deepEqual(real.niveis.map((x) => x.concorrencia), [1, 2, 4]);
+    assert.ok(real.niveis.every((x) => x.pedidos === 12 && x.pedidosPorMin > 0 && x.bytes > 0), JSON.stringify(real.niveis));
+    const distintos = lido.filter((p) => p.endsWith('.js') && !p.endsWith('BUILD_ID'));
+    assert.equal(new Set(distintos).size, distintos.length, 'nunca lê o mesmo arquivo duas vezes na carga real');
+    assert.ok(!lido.some((p) => p.endsWith('.map')), '*.map não entra na amostra');
+    const semReal = await cli.medir({ app: 'APP', raiz: RAIZ, api: s.api, rpm: 100000, chave: CHAVE, niveis: [1], por: 1, sequenciais: 1, real: false });
+    assert.equal(semReal.cargaReal, undefined);
+  } finally { await fecha(s); }
+});
+
+test('timeout por pedido: um pedido que trava estoura o timeout configurado, é repetido e o diagnóstico conta 1 timeout e mostra o histograma; pedidos lentos aparecem em "lentos"', async () => {
+  let travou = false;
+  const presos = [];
+  const srv = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    const caminho = u.searchParams.get('path');
+    if (!travou && caminho === RAIZ + '/trava.js') { travou = true; presos.push(res); return; } // 1º pedido nunca responde
+    res.setHeader('content-type', 'application/json');
+    if (u.pathname.endsWith('/files/content')) { const c = Buffer.from('ok'); res.end(JSON.stringify({ response: { type: 'base64', data: c.toString('base64'), size: 2, last_modified: 'x' } })); return; }
+    res.end(JSON.stringify({ response: [{ name: 'trava.js', path: RAIZ + '/trava.js', type: 'file', last_modified: 'x', size: '2' }] }));
+  });
+  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+  const base = mkdtempSync(join(tmpdir(), 'ln-baixar-to-'));
+  try {
+    const rel = await baixar({ app: 'APP', destino: join(base, 'n'), raiz: RAIZ, api: `http://127.0.0.1:${srv.address().port}`, rpm: 60000, concorrencia: 2, chave: CHAVE, timeoutPedidoMs: 300 });
+    assert.deepEqual(rel.erros, []);
+    assert.equal(rel.arquivos, 1, 'o arquivo veio na nova tentativa');
+    assert.equal(rel.diagnostico.timeouts, 1);
+    assert.equal(rel.diagnostico.http429, 0);
+    assert.equal(Object.values(rel.diagnostico.faixas).reduce((a, b) => a + b, 0), rel.latenciaMs.n, 'o histograma soma os pedidos bem-sucedidos');
+    assert.ok(Array.isArray(rel.diagnostico.lentos));
+  } finally { for (const r of presos) r.destroy(); await new Promise((ok) => srv.close(ok)); rmSync(base, { recursive: true, force: true }); }
 });
