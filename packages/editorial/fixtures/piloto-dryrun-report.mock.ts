@@ -85,7 +85,7 @@ export function renderDryrunMarkdown(r: DryrunReport): string {
   L.push('1. **Redação barrada por gate NÃO é refeita** (corrigido nesta rodada). Cópia literal, número fora da fonte, tom, resumo etc. são barreiras determinísticas: a matéria bloqueia na 1ª redação, com 1 chamada de redação (antes eram 3 por matéria barrada, `max_attempts`). Nova tentativa fica só para falha transitória (fila/gateway).');
   L.push('2. **O gate da redação grava `gate_verdict` e `gate_reasons` na planilha** (corrigido nesta rodada): matéria barrada na redação sai com `blocked` e os motivos na linha da tarefa de redação; aprovada, com `approved` e motivos vazios. A checagem e a revisão seguem como antes.');
   L.push('3. **O tom lint tem código de bloqueio próprio** (corrigido nesta rodada): a6 sai com `tone_lint` (antes `unsupported_claim`); o achado `tone_title_exclamation` diz o motivo. Matéria barrada por tom não se confunde mais com fato sem suporte.');
-  L.push('4. **Fonte com paywall `unknown` (Livelo)** só coleta depois que a revisão humana marca `paywall = none`; o ensaio simula essa revisão em memória.');
+  L.push('4. **Livelo (DP-49):** o proprietário confirmou que não há paywall, só login na área da conta; o cadastro traz `paywall: none` e o coletor só lê as páginas públicas de `/imprensa/` (sitemap com prefixo), nunca atrás do login. A revisão humana ainda marca `paywall = none` no Studio antes de habilitar; o ensaio simula essa revisão em memória.');
   L.push('');
   L.push('## O que este ensaio NÃO prova');
   L.push('');

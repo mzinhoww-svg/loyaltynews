@@ -527,7 +527,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "termsStatus": "pending",
     "urlVerified": false,
     "robotsRespected": true,
-    "paywall": "unknown",
+    "paywall": "none",
     "enabled": false,
     "imageRights": null,
     "maxRequestsPerHour": 6,
@@ -540,7 +540,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "não informado (inacessível).",
-      "notes": "Reavaliação de 2026-11-23 (antes: inacessivel por HTTP 403 do cliente genérico em 22/11): site e /imprensa respondem 200 com texto estático; o rodapé só leva a Regulamentos e Privacidade (classe D no dossiê de termos). Sem feed: a coleta usa o sitemap com prefixo /imprensa/. Se o coletor receber 403, registrar bloqueada e NÃO contornar. Revisão humana ainda decide termos, paywall e URL."
+      "notes": "DP-49 (24/11/2026): o proprietário confirma que a Livelo NÃO tem paywall, só login (área da conta); a coleta fica nas páginas públicas de /imprensa/ (sitemapPathPrefix) e nunca atrás do login (o coletor para em gated). | Reavaliação de 2026-11-23 (antes: inacessivel por HTTP 403 do cliente genérico em 22/11): site e /imprensa respondem 200 com texto estático; o rodapé só leva a Regulamentos e Privacidade (classe D no dossiê de termos). Sem feed: a coleta usa o sitemap com prefixo /imprensa/. Se o coletor receber 403, registrar bloqueada e NÃO contornar. Revisão humana ainda decide termos, paywall e URL."
     },
     "sitemapUrl": "https://www.livelo.com.br/sitemap/static-sitemap-0.xml",
     "sitemapPathPrefix": "/imprensa/"
