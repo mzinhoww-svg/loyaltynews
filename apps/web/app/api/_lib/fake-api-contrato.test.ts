@@ -70,7 +70,8 @@ const CASES: Case[] = [
 
 /**
  * Divergências conhecidas no fake da main, ainda não corrigidas (o caso roda como it.fails). Quem alinhar o fake tira a linha daqui.
- * Fonte: parecer do QA 4 r0-preparacao/qa/qa4-portal-fe-800b0eb.md; a correção da Frontend está em ft/portal-polish-fe (fora da main).
+ * Fonte: parecer do QA 4 r0-preparacao/qa/qa4-portal-fe-800b0eb.md. Tipo e q de matérias saíram daqui quando o fake foi alinhado
+ * (ft/portal-polish-fe 9120163, na int/013+); a Intelligence sai quando ft/portal-intelligence 6c1bbbb entrar.
  */
 // int/015: tipo e q de matérias saíram da lista porque o fake da int/014 já está alinhado nesses casos (os 5 passaram a reprovar como it.fails).
 const KNOWN: Record<string, string> = {
