@@ -128,7 +128,7 @@ describe('cliente do agente contra as rotas reais', () => {
 
 describe('sonda de assinatura (sem tocar dado)', () => {
   it('heartbeat de uma tarefa que não existe: com o segredo certo a API assina como válido (404 LEASE_ERROR); com o errado, 401; nada é criado', async () => {
-    app.deps.flags.openbotDispatch = false; // a sonda vale com o despacho DESLIGADO (como no passo 6.1 do roteiro): o pull daria 503 antes de conferir a assinatura
+    app.deps.flags.openbotDispatch = false; // a sonda vale com o despacho DESLIGADO (como no passo 6.1 do roteiro): o pull nunca é sonda: é operacional (grava atividade e, ligado, reserva tarefa)
     expect((await cli(['pull']).catch((e: CliError) => e)).code).toBe('DISPATCH_OFF');
     expect(await refusal(cli(['heartbeat', '--task', 'sonda-inexistente', '--lease', 'sonda']))).toBe('LEASE_ERROR:404');
     files['/cofre/errado2'] = 'segredo-errado';
