@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Guarda da troca de memória do WEB durante o build (880 MB só no build; 512 MB em regime). NÃO fala com a Vertra: lê o JSON que o PM salva do `get_profile`
+// Guarda da troca de memória do WEB durante o build (2048 MB só no build; 512 MB em regime). NÃO fala com a Vertra: lê o JSON que o PM salva do `get_profile`
 // e diz (1) se pode subir agora, (2) os passos exatos na ordem, com o valor esperado de `plan.memory.used` depois de cada um, (3) se o estado está certo
 // em cada fase. Quem executa na Vertra é o PM (update_app_config e deploy_app); este script só confere e nunca imprime e-mail, nome ou segredo.
 // Regras (PEDIDO-PROVISIONAMENTO-PRODUCAO-v3 §1): só UM web do LN fica acima do regime por vez; o pico nunca passa de limite − margem; a memória
 // volta ao regime SEMPRE, também quando o build falha (a Vertra faz o rollback do release, não da memória).
 // Uso:
-//   node infra/scripts/memoria-build.mjs plano    --profile <get_profile.json> --app <id> [--pacote <pasta>] [--build 880] [--regime 512] [--margem 128]
-//   node infra/scripts/memoria-build.mjs conferir --profile <get_profile.json> --app <id> --fase antes|durante|depois [--build 880] [--regime 512] [--margem 128]
+//   node infra/scripts/memoria-build.mjs plano    --profile <get_profile.json> --app <id> [--pacote <pasta>] [--build 2048] [--regime 512] [--margem 128]
+//   node infra/scripts/memoria-build.mjs conferir --profile <get_profile.json> --app <id> --fase antes|durante|depois [--build 2048] [--regime 512] [--margem 128]
 // Saída: JSON; código 0 = pode seguir / estado certo, 1 = NÃO siga (motivos em `problemas`), 2 = uso errado.
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -32,7 +32,10 @@ const ehWebLN = (a) => a.type === 2 && /^ln-/i.test(a.name);
  * Avalia o estado para uma fase. fase: 'antes' (vai subir), 'durante' (já está subido, vai fazer o deploy) ou 'depois' (já baixou).
  * Função pura (testada sem Vertra).
  */
-export function avaliar(perfil, appId, { fase, build = 880, regime = 512, margem = 128 }) {
+/** Memória do web durante o build. 24/11/2026: o build do web (Turbopack, Next 16.4.6) passou a morrer com "Killed" (137) a 880 e 1024 MB e passou a 2048 (ambiente de build = 2× a RAM, máx. 4096); a regra antiga de 880 deixou de valer. Com 5248 alocados o pico é 6784 de 8192. Na PRODUÇÃO em regime (7552) o pico seria 9088: NÃO cabe; use --build menor e plano à parte. */
+export const BUILD_PADRAO = 2048;
+
+export function avaliar(perfil, appId, { fase, build = BUILD_PADRAO, regime = 512, margem = 128 }) {
   const problemas = [];
   const alvo = perfil.apps.find((a) => a.id === appId);
   if (!alvo) return { ok: false, problemas: [`app ${appId} não está no get_profile`], alvo: null };
@@ -62,7 +65,7 @@ export function avaliar(perfil, appId, { fase, build = 880, regime = 512, margem
 }
 
 /** Passos exatos, na ordem, com o `used` esperado depois de cada um. */
-export function passos(perfil, appId, { build = 880, regime = 512, pacote = '<pasta do pacote>' }) {
+export function passos(perfil, appId, { build = BUILD_PADRAO, regime = 512, pacote = '<pasta do pacote>' }) {
   const alvo = perfil.apps.find((a) => a.id === appId);
   const base = perfil.used - (alvo.ram - regime); // used com o alvo no regime
   const pico = base + (build - regime);
@@ -84,7 +87,7 @@ function main() {
   if (!['plano', 'conferir'].includes(modo)) fail('use: plano | conferir (veja o cabeçalho do script)', 2);
   for (const k of ['profile', 'app']) if (!args[k] || args[k] === true) fail(`use --${k}`, 2);
   const num = (k, d) => (args[k] === undefined ? d : Number(args[k]));
-  const opt = { build: num('build', 880), regime: num('regime', 512), margem: num('margem', 128) };
+  const opt = { build: num('build', BUILD_PADRAO), regime: num('regime', 512), margem: num('margem', 128) };
   let perfil;
   try { perfil = lerPerfil(JSON.parse(readFileSync(String(args.profile), 'utf8'))); } catch (e) { fail(`perfil: ${e.message}`, 2); }
   const appId = String(args.app);

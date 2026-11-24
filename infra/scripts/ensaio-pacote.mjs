@@ -169,6 +169,14 @@ try {
   }
   if (logFd !== null) closeSync(logFd);
   if (!step('servidor sobe com o start_command do manifesto', up)) throw new Error('servidor não subiu');
+  // /api/health devolve env e flags (ADR-022): têm de bater com o pacote (produção/staging; flags = release.json.flagsLigadas). Build anterior à ADR-022 não traz o campo.
+  try {
+    const hj = await (await fetch(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(5000) })).json();
+    const esperadoEnv = man.perfil === 'production' ? 'production' : 'staging';
+    const esperadasFlags = [...(man.flagsLigadas ?? [])].sort().join(',');
+    const flagsOk = Array.isArray(hj.flags) ? [...hj.flags].sort().join(',') === esperadasFlags : esperadasFlags === '';
+    step(`health: env=${esperadoEnv} e flags=[${esperadasFlags}] conforme o pacote`, hj.env === esperadoEnv && flagsOk, `env=${hj.env} flags=${Array.isArray(hj.flags) ? hj.flags.join(',') : '(campo ausente)'}`);
+  } catch (e) { step('health: env e flags conforme o pacote', false, String(e?.name ?? 'Erro')); }
 
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', ...(vitrine ? ['--vitrine', '/'] : ['--no-mock', '/'])], { encoding: 'utf8' });
   step(vitrine ? 'sondas: saúde com o commit certo, Studio nega sem login, home COM a faixa da vitrine' : 'sondas: saúde com o commit certo, Studio nega sem login, sem MOCK nem marcador da vitrine', r.status === 0, r.status === 0 ? JSON.parse(r.stdout).denied?.status + ' ' + (JSON.parse(r.stdout).denied?.location ?? '') : r.stdout.trim().slice(0, 300));

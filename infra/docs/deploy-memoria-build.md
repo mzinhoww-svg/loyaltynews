@@ -1,4 +1,6 @@
-# Trocar a memória do web só durante o build (880 MB no build, 512 MB em regime)
+# Trocar a memória do web só durante o build (2048 MB no build, 512 MB em regime)
+
+> **24/11/2026:** o build do web passou a morrer com `Killed` (137) a 880 e 1024 MB e construiu a 2048 (o ambiente de build é 2× a RAM, máx. 4096). Onde este documento disser 880, vale **2048** (`memoria-build.mjs` já usa 2048 como padrão; `--build 880` só para reproduzir o roteiro antigo). Com o staging em 5248 o pico é 6784 de 8192. **Na produção em regime (7552) o pico seria 9088: NÃO cabe**: o plano de memória da produção precisa mudar antes do primeiro build (ver `releases/producao/PREPARACAO-PRODUCAO-v4.md`).
 
 Vale para `ln-staging-web` (529657d6) e `ln-prod-web`. O web roda com 80–160 MB; só o BUILD precisa de mais (ambiente de build = 2× a RAM do app; o build leve passou com 880). O ambiente de build não conta no pool; contam a RAM dos apps e dos bancos, parados também. Regime e conta: `releases/producao/PEDIDO-PROVISIONAMENTO-PRODUCAO-v3.md` §1 (7552 de 8192; pico de um rebuild 7920).
 
@@ -7,7 +9,7 @@ Quem executa na Vertra é o PM. `infra/scripts/memoria-build.mjs` **não fala co
 ## Cada deploy do web (8 passos)
 Troque `<ID>` pelo app (`529657d6-8f8b-406c-af19-7beccf59fd7d` ou o de produção) e `P` pelo JSON salvo do `get_profile` (fora do repositório).
 1. `get_profile` → salve em `P`. `node infra/scripts/memoria-build.mjs plano --profile P --app <ID> --pacote <pasta do pacote>`: imprime os passos com o `plan.memory.used` esperado depois de cada um. Se `ok:false`, **não suba**.
-2. `update_app_config { id: <ID>, memory: 880 }`.
+2. `update_app_config { id: <ID>, memory: 2048 }`.
 3. `get_profile` → `P`; `node infra/scripts/memoria-build.mjs conferir --profile P --app <ID> --fase durante`.
 4. `get_file_tree` + `node infra/scripts/arquivos-orfaos.mjs --tree <arquivo> --pasta <pacote>`; apague as sobras (`delete_file`).
 5. `deploy_app { id: <ID>, path: <pacote>, restart: true, message: <commit curto> }`.

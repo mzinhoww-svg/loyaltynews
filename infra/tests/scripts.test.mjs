@@ -858,38 +858,38 @@ test('memoria-build: regime (7552 de 8192) pode subir um web a 880; pico 7920; v
   const p = lerPerfil(perfilFalso());
   assert.equal(p.used, 7552);
   assert.equal(p.soma, 7552);
-  const a = avaliar(p, 'prod-web', { fase: 'antes' });
+  const a = avaliar(p, 'prod-web', { fase: 'antes', build: 880 });
   assert.equal(a.ok, true, a.problemas.join('|'));
-  const s = passos(p, 'prod-web', { pacote: 'C:/pacote' });
+  const s = passos(p, 'prod-web', { pacote: 'C:/pacote', build: 880 });
   assert.deepEqual(s.map((x) => x.usedEsperado), [7552, 7920, 7920, 7920, 7920, 7920, 7552, 7552]);
   assert.deepEqual(s[1].args, { id: 'prod-web', memory: 880 });
   assert.deepEqual(s[6].args, { id: 'prod-web', memory: 512 });
   assert.equal(s[4].args.path, 'C:/pacote');
   // durante: com o alvo em 880 o estado está certo; depois: ainda em 880 é problema (memória esquecida alta)
   const alto = lerPerfil(perfilFalso({ prodWeb: 880 }));
-  assert.equal(avaliar(alto, 'prod-web', { fase: 'durante' }).ok, true);
-  const d = avaliar(alto, 'prod-web', { fase: 'depois' });
+  assert.equal(avaliar(alto, 'prod-web', { fase: 'durante', build: 880 }).ok, true);
+  const d = avaliar(alto, 'prod-web', { fase: 'depois', build: 880 });
   assert.equal(d.ok, false);
   assert.match(d.problemas.join('|'), /continua em 880 MB: baixe para 512/);
-  assert.equal(avaliar(p, 'prod-web', { fase: 'depois' }).ok, true);
+  assert.equal(avaliar(p, 'prod-web', { fase: 'depois', build: 880 }).ok, true);
 });
 
 test('memoria-build: recusa dois webs altos, falta de folga, regime errado, perfil que não fecha e app desconhecido', async () => {
   const { lerPerfil, avaliar } = await import('../scripts/memoria-build.mjs');
   // outro web do LN já está em 880: só um por vez
-  const dois = avaliar(lerPerfil(perfilFalso({ stgWeb: 880 })), 'prod-web', { fase: 'antes' });
+  const dois = avaliar(lerPerfil(perfilFalso({ stgWeb: 880 })), 'prod-web', { fase: 'antes', build: 880 });
   assert.equal(dois.ok, false);
   assert.match(dois.problemas.join('|'), /ln-staging-web está em 880 MB .*só um web sobe por vez/);
   // sem folga: staging com worker 256 e worker de produção 384 (7808 de 8192, sobram 384): subir +368 deixaria 16 MB
-  const semFolga = avaliar(lerPerfil(perfilFalso({ stgWorker: 256, prodWorker: 384 })), 'prod-web', { fase: 'antes' });
+  const semFolga = avaliar(lerPerfil(perfilFalso({ stgWorker: 256, prodWorker: 384 })), 'prod-web', { fase: 'antes', build: 880 });
   assert.equal(semFolga.ok, false);
   assert.match(semFolga.problemas.join('|'), /faltam 112 MB.*pico seria 8176 de 8192/);
   // margem mínima: com 8192 e margem 300 o pico (7920, livre 272) é recusado
-  const margem = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes', margem: 300 });
+  const margem = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes', margem: 300, build: 880 });
   assert.equal(margem.ok, false);
   assert.match(margem.problemas.join('|'), /faltam 28 MB.*pico seria 7920 de 8192/);
   // regime errado (um build anterior deixou o web alto)
-  assert.match(avaliar(lerPerfil(perfilFalso({ prodWeb: 880 })), 'prod-web', { fase: 'antes' }).problemas.join('|'), /não no regime de 512/);
+  assert.match(avaliar(lerPerfil(perfilFalso({ prodWeb: 880 })), 'prod-web', { fase: 'antes', build: 880 }).problemas.join('|'), /não no regime de 512/);
   // leitura que não fecha (used diferente da soma)
   assert.match(avaliar(lerPerfil(perfilFalso({ extraUsed: 256 })), 'prod-web', { fase: 'antes' }).problemas.join('|'), /não fecha/);
   // app desconhecido e envelope { response }
@@ -901,7 +901,7 @@ test('memoria-build: CLI plano/conferir (códigos de saída, sem e-mail nem nome
   const r = tmp();
   put(r, 'perfil.json', JSON.stringify(perfilFalso()));
   put(r, 'perfil-alto.json', JSON.stringify(perfilFalso({ prodWeb: 880 })));
-  const ok = node('memoria-build.mjs', ['plano', '--profile', join(r, 'perfil.json'), '--app', 'prod-web', '--pacote', 'C:/p']);
+  const ok = node('memoria-build.mjs', ['plano', '--profile', join(r, 'perfil.json'), '--app', 'prod-web', '--pacote', 'C:/p', '--build', '880']);
   assert.equal(ok.status, 0, ok.stderr);
   const j = JSON.parse(ok.stdout);
   assert.equal(j.ok, true);
@@ -910,7 +910,7 @@ test('memoria-build: CLI plano/conferir (códigos de saída, sem e-mail nem nome
   const ruim = node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'depois']);
   assert.equal(ruim.status, 1);
   assert.equal(JSON.parse(ruim.stdout).ok, false);
-  assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'durante']).status, 0);
+  assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil-alto.json'), '--app', 'prod-web', '--fase', 'durante', '--build', '880']).status, 0);
   assert.equal(node('memoria-build.mjs', ['plano', '--app', 'x']).status, 2);
   assert.equal(node('memoria-build.mjs', ['conferir', '--profile', join(r, 'perfil.json'), '--app', 'prod-web']).status, 2);
   rmSync(r, { recursive: true, force: true });
@@ -1533,4 +1533,24 @@ test('guard-env (linha 1 do piloto): em produção cada variável do piloto recu
   for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
   assert.equal(c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET').secreto, true);
   assert.doesNotMatch(JSON.stringify(c), /"valor"\s*:\s*"[^"]{8,}"/, 'o contrato só tem nomes, nenhum valor');
+});
+
+test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {
+  const { lerPerfil, avaliar, passos, BUILD_PADRAO } = await import('../scripts/memoria-build.mjs');
+  assert.equal(BUILD_PADRAO, 2048);
+  const base = perfilFalso();
+  const apps = base.applications.filter((a) => !a.id.startsWith('prod-'));
+  const databases = base.databases.filter((d) => d.id !== 'd4');
+  const soma = apps.reduce((t, a) => t + a.ram, 0) + databases.reduce((t, d) => t + d.ram, 0);
+  const stg = lerPerfil({ ...base, applications: apps, databases, plan: { name: 'pro-8', memory: { limit: 8192, used: soma } } });
+  const a = avaliar(stg, 'stg-web', { fase: 'antes' });
+  assert.equal(a.ok, true, a.problemas.join('|'));
+  const pico = soma + (2048 - 512);
+  const st = passos(stg, 'stg-web', { pacote: 'C:/pacote' });
+  assert.deepEqual(st.map((x) => x.usedEsperado), [soma, pico, pico, pico, pico, pico, soma, soma]);
+  assert.deepEqual(st[1].args, { id: 'stg-web', memory: 2048 });
+  assert.match(st[1].nota, /4096 MB/);
+  const prod = avaliar(lerPerfil(perfilFalso()), 'prod-web', { fase: 'antes' });
+  assert.equal(prod.ok, false);
+  assert.match(prod.problemas.join('|'), /pico seria 9088 de 8192/);
 });
