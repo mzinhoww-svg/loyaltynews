@@ -29,10 +29,10 @@ export const SEED_PROGRAMA_SOURCES: Source[] = [
     listingUrl: 'https://www.smiles.com.br/te-levo-de-milhas/pilulas-financeiras', feedUrl: null,
     sitemapUrl: 'https://www.smiles.com.br/sitemap.xml', sitemapPathPrefix: '/te-levo-de-milhas/',
     termsUrl: 'https://www.smiles.com.br/regulamento-uso-app', termsStatus: 'pending', urlVerified: false, robotsRespected: true,
-    paywall: 'none', enabled: false, imageRights: null, maxRequestsPerHour: 6,
+    paywall: 'none', enabled: false, imageRights: null, maxRequestsPerHour: 8,
     verification: VER(
       'robots.txt 200 (24/11): o grupo * só proíbe URLs com parâmetro de consulta (/*?*) e PDF (/*.pdf); sem Crawl-delay; sitemap declarado https://www.smiles.com.br/sitemap.xml. /te-levo-de-milhas/ permitido.',
-      'Sitemap com 4.266 URLs, todas com lastmod (a mais recente de 18/11/2026) e 1,6 MB (perto do limite de 2 MB do fetcher: se passar disso a leitura falha com erro, sem coletar nada). O hub /te-levo-de-milhas/ tem 25 páginas (22 com lastmod desde 15/10): destinos, pílulas financeiras e mercado de fidelidade; é o conteúdo editorial do programa. As páginas de promoção e de Clube são comerciais e ficam de fora do prefixo. Páginas de amostra com texto visível sem login. Termos lidos (regulamento-uso-app e privacidade): sem cláusula sobre automação ou reprodução de conteúdo; classe D provisória (DP-51 aceita o risco).',
+      'Limite 8/h: uma rodada completa é 1 robots + 1 sitemap + 5 páginas = 7 (com 6 a quinta página saía em rate_limited). Sitemap com 4.266 URLs, todas com lastmod (a mais recente de 18/11/2026) e 1,6 MB (perto do limite de 2 MB do fetcher: se passar disso a leitura falha com erro, sem coletar nada). O hub /te-levo-de-milhas/ tem 25 páginas (22 com lastmod desde 15/10): destinos, pílulas financeiras e mercado de fidelidade; é o conteúdo editorial do programa. As páginas de promoção e de Clube são comerciais e ficam de fora do prefixo. Páginas de amostra com texto visível sem login. Termos lidos (regulamento-uso-app e privacidade): sem cláusula sobre automação ou reprodução de conteúdo; classe D provisória (DP-51 aceita o risco).',
     ),
   },
   {
@@ -85,10 +85,10 @@ export const SEED_PROGRAMA_SOURCES: Source[] = [
     listingUrl: 'https://www.esfera.com.vc/', feedUrl: null,
     sitemapUrl: 'https://www.esfera.com.vc/staticSitemap.xml', sitemapPathPrefix: '/campanha-',
     termsUrl: 'https://esfera.zendesk.com/hc/pt-br/categories/52066824093331-Regulamentos', termsStatus: 'pending', urlVerified: false, robotsRespected: true,
-    paywall: 'none', enabled: false, imageRights: null, maxRequestsPerHour: 6,
+    paywall: 'none', enabled: false, imageRights: null, maxRequestsPerHour: 8,
     verification: VER(
       'robots.txt 200 (24/11): o grupo * só proíbe /cart, /checkout, /profile, /searchresults, /confirmation e /discountutils; sem Crawl-delay; sitemap declarado https://www.esfera.com.vc/sitemap.xml (índice de sitemaps de categoria/produto); usamos o staticSitemap.xml.',
-      'staticSitemap.xml: 109 URLs sem lastmod (a ordem é a do arquivo), 36 em /campanha-*. Algumas URLs do arquivo vêm corrompidas (host concatenado: "https://www.esfera.com.vchttps://esfera.zendesk.com/…"): o coletor as descarta e avisa (sitemap_entries_dropped). As páginas de campanha são de aplicação de página única com pouco texto (cerca de 700 caracteres na amostra): rende pouco. Termos: regulamentos no Zendesk da Esfera (outro host, só link; não lido). Classe D provisória (DP-51).',
+      'Limite 8/h: uma rodada completa é 1 robots + 1 sitemap + 5 páginas = 7. staticSitemap.xml: 109 URLs sem lastmod (a ordem é a do arquivo), 36 em /campanha-*. Algumas URLs do arquivo vêm corrompidas (host concatenado: "https://www.esfera.com.vchttps://esfera.zendesk.com/…"): o coletor as descarta e avisa (sitemap_entries_dropped). As páginas de campanha são de aplicação de página única com pouco texto (cerca de 700 caracteres na amostra): rende pouco. Termos: regulamentos no Zendesk da Esfera (outro host, só link; não lido). Classe D provisória (DP-51).',
     ),
   },
   {

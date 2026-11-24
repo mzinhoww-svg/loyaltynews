@@ -61,12 +61,12 @@ describe('cadastro dos sites dos programas', () => {
     expect(doc).toMatch(/Nunca atrás de login ou paywall/); expect(doc).toMatch(/nenhuma está habilitada|Nenhuma está habilitada/);
   });
 
-  it('janela de 1 h por HOST: quem divide host com outra fonte tem limite para a rodada conjunta (robots uma vez + sitemap e 5 páginas por fonte)', () => {
+  it('limite por hora cobre a rodada: robots uma vez por host + sitemap e 5 páginas por fonte (host único ou dividido); sem isso a 5ª página sai em rate_limited', () => {
     const porHost = new Map<string, typeof SEED_SOURCES>();
     for (const s of SEED_SOURCES) porHost.set(s.host, [...(porHost.get(s.host) ?? []), s]);
     const PAGINAS = SITEMAP_MAX_PAGES_PER_RUN;
     for (const [host, lista] of porHost) {
-      if (!lista.some((s) => SEED_PROGRAMA_SOURCES.includes(s)) || lista.length < 2) continue;
+      if (!lista.some((s) => SEED_PROGRAMA_SOURCES.includes(s))) continue; // inclui host com UMA fonte: a rodada dela é robots + sitemap + 5 páginas
       let usadas = 0;
       lista.forEach((s, i) => {
         const precisa = (i === 0 ? 1 : 0) + (s.sitemapUrl ? 1 + PAGINAS : 0);
@@ -82,8 +82,13 @@ describe('coleta offline com recortes reais dos sitemaps (config real do seed)',
   const chefe: Actor = { userId: 'ensaio-chefe', roles: ['editor_chefe'], mfa: true };
   const admin: Actor = { userId: 'ensaio-admin', roles: ['admin'], mfa: true };
   const locs = (xml: string) => [...xml.matchAll(/<loc>\s*(?:<!\[CDATA\[)?\s*([^<\]\s]+)/g)].map((m) => m[1]!).filter((u) => u.split('://').length === 2);
-  const page = (u: string) => `<html><head><title>Página ${u.split('/').pop()}</title></head><body><article><h1>Página ${u.split('/').pop()}</h1><p>Texto de ensaio do programa, usado só em teste offline, sem relação com notícia real: ${u}.</p></article></body></html>`;
+  // texto distinto por URL (a dedupe da fábrica junta páginas quase idênticas: o teste não pode depender de páginas iguais)
+  const PALAVRAS = ['milhas', 'pontos', 'cartão', 'parceiro', 'bônus', 'transferência', 'clube', 'regulamento', 'campanha', 'destino', 'viagem', 'resgate', 'categoria', 'validade', 'acúmulo', 'oferta', 'banco', 'compra', 'passagem', 'hotel', 'varejo', 'fidelidade', 'saldo', 'prazo', 'condição', 'cadastro', 'benefício', 'tarifa', 'aeroporto', 'cashback'];
+  const seedDe = (u: string) => [...u].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const texto = (u: string) => { let h = seedDe(u); const out: string[] = []; for (let k = 0; k < 70; k++) { h = (h * 1103515245 + 12345) >>> 0; out.push(PALAVRAS[h % PALAVRAS.length]!); } return out.join(' '); };
+  const page = (u: string) => `<html><head><title>Página ${u.split('/').pop()}</title></head><body><article><h1>Página ${u.split('/').pop()}</h1><p>Texto de ensaio do programa, só em teste offline, sem relação com notícia real. ${texto(u)}.</p></article></body></html>`;
   const sit = { smiles: fx('smiles-sitemap.sample.xml'), latam: fx('latampass-br-pt.sample.xml'), livelo: fx('livelo-static.sample.xml'), esfera: fx('esfera-static.sample.xml') };
+  const FIX: Record<string, string> = { 'smiles-conteudo': sit.smiles, 'latampass-novidades': sit.latam, 'latampass-regulamentos': sit.latam, 'livelo-programa': sit.livelo, 'esfera-campanhas': sit.esfera };
 
   async function rodada() {
     const routes: Record<string, string> = {
@@ -114,7 +119,10 @@ describe('coleta offline com recortes reais dos sitemaps (config real do seed)',
     for (const s of SEED_PROGRAMA_SOURCES.filter((x) => x.sitemapUrl)) {
       const r = rep(s.id); const us = urlsDe(s.id);
       expect(r.status, s.id).toBe('collected');
-      expect(us.length, `${s.id}: ao menos 1 página`).toBeGreaterThanOrEqual(1); expect(us.length, `${s.id}: teto de ${SITEMAP_MAX_PAGES_PER_RUN}`).toBeLessThanOrEqual(SITEMAP_MAX_PAGES_PER_RUN);
+      // a fixture tem páginas válidas de sobra? então a rodada rende EXATAMENTE o teto (nenhuma fica de fora por limite por hora)
+      const validas = locs(FIX[s.id]!).filter((u) => new URL(u).pathname.startsWith(s.sitemapPathPrefix!) && !LOGIN.test(new URL(u).pathname));
+      expect(us.length, `${s.id}: rende min(${SITEMAP_MAX_PAGES_PER_RUN}, ${validas.length} válidas)`).toBe(Math.min(SITEMAP_MAX_PAGES_PER_RUN, validas.length));
+      expect(rep(s.id).skipped.some((k) => k.code === 'rate_limited'), `${s.id}: limite por hora não corta a rodada`).toBe(false);
       for (const u of us) { expect(new URL(u).pathname.startsWith(s.sitemapPathPrefix!), `${s.id}: ${u}`).toBe(true); expect(u).not.toMatch(LOGIN); }
     }
     for (const id of INERTES) { expect(rep(id).status, id).toBe('no_feed'); expect(urlsDe(id)).toEqual([]); }
@@ -133,7 +141,7 @@ describe('coleta offline com recortes reais dos sitemaps (config real do seed)',
     const porHost = (h: string) => fetcher.calls.filter((u) => new URL(u).host === h).length;
     expect(porHost('latampass.latam.com')).toBeLessThanOrEqual(14);
     expect(porHost('www.livelo.com.br')).toBeLessThanOrEqual(20);
-    expect(porHost('www.smiles.com.br')).toBeLessThanOrEqual(6); expect(porHost('www.esfera.com.vc')).toBeLessThanOrEqual(6);
+    expect(porHost('www.smiles.com.br')).toBe(7); expect(porHost('www.esfera.com.vc')).toBe(7); // robots + sitemap + 5 páginas, sob o limite de 8
     const lat = out.sources.filter((s) => s.sourceId.startsWith('latampass'));
     expect(lat.flatMap((s) => s.skipped).some((k) => k.code === 'rate_limited'), 'LATAM Pass: a rodada conjunta cabe').toBe(false);
     expect(out.sources.find((s) => s.sourceId === 'livelo-programa')!.skipped.some((k) => k.code === 'rate_limited')).toBe(false);

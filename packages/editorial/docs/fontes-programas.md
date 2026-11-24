@@ -6,11 +6,11 @@
 
 | Fonte (id) | Programa e seção | Entrada de coleta | Limite/h | O que foi conferido (24/11) |
 |---|---|---|---|---|
-| `smiles-conteudo` | Smiles, hub "Te levo de milhas" (destinos, pílulas financeiras, mercado de fidelidade) | sitemap `https://www.smiles.com.br/sitemap.xml`, prefixo `/te-levo-de-milhas/` (25 páginas, 22 com lastmod desde 15/10) | 6 | robots 200 (grupo `*` só proíbe URL com parâmetro e PDF); páginas de amostra com texto visível, sem login; termos lidos (regulamento do app e privacidade) sem cláusula de automação |
+| `smiles-conteudo` | Smiles, hub "Te levo de milhas" (destinos, pílulas financeiras, mercado de fidelidade) | sitemap `https://www.smiles.com.br/sitemap.xml`, prefixo `/te-levo-de-milhas/` (25 páginas, 22 com lastmod desde 15/10) | 8 | robots 200 (grupo `*` só proíbe URL com parâmetro e PDF); páginas de amostra com texto visível, sem login; termos lidos (regulamento do app e privacidade) sem cláusula de automação |
 | `latampass-novidades` | LATAM Pass, novidades do programa | sitemap do Brasil `https://latampass.latam.com/br/pt.sitemap.xml`, prefixo `/br/pt/novidades` (1 página hoje) | 14 | robots 200, sem regra de bloqueio; página com texto visível, sem login |
 | `latampass-regulamentos` | LATAM Pass, regulamentos | mesmo sitemap, prefixo `/br/pt/regulamento` (4 páginas) | 14 | idem; termos e condições lidos (3 mil caracteres) sem cláusula de automação |
 | `livelo-programa` | Livelo, páginas do programa (como juntar pontos: parceiros e instituições financeiras) | `https://www.livelo.com.br/sitemap/static-sitemap-0.xml`, prefixo `/juntar-pontos/` (25 páginas) | 20 | robots 200 (só `/api/`, `/autologin`, `/logout`, `/redirect-login-page` bloqueados); DP-49: **sem paywall, só login (área da conta)**; coleta só pública |
-| `esfera-campanhas` | Esfera (Santander), campanhas | `https://www.esfera.com.vc/staticSitemap.xml`, prefixo `/campanha-` (36 páginas) | 6 | robots 200 (bloqueia carrinho, checkout, perfil, busca); páginas de aplicação de página única com pouco texto (cerca de 700 caracteres) |
+| `esfera-campanhas` | Esfera (Santander), campanhas | `https://www.esfera.com.vc/staticSitemap.xml`, prefixo `/campanha-` (36 páginas) | 8 | robots 200 (bloqueia carrinho, checkout, perfil, busca); páginas de aplicação de página única com pouco texto (cerca de 700 caracteres) |
 | `dotz-site` | Dotz, site do programa | **nenhuma** (só cadastro) | 6 | robots 200 sem bloqueio; o site é de página única (63 caracteres de texto no HTML) e o sitemap tem 14 páginas estáticas de 2023 no domínio sem www |
 | `km-de-vantagens` | Km de Vantagens (Ipiranga), página do programa | **nenhuma** (só cadastro) | 6 | robots 200 em `www.ipiranga.com.br`; a página tem 11 mil caracteres de texto, sem login; o sitemap fica em outro host (`portal.ipiranga`) e não tem seção de notícias |
 | `petrobras-premmia` | Premmia (Petrobras), página do programa | **nenhuma** (só cadastro) | 6 | robots 200 em `www.postospetrobras.com.br` (o endereço antigo `petrobraspremmia.com.br` redireciona); 3,4 mil caracteres de texto, sem login; sem sitemap declarado |
@@ -35,6 +35,7 @@ Quando um deles tiver endereço, robots e seção pública verificáveis, entra 
 
 - **Nunca atrás de login ou paywall:** só entram prefixos públicos do sitemap; se uma página pedir login o coletor para (`gated`, 2 seguidas); o teste confere que nenhuma requisição vai a endereço de login/conta/checkout.
 - **Até 5 páginas por rodada por fonte** de sitemap (`SITEMAP_MAX_PAGES_PER_RUN`), 3 s entre requisições, parada em 429/403/desafio e o limite por hora do cadastro.
+- **Limite por hora cobre a rodada completa:** 1 `robots.txt` + 1 sitemap + 5 páginas = 7 requisições; Smiles e Esfera têm 8/h (com 6, a quinta página saía em `rate_limited`: achado do QA 10 sobre o primeiro commit).
 - **Janela por host:** a janela de 1 h é do host. LATAM Pass (2 fontes, host dividido) tem 14/h por fonte (1 robots + 2 × (1 sitemap + 5 páginas) = 13) e a Livelo (imprensa 6/h + programa 20/h) cobre a rodada conjunta; o teste faz a conta para qualquer host dividido.
 - **Entradas corrompidas viram aviso, não coleta:** o sitemap real da Esfera traz URLs com host concatenado (`https://www.esfera.com.vchttps://esfera.zendesk.com/…`): o coletor as descarta e avisa (`sitemap_entries_dropped`, `loc_url_embutida`), nunca as requisita.
 - **Só fato, fonte, link e data** (DP-29): a fábrica reescreve, nunca reproduz o regulamento ou o texto de campanha; nenhuma imagem de fonte (D08).
@@ -48,7 +49,7 @@ Nenhuma das páginas de termos lidas (LATAM Pass termos e condições, Smiles re
 - **Smiles:** o sitemap tem 1,6 MB e o limite de leitura do coletor é 2 MB; se o arquivo passar disso a leitura da Smiles falha (sem coletar nada) até alguém subir o limite do fetcher para sitemaps.
 - **LATAM Pass:** o sitemap do Brasil tem o mesmo lastmod em todas as 126 URLs (24/11), então a data não ordena; por isso os dois prefixos são estreitos.
 - **Esfera:** pouco texto por página (aplicação de página única); rende pouco.
-- **Rodada:** com 5 páginas por fonte e as janelas acima, uma rodada conjunta de todas as fontes dos programas faz no máximo cerca de 27 requisições em 4 hosts (Smiles 6, LATAM Pass 8, Livelo 7, Esfera 6), sempre espaçadas.
+- **Rodada:** com 5 páginas por fonte e as janelas acima, uma rodada conjunta de todas as fontes dos programas faz no máximo cerca de 29 requisições em 4 hosts (Smiles 7, LATAM Pass 8, Livelo 7, Esfera 7), sempre espaçadas.
 
 ## Como entra no staging (e o que NÃO dá para fazer sem redeploy)
 
