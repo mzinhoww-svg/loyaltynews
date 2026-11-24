@@ -200,6 +200,25 @@ describe('login e paywall continuam parando; CAPTCHA resolvido pelo provedor nã
     expect(r.failure).toBeUndefined();
   });
 
+  it('R4 (QA 3): em página longa, aviso de paywall que só existe no HTML (overlay/modal/elemento de paywall) continua parando; reportagem que cita o aviso no meio do corpo, não', () => {
+    const corpo = longText.repeat(2); // ~4.800 caracteres de texto, sem aviso
+    expect(corpo.length).toBeGreaterThan(3000);
+    // overlay no FIM do HTML (class com "paywall"): o texto extraído não o traz
+    expect(detectLoginOrPaywall({ text: corpo, html: `<article>${corpo}</article><div class="site-paywall"><p>Conteúdo exclusivo para assinantes</p></div>` })).toBe('paywall');
+    // modal por id, com o aviso dentro de um aside/dialog
+    expect(detectLoginOrPaywall({ text: corpo, html: `<main>${corpo}</main><dialog id="subscribe-modal">Assine para continuar lendo</dialog>` })).toBe('paywall');
+    // aviso no início do texto VISÍVEL do HTML (sem class de paywall), com texto extraído sem ele
+    expect(detectLoginOrPaywall({ text: corpo, html: `<body><p>Assine para continuar lendo</p><article>${corpo}</article></body>` })).toBe('paywall');
+    // aviso só dentro de <script>/<style> não conta como texto visível
+    expect(detectLoginOrPaywall({ text: corpo, html: `<script>var t="Assine para continuar lendo";</script><article>${corpo}</article>` })).toBeNull();
+    // a reportagem que CITA o aviso no meio do corpo (em parágrafo comum) continua liberada, com ou sem HTML
+    const cita = corpo + ' O jornal exibe "assine para continuar lendo" a quem não é assinante. ' + corpo;
+    expect(detectLoginOrPaywall({ text: cita, html: `<article><p>${cita}</p></article><div class="comments">${longText}</div>` })).toBeNull();
+    // 401/402 e página curta seguem como antes
+    expect(detectLoginOrPaywall({ text: 'Conteúdo exclusivo para assinantes.' })).toBe('paywall');
+    expect(detectLoginOrPaywall({ text: corpo, httpStatus: 402 })).toBe('paywall');
+  });
+
   it('desafio resolvido pelo próprio provedor NÃO para a leitura (DP-32); desafio devolvido sem resolver é falha', async () => {
     const solved = setup(() => ok({ providerSolvedCaptcha: true }));
     const r = await solved.reader.read({ url: 'https://a.invalid/1' });

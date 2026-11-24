@@ -240,6 +240,17 @@ const LOGIN_FORM = /<input[^>]+type=["']?password["']?/i;
 const LOGIN_TEXT = /(fa[cç]a (?:o )?login para (?:continuar|ler|acessar)|entre (?:na|com) sua conta para (?:continuar|ler)|sign in to (?:continue|read|view)|log in to (?:continue|read|view)|you must be logged in)/i;
 const PAYWALL_TEXT = /(conte[uú]do exclusivo para assinantes|assine para (?:continuar lendo|ler (?:a )?(?:mat[eé]ria|not[ií]cia) completa)|reservado a assinantes|subscribe to (?:continue reading|read (?:the )?full)|this (?:article|content) is for subscribers|to continue reading,? (?:please )?subscribe)/i;
 
+const WALL_ELEMENT = /<(div|section|aside|dialog)[^>]*(?:class|id)=["'][^"']*(?:paywall|regwall|subscri|assinant|premium|overlay|modal|piano|meter)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;
+const stripTags = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** Aviso de paywall só no HTML de página longa: início do texto visível (sem script/style) ou texto de elemento de overlay/paywall/modal (class/id), em qualquer ponto. */
+function htmlHasPaywallOverlay(html: string): boolean {
+  const visible = stripTags(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' '));
+  if (PAYWALL_TEXT.test(visible.slice(0, PAYWALL_HEAD_CHARS))) return true;
+  for (const m of html.matchAll(WALL_ELEMENT)) if (PAYWALL_TEXT.test(stripTags(m[2] ?? '').slice(0, PAYWALL_HEAD_CHARS))) return true;
+  return false;
+}
+
 /** Limites do detector de paywall (iguais aos de detectWall em @ln/scraping-benchmark): até PAYWALL_SHORT_PAGE caracteres a checagem é completa; acima, só o início. */
 export const PAYWALL_SHORT_PAGE = 3000;
 export const PAYWALL_HEAD_CHARS = 1500;
@@ -249,11 +260,16 @@ export function detectLoginOrPaywall(r: { text?: string; html?: string; httpStat
   const text = r.text ?? '';
   if (r.httpStatus === 401) return 'login_required';
   if (r.httpStatus === 402) return 'paywall';
-  // paywall: página CURTA (até 3.000 caracteres) é checada inteira; página LONGA só nos primeiros 1.500 (o aviso de paywall vem no topo/corpo curto).
-  // Uma reportagem longa e legítima que CITA "assine para continuar lendo" não é paywall (ressalva R2 do QA 1, 63c16df).
+  // paywall: página CURTA (até 3.000 caracteres) é checada inteira; página LONGA só nos primeiros 1.500 do texto (R2 do QA 1, 63c16df): uma reportagem longa e
+  // legítima que CITA "assine para continuar lendo" no meio do corpo não é paywall. R4 (QA 3, 542ec10): o aviso que só existe no HTML (overlay/modal) não pode escapar,
+  // então na página longa checa-se também o início do texto visível do HTML e o texto de elementos cujo class/id indica paywall/overlay/modal, em qualquer ponto.
   const basis = text || html;
-  const paywallText = basis.length <= PAYWALL_SHORT_PAGE ? basis : basis.slice(0, PAYWALL_HEAD_CHARS);
-  if (PAYWALL_TEXT.test(paywallText) || (basis.length <= PAYWALL_SHORT_PAGE && PAYWALL_TEXT.test(html))) return 'paywall';
+  if (basis.length <= PAYWALL_SHORT_PAGE) {
+    if (PAYWALL_TEXT.test(text) || PAYWALL_TEXT.test(html)) return 'paywall';
+  } else {
+    if (PAYWALL_TEXT.test(basis.slice(0, PAYWALL_HEAD_CHARS))) return 'paywall';
+    if (html && htmlHasPaywallOverlay(html)) return 'paywall';
+  }
   // formulário de senha numa página CURTA = tela de login; página longa com campo de senha (ex.: rodapé "área do cliente") não conta
   if (LOGIN_FORM.test(html) && text.length < 1500) return 'login_required';
   if (LOGIN_TEXT.test(text) && text.length < 1500) return 'login_required';
