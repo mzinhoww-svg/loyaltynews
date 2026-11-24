@@ -6,6 +6,7 @@
 // Uso: node infra/scripts/package-prebuilt.mjs --pacote <pasta do package-web> --next <pasta .next de origem> --out <pasta> --origem "<de onde veio o .next>" [--force] [--sem-zip] [--tar]
 // Sobrepõe no pacote (e registra o SHA-256) infra/scripts/start-web.mjs e infra/scripts/lib/prebuilt.mjs DESTA árvore: são o que restaura o .next na subida.
 import { spawnSync } from 'node:child_process';
+import { TAR } from './lib/tar.mjs';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -104,7 +105,7 @@ async function main() {
   // --tar: DEPOIS da varredura de segredos (que lê os arquivos soltos), o .next vira um único web-next.tar e a pasta solta sai do pacote
   if (tar) {
     const arq = join(folder, PREBUILT_TAR);
-    const t = spawnSync('tar', ['-cf', arq, '-C', destNext, '.'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const t = spawnSync(TAR, ['-cf', arq, '-C', destNext, '.'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     if (t.error || t.status !== 0) fail(`tar falhou ao criar web-next.tar: ${t.stderr || t.error}`);
     rmSync(destNext, { recursive: true, force: true });
     files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
@@ -115,9 +116,9 @@ async function main() {
     for (const f of files) bytes += statSync(join(folder, f)).size;
     if (bytes > 100 * 1024 * 1024) fail(`pasta de ${(bytes / 1048576).toFixed(1)} MB (descomprimida) passa do limite de 100 MB do upload; confira o ZIP real antes de enviar`);
   } else {
-    const z = spawnSync('tar', ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
+    const z = spawnSync(TAR, ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
     if (z.error || z.status !== 0) fail(`tar falhou ao criar o ZIP: ${z.stderr || z.error}`);
-    const l = spawnSync('tar', ['-tf', zip], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    const l = spawnSync(TAR, ['-tf', zip], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     const entradas = String(l.stdout).split(/\r?\n/).filter((x) => x && !x.endsWith('/'));
     if (entradas.length !== files.length) fail(`pasta (${files.length}) e ZIP (${entradas.length}) divergem`);
     bytes = statSync(zip).size;

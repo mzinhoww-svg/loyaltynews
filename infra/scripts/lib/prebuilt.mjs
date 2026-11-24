@@ -5,6 +5,7 @@
 // outra URL, outra flag/vitrine/indexação, outro `next`, ou se um externo não foi instalado. Pacote comum (sem prebuilt/prebuilt.json) = nada acontece.
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { TAR } from './tar.mjs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { checkHome } from '../build-web.mjs';
 
@@ -138,7 +139,7 @@ export function restaurarPrebuilt(root, release) {
     mkdirSync(dirname(destino), { recursive: true });
     if (usaTar) {
       mkdirSync(destino, { recursive: true });
-      const x = spawnSync('tar', ['-xf', arqTar, '-C', destino], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+      const x = spawnSync(TAR, ['-xf', arqTar, '-C', destino], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
       if (x.error || x.status !== 0) return { ativo: true, problemas: [`falha ao extrair ${PREBUILT_TAR}: ${String(x.stderr || x.error?.message || 'tar indisponível').slice(0, 200)}`], log };
       const idExtraido = existsSync(join(destino, 'BUILD_ID')) ? readFileSync(join(destino, 'BUILD_ID'), 'utf8').trim() : null;
       if (idExtraido !== pb.buildId) return { ativo: true, problemas: [`BUILD_ID extraído do tar (${idExtraido}) difere do prebuilt.json (${pb.buildId})`], log };
