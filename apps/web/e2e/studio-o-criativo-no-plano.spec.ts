@@ -55,8 +55,10 @@ test.describe('Criativo aprovado no plano (staging, DP-43)', () => {
     const novo = async (alt: string) => {
       await page.getByLabel('Texto alternativo').fill(alt);
       await page.getByLabel('Destino (https').fill('https://planostaging.example/oferta');
+      const antes = await page.locator('li[data-criativo]').count();
       await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
       await sucesso(page, 'Criativo adicionado');
+      await expect(page.locator('li[data-criativo]')).toHaveCount(antes + 1); // espera o item novo antes de ler o último (P3 do QA 7, 60d0aa3)
       return (await page.locator('li[data-criativo]').last().getAttribute('data-criativo'))!;
     };
     const enviarArquivo = async (id: string, dispositivo: 'desktop' | 'mobile', w: number, h: number) => {

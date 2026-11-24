@@ -84,8 +84,10 @@ test.describe('Criativo real ponta a ponta', () => {
     const novo = async (alt: string) => {
       if (alt) await page.getByLabel('Texto alternativo').fill(alt);
       await page.getByLabel('Destino (https').fill('https://criativoreal.example/oferta');
+      const antes = await page.locator('li[data-criativo]').count();
       await enviar(page, page.getByRole('button', { name: 'Adicionar criativo' }));
       await sucesso(page, 'Criativo adicionado');
+      await expect(page.locator('li[data-criativo]')).toHaveCount(antes + 1); // espera o item novo antes de ler o último (P3 do QA 7, 60d0aa3)
       return (await page.locator('li[data-criativo]').last().getAttribute('data-criativo'))!;
     };
     const a = await novo('Oferta Criativo Real');
