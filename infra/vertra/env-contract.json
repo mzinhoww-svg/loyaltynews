@@ -261,6 +261,28 @@
       "so_staging": true
     },
     {
+      "nome": "LN_OPENBOT_PILOT_WIRING",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "opcional": true,
+      "so_staging": true,
+      "dono_do_codigo": "apps/workers/src/editorial-factory.ts (loadPilotWiring; DP-41)",
+      "nota": "Especificador do modulo de fiacao do piloto (padrao @ln/openbot-wiring); so e lido com LN_OPENBOT_PILOT=1 e APP_ENV=staging. E um import dinamico: em production a variavel DEFINIDA reprova no guard-env (build e start). Em geral nao precisa ser definida."
+    },
+    {
+      "nome": "LN_OPENBOT_GATEWAY_TIMEOUT_MS",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "opcional": true,
+      "so_staging": true,
+      "dono_do_codigo": "apps/workers/src/openbot-wiring.ts (createPilotWiring; DP-41)",
+      "nota": "Espera maxima por tarefa do gateway OpenBot, em ms (padrao 600000). No prazo a tarefa FICA na fila e repetir a chamada a retoma. SO staging; em production a variavel DEFINIDA reprova no guard-env (build e start)."
+    },
+    {
       "nome": "MLABS_MCP_TOKEN",
       "secreto": true,
       "apps": [

@@ -23,6 +23,8 @@ import * as move from '../publico/intelligence/moves/[id]/route';
 import * as empresas from '../publico/intelligence/empresas/route';
 import * as empresa from '../publico/intelligence/empresas/[id]/route';
 import * as adPlan from '../commercial/ads/plan/route';
+import { dispatchCommercial } from './commercial';
+import { seedCommercial } from './commercial/repo';
 
 type Handler = Parameters<typeof call>[0];
 interface Case {
@@ -33,6 +35,12 @@ interface Case {
   params?: Record<string, string>;
   /** Comparar as chaves do 1º item de `data` (lista) ou de `data` (detalhe). */
   item?: 'list' | 'detail';
+  /** Caminhos (a.b.0.c) cujas CHAVES também têm de bater, quando existem nos dois lados (formato aninhado: posições do plano, blocos do mídia kit). */
+  shapes?: string[];
+  /** Caminho → campos que o PORTAL lê ali: cada um tem de existir nos dois lados com o mesmo tipo (o resto pode diferir). */
+  reads?: Record<string, string[]>;
+  /** false = não compara as chaves do TOPO (o caso olha só os caminhos de `shapes`/`reads`, os que o portal lê). */
+  topo?: false;
 }
 
 const CASES: Case[] = [
@@ -66,6 +74,13 @@ const CASES: Case[] = [
   { name: 'intelligence: empresa com id malformado', path: '/api/publico/intelligence/empresas/nao-e-uuid', real: empresa.GET, params: { id: 'nao-e-uuid' } },
   // plano de anúncios
   { name: 'ads: plano', path: '/api/commercial/ads/plan', query: { positions: 'TOP,FOOTER' }, real: adPlan.GET },
+  // comercial que mudou (proximas-tarefas 24/11 linha 10): plano com mobile[] (1bda35e) e mídia kit lido em runtime (af5ac6c)
+  { name: 'ads: plano com posição disponível e mobile[]', path: '/api/commercial/ads/plan', query: { positions: 'TOP' }, real: adPlan.GET, shapes: ['slots.0', 'slots.0.mobile.0'] },
+  { name: 'ads: plano de posição indisponível (mobile vazio)', path: '/api/commercial/ads/plan', query: { positions: 'FOOTER' }, real: adPlan.GET, shapes: ['slots.0'] },
+  { name: 'ads: plano sem positions', path: '/api/commercial/ads/plan', real: adPlan.GET },
+  // o portal (commercial-source.ts) lê coverage, audience, deliveryIntegrity, blocks.catalogo.formats[] e blocks.especificacoes.positions[]: esses TÊM de bater
+  { name: 'mídia kit: campos que o portal lê', path: '/api/commercial/mediakit', real: dispatchCommercial as unknown as Handler, topo: false, shapes: ['coverage.0', 'audience', 'deliveryIntegrity'], reads: { 'blocks.catalogo.formats.0': ['id', 'section', 'name', 'price', 'scope', 'status'], 'blocks.especificacoes.positions.0': ['id', 'name', 'desktop'], '': ['generatedAt'] } },
+  { name: 'mídia kit: topo e blocos completos', path: '/api/commercial/mediakit', real: dispatchCommercial as unknown as Handler, shapes: ['blocks'] },
 ];
 
 /**
@@ -76,10 +91,7 @@ const CASES: Case[] = [
 // int/015: tipo e q de matérias saíram da lista porque o fake da int/014 já está alinhado nesses casos (os 5 passaram a reprovar como it.fails).
 // int/016: os 4 casos do Intelligence saíram da lista porque o fake da ft/portal-intelligence (6c1bbbb) já está alinhado à API (mesmo efeito do ft/backend-3 a4b6f01, ainda sem parecer).
 const KNOWN: Record<string, string> = {
-  'materias: limit 0': 'fake não valida limit (200), API 400 (1–100)',
-  'materias: limit 101': 'fake não valida limit (200), API 400 (1–100)',
-  'materias: offset negativo': 'fake não valida offset (200), API 400',
-  'materias: editoria inexistente': 'fake devolve lista vazia (200), API 400 (editoria fora do catálogo)',
+  'mídia kit: topo e blocos completos': 'fake sem capabilities e methodologyNote no topo e só com os blocos catalogo e especificacoes (os que o portal lê); a API tem 8 blocos (audiencia, cobertura, contratacao, decisores, formulario, tese também)',
 };
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -101,9 +113,17 @@ beforeAll(async () => {
   app = await makeApp();
   // dado real mínimo e público, para comparar as chaves do item da lista
   await app.db.insert(schema.articles).values({ id: 'c1', slug: 'contrato-1', titulo: 'Contrato 1', resumo: 'Resumo', corpo: 'x', editoria: 'pontos', tipoConteudo: 'flash', status: 'publicado', publicadoEm: new Date('2026-11-20T10:00:00Z'), classeDeDado: 'public' } as any);
+  // comercial: catálogo semeado, venda de anúncio ligada e criativos REAIS na TOP (desktop 1280x150 e mobile 320x100), para o plano ter posição
+  // disponível com mobile[] como o fake em FAKE_API_ADS=com
+  await seedCommercial(app.db);
+  app.deps.flags.adServerVendas = true;
+  await app.db.insert(schema.crmAccounts).values({ id: 'acc-c', nome: 'Anunciante do contrato' });
+  await app.db.insert(schema.campaigns).values({ id: 'cmp-c', nome: 'Campanha', contaId: 'acc-c', formatoId: 'banners--banner-topo', slotId: 'TOP', inicio: '2026-11-01', fim: '2026-12-31', status: 'active' });
+  const cr = (id: string, w: number, h: number, sha: string) => ({ id, campanhaId: 'cmp-c', slotId: 'TOP', peso: 1, inicio: '2026-11-01', fim: '2026-12-31', aprovado: true, arquivoRef: `anuncios/${sha}.png`, arquivoMime: 'image/png', largura: w, altura: h, tamanhoKb: 1, arquivoSha256: sha, textoAlternativo: 'Oferta', destinoUrl: 'https://anunciante.example/x' });
+  await app.db.insert(schema.adCreatives).values([cr('cr-desk', 1280, 150, 'a'.repeat(64)), cr('cr-mob', 320, 100, 'b'.repeat(64))] as any);
   port = await freePort();
   const file = fileURLToPath(new URL('../../../e2e/fake-api.mjs', import.meta.url));
-  fake = spawn(process.execPath, [file], { env: { ...process.env, FAKE_API_PORT: String(port), FAKE_API_STATUS: '' }, stdio: 'ignore' });
+  fake = spawn(process.execPath, [file], { env: { ...process.env, FAKE_API_PORT: String(port), FAKE_API_STATUS: '', FAKE_API_ADS: 'com' }, stdio: 'ignore' });
   for (let i = 0; i < 100; i++) {
     try {
       if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) return;
@@ -141,10 +161,25 @@ describe('contrato fake-api.mjs × rotas reais', () => {
       // no erro compara status e código (o real acrescenta requestId ao envelope; a mensagem é livre)
       if (rs.status >= 400) rs.top = 'erro';
       if (fs.status >= 400) fs.top = 'erro';
+      if (c.topo === false) fs.top = rs.top = 'ignorado'; // o caso olha só os caminhos de `shapes`
       expect(fs, `fake diverge da API real em "${c.name}": fake=${JSON.stringify(fs)} real=${JSON.stringify(rs)}`).toEqual(rs);
       const fi = firstItem(f.body, c.item);
       const ri = firstItem(r.body, c.item);
       if (fi !== undefined && ri !== undefined) expect(keys(fi), `campos do item divergem em "${c.name}"`).toEqual(keys(ri));
+      for (const path of c.shapes ?? []) {
+        const at = (b: any) => path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), b);
+        const fv = at(f.body);
+        const rv = at(r.body);
+        expect(fv === undefined, `"${path}" existe só na API real em "${c.name}"`).toBe(rv === undefined);
+        if (fv !== undefined && rv !== undefined) expect(keys(fv), `campos de "${path}" divergem em "${c.name}"`).toEqual(keys(rv));
+      }
+      for (const [path, campos] of Object.entries(c.reads ?? {})) {
+        const at = (b: any) => (path ? path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), b) : b);
+        const fv = at(f.body);
+        const rv = at(r.body);
+        expect([fv !== undefined, rv !== undefined], `"${path || '(topo)'}" tem de existir nos dois lados em "${c.name}"`).toEqual([true, true]);
+        for (const k of campos) expect([typeof fv[k], k in fv], `"${path || '(topo)'}.${k}" (lido pelo portal) diverge em "${c.name}"`).toEqual([typeof rv[k], k in rv]);
+      }
     };
     if (KNOWN[c.name]) it.fails(`${c.name} — DIVERGÊNCIA CONHECIDA: ${KNOWN[c.name]}`, run, 60_000);
     else it(c.name, run, 60_000);

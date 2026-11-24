@@ -1520,6 +1520,8 @@ test('guard-env (linha 1 do piloto): em produção cada variável do piloto recu
     [{ LN_OPENBOT_PILOT: '1' }, /LN_OPENBOT_PILOT definida em produção/],
     [{ OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET definida em produção/],
     [{ OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste' }, /OPENBOT_HMAC_SECRET_PREVIOUS definida em produção/],
+    [{ LN_OPENBOT_PILOT_WIRING: 'valor-ficticio-de-teste' }, /LN_OPENBOT_PILOT_WIRING definida em produção/],
+    [{ LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' }, /LN_OPENBOT_GATEWAY_TIMEOUT_MS definida em produção/],
   ];
   for (const [vars, esperado] of casos) {
     const msg = envProblems({ ...PROD, ...vars }, { deploy: true }).join('|');
@@ -1531,9 +1533,26 @@ test('guard-env (linha 1 do piloto): em produção cada variável do piloto recu
   assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /LN_FLAGS_ON definida em produção/);
   assert.doesNotMatch(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, { deploy: true }).join('|'), /openbotDispatch/, 'só cita openbotDispatch quando ela está no valor');
   const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
-  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
+  for (const n of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS', 'LN_FLAGS_ON', 'LN_OPENBOT_PILOT', 'LN_OPENBOT_PILOT_WIRING', 'LN_OPENBOT_GATEWAY_TIMEOUT_MS']) assert.equal(c.variaveis.find((v) => v.nome === n)?.so_staging, true, `${n} so_staging`);
   assert.equal(c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET').secreto, true);
   assert.doesNotMatch(JSON.stringify(c), /"valor"\s*:\s*"[^"]{8,}"/, 'o contrato só tem nomes, nenhum valor');
+});
+
+test('guard-env (item 5 do piloto): a CLI real sai 1 em produção com QUALQUER variável do piloto e 0 sem elas (controle negativo); staging aceita; toda variável OPENBOT/PILOT lida pelo código do piloto está no contrato como só_staging', () => {
+  const run = (env) => node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), ...env } });
+  const piloto = { LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste', OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste', LN_OPENBOT_PILOT_WIRING: '@ln/outro', LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' };
+  assert.equal(run({ APP_ENV: 'production' }).status, 0, 'controle negativo: produção sem variável do piloto passa');
+  for (const [nome, valor] of Object.entries(piloto)) {
+    const r = run({ APP_ENV: 'production', [nome]: valor });
+    assert.equal(r.status, 1, nome + ' em produção deve reprovar');
+    assert.ok((r.stderr + r.stdout).includes(nome), 'a mensagem cita o nome ' + nome);
+    assert.ok(!(r.stderr + r.stdout).includes(valor) || valor === '1' || valor === '60000', 'a mensagem não repete o valor de ' + nome);
+    assert.equal(run({ APP_ENV: 'staging', [nome]: valor }).status, 0, nome + ' em staging é aceita');
+  }
+  assert.equal(run({ APP_ENV: 'production', ...piloto }).status, 1, 'todas juntas em produção reprovam');
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  const nomes = new Set(c.variaveis.map((v) => v.nome));
+  for (const n of Object.keys(piloto)) assert.ok(nomes.has(n) && c.variaveis.find((v) => v.nome === n).so_staging === true, n + ' no contrato como só_staging');
 });
 
 test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {
@@ -1634,4 +1653,31 @@ test('smoke-staging: temMarcadorMock só reprova marcadores explícitos de MOCK;
   for (const bom of ['Como um MOCK de interface acelera o design', 'o mock-up do app', '[DEMO · staging] Programa fictício', 'Comprador MOCKADO', '', null, undefined]) assert.equal(temMarcadorMock(bom), false, String(bom));
   const src = readFileSync(join(S, 'smoke-staging.mjs'), 'utf8');
   assert.equal((src.match(/bMOCK(?!\s·)/g) ?? []).length, 0, 'nenhum \bMOCK\b solto sobrou no smoke-staging');
+});
+
+test('smoke-producao --expect-icones (achado D-2): favicon.ico em 404 (cache velho do edge) reprova mostrando cf-cache-status e age; com os três ícones servidos passa', async () => {
+  const { rodar } = await import('../scripts/smoke-producao.mjs');
+  const estado = { favicon: 404 };
+  const s = await server((req, res) => {
+    const u = req.url.split('?')[0];
+    if (u === '/favicon.ico') {
+      if (estado.favicon === 404) { res.writeHead(404, { 'content-type': 'text/html; charset=utf-8', 'cf-cache-status': 'HIT', age: '130611' }); return res.end('nao encontrado'); }
+      res.writeHead(200, { 'content-type': 'image/x-icon' }); return res.end('ico');
+    }
+    if (u === '/icon.svg') { res.writeHead(200, { 'content-type': 'image/svg+xml' }); return res.end('<svg/>'); }
+    if (u === '/apple-icon.png') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end('png'); }
+    res.writeHead(404); res.end();
+  });
+  try {
+    const url = 'http://127.0.0.1:' + s.address().port;
+    const ruim = (await rodar({ url, icones: true, consecutivas: 1, intervaloMs: 0 })).checagens.filter((c) => /^icones:/.test(c.nome));
+    assert.equal(ruim.length, 3);
+    const fav = ruim.find((c) => /favicon/.test(c.nome));
+    assert.equal(fav.ok, false); assert.match(fav.detalhe, /HTTP 404.*cf-cache-status=HIT age=130611/);
+    assert.ok(ruim.filter((c) => !/favicon/.test(c.nome)).every((c) => c.ok));
+    estado.favicon = 200;
+    const bom = (await rodar({ url, icones: true, consecutivas: 1, intervaloMs: 0 })).checagens.filter((c) => /^icones:/.test(c.nome));
+    assert.ok(bom.length === 3 && bom.every((c) => c.ok), JSON.stringify(bom));
+    assert.equal((await rodar({ url, consecutivas: 1, intervaloMs: 0 })).checagens.some((c) => /^icones:/.test(c.nome)), false, 'sem a opção não confere ícones');
+  } finally { s.close(); }
 });

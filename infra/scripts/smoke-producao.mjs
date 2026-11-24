@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Smoke da PRODUÇÃO (só leitura, nenhum POST, nenhuma credencial). Contraparte do smoke-staging, que EXIGE conteúdo de demonstração; aqui o conteúdo de demonstração é falha.
-// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--expect-cache] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
+// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--expect-cache] [--expect-icones] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
 // Confere: /api/health com APP_ENV production, o commit certo e flags [] (ADR-022: produção não liga flag por variável); /api/ready completo (banco e Redis; migrações se o build as confere);
 //   API pública e portal sem MOCK, sem "[DEMO" e sem marcador de vitrine; produção NÃO indexável até o go-live (DP-24: noindex, robots Disallow, sitemap e feed sem itens) ou, com --indexavel (depois
 //   do go-live), indexável; Studio sem sessão = 307 para o login; pessoas e moves desligados (disponivel=false). Código 0 = tudo ok; 1 = alguma falha; 2 = uso errado.
@@ -13,7 +13,7 @@ import { pathToFileURL } from 'node:url';
 // Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
 const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
-export async function rodar({ url, commit, indexavel = false, cache = false, timeout = 20000, consecutivas, intervaloMs }) {
+export async function rodar({ url, commit, indexavel = false, cache = false, icones = false, timeout = 20000, consecutivas, intervaloMs }) {
   const base = url.replace(/\/+$/, '');
   const out = [];
   const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
@@ -85,6 +85,15 @@ export async function rodar({ url, commit, indexavel = false, cache = false, tim
     }
   });
   // Política de cache do portal (PM, 24/11): 60 s só nas páginas SEM pessoas; pessoas/moves/Intelligence/sitemap e a matéria ficam no-store. Prova de caixa-preta: verificar-cache-headers.mjs.
+  // Ícones do portal (achado D-2 do Senior Auditor, 24/11): /favicon.ico respondia 404 no staging com o app servindo 200 na origem. Era um 404 pré-renderizado do Next com
+  // s-maxage de 1 ano guardado no Cloudflare desde o 1º deploy (sem o ícone). Quando falha, o detalhe mostra cf-cache-status e age para distinguir cache velho de ícone ausente.
+  if (icones) await tentar('icones', async () => {
+    for (const [caminho, tipo] of [['/favicon.ico', /image\/(x-icon|vnd\.microsoft\.icon)/], ['/icon.svg', /image\/svg/], ['/apple-icon.png', /image\/png/]]) {
+      const r = await get(caminho);
+      const ct = r.h.get('content-type') ?? '';
+      check(`icones: ${caminho} 200 com content-type de imagem`, r.status === 200 && tipo.test(ct), `HTTP ${r.status} ${ct.split(';')[0]} cf-cache-status=${r.h.get('cf-cache-status') ?? '-'} age=${r.h.get('age') ?? '-'}`);
+    }
+  });
   if (cache) await tentar('cache', async () => {
     const v = await verificar({ url: base, valores: { editoria: 'mercado' } });
     check(`cache: ${v.total} rotas conforme a política (60 s sem pessoas; no-store com pessoas, matéria e sitemap)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
@@ -100,7 +109,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const commit = args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : undefined;
   if (commit !== undefined && !/^[0-9a-f]{40}$/.test(commit)) { console.error('--expect-commit exige o SHA de 40 caracteres'); process.exit(2); }
   const cfgS = configSaude(args);
-  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), cache: Boolean(args['expect-cache']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
+  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
   console.log(JSON.stringify(r, null, 2));
   process.exit(r.falhas ? 1 : 0);
 }
