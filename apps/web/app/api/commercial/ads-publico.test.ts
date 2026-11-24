@@ -115,7 +115,11 @@ describe('GET /api/commercial/ads/plan', () => {
     expect(r.status).toBe(200);
     expect(r.headers.get('cache-control')).toMatch(/s-maxage=60/);
     const body = await r.json();
-    expect(body.slots).toEqual([{ positionId: 'TOP', available: true, width: 1280, height: 150 }, { positionId: 'FOOTER', available: false, width: null, height: null }]);
+    // `mobile` é aditivo (ft/commercial-device 6f7eb48): dimensões mobile com criativo real elegível; available/width/height seguem do desktop
+    expect(body.slots).toEqual([{ positionId: 'TOP', available: true, width: 1280, height: 150, mobile: [] }, { positionId: 'FOOTER', available: false, width: null, height: null, mobile: [] }]);
+    await criativoReal('cr-mob', { largura: 320, altura: 100 });
+    const comMobile = await (await get(plan, '/api/commercial/ads/plan?positions=TOP')).json();
+    expect(comMobile.slots[0]).toEqual({ positionId: 'TOP', available: true, width: 1280, height: 150, mobile: [{ width: 320, height: 100 }] });
     expect(await redis.dbsize()).toBe(0);
     app.deps.flags.adServerVendas = false;
     expect((await (await get(plan, '/api/commercial/ads/plan?positions=TOP')).json()).slots[0].available).toBe(false);
