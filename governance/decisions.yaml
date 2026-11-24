@@ -787,5 +787,20 @@
       "R0-01"
     ],
     "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-48 (sha256 do arquivo-fonte 71ae049b47755b228302979f08b664fd295968a7010e28d86f4d83fca1308a37)"
+  },
+  {
+    "id": "DP-50",
+    "status": "registrada",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "R0-07: a Vertra não oferece histórico de auditoria da conta (logs só da execução atual, sem exportação; resposta 5 do suporte). A ausência de mutação pelo inventário fica demonstrada pela chave só de leitura, que recusa escrita por escopo (sondas de 22 e 23/11), e pelas leituras antes e depois sem mudança. A falta de log de auditoria da plataforma é limitação aceita pelo proprietário.",
+    "efeito": "Na R0-07, a falta de histórico de auditoria da Vertra é limitação aceita; a ausência de mutação pelo inventário fica demonstrada pela chave só de leitura (recusa por escopo) e pelas leituras antes/depois. Uma objeção do revisor só sobre o histórico da plataforma é ponto decidido (DP-45).",
+    "vinculo": [
+      "DP-09",
+      "DP-20",
+      "DP-45",
+      "R0-07"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-50 (sha256 do arquivo-fonte 757c95d04a9c1f4acf31bff5bd17095f5ba40b2fe954456dd329c9d13f717cb2)"
   }
 ]
