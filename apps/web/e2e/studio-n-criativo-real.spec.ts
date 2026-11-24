@@ -7,6 +7,8 @@ import { anexarEEnviar } from './upload-teste';
 // Criativo real ponta a ponta no Studio (Studio 3): arquivo enviado e medido no servidor → aprovação com as regras do domínio → plano público /ads/plan.
 // Armazenamento: Blob EM MEMÓRIA (MOCK) ligado só neste spec, pelo backend de e2e. adServerVendas fica desligada por padrão; ela só é ligada no
 // backend de e2e no fim, para provar que o plano continua vazio enquanto o formato não tem capacidade operacional declarada.
+// DP-43 por ambiente: aprovação e ativação só no staging (APP_ENV=staging); em produção (padrão do e2e) a tela não as oferece.
+const STAGING = process.env.APP_ENV === 'staging';
 const erro = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.err').filter({ hasText: txt }).first()).toBeVisible();
 const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();
 
@@ -127,54 +129,78 @@ test.describe('Criativo real ponta a ponta', () => {
     const direto = await page.request.post('/api/commercial/studio/creatives/approve', { data: { creativeId: m }, headers: { origin: new URL(page.url()).origin } });
     expect(direto.status()).toBe(403);
     expect(((await direto.json()) as { error?: { code?: string } }).error?.code).toBe('APPROVAL_FORBIDDEN');
-    await entrar(context, 'dono', 'admin');
-    await page.goto(urlCampanha);
-    await enviar(page, page.getByRole('button', { name: `Aprovar ${m}` }));
-    await sucesso(page, 'Criativo aprovado.');
-    await expect(page.locator(`li[data-criativo="${m}"]`)).toHaveAttribute('data-aprovado', 'sim');
-    const ax = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-    expect(ax.violations.map((v) => v.id)).toEqual([]);
+    if (STAGING) {
+      await entrar(context, 'dono', 'admin');
+      await page.goto(urlCampanha);
+      await enviar(page, page.getByRole('button', { name: `Aprovar ${m}` }));
+      await sucesso(page, 'Criativo aprovado.');
+      await expect(page.locator(`li[data-criativo="${m}"]`)).toHaveAttribute('data-aprovado', 'sim');
+      const ax = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      expect(ax.violations.map((v) => v.id)).toEqual([]);
 
-    // sem alt não aprova; sem arquivo (sem hash) não aprova; o completo aprova
-    await enviar(page, page.getByRole('button', { name: `Aprovar ${b}` }));
-    await erro(page, /incompleto|especificação/);
-    await expect(page.locator(`li[data-criativo="${b}"]`)).toHaveAttribute('data-aprovado', 'nao');
-    await enviar(page, page.getByRole('button', { name: `Aprovar ${c}` }));
-    await erro(page, /incompleto|especificação/);
-    await expect(page.locator(`li[data-criativo="${c}"]`)).toHaveAttribute('data-aprovado', 'nao');
-    await enviar(page, page.getByRole('button', { name: `Aprovar ${a}` }));
-    await sucesso(page, 'Criativo aprovado.');
-    await expect(page.locator(`li[data-criativo="${a}"]`)).toHaveAttribute('data-aprovado', 'sim');
+      // sem alt não aprova; sem arquivo (sem hash) não aprova; o completo aprova
+      await enviar(page, page.getByRole('button', { name: `Aprovar ${b}` }));
+      await erro(page, /incompleto|especificação/);
+      await expect(page.locator(`li[data-criativo="${b}"]`)).toHaveAttribute('data-aprovado', 'nao');
+      await enviar(page, page.getByRole('button', { name: `Aprovar ${c}` }));
+      await erro(page, /incompleto|especificação/);
+      await expect(page.locator(`li[data-criativo="${c}"]`)).toHaveAttribute('data-aprovado', 'nao');
+      await enviar(page, page.getByRole('button', { name: `Aprovar ${a}` }));
+      await sucesso(page, 'Criativo aprovado.');
+      await expect(page.locator(`li[data-criativo="${a}"]`)).toHaveAttribute('data-aprovado', 'sim');
 
-    // aprovado não é "no ar": sem venda ligada e campanha ativa, a imagem pública não sai
-    expect((await page.request.get(`/api/commercial/ads/creative-image?id=${encodeURIComponent(a)}`)).status()).toBe(404);
+      // aprovado não é "no ar": sem venda ligada e campanha ativa, a imagem pública não sai
+      expect((await page.request.get(`/api/commercial/ads/creative-image?id=${encodeURIComponent(a)}`)).status()).toBe(404);
 
-    // plano público: venda desligada (padrão) ⇒ posição sem anúncio
-    expect((await plano(page)).slots).toEqual([expect.objectContaining({ positionId: 'SIDEBAR_1', available: false })]);
+      // plano público: venda desligada (padrão) ⇒ posição sem anúncio
+      expect((await plano(page)).slots).toEqual([expect.objectContaining({ positionId: 'SIDEBAR_1', available: false })]);
 
-    // reservar (comercial) e aprovar a campanha (proprietário); ativar é recusado sem venda ligada
-    await entrar(context, 'caio', 'comercial');
-    await page.goto(urlCampanha);
-    await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
-    await sucesso(page, 'Posição reservada.');
-    await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
-    await sucesso(page, 'Estado da campanha atualizado.');
-    // o comercial não aprova a campanha (sem o botão); o proprietário aprova
-    await expect(page.getByRole('button', { name: 'Mover para approved' })).toHaveCount(0);
-    await entrar(context, 'dono', 'admin');
-    await page.goto(urlCampanha);
-    await enviar(page, page.getByRole('button', { name: 'Mover para approved' }));
-    await sucesso(page, 'Estado da campanha atualizado.');
-    await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
-    await expect(page.locator('main .st-alert.err').first()).toBeVisible();
+      // reservar (comercial) e aprovar a campanha (proprietário); ativar é recusado sem venda ligada
+      await entrar(context, 'caio', 'comercial');
+      await page.goto(urlCampanha);
+      await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
+      await sucesso(page, 'Posição reservada.');
+      await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
+      await sucesso(page, 'Estado da campanha atualizado.');
+      // o comercial não aprova a campanha (sem o botão); o proprietário aprova
+      await expect(page.getByRole('button', { name: 'Mover para approved' })).toHaveCount(0);
+      await entrar(context, 'dono', 'admin');
+      await page.goto(urlCampanha);
+      await enviar(page, page.getByRole('button', { name: 'Mover para approved' }));
+      await sucesso(page, 'Estado da campanha atualizado.');
+      await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
+      await expect(page.locator('main .st-alert.err').first()).toBeVisible();
 
-    // mesmo com a venda ligada (só no backend de e2e), o formato está "sob consulta" (sem capacidade operacional declarada):
-    // a ativação é recusada e o plano continua vazio — nada entra no ar sem a decisão do proprietário
-    await definirFlag(context, 'adServerVendas', true);
-    await page.goto(urlCampanha);
-    await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
-    await erro(page, /formato|dispon/i);
-    expect((await plano(page)).slots).toEqual([expect.objectContaining({ positionId: 'SIDEBAR_1', available: false })]);
+      // mesmo com a venda ligada (só no backend de e2e), só há pré-reserva: a ativação é recusada e o plano continua vazio
+      await definirFlag(context, 'adServerVendas', true);
+      await page.goto(urlCampanha);
+      await enviar(page, page.getByRole('button', { name: 'Mover para active' }));
+      await erro(page, /reserva confirmada/i);
+      expect((await plano(page)).slots).toEqual([expect.objectContaining({ positionId: 'SIDEBAR_1', available: false })]);
+    } else {
+      // PRODUÇÃO (DP-43: venda só no staging): nem o proprietário vê "Aprovar", "Mover para approved/active" ou "Confirmar venda"
+      await entrar(context, 'dono', 'admin');
+      await page.goto(urlCampanha);
+      await expect(page.getByTestId('venda-desligada-ambiente')).toBeVisible();
+      await expect(page.getByRole('button', { name: /^Aprovar / })).toHaveCount(0);
+      await expect(page.getByLabel('Confirmar venda')).toHaveCount(0);
+      const axp = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+      expect(axp.violations.map((v) => v.id)).toEqual([]);
+      // a reserva continua possível, mas só como pré-reserva
+      await enviar(page, page.getByRole('button', { name: 'Reservar posição' }));
+      await sucesso(page, 'Posição reservada.');
+      await expect(page.locator('tr[data-reserva]')).toHaveAttribute('data-status', 'held');
+      await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
+      await sucesso(page, 'Estado da campanha atualizado.');
+      await expect(page.getByRole('button', { name: /^Mover para (approved|active)$/ })).toHaveCount(0);
+      // mesmo com a venda ligada no backend de e2e, produção não oferece venda nem ativação e o plano segue vazio
+      await definirFlag(context, 'adServerVendas', true);
+      await page.goto(urlCampanha);
+      await expect(page.getByRole('button', { name: /^(Aprovar |Mover para (approved|active)$)/ })).toHaveCount(0);
+      await expect(page.getByLabel('Confirmar venda')).toHaveCount(0);
+      expect((await plano(page)).slots).toEqual([expect.objectContaining({ positionId: 'SIDEBAR_1', available: false })]);
+      expect((await page.request.get(`/api/commercial/ads/creative-image?id=${encodeURIComponent(a)}`)).status()).toBe(404);
+    }
     await definirFlag(context, 'adServerVendas', false);
     await blob(context, false);
   });

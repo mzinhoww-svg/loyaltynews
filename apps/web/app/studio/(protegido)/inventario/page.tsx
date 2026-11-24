@@ -3,7 +3,7 @@ import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import type { MediaKitPage } from '@ln/commercial';
 import { flagAtiva } from '@/lib/studio/flags';
 import { findModule } from '@/lib/studio/modules';
-import { periodo30 } from '@/lib/studio/comercial';
+import { AVISO_VENDA_DESLIGADA, periodo30, vendaLiberadaNoAmbiente } from '@/lib/studio/comercial';
 import { hojeSP } from '@/lib/studio/datas';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, naoConfigurado } from '@/lib/studio/backend';
@@ -43,7 +43,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       <h1>Inventário</h1>
       <p>Posições, capacidade e catálogo de formatos. Nenhum formato sem capacidade operacional fica à venda. Preço é referência comercial; disponibilidade é real.</p>
       <div className="st-alert" role="status">
-        Venda no ad server: <strong>{vendas ? 'ligada' : 'desligada nesta fase'}</strong>. Período da ocupação: {from} a {to}.
+        Venda no ad server: <strong>{vendas && vendaLiberadaNoAmbiente() ? 'ligada' : 'desligada nesta fase'}</strong>.{vendaLiberadaNoAmbiente() ? null : <span data-testid="venda-desligada-ambiente"> {AVISO_VENDA_DESLIGADA}</span>} Período da ocupação: {from} a {to}.
       </div>
 
       <h2>Posições</h2>
