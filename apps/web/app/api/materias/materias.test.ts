@@ -333,3 +333,26 @@ describe('auditoria das escritas', () => {
     expect(JSON.stringify(rows)).not.toContain('Texto da matéria com fatos');
   });
 });
+
+describe('P2-02: recibo com o NOME de quem aprovou (auditoria do Studio)', () => {
+  it('o detalhe da matéria devolve aprovadorNome (nome do usuário, nunca o e-mail) junto com o id; sem recibo, recibo null; usuário apagado, nome null', async () => {
+    const a = await toApproved();
+    const r = await call(materia.GET, 'GET', { params: { id: a.id }, as: editor });
+    expect(r.status).toBe(200);
+    const [u] = await app.db.select().from(schema.user).where(eq(schema.user.id, chefe.id));
+    expect(r.body.data.recibo).toMatchObject({ aprovador: chefe.id, aprovadorNome: u!.name });
+    expect(JSON.stringify(r.body.data.recibo)).not.toContain(u!.email); // só o nome; o e-mail do revisor não sai
+    const semRecibo = await create();
+    expect((await call(materia.GET, 'GET', { params: { id: semRecibo.id }, as: editor })).body.data.recibo).toBeNull();
+    // aprovador que não existe mais (usuário removido; o recibo é imutável e guarda o id): o id fica, o nome vira null (a tela cai no id)
+    const chefe2 = await app.actor('editor_chefe', 'chefe-removido' as 'editor_chefe');
+    const b = await create();
+    expect((await go(b.id, 'em_checagem', chefe2)).status).toBe(200);
+    expect((await receipt(b.id, b.versao, chefe2)).status).toBe(201);
+    await app.db.delete(schema.session).where(eq(schema.session.userId, chefe2.id));
+    await app.db.delete(schema.account).where(eq(schema.account.userId, chefe2.id));
+    await app.db.delete(schema.twoFactor).where(eq(schema.twoFactor.userId, chefe2.id));
+    await app.db.delete(schema.user).where(eq(schema.user.id, chefe2.id));
+    expect((await call(materia.GET, 'GET', { params: { id: b.id }, as: editor })).body.data.recibo).toMatchObject({ aprovador: chefe2.id, aprovadorNome: null });
+  });
+});
