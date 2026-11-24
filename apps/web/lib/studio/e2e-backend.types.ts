@@ -3,6 +3,8 @@ export interface E2eBackend {
   login(user: string, role: string, mfa: boolean): Promise<{ id: string; setCookies: string[] }>;
   /** Conta de teste NOVA para o teste digitar no formulário de login: e-mail, senha e (com `totp`) o segredo base32 do aplicativo autenticador já ativo. Sem `totp`, a conta não tem 2º fator. */
   contaDeTeste(key: string, role: string, totp: boolean): Promise<{ email: string; senha: string; segredo: string | null }>;
+  /** Trilha de auditoria editorial (fontes, revisões, habilitações) gravada no banco de e2e, para o teste provar quem fez e quando. Só leitura. */
+  auditoriaEditorial(): Promise<{ at: string; userId: string | null; action: string; target: string; detail?: string }[]>;
   /** Semeia UMA matéria da Fábrica editorial (rascunho com 1 afirmação e 1 evidência, sem veredito) no banco de e2e. Idempotente. */
   seedEditorial(): Promise<{ articleId: string }>;
   /** Semeia UMA matéria da Fábrica APROVADA e pronta para recibo e publicação oficiais (checagem de outro provedor, todas as afirmações aprovadas). Devolve o rascunho para os testes montarem a correção. Idempotente. */
