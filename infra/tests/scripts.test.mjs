@@ -1328,3 +1328,33 @@ test('package-web --bench-fumaca exige --bench-graph', () => {
   const x = node('package-web.mjs', ['--repo', '.', '--commit', 'HEAD', '--out', join(tmp(), 'nada'), '--profile', 'staging', '--app', 'workers', '--bench-fumaca']);
   assert.equal(x.status, 2); assert.match(x.stderr, /--bench-fumaca exige --bench-graph/);
 });
+
+test('check-ln-links: link @ln/* para dentro do worktree passa; para outro worktree, node_modules atalhado e link quebrado reprovam', async () => {
+  const { symlinkSync } = await import('node:fs');
+  const { checarWorktree, dentro } = await import('../scripts/check-ln-links.mjs');
+  const base = tmp();
+  const mk = (nome) => { const r = join(base, nome); mkdirSync(join(r, 'packages', 'auth'), { recursive: true }); writeFileSync(join(r, 'package.json'), '{}'); mkdirSync(join(r, 'node_modules', '@ln'), { recursive: true }); return r; };
+  const a = mk('wt-a'), b = mk('wt-b');
+  symlinkSync(join(a, 'packages', 'auth'), join(a, 'node_modules', '@ln', 'auth'), 'junction');
+  const ok = checarWorktree(a);
+  assert.equal(ok.ok, true); assert.equal(ok.links, 1);
+  // link do worktree b apontando para os packages do worktree a: FALSO resultado de teste
+  symlinkSync(join(a, 'packages', 'auth'), join(b, 'node_modules', '@ln', 'auth'), 'junction');
+  const fora = checarWorktree(b);
+  assert.equal(fora.ok, false); assert.equal(fora.fora[0].pacote, '@ln/auth');
+  // node_modules inteiro atalhado para o de outro worktree
+  const c = join(base, 'wt-c'); mkdirSync(join(c, 'packages'), { recursive: true }); writeFileSync(join(c, 'package.json'), '{}');
+  symlinkSync(join(a, 'node_modules'), join(c, 'node_modules'), 'junction');
+  const atalho = checarWorktree(c);
+  assert.equal(atalho.ok, false); assert.ok(atalho.fora.some((x) => x.pacote === '(node_modules inteiro)'));
+  // link quebrado
+  const d = mk('wt-d'); symlinkSync(join(base, 'nao-existe'), join(d, 'node_modules', '@ln', 'x'), 'junction');
+  assert.equal(checarWorktree(d).ok, false);
+  // sem node_modules: só aviso (exigir=false) ou reprova (exigir=true)
+  const e = join(base, 'wt-e'); mkdirSync(e); writeFileSync(join(e, 'package.json'), '{}');
+  assert.equal(checarWorktree(e).ok, true); assert.equal(checarWorktree(e, { exigir: true }).ok, false);
+  assert.equal(dentro('/x/wt-a', '/x/wt-a/packages/auth'), true); assert.equal(dentro('/x/wt-a', '/x/wt-b/packages/auth'), false);
+  // CLI: código de saída
+  assert.equal(node('check-ln-links.mjs', ['--root', a]).status, 0);
+  assert.equal(node('check-ln-links.mjs', ['--root', b]).status, 1);
+});
