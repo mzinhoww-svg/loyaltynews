@@ -184,7 +184,8 @@
           },
           "subdominio": "loyaltynews",
           "dominio": "www.loyaltynews.com.br",
-          "indexavel": true
+          "indexavel": true,
+          "gaId": "G-3Y3YMHMLHZ"
         },
         "workers": {
           "nome": "ln-prod-workers",

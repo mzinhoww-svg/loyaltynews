@@ -90,7 +90,7 @@ async function main() {
   }
   const pb = {
     schema: 1, commit: release.commit, appEnv: release.appEnv, siteUrl: release.siteUrl, vitrine: Boolean(release.vitrine), indexavel: Boolean(release.indexavel),
-    flagsLigadas: release.flagsLigadas ?? [], formato: tar ? 'tar' : 'pasta', buildId, nextVersion, externos, origem: String(args.origem), geradoEm: new Date().toISOString(),
+    gaId: release.gaId ?? null, flagsLigadas: release.flagsLigadas ?? [], formato: tar ? 'tar' : 'pasta', buildId, nextVersion, externos, origem: String(args.origem), geradoEm: new Date().toISOString(),
   };
   writeFileSync(join(folder, PREBUILT_MANIFEST), JSON.stringify(pb, null, 2) + '\n');
   writeFileSync(join(folder, 'release.json'), JSON.stringify({ ...release, prebuilt: true, buildCommandVazio: true }));

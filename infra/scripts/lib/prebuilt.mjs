@@ -66,6 +66,8 @@ export function problemasPrebuilt(pb, release, nextInstalado) {
   for (const k of ['appEnv', 'siteUrl']) if (String(pb[k] ?? '').toLowerCase() !== String(release?.[k] ?? '').toLowerCase()) p.push(`${k} do pré-construído ("${pb[k]}") difere do release.json ("${release?.[k]}"): o .next embute isso no build`);
   if (Boolean(pb.vitrine) !== Boolean(release?.vitrine)) p.push('vitrine do pré-construído difere do release.json');
   if (Boolean(pb.indexavel) !== Boolean(release?.indexavel)) p.push('indexavel do pré-construído difere do release.json (indexação é decidida no build)');
+  // GA4: o ID é constante de build (embutida no bundle do cliente); o .next só vale com o MESMO ID que o release.json declara (ausente = null nos dois)
+  if ((pb.gaId ?? null) !== (release?.gaId ?? null)) p.push(`gaId do pré-construído ("${pb.gaId ?? 'nenhum'}") difere do release.json ("${release?.gaId ?? 'nenhum'}"): o ID do GA4 é embutido no build`);
   const fl = (x) => JSON.stringify([...(Array.isArray(x) ? x : [])].map(String).sort());
   if (fl(pb.flagsLigadas) !== fl(release?.flagsLigadas)) p.push('flagsLigadas do pré-construído diferem do release.json');
   if (!/^[A-Za-z0-9_-]{6,}$/.test(String(pb.buildId ?? ''))) p.push('prebuilt.json sem buildId');

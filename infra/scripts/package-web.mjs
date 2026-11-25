@@ -122,7 +122,7 @@ const sub = appKey === 'workers' ? null : (args.subdomain && args.subdomain !== 
 // GO-LIVE POR COMMIT REVISADO (DP-54; lib/go-live.mjs): domínio próprio e indexação da produção são DECLARADOS no environments.json do commit e lidos daqui; o workflow web-prebuilt não precisa de parâmetro novo.
 let goLive;
 try { goLive = resolverGoLive({ web, profile, appKey, semGoLive, indexavelArg }); } catch (e) { fail(e.message, 2); }
-const { dominio, indexavel } = goLive;
+const { dominio, indexavel, gaId } = goLive;
 if (indexavel && vitrine) fail('indexável não combina com --vitrine', 2);
 if (indexavel && !sub) fail('indexável exige o web com subdomínio (o build confere a URL do release.json)', 2);
 const siteUrl = dominio ? `https://${dominio}` : sub ? `https://${sub}.vertraweb.app` : null;
@@ -158,7 +158,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ benchGraph, benchFumaca, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, dominio, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ benchGraph, benchFumaca, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, dominio, gaId, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -234,7 +234,7 @@ try {
     ...(jobsIntelligence.includes('releitura') ? [{ nome: 'LN_INTELLIGENCE_REREAD', valor: 'on' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, dominio, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, dominio, gaId, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [

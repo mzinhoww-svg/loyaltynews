@@ -24,9 +24,20 @@ export function resolverGoLive({ web, profile, appKey, semGoLive = false, indexa
     if (typeof indexavelDecl !== 'boolean') throw new Error('environments.json: "indexavel" tem de ser true ou false');
     if (indexavelDecl && (profile !== 'production' || appKey !== 'web')) throw new Error('environments.json: "indexavel": true só vale para o web do perfil production (staging nunca é indexável)');
   }
+  // ID de medição do GA4 (público, não é segredo): constante de BUILD do portal (NEXT_PUBLIC_GA_ID é embutida no JavaScript do cliente). O workflow web-prebuilt (congelado) não repassa variáveis
+  // NEXT_PUBLIC_*; por isso o ID é declarado no environments.json do commit, vai no release.json e o build-web o põe no ambiente do next build (como PORTAL_INDEXAVEL).
+  const gaDecl = web?.gaId;
+  if (gaDecl !== undefined) {
+    if (typeof gaDecl !== 'string' || !GA_ID.test(gaDecl)) throw new Error(`environments.json: gaId "${String(gaDecl).slice(0, 40)}" inválido (formato G- seguido de 6 a 12 letras maiúsculas ou números)`);
+    if (profile !== 'production' || appKey !== 'web') throw new Error('environments.json: "gaId" só vale para o web do perfil production (o GA4 só roda na produção indexável)');
+  }
   const aplica = !semGoLive && appKey === 'web';
   return {
     dominio: aplica && typeof dominioDecl === 'string' ? dominioDecl : null,
     indexavel: Boolean(indexavelArg) || (aplica && indexavelDecl === true),
+    gaId: aplica && typeof gaDecl === 'string' ? gaDecl : null,
   };
 }
+
+/** ID de medição do Google Analytics 4: `G-` e 6 a 12 letras maiúsculas/números. */
+export const GA_ID = /^G-[A-Z0-9]{6,12}$/;

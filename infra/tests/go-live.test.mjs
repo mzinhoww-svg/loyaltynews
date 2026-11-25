@@ -18,17 +18,17 @@ test('HOST_DOMINIO: hostname DNS em minúsculas; recusa esquema, barra, porta, c
 });
 
 test('resolverGoLive: produção/web com dominio e indexavel declarados → domínio e indexável; sem declaração → como antes do go-live', () => {
-  assert.deepEqual(resolverGoLive({ web: { dominio: 'www.loyaltynews.com.br', indexavel: true }, ...prod }), { dominio: 'www.loyaltynews.com.br', indexavel: true });
-  assert.deepEqual(resolverGoLive({ web: { subdominio: 'loyaltynews' }, ...prod }), { dominio: null, indexavel: false });
-  assert.deepEqual(resolverGoLive({ web: { dominio: 'www.loyaltynews.com.br', indexavel: false }, ...prod }), { dominio: 'www.loyaltynews.com.br', indexavel: false });
-  assert.deepEqual(resolverGoLive({ web: { indexavel: true }, ...prod }), { dominio: null, indexavel: true });
+  assert.deepEqual(resolverGoLive({ web: { dominio: 'www.loyaltynews.com.br', indexavel: true }, ...prod }), { dominio: 'www.loyaltynews.com.br', indexavel: true, gaId: null });
+  assert.deepEqual(resolverGoLive({ web: { subdominio: 'loyaltynews' }, ...prod }), { dominio: null, indexavel: false, gaId: null });
+  assert.deepEqual(resolverGoLive({ web: { dominio: 'www.loyaltynews.com.br', indexavel: false }, ...prod }), { dominio: 'www.loyaltynews.com.br', indexavel: false, gaId: null });
+  assert.deepEqual(resolverGoLive({ web: { indexavel: true }, ...prod }), { dominio: null, indexavel: true, gaId: null });
 });
 
 test('resolverGoLive: --sem-go-live ignora a declaração; --indexavel da linha de comando continua valendo; o worker nunca é afetado', () => {
   const web = { dominio: 'www.loyaltynews.com.br', indexavel: true };
-  assert.deepEqual(resolverGoLive({ web, ...prod, semGoLive: true }), { dominio: null, indexavel: false });
-  assert.deepEqual(resolverGoLive({ web: {}, ...prod, indexavelArg: true }), { dominio: null, indexavel: true });
-  assert.deepEqual(resolverGoLive({ web: {}, profile: 'production', appKey: 'workers' }), { dominio: null, indexavel: false });
+  assert.deepEqual(resolverGoLive({ web, ...prod, semGoLive: true }), { dominio: null, indexavel: false, gaId: null });
+  assert.deepEqual(resolverGoLive({ web: {}, ...prod, indexavelArg: true }), { dominio: null, indexavel: true, gaId: null });
+  assert.deepEqual(resolverGoLive({ web: {}, profile: 'production', appKey: 'workers' }), { dominio: null, indexavel: false, gaId: null });
 });
 
 test('resolverGoLive: recusa domínio inválido, domínio da Vertra, tipos errados, e qualquer declaração fora de produção/web', () => {
