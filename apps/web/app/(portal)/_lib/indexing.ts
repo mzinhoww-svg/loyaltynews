@@ -85,7 +85,7 @@ export function assertVitrineEnv(env: Env = process.env): void {
 export function robotsTxt(blocked: boolean, siteUrl: string): string {
   return blocked
     ? 'User-agent: *\nDisallow: /\n'
-    : `User-agent: *\nAllow: /\nDisallow: /busca\nDisallow: /studio\nDisallow: /api/\n\nSitemap: ${siteUrl}/sitemap.xml\n`;
+    : `User-agent: *\nAllow: /\nDisallow: /busca\nDisallow: /studio\nDisallow: /api/\n\nSitemap: ${siteUrl}/sitemap.xml\nSitemap: ${siteUrl}/news-sitemap.xml\n`;
 }
 
 /**

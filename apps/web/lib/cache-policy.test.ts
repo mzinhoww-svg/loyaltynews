@@ -32,6 +32,7 @@ const CLASSIFICACAO: Record<string, 'cacheavel' | 'no-store' | 'padrao-next'> = 
   '/anuncie': 'padrao-next',
   '/busca': 'padrao-next',
   '/busca/sugestoes': 'padrao-next', // JSON de sugestões da busca do cabeçalho; o handler define o próprio Cache-Control (60 s na resposta boa, no-store no 400 e no indisponível)
+  '/news-sitemap.xml': 'padrao-next', // sitemap do Google Notícias; o handler define o próprio Cache-Control (60 s indexável; no-store bloqueado)
   '/em-alta': 'cacheavel',
   '/feed.xml': 'padrao-next',
   '/indicadores': 'padrao-next',
