@@ -254,3 +254,36 @@ describe('Studio: fila "a confirmar" (cargos de fonte secundária)', () => {
     expect(log[0]!.detalhe).toMatchObject({ pessoa: 'MOCK Caio Secundario', cargo: 'Consultor' });
   });
 });
+
+describe('disponivel dos Moves vem do dado, nao da flag', () => {
+  const esconder = () => intelDb(app.db).query(`UPDATE intelligence.move SET status = 'detected' WHERE id = $1`, [ids.moveConfirmado]);
+  const mostrar = () => intelDb(app.db).query(`UPDATE intelligence.move SET status = 'confirmed' WHERE id = $1`, [ids.moveConfirmado]);
+
+  it('flag ligada com total 0: disponivel false (nao anuncia dado inexistente)', async () => {
+    await esconder();
+    try {
+      const r = await flag(true, () => listaMoves());
+      expect(r.status).toBe(200);
+      expect(r.body).toEqual({ data: [], total: 0, disponivel: false });
+    } finally {
+      await mostrar();
+    }
+  });
+
+  it('flag desligada com total 0: disponivel false', async () => {
+    const r = await flag(false, () => listaMoves());
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ data: [], total: 0, disponivel: false });
+  });
+
+  it('total maior que 0 com flag ligada: disponivel true', async () => {
+    const r = await flag(true, () => listaMoves());
+    expect(r.body).toMatchObject({ total: 1, disponivel: true });
+    expect(r.body.data).toHaveLength(1);
+  });
+
+  it('filtro sem resultado nao marca o recurso inteiro como indisponivel', async () => {
+    const r = await flag(true, () => listaMoves({ empresa: '00000000-0000-4000-8000-000000000000' }));
+    expect(r.body).toMatchObject({ total: 0, data: [], disponivel: true });
+  });
+});

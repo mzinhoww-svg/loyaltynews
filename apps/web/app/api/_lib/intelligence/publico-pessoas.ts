@@ -1,5 +1,5 @@
 // Leitura PÚBLICA de pessoas, cargos e Moves para o Portal (contrato v1 do Frontend 2, no padrão do de empresas). Regras:
-//  - sem login; envelope `{ data, total, disponivel }`; `disponivel` = flag `intelligencePessoas` (J-01);
+//  - sem login; envelope `{ data, total, disponivel }`; em Moves `disponivel` = flag `intelligencePessoas` ligada E ao menos um Move publicável (não basta a flag);
 //  - flag DESLIGADA: lista e moves = 200 com `data: []`, `total: 0`, `disponivel: false` (o portal mostra "indisponível por enquanto", não erro); detalhe = 404;
 //  - só cargo `declared` (o "a confirmar", inferido de fonte secundária, nunca sai), só Move `confirmed`, só quando as leituras de antes e depois são declaradas,
 //    pessoa suprimida nunca sai; nunca `excerpt`, hash de conteúdo nem citação;
@@ -148,8 +148,15 @@ export const publicListMoves: RouteFn = async (_req, c) => {
   const q = parseQuery(c);
   if (!q.success) return badQuery(q.error);
   if (!ligada(c)) return off();
-  const r = await moves(intelDb(c.deps.db), await carregarEfeitos(c.deps.db), { pessoa: q.data.pessoa, empresa: q.data.empresa }, q.data.limit, q.data.offset);
-  return json({ ...r, disponivel: true }, 200, CACHE);
+  const db = intelDb(c.deps.db);
+  const ef = await carregarEfeitos(c.deps.db);
+  const r = await moves(db, ef, { pessoa: q.data.pessoa, empresa: q.data.empresa }, q.data.limit, q.data.offset);
+  // `disponivel` vem do DADO, não da flag: flag ligada E ao menos um Move publicável. Sem isso, total 0 seria
+  // anunciado como disponível e qualquer consumidor acreditaria que existe dado. O universo é sem filtro: um filtro
+  // vazio (pessoa/empresa sem Move) não marca o recurso inteiro como indisponível.
+  const filtrado = Boolean(q.data.pessoa || q.data.empresa);
+  const totalUniverso = filtrado ? (await moves(db, ef, {}, 1, 0)).total : r.total;
+  return json({ ...r, disponivel: totalUniverso > 0 }, 200, CACHE);
 };
 
 export const publicGetMove: RouteFn = async (_req, c) => {
