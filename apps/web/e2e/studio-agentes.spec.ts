@@ -46,7 +46,7 @@ test.describe('Organização agêntica (@ln/agents)', () => {
     await expect(page.getByRole('heading', { name: 'Nenhum ritual neste dia' })).toBeVisible();
 
     await page.goto('/studio/reunioes?data=2026-11-23');
-    await page.getByRole('link', { name: 'Próximo dia →' }).click();
+    await page.getByRole('link', { name: /Próximo dia/ }).click(); // a seta agora é SVG decorativo, fora do nome acessível
     await expect(page.locator('[data-dia="2026-11-24"]')).toBeVisible();
     await page.goto('/studio/reunioes?data=2040-01-02');
     await expect(page.locator('main .st-alert.err')).toBeVisible();

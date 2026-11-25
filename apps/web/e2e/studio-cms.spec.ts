@@ -130,7 +130,7 @@ test.describe('CMS editorial (/api/materias)', () => {
     await enviar(page, page.getByRole('button', { name: 'Aprovar v2' }));
     await sucesso(page, 'Matéria aprovada.');
     await expect(page.locator('.ln-pill', { hasText: 'Aprovado' }).first()).toBeVisible();
-    const hist = page.locator('aside').getByText(/em_checagem → aprovado/);
+    const hist = page.locator('aside').getByText(/em_checagem\s+aprovado/); // a seta agora é SVG decorativo
     await expect(hist).toBeVisible();
     await expect(page.getByRole('button', { name: 'Salvar como nova versão' })).toHaveCount(0); // revisor não edita
   });

@@ -36,7 +36,8 @@ test('conteúdo: colunas do AgentOps na ordem, uma linha por tarefa, unsupported
   expect(r.status()).toBe(200);
   expect(r.headers()['content-type']).toContain('text/csv');
   expect(r.headers()['content-disposition']).toMatch(/^attachment; filename="piloto-planilha-\d{4}-\d{2}-\d{2}\.csv"$/);
-  const linhas = (await r.text()).replace(/^\uFEFF/, '').trim().split('\n');
+  // O CSV começa com a linha de metadados "# amostra_desde=..." (composição int/032/033); ela não é coluna.
+  const linhas = (await r.text()).replace(/^\uFEFF/, '').split('\n').filter((l) => l.trim() !== '' && !l.startsWith('#'));
   const cab = linhas[0]!.split(',');
   expect(cab.slice(0, 31)).toEqual(COLUNAS_AGENTOPS);
   expect(cab.slice(31)).toEqual(['materia', 'leitor1_veredito', 'leitor2_veredito', 'leitor2_unsupported_high', 'leitor2_unsupported_medium', 'leitor2_unsupported_low', 'leitor2_origem']);

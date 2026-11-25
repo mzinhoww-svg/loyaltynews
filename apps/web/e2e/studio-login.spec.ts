@@ -206,5 +206,7 @@ test('limitador do Better Auth (várias entradas em 10 s do mesmo IP): 429 com o
     if (/Muitas tentativas/.test(texto)) barrado = texto;
     else expect(texto).toBe('E-mail ou senha incorretos.');
   }
-  expect(barrado, 'o limitador deveria barrar dentro de 6 tentativas rápidas').toMatch(/^Muitas tentativas\. Tente de novo em \d+ segundos?\.$/);
+  // Pode ser o limitador curto do Better Auth (segundos) ou o limite por conta/IP do Studio (minutos): os dois são
+  // respostas 429 honestas e não revelam nada; o que importa é barrar e dizer o tempo de espera.
+  expect(barrado, 'o limitador deveria barrar dentro de 6 tentativas rápidas').toMatch(/^Muitas tentativas\. Tente de novo em \d+ (segundos?|minutos?)\.$/);
 });

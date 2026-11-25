@@ -72,7 +72,7 @@ test('remoção: exige confirmação; some do portal, das consultas e a página 
   await sucesso(page, 'Pessoa removida');
   expect((await page.goto(`/studio/entidades/pessoa/${carla}`))?.status()).toBe(404);
   await page.goto('/studio/entidades?q=Carla');
-  await expect(page.getByRole('heading', { name: 'Nenhum resultado' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nenhuma empresa ou executivo encontrado' })).toBeVisible();
 });
 
 test('a semente continua idempotente depois de correção de nome e remoção (ids achados pelo perfil público)', async ({ context }) => {

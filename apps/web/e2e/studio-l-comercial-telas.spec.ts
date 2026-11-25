@@ -91,7 +91,7 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(reserva).toHaveCount(1);
     await expect(reserva).toHaveAttribute('data-status', 'held');
     await expect(reserva).toContainText('pré-reserva');
-    await expect(reserva).toContainText('2099-03-01 → 2099-05-31');
+    await expect(reserva).toContainText(/2099-03-01\s+2099-05-31/); // a seta agora é SVG decorativo
 
     // com a reserva, 'reserved' passa (antes recusava por falta de reserva)
     await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
