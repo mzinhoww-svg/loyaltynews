@@ -396,7 +396,7 @@ test.describe('honestidade de dados', () => {
     await expect(emails).toHaveCount(1);
     await expect(emails).toHaveAttribute('href', 'mailto:contato@loyaltynews.com.br');
     await expect(page.getByTestId('contato-email')).toBeVisible();
-    await expect(page.getByText(/serão publicados aqui quando forem confirmados/)).toBeVisible();
+    await expect(page.getByText(/não serão exibidos até a configuração oficial/)).toBeVisible();
     await expect(page.locator('main a[href*="linkedin.com"], main a[href*="instagram.com"], main a[href*="wa.me"]')).toHaveCount(0);
   });
 });
