@@ -6,15 +6,18 @@ import { AdSlot, EmptyState, MockTag, PageHead } from '../_components/ui';
 import { eventWhen, eventWhere, isUpcoming, noon } from '../_lib/events';
 import { dayOf, monthAbbrev } from '../_lib/format';
 import { getSource } from '../_lib/source';
+import { metadadosPagina } from '../_seo/paginas';
 import type { EventItem } from '../_lib/types';
 
 // Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Agenda',
-  description: 'Eventos do mercado de fidelização: congressos, webinars e fóruns verificados.',
-  alternates: { canonical: '/agenda' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return metadadosPagina({
+    title: 'Agenda',
+    description: 'Eventos do mercado de fidelização: congressos, webinars e fóruns verificados.',
+    path: '/agenda',
+  });
+}
 
 const FILTERS = [
   { id: 'todos', label: 'Todos' },

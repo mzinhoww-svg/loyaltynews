@@ -7,6 +7,8 @@ import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { formatDate } from '../../../_lib/format';
 import { KIND_LABEL, relationLabel } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
+import { jsonLdString } from '../../../_lib/jsonld';
+import { metadadosPagina, urlAbsoluta } from '../../../_seo/paginas';
 import { MoveCard, RolesTable } from '../../_components/intel';
 import { ScrollRegion } from '../../../_components/ScrollRegion';
 
@@ -20,12 +22,17 @@ const load = cache((id: string) => getSource().getCompany(id));
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const r = await load(id);
+  if (r.status === 'not_found') return { title: 'Página não encontrada', robots: { index: false } };
   if (r.status !== 'ok') return { title: 'Empresa — Loyalty Intelligence', robots: { index: false } };
-  return {
-    title: `${r.company.name} — Loyalty Intelligence`,
-    description: `${r.company.name}: vínculos declarados no mercado de fidelização, com fonte pública e data de validação.`,
-    alternates: { canonical: `/intelligence/empresas/${r.company.id}` },
-  };
+  const c = r.company;
+  const n = c.relations.length;
+  const vinculos = n ? `${n} ${n === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'sem vínculos declarados';
+  return metadadosPagina({
+    title: `${c.name} — Loyalty Intelligence`,
+    description: `${c.name} (${KIND_LABEL[c.kind].toLowerCase()}): ${vinculos} no mercado de fidelização, com fonte pública e data de validação.`,
+    path: `/intelligence/empresas/${c.id}`,
+    noindex: c.mock,
+  });
 }
 
 export default async function EmpresaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,8 +54,18 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
 
   const c = r.company;
   const [people, moves] = await Promise.all([getSource().getPeopleDirectory({ companyId: c.id }), getSource().getMovesFeed({ companyId: c.id })]);
+  // JSON-LD só com o que a página afirma: nome, razão social e a URL canônica. Os vínculos não viram propriedade schema.org
+  // ("associada"/"parceria" não equivalem a memberOf/parentOrganization; não inferimos).
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: c.name,
+    ...(c.legalName !== c.name ? { legalName: c.legalName } : {}),
+    url: urlAbsoluta(`/intelligence/empresas/${c.id}`),
+  };
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <PageHead title={c.name} crumbs={[...crumbs, { label: c.name }]} />
       <p className="pt-meta" data-testid="company-meta">
         {c.mock && <MockTag />}

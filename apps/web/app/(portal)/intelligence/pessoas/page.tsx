@@ -5,6 +5,7 @@ import { ErrorState } from '../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
 import { getSource } from '../../_lib/source';
+import { metadadosPagina } from '../../_seo/paginas';
 import { PEOPLE_EMPTY } from '../_components/intel';
 import s from '../_components/intel.module.css';
 
@@ -12,11 +13,13 @@ import s from '../_components/intel.module.css';
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
 // a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Pessoas — Loyalty Intelligence',
-  description: 'Executivos do mercado de fidelização com cargos de fonte pública e data de validação.',
-  alternates: { canonical: '/intelligence/pessoas' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return metadadosPagina({
+    title: 'Pessoas — Loyalty Intelligence',
+    description: 'Executivos do mercado de fidelização com cargos de fonte pública e data de validação.',
+    path: '/intelligence/pessoas',
+  });
+}
 
 export default async function PessoasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const q = ((await searchParams).q ?? '').trim().slice(0, 100);
