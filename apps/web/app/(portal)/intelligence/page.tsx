@@ -3,16 +3,19 @@ import Link from 'next/link';
 import { SearchInput } from '../_components/ds-client';
 import { PageHead } from '../_components/ui';
 import { getSource } from '../_lib/source';
+import { metadadosPagina } from '../_seo/paginas';
 import s from './_components/intel.module.css';
 
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática e vazia; em execução (PORTAL_SOURCE=api) o Next
 // recusaria a busca no-store e serviria a cópia congelada (achado no ensaio contra as rotas reais da int/011, next start).
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Loyalty Intelligence',
-  description: 'Diretório público de empresas, executivos e movimentações do mercado de fidelização, com proveniência e data de atualização.',
-  alternates: { canonical: '/intelligence' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return metadadosPagina({
+    title: 'Loyalty Intelligence',
+    description: 'Diretório público de empresas, executivos e movimentações do mercado de fidelização, com proveniência e data de atualização.',
+    path: '/intelligence',
+  });
+}
 
 export default async function IntelligenceHub() {
   const src = getSource();

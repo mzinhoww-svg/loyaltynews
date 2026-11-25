@@ -5,16 +5,19 @@ import { EmptyState, PageHead } from '../_components/ui';
 import { MOVES_EMPTY, MoveCard } from '../intelligence/_components/intel';
 import s from '../intelligence/_components/intel.module.css';
 import { getSource } from '../_lib/source';
+import { metadadosPagina } from '../_seo/paginas';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática e vazia; em execução (PORTAL_SOURCE=api) o Next
 // recusaria a busca no-store e serviria a cópia congelada (achado no ensaio contra as rotas reais da int/011, next start).
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Loyalty Moves',
-  description: 'Movimentações profissionais confirmadas no mercado de fidelização.',
-  alternates: { canonical: '/moves' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return metadadosPagina({
+    title: 'Loyalty Moves',
+    description: 'Movimentações profissionais confirmadas no mercado de fidelização, com a fonte do antes e do depois.',
+    path: '/moves',
+  });
+}
 
 export default async function MovesPage() {
   const feed = await getSource().getMovesFeed();

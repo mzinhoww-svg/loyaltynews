@@ -5,6 +5,8 @@ import { cache } from 'react';
 import { ErrorState } from '../../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { getSource } from '../../../_lib/source';
+import { jsonLdString } from '../../../_lib/jsonld';
+import { metadadosPagina, urlAbsoluta } from '../../../_seo/paginas';
 import { linkPedido } from '../../../_titular/pedido';
 import { CorrectedTag, MoveCard, RolesTable, SourceLink } from '../../_components/intel';
 
@@ -16,12 +18,19 @@ const load = cache((id: string) => getSource().getPerson(id));
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const r = await load((await params).id);
+  if (r.status === 'not_found') return { title: 'Página não encontrada', robots: { index: false } };
   if (r.status !== 'ok') return { title: 'Pessoa — Loyalty Intelligence', robots: { index: false } };
-  return {
-    title: `${r.person.name} — Loyalty Intelligence`,
-    description: `${r.person.name}: cargos de fonte pública no mercado de fidelização, com data de validação.`,
-    alternates: { canonical: `/intelligence/pessoas/${r.person.id}` },
-  };
+  const p = r.person;
+  const atual = p.currentRoles[0];
+  return metadadosPagina({
+    title: `${p.name} — Loyalty Intelligence`,
+    description: atual
+      ? `${p.name}, ${atual.title} na ${atual.company.name}: cargo de fonte pública no mercado de fidelização, com data de validação.`
+      : `${p.name}: cargos de fonte pública no mercado de fidelização, com data de validação.`,
+    path: `/intelligence/pessoas/${p.id}`,
+    type: 'profile',
+    noindex: p.mock,
+  });
 }
 
 // Sem loading.tsx: pessoa inexistente, suprimida ou com a flag desligada responde 404 de verdade.
@@ -41,8 +50,21 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
     );
   }
   const p = r.person;
+  // JSON-LD Person só com o escopo de dado pessoal permitido (DP-11 P4): nome, cargo e empresa. Sem perfil externo (sameAs), contato ou foto.
+  const atual = p.currentRoles[0];
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: p.name,
+    url: urlAbsoluta(`/intelligence/pessoas/${p.id}`),
+    ...(atual ? { jobTitle: atual.title } : {}),
+    ...(p.currentRoles.length
+      ? { worksFor: p.currentRoles.map((r2) => ({ '@type': 'Organization', name: r2.company.name, url: urlAbsoluta(`/intelligence/empresas/${r2.company.id}`) })) }
+      : {}),
+  };
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <PageHead title={p.name} crumbs={[...crumbs, { label: p.name }]} />
       <p style={{ margin: '0 0 8px' }}>
         <Link href={linkPedido(`/intelligence/pessoas/${p.id}`)} className="ln-btn ln-btn--ghost" data-testid="request-correction">

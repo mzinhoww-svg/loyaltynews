@@ -23,7 +23,8 @@ export const KIND_LABEL: Record<CompanyKind, string> = {
 export const KIND_FILTER_LABEL: Record<CompanyKind, string> = { ...KIND_LABEL, other: 'Outros (tipo não declarado)' };
 
 const REL: Record<CompanyRelationType, { from: string; to: string }> = {
-  partner_of: { from: 'Parceria anunciada com', to: 'Parceria anunciada com' },
+  // "declarada": a fonte afirma a parceria; não confirmamos contrato nem participação (revisão de dados do lançamento, proposta do PM).
+  partner_of: { from: 'Parceria declarada com', to: 'Parceria declarada com' },
   parent_of: { from: 'Controla', to: 'Controlada por' },
   supplier_of: { from: 'Fornecedora de', to: 'Cliente de' },
   coalition_member: { from: 'Integra a coalizão', to: 'Coalizão que inclui' },

@@ -6,16 +6,19 @@ import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { formatDate } from '../../../_lib/format';
 import { asKind, KIND_FILTER_LABEL, KIND_LABEL } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
+import { metadadosPagina } from '../../../_seo/paginas';
 import s from '../../_components/intel.module.css';
 
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática; em execução (PORTAL_SOURCE=api) o Next recusaria
 // a busca no-store e serviria a cópia congelada ('static to dynamic at runtime', visto na int/011 e no staging).
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
-  title: 'Empresas — Loyalty Intelligence',
-  description: 'Diretório de empresas e programas do mercado de fidelização, com fonte pública e data de validação.',
-  alternates: { canonical: '/intelligence/empresas' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return metadadosPagina({
+    title: 'Empresas — Loyalty Intelligence',
+    description: 'Diretório de empresas e programas do mercado de fidelização, com fonte pública e data de validação.',
+    path: '/intelligence/empresas',
+  });
+}
 
 const hrefFor = (tipo?: string, q?: string) => {
   const qs = new URLSearchParams();
