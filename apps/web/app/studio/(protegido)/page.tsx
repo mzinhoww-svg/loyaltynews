@@ -33,7 +33,7 @@ export default async function StudioHome() {
   return (
     <>
       <h1>LN Studio</h1>
-      <p className="st-hint">Visão geral do painel administrativo do Loyalty News: daqui você chega a todas as áreas. Módulos sem backend mostram uma tela sem dados: nenhum número aqui é estimado ou fictício.</p>
+      <p className="st-hint">Visão geral do painel administrativo do Loyalty News: daqui você chega a todas as áreas. Módulos sem backend mostram o que falta: nenhum número aqui é estimado ou fictício.</p>
 
       <section aria-labelledby="atalhos">
         <h2 id="atalhos">Atalhos</h2>

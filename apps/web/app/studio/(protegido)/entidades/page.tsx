@@ -75,7 +75,7 @@ function Resultados({ emp, pes, q }: { emp: Awaited<ReturnType<typeof api.intell
   const pessoas = ehErro(pes) ? [] : pes.body.items;
   if (empresas.length === 0 && !ehErro(pes) && pessoas.length === 0) {
     return (
-      <EmptyState title="Nenhum resultado" description={`Nenhum registro para "${q}". Ausência de registro não prova inexistência.`} />
+      <EmptyState title="Nenhuma empresa ou executivo encontrado" description={`Nenhum registro para "${q}". Ausência de registro não prova inexistência.`} />
     );
   }
   return (

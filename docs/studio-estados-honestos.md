@@ -71,3 +71,51 @@ ação de tentar de novo. Nenhum número é estimado quando a leitura falha.
 - 46/46 com carregamento que termina.
 - 46/46 com estado de erro acionável.
 - 29 listas/painéis com texto explícito de vazio ou de registro não encontrado, 13 com 404 explícito (`notFound`) e 4 formulários sem coleção. Cobertura dos aplicáveis: 42/42.
+
+## Vazios renderizados, um a um (composição int/033)
+
+Conferência de 26/11/2026: cada rota foi aberta com o banco de e2e recém-criado (vazio), sessão de admin, esperando o
+streaming terminar; o texto abaixo é o que a tela renderizou. 20 têm vazio de coleção/registro; 9 são painel/configuração
+onde "vazio de coleção" não se aplica — o texto exibido é o que está na coluna. Nenhuma usa "Sem dados" ou "Nenhum
+resultado" genérico, e nenhuma inventa contagem: os zeros de Social e da visão geral vêm da leitura real.
+
+| # | Rota | Tipo | Texto exato renderizado | Mudou? |
+|---|---|---|---|---|
+| 1 | `/studio/agenda` | coleção | "Nenhum evento cadastrado" — "A agenda está vazia. Cadastre eventos com a fonte oficial abaixo." | confirmado |
+| 2 | `/studio/auditoria` | coleção | "Nenhuma ação de auditoria" — "O publicador social ainda não registrou nenhuma tentativa de geração ou publicação neste processo." | corrigido (antes "Nenhum registro" com texto do publicador) |
+| 3 | `/studio/campanhas` | coleção | "Nenhuma campanha" — "Nenhuma campanha criada. Campanhas nascem de uma conta do CRM (lead convertido) e de um formato do catálogo." | confirmado |
+| 4 | `/studio/cms/checagem` | coleção | "Nenhuma matéria da Fábrica na fila" — "A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado." | confirmado |
+| 5 | `/studio/cms/correcoes` | coleção | "Nenhum caso registrado" — "Nenhuma errata ou pedido de direito de resposta até agora." | confirmado |
+| 6 | `/studio/cms` | coleção | "Nenhuma matéria ainda" — "A fila editorial está vazia. As matérias chegam pela Fábrica editorial ou são criadas aqui. Nada foi simulado." + "Criar a primeira matéria" | confirmado |
+| 7 | `/studio/cms/pautas` | coleção | "Nenhuma pauta" — "Nenhuma pauta autoral registrada." + "Nenhuma fonte primária habilitada" — "A pauta autoral precisa de 2 a 8 âncoras em fontes primárias habilitadas. Revise e habilite fontes em Fontes da Fábrica." | confirmado |
+| 8 | `/studio/correcoes-titular` | coleção | "Nenhum pedido" — "Nenhum pedido do titular recebido até agora." | confirmado |
+| 9 | `/studio/creative` | coleção | "Nenhum card" — "Nenhum card salvo ainda. Gere a prévia de uma matéria e salve o card." | confirmado |
+| 10 | `/studio/crm/anunciantes/[id]` | registro | "Anunciante não encontrado." | confirmado |
+| 11 | `/studio/crm` | coleção | "Nenhum lead" — "Nenhum lead recebido. Os leads chegam pelo formulário do mídia kit (portal) ou são registrados abaixo." + "Nenhum anunciante" — "Crie o anunciante acima ou converta um lead qualificado em oportunidade." | confirmado |
+| 12 | `/studio/decisoes` | coleção | "Nenhuma decisão registrada" — "Nenhum ritual foi executado, então não há atas nem decisões. Nada é simulado." | confirmado |
+| 13 | `/studio/entidades` | busca | "Digite um nome para buscar." na entrada; com busca sem resultado: "Nenhuma empresa ou executivo encontrado" — "Nenhum registro para \"…\". Ausência de registro não prova inexistência." | corrigido (antes "Nenhum resultado") |
+| 14 | `/studio/finops` | painel | "Ainda não há rota deste módulo no Backend: o que for registrado aqui fica na memória do processo do Studio e some ao reiniciar. Nada é inventado." | não se aplica (painel) |
+| 15 | `/studio/fontes/fabrica` | configuração | "115 fonte(s); 0 habilitada(s)" (leitura real; cadastro de configuração, não coleção vazia) | não se aplica |
+| 16 | `/studio/fontes` | coleção | "Nenhuma fonte cadastrada" — "O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial e está desligada nesta fase." | confirmado |
+| 17 | `/studio/home-menus` | configuração | Documentos padrão versionados sempre presentes; mostra o rascunho publicado, sem lista vazia | não se aplica |
+| 18 | `/studio/inventario` | painel | Posições do blueprint (9) e catálogo vêm da configuração; com catálogo vazio: "Nenhum formato no catálogo" — "Nenhum formato corresponde a esta seção e disponibilidade. Ajuste os filtros para ver o catálogo." | corrigido (ganhou vazio do catálogo e erro de leitura) |
+| 19 | `/studio/midia` | coleção | "Nenhum ativo na biblioteca" — "Registre o primeiro ativo abaixo, com a base de direito." | confirmado |
+| 20 | `/studio/modelops` | configuração | "Ainda não há rota deste módulo no Backend: o que for registrado aqui fica na memória do processo do Studio e some ao reiniciar. Nada é inventado." | não se aplica |
+| 21 | `/studio/organizacao` | configuração | Configuração versionada (64 perfis); com filtro sem agente: "Nenhum agente neste departamento" — "A configuração versionada não tem agente no departamento escolhido. Ajuste o filtro para ver todos; nada é estimado." | confirmado |
+| 22 | `/studio/organogramas` | busca | "Nenhuma empresa encontrada" — "Ausência de registro não prova inexistência." | confirmado |
+| 23 | `/studio` | painel | Contagens com fonte e data (0 é leitura real); "Módulos sem backend mostram o que falta: nenhum número aqui é estimado ou fictício." | corrigido ("sem dados" saiu; contagem com erro ganhou nova tentativa) |
+| 24 | `/studio/piloto` | coleção | "Piloto ainda não executado" — "Nenhuma matéria do piloto foi ligada a um rascunho. Depois da rodada, o operador do piloto fixa o mapa abaixo, a partir da planilha do AgentOps." | confirmado |
+| 25 | `/studio/piloto/violacoes` | coleção | "Nenhuma violação" — "Nenhuma linha do piloto tem parada imediata (o piloto ainda não gerou linhas)." | confirmado |
+| 26 | `/studio/reunioes` | configuração | "Ainda não há rota deste módulo no Backend: o que for registrado aqui fica na memória do processo do Studio e some ao reiniciar. Nada é inventado." | não se aplica |
+| 27 | `/studio/seo` | coleção | "Nenhum redirecionamento" — "Nenhum redirecionamento cadastrado." | confirmado |
+| 28 | `/studio/social` | coleção | "0 pacote(s)" por canal (leitura real), "Nenhum pacote social gerado ainda." na fila e "Métricas indisponíveis. integração de métricas não configurada; sem números fictícios." | confirmado |
+| 29 | `/studio/watchlists` | coleção | "Nenhuma watchlist" — "Crie uma lista abaixo para acompanhar empresas e executivos." | confirmado |
+
+### As 4 telas sem coleção
+
+| Rota | Por que o vazio não se aplica | O que mostra |
+|---|---|---|
+| `/studio/cms/nova` | formulário de criação; não há coleção a esvaziar | campos vazios e o botão de criar; erro volta no próprio formulário |
+| `/studio/conta` | formulário de troca de senha | e-mail da sessão e os três campos; erro/sucesso no cartão |
+| `/studio/piloto/importar` | formulário de importação | campos de importação; erro volta no próprio formulário |
+| `/studio/entrar` | formulário de login (fora do layout protegido) | e-mail, senha e 2º fator; erro no próprio formulário |

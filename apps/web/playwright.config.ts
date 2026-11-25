@@ -20,7 +20,15 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/health`,
     // E2E do Studio roda no build de e2e (.next-e2e, LN_E2E_BUILD=1), o único que contém o backend de teste (PGlite + login de teste).
     // O build de produção não o contém nem aceita estas variáveis (scripts/verify-no-mock.mjs).
-    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1', LN_STUDIO_DEV_DB: 'pglite', PORTAL_BASE_URL: 'https://portal.example.test' },
+    // O limite de tentativas falha fechado em APP_ENV=production sem chave (packages/auth/src/attempts.ts): o harness de e2e
+    // roda nesse APP_ENV, então define uma chave SÓ de teste; sem ela o próprio /api/e2e/login responde 400 e nenhum spec sobe.
+    env: {
+      LN_E2E_BUILD: '1',
+      LN_STUDIO_TEST_SESSION: '1',
+      LN_STUDIO_DEV_DB: 'pglite',
+      PORTAL_BASE_URL: 'https://portal.example.test',
+      LN_ATTEMPT_HMAC_KEY: 'chave-de-teste-do-limite-32-bytes!!',
+    },
     reuseExistingServer: false,
     timeout: 120_000,
   },

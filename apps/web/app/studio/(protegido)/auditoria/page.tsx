@@ -68,8 +68,8 @@ export default async function AuditoriaPage({ searchParams }: { searchParams: Pr
         </div>
       ) : itens.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">
-          <h3 id="vazio">Nenhum registro</h3>
-          <p>O publicador social ainda não recebeu nenhum pedido neste processo.</p>
+          <h3 id="vazio">Nenhuma ação de auditoria</h3>
+          <p>O publicador social ainda não registrou nenhuma tentativa de geração ou publicação neste processo.</p>
         </section>
       ) : (
         <table className="st-table">
