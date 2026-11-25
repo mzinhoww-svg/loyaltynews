@@ -15,24 +15,7 @@ Entrada: `fast-track/fontes-coleta-checagem.md` (loyalty-news-scraping-benchmark
 | Dinheirama | sitemap `https://investimentos.com.br/sitemap-artigos.xml` direto, prefixo `/artigos/` | o índice tem lastmod e o coletor leria só páginas e simuladores; 517 artigos, o último de 29/10/2026: **baixa frequência** |
 | IDV | sitemap `https://www.idv.org.br/sitemap_index.xml`, prefixo `/noticia/` | filho de notícias de 28/10/2026; feed parado desde 2022; a página `/noticia/` entra no sitemap e pode ser lida como notícia (a triagem recusa): **baixa frequência** |
 | Nubank (sala de imprensa) | sitemap `https://nu.com/sitemap/institutional.xml`, prefixo `/pt/sala-de-imprensa/` | 1.200 URLs de imprensa, a mais recente de 23/11/2026. **`pathPrefix` da fonte passou de `/en/newsroom` para `null`**: o sitemap fica em `/sitemap/` e o coletor o recusaria; as páginas continuam limitadas pelo prefixo do sitemap |
-| Accor (sala de imprensa do grupo) | sitemap `https://group.accor.com/api/sitemap`, prefixo `/en/news-stories/` **e `sitemapPathExclude`** `^/en/news-stories/page/[0-9]+/?# Resposta da Editorial à checagem de coleta das 93 fontes (25/11/2026)
-
-Entrada: `fast-track/fontes-coleta-checagem.md` (loyalty-news-scraping-benchmark, commit 74c0192). Tudo abaixo foi lido ao vivo em 25/11/2026 com o agente `LoyaltyNewsBot`, só leitura pública, robots.txt respeitado, 3,5 s ou mais por host, parada em 403/429/desafio. Nenhuma chamada tarifada, nenhuma chave, nada contornado. Código: `packages/editorial/src/sources/seed*.ts`; testes: `fontes-checagem-coleta.test.ts` (cadastro) e `fontes-checagem-sitemap.test.ts` (coleta offline).
-
-## 1. As 24 fontes "só listagem"
-
-**Cadastradas (9 das 24):**
-
-| Fonte | O que foi cadastrado | O que a leitura mostrou |
-|---|---|---|
-| ABAV | feed do blog `https://abav.com.br/blog/feed/` | 13 itens, último de 28/03/2025: **baixa frequência** |
-| EDPB | feed `https://www.edpb.europa.eu/rss.xml_en` | 10 itens, último de 19/11/2026 |
-| ANATEL | sitemap `https://www.gov.br/anatel/sitemap-index.xml`, prefixo `/anatel/pt-br/assuntos/noticias/` | 4 filhos .xml.gz; 1.692 URLs de notícia, a mais recente de 19/11/2026 |
-| Ministério do Turismo | sitemap `https://www.gov.br/turismo/sitemap-index.xml`, prefixo `/turismo/pt-br/assuntos/noticias/` | 11 filhos .xml.gz (11 leituras por rodada no host `www.gov.br`, que é compartilhado); 2.667 URLs de notícia, a mais recente de 24/11/2026 |
-| Dinheirama | sitemap `https://investimentos.com.br/sitemap-artigos.xml` direto, prefixo `/artigos/` | o índice tem lastmod e o coletor leria só páginas e simuladores; 517 artigos, o último de 29/10/2026: **baixa frequência** |
-| IDV | sitemap `https://www.idv.org.br/sitemap_index.xml`, prefixo `/noticia/` | filho de notícias de 28/10/2026; feed parado desde 2022; a página `/noticia/` entra no sitemap e pode ser lida como notícia (a triagem recusa): **baixa frequência** |
-| Nubank (sala de imprensa) | sitemap `https://nu.com/sitemap/institutional.xml`, prefixo `/pt/sala-de-imprensa/` | 1.200 URLs de imprensa, a mais recente de 23/11/2026. **`pathPrefix` da fonte passou de `/en/newsroom` para `null`**: o sitemap fica em `/sitemap/` e o coletor o recusaria; as páginas continuam limitadas pelo prefixo do sitemap |
- | 425 URLs com lastmod real; 35 são listagens com lastmod renovado, que passariam à frente das matérias; 245 matérias completas no HTML, em inglês, a mais recente de 24/11/2026. Limite por hora 8 |
+| Accor (sala de imprensa do grupo) | sitemap `https://group.accor.com/api/sitemap`, prefixo `/en/news-stories/` **e `sitemapPathExclude`** `^/en/news-stories/page/[0-9]+/?$` | 425 URLs com lastmod real; 35 são listagens com lastmod renovado, que passariam à frente das matérias; 245 matérias completas no HTML, em inglês, a mais recente de 24/11/2026. Limite por hora 8. **Os termos do site vedam extração: habilitar exige aceite do proprietário ou do jurídico (nota do QA 10)** |
 | Meu Bolso em Dia | **host passou para `meubolsoemdia.com.br`** e sitemap `https://meubolsoemdia.com.br/sitemap.xml`, prefixo `/Materias/` | o site responde sem www (200, sem redirecionar) e o sitemap lista só URLs sem www, que o coletor recusaria com o host antigo (há teste mostrando a recusa) |
 
 **Não cadastradas, com o motivo gravado em `verification.notes` (15):**

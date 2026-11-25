@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { SEED_SOURCES } from '../sources/seed';
 import { eligibility } from '../sources/registry';
 import { SITEMAP_MAX_PAGES_PER_RUN } from '../collector/collector';
@@ -129,6 +130,37 @@ describe('Itaú RI e ICO: URL de listagem corrigida; seguem inacessíveis e desa
     expect(s.verification?.level).toBe('inacessivel');
     expect(notes('ico-uk')).toMatch(/rss-feeds\/news-and-blogs/); expect(notes('ico-uk')).toMatch(/NÃO cadastrado como feedUrl/);
     expect(eligibility(s).ok).toBe(false);
+  });
+});
+
+describe('o documento de resposta não está corrompido (QA 10: seção duplicada e linha quebrada)', () => {
+  const md = readFileSync(new URL('../../docs/fontes-coleta-checagem-resposta.md', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const linhas = md.split('\n');
+  it('cada título aparece uma vez e na ordem 1 a 4', () => {
+    const h2 = linhas.filter((l) => l.startsWith('## ')).map((l) => l.slice(3, 5));
+    expect(h2).toEqual(['1.', '2.', '3.', '4.']);
+    expect(linhas.filter((l) => l.startsWith('# ')).length).toBe(1);
+  });
+  it('toda linha de tabela tem o mesmo número de colunas que o cabeçalho da sua tabela e as tabelas de seção 1 têm as linhas esperadas', () => {
+    let cols = 0; const tabelas: string[][] = []; let atual: string[] = [];
+    for (const l of linhas) {
+      if (l.startsWith('|')) {
+        const n = l.replace(/`[^`]*`/g, '').split('|').length - 2; // colunas = barras - 1 (barras dentro de código não contam)
+        if (!atual.length) cols = n; else expect(n, l.slice(0, 60)).toBe(cols);
+        atual.push(l);
+      } else if (atual.length) { tabelas.push(atual); atual = []; }
+    }
+    if (atual.length) tabelas.push(atual);
+    expect(tabelas.length).toBe(3); // seção 1 (2 tabelas) e seção 2
+    const dados = (t: string[]) => t.length - 2; // sem cabeçalho e separador
+    expect(dados(tabelas[0]!)).toBe(9); // as 9 cadastradas (8 + Accor), de 24
+    expect(md).toMatch(/\*\*Cadastradas \(9 das 24\):\*\*/); expect(md).toMatch(/\(15\):\*\*/);
+  });
+  it('a linha da Accor está inteira (prefixo, exclusão e o aviso de termos) e o texto da exclusão não se repete', () => {
+    const acc = linhas.filter((l) => l.startsWith('| Accor'));
+    expect(acc.length).toBe(1);
+    expect(acc[0]).toContain('sitemapPathExclude'); expect(acc[0]).toContain('^/en/news-stories/page/[0-9]+/?$'); expect(acc[0]).toMatch(/vedam extração/);
+    expect(md.split('Regra nova de código').length - 1).toBe(1);
   });
 });
 
