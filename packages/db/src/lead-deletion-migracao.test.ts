@@ -1,4 +1,4 @@
-// Migração 0030: o backfill do `descartado_em` NÃO pode usar a criação (anteciparia o prazo da DP-55).
+// Migração 0035 (era 0030 na branch isolada): o backfill do `descartado_em` NÃO pode usar a criação (anteciparia o prazo da DP-55).
 // O relógio da retenção começa na migração; um lead criado há 2 anos e descartado ontem só sai 30 dias depois dela.
 import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { createTestDb } from './testing';
 
 const DIR = fileURLToPath(new URL('../drizzle/', import.meta.url));
-const TAG = readdirSync(DIR).find((f) => /^\d{4}_.*\.sql$/.test(f) && f.endsWith('_aromatic_ben_parker.sql'))!.replace(/\.sql$/, '');
+const TAG = readdirSync(DIR).find((f) => /^\d{4}_.*\.sql$/.test(f) && f.endsWith('_commercial_lead_deletions.sql'))!.replace(/\.sql$/, '');
 const SQL = readFileSync(`${DIR}${TAG}.sql`, 'utf8');
 const BACKFILL = SQL.split('--> statement-breakpoint').map((s) => s.trim()).find((s) => /SET\s+"descartado_em"/i.test(s))!;
 
