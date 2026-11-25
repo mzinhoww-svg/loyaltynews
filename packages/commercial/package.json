@@ -16,6 +16,7 @@
   "dependencies": {
     "@ln/contracts": "0.0.0",
     "zod": "4.6.7",
-    "@ln/db": "0.0.0"
+    "@ln/db": "0.0.0",
+    "drizzle-orm": "0.45.4"
   }
 }

@@ -15,3 +15,4 @@ export * from './audit';
 export * from './creative';
 export * from './report';
 export * from './advertiser-report';
+export * from './lead-deletion';

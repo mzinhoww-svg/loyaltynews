@@ -118,7 +118,7 @@ export const listAccountContacts = define({ auth: 'studio', schema: z.object({ a
 });
 
 export const qualifyLead = define({ auth: 'studio', schema: z.object({ leadId: Id }) }, (ctx, i) => ok(ctx.crm.qualifyLead(i.leadId)));
-export const discardLead = define({ auth: 'studio', schema: z.object({ leadId: Id }) }, (ctx, i) => ok(ctx.crm.discardLead(i.leadId)));
+export const discardLead = define({ auth: 'studio', schema: z.object({ leadId: Id }) }, (ctx, i) => ok(ctx.crm.discardLead(i.leadId, ctx.now)));
 export const convertLead = define({ auth: 'studio', schema: z.object({ leadId: Id, title: z.string().min(1).optional() }) }, (ctx, i) => ok(ctx.crm.convertLead(i.leadId, ctx.now, i.title), 201));
 export const moveOpportunityStage = define({
   auth: 'studio',

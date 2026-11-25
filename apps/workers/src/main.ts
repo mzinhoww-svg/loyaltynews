@@ -12,6 +12,7 @@ import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
 import { redisTlsOptions } from './redis-tls';
 import { startIntelligenceAlerts } from './intelligence-alerts';
+import { startLeadRetention } from './lead-retention';
 import { workerFlagResolver } from './worker-flags';
 import { startIntelligenceReread } from './intelligence-reread';
 import { BullQueueSink, startReconciler, startWorkers } from './runtime';
@@ -87,12 +88,15 @@ async function main() {
   const reread = startIntelligenceReread({ db: intelDbPort, flags });
   // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on e a flag intelligencePessoas pelo resolvedor)
   const alerts = startIntelligenceAlerts({ db: intelDbPort, flags });
+  // retenção do lead descartado (LGPD): na subida e uma vez por dia; sem LN_LEAD_AUDIT_SALT não apaga e avisa
+  const leadRetention = startLeadRetention({ db });
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {
     reconciler.stop();
     reread?.stop();
     alerts?.stop();
+    leadRetention?.stop();
     clearInterval(adFlush);
     adWatch.stop();
     hbRedis.disconnect();

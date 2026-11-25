@@ -11,6 +11,8 @@ export interface Lead {
   /** Opt-in da newsletter é separado do contato comercial; nunca pré-marcado. */
   newsletterOptIn: boolean;
   status: LeadStatus; createdAt: string; accountId: string | null;
+  /** Quando passou a `descartado` (retenção apaga N dias depois); nulo nos demais estados. */
+  discardedAt: string | null;
   /** Momento do consentimento (contracts/Lead.consentimentoEm). */
   consentAt: string;
 }
@@ -83,14 +85,15 @@ export class Crm {
     const l: Lead = {
       id: `lead-${++this.seq}`, name: input.name.trim(), company: input.company.trim(), email: input.email.trim().toLowerCase(),
       whatsapp: input.whatsapp?.trim() || null, formatIds: input.formatIds ?? [], objective: input.objective ?? '', message: input.message ?? '',
-      newsletterOptIn: input.newsletterOptIn === true, status: 'novo', createdAt: now, accountId: null, consentAt: now,
+      newsletterOptIn: input.newsletterOptIn === true, status: 'novo', createdAt: now, accountId: null, discardedAt: null, consentAt: now,
     };
     this.leads.set(l.id, l);
     return l;
   }
   private lead(id: string): Lead { const l = this.leads.get(id); if (!l) throw new CrmError('NOT_FOUND', `Lead ${id} não existe.`); return l; }
   qualifyLead(id: string): Lead { const l = this.lead(id); l.status = 'qualificado'; return l; }
-  discardLead(id: string): Lead { const l = this.lead(id); l.status = 'descartado'; return l; }
+  /** Descarte: marca o instante; a retenção usa essa data para apagar depois de N dias. */
+  discardLead(id: string, now: string): Lead { const l = this.lead(id); l.status = 'descartado'; l.discardedAt = now; return l; }
 
   /** Conversão: cria/reaproveita conta (por nome da empresa, case-insensitive) e abre oportunidade em 'novo'. */
   convertLead(id: string, now: string, title?: string): { account: Account; opportunity: Opportunity } {

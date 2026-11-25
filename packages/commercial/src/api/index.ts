@@ -6,7 +6,7 @@ import type { Handler } from './http';
 export * from './http';
 export * from './handlers';
 
-export interface Route { method: 'GET' | 'POST'; path: string; auth: 'public' | 'studio'; handler: Handler }
+export interface Route { method: 'GET' | 'POST' | 'DELETE'; path: string; auth: 'public' | 'studio'; handler: Handler }
 export const ROUTES: readonly Route[] = [
   { method: 'GET', path: '/api/commercial/mediakit', auth: 'public', handler: h.getMediaKit },
   { method: 'GET', path: '/api/commercial/formats', auth: 'public', handler: h.listFormats },

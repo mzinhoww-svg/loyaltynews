@@ -78,10 +78,31 @@ export const crmLeads = pgTable('crm_leads', {
   status: leadStatus('status').notNull().default('novo'),
   contaId: text('conta_id').references(() => crmAccounts.id),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  /** Quando o lead passou a `descartado` (retenção: apagado N dias depois). Nulo nos demais estados. */
+  descartadoEm: timestamp('descartado_em', { withTimezone: true }),
 }, (t) => [
   check('crm_leads_classe', sql`${t.classeDeDado} = 'personal'`),
   index('crm_leads_status_idx').on(t.status, t.criadoEm),
+  index('crm_leads_descartado_idx').on(t.status, t.descartadoEm),
   index('crm_leads_email_idx').on(sql`lower(${t.email})`),
+]);
+
+/**
+ * Trilha de exclusão de lead (LGPD). Só o HASH do id com sal do servidor (HMAC-SHA256): não guarda id, nome,
+ * e-mail nem qualquer campo do lead, e não permite reconstruir o dado apagado. `origin` diz se veio da rota do
+ * Studio ou da retenção do descartado. Sem FK para crm_leads (a linha não existe mais).
+ */
+export const commercialLeadDeletions = pgTable('commercial_lead_deletions', {
+  id: text('id').primaryKey(),
+  leadRefHash: text('lead_ref_hash').notNull(),
+  at: timestamp('at', { withTimezone: true }).notNull(),
+  actorId: text('actor_id'),
+  actorRole: text('actor_role'),
+  origin: text('origin').notNull(),
+}, (t) => [
+  check('commercial_lead_deletions_hash', sql`${t.leadRefHash} ~ '^[0-9a-f]{64}$'`),
+  check('commercial_lead_deletions_origin', sql`${t.origin} IN ('studio', 'retencao')`),
+  index('commercial_lead_deletions_at_idx').on(t.at),
 ]);
 
 export const crmOpportunities = pgTable('crm_opportunities', {

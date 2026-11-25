@@ -324,6 +324,26 @@
       "dono_do_codigo": "packages/growth (resumo social)"
     },
     {
+      "nome": "LN_LEAD_AUDIT_SALT",
+      "secreto": true,
+      "apps": [
+        "web",
+        "workers"
+      ],
+      "dono_do_codigo": "packages/commercial (lead-deletion)",
+      "nota": "Sal do servidor para a trilha de exclusao de lead (HMAC-SHA256 do id). Aleatorio, 32+ caracteres, o MESMO valor no web e no worker. Sem ele a rota de exclusao recusa (500) e a retencao do descartado nao apaga nada. Do cofre/set_env, nunca em arquivo, chat ou commit."
+    },
+    {
+      "nome": "LN_LEAD_RETENTION_DAYS",
+      "secreto": false,
+      "apps": [
+        "workers"
+      ],
+      "opcional": true,
+      "dono_do_codigo": "apps/workers/src/lead-retention.ts",
+      "nota": "Dias de guarda do lead descartado antes do apagamento automatico (inteiro >= 1; ausente = 30). Decisao de retencao DP-55."
+    },
+    {
       "nome": "LN_INTELLIGENCE_ALERTS",
       "secreto": false,
       "apps": [
