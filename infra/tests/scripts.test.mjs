@@ -1245,6 +1245,38 @@ export function resolveFlags(env) {
   assert.equal(node('prova-flags-producao.mjs', []).status, 2);
 });
 
+test('prova-flags-producao (DP-57): produção liga EXATAMENTE PRODUCTION_FLAGS_ON e recusa a variável; resolvedor que ignora a lista ou aceita a variável reprova', () => {
+  const mk = ({ ignoraLista = false, aceitaVariavel = false } = {}) => {
+    const r = tmp();
+    mkdirSync(join(r, 'packages', 'contracts', 'src'), { recursive: true });
+    writeFileSync(join(r, 'packages', 'contracts', 'src', 'flags.ts'), `
+const OK = ['intelligencePessoas', 'portalFormularios'];
+export const PRODUCTION_FLAGS_ON = ['portalFormularios'];
+export function resolveFlags(env) {
+  const amb = String(env.APP_ENV ?? '').toLowerCase();
+  const state = {};
+  if (amb === 'production' && !${ignoraLista}) for (const n of PRODUCTION_FLAGS_ON) state[n] = true;
+  for (const n of String(env.LN_FLAGS_ON ?? '').split(',').filter(Boolean)) {
+    if (!OK.includes(n)) throw new Error('Subida recusada: flag desconhecida ' + n + ' em LN_FLAGS_ON (ADR-022)');
+    if (amb === 'production' && !PRODUCTION_FLAGS_ON.includes(n)) throw new Error('Subida recusada: flag ' + n + ' sem decisão para production (ADR-022)');
+    if (amb === 'production' && !${aceitaVariavel}) throw new Error('Subida recusada: flag ' + n + ' por LN_FLAGS_ON em production; em produção a flag liga só por commit (PRODUCTION_FLAGS_ON) (ADR-022)');
+    state[n] = true;
+  }
+  const on = Object.keys(state);
+  return { state, logLine: on.length ? 'flags ligadas: ' + on.join(',') : 'flags ligadas: nenhuma' };
+}
+`);
+    return r;
+  };
+  const bom = node('prova-flags-producao.mjs', ['--root', mk()]);
+  assert.equal(bom.status, 0, bom.stdout + bom.stderr);
+  assert.deepEqual(JSON.parse(bom.stdout).porCommit, ['portalFormularios']);
+  const ignora = node('prova-flags-producao.mjs', ['--root', mk({ ignoraLista: true })]);
+  assert.equal(ignora.status, 1, 'produção sem as flags por commit reprova');
+  const aceita = node('prova-flags-producao.mjs', ['--root', mk({ aceitaVariavel: true })]);
+  assert.equal(aceita.status, 1, 'produção que aceita LN_FLAGS_ON da flag por commit reprova');
+});
+
 test('smoke-staging: avaliarReady com o campo migracoes (ft/backend-2 19cd21e)', async () => {
   const { avaliarReady } = await import('../scripts/smoke-staging.mjs');
   const base = { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' };

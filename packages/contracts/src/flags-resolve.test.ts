@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { DECISION_ID, FLAG_DEFAULTS, FLAG_RELEASES, flagEnvFrom, resolveFlags } from './flags';
+import { DECISION_ID, FLAG_DEFAULTS, FLAG_RELEASES, PRODUCTION_FLAGS_ON, flagEnvFrom, productionFlagsByCommit, resolveFlags } from './flags';
 
 describe('ADR-022 resolveFlags', () => {
   it('sem nada configurado: tudo desligado', () => {
@@ -125,6 +125,59 @@ describe('ADR-022 resolveFlags', () => {
     expect(resolveFlags({ LN_FLAGS_ON: 'adServerVendas' }).state.adServerVendas).toBe(false); // sem APP_ENV: ignorada
     expect(resolveFlags({ APP_ENV: 'staging' }).state.adServerVendas).toBe(false); // sem LN_FLAGS_ON: desligada
     expect(FLAG_DEFAULTS.adServerVendas).toBe(false); // padrão do código continua desligado
+  });
+
+  it('DP-57: portalFormularios liga em produção POR COMMIT, sem variável; log e on corretos', () => {
+    for (const APP_ENV of ['production', 'PRODUCAO', ' producao ']) {
+      const r = resolveFlags({ APP_ENV });
+      expect(r.ambiente).toBe('production');
+      expect(r.on).toEqual(['portalFormularios']);
+      expect(r.state.portalFormularios).toBe(true);
+      expect(Object.entries(r.state).filter(([, v]) => v).map(([k]) => k)).toEqual(['portalFormularios']);
+      expect(r.logLine).toBe('flags ligadas: portalFormularios (DP-57, production, por commit)');
+      expect(r.warnings).toEqual([]);
+    }
+    expect(FLAG_RELEASES.portalFormularios).toEqual({ staging: 'DP-57', production: 'DP-57' });
+    expect([...PRODUCTION_FLAGS_ON]).toEqual(['portalFormularios']);
+    expect(FLAG_DEFAULTS.portalFormularios).toBe(false); // o padrão do código continua desligado
+  });
+
+  it('DP-57: adServerVendas continua DESLIGADA em produção e fora de PRODUCTION_FLAGS_ON', () => {
+    expect(resolveFlags({ APP_ENV: 'production' }).state.adServerVendas).toBe(false);
+    expect((PRODUCTION_FLAGS_ON as readonly string[]).includes('adServerVendas')).toBe(false);
+    expect(FLAG_RELEASES.adServerVendas.production).toBeNull();
+  });
+
+  it('DP-57: LN_FLAGS_ON continua proibida em produção, mesmo para flag com decisão de produção', () => {
+    expect(() => resolveFlags({ APP_ENV: 'production', LN_FLAGS_ON: 'portalFormularios' })).toThrow(
+      new Error('Subida recusada: flag portalFormularios por LN_FLAGS_ON em production; em produção a flag liga só por commit (PRODUCTION_FLAGS_ON) (ADR-022)'),
+    );
+    expect(() => resolveFlags({ APP_ENV: 'production', LN_FLAGS_ON: 'adServerVendas' })).toThrow(/sem decisão para production/);
+    expect(() => resolveFlags({ APP_ENV: 'production', LN_FLAGS_ON: 'flagInexistente' })).toThrow(/flag desconhecida flagInexistente/);
+  });
+
+  it('DP-57: a ligação por commit vale SÓ em production (staging, local, CI e sem APP_ENV não ligam nada sozinhos)', () => {
+    for (const APP_ENV of [undefined, 'staging', 'development', 'ci', 'local', 'prod']) {
+      const r = resolveFlags({ APP_ENV });
+      expect(r.on).toEqual([]);
+      expect(r.state.portalFormularios).toBe(false);
+    }
+    const stg = resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'portalFormularios' }); // staging: por variável, com a DP-57, para ensaiar
+    expect(stg.on).toEqual(['portalFormularios']);
+    expect(stg.logLine).toBe('flags ligadas: portalFormularios (DP-57, staging)');
+  });
+
+  it('DP-57: productionFlagsByCommit falha fechada (flag sem decisão de produção, desconhecida ou fora do formato)', () => {
+    expect(productionFlagsByCommit(['portalFormularios', 'portalFormularios'])).toEqual([{ nome: 'portalFormularios', decisao: 'DP-57' }]);
+    expect(productionFlagsByCommit([])).toEqual([]);
+    expect(() => productionFlagsByCommit(['adServerVendas'])).toThrow(
+      new Error('Subida recusada: flag adServerVendas em PRODUCTION_FLAGS_ON sem decisão para production (ADR-022)'),
+    );
+    expect(() => productionFlagsByCommit(['planosPagos'])).toThrow(/planosPagos em PRODUCTION_FLAGS_ON sem decisão/);
+    expect(() => productionFlagsByCommit(['flagInexistente'])).toThrow(/PRODUCTION_FLAGS_ON com flag desconhecida flagInexistente/);
+    expect(() => productionFlagsByCommit(['sk-abc/<x>'])).toThrow(new Error('Subida recusada: PRODUCTION_FLAGS_ON com flag desconhecida nome inválido (ADR-022)'));
+    // o conjunto real do contrato é válido
+    expect(() => productionFlagsByCommit(PRODUCTION_FLAGS_ON)).not.toThrow();
   });
 
   it('N6: todo id de produção existe em governance/decisions.yaml', () => {

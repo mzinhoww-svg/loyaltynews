@@ -17,7 +17,7 @@ import { ambienteDoPacote } from './lib/ambiente-pacote.mjs';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { fail, parseArgs, sha256File } from './lib/util.mjs';
 import { typecheckReportProblem } from './lib/typecheck-report.mjs';
 
@@ -27,7 +27,7 @@ const repo = resolve(String(args.repo));
 const profile = String(args.profile || 'staging-min');
 const vitrine = Boolean(args.vitrine);
 // --flags nome1,nome2 (ADR-022, DP-38): flags de produto ligadas por variável LN_FLAGS_ON, SÓ no staging (web e worker). Grava flagsLigadas no release.json e a variável nos
-//   passos set_env; o guard-env (build e start) recusa LN_FLAGS_ON diferente do release.json. Produção nunca: lá a flag liga por commit revisado (FLAG_RELEASES).
+//   passos set_env; o guard-env (build e start) recusa LN_FLAGS_ON diferente do release.json. Produção nunca: lá a flag liga por commit revisado (PRODUCTION_FLAGS_ON + FLAG_RELEASES, DP-57; o release.json registra flagsPorCommit).
 // --prova-png (só o worker): registra no log do BUILD e do START, no Linux da Vertra, se o sharp gera PNG (infra/scripts/prova-png.mjs). Nunca falha o build nem o start (|| true);
 //   o resultado fica no release log do deploy e no get_logs do worker. Prova temporária: tire a flag quando o Linux estiver provado.
 const provaPng = Boolean(args['prova-png']);
@@ -89,6 +89,25 @@ function git(a, { input } = {}) {
 }
 const gitText = (a) => git(a).toString('utf8').trim();
 
+/** DP-57: PRODUCTION_FLAGS_ON do packages/contracts/src/flags.ts do commit (ordenado). Fora de production, ou contrato sem a lista: []. */
+async function flagsPorCommitDoContrato(commit, appEnv) {
+  if (!/^(production|producao)$/i.test(String(appEnv ?? '').trim())) return [];
+  const dir = mkdtempSync(join(tmpdir(), 'ln-flags-'));
+  try {
+    const arq = join(dir, 'flags.ts');
+    writeFileSync(arq, git(['show', `${commit}:packages/contracts/src/flags.ts`]));
+    const m = await import(pathToFileURL(arq).href);
+    if (!Array.isArray(m.PRODUCTION_FLAGS_ON)) return [];
+    // A mesma validação do resolvedor (nome conhecido e decisão de produção): contrato inválido não vira pacote.
+    if (typeof m.productionFlagsByCommit === 'function') m.productionFlagsByCommit(m.PRODUCTION_FLAGS_ON);
+    return [...new Set(m.PRODUCTION_FLAGS_ON.map(String))].sort();
+  } catch (e) {
+    fail(`não consegui ler PRODUCTION_FLAGS_ON do contrato no commit: ${String(e?.message ?? e).slice(0, 200)}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 // 1. commit alvo
 let sha;
 try { sha = gitText(['rev-parse', '--verify', `${args.commit}^{commit}`]); } catch (e) { fail(`commit inválido: ${e.message}`); }
@@ -122,6 +141,9 @@ const appEnvBuild = web.env?.APP_ENV ?? (profile === 'production' ? 'production'
 // O build_command NÃO usa atribuição inline (na Vertra a URL não chegou ao next build): build-web.mjs lê siteUrl/appEnv do release.json,
 // põe no ambiente do processo filho, verifica o HTML da home e falha se o canonical não for a URL do ambiente.
 if (flagsLigadas.length && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--flags recusado: APP_ENV do perfil é "${appEnvBuild}"; flags por variável só com APP_ENV=staging`, 2);
+// DP-57 (ADR-022): em produção as flags ligam POR COMMIT (PRODUCTION_FLAGS_ON do contrato DO COMMIT empacotado, não da pasta de trabalho).
+// Só registro, para o ensaio e o smoke conferirem o /api/health (o app resolve sozinho em execução); nenhuma variável é criada.
+const flagsPorCommit = await flagsPorCommitDoContrato(sha, appEnvBuild);
 if (vitrine && String(appEnvBuild).toLowerCase() !== 'staging') fail(`--vitrine recusado: APP_ENV do perfil é "${appEnvBuild}"; a vitrine só vale com APP_ENV=staging`, 2);
 if (vitrine && !siteUrl) fail('--vitrine exige --subdomain (o build_command com build-web.mjs/release.json é o que liga e confere a vitrine)', 2);
 const buildBase = siteUrl ? 'node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs' : web.build_command;
@@ -149,7 +171,7 @@ const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
 
 // 4. arquivos virtuais (iguais na pasta e no ZIP)
-const releaseJson = JSON.stringify({ benchGraph, benchFumaca, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
+const releaseJson = JSON.stringify({ benchGraph, benchFumaca, commit: sha, perfil: profile, app: web.nome, siteUrl, appEnv: appEnvBuild, vitrine, indexavel, flagsLigadas, flagsPorCommit, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, tipo: appKey, node: spec.runtime?.node, origem: 'git archive de commit local (sem GitHub)', nota: 'APP_COMMIT deve ser definido com este commit' }, null, 2) + '\n';
 const cfgLines = [`NAME=${web.nome}`, `MAIN=package.json`, `BUILD=${buildCmd}`, `START=${startCmd}`, `VERSION=${spec.runtime?.node}`, `MEMORY=${web.ram_mb}`, `LANGUAGE=${spec.runtime?.linguagem || 'typescript'}`];
 if (sub) cfgLines.push(`SUBDOMAIN=${sub}`);
 const virtuals = { 'release.json': releaseJson, 'vertracloud.config': cfgLines.join('\n') + '\n' };
@@ -225,7 +247,7 @@ try {
     ...(jobsIntelligence.includes('releitura') ? [{ nome: 'LN_INTELLIGENCE_REREAD', valor: 'on' }] : []),
   ];
   const manifest = {
-    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
+    schema: 1, perfil: profile, app: web.nome, tipo: appKey, siteUrl, vitrine, indexavel, flagsLigadas, flagsPorCommit, jobsIntelligence, provaPng, semTypecheckNoBuild: semTypecheck, typecheckRelatorio, buildLeve, commit: sha, commitDate, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length,
     ferramentas: { create_app: { name: web.nome, path: folder, main: 'package.json', memory: web.ram_mb, build: buildCmd, start: startCmd, subdomain: sub, version: spec.runtime?.node } },
     depois_do_create: { update_app_config: { health_check_path: web.health_check_path, zero_downtime: web.deploy?.zero_downtime, auto_rollback: web.deploy?.auto_rollback }, set_env: envToSet, restart: true },
     segredos_pelo_cofre_nunca_em_arquivo: [

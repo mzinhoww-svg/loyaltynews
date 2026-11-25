@@ -62,14 +62,25 @@ export type FlagRelease = { staging: string | null; production: string | null };
 
 /**
  * Registro de liberação. Uma flag só liga num ambiente com o id da decisão aqui.
- * Produção: só por commit revisado que preencha `production`, e o id tem de existir em governance/decisions.yaml (N6, verify:no-mock 5a).
+ * Produção: só por commit revisado que preencha `production` E ponha a flag em PRODUCTION_FLAGS_ON; o id tem de existir em
+ * governance/decisions.yaml (N6, teste do contrato).
  */
 export const FLAG_RELEASES = {
   intelligencePessoas: { staging: 'DP-38', production: null }, // produção só no go-live (outra mudança registrada)
   openbotDispatch: { staging: 'DP-41', production: null },
   leitorViaProvedor: { staging: 'DP-32', production: null }, // ADR-022 adendo 2: provedores de desbloqueio em páginas públicas, só staging // piloto só no staging, só assinaturas, sem API tarifada nem publicação
   adServerVendas: { staging: 'DP-43', production: null }, // venda de anúncios só no staging (DP-43); produção só no go-live, com nova decisão do proprietário
+  portalFormularios: { staging: 'DP-57', production: 'DP-57' }, // formulário de proposta (DP-57): produção por commit (PRODUCTION_FLAGS_ON); staging por LN_FLAGS_ON, para ensaiar antes
 } as const satisfies Partial<Record<FlagName, FlagRelease>>;
+
+/**
+ * ADR-022, ligação em PRODUÇÃO por commit revisado (DP-57). As flags desta lista ligam em APP_ENV=production SEM variável de ambiente:
+ * o conjunto é código, entra por PR revisado e vale para o commit implantado (o /api/health mostra o resultado).
+ * Regras (falha fechada no resolveFlags): cada nome precisa de FLAG_RELEASES[nome].production com id DP-NN(N) válido; sem ele, a subida
+ * em produção é recusada. LN_FLAGS_ON continua proibida em produção (guard-env e resolvedor). Não vale fora de production (local, CI, staging).
+ * adServerVendas fica FORA (DP-43 só vale para o staging; DP-57 a mantém desligada em produção).
+ */
+export const PRODUCTION_FLAGS_ON = ['portalFormularios'] as const satisfies readonly FlagName[];
 
 /** Hosts públicos da produção (N7). Preenchido quando o domínio existir. */
 export const PRODUCTION_HOSTS: readonly string[] = [];
@@ -80,7 +91,7 @@ export interface ResolvedFlags {
   /** Ambiente efetivo; null = local/ci/ausente (nada liga). */
   ambiente: FlagEnv | null;
   state: FlagState;
-  /** Nomes ligados, na ordem de LN_FLAGS_ON (para /api/health). */
+  /** Nomes ligados (para /api/health): em produção, os de PRODUCTION_FLAGS_ON; no staging, na ordem de LN_FLAGS_ON. */
   on: FlagName[];
   /** Linha de log da subida, ex.: "flags ligadas: intelligencePessoas (DP-38, staging)". */
   logLine: string;
@@ -107,6 +118,22 @@ function releaseOf(name: FlagName, amb: FlagEnv): string | null {
   const r = (FLAG_RELEASES as Partial<Record<FlagName, FlagRelease>>)[name];
   const id = r ? r[amb] : null;
   return typeof id === 'string' && DECISION_ID.test(id) ? id : null;
+}
+
+/**
+ * Valida uma lista de ligação por commit em produção (pura; resolveFlags usa PRODUCTION_FLAGS_ON). Falha fechada: nome desconhecido
+ * ou sem FLAG_RELEASES[nome].production válido lança Error citando só o nome. Repetidos contam uma vez. Exportada para teste.
+ */
+export function productionFlagsByCommit(lista: readonly string[]): { nome: FlagName; decisao: string }[] {
+  const out: { nome: FlagName; decisao: string }[] = [];
+  for (const n of lista) {
+    if (!isFlagName(n)) throw new Error(`Subida recusada: PRODUCTION_FLAGS_ON com flag desconhecida ${SAFE_NAME.test(n) ? n : 'nome inválido'} (ADR-022)`);
+    const decisao = releaseOf(n, 'production');
+    if (!decisao) throw new Error(`Subida recusada: flag ${n} em PRODUCTION_FLAGS_ON sem decisão para production (ADR-022)`);
+    if (out.some((x) => x.nome === n)) continue;
+    out.push({ nome: n, decisao });
+  }
+  return out;
 }
 
 function hostOf(url: string | undefined): string | null {
@@ -136,25 +163,39 @@ export function resolveFlags(env: Record<string, string | undefined>): ResolvedF
     if (h && PRODUCTION_HOSTS.map((x) => x.toLowerCase()).includes(h)) throw new Error('Subida recusada: modo staging com NEXT_PUBLIC_SITE_URL de produção (ADR-022)');
   }
 
-  if (!raw.trim()) return empty();
+  const on: FlagName[] = [];
+  const parts: string[] = [];
+
+  if (ambiente === 'production') {
+    // DP-57: em produção a flag liga por commit (PRODUCTION_FLAGS_ON), nunca por variável. Cada nome precisa da decisão de produção.
+    for (const { nome, decisao } of productionFlagsByCommit(PRODUCTION_FLAGS_ON)) {
+      state[nome] = true;
+      on.push(nome);
+      parts.push(`${nome} (${decisao}, production, por commit)`);
+    }
+  }
+
+  const resultado = (): ResolvedFlags => ({ ambiente, state, on, logLine: on.length ? `flags ligadas: ${parts.join(', ')}` : 'flags ligadas: nenhuma', warnings });
+
+  if (!raw.trim()) return resultado();
   if (ambiente === null) {
     warnings.push('LN_FLAGS_ON ignorada: APP_ENV não é staging nem production (ADR-022)');
     return empty();
   }
   if (raw.length > MAX_FLAGS_INPUT) throw new Error(`Subida recusada: LN_FLAGS_ON acima de ${MAX_FLAGS_INPUT} caracteres (ADR-022)`);
 
-  const on: FlagName[] = [];
-  const parts: string[] = [];
   for (const item of raw.split(',')) {
     const n = item.trim();
     if (!n) continue;
     if (!isFlagName(n)) throw new Error(`Subida recusada: flag desconhecida ${SAFE_NAME.test(n) ? n : 'nome inválido'} em LN_FLAGS_ON (ADR-022)`);
     const decisao = releaseOf(n, ambiente);
     if (!decisao) throw new Error(`Subida recusada: flag ${n} sem decisão para ${ambiente} (ADR-022)`);
+    // Produção: mesmo com decisão, a variável não liga nada (DP-57: só por commit, PRODUCTION_FLAGS_ON). O guard-env já recusa antes.
+    if (ambiente === 'production') throw new Error(`Subida recusada: flag ${n} por LN_FLAGS_ON em production; em produção a flag liga só por commit (PRODUCTION_FLAGS_ON) (ADR-022)`);
     if (state[n]) continue;
     state[n] = true;
     on.push(n);
     parts.push(`${n} (${decisao}, ${ambiente})`);
   }
-  return { ambiente, state, on, logLine: on.length ? `flags ligadas: ${parts.join(', ')}` : 'flags ligadas: nenhuma', warnings };
+  return resultado();
 }

@@ -224,7 +224,7 @@
       ],
       "so_staging": true,
       "dono_do_codigo": "packages/contracts (resolveFlags, ADR-022)",
-      "nota": "Lista de nomes de flag separados por virgula, sem espacos. SO com APP_ENV=staging; em producao a variavel DEFINIDA reprova no guard-env (build e start) e a flag liga por commit revisado em FLAG_RELEASES. E definida pelo PACOTE (package-web --flags grava flagsLigadas no release.json); o guard-env recusa se divergir. Flags sem decisao para o ambiente (ex.: openbotDispatch em production) fazem a subida falhar no codigo."
+      "nota": "Lista de nomes de flag separados por virgula, sem espacos. SO com APP_ENV=staging; em producao a variavel DEFINIDA reprova no guard-env (build e start) e a flag liga por commit revisado (PRODUCTION_FLAGS_ON + FLAG_RELEASES no contrato, DP-57; o release.json registra flagsPorCommit), nunca por esta variavel. E definida pelo PACOTE (package-web --flags grava flagsLigadas no release.json); o guard-env recusa se divergir. Flags sem decisao para o ambiente (ex.: openbotDispatch em production) fazem a subida falhar no codigo."
     },
     {
       "nome": "LN_OPENBOT_PILOT",
