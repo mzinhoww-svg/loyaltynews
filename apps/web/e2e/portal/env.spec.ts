@@ -63,7 +63,9 @@ test.describe(`indexação com APP_ENV=${appEnv}${semInterruptor ? ' sem PORTAL_
       await expect(robots).toHaveAttribute('content', /noindex/);
       await expect(robots).toHaveAttribute('content', /nofollow/);
     } else {
-      await expect(robots).toHaveCount(0);
+      // Indexável: o portal emite `index, follow` (e googlebot com prévia grande de imagem, para o Google Discover e Notícias); nunca noindex.
+      await expect(robots).toHaveAttribute('content', 'index, follow');
+      await expect(page.locator('meta[name="googlebot"]')).toHaveAttribute('content', /max-image-preview:large/);
     }
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://portal.example.test');
   });

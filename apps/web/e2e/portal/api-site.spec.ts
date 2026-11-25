@@ -77,7 +77,7 @@ test.describe('site publicado (full)', () => {
     expect(lds.some((l) => l['@type'] === 'WebSite')).toBe(true);
     // Em produção indexável o noindex NÃO aparece (indexacao: indexar)
     if ((process.env.PORTAL_APP_ENV ?? 'production') === 'production' && process.env.PORTAL_INDEXAVEL_E2E !== '0') {
-      await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'index, follow'); // indexável: nunca noindex (e googlebot com prévia grande)
     }
   });
 
