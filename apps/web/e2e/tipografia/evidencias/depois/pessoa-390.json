@@ -1,0 +1,250 @@
+{
+  "base": "http://localhost:3000",
+  "lado": "depois",
+  "pagina": "pessoa",
+  "largura": 390,
+  "rodadas": [
+    {
+      "fcp": 1360,
+      "lcp": 1360,
+      "cls": 0.275,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556
+        }
+      ],
+      "preload": "/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+      "faces": 2,
+      "facesUrl": 1,
+      "shifts": [
+        {
+          "t": 1816,
+          "value": 0.275,
+          "fontes": [
+            {
+              "no": "section.pt-section",
+              "de": {
+                "y": 358,
+                "h": 227
+              },
+              "para": {
+                "y": 328,
+                "h": 246
+              }
+            },
+            {
+              "no": "section.pt-section",
+              "de": {
+                "y": 601,
+                "h": 243
+              },
+              "para": {
+                "y": 590,
+                "h": 254
+              }
+            },
+            {
+              "no": "#text",
+              "de": {
+                "y": 324,
+                "h": 38
+              },
+              "para": {
+                "y": 272,
+                "h": 38
+              }
+            },
+            {
+              "no": "p.",
+              "de": {
+                "y": 243,
+                "h": 44
+              },
+              "para": {
+                "y": 213,
+                "h": 44
+              }
+            },
+            {
+              "no": "p.pt-meta",
+              "de": {
+                "y": 300,
+                "h": 42
+              },
+              "para": {
+                "y": 270,
+                "h": 42
+              }
+            }
+          ]
+        }
+      ],
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 1152,
+      "lcp": 1152,
+      "cls": 0.275,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556
+        }
+      ],
+      "preload": "/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+      "faces": 2,
+      "facesUrl": 1,
+      "shifts": [
+        {
+          "t": 1688,
+          "value": 0.275,
+          "fontes": [
+            {
+              "no": "section.pt-section",
+              "de": {
+                "y": 358,
+                "h": 227
+              },
+              "para": {
+                "y": 328,
+                "h": 246
+              }
+            },
+            {
+              "no": "section.pt-section",
+              "de": {
+                "y": 601,
+                "h": 243
+              },
+              "para": {
+                "y": 590,
+                "h": 254
+              }
+            },
+            {
+              "no": "#text",
+              "de": {
+                "y": 324,
+                "h": 38
+              },
+              "para": {
+                "y": 272,
+                "h": 38
+              }
+            },
+            {
+              "no": "p.",
+              "de": {
+                "y": 243,
+                "h": 44
+              },
+              "para": {
+                "y": 213,
+                "h": 44
+              }
+            },
+            {
+              "no": "p.pt-meta",
+              "de": {
+                "y": 300,
+                "h": 42
+              },
+              "para": {
+                "y": 270,
+                "h": 42
+              }
+            }
+          ]
+        }
+      ],
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 1064,
+      "lcp": 1064,
+      "cls": 0.275,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556
+        }
+      ],
+      "preload": "/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+      "faces": 2,
+      "facesUrl": 1,
+      "shifts": [
+        {
+          "t": 1789,
+          "value": 0.275,
+          "fontes": [
+            {
+              "no": "section.pt-section",
+              "de": {
+                "y": 358,
+                "h": 227
+              },
+              "para": {
+                "y": 328,
+                "h": 246
+              }
+            },
+            {
+              "no": "section.pt-section",
+              "de": {
+                "y": 601,
+                "h": 243
+              },
+              "para": {
+                "y": 590,
+                "h": 254
+              }
+            },
+            {
+              "no": "#text",
+              "de": {
+                "y": 324,
+                "h": 38
+              },
+              "para": {
+                "y": 272,
+                "h": 38
+              }
+            },
+            {
+              "no": "p.",
+              "de": {
+                "y": 243,
+                "h": 44
+              },
+              "para": {
+                "y": 213,
+                "h": 44
+              }
+            },
+            {
+              "no": "p.pt-meta",
+              "de": {
+                "y": 300,
+                "h": 42
+              },
+              "para": {
+                "y": 270,
+                "h": 42
+              }
+            }
+          ]
+        }
+      ],
+      "chromium": "159.0.8154.6"
+    }
+  ],
+  "mediana": {
+    "fcp": 1152,
+    "lcp": 1152,
+    "cls": 0.275
+  }
+}
