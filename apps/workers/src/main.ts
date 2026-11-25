@@ -9,6 +9,7 @@ import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { startAttemptRetention } from './attempt-retention';
 import { startLeadRetention } from './lead-retention';
+import { startAuditIpRetention } from './audit-ip-retention';
 import { describeHeartbeat, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
 import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
@@ -94,6 +95,12 @@ async function main() {
     onResult: (r) => { if (r.naoConvertidos || r.descartados) console.log('[workers] retenção de leads:', JSON.stringify(r)); },
     onError: (e) => console.error(errLine('[workers] retenção de leads falhou', e)),
   });
+  // retenção do código de IP do audit_log (decisão do PM 25/11): anula audit_log.ip depois de 12 meses, na subida e por dia; a linha e o resto do registro ficam
+  const auditIpRetention = startAuditIpRetention({
+    db,
+    onResult: (n) => { if (n) console.log('[workers] retenção do IP da auditoria: anulados', n); },
+    onError: (e) => console.error(errLine('[workers] retenção do IP da auditoria falhou', e)),
+  });
   // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on, LN_REREAD_SEED e a flag intelligencePessoas (ADR-022)
   const intelDbPort = { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb;
   // flags de produto pelo resolvedor da ADR-022 (o mesmo do web): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
@@ -111,6 +118,7 @@ async function main() {
     adWatch.stop();
     attemptRetention.stop();
     leadRetention.stop();
+    auditIpRetention.stop();
     hbRedis.disconnect();
     await workers.close();
     await sink.close();

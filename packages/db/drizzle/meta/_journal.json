@@ -225,6 +225,20 @@
       "when": 1795610909241,
       "tag": "0031_crm_leads_retencao",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795617550443,
+      "tag": "0032_auth_session_ip_limpo",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795617553402,
+      "tag": "0033_audit_log_ip_anulavel",
+      "breakpoints": true
     }
   ]
 }
