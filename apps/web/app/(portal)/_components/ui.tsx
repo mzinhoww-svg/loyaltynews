@@ -45,10 +45,19 @@ export function PageHead({
   );
 }
 
+/** Seta decorativa dos rótulos "Ver todas/editoria": SVG, não o carácter U+2192 (fora do subset latin da Inter). */
+export function Arrow() {
+  return (
+    <svg className="pt-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 8h11M9 3.5L13.5 8 9 12.5" />
+    </svg>
+  );
+}
+
 export function Section({
   title,
   href,
-  moreLabel = 'Ver mais →',
+  moreLabel = 'Ver mais',
   id,
   children,
 }: {
@@ -65,6 +74,7 @@ export function Section({
         {href && (
           <Link href={href} className="pt-more">
             {moreLabel}
+            <Arrow />
           </Link>
         )}
       </div>

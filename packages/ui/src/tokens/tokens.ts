@@ -43,7 +43,7 @@ export const colors = {
 } as const;
 
 export const typography = {
-  "ui": "var(--ln-font-inter, \"Inter Variable\"), Inter, Arial, sans-serif",
+  "ui": "Inter Variable, Inter, Arial, sans-serif",
   "editorial": "Georgia, \"Noto Serif\", serif",
   "logo": "outlined Noto Serif Bold"
 } as const;

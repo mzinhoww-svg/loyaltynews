@@ -12,6 +12,8 @@
 .pt-lead { font-size: var(--ln-text-lg); line-height: var(--ln-leading-lg); color: var(--ln-color-text-muted); max-width: 760px; margin: var(--ln-space-2) 0 0; }
 .pt h1 { color: var(--ln-color-primary); font-size: clamp(1.625rem, 3.2vw, 2.25rem); letter-spacing: -0.01em; line-height: 1.18; }
 .pt-more { font-weight: var(--ln-weight-bold); color: var(--ln-color-secondary-strong); font-size: var(--ln-text-sm); text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+/* Seta dos rótulos "Ver todas/editoria" (SVG no lugar do carácter U+2192, fora do subset latin). */
+.pt-arrow { display: inline-block; vertical-align: -0.15em; margin-left: 0.35em; }
 .pt-kicker { font-size: var(--ln-text-xs); font-weight: var(--ln-weight-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ln-color-secondary-strong); }
 .pt-sponsored { display: inline-block; border: 1px solid var(--ln-color-primary); color: var(--ln-color-primary); font-size: 0.6875rem; font-weight: var(--ln-weight-bold); padding: 1px 6px; border-radius: var(--ln-radius-sm); text-transform: uppercase; }
 

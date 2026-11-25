@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Sidebar } from './_components/Sidebar';
 import { ErrorState } from './_components/states';
-import { AdSlot, ArticleCard, ArticleGrid, EmptyState, Section } from './_components/ui';
+import { AdSlot, Arrow, ArticleCard, ArticleGrid, EmptyState, Section } from './_components/ui';
 import { editoriaName } from './_lib/editorias';
 import { eventWhere, isUpcoming, noon } from './_lib/events';
 import { dayOf, formatDate, monthAbbrev } from './_lib/format';
@@ -51,7 +51,7 @@ function PublishedAgenda({ title, events }: { title?: string; events: SiteEvent[
           </li>
         ))}
       </ul>
-      <Link href="/agenda" className="pt-more">Ver agenda completa →</Link>
+      <Link href="/agenda" className="pt-more">Ver agenda completa<Arrow /></Link>
     </section>
   );
 }
@@ -89,7 +89,7 @@ function PublishedHome({ site }: { site: SiteConfig }) {
                 id={`bloco-${s.id}`}
                 title={s.title ?? (s.kind === 'lista_editoria' && s.editoriaSlug ? editoriaName(s.editoriaSlug) : s.kind === 'ultimas' ? 'Últimas notícias' : 'Destaques')}
                 href={s.kind === 'lista_editoria' && s.editoriaSlug ? `/editoria/${s.editoriaSlug}` : s.kind === 'ultimas' ? '/noticias' : undefined}
-                moreLabel={s.kind === 'ultimas' ? 'Ver todas →' : 'Ver editoria →'}
+                moreLabel={s.kind === 'ultimas' ? 'Ver todas' : 'Ver editoria'}
               >
                 <ArticleGrid items={s.articles} cols={3} />
               </Section>
@@ -211,13 +211,13 @@ async function HomeContent() {
         {hasContent && (
         <div className="pt-col">
           {latestItems.length > 0 && (
-            <Section title="Últimas notícias" id="ultimas" href="/noticias" moreLabel="Ver todas →">
+            <Section title="Últimas notícias" id="ultimas" href="/noticias" moreLabel="Ver todas">
               <ArticleGrid items={latestItems} cols={3} />
             </Section>
           )}
 
           {flashItems.length > 0 && (
-            <Section title="Loyalty Flash" id="flash" href="/flash" moreLabel="Ver todos →">
+            <Section title="Loyalty Flash" id="flash" href="/flash" moreLabel="Ver todos">
               <ArticleGrid items={flashItems} cols={3} />
             </Section>
           )}
@@ -225,7 +225,7 @@ async function HomeContent() {
           <AdSlot slot="entre-secoes" />
 
           {blocks.map(({ slug, items }) => (
-            <Section key={slug} title={editoriaName(slug)} href={`/editoria/${slug}`} moreLabel="Ver editoria →">
+            <Section key={slug} title={editoriaName(slug)} href={`/editoria/${slug}`} moreLabel="Ver editoria">
               <ArticleGrid items={items} cols={3} />
             </Section>
           ))}
@@ -256,7 +256,7 @@ async function HomeContent() {
             ) : (
               <p className="pt-meta">Nenhum evento verificado por enquanto.</p>
             )}
-            <Link href="/agenda" className="pt-more">Ver agenda completa →</Link>
+            <Link href="/agenda" className="pt-more">Ver agenda completa<Arrow /></Link>
           </section>
         </div>
       </div>
