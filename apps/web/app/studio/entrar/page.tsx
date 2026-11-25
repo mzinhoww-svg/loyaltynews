@@ -15,12 +15,23 @@ export default async function EntrarPage({ searchParams }: { searchParams: Promi
   const { motivo, retorno } = await searchParams;
   const t = TEXTOS[motivo ?? ''] ?? TEXTOS.NO_SESSION!;
   return (
-    <main className="st-center" id="conteudo">
-      <div className="st-card">
+    <main className="st-entrada" id="conteudo">
+      <div className="st-entrada__cartao" data-entrada>
+        <div className="st-entrada__marca">
+          {/* SVG estático da marca (sem otimização de imagem do Next) */}
+          <img className="st-entrada__logo" src="/brand/logo-sobre-claro.svg" alt="Loyalty News" width={147} height={32} />
+          <span className="st-entrada__produto">LN Studio</span>
+        </div>
         <h1>{t.titulo}</h1>
-        {t.alerta ? <p role="alert">{t.corpo}</p> : <p>{t.corpo}</p>}
+        {t.alerta ? (
+          <p className="st-entrada__texto" role="alert">
+            {t.corpo}
+          </p>
+        ) : (
+          <p className="st-entrada__texto">{t.corpo}</p>
+        )}
         <LoginForm retorno={destinoSeguro(retorno)} />
-        <p>
+        <p className="st-entrada__rodape">
           <Link href="/">Voltar ao portal</Link>
         </p>
       </div>

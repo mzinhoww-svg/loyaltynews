@@ -120,6 +120,9 @@ export function LoginForm({ retorno }: { retorno?: string }) {
       <noscript>
         <p className="st-alert err">Ative o JavaScript do navegador para entrar no Studio.</p>
       </noscript>
+      <p className="st-entrada__etapa" data-etapa-rotulo>
+        {etapa === 'credenciais' ? 'Etapa 1 de 2 · e-mail e senha' : 'Etapa 2 de 2 · verificação em duas etapas'}
+      </p>
       {etapa === 'credenciais' ? (
         <form onSubmit={entrar} method="post" aria-label="Entrar" noValidate>
           {alerta}
