@@ -86,11 +86,12 @@ export function cacheControlDe(pathname: string): string | null {
 export const CSP_APLICADA = "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
 export const CSP_RELATORIO = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // GA4 (gtag.js), carregado só depois do consentimento de cookies analíticos.
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
   "media-src 'self' https:",
   "form-action 'self'",
   "frame-ancestors 'self'",

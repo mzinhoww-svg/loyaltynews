@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { flags } from '../_lib/flags';
 import { getSource } from '../_lib/source';
+import { indexingBlocked } from '../_lib/indexing';
+import { LinkPreferenciasCookies } from '../_consentimento/Consentimento';
 import type { SiteMenuItem } from '../_lib/types';
 
 /**
@@ -59,7 +61,13 @@ export async function SiteFooter() {
           ],
         },
       ]}
-      note="Contato comercial e de dados: contato@loyaltynews.com.br. Redes oficiais serão publicadas quando confirmadas."
+      note={
+        <>
+          Contato comercial e de dados: contato@loyaltynews.com.br. Redes oficiais serão publicadas quando confirmadas.
+          {/* Só onde a medição existe (produção indexável com o ID do GA4): reabre o aviso para mudar ou revogar a escolha (LGPD). */}
+          {!indexingBlocked() && process.env.NEXT_PUBLIC_GA_ID ? <> · <LinkPreferenciasCookies /></> : null}
+        </>
+      }
     />
   );
 }
