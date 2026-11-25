@@ -23,6 +23,9 @@ const BUILD_ENV = {
   APP_ENV: perfil === 'vitrine' ? 'staging' : 'production',
   ...(perfil === 'vitrine' ? { PORTAL_VITRINE: '1' } : {}),
   NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
+  // ID de medição FALSO só para o e2e do consentimento (formato válido, não existe no Google): a tag e o banner podem ser testados sem
+  // mandar nada à propriedade real; o e2e intercepta googletagmanager.com e google-analytics.com. Nunca no perfil vitrine (staging).
+  ...(perfil === 'producao' ? { NEXT_PUBLIC_GA_ID: 'G-E2ETESTE00' } : {}),
   LN_E2E_BUILD: '1',
   LN_E2E_DIST: DIST,
   NEXT_TELEMETRY_DISABLED: '1',

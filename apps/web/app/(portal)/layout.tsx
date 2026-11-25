@@ -4,6 +4,7 @@ import '@fontsource-variable/inter';
 import '@ln/ui/styles.css';
 import './portal.css';
 import { DemoBanner } from '@ln/ui';
+import { ConsentimentoCookies } from './_consentimento/Consentimento';
 import { SiteFooter } from './_components/SiteFooter';
 import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
@@ -52,6 +53,8 @@ export default async function PortalLayout({ children }: { children: ReactNode }
         <div className="pt-wrap">{children}</div>
       </main>
       <SiteFooter />
+      {/* GA4 só na produção indexável (mesma regra da indexação: nunca staging, vitrine ou MOCK) e só depois do aceite (LGPD). */}
+      <ConsentimentoCookies producao={!indexingBlocked()} />
     </div>
   );
 }

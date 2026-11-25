@@ -159,7 +159,13 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Cookies e medição',
-        paragraphs: ['A medição de audiência (GA4) só será ativada com aviso e controle de preferências compatíveis com a LGPD.'],
+        paragraphs: [
+          'Medimos a audiência com o Google Analytics 4 (Google LLC) para saber quais páginas são lidas e de onde vêm os leitores, em números agregados. Ele grava cookies no seu navegador (como _ga e _ga_<ID>, por até 2 anos) e envia dados de navegação ao Google.',
+          'Os cookies analíticos só são ativados se você clicar em "Aceitar cookies analíticos" no aviso. Sem o aceite, ou se o seu navegador enviar o sinal Global Privacy Control ou Do Not Track, nada é enviado ao Google. A medição não roda fora do site de produção.',
+          'Configuramos o GA4 sem dado pessoal: endereço IP anonimizado, sem sinais de publicidade nem personalização de anúncios, e o endereço da página é enviado sem os parâmetros (o que você digita em busca ou formulário não vai ao Google).',
+          'Você pode mudar ou revogar a escolha a qualquer momento pelo link "Preferências de cookies" no rodapé. Revogar desliga a coleta a partir dali; os cookies já gravados podem ser apagados nas configurações do navegador.',
+          'Versão desta política de cookies: 25/11/2026. Quando ela mudar, pediremos sua escolha de novo.',
+        ],
       },
     ],
   },
