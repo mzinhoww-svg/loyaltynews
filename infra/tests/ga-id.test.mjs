@@ -62,7 +62,7 @@ function ambienteDoBuild(release, painel = {}) {
   const env = { PATH: bin + delimiter + process.env.PATH, SystemRoot: process.env.SystemRoot, ComSpec: process.env.ComSpec, LN_DUMP: dump, ...painel };
   const r = spawnSync(process.execPath, [join(S, 'build-web.mjs')], { cwd: d, encoding: 'utf8', env });
   let visto = null;
-  try { visto = readFileSync(dump, 'utf8').replace(/^﻿/, '').trim(); } catch { /* o build-web nem chegou ao npm */ }
+  try { visto = readFileSync(dump, 'utf8').replace(/^\uFEFF/, '').trim(); } catch { /* o build-web nem chegou ao npm */ }
   rmSync(d, { recursive: true, force: true });
   return { visto, r };
 }
