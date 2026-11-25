@@ -36,7 +36,8 @@ export default async function PessoasPage({ searchParams }: { searchParams: Prom
           Não conseguimos carregar os perfis agora. Isso não significa que não existam; tente de novo em instantes.
         </ErrorState>
       ) : !dir.available ? (
-        <EmptyState title="Em breve: primeiros perfis verificados">{PEOPLE_EMPTY}</EmptyState>
+        // Recurso sem nenhum perfil publicável (disponivel=false). Não é "indisponível" (falha) nem filtro vazio.
+        <EmptyState title="Ainda não há perfis publicados">{PEOPLE_EMPTY}</EmptyState>
       ) : (
         <>
           <SearchInput action="/intelligence/pessoas" label="Buscar pessoa" placeholder="Buscar pelo nome" defaultValue={q} />
@@ -62,7 +63,8 @@ export default async function PessoasPage({ searchParams }: { searchParams: Prom
               </ul>
             </>
           ) : (
-            <EmptyState title={q ? `Nenhuma pessoa para “${q}”` : 'Em breve: primeiros perfis verificados'}>
+            // disponivel=true e nenhum item = filtro sem resultado (o recurso TEM dado). Com q, oferece limpar o filtro.
+            <EmptyState title={q ? `Nenhuma pessoa para “${q}”` : 'Nenhum perfil publicado'}>
               {q ? <Link href="/intelligence/pessoas" style={{ textDecoration: 'underline' }}>Ver todas as pessoas</Link> : PEOPLE_EMPTY}
             </EmptyState>
           )}

@@ -170,11 +170,17 @@ describe('pessoas, cargos e Moves', () => {
       expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
     });
 
-    it('disponivel=true com total=0 não é disponível: o flag vem do dado, não da API', async () => {
-      // Caso medido no staging em 25/11 (P3 do QA 6): a API respondia disponivel:true e a lista vinha vazia.
-      const vazio = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: true })) as unknown as typeof fetch);
-      expect(await vazio.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
-      expect(await vazio.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    it('contrato 92d79c8: disponivel descreve o recurso; total 0 com disponivel=true é filtro sem resultado', async () => {
+      // Recurso com dado, filtro sem resultado: a tela precisa dizer "nenhuma pessoa para este filtro", não "ainda não há".
+      const filtro = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: true })) as unknown as typeof fetch);
+      expect(await filtro.getPeopleDirectory({ q: 'ninguem' })).toEqual({ status: 'ok', items: [], total: 0, available: true });
+      expect(await filtro.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: true });
+    });
+
+    it('recurso sem dado publicável: disponivel=false e total 0', async () => {
+      const semDado = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: false })) as unknown as typeof fetch);
+      expect(await semDado.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+      expect(await semDado.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
     });
 
     it('disponivel=true com total>0 é disponível e mantém o total do servidor', async () => {

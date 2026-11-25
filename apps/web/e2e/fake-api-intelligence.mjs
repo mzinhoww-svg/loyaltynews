@@ -19,7 +19,9 @@ const orgFull = (o) => ({ ...o, mock: true, validadoEm: '2026-11-23T00:00:00.000
 const intelMode = process.env.FAKE_API_INTEL ?? 'full';
 
 // Pessoas, cargos e Moves (contrato-publico-intelligence-pessoas-moves.md). FAKE_API_INTEL: full | vazio | sem-flag.
-const disponivel = intelMode !== 'sem-flag';
+// Contrato 92d79c8: `disponivel` descreve o RECURSO (ao menos um item publicável no universo), não o resultado do filtro.
+// Em `vazio` e `sem-flag` não há dado publicável; em `full` há, mesmo quando o filtro devolve total 0.
+const disponivel = intelMode === 'full';
 const ref = (o) => ({ id: o.id, nome: o.nome });
 const cargo = (id, titulo, org, desde, ate, n) => ({ id: orgId(id), titulo, empresa: ref(org), vigenteDesde: desde, vigenteAte: ate,
   validadoEm: '2026-11-23T00:00:00.000Z', fonte: fonte(`c${n}`), mock: true, quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' });

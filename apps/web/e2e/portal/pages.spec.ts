@@ -24,7 +24,7 @@ const PAGES: PageSpec[] = [
   { name: 'moves', path: '/moves', empty: /Ainda não há Moves publicados/ },
   { name: 'intelligence', path: '/intelligence' },
   { name: 'intelligence-empresas', path: '/intelligence/empresas', empty: /Em breve: primeiros perfis verificados/ },
-  { name: 'intelligence-pessoas', path: '/intelligence/pessoas', empty: /Em breve: primeiros perfis verificados/ },
+  { name: 'intelligence-pessoas', path: '/intelligence/pessoas', empty: /Ainda não há perfis publicados/ },
   { name: 'midia-kit', path: '/midia-kit' },
   { name: 'the-loyal', path: '/the-loyal', empty: /ainda não está aberto para inscrições/ },
   { name: 'podcast', path: '/podcast', empty: /Loyalty Talks em breve/ },

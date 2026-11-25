@@ -28,7 +28,7 @@ test.describe('empty', () => {
 
   test('diretório, pessoas e Moves vazios e honestos; perfil inexistente é 404', async ({ page }) => {
     await page.goto('/intelligence/empresas');
-    await expect(page.getByText('Em breve: primeiros perfis verificados')).toBeVisible();
+    await expect(page.getByText('Ainda não há perfis publicados')).toBeVisible();
     await expect(page.getByTestId('company-list')).toHaveCount(0);
     await axe(page);
     await page.goto('/intelligence/empresas?tipo=company');
@@ -79,6 +79,16 @@ test.describe('api', () => {
     // Tipo inválido na URL é ignorado (mostra todos), nunca erro.
     await page.goto('/intelligence/empresas?tipo=%3Cscript%3E');
     await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(5);
+  });
+
+  test('pessoas: filtro sem resultado diz "nenhuma pessoa para este filtro", não "ainda não há"', async ({ page }) => {
+    // Contrato 92d79c8: total 0 + disponivel=true = o recurso TEM dado e o filtro não achou ninguém.
+    await page.goto('/intelligence/pessoas?q=ninguem-com-esse-nome');
+    await expect(page.getByText('Nenhuma pessoa para “ninguem-com-esse-nome”')).toBeVisible();
+    await expect(page.getByText('Ainda não há perfis publicados')).toHaveCount(0);
+    // A busca continua na tela para o leitor limpar o filtro.
+    await expect(page.getByRole('searchbox', { name: 'Buscar pessoa' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Ver todas as pessoas' })).toBeVisible();
   });
 
   test('perfil: vínculos com fonte, link e data; sem trecho literal; navegação entre relacionadas', async ({ page }) => {
@@ -218,7 +228,7 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
 
   test('pessoas e Moves: estado vazio honesto (não erro); perfis 404; empresa sem pessoas', async ({ page }) => {
     for (const [rota, texto] of [
-      ['/intelligence/pessoas', 'Em breve: primeiros perfis verificados'],
+      ['/intelligence/pessoas', 'Ainda não há perfis publicados'],
       // No modo vazio o fake-api responde `disponivel: true` com total 0 (o caso do staging): a página não pode prometer
       // disponibilidade; diz que ainda não há Moves publicados.
       ['/moves', 'Ainda não há Moves publicados'],
