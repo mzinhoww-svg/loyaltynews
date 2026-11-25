@@ -52,7 +52,7 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
       s.dataset.testid = 'ga4-tag';
       document.head.appendChild(s);
     }
-    w.gtag('config', idGa, configGa(caminho ?? '/'));
+    w.gtag('config', idGa, configGa(caminho ?? '/', window.location.origin));
   }, [escolha, idGa, producao, caminho]);
 
   const decidir = (analiticos: boolean) => {

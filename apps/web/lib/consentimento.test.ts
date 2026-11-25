@@ -38,8 +38,10 @@ describe('regra de carga do GA4 (LGPD)', () => {
   });
 
   it('config do gtag: IP anonimizado, sem sinais de anúncio e caminho SEM query string nem âncora', () => {
-    const c = configGa('/busca?q=fulano@exemplo.com#topo');
+    const c = configGa('/busca?q=fulano@exemplo.com#topo', 'https://www.loyaltynews.com.br');
     expect(c).toMatchObject({ anonymize_ip: true, allow_google_signals: false, allow_ad_personalization_signals: false, page_path: '/busca' });
+    // QA 8 (P1): page_location precisa ser explícito, senão o GA4 usa a URL inteira com a query.
+    expect(c.page_location).toBe('https://www.loyaltynews.com.br/busca');
     expect(JSON.stringify(c)).not.toContain('fulano');
   });
 });

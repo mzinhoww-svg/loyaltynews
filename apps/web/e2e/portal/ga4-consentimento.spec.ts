@@ -65,6 +65,8 @@ test.describe('GA4 com consentimento', () => {
       const config = await page.evaluate(() => (window as unknown as { dataLayer: IArguments[] }).dataLayer.map((a) => Array.from(a)).find((a) => a[0] === 'config'));
       expect(config?.[1]).toBe('G-E2ETESTE00');
       expect(config?.[2]).toMatchObject({ anonymize_ip: true, allow_google_signals: false, page_path: '/busca' });
+      // page_location explícito e sem query: é o que o GA4 manda no parâmetro dl (achado P1 do QA 8 na 14e1f9c).
+      expect((config?.[2] as { page_location?: string })?.page_location).toMatch(/^https?:\/\/[^/]+\/busca$/);
       expect(JSON.stringify(config)).not.toContain('fulano');
       // Preferências no rodapé reabrem o aviso (revogar).
       await page.getByTestId('preferencias-cookies').click();

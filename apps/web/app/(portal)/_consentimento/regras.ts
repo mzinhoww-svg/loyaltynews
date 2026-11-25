@@ -58,13 +58,15 @@ export const mostrarBanner = (c: Omit<Contexto, 'sinalNaoRastrear'>): boolean =>
  * Configuração do gtag sem dado pessoal: IP anonimizado, sem sinais de publicidade nem personalização, e a página enviada só como
  * caminho, SEM query string (formulário e busca podem levar e-mail ou termo pessoal na URL).
  */
-export function configGa(caminho: string) {
+export function configGa(caminho: string, origem: string) {
+  const limpo = caminho.split('?')[0]!.split('#')[0]! || '/';
   return {
     anonymize_ip: true,
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
-    page_location: undefined,
-    page_path: caminho.split('?')[0]!.split('#')[0]!,
+    // page_location EXPLÍCITO: sem ele o GA4 usa location.href inteiro e envia a query (ex.: /busca?q=termo) no parâmetro dl.
+    page_location: `${origem}${limpo}`,
+    page_path: limpo,
     send_page_view: true,
   };
 }
