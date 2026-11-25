@@ -41,9 +41,10 @@
 .st-badge.aprovado { background: var(--ln-color-success-bg); color: var(--ln-color-success-fg); }
 .st-badge.publicado { background: var(--ln-color-info-bg); color: var(--ln-color-info-fg); }
 
-.st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); overflow: hidden; }
-.st-table th, .st-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--st-line); vertical-align: top; }
-.st-table th { background: var(--ln-color-neutral-bg); font-size: 13px; }
+/* overflow: clip (e não hidden) mantém o canto arredondado sem criar um quadro de rolagem: o cabeçalho fixo (sticky) segue a página */
+.st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); overflow: clip; }
+.st-table th, .st-table td { text-align: left; padding: var(--ln-space-2) var(--ln-space-3); border-bottom: 1px solid var(--st-line); vertical-align: top; }
+.st-table th { background: var(--ln-color-neutral-bg); font-size: var(--ln-text-sm); line-height: var(--ln-leading-sm); }
 /* revisão visual P3-2: o cabeçalho da linha (célula do título) não tem fundo diferente das outras células */
 .st-table tbody th { background: transparent; font-size: inherit; }
 /* revisão visual int/019 (A-1): a célula do título tem largura mínima; no celular o quadro rola, e o título não quebra em uma palavra por linha */
@@ -110,6 +111,20 @@
 
 /* revisão visual P2-6 (decisão PM-2026-11-23-H): títulos do Studio em Inter (fonte de interface), mesmos tamanhos e pesos; o portal não muda */
 .studio :is(h1, h2, h3, h4, h5, h6) { font-family: var(--ln-font-ui); }
+
+/* ---- refino do lançamento, pacote C, item 2: tabelas ---- */
+/* cabeçalho fixo na rolagem: o fundo é opaco (token) e a linha de baixo vira sombra interna, porque a borda colapsada não acompanha o sticky */
+.st-table thead th { position: sticky; top: 0; z-index: 1; box-shadow: inset 0 -1px 0 var(--st-line-strong); border-bottom: 0; }
+/* leitura da linha: foco/hover com o tom neutro do design system; números e datas alinham pelos dígitos */
+.st-table tbody tr:hover > * { background: var(--ln-color-surface-subtle); }
+.st-table td, .st-table th { font-variant-numeric: tabular-nums; }
+.st-table caption { padding: var(--ln-space-1) 0; }
+/* selos de estado: o mesmo ritmo do StatusPill (texto pequeno, pílula), tons só dos pares -bg/-fg dos tokens */
+.st-badge { font-size: var(--ln-text-xs); line-height: var(--ln-leading-xs); padding: 0 var(--ln-space-2); }
+/* quadro rolável: no celular rola nos dois eixos com altura limitada, para o cabeçalho fixar DENTRO dele (a página não rola na horizontal) */
+@media (max-width: 860px) {
+  .studio .st-quadro { max-height: 75vh; overflow: auto; }
+}
 
 /* ---- refino do lançamento, pacote C, item 1: casca (menu lateral) ---- */
 /* grupos recolhíveis: o título do grupo é um botão (aria-expanded) com o mesmo visual do título do design system */
