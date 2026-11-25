@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PageHead } from '../_components/ui';
+import { Arrow, PageHead } from '../_components/ui';
 import { INFO_DOCS, INFO_SLUGS } from '../_lib/institutional';
 import { PedidoTitularForm } from '../_titular/PedidoTitularForm';
 
@@ -44,9 +44,9 @@ export default async function InfoPage({ params }: Props) {
       ))}
       {d.slug === 'sobre' && (
         <p>
-          <Link href="/metodologia" className="pt-more">Metodologia →</Link>{' '}
-          <Link href="/politica-editorial" className="pt-more">Política editorial →</Link>{' '}
-          <Link href="/correcoes" className="pt-more">Correções →</Link>
+          <Link href="/metodologia" className="pt-more">Metodologia<Arrow /></Link>{' '}
+          <Link href="/politica-editorial" className="pt-more">Política editorial<Arrow /></Link>{' '}
+          <Link href="/correcoes" className="pt-more">Correções<Arrow /></Link>
         </p>
       )}
       {d.slug === 'correcoes' && (

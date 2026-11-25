@@ -22,7 +22,7 @@ FCP / LCP / CLS em ms; o último número é o CLS.
 
 **Provas da V1 (o gate):**
 
-- **1 requisição de 48.256 B** e **1 `@font-face` com arquivo** (a outra regra é a reserva `local("Arial")` com métricas, criada pelo `adjustFontFallback`).
+- **1 requisição de 48.256 B** e **1 `@font-face` com arquivo** (a outra regra é a reserva `local("Arial")` com métricas, criada pelo `adjustFontFallback`). O critério é **1 face com arquivo + a reserva local**, não “1 regra `@font-face`” ao pé da letra.
 - **Sem troca depois do primeiro paint:** `optional` não faz swap; com o `.woff2` abortado a 768, CLS **0**. A atribuição com a fonte abortada também deu **0** a 390 (5/5) e 1280 (3/3).
 - **Cache quente:** família resolvida no portal e no Studio (`document.fonts.check` verdadeiro), 1 arquivo.
 - **Studio:** Inter, sem Arial; Georgia só em `.pt-body` e `.pt-article-sub`; tokens approved.

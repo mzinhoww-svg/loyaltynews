@@ -42,7 +42,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
         </Link>
         <strong data-dia={dia}>{dia}</strong>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, 1)}`}>
-          Próximo dia →
+          Próximo dia<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 8h11M9 3.5L13.5 8 9 12.5" /></svg>
         </Link>
         <Link className="st-btn sec" href="/studio/reunioes">
           Hoje
