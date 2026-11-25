@@ -32,7 +32,7 @@ export default async function MovesPage() {
         <ErrorState title="Moves temporariamente indisponíveis" retryHref="/moves">
           Não conseguimos carregar as movimentações agora. Isso não significa que não existam; tente de novo em instantes.
         </ErrorState>
-      ) : feed.items.length ? (
+      ) : feed.available && feed.items.length ? (
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 16 }} data-testid="moves-list">
           {feed.items.map((m) => (
             <li key={m.id}><MoveCard m={m} /></li>
@@ -40,8 +40,11 @@ export default async function MovesPage() {
         </ul>
       ) : (
         <>
-          <EmptyState title="Em breve: primeiras movimentações confirmadas">
+          {/* Estado vazio honesto: `available` vem do dado (total > 0), não da flag da API. Com 0 Moves confirmados a página
+              não diz que há movimentações disponíveis nem promete "em breve" ao lado de um indicador de disponibilidade. */}
+          <EmptyState title="Ainda não há Moves publicados">
             <span className={s.emptyText} data-testid="moves-empty-text">{MOVES_EMPTY}</span>
+            <span className={s.emptyText} data-testid="moves-empty-honest"> Nenhuma movimentação foi publicada até agora; a primeira entra quando houver confirmação por fonte primária, com o antes e o depois.</span>
           </EmptyState>
           <section className={s.meanwhile} aria-labelledby="moves-meanwhile" data-testid="moves-meanwhile">
             <h2 id="moves-meanwhile" style={{ fontSize: 18 }}>Enquanto isso</h2>

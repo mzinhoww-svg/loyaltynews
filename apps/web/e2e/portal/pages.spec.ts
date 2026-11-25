@@ -21,7 +21,7 @@ const PAGES: PageSpec[] = [
   { name: 'em-alta', path: '/em-alta', empty: /Ranking em formação/ },
   { name: 'busca', path: '/busca' },
   { name: 'agenda', path: '/agenda', empty: /Nenhum evento verificado por enquanto/ },
-  { name: 'moves', path: '/moves', empty: /Em breve: primeiras movimentações confirmadas/ },
+  { name: 'moves', path: '/moves', empty: /Ainda não há Moves publicados/ },
   { name: 'intelligence', path: '/intelligence' },
   { name: 'intelligence-empresas', path: '/intelligence/empresas', empty: /Em breve: primeiros perfis verificados/ },
   { name: 'intelligence-pessoas', path: '/intelligence/pessoas', empty: /Em breve: primeiros perfis verificados/ },

@@ -36,7 +36,10 @@ test.describe('empty', () => {
     const r = await page.goto('/intelligence/empresas/00000000-0000-4000-8000-00000000000a');
     expect(r?.status()).toBe(404);
     await page.goto('/moves');
-    await expect(page.getByText('Em breve: primeiras movimentações confirmadas')).toBeVisible();
+    // Estado vazio honesto: sem Moves publicados não se promete disponibilidade nem "em breve" (P3 do QA 6, 25/11).
+    await expect(page.getByText('Ainda não há Moves publicados')).toBeVisible();
+    await expect(page.getByTestId('moves-empty-honest')).toBeVisible();
+    await expect(page.getByText(/em breve: primeiras movimentações/i)).toHaveCount(0);
   });
 });
 
@@ -216,7 +219,9 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
   test('pessoas e Moves: estado vazio honesto (não erro); perfis 404; empresa sem pessoas', async ({ page }) => {
     for (const [rota, texto] of [
       ['/intelligence/pessoas', 'Em breve: primeiros perfis verificados'],
-      ['/moves', 'Em breve: primeiras movimentações confirmadas'],
+      // No modo vazio o fake-api responde `disponivel: true` com total 0 (o caso do staging): a página não pode prometer
+      // disponibilidade; diz que ainda não há Moves publicados.
+      ['/moves', 'Ainda não há Moves publicados'],
     ] as const) {
       const res = await page.goto(rota);
       expect(res?.status(), rota).toBe(200);
@@ -226,10 +231,13 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     }
     // P3-3 (revisão visual int/012) também com o vazio vindo da API: texto do aviso abaixo do título e bloco "Enquanto isso".
     await page.goto('/moves');
-    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const titulo = page.getByText('Ainda não há Moves publicados', { exact: true });
     const bt = (await titulo.boundingBox())!;
     const bx = (await page.getByTestId('moves-empty-text').boundingBox())!;
     expect(bx.y, 'o texto do aviso começa abaixo do título').toBeGreaterThanOrEqual(bt.y + bt.height - 1);
+    // Coerência: com 0 Moves não aparece nada que sugira lista disponível, nem "em breve" de promessa.
+    await expect(page.getByTestId('moves-list')).toHaveCount(0);
+    await expect(page.getByTestId('moves-empty-honest')).toBeVisible();
     await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Diretório de empresas/ })).toHaveAttribute('href', '/intelligence/empresas');
     await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Pessoas e cargos/ })).toHaveAttribute('href', '/intelligence/pessoas');
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);

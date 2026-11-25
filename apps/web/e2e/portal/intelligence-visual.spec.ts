@@ -122,7 +122,7 @@ test.describe('revisão visual int/012 — Frontend 2', () => {
     test.skip(mode !== 'empty', 'o estado vazio só aparece com a fonte vazia');
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/moves');
-    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const titulo = page.getByText('Ainda não há Moves publicados', { exact: true });
     const texto = page.getByTestId('moves-empty-text');
     const bt = (await titulo.boundingBox())!;
     const bx = (await texto.boundingBox())!;

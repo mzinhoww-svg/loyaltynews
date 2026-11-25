@@ -252,8 +252,11 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       if (!Array.isArray(j.data) || typeof j.disponivel !== 'boolean') throw new Error('formato');
       const items = j.data.map(map).filter((x): x is T => x !== null);
       if (items.length < j.data.length) logFalha(WHAT, `${j.data.length - items.length} item(ns) inválido(s) descartado(s)`);
-      // Com a flag desligada nada é exibido, mesmo que a resposta traga itens.
-      return j.disponivel ? { status: 'ok', items, total: items.length, available: true } : { status: 'ok', items: [], total: 0, available: false };
+      // "Disponível" é derivado do DADO publicável, não copiado da flag: a API pode responder disponivel=true com lista
+      // vazia (medido nos Moves do staging em 25/11). Com 0 itens não há o que mostrar e a página diz o estado vazio
+      // honesto. Com a flag desligada nada é exibido, mesmo que a resposta traga itens.
+      const available = j.disponivel && items.length > 0;
+      return available ? { status: 'ok', items, total: items.length, available: true } : { status: 'ok', items: [], total: 0, available: false };
     } catch {
       logFalha(WHAT, 'resposta inválida');
       return { status: 'unavailable' };

@@ -170,6 +170,20 @@ describe('pessoas, cargos e Moves', () => {
       expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
     });
 
+    it('disponivel=true com total=0 não é disponível: o flag vem do dado, não da API', async () => {
+      // Caso medido no staging em 25/11 (P3 do QA 6): a API respondia disponivel:true e a lista vinha vazia.
+      const vazio = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: true })) as unknown as typeof fetch);
+      expect(await vazio.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+      expect(await vazio.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    });
+
+    it('disponivel=true com total>0 é disponível e mantém o total do servidor', async () => {
+      const cheio = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move()], total: 1, disponivel: true })) as unknown as typeof fetch);
+      const feed = await cheio.getMovesFeed();
+      expect(feed).toMatchObject({ status: 'ok', total: 1, available: true });
+      expect(feed.status === 'ok' && feed.items).toHaveLength(1);
+    });
+
     it('envelope sem `disponivel` é inválido; 503 é indisponível; 404 é não encontrado', async () => {
       const bad = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [] })) as unknown as typeof fetch);
       expect(await bad.getPeopleDirectory()).toEqual({ status: 'unavailable' });
