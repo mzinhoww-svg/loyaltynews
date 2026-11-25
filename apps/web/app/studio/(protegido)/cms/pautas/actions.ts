@@ -13,8 +13,8 @@ const volta = (ok: boolean, msg: string): never => redirect(`${BASE}?tipo=${ok ?
 
 /**
  * Pauta AUTORAL escrita por pessoa da redação (admin, editor-chefe, editor). Âncoras só em fontes PRIMÁRIAS HABILITADAS (conferido aqui e,
- * de novo, pelo Backend). A rota só registra a pauta na fila: quem a processa é o worker, e a matéria resultante entra na revisão comum.
- * Nada é publicado por aqui.
+ * de novo, pelo Backend). A rota só registra a pauta: a Fábrica editorial a processa em comando próprio (editorial-factory --autoral), que
+ * hoje roda apenas em simulação; até lá a pauta fica pendente. A matéria resultante entra na revisão comum. Nada é publicado por aqui.
  */
 export async function enviarPautaAction(fd: FormData): Promise<void> {
   await requireStudio(['admin', 'editor_chefe', 'editor']);
@@ -25,5 +25,5 @@ export async function enviarPautaAction(fd: FormData): Promise<void> {
   const m = montarPauta({ id: t(fd, 'id'), titulo: t(fd, 'titulo'), angulo: t(fd, 'angulo'), formato: t(fd, 'formato'), editoria: t(fd, 'editoria'), ancoras }, permitidas);
   if (!m.ok) return volta(false, m.erro);
   const r = await api.editorial.enviarPauta(m.corpo);
-  volta(!ehErro(r), ehErro(r) ? mensagemErro(r) : `Pauta “${m.corpo.id}” registrada na fila. O worker a processa e a matéria entra na fila de revisão; nada é publicado.`);
+  volta(!ehErro(r), ehErro(r) ? mensagemErro(r) : `Pauta “${m.corpo.id}” registrada na fila. Ela fica pendente até a Fábrica editorial rodar em comando próprio (editorial-factory --autoral); nada é publicado.`);
 }

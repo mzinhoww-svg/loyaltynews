@@ -9,6 +9,7 @@ import { montarCorrecao, type EdicaoFabrica } from '@/lib/studio/cms/fabrica-cor
 import { urlPublicaDaMateria } from '@/lib/studio/cms/url-publica';
 import { traduzirMensagem } from '@/lib/studio/erros';
 import { proximaFonteDaEvidencia } from '@/lib/studio/cms/fonte-rapida';
+import { resultadoDoRecheck } from '@/lib/studio/cms/checagem-fila';
 import { checkAccess } from '@/lib/studio/modules';
 import { requireStudio } from '../../_lib/guard';
 
@@ -148,7 +149,9 @@ export async function rechecarAction(fd: FormData): Promise<void> {
   await requireStudio(CMS_EDIT);
   const id = t(fd, 'id');
   const r = await api.editorial.rechecar(id);
-  redirect(`/studio/cms/checagem/${encodeURIComponent(id)}?tipo=${ehErro(r) ? 'err' : 'ok'}&aviso=${encodeURIComponent(ehErro(r) ? mensagemErro(r) : 'Nova checagem enfileirada.')}`);
+  // fila desligada é estado permanente: decide pelo CÓDIGO (QUEUE_DISABLED), não pelo status — 503 hoje, 501 amanhã
+  const { tipo, aviso } = resultadoDoRecheck(r, ehErro(r) ? mensagemErro(r) : '');
+  redirect(`/studio/cms/checagem/${encodeURIComponent(id)}?tipo=${tipo}&aviso=${encodeURIComponent(aviso)}`);
 }
 
 export async function decidirRevisaoAction(fd: FormData): Promise<void> {
