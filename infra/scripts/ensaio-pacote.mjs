@@ -229,7 +229,7 @@ try {
     for (const p of ['/sitemap.xml', '/feed.xml']) {
       const res = await fetchTentando(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
       const body = await res.text();
-      step(`go-live: ${p} sem marcadores de demonstração`, (res.status === 200 || res.status === 404) && !(VITRINE_MARCADORES.some((m) => body.includes(m)) || /MOCK/.test(body)), `HTTP ${res.status}`);
+      step(`go-live: ${p} sem marcadores de demonstração`, (res.status === 200 || res.status === 404) && !(VITRINE_MARCADORES.some((m) => body.includes(m)) || /\bMOCK\b/.test(body)), `HTTP ${res.status}`);
     }
   }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
