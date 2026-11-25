@@ -82,9 +82,9 @@ describe('institucionais', () => {
     }
     for (const s of ['privacidade', 'termos', 'publicidade']) expect(INFO_DOCS[s]?.draftNotice).toMatch(/validação jurídica/);
   });
-  it('não inventa e-mail nem redes', () => {
+  it('não inventa e-mail nem redes: o único e-mail é o da DP-54 (contato@loyaltynews.com.br)', () => {
     const text = JSON.stringify(INFO_DOCS);
-    expect(text).not.toMatch(/@[a-z0-9-]+\.[a-z]{2,}/i);
+    expect(text.replace(/contato@loyaltynews\.com\.br/g, '')).not.toMatch(/@[a-z0-9-]+\.[a-z]{2,}/i);
     expect(text).not.toMatch(/linkedin\.com|instagram\.com|wa\.me/i);
   });
 });

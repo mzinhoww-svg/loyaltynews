@@ -23,3 +23,11 @@
 - `actions/setup-node` v4.4.0 = `49933ea5288caeca8642d1e84afbd3f7d6820020`
 - `actions/upload-artifact` v4.6.2 = `ea165f8d65b6e75b540449e92b4886f43607fa02`
 Para atualizar: `git ls-remote --tags https://github.com/actions/<nome> 'refs/tags/vX.Y.Z*'` e troque o SHA e o comentário.
+
+## Staging com flags (pré-construído pelo Actions, sem flags): baixar → conferir → carimbar
+O workflow NÃO aceita flags (o `ci-checks` proíbe `LN_FLAGS_ON` em workflow, ADR-022). As flags só são lidas em execução (regra do `ci-checks`: `LN_FLAGS_ON` só em `packages/contracts/src/flags.ts`), então o `.next` construído sem flag vale para o staging com flag, desde que o pacote seja CARIMBADO. Sequência exata:
+1. Rodar: `gh workflow run web-prebuilt.yml -f commit=<sha40> -f perfil=staging -f subdominio=loyaltynews-stg` (sem `-f flags`: não existe). Anotar a linha `arvore-sha256=<64 hex>` do resumo da execução.
+2. Baixar: `gh run download <id> -D <pasta>` (a pasta do pacote e o `.manifest.json` ficam lado a lado; baixe o artefato inteiro).
+3. **Conferir**: `node infra/scripts/arvore-sha256.mjs <pasta do pacote> --esperado <hex do run>` → exit 0. Não bateu = não carimbe, não implante.
+4. **Carimbar**, passando a MESMA soma: `node infra/scripts/carimbar-flags-prebuilt.mjs --pasta <pasta do pacote> --flags intelligencePessoas --soma-esperada <hex do run> --raiz <checkout do MESMO commit>`. Recusa se: a soma "antes" não é a do run; o manifesto ao lado não existe ou não tem a lista de variáveis do deploy; o `packages/contracts/src/flags.ts` do pacote difere do da `--raiz`; o perfil não é staging; a flag é desconhecida ou sem decisão para staging; já há outras flags; há ZIP ao lado.
+5. Registrar as DUAS somas que a ferramenta imprime (`arvoreSha256Antes` = a do run; `arvoreSha256Depois` = a que vai ao deploy) e fazer o deploy com build vazio a 512 MB (o `set_env` do manifesto já leva `LN_FLAGS_ON`).
