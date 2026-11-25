@@ -33,7 +33,8 @@ test.describe(`indexação com APP_ENV=${appEnv}${semInterruptor ? ' sem PORTAL_
     // Só staging, vitrine/MOCK continuam sem <loc>.
     if (appEnv !== 'production' || mode === 'mock') expect(body).not.toContain('<loc>');
     else {
-      expect(body).toContain('<loc>https://portal.example.test/</loc>');
+      // A home sai sem barra final, igual ao canonical do layout.
+      expect(body).toContain('<loc>https://portal.example.test</loc>');
       expect(body).toContain('https://portal.example.test/editoria/bancos');
       // Nenhuma URL listada pode dar 404 (aceite da etapa A).
       const locs = [...body.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
