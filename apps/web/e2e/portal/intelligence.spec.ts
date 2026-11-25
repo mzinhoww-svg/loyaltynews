@@ -184,6 +184,9 @@ test.describe('api', () => {
     await axe(page);
     await people.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
+    // M-04: com inicioDeclarado: false da API, o período não mostra a data da coleta como início.
+    await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000202');
+    await expect(page.getByTestId('current-roles').getByTestId('periodo')).toHaveText('início não informado na fonte; até 31 de dezembro de 2030', { timeout: NAV_MS });
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
   });
 });

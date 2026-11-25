@@ -30,7 +30,8 @@ const anaAntes = cargo(301, 'Diretora Comercial (MOCK)', orgs[1], '2026-09-01', 
 // Igual à rota real: correção do titular sobrepõe o período (texto) e marca corrigidoPeloTitular.
 const anaDepois = { ...cargo(302, 'CEO (MOCK)', orgs[0], '2026-11-20', null, 2), periodo: 'desde nov. 2026 (MOCK, corrigido)', corrigidoPeloTitular: true };
 // Cargo VIGENTE com fim no futuro: a rota real o manda na lista de vigentes (valid_to > hoje).
-const biaCargo = cargo(303, 'Presidente (MOCK)', orgs[2], '2026-11-23', '2030-12-31', 3);
+// inicioDeclarado: false, como a rota real manda quando a fonte não traz o início (vigenteDesde = dia da coleta).
+const biaCargo = { ...cargo(303, 'Presidente (MOCK)', orgs[2], '2026-11-23', '2030-12-31', 3), inicioDeclarado: false };
 const moves = [
   { id: orgId(401), tipo: 'org_change', base: 'observed_diff', pessoa: ref(ana), dataEfetiva: null, observadoEm: '2026-11-20',
     antes: leitura(anaAntes), depois: leitura(anaDepois), mock: true, quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' },

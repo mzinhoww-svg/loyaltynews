@@ -131,6 +131,7 @@ export function mapRole(v: unknown): PersonRole | null {
   return {
     id: v.id, title: v.titulo, company, validFrom: v.vigenteDesde, validTo: (v.vigenteAte as string | null) ?? null, validatedAt: v.validadoEm, source,
     ...(isStr(v.periodo) ? { periodText: v.periodo.slice(0, 120) } : {}),
+    ...(typeof v.inicioDeclarado === 'boolean' ? { startDeclared: v.inicioDeclarado } : {}),
     ...(v.corrigidoPeloTitular === true ? { correctedByHolder: true } : {}),
     mock: v.mock === true,
   };

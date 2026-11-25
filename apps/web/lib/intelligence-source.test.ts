@@ -111,6 +111,13 @@ const move = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('pessoas, cargos e Moves', () => {
+  it('inicioDeclarado da API (M-04) é mapeado; ausente fica indefinido (API antiga)', () => {
+    expect(mapRole(cargo({ inicioDeclarado: false }))?.startDeclared).toBe(false);
+    expect(mapRole(cargo({ inicioDeclarado: true }))?.startDeclared).toBe(true);
+    expect(mapRole(cargo())?.startDeclared).toBeUndefined();
+    expect(mapRole(cargo({ inicioDeclarado: 'sim' }))?.startDeclared).toBeUndefined();
+  });
+
   it('cargo exige fonte e datas válidas; nunca copia o trecho', () => {
     const r = mapRole(cargo());
     expect(r).toMatchObject({ title: 'CEO', company: { name: 'Livelo' }, validTo: null });

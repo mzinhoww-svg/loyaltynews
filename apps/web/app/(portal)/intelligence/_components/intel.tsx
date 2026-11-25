@@ -38,9 +38,10 @@ export function CorrectedTag() {
  * próprio dia da coleta — mostrar "desde <coleta>" fazia parecer que o cargo começou nesse dia. Início igual ao dia da validação/coleta
  * = início não informado; a data de coleta fica só em "Validado em". (Pedido ao Data: um campo explícito de início declarado.)
  */
-export function periodoCargo(r: Pick<PersonRole, 'validFrom' | 'validTo' | 'validatedAt' | 'periodText' | 'source'>): string {
+export function periodoCargo(r: Pick<PersonRole, 'validFrom' | 'validTo' | 'validatedAt' | 'periodText' | 'source' | 'startDeclared'>): string {
   if (r.periodText) return r.periodText;
-  const inicioEhColeta = r.validFrom === r.validatedAt.slice(0, 10) || r.validFrom === r.source.retrievedAt.slice(0, 10);
+  // Campo da API (inicioDeclarado, contrato do Data) quando existe; senão a mesma regra deduzida pela data.
+  const inicioEhColeta = r.startDeclared !== undefined ? !r.startDeclared : r.validFrom === r.validatedAt.slice(0, 10) || r.validFrom === r.source.retrievedAt.slice(0, 10);
   if (inicioEhColeta) return r.validTo ? `início não informado na fonte; até ${day(r.validTo)}` : 'início não informado na fonte';
   return r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`;
 }

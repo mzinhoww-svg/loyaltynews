@@ -199,6 +199,8 @@ export interface PersonRole {
   validTo: string | null;
   validatedAt: string;
   source: EvidenceSource;
+  /** A fonte declara o início (campo inicioDeclarado da API, M-04). Ausente = API antiga: o portal deduz pela data. */
+  startDeclared?: boolean;
   /** Período em texto livre vindo de uma correção do titular (DP-38); quando existe, substitui o período calculado. */
   periodText?: string;
   /** O cargo tem correção aplicada a pedido do titular. */
