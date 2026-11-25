@@ -4,6 +4,7 @@ import { schema } from '@ln/db';
 import { call, makeApp } from '../../_lib/testkit';
 import { MAX_PEDIDOS_ABERTOS, PRAZO_DIAS, protocoloDe } from '../../_lib/titular';
 import { PRAZO_DIAS_RESPOSTA } from '../../../(portal)/_titular/pedido';
+import { protocoloDoPedido } from '../../../../lib/studio/titular-view';
 import * as correcoes from './route';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -33,6 +34,7 @@ describe('POST /api/publico/correcoes (canal do titular, DP-38)', () => {
     expect(row).toMatchObject({ tipo: 'remocao', estado: 'recebido', nome: 'Maria Titular', url: body.url });
     const recibo = r.body as { protocolo: string; prazoEm: string };
     expect(recibo.protocolo).toBe(protocoloDe(row!.id)); // o protocolo devolvido corresponde ao pedido gravado
+    expect(recibo.protocolo).toBe(protocoloDoPedido(row!.id)); // e é o mesmo que o Studio exibe para o mesmo id
     expect(txt).not.toContain(row!.id); // o id interno completo não vai para o navegador
     expect(new Date(recibo.prazoEm).getTime()).toBe(row!.prazoEm.getTime());
     expect(row!.prazoEm.getTime() - row!.recebidoEm.getTime()).toBe(PRAZO_DIAS * 86_400_000);

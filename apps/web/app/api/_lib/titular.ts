@@ -3,6 +3,7 @@
 //    teto de pedidos em aberto e dedupe do pedido idêntico em aberto;
 //  - grava na fila `titular_pedidos` (estado `recebido`) e audita `titular.pedido_recebido` só com id e tipo (sem dado pessoal, sem IP);
 //  - a resposta (202) traz um protocolo público derivado do id e o prazo de resposta, sem o id completo nem eco de dados.
+import { protocoloDe } from '../../../lib/protocolo-titular';
 import { createHash } from 'node:crypto';
 import { count, desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
@@ -54,7 +55,7 @@ export const PedidoTitular = z.object({
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 /** Protocolo público e estável do pedido: prefixo + 12 hex do id (48 bits). Não é credencial de acesso. */
-export const protocoloDe = (id: string) => `LN-${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`;
+export { protocoloDe };
 const PRAZO_MS = PRAZO_DIAS * 86_400_000;
 const RECEBIDO = (id: string, prazoEm: Date) =>
   json({ status: 'recebido', protocolo: protocoloDe(id), prazoDias: PRAZO_DIAS, prazoEm: prazoEm.toISOString() }, 202);

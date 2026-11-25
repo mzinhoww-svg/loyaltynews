@@ -2,6 +2,8 @@
 // A decisão é REGISTRADA; o efeito na exibição pública ainda não existe (efeitoPublico: 'pendente'). A tela nunca diz "removido do portal".
 // O prazo é INTERNO (15 dias corridos, proposta operacional; parecer jurídico R0-10 pendente), nunca "prazo legal".
 
+import { protocoloDoPedido } from '../protocolo-titular';
+
 export type EstadoPedido = 'recebido' | 'em_analise' | 'corrigido' | 'removido' | 'negado';
 export type AcaoDecisao = 'corrigir' | 'remover_cargo' | 'remover_pessoa' | 'negar';
 export interface AlvoPedido {
@@ -86,7 +88,7 @@ export const ROTULO_PRAZO: Record<SituacaoPrazo, string> = {
  * titular recebe no canal público (`protocoloDe`, ft/editorial-busca a0ade82); o Studio deriva do id que já tem na fila,
  * sem campo novo no banco, migration ou mudança na rota pública. Não é credencial: sozinho não abre o pedido.
  */
-export const protocoloDoPedido = (id: string): string => `LN-${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`;
+export { protocoloDoPedido };
 
 /** Link para conferir o alvo no Studio (a página do executivo é da Studio 1). Cargo e Move não têm página própria: null. */
 export function linkDoAlvo(a: AlvoPedido | null): string | null {
