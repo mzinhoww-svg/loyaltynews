@@ -19,9 +19,18 @@ export function celula(v: unknown): string {
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
-export type LinhaPiloto = Record<string, unknown> & { task_id: string; attempt: number; stage?: string; article_id?: string | null };
+export type LinhaPiloto = Record<string, unknown> & { task_id: string; attempt: number; stage?: string; article_id?: string | null; started_at?: string };
 
-export function planilhaCsv(linhas: readonly LinhaPiloto[], materias: readonly MateriaPiloto[], leituras: Partial<Record<string, Leitura[]>>): string {
+/**
+ * Fronteira da amostra medida: só as linhas que começaram depois do último `resume` auditado e que NÃO foram excluídas por
+ * configuração. As demais continuam na planilha/trilha para auditoria, mas não entram no CSV que o avaliador lê.
+ */
+export function linhasDaAmostra<T extends LinhaPiloto & { tratada?: { acao?: string } }>(linhas: readonly T[], sampleStartedAt: string | null | undefined): T[] {
+  const de = sampleStartedAt ? Date.parse(sampleStartedAt) : Number.NaN;
+  return linhas.filter((r) => (Number.isNaN(de) || Date.parse(String(r.started_at)) >= de) && r.tratada?.acao !== 'config_invalid');
+}
+
+export function planilhaCsv(linhas: readonly LinhaPiloto[], materias: readonly MateriaPiloto[], leituras: Partial<Record<string, Leitura[]>>, sampleStartedAt?: string | null): string {
   const materiaDoArtigo = new Map(materias.filter((m) => m.articleId).map((m) => [m.articleId as string, m.materia]));
   const out = [COLUNAS.join(',')];
   for (const r of linhas) {
@@ -44,5 +53,7 @@ export function planilhaCsv(linhas: readonly LinhaPiloto[], materias: readonly M
     });
     out.push(COLUNAS.map((c) => celula(linha[c])).join(','));
   }
-  return `${out.join('\n')}\n`;
+  const de = sampleStartedAt
+    ?? (linhas.length ? String([...linhas].map((r) => r.started_at).filter(Boolean).sort()[0] ?? new Date(0).toISOString()) : new Date(0).toISOString());
+  return `# amostra_desde=${de}\n${out.join('\n')}\n`;
 }

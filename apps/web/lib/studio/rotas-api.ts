@@ -359,7 +359,7 @@ export const api = {
   piloto: {
     materias: () => chamar<{ items: MateriaPiloto[]; fechamento?: Fechamento }>(dispatchEditorial, `${E}/piloto`),
     /** Linhas da trilha do piloto (planilha do AgentOps), uma por tarefa e tentativa: GET /api/studio/openbot/piloto/linhas (Backend 1, ft/backend 0d886d9). */
-    linhas: () => chamar<{ items: LinhaComTratamento[] }>(pilotoLinhasRoute.GET as Despachante, '/api/studio/openbot/piloto/linhas'),
+    linhas: () => chamar<{ items: LinhaComTratamento[]; sampleStartedAt?: string | null }>(pilotoLinhasRoute.GET as Despachante, '/api/studio/openbot/piloto/linhas'),
     /** Trata uma violação (parada imediata) da linha: só admin, auditada, não apaga nada (ft/backend 0d886d9, PM-2026-11-23-D). 201 nova, 200 já resolvida. */
     resolverViolacao: (taskId: string, attempt: number, corpo: { motivo: string; acaoTomada: string }) =>
       chamar<{ taskId: string; attempt: number; violacoes: string[]; tratada: Tratada; jaResolvida: boolean }>(

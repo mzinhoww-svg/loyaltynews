@@ -82,6 +82,7 @@ test('leitura do editor-chefe → CSV com as colunas do AgentOps, coluna a colun
   const texto = await r.text();
   expect(texto.charCodeAt(0)).toBe(0xfeff); // BOM, como o avaliador espera do export do Studio
   const linhas = csv(texto.slice(1).trimEnd());
+  while (linhas[0]?.length === 1 && linhas[0]![0]!.startsWith('#')) linhas.shift();
   const cab = linhas[0]!;
 
   // 3) cabeçalho coluna a coluna: as 31 do AgentOps na ordem, depois exatamente as 7 do Studio

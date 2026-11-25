@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PILOT_CSV_COLUMNS, pilotCsv } from '@ln/openbot';
-import { COLUNAS, celula, planilhaCsv, type LinhaPiloto } from './piloto-planilha';
+import { COLUNAS, celula, linhasDaAmostra, planilhaCsv, type LinhaPiloto } from './piloto-planilha';
 import type { Leitura, MateriaPiloto } from './piloto-view';
 
 const mp = (materia: MateriaPiloto['materia'], articleId: string | null): MateriaPiloto => ({ materia, articleId, fonte: null, leitor2: ['a1', 'a4', 'a6', 'a9'].includes(materia), estado: 'aguardando_leitura', leituras: { leitor1: false, leitor2: false } });
@@ -9,10 +9,17 @@ const leit = (leitor: 1 | 2, over: Partial<Leitura> = {}): Leitura => ({
   unsupportedFacts: 1, altas: 0, medias: 1, baixas: 0, ...over,
 });
 const linha = (over: Partial<LinhaPiloto> = {}): LinhaPiloto => ({ task_id: 't1', attempt: 1, stage: 'review', article_id: 'art-1', gate_verdict: 'approved', gate_reasons: ['ok'], cross_provider_ok: true, output_valid: true, ...over });
-const parse = (csv: string) => csv.trim().split('\n').map((l) => l.split(','));
+const parse = (csv: string) => {
+  const ls = csv.trim().split('\n').map((l) => l.split(','));
+  return ls[0]?.[0]?.startsWith('#') ? ls.slice(1) : ls;
+};
 const col = (csv: string, nome: string, i = 1) => parse(csv)[i]![COLUNAS.indexOf(nome as (typeof COLUNAS)[number])];
 
 describe('planilha do piloto (PM-2026-11-23-F)', () => {
+  it('carimba a amostra com o instante do resume antes do cabeçalho (B3)', () => {
+    const csv = planilhaCsv([], [], {}, '2026-11-25T19:00:00.000Z');
+    expect(csv.split('\n')[0]).toBe('# amostra_desde=2026-11-25T19:00:00.000Z');
+  });
   it('as 31 colunas do AgentOps vêm primeiro, na ordem, e as extras no fim', () => {
     const head = parse(planilhaCsv([], [], {}))[0]!;
     expect(head.slice(0, PILOT_CSV_COLUMNS.length)).toEqual([...PILOT_CSV_COLUMNS]);
@@ -50,5 +57,17 @@ describe('planilha do piloto (PM-2026-11-23-F)', () => {
     const csv = planilhaCsv([linha({ article_id: 'outro' })], [mp('a1', 'art-1')], { a1: [leit(1)] });
     expect(col(csv, 'materia')).toBe('');
     expect(col(csv, 'unsupported_facts')).toBe('');
+  });
+});
+
+describe('fronteira da amostra medida (último resume + config_invalid)', () => {
+  const l = (task_id: string, started_at: string, tratada?: { acao: string }) => ({ ...linha({ task_id, started_at }), ...(tratada ? { tratada } : {}) });
+  it('sem resume, tira só as linhas excluídas por configuração', () => {
+    const r = linhasDaAmostra([l('a', '2026-11-25T18:00:00Z'), l('b', '2026-11-25T18:10:00Z', { acao: 'config_invalid' }), l('c', '2026-11-25T18:20:00Z')], null);
+    expect(r.map((x) => x.task_id)).toEqual(['a', 'c']);
+  });
+  it('com resume, só o que começou depois dele; config_invalid continua fora mesmo depois da fronteira', () => {
+    const r = linhasDaAmostra([l('antes', '2026-11-25T18:00:00Z'), l('novo', '2026-11-25T19:01:00Z'), l('novo-cfg', '2026-11-25T19:02:00Z', { acao: 'config_invalid' })], '2026-11-25T19:00:00Z');
+    expect(r.map((x) => x.task_id)).toEqual(['novo']);
   });
 });

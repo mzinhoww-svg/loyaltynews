@@ -1,7 +1,7 @@
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro } from '@/lib/studio/backend';
 import { checkAccess } from '@/lib/studio/modules';
-import { planilhaCsv } from '@/lib/studio/piloto-planilha';
+import { planilhaCsv, linhasDaAmostra } from '@/lib/studio/piloto-planilha';
 import type { Leitura } from '@/lib/studio/piloto-view';
 import { currentSession } from '../../../_lib/guard';
 
@@ -29,7 +29,8 @@ export async function GET() {
     if (ehErro(l)) return texto(l.status, mensagemErro(l));
     leituras[m.materia] = l.body.leituras;
   }
-  const csv = planilhaCsv(linhas.body.items, mapa.body.items, leituras);
+  const medidas = linhasDaAmostra(linhas.body.items, linhas.body.sampleStartedAt);
+  const csv = planilhaCsv(medidas, mapa.body.items, leituras, linhas.body.sampleStartedAt);
   const dia = new Date().toISOString().slice(0, 10);
   return new Response(`\uFEFF${csv}`, {
     status: 200,

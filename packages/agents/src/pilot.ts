@@ -264,17 +264,23 @@ export const ACCOUNT_AUTHOR: Record<Exclude<PilotAccount, 'deterministic'>, Retu
 
 const isoOk = (s: string) => !Number.isNaN(Date.parse(s));
 
-export function validatePilotRow(r: PilotRow): string[] {
+export interface ConfigInvalidInput {
+  stage: string;
+  account: string;
+  declared_model: string | null;
+}
+
+/**
+ * Invalidade SÓ de configuração: conta/modelo fora da via da DP-41 ou registro contraditório. Não é violação editorial
+ * e não aprova nada: serve para uma linha criada antes do D1 ser marcada como excluída por configuração, preservada na planilha.
+ * Aceita a forma estrutural da linha (inclusive conta `opencode`, que a trilha antiga gravou), sem exigir o tipo estrito do piloto.
+ */
+export function configInvalidOf(r: ConfigInvalidInput): string[] {
   const e: string[] = [];
-  if (!r.task_id) e.push('task_id obrigatório');
-  if (!isoOk(r.started_at) || !isoOk(r.ended_at)) e.push('datas ISO inválidas');
-  else if (Date.parse(r.ended_at) < Date.parse(r.started_at)) e.push('ended_at antes de started_at');
-  const spec = PILOT_STAGES[r.stage];
-  if (!spec) e.push(`etapa desconhecida: ${String(r.stage)}`);
-  else if (!allowedAccounts(r.stage).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${allowedAccounts(r.stage).join(' ou ')}`);
-  if (r.account !== 'deterministic' && !r.declared_model) e.push('modelo declarado no UsageReport obrigatório fora da etapa determinística');
+  const spec = PILOT_STAGES[r.stage as PilotStage];
+  if (spec && !(allowedAccounts(r.stage as PilotStage) as readonly string[]).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${allowedAccounts(r.stage as PilotStage).join(' ou ')}`);
   if (r.account !== 'deterministic' && r.declared_model) {
-    const expected = ACCOUNT_AUTHOR[r.account];
+    const expected = (ACCOUNT_AUTHOR as Record<string, ReturnType<typeof authorOfDeclaredModel>>)[r.account];
     const got = authorOfDeclaredModel(r.declared_model);
     if (expected && got !== expected) e.push(`conta ${r.account} serve modelo de autor ${expected}, mas o modelo declarado (${r.declared_model}) é de autor ${got}: registro contraditório`);
   }
@@ -283,6 +289,18 @@ export function validatePilotRow(r: PilotRow): string[] {
     if (!fams.some((f) => r.declared_model!.toLowerCase().includes(f))) e.push(`etapa ${r.stage} deve rodar em modelo ${fams.join(' ou ')}, mas o declarado é ${r.declared_model}`);
   }
   if (r.account === 'deterministic' && r.declared_model) e.push('etapa determinística não declara modelo (registro contraditório)');
+  return e;
+}
+
+export function validatePilotRow(r: PilotRow): string[] {
+  const e: string[] = [];
+  if (!r.task_id) e.push('task_id obrigatório');
+  if (!isoOk(r.started_at) || !isoOk(r.ended_at)) e.push('datas ISO inválidas');
+  else if (Date.parse(r.ended_at) < Date.parse(r.started_at)) e.push('ended_at antes de started_at');
+  const spec = PILOT_STAGES[r.stage];
+  if (!spec) e.push(`etapa desconhecida: ${String(r.stage)}`);
+  if (r.account !== 'deterministic' && !r.declared_model) e.push('modelo declarado no UsageReport obrigatório fora da etapa determinística');
+  e.push(...configInvalidOf(r));
   if (r.account !== 'deterministic' && !r.prompt_version) e.push('prompt_version obrigatório');
   if (r.tokens_measured !== false) e.push('tokens_measured deve ser false: o OpenBot não expõe tokens (registrar packet_chars e "não medido")');
   if (!Number.isInteger(r.attempt) || r.attempt < 1) e.push('attempt inteiro >= 1');
