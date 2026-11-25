@@ -574,7 +574,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:50-03:00",
       "consultedAt": "2026-11-22T18:47:40-03:00",
       "imageRightsNote": "não informado (somente rodape de direitos reservados; nenhuma pagina de termos de uso encontrada). Pagina de cookies aponta para placeholder.",
-      "notes": "A pagina /noticias/ no fetch mostrou so filtro por ano (2019-2026) e contato de imprensa, sem itens listados (provavel carregamento dinamico). Sem RSS visivel. Ha area de associados em subdominio separado (restrita a login) - conteudo publico de noticias parece aberto, mas nao confirmado. Termos de uso: não encontrado. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://portal.febraban.org.br/sitemap.xml (857 URLs, 689 de notícias), mas sem lastmod e fora de ordem de data: o coletor pegaria as 5 primeiras na ordem do arquivo, não as mais novas. Não cadastrado."
+      "notes": "A pagina /noticias/ no fetch mostrou so filtro por ano (2019-2026) e contato de imprensa, sem itens listados (provavel carregamento dinamico). Sem RSS visivel. Ha area de associados em subdominio separado (restrita a login) - conteudo publico de noticias parece aberto, mas nao confirmado. Termos de uso: não encontrado. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://portal.febraban.org.br/sitemap.xml (857 URLs, 689 de notícias), mas sem lastmod e fora de ordem de data: o coletor pegaria as 5 primeiras na ordem do arquivo, não as mais novas. Além disso as páginas /noticia/ são casca de aplicação (o HTML traz só o título genérico FEBRABAN - Notícias, sem texto nem data nas 3 lidas em 25/11): ordenar por número da URL (que cresce com o tempo, de 2512 a 4280) não as tornaria coletáveis. Não cadastrado e sem regra de ordenação."
     }
   },
   {
@@ -736,10 +736,13 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:40-03:00",
       "consultedAt": "2026-11-22T18:48:30-03:00",
       "imageRightsNote": "não informado (apenas direitos reservados no rodape; nenhum termo de uso encontrado)",
-      "notes": "Listagem 'Notícias selecionadas do setor varejista' (itens de 13-18/11/2026) - parece curadoria que linka materias de terceiros; priorizar itens autorais do IDV. WordPress (sitemap_index.xml); feed WP padrao nao testado. Termos de uso: não encontrado. Checagem de coleta 25/11/2026 (Editorial): sitemap_index.xml cadastrado (o filho noticia-sitemap1.xml tem 201 URLs, a mais recente de 28/10/2026; o coletor lê os 2 filhos mais recentes e o de sala_de_imprensa não rende nada sob /noticia/). O feed /feed/ está parado desde 08/2022 e /noticias/feed/ vem vazio. A própria página /noticia/ entra no sitemap e pode ser lida como se fosse notícia (a triagem a recusa). Baixa frequência."
+      "notes": "Listagem 'Notícias selecionadas do setor varejista' (itens de 13-18/11/2026) - parece curadoria que linka materias de terceiros; priorizar itens autorais do IDV. WordPress (sitemap_index.xml); feed WP padrao nao testado. Termos de uso: não encontrado. Checagem de coleta 25/11/2026 (Editorial): sitemap_index.xml cadastrado (o filho noticia-sitemap1.xml tem 201 URLs, a mais recente de 28/10/2026; o coletor lê os 2 filhos mais recentes e o de sala_de_imprensa não rende nada sob /noticia/). O feed /feed/ está parado desde 08/2022 e /noticias/feed/ vem vazio. A própria página /noticia/ (listagem) entra no sitemap e é tirada por sitemapPathExclude. Baixa frequência."
     },
     "sitemapUrl": "https://www.idv.org.br/sitemap_index.xml",
-    "sitemapPathPrefix": "/noticia/"
+    "sitemapPathPrefix": "/noticia/",
+    "sitemapPathExclude": [
+      "^/noticia/?$"
+    ]
   },
   {
     "id": "abras",
@@ -790,7 +793,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 8,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "lido",
@@ -800,8 +803,13 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:45-03:00",
       "consultedAt": "2026-11-22T18:48:30-03:00",
       "imageRightsNote": "Termos: uso limitado a fins pessoais/nao comerciais; copias autorizadas devem trazer '©Copyright Accor SA'; fotografias sob a mesma protecao. Termos tambem dizem: 'The extraction and/or repeated re-use of the content, even non substantial, of this site is also prohibited' - raspagem nao permitida. Material de imprensa nao tratado separadamente: não informado como liberado.",
-      "notes": "Listagem mostrou press releases datados (ex.: 'Accor to Increase Its Stake in Ennismore', 11.17.2026; 'Accor Group & Hard Rock International Sign Global Strategic Partnership', 11.09.2026). Sem RSS visivel. Dada a clausula contra extracao repetida, recomenda-se NAO coletar automaticamente; usar apenas curadoria manual com link. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://group.accor.com/api/sitemap (425 URLs com lastmod real, 280 sob /en/news-stories/), mas 35 delas são páginas de listagem (/en/news-stories/page/N) com lastmod renovado a cada geração, que passariam à frente das matérias no corte de 5 por rodada, e o prefixo não consegue excluí-las. Não cadastrado; precisaria de uma regra de exclusão no coletor."
-    }
+      "notes": "Listagem mostrou press releases datados (ex.: 'Accor to Increase Its Stake in Ennismore', 11.17.2026; 'Accor Group & Hard Rock International Sign Global Strategic Partnership', 11.09.2026). Sem RSS visivel. Dada a clausula contra extracao repetida, recomenda-se NAO coletar automaticamente; usar apenas curadoria manual com link. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://group.accor.com/api/sitemap (425 URLs com lastmod real, 280 sob /en/news-stories/). 35 delas são páginas de listagem (/en/news-stories/page/N) com lastmod renovado a cada geração, que passariam à frente das matérias no corte de 5 por rodada: por isso o cadastro usa sitemapPathExclude para tirá-las. As matérias (245) são páginas completas no HTML (texto de cerca de 22 mil caracteres no exemplo lido), em inglês, a mais recente de 24/11/2026."
+    },
+    "sitemapUrl": "https://group.accor.com/api/sitemap",
+    "sitemapPathPrefix": "/en/news-stories/",
+    "sitemapPathExclude": [
+      "^/en/news-stories/page/[0-9]+/?$"
+    ]
   },
   {
     "id": "marriott-news",

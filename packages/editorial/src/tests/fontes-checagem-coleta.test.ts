@@ -24,6 +24,7 @@ describe('feeds e sitemaps cadastrados na checagem de 25/11/2026', () => {
     ['nubank-newsroom', 'https://nu.com/sitemap/institutional.xml', '/pt/sala-de-imprensa/'],
     ['guia-bolso-blog', 'https://meubolsoemdia.com.br/sitemap.xml', '/Materias/'],
     ['one-mile-at-a-time', 'https://onemileatatime.com/news-sitemap.xml', '/news/'],
+    ['accor-newsroom', 'https://group.accor.com/api/sitemap', '/en/news-stories/'],
   ];
 
   it('os 2 feeds novos: https, no host da fonte, com a contagem e a data lidas anotadas', () => {
@@ -35,7 +36,7 @@ describe('feeds e sitemaps cadastrados na checagem de 25/11/2026', () => {
     }
   });
 
-  it('os 7 sitemaps novos: https, no host da fonte, dentro do pathPrefix da fonte e com prefixo de notícias definido', () => {
+  it('os 8 sitemaps novos: https, no host da fonte, dentro do pathPrefix da fonte e com prefixo de notícias definido', () => {
     for (const [id, url, prefixo] of sitemaps) {
       const s = get(id);
       expect(s.sitemapUrl, id).toBe(url); expect(s.sitemapPathPrefix, id).toBe(prefixo);
@@ -50,7 +51,7 @@ describe('feeds e sitemaps cadastrados na checagem de 25/11/2026', () => {
 
   it('limite por hora das fontes novas cobre a rodada (robots + sitemap + filhos lidos + 5 páginas); com 6 a 5ª página sairia em rate_limited', () => {
     const PAGINAS = SITEMAP_MAX_PAGES_PER_RUN;
-    const filhos: Record<string, number> = { dinheirama: 0, 'guia-bolso-blog': 0, 'nubank-newsroom': 0, 'one-mile-at-a-time': 0, idv: 2 }; // filhos lidos por rodada (idv: os 2 mais recentes do índice com lastmod)
+    const filhos: Record<string, number> = { dinheirama: 0, 'guia-bolso-blog': 0, 'nubank-newsroom': 0, 'one-mile-at-a-time': 0, 'accor-newsroom': 0, idv: 2 }; // filhos lidos por rodada (idv: os 2 mais recentes do índice com lastmod)
     for (const [id, k] of Object.entries(filhos)) {
       const s = get(id);
       expect(SEED_SOURCES.filter((x) => x.host === s.host).map((x) => x.id), `${id}: único no host`).toEqual([id]);
@@ -78,8 +79,8 @@ describe('feeds e sitemaps cadastrados na checagem de 25/11/2026', () => {
 });
 
 describe('fontes sem feed nem sitemap utilizável: o motivo fica registrado e nada é inventado', () => {
-  const semFeed = ['abecs', 'abras', 'accor-newsroom', 'administradores', 'azul-ri', 'bb-ri', 'gol-ri', 'febraban', 'magalu-ri', 'mcti', 'senacon', 'oneworld', 'zendesk-newsroom'];
-  it('13 fontes seguem só com listagem e cada uma diz por quê', () => {
+  const semFeed = ['abecs', 'abras', 'administradores', 'azul-ri', 'bb-ri', 'gol-ri', 'febraban', 'magalu-ri', 'mcti', 'senacon', 'oneworld', 'zendesk-newsroom'];
+  it('12 fontes seguem só com listagem e cada uma diz por quê', () => {
     for (const id of semFeed) {
       const s = get(id);
       expect(s.feedUrl, id).toBeNull(); expect(s.sitemapUrl ?? null, id).toBeNull();
@@ -89,9 +90,9 @@ describe('fontes sem feed nem sitemap utilizável: o motivo fica registrado e na
   it('as 3 de programas (Dotz, Km de Vantagens, Premmia) já tinham o motivo registrado e não mudam', () => {
     for (const id of ['dotz-site', 'km-de-vantagens', 'petrobras-premmia']) { expect(get(id).feedUrl, id).toBeNull(); expect(get(id).verification?.notes ?? '', id).toMatch(/NÃO coletável hoje/); }
   });
-  it('as razões que dependem de código ou de decisão estão ditas: Accor (listagens no sitemap) e Febraban (sem lastmod)', () => {
-    expect(notes('accor-newsroom')).toMatch(/regra de exclusão no coletor/);
-    expect(notes('febraban')).toMatch(/sem lastmod/);
+  it('Febraban segue fora: sitemap sem lastmod e páginas que são casca de aplicação, e o Accor registra por que usa a exclusão', () => {
+    expect(notes('accor-newsroom')).toMatch(/sitemapPathExclude/);
+    expect(notes('febraban')).toMatch(/sem lastmod/); expect(notes('febraban')).toMatch(/casca de aplicação/);
     expect(notes('mcti')).toMatch(/404/); expect(notes('senacon')).toMatch(/403/);
   });
 });
