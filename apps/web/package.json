@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "e2e": "node scripts/e2e.mjs",
     "verify:no-mock": "node scripts/verify-no-mock.mjs",
+    "preflight:indexacao": "node scripts/preflight-indexacao.mjs",
     "smoke:studio-login": "playwright test -c e2e/staging/studio-login.config.ts"
   },
   "dependencies": {

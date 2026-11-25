@@ -27,11 +27,17 @@ test.describe(`indexação com APP_ENV=${appEnv}${semInterruptor ? ' sem PORTAL_
   });
 
   test('sitemap', async ({ request }) => {
-    const body = await (await request.get('/sitemap.xml')).text();
-    if (blocked) expect(body).not.toContain('<loc>');
+    const r = await request.get('/sitemap.xml');
+    const body = await r.text();
+    // Etapa A do go-live (auditoria de 25/11): em produção o sitemap lista as URLs reais ANTES de o noindex cair.
+    // Só staging, vitrine/MOCK continuam sem <loc>.
+    if (appEnv !== 'production' || mode === 'mock') expect(body).not.toContain('<loc>');
     else {
       expect(body).toContain('<loc>https://portal.example.test/</loc>');
       expect(body).toContain('https://portal.example.test/editoria/bancos');
+      // Nenhuma URL listada pode dar 404 (aceite da etapa A).
+      const locs = [...body.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
+      for (const p of locs.slice(0, 15)) expect((await request.get(p)).status(), p).toBe(200);
     }
   });
 
