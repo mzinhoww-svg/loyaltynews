@@ -188,8 +188,9 @@ try {
   r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--expect-commit', man.commit, '--denied', '/studio', ...(vitrine ? ['--vitrine', '/'] : ['--no-mock', '/'])], { encoding: 'utf8' });
   step(vitrine ? 'sondas: saúde com o commit certo, Studio nega sem login, home COM a faixa da vitrine' : 'sondas: saúde com o commit certo, Studio nega sem login, sem MOCK nem marcador da vitrine', r.status === 0, r.status === 0 ? JSON.parse(r.stdout).denied?.status + ' ' + (JSON.parse(r.stdout).denied?.location ?? '') : r.stdout.trim().slice(0, 300));
 
-  r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, '--noindex', '/', '--canonical', man.siteUrl], { encoding: 'utf8' });
-  step('staging NÃO indexável (robots Disallow: /, sitemap vazio, noindex) e canonical certo na home e em /noticias', r.status === 0, r.status === 0 ? '' : (() => { try { return JSON.parse(r.stdout).failures.join(' | ').slice(0, 400); } catch { return r.stdout.trim().slice(0, 400); } })());
+  // pacote INDEXÁVEL (go-live, DP-54): o healthcheck --noindex não vale; confere o contrário (home sem noindex, robots que libera) e o canonical do domínio
+  r = spawnSync(process.execPath, [join(SELF, 'healthcheck.mjs'), '--url', `http://127.0.0.1:${port}`, ...(indexavel ? [] : ['--noindex', '/']), '--canonical', man.siteUrl], { encoding: 'utf8' });
+  step(indexavel ? 'go-live: canonical do domínio certo na home e em /noticias' : 'staging NÃO indexável (robots Disallow: /, sitemap vazio, noindex) e canonical certo na home e em /noticias', r.status === 0, r.status === 0 ? '' : (() => { try { return JSON.parse(r.stdout).failures.join(' | ').slice(0, 400); } catch { return r.stdout.trim().slice(0, 400); } })());
   {
     const home = await (await fetchTentando(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(8000) })).text();
     const canon = (home.match(/<link[^>]+rel="canonical"[^>]*href="([^"]+)"/i) || home.match(/<link[^>]+href="([^"]+)"[^>]*rel="canonical"/i) || [])[1];
@@ -218,8 +219,21 @@ try {
     const artHonesta = art.status === 200 && /não conseguimos carregar esta matéria/i.test(artBody) && /noindex/i.test(artBody) && !/127\.0\.0\.1|ECONNREFUSED|api\/publico|\bat \w+\s*\(/i.test(artBody);
     step('[A6] matéria com a API indisponível: 404, 503 ou página de erro honesta noindex (nunca 500)', art.status === 404 || art.status === 503 || artHonesta, `HTTP ${art.status}`);
   }
+  if (indexavel) {
+    // go-live (DP-54): sem matéria publicada o sitemap pode vir vazio e o feed sem itens; o que NÃO pode é demonstração, MOCK ou noindex na home
+    const home = await (await fetchTentando(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(8000) })).text();
+    step('go-live: home SEM noindex (indexável)', !/<meta[^>]+name=["']robots["'][^>]*content=["'][^"']*noindex/i.test(home));
+    const rb = await fetchTentando(`http://127.0.0.1:${port}/robots.txt`, { signal: AbortSignal.timeout(8000) });
+    const rbTxt = await rb.text();
+    step('go-live: robots.txt libera o rastreio (sem Disallow: /)', rb.status === 200 && !/^\s*Disallow:\s*\/\s*$/im.test(rbTxt), `HTTP ${rb.status}`);
+    for (const p of ['/sitemap.xml', '/feed.xml']) {
+      const res = await fetchTentando(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
+      const body = await res.text();
+      step(`go-live: ${p} sem marcadores de demonstração`, (res.status === 200 || res.status === 404) && !(VITRINE_MARCADORES.some((m) => body.includes(m)) || /MOCK/.test(body)), `HTTP ${res.status}`);
+    }
+  }
   // [vitrine 1/5] sitemap e feed: nunca itens da vitrine (R6) e, no staging, nem itens nem URLs; 404 também serve (rota inexistente não vaza nada)
-  for (const p of ['/sitemap.xml', '/feed.xml']) {
+  for (const p of indexavel ? [] : ['/sitemap.xml', '/feed.xml']) {
     const res = await fetchTentando(`http://127.0.0.1:${port}${p}`, { redirect: 'manual', signal: AbortSignal.timeout(8000) });
     const body = await res.text();
     const vaza = VITRINE_MARCADORES.some((m) => body.includes(m)) || /\bMOCK\b/.test(body) || /<(?:loc|item|entry)\b/i.test(body);
