@@ -73,13 +73,23 @@
       "nota": "aleatório, ao menos 32 caracteres (o app recusa menos); valor DISTINTO em staging e produção; gerado pelo proprietário/DevOps direto no painel ou no cofre, nunca em arquivo, chat ou commit. Só necessário quando houver banco (ft/backend)."
     },
     {
+      "nome": "LN_ATTEMPT_HMAC_KEY",
+      "secreto": true,
+      "opcional": true,
+      "apps": [
+        "web"
+      ],
+      "dono_do_codigo": "packages/auth/src/attempts.ts (Backend)",
+      "nota": "Chave opcional (>= 32 bytes) do HMAC que pseudonimiza IP e e-mail no limite de tentativas (auth_attempt) e o IP do audit_log. Sem ela vale BETTER_AUTH_SECRET (HKDF, info ln:auth_attempt:v1); sem nenhuma das duas, em produção o app recusa (falha fechada). Trocar a chave zera na prática os contadores em curso (sujeitos novos) e muda o código de IP das novas linhas da auditoria (as antigas não se correlacionam com as novas). Valor nunca em arquivo, chat ou commit; DISTINTO em staging e produção."
+    },
+    {
       "nome": "TRUSTED_PROXY_HOPS",
       "secreto": false,
       "apps": [
         "web"
       ],
       "dono_do_codigo": "packages/auth (Backend)",
-      "nota": "inteiro de 1 a 10 = quantos proxies confiáveis há na frente do app; vale a N-ésima entrada de X-Forwarded-For contada da direita. Sem definir (ou inválido) o limite por IP fica INATIVO e vale só o limite por conta. Medir no primeiro staging com o diagnóstico DIAG_XFF; não chutar."
+      "nota": "inteiro de 1 a 10 = quantos proxies confiáveis há na frente do app; vale a N-ésima entrada de X-Forwarded-For contada da direita. Sem definir (ou inválido) o limite por IP fica INATIVO e vale só o limite por conta. Medir no primeiro staging com o diagnóstico DIAG_XFF; não chutar. Sem medir, o limite por IP fica inativo e o Better Auth NÃO limita por IP (disableIpTracking): sobra só o limite por conta. Procedimento: apps/web/app/api/README.md, seção \"Medição do TRUSTED_PROXY_HOPS no staging\"."
     },
     {
       "nome": "DIAG_XFF",

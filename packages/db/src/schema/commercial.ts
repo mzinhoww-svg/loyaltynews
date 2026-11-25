@@ -78,6 +78,10 @@ export const crmLeads = pgTable('crm_leads', {
   status: leadStatus('status').notNull().default('novo'),
   contaId: text('conta_id').references(() => crmAccounts.id),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  /** Retenção (DP-55): último contato com o lead (captura, mudança do lead ou da oportunidade ligada). Mantido por gatilho do banco (0031). */
+  ultimoContatoEm: timestamp('ultimo_contato_em', { withTimezone: true }).notNull().defaultNow(),
+  /** Quando passou a `descartado` (null se não está descartado). Mantido por gatilho do banco (0031). */
+  descartadoEm: timestamp('descartado_em', { withTimezone: true }),
 }, (t) => [
   check('crm_leads_classe', sql`${t.classeDeDado} = 'personal'`),
   index('crm_leads_status_idx').on(t.status, t.criadoEm),

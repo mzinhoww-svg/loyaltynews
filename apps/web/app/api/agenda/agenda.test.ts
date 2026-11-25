@@ -90,6 +90,10 @@ describe('sugestão pública moderada', () => {
       for (let i = 0; i < 7; i++) statuses.push((await suggest(sug({ titulo: `Limite por IP ${i}`, inicio: `2026-12-${String(14 + i).padStart(2, '0')}`, fim: `2026-12-${String(14 + i).padStart(2, '0')}` }))).status);
       expect(statuses.filter((s) => s === 202)).toHaveLength(5);
       expect(statuses.filter((s) => s === 429)).toHaveLength(2);
+      // privacidade: o limite por IP gravou só o HMAC, nunca o IP
+      const lim = await app.db.select().from(schema.authAttempt);
+      expect(lim.filter((r) => r.kind === 'form').length).toBeGreaterThan(0);
+      for (const r of lim) expect(r.subject).toMatch(/^h1:[0-9a-f]{64}$/);
     } finally {
       delete process.env.TRUSTED_PROXY_HOPS;
     }

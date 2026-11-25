@@ -53,7 +53,10 @@ export function createAuth(opts: CreateAuthOptions) {
     },
     plugins: [twoFactor({ issuer: 'Loyalty News' })],
     advanced: {
-      ipAddress: { ipAddressHeaders: ['x-forwarded-for', 'x-real-ip'] },
+      // PRIVACIDADE (LGPD, decisão do PM 25/11): o Better Auth NÃO grava o IP na sessão (auth_session.ip_address ficava cru) nem o usa no limite embutido dele (em memória,
+      // ~1000/h, por IP resolvido de um cabeçalho que o cliente pode forjar). Contrapartida registrada no README: o limite por IP e por conta é do PRÓPRIO app
+      // (attempts.ts, HMAC no banco) e cobre toda rota de /api/auth que adivinha credencial (handler.ts: AUTH_ROUTE_POLICY, com teste).
+      ipAddress: { disableIpTracking: true },
       database: { generateId: () => randomUUID() },
     },
   });
