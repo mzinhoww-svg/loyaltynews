@@ -59,6 +59,7 @@ export function SiteHeader({
       navLabel="Seções do portal"
       links={links}
       menu={menu}
+      entrar={{ href: '/studio/entrar', label: 'Entrar' }}
       cta={{ href: '/midia-kit', label: 'Anuncie', current: on('/midia-kit') }}
       actions={
         <>

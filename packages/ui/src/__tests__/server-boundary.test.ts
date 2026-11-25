@@ -29,6 +29,7 @@ describe("fronteira cliente/servidor dos componentes", () => {
   it("lista dos componentes de cliente é a esperada", () => {
     const client = files.filter((f) => f.src.startsWith('"use client"')).map((f) => f.rel).sort();
     expect(client).toEqual([
+      "FooterGroup.tsx",
       "Header.tsx",
       "HeaderSearch.tsx",
       "Input.tsx",

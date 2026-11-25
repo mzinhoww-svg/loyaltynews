@@ -24,6 +24,7 @@ export async function SiteFooter() {
       editorias={EDITORIAS.map((e) => ({ slug: e.slug, nome: e.name }))}
       hrefFor={(slug) => `/editoria/${slug}`}
       linkAs={Link}
+      entrar={{ href: '/studio/entrar', label: 'Entrar' }}
       groups={published ?? [
         {
           title: 'Conteúdo',
