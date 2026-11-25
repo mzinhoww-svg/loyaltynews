@@ -802,5 +802,18 @@
       "R0-07"
     ],
     "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-50 (sha256 do arquivo-fonte 757c95d04a9c1f4acf31bff5bd17095f5ba40b2fe954456dd329c9d13f717cb2)"
+  },
+  {
+    "id": "DP-57",
+    "status": "registrada",
+    "data": "2026-11-25",
+    "fonte": "proprietario (chat), registro do Program Manager",
+    "escolha": "o proprietário decidiu, em 25/11/2026, ligar o formulário de proposta (flag `portalFormularios`) na PRODUÇÃO, no release 2 (domínio www.loyaltynews.com.br, indexável, pacote pré-construído pelo Actions). A flag `adServerVendas` continua DESLIGADA em produção (DP-43 só vale para o staging).",
+    "efeito": "Em produção, portalFormularios liga por commit revisado (ADR-022, adendo 3): FLAG_RELEASES.portalFormularios.production = 'DP-57' e o nome em PRODUCTION_FLAGS_ON do packages/contracts/src/flags.ts; LN_FLAGS_ON continua proibida em produção. adServerVendas continua desligada em produção. Pronto quando o /api/health da produção mostrar portalFormularios em flags.",
+    "vinculo": [
+      "DP-43",
+      "DP-54"
+    ],
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-57 (sha256 do arquivo-fonte 377cdb55948bfb3c5f791c34c710c6089fa187dbc79fb9d0dbf5248c39719cf2)"
   }
 ]
