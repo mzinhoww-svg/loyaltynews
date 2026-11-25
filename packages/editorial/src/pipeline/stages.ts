@@ -6,7 +6,7 @@ import type { GatewayRequest, GatewayResponse, ModelGateway, RouteClass, TaskCla
 import type { SourceRegistry } from '../sources/registry';
 import { eligibility } from '../sources/registry';
 import {
-  AUTORAL_LABEL, buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
+  AUTORAL_LABEL, buildAttribution, decideImage, fabricatedReportingFindings, mainBody, numbersMatch, parseNumbersIn, runDeterministicChecks,
 } from '../rules/rules';
 import { normalizeText } from '../dedupe/dedupe';
 import { PUBLISHABLE_DEFAULTS, RESUMO_MAX, imageToRights, uniqueSlug } from '../publishable';
@@ -325,10 +325,10 @@ export async function socialPack(deps: StageDeps, job: ArticleJob, published: Pu
   const li = r.output['linkedin'];
   const ig = wantIg && typeof r.output['instagram'] === 'string' ? r.output['instagram'] : undefined;
   const base = `${d.headline}\n${mainBody(d.body)}`;
-  const baseNums = new Set(numbersIn(base).map(digitsKey));
+  const baseNums = parseNumbersIn(base);
   const findings: Finding[] = [...fabricatedReportingFindings(li), ...(ig ? fabricatedReportingFindings(ig) : [])];
   for (const t of [li, ...(ig ? [ig] : [])]) {
-    for (const n of numbersIn(t)) if (!baseNums.has(digitsKey(n))) findings.push({ code: 'unsupported_metric', message: `número "${n}" no post não consta na matéria` });
+    for (const n of parseNumbersIn(t)) if (!baseNums.some((b) => numbersMatch(n, b))) findings.push({ code: 'unsupported_metric', message: `número "${n.raw}" no post não consta na matéria` });
     for (const m of t.matchAll(/["“]([^"”]{12,})["”]/g)) if (!normalizeText(base).includes(normalizeText(m[1]!))) findings.push({ code: 'invented_quote', message: 'citação do post não consta na matéria' });
   }
   if (li.length > 3000) findings.push({ code: 'too_long', message: 'post LinkedIn acima de 3000 caracteres' });

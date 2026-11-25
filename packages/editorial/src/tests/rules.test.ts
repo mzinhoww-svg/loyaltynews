@@ -4,8 +4,8 @@ import { Collector } from '../collector/collector';
 import { MOCK_SOURCE, mockResolver, mockWeb, COLLECT_ON } from '../../fixtures/mock-web.mock';
 import { goodDraftOutput, MOCK_EVIDENCE_QUOTE } from '../../fixtures/mock-gateway.mock';
 import {
-  buildAttribution, checkClaims, checkImage, checkNoFabricatedReporting, checkOriginality, checkSignature,
-  decideImage, runDeterministicChecks,
+  buildAttribution, checkBodyGrounding, checkClaims, checkImage, checkNoFabricatedReporting, checkOriginality, checkSignature,
+  decideImage, numbersMatch, parseNumbersIn, runDeterministicChecks,
 } from '../rules/rules';
 import { makeIllustration } from '../publishable';
 import { SIGNATURE } from '../types';
@@ -55,6 +55,56 @@ test('nunca inventar métrica: número fora da evidência é rejeitado', () => {
   const d = mk({ body: 'O programa teve 1.500.000 de participantes e crescimento de 35%.' });
   const f = runDeterministicChecks(d, [ev]).findings.filter((x) => x.code === 'unsupported_metric');
   assert.ok(f.length >= 2);
+});
+
+function numEv(text: string): Evidence {
+  return {
+    id: 'ev-num', sourceId: 'ri-mock', url: 'https://ri.mock.example/resultado', canonicalUrl: 'https://ri.mock.example/resultado',
+    fetchedAt: '2026-11-25T09:00:00.000Z', contentSha256: 'sha-mock', title: 'Resultado do período', text,
+    publishedAt: '2026-11-24T00:00:00.000Z', suspicious: false, suspiciousReasons: [],
+  };
+}
+
+test('número: multiplicador textual e separador de milhar não geram falso positivo (caso real do piloto)', () => {
+  const e = numEv('A companhia reportou $4,000 de receita, $14,000 de custos e EUR 60,000 de investimento.');
+  const d = mk({ body: 'A receita somou US$ 4 mil, os custos 14 mil e o investimento EUR 60 mil.', evidenceIds: [e.id] });
+  assert.deepEqual(checkBodyGrounding(d, [e]).findings, []);
+  d.claims = [{ id: 'n', kind: 'number', text: 'US$ 4 mil de receita', evidenceIds: [e.id] }];
+  assert.deepEqual(checkClaims(d, [e]).findings.filter((x) => x.code === 'unsupported_metric'), []);
+});
+
+test('número: arredondamento dentro da tolerância passa; valor inventado continua barrado', () => {
+  const e = numEv('O tíquete médio ficou em US$ 4,240 por associado.');
+  const ok = mk({ body: 'O tíquete médio foi de US$ 4 mil por associado.', evidenceIds: [e.id] });
+  assert.deepEqual(checkBodyGrounding(ok, [e]).findings, []);
+  const ruim = mk({ body: 'O tíquete médio foi de US$ 7 mil por associado.', evidenceIds: [e.id] });
+  assert.ok(checkBodyGrounding(ruim, [e]).findings.some((x) => x.code === 'unsupported_metric' && x.message.includes('7 mil')));
+});
+
+test('número: moeda dos dois lados precisa bater; sem moeda de um lado compara só o valor', () => {
+  const e = numEv('O fundo destinou US$ 60,000 ao programa.');
+  const outraMoeda = mk({ body: 'O fundo destinou EUR 60 mil ao programa.', evidenceIds: [e.id] });
+  assert.ok(checkBodyGrounding(outraMoeda, [e]).findings.some((x) => x.code === 'unsupported_metric'));
+  const semMoeda = mk({ body: 'O fundo destinou 60 mil ao programa.', evidenceIds: [e.id] });
+  assert.deepEqual(checkBodyGrounding(semMoeda, [e]).findings, []);
+});
+
+test('número: separadores pt-BR e en-US e K/M/B são equivalentes', () => {
+  const e = numEv('Receita de R$ 1.234,56, base de 4,000 clientes e projeção de 4 milhões.');
+  const d = mk({ body: 'Receita de R$ 1,234.56, base de 4K clientes e projeção de 4M.', evidenceIds: [e.id] });
+  assert.deepEqual(checkBodyGrounding(d, [e]).findings, []);
+});
+
+test('parseNumbersIn: valor, moeda e arredondamento', () => {
+  const [a] = parseNumbersIn('US$ 4 mil');
+  assert.deepEqual([a?.value, a?.currency, a?.rounded], [4000, 'USD', true]);
+  const [b] = parseNumbersIn('EUR 60,000');
+  assert.deepEqual([b?.value, b?.currency, b?.rounded], [60000, 'EUR', false]);
+  const [c] = parseNumbersIn('R$ 1.234,56');
+  assert.deepEqual([c?.value, c?.currency], [1234.56, 'BRL']);
+  const [d] = parseNumbersIn('4M');
+  assert.deepEqual([d?.value, d?.rounded], [4_000_000, true]);
+  assert.equal(numbersMatch(parseNumbersIn('US$ 4 mil')[0]!, parseNumbersIn('US$ 4,240')[0]!), true);
 });
 
 test('claim sem evidência ou com evidência inexistente é rejeitado', () => {
