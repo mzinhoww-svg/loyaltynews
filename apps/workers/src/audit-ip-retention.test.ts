@@ -4,7 +4,8 @@ import type { Db } from '@ln/auth';
 import { AUDIT_IP_MESES, purgeAuditIps, startAuditIpRetention } from './audit-ip-retention';
 
 // Decisão do PM (25/11): o código de IP do audit_log fica 12 meses e é anulado; a linha e o resto do registro ficam. Única exceção ao append-only (migração 0033).
-const NOW = new Date('2026-11-25T12:00:00Z');
+// relógio REAL: o gatilho do banco (0034) usa o now() dele; o job aqui recebe o mesmo instante
+const NOW = new Date();
 const dias = (n: number) => new Date(NOW.getTime() - n * 86_400_000);
 let t: Awaited<ReturnType<typeof createTestDb>>;
 const db = () => t.db as unknown as Db;
@@ -48,7 +49,7 @@ describe('anulação do IP do audit_log depois de 12 meses', () => {
 
 describe('o append-only continua valendo, com UMA exceção', () => {
   it('rejeita apagar, mudar qualquer outro campo, trocar o IP por outro valor e anular o IP junto de outra mudança', async () => {
-    await put('c1', dias(10), HASH('e'));
+    await put('c1', dias(400), HASH('e')); // com MAIS de 12 meses: a única que a exceção aceita
     const rej = /append-only/;
     await expect(t.client.query("DELETE FROM audit_log WHERE id = 'c1'")).rejects.toThrow(rej);
     await expect(t.client.query("UPDATE audit_log SET action = 'x' WHERE id = 'c1'")).rejects.toThrow(rej);
@@ -58,9 +59,24 @@ describe('o append-only continua valendo, com UMA exceção', () => {
     await expect(t.client.query("UPDATE audit_log SET ip = NULL, action = 'x' WHERE id = 'c1'")).rejects.toThrow(rej);
     await expect(t.client.query("UPDATE audit_log SET ip = NULL, actor_id = NULL WHERE id = 'c1'")).rejects.toThrow(rej);
     expect((await row('c1')).ip).toBe(HASH('e')); // nada passou
-    await t.client.query("UPDATE audit_log SET ip = NULL WHERE id = 'c1'"); // a exceção: só o IP, só para NULL
+    await t.client.query("UPDATE audit_log SET ip = NULL WHERE id = 'c1'"); // a exceção: só o IP, só para NULL, e só em linha com mais de 12 meses
     expect((await row('c1')).ip).toBeNull();
     await expect(t.client.query("DELETE FROM audit_log WHERE id = 'c1'")).rejects.toThrow(rej);
+  });
+
+  it('0034: anular o IP de uma linha RECENTE é recusado pelo banco (23000), mesmo só o ip e só para NULL; a de 367 dias é aceita; a de 364 dias, recusada', async () => {
+    await put('d-hoje', new Date(), HASH('1'));
+    await put('d-ontem', dias(1), HASH('2'));
+    await put('d-364', dias(364), HASH('3'));
+    await put('d-367', dias(367), HASH('4'));
+    for (const id of ['d-hoje', 'd-ontem', 'd-364']) {
+      const e = await t.client.query(`UPDATE audit_log SET ip = NULL WHERE id = '${id}'`).then(() => null, (x: { code?: string; message?: string; cause?: { code?: string } }) => x);
+      expect(e, id).not.toBeNull();
+      expect(e!.code ?? e!.cause?.code ?? '23000', id).toBe('23000');
+      expect((await row(id)).ip, id).not.toBeNull();
+    }
+    await t.client.query("UPDATE audit_log SET ip = NULL WHERE id = 'd-367'");
+    expect((await row('d-367')).ip).toBeNull();
   });
 
   it('as outras tabelas append-only (orçamento, efeitos, recibos) seguem totalmente travadas', async () => {

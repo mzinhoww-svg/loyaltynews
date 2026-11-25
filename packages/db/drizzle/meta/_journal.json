@@ -239,6 +239,13 @@
       "when": 1795617553402,
       "tag": "0033_audit_log_ip_anulavel",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795619465555,
+      "tag": "0034_audit_log_ip_so_apos_12_meses",
+      "breakpoints": true
     }
   ]
 }

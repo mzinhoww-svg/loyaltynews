@@ -1,7 +1,7 @@
 // PRIVACIDADE (LGPD): o banco NUNCA guarda o IP nem o e-mail em claro. Toda linha é indexada por um HMAC-SHA256 de kind + NUL + sujeito (h1:<hex>), calculado AQUI,
 // em um só lugar (acquire, release, reset, blockedUntil, clearAttempts): os chamadores continuam passando o valor lógico (IP, senha:<ip>, agenda:<ip>, e-mail,
 // 2fa:<userId>) e nenhum caminho novo consegue gravar cru. Chave: 32 bytes derivados por HKDF-SHA256 de LN_ATTEMPT_HMAC_KEY (>= 32 bytes) ou, na falta, de
-// BETTER_AUTH_SECRET (info ln:auth_attempt:v1). Sem chave em produção: erro (falha fechada); fora dela (teste/dev): chave aleatória do processo. SHA-256 sem
+// BETTER_AUTH_SECRET (info ln:auth_attempt:v1). Sem chave em ambiente de deploy (staging/production/homologacao/producao ou NODE_ENV=production): erro (falha fechada); fora deles (teste/dev): chave aleatória do processo. SHA-256 sem
 // chave não serve (o espaço IPv4 se inverte em minutos). Trocar a chave zera, na prática, os contadores em curso (sujeitos novos). Nada aqui é logado.
 // Limite de tentativas de login (ADR-011, valores propostos): até 5 tentativas por janela de 15 min;
 // a 5ª dispara bloqueio de 15 min, por conta (e-mail) e por IP. Estado no PostgreSQL (tabela auth_attempt).
@@ -25,10 +25,11 @@ export type Acquire = { allowed: true } | { allowed: false; until: Date };
 export const ATTEMPT_TAG = 'h1:';
 const HKDF_INFO = 'ln:auth_attempt:v1';
 const MIN_KEY_BYTES = 32;
+const DEPLOY_ENVS: ReadonlySet<string> = new Set(['staging', 'production', 'homologacao', 'producao']);
 const derived = new Map<string, Buffer>();
 let ephemeral: Buffer | undefined;
 
-/** Chave HMAC (32 bytes). Lança, sem citar valor algum, se não há segredo utilizável em produção ou se LN_ATTEMPT_HMAC_KEY está curta. */
+/** Chave HMAC (32 bytes). Lança, sem citar valor algum, se não há segredo utilizável em ambiente de deploy ou se LN_ATTEMPT_HMAC_KEY está curta. */
 export function attemptKey(env: Record<string, string | undefined> = process.env): Buffer {
   const own = env.LN_ATTEMPT_HMAC_KEY;
   if (own !== undefined && own !== '' && Buffer.byteLength(own) < MIN_KEY_BYTES) throw new Error(`LN_ATTEMPT_HMAC_KEY curta: mínimo de ${MIN_KEY_BYTES} bytes`);
@@ -42,7 +43,8 @@ export function attemptKey(env: Record<string, string | undefined> = process.env
     }
     return k;
   }
-  if (env.APP_ENV === 'production' || env.NODE_ENV === 'production') {
+  // qualquer ambiente de DEPLOY (staging, produção e as grafias em português) falha fechada: um worker ou CLI sem NODE_ENV não cai numa chave efêmera por processo
+  if (DEPLOY_ENVS.has((env.APP_ENV ?? '').trim().toLowerCase()) || env.NODE_ENV === 'production') {
     throw new Error('chave do limite de tentativas ausente: defina BETTER_AUTH_SECRET (>= 32 bytes) ou LN_ATTEMPT_HMAC_KEY');
   }
   ephemeral ??= randomBytes(32);

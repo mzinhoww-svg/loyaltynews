@@ -133,6 +133,9 @@ describe('chave: falha fechada', () => {
   it('em produção sem BETTER_AUTH_SECRET nem LN_ATTEMPT_HMAC_KEY, calcular o sujeito lança (nada é gravado cru); a mensagem não cita valor', () => {
     expect(() => attemptKey({ APP_ENV: 'production' })).toThrow(/chave do limite de tentativas ausente/);
     expect(() => attemptKey({ NODE_ENV: 'production', BETTER_AUTH_SECRET: 'curto' })).toThrow(/ausente/);
+    for (const APP_ENV of ['staging', 'production', 'homologacao', 'producao', ' Staging ']) expect(() => attemptKey({ APP_ENV }), APP_ENV).toThrow(/ausente/); // qualquer ambiente de deploy
+    expect(() => attemptKey({ APP_ENV: 'staging', LN_ATTEMPT_HMAC_KEY: 'k'.repeat(32) })).not.toThrow();
+    expect(() => attemptKey({ APP_ENV: 'dev' })).not.toThrow(); // dev/teste: chave do processo
     expect(() => attemptSubject('ip', '1.2.3.4', { APP_ENV: 'production' })).toThrow();
     try { attemptKey({ APP_ENV: 'production', BETTER_AUTH_SECRET: 'segredo-curto-demais' }); } catch (e) { expect((e as Error).message).not.toContain('segredo-curto'); }
   });
