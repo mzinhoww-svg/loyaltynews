@@ -85,14 +85,15 @@ export interface NumericToken {
 }
 
 const CURRENCY: Record<string, string> = {
-  'r$': 'BRL', 'us$': 'USD', usd: 'USD', brl: 'BRL', eur: 'EUR', '€': 'EUR', gbp: 'GBP', '£': 'GBP', $: 'USD',
+  'r$': 'BRL', 'us$': 'USD', usd: 'USD', brl: 'BRL', eur: 'EUR', '€': 'EUR', gbp: 'GBP', '£': 'GBP', $: 'USD', jpy: 'JPY',
+  'dólar': 'USD', 'dólares': 'USD', real: 'BRL', reais: 'BRL', libra: 'GBP', libras: 'GBP', iene: 'JPY', ienes: 'JPY', euro: 'EUR', euros: 'EUR',
 };
 const MULTIPLIER: Record<string, number> = {
   mil: 1e3, milhao: 1e6, milhoes: 1e6, 'milhão': 1e6, 'milhões': 1e6,
   bilhao: 1e9, bilhoes: 1e9, 'bilhão': 1e9, 'bilhões': 1e9, k: 1e3, m: 1e6, b: 1e9,
 };
-/** Moeda antes ou depois do número; multiplicador textual ou K/M/B logo depois (sem colar em "milhas", por exemplo). */
-const NUM_TOKEN = /(?:(R\$|US\$|USD|BRL|EUR|GBP|€|£|\$)\s*)?(\d[\d.,]*)(?:\s*(milhões|milhão|milhoes|milhao|bilhões|bilhão|biloes|bilhao|mil|K|M|B)(?![A-Za-zÀ-ÿ]))?(?:\s*(USD|BRL|EUR|GBP))?/gi;
+/** Moeda antes ou depois do número (código, símbolo ou palavra por extenso); multiplicador textual ou K/M/B logo depois. */
+const NUM_TOKEN = /(?:(R\$|US\$|USD|BRL|EUR|GBP|JPY|€|£|\$)(?![A-Za-zÀ-ÿ])\s*)?(\d[\d.,]*)(?:\s*(milhões|milhão|milhoes|milhao|bilhões|bilhão|biloes|bilhao|mil|K|M|B)(?![A-Za-zÀ-ÿ]))?(?:\s*(dólares|dólar|reais|real|libras|libra|ienes|iene|euros|euro|USD|BRL|EUR|GBP|JPY)(?![A-Za-zÀ-ÿ]))?/gi;
 
 /** Separador de milhar (vírgula pt-BR, ponto en-US) e decimal, sem saber o idioma do texto. Devolve também as casas escritas. */
 function parseNumber(num: string): { value: number; decimals: number } | null {
@@ -137,13 +138,14 @@ export function parseNumbersIn(s: string): NumericToken[] {
  * Compara o número do TEXTO (a) com o da EVIDÊNCIA (b). O texto só pode representar a evidência por arredondamento
  * quando escreveu um multiplicador e no máximo metade da menor casa escrita: "4 mil" aceita 4.240 (240 ≤ 500), mas
  * "11 mil" não aceita 10.000 (1.000 > 500) e "4,4 mil" não aceita 4.000 (400 > 50). Texto sem multiplicador exige o
- * valor exato; valor inexato que não seja arredondamento válido falha (fail closed). Moeda diferente bloqueia; moeda
- * ausente de um lado compara só o valor, por desenho.
+ * valor exato; valor inexato que não seja arredondamento válido falha (fail closed). Moeda diferente bloqueia (código,
+ * símbolo ou palavra por extenso: dólar/es, real/is, libra/s, iene/s, euro/s); moeda ausente de um lado compara só o
+ * valor, por desenho.
  *
  * Limites conhecidos, NÃO corrigidos aqui: (1) a comparação usa o texto concatenado das evidências citadas, sem amarrar
  * cada número ao seu trecho/contexto — "7 mil" passa tanto para "7 mil lojas" quanto para "7 mil pontos" quando os
  * valores coincidem, então o matcher não substitui a checagem humana de contexto; (2) o parser lê "0.500"/"1.234" (três
- * casas em en-US) como milhar, e "60 mil euros" não reconhece a palavra "euros" como moeda.
+ * casas em en-US) como milhar.
  */
 export function numbersMatch(a: NumericToken, b: NumericToken): boolean {
   if (a.currency && b.currency && a.currency !== b.currency) return false; // nunca presume câmbio

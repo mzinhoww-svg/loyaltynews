@@ -127,6 +127,21 @@ const CASOS_MATCHER: CasoMatcher[] = [
   { caso: 'limitação de contexto: 7,3 mil pontos para 7.000 lojas', ev: 'A rede tem 7.000 lojas.', texto: 'O programa distribuiu 7,3 mil pontos.', esperado: 'bloqueia' },
   { caso: 'limitação de contexto no claim: 7 mil pontos para 7.000 lojas', ev: 'A rede tem 7.000 lojas.', texto: '7 mil pontos distribuídos', esperado: 'passa', via: 'claim' },
   { caso: 'borda: 1 mil para 900 (arredondamento correto para cima)', ev: 'O total foi de 900 associados.', texto: 'O total foi de 1 mil associados.', esperado: 'passa' },
+  { caso: 'moeda: BRL contra R$', ev: 'O valor foi R$ 60,000.', texto: 'O valor foi BRL 60 mil.', esperado: 'passa' },
+  { caso: 'moeda: USD contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi USD 60 mil.', esperado: 'passa' },
+  { caso: 'moeda: GBP contra EUR', ev: 'O valor foi EUR 60,000.', texto: 'O valor foi GBP 60 mil.', esperado: 'bloqueia' },
+  { caso: 'moeda: euros contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi 60 mil euros.', esperado: 'bloqueia' },
+  { caso: 'moeda: US$ contra euros', ev: 'O valor foi 60 mil euros.', texto: 'O valor foi US$ 60 mil.', esperado: 'bloqueia' },
+  { caso: 'moeda: euro singular contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi 60 mil euro.', esperado: 'bloqueia' },
+  { caso: 'moeda: EUR contra euros', ev: 'O valor foi 60 mil euros.', texto: 'O valor foi EUR 60 mil.', esperado: 'passa' },
+  { caso: 'moeda: reais contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi 60 mil reais.', esperado: 'bloqueia' },
+  { caso: 'moeda: dólares contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi 60 mil dólares.', esperado: 'passa' },
+  { caso: 'moeda: libras contra GBP', ev: 'O valor foi GBP 60,000.', texto: 'O valor foi 60 mil libras.', esperado: 'passa' },
+  { caso: 'moeda: ienes contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi 60 mil ienes.', esperado: 'bloqueia' },
+  { caso: 'moeda: dólares contra EUR', ev: 'O valor foi EUR 60,000.', texto: 'O valor foi 60 mil dólares.', esperado: 'bloqueia' },
+  { caso: 'moeda: libras contra US$', ev: 'O valor foi US$ 60,000.', texto: 'O valor foi 60 mil libras.', esperado: 'bloqueia' },
+  { caso: 'moeda: reais contra R$', ev: 'O valor foi R$ 60,000.', texto: 'O valor foi 60 mil reais.', esperado: 'passa' },
+  { caso: 'moeda: ienes contra JPY', ev: 'O valor foi JPY 60,000.', texto: 'O valor foi 60 mil ienes.', esperado: 'passa' },
 ];
 test.each(CASOS_MATCHER)('matcher QA 11 — $caso → $esperado', ({ ev, texto, esperado, via }) => {
   const e = numEv(ev);
