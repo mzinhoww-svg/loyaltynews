@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { EDITORIAS } from '@ln/contracts';
 import { checkAccess } from '@/lib/studio/modules';
@@ -114,15 +115,17 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
           Filtro inválido: {mensagemErro(r)}
         </div>
       ) : lista.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">{status || editoria || q ? 'Nenhuma matéria com esses filtros' : 'Nenhuma matéria ainda'}</h2>
-          <p>{status || editoria || q ? 'Ajuste os filtros para ver outras matérias.' : 'A fila editorial está vazia. As matérias chegam pela Fábrica editorial ou são criadas aqui. Nada foi simulado.'}</p>
-          {!status && !editoria && !q && podeEditar ? (
-            <Link className="st-btn" href="/studio/cms/nova">
-              Criar a primeira matéria
-            </Link>
-          ) : null}
-        </section>
+        <EmptyState
+          title={status || editoria || q ? 'Nenhuma matéria com esses filtros' : 'Nenhuma matéria ainda'}
+          description={status || editoria || q ? 'Ajuste os filtros para ver outras matérias.' : 'A fila editorial está vazia. As matérias chegam pela Fábrica editorial ou são criadas aqui. Nada foi simulado.'}
+          action={
+            !status && !editoria && !q && podeEditar ? (
+              <Link className="st-btn" href="/studio/cms/nova">
+                Criar a primeira matéria
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <QuadroRolavel rotulo="Matérias">
 <table className="st-table">

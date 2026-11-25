@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -192,10 +193,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
 
       <h2 style={{ marginTop: 24 }}>Redirecionamentos</h2>
       {redirects.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h3 id="vazio">Nenhum redirecionamento</h3>
-          <p>Nenhum redirecionamento cadastrado.</p>
-        </section>
+        <EmptyState headingLevel={3} title="Nenhum redirecionamento" description="Nenhum redirecionamento cadastrado." />
       ) : (
         <QuadroRolavel rotulo="Redirecionamentos">
 <table className="st-table">

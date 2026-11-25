@@ -1,6 +1,7 @@
 // Módulos do Studio sem backend: tela funcional com estado vazio honesto e flag. O CMS tem rota própria (precede esta).
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { EmptyState } from '@ln/ui';
 import { flagAtiva } from '@/lib/studio/flags';
 import { GRUPOS, findModule } from '@/lib/studio/modules';
 import { requireModule } from '../../_lib/guard';
@@ -32,11 +33,12 @@ export default async function ModulePage({ params }: { params: Promise<{ modulo:
           </p>
         </section>
       ) : null}
-      <section className="st-empty" aria-labelledby="vazio">
-        <h2 id="vazio">Nenhum dado disponível</h2>
-        <p>
-          Este módulo ainda não tem backend conectado, então não há registros para mostrar. Nada aqui é simulado: quando o serviço existir, os dados reais aparecem nesta tela.
-        </p>
+      <>
+        <EmptyState
+          kind="unavailable"
+          title="Nenhum dado disponível"
+          description="Este módulo ainda não tem backend conectado, então não há registros para mostrar. Nada aqui é simulado: quando o serviço existir, os dados reais aparecem nesta tela."
+        />
         {mod.flag ? (
           <p>
             Este módulo está <strong>{flagLigada ? 'ligado' : 'desligado nesta fase'}</strong>. Ligar é uma decisão registrada, nunca padrão de código.
@@ -44,16 +46,14 @@ export default async function ModulePage({ params }: { params: Promise<{ modulo:
         ) : (
           <p>Aguardando o backend deste módulo.</p>
         )}
-        <h3>Escopo previsto (Blueprint §5)</h3>
+        <h2>Escopo previsto (Blueprint §5)</h2>
         <ul>
           {mod.funcoes.map((f) => (
             <li key={f}>{f}</li>
           ))}
         </ul>
-        {mod.rotasBlueprint ? (
-          <p className="st-hint">Rotas do Blueprint cobertas: {mod.rotasBlueprint.join(', ')}</p>
-        ) : null}
-      </section>
+        {mod.rotasBlueprint ? <p className="st-hint">Rotas do Blueprint cobertas: {mod.rotasBlueprint.join(', ')}</p> : null}
+      </>
     </>
   );
 }

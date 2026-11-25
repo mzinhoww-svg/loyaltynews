@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { EDITORIAS } from '@ln/contracts';
 import { AUTORAL_LABEL, sourceTier, type SourceKind } from '@ln/editorial';
@@ -73,14 +74,9 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
 
       <h2>Acompanhamento</h2>
       {ehErro(lista) ? (
-        <div className="st-alert err" role="alert">
-          {mensagemErro(lista)}
-        </div>
+        <EmptyState kind="error" headingLevel={3} title="Não foi possível carregar" description={mensagemErro(lista)} />
       ) : pautas.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h3 id="vazio">Nenhuma pauta</h3>
-          <p>Nenhuma pauta autoral registrada.</p>
-        </section>
+        <EmptyState headingLevel={3} title="Nenhuma pauta" description="Nenhuma pauta autoral registrada." />
       ) : (
         <QuadroRolavel rotulo="Pautas">
 <table className="st-table" aria-label="Pautas autorais">
@@ -161,12 +157,18 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
       {!podeEscrever ? (
         <p className="st-hint">Seu papel só acompanha as pautas; quem escreve é o editor, o editor-chefe e o admin.</p>
       ) : fontes.length < 1 ? (
-        <section className="st-empty" aria-labelledby="sem-fontes" data-sem-fontes>
-          <h3 id="sem-fontes">Nenhuma fonte primária habilitada</h3>
-          <p>
-            A pauta autoral precisa de {MIN_ANCORAS} a {MAX_ANCORAS} âncoras em fontes primárias habilitadas. Revise e habilite fontes em <Link href="/studio/fontes/fabrica">Fontes da Fábrica</Link>.
-          </p>
-        </section>
+        <div data-sem-fontes>
+          <EmptyState
+            kind="unavailable"
+            headingLevel={3}
+            title="Nenhuma fonte primária habilitada"
+            description={
+              <>
+                A pauta autoral precisa de {MIN_ANCORAS} a {MAX_ANCORAS} âncoras em fontes primárias habilitadas. Revise e habilite fontes em <Link href="/studio/fontes/fabrica">Fontes da Fábrica</Link>.
+              </>
+            }
+          />
+        </div>
       ) : (
         <form action={enviarPautaAction} aria-label="Nova pauta autoral" className="st-card">
           <div className="st-field">

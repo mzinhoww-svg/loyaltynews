@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -135,10 +136,7 @@ export default async function MidiaPage({ searchParams }: { searchParams: Promis
           Filtro inválido: {mensagemErro(r)}
         </div>
       ) : itens.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">{filtrando ? 'Nenhum ativo com esses filtros' : 'Nenhum ativo na biblioteca'}</h2>
-          <p>{filtrando ? 'Ajuste os filtros.' : 'Registre o primeiro ativo abaixo, com a base de direito.'}</p>
-        </section>
+        <EmptyState title={filtrando ? 'Nenhum ativo com esses filtros' : 'Nenhum ativo na biblioteca'} description={filtrando ? 'Ajuste os filtros.' : 'Registre o primeiro ativo abaixo, com a base de direito.'} />
       ) : (
         <QuadroRolavel rotulo="Biblioteca de mídia">
 <table className="st-table">

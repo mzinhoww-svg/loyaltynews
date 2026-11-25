@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { EDITORIAS } from '@ln/contracts';
 import { checkAccess, findModule } from '@/lib/studio/modules';
@@ -48,10 +49,7 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
       </p>
 
       {fontes.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">Nenhuma fonte cadastrada</h2>
-          <p>O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial e está desligada nesta fase.</p>
-        </section>
+        <EmptyState title="Nenhuma fonte cadastrada" description="O banco de fontes está vazio. Cadastre as fontes oficiais abaixo; a coleta automática depende da Fábrica editorial e está desligada nesta fase." />
       ) : (
         <QuadroRolavel rotulo="Banco de fontes">
 <table className="st-table">

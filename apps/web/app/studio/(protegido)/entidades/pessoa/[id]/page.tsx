@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PUBLIC_NOTICE } from '@ln/intelligence';
@@ -28,9 +29,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
   if (r.status === 404) notFound();
   if (ehErro(r)) {
     return (
-      <div className="st-alert err" role="alert">
-        {mensagemErro(r)}
-      </div>
+      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
     );
   }
   const { person, roles } = r.body;
