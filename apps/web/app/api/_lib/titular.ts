@@ -2,9 +2,9 @@
 //  - público, sem sessão e sem CAPTCHA de terceiros: limite por IP e por contato (auth_attempt, 5 por 15 min), honeypot `site`,
 //    teto de pedidos em aberto e dedupe do pedido idêntico em aberto;
 //  - grava na fila `titular_pedidos` (estado `recebido`) e audita `titular.pedido_recebido` só com id e tipo (sem dado pessoal, sem IP);
-//  - a resposta é sempre a mesma (202 {status:'recebido'}): não devolve id nem eco de dados, não revela se o pedido já existia.
+//  - a resposta (202) traz um protocolo público derivado do id e o prazo de resposta, sem o id completo nem eco de dados.
 import { createHash } from 'node:crypto';
-import { count, inArray } from 'drizzle-orm';
+import { count, desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { acquireAttempt, audit } from '@ln/auth';
 import { schema } from '@ln/db';
@@ -53,13 +53,17 @@ export const PedidoTitular = z.object({
 });
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
-const RECEBIDO = () => json({ status: 'recebido' }, 202);
+/** Protocolo público e estável do pedido: prefixo + 12 hex do id (48 bits). Não é credencial de acesso. */
+export const protocoloDe = (id: string) => `LN-${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`;
+const PRAZO_MS = PRAZO_DIAS * 86_400_000;
+const RECEBIDO = (id: string, prazoEm: Date) =>
+  json({ status: 'recebido', protocolo: protocoloDe(id), prazoDias: PRAZO_DIAS, prazoEm: prazoEm.toISOString() }, 202);
 const muitos = () => new HttpError(429, 'TOO_MANY_REQUESTS', 'Muitos pedidos. Tente novamente mais tarde.');
 
 export const pedidoTitular: RouteFn = async (req, c) => {
   const b = await readBody(req, PedidoTitular);
-  if (b.site) return RECEBIDO(); // honeypot: finge sucesso, descarta
   const now = c.deps.now();
+  if (b.site) return RECEBIDO(newId(), new Date(now.getTime() + PRAZO_MS)); // honeypot: finge sucesso com a mesma forma, descarta
   const contato = b.contato.toLowerCase();
 
   if (c.ip && !(await acquireAttempt(c.deps.db, 'form', `titular:${c.ip}`, now)).allowed) throw muitos();
@@ -71,17 +75,28 @@ export const pedidoTitular: RouteFn = async (req, c) => {
 
   const id = newId();
   const alvo = alvoDaUrl(b.url);
+  const chave = sha(`${contato}|${b.url}|${b.tipo}|${b.texto}`);
+  const prazoEm = new Date(now.getTime() + PRAZO_MS);
   const ins = await c.deps.db
     .insert(t)
     .values({
       id, tipo: b.tipo, estado: 'recebido', nome: b.nome, contato, url: b.url, texto: b.texto,
-      alvoTipo: alvo?.tipo ?? null, alvoId: alvo?.id ?? null, prazoEm: new Date(now.getTime() + PRAZO_DIAS * 86_400_000),
-      chaveDedupe: sha(`${contato}|${b.url}|${b.tipo}|${b.texto}`), recebidoEm: now, atualizadoEm: now,
+      alvoTipo: alvo?.tipo ?? null, alvoId: alvo?.id ?? null, prazoEm,
+      chaveDedupe: chave, recebidoEm: now, atualizadoEm: now,
     })
     .onConflictDoNothing()
     .returning({ id: t.id });
   if (ins.length) {
     await audit(c.deps.db, { action: 'titular.pedido_recebido', resource: 'titular_pedidos', resourceId: id, detalhe: { tipo: b.tipo, requestId: c.requestId }, at: now });
+    return RECEBIDO(id, prazoEm);
   }
-  return RECEBIDO();
+  // Pedido idêntico já em aberto (índice parcial): devolve o protocolo do pedido existente, sem linha nova nem auditoria nova.
+  const [existente] = await c.deps.db
+    .select({ id: t.id, prazoEm: t.prazoEm })
+    .from(t)
+    .where(eq(t.chaveDedupe, chave))
+    .orderBy(desc(t.recebidoEm))
+    .limit(1);
+  if (existente) return RECEBIDO(existente.id, existente.prazoEm);
+  throw new HttpError(500, 'PEDIDO_NAO_REGISTRADO', 'Não conseguimos registrar o pedido. Tente de novo em instantes.');
 };

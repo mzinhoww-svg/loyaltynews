@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { estadoDaResposta, linkPedido, urlDoAlvo, validarPedido, type PedidoValores } from '../app/(portal)/_titular/pedido';
+import {
+  dataDoPrazo, estadoDaResposta, linkPedido, reciboDaResposta, urlDoAlvo, validarPedido, type PedidoValores,
+} from '../app/(portal)/_titular/pedido';
 
 const ok: PedidoValores = {
   nome: 'Maria Titular', contato: 'maria@example.org', url: 'https://portal.example.test/intelligence/pessoas/abc', tipo: 'correcao',
@@ -45,4 +47,14 @@ describe('estadoDaResposta', () => {
   it.each([
     [202, 'recebido'], [400, 'invalido'], [413, 'invalido'], [429, 'muitos'], [500, 'falha'], [503, 'falha'], [404, 'falha'],
   ] as const)('%i → %s', (s, e) => expect(estadoDaResposta(s)).toBe(e));
+});
+
+describe('recibo do pedido', () => {
+  const recibo = { status: 'recebido', protocolo: 'LN-ABC123DEF456', prazoDias: 15, prazoEm: '2026-12-10T15:00:00.000Z' };
+  it('lê protocolo e prazo da resposta', () => expect(reciboDaResposta(recibo)).toEqual({ protocolo: 'LN-ABC123DEF456', prazoDias: 15, prazoEm: recibo.prazoEm }));
+  it.each([null, {}, { protocolo: 'X', prazoEm: recibo.prazoEm }, { protocolo: 'LN-ABC123DEF456' }, { protocolo: 'LN-abc123def456', prazoEm: recibo.prazoEm }])(
+    'recusa resposta fora da forma: %j', (b) => expect(reciboDaResposta(b)).toBeNull(),
+  );
+  it('formata o prazo no fuso de Brasília', () => expect(dataDoPrazo(recibo.prazoEm)).toBe('10/12/2026'));
+  it('prazo inválido não vira data', () => expect(dataDoPrazo('nao-e-data')).toBe(''));
 });

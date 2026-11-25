@@ -2,7 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import { call, makeApp } from '../../_lib/testkit';
-import { MAX_PEDIDOS_ABERTOS } from '../../_lib/titular';
+import { MAX_PEDIDOS_ABERTOS, PRAZO_DIAS, protocoloDe } from '../../_lib/titular';
+import { PRAZO_DIAS_RESPOSTA } from '../../../(portal)/_titular/pedido';
 import * as correcoes from './route';
 
 let app: Awaited<ReturnType<typeof makeApp>>;
@@ -21,20 +22,29 @@ beforeAll(async () => {
 afterAll(async () => app.close());
 
 describe('POST /api/publico/correcoes (canal do titular, DP-38)', () => {
-  it('sem sessão: grava na fila como recebido, audita só id e tipo, responde 202 sem id nem eco de dados', async () => {
+  it('sem sessão: grava na fila, responde 202 com protocolo e prazo, sem id completo nem eco de dados', async () => {
     const body = pedido({ tipo: 'remocao', contato: 'Maria.Titular@Example.org' });
     const r = await enviar(body);
     expect(r.status).toBe(202);
-    expect(r.body).toEqual({ status: 'recebido' });
+    expect(r.body).toMatchObject({ status: 'recebido', protocolo: expect.stringMatching(/^LN-[0-9A-F]{12}$/), prazoDias: PRAZO_DIAS });
     const txt = JSON.stringify(r.body);
     for (const v of ['Maria', 'example.org', 'loyaltynews', 'cargo']) expect(txt).not.toContain(v);
     const [row] = (await rows()).filter((x) => x.contato === 'maria.titular@example.org');
     expect(row).toMatchObject({ tipo: 'remocao', estado: 'recebido', nome: 'Maria Titular', url: body.url });
+    const recibo = r.body as { protocolo: string; prazoEm: string };
+    expect(recibo.protocolo).toBe(protocoloDe(row!.id)); // o protocolo devolvido corresponde ao pedido gravado
+    expect(txt).not.toContain(row!.id); // o id interno completo não vai para o navegador
+    expect(new Date(recibo.prazoEm).getTime()).toBe(row!.prazoEm.getTime());
+    expect(row!.prazoEm.getTime() - row!.recebidoEm.getTime()).toBe(PRAZO_DIAS * 86_400_000);
     const [a] = (await audits()).filter((x) => x.resourceId === row!.id);
     expect(a).toMatchObject({ action: 'titular.pedido_recebido', ip: null, actorId: null });
     const det = JSON.stringify(a!.detalhe);
     expect(det).toContain('remocao');
     for (const v of ['Maria', 'example.org', 'loyaltynews', 'cargo']) expect(det).not.toContain(v);
+  });
+
+  it('prazo mostrado antes do envio é o mesmo do Backend', () => {
+    expect(PRAZO_DIAS_RESPOSTA).toBe(PRAZO_DIAS);
   });
 
   it('validação: tipo só correcao|remocao, e-mail, URL http(s), texto mínimo; erro não ecoa o valor', async () => {
@@ -47,22 +57,23 @@ describe('POST /api/publico/correcoes (canal do titular, DP-38)', () => {
     expect(JSON.stringify(r.body)).not.toContain('segredo-nao-ecoar');
   });
 
-  it('honeypot: 202 igual e nada gravado', async () => {
+  it('honeypot: 202 com a mesma forma (protocolo e prazo) e nada gravado', async () => {
     const antes = (await rows()).length;
     const r = await enviar(pedido({ site: 'http://spam.example' }));
     expect(r.status).toBe(202);
-    expect(r.body).toEqual({ status: 'recebido' });
+    expect(r.body).toMatchObject({ status: 'recebido', protocolo: expect.stringMatching(/^LN-[0-9A-F]{12}$/), prazoDias: PRAZO_DIAS });
     expect((await rows()).length).toBe(antes);
   });
 
-  it('pedido idêntico em aberto: mesma resposta, sem linha nova nem auditoria nova', async () => {
+  it('pedido idêntico em aberto: mesmo protocolo e prazo, sem linha nova nem auditoria nova', async () => {
     const body = pedido();
-    expect((await enviar(body)).status).toBe(202);
+    const r1 = await enviar(body);
+    expect(r1.status).toBe(202);
     const n = (await rows()).length;
     const na = (await audits()).length;
-    const r = await enviar(body);
-    expect(r.status).toBe(202);
-    expect(r.body).toEqual({ status: 'recebido' });
+    const r2 = await enviar(body);
+    expect(r2.status).toBe(202);
+    expect(r2.body).toEqual(r1.body); // o mesmo pedido recebe o mesmo protocolo
     expect((await rows()).length).toBe(n);
     expect((await audits()).length).toBe(na);
   });

@@ -55,6 +55,22 @@ describe('alvo e prazo na entrada pública', () => {
 });
 
 describe('fila do titular no Studio (DP-38)', () => {
+  it('ponta a ponta: o protocolo do POST público identifica o pedido na fila do Studio, com o mesmo prazo', async () => {
+    const contato = `ponta${++seq}@example.org`;
+    const r = await enviar({ contato, tipo: 'remocao', url: 'https://ln.example/intelligence/pessoas/p-e2e' });
+    expect(r.status).toBe(202);
+    const { protocolo, prazoEm } = r.body as { protocolo: string; prazoEm: string };
+    expect(protocolo).toMatch(/^LN-[0-9A-F]{12}$/);
+    const lista = await req('GET', [], chefe);
+    const item = (lista.body.items as Array<{ id: string; protocolo: string; prazo_em: string; pedido: string; estado: string }>).find((x) => x.protocolo === protocolo);
+    expect(item, 'o pedido tem de aparecer na fila do Studio com o protocolo devolvido').toBeTruthy();
+    expect(item).toMatchObject({ pedido: 'remocao', estado: 'recebido', prazo_em: prazoEm });
+    expect(JSON.stringify(lista.body)).not.toContain(contato); // a lista continua sem dado pessoal
+    const detalhe = await req('GET', [item!.id], chefe);
+    expect(detalhe.status).toBe(200);
+    expect(detalhe.body).toMatchObject({ protocolo, prazo_em: prazoEm, contato });
+  });
+
   it('RBAC: editor, leitor e anônimo não acessam; editor-chefe e admin sim', async () => {
     const id = await novo();
     for (const as of [editor, leitor]) {

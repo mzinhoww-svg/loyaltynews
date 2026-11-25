@@ -39,16 +39,20 @@ test.describe('formulário do titular em /correcoes', () => {
     let corpo: Record<string, unknown> | null = null;
     await page.route(ROTA, async (r: Route) => {
       corpo = r.request().postDataJSON();
-      await r.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ status: 'recebido' }) });
+      await r.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ status: 'recebido', protocolo: 'LN-ABC123DEF456', prazoDias: 15, prazoEm: '2026-12-10T15:00:00.000Z' }) });
     });
     await page.goto('/correcoes');
     await expect(page.getByRole('heading', { name: 'Pedir correção ou remoção de um dado' })).toBeVisible();
+    await expect(page.getByTestId('pedido-escopo')).toContainText('Não cobre');
+    await expect(page.getByTestId('pedido-prazo')).toContainText('15 dias');
     await axe(page);
     await preencher(page, { url: 'https://portal.example.test/intelligence/pessoas/abc' });
     await page.getByRole('button', { name: 'Enviar pedido' }).click();
     const ok = page.getByTestId('pedido-recebido');
     await expect(ok).toBeVisible({ timeout: ENVIO_MS });
     await expect(ok).toHaveAttribute('role', 'status');
+    await expect(ok.getByTestId('pedido-protocolo')).toHaveText('LN-ABC123DEF456');
+    await expect(ok).toContainText('10/12/2026');
     await expect(ok).not.toContainText('maria@example.test');
     expect(corpo).toEqual({
       nome: 'Maria Titular (MOCK)', contato: 'maria@example.test', url: 'https://portal.example.test/intelligence/pessoas/abc', tipo: 'remocao',
