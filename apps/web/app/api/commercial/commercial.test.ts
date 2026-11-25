@@ -1,8 +1,11 @@
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { schema } from '@ln/db';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
+
+// Estes testes exercitam o fluxo do lead: a rota pública só existe com a flag portalFormularios ligada (leads-flag.test.ts cobre os dois estados).
+vi.mock('../../../lib/portal-formularios', () => ({ formulariosAtivos: () => true }));
 
 // DP-43 por ambiente: aprovar criativo e levar campanha a approved/active pela API só vale onde a venda foi liberada (staging);
 // em produção é 409 SALE_DISABLED_IN_ENV (venda-ambiente.test.ts). Este arquivo exercita o fluxo de venda, então roda como staging.

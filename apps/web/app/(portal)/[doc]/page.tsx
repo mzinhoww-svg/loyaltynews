@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageHead } from '../_components/ui';
+import { CONTATO_EMAIL } from '../_lib/contato';
 import { INFO_DOCS, INFO_SLUGS } from '../_lib/institutional';
 import { PedidoTitularForm } from '../_titular/PedidoTitularForm';
 
@@ -42,6 +43,12 @@ export default async function InfoPage({ params }: Props) {
           )}
         </section>
       ))}
+      {d.slug === 'contato' && (
+        <p>
+          <a href={`mailto:${CONTATO_EMAIL}`} className="ln-btn ln-btn--primary pt-tap" data-testid="contato-email">Escrever para {CONTATO_EMAIL}</a>{' '}
+          <Link href="/midia-kit" className="pt-more">Mídia kit →</Link>
+        </p>
+      )}
       {d.slug === 'sobre' && (
         <p>
           <Link href="/metodologia" className="pt-more">Metodologia →</Link>{' '}

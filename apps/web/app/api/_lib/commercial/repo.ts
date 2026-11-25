@@ -51,12 +51,23 @@ const num = (v: string | null): number | null => (v === null ? null : Number(v))
 const iso = (d: Date): string => d.toISOString();
 const ZERO = (): DeliveryCounters => ({ served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 });
 
-/** Catálogo: o código define o formato; o banco (ajustável no admin) manda no estado de disponibilidade. */
+/**
+ * O seed grava o estado que o CÓDIGO dava ao formato naquele momento (CATALOG, sem liberação de ambiente) e o motivo padrão do código.
+ * Um 'indisponivel' gravado com exatamente esse motivo é cópia do código, não uma retirada de alguém: sem isso, os 14 formatos de canal
+ * desligado ficariam 'indisponivel' para sempre mesmo depois da liberação do proprietário (DP-54). Uma retirada deliberada grava o próprio
+ * motivo (SQL de operação) e continua rebaixando; se o texto padrão do código mudar um dia, a linha antiga passa a valer como retirada
+ * (falha fechada).
+ */
+const seedPadrao = (id: string, r: { disponibilidade: string; motivoDisponibilidade: string }): boolean =>
+  r.disponibilidade === 'indisponivel' && r.motivoDisponibilidade === (CATALOG.find((x) => x.id === id)?.statusReason || 'Sem capacidade operacional declarada.');
+
+/** Catálogo: o código define o formato; o banco (ajustável por operação) manda no estado de disponibilidade. */
 async function loadCatalog(db: Db, env: FlagEnv | null): Promise<CommercialFormat[]> {
   const byFmt = new Map((await db.select().from(schema.adFormats)).map((f) => [f.id, f]));
   return catalogFor(env).map((f) => {
     const r = byFmt.get(f.id);
-    return { ...f, ...resolveFormatStatus(f, r ? { status: r.disponibilidade, reason: r.motivoDisponibilidade } : undefined) };
+    const gravado = r && !seedPadrao(f.id, r) ? { status: r.disponibilidade, reason: r.motivoDisponibilidade } : undefined;
+    return { ...f, ...resolveFormatStatus(f, gravado) };
   });
 }
 
