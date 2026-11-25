@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
@@ -73,10 +74,7 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
         </button>
       </form>
       {itens.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">Nenhuma fonte encontrada</h2>
-          <p>O cadastro da Fábrica não tem fontes para esta busca.</p>
-        </section>
+        <EmptyState title="Nenhuma fonte encontrada" description="O cadastro da Fábrica não tem fontes para esta busca." />
       ) : (
         <>
           <p className="st-hint">

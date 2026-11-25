@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -60,14 +61,9 @@ export default async function CorrecoesPage({ searchParams }: { searchParams: Pr
         </button>
       </form>
       {ehErro(r) ? (
-        <div className="st-alert err" role="alert">
-          {mensagemErro(r)}
-        </div>
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
       ) : casos.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">Nenhum caso registrado</h2>
-          <p>Nenhuma errata ou pedido de direito de resposta até agora.</p>
-        </section>
+        <EmptyState title="Nenhum caso registrado" description="Nenhuma errata ou pedido de direito de resposta até agora." />
       ) : (
         <QuadroRolavel rotulo="Correções e direito de resposta">
 <table className="st-table">

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -74,14 +75,9 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
         </button>
       </form>
       {ehErro(fabrica) ? (
-        <div className="st-alert err" role="alert">
-          {mensagemErro(fabrica)}
-        </div>
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(fabrica)} />
       ) : itens.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio-f">
-          <h2 id="vazio-f">Nenhuma matéria da Fábrica na fila</h2>
-          <p>A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado.</p>
-        </section>
+        <EmptyState title="Nenhuma matéria da Fábrica na fila" description="A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado." />
       ) : (
         <QuadroRolavel rotulo="Fila de checagem">
 <table className="st-table">

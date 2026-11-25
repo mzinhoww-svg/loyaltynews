@@ -1,9 +1,12 @@
+import { EmptyState } from '@ln/ui';
+
 export function SemBanco({ modulo = 'Este módulo' }: { modulo?: string }) {
   return (
-    <section className="st-empty" aria-labelledby="sem-banco">
-      <h2 id="sem-banco">Banco de dados não configurado</h2>
-      <p>{modulo} lê do PostgreSQL pelas rotas do Backend. Neste ambiente não há DATABASE_URL, então não há dados para mostrar. Nada é simulado.</p>
-    </section>
+    <EmptyState
+      kind="unavailable"
+      title="Banco de dados não configurado"
+      description={`${modulo} lê do PostgreSQL pelas rotas do Backend. Neste ambiente não há DATABASE_URL, então não há dados para mostrar. Nada é simulado.`}
+    />
   );
 }
 

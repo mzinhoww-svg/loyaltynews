@@ -41,9 +41,10 @@
 .st-badge.aprovado { background: var(--ln-color-success-bg); color: var(--ln-color-success-fg); }
 .st-badge.publicado { background: var(--ln-color-info-bg); color: var(--ln-color-info-fg); }
 
-.st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); overflow: hidden; }
-.st-table th, .st-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--st-line); vertical-align: top; }
-.st-table th { background: var(--ln-color-neutral-bg); font-size: 13px; }
+/* overflow: clip (e não hidden) mantém o canto arredondado sem criar um quadro de rolagem: o cabeçalho fixo (sticky) segue a página */
+.st-table { width: 100%; border-collapse: collapse; background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); overflow: clip; }
+.st-table th, .st-table td { text-align: left; padding: var(--ln-space-2) var(--ln-space-3); border-bottom: 1px solid var(--st-line); vertical-align: top; }
+.st-table th { background: var(--ln-color-neutral-bg); font-size: var(--ln-text-sm); line-height: var(--ln-leading-sm); }
 /* revisão visual P3-2: o cabeçalho da linha (célula do título) não tem fundo diferente das outras células */
 .st-table tbody th { background: transparent; font-size: inherit; }
 /* revisão visual int/019 (A-1): a célula do título tem largura mínima; no celular o quadro rola, e o título não quebra em uma palavra por linha */
@@ -110,3 +111,49 @@
 
 /* revisão visual P2-6 (decisão PM-2026-11-23-H): títulos do Studio em Inter (fonte de interface), mesmos tamanhos e pesos; o portal não muda */
 .studio :is(h1, h2, h3, h4, h5, h6) { font-family: var(--ln-font-ui); }
+
+/* ---- refino do lançamento, pacote C, item 2: tabelas ---- */
+/* cabeçalho fixo na rolagem: o fundo é opaco (token) e a linha de baixo vira sombra interna, porque a borda colapsada não acompanha o sticky */
+.st-table thead th { position: sticky; top: 0; z-index: 1; box-shadow: inset 0 -1px 0 var(--st-line-strong); border-bottom: 0; }
+/* leitura da linha: foco/hover com o tom neutro do design system; números e datas alinham pelos dígitos */
+.st-table tbody tr:hover > * { background: var(--ln-color-surface-subtle); }
+.st-table td, .st-table th { font-variant-numeric: tabular-nums; }
+.st-table caption { padding: var(--ln-space-1) 0; }
+/* selos de estado: o mesmo ritmo do StatusPill (texto pequeno, pílula), tons só dos pares -bg/-fg dos tokens */
+.st-badge { font-size: var(--ln-text-xs); line-height: var(--ln-leading-xs); padding: 0 var(--ln-space-2); }
+/* quadro rolável: no celular rola nos dois eixos com altura limitada, para o cabeçalho fixar DENTRO dele (a página não rola na horizontal) */
+@media (max-width: 860px) {
+  .studio .st-quadro { max-height: 75vh; overflow: auto; }
+}
+
+/* ---- refino do lançamento, pacote C, item 1: casca (menu lateral) ---- */
+/* grupos recolhíveis: o título do grupo é um botão (aria-expanded) com o mesmo visual do título do design system */
+.studio .st-nav-grupo__botao { display: flex; width: 100%; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); padding: 0 var(--ln-space-3); background: transparent; color: var(--ln-color-signal); border: 0; border-radius: var(--ln-radius-md); font: inherit; font-size: var(--ln-text-xs); letter-spacing: 0.08em; text-transform: uppercase; font-weight: var(--ln-weight-bold); text-align: left; cursor: pointer; }
+.studio .st-nav-grupo__botao:hover { background: color-mix(in srgb, var(--ln-color-white) 12%, transparent); }
+.studio .st-nav-grupo__botao::after { content: ''; flex: none; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); }
+.studio .st-nav-grupo__botao[aria-expanded='true']::after { transform: rotate(45deg); }
+.studio .st-nav-grupo__qtd { font-weight: var(--ln-weight-regular, 400); opacity: 0.85; }
+.studio .ln-sidebar__group.st-nav-grupo + .ln-sidebar__group.st-nav-grupo { margin-top: var(--ln-space-1); }
+.studio .ln-sidebar__list[hidden] { display: none; }
+/* item ativo claro: fundo branco e texto da cor primária (par do brandkit, contraste 12,04:1) */
+.studio .ln-sidebar .ln-sidebar__link[aria-current='page'] { background: var(--ln-color-white); color: var(--ln-color-primary); border-left-color: var(--ln-color-signal); }
+.studio .ln-sidebar .ln-sidebar__link { flex-wrap: wrap; }
+.studio .st-nav-pill { font-size: var(--ln-text-xs); line-height: var(--ln-leading-xs); padding: 0 var(--ln-space-2); white-space: normal; }
+/* foco visível sobre o fundo escuro do menu: o anel azul do corpo não contrasta aqui */
+.studio .ln-sidebar :focus-visible { outline-color: var(--ln-color-white); }
+
+/* ---- refino do lançamento, pacote C, item 3: formulários ---- */
+.studio .st-label-linha { display: flex; align-items: baseline; gap: var(--ln-space-1); }
+.studio .st-obrig { color: var(--st-danger); font-weight: var(--ln-weight-bold); }
+/* controle com erro: borda e halo no tom de perigo do design system (não só a cor: a mensagem fica ligada por aria-describedby) */
+.studio .st-field input[aria-invalid='true'], .studio .st-field select[aria-invalid='true'], .studio .st-field textarea[aria-invalid='true'] { border-color: var(--st-danger); box-shadow: 0 0 0 1px var(--st-danger); }
+.studio .st-field .err::before { content: 'Erro: '; font-weight: var(--ln-weight-bold); }
+/* resumo de erros no topo do formulário: lista de links para os campos */
+.studio .st-alert ul { margin: var(--ln-space-2) 0 0; padding-left: var(--ln-space-4); }
+.studio .st-alert[tabindex='-1']:focus { outline: var(--ln-focus-width) solid var(--ln-color-focus); outline-offset: var(--ln-focus-offset); }
+/* no celular a ação de salvar fica presa no rodapé da tela, sempre ao alcance do polegar; a rolagem reserva o espaço dela */
+@media (max-width: 860px) {
+  .studio .st-barra-salvar { position: sticky; bottom: 0; z-index: 2; padding: var(--ln-space-3); background: var(--ln-color-white); border-top: 1px solid var(--st-line-strong); }
+  .studio .st-barra-salvar .st-btn { flex: 1 1 auto; }
+  html:has(.st-barra-salvar) { scroll-padding-bottom: 88px; }
+}

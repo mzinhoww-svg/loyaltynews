@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { flagAtiva } from '@/lib/studio/flags';
-import { KpiCard } from '@ln/ui';
+import { KpiCard, StatusPill } from '@ln/ui';
 import { GRUPOS, checkAccess, visibleModules, type GrupoId } from '@/lib/studio/modules';
 import { CMS_EDIT } from '@/lib/studio/cms/roles';
 import { api } from '@/lib/studio/rotas-api';
@@ -72,8 +72,8 @@ export default async function StudioHome() {
                 </h4>
                 <p>{m.descricao}</p>
                 <p>
-                  <span className="st-badge" data-estado-modulo={m.flag && !flagAtiva(m.flag) ? 'desligado' : m.implementado ? 'em-uso' : 'sem-dados'}>
-                    {m.flag && !flagAtiva(m.flag) ? 'Desligado nesta fase' : m.implementado ? 'Em uso' : 'Sem dados ainda'}
+                  <span data-estado-modulo={m.flag && !flagAtiva(m.flag) ? 'desligado' : m.implementado ? 'em-uso' : 'sem-dados'}>
+                    {m.flag && !flagAtiva(m.flag) ? <StatusPill label="Desligado nesta fase" tone="neutral" /> : m.implementado ? <StatusPill label="Em uso" tone="success" /> : <StatusPill label="Sem dados ainda" tone="neutral" />}
                   </span>
                 </p>
               </div>
