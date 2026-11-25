@@ -160,6 +160,33 @@ test('start-web: com pré-construído coerente sobe (chama o next) e imprime pre
   } finally { limpa(ruim); }
 });
 
+test('P3 do QA 5: marca da restauração SEM commit é build_divergente (503); pacote comum sem marca continua ok', () => {
+  const r = pacote();
+  try {
+    assert.deepEqual(restaurarPrebuilt(r, release(r)).problemas, []);
+    const marca = join(r, 'apps/web/.next/.ln-prebuilt.json');
+    const m = JSON.parse(readFileSync(marca, 'utf8'));
+    assert.equal(m.commit, SHA, 'a restauração grava o commit na marca');
+    delete m.commit;
+    writeFileSync(marca, JSON.stringify(m));
+    const id = readBuildIdentity(r);
+    assert.deepEqual({ buildId: id.buildId, commit: id.commit, prebuilt: id.prebuilt }, { buildId: 'BUILD_abc123', commit: null, prebuilt: true });
+    assert.equal(healthProblem({ APP_COMMIT: SHA }, id), 'build_divergente', 'marca sem commit é divergência, não 200 com null');
+    assert.equal(healthPayload({ APP_COMMIT: SHA, APP_ENV: 'staging' }, [], id).buildCommit, null);
+    m.commit = SHA;
+    writeFileSync(marca, JSON.stringify(m));
+    assert.equal(healthProblem({ APP_COMMIT: SHA }, readBuildIdentity(r)), null, 'com o commit de volta, ok');
+    // pacote comum SEM marca não é divergência (continua 200)
+    const comum = pacote();
+    try {
+      rmSync(join(comum, 'prebuilt'), { recursive: true, force: true });
+      const semMarca = readBuildIdentity(comum);
+      assert.equal(semMarca.prebuilt, false);
+      assert.equal(healthProblem({ APP_COMMIT: SHA }, semMarca), null, 'sem prebuilt não é divergência');
+    } finally { rmSync(comum, { recursive: true, force: true }); }
+  } finally { limpa(r); }
+});
+
 test('pacote comum (sem prebuilt.json e sem marca) sobe (caminho legítimo do build da Vertra)', () => {
   const r = pacote();
   try {

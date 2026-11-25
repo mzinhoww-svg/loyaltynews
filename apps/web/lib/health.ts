@@ -35,6 +35,9 @@ export function healthPayload(env: Record<string, string | undefined>, flags: re
  */
 export function healthProblem(env: Record<string, string | undefined>, identity: BuildIdentity): 'build_divergente' | null {
   const appCommit = env.APP_COMMIT?.trim() || '';
+  // P3 do QA 5: marca de pré-construído SEM commit não prova qual build está no volume (a resposta sairia 200 com
+  // buildCommit null). É divergência, pelo mesmo caminho e com a mesma mensagem dos outros casos.
+  if (identity.prebuilt && !identity.commit) return 'build_divergente';
   if (identity.prebuilt && identity.commit && appCommit && identity.commit !== appCommit) return 'build_divergente';
   return null;
 }
