@@ -45,6 +45,8 @@ if (direct) {
   const efetivo = { ...process.env, APP_ENV: appEnv };
   if (vitrine) efetivo.PORTAL_VITRINE = '1'; else delete efetivo.PORTAL_VITRINE;
   if (indexavel) efetivo.PORTAL_INDEXAVEL = '1'; else delete efetivo.PORTAL_INDEXAVEL;
+  // GA4: o ID de medição é constante de build e vem SÓ do release.json (nunca do painel nem do runner): ausente = a variável é apagada e o GA não existe no bundle
+  if (typeof releaseJson.gaId === 'string' && /^G-[A-Z0-9]{6,12}$/.test(releaseJson.gaId)) efetivo.NEXT_PUBLIC_GA_ID = releaseJson.gaId; else delete efetivo.NEXT_PUBLIC_GA_ID;
   // Opcao (e) do PM: o typecheck NAO roda dentro do build da Vertra (RAM); so quando o release.json o dispensa (o pacote exigiu o relatorio de typecheck verde do mesmo commit). O painel nunca decide.
   delete efetivo.LN_BUILD_SKIP_TYPECHECK;
   Object.assign(efetivo, typecheckEnv(releaseJson));

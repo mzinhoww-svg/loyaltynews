@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Smoke da PRODUÇÃO (só leitura, nenhum POST, nenhuma credencial). Contraparte do smoke-staging, que EXIGE conteúdo de demonstração; aqui o conteúdo de demonstração é falha.
-// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel] [--expect-cache] [--expect-icones] [--expect-seguranca] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
+// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel [--sem-conteudo-ainda]] [--expect-cache] [--expect-icones] [--expect-seguranca] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
 // Confere: /api/health com APP_ENV production, o commit certo e flags [] (ADR-022: produção não liga flag por variável); /api/ready completo (banco e Redis; migrações se o build as confere);
 //   API pública e portal sem MOCK, sem "[DEMO" e sem marcador de vitrine; produção NÃO indexável até o go-live (DP-24: noindex, robots Disallow, sitemap e feed sem itens) ou, com --indexavel (depois
 //   do go-live), indexável; Studio sem sessão = 307 para o login; pessoas e moves desligados (disponivel=false). Código 0 = tudo ok; 1 = alguma falha; 2 = uso errado.
@@ -14,7 +14,7 @@ import { pathToFileURL } from 'node:url';
 // Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
 const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
-export async function rodar({ url, commit, indexavel = false, cache = false, icones = false, seguranca = false, timeout = 20000, consecutivas, intervaloMs }) {
+export async function rodar({ url, commit, indexavel = false, semConteudoAinda = false, cache = false, icones = false, seguranca = false, timeout = 20000, consecutivas, intervaloMs }) {
   const base = url.replace(/\/+$/, '');
   const out = [];
   const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
@@ -68,10 +68,12 @@ export async function rodar({ url, commit, indexavel = false, cache = false, ico
     check(indexavel ? 'robots.txt: libera o rastreio (go-live)' : 'robots.txt: Disallow / (não indexável até o go-live)', indexavel ? !/^\s*Disallow:\s*\/\s*$/im.test(rb.body) : rb.status === 200 && /^\s*Disallow:\s*\/\s*$/im.test(rb.body), `HTTP ${rb.status}`);
     const sm = await get('/sitemap.xml');
     const locs = (sm.body.match(/<loc>/g) || []).length;
-    check(indexavel ? 'sitemap.xml: lista URLs (go-live)' : 'sitemap.xml: sem URLs até o go-live', (sm.status === 200 || sm.status === 404) && (indexavel ? locs > 0 : locs === 0), `HTTP ${sm.status}, ${locs} url(s)`);
+    // --sem-conteudo-ainda (só com --indexavel; DP-54): no go-live SEM matéria publicada o sitemap pode estar vazio e o feed sem itens/404. Aceita SÓ isso, de forma explícita no nome da checagem;
+    // home sem noindex, robots que libera e o resto continuam exigidos. Com URLs presentes, passa como sempre.
+    check(indexavel ? (semConteudoAinda ? 'sitemap.xml: lista URLs, ou está vazio (sem conteúdo ainda: aceito por --sem-conteudo-ainda)' : 'sitemap.xml: lista URLs (go-live)') : 'sitemap.xml: sem URLs até o go-live', (sm.status === 200 || sm.status === 404) && (indexavel ? (locs > 0 || semConteudoAinda) : locs === 0), `HTTP ${sm.status}, ${locs} url(s)`);
     const fd = await get('/feed.xml');
     const itens = (fd.body.match(/<item\b/g) || []).length;
-    check(indexavel ? 'feed.xml: RSS válido' : 'feed.xml: sem itens até o go-live', (fd.status === 200 || fd.status === 404) && (indexavel ? /<rss/.test(fd.body) : itens === 0), `HTTP ${fd.status}, ${itens} item(ns)`);
+    check(indexavel ? (semConteudoAinda ? 'feed.xml: RSS válido, ou ausente (sem conteúdo ainda: aceito por --sem-conteudo-ainda)' : 'feed.xml: RSS válido') : 'feed.xml: sem itens até o go-live', (fd.status === 200 || fd.status === 404) && (indexavel ? (/<rss/.test(fd.body) || (semConteudoAinda && fd.status === 404)) : itens === 0), `HTTP ${fd.status}, ${itens} item(ns)`);
   });
   await tentar('studio', async () => {
     const st = await get('/studio');
@@ -114,8 +116,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (!/^https:\/\/|^http:\/\/127\.0\.0\.1[:/]/.test(url)) { console.error('use --url https://host'); process.exit(2); }
   const commit = args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : undefined;
   if (commit !== undefined && !/^[0-9a-f]{40}$/.test(commit)) { console.error('--expect-commit exige o SHA de 40 caracteres'); process.exit(2); }
+  if (args['sem-conteudo-ainda'] && !args.indexavel) { console.error('--sem-conteudo-ainda só vale junto com --indexavel (sem go-live o sitemap e o feed já têm de estar vazios)'); process.exit(2); }
   const cfgS = configSaude(args);
-  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), seguranca: Boolean(args['expect-seguranca']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
+  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), semConteudoAinda: Boolean(args['sem-conteudo-ainda']), cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), seguranca: Boolean(args['expect-seguranca']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
   console.log(JSON.stringify(r, null, 2));
   process.exit(r.falhas ? 1 : 0);
 }

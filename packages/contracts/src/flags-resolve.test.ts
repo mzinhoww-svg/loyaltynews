@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { DECISION_ID, FLAG_DEFAULTS, FLAG_RELEASES, flagEnvFrom, resolveFlags } from './flags';
+import { DECISION_ID, FLAG_DEFAULTS, FLAG_RELEASES, PRODUCTION_HOSTS, flagEnvFrom, resolveFlags } from './flags';
 
 describe('ADR-022 resolveFlags', () => {
   it('sem nada configurado: tudo desligado', () => {
@@ -133,5 +133,15 @@ describe('ADR-022 resolveFlags', () => {
       const id = rel.production as string | null;
       if (id !== null) expect(yaml).toContain(`"id": "${id}"`);
     }
+  });
+
+  it('N7 (DP-54): o staging recusa NEXT_PUBLIC_SITE_URL de qualquer host de produção (www, apex e o host da Vertra), em qualquer caixa; o host do staging passa', () => {
+    expect([...PRODUCTION_HOSTS].sort()).toEqual(['loyaltynews.com.br', 'loyaltynews.vertraweb.app', 'www.loyaltynews.com.br']);
+    for (const url of ['https://www.loyaltynews.com.br', 'https://loyaltynews.com.br/', 'https://loyaltynews.vertraweb.app', 'https://WWW.LoyaltyNews.com.br/qualquer']) {
+      expect(() => resolveFlags({ APP_ENV: 'staging', NEXT_PUBLIC_SITE_URL: url })).toThrow(/NEXT_PUBLIC_SITE_URL de produção/);
+    }
+    expect(() => resolveFlags({ APP_ENV: 'staging', NEXT_PUBLIC_SITE_URL: 'https://loyaltynews-stg.vertraweb.app' })).not.toThrow();
+    // a produção em si não é barrada por esta regra (ela só vale para o modo staging)
+    expect(() => resolveFlags({ APP_ENV: 'production', NEXT_PUBLIC_SITE_URL: 'https://www.loyaltynews.com.br' })).not.toThrow();
   });
 });
