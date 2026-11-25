@@ -33,7 +33,7 @@ describe('/api/health com flags inválidas', () => {
     expect(r.status).toBe(503);
     expect(await r.text()).not.toContain('sk-segredo');
   });
-  it('configuração válida segue 200 com flags (staging) e [] (produção limpa)', async () => {
+  it('configuração válida segue 200 com flags (staging) e só as flags por commit (produção limpa, DP-57)', async () => {
     process.env.APP_ENV = 'staging';
     process.env.LN_FLAGS_ON = 'intelligencePessoas';
     resetRuntimeFlagsForTest();
@@ -43,6 +43,6 @@ describe('/api/health com flags inválidas', () => {
     process.env.APP_ENV = 'production';
     delete process.env.LN_FLAGS_ON;
     resetRuntimeFlagsForTest();
-    expect((await (await get()).json()).flags).toEqual([]);
+    expect((await (await get()).json()).flags).toEqual(['portalFormularios']);
   });
 });

@@ -89,7 +89,7 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
   const flagsOn = String(env.LN_FLAGS_ON ?? '');
   if (flagsOn.trim() !== '') {
     const ambFlags = String(env.APP_ENV ?? '').trim().toLowerCase();
-    if (prod) p.push(`LN_FLAGS_ON definida em produção: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES${/openbotDispatch/.test(flagsOn) ? ' (a flag openbotDispatch, DP-41, nunca liga em produção)' : ''}`);
+    if (prod) p.push(`LN_FLAGS_ON definida em produção: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado (PRODUCTION_FLAGS_ON e FLAG_RELEASES no contrato, DP-57)${/openbotDispatch/.test(flagsOn) ? ' (a flag openbotDispatch, DP-41, nunca liga em produção)' : ''}`);
     else if (ambFlags === 'staging' && !/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
     else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
   }

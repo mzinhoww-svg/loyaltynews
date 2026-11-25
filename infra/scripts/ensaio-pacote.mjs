@@ -176,11 +176,12 @@ try {
   }
   if (logFd !== null) closeSync(logFd);
   if (!step('servidor sobe com o start_command do manifesto', up)) throw new Error('servidor não subiu');
-  // /api/health devolve env e flags (ADR-022): têm de bater com o pacote (produção/staging; flags = release.json.flagsLigadas). Build anterior à ADR-022 não traz o campo.
+  // /api/health devolve env e flags (ADR-022): têm de bater com o pacote (produção/staging; flags = release.json.flagsLigadas, mais flagsPorCommit em produção). Build anterior à ADR-022 não traz o campo.
   try {
     const hj = await (await fetchTentando(`http://127.0.0.1:${port}/api/health`, { signal: AbortSignal.timeout(5000) })).json();
     const esperadoEnv = man.perfil === 'production' ? 'production' : 'staging';
-    const esperadasFlags = [...(man.flagsLigadas ?? [])].sort().join(',');
+    // DP-57: em produção somam-se as flags ligadas POR COMMIT (release.json/manifesto.flagsPorCommit, do contrato do commit).
+    const esperadasFlags = [...new Set([...(man.flagsLigadas ?? []), ...(man.perfil === 'production' ? (man.flagsPorCommit ?? []) : [])])].sort().join(',');
     const flagsOk = Array.isArray(hj.flags) ? [...hj.flags].sort().join(',') === esperadasFlags : esperadasFlags === '';
     step(`health: env=${esperadoEnv} e flags=[${esperadasFlags}] conforme o pacote`, hj.env === esperadoEnv && flagsOk, `env=${hj.env} flags=${Array.isArray(hj.flags) ? hj.flags.join(',') : '(campo ausente)'}`);
   } catch (e) { step('health: env e flags conforme o pacote', false, String(e?.name ?? 'Erro')); }
