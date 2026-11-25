@@ -7,6 +7,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { arquivosFaltando, pacoteDoExterno, problemasPrebuilt, restaurarPrebuilt } from '../scripts/lib/prebuilt.mjs';
+import { prebuiltStartProblems } from '../scripts/start-web.mjs';
+import { healthPayload, healthProblem } from '../../apps/web/lib/health.ts';
+import { readBuildIdentity } from '../../apps/web/lib/build-identity.ts';
 import { caminhosNaoPortaveis } from '../scripts/package-prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
@@ -39,6 +42,35 @@ function pacote({ pb = {}, rel = {}, home = HOME(), pg = true, buildIdPasta = 'B
 }
 const limpa = (r) => { try { unlinkSync(join(r, 'apps/web/.next/node_modules/pg-0123456789abcdef')); } catch { /* sem link */ } rmSync(r, { recursive: true, force: true }); };
 const release = (r) => JSON.parse(readFileSync(join(r, 'release.json'), 'utf8'));
+
+test('start-web FALHA FECHADA: sem prebuilt.json/marca/BUILD_ID coerente o app não sobe', () => {
+  const r = pacote();
+  const rel = release(r);
+  assert.match(prebuiltStartProblems(r).join('|'), /ln-prebuilt\.json ausente/);
+  assert.deepEqual(restaurarPrebuilt(r, rel).problemas, []);
+  assert.deepEqual(prebuiltStartProblems(r), []);
+  rmSync(join(r, 'apps/web/.next/.ln-prebuilt.json'));
+  assert.match(prebuiltStartProblems(r).join('|'), /ln-prebuilt\.json ausente/);
+  assert.deepEqual(restaurarPrebuilt(r, rel).problemas, []);
+  const marca = join(r, 'apps/web/.next/.ln-prebuilt.json');
+  const m = JSON.parse(readFileSync(marca, 'utf8'));
+  m.buildId = 'OUTRO_ID_999';
+  writeFileSync(marca, JSON.stringify(m));
+  assert.match(prebuiltStartProblems(r).join('|'), /BUILD_ID da marca \(OUTRO_ID_999\) difere do \.next/);
+  assert.match(prebuiltStartProblems(r).join('|'), /BUILD_ID da marca \(OUTRO_ID_999\) difere do prebuilt\.json/);
+  assert.deepEqual(restaurarPrebuilt(r, rel).problemas, []);
+  rmSync(join(r, 'prebuilt/prebuilt.json'));
+  assert.match(prebuiltStartProblems(r, rel).join('|'), /prebuilt\/prebuilt\.json ausente/);
+  const comum = pacote();
+  rmSync(join(comum, 'prebuilt'), { recursive: true, force: true });
+  assert.deepEqual(prebuiltStartProblems(comum, release(comum)), []); // pacote comum legítimo: sobe
+  limpa(comum);
+  const declarado = pacote({ rel: { prebuilt: true } });
+  rmSync(join(declarado, 'prebuilt'), { recursive: true, force: true });
+  assert.match(prebuiltStartProblems(declarado, release(declarado)).join('|'), /release\.json declara prebuilt=true/); // QA 5
+  limpa(declarado);
+  limpa(r);
+});
 
 test('pacoteDoExterno: tira o sufixo de 16 hex do Turbopack; sem o sufixo = null', () => {
   assert.equal(pacoteDoExterno('pg-587764f78a6c7a9c'), 'pg');
@@ -107,12 +139,13 @@ test('restaurarPrebuilt: recusa .next de outro commit, externo não instalado, B
   try { rmSync(join(r, 'prebuilt/web-next'), { recursive: true, force: true }); assert.match(restaurarPrebuilt(r, release(r)).problemas.join('|'), /sem BUILD_ID/); } finally { limpa(r); }
 });
 
-test('start-web: com pré-construído coerente sobe (chama o next) e imprime prebuilt ok; com .next de outro commit recusa com exit 1 SEM chamar o next; pacote comum não imprime nada de prebuilt', () => {
-  const env = () => ({ ...process.env, APP_ENV: 'staging', NEXT_PUBLIC_SITE_URL: SITE, APP_COMMIT: SHA, LN_FLAGS_ON: 'intelligencePessoas', PORTAL_SOURCE: 'api' });
-  const rodar = (r) => spawnSync(process.execPath, [join(S, 'start-web.mjs'), '--port', '3999', '--host', '127.0.0.1'], { cwd: r, encoding: 'utf8', env: env() });
+const startEnv = () => ({ ...process.env, APP_ENV: 'staging', NEXT_PUBLIC_SITE_URL: SITE, APP_COMMIT: SHA, LN_FLAGS_ON: 'intelligencePessoas', PORTAL_SOURCE: 'api' });
+const rodarStart = (r) => spawnSync(process.execPath, [join(S, 'start-web.mjs'), '--port', '3999', '--host', '127.0.0.1'], { cwd: r, encoding: 'utf8', env: startEnv() });
+
+test('start-web: com pré-construído coerente sobe (chama o next) e imprime prebuilt ok; com .next de outro commit recusa com exit 1 SEM chamar o next', () => {
   const ok = pacote();
   try {
-    const x = rodar(ok);
+    const x = rodarStart(ok);
     assert.equal(x.status, 0, x.stderr + x.stdout);
     assert.match(x.stdout, /\[start-web\] prebuilt: \.next restaurado/);
     assert.match(x.stdout, /\[start-web\] prebuilt ok/);
@@ -120,18 +153,122 @@ test('start-web: com pré-construído coerente sobe (chama o next) e imprime pre
   } finally { limpa(ok); }
   const ruim = pacote({ pb: { commit: SHA2 } });
   try {
-    const x = rodar(ruim);
+    const x = rodarStart(ruim);
     assert.equal(x.status, 1);
     assert.match(x.stderr, /PRÉ-CONSTRUÍDO REPROVADO/);
     assert.doesNotMatch(x.stdout, /stub-next/, 'recusado antes de chamar o next');
   } finally { limpa(ruim); }
+});
+
+test('pacote comum (sem prebuilt.json e sem marca) sobe (caminho legítimo do build da Vertra)', () => {
+  const r = pacote();
+  try {
+    rmSync(join(r, 'prebuilt'), { recursive: true, force: true });
+    const x = rodarStart(r);
+    assert.equal(x.status, 0, x.stderr + x.stdout);
+    assert.match(x.stdout, /stub-next .*start -p 3999 -H 127\.0\.0\.1/, 'pacote comum legítimo sobe');
+    assert.doesNotMatch(x.stderr, /PRÉ-CONSTRUÍDO/);
+  } finally { limpa(r); }
+});
+
+test('QA 5: release.json declara prebuilt=true, manifesto ausente e .next antigo -> recusa', () => {
+  const r = pacote({ rel: { prebuilt: true } });
+  try {
+    rmSync(join(r, 'prebuilt'), { recursive: true, force: true });
+    mkdirSync(join(r, 'apps/web/.next'), { recursive: true });
+    writeFileSync(join(r, 'apps/web/.next/BUILD_ID'), 'BUILD_antigo\n');
+    const x = rodarStart(r);
+    assert.equal(x.status, 1, x.stderr + x.stdout);
+    assert.match(x.stderr, /PRÉ-CONSTRUÍDO EXIGIDO\/REPROVADO/);
+    assert.match(x.stderr, /release\.json declara prebuilt=true e prebuilt\/prebuilt\.json ausente/);
+    assert.doesNotMatch(x.stdout, /stub-next/, 'recusado antes de chamar o next');
+  } finally { limpa(r); }
+});
+
+test('processo: prebuilt.json ausente com prebuilt/ -> exit 1; pacote com manifesto coerente -> exit 0', () => {
+  const r = pacote();
+  try {
+    rmSync(join(r, 'prebuilt/prebuilt.json'));
+    const x = rodarStart(r);
+    assert.equal(x.status, 1, x.stderr + x.stdout);
+    assert.match(x.stderr, /prebuilt\/prebuilt\.json ausente/);
+    const ok = pacote();
+    try {
+      const y = rodarStart(ok);
+      assert.equal(y.status, 0, y.stderr + y.stdout);
+      assert.match(y.stdout, /stub-next/);
+    } finally { limpa(ok); }
+  } finally { limpa(r); }
+});
+
+test('processo: .next sem marca + prebuilt valido -> restaura e sobe (0); sem manifesto -> 1', () => {
+  const r = pacote();
+  try {
+    mkdirSync(join(r, 'apps/web/.next'), { recursive: true });
+    writeFileSync(join(r, 'apps/web/.next/BUILD_ID'), 'BUILD_antigo\n');
+    const x = rodarStart(r);
+    assert.equal(x.status, 0, x.stderr + x.stdout);
+    assert.equal(readFileSync(join(r, 'apps/web/.next/BUILD_ID'), 'utf8').trim(), 'BUILD_abc123');
+    assert.ok(existsSync(join(r, 'apps/web/.next/.ln-prebuilt.json')), 'marca gravada pela restauração');
+    rmSync(join(r, 'prebuilt/prebuilt.json'));
+    const y = rodarStart(r);
+    assert.equal(y.status, 1, y.stderr + y.stdout);
+    assert.match(y.stderr, /prebuilt\/prebuilt\.json ausente/);
+  } finally { limpa(r); }
+});
+
+test('processo: marca com BUILD_ID diferente -> restaura e sobe (0); prebuilt com BUILD_ID corrompido -> 1', () => {
+  const r = pacote();
+  try {
+    assert.deepEqual(restaurarPrebuilt(r, release(r)).problemas, []);
+    const marca = join(r, 'apps/web/.next/.ln-prebuilt.json');
+    const m = JSON.parse(readFileSync(marca, 'utf8'));
+    m.buildId = 'OUTRO_ID_999';
+    writeFileSync(marca, JSON.stringify(m));
+    const x = rodarStart(r);
+    assert.equal(x.status, 0, x.stderr + x.stdout);
+    assert.equal(JSON.parse(readFileSync(marca, 'utf8')).buildId, 'BUILD_abc123');
+    writeFileSync(join(r, 'prebuilt/web-next/BUILD_ID'), 'OUTRO_ID_999\n');
+    const y = rodarStart(r);
+    assert.equal(y.status, 1, y.stderr + y.stdout);
+    assert.match(y.stderr, /BUILD_ID da pasta \(OUTRO_ID_999\) difere do prebuilt\.json/);
+  } finally { limpa(r); }
+});
+
+test('processo: release.prebuilt=true sem manifesto -> 1; pacote comum sem prebuilt -> 0', () => {
+  const r = pacote({ rel: { prebuilt: true } });
+  try {
+    rmSync(join(r, 'prebuilt'), { recursive: true, force: true });
+    mkdirSync(join(r, 'apps/web/.next'), { recursive: true });
+    writeFileSync(join(r, 'apps/web/.next/BUILD_ID'), 'BUILD_antigo\n');
+    const x = rodarStart(r);
+    assert.equal(x.status, 1, x.stderr + x.stdout);
+    assert.match(x.stderr, /release\.json declara prebuilt=true/);
+  } finally { limpa(r); }
   const comum = pacote();
   try {
     rmSync(join(comum, 'prebuilt'), { recursive: true, force: true });
-    const x = rodar(comum);
-    assert.equal(x.status, 0, x.stderr + x.stdout);
-    assert.doesNotMatch(x.stdout, /prebuilt/, 'pacote comum não muda de comportamento');
+    const y = rodarStart(comum);
+    assert.equal(y.status, 0, y.stderr + y.stdout);
+    assert.match(y.stdout, /stub-next/);
   } finally { limpa(comum); }
+});
+
+test('health expõe buildId/buildCommit e recusa build_divergente (QA 5)', () => {
+  const r = tmp();
+  try {
+    put(r, '.next/BUILD_ID', 'BUILD_abc123\n');
+    put(r, '.next/.ln-prebuilt.json', JSON.stringify({ buildId: 'BUILD_abc123', commit: SHA }));
+    const id = readBuildIdentity(r);
+    assert.deepEqual(id, { buildId: 'BUILD_abc123', commit: SHA, prebuilt: true });
+    assert.equal(healthProblem({ APP_COMMIT: SHA }, id), null);
+    assert.equal(healthProblem({ APP_COMMIT: SHA2 }, id), 'build_divergente');
+    const p = healthPayload({ APP_COMMIT: SHA, APP_ENV: 'staging' }, [], id);
+    assert.equal(p.buildId, 'BUILD_abc123');
+    assert.equal(p.buildCommit, SHA);
+    const comum = tmp();
+    try { assert.deepEqual(readBuildIdentity(comum), { buildId: null, commit: null, prebuilt: false }); } finally { rmSync(comum, { recursive: true, force: true }); }
+  } finally { rmSync(r, { recursive: true, force: true }); }
 });
 
 test('caminhosNaoPortaveis: acha caminho de host Windows/usuário e ignora caminho /app', () => {
