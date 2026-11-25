@@ -18,6 +18,7 @@ import { FonteRapidaPainel } from '../../../_components/FonteRapidaPainel';
 import { rotuloAprovador } from '@/lib/studio/cms/aprovador';
 import { MateriaForm } from '../MateriaForm';
 import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Matéria' };
 export const dynamic = 'force-dynamic';
@@ -354,7 +355,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
               <ul className="st-issues">
                 {[...m.transicoes].reverse().map((t) => (
                   <li key={t.id}>
-                    {t.at.slice(11, 19)} · {t.de} → {t.para}
+                    {t.at.slice(11, 19)} · {t.de} <Seta /> {t.para}
                     {t.nota ? ` — ${t.nota}` : ''}
                   </li>
                 ))}

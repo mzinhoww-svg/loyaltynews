@@ -12,6 +12,7 @@ import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { MovesPendentes } from '../../../_components/MovesPendentes';
 import { CargosAConfirmar } from '../../../_components/CargosEntidades';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Empresa' };
 export const dynamic = 'force-dynamic';
@@ -134,13 +135,13 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
               return (
                 <tr key={x.id} data-relacao={x.type} data-nivel={nivel.chave}>
                   <th scope="row">
-                    {ROTULO_RELACAO[x.type] ?? x.type} {x.direction === 'from' ? '→' : '←'}
+                    {ROTULO_RELACAO[x.type] ?? x.type} <Seta direcao={x.direction === 'from' ? 'direita' : 'esquerda'} />
                   </th>
                   <td>
                     <Link href={`/studio/entidades/${x.other_org_id}`}>{x.other_org_name}</Link>
                   </td>
                   <td>
-                    {x.valid_from} → {x.valid_to ?? 'em vigor'}
+                    {x.valid_from} <Seta /> {x.valid_to ?? 'em vigor'}
                   </td>
                   <td>
                     <span className={`st-badge ${nivel.chave === 'oficial' ? 'aprovado' : 'em_checagem'}`}>{nivel.rotulo}</span>

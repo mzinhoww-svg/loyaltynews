@@ -12,6 +12,7 @@ import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
 import { PortalAgora } from '../../_components/PortalAgora';
 import { editarDocAction } from './actions';
+import { Seta } from '../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Home e menus' };
 export const dynamic = 'force-dynamic';
@@ -202,12 +203,12 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
         <ol className="st-issues" aria-label={`Itens de ${ROTULO_TIPO[tipo]}`}>
           {(emEdicao as MenuConteudo).itens.map((it, i) => (
             <li key={`${it.rotulo}-${i}`} data-item={it.rotulo}>
-              <strong>{it.rotulo}</strong> → <code>{it.destino}</code>
+              <strong>{it.rotulo}</strong> <Seta /> <code>{it.destino}</code>
               {it.filhos.length ? (
                 <ul className="st-issues" aria-label={`Subitens de ${it.rotulo}`}>
                   {it.filhos.map((f, j) => (
                     <li key={`${f.rotulo}-${j}`} data-filho={f.rotulo}>
-                      {f.rotulo} → <code>{f.destino}</code>
+                      {f.rotulo} <Seta /> <code>{f.destino}</code>
                       {podeEditar ? (
                         <form action={editarDocAction} style={{ display: 'inline', marginLeft: 8 }}>
                           <input type="hidden" name="tipo" value={tipo} />

@@ -1,5 +1,6 @@
 import { api, type BlocoPublico } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
+import { Seta } from './Seta';
 
 type Parte = 'home' | 'menus' | 'seo' | 'links' | 'agenda';
 
@@ -39,7 +40,7 @@ const Itens = ({ itens }: { itens: { rotulo: string; destino: string; filhos?: {
   <ul className="st-issues">
     {itens.map((i) => (
       <li key={`${i.rotulo}-${i.destino}`}>
-        {i.rotulo} → <code>{i.destino}</code>
+        {i.rotulo} <Seta /> <code>{i.destino}</code>
         {i.filhos?.length ? ` (${i.filhos.map((f) => f.rotulo).join(', ')})` : ''}
       </li>
     ))}
@@ -161,7 +162,7 @@ export async function PortalAgora({ parte }: { parte: Parte }) {
       <ul className="st-issues" aria-label="Links internos no Portal">
         {site.linksInternos.map((l) => (
           <li key={l.termo}>
-            {l.termo} → <code>{l.destino}</code>
+            {l.termo} <Seta /> <code>{l.destino}</code>
           </li>
         ))}
       </ul>
