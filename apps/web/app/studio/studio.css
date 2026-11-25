@@ -141,3 +141,19 @@
 .studio .st-nav-pill { font-size: var(--ln-text-xs); line-height: var(--ln-leading-xs); padding: 0 var(--ln-space-2); white-space: normal; }
 /* foco visível sobre o fundo escuro do menu: o anel azul do corpo não contrasta aqui */
 .studio .ln-sidebar :focus-visible { outline-color: var(--ln-color-white); }
+
+/* ---- refino do lançamento, pacote C, item 3: formulários ---- */
+.studio .st-label-linha { display: flex; align-items: baseline; gap: var(--ln-space-1); }
+.studio .st-obrig { color: var(--st-danger); font-weight: var(--ln-weight-bold); }
+/* controle com erro: borda e halo no tom de perigo do design system (não só a cor: a mensagem fica ligada por aria-describedby) */
+.studio .st-field input[aria-invalid='true'], .studio .st-field select[aria-invalid='true'], .studio .st-field textarea[aria-invalid='true'] { border-color: var(--st-danger); box-shadow: 0 0 0 1px var(--st-danger); }
+.studio .st-field .err::before { content: 'Erro: '; font-weight: var(--ln-weight-bold); }
+/* resumo de erros no topo do formulário: lista de links para os campos */
+.studio .st-alert ul { margin: var(--ln-space-2) 0 0; padding-left: var(--ln-space-4); }
+.studio .st-alert[tabindex='-1']:focus { outline: var(--ln-focus-width) solid var(--ln-color-focus); outline-offset: var(--ln-focus-offset); }
+/* no celular a ação de salvar fica presa no rodapé da tela, sempre ao alcance do polegar; a rolagem reserva o espaço dela */
+@media (max-width: 860px) {
+  .studio .st-barra-salvar { position: sticky; bottom: 0; z-index: 2; padding: var(--ln-space-3); background: var(--ln-color-white); border-top: 1px solid var(--st-line-strong); }
+  .studio .st-barra-salvar .st-btn { flex: 1 1 auto; }
+  html:has(.st-barra-salvar) { scroll-padding-bottom: 88px; }
+}

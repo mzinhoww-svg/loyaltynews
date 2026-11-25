@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+
 /** Link do próximo passo: só caminho interno do Studio (nunca URL externa nem `//`); o texto sai do destino. */
 function proximoLink(proximo?: string): { href: string; texto: string } | null {
   if (!proximo || !/^\/studio\/[A-Za-z0-9/_.-]*$/.test(proximo) || proximo.includes('//') || proximo.includes('..')) return null;
@@ -7,11 +11,16 @@ function proximoLink(proximo?: string): { href: string; texto: string } | null {
 }
 
 export function Flash({ tipo, aviso, proximo }: { tipo?: string; aviso?: string; proximo?: string }) {
-  if (!aviso) return null;
+  const ref = useRef<HTMLDivElement>(null);
   const erro = tipo === 'err';
+  // erro de ação (a página volta com a mensagem): o foco vai para ela, para quem usa teclado ou leitor de tela perceber o resultado
+  useEffect(() => {
+    if (erro && aviso) ref.current?.focus();
+  }, [erro, aviso]);
+  if (!aviso) return null;
   const link = proximoLink(proximo);
   return (
-    <div className={`st-alert ${erro ? 'err' : 'ok'}`} role={erro ? 'alert' : 'status'}>
+    <div ref={ref} {...(erro ? { tabIndex: -1 } : {})} className={`st-alert ${erro ? 'err' : 'ok'}`} role={erro ? 'alert' : 'status'} data-flash={erro ? 'erro' : 'ok'}>
       {aviso}
       {link ? (
         <>
