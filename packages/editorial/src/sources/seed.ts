@@ -41,7 +41,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "Termos citam 'gráficos e desenhos' sob a vedação de reprodução sem autorização prévia da Azul e 'Todos os direitos reservados'; não há política de imagens separada nem liberação de material de imprensa. Termos datados de 2017/2019. Não há menção a raspagem/automação.",
-      "notes": "Horário exato não registrado (apenas a data da consulta). Páginas /noticias/ ('Nenhum arquivo para o ano selecionado', última atualização 13/05/2025) e a de Fatos Relevantes/Comunicados/Avisos (atualizada 21/05/2025) renderizam sem itens no HTML lido (lista provavelmente carregada via JS/API). Nenhum link RSS encontrado. Outras URLs vistas: /informacoes-e-relatorios/resultados-trimestrais/, /noticias-e-apresentacoes/eventos/. Política de privacidade: https://www.voeazul.com.br/politica-privacidade-cookie | Home confirma RI bilingue (B3/NYSE). https://ri.voeazul.com.br/noticias/ retornou 'Nenhum arquivo para o ano selecionado' (ultima atualizacao 13/05/2025) e a pagina de avisos/comunicados/fatos relevantes nao mostrou itens (dinamico; ultima atualizacao 21/05/2025). Sem RSS linkado. Termos nao mencionam raspagem/automacao. Politica de privacidade: https://www.voeazul.com.br/politica-privacidade-cookie."
+      "notes": "Horário exato não registrado (apenas a data da consulta). Páginas /noticias/ ('Nenhum arquivo para o ano selecionado', última atualização 13/05/2025) e a de Fatos Relevantes/Comunicados/Avisos (atualizada 21/05/2025) renderizam sem itens no HTML lido (lista provavelmente carregada via JS/API). Nenhum link RSS encontrado. Outras URLs vistas: /informacoes-e-relatorios/resultados-trimestrais/, /noticias-e-apresentacoes/eventos/. Política de privacidade: https://www.voeazul.com.br/politica-privacidade-cookie | Home confirma RI bilingue (B3/NYSE). https://ri.voeazul.com.br/noticias/ retornou 'Nenhum arquivo para o ano selecionado' (ultima atualizacao 13/05/2025) e a pagina de avisos/comunicados/fatos relevantes nao mostrou itens (dinamico; ultima atualizacao 21/05/2025). Sem RSS linkado. Termos nao mencionam raspagem/automacao. Politica de privacidade: https://www.voeazul.com.br/politica-privacidade-cookie. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara sitemap_index.xml (WordPress), mas ele só tem page-sitemap.xml: páginas estáticas, sem item por comunicado (a lista de avisos e fatos relevantes é dinâmica). A tentativa de feed na página de avisos devolveu 403 e parei. Não cadastrado."
     }
   },
   {
@@ -75,7 +75,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "Termos citam 'informações, materiais, instrumentos, organização da página, gráficos e desenhos' como protegidos, reprodução vedada sem autorização prévia; rodapé '© 2021 | Todos Direitos Reservados'. Sem política de imagens separada. Sem menção a raspagem/automação.",
-      "notes": "Horário exato não registrado. A home do RI anuncia o feed https://ri.voegol.com.br/arquivos/rss/gol2014_pt_rss.xml, mas ao abrir a URL retornou HTTP 404, portanto feedUrl=null. /noticias/ mostra 'No files for the selected year' (lista vazia/JS); a página de Comunicados e Fatos Relevantes não foi aberta (apenas linkada na home). Smiles (programa de fidelidade) pertence à GOL, logo comunicados da GOL cobrem fidelidade/milhas. Política de privacidade: https://www.voegol.com.br/informacoes-legais/politica-de-privacidade-e-protecao-de-dados | A pagina de noticias linka https://ri.voegol.com.br/arquivos/rss/gol2014_pt_rss.xml, mas ao abrir a URL retornou HTTP 404: feed NAO confirmado (feedUrl=null). Pagina /noticias/ mostrou 'No files for the selected year'. Outra pagina: https://ri.voegol.com.br/publicacoes-cvm-e-sec/comunicados-e-fatos-relevantes/ (nao aberta individualmente). Termos nao proibem expressamente raspagem/automacao (nao mencionada). Rodape: '© 2021 | Todos Direitos Reservados'."
+      "notes": "Horário exato não registrado. A home do RI anuncia o feed https://ri.voegol.com.br/arquivos/rss/gol2014_pt_rss.xml, mas ao abrir a URL retornou HTTP 404, portanto feedUrl=null. /noticias/ mostra 'No files for the selected year' (lista vazia/JS); a página de Comunicados e Fatos Relevantes não foi aberta (apenas linkada na home). Smiles (programa de fidelidade) pertence à GOL, logo comunicados da GOL cobrem fidelidade/milhas. Política de privacidade: https://www.voegol.com.br/informacoes-legais/politica-de-privacidade-e-protecao-de-dados | A pagina de noticias linka https://ri.voegol.com.br/arquivos/rss/gol2014_pt_rss.xml, mas ao abrir a URL retornou HTTP 404: feed NAO confirmado (feedUrl=null). Pagina /noticias/ mostrou 'No files for the selected year'. Outra pagina: https://ri.voegol.com.br/publicacoes-cvm-e-sec/comunicados-e-fatos-relevantes/ (nao aberta individualmente). Termos nao proibem expressamente raspagem/automacao (nao mencionada). Rodape: '© 2021 | Todos Direitos Reservados'. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara sitemap_index.xml (WordPress), mas ele só tem páginas estáticas (a mais recente de 15/10/2026, relatório de sustentabilidade) e posts de 2021: os comunicados não têm um item por URL. Não cadastrado."
     }
   },
   {
@@ -142,7 +142,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "não informado (site inacessível ao fetch automatizado).",
-      "notes": "Reavaliação de 2026-11-23 (antes: inacessivel por HTTP 403 em 22/11): home do RI responde 200 (≈63 mil caracteres, estática) e lista comunicados e releases; muitos itens são PDFs em /Download/..., que o coletor de HTML não lê. Sem feed nem sitemap declarado: a fonte só vira coletável quando houver feed/sitemap ou coleta por listagem. Classe D no dossiê (termos só afirmam titularidade). Revisão humana ainda decide termos, paywall e URL."
+      "notes": "Reavaliação de 2026-11-23 (antes: inacessivel por HTTP 403 em 22/11): home do RI responde 200 (≈63 mil caracteres, estática) e lista comunicados e releases; muitos itens são PDFs em /Download/..., que o coletor de HTML não lê. Sem feed nem sitemap declarado: a fonte só vira coletável quando houver feed/sitemap ou coleta por listagem. Classe D no dossiê (termos só afirmam titularidade). Revisão humana ainda decide termos, paywall e URL. Checagem de coleta 25/11/2026 (Editorial): robots.txt devolve 404 (sem regras) e nenhum feed ou sitemap foi encontrado. Segue só listagem."
     }
   },
   {
@@ -164,7 +164,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 40,
+    "maxRequestsPerHour": 64,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "lido",
@@ -244,7 +244,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "Termos (seção 2.1) reservam direitos de propriedade intelectual incluindo imagens, fotografias, vídeos e bases de dados; seção 2.2 veda reproduzir/distribuir/armazenar conteúdo sem autorização prévia e expressa dos titulares. Não menciona raspagem/automação. Material de imprensa não é liberado expressamente.",
-      "notes": "Horário exato não registrado. /imprensa (https://www.abecs.org.br/imprensa) tem 'Balanço do setor' (https://abecs.org.br/balanco-do-setor-de-meios-de-pagamento) e 'Releases' (https://abecs.org.br/release). Listagem de releases (filtro por ano 2023-2026): 'Balanço do setor 3º trimestre de 2026 (11.2026)', 'Abecs anuncia Rogério Lucca como presidente executivo', 'Balanço do setor 2º trimestre de 2026 (08.2026)' (sem datas completas). /feed retornou 404; nenhum RSS encontrado. Contatos de imprensa constam em /imprensa. Privacidade: https://abecs.org.br/politica-de-privacidade | Pagina de imprensa: https://abecs.org.br/imprensa (secoes 'Balanço do setor' e 'Releases'). https://abecs.org.br/release lista releases como PDFs (ex.: 'Balanço do setor 3º trimestre de 2026 (11.2026)', 'Abecs anuncia Rogério Lucca como presidente executivo.'), sem datas explicitas e sem login. Sem RSS visivel. Termos nao mencionam raspagem/automacao de forma explicita, mas vedam reproduzir/armazenar/utilizar conteudo sem autorizacao: usar apenas como sinal/link e dados factuais, nao copiar texto/imagem."
+      "notes": "Horário exato não registrado. /imprensa (https://www.abecs.org.br/imprensa) tem 'Balanço do setor' (https://abecs.org.br/balanco-do-setor-de-meios-de-pagamento) e 'Releases' (https://abecs.org.br/release). Listagem de releases (filtro por ano 2023-2026): 'Balanço do setor 3º trimestre de 2026 (11.2026)', 'Abecs anuncia Rogério Lucca como presidente executivo', 'Balanço do setor 2º trimestre de 2026 (08.2026)' (sem datas completas). /feed retornou 404; nenhum RSS encontrado. Contatos de imprensa constam em /imprensa. Privacidade: https://abecs.org.br/politica-de-privacidade | Pagina de imprensa: https://abecs.org.br/imprensa (secoes 'Balanço do setor' e 'Releases'). https://abecs.org.br/release lista releases como PDFs (ex.: 'Balanço do setor 3º trimestre de 2026 (11.2026)', 'Abecs anuncia Rogério Lucca como presidente executivo.'), sem datas explicitas e sem login. Sem RSS visivel. Termos nao mencionam raspagem/automacao de forma explicita, mas vedam reproduzir/armazenar/utilizar conteudo sem autorizacao: usar apenas como sinal/link e dados factuais, nao copiar texto/imagem. Checagem de coleta 25/11/2026 (Editorial): nenhum feed ou sitemap público encontrado: robots.txt permite, mas a página não declara link alternate e /feed, /rss e /sitemap.xml não devolveram XML. Segue só listagem."
     }
   },
   {
@@ -280,7 +280,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "Rodapé do portal MJ declara licença CC BY-ND 3.0 para o conteúdo do site (link: https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR); sem regra específica de imagens.",
-      "notes": "Horário exato não registrado. Listagem Notícias Senacon lida: 18/11/2026 (Senacon notifica Amazon, Mercado Livre, TikTok Shop, Shopee, Temu e IDV antes da Black Friday), 11/11/2026 (oficina reforma tributária), 10/11/2026 (Semarc 2026). Home https://www.gov.br/senacon também linka as notícias gerais do MJSP: https://www.gov.br/mj/pt-br/assuntos/noticias (392 páginas; última 22/11/2026; sem RSS visível). gov.br/senacon/pt-br/assuntos/noticias retorna 404; usar a URL de listagem acima. O sufixo /RSS (que funciona na CVM) retornou 404 em gov.br/mj/pt-br/assuntos/noticias/RSS, gov.br/senacon/pt-br/assuntos/noticias/RSS e na listagem Senacon, logo feedUrl=null. | O seed citava www.gov.br/senacon, mas https://www.gov.br/senacon/pt-br/assuntos/noticias retorna 404; a Senacon fica sob /mj. Listagem de noticias do MJSP e geral (mistura seguranca publica e consumidor); pagina da Senacon: https://www.gov.br/mj/pt-br/assuntos/secretaria-nacional-do-consumidor-senacon (200, titulo 'Senacon - Ministerio da Justica...'). Exemplo de noticia Senacon lida na listagem: 18/11/2026 'Senacon notifica plataformas e varejistas para prevenir problemas durante a Black Friday'. Necessario filtrar por Senacon/consumidor/dados no ingestor. Sem feed: /mj/pt-br/assuntos/noticias/rss.xml, /RSS, /search_rss e /senacon/.../rss.xml retornam 404; sem link rel=alternate no HTML. Licenca CC BY-ND 3.0 vista no HTML da pagina do MJ e da Senacon. | Pagina de noticias do MJSP aberta: lista 'Últimas Notícias' com ~392 paginas (itens recentes de 20-22/11/2026, temas de seguranca publica). https://www.gov.br/senacon/pt-br e /senacon/pt-br/assuntos/noticias retornaram 404, e /mj/pt-br/assuntos/noticias/RSS retornou 404: feedUrl=null. Conteudo de Senacon/consumidor deve ser filtrado dentro das noticias do MJSP (nao verificado como filtrar). Texto lido do MJ com ultimos 15k caracteres nao lidos."
+      "notes": "Horário exato não registrado. Listagem Notícias Senacon lida: 18/11/2026 (Senacon notifica Amazon, Mercado Livre, TikTok Shop, Shopee, Temu e IDV antes da Black Friday), 11/11/2026 (oficina reforma tributária), 10/11/2026 (Semarc 2026). Home https://www.gov.br/senacon também linka as notícias gerais do MJSP: https://www.gov.br/mj/pt-br/assuntos/noticias (392 páginas; última 22/11/2026; sem RSS visível). gov.br/senacon/pt-br/assuntos/noticias retorna 404; usar a URL de listagem acima. O sufixo /RSS (que funciona na CVM) retornou 404 em gov.br/mj/pt-br/assuntos/noticias/RSS, gov.br/senacon/pt-br/assuntos/noticias/RSS e na listagem Senacon, logo feedUrl=null. | O seed citava www.gov.br/senacon, mas https://www.gov.br/senacon/pt-br/assuntos/noticias retorna 404; a Senacon fica sob /mj. Listagem de noticias do MJSP e geral (mistura seguranca publica e consumidor); pagina da Senacon: https://www.gov.br/mj/pt-br/assuntos/secretaria-nacional-do-consumidor-senacon (200, titulo 'Senacon - Ministerio da Justica...'). Exemplo de noticia Senacon lida na listagem: 18/11/2026 'Senacon notifica plataformas e varejistas para prevenir problemas durante a Black Friday'. Necessario filtrar por Senacon/consumidor/dados no ingestor. Sem feed: /mj/pt-br/assuntos/noticias/rss.xml, /RSS, /search_rss e /senacon/.../rss.xml retornam 404; sem link rel=alternate no HTML. Licenca CC BY-ND 3.0 vista no HTML da pagina do MJ e da Senacon. | Pagina de noticias do MJSP aberta: lista 'Últimas Notícias' com ~392 paginas (itens recentes de 20-22/11/2026, temas de seguranca publica). https://www.gov.br/senacon/pt-br e /senacon/pt-br/assuntos/noticias retornaram 404, e /mj/pt-br/assuntos/noticias/RSS retornou 404: feedUrl=null. Conteudo de Senacon/consumidor deve ser filtrado dentro das noticias do MJSP (nao verificado como filtrar). Texto lido do MJ com ultimos 15k caracteres nao lidos. Checagem de coleta 25/11/2026 (Editorial): o sitemap do Ministério da Justiça não está no padrão dos outros sites gov.br: /mj/sitemap-index.xml e /mj/pt-br/sitemap-index.xml devolvem 404, e o sitemap.xml.gz da raiz do gov.br devolve 403 ao nosso agente. Nada contornado. Segue só listagem."
     }
   },
   {
@@ -303,7 +303,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 40,
+    "maxRequestsPerHour": 64,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -382,7 +382,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "não informado. Rodapé: '© 2026 ABEMF - Associação Brasileira das Empresas do Mercado de Fidelização' / 'Todos os direitos reservados'. Não há link para termos de uso ou política de privacidade no rodapé lido.",
-      "notes": "Horário exato não registrado. www.abemf.org.br não existe (ENOTFOUND); site oficial encontrado via busca: web.abemf.com.br (há também blog.abemf.com.br). Feed RSS 2.0 confirmado; itens: 22/10/2026 'Programas de fidelidade alcançam menor patamar histórico em número de pontos ou milhas expirados' e 20/08/2026 'O futuro da fidelização passa por IA, dados, parcerias...'. Divulga dados trimestrais do setor (faturamento, cadastros, breakage) e o Fórum Brasileiro de Fidelização. Fonte-chave para programas-fidelidade."
+      "notes": "Horário exato não registrado. www.abemf.org.br não existe (ENOTFOUND); site oficial encontrado via busca: web.abemf.com.br (há também blog.abemf.com.br). Feed RSS 2.0 confirmado; itens: 22/10/2026 'Programas de fidelidade alcançam menor patamar histórico em número de pontos ou milhas expirados' e 20/08/2026 'O futuro da fidelização passa por IA, dados, parcerias...'. Divulga dados trimestrais do setor (faturamento, cadastros, breakage) e o Fórum Brasileiro de Fidelização. Fonte-chave para programas-fidelidade. Checagem de coleta 25/11/2026 (Editorial): feed relido em 25/11/2026: 11 itens, o mais recente de 22/10/2026; não há URL nova (os sitemaps não têm nada mais recente). Fonte de baixa frequência, não feed quebrado."
     }
   },
   {
@@ -414,7 +414,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "não informado. Não há página de termos de uso linkada no rodapé (só Privacy Statement e linha de copyright); /terms-of-use/ retorna 404. Sem menção a raspagem/automação.",
-      "notes": "Horário exato não registrado. Feed RSS 2.0 confirmado (itens: 23/10/2026 'A4A Announces Nominations are Open for the 2027 Nuts & Bolts Awards'; 14/10/2026 'A4A Continues CARB Partnership...'). Listagem /news/ mostra 11/11/2026 e 10/11/2026. /news-updates/ retorna 404. Foco em aviação dos EUA; relevância para global-loyalty é moderada."
+      "notes": "Horário exato não registrado. Feed RSS 2.0 confirmado (itens: 23/10/2026 'A4A Announces Nominations are Open for the 2027 Nuts & Bolts Awards'; 14/10/2026 'A4A Continues CARB Partnership...'). Listagem /news/ mostra 11/11/2026 e 10/11/2026. /news-updates/ retorna 404. Foco em aviação dos EUA; relevância para global-loyalty é moderada. Checagem de coleta 25/11/2026 (Editorial): feed relido em 25/11/2026: 11 itens, o mais recente de 23/10/2026 (o sitemap tem lastmod de 29/10/2026, sem notícia nova); não há URL nova. Fonte de baixa frequência, não feed quebrado."
     }
   },
   {
@@ -445,7 +445,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "não informado. Rodapé: '©2026 oneworld Management Company, Inc. All rights reserved.' Não há página de Terms of Use; o link 'Terms and Conditions' do formulário de newsletter aponta para a política de privacidade (não lida).",
-      "notes": "Horário exato não registrado. /news carregou sem itens ('There were no results for your query'), lista dinâmica/vazia no HTML lido. Nenhum RSS listado. Aliança da qual a LATAM faz parte. Confiança baixa para coleta automatizada; revisar manualmente."
+      "notes": "Horário exato não registrado. /news carregou sem itens ('There were no results for your query'), lista dinâmica/vazia no HTML lido. Nenhum RSS listado. Aliança da qual a LATAM faz parte. Confiança baixa para coleta automatizada; revisar manualmente. Checagem de coleta 25/11/2026 (Editorial): o sitemap_index.xml aponta para filhos em outro host (globalsiteseo.com), que o coletor não aceita; o /sitemap.xml tem 497 URLs com o último lastmod de 2022. Não cadastrado."
     }
   },
   {
@@ -509,7 +509,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22",
       "consultedAt": "2026-11-22",
       "imageRightsNote": "não informado; rodapé do RI só traz '© Todos os direitos reservados'. A página de políticas de uso/privacidade do portal bb.com.br foi apenas linkada, não lida.",
-      "notes": "Horário exato não registrado. Página de Fatos Relevantes/Comunicados/Avisos mostra categorias (Fato Relevante, Comunicado ao mercado, Aviso aos Acionistas, Transações com Partes Relacionadas) sem entradas no HTML lido (JS). Nenhum RSS encontrado. BB é acionista da Livelo (pontos); itens de fidelidade podem aparecer em comunicados/resultados. Fonte adicional. | Pagina de listagem mostrou as secoes (Fatos Relevantes, Comunicados ao mercado, Avisos aos Acionistas, Transações com Partes Relacionadas) mas sem itens no fetch (carregamento dinamico). Sem RSS visivel. Outras URLs: https://ri.bb.com.br/publicacoes-e-comunicados/ e https://ri.bb.com.br/servicos-para-investidores/calendario-de-eventos-de-ri/. Link de politica de privacidade esta em bb.com.br (outro host)."
+      "notes": "Horário exato não registrado. Página de Fatos Relevantes/Comunicados/Avisos mostra categorias (Fato Relevante, Comunicado ao mercado, Aviso aos Acionistas, Transações com Partes Relacionadas) sem entradas no HTML lido (JS). Nenhum RSS encontrado. BB é acionista da Livelo (pontos); itens de fidelidade podem aparecer em comunicados/resultados. Fonte adicional. | Pagina de listagem mostrou as secoes (Fatos Relevantes, Comunicados ao mercado, Avisos aos Acionistas, Transações com Partes Relacionadas) mas sem itens no fetch (carregamento dinamico). Sem RSS visivel. Outras URLs: https://ri.bb.com.br/publicacoes-e-comunicados/ e https://ri.bb.com.br/servicos-para-investidores/calendario-de-eventos-de-ri/. Link de politica de privacidade esta em bb.com.br (outro host). Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara sitemap_index.xml (WordPress), mas as páginas de comunicados não têm um item por comunicado (a lista é dinâmica; os filhos de posts têm lastmod de 2018 e as páginas de 2024). A tentativa de feed na página de comunicados devolveu 403 e parei. Não cadastrado."
     }
   },
   {
@@ -574,7 +574,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:50-03:00",
       "consultedAt": "2026-11-22T18:47:40-03:00",
       "imageRightsNote": "não informado (somente rodape de direitos reservados; nenhuma pagina de termos de uso encontrada). Pagina de cookies aponta para placeholder.",
-      "notes": "A pagina /noticias/ no fetch mostrou so filtro por ano (2019-2026) e contato de imprensa, sem itens listados (provavel carregamento dinamico). Sem RSS visivel. Ha area de associados em subdominio separado (restrita a login) - conteudo publico de noticias parece aberto, mas nao confirmado. Termos de uso: não encontrado."
+      "notes": "A pagina /noticias/ no fetch mostrou so filtro por ano (2019-2026) e contato de imprensa, sem itens listados (provavel carregamento dinamico). Sem RSS visivel. Ha area de associados em subdominio separado (restrita a login) - conteudo publico de noticias parece aberto, mas nao confirmado. Termos de uso: não encontrado. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://portal.febraban.org.br/sitemap.xml (857 URLs, 689 de notícias), mas sem lastmod e fora de ordem de data: o coletor pegaria as 5 primeiras na ordem do arquivo, não as mais novas. Não cadastrado."
     }
   },
   {
@@ -620,7 +620,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "global"
     ],
     "host": "nu.com",
-    "pathPrefix": "/en/newsroom",
+    "pathPrefix": null,
     "listingUrl": "https://nu.com/en/newsroom",
     "feedUrl": null,
     "termsUrl": "não encontrado",
@@ -630,7 +630,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 8,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -640,8 +640,10 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:20-03:00",
       "consultedAt": "2026-11-22T18:48:10-03:00",
       "imageRightsNote": "não informado",
-      "notes": "Resultados trimestrais sao divulgados no newsroom e no site de RI www.investors.nu (indicado por busca; nao aberto aqui). Hosts www.investidores.nu.com.br nao resolve (ENOTFOUND). Pagina /en/newsroom lista poucos itens (videocast, newsletter NuHeadlines) e nao mostrou 'Recent news'. Sem RSS visivel. Recomenda-se revisar o host investors.nu separadamente antes do cadastro."
-    }
+      "notes": "Resultados trimestrais sao divulgados no newsroom e no site de RI www.investors.nu (indicado por busca; nao aberto aqui). Hosts www.investidores.nu.com.br nao resolve (ENOTFOUND). Pagina /en/newsroom lista poucos itens (videocast, newsletter NuHeadlines) e nao mostrou 'Recent news'. Sem RSS visivel. Recomenda-se revisar o host investors.nu separadamente antes do cadastro. Checagem de coleta 25/11/2026 (Editorial): cadastrado o filho institutional.xml do sitemap.xml do site (1.835 URLs, 1.200 de sala de imprensa, a mais recente de 23/11/2026). Prefixo em português; a versão em inglês fica em /en/newsroom/ e não é lida. O pathPrefix da fonte passou de /en/newsroom para null (host inteiro), porque o sitemap fica em /sitemap/ e o coletor recusaria a leitura; as páginas coletadas continuam limitadas pelo sitemapPathPrefix /pt/sala-de-imprensa/."
+    },
+    "sitemapUrl": "https://nu.com/sitemap/institutional.xml",
+    "sitemapPathPrefix": "/pt/sala-de-imprensa/"
   },
   {
     "id": "itau-ri",
@@ -652,7 +654,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     ],
     "host": "www.itau.com.br",
     "pathPrefix": null,
-    "listingUrl": null,
+    "listingUrl": "https://www.itau.com.br/relacoes-com-investidores/",
     "feedUrl": null,
     "termsUrl": "não encontrado",
     "termsStatus": "pending",
@@ -671,7 +673,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:47:15-03:00",
       "consultedAt": "2026-11-22T18:47:15-03:00",
       "imageRightsNote": "não informado",
-      "notes": "Somente robots.txt tentado (403). URL do RI nao confirmada, portanto listingUrl=null. Nao cadastrar sem verificacao manual."
+      "notes": "Somente robots.txt tentado (403). URL do RI nao confirmada, portanto listingUrl=null. Nao cadastrar sem verificacao manual. Checagem de coleta 25/11/2026 (Editorial): a URL do RI é https://www.itau.com.br/relacoes-com-investidores/ (página oficial, achada por busca; a mesma busca indica que os fatos relevantes passaram em 05/2026 a ser publicados em portal de terceiro, mzgroup.com.br/fatos-relevantes/, que o coletor não lê: a conferir). O site devolve 403 (Access Denied) ao nosso agente, robots.txt inclusive: nada foi contornado e a fonte segue inacessível; urlVerified continua falso."
     }
   },
   {
@@ -724,7 +726,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 10,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "lido",
@@ -734,8 +736,10 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:40-03:00",
       "consultedAt": "2026-11-22T18:48:30-03:00",
       "imageRightsNote": "não informado (apenas direitos reservados no rodape; nenhum termo de uso encontrado)",
-      "notes": "Listagem 'Notícias selecionadas do setor varejista' (itens de 13-18/11/2026) - parece curadoria que linka materias de terceiros; priorizar itens autorais do IDV. WordPress (sitemap_index.xml); feed WP padrao nao testado. Termos de uso: não encontrado."
-    }
+      "notes": "Listagem 'Notícias selecionadas do setor varejista' (itens de 13-18/11/2026) - parece curadoria que linka materias de terceiros; priorizar itens autorais do IDV. WordPress (sitemap_index.xml); feed WP padrao nao testado. Termos de uso: não encontrado. Checagem de coleta 25/11/2026 (Editorial): sitemap_index.xml cadastrado (o filho noticia-sitemap1.xml tem 201 URLs, a mais recente de 28/10/2026; o coletor lê os 2 filhos mais recentes e o de sala_de_imprensa não rende nada sob /noticia/). O feed /feed/ está parado desde 08/2022 e /noticias/feed/ vem vazio. A própria página /noticia/ entra no sitemap e pode ser lida como se fosse notícia (a triagem a recusa). Baixa frequência."
+    },
+    "sitemapUrl": "https://www.idv.org.br/sitemap_index.xml",
+    "sitemapPathPrefix": "/noticia/"
   },
   {
     "id": "abras",
@@ -765,7 +769,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:55-03:00",
       "consultedAt": "2026-11-22T18:48:55-03:00",
       "imageRightsNote": "não informado",
-      "notes": "Itens recentes (ex.: 'Consumo nos Lares acumula alta de 2,70% até setembro, aponta ABRAS', 30/10/2026). Pagina de imprensa: https://www.abras.com.br/abras/imprensa (nao aberta). Politica de privacidade linkada nao foi aberta; termos de uso: não encontrado. Tema supermercado: relevancia para varejo/cashback moderada."
+      "notes": "Itens recentes (ex.: 'Consumo nos Lares acumula alta de 2,70% até setembro, aponta ABRAS', 30/10/2026). Pagina de imprensa: https://www.abras.com.br/abras/imprensa (nao aberta). Politica de privacidade linkada nao foi aberta; termos de uso: não encontrado. Tema supermercado: relevancia para varejo/cashback moderada. Checagem de coleta 25/11/2026 (Editorial): robots.txt devolve 404 (sem regras: tudo permitido, RFC 9309) e nenhum feed ou sitemap foi encontrado (link alternate e caminhos comuns). Segue só listagem."
     }
   },
   {
@@ -796,7 +800,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:48:45-03:00",
       "consultedAt": "2026-11-22T18:48:30-03:00",
       "imageRightsNote": "Termos: uso limitado a fins pessoais/nao comerciais; copias autorizadas devem trazer '©Copyright Accor SA'; fotografias sob a mesma protecao. Termos tambem dizem: 'The extraction and/or repeated re-use of the content, even non substantial, of this site is also prohibited' - raspagem nao permitida. Material de imprensa nao tratado separadamente: não informado como liberado.",
-      "notes": "Listagem mostrou press releases datados (ex.: 'Accor to Increase Its Stake in Ennismore', 11.17.2026; 'Accor Group & Hard Rock International Sign Global Strategic Partnership', 11.09.2026). Sem RSS visivel. Dada a clausula contra extracao repetida, recomenda-se NAO coletar automaticamente; usar apenas curadoria manual com link."
+      "notes": "Listagem mostrou press releases datados (ex.: 'Accor to Increase Its Stake in Ennismore', 11.17.2026; 'Accor Group & Hard Rock International Sign Global Strategic Partnership', 11.09.2026). Sem RSS visivel. Dada a clausula contra extracao repetida, recomenda-se NAO coletar automaticamente; usar apenas curadoria manual com link. Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://group.accor.com/api/sitemap (425 URLs com lastmod real, 280 sob /en/news-stories/), mas 35 delas são páginas de listagem (/en/news-stories/page/N) com lastmod renovado a cada geração, que passariam à frente das matérias no corte de 5 por rodada, e o prefixo não consegue excluí-las. Não cadastrado; precisaria de uma regra de exclusão no coletor."
     }
   },
   {
@@ -840,7 +844,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "host": "abav.com.br",
     "pathPrefix": null,
     "listingUrl": "https://abav.com.br/blog/",
-    "feedUrl": null,
+    "feedUrl": "https://abav.com.br/blog/feed/",
     "termsUrl": "https://abav.com.br/politica-de-privacidade/",
     "termsStatus": "pending",
     "urlVerified": false,
@@ -858,7 +862,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:49:00-03:00",
       "consultedAt": "2026-11-22T18:48:55-03:00",
       "imageRightsNote": "não informado (rodape reserva conteudo ao uso exclusivo da ABAV; sem termos de uso). Politica de privacidade linkada nao foi aberta.",
-      "notes": "Blog lista posts como 'Posicionamento ABAV Nacional – 27/03/2025', '#GiroABAV: ...' (conteudo pouco frequente/ultimo post visivel de 2025). Ha Area Restrita (login) para associados, nao acessada. Sem RSS visivel. Sinal 'ai-train=no' no robots: nao usar para treinamento de IA. www.abav.com.br/noticias retornou 404."
+      "notes": "Blog lista posts como 'Posicionamento ABAV Nacional – 27/03/2025', '#GiroABAV: ...' (conteudo pouco frequente/ultimo post visivel de 2025). Ha Area Restrita (login) para associados, nao acessada. Sem RSS visivel. Sinal 'ai-train=no' no robots: nao usar para treinamento de IA. www.abav.com.br/noticias retornou 404. Checagem de coleta 25/11/2026 (Editorial): feed do blog cadastrado (13 itens, último de 28/03/2025; o feed geral /feed/ tem 3 itens, último de 01/07/2025). Fonte de baixa frequência."
     }
   },
   {
@@ -879,7 +883,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 64,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -889,8 +893,10 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:46:30-03:00",
       "consultedAt": "2026-11-22T18:48:46-03:00",
       "imageRightsNote": "Mesmo texto de licenca CC BY-ND 3.0 lido no rodape da pagina de noticias do MTur; sem tratamento especifico de imagens.",
-      "notes": "A pagina abriu mas nao exibiu lista de noticias no fetch (so datas de publicacao/modificacao). Outra URL tentada (/turismo/pt-br/centrais-de-conteudo-1/noticias) retornou 404. Sem RSS visivel."
-    }
+      "notes": "A pagina abriu mas nao exibiu lista de noticias no fetch (so datas de publicacao/modificacao). Outra URL tentada (/turismo/pt-br/centrais-de-conteudo-1/noticias) retornou 404. Sem RSS visivel. Checagem de coleta 25/11/2026 (Editorial): sitemap-index.xml do órgão cadastrado (11 filhos .xml.gz sem lastmod; o coletor lê todos, 11 leituras por rodada no host www.gov.br). O filho 1 tem 2.667 URLs sob o prefixo de notícias, a mais recente de 24/11/2026."
+    },
+    "sitemapUrl": "https://www.gov.br/turismo/sitemap-index.xml",
+    "sitemapPathPrefix": "/turismo/pt-br/assuntos/noticias/"
   },
   {
     "id": "anpd",
@@ -912,7 +918,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 40,
+    "maxRequestsPerHour": 64,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -922,7 +928,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:44:20-03:00",
       "consultedAt": "2026-11-22T18:43:50-03:00",
       "imageRightsNote": "não informado: a licenca CC BY-ND 3.0 e declarada para 'todo o conteudo do site', mas a pagina de termos nao detalha imagens nem midia de terceiros. SemDerivacoes: nao adaptar/alterar o conteudo; citar fonte.",
-      "notes": "Pagina de noticias confirmada (rodape com licenca CC BY-ND 3.0 em https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR; aviso de privacidade em /anpd/pt-br/acesso-a-informacao/aviso-de-privacidade). A lista de noticias e carregada via JS ('Carregando'), entao manchetes nao foram lidas. Testados e 404 (nao sao feed): /anpd/pt-br/assuntos/noticias/RSS, /rss.xml, /search_rss, /anpd/pt-br/RSS, /anpd/pt-br/rss.xml. Sem feed confirmado. Termos gerais do gov.br nao mencionam bots/raspagem; login (conta unica gov.br) so para servicos, nao para noticias."
+      "notes": "Pagina de noticias confirmada (rodape com licenca CC BY-ND 3.0 em https://creativecommons.org/licenses/by-nd/3.0/deed.pt_BR; aviso de privacidade em /anpd/pt-br/acesso-a-informacao/aviso-de-privacidade). A lista de noticias e carregada via JS ('Carregando'), entao manchetes nao foram lidas. Testados e 404 (nao sao feed): /anpd/pt-br/assuntos/noticias/RSS, /rss.xml, /search_rss, /anpd/pt-br/RSS, /anpd/pt-br/rss.xml. Sem feed confirmado. Termos gerais do gov.br nao mencionam bots/raspagem; login (conta unica gov.br) so para servicos, nao para noticias. Checagem de coleta 25/11/2026 (Editorial): o \"sem itens\" da checagem veio do jeito dela de ler o índice (um filho só): os dois filhos .xml.gz têm 1.395 e 54 URLs sob /anpd/pt-br/assuntos/noticias/, a mais recente de 25/11/2026 11:44. O coletor lê os dois filhos; não conferi com o coletor real, só o conteúdo dos sitemaps."
     },
     "sitemapUrl": "https://www.gov.br/anpd/sitemap-index.xml",
     "sitemapPathPrefix": "/anpd/pt-br/assuntos/noticias/"
@@ -956,7 +962,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:44:20-03:00",
       "consultedAt": "2026-11-22T18:46:10-03:00",
       "imageRightsNote": "não informado: CC BY-ND 3.0 declarada para o conteudo; imagens nao detalhadas.",
-      "notes": "Pagina 'Ultimas Noticias - MCTI' lida (manchetes de 19-21/11/2026, sobre SNCT e popularizacao da ciencia). Licenca CC BY-ND 3.0 vista no HTML. Sem feed: /noticias/rss.xml, /noticias/RSS e /mcti/pt-br/rss.xml retornam 404. Relevancia para IA: Estrategia Brasileira de IA e politicas de ciencia/tecnologia; exige filtro por tema no ingestor (noticias gerais de ciencia). Nao foi aberta pagina especifica da estrategia de IA."
+      "notes": "Pagina 'Ultimas Noticias - MCTI' lida (manchetes de 19-21/11/2026, sobre SNCT e popularizacao da ciencia). Licenca CC BY-ND 3.0 vista no HTML. Sem feed: /noticias/rss.xml, /noticias/RSS e /mcti/pt-br/rss.xml retornam 404. Relevancia para IA: Estrategia Brasileira de IA e politicas de ciencia/tecnologia; exige filtro por tema no ingestor (noticias gerais de ciencia). Nao foi aberta pagina especifica da estrategia de IA. Checagem de coleta 25/11/2026 (Editorial): o sitemap do órgão não está no padrão dos outros sites gov.br: /mcti/sitemap-index.xml e /mcti/pt-br/sitemap-index.xml devolvem 404, e o sitemap.xml.gz da raiz do gov.br (único declarado no robots.txt) devolve 403 ao nosso agente. Nada contornado. Segue só listagem."
     }
   },
   {
@@ -977,7 +983,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "paywall": "none",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 64,
     "verification": {
       "researchedBy": "ln-editorial-engineer",
       "level": "parcial",
@@ -987,8 +993,10 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:44:20-03:00",
       "consultedAt": "2026-11-22T18:46:10-03:00",
       "imageRightsNote": "não informado: CC BY-ND 3.0 declarada para o conteudo; imagens nao detalhadas.",
-      "notes": "Pagina 'Noticias' (Anatel) confirmada com rodape CC BY-ND 3.0, mas a lista e carregada via JS ('Carregando'); manchetes nao lidas. /anatel/pt-br/assuntos/noticias/rss.xml retorna 404. Relevancia limitada ao lote (telecom, dados, spam/telemarketing); prioridade baixa."
-    }
+      "notes": "Pagina 'Noticias' (Anatel) confirmada com rodape CC BY-ND 3.0, mas a lista e carregada via JS ('Carregando'); manchetes nao lidas. /anatel/pt-br/assuntos/noticias/rss.xml retorna 404. Relevancia limitada ao lote (telecom, dados, spam/telemarketing); prioridade baixa. Checagem de coleta 25/11/2026 (Editorial): sitemap-index.xml do órgão cadastrado (4 filhos .xml.gz sem lastmod; o coletor lê todos). O filho 4 tem 1.692 URLs sob o prefixo de notícias, a mais recente de 19/11/2026."
+    },
+    "sitemapUrl": "https://www.gov.br/anatel/sitemap-index.xml",
+    "sitemapPathPrefix": "/anatel/pt-br/assuntos/noticias/"
   },
   {
     "id": "edpb",
@@ -1001,7 +1009,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     "host": "www.edpb.europa.eu",
     "pathPrefix": null,
     "listingUrl": "https://www.edpb.europa.eu/news_en",
-    "feedUrl": null,
+    "feedUrl": "https://www.edpb.europa.eu/rss.xml_en",
     "termsUrl": "https://www.edpb.europa.eu/copyright_en",
     "termsStatus": "pending",
     "urlVerified": false,
@@ -1019,7 +1027,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:46:30-03:00",
       "consultedAt": "2026-11-22T18:46:44-03:00",
       "imageRightsNote": "Frase de reuso nao cita imagens explicitamente (diz 'any information'); a pagina define reuso como incluindo 'multimedia items' e lista imagens/fotografias entre itens protegidos: tratar imagens como não informado/cautela; nao contornar medidas tecnicas.",
-      "notes": "Listagem https://www.edpb.europa.eu/news_en (apos redirect de /news/news_en) confirmada, titulo 'News | European Data Protection Board'. O HTML anuncia link de feed href='/feed/news_en', mas https://www.edpb.europa.eu/feed/news_en respondeu HTTP 503 em duas tentativas, entao NAO confirmado como XML (feedUrl=null; reavaliar depois). /news/rss.xml devolve HTML. Trecho dos termos veio via extracao do WebFetch; a pagina nao menciona bots/raspagem, apenas proibe contornar restricoes tecnicas de impressao/download. Referencia global (GDPR) para a editoria."
+      "notes": "Listagem https://www.edpb.europa.eu/news_en (apos redirect de /news/news_en) confirmada, titulo 'News | European Data Protection Board'. O HTML anuncia link de feed href='/feed/news_en', mas https://www.edpb.europa.eu/feed/news_en respondeu HTTP 503 em duas tentativas, entao NAO confirmado como XML (feedUrl=null; reavaliar depois). /news/rss.xml devolve HTML. Trecho dos termos veio via extracao do WebFetch; a pagina nao menciona bots/raspagem, apenas proibe contornar restricoes tecnicas de impressao/download. Referencia global (GDPR) para a editoria. Checagem de coleta 25/11/2026 (Editorial): feed RSS cadastrado (10 itens, último de 19/11/2026), no mesmo host da fonte."
     }
   },
   {
@@ -1211,7 +1219,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:49:20-03:00",
       "consultedAt": "2026-11-22T18:48:53-03:00",
       "imageRightsNote": "não informado; termos proibem copia/reproducao (secao 6) sem autorizacao. A newsroom lista links de 'media resources' nao avaliados.",
-      "notes": "Newsroom lida (titulo 'Zendesk Newsroom'; sem datas visiveis). Testados /newsroom/feed/ e /blog/feed/ nos dois hosts: 404; sem link RSS no HTML. Termos de uso, secao 4.5, restringem sistemas automatizados (trecho: 'Você concorda em não usar nenhum serviço, tecnologia ou sistema automatizado para aumentar artificialmente...' - parcial, nao confirma clausula especifica de raspagem). Sem feed, a coleta automatizada nao e recomendada; usar com cautela / curadoria manual. Trechos via extracao do WebFetch."
+      "notes": "Newsroom lida (titulo 'Zendesk Newsroom'; sem datas visiveis). Testados /newsroom/feed/ e /blog/feed/ nos dois hosts: 404; sem link RSS no HTML. Termos de uso, secao 4.5, restringem sistemas automatizados (trecho: 'Você concorda em não usar nenhum serviço, tecnologia ou sistema automatizado para aumentar artificialmente...' - parcial, nao confirma clausula especifica de raspagem). Sem feed, a coleta automatizada nao e recomendada; usar com cautela / curadoria manual. Trechos via extracao do WebFetch. Checagem de coleta 25/11/2026 (Editorial): os sitemaps (generated_sitemap_part1/2.xml) não têm lastmod e cobrem o site todo; o feed.xml encontrado tem 53 itens e o último é de 20/03/2024 (parado). Não cadastrado."
     }
   },
   {
@@ -1286,7 +1294,7 @@ export const SEED_BASE_SOURCES: Source[] = [
     ],
     "host": "ico.org.uk",
     "pathPrefix": null,
-    "listingUrl": null,
+    "listingUrl": "https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/",
     "feedUrl": null,
     "termsUrl": null,
     "termsStatus": "pending",
@@ -1305,7 +1313,7 @@ export const SEED_BASE_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-22T18:49:56-03:00",
       "consultedAt": "2026-11-22T18:49:56-03:00",
       "imageRightsNote": "não informado",
-      "notes": "Acesso automatizado bloqueado (403) tanto em robots.txt quanto na pagina de noticias testada (https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/ -> 403). Nenhuma URL de listagem/feed foi confirmada; nao cadastrar como fonte automatizada. Reavaliar manualmente ou substituir por EDPB."
+      "notes": "Acesso automatizado bloqueado (403) tanto em robots.txt quanto na pagina de noticias testada (https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/ -> 403). Nenhuma URL de listagem/feed foi confirmada; nao cadastrar como fonte automatizada. Reavaliar manualmente ou substituir por EDPB. Checagem de coleta 25/11/2026 (Editorial): a URL correta da listagem é a de notícias e blogs. O ICO declara um feed em https://ico.org.uk/global/rss-feeds/news-and-blogs/ (página de RSS do próprio ICO, via busca); NÃO cadastrado como feedUrl porque não foi conferido: o Cloudflare devolve 403 (Just a moment) ao nosso agente, robots.txt inclusive, e nada foi contornado. Segue inacessível."
     }
   }
 ] as unknown as Source[];
