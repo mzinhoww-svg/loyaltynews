@@ -246,6 +246,13 @@
       "when": 1795619465555,
       "tag": "0034_audit_log_ip_so_apos_12_meses",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795635224072,
+      "tag": "0035_commercial_lead_deletions",
+      "breakpoints": true
     }
   ]
 }

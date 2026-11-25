@@ -34,7 +34,8 @@ type NextParams = { params?: Promise<Record<string, string>> };
 
 const MAX_BODY = 1_000_000;
 
-export const json = (body: unknown, status = 200, headers?: HeadersInit) => Response.json(body, { status, headers });
+export const json = (body: unknown, status = 200, headers?: HeadersInit) =>
+  status === 204 ? new Response(null, { status, headers }) : Response.json(body, { status, headers });
 
 /** Lê e valida o corpo JSON (até 1 MB). */
 export async function readBody<S extends z.ZodType>(req: Request, schema: S): Promise<z.output<S>> {
