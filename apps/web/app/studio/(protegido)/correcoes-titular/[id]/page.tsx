@@ -9,6 +9,7 @@ import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { atribuirAMimAction, decidirAction } from '../actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Pedido do titular' };
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function PedidoTitularPage({ params, searchParams }: { para
   if (r.status === 404) notFound();
   const voltar = (
     <p>
-      <Link href="/studio/correcoes-titular">← Voltar à fila</Link>
+      <Link href="/studio/correcoes-titular"><Seta direcao="esquerda" /> Voltar à fila</Link>
     </p>
   );
   if (naoConfigurado(r)) return (<><h1>Pedido do titular</h1>{voltar}<SemBanco modulo="A fila de pedidos do titular" /></>);

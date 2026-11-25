@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { findModule } from '@/lib/studio/modules';
 import { getOrganizacao } from '@/lib/studio/agentes';
 import { requireModule } from '../../../_lib/guard';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Agente' };
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export default async function AgentePage({ params }: { params: Promise<{ id: str
   return (
     <>
       <p>
-        <Link href="/studio/organizacao">← Organização agêntica</Link>
+        <Link href="/studio/organizacao"><Seta direcao="esquerda" /> Organização agêntica</Link>
       </p>
       <h1>{a.name}</h1>
       <p className="st-hint">

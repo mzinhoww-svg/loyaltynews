@@ -13,6 +13,7 @@ import { requireStudio } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { CorrecaoFabricaForm } from './CorrecaoFabricaForm';
+import { Seta } from '../../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Correção de matéria da Fábrica' };
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,7 @@ export default async function CorrigirFabrica({ params, searchParams }: { params
   const { tipo, aviso } = await searchParams;
   const volta = (
     <p>
-      <Link href={`/studio/cms/${encodeURIComponent(id)}`}>← Matéria</Link>
+      <Link href={`/studio/cms/${encodeURIComponent(id)}`}><Seta direcao="esquerda" /> Matéria</Link>
     </p>
   );
   // rascunho completo + última checagem (404 = a matéria não tem registro na Fábrica)

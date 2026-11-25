@@ -10,6 +10,7 @@ import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { publicarSimuladoAction } from '../actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Pacote social' };
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,7 @@ export default async function PacotePage({ params, searchParams }: { params: Pro
   return (
     <>
       <p>
-        <Link href="/studio/social">← Social dashboard</Link>
+        <Link href="/studio/social"><Seta direcao="esquerda" /> Social dashboard</Link>
       </p>
       <h1>Pacote social</h1>
       <Flash tipo={tipo} aviso={aviso} />

@@ -9,6 +9,7 @@ import { SemBanco } from '../../../_components/SemBanco';
 import { Flash } from '../../../_components/Flash';
 import { FonteRapidaPainel } from '../../../_components/FonteRapidaPainel';
 import { MateriaForm } from '../MateriaForm';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Nova matéria' };
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function NovaMateria({ searchParams }: { searchParams: Prom
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>Nova matéria</h1>
       <Flash tipo={tipo} aviso={aviso} proximo={proximo} />

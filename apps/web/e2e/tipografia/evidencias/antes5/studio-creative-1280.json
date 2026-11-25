@@ -1,0 +1,87 @@
+{
+  "base": "http://localhost:3000",
+  "lado": "antes5",
+  "rota": "/studio/creative",
+  "rodadas": [
+    {
+      "fcp": 836,
+      "lcp": 836,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "p",
+        "cls": "",
+        "size": 17628,
+        "url": ""
+      }
+    },
+    {
+      "fcp": 800,
+      "lcp": 800,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "p",
+        "cls": "",
+        "size": 17628,
+        "url": ""
+      }
+    },
+    {
+      "fcp": 844,
+      "lcp": 844,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "p",
+        "cls": "",
+        "size": 17628,
+        "url": ""
+      }
+    },
+    {
+      "fcp": 832,
+      "lcp": 832,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "p",
+        "cls": "",
+        "size": 17628,
+        "url": ""
+      }
+    },
+    {
+      "fcp": 800,
+      "lcp": 800,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "p",
+        "cls": "",
+        "size": 17628,
+        "url": ""
+      }
+    }
+  ]
+}

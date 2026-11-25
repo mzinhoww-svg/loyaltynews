@@ -17,6 +17,7 @@ import { requireModule } from "../../../_lib/guard";
 import { Flash } from "../../../_components/Flash";
 import { SemBanco } from "../../../_components/SemBanco";
 import { registrarLeituraAction } from "../actions";
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: "Leitura do piloto" };
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export default async function LeituraMateriaPage({
   const b = await searchParams;
   const voltar = (
     <p>
-      <Link href="/studio/piloto">← Voltar às 10 matérias</Link>
+      <Link href="/studio/piloto"><Seta direcao="esquerda" /> Voltar às 10 matérias</Link>
     </p>
   );
   const titulo = <h1>Leitura do piloto · {materia}</h1>;

@@ -8,6 +8,7 @@ import { getCalendarioBr, getOrganizacao, getStoreAgentes } from '@/lib/studio/a
 import { requireModule } from '../../_lib/guard';
 import { SemRotaBackend } from '../../_components/SemBanco';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
+import { Seta } from '../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Calendário de reuniões' };
 export const dynamic = 'force-dynamic';
@@ -38,11 +39,11 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
       </p>
       <nav aria-label="Navegar entre dias" className="st-actions" style={{ marginBottom: 12 }}>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, -1)}`}>
-          ← Dia anterior
+          <Seta direcao="esquerda" /> Dia anterior
         </Link>
         <strong data-dia={dia}>{dia}</strong>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, 1)}`}>
-          Próximo dia →
+          Próximo dia<Seta />
         </Link>
         <Link className="st-btn sec" href="/studio/reunioes">
           Hoje

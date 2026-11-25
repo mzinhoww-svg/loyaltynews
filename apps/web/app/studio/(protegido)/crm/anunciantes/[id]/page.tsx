@@ -7,6 +7,7 @@ import { api } from '@/lib/studio/rotas-api';
 import { mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../../../_lib/guard';
 import { SemBanco } from '../../../../_components/SemBanco';
+import { Seta } from '../../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Relatório do anunciante' };
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
   if (naoConfigurado(res)) return <SemBanco modulo="O relatório do anunciante" />;
   const voltar = (
     <p>
-      <Link href="/studio/crm">← CRM</Link>
+      <Link href="/studio/crm"><Seta direcao="esquerda" /> CRM</Link>
     </p>
   );
   if (!res.ok) {

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { WithSidebar } from '../../_components/Sidebar';
 import { ErrorState } from '../../_components/states';
-import { MockTag, PageHead } from '../../_components/ui';
+import { Arrow, MockTag, PageHead } from '../../_components/ui';
 import { eventWhen, eventWhere } from '../../_lib/events';
 import { jsonLdString } from '../../_lib/jsonld';
 import { metadadosPagina } from '../../_seo/paginas';
@@ -101,7 +101,7 @@ export default async function EventPage({ params }: Props) {
             )}
             <a className="ln-btn ln-btn--ghost" href={`/agenda/${encodeURIComponent(ev.slug)}/ics`}>Adicionar ao calendário (.ics)</a>
           </p>
-          <p><Link href="/agenda" className="pt-more">← Voltar à agenda</Link></p>
+          <p><Link href="/agenda" className="pt-more"><Arrow direcao="esquerda" /> Voltar à agenda</Link></p>
         </div>
       </WithSidebar>
     </>

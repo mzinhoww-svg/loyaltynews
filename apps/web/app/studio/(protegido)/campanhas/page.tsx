@@ -12,6 +12,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { criarCampanhaAction } from './actions';
+import { Seta } from '../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Campanhas' };
 export const dynamic = 'force-dynamic';
@@ -63,7 +64,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <h1>Campanhas</h1>
-      <p>Flights, criativos e entrega. Os 7 estados do blueprint: {ESTADOS.join(' → ')}. Ativar exige reserva confirmada e criativo aprovado; sem venda habilitada a campanha não ativa.</p>
+      <p>Flights, criativos e entrega. Os 7 estados do blueprint: {ESTADOS.map((e, i) => (<span key={e}>{i > 0 && <Seta />}{e}</span>))}. Ativar exige reserva confirmada e criativo aprovado; sem venda habilitada a campanha não ativa.</p>
       <div className="st-alert" role="status">
         Venda no ad server: <strong>{vendas && vendaLiberadaNoAmbiente() ? 'ligada' : 'desligada nesta fase'}</strong>.{vendaLiberadaNoAmbiente() ? null : <span data-testid="venda-desligada-ambiente"> {AVISO_VENDA_DESLIGADA}</span>}
       </div>
@@ -148,7 +149,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
                     <td>{c.status}</td>
                     <td>{c.formatName ?? c.formatId}</td>
                     <td>
-                      {c.startDate} → {c.endDate}
+                      {c.startDate} <Seta /> {c.endDate}
                     </td>
                     <td>{c.accountName ?? c.accountId}</td>
                   </tr>

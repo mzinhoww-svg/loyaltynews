@@ -32,16 +32,21 @@ const PAGINAS = [
 
 mkdirSync(join(SAIDA, 'screenshots'), { recursive: true });
 
-type Perf = { fcp: number | null; lcp: number | null; cls: number; fontes: { url: string; decoded: number; transfer: number }[]; preload: string | null; faces: number; facesUrl: number; shifts: unknown[] };
+type Perf = { fcp: number | null; lcp: number | null; cls: number; fontes: { url: string; decoded: number; transfer: number; responseEnd?: number }[]; preload: string | null; faces: number; facesUrl: number; shifts: unknown[]; lcpEl: { tag: string; cls: string; size: number; url: string | null } | null };
 
 const COLETA = () => {
-  const w = window as unknown as { __perf: { fcp: number | null; lcp: number; cls: number; shifts: unknown[] } };
+  const w = window as unknown as { __perf: { fcp: number | null; lcp: number; cls: number; shifts: unknown[]; lcpEl?: unknown } };
   w.__perf = { fcp: null, lcp: 0, cls: 0, shifts: [] };
   new PerformanceObserver((l) => {
     for (const e of l.getEntries()) if (e.name === 'first-contentful-paint') w.__perf.fcp = e.startTime;
   }).observe({ type: 'paint', buffered: true });
   new PerformanceObserver((l) => {
-    for (const e of l.getEntries()) w.__perf.lcp = e.startTime;
+    for (const e of l.getEntries() as Array<PerformanceEntry & { element?: Element | null; url?: string; size?: number }>) {
+      w.__perf.lcp = e.startTime;
+      w.__perf.lcpEl = e.element
+        ? { tag: e.element.tagName.toLowerCase(), cls: String((e.element as HTMLElement).className ?? ''), size: Math.round(e.size ?? 0), url: e.url ?? null }
+        : null;
+    }
   }).observe({ type: 'largest-contentful-paint', buffered: true });
   new PerformanceObserver((l) => {
     for (const e of l.getEntries() as Array<PerformanceEntry & { hadRecentInput?: boolean; value?: number; sources?: Array<{ node?: Node | null; previousRect?: DOMRectReadOnly; currentRect?: DOMRectReadOnly }> }>) {
@@ -67,7 +72,7 @@ async function medir(page: Page): Promise<Perf> {
     const fontes = performance
       .getEntriesByType('resource')
       .filter((e) => /\.woff2?($|\?)/.test(e.name))
-      .map((e) => ({ url: e.name, decoded: (e as PerformanceResourceTiming).decodedBodySize, transfer: (e as PerformanceResourceTiming).transferSize }));
+      .map((e) => ({ url: e.name, decoded: (e as PerformanceResourceTiming).decodedBodySize, transfer: (e as PerformanceResourceTiming).transferSize, responseEnd: Math.round((e as PerformanceResourceTiming).responseEnd) }));
     const link = document.querySelector('link[rel="preload"][as="font"]');
     let faces = 0;
     let facesUrl = 0;
@@ -91,6 +96,7 @@ async function medir(page: Page): Promise<Perf> {
       faces,
       facesUrl,
       shifts: w.__perf.shifts ?? [],
+      lcpEl: (w.__perf.lcpEl as Perf["lcpEl"]) ?? null,
     };
   });
   return perf;
@@ -128,14 +134,16 @@ function mediana(nums: number[]): number {
 const url = (path: string) => new URL(path, BASE).toString();
 
 if (SO_FONTE_BLOQUEADA) {
-  test('perfil a 768 com o .woff2 abortado: CLS <= 0,10 (adjustFontFallback)', async () => {
+  const BW = Number(process.env.TIPOGRAFIA_BLOQUEADA_LARGURA ?? 768);
+  const BH = BW >= 1280 ? 800 : BW >= 768 ? 1024 : 844;
+  test(`perfil a ${BW} com o .woff2 abortado: CLS <= 0,10 (ajuste da reserva)`, async () => {
     const rodadas = [];
     for (let i = 0; i < RODADAS; i++) {
       const browser = await chromium.launch();
-      rodadas.push(await rodada(browser, url(PESSOA), 768, 1024, true));
+      rodadas.push(await rodada(browser, url(PESSOA), BW, BH, true));
       await browser.close();
     }
-    writeFileSync(join(SAIDA, 'fonte-bloqueada-768.json'), JSON.stringify({ base: BASE, lado: LADO, rodadas }, null, 2));
+    writeFileSync(join(SAIDA, `fonte-bloqueada-${BW}.json`), JSON.stringify({ base: BASE, lado: LADO, largura: BW, rodadas }, null, 2));
     expect(mediana(rodadas.map((r) => r.cls))).toBeLessThanOrEqual(0.1);
   });
 } else {
@@ -162,14 +170,14 @@ if (SO_FONTE_BLOQUEADA) {
         };
         writeFileSync(join(SAIDA, `${slug}-${width}.json`), JSON.stringify(resumo, null, 2));
 
-        // Provas funcionais da fonte valem em qualquer célula.
+        // Prova de artefato: 1 @font-face com arquivo (o outro é a reserva local com métricas, do adjustFontFallback).
+        // Com display optional e sem preload, a primeira visita lenta pode nem baixar a fonte: os bytes são conferidos quando ela vier.
         const uma = rodadas[0]!;
-        expect(uma.fontes.length, `${slug} @${width}: requisições de fonte`).toBe(1);
-        expect(uma.fontes[0]!.decoded, `${slug} @${width}: bytes da fonte`).toBeGreaterThanOrEqual(48256 - 1024);
-        expect(uma.fontes[0]!.decoded, `${slug} @${width}: bytes da fonte`).toBeLessThanOrEqual(48256 + 1024);
-        expect(uma.fontes[0]!.url, `${slug} @${width}: subset inesperado`).toMatch(/inter[_-]latin[_-]wght[_-]normal/);
-        expect(uma.preload, `${slug} @${width}: preload da fonte`).toMatch(/woff2/);
-        // 1 @font-face com url (o outro é a reserva local com as métricas da Inter, criada por adjustFontFallback).
+        if (uma.fontes.length) {
+          expect(uma.fontes[0]!.decoded, `${slug} @${width}: bytes da fonte`).toBeGreaterThanOrEqual(48256 - 1024);
+          expect(uma.fontes[0]!.decoded, `${slug} @${width}: bytes da fonte`).toBeLessThanOrEqual(48256 + 1024);
+          expect(uma.fontes[0]!.url, `${slug} @${width}: subset inesperado`).toMatch(/inter[_-]latin[_-]wght[_-]normal/);
+        }
         expect(uma.facesUrl, `${slug} @${width}: @font-face com url no CSS`).toBe(1);
         expect(uma.faces, `${slug} @${width}: @font-face total`).toBeLessThanOrEqual(2);
         expect(resumo.mediana.cls, `${slug} @${width}: CLS`).toBeLessThanOrEqual(0.1);
@@ -223,7 +231,7 @@ provas('provas funcionais', () => {
       let funcional: { familia: string; check: boolean; arial: number; preload: string | null; faces: number; facesUrl: number } | null = null;
       for (let i = 0; i < RODADAS; i++) {
         const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-        const login = await context.request.get(url('/api/e2e/login?seed=intelligence'));
+        const login = await context.request.get(url('/api/e2e/login?user=qa8&role=admin&mfa=1'));
         expect(login.ok(), 'login do fixture de e2e').toBe(true);
         const page = await context.newPage();
         const cdp = await context.newCDPSession(page);
@@ -264,16 +272,54 @@ provas('provas funcionais', () => {
       }
       await browser.close();
       writeFileSync(join(SAIDA, `studio-${rota.split('/').pop() || 'home'}-1280.json`), JSON.stringify({ base: BASE, lado: LADO, rota, rodadas }, null, 2));
-      expect(funcional!.check, `document.fonts.check em ${rota}`).toBe(true);
-      expect(funcional!.familia).not.toMatch(/^Arial/);
-      expect(funcional!.arial, `${rota}: elementos fora da família`).toBe(0);
-      expect(funcional!.preload).toMatch(/woff2/);
       expect(funcional!.facesUrl).toBe(1);
       expect(funcional!.faces).toBeLessThanOrEqual(2);
       expect(mediana(rodadas.map((r) => r.cls))).toBeLessThanOrEqual(0.05);
-      expect(rodadas[0]!.fontes.length).toBe(1);
-      expect(rodadas[0]!.fontes[0]!.decoded).toBeGreaterThanOrEqual(48256 - 1024);
-      expect(rodadas[0]!.fontes[0]!.decoded).toBeLessThanOrEqual(48256 + 1024);
+      if (rodadas[0]!.fontes.length) {
+        expect(rodadas[0]!.fontes[0]!.decoded).toBeGreaterThanOrEqual(48256 - 1024);
+        expect(rodadas[0]!.fontes[0]!.decoded).toBeLessThanOrEqual(48256 + 1024);
+      }
     });
   }
+
+  test('cache quente: 1 arquivo de 48.256 B e família resolvida no portal e no Studio', async () => {
+    const browser = await chromium.launch();
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const familia = () =>
+      page.evaluate(() => {
+        const raiz = document.querySelector('.ln-root') ?? document.body;
+        const ff = getComputedStyle(raiz).fontFamily;
+        const primeira = ff.split(',')[0]!.replace(/["']/g, '').trim();
+        return {
+          familia: ff,
+          check: document.fonts.check(`16px "${primeira}"`),
+          fontes: performance
+            .getEntriesByType('resource')
+            .filter((e) => /\.woff2/.test(e.name))
+            .map((e) => ({ url: e.name, bytes: (e as PerformanceResourceTiming).decodedBodySize })),
+        };
+      });
+
+    await page.goto(url('/'), { waitUntil: 'load' });
+    await page.waitForTimeout(3000);
+    await page.goto(url('/'), { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+    const home = await familia();
+    expect(home.check, 'portal: família carregada no cache quente').toBe(true);
+    expect(home.fontes.length, 'portal: arquivos de fonte no cache quente').toBeLessThanOrEqual(1);
+    if (home.fontes.length) expect(home.fontes[0]!.bytes).toBe(48256);
+
+    const login = await context.request.get(url('/api/e2e/login?user=qa8&role=admin&mfa=1'));
+    expect(login.ok(), 'login do fixture de e2e').toBe(true);
+    await page.goto(url('/studio/creative'), { waitUntil: 'load' });
+    await page.waitForTimeout(3000);
+    await page.goto(url('/studio/creative'), { waitUntil: 'load' });
+    await page.waitForTimeout(1000);
+    const studio = await familia();
+    expect(studio.check, 'Studio: família carregada no cache quente').toBe(true);
+    expect(studio.familia, 'Studio: família resolvida').not.toMatch(/^\s*Arial/);
+    writeFileSync(join(SAIDA, 'cache-quente.json'), JSON.stringify({ home, studio }, null, 2));
+    await browser.close();
+  });
 });

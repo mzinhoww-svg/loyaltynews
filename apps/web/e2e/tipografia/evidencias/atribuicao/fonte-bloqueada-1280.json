@@ -1,0 +1,97 @@
+{
+  "base": "http://localhost:3000",
+  "lado": "atribuicao",
+  "largura": 1280,
+  "rodadas": [
+    {
+      "fcp": 816,
+      "lcp": 816,
+      "cls": 0,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 0,
+          "transfer": 0,
+          "responseEnd": 283
+        },
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 0,
+          "transfer": 0,
+          "responseEnd": 1964
+        }
+      ],
+      "preload": "/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+      "faces": 2,
+      "facesUrl": 1,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "h1",
+        "cls": "",
+        "size": 22176,
+        "url": ""
+      },
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 1860,
+      "lcp": 1860,
+      "cls": 0,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 0,
+          "transfer": 0,
+          "responseEnd": 1049
+        },
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 0,
+          "transfer": 0,
+          "responseEnd": 2838
+        }
+      ],
+      "preload": "/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+      "faces": 2,
+      "facesUrl": 1,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "h1",
+        "cls": "",
+        "size": 22176,
+        "url": ""
+      },
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 1256,
+      "lcp": 1256,
+      "cls": 0,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 0,
+          "transfer": 0,
+          "responseEnd": 234
+        },
+        {
+          "url": "http://localhost:3000/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+          "decoded": 0,
+          "transfer": 0,
+          "responseEnd": 1962
+        }
+      ],
+      "preload": "/_next/static/media/inter_latin_wght_normal-s.p.0gsaq8ukbf34m.woff2",
+      "faces": 2,
+      "facesUrl": 1,
+      "shifts": [],
+      "lcpEl": {
+        "tag": "h1",
+        "cls": "",
+        "size": 22176,
+        "url": ""
+      },
+      "chromium": "159.0.8154.6"
+    }
+  ]
+}
