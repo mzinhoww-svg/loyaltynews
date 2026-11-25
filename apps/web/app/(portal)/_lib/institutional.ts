@@ -205,14 +205,15 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
         items: [
           'Para que usamos: responder ao pedido de proposta ou de mídia kit e conduzir a negociação comercial.',
           'Base legal: procedimentos preliminares a um contrato, a pedido do titular (LGPD, art. 7º, V). A newsletter, que é opcional, só é enviada com consentimento separado (art. 7º, I), e o descadastro é possível a qualquer momento.',
-          'Quanto tempo guardamos: nossa política é guardar o pedido que não vira contrato por até 12 meses depois do último contato, e o pedido descartado por 30 dias; a rotina que aplica esse apagamento ainda está sendo implantada. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
+          'Quanto tempo guardamos: nossa política é guardar o pedido que não vira contrato por até 12 meses depois do último contato, e o pedido descartado por 30 dias; o apagamento é automático. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
           'Quem acessa: só a equipe comercial e a administração do portal. Não vendemos esses dados.',
         ],
       },
       {
         heading: 'Endereço IP e segurança',
         paragraphs: [
-          'Para limitar tentativas de login e de envio dos formulários públicos e proteger o portal contra abuso, usamos o endereço IP de quem acessa, com base no legítimo interesse em segurança e prevenção a fraude (LGPD, art. 7º, IX). O IP é registrado nas tentativas de login e de envio dos formulários e nos registros de segurança e de auditoria do sistema, e é usado só para essa finalidade. Ainda não definimos por quanto tempo ele é guardado; o prazo será informado aqui.',
+          'Para limitar tentativas de login e de envio dos formulários públicos e proteger o portal contra abuso, usamos o endereço IP de quem acessa, com base no legítimo interesse em segurança e prevenção a fraude (LGPD, art. 7º, IX). Nas contagens de tentativas de login e de envio dos formulários, o IP não é guardado em claro: ele vira um código irreversível, apagado em até 24 horas depois do fim da contagem ou do bloqueio.',
+          'No registro de auditoria do sistema (quem fez o quê no painel interno) guardamos só o código do IP, nunca o número, por 12 meses. Esse código é um pseudônimo e continua sendo dado pessoal: quem tem a chave do sistema consegue ligá-lo ao IP original.',
           'A empresa que hospeda o portal pode registrar IPs nos registros de acesso dela. O que ela guarda e por quanto tempo ainda será confirmado e informado aqui.',
         ],
       },
