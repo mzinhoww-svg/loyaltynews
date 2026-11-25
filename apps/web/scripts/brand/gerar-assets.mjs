@@ -95,11 +95,14 @@ const cartaz = ({ w, h, kicker, titulo, tamanho, arteChave, quadrado }) => {
   .t{position:absolute;left:${pad}px;top:${quadrado ? 250 : 215}px;width:${quadrado ? w - pad * 2 : 640}px}
   .k{font-weight:700;font-size:22px;letter-spacing:.14em;text-transform:uppercase;color:${COR.sinal};margin:0 0 16px}
   .h{font-weight:800;font-size:${tamanho}px;line-height:1.08;margin:0;letter-spacing:-.01em}
+  /* véu na base: garante o contraste do endereço sobre a arte clara (a quadrada tem a arte atrás do rodapé) */
+  .veu{position:absolute;left:0;right:0;bottom:0;height:${quadrado ? 260 : 0}px;background:linear-gradient(0deg,${COR.primaria} 0%,${COR.primaria} 38%,rgba(21,60,60,0) 100%)}
   .rodape{position:absolute;left:${pad}px;bottom:${pad - 12}px;display:flex;align-items:center;gap:16px;font-weight:600;font-size:24px;color:${COR.sinal}}
   .rodape i{display:block;width:64px;height:6px;border-radius:3px;background:${COR.verde}}</style></head><body><div class="c">
   <div class="arte">${arte(ARTE[arteChave], larguraArte, alturaArte)}</div>
   <div class="logo">${logoSvg('reverse', 44)}</div>
   <div class="t">${kicker ? `<p class="k">${kicker}</p>` : ''}<p class="h">${titulo}</p></div>
+  <div class="veu"></div>
   <div class="rodape"><i></i><span>${ENDERECO}</span></div></div></body></html>`;
 };
 
