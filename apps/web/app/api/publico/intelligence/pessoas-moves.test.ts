@@ -254,3 +254,70 @@ describe('Studio: fila "a confirmar" (cargos de fonte secundária)', () => {
     expect(log[0]!.detalhe).toMatchObject({ pessoa: 'MOCK Caio Secundario', cargo: 'Consultor' });
   });
 });
+
+describe('disponivel dos Moves vem do dado, nao da flag', () => {
+  const esconder = () => intelDb(app.db).query(`UPDATE intelligence.move SET status = 'detected' WHERE id = $1`, [ids.moveConfirmado]);
+  const mostrar = () => intelDb(app.db).query(`UPDATE intelligence.move SET status = 'confirmed' WHERE id = $1`, [ids.moveConfirmado]);
+
+  it('flag ligada com total 0: disponivel false (nao anuncia dado inexistente)', async () => {
+    await esconder();
+    try {
+      const r = await flag(true, () => listaMoves());
+      expect(r.status).toBe(200);
+      expect(r.body).toEqual({ data: [], total: 0, disponivel: false });
+    } finally {
+      await mostrar();
+    }
+  });
+
+  it('flag desligada com total 0: disponivel false', async () => {
+    const r = await flag(false, () => listaMoves());
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ data: [], total: 0, disponivel: false });
+  });
+
+  it('total maior que 0 com flag ligada: disponivel true', async () => {
+    const r = await flag(true, () => listaMoves());
+    expect(r.body).toMatchObject({ total: 1, disponivel: true });
+    expect(r.body.data).toHaveLength(1);
+  });
+
+  it('filtro sem resultado nao marca o recurso inteiro como indisponivel', async () => {
+    const r = await flag(true, () => listaMoves({ empresa: '00000000-0000-4000-8000-000000000000' }));
+    expect(r.body).toMatchObject({ total: 0, data: [], disponivel: true });
+  });
+});
+
+describe('disponivel da lista de pessoas vem do dado, nao da flag', () => {
+  const silenciar = () => intelDb(app.db).query('UPDATE intelligence.person SET suppressed_at = now()');
+  const restaurar = () => intelDb(app.db).query('UPDATE intelligence.person SET suppressed_at = NULL');
+
+  it('flag ligada com total 0: disponivel false (nao anuncia recurso sem dado)', async () => {
+    await silenciar();
+    try {
+      const r = await flag(true, () => lista());
+      expect(r.status).toBe(200);
+      expect(r.body).toEqual({ data: [], total: 0, disponivel: false });
+    } finally {
+      await restaurar();
+    }
+  });
+
+  it('flag desligada com total 0: disponivel false', async () => {
+    const r = await flag(false, () => lista());
+    expect(r.status).toBe(200);
+    expect(r.body).toEqual({ data: [], total: 0, disponivel: false });
+  });
+
+  it('total maior que 0 com flag ligada: disponivel true', async () => {
+    const r = await flag(true, () => lista());
+    expect(r.body.disponivel).toBe(true);
+    expect(r.body.total).toBeGreaterThan(0);
+    expect(r.body.data.length).toBeGreaterThan(0);
+  });
+
+  it('filtro sem resultado nao marca o recurso como indisponivel: total 0 e disponivel true', async () => {
+    const r = await flag(true, () => lista({ q: 'ninguem-com-esse-nome' }));
+    expect(r.body).toEqual({ data: [], total: 0, disponivel: true });
+  });
+});

@@ -1,5 +1,5 @@
 // Leitura PÚBLICA de pessoas, cargos e Moves para o Portal (contrato v1 do Frontend 2, no padrão do de empresas). Regras:
-//  - sem login; envelope `{ data, total, disponivel }`; `disponivel` = flag `intelligencePessoas` (J-01);
+//  - sem login; envelope `{ data, total, disponivel }`; nas DUAS listas `disponivel` = flag `intelligencePessoas` ligada E ao menos um item publicável no universo (não basta a flag, e não é o resultado do filtro);
 //  - flag DESLIGADA: lista e moves = 200 com `data: []`, `total: 0`, `disponivel: false` (o portal mostra "indisponível por enquanto", não erro); detalhe = 404;
 //  - só cargo `declared` (o "a confirmar", inferido de fonte secundária, nunca sai), só Move `confirmed`, só quando as leituras de antes e depois são declaradas,
 //    pessoa suprimida nunca sai; nunca `excerpt`, hash de conteúdo nem citação;
@@ -82,6 +82,12 @@ export const publicListPessoas: RouteFn = async (_req, c) => {
     [...base, limit, offset],
   );
   const total = await db.query<{ n: number }>(`SELECT count(*)::int AS n${FROM}`, base);
+  // `disponivel` descreve o RECURSO, não o resultado do filtro: flag ligada E ao menos uma pessoa publicável no
+  // universo (sem busca/empresa). Filtro sem resultado devolve total 0 com disponivel true.
+  const filtrado = Boolean(busca || empresa);
+  const totalUniverso = filtrado
+    ? (await db.query<{ n: number }>(`SELECT count(*)::int AS n${FROM}`, [null, asOf, null, ef.pessoas, ef.cargos])).rows[0]?.n ?? 0
+    : total.rows[0]?.n ?? 0;
   const ids = people.rows.map((p) => p.id);
   const cargos = ids.length ? (await db.query<CargoRow>(CARGOS(`AND r.person_id = ANY($1::uuid[]) ${VIGENTE}`), [ids, asOf])).rows.filter((r) => !ef.cargoOculto(r.id)) : [];
   const byPerson = new Map<string, ReturnType<typeof cargo>[]>();
@@ -92,7 +98,7 @@ export const publicListPessoas: RouteFn = async (_req, c) => {
         id: p.id, nome: ef.campo('pessoa', p.id, 'nome') ?? p.full_name, cargos: byPerson.get(p.id) ?? [], mock: p.is_mock, ...(ef.corrigido('pessoa', p.id) ? { corrigidoPeloTitular: true } : {}),
       })),
       total: total.rows[0]?.n ?? 0,
-      disponivel: true,
+      disponivel: totalUniverso > 0,
     },
     200,
     CACHE,
@@ -148,8 +154,15 @@ export const publicListMoves: RouteFn = async (_req, c) => {
   const q = parseQuery(c);
   if (!q.success) return badQuery(q.error);
   if (!ligada(c)) return off();
-  const r = await moves(intelDb(c.deps.db), await carregarEfeitos(c.deps.db), { pessoa: q.data.pessoa, empresa: q.data.empresa }, q.data.limit, q.data.offset);
-  return json({ ...r, disponivel: true }, 200, CACHE);
+  const db = intelDb(c.deps.db);
+  const ef = await carregarEfeitos(c.deps.db);
+  const r = await moves(db, ef, { pessoa: q.data.pessoa, empresa: q.data.empresa }, q.data.limit, q.data.offset);
+  // `disponivel` vem do DADO, não da flag: flag ligada E ao menos um Move publicável. Sem isso, total 0 seria
+  // anunciado como disponível e qualquer consumidor acreditaria que existe dado. O universo é sem filtro: um filtro
+  // vazio (pessoa/empresa sem Move) não marca o recurso inteiro como indisponível.
+  const filtrado = Boolean(q.data.pessoa || q.data.empresa);
+  const totalUniverso = filtrado ? (await moves(db, ef, {}, 1, 0)).total : r.total;
+  return json({ ...r, disponivel: totalUniverso > 0 }, 200, CACHE);
 };
 
 export const publicGetMove: RouteFn = async (_req, c) => {
