@@ -90,12 +90,12 @@ describe('fila e revisão', () => {
     expect((await store.getArticle('art-3'))?.reviews).toHaveLength(1);
   });
 
-  it('recheck: a fila de checagem está desligada, então a rota recusa com 503 e nada vai ao outbox; editor 403', async () => {
+  it('recheck: a fila de checagem está desligada, então a rota recusa com 501 e nada vai ao outbox; editor 403', async () => {
     await store.putArticle(sampleArticle('art-4', { status: 'em_checagem' }));
     expect((await call(d, 'POST', { path: S('/articles/art-4/recheck'), as: editor })).status).toBe(403);
     const antes = await store.getArticle('art-4');
     const r = await call(d, 'POST', { path: S('/articles/art-4/recheck'), as: revisor });
-    expect(r.status).toBe(503);
+    expect(r.status).toBe(501);
     expect(r.body.error.code).toBe('QUEUE_DISABLED');
     // fail-closed: nem outbox, nem contagem, nem status, nem auditoria de pedido
     expect(await app.db.$count(schema.outbox, eq(schema.outbox.refId, 'art-4'))).toBe(0);

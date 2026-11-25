@@ -87,8 +87,9 @@ export function outboxQueue(db: Db): JobQueue {
     async enqueue(spec) {
       const queue = STAGE_QUEUE[spec.stage];
       if (!queue) throw new Error(`etapa sem fila: ${spec.stage}`);
-      // Fila desligada (decisão de produto): a rota responde 503 em vez de aceitar um pedido que ninguém vai processar.
-      if (!isQueueEnabled(queue)) throw new HttpError(503, 'QUEUE_DISABLED', `A etapa "${spec.stage}" está desligada nesta versão; o pedido não foi aceito.`);
+      // Fila desligada (decisão de produto): a rota responde 501 (estado permanente, não convida a retentar) em vez de
+      // aceitar um pedido que ninguém vai processar.
+      if (!isQueueEnabled(queue)) throw new HttpError(501, 'QUEUE_DISABLED', `A etapa "${spec.stage}" está desligada nesta versão; o pedido não foi aceito.`);
       await enqueueOutbox(db, { queue, refId: spec.data.articleId, idempotencyKey: spec.jobId.replace(/[^A-Za-z0-9_.-]/g, '_') });
     },
   };
