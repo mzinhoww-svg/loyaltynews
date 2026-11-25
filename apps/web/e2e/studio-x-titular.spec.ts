@@ -64,6 +64,12 @@ test('fila: prazo interno, alvo da URL, estado e responsável; sem dado pessoal 
   await expect(linha).toContainText('Recebido');
   await expect(linha).toContainText('sem responsável');
   await expect(linha).toHaveAttribute('data-prazo', 'no_prazo');
+  // DP-38: o protocolo que o titular recebeu aparece na fila e é derivado do id (12 primeiros hex, maiúsculos)
+  const protocoloDe = (id: string) => `LN-${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`;
+  await expect(linha.locator('[data-protocolo]')).toHaveText(protocoloDe(ids.cargo));
+  const protocolos = await page.locator('[data-pedido] [data-protocolo]').allTextContents();
+  expect(protocolos.length).toBeGreaterThanOrEqual(4);
+  for (const protocolo of protocolos) expect(protocolo).toMatch(/^LN-[0-9A-F]{12}$/);
   await expect(page.locator(`[data-pedido="${ids.solto}"]`)).toContainText('não identificado na URL');
   // QA 7: texto livre (com e-mail e telefone escritos pelo titular), contato e URL ficam só no detalhe auditado
   const main = page.locator('main');
@@ -77,6 +83,8 @@ test('fila: prazo interno, alvo da URL, estado e responsável; sem dado pessoal 
 test('detalhe: nome, contato e texto; a consulta entra na trilha; atribuir a mim', async ({ page, context }) => {
   await entrar(context, 'tit-chefe', 'editor_chefe');
   await page.goto(`/studio/correcoes-titular/${ids.pessoa}`);
+  // o mesmo protocolo da fila, agora no detalhe (o time cruza o contato do titular com o pedido)
+  await expect(page.locator('[data-protocolo]')).toHaveText(`LN-${ids.pessoa.replace(/-/g, '').slice(0, 12).toUpperCase()}`);
   await expect(page.locator('[data-titular-nome]')).toHaveText('MOCK Titular pessoa');
   await expect(page.getByText(`pessoa.${MARCA}@example.org`)).toBeVisible();
   await expect(page.locator('[data-texto]')).toContainText(MARCA);
