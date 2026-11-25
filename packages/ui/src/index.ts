@@ -10,6 +10,7 @@ export * from "./components/DemoBanner";
 export * from "./components/SearchIconLink";
 export * from "./components/HeaderSearch";
 export * from "./components/Footer";
+export * from "./components/FooterGroup";
 export * from "./components/SocialLinks";
 export * from "./components/ArticleCard";
 export * from "./components/Button";

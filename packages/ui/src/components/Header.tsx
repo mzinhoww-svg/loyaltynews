@@ -44,6 +44,8 @@ export interface HeaderProps {
   navLabel?: string;
   /** Ações à direita, sempre visíveis (ícone de busca, The Loyal…). Use poucas. */
   actions?: ReactNode;
+  /** Link "Entrar" (login da redação/Studio): texto no cabeçalho do desktop, à esquerda do CTA, e item no painel do menu móvel. */
+  entrar?: { href: string; label: string };
   /** Chamada principal (ex.: Anuncie): botão na barra a partir de 768px; no mobile entra no menu. */
   cta?: HeaderLink;
   /** id do <main> para o link "Pular para o conteúdo". */
@@ -61,6 +63,7 @@ export function Header({
   menu,
   navLabel = "Seções do portal",
   actions,
+  entrar,
   cta,
   mainId = "conteudo",
   className,
@@ -186,6 +189,11 @@ export function Header({
             </nav>
           ) : null}
           {actions ? <div className="ln-header__actions">{actions}</div> : null}
+          {entrar ? (
+            <Link href={entrar.href} className="ln-header__entrar">
+              {entrar.label}
+            </Link>
+          ) : null}
           {cta ? (
             <Link href={cta.href} className="ln-btn ln-btn--primary ln-header__cta" aria-current={cta.current ? "page" : undefined}>
               {cta.label}
@@ -228,6 +236,15 @@ export function Header({
               <p className="ln-header__panel-title">{menu.editoriasTitle ?? "Editorias"}</p>
               {editoriasList("ln-header__panel-list ln-header__panel-list--cols")}
             </>
+          ) : null}
+          {entrar ? (
+            <ul className="ln-header__panel-list ln-header__panel-entrar">
+              <li>
+                <Link href={entrar.href} onClick={close}>
+                  {entrar.label}
+                </Link>
+              </li>
+            </ul>
           ) : null}
           {cta ? (
             <Link href={cta.href} className="ln-btn ln-btn--primary ln-header__panel-cta" onClick={close}>

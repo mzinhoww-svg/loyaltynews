@@ -59,11 +59,12 @@ test.describe('site publicado (full)', () => {
     await expect(bar.getByRole('link', { name: 'Moves' })).toHaveCount(0);
     await expect(bar.getByRole('link', { name: 'Intelligence' })).toHaveCount(0);
     const footer = page.locator('footer');
-    await expect(footer.getByRole('link', { name: 'Nossa metodologia' })).toHaveAttribute('href', '/metodologia');
-    await expect(footer.getByRole('heading', { name: 'Institucional MOCK' })).toBeVisible();
-    await expect(footer.getByRole('link', { name: 'Fale com a redação' })).toHaveAttribute('href', '/contato');
+    // no celular e no tablet os grupos vêm fechados (<details>): confere o link no DOM, sem exigir que esteja visível
+    await expect(footer.locator('a', { hasText: 'Nossa metodologia' })).toHaveAttribute('href', '/metodologia');
+    await expect(footer.getByRole('navigation', { name: 'Institucional MOCK' })).toBeVisible();
+    await expect(footer.locator('a', { hasText: 'Fale com a redação' })).toHaveAttribute('href', '/contato');
     // Grupos padrão não aparecem quando o rodapé foi publicado
-    await expect(footer.getByRole('heading', { name: 'Conteúdo' })).toHaveCount(0);
+    await expect(footer.getByRole('navigation', { name: 'Conteúdo' })).toHaveCount(0);
   });
 
   test('SEO publicado: título, descrição, Open Graph e JSON-LD Organization', async ({ page }) => {

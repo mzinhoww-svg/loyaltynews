@@ -77,41 +77,66 @@
   .ln-header__toggle, .ln-header__panel, .ln-header__panel[data-open] { display: none; }
 }
 
-/* ---------- Footer ---------- */
-.ln-footer { padding-block: var(--ln-space-5) var(--ln-space-4); margin-top: var(--ln-space-5); }
-.ln-footer a { color: var(--ln-color-white); text-underline-offset: 3px; }
-.ln-footer a:hover { color: var(--ln-color-signal); }
-.ln-footer__grid { display: grid; gap: var(--ln-space-6); grid-template-columns: 1fr; }
-.ln-footer__brand { display: grid; gap: var(--ln-space-4); align-content: start; justify-items: start; }
-.ln-footer__tagline { margin: 0; max-width: 24ch; font-size: var(--ln-text-xl); line-height: var(--ln-leading-xl); font-weight: var(--ln-weight-regular); color: var(--ln-color-mint); }
+/* ---------- Footer (desenho do UI/UX Director, auditoria-design/rodape; grupos em <nav><details>) ---------- */
+.ln-footer { padding-block: var(--ln-space-5) var(--ln-space-4); margin-top: var(--ln-space-6); }
+.ln-footer a { color: var(--ln-color-white); text-decoration: none; text-underline-offset: 3px; }
+.ln-footer a:hover, .ln-footer a:focus-visible { text-decoration: underline; color: var(--ln-color-signal); }
+.ln-footer a[aria-current="page"] { color: var(--ln-color-signal); text-decoration: underline; }
+
+.ln-footer__grid { display: grid; gap: var(--ln-space-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.ln-footer__brand { display: grid; gap: var(--ln-space-3); justify-items: start; align-content: start; }
+.ln-footer__tagline { margin: 0; max-width: 34ch; font-size: var(--ln-text-md); line-height: 1.4; font-weight: var(--ln-weight-regular); color: var(--ln-color-mint); }
+.ln-footer__entrar { display: inline-flex; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); padding: 0 var(--ln-space-4); border: 2px solid var(--ln-color-signal); border-radius: var(--ln-radius-md); font-weight: var(--ln-weight-bold); font-size: var(--ln-text-sm); }
+.ln-footer a.ln-footer__entrar:hover { background: rgba(255, 255, 255, 0.12); text-decoration: none; }
 .ln-footer__brand .ln-social { margin-left: calc((22px - var(--ln-touch-target)) / 2); }
 .ln-social__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--ln-space-1); }
 .ln-footer .ln-social__link { display: inline-flex; align-items: center; justify-content: center; width: var(--ln-touch-target); height: var(--ln-touch-target); color: var(--ln-color-signal); border-radius: var(--ln-radius-md); }
 .ln-footer .ln-social__link:hover { color: var(--ln-color-white); background: rgba(255, 255, 255, 0.12); }
-.ln-footer__title { font-family: var(--ln-font-ui) !important; font-size: var(--ln-text-sm); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ln-color-signal); margin-bottom: var(--ln-space-3) !important; }
-.ln-footer__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
-.ln-footer__list a { display: inline-flex; align-items: center; min-height: var(--ln-touch-target); }
-.ln-footer__bottom { margin-top: var(--ln-space-6); padding-top: var(--ln-space-4); border-top: 1px solid rgba(255, 255, 255, 0.25); font-size: var(--ln-text-sm); display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ln-space-2); }
+
+/* grupos de links: <nav class="ln-footer__col"><details class="ln-footer__fold"><summary class="ln-footer__title"> */
+.ln-footer__groups { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; border-top: 1px solid rgba(255, 255, 255, 0.25); }
+.ln-footer__col { min-width: 0; border-bottom: 1px solid rgba(255, 255, 255, 0.25); }
+.ln-footer__title { display: flex; align-items: center; justify-content: space-between; gap: var(--ln-space-3); min-height: 48px; margin: 0 !important; font-family: var(--ln-font-ui) !important; font-size: var(--ln-text-xs); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ln-color-signal); cursor: pointer; list-style: none; }
+.ln-footer__title::-webkit-details-marker { display: none; }
+.ln-footer__title::after { content: "+" / ""; font-size: 1.25rem; line-height: 1; font-weight: var(--ln-weight-regular); }
+.ln-footer__fold[open] > .ln-footer__title::after { content: "−" / ""; }
+.ln-footer__title:focus-visible { outline: var(--ln-focus-width) solid var(--ln-color-signal); outline-offset: -2px; }
+.ln-footer__list { list-style: none; margin: 0 0 var(--ln-space-3); padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-4); }
+.ln-footer__list a { display: flex; align-items: center; min-height: var(--ln-touch-target); font-size: var(--ln-text-sm); line-height: 1.25; }
+
+.ln-footer__bottom { margin-top: var(--ln-space-4); font-size: var(--ln-text-sm); display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ln-space-2); }
 .ln-footer__bottom p { margin: 0; }
-.ln-footer__groups { display: grid; gap: var(--ln-space-6) var(--ln-space-5); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-content: start; }
+
+/* tablet (768-1023px): marca à esquerda e os 4 grupos recolhíveis à direita em 2 colunas */
 @media (min-width: 768px) {
-  .ln-footer__grid { grid-template-columns: 1fr 1fr; }
-  .ln-footer__groups { grid-column: 1 / -1; }
-  .ln-footer__list--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-5); }
+  .ln-footer__grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--ln-space-5); }
+  .ln-footer__groups { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-4); border-top: 0; }
+  .ln-footer__col { border-top: 1px solid rgba(255, 255, 255, 0.25); border-bottom: 0; }
 }
+/* desktop (>=1024px): tudo aberto, sem botões; marca | Editorias (2 colunas de lista) | Conteúdo | Institucional | Contato, alinhados no topo */
 @media (min-width: 1024px) {
-  .ln-footer__grid { grid-template-columns: minmax(220px, 1.1fr) minmax(190px, 0.8fr) minmax(0, 2.6fr); gap: var(--ln-space-6) var(--ln-space-6); }
-  .ln-footer__groups { grid-column: auto; }
-  .ln-footer__list--cols { grid-template-columns: minmax(0, 1fr); }
+  .ln-footer__grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 4fr); gap: var(--ln-space-6); }
+  .ln-footer__groups { grid-template-columns: 1.6fr 1fr 1fr 1fr; column-gap: var(--ln-space-5); }
+  .ln-footer__col { border-top: 0; }
+  .ln-footer__title { min-height: 32px; cursor: default; pointer-events: none; }
+  /* o seletor de grupo aberto tem mais especificidade que o do título: sem repeti-lo, o desktop (grupos sempre abertos) mostrava o "−" */
+  .ln-footer__title::after, .ln-footer__fold[open] > .ln-footer__title::after { content: none; }
+  .ln-footer__list a { min-height: 32px; }
+  .ln-footer__col--wide .ln-footer__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ln-footer__col:not(.ln-footer__col--wide) .ln-footer__list { grid-template-columns: minmax(0, 1fr); }
+  /* <details> fechado esconde o conteúdo (content-visibility: hidden em ::details-content): no desktop fica sempre visível */
+  .ln-footer__fold::details-content { content-visibility: visible; display: block; height: auto; }
 }
-@media (min-width: 1024px) {
-  .ln-footer__list a { min-height: 30px; }
-}
+/* impressão: todos os grupos abertos */
+@media print { .ln-footer__fold::details-content { content-visibility: visible; } .ln-footer__title::after, .ln-footer__fold[open] > .ln-footer__title::after { content: none; } }
+
+/* "Entrar" no cabeçalho: texto à esquerda do Anuncie só no desktop; no celular é item do painel do menu (um 4º botão na barra estoura a 320 px) */
+.ln-header .ln-header__entrar { display: none; align-items: center; min-height: var(--ln-touch-target); padding: 0 var(--ln-space-2); color: var(--ln-color-primary); font-weight: var(--ln-weight-bold); font-size: var(--ln-text-sm); text-decoration: none; white-space: nowrap; }
+.ln-header .ln-header__entrar:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (min-width: 1024px) { .ln-header .ln-header__entrar { display: inline-flex; } .ln-header__panel-entrar { display: none; } }
 
 /* Tablet e celular: botões do cabeçalho com alvo de toque de 44px (a 768px o "Anuncie" tinha 40px) */
 @media (max-width: 1023px) { .ln-header__actions .ln-btn, .ln-header .ln-header__cta { min-height: var(--ln-touch-target); } }
-/* A-2: lista de editorias do rodapé em 2 colunas também no celular (o rodapé a 390px passava de 1.350px) */
-@media (min-width: 360px) and (max-width: 767px) { .ln-footer__list--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-3); } }
 
 /* =====================================================================================================================
  * HeaderSearch: busca expansível no cabeçalho (desenho: UI/UX Director, auditoria-design/busca-header). Só tokens do design system.
