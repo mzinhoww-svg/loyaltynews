@@ -9,7 +9,9 @@ import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { describeHeartbeat, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
 import type { Db as IntelDb } from '@ln/intelligence';
-import { handlers } from './handlers';
+import { createHandlers } from './handlers';
+import { handlersForQueues, policyLines, queuePolicyProblems } from './queue-guard';
+import { QUEUE_DECISIONS } from './queues';
 import { redisTlsOptions } from './redis-tls';
 import { startIntelligenceAlerts } from './intelligence-alerts';
 import { workerFlagResolver } from './worker-flags';
@@ -26,6 +28,24 @@ async function main() {
     console.error('[workers] DATABASE_URL e REDIS_URL são obrigatórios');
     process.exit(1);
   }
+  // ADR-022: flag inválida (nome desconhecido, flag sem decisão para o ambiente) NÃO sobe com tudo desligado:
+  // recusa a subida e diz qual flag, como o web. O guard-env no start é a primeira barreira; esta é a do processo.
+  let flags: ReturnType<typeof workerFlagResolver>;
+  try {
+    flags = workerFlagResolver(process.env);
+  } catch (e) {
+    console.error(errLine('[workers] subida recusada: flags inválidas (ADR-022)', e));
+    process.exit(1);
+  }
+
+  // ADR-002: toda fila declarada tem destino (handler `on` ou desligamento `off` com motivo). Fila órfã derruba a subida.
+  const queueHandlers = createHandlers(process.env);
+  const queueProblems = queuePolicyProblems(QUEUE_DECISIONS, queueHandlers);
+  if (queueProblems.length) {
+    console.error(`[workers] subida recusada: política de filas inválida:\n - ${queueProblems.join('\n - ')}`);
+    process.exit(1);
+  }
+  console.log(`[workers] filas: ${policyLines(QUEUE_DECISIONS).join('; ')}`);
   // Confere os PEM de verdade ANTES de conectar e diz QUAL variável falhou (só nomes, classes de erro e fatos estruturais; nunca o conteúdo).
   // Falha = o processo sai com a causa clara em vez de repetir "no start line" a cada tentativa de conexão.
   let tlsOk = true;
@@ -55,7 +75,7 @@ async function main() {
   connection.on('error', onClientError('[workers] redis'));
 
   const sink = new BullQueueSink(connection);
-  const workers = startWorkers({ connection, db, handlers });
+  const workers = startWorkers({ connection, db, handlers: handlersForQueues(QUEUE_DECISIONS, queueHandlers) });
   const reconciler = startReconciler({
     db,
     sink,
@@ -82,8 +102,7 @@ async function main() {
   });
   // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on, LN_REREAD_SEED e a flag intelligencePessoas (ADR-022)
   const intelDbPort = { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb;
-  // flags de produto pelo resolvedor da ADR-022 (o mesmo do web): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
-  const flags = workerFlagResolver(process.env);
+  // flags de produto resolvidas na subida (ADR-022): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
   const reread = startIntelligenceReread({ db: intelDbPort, flags });
   // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on e a flag intelligencePessoas pelo resolvedor)
   const alerts = startIntelligenceAlerts({ db: intelDbPort, flags });

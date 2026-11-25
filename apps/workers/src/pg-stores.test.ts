@@ -37,24 +37,34 @@ describe('enqueueOutbox', () => {
     await clear();
     await expect(
       db.transaction(async (tx) => {
-        await enqueueOutbox(tx as unknown as Db, { queue: 'coleta', refId: 'r1', idempotencyKey: 'k1' });
+        await enqueueOutbox(tx as unknown as Db, { queue: 'entidades', refId: 'r1', idempotencyKey: 'k1' });
         throw new Error('efeito de negócio falhou');
       }),
     ).rejects.toThrow();
     expect(await db.$count(schema.outbox)).toBe(0);
     await db.transaction(async (tx) => {
-      expect(await enqueueOutbox(tx as unknown as Db, { queue: 'coleta', refId: 'r1', idempotencyKey: 'k1' })).toEqual({ created: true });
-      expect(await enqueueOutbox(tx as unknown as Db, { queue: 'coleta', refId: 'r1', idempotencyKey: 'k1' })).toEqual({ created: false });
+      expect(await enqueueOutbox(tx as unknown as Db, { queue: 'entidades', refId: 'r1', idempotencyKey: 'k1' })).toEqual({ created: true });
+      expect(await enqueueOutbox(tx as unknown as Db, { queue: 'entidades', refId: 'r1', idempotencyKey: 'k1' })).toEqual({ created: false });
     });
     expect(await db.$count(schema.outbox)).toBe(1);
     await expect(enqueueOutbox(db, { queue: 'inventada', refId: 'r', idempotencyKey: 'k' })).rejects.toThrow(/fila desconhecida/);
+  });
+
+  it('fila desligada recusa o enfileiramento (a transação de negócio desfaz) e não grava linha', async () => {
+    await clear();
+    for (const queue of ['checagem', 'coleta', 'redacao', 'social', 'metricas', 'reunioes']) {
+      await expect(enqueueOutbox(db, { queue, refId: 'a1', idempotencyKey: `off-${queue}` })).rejects.toThrow(/desligada/);
+    }
+    expect(await db.$count(schema.outbox)).toBe(0);
+    // a fila ligada continua aceitando (controle positivo)
+    await expect(enqueueOutbox(db, { queue: 'entidades', refId: 'a1', idempotencyKey: 'on-1' })).resolves.toEqual({ created: true });
   });
 });
 
 describe('ADR-002: 100 jobs, Redis derrubado no meio', () => {
   it('após religar, o reconciliador conclui todos: zero perdidos e zero efeitos duplicados (outbox e ledger)', async () => {
     await clear();
-    for (let i = 0; i < 100; i++) await enqueueOutbox(db, { queue: 'coleta', refId: `ref${i}`, idempotencyKey: `job${i}` });
+    for (let i = 0; i < 100; i++) await enqueueOutbox(db, { queue: 'entidades', refId: `ref${i}`, idempotencyKey: `job${i}` });
     const store = new PgOutboxStore(db);
     const effects = new PgEffectStore(db);
     let redis = new FakeRedis();
@@ -87,7 +97,7 @@ describe('ADR-002: 100 jobs, Redis derrubado no meio', () => {
 
   it('dois reconciliadores simultâneos não pegam as mesmas linhas (lease + SKIP LOCKED)', async () => {
     await clear();
-    for (let i = 0; i < 30; i++) await enqueueOutbox(db, { queue: 'social', refId: `r${i}`, idempotencyKey: `s${i}` });
+    for (let i = 0; i < 30; i++) await enqueueOutbox(db, { queue: 'entidades', refId: `r${i}`, idempotencyKey: `s${i}` });
     const store = new PgOutboxStore(db);
     const now = new Date('2026-11-22T13:00:00Z');
     const [a, b] = await Promise.all([store.claimDue(30, now, 60_000), store.claimDue(30, now, 60_000)]);
@@ -100,11 +110,11 @@ describe('ADR-002: 100 jobs, Redis derrubado no meio', () => {
 describe('efeito exatamente-uma-vez', () => {
   it('efeito que lança desfaz o ledger (o job pode ser repetido); reenvio produz um efeito só', async () => {
     await clear();
-    await enqueueOutbox(db, { queue: 'redacao', refId: 'a1', idempotencyKey: 'ef1' });
+    await enqueueOutbox(db, { queue: 'entidades', refId: 'a1', idempotencyKey: 'ef1' });
     const [row] = await db.select().from(schema.outbox).where(eq(schema.outbox.idempotencyKey, 'ef1'));
     const effects = new PgEffectStore(db);
     const payload = { refId: 'a1', idempotencyKey: row!.id }; // a chave do job é o id da linha do outbox
-    await expect(processJob(effects, 'redacao', payload, async () => { throw new Error('falhou no meio'); })).rejects.toThrow();
+    await expect(processJob(effects, 'entidades', payload, async () => { throw new Error('falhou no meio'); })).rejects.toThrow();
     expect(await db.$count(schema.effectLedger)).toBe(0);
     expect(await db.$count(schema.outbox, eq(schema.outbox.status, 'done'))).toBe(0);
     let n = 0;
@@ -112,8 +122,8 @@ describe('efeito exatamente-uma-vez', () => {
       n++;
       await tx.insert(schema.auditLog).values({ id: `au-${n}`, action: 'efeito', resource: 'teste' }); // efeito no mesmo tx
     };
-    expect(await processJob(effects, 'redacao', payload, ok)).toBe('executed');
-    expect(await processJob(effects, 'redacao', payload, ok)).toBe('duplicate');
+    expect(await processJob(effects, 'entidades', payload, ok)).toBe('executed');
+    expect(await processJob(effects, 'entidades', payload, ok)).toBe('duplicate');
     expect(n).toBe(1);
     expect(await db.$count(schema.auditLog, eq(schema.auditLog.resource, 'teste'))).toBe(1);
     expect(await db.$count(schema.outbox, eq(schema.outbox.status, 'done'))).toBe(1);
@@ -145,7 +155,7 @@ describe('falhas do reconciliador', () => {
   it('linha com fila inválida vira failed; falha transitória repetida chega a failed só após MAX_ATTEMPTS', async () => {
     await clear();
     await db.insert(schema.outbox).values({ id: 'x1', queue: 'nao-existe', refId: 'r', idempotencyKey: 'bad1' });
-    await enqueueOutbox(db, { queue: 'metricas', refId: 'r', idempotencyKey: 'flaky' });
+    await enqueueOutbox(db, { queue: 'entidades', refId: 'r', idempotencyKey: 'flaky' });
     const store = new PgOutboxStore(db);
     const redis = new FakeRedis();
     redis.down = true;
