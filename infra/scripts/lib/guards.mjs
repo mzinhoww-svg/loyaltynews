@@ -116,6 +116,8 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
   // apontado por LN_HMAC_SECRET_FILE, nunca no painel. Definidas num deploy, reprovam — evita colar no app o que é do operador.
   if (deploy) for (const nome of ['LN_API_BASE', 'LN_AGENT_ACCOUNT', 'LN_HMAC_SECRET_FILE', 'LN_HMAC_SECRET', 'LN_WORKER_ID']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida no app num deploy: variável da CLI do piloto (operador/agente, fora da Vertra), não do app; apague`);
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
+  // Falha fechada do diagnóstico: num deploy sem APP_ENV staging ele também não sobe (variável fantasma que sobra no ambiente é exatamente o caso que o guard tem de pegar).
+  else if (deploy && String(env.APP_ENV ?? '').trim().toLowerCase() !== 'staging' && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push(`DIAG_XFF definida com APP_ENV=${env.APP_ENV || '(vazio)'} num deploy: o diagnóstico de proxies é só do staging e temporário`);
 
   return p;
 }

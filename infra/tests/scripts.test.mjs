@@ -1608,6 +1608,22 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
   assert.match(hmac.nota, /LN_OPENBOT_HMAC_STAGING/, 'a nota aponta a fonte que o staging já usa');
   assert.match(hmac.nota, /MESMA/, 'a nota manda reutilizar a mesma fonte, sem segunda cópia');
   assert.doesNotMatch(JSON.stringify(hmac), /[A-Za-z0-9+/=]{40,}/, 'nenhum valor de segredo no contrato');
+  // O diagnóstico que mediu o número também é só do staging: barrado em produção e em deploy sem APP_ENV.
+  const diagProd = run({ APP_ENV: 'production', DIAG_XFF: '1' });
+  assert.equal(diagProd.status, 1, 'DIAG_XFF em produção reprova');
+  assert.ok((diagProd.stderr + diagProd.stdout).includes('DIAG_XFF'));
+  const diagDeploy = run({ DIAG_XFF: '1' });
+  assert.equal(diagDeploy.status, 1, 'DIAG_XFF num deploy sem APP_ENV reprova (falha fechada)');
+  assert.ok((diagDeploy.stderr + diagDeploy.stdout).includes('DIAG_XFF'));
+  assert.equal(run({ APP_ENV: 'staging', DIAG_XFF: '1' }).status, 0, 'staging aceita o diagnóstico da medição');
+  const hops = c.variaveis.find((v) => v.nome === 'TRUSTED_PROXY_HOPS');
+  assert.deepEqual(hops.valores, ['3'], 'o contrato grava TRUSTED_PROXY_HOPS=3 (medido, não chutado)');
+  assert.match(hops.nota, /client-ip\.ts:12/, 'a nota diz onde o código lê o valor');
+  assert.match(hops.nota, /INATIVO/, 'a nota registra o risco de 4+ ou ausente');
+  const diag = c.variaveis.find((v) => v.nome === 'DIAG_XFF');
+  assert.equal(diag.so_staging, true);
+  assert.equal(diag.provisorio, true);
+  assert.match(diag.nota, /restart/, 'a nota avisa que apagar a variável não desliga sem restart');
   // O guard está na barreira de verdade: build e start dos dois ambientes começam por guard-env.
   for (const amb2 of ['staging', 'production']) for (const app of ['web', 'workers']) {
     const r = amb.ambientes[amb2].recursos[app];

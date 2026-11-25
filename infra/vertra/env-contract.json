@@ -78,8 +78,11 @@
       "apps": [
         "web"
       ],
-      "dono_do_codigo": "packages/auth (Backend)",
-      "nota": "inteiro de 1 a 10 = quantos proxies confiáveis há na frente do app; vale a N-ésima entrada de X-Forwarded-For contada da direita. Sem definir (ou inválido) o limite por IP fica INATIVO e vale só o limite por conta. Medir no primeiro staging com o diagnóstico DIAG_XFF; não chutar."
+      "dono_do_codigo": "packages/auth (src/client-ip.ts)",
+      "valores": [
+        "3"
+      ],
+      "nota": "inteiro de 1 a 10 = quantos proxies confiaveis ha na frente do app; vale a N-esima entrada de X-Forwarded-For contada da direita (ler em packages/auth/src/client-ip.ts:12). VALOR 3, MEDIDO e nao chutado: a borda da Vertra reescreve o X-Forwarded-For, o cliente fica na posicao 3 da direita e forjar 1 ou 4 entradas nao muda a contagem (Integration, 25/11/2026, r0-preparacao/seguranca/26_medicao-trusted-proxy-hops-2026-11-25.md). Staging: aplicado desde 23/11 14:10Z, limite por IP ATIVO (barra a 6a requisicao do mesmo cliente). Producao: gravar 3 EXPLICITAMENTE junto do release; o nome ja existe no app de producao, mas o valor nao e legivel por ferramenta nenhuma. Valor errado: 1 ou 2 junta todos os clientes num balde so (bloqueio coletivo); 4+ ou ausente deixa o limite por IP INATIVO, que e o risco real. Se a borda mudar (novo proxy, outro caminho), medir de novo em staging antes do go-live."
     },
     {
       "nome": "DIAG_XFF",
@@ -88,10 +91,11 @@
         "web"
       ],
       "provisorio": true,
+      "so_staging": true,
       "valores": [
         "1"
       ],
-      "nota": "só staging e só durante a medição: pedido ao Backend de um diagnóstico que devolve apenas a CONTAGEM de entradas de X-Forwarded-For (cabeçalho x-ln-xff-count), nunca os IPs. guard-env reprova em produção."
+      "nota": "SO staging e SO durante a medicao de TRUSTED_PROXY_HOPS: diagnostico de apps/web/app/api/_lib/diag-xff.ts:12 (exposto em /api/health) que devolve apenas a CONTAGEM de entradas de X-Forwarded-For (x-ln-xff-count) e, com CF-Connecting-IP, o match e a posicao; nunca IPs. APAGAR a variavel NAO desliga o diagnostico enquanto o app nao reiniciar: o processo em execucao continua com o ambiente do start (caso provado em 25/11: variavel fora da lista de envs e cabecalho ativo ate o restart). Depois de medir: delete_env + restart_app, e conferir que os x-ln-xff-* sumiram do /api/health. guard-env reprova em producao e em qualquer deploy com APP_ENV diferente de staging (falha fechada)."
     },
     {
       "nome": "DATABASE_URL",
