@@ -69,15 +69,25 @@ describe('parseMediaKit: contrato com a API comercial', () => {
     const sem = parseMediaKit(wire(realPayload()))!;
     expect(sem.formats.every((f) => f.ressalva === null)).toBe(true);
   });
-  it('ressalva vazia ou gigante derruba a leitura (não vira texto solto na página)', () => {
-    const comRessalvaInvalida = (v: unknown) => {
+  it('ressalva vazia, null ou ausente não derruba o kit: o formato sai sem ressalva e a tabela renderiza', () => {
+    const comRessalva = (v: unknown) => {
       const p = wire(realPayload()) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
       p.blocks.catalogo.formats[0].ressalva = v;
       return parseMediaKit(p);
     };
-    expect(comRessalvaInvalida('')).toBeNull();
-    expect(comRessalvaInvalida('x'.repeat(301))).toBeNull();
-    expect(comRessalvaInvalida(42)).toBeNull();
+    // P3 do QA 8: campo opcional vazio zerava a tabela inteira. Os três casos mantêm o kit e só ignoram a ressalva.
+    for (const v of ['', '   ', null, undefined]) {
+      const kit = comRessalva(v);
+      expect(kit, `ressalva ${JSON.stringify(v)}`).not.toBeNull();
+      expect(kit!.formats).toHaveLength(47);
+      expect(kit!.formats[0]!.ressalva).toBeNull();
+    }
+    // Tipo errado ou texto acima do teto também é ignorado, sem descartar o kit.
+    for (const v of [42, 'x'.repeat(301)]) {
+      const kit = comRessalva(v);
+      expect(kit).not.toBeNull();
+      expect(kit!.formats[0]!.ressalva).toBeNull();
+    }
   });
 });
 

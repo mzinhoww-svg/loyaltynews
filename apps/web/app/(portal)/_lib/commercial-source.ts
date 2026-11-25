@@ -123,9 +123,9 @@ export function parseMediaKit(json: unknown): MediaKitData | null {
     if (!isObj(f)) return null;
     const id = str(f.id, 120); const section = str(f.section, 80); const name = str(f.name, 120); const price = str(f.price, 80); const scope = str(f.scope, 300);
     if (!id || !section || !name || !price || !scope || !STATUSES.includes(f.status as FormatStatus)) return null;
-    // Ressalva é opcional no contrato (campo aditivo): ausente = formato sem ressalva.
-    const ressalva = f.ressalva === undefined || f.ressalva === null ? null : str(f.ressalva, 300);
-    if (f.ressalva !== undefined && f.ressalva !== null && !ressalva) return null;
+    // Ressalva é opcional no contrato (campo aditivo): ausente, null, vazia/só espaço ou fora do formato = formato sem
+    // ressalva. Um campo OPCIONAL nunca pode derrubar o kit inteiro (P3 do QA 8: ressalva '' zerava a tabela).
+    const ressalva = typeof f.ressalva === 'string' && f.ressalva.trim().length > 0 && f.ressalva.length <= 300 ? f.ressalva : null;
     formats.push({ id, section, name, price, scope, status: f.status as FormatStatus, ressalva });
   }
   const positions = parsePositions(isObj(json.blocks.especificacoes) ? json.blocks.especificacoes.positions : undefined);

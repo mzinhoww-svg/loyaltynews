@@ -7,7 +7,8 @@ import { getSource } from '../_lib/source';
  * SEO das páginas de dados (Intelligence, Moves e agenda) para o lançamento no domínio próprio.
  * No Next, o `openGraph`/`twitter` de uma página SUBSTITUI o do layout por inteiro (não mescla): sem repetir a imagem, a página
  * ficaria sem og:image. Aqui toda página leva título, descrição, canonical (relativo: o `metadataBase` do layout o resolve no domínio
- * do release) e a imagem — a publicada no Studio (seo.ogImage) quando existe, senão a padrão (/og-padrao.png, a mesma do layout).
+ * do release) e a imagem — a publicada no Studio (seo.ogImage) quando existe, senão a padrão do pacote de marca (/og/padrao.png,
+ * 1200×630, a mesma do layout, via ogImagemPadrao()).
  */
 /**
  * P2-03 da auditoria do int/031: o fallback apontava para /og-padrao.png (1200×627, arte antiga, só o logo), enquanto o
