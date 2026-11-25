@@ -131,7 +131,8 @@
           },
           "env": {
             "APP_ENV": "staging",
-            "NODE_ENV": "production"
+            "NODE_ENV": "production",
+            "LN_OPENBOT_GATEWAY_TIMEOUT_MS": "1800000"
           }
         },
         "postgres": {

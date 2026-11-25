@@ -245,7 +245,7 @@
         "workers"
       ],
       "dono_do_codigo": "packages/openbot (Integration)",
-      "nota": "Segredo HMAC das tarefas do OpenBot (piloto DP-41). SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start); sem ela as rotas do OpenBot respondem 401. Do cofre, via set_env, nunca em arquivo, chat, log ou commit.",
+      "nota": "Segredo HMAC das tarefas do OpenBot (piloto DP-41). SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start) e num deploy sem APP_ENV tambem (falha fechada); sem ela as rotas do OpenBot respondem 401. O LUGAR do segredo e este (web e workers do staging), SEM valor no repositorio: do cofre, via set_env, nunca em arquivo, chat, log ou commit.",
       "so_staging": true
     },
     {
@@ -280,7 +280,7 @@
       "opcional": true,
       "so_staging": true,
       "dono_do_codigo": "apps/workers/src/openbot-wiring.ts (createPilotWiring; DP-41)",
-      "nota": "Espera maxima por tarefa do gateway OpenBot, em ms (padrao 600000). No prazo a tarefa FICA na fila e repetir a chamada a retoma. SO staging; em production a variavel DEFINIDA reprova no guard-env (build e start)."
+      "nota": "Espera maxima por tarefa do gateway OpenBot, em ms (padrao 600000 = 10 min). No prazo a tarefa FICA na fila e repetir a chamada a retoma (nada duplica, nada e cobrado por isso). SO staging; em production a variavel DEFINIDA reprova no guard-env (build e start) e num deploy sem APP_ENV tambem (falha fechada). Staging: definida em 1800000 (30 min) em 25/11/2026 depois do pending_timeout da checagem do piloto; o teto de 30 min e o mesmo que o protocolo do piloto ja usa para a espera de limite. Revisar quando houver turnos medidos."
     },
     {
       "nome": "MLABS_MCP_TOKEN",
@@ -391,6 +391,28 @@
         "disable"
       ],
       "nota": "só no job de migrações do CI (PostgreSQL descartável sem TLS). Na Vertra o TLS com certificado de cliente é obrigatório; guard-env reprova DB_SSL_MODE=disable em deploy."
+    }
+  ],
+  "so_para_cli_do_piloto_nao_vao_para_apps_da_vertra": [
+    {
+      "nome": "LN_API_BASE",
+      "secreto": false,
+      "nota": "CLI do agente do piloto (packages/openbot/bin/ln-openbot-agent.mjs, ln-item11.mjs), no ambiente do OPERADOR — nunca no app da Vertra. Base https://<staging>/api/openbot; só HTTPS e só o staging (não existe alvo de produção). Definida num deploy, o guard-env reprova."
+    },
+    {
+      "nome": "LN_AGENT_ACCOUNT",
+      "secreto": false,
+      "nota": "CLI do piloto: conta do agente (claude ou codex; outra é recusada). Do operador, nunca no app. Definida num deploy, o guard-env reprova."
+    },
+    {
+      "nome": "LN_HMAC_SECRET_FILE",
+      "secreto": false,
+      "nota": "CLI do piloto: CAMINHO do arquivo que o cofre do OpenBot entrega; o conteúdo (o segredo HMAC) nunca vai ao prompt, a argumento nem ao app. Do operador, nunca no app. Definida num deploy, o guard-env reprova."
+    },
+    {
+      "nome": "LN_WORKER_ID",
+      "secreto": false,
+      "nota": "CLI do piloto: um id por agente (ex.: openbot-claude-pauta). Do operador, nunca no app. Definida num deploy, o guard-env reprova."
     }
   ],
   "so_para_backup_nao_vao_para_apps_da_vertra": [

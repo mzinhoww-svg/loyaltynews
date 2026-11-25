@@ -93,17 +93,28 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
     else if (ambFlags === 'staging' && !/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
     else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
   }
-  // Piloto OpenBot (DP-41): LN_OPENBOT_PILOT só com APP_ENV=staging; em produção (ou qualquer outro ambiente de deploy) a variável DEFINIDA reprova.
-  if (String(env.LN_OPENBOT_PILOT ?? '').trim() !== '') {
-    const ambPiloto = String(env.APP_ENV ?? '').trim().toLowerCase();
-    if (prod) p.push('LN_OPENBOT_PILOT definida em produção: o piloto OpenBot é só do staging (DP-41)');
-    else if (ambPiloto !== 'staging' && deploy) p.push(`LN_OPENBOT_PILOT com APP_ENV=${env.APP_ENV || '(vazio)'}: o piloto OpenBot só existe com APP_ENV=staging (DP-41)`);
+  // Piloto OpenBot (DP-41, item 5 do piloto): TODAS as variáveis do piloto só existem com APP_ENV=staging.
+  // Em produção reprovam pelo NOME; num deploy com APP_ENV ausente (ou outro valor) também reprovam — FALHA FECHADA: perder o APP_ENV
+  // não pode deixar o app subir com o segredo do piloto. Fora de deploy e de produção (desenvolvimento local) as variáveis são aceitas.
+  // A mensagem nunca repete o valor.
+  const ambPiloto = String(env.APP_ENV ?? '').trim().toLowerCase();
+  const barreiraPiloto = prod || deploy;
+  const ondePiloto = prod ? 'em produção' : `com APP_ENV=${env.APP_ENV || '(vazio)'} num deploy`;
+  const RAZAO_PILOTO = {
+    LN_OPENBOT_PILOT: 'o piloto OpenBot só existe com APP_ENV=staging (DP-41)',
+    OPENBOT_HMAC_SECRET: 'o segredo do OpenBot é só do staging (DP-41)',
+    OPENBOT_HMAC_SECRET_PREVIOUS: 'o segredo do OpenBot é só do staging (DP-41)',
+    // O módulo de fiação (LN_OPENBOT_PILOT_WIRING é um especificador de import: apontá-lo para outro módulo em produção seria carregar código arbitrário)
+    // e o prazo de espera do gateway (apps/workers: editorial-factory.ts, openbot-wiring.ts).
+    LN_OPENBOT_PILOT_WIRING: 'variável do piloto OpenBot, só do staging (DP-41)',
+    LN_OPENBOT_GATEWAY_TIMEOUT_MS: 'variável do piloto OpenBot, só do staging (DP-41)',
+  };
+  if (barreiraPiloto && ambPiloto !== 'staging') {
+    for (const [nome, razao] of Object.entries(RAZAO_PILOTO)) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida ${ondePiloto}: ${razao}`);
   }
-  // Segredo HMAC do OpenBot (piloto DP-41, só staging; decisão do Arquiteto/PM de 24/11): em produção as duas variáveis definidas reprovam (sem elas as rotas do OpenBot respondem 401).
-  if (prod) for (const nome of ['OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida em produção: o segredo do OpenBot é só do staging (DP-41)`);
-  // Demais variáveis que o código do piloto lê (apps/workers: editorial-factory.ts, openbot-wiring.ts): o módulo de fiação (LN_OPENBOT_PILOT_WIRING é um especificador de import: apontá-lo
-  // para outro módulo em produção seria carregar código arbitrário) e o prazo de espera do gateway. Em produção, definidas reprovam; a mensagem nunca repete o valor.
-  if (prod) for (const nome of ['LN_OPENBOT_PILOT_WIRING', 'LN_OPENBOT_GATEWAY_TIMEOUT_MS']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida em produção: variável do piloto OpenBot, só do staging (DP-41)`);
+  // CLI do piloto (operador/agente fora da Vertra: packages/openbot/bin): o app NÃO lê nenhuma destas; o valor do cofre fica no arquivo
+  // apontado por LN_HMAC_SECRET_FILE, nunca no painel. Definidas num deploy, reprovam — evita colar no app o que é do operador.
+  if (deploy) for (const nome of ['LN_API_BASE', 'LN_AGENT_ACCOUNT', 'LN_HMAC_SECRET_FILE', 'LN_WORKER_ID']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida no app num deploy: variável da CLI do piloto (operador/agente, fora da Vertra), não do app; apague`);
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
 
   return p;

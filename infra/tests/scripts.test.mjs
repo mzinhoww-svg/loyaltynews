@@ -1567,6 +1567,42 @@ test('guard-env (item 5 do piloto): a CLI real sai 1 em produção com QUALQUER 
   for (const n of Object.keys(piloto)) assert.ok(nomes.has(n) && c.variaveis.find((v) => v.nome === n).so_staging === true, n + ' no contrato como só_staging');
 });
 
+test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI real sai 1 com qualquer variável do piloto (antes da correção só LN_OPENBOT_PILOT era pega); a CLI do operador definida no app reprova; o contrato declara a CLI sem valores', () => {
+  const run = (env) => node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), ...env } });
+  const piloto = { LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste', OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste', LN_OPENBOT_PILOT_WIRING: '@ln/outro', LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' };
+  assert.equal(run({}).status, 0, 'controle negativo: deploy sem APP_ENV e sem variável do piloto passa');
+  for (const [nome, valor] of Object.entries(piloto)) {
+    for (const semAmb of [{}, { APP_ENV: 'homologacao' }]) {
+      const r = run({ ...semAmb, [nome]: valor });
+      const rotulo = nome + ' com ' + (semAmb.APP_ENV ? `APP_ENV=${semAmb.APP_ENV}` : 'APP_ENV ausente');
+      assert.equal(r.status, 1, rotulo + ' num deploy deve reprovar');
+      assert.ok((r.stderr + r.stdout).includes(nome), 'a mensagem cita o nome em ' + rotulo);
+      assert.ok(!(r.stderr + r.stdout).includes(valor) || valor === '1' || valor === '60000', 'a mensagem não repete o valor de ' + nome);
+    }
+  }
+  // A CLI do piloto (operador/agente) não é variável de app: definida num deploy, o app não sobe; em desenvolvimento (sem --deploy) não atrapalha.
+  const cli = { LN_API_BASE: 'https://loyaltynews-stg.vertraweb.app/api/openbot', LN_AGENT_ACCOUNT: 'codex', LN_HMAC_SECRET_FILE: 'C:/cofre/ln-hmac', LN_WORKER_ID: 'openbot-codex-pauta' };
+  for (const [nome, valor] of Object.entries(cli)) {
+    const r = run({ APP_ENV: 'staging', [nome]: valor });
+    assert.equal(r.status, 1, nome + ' definida no app num deploy deve reprovar (mesmo no staging)');
+    assert.ok((r.stderr + r.stdout).includes(nome), 'a mensagem cita o nome ' + nome);
+    assert.ok(!(r.stderr + r.stdout).includes(valor), 'a mensagem não repete o valor de ' + nome);
+    assert.equal(node('guard-env.mjs', [], { env: { ...cleanEnv(), [nome]: valor } }).status, 0, nome + ' fora de deploy (desenvolvimento) é aceita');
+  }
+  const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
+  const sec = c.so_para_cli_do_piloto_nao_vao_para_apps_da_vertra;
+  assert.ok(Array.isArray(sec), 'o contrato tem a seção da CLI do piloto');
+  assert.deepEqual(sec.map((v) => v.nome).sort(), Object.keys(cli).sort(), 'as quatro variáveis da CLI estão declaradas');
+  assert.doesNotMatch(JSON.stringify(sec), /"valor"\s*:/, 'a seção só declara nomes, nenhum valor');
+  assert.doesNotMatch(JSON.stringify(c), /valor-ficticio/, 'o contrato não tem valor nenhum');
+  // O prazo do gateway é o único valor do piloto definido hoje, e só no staging: 30 min (1800000 ms).
+  const amb = JSON.parse(readFileSync(join(S, '..', 'vertra', 'environments.json'), 'utf8'));
+  const envStg = amb.ambientes.staging.recursos.workers.env;
+  assert.equal(envStg.LN_OPENBOT_GATEWAY_TIMEOUT_MS, '1800000', 'staging workers declara o prazo de 30 min');
+  assert.equal(envStg.APP_ENV, 'staging');
+  assert.equal(amb.ambientes.production.recursos.workers.env.LN_OPENBOT_GATEWAY_TIMEOUT_MS, undefined, 'produção NÃO declara o prazo do piloto');
+});
+
 test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {
   const { lerPerfil, avaliar, passos, BUILD_PADRAO } = await import('../scripts/memoria-build.mjs');
   assert.equal(BUILD_PADRAO, 2048);
