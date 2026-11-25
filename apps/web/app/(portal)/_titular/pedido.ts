@@ -1,3 +1,5 @@
+import { protocoloValido } from '../../../lib/protocolo-titular';
+
 /**
  * Pedido do titular (DP-38): regras de validação do lado do portal, iguais às do Backend
  * (apps/web/app/api/_lib/titular.ts, `PedidoTitular`). O Backend continua sendo quem decide; aqui é só para orientar o leitor
@@ -22,7 +24,7 @@ export function reciboDaResposta(body: unknown): ReciboPedido | null {
   const protocolo = typeof b.protocolo === 'string' ? b.protocolo : '';
   const prazoEm = typeof b.prazoEm === 'string' ? b.prazoEm : '';
   const prazoDias = typeof b.prazoDias === 'number' ? b.prazoDias : PRAZO_DIAS_RESPOSTA;
-  if (!/^LN-[0-9A-F]{12}$/.test(protocolo) || !prazoEm) return null;
+  if (!protocoloValido(protocolo) || !prazoEm) return null;
   return { protocolo, prazoDias, prazoEm };
 }
 
