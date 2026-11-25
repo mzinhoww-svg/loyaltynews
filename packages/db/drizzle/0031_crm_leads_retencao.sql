@@ -27,6 +27,10 @@ CREATE TRIGGER crm_leads_retencao BEFORE INSERT OR UPDATE ON "crm_leads" FOR EAC
 -- interacao = oportunidade ligada ao lead criada ou alterada (mudanca de estagio, proxima acao...): renova o ultimo contato do lead
 CREATE FUNCTION ln_crm_opp_toca_lead() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+  -- regravar os mesmos valores (sincronizacao, retry) nao e interacao: nao renova o contato nem adia a exclusao do lead
+  IF TG_OP = 'UPDATE' AND to_jsonb(NEW) = to_jsonb(OLD) THEN
+    RETURN NULL;
+  END IF;
   IF NEW.lead_id IS NOT NULL THEN
     UPDATE "crm_leads" SET "ultimo_contato_em" = now() WHERE "id" = NEW.lead_id;
   END IF;

@@ -129,6 +129,23 @@ describe('gatilhos da migração 0031 (datas mantidas pelo banco)', () => {
   });
 });
 
+describe('gatilho da oportunidade: guarda de no-op (QA 1, R4)', () => {
+  it('regravar a oportunidade com os MESMOS valores não renova o contato do lead (retry/sincronização não adia a exclusão); mudar de verdade renova', async () => {
+    await t.db.insert(schema.crmAccounts).values({ id: 'acc-4', nome: 'Conta D' });
+    await put('g3', { contatoHa: 300 });
+    await t.db.insert(schema.crmOpportunities).values({ id: 'op-g3', contaId: 'acc-4', leadId: 'g3', titulo: 'x' } as never);
+    const velho = "now() - interval '300 days'";
+    await t.client.query(`UPDATE crm_leads SET ultimo_contato_em = ${velho} WHERE id = 'g3'`);
+    const get = async () => (await t.client.query<{ c: Date }>("SELECT ultimo_contato_em c FROM crm_leads WHERE id = 'g3'")).rows[0]!.c.getTime();
+    const antes = await get();
+    await t.client.query("UPDATE crm_opportunities SET titulo = titulo WHERE id = 'op-g3'"); // mesmos valores
+    await t.client.query("UPDATE crm_opportunities SET estagio = estagio, lead_id = lead_id WHERE id = 'op-g3'");
+    expect(await get()).toBe(antes);
+    await t.client.query("UPDATE crm_opportunities SET titulo = 'y' WHERE id = 'op-g3'"); // mudança real
+    expect(await get()).toBeGreaterThan(antes);
+  });
+});
+
 describe('job', () => {
   it('startLeadRetention roda na subida, reporta erro sem derrubar e para', async () => {
     await put('j1', { contatoHa: 500 });

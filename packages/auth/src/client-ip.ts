@@ -30,6 +30,10 @@ export function normalizeIp(raw: string): string | null {
     const b = Number.parseInt(hex[2]!, 16);
     return `${a >> 8}.${a & 255}.${b >> 8}.${b & 255}`;
   }
+  if (isIP(v) === 6) {
+    // forma canônica (compressão do maior trecho de zeros): grafias expandida e comprimida do MESMO IP viram o mesmo texto
+    try { return new URL('http://[' + v + ']/').hostname.replace(/^\[|\]$/g, ''); } catch { return null; }
+  }
   return v;
 }
 

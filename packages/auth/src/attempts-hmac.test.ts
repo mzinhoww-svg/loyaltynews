@@ -80,6 +80,13 @@ describe('o limite continua exato', () => {
     expect(normalizeIp('::FFFF:0102:0304')).toBe('1.2.3.4');
     expect(normalizeIp('[2001:db8::1]')).toBe('2001:db8::1');
     expect(normalizeIp('não-é-ip')).toBeNull();
+    // IPv6: expandida, comprimida, maiúscula e com zona são o MESMO IP e dão o MESMO texto (e portanto o mesmo HMAC)
+    const comprimida = '2001:db8::1';
+    for (const g of ['2001:0db8:0000:0000:0000:0000:0000:0001', '2001:DB8:0:0:0:0:0:1', '2001:db8::0001', '[2001:0DB8::1]', '2001:db8::1%eth0']) expect(normalizeIp(g), g).toBe(comprimida);
+    expect(attemptSubject('ip', normalizeIp('2001:0db8:0000:0000:0000:0000:0000:0001')!)).toBe(attemptSubject('ip', normalizeIp('2001:db8::1')!));
+    expect(normalizeIp('::1')).toBe('::1');
+    expect(normalizeIp('0:0:0:0:0:0:0:1')).toBe('::1');
+    expect(normalizeIp('::ffff:1.2.3.4')).toBe('1.2.3.4'); // IPv4 mapeado continua virando IPv4
     await db().delete(schema.authAttempt);
     const grafias = ['::ffff:1.2.3.4', '::FFFF:0102:0304', '1.2.3.4', '::ffff:1.2.3.4', '1.2.3.4'];
     for (const [i, g] of grafias.entries()) expect((await acquireAttempt(db(), 'ip', normalizeIp(g)!, at(i))).allowed).toBe(true);
@@ -222,5 +229,15 @@ describe('audit_log (append-only): o IP entra só como HMAC', () => {
     expect(auditIp('1.2.3.4')).not.toBe(attemptSubject('ip', '1.2.3.4'));
     expect(auditIp('1.2.3.4', { APP_ENV: 'production' })).toBeNull();
     expect(auditIp('1.2.3.4', { APP_ENV: 'production', BETTER_AUTH_SECRET: 'k'.repeat(40) })).toMatch(/^h1:[0-9a-f]{64}$/);
+  });
+});
+
+describe('os fontes do HMAC são texto para o Git (sem byte NUL)', () => {
+  it('attempts.ts, client-ip.ts e audit.ts não têm byte 0 (o separador kind\\0sujeito é a escape \\0 no código)', async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const f of ['attempts.ts', 'client-ip.ts', 'audit.ts', 'password-attempts.ts']) {
+      const bytes = readFileSync(new URL('./' + f, import.meta.url));
+      expect(bytes.includes(0), f).toBe(false);
+    }
   });
 });
