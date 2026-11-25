@@ -103,6 +103,9 @@ test.describe('api', () => {
     await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
     await expect(page.getByTestId('company-meta')).toContainText('Tipo não declarado na fonte');
     await page.getByTestId('relations').getByRole('link', { name: '[MOCK API] Associação Gama' }).click();
+    // M-02 (revisão 25/11): os 2 vínculos da Gama têm o mesmo rótulo → sem coluna "Vínculo" repetida; o rótulo vai uma vez na legenda.
+    await expect(page.locator('#legenda-relations')).toContainText('Vínculo declarado com', { timeout: NAV_MS });
+    await expect(page.getByTestId('relations').locator('th', { hasText: 'Vínculo' })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Associação Gama', { timeout: NAV_MS });
     await expect(page.getByTestId('relations').locator('tbody tr')).toHaveCount(2);
   });

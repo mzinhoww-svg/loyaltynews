@@ -22,3 +22,14 @@
   margin: var(--ln-space-2, 8px) 0 0;
   padding-left: 1.2em;
 }
+
+/* M-02: no celular a tabela rola de lado; a dica torna isso visível (no desktop a tabela cabe e a dica some). */
+.dicaRolagem {
+  display: none;
+  margin: 0 0 6px;
+}
+@media (max-width: 767px) {
+  .dicaRolagem {
+    display: block;
+  }
+}
