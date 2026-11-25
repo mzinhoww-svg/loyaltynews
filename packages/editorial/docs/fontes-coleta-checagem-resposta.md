@@ -4,7 +4,7 @@ Entrada: `fast-track/fontes-coleta-checagem.md` (loyalty-news-scraping-benchmark
 
 ## 1. As 24 fontes "só listagem"
 
-**Cadastradas (8 das 24; a nona linha, One Mile at a Time, é das paradas):**
+**Cadastradas (8 das 24):**
 
 | Fonte | O que foi cadastrado | O que a leitura mostrou |
 |---|---|---|
@@ -16,7 +16,6 @@ Entrada: `fast-track/fontes-coleta-checagem.md` (loyalty-news-scraping-benchmark
 | IDV | sitemap `https://www.idv.org.br/sitemap_index.xml`, prefixo `/noticia/` | filho de notícias de 28/10/2026; feed parado desde 2022; a página `/noticia/` entra no sitemap e pode ser lida como notícia (a triagem recusa): **baixa frequência** |
 | Nubank (sala de imprensa) | sitemap `https://nu.com/sitemap/institutional.xml`, prefixo `/pt/sala-de-imprensa/` | 1.200 URLs de imprensa, a mais recente de 23/11/2026. **`pathPrefix` da fonte passou de `/en/newsroom` para `null`**: o sitemap fica em `/sitemap/` e o coletor o recusaria; as páginas continuam limitadas pelo prefixo do sitemap |
 | Meu Bolso em Dia | **host passou para `meubolsoemdia.com.br`** e sitemap `https://meubolsoemdia.com.br/sitemap.xml`, prefixo `/Materias/` | o site responde sem www (200, sem redirecionar) e o sitemap lista só URLs sem www, que o coletor recusaria com o host antigo (há teste mostrando a recusa) |
-| One Mile at a Time | feed `https://onemileatatime.com/feed/` (era o item 2) | ver seção 2 |
 
 **Não cadastradas, com o motivo gravado em `verification.notes` (16):**
 
@@ -39,7 +38,7 @@ Entrada: `fast-track/fontes-coleta-checagem.md` (loyalty-news-scraping-benchmark
 | ABEMF | feed relido: 11 itens, último de 22/10/2026; sem URL nova. **Baixa frequência** |
 | A4A | feed relido: último de 23/10/2026 (sitemap de 29/10, sem notícia nova); sem URL nova. **Baixa frequência** |
 | Million Mile Secrets | último item de 25/07/2024 (sitemap de 30/07/2024): o site **parou de publicar em 2024**; tratar como inativa |
-| One Mile at a Time | ativo: o "2013" veio do lastmod de um filho do índice; o `/feed/` tem 26 itens e o último é de 25/11/2026, e foi cadastrado |
+| One Mile at a Time | ativo (o "2013" veio do lastmod de um filho do índice). **O robots.txt proíbe o feed (`Disallow: */feed/`)**: um feed `/feed/` chegou a ser cadastrado e o QA 10 reprovou; foi **removido**. Cadastrado o `https://onemileatatime.com/news-sitemap.xml` com prefixo `/news/` (5.688 URLs, a mais recente de 25/11/2026), permitido pelo robots; limite por hora 8 |
 | RD Station | ativo: `blog-sitemap.xml` e `glossary-sitemap.xml` com lastmod de 25/11/2026; a checagem leu outro filho |
 | The Wise Marketer | ativo: `post-sitemap10.xml` com lastmod de 24/11/2026; a checagem leu o `post-sitemap2.xml` (2012) |
 | ANPD | o "sem itens" veio de a checagem ler um filho só do índice: os dois filhos têm 1.395 e 54 URLs sob `/anpd/pt-br/assuntos/noticias/`, a mais recente de 25/11/2026 11:44. **Não conferi com o coletor real**, só o conteúdo dos sitemaps |
@@ -54,7 +53,7 @@ Não existe campo de "baixa frequência" no cadastro: a marcação está em `ver
 ## 4. Limites e dependências
 
 - Os cadastros novos valem após o deploy (a definição das fontes é código); habilitar é no Studio (admin, com MFA), como antes. Nenhuma fonte foi habilitada por mim.
-- As 6 fontes com sitemap novo e o feed do OMAAT só foram exercitadas **offline** (testes com servidor simulado); a checagem ao vivo foi de leitura dos arquivos, não uma rodada do coletor real.
+- As 7 fontes com sitemap novo (OMAAT incluído) foram exercitadas **offline** (testes com servidor simulado); os 2 feeds novos (ABAV, EDPB) e os sitemaps foram só **lidos ao vivo**. Todas as URLs novas foram conferidas contra o robots.txt ao vivo com o parser real do coletor em 25/11/2026: só o feed do OMAAT era proibido.
 - O host `www.gov.br` é compartilhado por todos os órgãos: o turismo sozinho lê 11 filhos por rodada. Se a janela horária do host apertar, é o primeiro lugar para reduzir.
 - Pendentes de código (não feitos aqui): regra de exclusão de URLs no sitemap (Accor, e a página `/noticia/` do IDV) e leitura ordenada por data para sitemap sem lastmod (Febraban).
-- **Limite por hora (`maxRequestsPerHour`) subiu** onde a rodada nova não cabia (com 6 a 5ª página sairia em `rate_limited`): `anatel` e `mtur` de 6 para 64; `anac`, `cvm` e `anpd` de 40 para 64 (o host `www.gov.br` passou a ter 5 órgãos: a rodada conjunta no pior caso é 1 robots + 5 × (índice + filhos + 5 páginas) = 61 requisições, a 3 s ou mais cada, ou seja, uns 3 minutos por rodada); `dinheirama`, `guia-bolso-blog` e `nubank-newsroom` de 6 para 8; `idv` de 6 para 10. O teste `blogs-sitemap.test.ts` foi ajustado de propósito (lista de fontes por sitemap, prefixo com maiúscula como `/Materias/`, e 34 → 61 requisições) e o `fontes-checagem-coleta.test.ts` cobre as quatro fontes de host próprio.
+- **Limite por hora (`maxRequestsPerHour`) subiu** onde a rodada nova não cabia (com 6 a 5ª página sairia em `rate_limited`): `anatel` e `mtur` de 6 para 64; `anac`, `cvm` e `anpd` de 40 para 64 (o host `www.gov.br` passou a ter 5 órgãos: a rodada conjunta no pior caso é 1 robots + 5 × (índice + filhos + 5 páginas) = 61 requisições, a 3 s ou mais cada, ou seja, uns 3 minutos por rodada); `dinheirama`, `guia-bolso-blog`, `nubank-newsroom` e `one-mile-at-a-time` de 6 para 8; `idv` de 6 para 10. O teste `blogs-sitemap.test.ts` foi ajustado de propósito (lista de fontes por sitemap, prefixo com maiúscula como `/Materias/`, e 34 → 61 requisições) e o `fontes-checagem-coleta.test.ts` cobre as quatro fontes de host próprio.

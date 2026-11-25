@@ -85,8 +85,31 @@ describe('coleta por sitemap das fontes cadastradas na checagem de 25/11/2026 (o
     expect(r.evidences).toEqual([]);
   });
 
-  it('One Mile at a Time: com feed e sitemap cadastrados, a coleta de fábrica lê o feed (collectFeed), não o sitemap', () => {
+  // robots.txt REAL do onemileatatime.com (25/11/2026, trechos): o feed é proibido, o news-sitemap e /news/ não (QA 10 reprovou o cadastro do feed)
+  const ROBOTS_OMAAT = 'User-agent: *\nDisallow: /cdn-cgi/\nDisallow: */feed/\nDisallow: *?s=\nDisallow: *?fromIata\nDisallow: *?cards\nDisallow: /participants/paged/\nSitemap: https://onemileatatime.com/sitemap_index.xml\n';
+
+  it('One Mile at a Time: sem feedUrl (o robots proíbe */feed/); coleta o news-sitemap.xml, só /news/, com o robots real', async () => {
     const s = live('one-mile-at-a-time');
-    expect(s.feedUrl).toBe('https://onemileatatime.com/feed/'); expect(s.sitemapUrl).toBeTruthy();
+    expect(s.feedUrl).toBeNull(); expect(s.sitemapUrl).toBe('https://onemileatatime.com/news-sitemap.xml'); expect(s.sitemapPathPrefix).toBe('/news/');
+    const a = 'https://onemileatatime.com/news/orient-express-sailing-yachts/'; const b = 'https://onemileatatime.com/news/delta-singapore-flights/';
+    const { fetcher, collector } = run(s, { 'https://onemileatatime.com/robots.txt': ROBOTS_OMAAT, [s.sitemapUrl!]: xmlOk(urlset([[a, '2026-11-25T06:27:28+00:00'], [b, '2026-11-24T02:02:22+00:00'], ['https://onemileatatime.com/ryanair-crew-sleep-on-airport-floor/', '2026-10-26T15:12:02+00:00']])) }, [a, b]);
+    const r = await collector.collectSitemap(s, 20);
+    expect(r.evidences.map((e) => e.url).sort()).toEqual([a, b].sort());
+    expect(r.skipped.some((k) => k.code === 'robots_disallow' || stopsCollection(k))).toBe(false);
+    expect(fetcher.calls.some((u) => /\/feed/.test(u))).toBe(false);
+  });
+
+  it('o feed que tinha sido cadastrado (/feed/) é barrado pelo robots real: robots_disallow, e nenhuma requisição ao feed', async () => {
+    const s = { ...live('one-mile-at-a-time'), feedUrl: 'https://onemileatatime.com/feed/' };
+    const { fetcher, collector } = run(s, { 'https://onemileatatime.com/robots.txt': ROBOTS_OMAAT, 'https://onemileatatime.com/feed/': '<rss><channel><item><title>x</title><link>https://onemileatatime.com/x/</link></item></channel></rss>' }, []);
+    const r = await collector.collectFeed(s, 20);
+    expect(r.evidences).toEqual([]);
+    expect(r.skipped.map((k) => k.code)).toEqual(['robots_disallow']);
+    expect(fetcher.calls.includes('https://onemileatatime.com/feed/')).toBe(false);
+  });
+
+  it('nenhum feedUrl do cadastro cai em um padrão proibido conhecido: o seed não repete o erro do */feed/ (conferido ao vivo em 25/11 com o parser real)', () => {
+    for (const id of ['abav', 'edpb']) expect(live(id).feedUrl, id).toMatch(/^https:\/\//);
+    expect(SEED_SOURCES.filter((x) => x.host === 'onemileatatime.com' && x.feedUrl).map((x) => x.id)).toEqual([]);
   });
 });

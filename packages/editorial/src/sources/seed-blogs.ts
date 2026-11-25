@@ -1169,9 +1169,9 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "host": "onemileatatime.com",
     "pathPrefix": null,
     "listingUrl": "https://onemileatatime.com/",
-    "feedUrl": "https://onemileatatime.com/feed/",
-    "sitemapUrl": "https://onemileatatime.com/sitemap_index.xml",
-    "sitemapPathPrefix": null,
+    "feedUrl": null,
+    "sitemapUrl": "https://onemileatatime.com/news-sitemap.xml",
+    "sitemapPathPrefix": "/news/",
     "termsUrl": "https://onemileatatime.com/terms-of-use/",
     "termsStatus": "pending",
     "urlVerified": false,
@@ -1179,7 +1179,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "paywall": "unknown",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 8,
     "notes": "DP-29: fonte secundária (blog); fatos só com âncora em fonte primária. Classe C (classificação MECÂNICA do texto dos termos: o revisor humano lê o termo).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
@@ -1190,7 +1190,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); sem feed identificado Checagem de coleta 25/11/2026 (Editorial): feed /feed/ cadastrado (26 itens, último de 25/11/2026). O \"último item 2013\" da checagem veio do lastmod de um filho do índice de sitemap, não do blog, que está ativo."
+      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); sem feed identificado Checagem de coleta 25/11/2026 (Editorial): o blog está ativo (o \"último item 2013\" da checagem veio do lastmod de um filho do índice de sitemap). O robots.txt PROÍBE o feed (Disallow: */feed/), então NÃO há feedUrl; o coletor lê o news-sitemap.xml (5.688 URLs sob /news/, a mais recente de 25/11/2026), permitido pelo robots.txt."
     }
   },
   {

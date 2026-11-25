@@ -88,7 +88,7 @@ test('collectSitemap: índice abre só os 2 filhos mais recentes; 429 no sitemap
 test('por sitemap: as 3 empresas conferidas + ANAC, CVM e ANPD (gov.br, .xml.gz) têm sitemap e prefixo; mesmo host da fonte; todas nascem desabilitadas', async () => {
   const { SEED_SOURCES: ALL } = await import('../sources/seed');
   const wired = ALL.filter((s) => s.sitemapUrl && s.sitemapPathPrefix); // coletáveis por sitemap: só com prefixo verificado
-  assert.deepEqual(wired.map((s) => s.id).sort(), ['anac', 'anatel', 'anpd', 'bradesco-ri', 'cvm', 'dinheirama', 'esfera-campanhas', 'guia-bolso-blog', 'idv', 'latampass-novidades', 'latampass-regulamentos', 'livelo-imprensa', 'livelo-programa', 'mtur', 'natura-ri', 'nubank-newsroom', 'smiles-conteudo']);
+  assert.deepEqual(wired.map((s) => s.id).sort(), ['anac', 'anatel', 'anpd', 'bradesco-ri', 'cvm', 'dinheirama', 'esfera-campanhas', 'guia-bolso-blog', 'idv', 'latampass-novidades', 'latampass-regulamentos', 'livelo-imprensa', 'livelo-programa', 'mtur', 'natura-ri', 'nubank-newsroom', 'one-mile-at-a-time', 'smiles-conteudo']);
   for (const s of wired) {
     assert.equal(new URL(s.sitemapUrl!).host, s.host, s.id);
     assert.match(s.sitemapPathPrefix ?? '', /^(\/[A-Za-z0-9-]+)+(\/|-)?$/, `${s.id}: prefixo da seção de notícias`);
