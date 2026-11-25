@@ -1,0 +1,295 @@
+{
+  "geradoEm": "2026-11-24",
+  "base": "índice dos feeds de 51 fontes diretas do seed (itens de 18 a 24/11), 115 fontes no seed",
+  "materias": [
+    {
+      "n": 1,
+      "editoria": "crm",
+      "formato": "noticia",
+      "tema": "Black Friday: o que o Procon-SP orienta e monitora nesta semana",
+      "angulo": "Orientação oficial ao consumidor na semana da Black Friday (27/11) e o que isso significa para ofertas com pontos e cashback; sem opinar sobre preço de loja.",
+      "base": [
+        {
+          "fonte": "procon-sp",
+          "nome": "Procon-SP (Fundacao de Protecao e Defesa do Consumidor)",
+          "kind": "government",
+          "titulo": "Black Friday: Procon-SP monitora preços e orienta consumidores nesta semana",
+          "link": "https://www.procon.sp.gov.br/black-friday-procon-sp-monitora-precos-e-orienta-consumidores-nesta-semana/",
+          "data": "2026-11-23"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "consumidor-moderno",
+          "nome": "Consumidor Moderno",
+          "kind": "trade_media",
+          "titulo": "Black Friday: até onde vai o desconto e quando começa a cilada?",
+          "link": "https://consumidormoderno.com.br/black-friday-desconto-compra-problemas/",
+          "data": "2026-11-24"
+        }
+      ],
+      "ancora": "sim",
+      "ancoraNota": "Procon-SP é fonte primária no banco (classe D).",
+      "risco": "Perecível: vale até a Black Friday. Só fatos da nota do Procon."
+    },
+    {
+      "n": 2,
+      "editoria": "regulacao",
+      "formato": "noticia",
+      "tema": "Novo Decreto do SAC: o que a ABRAREC discutiu com o mercado",
+      "angulo": "O que muda para as empresas no atendimento ao consumidor segundo o encontro da associação sobre o novo decreto.",
+      "base": [
+        {
+          "fonte": "abrarec",
+          "nome": "ABRAREC - Associacao Brasileira das Relacoes Empresa Cliente",
+          "kind": "association",
+          "titulo": "Ninguém procura o SAC porque está feliz Confira um trecho do nosso encontro sobre o novo Decreto do SAC",
+          "link": "https://abrarec.com.br/ninguem-procura-o-sac-porque-esta-feliz-confira-um-trecho-do-nosso-encontro-sobre-o-novo-decreto-do-sac/",
+          "data": "2026-11-24"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "abrarec",
+          "nome": "ABRAREC - Associacao Brasileira das Relacoes Empresa Cliente",
+          "kind": "association",
+          "titulo": "É amanhã! Faça a sua inscrição no Webinar do novo Decreto do SAC até hoje, às 17h!",
+          "link": "https://abrarec.com.br/faca-a-sua-inscricao-no-webinar-do-novo-decreto-do-sac-ate-hoje-as-17h/",
+          "data": "2026-11-18"
+        }
+      ],
+      "ancora": "parcial",
+      "ancoraNota": "A ABRAREC é a fonte do post (um trecho de evento). O texto do decreto não está no banco: buscar o decreto oficial antes de afirmar o que muda.",
+      "risco": "Sem o texto do decreto só dá para atribuir à associação; não afirmar regra nova."
+    },
+    {
+      "n": 3,
+      "editoria": "travel",
+      "formato": "noticia",
+      "tema": "Aviação brasileira passa de 100 milhões de passageiros em 2026",
+      "angulo": "Marco do setor aéreo e o que ele significa para programas de milhas (demanda por assentos de resgate).",
+      "base": [
+        {
+          "fonte": "panrotas",
+          "nome": "Panrotas",
+          "kind": "trade_media",
+          "titulo": "Aviação brasileira supera marca de 100 milhões de passageiros em 2026",
+          "link": "https://www.panrotas.com.br/aviacao/empresas/2026/11/aviacao-brasileira-supera-marca-de-100-milhoes-de-passageiros-em-2026_233891.html",
+          "data": "2026-11-23"
+        }
+      ],
+      "pistas": [],
+      "ancora": "nao",
+      "ancoraNota": "A fonte do dado é secundária (Panrotas). Âncora a coletar: ANAC (gov.br/anac, no banco por sitemap) ou comunicado do ministério.",
+      "risco": "Só publicar com o número confirmado na ANAC."
+    },
+    {
+      "n": 4,
+      "editoria": "pontos",
+      "formato": "flash",
+      "tema": "Transferência Livelo → LATAM Pass com 27% de bônus: campanha perto do fim",
+      "angulo": "Loyalty Flash com a regra da campanha (bônus, prazo, condições) conferida no regulamento.",
+      "base": [
+        {
+          "fonte": "pontos-pra-voar",
+          "nome": "Pontos pra Voar",
+          "kind": "blog",
+          "titulo": "Vai acabar! Transfira pontos da Livelo para o LATAM Pass com 27% de bônus",
+          "link": "https://pontospravoar.com/vai-acabar-transfira-pontos-livelo-latam-pass-27-porcento-bonus/",
+          "data": "2026-11-24"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "pontos-pra-voar",
+          "nome": "Pontos pra Voar",
+          "kind": "blog",
+          "titulo": "Radar PPV! Resumo das promoções de acúmulo e transferência de pontos do dia 24 de novembro de 2026",
+          "link": "https://pontospravoar.com/radar-ppv-resumo-promocoes-acumulo-transferencia-pontos-dia-24-novembro-2026/",
+          "data": "2026-11-24"
+        }
+      ],
+      "ancora": "parcial",
+      "ancoraNota": "Âncora = regulamento da campanha na Livelo e na LATAM Pass. O banco tem livelo-programa (/juntar-pontos/) e latampass-novidades; a página da campanha pode estar fora desses prefixos.",
+      "risco": "Perecível (horas). Não publicar se a campanha já tiver acabado; confirmar prazo na fonte."
+    },
+    {
+      "n": 5,
+      "editoria": "programas",
+      "formato": "flash",
+      "tema": "Azul Fidelidade: compra de pontos com bônus de até 320%",
+      "angulo": "Flash com percentual, prazo e condições, se a Azul publicar a regra.",
+      "base": [
+        {
+          "fonte": "passageiro-de-primeira",
+          "nome": "Passageiro de Primeira",
+          "kind": "blog",
+          "titulo": "Últimas horas para receber até 320% de bônus na compra de pontos do Azul Fidelidade",
+          "link": "https://passageirodeprimeira.com/ultimas-horas-receber-ate-320-bonus-compra-pontos-azul-fidelidade/",
+          "data": "2026-11-24"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "pontos-pra-voar",
+          "nome": "Pontos pra Voar",
+          "kind": "blog",
+          "titulo": "Últimas horas: Compre pontos Azul Fidelidade com até 320% de bônus",
+          "link": "https://pontospravoar.com/ultimas-horas-compre-pontos-azul-fidelidade-ate-320-porcento-bonus/",
+          "data": "2026-11-24"
+        }
+      ],
+      "ancora": "nao",
+      "ancoraNota": "A Azul não tem fonte primária no banco (tudoazul/voeazul não verificáveis, home 403). Sem âncora a matéria é bloqueada pelo gate.",
+      "risco": "Não publicar sem a página oficial da Azul; perecível (últimas horas)."
+    },
+    {
+      "n": 6,
+      "editoria": "varejo",
+      "formato": "flash",
+      "tema": "Shopping LATAM Pass: até 12 milhas por real na Magalu",
+      "angulo": "Regra do acúmulo no varejo digital, com o que vale e até quando, conferida na LATAM Pass.",
+      "base": [
+        {
+          "fonte": "passageiro-de-primeira",
+          "nome": "Passageiro de Primeira",
+          "kind": "blog",
+          "titulo": "Shopping LATAM Pass oferece até 12 milhas por real gasto na Magalu",
+          "link": "https://passageirodeprimeira.com/shopping-latam-pass-oferece-ate-12-milhas-real-gasto-magalu/",
+          "data": "2026-11-24"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "melhores-cartoes",
+          "nome": "Melhores Cartões",
+          "kind": "blog",
+          "titulo": "Latam Pass oferece até 12 milhas por real em compras no Magalu",
+          "link": "https://www.melhorescartoes.com.br/latam-pass-magalu-12-milhas-nov26.html",
+          "data": "2026-11-24"
+        }
+      ],
+      "ancora": "parcial",
+      "ancoraNota": "LATAM Pass está no banco (latampass-novidades/regulamentos); conferir se a oferta consta ali. Magalu RI também está no banco.",
+      "risco": "Perecível; \"até 12\" depende de condições: citar a regra, não prometer ganho."
+    },
+    {
+      "n": 7,
+      "editoria": "varejo",
+      "formato": "noticia",
+      "tema": "Black Friday 2026 com consumidor mais endividado, segundo pesquisas",
+      "angulo": "O que IBEVAR-FIA e Serasa dizem sobre endividamento e intenção de compra; ponte com cashback e pontos como alternativa ao crédito (só se a fonte disser).",
+      "base": [
+        {
+          "fonte": "tiinside",
+          "nome": "TI Inside",
+          "kind": "trade_media",
+          "titulo": "Black Friday deve ter menos consumidores e mais endividados, aponta estudo do IBEVAR-FIA Business School",
+          "link": "https://tiinside.com.br/23/11/2026/black-friday-deve-ter-menos-consumidores-e-mais-endividados-aponta-estudo-do-ibevar-fia-business-school/",
+          "data": "2026-11-23"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "consumidor-moderno",
+          "nome": "Consumidor Moderno",
+          "kind": "trade_media",
+          "titulo": "Inadimplência recorde muda o jogo para o varejo na Black Friday",
+          "link": "https://consumidormoderno.com.br/black-friday-inadimplencia-credito-cobranca/",
+          "data": "2026-11-24"
+        },
+        {
+          "fonte": "mercado-e-consumo",
+          "nome": "Mercado & Consumo",
+          "kind": "trade_media",
+          "titulo": "Quase 38% das PMEs esperam aumentar vendas na Black Friday, aponta Serasa",
+          "link": "https://mercadoeconsumo.com.br/24/11/2026/black-friday/quase-38-das-pmes-esperam-aumentar-vendas-na-black-friday-aponta-serasa/",
+          "data": "2026-11-24"
+        }
+      ],
+      "ancora": "nao",
+      "ancoraNota": "As pesquisas (IBEVAR-FIA, Serasa) são as fontes primárias e não estão no banco: coletar o estudo/comunicado de origem.",
+      "risco": "Números só com a pesquisa original; não somar estudos diferentes."
+    },
+    {
+      "n": 8,
+      "editoria": "regulacao",
+      "formato": "noticia",
+      "tema": "Lei do ajuste fiscal sancionada: há efeito sobre cartões, crédito ou programas?",
+      "angulo": "Verificar no texto da lei e nas notas de Senado e Câmara se há medida que toque bancos, cartões ou fidelidade; se não houver, a pauta é descartada.",
+      "base": [
+        {
+          "fonte": "senado-noticias",
+          "nome": "Agencia Senado / Senado Federal (noticias)",
+          "kind": "government",
+          "titulo": "Lei do ajuste fiscal é publicada e já está valendo",
+          "link": "https://www12.senado.leg.br/noticias/materias/2026/11/24/lei-do-ajuste-fiscal-e-publicada-e-ja-esta-valendo",
+          "data": "2026-11-24"
+        },
+        {
+          "fonte": "camara-noticias",
+          "nome": "Camara dos Deputados - Camara Noticias",
+          "kind": "government",
+          "titulo": "Lei do ajuste fiscal é sancionada sem vetos e já está em vigor",
+          "link": "https://www.camara.leg.br/noticias/1322586-lei-do-ajuste-fiscal-e-sancionada-sem-vetos-e-ja-esta-em-vigor",
+          "data": "2026-11-24"
+        }
+      ],
+      "pistas": [],
+      "ancora": "sim",
+      "ancoraNota": "Senado e Câmara são fontes primárias e classe A no banco; falta ler a lei para saber se o assunto é nosso.",
+      "risco": "Pode não ter relação com fidelidade: nesse caso não vira matéria (a triagem recusa)."
+    },
+    {
+      "n": 9,
+      "editoria": "global",
+      "formato": "noticia",
+      "tema": "IATA: governos apoiam agenda global para transporte aéreo mais competitivo e sustentável",
+      "angulo": "Posição do setor e dos governos e o que ela sinaliza para companhias aéreas e programas de fidelidade (só o que o comunicado disser).",
+      "base": [
+        {
+          "fonte": "iata",
+          "nome": "IATA - Press Releases (Pressroom)",
+          "kind": "association",
+          "titulo": "Governments Back Global Agenda for More Competitive and Sustainable Air Transport Industry",
+          "link": "https://www.iata.org/en/pressroom/2026-releases/11-20-governments-back-global-agenda-for-more-competitive-sustainable-air-transport-industry/",
+          "data": "2026-11-20"
+        }
+      ],
+      "pistas": [],
+      "ancora": "sim",
+      "ancoraNota": "IATA é fonte primária no banco (classe C: habilitada por decisão do proprietário, DP-51). Texto em inglês, reescrita em português.",
+      "risco": "Classe C: manter a reescrita curta, com link; sem imagem."
+    },
+    {
+      "n": 10,
+      "editoria": "travel",
+      "formato": "noticia",
+      "tema": "Black Friday de viagens: CVC e Accor com até 60% em pacotes e hotéis",
+      "angulo": "Condições e datas das ofertas e o que muda para quem acumula pontos em hospedagem.",
+      "base": [
+        {
+          "fonte": "infomoney",
+          "nome": "InfoMoney",
+          "kind": "trade_media",
+          "titulo": "Black Friday de viagens: CVC e Accor oferecem até 60% de desconto em pacotes e hotéis",
+          "link": "https://www.infomoney.com.br/consumo/black-friday-de-viagens-cvc-e-accor-oferecem-ate-60-de-desconto-em-pacotes-e-hoteis/",
+          "data": "2026-11-24"
+        }
+      ],
+      "pistas": [
+        {
+          "fonte": "panrotas",
+          "nome": "Panrotas",
+          "kind": "trade_media",
+          "titulo": "Black Friday da Nest Travel terá comissão extra para parceiros e desconto para viajantes",
+          "link": "https://www.panrotas.com.br/mercado/cartoes-de-assistencia/2026/11/black-friday-da-nest-travel-tera-comissao-extra-para-parceiros-e-desconto-para-viajantes_233894.html",
+          "data": "2026-11-23"
+        }
+      ],
+      "ancora": "parcial",
+      "ancoraNota": "Accor newsroom está no banco (classe C); CVC não. Âncora: comunicados das duas empresas.",
+      "risco": "Perecível; \"até 60%\" é teto promocional: citar condições e prazo."
+    }
+  ]
+}
