@@ -1,0 +1,127 @@
+{
+ "teste": "R0-02-TEST",
+ "ok": true,
+ "decisions_sha256": "96250102be2588f2ed173b43f9118d8b6739858616c3404a28d074a41fd80c3b",
+ "entradas": 77,
+ "decisoes_12": 13,
+ "decisoes_11": 13,
+ "divisao": {
+  "19:20": 7,
+  "22:56": 6
+ },
+ "mapa": [
+  {
+   "n": 1,
+   "hora": "19:20",
+   "id": "D01",
+   "decisao_11": "Nenhuma aprovação humana. Os bots aprovam e operam de forma totalmente autônoma",
+   "decisao_12": "Nenhuma aprovação humana; os bots aprovam e operam sozinhos",
+   "escolha": "Aceite autônomo, independente; sem aprovação humana de rotina"
+  },
+  {
+   "n": 2,
+   "hora": "19:20",
+   "id": "D02",
+   "decisao_11": "O aceite é por tag e autônomo",
+   "decisao_12": "Aceite por tag, autônomo",
+   "escolha": "Tags assinadas pelo verificador"
+  },
+  {
+   "n": 3,
+   "hora": "19:20",
+   "id": "D03",
+   "decisao_11": "O OpenBot é usado como runtime",
+   "decisao_12": "OpenBot é o runtime",
+   "escolha": "OpenBot runtime definido"
+  },
+  {
+   "n": 4,
+   "hora": "19:20",
+   "id": "D04",
+   "decisao_11": "Sem simplificações: tamanho completo desde o início",
+   "decisao_12": "Sem simplificações",
+   "escolha": "Escopo integral, 64 agentes, 28 rituais, Redis/BullMQ, Intelligence e ad server"
+  },
+  {
+   "n": 5,
+   "hora": "19:20",
+   "id": "D05",
+   "decisao_11": "Adiar só a The Loyal (pronta, sem rodar) e o Instagram; LinkedIn pronto por meio do mLabs",
+   "decisao_12": "Adiados só a The Loyal e o Instagram",
+   "escolha": "The Loyal e Instagram construídos, desativados; LinkedIn pelo mLabs"
+  },
+  {
+   "n": 6,
+   "hora": "19:20",
+   "id": "D06",
+   "decisao_11": "Autonomia de publicação desde o início",
+   "decisao_12": "Autonomia de publicação desde o lançamento",
+   "escolha": "Publicação autônoma após gates de lançamento"
+  },
+  {
+   "n": 7,
+   "hora": "19:20",
+   "id": "D07",
+   "decisao_11": "Há parecer favorável sobre a base legal do achado F-090",
+   "decisao_12": "Há parecer favorável sobre a base legal do Intelligence",
+   "escolha": "Parecer favorável do Intelligence declarado, não inspecionado"
+  },
+  {
+   "n": 8,
+   "hora": "22:56",
+   "id": "D08",
+   "decisao_11": "Imagens: a da fonte, como veio, com edição mínima",
+   "decisao_12": "Imagens: a da fonte, como veio, com edição mínima",
+   "escolha": "Imagem da fonte, crédito, edição mínima; uso condicionado a base jurídica demonstrável"
+  },
+  {
+   "n": 9,
+   "hora": "22:56",
+   "id": "D09",
+   "decisao_11": "Transparência: só a assinatura, sem nenhuma menção ao uso de IA",
+   "decisao_12": "Transparência: só a assinatura; nenhuma menção ao uso de IA",
+   "escolha": "Assinatura Redação Loyalty News; sem autoria humana fictícia; transparência quando exigida"
+  },
+  {
+   "n": 10,
+   "hora": "22:56",
+   "id": "D10",
+   "decisao_11": "Fontes: uso de informação pública; não há violação em usar o que já é público",
+   "decisao_12": "Fontes: informação pública, sem permissão por fonte",
+   "escolha": "Fontes públicas, sem contornar paywall; originalidade e crédito"
+  },
+  {
+   "n": 11,
+   "hora": "22:56",
+   "id": "D11",
+   "decisao_11": "Teto de API de US$ 50; o responsável recarrega se for necessário",
+   "decisao_12": "Teto de API de US$ 50 por mês; o responsável recarrega quando for necessário",
+   "escolha": "Teto agregado API USD 50/mês; recarga só dentro de teto autorizado"
+  },
+  {
+   "n": 12,
+   "hora": "22:56",
+   "id": "D12",
+   "decisao_11": "Mídia kit: como está",
+   "decisao_12": "Mídia kit como está",
+   "escolha": "Mídia kit e preços de referência; métricas reais com período"
+  },
+  {
+   "n": 13,
+   "hora": "22:56",
+   "id": "D13",
+   "decisao_11": "Editorias: como estão",
+   "decisao_12": "Editorias como estão",
+   "escolha": "Dez editorias preservadas"
+  }
+ ],
+ "v21_propostas": 16,
+ "v21_referencia_fora_do_repo": [
+  {
+   "id": "V21-16",
+   "referencia": "r0-preparacao/achado-V21-16-portabilidade-windows.md"
+  }
+ ],
+ "falhas": [],
+ "limite": "estrutura e presenca; nao prova fidelidade semantica integral"
+}
