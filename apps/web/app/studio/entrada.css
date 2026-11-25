@@ -1,0 +1,88 @@
+/* Telas de entrada do Studio (login, 2º fator) e Minha conta / troca de senha: logo e monograma da marca, no visual dos cartões do portal
+   (fundo branco, borda e raio do DS, filete da marca). Pacote C do refino de lançamento, item 4. Só tokens --ln-* (sem cor literal). */
+
+.st-entrada {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: start center;
+  padding: clamp(var(--ln-space-5), 10vh, var(--ln-space-9)) var(--ln-space-4) var(--ln-space-6);
+  background: var(--ln-color-surface-subtle);
+}
+
+.st-entrada__cartao {
+  width: 100%;
+  max-width: 440px;
+  min-width: 0;
+  background: var(--ln-color-white);
+  border: 1px solid var(--ln-color-border);
+  border-top: 4px solid var(--ln-color-primary);
+  border-radius: var(--ln-radius-lg);
+  box-shadow: var(--ln-shadow-sm);
+  padding: var(--ln-space-5) var(--ln-space-5) var(--ln-space-4);
+}
+
+.st-entrada__marca {
+  display: flex;
+  align-items: center;
+  gap: var(--ln-space-3);
+  margin: 0 0 var(--ln-space-4);
+  padding-bottom: var(--ln-space-4);
+  border-bottom: 1px solid var(--ln-color-border);
+}
+.st-entrada__logo { display: block; width: auto; height: 32px; max-width: 100%; }
+.st-entrada__produto {
+  margin-left: auto;
+  padding: 2px var(--ln-space-2);
+  font-size: var(--ln-text-sm);
+  font-weight: 600;
+  color: var(--ln-color-primary);
+  background: var(--ln-color-mint);
+  border-radius: var(--ln-radius-pill);
+  white-space: nowrap;
+}
+
+.studio .st-entrada__cartao h1 { font-size: 1.5rem; margin: 0 0 var(--ln-space-2); }
+.st-entrada__texto { margin: 0 0 var(--ln-space-4); color: var(--ln-color-text-muted); }
+.st-entrada__etapa {
+  margin: 0 0 var(--ln-space-3);
+  font-size: var(--ln-text-sm);
+  font-weight: 600;
+  color: var(--ln-color-secondary-strong);
+  letter-spacing: 0.02em;
+}
+.st-entrada__cartao form { display: grid; gap: var(--ln-space-1); }
+.st-entrada__cartao .st-field input,
+.st-conta__cartao .st-field input {
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--ln-space-2) var(--ln-space-3);
+  border: 1px solid var(--ln-color-border-strong);
+  border-radius: var(--ln-radius-sm);
+  background: var(--ln-color-white);
+  color: var(--ln-color-black);
+}
+.st-entrada__cartao .st-btn[type='submit'] { width: 100%; min-height: 44px; }
+.st-entrada__cartao .st-actions { display: grid; gap: var(--ln-space-2); }
+.st-entrada__cartao .st-actions .st-btn { width: 100%; min-height: 44px; }
+.st-entrada__rodape {
+  margin: var(--ln-space-4) 0 0;
+  padding-top: var(--ln-space-3);
+  border-top: 1px solid var(--ln-color-border);
+  font-size: var(--ln-text-sm);
+}
+
+/* Minha conta (dentro do painel): cabeçalho com o monograma e o cartão da troca de senha */
+.st-conta__cabeca { display: flex; align-items: center; gap: var(--ln-space-3); margin: 0 0 var(--ln-space-4); min-width: 0; }
+.st-conta__monograma { display: block; flex: none; width: 48px; height: 48px; border-radius: var(--ln-radius-md); }
+.studio .st-conta__cabeca h1 { margin: 0; }
+.st-conta__cabeca p { margin: 0; overflow-wrap: anywhere; }
+.st-conta__cartao { max-width: 560px; }
+
+@media (max-width: 480px) {
+  .st-entrada { padding-top: var(--ln-space-4); }
+  .st-entrada__cartao { padding: var(--ln-space-4) var(--ln-space-4) var(--ln-space-3); }
+  .st-entrada__logo { height: 26px; }
+}
