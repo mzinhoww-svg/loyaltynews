@@ -33,9 +33,13 @@ Build de produção local no perfil vitrine do e2e (fixtures MOCK), `next start`
 2. **LCP das homes (+316 a +952 ms) e FCP de home 390/pessoa 768.** A troca de fonte agora acontece **dentro** de `load + 1 s` (antes o `.woff2` chegava depois da janela e não contava). O LCP de texto é reemitido no swap, e a fonte pré-carregada disputa banda com a imagem do LCP na home. É o mesmo efeito de fronteira do CLS: o "antes" parece melhor porque não mede a troca.
 3. **`@font-face` = 2 regras, não 1.** O `adjustFontFallback: 'Arial'` obrigatório gera a segunda regra (Arial local com métricas). Só uma tem arquivo/rede.
 
-## Conclusão
+## Conclusão (revisada em 25/11 com a decisão do PM)
 
-O defeito do staging (0,399 a 768) é coberto pela mudança e pelo teste da fonte bloqueada. O aceite numérico **não fecha** em pessoa 390 e nas células de LCP/FCP por causa do swap dentro da janela — não por regressão de carregamento. Preciso de decisão do UI/UX/PM: (a) aceitar o efeito de fronteira com o registro acima; (b) `display: optional` (zera CLS, mas deixa Arial na primeira visita lenta, contra a decisão de marca); (c) reserva ajustada (104–104,5%) só para o 390, com o risco de trocar a quebra em outras páginas. Nenhuma opção foi aplicada à revelia.
+O PM escolheu a **V1: `display: optional`, sem preload** (commit do layout na branch). Motivos: CLS **0 nas seis células** (a métrica que reprovava), **1 requisição e 1 `@font-face` com arquivo**, e nenhuma competição com a imagem do LCP. Custo declarado: na primeira visita em rede lenta o título sai em **Arial ajustado**; a identidade aparece a partir do cache — provado no portal e no Studio.
+
+O defeito do staging (0,399 a 768) fica coberto pelo teste com a fonte bloqueada (CLS 0 a 768).
+
+**FCP/LCP não são atribuíveis entre janelas nesta máquina.** O mesmo “antes” deu 784–1124 ms em 5 rodadas e 1196–1924 ms em 3 rodadas, com dispersão de até 70% dentro da célula — acima das margens de +50/+100 ms. Não há regressão nem melhoria atribuível; os dois serão **remedidos no staging depois do deploy, com mais rodadas**, como o PM determinou. Nenhum número de FCP/LCP desta rodada deve ser usado como gate.
 
 ## Arquivos
 

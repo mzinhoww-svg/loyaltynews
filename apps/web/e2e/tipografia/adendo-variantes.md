@@ -31,7 +31,7 @@ FCP/LCP/CLS em ms; CLS é o último número.
 
 ## Recomendação
 
-V1 (`optional`, sem preload): é a única que atende o CLS nas seis células mantendo **um** arquivo/`@font-face`, com cache quente e fonte bloqueada provados. A V2 não traz ganho e duplica a face. O FCP/LCP precisa ser remedido pela UI/UX na mesma janela da comparação; os números desta rodada não permitem atribuir a diferença à variante.
+V1 (`optional`, sem preload), escolhida pelo PM: é a única que atende o CLS nas seis células mantendo **um** arquivo/`@font-face`, com cache quente e fonte bloqueada provados. A V2 não traz ganho e duplica a face. FCP/LCP não são atribuíveis entre janelas nesta máquina (mesmo código variou de 784–1124 ms a 1196–1924 ms); serão remedidos no staging depois do deploy, com mais rodadas.
 
 ## Limites
 
