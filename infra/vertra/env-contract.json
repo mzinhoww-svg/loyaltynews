@@ -241,23 +241,21 @@
       "nome": "OPENBOT_HMAC_SECRET",
       "secreto": true,
       "apps": [
-        "web",
-        "workers"
+        "web"
       ],
       "dono_do_codigo": "packages/openbot (Integration)",
-      "nota": "Segredo HMAC das tarefas do OpenBot (piloto DP-41). SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start) e num deploy sem APP_ENV tambem (falha fechada); sem ela as rotas do OpenBot respondem 401. O LUGAR do segredo e este (web e workers do staging), SEM valor no repositorio: do cofre, via set_env, nunca em arquivo, chat, log ou commit.",
+      "nota": "Segredo HMAC das tarefas do OpenBot (piloto DP-41). SO staging (decisao do Arquiteto/PM, 24/11) e SO no web, que verifica a assinatura das rotas: o gateway do workers NAO verifica (secrets: () => [] em apps/workers/src/openbot-wiring.ts), entao a variavel no workers seria copia sem uso. O segredo JA EXISTE no staging desde 24/11/2026; a FONTE e o cofre do OpenBot, item LN_OPENBOT_HMAC_STAGING - usar a MESMA, sem criar segunda copia. SEM valor no repositorio: set_env a partir do cofre, nunca em arquivo, chat, log ou commit. Em production a variavel DEFINIDA reprova no guard-env (build e start) e num deploy sem APP_ENV tambem (falha fechada); sem ela as rotas do OpenBot respondem 401.",
       "so_staging": true
     },
     {
       "nome": "OPENBOT_HMAC_SECRET_PREVIOUS",
       "secreto": true,
       "apps": [
-        "web",
-        "workers"
+        "web"
       ],
       "opcional": true,
       "dono_do_codigo": "packages/openbot (Integration)",
-      "nota": "Segredo anterior, aceito so durante a rotacao; apagar depois. SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start); sem ela as rotas do OpenBot respondem 401. Do cofre, via set_env, nunca em arquivo, chat, log ou commit.",
+      "nota": "Segredo anterior, aceito so durante a rotacao; apagar depois. Mesma fonte do vigente (cofre do OpenBot, item LN_OPENBOT_HMAC_STAGING) e SO no web, que verifica a assinatura. SO staging (decisao do Arquiteto/PM, 24/11): em production a variavel DEFINIDA reprova no guard-env (build e start). Do cofre, nunca em arquivo, chat, log ou commit.",
       "so_staging": true
     },
     {

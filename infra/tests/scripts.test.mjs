@@ -1601,6 +1601,13 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
   assert.equal(envStg.LN_OPENBOT_GATEWAY_TIMEOUT_MS, '1800000', 'staging workers declara o prazo de 30 min');
   assert.equal(envStg.APP_ENV, 'staging');
   assert.equal(amb.ambientes.production.recursos.workers.env.LN_OPENBOT_GATEWAY_TIMEOUT_MS, undefined, 'produção NÃO declara o prazo do piloto');
+  // Segredo HMAC: já existe no staging (web) e a fonte é o cofre; o workers não verifica assinatura, então não leva cópia.
+  const hmac = c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET');
+  assert.deepEqual(hmac.apps, ['web'], 'o segredo fica só no web: o gateway do workers nao verifica assinatura');
+  assert.deepEqual(c.variaveis.find((v) => v.nome === 'OPENBOT_HMAC_SECRET_PREVIOUS').apps, ['web']);
+  assert.match(hmac.nota, /LN_OPENBOT_HMAC_STAGING/, 'a nota aponta a fonte que o staging já usa');
+  assert.match(hmac.nota, /MESMA/, 'a nota manda reutilizar a mesma fonte, sem segunda cópia');
+  assert.doesNotMatch(JSON.stringify(hmac), /[A-Za-z0-9+/=]{40,}/, 'nenhum valor de segredo no contrato');
 });
 
 test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {
