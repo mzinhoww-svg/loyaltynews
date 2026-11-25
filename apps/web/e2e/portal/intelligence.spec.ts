@@ -84,7 +84,8 @@ test.describe('api', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa', { timeout: NAV_MS });
     const rel = page.getByTestId('relations');
     await expect(rel.locator('tbody tr')).toHaveCount(3);
-    await expect(rel).toContainText('Parceria anunciada com');
+    await expect(rel).toContainText('Parceria declarada com');
+    await expect(rel).not.toContainText('Parceria anunciada');
     await expect(rel).toContainText('Vínculo declarado com');
     const src = rel.getByRole('link', { name: /Fonte de teste/ }).first();
     await expect(src).toHaveAttribute('href', /^https:\/\/fonte-.*\.invalid\//);

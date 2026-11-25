@@ -47,6 +47,7 @@ describe('mapeamento do contrato', () => {
     expect(relationLabel({ type: 'parent_of', direction: 'from' })).toBe('Controla');
     expect(relationLabel({ type: 'parent_of', direction: 'to' })).toBe('Controlada por');
     expect(relationLabel({ type: 'other', direction: 'to' })).toBe('Vínculo declarado com');
+    expect(relationLabel({ type: 'partner_of', direction: 'from' })).toBe('Parceria declarada com');
   });
 
   it('filtro por tipo mantém a contagem de todos os tipos; busca ignora acento', () => {
