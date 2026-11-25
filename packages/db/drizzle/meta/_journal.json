@@ -253,6 +253,20 @@
       "when": 1795635224072,
       "tag": "0035_commercial_lead_deletions",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795635500000,
+      "tag": "0036_openbot_pilot_resolutions_append_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795635600000,
+      "tag": "0037_append_only_no_truncate",
+      "breakpoints": true
     }
   ]
 }
