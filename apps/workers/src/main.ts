@@ -8,6 +8,7 @@ import { errLine, installOutputFilter, installProcessGuards, onClientError } fro
 import type { Db } from '@ln/auth';
 import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { startAttemptRetention } from './attempt-retention';
+import { startLeadRetention } from './lead-retention';
 import { describeHeartbeat, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
 import type { Db as IntelDb } from '@ln/intelligence';
 import { handlers } from './handlers';
@@ -87,6 +88,12 @@ async function main() {
     onResult: (r) => { if (r.antigas) console.log('[workers] retenção de tentativas de login:', JSON.stringify(r)); },
     onError: (e) => console.error(errLine('[workers] retenção de tentativas falhou', e)),
   });
+  // retenção do lead comercial (DP-55): não convertido 12 meses após o último contato; descartado 30 dias após o descarte; convertido nunca
+  const leadRetention = startLeadRetention({
+    db,
+    onResult: (r) => { if (r.naoConvertidos || r.descartados) console.log('[workers] retenção de leads:', JSON.stringify(r)); },
+    onError: (e) => console.error(errLine('[workers] retenção de leads falhou', e)),
+  });
   // releitura das páginas oficiais de diretoria (Intelligence): DESLIGADA por padrão; só liga com LN_INTELLIGENCE_REREAD=on, LN_REREAD_SEED e a flag intelligencePessoas (ADR-022)
   const intelDbPort = { query: async (sql: string, params?: unknown[]) => ({ rows: (await pool.query(sql, params)).rows }) } as unknown as IntelDb;
   // flags de produto pelo resolvedor da ADR-022 (o mesmo do web): releitura exige intelligencePessoas; reserva por provedor exige leitorViaProvedor
@@ -103,6 +110,7 @@ async function main() {
     clearInterval(adFlush);
     adWatch.stop();
     attemptRetention.stop();
+    leadRetention.stop();
     hbRedis.disconnect();
     await workers.close();
     await sink.close();
