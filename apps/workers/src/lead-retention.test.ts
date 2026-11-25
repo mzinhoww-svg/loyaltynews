@@ -82,8 +82,9 @@ describe('retenção do lead: cascata e auditoria', () => {
   });
 
   it('audita só contagens (nada de nome, e-mail, empresa ou id); sem nada a apagar não audita; idempotente', async () => {
-    await put('a1', { contatoHa: 500 });
-    await put('a2', { status: 'descartado', descartadoHa: 40 });
+    // ids que NÃO são hexadecimais: o JSON da linha de auditoria tem um UUID aleatório e 'a1'/'a2' apareceriam nele por acaso
+    await put('lead-zulu', { contatoHa: 500 });
+    await put('lead-yankee', { status: 'descartado', descartadoHa: 40 });
     const conta = async () => (await t.client.query<{ n: number }>("SELECT count(*)::int n FROM audit_log WHERE action = 'crm.leads_retencao'")).rows[0]!.n;
     const antes = await conta();
     const r = await purgeLeads(db(), NOW);
@@ -91,7 +92,7 @@ describe('retenção do lead: cascata e auditoria', () => {
     const trilha = (await t.client.query<{ j: string; detalhe: unknown }>("SELECT row_to_json(a)::text j, detalhe FROM audit_log a WHERE action = 'crm.leads_retencao'")).rows;
     expect(trilha).toHaveLength(antes + 1);
     expect(trilha[0]!.detalhe).toEqual({ naoConvertidos: 1, descartados: 1, vinculosDesfeitos: 0 });
-    for (const proibido of ['a1', 'a2', 'exemplo-real', 'Pessoa', 'Empresa X']) expect(trilha[0]!.j, proibido).not.toContain(proibido);
+    for (const proibido of ['lead-zulu', 'lead-yankee', 'exemplo-real', 'Pessoa', 'Empresa X']) expect(trilha[0]!.j, proibido).not.toContain(proibido);
     expect(await purgeLeads(db(), NOW)).toEqual({ naoConvertidos: 0, descartados: 0, vinculosDesfeitos: 0 });
     expect(await conta()).toBe(antes + 1);
   });
