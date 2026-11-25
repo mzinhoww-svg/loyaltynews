@@ -27,6 +27,19 @@ test.beforeAll(async ({ browser }) => {
   await ctx.close();
 });
 
+test('axe sem violações na watchlist vazia (estado vazio explicado)', async ({ page, context }) => {
+  // Roda antes da criação: este usuário ainda não tem lista, então é o estado vazio real (não um mock de tela).
+  await entrar(context, 'wl-ed', 'editor');
+  await page.goto('/studio/watchlists');
+  await expect(page.getByRole('heading', { name: 'Nenhuma watchlist' })).toBeVisible();
+  await expect(page.getByText('Crie uma lista abaixo para acompanhar empresas e executivos.')).toBeVisible();
+  // Página inteira (não só o main): a meta do PM é 0 serious/critical na página, com a contagem explícita.
+  const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  const graves = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+  console.log(`axe watchlist vazia: ${graves.length} serious/critical de ${r.violations.length} violação(ões)`);
+  expect(graves.map((v) => `${v.id} (${v.impact}): ${v.nodes.length}`)).toEqual([]);
+});
+
 test('editor cria a lista e adiciona empresa e executivo pela busca, sem digitar UUID', async ({ page, context }) => {
   await entrar(context, 'wl-ed', 'editor');
   await page.goto('/studio/watchlists');
