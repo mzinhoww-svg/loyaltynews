@@ -11,6 +11,13 @@
  *   2) só então PORTAL_INDEXAVEL=1. Nunca o contrário.
  *
  * Sai com código 1 e a lista de incoerências quando o site ainda não está pronto para a etapa pedida.
+ *
+ * O QUE ESTE PRÉ-VOO **NÃO** PROVA (limites explícitos):
+ *  - Não prova que o sitemap acompanha o dado ao longo do tempo: ele fotografa o estado de agora. Mudou o conteúdo
+ *    (matéria nova, perfil despublicado, evento validado), é preciso rodar de novo; o sitemap é gerado a cada requisição,
+ *    mas a conferência é pontual.
+ *  - Não cobre o `news-sitemap.xml`: ele entra junto na etapa B (robots aberto), e é conferido separadamente.
+ *  - Não prova indexação no Google nem substitui o Search Console; prova apenas o que o servidor entrega.
  */
 import { auditarIndexacao } from '../lib/preflight-indexacao.ts';
 
