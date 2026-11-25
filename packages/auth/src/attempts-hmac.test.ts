@@ -9,6 +9,7 @@ import {
   acquireAttempt,
   attemptKey,
   attemptSubject,
+  auditIp,
   blockedUntil,
   clearAttempts,
   purgeStaleAttempts,
@@ -17,6 +18,7 @@ import {
 } from './attempts';
 import { chargePasswordAttempt, passwordOk } from './password-attempts';
 import { normalizeIp } from './client-ip';
+import { audit } from './audit';
 
 // Privacidade (LGPD): o banco nunca guarda IP nem e-mail em claro em `auth_attempt`; só o HMAC `h1:<hex>` de kind + sujeito (attempts.ts).
 let t: Awaited<ReturnType<typeof createTestDb>>;
@@ -191,5 +193,34 @@ describe('migração 0030', () => {
     expect(await rows()).toHaveLength(0);
     const down = readFileSync(new URL('../../db/drizzle/down/0030_auth_attempt_hmac.down.sql', import.meta.url), 'utf8');
     expect(down).toMatch(/DELETE FROM drizzle\.__drizzle_migrations WHERE created_at = \d+/);
+  });
+});
+
+describe('audit_log (append-only): o IP entra só como HMAC', () => {
+  it('audit() grava h1:<hex> no lugar do IP; mesmo IP (qualquer grafia) = mesmo código; IP diferente = outro; sem IP = null; texto que não é IP = null', async () => {
+    await db().delete(schema.authAttempt);
+    const antes = (await t.client.query<{ n: number }>('SELECT count(*)::int n FROM audit_log')).rows[0]!.n;
+    await audit(db(), { action: 'teste.ip', resource: 'teste', resourceId: 'a', ip: '203.0.113.50' });
+    await audit(db(), { action: 'teste.ip', resource: 'teste', resourceId: 'b', ip: '::ffff:203.0.113.50' });
+    await audit(db(), { action: 'teste.ip', resource: 'teste', resourceId: 'c', ip: '203.0.113.51' });
+    await audit(db(), { action: 'teste.ip', resource: 'teste', resourceId: 'd', ip: null });
+    await audit(db(), { action: 'teste.ip', resource: 'teste', resourceId: 'e', ip: 'nao-e-ip' });
+    const r = (await t.client.query<{ resource_id: string; ip: string | null }>("SELECT resource_id, ip FROM audit_log WHERE action = 'teste.ip' ORDER BY resource_id")).rows;
+    expect(r).toHaveLength(5);
+    const por = Object.fromEntries(r.map((x) => [x.resource_id, x.ip]));
+    expect(por.a).toMatch(/^h1:[0-9a-f]{64}$/);
+    expect(por.b).toBe(por.a);
+    expect(por.c).not.toBe(por.a);
+    expect(por.d).toBeNull();
+    expect(por.e).toBeNull();
+    const dump = (await t.client.query<{ j: string }>("SELECT row_to_json(a)::text j FROM audit_log a WHERE action = 'teste.ip'")).rows.map((x) => x.j).join('\n');
+    expect(dump).not.toContain('203.0.113');
+    expect((await t.client.query<{ n: number }>('SELECT count(*)::int n FROM audit_log')).rows[0]!.n).toBe(antes + 5);
+  });
+
+  it('o código da auditoria é de OUTRO domínio que o do limite (hashes diferentes para o mesmo IP); sem chave em produção devolve null, nunca o IP', () => {
+    expect(auditIp('1.2.3.4')).not.toBe(attemptSubject('ip', '1.2.3.4'));
+    expect(auditIp('1.2.3.4', { APP_ENV: 'production' })).toBeNull();
+    expect(auditIp('1.2.3.4', { APP_ENV: 'production', BETTER_AUTH_SECRET: 'k'.repeat(40) })).toMatch(/^h1:[0-9a-f]{64}$/);
   });
 });
