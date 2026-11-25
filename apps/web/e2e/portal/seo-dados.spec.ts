@@ -28,6 +28,8 @@ test.describe('SEO das páginas de dados', () => {
   test.beforeEach(async ({ page }, info) => {
     void page;
     test.skip(info.project.name !== 'desktop', 'metadados não dependem da largura');
+    // Os ids vêm do fake-api (modo api); nos modos empty e mock essas páginas não existem.
+    test.skip((process.env.PORTAL_MODE ?? 'empty') !== 'api', 'somente no modo api');
   });
 
   test('título, descrição, canonical, Open Graph e Twitter Card em todas as páginas; títulos e descrições únicos', async ({ page }) => {
