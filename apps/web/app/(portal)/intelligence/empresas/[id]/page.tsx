@@ -27,10 +27,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (r.status !== 'ok') return { title: 'Empresa — Loyalty Intelligence', robots: { index: false } };
   const c = r.company;
   const n = c.relations.length;
-  const vinculos = n ? `${n} ${n === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'sem vínculos declarados';
+  const vinculos = n ? `${n} ${n === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'sem vínculo publicado';
   return metadadosPagina({
     title: `${c.name} — Loyalty Intelligence`,
-    description: `${c.name} (${KIND_LABEL[c.kind].toLowerCase()}): ${vinculos} no mercado de fidelização, com fonte pública e data de validação.`,
+    description: `${c.name} (${KIND_LABEL[c.kind].toLowerCase()}): ${vinculos} no mercado de fidelização, com fonte pública e data de coleta.`,
     path: `/intelligence/empresas/${c.id}`,
     noindex: c.mock,
   });
@@ -116,7 +116,9 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
           </ScrollRegion>
           </>
         ) : (
-          <EmptyState title="Sem vínculos declarados">Nenhuma fonte pública verificada afirma vínculos desta organização. Ausência de registro não prova inexistência.</EmptyState>
+          // Limitado ao que a API publica: vínculo sem fonte validada ou inferido não é exibido, então não se pode dizer que
+          // nenhuma fonte no mundo os afirma (medido em fast-track/intelligence-qualidade-2026-11-25.md).
+          <EmptyState title="Nenhum vínculo publicado">Nenhum vínculo empresa–empresa declarado com fonte pública validada foi publicado. Vínculos sem fonte validada ou de fonte secundária não são exibidos como fato; ausência aqui não prova inexistência.</EmptyState>
         )}
       </section>
 
@@ -132,8 +134,9 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
             roles={people.items.flatMap((p) => p.roles.filter((r) => r.company.id === c.id).map((r) => ({ ...r, personId: p.id, personName: p.name })))}
           />
         ) : (
-          <EmptyState title="Em breve: executivos verificados">
-            Pessoas e cargos só são publicados com identidade e vínculo verificáveis por fonte pública, após a avaliação de privacidade.
+          // "Executivo" inventaria qualificação: há pessoas sem cargo declarado e cargos inferidos que não são publicados.
+          <EmptyState title="Nenhum cargo declarado com fonte oficial foi publicado para esta empresa">
+            Cargos de fonte secundária (The Org) não são exibidos como fato. Pessoas e cargos só são publicados com identidade e vínculo verificáveis por fonte pública, após a avaliação de privacidade.
           </EmptyState>
         )}
       </section>

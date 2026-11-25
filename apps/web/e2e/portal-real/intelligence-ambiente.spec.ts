@@ -94,7 +94,7 @@ test.describe('production: pessoas indisponíveis, sem vazar nome', () => {
       await semNomes(r.corpo, `perfil ${id}`);
     }
     const emp = await html(page, `/intelligence/empresas/${ids.alfa}`);
-    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
+    await expect(page.getByText('Nenhum cargo declarado com fonte oficial foi publicado para esta empresa')).toBeVisible();
     await expect(page.getByTestId('company-people')).toHaveCount(0);
     await semNomes(emp.corpo, 'página da empresa');
     const hub = await html(page, '/intelligence');

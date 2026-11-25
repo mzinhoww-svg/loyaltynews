@@ -39,11 +39,24 @@ test.describe('axe nas páginas de dados: 0 serious/critical', () => {
 test.describe('estados vazios honestos nas páginas de dados', () => {
   test.skip(mode !== 'api', 'os perfis vêm do fake-api');
 
+  test('data do cadastro da empresa é "Coletado em"; relação e cargo seguem "Validado em"', async ({ page }) => {
+    await page.goto('/intelligence/empresas');
+    const lista = page.getByTestId('company-list');
+    await expect(lista).toContainText('Coletado em');
+    await expect(lista).not.toContainText('Validado em');
+    // Relação tem validated_at de verdade: continua "Validado em".
+    await page.goto(`/intelligence/empresas/${ALFA}`);
+    await expect(page.getByTestId('relations')).toContainText('Validado em');
+  });
+
   test('empresa sem relações explica o motivo real, sem card quebrado', async ({ page }) => {
     await page.goto(`/intelligence/empresas/${SEM_RELACOES}`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('[MOCK API] Coalizão Épsilon');
-    await expect(page.getByText('Sem vínculos declarados')).toBeVisible();
-    await expect(page.getByText('Ausência de registro não prova inexistência')).toBeVisible();
+    await expect(page.getByText('Nenhum vínculo publicado')).toBeVisible();
+    await expect(page.getByText('Ausência aqui não prova inexistência')).toBeVisible();
+    // Sem "executivo": há pessoas sem cargo declarado e cargos inferidos que não são publicados.
+    await expect(page.getByText('Nenhum cargo declarado com fonte oficial foi publicado para esta empresa')).toBeVisible();
+    await expect(page.getByText(/executivos verificados/)).toHaveCount(0);
     // Nada de tabela vazia pendurada nem card placeholder.
     await expect(page.getByTestId('relations')).toHaveCount(0);
   });

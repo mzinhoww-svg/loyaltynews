@@ -79,8 +79,9 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
                     </h2>
                     <p className="pt-meta">{KIND_LABEL[c.kind]}</p>
                     <p className="pt-meta">
-                      {c.relationCount ? `${c.relationCount} ${c.relationCount === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'Sem vínculos declarados'}
-                      {' · '}Validado em <time dateTime={c.validatedAt}>{formatDate(c.validatedAt)}</time>
+                      {/* Empresa não tem data de validação no schema: o campo é a data de COLETA da fonte. */}
+                      {c.relationCount ? `${c.relationCount} ${c.relationCount === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'Nenhum vínculo publicado'}
+                      {' · '}Coletado em <time dateTime={c.validatedAt}>{formatDate(c.validatedAt)}</time>
                     </p>
                   </li>
                 ))}
