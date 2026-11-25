@@ -51,10 +51,11 @@ describe('institucional do lançamento', () => {
     // C2: dados, finalidade, bases legais, retenção da DP-55, sem venda
     for (const campo of ['nome, empresa, e-mail, WhatsApp', 'formatos de interesse', 'objetivo, mensagem']) expect(p, campo).toContain(campo);
     expect(p).toMatch(/art\. 7º, V/); expect(p).toMatch(/newsletter[^]*consentimento separado \(art\. 7º, I\)/);
-    expect(p).toMatch(/até 12 meses depois do último contato; pedido descartado, 30 dias/);
+    expect(p).toMatch(/política é guardar[^]*até 12 meses depois do último contato[^]*descartado por 30 dias[^]*ainda está sendo implantada/);
     expect(p).toMatch(/Quem acessa: só a equipe comercial e a administração do portal/); expect(p).toMatch(/Não vendemos esses dados/);
-    // C3: IP só como código irreversível, base do art. 7º IX, hospedagem a confirmar
-    expect(p).toMatch(/legítimo interesse[^]*art\. 7º, IX/); expect(p).toMatch(/não é guardado em claro[^]*código irreversível/);
+    // C3: IP descrito como é HOJE (registrado, sem prazo definido; o código grava o IP cru): sem afirmar hash nem apagamento até o commit do Backend
+    expect(p).toMatch(/legítimo interesse[^]*art\. 7º, IX/); expect(p).toMatch(/IP é registrado nas tentativas de login e de envio dos formulários/);
+    expect(p).toMatch(/Ainda não definimos por quanto tempo ele é guardado/); expect(p).not.toMatch(/em claro|irreversível|HMAC|apagado em/i);
     expect(p).toMatch(/hospeda o portal pode registrar IPs[^]*ainda será confirmado/);
     // o que não está decidido nem implementado não é afirmado: apagamento automático, prazo de 24 h do IP, DP-54 como citação na página
     expect(p).not.toMatch(/automátic|24 ?h|24 horas|DP-5[45]/i);
