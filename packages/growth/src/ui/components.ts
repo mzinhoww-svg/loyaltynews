@@ -16,10 +16,11 @@ import {
 const h = React.createElement;
 const C = TOKENS_JSON.colors;
 /**
- * `secondary-strong` do design system (#2A6F65), derivado da cor secundária e fora do brandkit:
- * é o acento para TEXTO sobre fundo claro (5,90:1 no branco; o `secondary` cru fica em 4,29:1 e reprova AA).
+ * Acento de TEXTO sobre fundo claro: token do design system `--ln-color-secondary-strong`
+ * (o `secondary` cru fica em 4,29:1 no branco e reprova AA). O `TOKENS_JSON` do Growth é o
+ * brandkit literal e não traz a extensão; o token vem do CSS do design system, que o Studio carrega.
  */
-const SECONDARY_TEXT = "#2A6F65";
+const ACENTO_TEXTO = "var(--ln-color-secondary-strong)";
 const TONE: Record<Tone, { bg: string; fg: string }> = {
   neutral: { bg: C.mint, fg: C.primary },
   ok: { bg: '#d6f0e3', fg: '#0e4a2c' },
@@ -77,8 +78,8 @@ export function CopyPreview({ text, channel = 'linkedin', textOnlyFallback }: Co
   const stats = copyStats(text, channel);
   const parts = splitCopy(text).map((s, i): ReactNode => {
     if (s.type === 'mention') return h('mark', { key: i, 'data-mention': s.value, style: { background: C.signal, color: C.primary } }, `@${s.value}`);
-    if (s.type === 'hashtag') return h('span', { key: i, style: { color: SECONDARY_TEXT } }, s.value);
-    if (s.type === 'link') return h('span', { key: i, 'data-link': true, style: { color: SECONDARY_TEXT, textDecoration: 'underline', wordBreak: 'break-all' } }, s.value);
+    if (s.type === 'hashtag') return h('span', { key: i, style: { color: ACENTO_TEXTO } }, s.value);
+    if (s.type === 'link') return h('span', { key: i, 'data-link': true, style: { color: ACENTO_TEXTO, textDecoration: 'underline', wordBreak: 'break-all' } }, s.value);
     return h(React.Fragment, { key: i }, s.value);
   });
   return h('section', { 'aria-label': 'Texto do post' },

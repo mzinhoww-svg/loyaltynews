@@ -128,45 +128,52 @@ describe("tabela medida — corpo, link, botão primário e texto sobre imagem",
 // Achados aprovados pelo PM em 25/11/2026: os dois casos fora do portal entram travados aqui.
 const GROWTH_UI = readFileSync(resolve(ROOT, "../growth/src/ui/components.ts"), "utf8");
 const PORTAL_CSS = readFileSync(resolve(ROOT, "../../apps/web/app/(portal)/portal.css"), "utf8");
+const TOKENS_CSS = readFileSync(resolve(ROOT, "src/tokens/tokens.css"), "utf8");
+
+/** Valor que o navegador aplica: lido do próprio tokens.css, não do mapa TS. */
+const cssVar = (name: string): string => {
+  const m = TOKENS_CSS.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`));
+  if (!m) throw new Error(`token ausente em tokens.css: ${name}`);
+  return m[1] as string;
+};
 
 describe("achados aprovados: acento da prévia e borda do chip", () => {
-  it.each(["white", "mint", "surface-subtle"] as const)(
-    "hashtag e link da prévia: secondary-strong sobre %s ≥ 4,5:1",
-    (bg) => {
-      expect(ratio(c("secondary-strong"), c(bg))).toBeGreaterThanOrEqual(4.5);
-    },
-  );
+  it("hashtag e link da prévia: a cor resolvida passa de 4,5:1 no branco, na menta e na surface", () => {
+    const decl = GROWTH_UI.match(/const ACENTO_TEXTO = "([^"]+)"/)?.[1] ?? "";
+    const varDaDecl = decl.match(/var\((--ln-color-[a-z-]+)\)/)?.[1] ?? "";
+    const hexDoConstante = varDaDecl ? cssVar(varDaDecl) : /^#[0-9a-f]{6}$/i.test(decl) ? decl : "";
 
-  it("hashtag e link da prévia: a cor usada passa de 4,5:1 no branco, na menta e na surface", () => {
-    const corDe = (linha: string) =>
-      linha.includes("SECONDARY_TEXT") ? "#2A6F65" : linha.includes("C.secondary") ? "#34877A" : "";
     const linhas = GROWTH_UI.split("\n");
     const usos = [
       linhas.find((l) => l.includes("s.type === 'hashtag'")) ?? "",
       linhas.find((l) => l.includes("s.type === 'link'")) ?? "",
     ];
     for (const linha of usos) {
-      const hex = corDe(linha);
+      // A linha pode usar a constante (caso atual) ou voltar ao literal do brandkit (regressão).
+      const hex = linha.includes("ACENTO_TEXTO") ? hexDoConstante : /C\.secondary\b/.test(linha) ? "#34877A" : "";
       expect(hex).not.toBe("");
       for (const bg of ["white", "mint", "surface-subtle"] as const) {
         expect(ratio(hex, c(bg))).toBeGreaterThanOrEqual(4.5);
       }
       expect(linha).not.toMatch(/C\.secondary\b/);
     }
-    expect(GROWTH_UI).toContain('const SECONDARY_TEXT = "#2A6F65";');
   });
 
-  it("borda do .pt-chip: a cor usada no contorno passa de 3:1", () => {
+  it("borda do .pt-chip: o valor resolvido do token usado na regra passa de 3:1", () => {
     const regra = PORTAL_CSS.match(/\.pt-chip \{[^}]*\}/)?.[0] ?? "";
     const token = regra.match(/border: 1px solid var\((--ln-color-[a-z-]+)\)/)?.[1] ?? "";
-    const hex = token === "--ln-color-border-strong" ? c("border-strong") : token === "--ln-color-border" ? c("border") : "";
-    expect(hex).not.toBe("");
+    expect(token).not.toBe(""); // a regra tem de usar token, não hex fixo
+    const hex = cssVar(token);
     expect(ratio(hex, c("white"))).toBeGreaterThanOrEqual(3);
   });
 
-  it("o .pt-chip nomeia border-strong e não o border fraco", () => {
+  it("a borda do .pt-chip não usa o token fraco", () => {
     const regra = PORTAL_CSS.match(/\.pt-chip \{[^}]*\}/)?.[0] ?? "";
-    expect(regra).toContain("var(--ln-color-border-strong)");
     expect(regra).not.toMatch(/var\(--ln-color-border\)/);
+  });
+
+  it("a cor da prévia vem do token, sem um segundo valor em código", () => {
+    expect(GROWTH_UI).toMatch(/const ACENTO_TEXTO = "var\(--ln-color-secondary-strong\)"/);
+    expect(GROWTH_UI).not.toMatch(/#2A6F65/);
   });
 });
