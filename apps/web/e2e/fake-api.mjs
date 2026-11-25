@@ -229,6 +229,8 @@ const MEDIAKIT = {
         { id: 'banners--retangulo-sidebar', section: 'Banners', name: 'Retângulo sidebar', price: 'R$ 1.750/mês', scope: '336 × 280; 3 posições; 10 cotas por posição', status: 'sob_consulta' },
         // DP-54: disponível para proposta com o canal ainda desligado — a ressalva vem no dado, nunca escrita no portal.
         { id: 'banners--banner-entre-secoes', section: 'Banners', name: 'Banner entre seções', price: 'R$ 2.250/mês', scope: 'Faixa intereditorias', status: 'disponivel', ressalva: 'Ressalva: a entrega só começa com o canal ativo; hoje não há entrega neste formato.' },
+        // Campo opcional vazio (P3 do QA 8): o formato tem de aparecer sem ressalva, e nunca derrubar o kit inteiro.
+        { id: 'banners--banner-rodape', section: 'Banners', name: 'Banner rodapé', price: 'R$ 1.250/mês', scope: '1280 × 200', status: 'disponivel', ressalva: '' },
         { id: 'the-loyal--banner-meio', section: 'The Loyal', name: 'Banner meio', price: 'R$ 1.250/mês', scope: 'Todas as edições contratadas', status: 'indisponivel' },
       ],
     },
