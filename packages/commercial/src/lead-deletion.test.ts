@@ -28,6 +28,12 @@ async function lead(over: { status?: 'novo' | 'descartado' | 'convertido'; desca
     objetivo: 'awareness', consentimentoEm: new Date('2026-01-01T00:00:00Z'), status: over.status ?? 'novo', criadoEm: over.criadoEm ?? new Date('2026-01-01T00:00:00Z'),
     descartadoEm: over.descartadoEm ?? null,
   });
+  // O gatilho da 0031 (DP-55) manda no descartado_em: no INSERT com status descartado ele grava now().
+  // Para o teste da retenção, o descarte antigo é aplicado depois, num UPDATE em que o status não muda
+  // (o gatilho preserva o valor informado).
+  if (over.descartadoEm) {
+    await db.update(schema.crmLeads).set({ descartadoEm: over.descartadoEm }).where(eq(schema.crmLeads.id, id));
+  }
   return id;
 }
 
