@@ -985,7 +985,10 @@ test('guards: LN_FLAGS_ON só no staging, formato de lista e vínculo com releas
   assert.match(envProblems({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }).join('|'), /LN_FLAGS_ON definida em produção/);
   assert.match(envProblems({ APP_ENV: 'producao', LN_FLAGS_ON: 'x' }).join('|'), /em produção/);
   assert.match(envProblems({ APP_ENV: 'homolog', LN_FLAGS_ON: 'x' }, { deploy: true }).join('|'), /só o staging aceita flags/);
-  assert.deepEqual(envProblems({ APP_ENV: 'local', LN_FLAGS_ON: 'x' }).filter((m) => /LN_FLAGS_ON/.test(m)), [], 'desenvolvimento local não é barrado');
+  // P3 (QA 6, 25/11): a barreira do LN_FLAGS_ON é pelo APP_ENV, sem depender de --deploy. Um APP_ENV desconhecido ('local') também reprova:
+  // fora do staging a app ignora a flag, então deixá-la passar em silêncio seria cobertura falsa.
+  assert.match(envProblems({ APP_ENV: 'local', LN_FLAGS_ON: 'x' }).join('|'), /só o staging aceita flags/);
+  assert.deepEqual(envProblems({ APP_ENV: 'staging', LN_FLAGS_ON: 'x' }).filter((m) => /LN_FLAGS_ON/.test(m)), [], 'staging aceita');
   assert.equal(flagsNormalizadas(' b, a ,'), 'a,b');
   assert.equal(flagsNormalizadas(['b', 'a']), 'a,b');
   assert.deepEqual(flagsProblems({}, { flagsLigadas: [] }), []);
@@ -1635,7 +1638,7 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
 test('guard-env (P3 do QA 6): no caminho da VERTRA (guard-env SEM --deploy) as variáveis do piloto e o DIAG_XFF barram só pelo APP_ENV; a única família que depende da flag é a CLI do operador (documentada)', () => {
   // A Vertra chama exatamente `node infra/scripts/guard-env.mjs` no build e no start: sem argumento nenhum.
   const vertra = (env) => node('guard-env.mjs', [], { env: { ...cleanEnv(), ...env } });
-  const piloto = { LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste', OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste', LN_OPENBOT_PILOT_WIRING: '@ln/outro', LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' };
+  const piloto = { LN_FLAGS_ON: 'intelligencePessoas', LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste', OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste', LN_OPENBOT_PILOT_WIRING: '@ln/outro', LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' };
   assert.equal(vertra({}).status, 0, 'controle negativo: caminho da Vertra sem APP_ENV e sem variável do piloto passa');
   for (const [nome, valor] of Object.entries(piloto)) {
     for (const amb of [{}, { APP_ENV: 'homologacao' }, { APP_ENV: 'production' }]) {
@@ -1647,6 +1650,8 @@ test('guard-env (P3 do QA 6): no caminho da VERTRA (guard-env SEM --deploy) as v
     }
     assert.equal(vertra({ APP_ENV: 'staging', [nome]: valor }).status, 0, nome + ' no staging passa (caminho da Vertra)');
   }
+  // A cobertura é enumerada pelo nome, não por "família": se uma variável entrar no guard sem entrar aqui, este teste tem de acusar.
+  assert.deepEqual([...Object.keys(piloto), 'DIAG_XFF'].sort(), ['DIAG_XFF', 'LN_FLAGS_ON', 'LN_OPENBOT_GATEWAY_TIMEOUT_MS', 'LN_OPENBOT_PILOT', 'LN_OPENBOT_PILOT_WIRING', 'OPENBOT_HMAC_SECRET', 'OPENBOT_HMAC_SECRET_PREVIOUS']);
   for (const amb of [{}, { APP_ENV: 'homologacao' }, { APP_ENV: 'production' }]) {
     assert.equal(vertra({ ...amb, DIAG_XFF: '1' }).status, 1, `DIAG_XFF ${amb.APP_ENV || 'sem APP_ENV'} sem --deploy tem de reprovar`);
   }

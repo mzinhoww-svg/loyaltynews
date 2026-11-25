@@ -86,12 +86,14 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
   }
   const prod = ['production', 'producao'].includes(String(env.APP_ENV ?? '').toLowerCase());
   // ADR-022 (DP-38): flags de produto por variável SÓ no staging, lista de nomes separada por vírgula. Produção liga por commit revisado (FLAG_RELEASES), nunca por variável.
+  // A barreira é pelo APP_ENV, como a das outras do piloto: na Vertra o guard roda SEM --deploy. Fora do staging (produção, APP_ENV ausente ou typo)
+  // a variável reprova — em produção ela ligaria flag de produto pelo painel, que é exatamente o que a ADR-022 proíbe.
   const flagsOn = String(env.LN_FLAGS_ON ?? '');
   if (flagsOn.trim() !== '') {
     const ambFlags = String(env.APP_ENV ?? '').trim().toLowerCase();
     if (prod) p.push(`LN_FLAGS_ON definida em produção: flags de produto por variável só existem no staging (ADR-022); em produção a flag liga por commit revisado em FLAG_RELEASES${/openbotDispatch/.test(flagsOn) ? ' (a flag openbotDispatch, DP-41, nunca liga em produção)' : ''}`);
-    else if (ambFlags === 'staging' && !/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
-    else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
+    else if (ambFlags !== 'staging') p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
+    else if (!/^[A-Za-z][A-Za-z0-9]*(,[A-Za-z][A-Za-z0-9]*)*$/.test(flagsOn)) p.push('LN_FLAGS_ON fora do formato: nomes de flag separados por vírgula, sem espaços nem aspas (ex.: intelligencePessoas)');
   }
   // Piloto OpenBot (DP-41, item 5 do piloto): TODAS as variáveis do piloto só existem com APP_ENV=staging.
   // A barreira NÃO depende de --deploy: na Vertra o build_command e o start_command chamam `guard-env.mjs` SEM a flag, então a regra
