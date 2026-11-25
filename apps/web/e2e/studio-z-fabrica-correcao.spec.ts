@@ -3,6 +3,7 @@ import { api, definirFlag, entrar, enviar, semearFabricaAprovada } from './helpe
 
 // Correção de matéria da FÁBRICA (ft/backend d618265): recibo da versão corrigida + publicação oficial com o mesmo `correcao`.
 // Roda depois de studio-z-correcao-cms (ordem alfabética): o banco de e2e é compartilhado e este spec abre um caso e publica uma matéria.
+// NÃO rode sozinho nem só com o z-correcao-cms: os dois dependem do seed do studio-cms.spec.ts; a ordem está em scripts/e2e.mjs.
 test.describe.configure({ mode: 'serial' });
 
 const sucesso = (page: Page, txt: string | RegExp) => expect(page.locator('main .st-alert.ok').filter({ hasText: txt }).first()).toBeVisible();

@@ -29,7 +29,15 @@ describe('resultadoDoRecheck', () => {
   });
 
   it('o código vence o status: envelope QUEUE_DISABLED com status de sucesso ainda é erro', () => {
-    expect(resultadoDoRecheck({ status: 200, body: envelope }, envelope.error.message).tipo).toBe('err');
+    const r = resultadoDoRecheck({ status: 200, body: envelope }, ''); // action não tem mensagem para status 200
+    expect(r.tipo).toBe('err');
+    expect(r.aviso).toBe(envelope.error.message); // Flash nunca fica vazio
+  });
+
+  it('QUEUE_DISABLED sem mensagem no envelope cai no aviso padrão, nunca em texto vazio', () => {
+    const r = resultadoDoRecheck({ status: 200, body: { error: { code: 'QUEUE_DISABLED' } } }, '');
+    expect(r.tipo).toBe('err');
+    expect(r.aviso).toBe(AVISO_CHECAGEM_DESLIGADA);
   });
 
   it('outro erro segue como erro com a mensagem recebida', () => {

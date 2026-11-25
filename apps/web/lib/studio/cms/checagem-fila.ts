@@ -27,6 +27,12 @@ export function codigoDoErro(body: unknown): string | undefined {
   return typeof codigo === 'string' ? codigo : undefined;
 }
 
+/** Mensagem do próprio envelope, quando existir (usada mesmo se o status vier 200). */
+export function mensagemDoEnvelope(body: unknown): string | undefined {
+  const msg = (body as { error?: { message?: unknown } } | null)?.error?.message;
+  return typeof msg === 'string' && msg.trim().length > 0 ? msg : undefined;
+}
+
 export interface ResultadoRecheck {
   tipo: 'ok' | 'err';
   aviso: string;
@@ -34,10 +40,14 @@ export interface ResultadoRecheck {
 
 /**
  * Traduz a resposta do POST de nova checagem. O CÓDIGO decide primeiro: `QUEUE_DISABLED` é sempre erro com a mensagem do
- * Backend (mesmo que o status mude), e nunca vira "Nova checagem enfileirada".
+ * Backend (mesmo que o status mude ou venha 200), e nunca vira "Nova checagem enfileirada".
  */
 export function resultadoDoRecheck(r: { status: number; body: unknown }, mensagemDoBackend: string): ResultadoRecheck {
-  if (codigoDoErro(r.body) === CODIGO_FILA_DESLIGADA) return { tipo: 'err', aviso: mensagemDoBackend };
-  if (r.status >= 400) return { tipo: 'err', aviso: mensagemDoBackend };
+  const codigo = codigoDoErro(r.body);
+  if (codigo === CODIGO_FILA_DESLIGADA) {
+    // 200 com o código ainda é recusa: o Flash não pode ficar vazio
+    return { tipo: 'err', aviso: mensagemDoEnvelope(r.body) ?? (mensagemDoBackend || AVISO_CHECAGEM_DESLIGADA) };
+  }
+  if (r.status >= 400) return { tipo: 'err', aviso: mensagemDoBackend || mensagemDoEnvelope(r.body) || `Erro ${r.status}` };
   return { tipo: 'ok', aviso: 'Nova checagem enfileirada.' };
 }

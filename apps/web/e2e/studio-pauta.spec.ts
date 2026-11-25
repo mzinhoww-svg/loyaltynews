@@ -90,7 +90,9 @@ test('habilitada uma fonte primária: envia a pauta, vê na fila, repetir o id �
   await sucesso(page, 'registrada na fila');
   const linha = page.locator('[data-pauta="como-a-azul-reorganizou-seus-comunicados-de-fidelidade"]');
   await expect(linha).toHaveAttribute('data-estado', 'fila');
-  await expect(linha).toContainText('Na fila');
+  // o rótulo é o ESTADO REAL e é conferido inteiro: casar só "Na fila" deixou passar a promessa de worker
+  await expect(linha.locator('strong')).toHaveText('Pendente (aguardando a Fábrica editorial rodar em comando próprio)');
+  await expect(linha).not.toContainText(/worker/i);
   await expect(linha).toContainText(`${base}/a`);
   await expect(linha.getByRole('link')).toHaveCount(0); // sem matéria ainda
 
