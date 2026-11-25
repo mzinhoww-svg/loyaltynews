@@ -18,6 +18,7 @@ import { Flash } from "../../../_components/Flash";
 import { SemBanco } from "../../../_components/SemBanco";
 import { registrarLeituraAction } from "../actions";
 import { Seta } from '../../../_components/Seta';
+import { Recarregar } from '../../../_components/Recarregar';
 
 export const metadata: Metadata = { title: "Leitura do piloto" };
 export const dynamic = "force-dynamic";
@@ -100,6 +101,7 @@ export default async function LeituraMateriaPage({
         {voltar}
         <div className="st-alert err" role="alert">
           {mensagemErro(lista)}
+          <Recarregar />
         </div>
       </>
     );
@@ -129,6 +131,7 @@ export default async function LeituraMateriaPage({
         {voltar}
         <div className="st-alert err" role="alert">
           {mensagemErro(rv)}
+          <Recarregar />
         </div>
       </>
     );
@@ -146,6 +149,7 @@ export default async function LeituraMateriaPage({
       {ehErro(ls) ? (
         <div className="st-alert err" role="alert">
           Leituras indisponíveis: {mensagemErro(ls)}
+          <Recarregar />
         </div>
       ) : null}
       <p className="st-hint">

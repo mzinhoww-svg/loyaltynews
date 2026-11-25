@@ -11,6 +11,7 @@ import { Flash } from '../../_components/Flash';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
 import { alterarFonteAction, criarFonteAction } from './actions';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Banco de fontes' };
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,7 @@ export default async function FontesPage({ searchParams }: { searchParams: Promi
         <h1>Banco de fontes</h1>
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       </>
     );

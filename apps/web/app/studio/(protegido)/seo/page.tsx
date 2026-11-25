@@ -12,6 +12,7 @@ import { SemBanco } from '../../_components/SemBanco';
 import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
 import { PortalAgora } from '../../_components/PortalAgora';
 import { adicionarLinkAction, alternarRedirectAction, criarRedirectAction, removerLinkAction, removerRedirectAction, salvarSeoAction } from './actions';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'SEO' };
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export default async function SeoPage({ searchParams }: { searchParams: Promise<
         <h1>SEO</h1>
         <div className="st-alert err" role="alert">
           {mensagemErro(falha)}
+          <Recarregar />
         </div>
       </>
     );

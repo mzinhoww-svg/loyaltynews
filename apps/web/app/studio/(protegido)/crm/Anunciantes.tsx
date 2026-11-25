@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ContatoConta } from '@/lib/studio/rotas-api';
 import { adicionarContatoAction, criarContaAction } from './actions';
+import { Recarregar } from '../../_components/Recarregar';
 
 export type ContaCrm = { id: string; name: string; createdAt: string; leads: number; opportunities: number; campaigns: number; activeCampaigns: number };
 export type ContatoCrm = { id: string; name: string; email: string; whatsapp: string | null; status: string; consentAt: string; accountId: string | null };
@@ -39,6 +40,7 @@ export function Anunciantes(props: {
       {erro ? (
         <div className="st-alert err" role="alert" data-testid="anunciantes-erro">
           Não foi possível carregar os anunciantes: {erro}
+          <Recarregar />
         </div>
       ) : contas.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio-contas" data-vazio="anunciantes">
@@ -62,6 +64,7 @@ export function Anunciantes(props: {
                 {d && 'erro' in d ? (
                   <p className="st-alert err" role="alert">
                     Contatos diretos indisponíveis: {d.erro}
+                    <Recarregar />
                   </p>
                 ) : null}
                 {lista.length === 0 && viaLead.length === 0 ? (

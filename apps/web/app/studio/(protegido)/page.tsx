@@ -8,6 +8,7 @@ import { api } from '@/lib/studio/rotas-api';
 import { ehErro, naoConfigurado } from '@/lib/studio/backend';
 import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import { requireStudio } from '../_lib/guard';
+import { Recarregar } from '../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Visão geral' };
 export const dynamic = 'force-dynamic';
@@ -57,6 +58,12 @@ export default async function StudioHome() {
         <p className="st-hint" role="note">
           Banco de dados não configurado neste ambiente: contagens indisponíveis (nunca estimadas).
         </p>
+      ) : null}
+      {contagens.some((c) => ehErro(c)) ? (
+        <div className="st-alert err" role="alert">
+          Não foi possível ler as contagens da fila editorial. Nenhum número foi estimado.
+          <Recarregar />
+        </div>
       ) : null}
       <p className="st-hint">Audiência, receita e custos: não disponível.</p>
 

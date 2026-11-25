@@ -13,6 +13,7 @@ import { SiteDocPainel, type EstadoDoc } from '../../_components/SiteDocPainel';
 import { PortalAgora } from '../../_components/PortalAgora';
 import { editarDocAction } from './actions';
 import { Seta } from '../../_components/Seta';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Home e menus' };
 export const dynamic = 'force-dynamic';
@@ -163,6 +164,7 @@ export default async function HomeMenusPage({ searchParams }: { searchParams: Pr
         <h1>Home e menus</h1>
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       </>
     );

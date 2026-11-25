@@ -13,6 +13,7 @@ import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { abrirPedidoAction, exportarPedidoAction, removerPessoaAction, retificarPedidoAction } from './actions';
 import { Seta } from '../../../../_components/Seta';
+import { Recarregar } from '../../../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Executivo' };
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
   if (r.status === 404) notFound();
   if (ehErro(r)) {
     return (
-      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
+      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} action={<Recarregar />} />
     );
   }
   const { person, roles } = r.body;
@@ -170,6 +171,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
           ehErro(exportado) ? (
             <div className="st-alert err" role="alert">
               {mensagemErro(exportado)}
+              <Recarregar />
             </div>
           ) : (
             <div data-exportado="sim" style={{ marginTop: 12 }}>

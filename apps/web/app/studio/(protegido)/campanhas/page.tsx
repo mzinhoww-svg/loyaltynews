@@ -13,6 +13,7 @@ import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { criarCampanhaAction } from './actions';
 import { Seta } from '../../_components/Seta';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Campanhas' };
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
         <h1>Campanhas</h1>
         <div className="st-alert err" role="alert">
           {mensagemErro(painelRes)}
+          <Recarregar />
         </div>
       </>
     );
@@ -120,6 +122,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
           {ehErro(lista) ? (
             <div className="st-alert err" role="alert">
               {mensagemErro(lista)}
+              <Recarregar />
             </div>
           ) : campanhas.length === 0 ? (
             <p className="st-hint" data-vazio="filtro">

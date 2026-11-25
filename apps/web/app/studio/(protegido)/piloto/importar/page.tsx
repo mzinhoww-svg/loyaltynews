@@ -11,6 +11,7 @@ import { SemBanco } from '../../../_components/SemBanco';
 import { importarFolhaAction } from './actions';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { Seta } from '../../../_components/Seta';
+import { Recarregar } from '../../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Importar a leitura do leitor 2' };
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,7 @@ export default async function ImportarFolhaPage({ searchParams }: { searchParams
       ) : ehErro(r) ? (
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       ) : (
         <>

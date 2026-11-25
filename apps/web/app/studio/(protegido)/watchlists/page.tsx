@@ -9,6 +9,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { adicionarItemAction, apagarWatchlistAction, criarWatchlistAction, removerItemAction, revisarAlertaAction } from './actions';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Watchlists' };
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,7 @@ export default async function WatchlistsPage({ searchParams }: { searchParams: P
       ) : ehErro(r) ? (
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       ) : (
         <Quadro listas={r.body.items} b={b} podeEscrever={podeEscrever} podeRevisar={podeRevisar} />
@@ -111,6 +113,7 @@ async function ListaAberta({ lista, b, podeEscrever, podeRevisar }: { lista: Wat
     return (
       <div className="st-alert err" role="alert" style={{ marginTop: 14 }}>
         {mensagemErro(r)}
+        <Recarregar />
       </div>
     );
   }
@@ -284,6 +287,7 @@ async function Alertas({ lista, estado, podeRevisar }: { lista: WatchlistLinha; 
       {ehErro(r) ? (
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       ) : r.body.items.length === 0 ? (
         <p className="st-hint" data-vazio="alertas">

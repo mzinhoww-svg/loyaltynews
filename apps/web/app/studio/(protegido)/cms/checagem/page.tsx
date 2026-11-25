@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { EmptyState } from '@ln/ui';
+import { Recarregar } from '../../../_components/Recarregar';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -76,7 +77,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
         </button>
       </form>
       {ehErro(fabrica) ? (
-        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(fabrica)} />
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(fabrica)} action={<Recarregar />} />
       ) : itens.length === 0 ? (
         <EmptyState title="Nenhuma matéria da Fábrica na fila" description="A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado." />
       ) : (

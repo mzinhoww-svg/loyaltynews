@@ -7,6 +7,7 @@ import { api } from '@/lib/studio/rotas-api';
 import { mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../../../_lib/guard';
 import { SemBanco } from '../../../../_components/SemBanco';
+import { Recarregar } from '../../../../_components/Recarregar';
 import { Seta } from '../../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Relatório do anunciante' };
@@ -42,6 +43,7 @@ export default async function RelatorioAnunciantePage({ params, searchParams }: 
         <h1>Relatório do anunciante</h1>
         <div className="st-alert err" role="alert" data-testid="rel-erro">
           {res.status === 404 ? 'Anunciante não encontrado.' : mensagemErro(res)}
+          {res.status === 404 ? null : <Recarregar />}
         </div>
       </>
     );

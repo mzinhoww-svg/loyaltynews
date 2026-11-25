@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { EmptyState } from '@ln/ui';
+import { Recarregar } from '../../_components/Recarregar';
 import Link from 'next/link';
 import { flagAtiva } from '@/lib/studio/flags';
 import { checkAccess, findModule } from '@/lib/studio/modules';
@@ -67,12 +68,12 @@ export default async function EntidadesPage({ searchParams }: { searchParams: Pr
 function Resultados({ emp, pes, q }: { emp: Awaited<ReturnType<typeof api.intelligence.empresas>>; pes: Awaited<ReturnType<typeof api.intelligence.executivos>>; q: string }) {
   if (ehErro(emp)) {
     return (
-      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(emp)} />
+      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(emp)} action={<Recarregar />} />
     );
   }
   const empresas = emp.body.items;
   const pessoas = ehErro(pes) ? [] : pes.body.items;
-  if (empresas.length === 0 && pessoas.length === 0) {
+  if (empresas.length === 0 && !ehErro(pes) && pessoas.length === 0) {
     return (
       <EmptyState title="Nenhum resultado" description={`Nenhum registro para "${q}". Ausência de registro não prova inexistência.`} />
     );
@@ -87,14 +88,18 @@ function Resultados({ emp, pes, q }: { emp: Awaited<ReturnType<typeof api.intell
           </li>
         ))}
       </ul>
-      <h2>Executivos ({pessoas.length})</h2>
-      <ul aria-label="Executivos encontrados">
-        {pessoas.map((p) => (
-          <li key={p.id}>
-            <Link href={`/studio/entidades/pessoa/${p.id}`}>{p.full_name}</Link>
-          </li>
-        ))}
-      </ul>
+      <h2>Executivos ({ehErro(pes) ? '—' : pessoas.length})</h2>
+      {ehErro(pes) ? (
+        <EmptyState kind="error" title="Não foi possível carregar os executivos" description={mensagemErro(pes)} action={<Recarregar />} />
+      ) : (
+        <ul aria-label="Executivos encontrados">
+          {pessoas.map((p) => (
+            <li key={p.id}>
+              <Link href={`/studio/entidades/pessoa/${p.id}`}>{p.full_name}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { POLITICA_ROTULO, carregarPolitica } from '@/lib/studio/modelops';
 import { requireModule } from '../../_lib/guard';
 import { SemRotaBackend } from '../../_components/SemBanco';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'ModelOps' };
 export const dynamic = 'force-dynamic';
@@ -23,6 +24,7 @@ export default async function ModelOpsPage({ searchParams }: { searchParams: Pro
         <h1>ModelOps</h1>
         <div className="st-alert err" role="alert">
           Política de modelos inválida ou ausente. Falha fechada: nenhuma rota é permitida. {pol.erros.join(' ')}
+          <Recarregar />
         </div>
       </>
     );
