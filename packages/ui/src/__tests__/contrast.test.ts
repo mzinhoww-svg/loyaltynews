@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { colors } from "../tokens/tokens";
 
@@ -80,5 +82,45 @@ describe("achado do brandkit: secondary cru não serve para texto pequeno", () =
   it("texto branco sobre secondary cru também falha AA normal; usar secondary-strong", () => {
     expect(ratio(c("white"), c("secondary"))).toBeLessThan(4.5);
     expect(ratio(c("white"), c("secondary-strong"))).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+// Tabela medida em 25/11/2026: as quatro categorias pedidas, com o número fechado.
+// Se o token mudar, o número muda e o teste falha — é o registro, não uma estimativa.
+const ROOT = resolve(__dirname, "../..");
+const BASE_CSS = readFileSync(resolve(ROOT, "src/styles/base.css"), "utf8");
+const CONTROLS_CSS = readFileSync(resolve(ROOT, "src/styles/controls.css"), "utf8");
+const CONTENT_CSS = readFileSync(resolve(ROOT, "src/styles/content.css"), "utf8");
+
+describe("tabela medida — corpo, link, botão primário e texto sobre imagem", () => {
+  const CATEGORIAS: Array<[string, C, C, number]> = [
+    ["corpo", "black", "white", 17.43],
+    ["link", "primary", "white", 12.04],
+    ["botão primário", "white", "primary", 12.04],
+    ["texto sobre imagem (rótulo em chip sólido)", "white", "black", 17.43],
+  ];
+
+  it.each(CATEGORIAS)("%s: %s sobre %s = %s:1", (_n, fg, bg, esperado) => {
+    expect(ratio(c(fg), c(bg))).toBeCloseTo(esperado, 1);
+    expect(ratio(c(fg), c(bg))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("as regras que produzem os quatro pares continuam as mesmas", () => {
+    expect(BASE_CSS).toContain("color: var(--ln-role-fg);");
+    expect(BASE_CSS).toContain("background: var(--ln-role-bg);");
+    expect(BASE_CSS).toMatch(/\.ln-root a \{ color: var\(--ln-role-link\); \}/);
+    expect(CONTROLS_CSS).toMatch(/\.ln-btn--primary[^{]*\{[^}]*background: var\(--ln-color-primary\)[^}]*color: var\(--ln-color-white\)/);
+    expect(CONTENT_CSS).toMatch(/\.ln-card__imglabel \{[\s\S]*?color: var\(--ln-color-white\);[\s\S]*?background: var\(--ln-color-black\);/);
+  });
+
+  it("texto sobre imagem é opaco: o rótulo usa chip sólido, nunca texto direto na foto", () => {
+    const regra = CONTENT_CSS.match(/\.ln-card__imglabel \{[^}]*\}/)?.[0] ?? "";
+    expect(regra).toContain("background: var(--ln-color-black)");
+    expect(regra).not.toContain("transparent");
+  });
+
+  it("nenhum par de texto da lista fica abaixo de 4,5:1", () => {
+    const abaixo = TEXT_PAIRS.map(([n, fg, bg]) => [n, ratio(c(fg), c(bg))] as const).filter(([, r]) => r < 4.5);
+    expect(abaixo).toEqual([]);
   });
 });
