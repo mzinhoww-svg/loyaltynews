@@ -33,7 +33,7 @@ export type GatewayResponse =
     /** Gateways com tarefa própria (OpenBot) devolvem o id da TAREFA que atendeu a chamada e a tentativa: a Editorial os usa para ligar checagem/revisão ao rascunho avaliado e para gravar o veredito na linha do piloto. Opcional. */
     taskId?: string; attempt?: number;
   }
-  | { ok: false; refusal: RefusalCode; detail?: string };
+  | { ok: false; refusal: RefusalCode; detail?: string; taskId?: string; attempt?: number };
 
 export interface ModelGateway {
   invoke(req: GatewayRequest): Promise<GatewayResponse>;

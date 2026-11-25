@@ -44,6 +44,7 @@ test('caminho feliz: triagem → contexto → redação → checagem → revisã
   const { q, done, blockedList } = await run(d, baseJob());
   assert.equal(blockedList.length, 0);
   assert.deepEqual(q.processed.map((p) => p.spec.stage), ['triage', 'context', 'draft', 'factcheck', 'review']);
+  assert.ok(gw.requests.some((r) => r.taskClass === 'review'), 'editorial_review é chamada depois da checagem');
   const out = done[0]!;
   assert.equal(out.kind === 'done' && out.event, 'article.approved');
   const dr = out.kind === 'done' ? out.data.draft! : null;
@@ -53,6 +54,37 @@ test('caminho feliz: triagem → contexto → redação → checagem → revisã
   // todos os pedidos ao gateway: dados públicos apenas
   assert.ok(gw.requests.every((r) => r.dataClass === 'public'));
   assert.ok(d.audit.entries.some((e) => e.event === 'model_call' && e.promptVersion));
+});
+
+test('rascunho bloqueado por número fora da evidência: NÃO cria checagem nem revisão e registra o motivo', async () => {
+  const gw = new MockGateway(ev.id, {
+    draft: () => mockOk('deepseek', goodDraftOutput(ev.id, { body: 'O programa cresceu 87% em 2026, segundo a fonte.' })),
+  });
+  const r = await run(deps(gw), baseJob());
+  assert.deepEqual(r.q.processed.map((p) => p.spec.stage), ['triage', 'context', 'draft']);
+  const b = r.blockedList[0]!;
+  assert.ok(b.kind === 'blocked' && b.blocked.stage === 'draft');
+  assert.ok(b.blocked.blockers.includes('unsupported_claim'));
+  assert.ok(b.blocked.findings.some((f) => /87/.test(f.message)), 'o motivo do gate fica no achado');
+  assert.equal(gw.requests.filter((x) => x.taskClass === 'factcheck').length, 0);
+  assert.equal(gw.requests.filter((x) => x.taskClass === 'review').length, 0);
+});
+
+test('factcheck pending_timeout: registra pending_timeout, não vira model_disabled e NÃO enfileira revisão', async () => {
+  const gw = new MockGateway(ev.id, {
+    factcheck: () => ({ ok: false, refusal: 'model_disabled', detail: 'pending_timeout: tarefa t1 segue na fila (pending, via codex)', taskId: 't1' }),
+  });
+  const patches: any[] = [];
+  const d = { ...deps(gw), pilotSink: { patch: async (p: any) => { patches.push(p); } } } as StageDeps;
+  const r = await run(d, baseJob());
+  assert.deepEqual(r.q.processed.map((p) => p.spec.stage), ['triage', 'context', 'draft', 'factcheck']);
+  const b = r.blockedList[0]!;
+  assert.ok(b.kind === 'blocked' && b.blocked.stage === 'factcheck');
+  assert.ok(b.blocked.blockers.includes('pending_timeout'));
+  assert.ok(b.blocked.findings.some((f) => f.code === 'pending_timeout' && /pending_timeout/.test(f.message)));
+  assert.equal(gw.requests.filter((x) => x.taskClass === 'review').length, 0);
+  assert.equal(patches.length, 1);
+  assert.deepEqual(patches[0].patch, { gate_verdict: 'blocked', gate_reasons: ['pending_timeout'] });
 });
 
 test('checagem exige provedor distinto do redator (excludeProviders enviado e resposta verificada)', async () => {

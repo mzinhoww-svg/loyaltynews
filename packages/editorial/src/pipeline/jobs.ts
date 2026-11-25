@@ -40,7 +40,9 @@ export type BlockerCode =
   | 'rights_basis_unresolved' | 'budget_blocked' | 'invalid_model_output' | 'max_attempts' | 'no_image'
   | 'not_published' | 'stale_approval' | 'unanchored' | 'autoral_invalid'
   /** Tom lint bloqueante (guia de tom v0.2: emoji, "!" no título, título > 90, veja/saiba/confira, frase do rodapé em inglês). */
-  | 'tone_lint';
+  | 'tone_lint'
+  /** A tarefa segue na fila além do prazo do gateway (`pending_timeout`): não é falha permanente nem "modelo desabilitado". */
+  | 'pending_timeout';
 
 export interface Blocked { articleId: string; stage: Stage; blockers: BlockerCode[]; findings: Finding[] }
 
