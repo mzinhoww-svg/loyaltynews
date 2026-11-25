@@ -10,6 +10,7 @@ import { Flash } from '../../../_components/Flash';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { capturarEvidenciaAction } from '../actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Fonte' };
 export const dynamic = 'force-dynamic';
@@ -29,7 +30,7 @@ export default async function FontePage({ params, searchParams }: { params: Prom
   return (
     <>
       <p>
-        <Link href="/studio/fontes">← Banco de fontes</Link>
+        <Link href="/studio/fontes"><Seta direcao="esquerda" /> Banco de fontes</Link>
       </p>
       <h1>{fonte.nome}</h1>
       <p className="st-hint">

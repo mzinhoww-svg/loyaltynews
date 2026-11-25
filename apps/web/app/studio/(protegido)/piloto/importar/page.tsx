@@ -10,6 +10,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { importarFolhaAction } from './actions';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Importar a leitura do leitor 2' };
 export const dynamic = 'force-dynamic';
@@ -22,7 +23,7 @@ export default async function ImportarFolhaPage({ searchParams }: { searchParams
     <>
       <h1>Importar a leitura do leitor 2</h1>
       <p>
-        <Link href="/studio/piloto">← Voltar às 10 matérias</Link>
+        <Link href="/studio/piloto"><Seta direcao="esquerda" /> Voltar às 10 matérias</Link>
       </p>
       <p>
         O QA 3 lê as matérias a1, a4, a6 e a9 pela folha do piloto, fora do Studio. Aqui você carrega o arquivo dele: cada linha é conferida com as regras da

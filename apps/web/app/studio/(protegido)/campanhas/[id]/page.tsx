@@ -56,7 +56,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
   return (
     <>
       <p>
-        <Link href="/studio/campanhas">← Campanhas</Link>
+        <Link href="/studio/campanhas"><Seta direcao="esquerda" /> Campanhas</Link>
       </p>
       <h1>{c.name}</h1>
       <p>

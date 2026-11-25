@@ -61,7 +61,7 @@ export default async function Materia({ params, searchParams }: { params: Promis
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>{m.titulo}</h1>
       <p>

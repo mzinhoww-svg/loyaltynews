@@ -10,6 +10,7 @@ import { Flash } from '../../../../_components/Flash';
 import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { decidirRevisaoAction, rechecarAction } from '../../actions';
+import { Seta } from '../../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Revisão da matéria' };
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
   return (
     <>
       <p>
-        <Link href="/studio/cms/checagem">← Fila de checagem</Link>
+        <Link href="/studio/cms/checagem"><Seta direcao="esquerda" /> Fila de checagem</Link>
       </p>
       <h1>{v.rascunho?.titulo ?? v.articleId}</h1>
       <p className="st-hint">

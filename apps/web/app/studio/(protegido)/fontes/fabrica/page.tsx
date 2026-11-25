@@ -9,6 +9,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { CartaoFonte } from './CartaoFonte';
 import { habilitarPaginaAction } from './actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Fontes da Fábrica editorial' };
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
   return (
     <>
       <p>
-        <Link href="/studio/fontes">← Banco de fontes</Link>
+        <Link href="/studio/fontes"><Seta direcao="esquerda" /> Banco de fontes</Link>
       </p>
       <h1>Fontes da Fábrica editorial</h1>
       <p>

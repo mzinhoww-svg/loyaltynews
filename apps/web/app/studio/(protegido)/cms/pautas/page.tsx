@@ -12,6 +12,7 @@ import { Flash } from '../../../_components/Flash';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../_components/SemBanco';
 import { enviarPautaAction } from './actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Pauta autoral' };
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,7 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>Pauta autoral</h1>
       <p>

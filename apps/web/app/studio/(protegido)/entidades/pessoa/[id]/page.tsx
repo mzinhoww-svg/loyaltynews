@@ -40,7 +40,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
   return (
     <>
       <p>
-        <Link href="/studio/entidades">← Entity intelligence</Link>
+        <Link href="/studio/entidades"><Seta direcao="esquerda" /> Entity intelligence</Link>
       </p>
       <h1>{person.full_name}</h1>
       <p className="st-hint">{PUBLIC_NOTICE}</p>

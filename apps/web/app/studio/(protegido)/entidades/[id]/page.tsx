@@ -52,7 +52,7 @@ export default async function EmpresaPage({ params, searchParams }: { params: Pr
   return (
     <>
       <p>
-        <Link href="/studio/entidades">← Entity intelligence</Link>
+        <Link href="/studio/entidades"><Seta direcao="esquerda" /> Entity intelligence</Link>
       </p>
       <h1>{org.trade_name ?? org.legal_name}</h1>
       <p className="st-hint">{PUBLIC_NOTICE}</p>

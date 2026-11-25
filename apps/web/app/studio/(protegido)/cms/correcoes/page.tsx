@@ -9,6 +9,7 @@ import { Flash } from '../../../_components/Flash';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { abrirCasoAction } from './actions';
 import { SemBanco } from '../../../_components/SemBanco';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Correções e direito de resposta' };
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export default async function CorrecoesPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>Correções e direito de resposta</h1>
       <p>Casos de erratas e direito de resposta. O formulário público do Portal registra pedidos (identidade sempre não verificada, contato nunca devolvido por API). Aqui a redação acompanha prazos, evidências e publicação do aviso.</p>

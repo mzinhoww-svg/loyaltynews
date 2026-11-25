@@ -39,7 +39,7 @@ export default async function ReunioesPage({ searchParams }: { searchParams: Pro
       </p>
       <nav aria-label="Navegar entre dias" className="st-actions" style={{ marginBottom: 12 }}>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, -1)}`}>
-          ← Dia anterior
+          <Seta direcao="esquerda" /> Dia anterior
         </Link>
         <strong data-dia={dia}>{dia}</strong>
         <Link className="st-btn sec" href={`/studio/reunioes?data=${addDays(dia, 1)}`}>

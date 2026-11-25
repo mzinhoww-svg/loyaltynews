@@ -66,7 +66,7 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
   return (
     <>
       <p>
-        <Link href="/studio/cms/correcoes">← Correções</Link>
+        <Link href="/studio/cms/correcoes"><Seta direcao="esquerda" /> Correções</Link>
       </p>
       <h1>Caso {c.id}</h1>
       <p className="st-hint" data-estado={c.state}>

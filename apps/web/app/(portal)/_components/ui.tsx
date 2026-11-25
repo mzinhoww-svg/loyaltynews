@@ -46,10 +46,10 @@ export function PageHead({
 }
 
 /** Seta decorativa dos rótulos "Ver todas/editoria": SVG, não o carácter U+2192 (fora do subset latin da Inter). */
-export function Arrow() {
+export function Arrow({ direcao = 'direita' }: { direcao?: 'direita' | 'esquerda' } = {}) {
   return (
     <svg className="pt-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 8h11M9 3.5L13.5 8 9 12.5" />
+      <path d={direcao === 'direita' ? 'M2.5 8h11M9 3.5L13.5 8 9 12.5' : 'M13.5 8h-11M7 3.5L2.5 8 7 12.5'} />
     </svg>
   );
 }
