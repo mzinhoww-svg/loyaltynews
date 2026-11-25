@@ -81,6 +81,13 @@ export const ROTULO_PRAZO: Record<SituacaoPrazo, string> = {
   encerrado: 'Decidido',
 };
 
+/**
+ * Protocolo público e estável do pedido (DP-38): `LN-` + os 12 primeiros hex do id, em maiúsculas. É o mesmo texto que o
+ * titular recebe no canal público (`protocoloDe`, ft/editorial-busca a0ade82); o Studio deriva do id que já tem na fila,
+ * sem campo novo no banco, migration ou mudança na rota pública. Não é credencial: sozinho não abre o pedido.
+ */
+export const protocoloDoPedido = (id: string): string => `LN-${id.replace(/-/g, '').slice(0, 12).toUpperCase()}`;
+
 /** Link para conferir o alvo no Studio (a página do executivo é da Studio 1). Cargo e Move não têm página própria: null. */
 export function linkDoAlvo(a: AlvoPedido | null): string | null {
   return a && a.tipo === 'pessoa' ? `/studio/entidades/pessoa/${encodeURIComponent(a.id)}` : null;
