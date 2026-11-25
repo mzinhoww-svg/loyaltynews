@@ -54,6 +54,17 @@ async function main() {
   // .next de origem: BUILD_ID, sem caminho de host Windows/usuário, sem pasta de cache
   if (!existsSync(join(nextSrc, 'BUILD_ID'))) fail('--next não parece um .next (sem BUILD_ID)', 2);
   const buildId = readFileSync(join(nextSrc, 'BUILD_ID'), 'utf8').trim();
+  // Identidade do .next: a marca gravada pelo build-web.mjs amarra o build ao commit/ambiente do pacote.
+  // Sem marca, ou com commit/ambiente/URL/BUILD_ID divergente, o pacote NÃO é montado (seria o verde falso do bloqueio A).
+  const marcaBuild = join(nextSrc, '.ln-build.json');
+  if (!existsSync(marcaBuild)) fail('.next sem .ln-build.json: não há prova de qual commit/ambiente gerou este build; gere com build-web.mjs do commit do pacote', 2);
+  let marca;
+  try { marca = JSON.parse(readFileSync(marcaBuild, 'utf8').replace(/^\uFEFF/, '')); } catch { fail('.next/.ln-build.json ilegível', 2); }
+  if (String(marca.buildId ?? '') !== buildId) fail(`.next: BUILD_ID (${buildId}) difere da marca do build (${marca.buildId ?? '(vazio)'})`, 2);
+  if (String(marca.commit ?? '') !== String(release.commit)) fail(`.next de outro commit: a marca diz ${String(marca.commit ?? '(vazio)').slice(0, 12)} e o pacote é do ${String(release.commit).slice(0, 12)}; gere o .next do commit do pacote`, 2);
+  const semBarra = (u) => String(u ?? '').trim().replace(/\/+$/, '');
+  if (semBarra(marca.siteUrl) !== semBarra(release.siteUrl)) fail(`.next de outra URL: a marca diz ${marca.siteUrl ?? '(vazio)'} e o pacote é de ${release.siteUrl}`, 2);
+  if (String(marca.appEnv ?? '') !== String(release.appEnv ?? '')) fail(`.next de outro ambiente: a marca diz ${marca.appEnv ?? '(vazio)'} e o pacote é ${release.appEnv}`, 2);
   for (const f of ['required-server-files.json', 'routes-manifest.json', 'build-manifest.json']) {
     if (!existsSync(join(nextSrc, f))) fail(`.next sem ${f}`, 2);
     const ruins = caminhosNaoPortaveis(readFileSync(join(nextSrc, f), 'utf8'));

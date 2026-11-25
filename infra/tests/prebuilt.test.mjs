@@ -308,6 +308,7 @@ test('caminhosNaoPortaveis: acha caminho de host Windows/usuário e ignora camin
 function nextFalso({ requerido = '{"version":1,"appDir":"/app/apps/web","files":[".next/BUILD_ID",".next/server/app-paths-manifest.json"]}' } = {}) {
   const n = tmp();
   put(n, 'BUILD_ID', 'BUILD_abc123');
+  put(n, '.ln-build.json', JSON.stringify({ schema: 1, commit: SHA, appEnv: 'staging', siteUrl: SITE, buildId: 'BUILD_abc123' }));
   put(n, 'required-server-files.json', requerido);
   put(n, 'routes-manifest.json', '{"version":3}');
   put(n, 'build-manifest.json', '{}');
@@ -391,6 +392,39 @@ test('package-web inclui no pacote TUDO que o start-web importa (lib/prebuilt.mj
   }
   // o que lib/prebuilt.mjs importa (build-web.mjs) também entra
   for (const m of readFileSync(join(S, 'lib', 'prebuilt.mjs'), 'utf8').matchAll(/from '\.\.\/([^']+\.mjs)'/g)) assert.ok(incluidos.includes('infra/scripts/' + m[1]), `prebuilt.mjs importa ../${m[1]}`);
+});
+
+test('package-prebuilt RECUSA .next cuja identidade não bate com o release: sem marca, outro commit, outra URL e BUILD_ID divergente', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const rodar = (nx, saida) => spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', join(base, saida), '--origem', 'teste', '--sem-zip'], { encoding: 'utf8' });
+  try {
+    const semMarca = nextFalso();
+    rmSync(join(semMarca, '.ln-build.json'));
+    const a = rodar(semMarca, 'a');
+    assert.equal(a.status, 2, a.stderr + a.stdout);
+    assert.match(a.stderr, /sem \.ln-build\.json/, 'sem marca, recusa dizendo o que falta');
+
+    const outro = nextFalso();
+    const m1 = JSON.parse(readFileSync(join(outro, '.ln-build.json'), 'utf8'));
+    writeFileSync(join(outro, '.ln-build.json'), JSON.stringify({ ...m1, commit: SHA2 }));
+    const b = rodar(outro, 'b');
+    assert.equal(b.status, 2);
+    assert.match(b.stderr, /outro commit: a marca diz bbbbbbbbbbbb e o pacote é do aaaaaaaaaaaa/);
+
+    const outraUrl = nextFalso();
+    const m2 = JSON.parse(readFileSync(join(outraUrl, '.ln-build.json'), 'utf8'));
+    writeFileSync(join(outraUrl, '.ln-build.json'), JSON.stringify({ ...m2, siteUrl: 'https://outro.example' }));
+    const c = rodar(outraUrl, 'c');
+    assert.equal(c.status, 2);
+    assert.match(c.stderr, /outra URL/);
+
+    const outroBuild = nextFalso();
+    const m3 = JSON.parse(readFileSync(join(outroBuild, '.ln-build.json'), 'utf8'));
+    writeFileSync(join(outroBuild, '.ln-build.json'), JSON.stringify({ ...m3, buildId: 'BUILD_outro' }));
+    const d = rodar(outroBuild, 'd');
+    assert.equal(d.status, 2);
+    assert.match(d.stderr, /BUILD_ID \(BUILD_abc123\) difere da marca/);
+  } finally { rmSync(base, { recursive: true, force: true }); }
 });
 
 test('package-prebuilt --sem-zip (runner Ubuntu): monta a pasta sem criar ZIP e o manifesto diz zip null', () => {
