@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
-import { resolveQueue } from './queues';
+import { QUEUE_DECISIONS, QueueDisabledError, isQueueEnabled, resolveQueue } from './queues';
 import type { EffectStore, OutboxRow, OutboxStore } from './reconciler';
 
 export const MAX_ATTEMPTS = 20;
@@ -13,7 +13,11 @@ export async function enqueueOutbox(
   tx: Db,
   e: { queue: string; refId: string; idempotencyKey: string },
 ): Promise<{ created: boolean }> {
-  if (!resolveQueue(e.queue)) throw new Error(`fila desconhecida: ${e.queue}`);
+  const queue = resolveQueue(e.queue);
+  if (!queue) throw new Error(`fila desconhecida: ${e.queue}`);
+  // Fila desligada não aceita job: o produtor falha agora (a transação de negócio desfaz) em vez de
+  // gravar trabalho que nenhum worker vai consumir.
+  if (!isQueueEnabled(queue)) throw new QueueDisabledError(queue, QUEUE_DECISIONS[queue].why);
   const rows = await tx
     .insert(schema.outbox)
     .values({ id: randomUUID(), queue: e.queue, refId: e.refId, idempotencyKey: e.idempotencyKey })

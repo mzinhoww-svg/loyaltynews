@@ -60,7 +60,22 @@ Público: `GET /api/publico/site` (versão em vigor: home JÁ RESOLVIDA (F-29: `
 `GET /api/publico/materias`, `GET /api/publico/materias/{slug}` (só `publicado`/`corrigido`, classe de dado `public`, com erratas), `GET /api/publico/editorias`, `GET /api/publico/agenda` (só eventos APROVADOS que ainda não terminaram; sem campos de moderação), `POST /api/publico/agenda/sugestoes` (sugestão pública: entra PENDENTE, resposta 202 sem id; sem dado pessoal; campo armadilha `site`; 5 por 15 min por IP com `TRUSTED_PROXY_HOPS`; teto de 200 pendentes ⇒ 429 `FILA_CHEIA`; sem link no título, datas em janela, duração ≤ 30 dias; idêntica pendente não duplica).
 
 ## Workers (apps/workers)
-`npm run build -w @ln/workers` gera `apps/workers/dist/index.js`; `node dist/index.js` exige `DATABASE_URL` e `REDIS_URL`. BullMQ nas 7 filas do ADR-002; Redis só com IDs; outbox no PostgreSQL com lease e `SKIP LOCKED`; reconciliador recria jobs perdidos; efeito exatamente-uma-vez por `effect_ledger`. Fila sem handler registrado em `src/handlers.ts` não tem worker (os jobs esperam). Produtores gravam com `enqueueOutbox(tx, ...)` na mesma transação do efeito.
+`npm run build -w @ln/workers` gera `apps/workers/dist/index.js`; `node dist/index.js` exige `DATABASE_URL` e `REDIS_URL`. BullMQ nas 7 filas do ADR-002; Redis só com IDs; outbox no PostgreSQL com lease e `SKIP LOCKED`; reconciliador recria jobs perdidos; efeito exatamente-uma-vez por `effect_ledger`. Produtores gravam com `enqueueOutbox(tx, ...)` na mesma transação do efeito.
+
+### Destino das filas (fechado em 25/11; guard de subida)
+`QUEUE_DECISIONS` em `apps/workers/src/queues.ts`; `queuePolicyProblems` em `queue-guard.ts`.
+
+| Fila | Destino | Prova |
+|---|---|---|
+| `entidades` | **processada**: publicação/correção vira organização e evidência no Intelligence, sem modelo | `apps/workers/src/handlers.test.ts` (enfileira, consome, grava; repetição não duplica) |
+| `checagem` | desligada: exige modelo autorizado; o pedido de nova checagem é **recusado** no enfileiramento | `editorial.test.ts` (501 `QUEUE_DISABLED`, nada no outbox) |
+| `coleta` | desligada: a coleta roda pela Fábrica em comando próprio | `queue-guard.test.ts` |
+| `redacao` | desligada: exige modelo autorizado | `queue-guard.test.ts` |
+| `social` | desligada: pacote exige modelo; publicação real não existe | `queue-guard.test.ts` |
+| `metricas` | desligada: sem produtor nesta versão | `queue-guard.test.ts` |
+| `reunioes` | desligada: sem produtor; reuniões são do AgentOps | `queue-guard.test.ts` |
+
+O worker **não sobe** (código 1) se uma fila declarada não tiver destino, se `on` estiver sem handler, se `off` tiver handler ou se faltar o motivo; a mensagem nomeia a fila. `enqueueOutbox` recusa gravar para fila `off` (`QueueDisabledError`): o produtor falha em vez de deixar o job esperando, e a rota responde **501 `QUEUE_DISABLED`** (estado permanente; não convida a retentar). Flag de produto inválida também recusa a subida, com o nome da flag (antes o worker seguia com tudo desligado).
 
 ## Módulos plugados por adaptador (handlers puros → rotas)
 - **Comercial** `/api/commercial/**` (tabela `ROUTES` de `@ln/commercial/api`): públicas (mídia kit, formatos, disponibilidade, lead com limite por IP, ad server) e Studio. `ctx.actor.canManageCommercial` vem do RBAC (`campanhas:update` e `inventario:update`: admin e comercial). O estado do domínio é hidratado do PostgreSQL por requisição e só a diferença é gravada; escritas rodam numa transação com `pg_advisory_xact_lock`. Estado de disponibilidade do formato vem de `ad_formats` (ajustável). O estado é carregado e lido pela API oficial `load()`/`snapshot()` do pacote. `rotulada` é sempre verdadeiro (regra F-074 do banco). **Listas do Studio (pedidas pelo Studio aec1612; do adaptador do Backend, somente leitura, mesma autorização `canManageCommercial`):** `GET /api/commercial/studio/campaigns` (`id, name, status, formatId, formatName, positionId, startDate, endDate, accountId, accountName, sponsoredLabel`; filtros `status`, `accountId`, `q` por nome; `limit` 1–100 padrão 20, `offset`; mais recentes primeiro; `{data,total,limit,offset}`) e `GET /api/commercial/studio/accounts` (`id, name, createdAt` e contagens `leads, opportunities, campaigns, activeCampaigns`; filtro `q`; ordenado por nome; sem nenhum dado pessoal dos leads).

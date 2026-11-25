@@ -4,6 +4,63 @@
 export const QUEUE_NAMES = ['coleta', 'redacao', 'checagem', 'social', 'entidades', 'metricas', 'reunioes'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
+/**
+ * Destino de CADA fila do ADR-002. Toda fila declarada tem de estar aqui:
+ * `on` = processada por um handler registrado; `off` = desligada por decisão explícita, com o motivo.
+ * O guard de subida (`queue-guard.ts`) recusa o worker quando falta decisão, quando `on` não tem handler
+ * ou quando `off` tem handler. O produtor (`enqueueOutbox`) recusa gravar para fila `off`: nada entra
+ * numa fila que ninguém vai consumir.
+ */
+export type QueueDecision = { mode: 'on'; why: string } | { mode: 'off'; why: string };
+
+export const QUEUE_DECISIONS: Readonly<Record<QueueName, QueueDecision>> = {
+  entidades: {
+    mode: 'on',
+    why: 'publicação e correção viram organizações no Intelligence (determinístico, sem modelo)',
+  },
+  coleta: {
+    mode: 'off',
+    why: 'a coleta roda pela Fábrica editorial em comando próprio (editorialCollector), não por esta fila; nenhum produtor grava aqui hoje',
+  },
+  redacao: {
+    mode: 'off',
+    why: 'exige modelo autorizado (modelosHabilitados desligado); a redação roda pela Fábrica em comando próprio',
+  },
+  checagem: {
+    mode: 'off',
+    why: 'exige modelo autorizado; o pedido de nova checagem é recusado no enfileiramento em vez de ficar parado',
+  },
+  social: {
+    mode: 'off',
+    why: 'o pacote social exige modelo e a publicação real não existe (somente simulada)',
+  },
+  metricas: {
+    mode: 'off',
+    why: 'sem produtor: nenhum módulo grava nesta fila; as métricas do ADR-002 não estão no lançamento',
+  },
+  reunioes: {
+    mode: 'off',
+    why: 'sem produtor: as reuniões são do AgentOps (meeting_runs), não desta fila',
+  },
+};
+
+export function queueDecision(name: QueueName): QueueDecision {
+  return QUEUE_DECISIONS[name];
+}
+
+/** Falso = fila desligada explicitamente; o enfileiramento tem de falhar, não esperar. */
+export function isQueueEnabled(name: QueueName): boolean {
+  return QUEUE_DECISIONS[name]?.mode === 'on';
+}
+
+/** Tenta gravar numa fila desligada: o produtor para aqui em vez de deixar o job sem consumidor. */
+export class QueueDisabledError extends Error {
+  constructor(readonly queue: QueueName, readonly why: string) {
+    super(`fila ${queue} está desligada: ${why}`);
+    this.name = 'QueueDisabledError';
+  }
+}
+
 export interface JobPayload {
   /** ID da linha de negócio (ex.: id da matéria, da fonte). Nunca conteúdo. */
   refId: string;
