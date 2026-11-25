@@ -22,3 +22,9 @@ Origem: DP-43 (proprietário, 23/11/2026) e adendo 1 do checklist (opção 1). N
 - Efeito prático no staging só depois de `LN_FLAGS_ON=adServerVendas` (PM). Até lá o mídia kit mostra os 3 formatos como disponíveis e o ad server segue desligado.
 - Aprovação só do proprietário (item 2 da DP-43) é permissão do Studio, não deste commit.
 - `packages/contracts/src/flags.ts` é contrato: pode exigir registro da DP-43 no manifesto (Architect).
+
+## Adendo DP-54 (24/11/2026): produção
+- O proprietário liberou os **47 formatos para PROPOSTA em produção**. `CAPACITY_RELEASES` agora tem os 47 ids: `production: 'DP-54'` em todos; `staging: 'DP-43'` só nos 3 originais (Topo, Laterais, Rodapé).
+- Os 14 formatos que o código marcava `indisponivel` (Instagram, The Loyal, WhatsApp, Loyalty Talks) ficam `disponivel` em produção **com a ressalva** de que a entrega só começa com o canal ativo (campo `statusReason`, visível no Studio; o mídia kit público avisa no texto do catálogo).
+- **Isto muda o catálogo e o mídia kit, não a venda no ad server.** Aprovar criativo, aprovar/ativar campanha e confirmar reserva seguem travados em produção por `FLAG_RELEASES.adServerVendas.production` (contrato; ainda `null`). Sem decisão registrada ali, a trava `SALE_DISABLED_IN_ENV` e o `SALE_NOT_ENABLED` continuam valendo.
+- Banco: o `indisponivel` que o seed gravou com o motivo padrão do código é cópia do código e não vale como retirada. Retirar um formato em produção: gravar `indisponivel` em `ad_formats` com motivo próprio (efeito imediato, sem deploy).

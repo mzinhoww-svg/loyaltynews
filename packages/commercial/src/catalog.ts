@@ -21,27 +21,36 @@ function defaultReason(f: FormatSeed): { status: FormatStatus; reason: string } 
   return { status: 'sob_consulta', reason: 'Sem capacidade operacional declarada; venda somente sob consulta/proposta.' };
 }
 
-/** Constrói o catálogo. `capacity[id]=true` promove 'sob_consulta' a 'disponivel' (nunca promove 'indisponivel'). */
+/**
+ * Constrói o catálogo. `capacity[id]=true` (só existe com decisão do proprietário, via CAPACITY_RELEASES) promove o formato a 'disponivel'.
+ * Sem liberação nada é promovido. Um formato que o código marcava 'indisponivel' (canal desligado ou sem operação) só é promovido por
+ * liberação explícita do proprietário (DP-54, produção) e leva a ressalva do motivo original no texto do estado.
+ */
 export function buildCatalog(capacity: CapacityDeclaration = {}): readonly CommercialFormat[] {
   return FORMAT_SEEDS.map((s) => {
     const d = defaultReason(s);
-    const promote = d.status === 'sob_consulta' && capacity[s.id] === true;
-    return { ...s, status: promote ? 'disponivel' : d.status, statusReason: promote ? 'Capacidade operacional declarada.' : d.reason, isReferencePrice: true } as CommercialFormat;
+    const promote = capacity[s.id] === true;
+    const statusReason = !promote ? d.reason : d.status === 'indisponivel' ? `Capacidade operacional declarada. ${RESSALVA} ${d.reason}` : 'Capacidade operacional declarada.';
+    return { ...s, status: promote ? 'disponivel' : d.status, statusReason, isReferencePrice: true } as CommercialFormat;
   });
 }
+/** Prefixo da ressalva quando o proprietário libera para proposta um formato cujo canal ainda não opera. */
+const RESSALVA = 'Ressalva: a entrega só começa com o canal ativo;';
 
 /**
  * Liberação de venda por formato e por ambiente (mesmo padrão do FLAG_RELEASES, ADR-022). Um formato só vira 'disponivel' no ambiente
- * em que tem aqui o id da decisão do proprietário; sem id (null) fica 'sob_consulta' (nunca promove 'indisponivel').
- * DP-43 (23/11/2026): no lançamento só Topo, Laterais 1-3 (um formato, 3 posições) e Rodapé. Venda só no staging agora;
- * produção só no go-live, com NOVA decisão (preencher `production` por commit revisado). Os outros 44 formatos ficam fora.
+ * em que tem aqui o id da decisão do proprietário; sem id (null) fica como o código o define ('sob_consulta' ou 'indisponivel').
+ *
+ * DP-43 (23/11/2026), STAGING: só Topo, Laterais 1-3 (um formato, 3 posições) e Rodapé. Os outros 44 não são liberados no staging.
+ * DP-54 (24/11/2026), PRODUÇÃO: o proprietário liberou os 47 formatos para PROPOSTA. Isto muda o catálogo e o mídia kit; NÃO liga o ad server
+ * nem a aprovação/ativação de campanha em produção: essas seguem travadas por FLAG_RELEASES.adServerVendas.production (contrato) até a
+ * decisão registrada ali (vendaLiberadaNoAmbiente).
  */
 export type CapacityRelease = { staging: string | null; production: string | null };
-export const CAPACITY_RELEASES: Readonly<Record<string, CapacityRelease>> = {
-  'banners--banner-topo': { staging: 'DP-43', production: null },
-  'banners--retangulo-sidebar': { staging: 'DP-43', production: null },
-  'banners--banner-rodape': { staging: 'DP-43', production: null },
-};
+const DP43_STAGING: ReadonlySet<string> = new Set(['banners--banner-topo', 'banners--retangulo-sidebar', 'banners--banner-rodape']);
+export const CAPACITY_RELEASES: Readonly<Record<string, CapacityRelease>> = Object.fromEntries(
+  FORMAT_SEEDS.map((f) => [f.id, { staging: DP43_STAGING.has(f.id) ? 'DP-43' : null, production: 'DP-54' } satisfies CapacityRelease]),
+);
 
 /** Id da decisão que libera o formato neste ambiente, ou null (ambiente desconhecido, local ou CI nunca libera nada). */
 export function capacityDecision(formatId: string, env: FlagEnv | null): string | null {
@@ -61,7 +70,10 @@ export function capacityFor(env: FlagEnv | null): CapacityDeclaration {
 export function catalogFor(env: FlagEnv | null): readonly CommercialFormat[] {
   return buildCatalog(capacityFor(env)).map((f) => {
     const dp = f.status === 'disponivel' ? capacityDecision(f.id, env) : null;
-    return dp ? { ...f, statusReason: `Venda liberada pelo proprietário (${dp}) neste ambiente.` } : f;
+    if (!dp) return f;
+    // Formato liberado que o código dava como 'indisponivel' (canal desligado): mantém a ressalva do motivo original, para o Studio ver.
+    const ressalva = f.statusReason.includes(RESSALVA) ? f.statusReason.slice(f.statusReason.indexOf(RESSALVA)) : '';
+    return { ...f, statusReason: `Liberado pelo proprietário (${dp}) neste ambiente.${ressalva ? ` ${ressalva}` : ''}` };
   });
 }
 

@@ -390,10 +390,14 @@ test.describe('honestidade de dados', () => {
     }
   });
 
-  test('contato não inventa e-mail nem redes', async ({ page }) => {
+  test('contato mostra só o e-mail confirmado pelo proprietário (DP-54) e não inventa outros canais nem redes', async ({ page }) => {
     await page.goto('/contato');
-    await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
-    await expect(page.getByText(/ainda não foram confirmados/)).toBeVisible();
+    const emails = page.locator('a[href^="mailto:"]');
+    await expect(emails).toHaveCount(1);
+    await expect(emails).toHaveAttribute('href', 'mailto:contato@loyaltynews.com.br');
+    await expect(page.getByTestId('contato-email')).toBeVisible();
+    await expect(page.getByText(/serão publicados aqui quando forem confirmados/)).toBeVisible();
+    await expect(page.locator('main a[href*="linkedin.com"], main a[href*="instagram.com"], main a[href*="wa.me"]')).toHaveCount(0);
   });
 });
 

@@ -68,7 +68,7 @@ export function generateMediaKit(opts: { store: MetricStore; now: string; catalo
         total: catalog.length, byStatus,
         formats: catalog.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status, ...(opts.internal ? { statusReason: f.statusReason } : {}) })),
         packages: PACKAGES,
-        disclaimer: 'Preços de referência em BRL, ajustáveis; disponibilidade é real. Nenhum formato sem capacidade operacional fica disponível para venda.',
+        disclaimer: 'Preços de referência em BRL, ajustáveis e confirmados na proposta. "Disponível" significa aberto a proposta. Nos formatos de canais ainda não ativados (Instagram, The Loyal, WhatsApp e Loyalty Talks), o início da entrega é confirmado na proposta.',
         capacityScenario: opts.internal ? theoreticalGrossCapacity() : null,
       },
       contratacao: { steps: ['Lead pelo formulário', 'Qualificação no CRM', 'Proposta versionada', 'Aceite/contrato', 'Reserva de inventário', 'Criativo e QA', 'Aprovação do cliente', 'Ativação', 'Monitoramento de entrega', 'Relatório e renovação'] },

@@ -27,12 +27,15 @@ test('preços de referência batem com o Blueprint', () => {
   assert.match(priceLabel(getFormat('impulsionamento--linkedin')!), /verba \+ 20%/);
   assert.equal(getFormat('conteudo-patrocinado--materia-publicitaria')!.fromBRL, 3500);
 });
-test('nenhum formato nasce disponivel sem capacidade declarada; indisponíveis nunca são promovidos', () => {
+test('nenhum formato nasce disponivel sem capacidade declarada; só a liberação explícita do proprietário promove (inclusive indisponível, com ressalva)', () => {
   assert.equal(CATALOG.filter((f) => f.status === 'disponivel').length, 0);
   assert.ok(CATALOG.every((f) => f.statusReason.length > 0));
+  assert.equal(buildCatalog().filter((f) => f.status === 'disponivel').length, 0);
   const c = buildCatalog({ 'banners--banner-topo': true, 'the-loyal--banner-meio': true });
   assert.equal(getFormat('banners--banner-topo', c)!.status, 'disponivel');
-  assert.equal(getFormat('the-loyal--banner-meio', c)!.status, 'indisponivel');
+  assert.equal(getFormat('the-loyal--banner-meio', c)!.status, 'disponivel');
+  assert.match(getFormat('the-loyal--banner-meio', c)!.statusReason, /Ressalva/);
+  assert.equal(getFormat('the-loyal--banner-meio')!.status, 'indisponivel'); // o catálogo base não mudou
   assert.equal(CATALOG.find((f) => f.id === 'banners--banner-topo')!.status, 'sob_consulta');
 });
 

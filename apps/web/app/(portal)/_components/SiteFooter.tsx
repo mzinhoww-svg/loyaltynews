@@ -59,7 +59,7 @@ export async function SiteFooter() {
           ],
         },
       ]}
-      note="Canais oficiais e e-mail serão publicados quando confirmados."
+      note="Contato comercial e de dados: contato@loyaltynews.com.br. Redes oficiais serão publicadas quando confirmadas."
     />
   );
 }

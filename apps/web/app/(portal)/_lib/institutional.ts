@@ -17,6 +17,8 @@ export interface InfoDoc {
   sections: InfoSection[];
 }
 
+import { CONTATO_EMAIL } from './contato';
+
 const DRAFT =
   'Minuta v0.1 sujeita à validação jurídica antes do lançamento. Registro de versão e última atualização será exibido quando o texto for aprovado.';
 
@@ -142,7 +144,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     sections: [
       {
         heading: 'Controlador e contato do encarregado',
-        paragraphs: ['A definir antes do lançamento (pendência de governança R1-01). Esta página será atualizada com identificação e canal oficiais.'],
+        paragraphs: [`Contato do encarregado pelo tratamento de dados pessoais (LGPD): ${CONTATO_EMAIL}. A identificação do controlador (razão social e CNPJ) será publicada aqui quando confirmada (pendência de governança R1-01).`],
       },
       {
         heading: 'Princípios',
@@ -155,7 +157,14 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Direitos do titular',
-        paragraphs: ['Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O pedido é feito pelo formulário em /correcoes#pedido, e a resposta chega ao e-mail informado.'],
+        paragraphs: [`Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O pedido é feito pelo formulário em /correcoes#pedido, e a resposta chega ao e-mail informado. Dúvidas sobre dados pessoais também podem ser enviadas a ${CONTATO_EMAIL}.`],
+      },
+      {
+        heading: 'Pedido de proposta comercial (mídia kit)',
+        paragraphs: [
+          'Quando o formulário de proposta estiver ativo, pedimos nome, empresa e e-mail comercial (obrigatórios) e, se você quiser, WhatsApp e uma mensagem. Usamos esses dados só para responder ao pedido de proposta e gravamos a data e a hora do envio como registro do pedido.',
+          'A newsletter é uma opção separada, desmarcada por padrão. Não gravamos o endereço de rede (IP) junto com o pedido. O prazo de guarda será definido na validação jurídica desta minuta.',
+        ],
       },
       {
         heading: 'Cookies e medição',
@@ -211,7 +220,8 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Canais',
         paragraphs: [
-          'Os canais oficiais (e-mail, redes e formulário) ainda não foram confirmados e não serão exibidos até a configuração oficial. Esta página será atualizada na ativação.',
+          `Comercial, proposta de mídia kit e encarregado de dados (LGPD): ${CONTATO_EMAIL}.`,
+          'Pedidos de correção ou remoção de um dado: formulário em /correcoes#pedido. Outros canais da redação e as redes oficiais serão publicados aqui quando forem confirmados.',
         ],
       },
       {
