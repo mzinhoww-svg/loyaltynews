@@ -17,7 +17,7 @@ Também mantidos sem mudança: Metodologia e Publicidade (já corretas). O domí
 
 ## O que impede publicar como "versão final" (só o proprietário ou o jurídico resolvem)
 
-1. **Controlador dos dados:** hoje é o proprietário, pessoa física (DP-55); trocar para razão social, CNPJ e endereço quando ele enviar. O nome na página (Aurimar Nogueira) veio do PM, que confirma com o proprietário antes da publicação.
+1. **Controlador dos dados:** hoje é o proprietário, pessoa física (DP-55); trocar para razão social, CNPJ e endereço quando ele enviar. O nome na página (Aurimar Nogueira) foi confirmado pelo proprietário no chat em 25/11/2026 (aviso do PM): pendência resolvida.
 2. **Encarregado de dados (DPO):** o canal é `contato@loyaltynews.com.br` (DP-54); o nome da pessoa encarregada não foi informado e não consta na página.
 3. **Demais e-mails oficiais** (redação, direitos autorais) e **redes oficiais**. Sem eles, `/contato` aponta o formulário de correções e o e-mail da DP-54. Quando existirem, entram em `institutional.ts` e os dois testes que barram e-mail precisam ser ajustados de propósito.
 4. **Parecer jurídico** (R0-10/F-090) sobre Privacidade, Termos e Publicidade: os três continuam com o aviso "Minuta ... sujeita à validação jurídica" (o teste do portal exige o aviso).
