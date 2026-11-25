@@ -50,7 +50,7 @@
 
 .pt-pagehead { padding: var(--ln-space-4) 0 var(--ln-space-2); border-bottom: 1px solid var(--ln-color-border); margin-bottom: var(--ln-space-4); }
 .pt-chips { display: flex; gap: var(--ln-space-2); flex-wrap: wrap; margin: 0 0 var(--ln-space-4); padding: 0; list-style: none; }
-.pt-chip { display: inline-flex; align-items: center; min-height: 36px; border: 1px solid var(--ln-color-border); border-radius: var(--ln-radius-pill); padding: 0 var(--ln-space-3); font-size: var(--ln-text-sm); font-weight: var(--ln-weight-medium); background: var(--ln-color-white); color: var(--ln-color-primary); text-decoration: none; }
+.pt-chip { display: inline-flex; align-items: center; min-height: 36px; border: 1px solid var(--ln-color-border-strong); border-radius: var(--ln-radius-pill); padding: 0 var(--ln-space-3); font-size: var(--ln-text-sm); font-weight: var(--ln-weight-medium); background: var(--ln-color-white); color: var(--ln-color-primary); text-decoration: none; }
 .pt-chip[aria-current='true'], .pt-chip[aria-current='page'] { background: var(--ln-color-primary); color: var(--ln-color-white); border-color: var(--ln-color-primary); }
 
 /* matéria */

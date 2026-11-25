@@ -124,3 +124,49 @@ describe("tabela medida — corpo, link, botão primário e texto sobre imagem",
     expect(abaixo).toEqual([]);
   });
 });
+
+// Achados aprovados pelo PM em 25/11/2026: os dois casos fora do portal entram travados aqui.
+const GROWTH_UI = readFileSync(resolve(ROOT, "../growth/src/ui/components.ts"), "utf8");
+const PORTAL_CSS = readFileSync(resolve(ROOT, "../../apps/web/app/(portal)/portal.css"), "utf8");
+
+describe("achados aprovados: acento da prévia e borda do chip", () => {
+  it.each(["white", "mint", "surface-subtle"] as const)(
+    "hashtag e link da prévia: secondary-strong sobre %s ≥ 4,5:1",
+    (bg) => {
+      expect(ratio(c("secondary-strong"), c(bg))).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it("hashtag e link da prévia: a cor usada passa de 4,5:1 no branco, na menta e na surface", () => {
+    const corDe = (linha: string) =>
+      linha.includes("SECONDARY_TEXT") ? "#2A6F65" : linha.includes("C.secondary") ? "#34877A" : "";
+    const linhas = GROWTH_UI.split("\n");
+    const usos = [
+      linhas.find((l) => l.includes("s.type === 'hashtag'")) ?? "",
+      linhas.find((l) => l.includes("s.type === 'link'")) ?? "",
+    ];
+    for (const linha of usos) {
+      const hex = corDe(linha);
+      expect(hex).not.toBe("");
+      for (const bg of ["white", "mint", "surface-subtle"] as const) {
+        expect(ratio(hex, c(bg))).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(linha).not.toMatch(/C\.secondary\b/);
+    }
+    expect(GROWTH_UI).toContain('const SECONDARY_TEXT = "#2A6F65";');
+  });
+
+  it("borda do .pt-chip: a cor usada no contorno passa de 3:1", () => {
+    const regra = PORTAL_CSS.match(/\.pt-chip \{[^}]*\}/)?.[0] ?? "";
+    const token = regra.match(/border: 1px solid var\((--ln-color-[a-z-]+)\)/)?.[1] ?? "";
+    const hex = token === "--ln-color-border-strong" ? c("border-strong") : token === "--ln-color-border" ? c("border") : "";
+    expect(hex).not.toBe("");
+    expect(ratio(hex, c("white"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("o .pt-chip nomeia border-strong e não o border fraco", () => {
+    const regra = PORTAL_CSS.match(/\.pt-chip \{[^}]*\}/)?.[0] ?? "";
+    expect(regra).toContain("var(--ln-color-border-strong)");
+    expect(regra).not.toMatch(/var\(--ln-color-border\)/);
+  });
+});
