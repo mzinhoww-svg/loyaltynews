@@ -110,3 +110,19 @@
 
 /* revisão visual P2-6 (decisão PM-2026-11-23-H): títulos do Studio em Inter (fonte de interface), mesmos tamanhos e pesos; o portal não muda */
 .studio :is(h1, h2, h3, h4, h5, h6) { font-family: var(--ln-font-ui); }
+
+/* ---- refino do lançamento, pacote C, item 1: casca (menu lateral) ---- */
+/* grupos recolhíveis: o título do grupo é um botão (aria-expanded) com o mesmo visual do título do design system */
+.studio .st-nav-grupo__botao { display: flex; width: 100%; align-items: center; gap: var(--ln-space-2); min-height: var(--ln-touch-target); padding: 0 var(--ln-space-3); background: transparent; color: var(--ln-color-signal); border: 0; border-radius: var(--ln-radius-md); font: inherit; font-size: var(--ln-text-xs); letter-spacing: 0.08em; text-transform: uppercase; font-weight: var(--ln-weight-bold); text-align: left; cursor: pointer; }
+.studio .st-nav-grupo__botao:hover { background: color-mix(in srgb, var(--ln-color-white) 12%, transparent); }
+.studio .st-nav-grupo__botao::after { content: ''; flex: none; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); }
+.studio .st-nav-grupo__botao[aria-expanded='true']::after { transform: rotate(45deg); }
+.studio .st-nav-grupo__qtd { font-weight: var(--ln-weight-regular, 400); opacity: 0.85; }
+.studio .ln-sidebar__group.st-nav-grupo + .ln-sidebar__group.st-nav-grupo { margin-top: var(--ln-space-1); }
+.studio .ln-sidebar__list[hidden] { display: none; }
+/* item ativo claro: fundo branco e texto da cor primária (par do brandkit, contraste 12,04:1) */
+.studio .ln-sidebar .ln-sidebar__link[aria-current='page'] { background: var(--ln-color-white); color: var(--ln-color-primary); border-left-color: var(--ln-color-signal); }
+.studio .ln-sidebar .ln-sidebar__link { flex-wrap: wrap; }
+.studio .st-nav-pill { font-size: var(--ln-text-xs); line-height: var(--ln-leading-xs); padding: 0 var(--ln-space-2); white-space: normal; }
+/* foco visível sobre o fundo escuro do menu: o anel azul do corpo não contrasta aqui */
+.studio .ln-sidebar :focus-visible { outline-color: var(--ln-color-white); }

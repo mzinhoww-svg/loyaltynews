@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { entrar } from './helpers';
+import { entrar, abrirTodosOsGrupos } from './helpers';
 
 const MODULOS: Array<[string, string]> = [
   ['cms', 'CMS editorial'],
@@ -73,6 +73,7 @@ test.describe('shell e navegação', () => {
     await page.goto('/studio');
     await expect(page.getByRole('heading', { level: 1, name: 'LN Studio' })).toBeVisible();
     const nav = page.getByRole('navigation', { name: 'Módulos do Studio' });
+    await abrirTodosOsGrupos(page); // os grupos do menu são recolhíveis; só o da tela atual abre sozinho
     for (const [, nome] of MODULOS) await expect(nav.getByRole('link', { name: nome })).toBeVisible();
     for (const [slug, nome] of MODULOS) {
       await page.goto(`/studio/${slug}`);
@@ -113,15 +114,17 @@ test.describe('shell e navegação', () => {
       expect(texto, rota).not.toMatch(/\bflag\b|estado vazio/i);
     }
     await page.goto('/studio');
-    await expect(page.locator('[data-estado-modulo="desligado"]').first()).toHaveText('Desligado nesta fase');
+    await expect(page.locator('[data-estado-modulo="desligado"]').first()).toContainText('Desligado nesta fase');
     await expect(page.locator('.st-card', { has: page.locator('[data-estado-modulo="desligado"]') }).getByText('Em uso')).toHaveCount(0);
-    await expect(page.getByRole('navigation').getByText(/\(desligado nesta fase\)/).first()).toBeVisible();
+    await abrirTodosOsGrupos(page);
+    // no menu o selo é um StatusPill neutro (nunca só cor: tem glifo e texto)
+    await expect(page.getByRole('navigation', { name: 'Módulos do Studio' }).locator('.ln-pill--neutral').filter({ hasText: 'Desligado nesta fase' }).first()).toBeVisible();
   });
 
   test('flag desligada aparece no módulo', async ({ page, context }) => {
     await entrar(context, 'ana', 'admin');
     await page.goto('/studio/social');
-    await expect(page.getByText('desligado nesta fase', { exact: false }).first()).toBeVisible();
+    await expect(page.locator('main').getByText('desligado nesta fase', { exact: false }).first()).toBeVisible(); // no conteúdo da tela (o menu lateral recolhe os grupos)
     await page.goto('/studio/inexistente');
     await expect(page.getByRole('heading', { name: /404|not found|não encontrada/i }).first()).toBeVisible();
   });
@@ -130,6 +133,7 @@ test.describe('shell e navegação', () => {
     await entrar(context, 'caio', 'comercial');
     await page.goto('/studio');
     const nav = page.getByRole('navigation', { name: 'Módulos do Studio' });
+    await abrirTodosOsGrupos(page);
     await expect(nav.getByRole('link', { name: 'CRM' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'CMS editorial' })).toHaveCount(0);
     await page.goto('/studio/cms');
