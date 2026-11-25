@@ -106,6 +106,18 @@ function semComentarios(txt, r) {
   return txt.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
+// 3b. LN_FLAGS_ON só é LIDA no resolvedor (packages/contracts/src/flags.ts). As flags de produto valem só em EXECUÇÃO: o `.next` não pode depender delas, e é isso que permite construir o staging no
+// Actions sem flags e carimbá-las depois (infra/scripts/carimbar-flags-prebuilt.mjs; prova em releases/staging/prova-flags-build). Ler a variável em outro arquivo de código (apps/ e packages/) reprova.
+// Não conta: testes, e2e, documentação, saída compilada, e menções em texto (mensagens, comentários): só o ACESSO ao ambiente (`env.LN_FLAGS_ON`, `env['LN_FLAGS_ON']`, `{ LN_FLAGS_ON } = env`).
+const LEITURA_LN_FLAGS_ON = /\benv\s*(?:\??\.\s*LN_FLAGS_ON\b|\??\.?\[\s*['"`]LN_FLAGS_ON['"`]\s*\])|\{[^{}]*\bLN_FLAGS_ON\b[^{}]*\}\s*=\s*(?:process\.)?env\b/;
+for (const f of all) {
+  const r = rel(f);
+  if (!/^(apps|packages)\//.test(r) || !/\.(?:[cm]?[jt]sx?)$/.test(r)) continue;
+  if (r === 'packages/contracts/src/flags.ts' || /(^|\/)(node_modules|dist|\.next|e2e|docs)\//.test(r) || /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(r) || /(^|\/)playwright[^/]*\.config\.[cm]?[jt]s$/.test(r) || /(^|\/)portal-real\.config\.[cm]?[jt]s$/.test(r)) continue;
+  if (statSync(f).size > 2 * 1024 * 1024) continue;
+  if (LEITURA_LN_FLAGS_ON.test(semComentarios(readFileSync(f, 'utf8'), r))) problems.push(`LN_FLAGS_ON lida em ${r}: só o resolvedor packages/contracts/src/flags.ts pode ler a variável (flags valem só em execução; ler em outro arquivo pode levar a flag para o .next e invalida o staging pré-construído com flags carimbadas)`);
+}
+
 // 4. variáveis só de teste (alerta do PM): nunca no ambiente, no build nem em arquivos de deploy
 const argv = parseArgs(process.argv.slice(2));
 for (const msg of envProblems(process.env, { deploy: Boolean(argv.deploy), migracao: Boolean(argv.migracao) })) problems.push(`ambiente: ${msg}`);
