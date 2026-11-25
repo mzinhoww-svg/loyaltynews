@@ -1,0 +1,443 @@
+{
+  "base": "http://localhost:3000",
+  "lado": "antes5",
+  "pagina": "home",
+  "largura": 390,
+  "rodadas": [
+    {
+      "fcp": 2040,
+      "lcp": 2208,
+      "cls": 0.001,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter-latin-wght-normal.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556,
+          "responseEnd": 2398
+        }
+      ],
+      "preload": null,
+      "faces": 7,
+      "facesUrl": 7,
+      "shifts": [
+        {
+          "t": 3596,
+          "value": 0.001,
+          "fontes": [
+            {
+              "no": "span.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 554,
+                "h": 20
+              },
+              "para": {
+                "y": 554,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 673,
+                "h": 20
+              },
+              "para": {
+                "y": 673,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 793,
+                "h": 20
+              },
+              "para": {
+                "y": 793,
+                "h": 20
+              }
+            },
+            {
+              "no": "time.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            }
+          ]
+        }
+      ],
+      "lcpEl": {
+        "tag": "img",
+        "cls": "",
+        "size": 71958,
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width"
+      },
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 1124,
+      "lcp": 1220,
+      "cls": 0.001,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter-latin-wght-normal.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556,
+          "responseEnd": 1761
+        }
+      ],
+      "preload": null,
+      "faces": 7,
+      "facesUrl": 7,
+      "shifts": [
+        {
+          "t": 2262,
+          "value": 0.001,
+          "fontes": [
+            {
+              "no": "span.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 554,
+                "h": 20
+              },
+              "para": {
+                "y": 554,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 673,
+                "h": 20
+              },
+              "para": {
+                "y": 673,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 793,
+                "h": 20
+              },
+              "para": {
+                "y": 793,
+                "h": 20
+              }
+            },
+            {
+              "no": "time.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            }
+          ]
+        }
+      ],
+      "lcpEl": {
+        "tag": "img",
+        "cls": "",
+        "size": 71958,
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width"
+      },
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 1264,
+      "lcp": 1404,
+      "cls": 0.001,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter-latin-wght-normal.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556,
+          "responseEnd": 1743
+        }
+      ],
+      "preload": null,
+      "faces": 7,
+      "facesUrl": 7,
+      "shifts": [
+        {
+          "t": 2299,
+          "value": 0.001,
+          "fontes": [
+            {
+              "no": "span.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 554,
+                "h": 20
+              },
+              "para": {
+                "y": 554,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 673,
+                "h": 20
+              },
+              "para": {
+                "y": 673,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 793,
+                "h": 20
+              },
+              "para": {
+                "y": 793,
+                "h": 20
+              }
+            },
+            {
+              "no": "time.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            }
+          ]
+        }
+      ],
+      "lcpEl": {
+        "tag": "img",
+        "cls": "",
+        "size": 71958,
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width"
+      },
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 932,
+      "lcp": 1004,
+      "cls": 0.001,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter-latin-wght-normal.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556,
+          "responseEnd": 1732
+        }
+      ],
+      "preload": null,
+      "faces": 7,
+      "facesUrl": 7,
+      "shifts": [
+        {
+          "t": 2024,
+          "value": 0.001,
+          "fontes": [
+            {
+              "no": "span.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 554,
+                "h": 20
+              },
+              "para": {
+                "y": 554,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 673,
+                "h": 20
+              },
+              "para": {
+                "y": 673,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 793,
+                "h": 20
+              },
+              "para": {
+                "y": 793,
+                "h": 20
+              }
+            },
+            {
+              "no": "time.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            }
+          ]
+        }
+      ],
+      "lcpEl": {
+        "tag": "img",
+        "cls": "",
+        "size": 71958,
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width"
+      },
+      "chromium": "159.0.8154.6"
+    },
+    {
+      "fcp": 904,
+      "lcp": 968,
+      "cls": 0.001,
+      "fontes": [
+        {
+          "url": "http://localhost:3000/_next/static/media/inter-latin-wght-normal.0gsaq8ukbf34m.woff2",
+          "decoded": 48256,
+          "transfer": 48556,
+          "responseEnd": 1725
+        }
+      ],
+      "preload": null,
+      "faces": 7,
+      "facesUrl": 7,
+      "shifts": [
+        {
+          "t": 2022,
+          "value": 0.001,
+          "fontes": [
+            {
+              "no": "span.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 554,
+                "h": 20
+              },
+              "para": {
+                "y": 554,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 673,
+                "h": 20
+              },
+              "para": {
+                "y": 673,
+                "h": 20
+              }
+            },
+            {
+              "no": "span.",
+              "de": {
+                "y": 793,
+                "h": 20
+              },
+              "para": {
+                "y": 793,
+                "h": 20
+              }
+            },
+            {
+              "no": "time.",
+              "de": {
+                "y": 447,
+                "h": 20
+              },
+              "para": {
+                "y": 447,
+                "h": 20
+              }
+            }
+          ]
+        }
+      ],
+      "lcpEl": {
+        "tag": "img",
+        "cls": "",
+        "size": 71958,
+        "url": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width"
+      },
+      "chromium": "159.0.8154.6"
+    }
+  ],
+  "mediana": {
+    "fcp": 1124,
+    "lcp": 1220,
+    "cls": 0.001
+  }
+}
