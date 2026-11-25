@@ -1581,7 +1581,7 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
     }
   }
   // A CLI do piloto (operador/agente) não é variável de app: definida num deploy, o app não sobe; em desenvolvimento (sem --deploy) não atrapalha.
-  const cli = { LN_API_BASE: 'https://loyaltynews-stg.vertraweb.app/api/openbot', LN_AGENT_ACCOUNT: 'codex', LN_HMAC_SECRET_FILE: 'C:/cofre/ln-hmac', LN_WORKER_ID: 'openbot-codex-pauta' };
+  const cli = { LN_API_BASE: 'https://loyaltynews-stg.vertraweb.app/api/openbot', LN_AGENT_ACCOUNT: 'codex', LN_HMAC_SECRET_FILE: 'C:/cofre/ln-hmac', LN_HMAC_SECRET: 'valor-ficticio-de-teste', LN_WORKER_ID: 'openbot-codex-pauta' };
   for (const [nome, valor] of Object.entries(cli)) {
     const r = run({ APP_ENV: 'staging', [nome]: valor });
     assert.equal(r.status, 1, nome + ' definida no app num deploy deve reprovar (mesmo no staging)');
@@ -1608,6 +1608,12 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
   assert.match(hmac.nota, /LN_OPENBOT_HMAC_STAGING/, 'a nota aponta a fonte que o staging já usa');
   assert.match(hmac.nota, /MESMA/, 'a nota manda reutilizar a mesma fonte, sem segunda cópia');
   assert.doesNotMatch(JSON.stringify(hmac), /[A-Za-z0-9+/=]{40,}/, 'nenhum valor de segredo no contrato');
+  // O guard está na barreira de verdade: build e start dos dois ambientes começam por guard-env.
+  for (const amb2 of ['staging', 'production']) for (const app of ['web', 'workers']) {
+    const r = amb.ambientes[amb2].recursos[app];
+    assert.match(r.build_command, /^node infra\/scripts\/guard-env\.mjs && /, `${amb2}/${app}: build começa pelo guard-env`);
+    assert.match(r.start_command, /^node infra\/scripts\/guard-env\.mjs && /, `${amb2}/${app}: start começa pelo guard-env`);
+  }
 });
 
 test('memoria-build: o padrão do build é 2048 (24/11/2026): sem produção, o web sobe a 2048 (pico = used + 1536) e volta; produção em regime (7552) NÃO cabe', async () => {

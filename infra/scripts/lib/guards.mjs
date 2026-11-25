@@ -114,7 +114,7 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
   }
   // CLI do piloto (operador/agente fora da Vertra: packages/openbot/bin): o app NÃO lê nenhuma destas; o valor do cofre fica no arquivo
   // apontado por LN_HMAC_SECRET_FILE, nunca no painel. Definidas num deploy, reprovam — evita colar no app o que é do operador.
-  if (deploy) for (const nome of ['LN_API_BASE', 'LN_AGENT_ACCOUNT', 'LN_HMAC_SECRET_FILE', 'LN_WORKER_ID']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida no app num deploy: variável da CLI do piloto (operador/agente, fora da Vertra), não do app; apague`);
+  if (deploy) for (const nome of ['LN_API_BASE', 'LN_AGENT_ACCOUNT', 'LN_HMAC_SECRET_FILE', 'LN_HMAC_SECRET', 'LN_WORKER_ID']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida no app num deploy: variável da CLI do piloto (operador/agente, fora da Vertra), não do app; apague`);
   if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
 
   return p;

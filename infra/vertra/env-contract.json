@@ -408,6 +408,11 @@
       "nota": "CLI do piloto: CAMINHO do arquivo que o cofre do OpenBot entrega; o conteúdo (o segredo HMAC) nunca vai ao prompt, a argumento nem ao app. Do operador, nunca no app. Definida num deploy, o guard-env reprova."
     },
     {
+      "nome": "LN_HMAC_SECRET",
+      "secreto": true,
+      "nota": "CLI do piloto: alternativa MENOS recomendada a LN_HMAC_SECRET_FILE, com o segredo inline no ambiente do operador (ln-openbot-agent.mjs:56); o roteiro manda usar o arquivo do cofre. NUNCA vai ao app, a arquivo, chat, log ou commit. Definida num deploy, o guard-env reprova."
+    },
+    {
       "nome": "LN_WORKER_ID",
       "secreto": false,
       "nota": "CLI do piloto: um id por agente (ex.: openbot-claude-pauta). Do operador, nunca no app. Definida num deploy, o guard-env reprova."
