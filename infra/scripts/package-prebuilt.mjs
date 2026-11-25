@@ -22,8 +22,33 @@ const OVERLAY = ['start-web.mjs', join('lib', 'prebuilt.mjs'), join('lib', 'tar.
 /** Caminhos do host de build dentro do .next que provam que ele não é portável (Windows ou pasta de usuário). Função pura. */
 export function caminhosNaoPortaveis(texto) {
   const achados = new Set();
-  for (const m of String(texto).matchAll(/[A-Za-z]:[\\/]{1,4}[^"'\s<>|]{3,60}|\/(?:Users|home|mnt\/[a-z])\/[^"'\s<>|]{3,60}/g)) achados.add(m[0].slice(0, 70));
+  const t = String(texto);
+  // Caminho do host: letra de unidade seguida de \\ ou de UMA / (nunca "://", que é esquema de URL).
+  for (const m of t.matchAll(/(?<![A-Za-z])[A-Za-z]:\\[^"'\s<>|]{3,60}/g)) achados.add(m[0].slice(0, 70));
+  for (const m of t.matchAll(/(?<![A-Za-z])[A-Za-z]:\/(?!\/)[^"'\s<>|]{3,60}/g)) achados.add(m[0].slice(0, 70));
+  for (const m of t.matchAll(/\/(?:Users|home|mnt\/[a-z])\/[^"'\s<>|]{3,60}/g)) achados.add(m[0].slice(0, 70));
   return [...achados];
+}
+
+/**
+ * Origem do site dentro do .next: só isso é conferido aqui. URL de terceiro (GTM, GA, fontes) é ignorada.
+ * Reprovam: origem local do build (localhost/127.0.0.1) e chave que carrega a URL do site com host diferente do siteUrl.
+ */
+export function origemDoSiteProblemas(texto, siteUrl) {
+  const p = [];
+  const t = String(texto);
+  let host = null;
+  try { host = new URL(String(siteUrl)).host; } catch { /* siteUrl inválida: não há o que comparar */ }
+  const locais = [...t.matchAll(/https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?=[/"'\s<>|]|$)/gi)].map((m) => m[0]);
+  if (locais.length) p.push(`origem local do build no .next (${locais[0]}): o site tem de ser ${siteUrl}`);
+  const chaves = [...t.matchAll(/"(?:appUrl|siteUrl|canonical|baseUrl|origin)"\s*:\s*"([^"]+)"/gi)].map((m) => m[1]);
+  for (const v of chaves) {
+    try {
+      const u = new URL(v);
+      if (host && u.host !== host) p.push(`origem do site no .next (${u.host}) difere do siteUrl (${host})`);
+    } catch { /* valor não é URL absoluta: não é origem */ }
+  }
+  return [...new Set(p)];
 }
 
 function listar(dir, fora = new Set()) {
@@ -67,8 +92,11 @@ async function main() {
   if (String(marca.appEnv ?? '') !== String(release.appEnv ?? '')) fail(`.next de outro ambiente: a marca diz ${marca.appEnv ?? '(vazio)'} e o pacote é ${release.appEnv}`, 2);
   for (const f of ['required-server-files.json', 'routes-manifest.json', 'build-manifest.json']) {
     if (!existsSync(join(nextSrc, f))) fail(`.next sem ${f}`, 2);
-    const ruins = caminhosNaoPortaveis(readFileSync(join(nextSrc, f), 'utf8'));
+    const txt = readFileSync(join(nextSrc, f), 'utf8');
+    const ruins = caminhosNaoPortaveis(txt);
     if (ruins.length) fail(`.next/${f} tem caminho(s) do host de build (${ruins.slice(0, 3).join(' | ')}): construído fora de um Linux em /app, não roda na Vertra`, 2);
+    const origem = origemDoSiteProblemas(txt, release.siteUrl);
+    if (origem.length) fail(`.next/${f}: ${origem.slice(0, 3).join(' | ')}`, 2);
   }
   // completude pelos manifestos do próprio Next (rotas do App Router incluídas): um download que perdeu pastas NÃO vira pacote
   const faltam = arquivosFaltando(nextSrc);

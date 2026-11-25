@@ -10,7 +10,7 @@ import { arquivosFaltando, pacoteDoExterno, problemasPrebuilt, restaurarPrebuilt
 import { prebuiltStartProblems } from '../scripts/start-web.mjs';
 import { healthPayload, healthProblem } from '../../apps/web/lib/health.ts';
 import { readBuildIdentity } from '../../apps/web/lib/build-identity.ts';
-import { caminhosNaoPortaveis } from '../scripts/package-prebuilt.mjs';
+import { caminhosNaoPortaveis, origemDoSiteProblemas } from '../scripts/package-prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
 const tmp = () => mkdtempSync(join(tmpdir(), 'ln-prebuilt-test-'));
@@ -305,6 +305,22 @@ test('caminhosNaoPortaveis: acha caminho de host Windows/usuário e ignora camin
   assert.deepEqual(caminhosNaoPortaveis('{"appDir":"/app/apps/web","outputFileTracingRoot":"/app"}'), []);
 });
 
+test('caminhosNaoPortaveis/URL: esquema de URL (https://) e URL de terceiro (GTM/GA) NÃO são caminho de host', () => {
+  const gtm = '{"headers":[{"source":"/(.*)","headers":[{"key":"Content-Security-Policy","value":"script-src https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com"}]}]}';
+  assert.deepEqual(caminhosNaoPortaveis(gtm), []);
+  assert.deepEqual(caminhosNaoPortaveis('{"url":"https://loyaltynews-stg.vertraweb.app/noticias"}'), []);
+  assert.deepEqual(origemDoSiteProblemas(gtm, SITE), []);
+});
+
+test('origemDoSiteProblemas: origem local e domínio trocado no lugar do siteUrl reprovam; URL de terceiro passa', () => {
+  const gtm = '"script-src https://www.googletagmanager.com https://*.google-analytics.com"';
+  assert.deepEqual(origemDoSiteProblemas(gtm, SITE), []);
+  assert.match(origemDoSiteProblemas('{"appUrl":"http://localhost:3000"}', SITE).join('|'), /origem local do build/);
+  assert.match(origemDoSiteProblemas('{"canonical":"https://outro.example/x"}', SITE).join('|'), /difere do siteUrl/);
+  assert.deepEqual(origemDoSiteProblemas(`{"appUrl":"${SITE}"}`, SITE), []);
+  assert.deepEqual(origemDoSiteProblemas(`{"appUrl":"${SITE}/"}`, SITE), []);
+});
+
 function nextFalso({ requerido = '{"version":1,"appDir":"/app/apps/web","files":[".next/BUILD_ID",".next/server/app-paths-manifest.json"]}' } = {}) {
   const n = tmp();
   put(n, 'BUILD_ID', 'BUILD_abc123');
@@ -392,6 +408,23 @@ test('package-web inclui no pacote TUDO que o start-web importa (lib/prebuilt.mj
   }
   // o que lib/prebuilt.mjs importa (build-web.mjs) também entra
   for (const m of readFileSync(join(S, 'lib', 'prebuilt.mjs'), 'utf8').matchAll(/from '\.\.\/([^']+\.mjs)'/g)) assert.ok(incluidos.includes('infra/scripts/' + m[1]), `prebuilt.mjs importa ../${m[1]}`);
+});
+
+test('package-prebuilt: routes-manifest com URL de terceiro (GTM/GA) passa; com localhost:3000 no lugar do site reprova', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const rodar = (nx, saida) => spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', join(base, saida), '--origem', 'teste', '--sem-zip'], { encoding: 'utf8' });
+  try {
+    const bom = nextFalso();
+    put(bom, 'routes-manifest.json', JSON.stringify({ version: 3, headers: [{ source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: 'script-src https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com' }] }] }));
+    const a = rodar(bom, 'a');
+    assert.equal(a.status, 0, a.stderr + a.stdout);
+
+    const ruim = nextFalso();
+    put(ruim, 'routes-manifest.json', JSON.stringify({ version: 3, appUrl: 'http://localhost:3000' }));
+    const b = rodar(ruim, 'b');
+    assert.equal(b.status, 2);
+    assert.match(b.stderr, /origem local do build/);
+  } finally { rmSync(base, { recursive: true, force: true }); }
 });
 
 test('package-prebuilt RECUSA .next cuja identidade não bate com o release: sem marca, outro commit, outra URL e BUILD_ID divergente', () => {
