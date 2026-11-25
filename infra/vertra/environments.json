@@ -182,7 +182,9 @@
             "APP_ENV": "production",
             "NODE_ENV": "production"
           },
-          "subdominio": "loyaltynews"
+          "subdominio": "loyaltynews",
+          "dominio": "www.loyaltynews.com.br",
+          "indexavel": true
         },
         "workers": {
           "nome": "ln-prod-workers",

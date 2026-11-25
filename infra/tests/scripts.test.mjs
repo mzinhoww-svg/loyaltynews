@@ -1387,7 +1387,7 @@ test('limpar-node-modules: remove o node_modules sem atravessar junction (o alvo
 
 test('smoke-producao: produção limpa e não indexável passa; demonstração, flag ligada, indexável antes do go-live e Studio aberto reprovam', async () => {
   const SHA = 'a'.repeat(40);
-  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false };
+  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false, vazio: false, feed404: false };
   const s = await server((req, res) => {
     const u = req.url.split('?')[0];
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -1403,8 +1403,8 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     if (u === '/api/publico/intelligence/pessoas' || u === '/api/publico/intelligence/moves') return json(200, { data: [], total: 0, disponivel: estado.pessoas });
     if (['/', '/noticias', '/midia-kit', '/intelligence'].includes(u)) return html(200, meta + rot + 'ok');
     if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(estado.indexavel ? 'User-agent: *\nAllow: /\n' : 'User-agent: *\nDisallow: /\n'); }
-    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml' }); return res.end(estado.indexavel ? '<urlset><url><loc>https://x/</loc></url></urlset>' : '<urlset></urlset>'); }
-    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.indexavel ? '<item></item>' : '') + '</rss>'); }
+    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml' }); return res.end(estado.indexavel && !estado.vazio ? '<urlset><url><loc>https://x/</loc></url></urlset>' : '<urlset></urlset>'); }
+    if (u === '/feed.xml') { if (estado.feed404) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.indexavel && !estado.vazio ? '<item></item>' : '') + '</rss>'); }
     if (u === '/studio') { if (estado.studioAberto) return html(200, 'painel'); res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
     if (u === '/studio/entrar') return html(200, 'login');
     res.writeHead(404); res.end();
@@ -1427,6 +1427,23 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     estado.indexavel = true; assert.equal((await run()).status, 1, 'indexável antes do go-live reprova');
     assert.equal((await run(['--indexavel'])).status, 0, 'com --indexavel (go-live) passa'); estado.indexavel = false;
     assert.equal((await run(['--indexavel'])).status, 1, 'não indexável com --indexavel reprova');
+    // DP-54: go-live SEM matéria publicada: sitemap vazio e feed sem itens/404 só passam com a opção EXPLÍCITA --sem-conteudo-ainda; o resto continua exigido
+    estado.indexavel = true; estado.vazio = true;
+    assert.equal((await run(['--indexavel'])).status, 1, 'sitemap vazio reprova sem a opção explícita');
+    const vazioOk = await run(['--indexavel', '--sem-conteudo-ainda']);
+    assert.equal(vazioOk.status, 0, JSON.stringify(vazioOk.j?.checagens?.filter((c) => !c.ok)));
+    assert.ok(vazioOk.j.checagens.some((c) => /sem conteúdo ainda: aceito por --sem-conteudo-ainda/.test(c.nome)), 'o nome da checagem diz que foi aceito explicitamente');
+    estado.feed404 = true;
+    assert.equal((await run(['--indexavel'])).status, 1, 'feed 404 reprova sem a opção');
+    assert.equal((await run(['--indexavel', '--sem-conteudo-ainda'])).status, 0, 'feed 404 aceito com a opção explícita');
+    estado.feed404 = false;
+    estado.indexavel = false; // home com noindex e robots Disallow: a opção NÃO afrouxa o resto
+    assert.equal((await run(['--indexavel', '--sem-conteudo-ainda'])).status, 1, 'home noindex continua reprovando com a opção');
+    estado.indexavel = true; estado.demo = true;
+    assert.equal((await run(['--indexavel', '--sem-conteudo-ainda'])).status, 1, 'demonstração continua reprovando com a opção'); estado.demo = false;
+    estado.indexavel = false; estado.vazio = false;
+    const sozinha = await run(['--sem-conteudo-ainda']);
+    assert.equal(sozinha.status, 2, '--sem-conteudo-ainda sem --indexavel é uso errado');
   } finally { s.close(); }
 });
 

@@ -17,7 +17,7 @@ import { PREBUILT_DIR, PREBUILT_MANIFEST, PREBUILT_TAR, arquivosFaltando, listar
 
 const SELF = dirname(fileURLToPath(import.meta.url));
 const EXCLUIR = new Set(['cache', 'node_modules', 'trace', 'trace-build', 'diagnostics']);
-const OVERLAY = ['start-web.mjs', join('lib', 'prebuilt.mjs')];
+const OVERLAY = ['start-web.mjs', join('lib', 'prebuilt.mjs'), join('lib', 'tar.mjs')]; // tar.mjs: o lib/prebuilt.mjs importa ./tar.mjs (sem ele o start-web morre com ERR_MODULE_NOT_FOUND)
 
 /** Caminhos do host de build dentro do .next que provam que ele não é portável (Windows ou pasta de usuário). Função pura. */
 export function caminhosNaoPortaveis(texto) {

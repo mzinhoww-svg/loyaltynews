@@ -71,8 +71,11 @@ export const FLAG_RELEASES = {
   adServerVendas: { staging: 'DP-43', production: null }, // venda de anúncios só no staging (DP-43); produção só no go-live, com nova decisão do proprietário
 } as const satisfies Partial<Record<FlagName, FlagRelease>>;
 
-/** Hosts públicos da produção (N7). Preenchido quando o domínio existir. */
-export const PRODUCTION_HOSTS: readonly string[] = [];
+/**
+ * Hosts públicos da produção (N7): o staging RECUSA subir com NEXT_PUBLIC_SITE_URL de qualquer um deles (staging não pode ser a produção mal configurada).
+ * DP-54 (24/11/2026): domínio da marca (www é o canônico; o apex redireciona para o www) e o host da Vertra do `ln-prod-web`.
+ */
+export const PRODUCTION_HOSTS: readonly string[] = ['www.loyaltynews.com.br', 'loyaltynews.com.br', 'loyaltynews.vertraweb.app'];
 
 export type FlagEnv = 'staging' | 'production';
 
