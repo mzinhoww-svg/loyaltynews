@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Smoke da PRODUÇÃO (só leitura, nenhum POST, nenhuma credencial). Contraparte do smoke-staging, que EXIGE conteúdo de demonstração; aqui o conteúdo de demonstração é falha.
-// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel [--sem-conteudo-ainda]] [--expect-cache] [--expect-icones] [--expect-seguranca] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
+// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel [--sem-conteudo-ainda]] [--expect-canonical https://www.dominio] [--expect-cache] [--expect-icones] [--expect-seguranca] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
 // Confere: /api/health com APP_ENV production, o commit certo e flags [] (ADR-022: produção não liga flag por variável); /api/ready completo (banco e Redis; migrações se o build as confere);
 //   API pública e portal sem MOCK, sem "[DEMO" e sem marcador de vitrine; produção NÃO indexável até o go-live (DP-24: noindex, robots Disallow, sitemap e feed sem itens) ou, com --indexavel (depois
 //   do go-live), indexável; Studio sem sessão = 307 para o login; pessoas e moves desligados (disponivel=false). Código 0 = tudo ok; 1 = alguma falha; 2 = uso errado.
@@ -14,7 +14,7 @@ import { pathToFileURL } from 'node:url';
 // Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
 const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
-export async function rodar({ url, commit, indexavel = false, semConteudoAinda = false, cache = false, icones = false, seguranca = false, timeout = 20000, consecutivas, intervaloMs }) {
+export async function rodar({ url, commit, indexavel = false, semConteudoAinda = false, canonical = '', cache = false, icones = false, seguranca = false, timeout = 20000, consecutivas, intervaloMs }) {
   const base = url.replace(/\/+$/, '');
   const out = [];
   const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
@@ -56,6 +56,16 @@ export async function rodar({ url, commit, indexavel = false, semConteudoAinda =
     const h = await get('/');
     check('home: 200, sem MOCK, sem demonstração e sem faixa de vitrine', h.status === 200 && !DEMO.test(h.body), `HTTP ${h.status}`);
     check(indexavel ? 'home: indexável (go-live)' : 'home: NÃO indexável até o go-live (noindex, DP-24)', indexavel ? !noindex(h) : noindex(h));
+    if (canonical) {
+      // A-01 (revisão 25/11): o canonical e o og:image têm de apontar para a URL CANÔNICA do go-live (www), nunca para o host da Vertra (*.vertraweb.app); o host que se sonda pode ser outro (antes do DNS)
+      const origem = canonical.replace(/\/+$/, '');
+      const pega =(re) => (h.body.match(re) || [])[1] ?? '';
+      const can = pega(/<link[^>]+rel="canonical"[^>]*href="([^"]*)"/i) || pega(/<link[^>]+href="([^"]*)"[^>]*rel="canonical"/i);
+      const og = pega(/<meta[^>]+property="og:image"[^>]*content="([^"]*)"/i) || pega(/<meta[^>]+content="([^"]*)"[^>]*property="og:image"/i);
+      const noDominio = (u) => u === origem || u.startsWith(origem + '/');
+      check(`home: canonical aponta para ${origem}`, noDominio(can), `canonical=${can || '(ausente)'}`);
+      check(`home: og:image aponta para ${origem}`, noDominio(og), `og:image=${og || '(ausente)'}`);
+    }
     const n = await get('/noticias');
     check('noticias: 200, sem demonstração', n.status === 200 && !DEMO.test(n.body), `HTTP ${n.status}`);
     const mk = await get('/midia-kit');
@@ -68,6 +78,13 @@ export async function rodar({ url, commit, indexavel = false, semConteudoAinda =
     check(indexavel ? 'robots.txt: libera o rastreio (go-live)' : 'robots.txt: Disallow / (não indexável até o go-live)', indexavel ? !/^\s*Disallow:\s*\/\s*$/im.test(rb.body) : rb.status === 200 && /^\s*Disallow:\s*\/\s*$/im.test(rb.body), `HTTP ${rb.status}`);
     const sm = await get('/sitemap.xml');
     const locs = (sm.body.match(/<loc>/g) || []).length;
+    if (canonical && indexavel) {
+      const origem = canonical.replace(/\/+$/, '');
+      const fora = [...sm.body.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => m[1]).filter((u) => !(u === origem || u.startsWith(origem + '/')));
+      check(`sitemap.xml: todas as URLs em ${origem}`, fora.length === 0, `${fora.length} fora do domínio (ex.: ${fora[0] ?? ''})`);
+      const smRobots = (rb.body.match(/^\s*Sitemap:\s*(\S+)/im) || [])[1];
+      if (smRobots) check(`robots.txt: Sitemap em ${origem}`, smRobots === origem || smRobots.startsWith(origem + '/'), `Sitemap: ${smRobots}`);
+    }
     // --sem-conteudo-ainda (só com --indexavel; DP-54): no go-live SEM matéria publicada o sitemap pode estar vazio e o feed sem itens/404. Aceita SÓ isso, de forma explícita no nome da checagem;
     // home sem noindex, robots que libera e o resto continuam exigidos. Com URLs presentes, passa como sempre.
     check(indexavel ? (semConteudoAinda ? 'sitemap.xml: lista URLs, ou está vazio (sem conteúdo ainda: aceito por --sem-conteudo-ainda)' : 'sitemap.xml: lista URLs (go-live)') : 'sitemap.xml: sem URLs até o go-live', (sm.status === 200 || sm.status === 404) && (indexavel ? (locs > 0 || semConteudoAinda) : locs === 0), `HTTP ${sm.status}, ${locs} url(s)`);
@@ -117,8 +134,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const commit = args['expect-commit'] && args['expect-commit'] !== true ? String(args['expect-commit']) : undefined;
   if (commit !== undefined && !/^[0-9a-f]{40}$/.test(commit)) { console.error('--expect-commit exige o SHA de 40 caracteres'); process.exit(2); }
   if (args['sem-conteudo-ainda'] && !args.indexavel) { console.error('--sem-conteudo-ainda só vale junto com --indexavel (sem go-live o sitemap e o feed já têm de estar vazios)'); process.exit(2); }
+  const canonicalArg = args['expect-canonical'] && args['expect-canonical'] !== true ? String(args['expect-canonical']) : '';
+  if (args['expect-canonical'] !== undefined && !/^https:\/\/[a-z0-9.-]+$/.test(canonicalArg.replace(/\/+$/, ''))) { console.error('--expect-canonical exige a URL https do domínio, sem caminho (ex.: https://www.loyaltynews.com.br)'); process.exit(2); }
   const cfgS = configSaude(args);
-  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), semConteudoAinda: Boolean(args['sem-conteudo-ainda']), cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), seguranca: Boolean(args['expect-seguranca']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
+  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), semConteudoAinda: Boolean(args['sem-conteudo-ainda']), canonical: canonicalArg, cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), seguranca: Boolean(args['expect-seguranca']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
   console.log(JSON.stringify(r, null, 2));
   process.exit(r.falhas ? 1 : 0);
 }
