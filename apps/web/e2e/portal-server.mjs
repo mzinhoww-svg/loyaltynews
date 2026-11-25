@@ -27,7 +27,7 @@ const BUILD_ENV = {
   LN_E2E_DIST: DIST,
   NEXT_TELEMETRY_DISABLED: '1',
 };
-const RUNTIME_ONLY = ['PORTAL_SOURCE', 'PORTAL_API_BASE_URL', 'PORTAL_INDEXAVEL', 'PORT', 'LN_STUDIO_TEST_SESSION', 'LN_STUDIO_DEV_DB'];
+const RUNTIME_ONLY = ['PORTAL_SOURCE', 'PORTAL_API_BASE_URL', 'PORTAL_INDEXAVEL', 'PORT', 'LN_STUDIO_TEST_SESSION', 'LN_STUDIO_DEV_DB', 'LN_FLAGS_ON'];
 if (perfil !== 'vitrine') RUNTIME_ONLY.push('PORTAL_VITRINE');
 
 const git = (args) => spawnSync('git', args, { encoding: 'utf8', cwd: '.', shell: false }).stdout ?? '';

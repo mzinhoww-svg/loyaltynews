@@ -6,7 +6,7 @@ import { formatDateTime } from '../_lib/format';
 import { PositionMap } from '../_components/PositionMap';
 import { ScrollRegion } from '../_components/ScrollRegion';
 import { MockTag } from '../_components/ui';
-import { runtimeFlags } from '../../../lib/runtime-flags';
+import { formulariosAtivos } from '../../../lib/portal-formularios';
 import { CONTATO_EMAIL } from '../_lib/contato';
 import { PropostaForm } from '../_proposta/PropostaForm';
 import { SalvarPdf } from '../_proposta/SalvarPdf';
@@ -59,7 +59,8 @@ const FORMATS = [
 export default async function MidiaKitPage() {
   const src = getSource();
   // Formulário de proposta: só aparece com a flag portalFormularios ligada (ADR-022: por ambiente e por decisão registrada). Desligada: nada é coletado e o botão leva à página de contato.
-  const formulario = runtimeFlags().portalFormularios === true;
+  // Lido em execução a cada requisição (a página é force-dynamic): ligar a flag não exige refazer o build.
+  const formulario = formulariosAtivos();
   // Em modo api, audiência e catálogo vêm da API comercial (origem, janela e data em cada número). Falha => estado vazio honesto.
   const kit = src.kind === 'api' ? await fetchMediaKit(portalApiBase()) : null;
   const [audience, latest, events] = await Promise.all([kit ? Promise.resolve(kit.audience) : src.getAudience(), src.getLatest({ pageSize: 1 }), src.listEvents()]);

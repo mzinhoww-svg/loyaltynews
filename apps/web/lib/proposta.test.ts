@@ -100,8 +100,8 @@ describe('pedido de proposta: formulário (marcação de servidor)', () => {
 
 describe('/midia-kit: formulário e botão de PDF', () => {
   const page = readFileSync(new URL('../app/(portal)/midia-kit/page.tsx', import.meta.url), 'utf8');
-  it('o formulário só entra com a flag portalFormularios (ADR-022), lida em runtime no servidor', () => {
-    expect(page).toContain("runtimeFlags().portalFormularios === true");
+  it('o formulário só entra com a flag portalFormularios (ADR-022), lida em execução pelo helper formulariosAtivos', () => {
+    expect(page).toContain("formulariosAtivos()");
     expect(page).toMatch(/\{formulario && \(\s*<section id="proposta"/);
   });
   it('com a flag desligada o botão principal continua indo a /contato', () => {

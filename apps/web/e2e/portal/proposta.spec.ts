@@ -1,5 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { aguardarHidratacao } from './hidratacao';
 
 /**
@@ -7,9 +9,10 @@ import { aguardarHidratacao } from './hidratacao';
  *
  * 1) Com a flag portalFormularios DESLIGADA (o padrão de todos os ambientes): nada é coletado, o botão principal leva a /contato.
  * 2) "Salvar em PDF" abre a impressão; no papel saem as tabelas de preço e não saem botões, atalhos nem formulário.
- * 3) Com a flag LIGADA o formulário aparece e envia. A flag só liga num ambiente com decisão registrada (FLAG_RELEASES, ADR-022), e hoje
- *    `portalFormularios` não tem decisão: este bloco só roda com PORTAL_FORMS_E2E=1, com o servidor subido com a flag ligada
- *    (APP_ENV=staging LN_FLAGS_ON=portalFormularios) e uma liberação local TEMPORÁRIA de staging em packages/contracts (nunca commitada).
+ * 3) Com a flag LIGADA o formulário aparece e envia. A flag é de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem ela. Ela só liga num
+ *    ambiente com decisão registrada (FLAG_RELEASES) e hoje `portalFormularios` não tem decisão (o mecanismo de liberação é do Architect):
+ *    este bloco só roda com PORTAL_FORMS_E2E=1 e LN_FLAGS_ON=portalFormularios (o portal.config.ts repassa ao servidor), com uma liberação
+ *    LOCAL TEMPORÁRIA em packages/contracts (nunca commitada).
  *    A rota de envio é simulada com page.route (MOCK de teste) no formato do Backend (201, 400, 429).
  */
 const FORMS_ON = process.env.PORTAL_FORMS_E2E === '1';
@@ -41,6 +44,19 @@ test.describe('mídia kit com a flag portalFormularios desligada', () => {
     await page.getByTestId('mk-cta-primary').click();
     await expect(page).toHaveURL(/\/contato$/);
     await expect(page.getByTestId('contato-email')).toHaveAttribute('href', 'mailto:contato@loyaltynews.com.br');
+  });
+});
+
+test.describe('a flag é de execução, não do build', () => {
+  test('o mídia kit não sai pré-renderizado do build e é servido sem cache compartilhado', async ({ page, request }) => {
+    // Pré-renderizada no build, a página carregaria a flag daquele momento e o pacote pré-compilado a embutiria desligada.
+    const manifest = JSON.parse(readFileSync(resolve(['.next-e2e', '.next-e2e-vitrine'].find((d) => existsSync(resolve(d, 'prerender-manifest.json'))) ?? '.next-e2e', 'prerender-manifest.json'), 'utf8')) as { routes: Record<string, unknown>; dynamicRoutes: Record<string, unknown> };
+    expect(Object.keys(manifest.routes)).not.toContain('/midia-kit');
+    const r = await request.get('/midia-kit');
+    expect(r.status()).toBe(200);
+    expect(r.headers()['cache-control'] ?? '').toMatch(/no-store|private|no-cache|max-age=0/);
+    await page.goto('/midia-kit');
+    await expect(page.getByTestId('mk-cta-primary')).toBeVisible();
   });
 });
 
