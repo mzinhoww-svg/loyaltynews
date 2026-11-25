@@ -8,15 +8,16 @@ import { SITE_NAME, SITE_URL } from './site';
  */
 
 const OG_LARGURA = 1200;
-const OG_ALTURA = 627;
-/** Imagem de compartilhamento padrão (public/og-padrao.png, V-14): vale até a UI/UX entregar os assets por editoria. */
-export const OG_PADRAO_URL = '/og-padrao.png';
+const OG_ALTURA = 630;
+/** Imagem de compartilhamento padrão (pacote de marca do lançamento, public/og/padrao.png, 1200×630). */
+export const OG_PADRAO_URL = '/og/padrao.png';
+/** Logo QUADRADO da marca (512×512) para o Organization: o Google exige logo quadrado, não o banner de compartilhamento. */
+export const LOGO_QUADRADO_URL = '/brand/icon-512.png';
 
-/**
- * Assets de og:image por editoria, entregues pela UI/UX em public/og/editorias/<slug>.png (1200×627). Enquanto o slug não está aqui vale o padrão
- * (a estrutura, o alt por editoria e o teste já estão prontos: para publicar um asset basta acrescentar a linha).
- */
-export const OG_EDITORIA_ASSETS: Readonly<Record<string, string>> = {};
+/** Assets de og:image por editoria (pacote de marca ft/brand-assets-lancamento): public/og/editoria-<slug>.png, 1200×630. Slug sem asset cai no padrão. */
+export const OG_EDITORIA_ASSETS: Readonly<Record<string, string>> = Object.fromEntries(
+  ['mercado', 'programas', 'pontos', 'bancos', 'varejo', 'travel', 'tech', 'crm', 'global', 'regulacao'].map((s) => [s, `/og/editoria-${s}.png`]),
+);
 
 export interface OgImagem {
   url: string;
@@ -57,12 +58,12 @@ export const tituloPaginado = (titulo: string, page: number): string => (page > 
 /** Descrição única por página da listagem. */
 export const descricaoPaginada = (descricao: string, page: number): string => (page > 1 ? `${descricao} Página ${page}.` : descricao);
 
-/** Publisher (Organization com logo) dos dados estruturados. O logo usa a imagem padrão até a UI/UX entregar o asset da marca. */
+/** Publisher (Organization com logo quadrado da marca) dos dados estruturados. */
 export const PUBLISHER_LD = {
   '@type': 'Organization',
   name: SITE_NAME,
   url: SITE_URL,
-  logo: { '@type': 'ImageObject', url: `${SITE_URL}${OG_PADRAO_URL}`, width: OG_LARGURA, height: OG_ALTURA },
+  logo: { '@type': 'ImageObject', url: `${SITE_URL}${LOGO_QUADRADO_URL}`, width: 512, height: 512 },
 } as const;
 
 /** BreadcrumbList (schema.org); `path` ausente = página atual. */

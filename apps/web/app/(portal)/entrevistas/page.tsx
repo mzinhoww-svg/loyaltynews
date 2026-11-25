@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Listing, parsePage } from '../_components/Listing';
+import { ogImagensDaPagina } from '../_lib/seo-source';
 import { canonicalPaginado, descricaoPaginada, paginaDe, tituloPaginado } from '../_lib/seo';
 
 // Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
@@ -12,11 +13,12 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const canonical = canonicalPaginado('/entrevistas', page);
   const titulo = tituloPaginado(TITULO, page);
   const descricao = descricaoPaginada(DESCRICAO, page);
+  const images = await ogImagensDaPagina();
   return {
     title: titulo,
     description: descricao,
     alternates: { canonical },
-    openGraph: { title: `${titulo} | Loyalty News`, description: descricao, url: canonical },
+    openGraph: { title: `${titulo} | Loyalty News`, description: descricao, url: canonical, images },
   };
 }
 

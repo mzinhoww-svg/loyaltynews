@@ -134,10 +134,10 @@ test.describe('nada publicado (vazio) ou resposta inválida: padrão do portal, 
     await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1); // só WebSite: sem Organization publicada
   });
 
-  test('og:image: sem imagem publicada no Studio vale o padrão do portal (public/og-padrao.png)', async ({ page, request }) => {
+  test('og:image: sem imagem publicada no Studio vale o padrão do portal (public/og/padrao.png)', async ({ page, request }) => {
     await page.goto('/');
     const og = page.locator('meta[property="og:image"]').first();
-    await expect(og).toHaveAttribute('content', /\/og-padrao\.png$/);
+    await expect(og).toHaveAttribute('content', /\/og\/padrao\.png$/);
     await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content', '1200');
     const src = new URL((await og.getAttribute('content')) as string);
     expect((await request.get(src.pathname)).status()).toBe(200);

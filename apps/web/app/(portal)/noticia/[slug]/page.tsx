@@ -33,8 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: a.title,
     description: a.summary,
     alternates: { canonical: url },
-    // Conteúdo MOCK nunca deve ser indexado.
-    robots: a.mock ? { index: false, follow: false } : undefined,
+    // Conteúdo MOCK nunca deve ser indexado. Sem `robots` a matéria HERDA o do layout (index,follow + prévia grande em produção indexável; noindex fora):
+    // `robots: undefined` sobrescrevia o do layout e a matéria ficava sem a meta.
+    ...(a.mock ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       type: 'article',
       title: a.title,
@@ -82,7 +83,7 @@ export default async function ArticlePage({ params }: Props) {
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/noticia/${a.slug}` },
     url: `${SITE_URL}/noticia/${a.slug}`,
     inLanguage: 'pt-BR',
-    isAccessibleForFree: !a.sponsored,
+    isAccessibleForFree: true, // todo o conteúdo é de leitura gratuita (patrocinado também: a marcação de paywall não se aplica)
     ...(a.tags.length ? { keywords: a.tags.join(', ') } : {}),
     // Rich results de matéria exigem imagem: a da matéria ou, sem ela, a da editoria.
     image: [new URL(a.image ? a.image.src : ogImagemDaEditoria(a.editoriaSlug).url, SITE_URL).toString()],

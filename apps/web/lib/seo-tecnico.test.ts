@@ -1,7 +1,9 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NEWS_JANELA_MS, NEWS_MAX, newsSitemapXml, noticiasRecentes, type NewsItem } from '../app/(portal)/_lib/news-sitemap';
 import { robotsTxt } from '../app/(portal)/_lib/indexing';
-import { OG_EDITORIA_ASSETS, OG_PADRAO_URL, ROBOTS_INDEXAVEL, breadcrumbLd, canonicalPaginado, descricaoPaginada, ogImagemDaEditoria, paginaDe, tituloPaginado } from '../app/(portal)/_lib/seo';
+import { OG_EDITORIA_ASSETS, OG_PADRAO_URL, ROBOTS_INDEXAVEL, breadcrumbLd, canonicalPaginado, descricaoPaginada, ogImagemDaEditoria, paginaDe, PUBLISHER_LD, tituloPaginado } from '../app/(portal)/_lib/seo';
 import { EDITORIAS } from '../app/(portal)/_lib/editorias';
 
 const AGORA = new Date('2026-12-05T12:00:00-03:00');
@@ -60,20 +62,28 @@ describe('robots.txt', () => {
 });
 
 describe('og:image por editoria', () => {
-  it('toda editoria tem imagem 1200×627 com alt próprio; sem asset entregue vale o padrão', () => {
-    expect(Object.keys(OG_EDITORIA_ASSETS)).toEqual([]); // placeholder até a UI/UX entregar os assets
+  it('toda editoria tem o seu PNG do pacote de marca (1200×630, arquivo existente) e alt próprio', () => {
     const alts = new Set<string>();
     for (const e of EDITORIAS) {
       const i = ogImagemDaEditoria(e.slug);
-      expect(i.url).toBe(OG_PADRAO_URL);
-      expect([i.width, i.height]).toEqual([1200, 627]);
+      expect(i.url).toBe(`/og/editoria-${e.slug}.png`);
+      expect([i.width, i.height]).toEqual([1200, 630]);
+      expect(existsSync(resolve(__dirname, '..', 'public', i.url.slice(1))), `${i.url} existe em public/`).toBe(true);
       expect(i.alt).toContain(e.name);
       alts.add(i.alt);
     }
+    expect(Object.keys(OG_EDITORIA_ASSETS)).toHaveLength(EDITORIAS.length);
     expect(alts.size).toBe(EDITORIAS.length); // um alt por editoria
   });
-  it('slug desconhecido cai no padrão sem lançar', () => {
-    expect(ogImagemDaEditoria('nao-existe')).toMatchObject({ url: OG_PADRAO_URL, alt: 'Loyalty News' });
+  it('slug sem asset cai no padrão (1200×630, arquivo existente) sem lançar', () => {
+    expect(ogImagemDaEditoria('nao-existe')).toMatchObject({ url: OG_PADRAO_URL, alt: 'Loyalty News', width: 1200, height: 630 });
+    expect(OG_PADRAO_URL).toBe('/og/padrao.png');
+    expect(existsSync(resolve(__dirname, '..', 'public', 'og', 'padrao.png'))).toBe(true);
+  });
+  it('o logo do Organization é o ícone QUADRADO da marca (512×512), nunca o banner de compartilhamento', () => {
+    expect(PUBLISHER_LD.logo.url).toMatch(/\/brand\/icon-512\.png$/);
+    expect([PUBLISHER_LD.logo.width, PUBLISHER_LD.logo.height]).toEqual([512, 512]);
+    expect(PUBLISHER_LD.logo.url).not.toContain('/og/');
   });
 });
 

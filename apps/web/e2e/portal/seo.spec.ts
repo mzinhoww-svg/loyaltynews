@@ -72,15 +72,15 @@ test.describe(`SEO técnico (${mode}, APP_ENV=${appEnv}${semInterruptor ? ', sem
     }
   });
 
-  test('toda editoria tem Open Graph e Twitter Card com og:image absoluta no domínio do release (placeholder até a UI/UX entregar os assets) e alt próprio', async ({ page }) => {
+  test('toda editoria tem Open Graph e Twitter Card com a og:image PRÓPRIA do pacote de marca (1200×630, absoluta no domínio do release) e alt próprio', async ({ page }) => {
     test.slow(); // 10 páginas em sequência
     const alts = new Set<string>();
     for (const e of ['mercado', 'programas', 'pontos', 'bancos', 'varejo', 'travel', 'tech', 'crm', 'global', 'regulacao']) {
       await page.goto(`/editoria/${e}`);
-      expect(await meta(page, 'meta[property="og:image"]'), e).toBe(`${SITE}/og-padrao.png`);
+      expect(await meta(page, 'meta[property="og:image"]'), e).toBe(`${SITE}/og/editoria-${e}.png`);
       expect(await meta(page, 'meta[property="og:image:width"]'), e).toBe('1200');
-      expect(await meta(page, 'meta[property="og:image:height"]'), e).toBe('627');
-      expect(await meta(page, 'meta[name="twitter:image"]'), e).toBe(`${SITE}/og-padrao.png`);
+      expect(await meta(page, 'meta[property="og:image:height"]'), e).toBe('630');
+      expect(await meta(page, 'meta[name="twitter:image"]'), e).toBe(`${SITE}/og/editoria-${e}.png`);
       expect(await meta(page, 'meta[name="twitter:card"]'), e).toBe('summary_large_image');
       expect(await meta(page, 'meta[property="og:url"]'), e).toBe(`${SITE}/editoria/${e}`);
       alts.add((await meta(page, 'meta[property="og:image:alt"]')) ?? '');
@@ -133,7 +133,8 @@ test.describe(`SEO técnico (${mode}, APP_ENV=${appEnv}${semInterruptor ? ', sem
     expect(org.name).toBe('Loyalty News');
     expect(org.url).toBe(SITE);
     expect(org.logo['@type']).toBe('ImageObject');
-    expect(org.logo.url).toBe(`${SITE}/og-padrao.png`);
+    expect(org.logo.url).toBe(`${SITE}/brand/icon-512.png`); // logo QUADRADO da marca, não o banner de compartilhamento
+    expect([org.logo.width, org.logo.height]).toEqual([512, 512]);
   });
 
   test('matéria: NewsArticle completo (publisher com logo, idioma, imagem, mainEntityOfPage), BreadcrumbList e og:image sempre presente', async ({ page }) => {
@@ -143,7 +144,8 @@ test.describe(`SEO técnico (${mode}, APP_ENV=${appEnv}${semInterruptor ? ', sem
     const ld = await jsonLd(page);
     const art = ld.find((o) => o['@type'] === 'NewsArticle') as Record<string, unknown> & { publisher: { logo: { url: string } }; image: string[]; mainEntityOfPage: { '@id': string } };
     expect(art.inLanguage).toBe('pt-BR');
-    expect(art.publisher.logo.url).toBe(`${SITE}/og-padrao.png`);
+    expect(art.publisher.logo.url).toBe(`${SITE}/brand/icon-512.png`);
+    expect(art.isAccessibleForFree).toBe(true);
     expect(art.mainEntityOfPage['@id']).toBe(`${SITE}/noticia/${slug}`);
     expect(art.url).toBe(`${SITE}/noticia/${slug}`);
     expect(art.image.length).toBeGreaterThan(0);
@@ -164,5 +166,50 @@ test.describe(`SEO técnico (${mode}, APP_ENV=${appEnv}${semInterruptor ? ', sem
     test.skip(mode !== 'api', 'o conteúdo hostil vem do servidor MOCK do modo api');
     const html = await (await request.get('/')).text();
     for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) expect(m[1]).not.toContain('<');
+  });
+
+  test('as 5 listagens repetem a og:image no openGraph da página (o da página substitui o do layout) e a imagem responde 200 image/png 1200×630', async ({ page, request }) => {
+    test.slow();
+    for (const rota of ['/noticias', '/flash', '/analises', '/entrevistas', '/opiniao']) {
+      await page.goto(rota);
+      const og = (await meta(page, 'meta[property="og:image"]')) ?? '';
+      expect(og, `${rota}: og:image`).toBeTruthy();
+      expect(await meta(page, 'meta[property="og:image:width"]'), rota).toBe('1200');
+      expect(await meta(page, 'meta[property="og:image:height"]'), rota).toBe('630');
+      expect(await meta(page, 'meta[name="twitter:image"]'), rota).toBeTruthy();
+      if (mode !== 'api') {
+        expect(og, rota).toBe(`${SITE}/og/padrao.png`);
+        const img = await request.get(new URL(og).pathname);
+        expect(img.status(), og).toBe(200);
+        expect(img.headers()['content-type']).toContain('image/png');
+        const png = await img.body();
+        expect([png.readUInt32BE(16), png.readUInt32BE(20)], og).toEqual([1200, 630]);
+      }
+    }
+  });
+
+  test('toda og:image por editoria e a padrão existem: 200 image/png, 1200×630', async ({ request }, info) => {
+    test.skip(info.project.name !== 'desktop', 'chamada direta: um projeto basta');
+    for (const e of ['mercado', 'programas', 'pontos', 'bancos', 'varejo', 'travel', 'tech', 'crm', 'global', 'regulacao']) {
+      const r = await request.get(`/og/editoria-${e}.png`);
+      expect(r.status(), e).toBe(200);
+      expect(r.headers()['content-type'], e).toContain('image/png');
+      const png = await r.body();
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], e).toEqual([1200, 630]);
+    }
+    expect((await request.get('/og/padrao.png')).status()).toBe(200);
+    expect((await request.get('/brand/icon-512.png')).status()).toBe(200);
+  });
+
+  test('matéria: meta robots herdado do layout (index,follow e googlebot com prévia grande em produção indexável; noindex fora), nunca sem a meta', async ({ page }) => {
+    test.skip(mode === 'empty', 'precisa de matérias (mock ou api)');
+    const slug = mode === 'api' ? 'api-sem-imagem' : 'mock-bancos-1';
+    await page.goto(`/noticia/${slug}`);
+    const robots = (await meta(page, 'meta[name="robots"]')) ?? '';
+    if (bloqueado) expect(robots).toMatch(/noindex/);
+    else {
+      expect(robots).toBe('index, follow');
+      expect((await meta(page, 'meta[name="googlebot"]')) ?? '').toContain('max-image-preview:large');
+    }
   });
 });

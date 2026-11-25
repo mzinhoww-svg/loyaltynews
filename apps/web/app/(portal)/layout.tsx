@@ -9,7 +9,7 @@ import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
 import { flags } from './_lib/flags';
 import { indexingBlocked } from './_lib/indexing';
-import { ROBOTS_INDEXAVEL } from './_lib/seo';
+import { ROBOTS_INDEXAVEL, ogImagemPadrao } from './_lib/seo';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { getSource, isMockSource } from './_lib/source';
 
@@ -21,7 +21,7 @@ import { getSource, isMockSource } from './_lib/source';
  * Imagem de compartilhamento padrão (V-14, 1200×627, em public/). Não é arquivo de convenção do App Router (opengraph-image.*),
  * porque esse tipo de arquivo vence o metadata e ignoraria a imagem publicada no Studio (seo.ogImage, F-29): o publicado vale; o padrão só quando não há nada.
  */
-const OG_PADRAO = [{ url: '/og-padrao.png', width: 1200, height: 627, alt: 'Loyalty News' }];
+const OG_PADRAO = [ogImagemPadrao()];
 
 /**
  * Dinâmico: o `meta robots` das páginas depende do interruptor de indexação (PORTAL_INDEXAVEL, decidido em tempo de execução). Sem isto as páginas
