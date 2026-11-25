@@ -16,7 +16,8 @@ const vars = [];
 const add = (name, value) => vars.push([`--ln-${name}`, value]);
 
 for (const [k, v] of Object.entries(colors)) add(`color-${k}`, v);
-add("font-ui", brand.typography.ui);
+// UI: no CSS o token usa a variável injetada pelo next/font/local (nome real da família gerada); o JSON/TS guardam a família do brandkit.
+add("font-ui", 'var(--ln-font-inter, "Inter Variable"), Inter, Arial, sans-serif');
 add("font-editorial", brand.typography.editorial);
 for (const [k, [size, lh]] of Object.entries(ext.fontSize)) {
   add(`text-${k}`, size);

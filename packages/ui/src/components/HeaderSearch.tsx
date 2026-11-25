@@ -310,7 +310,9 @@ export function HeaderSearch({ fetchSuggestions, navigate, linkAs, action = "/bu
                         ) : (
                           <>
                             <span>Ver todos os resultados para “{termo}”</span>
-                            <span aria-hidden="true">→</span>
+                            <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2.5 8h11M9 3.5L13.5 8 9 12.5" />
+                            </svg>
                           </>
                         )}
                       </Link>
