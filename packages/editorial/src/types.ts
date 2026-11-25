@@ -42,6 +42,11 @@ export interface Source {
   sitemapUrl?: string | null;
   /** Só URLs do sitemap cujo caminho começa por este prefixo (ex.: '/noticias/'). */
   sitemapPathPrefix?: string | null;
+  /**
+   * Caminhos que o prefixo não consegue excluir (páginas de listagem, a própria seção): expressões regulares testadas contra o CAMINHO da URL
+   * (sem host nem query), cada uma ancorada por quem cadastra. Casou, a URL não entra na coleta e é contada como "excluída". Máximo 10 padrões de até 120 caracteres.
+   */
+  sitemapPathExclude?: string[] | null;
   termsUrl: string | null;
   termsStatus: TermsStatus;
   /** URL/host conferidos manualmente por humano/QA? Seed inicial = false. */

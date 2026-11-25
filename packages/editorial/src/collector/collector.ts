@@ -490,7 +490,10 @@ export class Collector {
     const parsed = parseSitemap(top.body!);
     // Visibilidade (sitemap malformado não pode virar "0 matérias" em silêncio): cada sitemap lido (índice e cada filho) que descartou
     // entradas gera um aviso próprio, com contagem por motivo e amostra. O aviso NÃO para a coleta (não é hostilidade da fonte).
-    const stats = { sitemaps: 1, blocos: parsed.blocos, descartadas: parsed.drops.total, foraDoPrefixo: 0, anexos: 0, duplicadas: 0 };
+    const stats = { sitemaps: 1, blocos: parsed.blocos, descartadas: parsed.drops.total, foraDoPrefixo: 0, anexos: 0, duplicadas: 0, excluidas: 0 };
+    // Padrões do cadastro (validados no SourceRegistry); um padrão que não compila nunca derruba a coleta: é ignorado.
+    const exclude: RegExp[] = [];
+    for (const p of source.sitemapPathExclude ?? []) { try { exclude.push(new RegExp(p)); } catch { /* ignorado */ } }
     const noteDrops = (url: string, p: ReturnType<typeof parseSitemap>) => {
       if (p.drops.total === 0) return;
       const mot = [p.drops.sem_loc ? `sem_loc ${p.drops.sem_loc}` : '', p.drops.loc_nao_http ? `loc_nao_http ${p.drops.loc_nao_http}` : '', p.drops.loc_url_embutida ? `loc_url_embutida ${p.drops.loc_url_embutida}` : ''].filter(Boolean).join(', ');
@@ -523,25 +526,26 @@ export class Collector {
     const seen = new Set<string>();
     const candidates: SitemapEntry[] = [];
     for (const g of groups) {
-      const mine = { fora: 0, anexos: 0, duplicadas: 0, boas: 0 };
+      const mine = { fora: 0, anexos: 0, duplicadas: 0, excluidas: 0, boas: 0 };
       for (const e0 of g.entries) {
         const loc = toHttps(e0.loc);
         let path: string;
         try { path = new URL(loc).pathname; } catch { stats.descartadas++; continue; }
         if (!path.startsWith(prefix)) { mine.fora++; stats.foraDoPrefixo++; continue; }
         if (NON_PAGE_EXT.test(path)) { mine.anexos++; stats.anexos++; continue; }
+        if (exclude.some((r) => r.test(path))) { mine.excluidas++; stats.excluidas++; continue; }
         if (seen.has(loc)) { mine.duplicadas++; stats.duplicadas++; continue; }
         seen.add(loc); mine.boas++; candidates.push({ loc, lastmod: e0.lastmod });
       }
       // Filho que não rende nenhuma página (pode ser legítimo: filhos do gov.br misturam seções; ou defeito do sitemap): aviso com os números.
       if (g.isChild && mine.boas === 0) {
-        out.skipped.push({ url: g.url, code: 'sitemap_child_no_items', detail: `0 páginas sob ${prefix}: ${g.blocos} entradas, ${g.descartadas} descartadas, ${mine.fora} fora do prefixo, ${mine.anexos} anexos, ${mine.duplicadas} duplicadas` });
+        out.skipped.push({ url: g.url, code: 'sitemap_child_no_items', detail: `0 páginas sob ${prefix}: ${g.blocos} entradas, ${g.descartadas} descartadas, ${mine.fora} fora do prefixo, ${mine.anexos} anexos, ${mine.duplicadas} duplicadas${mine.excluidas ? `, ${mine.excluidas} excluídas` : ''}` });
       }
     }
     if (upgraded > 0) out.skipped.push({ url: sitemapUrl, code: 'sitemap_http_upgraded', detail: `${upgraded} endereço(s) http:// do próprio host passaram para https://` });
     // Nenhuma página candidata: pode ser legítimo (sem notícia nova) ou sinal de sitemap quebrado/prefixo errado; o aviso traz os números.
     if (candidates.length === 0) {
-      out.skipped.push({ url: sitemapUrl, code: 'sitemap_no_items', detail: `0 páginas sob ${prefix}: ${stats.sitemaps} sitemap(s), ${stats.blocos} entradas, ${stats.descartadas} descartadas, ${stats.foraDoPrefixo} fora do prefixo, ${stats.anexos} anexos, ${stats.duplicadas} duplicadas` });
+      out.skipped.push({ url: sitemapUrl, code: 'sitemap_no_items', detail: `0 páginas sob ${prefix}: ${stats.sitemaps} sitemap(s), ${stats.blocos} entradas, ${stats.descartadas} descartadas, ${stats.foraDoPrefixo} fora do prefixo, ${stats.anexos} anexos, ${stats.duplicadas} duplicadas${stats.excluidas ? `, ${stats.excluidas} excluídas` : ''}` });
     }
     const chosen = candidates
       .sort((a, b) => (b.lastmod ?? '').localeCompare(a.lastmod ?? ''))

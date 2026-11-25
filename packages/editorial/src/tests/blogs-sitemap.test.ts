@@ -88,16 +88,17 @@ test('collectSitemap: índice abre só os 2 filhos mais recentes; 429 no sitemap
 test('por sitemap: as 3 empresas conferidas + ANAC, CVM e ANPD (gov.br, .xml.gz) têm sitemap e prefixo; mesmo host da fonte; todas nascem desabilitadas', async () => {
   const { SEED_SOURCES: ALL } = await import('../sources/seed');
   const wired = ALL.filter((s) => s.sitemapUrl && s.sitemapPathPrefix); // coletáveis por sitemap: só com prefixo verificado
-  assert.deepEqual(wired.map((s) => s.id).sort(), ['anac', 'anpd', 'bradesco-ri', 'cvm', 'esfera-campanhas', 'latampass-novidades', 'latampass-regulamentos', 'livelo-imprensa', 'livelo-programa', 'natura-ri', 'smiles-conteudo']);
+  assert.deepEqual(wired.map((s) => s.id).sort(), ['accor-newsroom', 'anac', 'anatel', 'anpd', 'bradesco-ri', 'cvm', 'dinheirama', 'esfera-campanhas', 'guia-bolso-blog', 'idv', 'latampass-novidades', 'latampass-regulamentos', 'livelo-imprensa', 'livelo-programa', 'mtur', 'natura-ri', 'nubank-newsroom', 'one-mile-at-a-time', 'smiles-conteudo']);
   for (const s of wired) {
     assert.equal(new URL(s.sitemapUrl!).host, s.host, s.id);
-    assert.match(s.sitemapPathPrefix ?? '', /^(\/[a-z0-9-]+)+(\/|-)?$/, `${s.id}: prefixo da seção de notícias`);
+    assert.match(s.sitemapPathPrefix ?? '', /^(\/[A-Za-z0-9-]+)+(\/|-)?$/, `${s.id}: prefixo da seção de notícias`);
     assert.equal(s.enabled, false, s.id); assert.equal(s.termsStatus, 'pending', s.id);
   }
   // gov.br: índice sem lastmod com filhos .xml.gz (lidos todos, 1 requisição cada): o limite por hora do cadastro precisa comportar índice + filhos + robots + páginas
-  for (const id of ['anac', 'cvm', 'anpd']) {
+  const GOV: Record<string, string> = { anac: 'anac', cvm: 'cvm', anpd: 'anpd', anatel: 'anatel', mtur: 'turismo' }; // id da fonte -> pasta do órgão no gov.br
+  for (const id of Object.keys(GOV)) {
     const g = ALL.find((s) => s.id === id)!;
-    assert.equal(g.host, 'www.gov.br'); assert.equal(g.sitemapUrl, `https://www.gov.br/${id}/sitemap-index.xml`);
+    assert.equal(g.host, 'www.gov.br'); assert.equal(g.sitemapUrl, `https://www.gov.br/${GOV[id]}/sitemap-index.xml`);
     assert.ok(g.sitemapPathPrefix!.startsWith(g.pathPrefix + '/'), `${id}: prefixo do sitemap dentro do pathPrefix da fonte`);
     assert.equal(g.feedUrl, null, `${id}: sem feed (o RSS do Plone responde 404)`);
     assert.ok(g.maxRequestsPerHour >= 40, `${id}: limite por hora (janela do HOST www.gov.br) comporta uma rodada conjunta das três`);
@@ -105,10 +106,11 @@ test('por sitemap: as 3 empresas conferidas + ANAC, CVM e ANPD (gov.br, .xml.gz)
   // Orçamento do HOST: a janela de 1 h é por host e as 3 fontes dividem www.gov.br. Pior caso por rodada com 5 páginas por fonte (materiasPorRodada do piloto)
   // e os filhos lidos em 24/11: 1 robots (uma vez por host) + por fonte (1 índice + filhos .gz + 5 páginas). O limite de cada fonte precisa cobrir o total,
   // porque a checagem do último a rodar já vê as requisições dos anteriores.
-  const filhos: Record<string, number> = { anac: 9, cvm: 4, anpd: 2 };
+  // 25/11: ANATEL (4 filhos) e Ministério do Turismo (11 filhos) entraram no host; a rodada conjunta passou de 34 para 61 requisições.
+  const filhos: Record<string, number> = { anac: 9, cvm: 4, anpd: 2, anatel: 4, mtur: 11 };
   const PAGINAS = 5;
   const rodada = 1 + Object.values(filhos).reduce((n, k) => n + 1 + k + PAGINAS, 0);
-  assert.equal(rodada, 34);
+  assert.equal(rodada, 61);
   for (const id of Object.keys(filhos)) assert.ok(ALL.find((s) => s.id === id)!.maxRequestsPerHour >= rodada, `${id}: cobre a rodada conjunta de ${rodada} requisições`);
   const nat = ALL.find((s) => s.id === 'natura-ri')!;
   assert.equal(nat.kind, 'investor_relations'); assert.equal(nat.verification?.researchedBy, 'ln-editorial-engineer');
