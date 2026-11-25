@@ -3,8 +3,9 @@
 // dele, não é calculado aqui); o segredo do TOTP e os códigos de recuperação só existem na memória e na tela do terminal do proprietário, que é limpa (com o histórico de rolagem) depois de
 // cada etapa sensível. Esta função nunca grava senha, segredo, código nem o e-mail completo em log, arquivo ou auditoria; a auditoria leva só o id e o DOMÍNIO do e-mail.
 // A entrada e a saída vêm de uma interface (`ProdAdminIO`): a CLI usa o terminal (TTY obrigatório); os testes usam um roteiro.
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { schema } from '@ln/db';
+import { clearAttempts } from './attempts';
 import { audit } from './audit';
 import { createStaffUser, type Auth } from './server';
 import type { Db } from './types';
@@ -46,6 +47,8 @@ export type ProdAdminResult =
 export interface ProdAdminOptions {
   /** Commit/SHA da CLI (vai para a auditoria). */
   commit?: string | null;
+  /** Ambiente da CLI (chave do limite de tentativas); padrão process.env. */
+  env?: Record<string, string | undefined>;
 }
 
 class Step extends Error {
@@ -79,13 +82,13 @@ async function tries<T>(io: ProdAdminIO, step: string, attempt: (n: number) => P
 }
 
 /** Apaga TUDO que o usuário criado deixou (S4): sessões, 2º fator, conta, desafios de verificação e contadores de tentativa. Cada passo é tentado mesmo se o anterior falhar. */
-async function removeEverything(db: Db, userId: string, email: string): Promise<void> {
+async function removeEverything(db: Db, userId: string, email: string, env?: Record<string, string | undefined>): Promise<void> {
   const steps: Array<() => Promise<unknown>> = [
     () => db.delete(schema.session).where(eq(schema.session.userId, userId)),
     () => db.delete(schema.twoFactor).where(eq(schema.twoFactor.userId, userId)),
     () => db.delete(schema.account).where(eq(schema.account.userId, userId)),
     () => db.delete(schema.verification).where(eq(schema.verification.value, userId)),
-    () => db.delete(schema.authAttempt).where(or(eq(schema.authAttempt.subject, email), eq(schema.authAttempt.subject, `2fa:${userId}`))),
+    () => clearAttempts(db, [{ kind: 'conta', subject: email }, { kind: 'conta', subject: `2fa:${userId}` }], env), // o banco guarda só o HMAC: a limpeza passa pela mesma função do limitador
     () => db.delete(schema.user).where(eq(schema.user.id, userId)),
   ];
   for (const s of steps) await s().catch(() => undefined);
@@ -223,7 +226,7 @@ export async function bootstrapProductionAdmin(deps: ProdAdminDeps, io: ProdAdmi
     const reason = e instanceof Step ? e.message : (e as Error).name === 'ProdAdminAborted' ? 'interrompido pelo proprietário' : 'erro inesperado';
     const failedStep = e instanceof Step ? e.step : step;
     if (userId) {
-      await removeEverything(db, userId, email); // S4
+      await removeEverything(db, userId, email, opts.env); // S4
       await audit(db, { actorId: null, actorRole: 'cli', action: 'bootstrap_admin_producao_falhou', resource: 'usuarios', resourceId: userId, detalhe: { etapa: failedStep, commit: opts.commit ?? null } }).catch(() => undefined);
     }
     return { status: 'failed', step: failedStep, reason };
@@ -293,7 +296,9 @@ export async function revokeProductionAdmin(deps: Pick<ProdAdminDeps, 'db'>, io:
     await db.delete(schema.twoFactor).where(eq(schema.twoFactor.userId, userId));
     await db.delete(schema.account).where(eq(schema.account.userId, userId));
     await db.delete(schema.verification).where(eq(schema.verification.value, userId));
-    await db.delete(schema.authAttempt).where(or(eq(schema.authAttempt.subject, alvo.email), eq(schema.authAttempt.subject, `2fa:${userId}`)));
+    // contadores de tentativa: pela função do limitador (o banco só tem o HMAC). Sem chave no ambiente da CLI de revogação (ela abre só o banco) não há como calcular o
+    // sujeito: pula, e a retenção apaga a linha em até 24 h; nunca deixa a revogação incompleta por isso.
+    await clearAttempts(db, [{ kind: 'conta', subject: alvo.email }, { kind: 'conta', subject: `2fa:${userId}` }], opts.env).catch(() => undefined);
     await db.delete(schema.user).where(eq(schema.user.id, userId));
   } catch {
     await audit(db, { actorId: null, actorRole: 'cli', action: 'revogacao_admin_producao_incompleta', resource: 'usuarios', resourceId: userId, detalhe: { etapa: step, commit: opts.commit ?? null } }).catch(() => undefined);

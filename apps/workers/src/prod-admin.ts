@@ -194,7 +194,7 @@ export async function run(
       }
     }
     try {
-      const v = await revokeProductionAdmin(rdeps, io, { commit: env.LN_COMMIT_SHA ?? null });
+      const v = await revokeProductionAdmin(rdeps, io, { commit: env.LN_COMMIT_SHA ?? null, env });
       if (v.status === 'revoked') {
         out(`Administrador de produção revogado (domínio ${v.emailDomain}): banido, sessões apagadas e removido; auditado como revogacao_admin_producao. Feche este terminal. Para ter um administrador de novo, repita a cerimônia de criação.`);
         return 0;
@@ -233,7 +233,7 @@ export async function run(
     }
     deps = { db: rt.db as Db, auth: rt.auth as Auth, handle: rt.handle, baseURL: env.BETTER_AUTH_URL! };
   }
-  const r = await bootstrapProductionAdmin(deps, io, { commit: env.LN_COMMIT_SHA ?? null });
+  const r = await bootstrapProductionAdmin(deps, io, { commit: env.LN_COMMIT_SHA ?? null, env });
   if (r.status === 'created') {
     out(`Administrador de produção criado (domínio ${r.emailDomain}) e auditado como bootstrap_admin_producao. Feche este terminal. Nenhum segredo foi gravado.`);
     return 0;
