@@ -21,11 +21,11 @@ beforeAll(async () => {
 afterAll(async () => { await t.close(); });
 
 let seq = 0;
-async function lead(over: { status?: 'novo' | 'descartado' | 'convertido'; descartadoEm?: Date | null } = {}) {
+async function lead(over: { status?: 'novo' | 'descartado' | 'convertido'; descartadoEm?: Date | null; criadoEm?: Date } = {}) {
   const id = `lead-${++seq}`;
   await db.insert(schema.crmLeads).values({
     id, nome: `Pessoa ${seq}`, empresa: 'Empresa Exemplo', email: `pessoa${seq}@example.invalid`,
-    objetivo: 'awareness', consentimentoEm: new Date('2026-01-01T00:00:00Z'), status: over.status ?? 'novo',
+    objetivo: 'awareness', consentimentoEm: new Date('2026-01-01T00:00:00Z'), status: over.status ?? 'novo', criadoEm: over.criadoEm ?? new Date('2026-01-01T00:00:00Z'),
     descartadoEm: over.descartadoEm ?? null,
   });
   return id;
@@ -111,6 +111,15 @@ describe('retenção do descartado (30 dias por padrão)', () => {
     expect((await retainDiscardedLeads(db, { now: NOW, days: 7, salt: SALT })).deleted).toBe(1);
     expect(await count(oito)).toBe(0);
     expect(await count(seis)).toBe(1);
+  });
+
+  it('lead criado há 2 anos e descartado agora não sai na primeira rodada: o relógio é o descarte, não a criação', async () => {
+    const id = await lead({ status: 'descartado', descartadoEm: NOW, criadoEm: daysAgo(730) });
+    expect((await retainDiscardedLeads(db, { now: NOW, days: 30, salt: SALT })).deleted).toBe(0);
+    expect(await count(id)).toBe(1);
+    const depois = new Date(NOW.getTime() + 31 * 86_400_000);
+    expect((await retainDiscardedLeads(db, { now: depois, days: 30, salt: SALT })).deleted).toBe(1);
+    expect(await count(id)).toBe(0);
   });
 
   it('recusa dias inválidos (não usa default silencioso na rotina)', async () => {

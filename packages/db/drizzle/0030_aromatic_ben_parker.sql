@@ -12,5 +12,6 @@ CREATE TABLE "commercial_lead_deletions" (
 ALTER TABLE "crm_leads" ADD COLUMN "descartado_em" timestamp with time zone;--> statement-breakpoint
 CREATE INDEX "commercial_lead_deletions_at_idx" ON "commercial_lead_deletions" USING btree ("at");--> statement-breakpoint
 CREATE INDEX "crm_leads_descartado_idx" ON "crm_leads" USING btree ("status","descartado_em");--> statement-breakpoint
--- Lead descartado antes desta migracao: usa a data de criacao como base para a retencao.
-UPDATE "crm_leads" SET "descartado_em" = "criado_em" WHERE "status" = 'descartado' AND "descartado_em" IS NULL;
+-- Lead descartado antes desta migracao: o relogio da retencao comeca AGORA, nao na criacao (DP-55: nao antecipar
+-- o prazo anunciado; um lead criado ha 2 anos e descartado ontem so sai 30 dias depois desta migracao).
+UPDATE "crm_leads" SET "descartado_em" = now() WHERE "status" = 'descartado' AND "descartado_em" IS NULL;
