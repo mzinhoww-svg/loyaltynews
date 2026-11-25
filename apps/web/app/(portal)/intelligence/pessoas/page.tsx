@@ -36,8 +36,15 @@ export default async function PessoasPage({ searchParams }: { searchParams: Prom
           Não conseguimos carregar os perfis agora. Isso não significa que não existam; tente de novo em instantes.
         </ErrorState>
       ) : !dir.available ? (
-        // Recurso sem nenhum perfil publicável (disponivel=false). Não é "indisponível" (falha) nem filtro vazio.
-        <EmptyState title="Ainda não há perfis publicados">{PEOPLE_EMPTY}</EmptyState>
+        // Três estados, não dois (P3 do QA 8): o recurso pode ter perfis que esta versão ainda não publica. Nesse caso não se
+        // diz "ainda não há" (mentira por omissão) nem se descartam os itens em silêncio.
+        (dir.withheld ?? 0) > 0 ? (
+          <EmptyState title="Existem perfis, ainda não publicados nesta versão">
+            A base tem perfis verificados, mas eles não estão publicados nesta versão do portal. Nenhum dado é exibido antes da liberação.
+          </EmptyState>
+        ) : (
+          <EmptyState title="Ainda não há perfis publicados">{PEOPLE_EMPTY}</EmptyState>
+        )
       ) : (
         <>
           <SearchInput action="/intelligence/pessoas" label="Buscar pessoa" placeholder="Buscar pelo nome" defaultValue={q} />

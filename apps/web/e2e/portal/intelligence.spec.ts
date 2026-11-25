@@ -262,6 +262,24 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
   });
 });
 
+test.describe('api com dado existente mas retido nesta versão', () => {
+  test.skip(mode !== 'api' || intel !== 'retido', 'somente com PORTAL_API_INTEL=retido');
+
+  test('pessoas e Moves dizem que existem, mas ainda não foram publicados — não "ainda não há"', async ({ page }) => {
+    const res = await page.goto('/intelligence/pessoas');
+    expect(res?.status()).toBe(200);
+    await expect(page.getByText('Existem perfis, ainda não publicados nesta versão')).toBeVisible();
+    await expect(page.getByText('Ainda não há perfis publicados')).toHaveCount(0);
+    await expect(page.getByTestId('people-list')).toHaveCount(0);
+
+    await page.goto('/moves');
+    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão')).toBeVisible();
+    await expect(page.getByTestId('moves-empty-withheld')).toBeVisible();
+    await expect(page.getByTestId('moves-list')).toHaveCount(0);
+    await axe(page);
+  });
+});
+
 test.describe('mock: pessoas e Moves', () => {
   test.skip(mode !== 'mock', 'somente no modo mock');
 

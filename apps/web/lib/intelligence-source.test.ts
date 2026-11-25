@@ -165,9 +165,10 @@ describe('pessoas, cargos e Moves', () => {
     });
     afterEach(() => err.mockRestore());
 
-    it('flag desligada: vazio honesto (available=false), mesmo se a resposta trouxer itens', async () => {
-      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move()], total: 1, disponivel: false })) as unknown as typeof fetch);
-      expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    it('flag desligada com itens no dado: nada é exibido, mas os itens viram `withheld` (não somem em silêncio)', async () => {
+      // P3 do QA 8: disponivel=false com 2 pessoas no dado não pode virar "ainda não há perfis" sem aviso.
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move({ id: ID(61) }), move({ id: ID(62) })], total: 2, disponivel: false })) as unknown as typeof fetch);
+      expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false, withheld: 2 });
     });
 
     it('contrato 92d79c8: disponivel descreve o recurso; total 0 com disponivel=true é filtro sem resultado', async () => {
@@ -177,10 +178,20 @@ describe('pessoas, cargos e Moves', () => {
       expect(await filtro.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: true });
     });
 
-    it('recurso sem dado publicável: disponivel=false e total 0', async () => {
+    it('recurso sem dado publicável: disponivel=false, total 0 e sem `withheld`', async () => {
       const semDado = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: false })) as unknown as typeof fetch);
       expect(await semDado.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false });
       expect(await semDado.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    });
+    it('pessoas: disponivel=false com perfis no dado devolve withheld (2) e nada publicável', async () => {
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, {
+        data: [{ id: ID(70), nome: 'Ana', cargos: [] }, { id: ID(71), nome: 'Bia', cargos: [] }], total: 2, disponivel: false,
+      })) as unknown as typeof fetch);
+      expect(await s.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false, withheld: 2 });
+    });
+    it('pessoas: disponivel=false sem itens não tem withheld (não há nada retido)', async () => {
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: false })) as unknown as typeof fetch);
+      expect(await s.getPeopleDirectory()).not.toHaveProperty('withheld');
     });
 
     it('disponivel=true com total>0 é disponível e mantém o total do servidor', async () => {

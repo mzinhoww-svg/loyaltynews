@@ -40,11 +40,15 @@ export default async function MovesPage() {
         </ul>
       ) : (
         <>
-          {/* Estado vazio honesto: `available` vem do dado (total > 0), não da flag da API. Com 0 Moves confirmados a página
-              não diz que há movimentações disponíveis nem promete "em breve" ao lado de um indicador de disponibilidade. */}
-          <EmptyState title="Ainda não há Moves publicados">
+          {/* Estado vazio honesto, com três casos: sem dado, dado existente mas retido nesta versão (`withheld`) e filtro
+              sem resultado. Nunca promete disponibilidade que o conjunto não tem. */}
+          <EmptyState title={(feed.withheld ?? 0) > 0 ? 'Existem movimentações, ainda não publicadas nesta versão' : 'Ainda não há Moves publicados'}>
             <span className={s.emptyText} data-testid="moves-empty-text">{MOVES_EMPTY}</span>
-            <span className={s.emptyText} data-testid="moves-empty-honest"> Nenhuma movimentação foi publicada até agora; a primeira entra quando houver confirmação por fonte primária, com o antes e o depois.</span>
+            {(feed.withheld ?? 0) > 0 ? (
+              <span className={s.emptyText} data-testid="moves-empty-withheld"> Há movimentações na base, mas elas ainda não foram publicadas nesta versão do portal; nenhuma aparece antes da liberação.</span>
+            ) : (
+              <span className={s.emptyText} data-testid="moves-empty-honest"> Nenhuma movimentação foi publicada até agora; a primeira entra quando houver confirmação por fonte primária, com o antes e o depois.</span>
+            )}
           </EmptyState>
           <section className={s.meanwhile} aria-labelledby="moves-meanwhile" data-testid="moves-meanwhile">
             <h2 id="moves-meanwhile" style={{ fontSize: 18 }}>Enquanto isso</h2>

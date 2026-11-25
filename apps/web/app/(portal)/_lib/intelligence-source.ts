@@ -240,7 +240,7 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
   }
 
   /** Lista com envelope { data, total, disponivel }: falha = unavailable; item fora do formato é descartado. */
-  async function list<T>(path: string, map: (v: unknown) => T | null): Promise<{ status: 'ok'; items: T[]; total: number; available: boolean } | { status: 'unavailable' }> {
+  async function list<T>(path: string, map: (v: unknown) => T | null): Promise<{ status: 'ok'; items: T[]; total: number; available: boolean; withheld?: number } | { status: 'unavailable' }> {
     const res = await get(path, WHAT);
     if (!res) return { status: 'unavailable' };
     if (!res.ok) {
@@ -258,7 +258,11 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       //   total 0 + disponivel true  = filtro sem resultado → "nenhuma pessoa para este filtro";
       //   total > 0                 = lista normal.
       // `total` exibido é o dos itens que passaram no mapa (um item inválido não é publicado nem contado).
-      if (!j.disponivel) return { status: 'ok', items: [], total: 0, available: false };
+      // Com a flag desligada, itens que VIERAM na resposta não são descartados em silêncio: viram `withheld`, e a página
+      // diz "existem, ainda não publicados nesta versão" em vez de "ainda não há" (P3 do QA 8).
+      if (!j.disponivel) {
+        return items.length ? { status: 'ok', items: [], total: 0, available: false, withheld: items.length } : { status: 'ok', items: [], total: 0, available: false };
+      }
       return { status: 'ok', items, total: items.length, available: true };
     } catch {
       logFalha(WHAT, 'resposta inválida');
