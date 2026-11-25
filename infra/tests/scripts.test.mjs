@@ -716,13 +716,15 @@ test('smoke-staging: avaliarReady e empresasNaPagina (funções puras)', async (
   assert.match(avaliarReady({ status: 'indisponivel', mode: 'completo', db: 'ok', redis: 'nao_configurado' }).join('|'), /redis=nao_configurado/);
   assert.deepEqual(avaliarReady(null), ['corpo sem JSON']);
   assert.equal(empresasNaPagina('<p class="pt-meta" data-testid="count-empresas">29 cadastrado(s) e verificado(s)</p>'), 29);
+  assert.equal(empresasNaPagina('<p class="pt-meta" data-testid="count-empresas" data-count="0">Nenhum registro publicado ainda</p>'), 0);
+  assert.equal(empresasNaPagina('<p data-testid="count-empresas">Nenhum registro publicado ainda</p>'), null); // HTML antigo, sem data-count
   assert.equal(empresasNaPagina('<p data-testid="count-empresas">Cadastros verificados: em breve</p>'), null);
   assert.equal(empresasNaPagina('<html></html>'), null);
 });
 
 test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /intelligence em breve reprovam com o motivo', async () => {
   const R = 'DEMO · staging';
-  const estado = { mode: 'completo', semSeed: false, orgs: 29, feedComItem: false, loginForm: true };
+  const estado = { mode: 'completo', semSeed: false, orgs: 29, feedComItem: false, loginForm: true, zeroHonesto: false };
   const s = await server((req, res) => {
     const u = req.url.split('?')[0];
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -739,7 +741,8 @@ test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /inte
     if (u === '/noticia/a1' || u === '/editoria/e0') return html(200, estado.semSeed ? 'vazio' : '[' + R + '] Matéria 1');
     if (u === '/midia-kit') return html(200, '<title>Mídia kit — Anuncie | Loyalty News</title><meta name="robots" content="noindex, nofollow"/>');
     if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.feedComItem ? '<item><title>x</title></item>' : '') + '</rss>'); }
-    if (u === '/intelligence') return html(200, estado.orgs ? '<p data-testid="count-empresas">' + estado.orgs + ' cadastrado(s) e verificado(s)</p>' : '<p data-testid="count-empresas">Cadastros verificados: em breve</p>');
+    if (u === '/api/publico/intelligence/empresas') return json(200, { data: Array.from({ length: estado.orgs }, (_, i) => ({ id: 'o' + i })), total: estado.orgs });
+    if (u === '/intelligence') return html(200, estado.zeroHonesto ? '<p data-testid="count-empresas" data-count="0">Nenhum registro publicado ainda</p>' : estado.orgs ? '<p data-testid="count-empresas">' + estado.orgs + ' cadastrado(s) e verificado(s)</p>' : '<p data-testid="count-empresas">Cadastros verificados: em breve</p>');
     if (u === '/studio') { res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
     if (u === '/studio/entrar') return html(200, estado.loginForm ? '<form><input type="password"/></form>' : '<p>O login do Studio ainda não está disponível neste ambiente.</p>');
     if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end('User-agent: *\nDisallow: /\n'); }
@@ -769,9 +772,13 @@ test('smoke-staging: staging completo com seed passa; nodb, seed ausente e /inte
     estado.semSeed = false; estado.orgs = 0;
     const emBreve = await run(['--expect-orgs', '29']);
     assert.equal(emBreve.status, 1);
-    assert.match(emBreve.stdout, /adaptador api do portal ainda não lê Intelligence/);
-    // feed de staging com item = vazamento (R6); tela de entrada em aviso: nota sem falha, e falha só com --expect-login-form; detalhe de falha não aparece no que passou
-    estado.orgs = 29; estado.feedComItem = true;
+    assert.match(emBreve.stdout, /a API tem 0 empresa\(s\) e a página diz/);
+    // zero honesto: página com data-count=0 e API 0 passam (o caso que o diff antigo reprovava)
+    estado.zeroHonesto = true;
+    const zero = await run();
+    assert.equal(zero.status, 0, zero.stdout);
+    assert.match(zero.stdout, /"intelligence: página e API concordam",\s*"ok": true/);
+    estado.zeroHonesto = false; estado.orgs = 29; estado.feedComItem = true;
     const feed = await run();
     assert.equal(feed.status, 1);
     assert.match(feed.stdout, /SEM itens \(staging não indexável, R6\)/);

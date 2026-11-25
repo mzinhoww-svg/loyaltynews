@@ -257,8 +257,8 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     await expect(page.getByText('Nenhum cargo declarado com fonte oficial foi publicado para esta empresa')).toBeVisible({ timeout: NAV_MS });
     await expect(page.getByTestId('move-card')).toHaveCount(0);
     await page.goto('/intelligence');
-    await expect(page.getByTestId('count-pessoas')).toHaveText('Cadastros verificados: em breve');
-    await expect(page.getByTestId('count-moves')).toHaveText('Cadastros verificados: em breve');
+    await expect(page.getByTestId('count-pessoas')).toHaveText(intel === 'sem-flag' ? 'Disponível no go-live' : 'Nenhum registro publicado ainda');
+    await expect(page.getByTestId('count-moves')).toHaveText('Nenhum registro publicado ainda');
   });
 });
 

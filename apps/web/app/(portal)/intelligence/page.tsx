@@ -19,13 +19,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function IntelligenceHub() {
   const src = getSource();
-  const [companies, peopleDir, movesFeed] = await Promise.all([src.listCompanies(), src.getPeopleDirectory(), src.getMovesFeed()]);
-  // Falha da API conta como 0 aqui (o hub só resume); cada página mostra o próprio estado de erro.
-  const count = (d: { status: string; total?: number }) => (d.status === 'ok' ? (d.total ?? 0) : 0);
+  const [companiesDir, peopleDir, movesFeed] = await Promise.all([src.getCompanyDirectory(), src.getPeopleDirectory(), src.getMovesFeed()]);
+  // Falha (indisponível), flag desligada (no go-live) e módulo disponível sem registro não são a mesma coisa: "em breve" só para o que ainda não existe.
+  const rotulo = (d: { status: 'ok' | 'unavailable'; total?: number; available?: boolean }) =>
+    d.status !== 'ok' ? 'Indisponível no momento'
+      : d.available === false ? 'Disponível no go-live'
+        : (d.total ?? 0) > 0 ? `${d.total} cadastrado(s) e verificado(s)`
+          : 'Nenhum registro publicado ainda';
+  const total = (d: { status: 'ok' | 'unavailable'; total?: number }) => (d.status === 'ok' ? d.total ?? 0 : null);
   const tiles = [
-    { href: '/intelligence/empresas', title: 'Empresas', text: 'Diretório de companhias, programas e parceiros, com fonte e data de revisão.', n: companies.length },
-    { href: '/intelligence/pessoas', title: 'Pessoas', text: 'Executivos e profissionais: apenas dados profissionais públicos, relevantes e verificáveis.', n: count(peopleDir) },
-    { href: '/moves', title: 'Moves', text: 'Movimentações de cargo e de empresa confirmadas por fonte primária.', n: count(movesFeed) },
+    { href: '/intelligence/empresas', title: 'Empresas', text: 'Diretório de companhias, programas e parceiros, com fonte e data de revisão.', rotulo: rotulo(companiesDir), n: total(companiesDir) },
+    { href: '/intelligence/pessoas', title: 'Pessoas', text: 'Executivos e profissionais: apenas dados profissionais públicos, relevantes e verificáveis.', rotulo: rotulo(peopleDir), n: total(peopleDir) },
+    { href: '/moves', title: 'Moves', text: 'Movimentações de cargo e de empresa confirmadas por fonte primária.', rotulo: rotulo(movesFeed), n: total(movesFeed) },
   ];
   return (
     <>
@@ -40,8 +45,8 @@ export default async function IntelligenceHub() {
           <li key={t.href} className="pt-panel">
             <h2 style={{ fontSize: 22 }}><Link href={t.href} className={s.touch} data-testid={`tile-${t.title.toLowerCase()}`}>{t.title}</Link></h2>
             <p>{t.text}</p>
-            <p className="pt-meta" data-testid={`count-${t.title.toLowerCase()}`}>
-              {t.n > 0 ? `${t.n} cadastrado(s) e verificado(s)` : 'Cadastros verificados: em breve'}
+            <p className="pt-meta" data-testid={`count-${t.title.toLowerCase()}`} data-count={t.n ?? undefined}>
+              {t.rotulo}
             </p>
           </li>
         ))}

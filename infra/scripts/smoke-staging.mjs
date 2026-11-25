@@ -41,8 +41,11 @@ export function avaliarReady(j, opts = {}) {
   return p;
 }
 
-/** Número de empresas anunciado na página /intelligence ("N cadastrado(s) e verificado(s)" no tile Empresas); null se a página diz "em breve". */
+/** Número de empresas anunciado na página /intelligence. Prefere `data-count` (o zero honesto também é número); sem ele, lê "N cadastrado(s)"; null só para "em breve". */
 export function empresasNaPagina(html) {
+  const tag = String(html).match(/<[^>]*data-testid="count-empresas"[^>]*>/)?.[0];
+  const attr = tag?.match(/data-count="(\d+)"/);
+  if (attr) return Number(attr[1]);
   const m = String(html).match(/data-testid="count-empresas"[^>]*>\s*(\d+)\s+cadastrado/i);
   return m ? Number(m[1]) : null;
 }
@@ -182,7 +185,12 @@ async function main() {
     const r = await get('/intelligence');
     const n = empresasNaPagina(r.body);
     check('intelligence: 200', r.status === 200, `HTTP ${r.status}`);
-    if (orgs !== null) check(`intelligence: ${orgs} empresas cadastradas`, n === orgs, n === null ? 'a página diz "em breve": o adaptador api do portal ainda não lê Intelligence' : `a página mostra ${n}`);
+    // A página TEM de refletir a API: com dados na API e "em breve" na página é falha real (adaptador), não "esperada".
+    const api = await get('/api/publico/intelligence/empresas');
+    let apiTotal;
+    try { apiTotal = Number(JSON.parse(api.body).total); } catch { apiTotal = null; }
+    check('intelligence: página e API concordam', apiTotal !== null && n === apiTotal, n === null ? `a API tem ${apiTotal ?? '?'} empresa(s) e a página diz "em breve"` : `página ${n}, API ${apiTotal ?? '?'}`);
+    if (orgs !== null) check(`intelligence: ${orgs} empresas cadastradas`, n === orgs, n === null ? 'a página diz "em breve"' : `a página mostra ${n}`);
   });
   await tentar('studio', async () => {
     const neg = await get('/studio');
