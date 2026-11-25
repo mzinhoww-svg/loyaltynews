@@ -231,7 +231,7 @@ provas('provas funcionais', () => {
       let funcional: { familia: string; check: boolean; arial: number; preload: string | null; faces: number; facesUrl: number } | null = null;
       for (let i = 0; i < RODADAS; i++) {
         const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-        const login = await context.request.get(url('/api/e2e/login?seed=intelligence'));
+        const login = await context.request.get(url('/api/e2e/login?user=qa8&role=admin&mfa=1'));
         expect(login.ok(), 'login do fixture de e2e').toBe(true);
         const page = await context.newPage();
         const cdp = await context.newCDPSession(page);
@@ -310,7 +310,7 @@ provas('provas funcionais', () => {
     expect(home.fontes.length, 'portal: arquivos de fonte no cache quente').toBeLessThanOrEqual(1);
     if (home.fontes.length) expect(home.fontes[0]!.bytes).toBe(48256);
 
-    const login = await context.request.get(url('/api/e2e/login?seed=intelligence'));
+    const login = await context.request.get(url('/api/e2e/login?user=qa8&role=admin&mfa=1'));
     expect(login.ok(), 'login do fixture de e2e').toBe(true);
     await page.goto(url('/studio/creative'), { waitUntil: 'load' });
     await page.waitForTimeout(3000);
