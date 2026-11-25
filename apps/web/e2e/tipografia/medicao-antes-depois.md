@@ -1,48 +1,43 @@
-# Medição antes/depois — tipografia (Inter local)
+# Medição antes/depois — tipografia (Inter local, V1 `optional`)
 
 Protocolo: `auditoria-design/tipografia/aceite-tipografia.md` (UI/UX, 25/11/2026).
-Chromium headless (Playwright), processo novo por rodada, CDP 1,6 Mbps / 750 kbps / 150 ms, CPU 4x, 3 rodadas por célula (mediana).
-Build de produção local no perfil vitrine do e2e (fixtures MOCK), `next start` em `localhost:3000`, mesma máquina.
+Chromium headless (Playwright), processo novo por rodada, CDP 1,6 Mbps / 750 kbps / 150 ms, CPU 4x, 5 rodadas por célula a 390 e 3+ nas demais (mediana). Build de produção local no perfil vitrine do e2e (fixtures MOCK), `next start` em `localhost:3000`, mesma máquina.
 
 - **Antes:** `origin/main` `d355b12`.
-- **Depois:** `ft/portal-tipografia` (`cabc643` + commit das setas/tokens).
-- Motivo do perfil vitrine: a página de pessoa de M-03 só existe localmente com as fixtures; o build é de produção.
+- **Final (V1):** `ft/portal-tipografia` (`1a78fb5`).
+- Escolha do PM em 25/11: **`display: optional`, sem preload**. A primeira tentativa (swap + preload) foi descartada.
 
-## Medianas (FCP / LCP / CLS)
+## V1 — resultado final
 
-| Célula | Antes | Depois | CLS ≤ 0,10 | FCP ≤ antes+50 | LCP ≤ antes+100 |
-|---|---|---|---|---|---|
-| home 390 | 1468 / 1636 / 0,001 | 1648 / 2588 / 0 | ✓ | ✗ (+180) | ✗ (+952) |
-| home 768 | 1680 / 1996 / 0 | 1564 / 2312 / 0 | ✓ | ✓ | ✗ (+316) |
-| home 1280 | 1544 / 1664 / 0,006 | 1364 / 2124 / 0 | ✓ | ✓ | ✗ (+460) |
-| pessoa 390 | 1196 / 1196 / 0,012 | 1152 / 1152 / **0,275** | **✗** | ✓ | ✓ |
-| pessoa 768 | 1188 / 1188 / 0,02 | 1348 / 1348 / 0,006 | ✓ | ✗ (+160) | ✗ (+160) |
-| pessoa 1280 | 1924 / 1924 / 0,008 | 1392 / 1392 / 0,001 | ✓ | ✓ | ✓ |
-| Studio /studio e /studio/creative 1280 | Arial, 0 fonte | Inter, 1 fonte, 0 @font-face url, CLS 0 | ✓ | — | — |
-| fonte bloqueada, pessoa 768 | — | CLS **0** | ✓ | — | — |
+| Célula | Antes (5 rodadas) | V1 `optional`, sem preload | CLS ≤ 0,10 |
+|---|---|---|---|
+| home 390 | 1124 / 1220 / 0,001 | 1372 / 1492 / **0** | ✓ |
+| home 768 | 908 / 1016 / 0 | 1376 / 1588 / **0** | ✓ |
+| home 1280 | 884 / 976 / 0,006 | 1204 / 1300 / **0** | ✓ |
+| perfil 390 | 860 / 860 / 0,012 | 1264 / 1264 / **0** | ✓ |
+| perfil 768 | 784 / 784 / 0,02 | 1272 / 1272 / **0** | ✓ |
+| perfil 1280 | 832 / 832 / 0,008 | 1356 / 1356 / **0** | ✓ |
 
-## O que passou
+FCP / LCP / CLS em ms; o último número é o CLS.
 
-- 768 no perfil (o portão do staging): CLS **0,006**; com o `.woff2` abortado, **0** — `adjustFontFallback` funciona.
-- 1 requisição de fonte de **48.256 B**, preload presente, **1 `@font-face` com url** (a segunda regra é a reserva `local("Arial")` com as métricas, criada pelo próprio `adjustFontFallback`).
-- Studio em Inter, sem Arial, 1 fonte; Georgia só em `.pt-body` e `.pt-article-sub`; tokens approved; axe não foi repetido nesta rodada (fica para o e2e do QA).
+**Provas da V1 (o gate):**
 
-## O que reprovou, e por quê
+- **1 requisição de 48.256 B** e **1 `@font-face` com arquivo** (a outra regra é a reserva `local("Arial")` com métricas, criada pelo `adjustFontFallback`).
+- **Sem troca depois do primeiro paint:** `optional` não faz swap; com o `.woff2` abortado a 768, CLS **0**. A atribuição com a fonte abortada também deu **0** a 390 (5/5) e 1280 (3/3).
+- **Cache quente:** família resolvida no portal e no Studio (`document.fonts.check` verdadeiro), 1 arquivo.
+- **Studio:** Inter, sem Arial; Georgia só em `.pt-body` e `.pt-article-sub`; tokens approved.
+- **Custo de marca (declarado):** na primeira visita em rede lenta o texto sai em **Arial ajustado e permanece**; com o cache quente a identidade em Inter aparece.
 
-1. **pessoa 390: CLS 0,275.** O "antes" local **não reproduziu** o 0,399 do staging (deu 0,02 a 768), como o aceite previu; o teste com a fonte bloqueada decidiu (0). No 390, a preload faz a troca cair dentro da janela de medição e a quebra de linha muda (~0,8% de diferença de largura da reserva), empurrando as seções. Ajustar `size-adjust` para 104,5% zera o 390 neste fixture, mas é um número ajustado à página e frágil; não foi aplicado.
-2. **LCP das homes (+316 a +952 ms) e FCP de home 390/pessoa 768.** A troca de fonte agora acontece **dentro** de `load + 1 s` (antes o `.woff2` chegava depois da janela e não contava). O LCP de texto é reemitido no swap, e a fonte pré-carregada disputa banda com a imagem do LCP na home. É o mesmo efeito de fronteira do CLS: o "antes" parece melhor porque não mede a troca.
-3. **`@font-face` = 2 regras, não 1.** O `adjustFontFallback: 'Arial'` obrigatório gera a segunda regra (Arial local com métricas). Só uma tem arquivo/rede.
+## FCP / LCP
 
-## Conclusão (revisada em 25/11 com a decisão do PM)
+**Não são atribuíveis entre janelas nesta máquina.** O mesmo “antes” deu 784–1124 ms em 5 rodadas e 1196–1924 ms em 3 rodadas, com dispersão de até 70% dentro da célula — acima das margens de +50/+100 ms. Não há regressão nem melhoria atribuível; os dois serão **remedidos no staging depois do deploy, com mais rodadas**, como o PM determinou. Nenhum número de FCP/LCP desta rodada é gate.
 
-O PM escolheu a **V1: `display: optional`, sem preload** (commit do layout na branch). Motivos: CLS **0 nas seis células** (a métrica que reprovava), **1 requisição e 1 `@font-face` com arquivo**, e nenhuma competição com a imagem do LCP. Custo declarado: na primeira visita em rede lenta o título sai em **Arial ajustado**; a identidade aparece a partir do cache — provado no portal e no Studio.
+## Histórico: tentativa descartada (swap + preload)
 
-O defeito do staging (0,399 a 768) fica coberto pelo teste com a fonte bloqueada (CLS 0 a 768).
-
-**FCP/LCP não são atribuíveis entre janelas nesta máquina.** O mesmo “antes” deu 784–1124 ms em 5 rodadas e 1196–1924 ms em 3 rodadas, com dispersão de até 70% dentro da célula — acima das margens de +50/+100 ms. Não há regressão nem melhoria atribuível; os dois serão **remedidos no staging depois do deploy, com mais rodadas**, como o PM determinou. Nenhum número de FCP/LCP desta rodada deve ser usado como gate.
+A primeira implementação usava `display: swap` com `preload: true`. Ela fechava o 768 (0,006) e a fonte bloqueada, mas, no perfil a 390, a troca caía dentro da janela de `load + 1 s` e dava **CLS 0,275**; e o LCP das homes subia porque a fonte disputava banda com a imagem do LCP. O ajuste de `size-adjust` para 104,5% foi descartado por ser número ajustado à fixture. Foi essa medição que levou o PM à V1.
 
 ## Arquivos
 
 - Spec: `apps/web/e2e/tipografia/medir.spec.ts`; config `apps/web/e2e/tipografia.config.ts`.
-- JSON bruto: `apps/web/e2e/tipografia/evidencias/{antes,depois}/*.json` (versionado na branch).
-- Capturas: `auditoria-design/tipografia/evidencias-cabc643/` (390/768/1280, antes e depois, e Studio).
+- JSON bruto: `apps/web/e2e/tipografia/evidencias/{antes5,v1-optional,v2-hibrido,atribuicao}/*.json` (versionado na branch).
+- Capturas: `auditoria-design/tipografia/evidencias-cabc643/`.
