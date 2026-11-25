@@ -1592,7 +1592,7 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
   const c = JSON.parse(readFileSync(join(S, '..', 'vertra', 'env-contract.json'), 'utf8'));
   const sec = c.so_para_cli_do_piloto_nao_vao_para_apps_da_vertra;
   assert.ok(Array.isArray(sec), 'o contrato tem a seção da CLI do piloto');
-  assert.deepEqual(sec.map((v) => v.nome).sort(), Object.keys(cli).sort(), 'as quatro variáveis da CLI estão declaradas');
+  assert.deepEqual(sec.map((v) => v.nome).sort(), Object.keys(cli).sort(), 'as cinco variáveis da CLI estão declaradas');
   assert.doesNotMatch(JSON.stringify(sec), /"valor"\s*:/, 'a seção só declara nomes, nenhum valor');
   assert.doesNotMatch(JSON.stringify(c), /valor-ficticio/, 'o contrato não tem valor nenhum');
   // O prazo do gateway é o único valor do piloto definido hoje, e só no staging: 30 min (1800000 ms).
@@ -1629,6 +1629,40 @@ test('guard-env (item 5 do piloto, falha fechada): num deploy SEM APP_ENV a CLI 
     const r = amb.ambientes[amb2].recursos[app];
     assert.match(r.build_command, /^node infra\/scripts\/guard-env\.mjs && /, `${amb2}/${app}: build começa pelo guard-env`);
     assert.match(r.start_command, /^node infra\/scripts\/guard-env\.mjs && /, `${amb2}/${app}: start começa pelo guard-env`);
+  }
+});
+
+test('guard-env (P3 do QA 6): no caminho da VERTRA (guard-env SEM --deploy) as variáveis do piloto e o DIAG_XFF barram só pelo APP_ENV; a única família que depende da flag é a CLI do operador (documentada)', () => {
+  // A Vertra chama exatamente `node infra/scripts/guard-env.mjs` no build e no start: sem argumento nenhum.
+  const vertra = (env) => node('guard-env.mjs', [], { env: { ...cleanEnv(), ...env } });
+  const piloto = { LN_OPENBOT_PILOT: '1', OPENBOT_HMAC_SECRET: 'valor-ficticio-de-teste', OPENBOT_HMAC_SECRET_PREVIOUS: 'valor-ficticio-de-teste', LN_OPENBOT_PILOT_WIRING: '@ln/outro', LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60000' };
+  assert.equal(vertra({}).status, 0, 'controle negativo: caminho da Vertra sem APP_ENV e sem variável do piloto passa');
+  for (const [nome, valor] of Object.entries(piloto)) {
+    for (const amb of [{}, { APP_ENV: 'homologacao' }, { APP_ENV: 'production' }]) {
+      const r = vertra({ ...amb, [nome]: valor });
+      const rotulo = `${nome} ${amb.APP_ENV ? `com APP_ENV=${amb.APP_ENV}` : 'sem APP_ENV'} sem --deploy`;
+      assert.equal(r.status, 1, rotulo + ' tem de reprovar no caminho da Vertra');
+      assert.ok((r.stderr + r.stdout).includes(nome), 'a mensagem cita o nome: ' + rotulo);
+      assert.ok(!(r.stderr + r.stdout).includes(valor) || valor === '1' || valor === '60000', 'a mensagem não repete o valor: ' + rotulo);
+    }
+    assert.equal(vertra({ APP_ENV: 'staging', [nome]: valor }).status, 0, nome + ' no staging passa (caminho da Vertra)');
+  }
+  for (const amb of [{}, { APP_ENV: 'homologacao' }, { APP_ENV: 'production' }]) {
+    assert.equal(vertra({ ...amb, DIAG_XFF: '1' }).status, 1, `DIAG_XFF ${amb.APP_ENV || 'sem APP_ENV'} sem --deploy tem de reprovar`);
+  }
+  assert.equal(vertra({ APP_ENV: 'staging', DIAG_XFF: '1' }).status, 0, 'DIAG_XFF no staging passa (é a janela de medição)');
+  // A exceção, escrita e testada: a CLI do operador não é variável de app e o guard só a recusa no caminho com --deploy (ci-checks/migrate).
+  // No caminho da Vertra, sozinha (sem APP_ENV), ela passa — e isso não liga nada no app, porque nenhum código do app a lê.
+  for (const nome of ['LN_API_BASE', 'LN_AGENT_ACCOUNT', 'LN_HMAC_SECRET_FILE', 'LN_HMAC_SECRET', 'LN_WORKER_ID']) {
+    assert.equal(vertra({ [nome]: 'valor-ficticio-de-teste' }).status, 0, `${nome}: caminho sem --deploy não a barra (limite conhecido)`);
+    assert.equal(node('guard-env.mjs', ['--deploy'], { env: { ...cleanEnv(), [nome]: 'valor-ficticio-de-teste' } }).status, 1, `${nome}: com --deploy reprova`);
+  }
+  // E a prova de que a Vertra não passa a flag: os comandos declarados não têm --deploy.
+  const amb2 = JSON.parse(readFileSync(join(S, '..', 'vertra', 'environments.json'), 'utf8'));
+  for (const ambiente of ['staging', 'production']) for (const app of ['web', 'workers']) {
+    const r = amb2.ambientes[ambiente].recursos[app];
+    assert.doesNotMatch(r.build_command, /--deploy/, `${ambiente}/${app}: o build da Vertra não usa --deploy`);
+    assert.doesNotMatch(r.start_command, /--deploy/, `${ambiente}/${app}: o start da Vertra não usa --deploy`);
   }
 });
 

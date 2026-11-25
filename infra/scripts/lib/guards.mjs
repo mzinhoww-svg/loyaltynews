@@ -94,12 +94,11 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
     else if (ambFlags !== 'staging' && deploy) p.push(`LN_FLAGS_ON com APP_ENV=${env.APP_ENV || '(vazio)'}: só o staging aceita flags por variável (ADR-022)`);
   }
   // Piloto OpenBot (DP-41, item 5 do piloto): TODAS as variáveis do piloto só existem com APP_ENV=staging.
-  // Em produção reprovam pelo NOME; num deploy com APP_ENV ausente (ou outro valor) também reprovam — FALHA FECHADA: perder o APP_ENV
-  // não pode deixar o app subir com o segredo do piloto. Fora de deploy e de produção (desenvolvimento local) as variáveis são aceitas.
+  // A barreira NÃO depende de --deploy: na Vertra o build_command e o start_command chamam `guard-env.mjs` SEM a flag, então a regra
+  // tem de valer pelo APP_ENV sozinho. Produção (ou APP_ENV ausente/inesperado: typo, variável removida) não sobe com nenhuma delas.
   // A mensagem nunca repete o valor.
   const ambPiloto = String(env.APP_ENV ?? '').trim().toLowerCase();
-  const barreiraPiloto = prod || deploy;
-  const ondePiloto = prod ? 'em produção' : `com APP_ENV=${env.APP_ENV || '(vazio)'} num deploy`;
+  const ondePiloto = prod ? 'em produção' : `com APP_ENV=${env.APP_ENV || '(vazio)'}`;
   const RAZAO_PILOTO = {
     LN_OPENBOT_PILOT: 'o piloto OpenBot só existe com APP_ENV=staging (DP-41)',
     OPENBOT_HMAC_SECRET: 'o segredo do OpenBot é só do staging (DP-41)',
@@ -109,15 +108,16 @@ export function envProblems(env = process.env, { deploy = false, migracao = fals
     LN_OPENBOT_PILOT_WIRING: 'variável do piloto OpenBot, só do staging (DP-41)',
     LN_OPENBOT_GATEWAY_TIMEOUT_MS: 'variável do piloto OpenBot, só do staging (DP-41)',
   };
-  if (barreiraPiloto && ambPiloto !== 'staging') {
+  if (ambPiloto !== 'staging') {
     for (const [nome, razao] of Object.entries(RAZAO_PILOTO)) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida ${ondePiloto}: ${razao}`);
   }
   // CLI do piloto (operador/agente fora da Vertra: packages/openbot/bin): o app NÃO lê nenhuma destas; o valor do cofre fica no arquivo
   // apontado por LN_HMAC_SECRET_FILE, nunca no painel. Definidas num deploy, reprovam — evita colar no app o que é do operador.
+  // Esta é a única família que continua dependendo de --deploy: em desenvolvimento (sem a flag) elas são aceitas e não fazem mal ao app.
   if (deploy) for (const nome of ['LN_API_BASE', 'LN_AGENT_ACCOUNT', 'LN_HMAC_SECRET_FILE', 'LN_HMAC_SECRET', 'LN_WORKER_ID']) if (String(env[nome] ?? '').trim() !== '') p.push(`${nome} definida no app num deploy: variável da CLI do piloto (operador/agente, fora da Vertra), não do app; apague`);
-  if (prod && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push('DIAG_XFF definida em produção: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário');
-  // Falha fechada do diagnóstico: num deploy sem APP_ENV staging ele também não sobe (variável fantasma que sobra no ambiente é exatamente o caso que o guard tem de pegar).
-  else if (deploy && String(env.APP_ENV ?? '').trim().toLowerCase() !== 'staging' && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push(`DIAG_XFF definida com APP_ENV=${env.APP_ENV || '(vazio)'} num deploy: o diagnóstico de proxies é só do staging e temporário`);
+  // Diagnóstico de X-Forwarded-For: mesma regra do piloto, pelo APP_ENV, sem depender da flag (é o caso da variável fantasma que sobra
+  // no ambiente e seria exatamente o que o guard tem de pegar).
+  if (ambPiloto !== 'staging' && env.DIAG_XFF !== undefined && env.DIAG_XFF !== '') p.push(`DIAG_XFF definida ${ondePiloto}: o diagnóstico de proxies (contagem de X-Forwarded-For) é só do staging, temporário`);
 
   return p;
 }
