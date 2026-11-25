@@ -20,7 +20,7 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/health`,
     // E2E do Studio roda no build de e2e (.next-e2e, LN_E2E_BUILD=1), o único que contém o backend de teste (PGlite + login de teste).
     // O build de produção não o contém nem aceita estas variáveis (scripts/verify-no-mock.mjs).
-    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1', LN_ATTEMPT_HMAC_KEY: 'e2e-chave-do-hmac-de-ip-com-32-caracteres', LN_STUDIO_DEV_DB: 'pglite', PORTAL_BASE_URL: 'https://portal.example.test' },
+    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1', LN_ATTEMPT_HMAC_KEY: 'e2e-chave-do-hmac-de-ip-com-32-caracteres', LN_STUDIO_DEV_DB: 'pglite', BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!', PORTAL_BASE_URL: 'https://portal.example.test' },
     reuseExistingServer: false,
     timeout: 120_000,
   },

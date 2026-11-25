@@ -24,6 +24,7 @@ const env = {
   LN_E2E_BUILD: '1',
   // O limite de tentativas falha fechado sem sal (decisão de privacidade: IP só como HMAC). O harness precisa da chave.
   LN_ATTEMPT_HMAC_KEY: 'e2e-chave-do-hmac-de-ip-com-32-caracteres',
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? 'segredo-de-teste-do-e2e-com-32-bytes!!',
 };
 
 function run(cmd) {

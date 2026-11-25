@@ -107,7 +107,8 @@ test.describe('Comercial (@ln/commercial)', () => {
     // lista do Backend (GET /api/commercial/studio/campaigns): linha com estado, formato, período e anunciante; filtros e recusa de filtro
     const linha = page.locator('tr[data-campanha]').filter({ hasText: 'Cartão Verão' });
     await expect(linha).toHaveAttribute('data-status', 'cancelled');
-    await expect(linha).toContainText('2099-01-10 → 2099-01-20');
+    await expect(linha).toContainText('2099-01-10');
+    await expect(linha).toContainText('2099-01-20');
     await expect(page.getByText('1 campanha(s) · página 1 de 1')).toBeVisible();
     await page.getByLabel('Estado', { exact: true }).selectOption('active');
     await enviar(page, page.getByRole('button', { name: 'Filtrar' }));

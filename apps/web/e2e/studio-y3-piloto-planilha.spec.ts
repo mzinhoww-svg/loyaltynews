@@ -37,11 +37,14 @@ test('conteúdo: colunas do AgentOps na ordem, uma linha por tarefa, unsupported
   expect(r.headers()['content-type']).toContain('text/csv');
   expect(r.headers()['content-disposition']).toMatch(/^attachment; filename="piloto-planilha-\d{4}-\d{2}-\d{2}\.csv"$/);
   const linhas = (await r.text()).replace(/^\uFEFF/, '').trim().split('\n');
-  const cab = linhas[0]!.split(',');
+  // Marcador de amostra (pós-resume): o CSV começa com "# amostra_desde=<ISO>"; sem ele o avaliador recusa o arquivo antigo.
+  expect(linhas[0]).toMatch(/^# amostra_desde=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  const linhasDados = linhas.slice(1);
+  const cab = linhasDados[0]!.split(',');
   expect(cab.slice(0, 31)).toEqual(COLUNAS_AGENTOPS);
   expect(cab.slice(31)).toEqual(['materia', 'leitor1_veredito', 'leitor2_veredito', 'leitor2_unsupported_high', 'leitor2_unsupported_medium', 'leitor2_unsupported_low', 'leitor2_origem']);
   const porTarefa = (id: string) => {
-    const l = linhas.find((x) => x.startsWith(`${id},`));
+    const l = linhasDados.find((x) => x.startsWith(`${id},`));
     expect(l, `linha ${id}`).toBeTruthy();
     return Object.fromEntries(cab.map((c, i) => [c, l!.split(',')[i] ?? '']));
   };

@@ -42,6 +42,7 @@ export default defineConfig({
       LN_STUDIO_DEV_DB: 'pglite',
       // Chave FIXA só do e2e (não é segredo nem vale em deploy); sem ela o login de teste responde 400.
       LN_ATTEMPT_HMAC_KEY: 'chave-de-teste-do-limite-32-bytes!!',
+      BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!',
       NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
       NEXT_TELEMETRY_DISABLED: '1',
     },

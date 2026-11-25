@@ -103,6 +103,7 @@ export default defineConfig({
             LN_STUDIO_DEV_DB: 'pglite',
             // Chave FIXA só do e2e (não é segredo nem vale em deploy): sem ela o login de teste responde 400.
             LN_ATTEMPT_HMAC_KEY: 'chave-de-teste-do-limite-32-bytes!!',
+            BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!',
             // Flags de produto são de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem a flag. Só repassa o que o operador do teste definiu.
             ...(process.env.LN_FLAGS_ON ? { LN_FLAGS_ON: process.env.LN_FLAGS_ON } : {}),
           },
