@@ -36,6 +36,10 @@ async function postar(caminho: string, corpo: Record<string, unknown>): Promise<
 
 const SEM_2FA = 'Sua conta não tem a verificação em duas etapas ativa. Por segurança, o acesso ao Studio foi negado. Peça a um administrador para ativá-la.';
 
+// O código do aplicativo autenticador tem 6 dígitos; o campo aceita 7 caracteres para caber o espaço que muitos aplicativos
+// mostram ("123 456"). Os espaços são descartados no envio, e o limite nunca bloqueia os 6 dígitos.
+const CODIGO_MAX = 7;
+
 export function LoginForm({ retorno }: { retorno?: string }) {
   const destino = destinoSeguro(retorno);
   const [etapa, setEtapa] = useState<Etapa>('credenciais');
@@ -124,7 +128,10 @@ export function LoginForm({ retorno }: { retorno?: string }) {
         {etapa === 'credenciais' ? 'Etapa 1 de 2 · e-mail e senha' : 'Etapa 2 de 2 · verificação em duas etapas'}
       </p>
       {etapa === 'credenciais' ? (
-        <form onSubmit={entrar} method="post" aria-label="Entrar" noValidate>
+        // `key` por etapa: sem ele o React reaproveita o <input> do e-mail como campo de código, e o valor digitado no
+        // passo 1 (o e-mail) fica no campo novo, que com maxLength=7 trava a digitação. Remontar a cada etapa garante
+        // que código e recuperação comecem SEMPRE vazios.
+        <form key={etapa} onSubmit={entrar} method="post" aria-label="Entrar" noValidate>
           {alerta}
           <div className="st-field">
             <label htmlFor="login-email">E-mail</label>
@@ -139,7 +146,7 @@ export function LoginForm({ retorno }: { retorno?: string }) {
           </button>
         </form>
       ) : (
-        <form onSubmit={verificar} method="post" aria-label={etapa === 'codigo' ? 'Verificação em duas etapas' : 'Recuperação de acesso'} noValidate>
+        <form key={etapa} onSubmit={verificar} method="post" aria-label={etapa === 'codigo' ? 'Verificação em duas etapas' : 'Recuperação de acesso'} noValidate>
           <p className="st-hint">
             {etapa === 'codigo' ? 'Digite o código de 6 dígitos que o aplicativo autenticador mostra agora.' : 'Digite um dos códigos de recuperação que você guardou. Cada código vale uma vez.'}
           </p>
@@ -147,7 +154,7 @@ export function LoginForm({ retorno }: { retorno?: string }) {
           {etapa === 'codigo' ? (
             <div className="st-field">
               <label htmlFor="login-codigo">Código do aplicativo autenticador</label>
-              <input id="login-codigo" ref={codigoRef} name="code" type="text" inputMode="numeric" pattern="[0-9 ]*" autoComplete="one-time-code" maxLength={7} required aria-describedby={erro ? 'login-erro' : undefined} />
+              <input id="login-codigo" ref={codigoRef} name="code" type="text" inputMode="numeric" pattern="[0-9 ]*" autoComplete="one-time-code" maxLength={CODIGO_MAX} required aria-describedby={erro ? 'login-erro' : undefined} />
             </div>
           ) : (
             <div className="st-field">

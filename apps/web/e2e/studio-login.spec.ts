@@ -94,6 +94,50 @@ test('login completo: e-mail, senha e código; volta ao destino pedido, sem cred
   await expect(page).toHaveURL(/\/studio$/);
 });
 
+test('2º passo começa VAZIO (sem herdar o e-mail) e o código é digitável com o teclado, caractere a caractere', async ({ page, context }) => {
+  // Regressão do P2 do QA 9: o React reaproveitava o <input> do e-mail como campo de código, o e-mail digitado ficava
+  // no campo novo e o maxLength=7 travava a digitação. O fill() do Playwright escrevia por cima e escondia o defeito,
+  // por isso aqui o teclado é de verdade (type, não fill).
+  const conta = await novaConta(context, 'codigo-vazio');
+  await abrirEntrada(page);
+  await primeiroPasso(page, conta.email, conta.senha);
+
+  const codigo = page.getByLabel('Código do aplicativo autenticador');
+  await expect(codigo).toBeVisible();
+  await expect(codigo).toBeFocused();
+  // 1) nada herdado do passo 1
+  await expect(codigo).toHaveValue('');
+  await expect(codigo).not.toHaveValue(conta.email);
+  await expect(codigo).toHaveAttribute('maxlength', '7'); // 6 dígitos + o espaço de "123 456"
+  await expect(codigo).toHaveAttribute('autocomplete', 'one-time-code');
+  await expect(codigo).toHaveAttribute('inputmode', 'numeric');
+
+  // 2) seis dígitos digitados no teclado chegam inteiros ao campo
+  const certo = totp(conta.segredo!);
+  await page.keyboard.type(certo, { delay: 20 });
+  await expect(codigo).toHaveValue(certo);
+
+  // 3) a recuperação também começa vazia (nem o e-mail nem o código anterior) e aceita o texto todo pelo teclado
+  await page.getByRole('button', { name: 'Usar código de recuperação' }).click();
+  const rec = page.getByLabel('Código de recuperação');
+  await expect(rec).toBeFocused();
+  await expect(rec).toHaveValue('');
+  await expect(rec).not.toHaveValue(conta.email);
+  await page.keyboard.type('codigo-falso-0000', { delay: 10 });
+  await expect(rec).toHaveValue('codigo-falso-0000');
+
+  // 4) voltar ao aplicativo autenticador zera de novo e o login completa com o código digitado
+  await page.getByRole('button', { name: 'Usar o aplicativo autenticador' }).click();
+  const codigoFinal = page.getByLabel('Código do aplicativo autenticador');
+  await expect(codigoFinal).toBeFocused();
+  await expect(codigoFinal).toHaveValue('');
+  await page.keyboard.type(certo, { delay: 20 });
+  await expect(codigoFinal).toHaveValue(certo);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.waitForURL(/\/studio\/cms\?status=aprovado/);
+  await expect(page.getByRole('heading', { level: 1, name: 'CMS editorial' })).toBeVisible();
+});
+
 test('senha errada e e-mail inexistente dão a MESMA mensagem genérica; a senha digitada é apagada', async ({ page, context }) => {
   const conta = await novaConta(context, 'senha-errada');
   await abrirEntrada(page);
