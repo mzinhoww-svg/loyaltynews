@@ -50,12 +50,29 @@ test.describe('SEO das páginas de dados', () => {
       expect(await meta(page, 'meta[property="og:url"]'), `${rota}: og:url`).toBe(`${SITE}${rota}`);
       expect(await meta(page, 'meta[property="og:title"]'), rota).toBeTruthy();
       expect(await meta(page, 'meta[property="og:description"]'), rota).toBe(desc);
-      expect(await meta(page, 'meta[property="og:image"]'), `${rota}: og:image`).toMatch(/^https?:\/\//);
+      // P2-03 da auditoria do int/031: as páginas de dados usavam /og-padrao.png (arte antiga, 1200×627); a arte do
+      // lançamento é /og/padrao.png (1200×630), a mesma do layout. Com seo.ogImage publicado, o publicado vale — o que não
+      // pode voltar é o arquivo antigo.
+      const ogImage = await meta(page, 'meta[property="og:image"]');
+      expect(ogImage, `${rota}: og:image`).toMatch(/^https?:\/\//);
+      expect(ogImage, `${rota}: arte antiga /og-padrao.png`).not.toContain('/og-padrao.png');
       expect(await meta(page, 'meta[name="twitter:card"]'), rota).toBe('summary_large_image');
       expect(await meta(page, 'meta[name="twitter:image"]'), `${rota}: twitter:image`).toMatch(/^https?:\/\//);
     }
     expect(titulos.size, 'títulos únicos').toBe(PAGINAS.length);
     expect(descricoes.size, 'descrições únicas').toBe(PAGINAS.length);
+  });
+
+  test('og:image das páginas de dados responde 200 e é a arte 1200×630 do lançamento', async ({ request }) => {
+    // Caminho relativo: resolve no servidor sob teste (o domínio do build, portal.example.test, não existe no DNS).
+    const r = await request.get('/og/padrao.png');
+    expect(r.status()).toBe(200);
+    expect(r.headers()['content-type']).toContain('image/png');
+    const png = await r.body();
+    // IHDR: largura e altura são os dois inteiros big-endian nos bytes 16–23.
+    expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
+    expect(png.readUInt32BE(16)).toBe(1200);
+    expect(png.readUInt32BE(20)).toBe(630);
   });
 
   test('JSON-LD: Organization na empresa, Person (só nome, cargo e empresa) na pessoa, Event no evento', async ({ page }) => {
