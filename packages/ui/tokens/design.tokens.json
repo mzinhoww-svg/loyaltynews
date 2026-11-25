@@ -9,8 +9,8 @@
     "signal": "#A7DDC9"
   },
   "typography": {
-    "ui": "Inter, Arial, sans-serif",
-    "editorial": "Georgia, Noto Serif, serif",
+    "ui": "var(--ln-font-inter, \"Inter Variable\"), Inter, Arial, sans-serif",
+    "editorial": "Georgia, \"Noto Serif\", serif",
     "logo": "outlined Noto Serif Bold"
   },
   "social": {
@@ -40,5 +40,5 @@
     "outro_s": 3.5,
     "easing": "cubic-bezier(.22,.7,.2,1)"
   },
-  "status": "proposal_not_approved"
+  "status": "approved"
 }

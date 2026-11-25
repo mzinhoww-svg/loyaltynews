@@ -4,7 +4,7 @@
  * Regra: nada de hex solto aqui; tudo por token. Densidade de portal de notícias: seções de 24px,
  * títulos de 20px com barra curta, grades de 16px, cartões sem caixa de imagem quando não há foto.
  */
-.pt { --ln-font-ui: 'Inter Variable', Inter, Arial, sans-serif; display: flex; flex-direction: column; min-height: 100vh; font-family: var(--ln-font-ui); font-size: var(--ln-text-md); line-height: 1.5; }
+.pt { display: flex; flex-direction: column; min-height: 100vh; font-family: var(--ln-font-ui); font-size: var(--ln-text-md); line-height: 1.5; }
 .pt-wrap { width: 100%; max-width: var(--ln-layout-container); margin: 0 auto; padding: 0 var(--ln-layout-gutter); }
 .pt-main { flex: 1; padding-bottom: var(--ln-space-4); }
 .pt-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

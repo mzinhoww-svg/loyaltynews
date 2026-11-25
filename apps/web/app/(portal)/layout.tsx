@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import '@fontsource-variable/inter';
 import '@ln/ui/styles.css';
 import './portal.css';
 import { DemoBanner } from '@ln/ui';

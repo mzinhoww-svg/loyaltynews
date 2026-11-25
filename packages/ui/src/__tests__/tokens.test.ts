@@ -19,8 +19,8 @@ describe("tokens gerados a partir do design.tokens.json do brandkit", () => {
     expect(social).toEqual(brand.social);
     expect(motion).toEqual(brand.motion);
   });
-  it("preserva o status do brandkit (proposta, não aprovado)", () => {
-    expect(meta.status).toBe("proposal_not_approved");
+  it("preserva o status do brandkit (aprovado em 25/11/2026)", () => {
+    expect(meta.status).toBe("approved");
     expect(meta.brandVersion).toBe("2.0-draft.1");
   });
   it("cada cor vira CSS variable --ln-color-*", () => {
@@ -31,8 +31,8 @@ describe("tokens gerados a partir do design.tokens.json do brandkit", () => {
   it("define espaçamentos, raios e fontes como CSS variables", () => {
     for (const k of Object.keys(spacing)) expect(css).toContain(`--ln-space-${k}:`);
     for (const k of Object.keys(radius)) expect(css).toContain(`--ln-radius-${k}:`);
-    expect(css).toContain("--ln-font-ui: Inter, Arial, sans-serif;");
-    expect(css).toContain("--ln-font-editorial: Georgia, Noto Serif, serif;");
+    expect(css).toContain('--ln-font-ui: var(--ln-font-inter, "Inter Variable"), Inter, Arial, sans-serif;');
+    expect(css).toContain('--ln-font-editorial: Georgia, "Noto Serif", serif;');
   });
   it("breakpoints batem com os usados no CSS (768/1024)", () => {
     expect(breakpoints.md).toBe("768px");
