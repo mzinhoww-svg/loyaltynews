@@ -73,7 +73,7 @@ test('número: multiplicador textual e separador de milhar não geram falso posi
   assert.deepEqual(checkClaims(d, [e]).findings.filter((x) => x.code === 'unsupported_metric'), []);
 });
 
-test('número: arredondamento dentro da tolerância passa; valor inventado continua barrado', () => {
+test('número: arredondamento correto passa; valor inventado continua barrado', () => {
   const e = numEv('O tíquete médio ficou em US$ 4,240 por associado.');
   const ok = mk({ body: 'O tíquete médio foi de US$ 4 mil por associado.', evidenceIds: [e.id] });
   assert.deepEqual(checkBodyGrounding(ok, [e]).findings, []);
@@ -105,6 +105,41 @@ test('parseNumbersIn: valor, moeda e arredondamento', () => {
   const [d] = parseNumbersIn('4M');
   assert.deepEqual([d?.value, d?.rounded], [4_000_000, true]);
   assert.equal(numbersMatch(parseNumbersIn('US$ 4 mil')[0]!, parseNumbersIn('US$ 4,240')[0]!), true);
+});
+
+// Tabela do parecer do QA 11 (ft-editorial-busca-4shas-qa11.md), um caso por linha.
+// "bloqueia" é o resultado exigido pela regra de arredondamento correto (inclusive nas linhas que passavam por tolerância).
+interface CasoMatcher { caso: string; ev: string; texto: string; esperado: 'passa' | 'bloqueia'; via?: 'claim' }
+const CASOS_MATCHER: CasoMatcher[] = [
+  { caso: 'piloto: 4 mil, 14 mil e EUR 60 mil', ev: 'A companhia reportou $4,000 de receita, $14,000 de custos e EUR 60,000 de investimento.', texto: 'A receita somou US$ 4 mil, os custos 14 mil e o investimento EUR 60 mil.', esperado: 'passa' },
+  { caso: 'arredondamento: 4 mil para 4.240', ev: 'O tíquete médio ficou em US$ 4,240 por associado.', texto: 'O tíquete médio foi de US$ 4 mil por associado.', esperado: 'passa' },
+  { caso: 'inventado sem par: 7 mil para 4.240', ev: 'O tíquete médio ficou em US$ 4,240 por associado.', texto: 'O tíquete médio foi de US$ 7 mil por associado.', esperado: 'bloqueia' },
+  { caso: 'moeda divergente: EUR contra US$', ev: 'O fundo destinou US$ 60,000 ao programa.', texto: 'O fundo destinou EUR 60 mil ao programa.', esperado: 'bloqueia' },
+  { caso: 'moeda ausente de um lado: 60 mil contra US$ 60.000', ev: 'O fundo destinou US$ 60,000 ao programa.', texto: 'O fundo destinou 60 mil ao programa.', esperado: 'passa' },
+  { caso: 'moeda inventada no texto: US$ 60 mil contra 60.000 sem moeda', ev: 'O fundo destinou 60,000 ao programa.', texto: 'O fundo destinou US$ 60 mil ao programa.', esperado: 'passa' },
+  { caso: 'separadores pt/en: R$ 1.234,56 contra R$ 1,234.56', ev: 'Receita de R$ 1.234,56.', texto: 'Receita de R$ 1,234.56.', esperado: 'passa' },
+  { caso: 'tolerância: 11 mil para 10.000', ev: 'A base tem US$ 10,000.', texto: 'A base tem US$ 11 mil.', esperado: 'bloqueia' },
+  { caso: 'tolerância: 4,4 mil para 4.000', ev: 'A base tem US$ 4,000.', texto: 'A base tem US$ 4,4 mil.', esperado: 'bloqueia' },
+  { caso: 'tolerância: 3,6 mil para 4.000', ev: 'A base tem US$ 4,000.', texto: 'A base tem US$ 3,6 mil.', esperado: 'bloqueia' },
+  { caso: 'tolerância: 3,5 mil para 4.000', ev: 'A base tem US$ 4,000.', texto: 'A base tem US$ 3,5 mil.', esperado: 'bloqueia' },
+  { caso: 'tolerância: 900 para "cerca de 1 mil"', ev: 'O total foi de cerca de 1 mil associados.', texto: 'O total foi de 900 associados.', esperado: 'bloqueia' },
+  { caso: 'limitação de contexto: 7 mil pontos para 7.000 lojas', ev: 'A rede tem 7.000 lojas.', texto: 'O programa distribuiu 7 mil pontos.', esperado: 'passa' },
+  { caso: 'limitação de contexto: 7,3 mil pontos para 7.000 lojas', ev: 'A rede tem 7.000 lojas.', texto: 'O programa distribuiu 7,3 mil pontos.', esperado: 'bloqueia' },
+  { caso: 'limitação de contexto no claim: 7 mil pontos para 7.000 lojas', ev: 'A rede tem 7.000 lojas.', texto: '7 mil pontos distribuídos', esperado: 'passa', via: 'claim' },
+  { caso: 'borda: 1 mil para 900 (arredondamento correto para cima)', ev: 'O total foi de 900 associados.', texto: 'O total foi de 1 mil associados.', esperado: 'passa' },
+];
+test.each(CASOS_MATCHER)('matcher QA 11 — $caso → $esperado', ({ ev, texto, esperado, via }) => {
+  const e = numEv(ev);
+  const d = mk({ body: texto, evidenceIds: [e.id] });
+  let achados: string[];
+  if (via === 'claim') {
+    d.claims = [{ id: 'n', kind: 'number', text: texto, evidenceIds: [e.id] }];
+    achados = checkClaims(d, [e]).findings.filter((x) => x.code === 'unsupported_metric').map((x) => x.message);
+  } else {
+    achados = checkBodyGrounding(d, [e]).findings.filter((x) => x.code === 'unsupported_metric').map((x) => x.message);
+  }
+  if (esperado === 'passa') assert.deepEqual(achados, []);
+  else assert.ok(achados.length > 0, `esperava bloqueio para "${texto}"`);
 });
 
 test('claim sem evidência ou com evidência inexistente é rejeitado', () => {

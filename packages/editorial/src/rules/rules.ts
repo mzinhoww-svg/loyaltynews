@@ -80,6 +80,8 @@ export interface NumericToken {
   currency?: string;
   /** Veio com multiplicador (mil, milhões, K, M, B...), logo é um valor arredondado. */
   rounded: boolean;
+  /** Menor casa escrita do lado arredondado, já multiplicada (ex.: "4 mil" = 1.000; "4,4 mil" = 100). */
+  unit?: number;
 }
 
 const CURRENCY: Record<string, string> = {
@@ -92,49 +94,62 @@ const MULTIPLIER: Record<string, number> = {
 /** Moeda antes ou depois do número; multiplicador textual ou K/M/B logo depois (sem colar em "milhas", por exemplo). */
 const NUM_TOKEN = /(?:(R\$|US\$|USD|BRL|EUR|GBP|€|£|\$)\s*)?(\d[\d.,]*)(?:\s*(milhões|milhão|milhoes|milhao|bilhões|bilhão|biloes|bilhao|mil|K|M|B)(?![A-Za-zÀ-ÿ]))?(?:\s*(USD|BRL|EUR|GBP))?/gi;
 
-/** Separador de milhar (vírgula pt-BR, ponto en-US) e decimal, sem saber o idioma do texto. */
-function numericValue(num: string): number | null {
+/** Separador de milhar (vírgula pt-BR, ponto en-US) e decimal, sem saber o idioma do texto. Devolve também as casas escritas. */
+function parseNumber(num: string): { value: number; decimals: number } | null {
   let s = num.replace(/[.,]+$/, '');
   const hasComma = s.includes(',');
   const hasDot = s.includes('.');
+  let decimals = 0;
   if (hasComma && hasDot) {
     const decimal = s.lastIndexOf(',') > s.lastIndexOf('.') ? ',' : '.';
     const thousands = decimal === ',' ? '.' : ',';
     s = s.split(thousands).join('');
+    decimals = s.length - s.lastIndexOf(decimal) - 1;
     if (decimal === ',') s = s.replace(',', '.');
   } else if (hasComma || hasDot) {
     const sep = hasComma ? ',' : '.';
     const parts = s.split(sep);
     // "4,000"/"4.000" e "1.234.567" são milhares; "4,24"/"4.24" são decimais.
-    s = parts.length > 1 && parts.slice(1).every((p) => p.length === 3) ? parts.join('') : parts.join('.');
+    if (parts.length > 1 && parts.slice(1).every((p) => p.length === 3)) s = parts.join('');
+    else { decimals = parts[1]?.length ?? 0; s = parts.join('.'); }
   }
   const v = Number(s);
-  return Number.isFinite(v) ? v : null;
+  return Number.isFinite(v) ? { value: v, decimals } : null;
 }
 
 export function parseNumbersIn(s: string): NumericToken[] {
   const out: NumericToken[] = [];
   for (const m of s.matchAll(NUM_TOKEN)) {
-    const base = numericValue(m[2]!);
+    const base = parseNumber(m[2]!);
     if (base === null) continue;
     const mult = m[3] ? MULTIPLIER[m[3].toLowerCase()] ?? 1 : 1;
     const currency = CURRENCY[(m[1] ?? m[4] ?? '').toLowerCase()];
-    out.push({ raw: m[0].trim(), value: base * mult, ...(currency ? { currency } : {}), rounded: Boolean(m[3]) });
+    const rounded = Boolean(m[3]);
+    out.push({
+      raw: m[0].trim(), value: base.value * mult, ...(currency ? { currency } : {}), rounded,
+      ...(rounded ? { unit: mult / 10 ** base.decimals } : {}),
+    });
   }
   return out;
 }
 
 /**
- * Tolerância relativa para valor arredondado: "4 mil" contra 4.240 é arredondamento, não invenção.
- * Só vale quando um dos lados tem multiplicador; número inventado (7 mil) não acha par e continua falhando.
+ * Compara o número do TEXTO (a) com o da EVIDÊNCIA (b). O texto só pode representar a evidência por arredondamento
+ * quando escreveu um multiplicador e no máximo metade da menor casa escrita: "4 mil" aceita 4.240 (240 ≤ 500), mas
+ * "11 mil" não aceita 10.000 (1.000 > 500) e "4,4 mil" não aceita 4.000 (400 > 50). Texto sem multiplicador exige o
+ * valor exato; valor inexato que não seja arredondamento válido falha (fail closed). Moeda diferente bloqueia; moeda
+ * ausente de um lado compara só o valor, por desenho.
+ *
+ * Limites conhecidos, NÃO corrigidos aqui: (1) a comparação usa o texto concatenado das evidências citadas, sem amarrar
+ * cada número ao seu trecho/contexto — "7 mil" passa tanto para "7 mil lojas" quanto para "7 mil pontos" quando os
+ * valores coincidem, então o matcher não substitui a checagem humana de contexto; (2) o parser lê "0.500"/"1.234" (três
+ * casas em en-US) como milhar, e "60 mil euros" não reconhece a palavra "euros" como moeda.
  */
-export const ROUNDING_TOLERANCE = 0.10;
 export function numbersMatch(a: NumericToken, b: NumericToken): boolean {
   if (a.currency && b.currency && a.currency !== b.currency) return false; // nunca presume câmbio
   if (a.value === b.value) return true;
-  if (!a.rounded && !b.rounded) return false;
-  const base = Math.max(Math.abs(a.value), Math.abs(b.value));
-  return base > 0 && Math.abs(a.value - b.value) / base <= ROUNDING_TOLERANCE;
+  if (!a.rounded || a.unit === undefined) return false; // texto exato não ganha tolerância
+  return Math.abs(a.value - b.value) <= a.unit / 2;
 }
 
 function evidenceNumbersMatch(text: string, evidenceTextAll: string): string[] {
