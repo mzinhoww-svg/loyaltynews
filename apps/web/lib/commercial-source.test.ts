@@ -17,7 +17,7 @@ describe('parseMediaKit: contrato com a API comercial', () => {
     const kit = parseMediaKit(realPayload());
     expect(kit).not.toBeNull();
     expect(kit!.formats).toHaveLength(47);
-    expect(kit!.formats.find((f) => f.id === 'banners--banner-topo')).toMatchObject({ name: 'Banner topo', price: 'R$ 3.000/mês', status: 'sob_consulta' });
+    expect(kit!.formats.find((f) => f.id === 'banners--banner-topo')).toMatchObject({ name: 'Banner topo', price: 'R$ 1.200/mês', status: 'sob_consulta' });
     for (const m of [...kit!.audience.realtime, ...kit!.audience.historical]) expect(m).toMatchObject({ value: null, state: 'unavailable' });
     expect(kit!.integrityNote).toBeNull();
     expect(kit!.generatedAt).toBe(NOW);

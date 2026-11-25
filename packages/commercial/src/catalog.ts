@@ -104,10 +104,11 @@ export function priceLabel(f: CommercialFormat): string {
   const u = f.unit === 'mes' ? '/mês' : f.unit === 'dia' ? '/dia' : '';
   return (f.priceType === 'a_partir_de' ? 'a partir de ' : '') + formatBRL(f.fromBRL ?? 0) + u;
 }
+// Preços dos 3 pacotes com valor: DP-56 (25/11/2026), fast-track/comercial/precos-lancamento.md, seção 5.
 export const PACKAGES = [
-  { id: 'pacote.presenca-no-mercado', name: 'Presença no mercado', priceBRLMonth: 4000, deliverables: 'sidebar + rodapé + LinkedIn' },
-  { id: 'pacote.construir-reputacao', name: 'Construir reputação', priceBRLMonth: 6000, deliverables: 'topo + sidebar + matéria mensal + LinkedIn/Instagram' },
-  { id: 'pacote.liderar-uma-editoria', name: 'Liderar uma editoria', priceBRLMonth: 9000, deliverables: 'topo + sidebar + rodapé + matéria mensal + entrevista trimestral + redes' },
+  { id: 'pacote.presenca-no-mercado', name: 'Presença no mercado', priceBRLMonth: 1500, deliverables: 'sidebar + rodapé + LinkedIn' },
+  { id: 'pacote.construir-reputacao', name: 'Construir reputação', priceBRLMonth: 3900, deliverables: 'topo + sidebar + matéria mensal + LinkedIn/Instagram' },
+  { id: 'pacote.liderar-uma-editoria', name: 'Liderar uma editoria', priceBRLMonth: 4900, deliverables: 'topo + sidebar + rodapé + matéria mensal + entrevista trimestral + redes' },
   { id: 'pacote.lancamento-de-programa', name: 'Lançamento de programa', priceBRLMonth: null, deliverables: 'matéria + entrevista + bloco newsletter + impulsionamento' },
   { id: 'pacote.evento-completo', name: 'Evento completo', priceBRLMonth: null, deliverables: 'agenda + banner + cobertura completa e matéria' },
   { id: 'pacote.autoridade', name: 'Autoridade', priceBRLMonth: null, deliverables: 'podcast + entrevista vídeo + opinião assinada' },

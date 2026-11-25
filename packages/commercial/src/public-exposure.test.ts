@@ -15,13 +15,13 @@ describe('o que a API pública do comercial NÃO expõe', () => {
       expect(kit.blocks.catalogo.formats.every((f) => !('statusReason' in f))).toBe(true);
       // `capabilities` (booleanos de disponibilidade) é público de propósito; o que não sai é o motivo e o potencial de receita.
       const json = JSON.stringify(kit);
-      for (const interno of ['P-01', 'P-02', 'flag', '72000', 'previsão de faturamento', 'Capacidade operacional declarada']) expect(json).not.toContain(interno);
+      for (const interno of ['P-01', 'P-02', 'flag', '28800', 'previsão de faturamento', 'Capacidade operacional declarada']) expect(json).not.toContain(interno);
     }
   });
   it('o mídia kit público continua completo no que é público: 47 formatos com preço de referência e estado', () => {
     const kit = mediaKitPage(ctxOf());
     expect(kit.blocks.catalogo.total).toBe(47);
-    expect(kit.blocks.catalogo.formats.find((f) => f.id === 'banners--banner-topo')).toEqual({ id: 'banners--banner-topo', section: 'Banners', name: 'Banner topo', price: 'R$ 3.000/mês', scope: '1280 × 150; 4 cotas; mínimo 3 meses', status: 'sob_consulta' });
+    expect(kit.blocks.catalogo.formats.find((f) => f.id === 'banners--banner-topo')).toEqual({ id: 'banners--banner-topo', section: 'Banners', name: 'Banner topo', price: 'R$ 1.200/mês', scope: '1280 × 150; 4 cotas; mínimo 3 meses', status: 'sob_consulta' });
   });
   it('listagem pública de formatos: sem motivo; handler público com e sem sessão', () => {
     expect(formatCatalogView(ctxOf()).formats.every((f) => !('statusReason' in f))).toBe(true);
@@ -32,7 +32,7 @@ describe('o que a API pública do comercial NÃO expõe', () => {
   });
   it('ator do Studio (canManageCommercial) vê o motivo e o cenário de capacidade, rotulado como cenário', () => {
     const kit = mediaKitPage(ctxOf(studio));
-    expect(kit.blocks.catalogo.capacityScenario).toMatchObject({ grossBRLMonth: 72000 });
+    expect(kit.blocks.catalogo.capacityScenario).toMatchObject({ grossBRLMonth: 28800 });
     expect(kit.blocks.catalogo.capacityScenario!.label).toMatch(/não é previsão/);
     const topo = kit.blocks.catalogo.formats.find((f) => f.id === 'banners--banner-topo')!;
     expect(topo.statusReason).toMatch(/capacidade operacional/i);
