@@ -66,7 +66,7 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
       </p>
       <h1>Pauta autoral</h1>
       <p>
-        Pauta própria da redação (análise, explicador ou comparativo), ancorada em páginas de fontes <strong>primárias habilitadas</strong>. Você escreve a pauta; o worker coleta as âncoras, redige, checa em outro provedor e a matéria cai na <Link href="/studio/cms/checagem">fila de revisão</Link> como aprovada ou bloqueada. Não há botão de publicar aqui.
+        Pauta própria da redação (análise, explicador ou comparativo), ancorada em páginas de fontes <strong>primárias habilitadas</strong>. Você escreve a pauta; a coleta das âncoras, a redação e a checagem em outro provedor rodam pela Fábrica editorial em comando próprio (<code>editorial-factory --autoral</code>), que hoje só roda em simulação. A pauta registrada fica <strong>pendente</strong> até esse comando rodar; só então a matéria cai na <Link href="/studio/cms/checagem">fila de revisão</Link> como aprovada ou bloqueada. Não há botão de publicar aqui.
       </p>
       <div className="st-alert" role="note" data-aviso="autoral">
         <strong>Aviso fixo de conteúdo autoral</strong> (a Fábrica o põe no início do texto e o gate exige): “{AUTORAL_LABEL}”
@@ -220,7 +220,7 @@ export default async function PautasPage({ searchParams }: { searchParams: Promi
           <button className="st-btn" type="submit">
             Registrar pauta na fila
           </button>
-          <p className="st-hint">Registrar não publica nada: a pauta entra na fila, o worker a processa e a matéria vai para a revisão.</p>
+          <p className="st-hint">Registrar não publica nada: a pauta fica pendente até a Fábrica editorial rodar em comando próprio (<code>editorial-factory --autoral</code>). Só então a matéria vai para a revisão.</p>
         </form>
       )}
     </>

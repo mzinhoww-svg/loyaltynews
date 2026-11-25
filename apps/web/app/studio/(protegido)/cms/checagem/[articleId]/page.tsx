@@ -5,6 +5,8 @@ import { checkAccess } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { CMS_EDIT, CMS_READ, CMS_REVIEW } from '@/lib/studio/cms/roles';
+import { estadoDaFilaDeChecagem } from '@/lib/studio/cms/checagem-fila';
+import { QUEUE_DECISIONS } from '@ln/workers/queues';
 import { requireStudio } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
 import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
@@ -37,6 +39,7 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
   const v = r.body as Revisao;
   const podeRevisar = checkAccess(session, CMS_REVIEW).ok;
   const podeRechecar = checkAccess(session, CMS_EDIT).ok;
+  const filaChecagem = estadoDaFilaDeChecagem(QUEUE_DECISIONS.checagem);
   return (
     <>
       <p>
@@ -102,7 +105,7 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
       </ul>
 
       <div className="st-actions" style={{ marginTop: 14 }}>
-        {podeRechecar ? (
+        {podeRechecar && filaChecagem.pedidoAceito ? (
           <form action={rechecarAction}>
             <input type="hidden" name="id" value={v.articleId} />
             <button className="st-btn sec" type="submit">
@@ -111,6 +114,12 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
           </form>
         ) : null}
       </div>
+      {podeRechecar && !filaChecagem.pedidoAceito ? (
+        // fila desligada: estado permanente, não falha transitória — sem botão porque o pedido não seria aceito
+        <p className="st-hint" data-fila-checagem="off">
+          {filaChecagem.aviso}
+        </p>
+      ) : null}
       {podeRevisar ? (
         <section className="st-card" style={{ marginTop: 14 }} aria-labelledby="decisao">
           <h2 id="decisao" style={{ marginTop: 0 }}>
