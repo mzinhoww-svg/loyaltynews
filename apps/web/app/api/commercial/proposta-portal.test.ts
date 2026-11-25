@@ -1,9 +1,12 @@
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { schema } from '@ln/db';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 import { corpoDaProposta, OBJETIVOS, ROTA_PROPOSTA, type PropostaValores } from '../../(portal)/_proposta/proposta';
+
+// Estes testes exercitam o fluxo do lead: a rota pública só existe com a flag portalFormularios ligada (leads-flag.test.ts cobre os dois estados).
+vi.mock('../../../lib/portal-formularios', () => ({ formulariosAtivos: () => true }));
 
 // O corpo que o formulário do mídia kit envia, passando pela rota pública REAL (contrato estrito, banco e consentimento).
 let app: Awaited<ReturnType<typeof makeApp>>;

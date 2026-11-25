@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
+
+// Estes testes exercitam o fluxo do lead: a rota pública só existe com a flag portalFormularios ligada (leads-flag.test.ts cobre os dois estados).
+vi.mock('../../../lib/portal-formularios', () => ({ formulariosAtivos: () => true }));
 
 // Listas do Studio comercial: GET /api/commercial/studio/campaigns e /studio/accounts (paginadas, com filtros, sem dado pessoal).
 let app: Awaited<ReturnType<typeof makeApp>>;

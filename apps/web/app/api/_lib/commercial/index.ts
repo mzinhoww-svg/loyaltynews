@@ -6,6 +6,7 @@ import { makeCtx, type CommercialCtx } from '@ln/commercial';
 import { ROUTES, type Route } from '@ln/commercial/api';
 import type { Db } from '@ln/auth';
 import { AVISO_VENDA_DESLIGADA, vendaLiberadaNoAmbiente } from '../../../../lib/studio/comercial';
+import { formulariosAtivos } from '../../../../lib/portal-formularios';
 import { createDispatcher, type PureRoute } from '../handler-adapter';
 import type { RouteCtx } from '../http';
 import { adCall, isAdRoute } from './ads';
@@ -22,6 +23,8 @@ const isReportRoute = (path: string): boolean => /\/(campaigns|accounts)\/report
  * as demais operações (rascunho, reserva, cancelar, pausar...) não mudam.
  */
 export const SALE_DISABLED_IN_ENV = 'SALE_DISABLED_IN_ENV';
+/** Rota pública do pedido de proposta (mídia kit): fechada enquanto portalFormularios estiver desligada. */
+export const LEADS_PATH = '/api/commercial/leads';
 type AtorApi = { canManageCommercial: boolean; canApprove?: boolean } | undefined;
 /**
  * A chamada é uma operação de venda que, sem a trava de ambiente, PASSARIA pelas checagens de papel? Só estas são recusadas com
@@ -56,6 +59,9 @@ export const dispatchCommercial = createDispatcher({
   studioPerm: ['campanhas', 'read'],
   auditResource: 'comercial',
   limitPublicPosts: true,
+  // O pedido de proposta só existe com a flag portalFormularios ligada (lida em EXECUÇÃO, o mesmo helper que mostra o formulário no portal):
+  // desligada, a rota responde 404 sem ler o corpo, sem gravar lead e sem contar tentativa por IP.
+  closed: (r) => r.method === 'POST' && r.path === LEADS_PATH && !formulariosAtivos(),
   async call(route, input, c) {
     const now = c.deps.now();
     const actor = c.session

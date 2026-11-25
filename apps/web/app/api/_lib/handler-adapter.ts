@@ -32,6 +32,11 @@ export interface DispatcherOptions<H> {
   auditResource: string;
   /** Limite por IP (5 por 15 min) nos POST públicos, contra spam de formulário. Só vale com IP de proxy confiável. */
   limitPublicPosts?: boolean;
+  /**
+   * Rota fechada por flag de execução: devolve true quando a rota NÃO deve existir agora. Responde 404 "Rota inexistente" (igual a um
+   * caminho que não existe), ANTES do limite por IP e de qualquer leitura do corpo: com a rota fechada nada é lido, gravado nem contado.
+   */
+  closed?: (route: PureRoute<H>) => boolean;
 }
 
 const norm = (p: string) => (p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p);
@@ -71,6 +76,7 @@ export function createDispatcher<H>(opts: DispatcherOptions<H>) {
       });
     }
     const fn: RouteFn = async (r, c) => {
+      if (opts.closed?.(route)) throw new HttpError(404, 'NOT_FOUND', 'Rota inexistente.');
       if (route.auth === 'public' && method === 'POST' && opts.limitPublicPosts && c.ip) {
         const gate = await acquireAttempt(c.deps.db, 'form', `${opts.auditResource}:${c.ip}`, c.deps.now());
         if (!gate.allowed) throw new HttpError(429, 'TOO_MANY_REQUESTS', 'Muitas requisições. Tente novamente mais tarde.');
