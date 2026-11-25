@@ -10,6 +10,7 @@ import { getSource } from '../../../_lib/source';
 import { jsonLdString } from '../../../_lib/jsonld';
 import { metadadosPagina, urlAbsoluta } from '../../../_seo/paginas';
 import { MoveCard, RolesTable } from '../../_components/intel';
+import s from '../../_components/intel.module.css';
 import { ScrollRegion } from '../../../_components/ScrollRegion';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
@@ -53,6 +54,8 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
   }
 
   const c = r.company;
+  // Todos os vínculos com o mesmo rótulo (ex.: as 12 associadas da ABEMF): a coluna "Vínculo" seria a mesma frase em cada linha.
+  const umTipo = c.relations.length > 1 && new Set(c.relations.map((x) => relationLabel(x))).size === 1;
   const [people, moves] = await Promise.all([getSource().getPeopleDirectory({ companyId: c.id }), getSource().getMovesFeed({ companyId: c.id })]);
   // JSON-LD só com o que a página afirma: nome, razão social e a URL canônica. Os vínculos não viram propriedade schema.org
   // ("associada"/"parceria" não equivalem a memberOf/parentOrganization; não inferimos).
@@ -79,19 +82,25 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
       <section className="pt-section" aria-labelledby="rel-t">
         <div className="pt-section-head"><h2 id="rel-t">Vínculos declarados</h2></div>
         {c.relations.length ? (
+          <>
+          {/* M-02 (revisão completa 25/11): legenda fora da região de rolagem (no celular saía cortada), dica de rolagem visível e a coluna
+              "Vínculo" só quando os vínculos são de tipos diferentes (todos iguais = o tipo vai uma vez na legenda, sem repetir em cada linha). */}
+          <p className="pt-meta" id="legenda-relations" style={{ margin: '0 0 6px' }}>
+            {umTipo ? <><strong>{relationLabel(c.relations[0]!)}</strong> as organizações abaixo. </> : null}
+            Somente o que a fonte pública afirma; nenhum vínculo é inferido. Associação ou parceria não indica participação societária.
+          </p>
+          <p className={`pt-meta ${s.dicaRolagem}`} aria-hidden="true">Deslize a tabela para o lado para ver a fonte e a data.</p>
           <ScrollRegion label="Vínculos declarados, organizações e fontes">
-            <table className="pt-table" data-testid="relations">
-              <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>
-                Somente o que a fonte pública afirma; nenhum vínculo é inferido. Associação ou parceria não indica participação societária.
-              </caption>
+            <table className="pt-table" data-testid="relations" aria-describedby="legenda-relations">
               <thead>
-                <tr><th scope="col">Vínculo</th><th scope="col">Organização</th><th scope="col">Fonte</th><th scope="col">Validado em</th></tr>
+                <tr>{!umTipo && <th scope="col">Vínculo</th>}<th scope="col">Organização</th><th scope="col">Fonte</th><th scope="col">Validado em</th></tr>
               </thead>
               <tbody>
                 {c.relations.map((rel) => (
                   <tr key={`${rel.id}-${rel.direction}`}>
-                    <td>{rel.mock && <MockTag />}{relationLabel(rel)}</td>
+                    {!umTipo && <td>{rel.mock && <MockTag />}{relationLabel(rel)}</td>}
                     <td>
+                      {umTipo && rel.mock && <MockTag />}
                       <Link href={`/intelligence/empresas/${rel.other.id}`} style={{ textDecoration: 'underline' }}>{rel.other.name}</Link>
                       <span className="pt-meta"> · {KIND_LABEL[rel.other.kind]}</span>
                     </td>
@@ -105,6 +114,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
               </tbody>
             </table>
           </ScrollRegion>
+          </>
         ) : (
           <EmptyState title="Sem vínculos declarados">Nenhuma fonte pública verificada afirma vínculos desta organização. Ausência de registro não prova inexistência.</EmptyState>
         )}

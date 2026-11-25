@@ -56,7 +56,38 @@ describe('parseMediaKit: contrato com a API comercial', () => {
   it('não repassa campos internos da API (motivo de status, capacidade, posições)', () => {
     const kit = parseMediaKit(realPayload())!;
     expect(Object.keys(kit).sort()).toEqual(['audience', 'coverage', 'formats', 'generatedAt', 'integrityNote', 'positions']);
-    expect(Object.keys(kit.formats[0]!).sort()).toEqual(['id', 'name', 'price', 'scope', 'section', 'status']);
+    expect(Object.keys(kit.formats[0]!).sort()).toEqual(['id', 'name', 'price', 'ressalva', 'scope', 'section', 'status']);
+  });
+  it('DP-54: formato disponível com canal desligado traz a ressalva da API; ausente = null', () => {
+    const ok = realPayload();
+    const p = wire(ok) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    p.blocks.catalogo.formats[0].status = 'disponivel';
+    p.blocks.catalogo.formats[0].ressalva = 'Ressalva: a entrega só começa com o canal ativo; hoje não há entrega.';
+    const kit = parseMediaKit(p)!;
+    expect(kit.formats[0]).toMatchObject({ status: 'disponivel', ressalva: 'Ressalva: a entrega só começa com o canal ativo; hoje não há entrega.' });
+    // Sem a ressalva no dado, o campo fica null — o portal não inventa texto.
+    const sem = parseMediaKit(wire(realPayload()))!;
+    expect(sem.formats.every((f) => f.ressalva === null)).toBe(true);
+  });
+  it('ressalva vazia, null ou ausente não derruba o kit: o formato sai sem ressalva e a tabela renderiza', () => {
+    const comRessalva = (v: unknown) => {
+      const p = wire(realPayload()) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+      p.blocks.catalogo.formats[0].ressalva = v;
+      return parseMediaKit(p);
+    };
+    // P3 do QA 8: campo opcional vazio zerava a tabela inteira. Os três casos mantêm o kit e só ignoram a ressalva.
+    for (const v of ['', '   ', null, undefined]) {
+      const kit = comRessalva(v);
+      expect(kit, `ressalva ${JSON.stringify(v)}`).not.toBeNull();
+      expect(kit!.formats).toHaveLength(47);
+      expect(kit!.formats[0]!.ressalva).toBeNull();
+    }
+    // Tipo errado ou texto acima do teto também é ignorado, sem descartar o kit.
+    for (const v of [42, 'x'.repeat(301)]) {
+      const kit = comRessalva(v);
+      expect(kit).not.toBeNull();
+      expect(kit!.formats[0]!.ressalva).toBeNull();
+    }
   });
 });
 

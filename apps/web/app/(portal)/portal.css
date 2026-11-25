@@ -277,6 +277,17 @@
   .pt-fold > summary::before, .pt-fold[open] > summary::before { content: none; }
   /* Controles que não fazem sentido no papel (botões, atalhos, formulário). */
   .pt-no-print { display: none !important; }
+  /* P2 da auditoria do int/031: o PDF do mídia kit saía com cabeçalho, menu, rodapé e banner de cookies — cara de rascunho.
+     No papel sai só a peça comercial: nada de navegação, rodapé, aviso de cookies nem link de pular para o conteúdo. */
+  .ln-header, .ln-footer, .ln-consent, [data-testid='consentimento-banner'] { display: none !important; }
+  .pt-main { padding-bottom: 0 !important; }
+  .pt-wrap { max-width: none; padding: 0 !important; }
+  /* A faixa do topo é a peça de abertura do mídia kit: mantém o fundo no papel. */
+  .pt-hero-band--mk { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Tabelas longas: uma linha não parte no meio da página e o cabeçalho se repete. */
+  .pt-table thead { display: table-header-group; }
+  .pt-table tr { break-inside: avoid; }
+  .pt-section > h2 { break-after: avoid; }
 }
 
 /* Revisão do staging 56e4cdc (A-3): com só 1 ou 2 itens ao lado do destaque, a linha de miniatura de 112px deixava ~170px vazios por item mesmo com as linhas esticadas.

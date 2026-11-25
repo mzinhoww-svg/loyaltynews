@@ -191,7 +191,17 @@ export default async function MidiaKitPage() {
                     <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
                     <tbody>
                       {rows.map((f) => (
-                        <tr key={f.id}><td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td><td>{STATUS_LABEL[f.status]}</td></tr>
+                        <tr key={f.id}>
+                          <td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td>
+                          <td>
+                            {/* DP-54: formato liberado para proposta com o canal ainda desligado não é "Disponível" puro.
+                                A ressalva vem da API (campo `ressalva`), não é escrita aqui. */}
+                            {f.status === 'disponivel' && f.ressalva ? 'Disponível para proposta, com ressalva' : STATUS_LABEL[f.status]}
+                            {f.ressalva && (
+                              <span className="pt-meta" style={{ display: 'block' }} data-testid="mk-ressalva">{f.ressalva}</span>
+                            )}
+                          </td>
+                        </tr>
                       ))}
                     </tbody>
                   </table>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ogImagemPadrao } from '../_lib/seo';
 import { SITE_NAME, SITE_URL } from '../_lib/site';
 import { getSource } from '../_lib/source';
 
@@ -6,9 +7,15 @@ import { getSource } from '../_lib/source';
  * SEO das páginas de dados (Intelligence, Moves e agenda) para o lançamento no domínio próprio.
  * No Next, o `openGraph`/`twitter` de uma página SUBSTITUI o do layout por inteiro (não mescla): sem repetir a imagem, a página
  * ficaria sem og:image. Aqui toda página leva título, descrição, canonical (relativo: o `metadataBase` do layout o resolve no domínio
- * do release) e a imagem — a publicada no Studio (seo.ogImage) quando existe, senão a padrão (/og-padrao.png, a mesma do layout).
+ * do release) e a imagem — a publicada no Studio (seo.ogImage) quando existe, senão a padrão do pacote de marca (/og/padrao.png,
+ * 1200×630, a mesma do layout, via ogImagemPadrao()).
  */
-const OG_PADRAO = { url: '/og-padrao.png', width: 1200, height: 627, alt: 'Loyalty News' };
+/**
+ * P2-03 da auditoria do int/031: o fallback apontava para /og-padrao.png (1200×627, arte antiga, só o logo), enquanto o
+ * layout usa o pacote de marca do lançamento (/og/padrao.png, 1200×630, marca + frase + domínio). Reutilizar a mesma função
+ * evita que as duas artes voltem a divergir; a imagem publicada no Studio (seo.ogImage) continua tendo prioridade.
+ */
+const OG_PADRAO = ogImagemPadrao();
 
 export interface PaginaSeo {
   title: string;

@@ -33,11 +33,27 @@ export function CorrectedTag() {
  * `correctionFor` (id da pessoa) acrescenta o link de pedido por cargo: a URL `/intelligence/pessoas/<id>?cargo=<cargo>` é a que o
  * Backend 2 usa para identificar o cargo como alvo do pedido.
  */
+/**
+ * Período do cargo como a fonte declara. M-04 (revisão completa 25/11): na carga, quando a fonte não traz o início, o início gravado é o
+ * próprio dia da coleta — mostrar "desde <coleta>" fazia parecer que o cargo começou nesse dia. Início igual ao dia da validação/coleta
+ * = início não informado; a data de coleta fica só em "Validado em". (Pedido ao Data: um campo explícito de início declarado.)
+ */
+export function periodoCargo(r: Pick<PersonRole, 'validFrom' | 'validTo' | 'validatedAt' | 'periodText' | 'source' | 'startDeclared'>): string {
+  if (r.periodText) return r.periodText;
+  // Campo da API (inicioDeclarado, contrato do Data) quando existe; senão a mesma regra deduzida pela data.
+  const inicioEhColeta = r.startDeclared !== undefined ? !r.startDeclared : r.validFrom === r.validatedAt.slice(0, 10) || r.validFrom === r.source.retrievedAt.slice(0, 10);
+  if (inicioEhColeta) return r.validTo ? `início não informado na fonte; até ${day(r.validTo)}` : 'início não informado na fonte';
+  return r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`;
+}
+
 export function RolesTable({ roles, caption, testId, showPerson, correctionFor }: { roles: (PersonRole & { personName?: string; personId?: string })[]; caption: string; testId: string; showPerson?: boolean; correctionFor?: string }) {
   return (
+    <>
+    {/* Legenda FORA da região de rolagem (M-02): dentro dela, no celular, a frase saía cortada junto com a tabela. */}
+    <p className="pt-meta" id={`legenda-${testId}`} style={{ margin: '0 0 6px' }}>{caption}</p>
+    <p className={`pt-meta ${s.dicaRolagem}`} aria-hidden="true">Deslize a tabela para o lado para ver a fonte e a data.</p>
     <ScrollRegion label={showPerson ? 'Pessoas, cargos e fontes' : 'Cargos, organizações e fontes'}>
-      <table className="pt-table" data-testid={testId}>
-        <caption className="pt-meta" style={{ textAlign: 'left', paddingBottom: 6 }}>{caption}</caption>
+      <table className="pt-table" data-testid={testId} aria-describedby={`legenda-${testId}`}>
         <thead>
           <tr>
             {showPerson && <th scope="col">Pessoa</th>}
@@ -46,7 +62,7 @@ export function RolesTable({ roles, caption, testId, showPerson, correctionFor }
             <th scope="col">Período</th>
             <th scope="col">Fonte</th>
             <th scope="col">Validado em</th>
-            {correctionFor && <th scope="col"><span className="pt-sr">Pedir correção</span></th>}
+            {correctionFor && <th scope="col">Correção</th>}
           </tr>
         </thead>
         <tbody>
@@ -59,7 +75,7 @@ export function RolesTable({ roles, caption, testId, showPerson, correctionFor }
               {!showPerson && (
                 <td><Link href={`/intelligence/empresas/${r.company.id}`} style={{ textDecoration: 'underline' }}>{r.company.name}</Link></td>
               )}
-              <td>{r.periodText ?? (r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`)}</td>
+              <td data-testid="periodo">{periodoCargo(r)}</td>
               <td>
                 <a href={r.source.url} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>{r.source.name}</a>
                 <span className="pt-sr"> (abre em nova aba)</span>
@@ -77,6 +93,7 @@ export function RolesTable({ roles, caption, testId, showPerson, correctionFor }
         </tbody>
       </table>
     </ScrollRegion>
+    </>
   );
 }
 

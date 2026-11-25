@@ -28,7 +28,7 @@ test.describe('empty', () => {
 
   test('diretório, pessoas e Moves vazios e honestos; perfil inexistente é 404', async ({ page }) => {
     await page.goto('/intelligence/empresas');
-    await expect(page.getByText('Em breve: primeiros perfis verificados')).toBeVisible();
+    await expect(page.getByText('Ainda não há perfis publicados')).toBeVisible();
     await expect(page.getByTestId('company-list')).toHaveCount(0);
     await axe(page);
     await page.goto('/intelligence/empresas?tipo=company');
@@ -36,7 +36,10 @@ test.describe('empty', () => {
     const r = await page.goto('/intelligence/empresas/00000000-0000-4000-8000-00000000000a');
     expect(r?.status()).toBe(404);
     await page.goto('/moves');
-    await expect(page.getByText('Em breve: primeiras movimentações confirmadas')).toBeVisible();
+    // Estado vazio honesto: sem Moves publicados não se promete disponibilidade nem "em breve" (P3 do QA 6, 25/11).
+    await expect(page.getByText('Ainda não há Moves publicados')).toBeVisible();
+    await expect(page.getByTestId('moves-empty-honest')).toBeVisible();
+    await expect(page.getByText(/em breve: primeiras movimentações/i)).toHaveCount(0);
   });
 });
 
@@ -78,6 +81,16 @@ test.describe('api', () => {
     await expect(page.getByTestId('company-list').getByRole('listitem')).toHaveCount(5);
   });
 
+  test('pessoas: filtro sem resultado diz "nenhuma pessoa para este filtro", não "ainda não há"', async ({ page }) => {
+    // Contrato 92d79c8: total 0 + disponivel=true = o recurso TEM dado e o filtro não achou ninguém.
+    await page.goto('/intelligence/pessoas?q=ninguem-com-esse-nome');
+    await expect(page.getByText('Nenhuma pessoa para “ninguem-com-esse-nome”')).toBeVisible();
+    await expect(page.getByText('Ainda não há perfis publicados')).toHaveCount(0);
+    // A busca continua na tela para o leitor limpar o filtro.
+    await expect(page.getByRole('searchbox', { name: 'Buscar pessoa' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Ver todas as pessoas' })).toBeVisible();
+  });
+
   test('perfil: vínculos com fonte, link e data; sem trecho literal; navegação entre relacionadas', async ({ page }) => {
     await page.goto('/intelligence/empresas');
     await page.getByRole('link', { name: '[MOCK API] Programa Alfa' }).click();
@@ -103,6 +116,9 @@ test.describe('api', () => {
     await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
     await expect(page.getByTestId('company-meta')).toContainText('Tipo não declarado na fonte');
     await page.getByTestId('relations').getByRole('link', { name: '[MOCK API] Associação Gama' }).click();
+    // M-02 (revisão 25/11): os 2 vínculos da Gama têm o mesmo rótulo → sem coluna "Vínculo" repetida; o rótulo vai uma vez na legenda.
+    await expect(page.locator('#legenda-relations')).toContainText('Vínculo declarado com', { timeout: NAV_MS });
+    await expect(page.getByTestId('relations').locator('th', { hasText: 'Vínculo' })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Associação Gama', { timeout: NAV_MS });
     await expect(page.getByTestId('relations').locator('tbody tr')).toHaveCount(2);
   });
@@ -181,6 +197,9 @@ test.describe('api', () => {
     await axe(page);
     await people.getByRole('link', { name: '[MOCK API] Ana Teste' }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Ana Teste', { timeout: NAV_MS });
+    // M-04: com inicioDeclarado: false da API, o período não mostra a data da coleta como início.
+    await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000202');
+    await expect(page.getByTestId('current-roles').getByTestId('periodo')).toHaveText('início não informado na fonte; até 31 de dezembro de 2030', { timeout: NAV_MS });
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000999'))?.status()).toBe(404);
   });
 });
@@ -209,8 +228,10 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
 
   test('pessoas e Moves: estado vazio honesto (não erro); perfis 404; empresa sem pessoas', async ({ page }) => {
     for (const [rota, texto] of [
-      ['/intelligence/pessoas', 'Em breve: primeiros perfis verificados'],
-      ['/moves', 'Em breve: primeiras movimentações confirmadas'],
+      ['/intelligence/pessoas', 'Ainda não há perfis publicados'],
+      // No modo vazio o fake-api responde `disponivel: true` com total 0 (o caso do staging): a página não pode prometer
+      // disponibilidade; diz que ainda não há Moves publicados.
+      ['/moves', 'Ainda não há Moves publicados'],
     ] as const) {
       const res = await page.goto(rota);
       expect(res?.status(), rota).toBe(200);
@@ -220,10 +241,13 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     }
     // P3-3 (revisão visual int/012) também com o vazio vindo da API: texto do aviso abaixo do título e bloco "Enquanto isso".
     await page.goto('/moves');
-    const titulo = page.getByText('Em breve: primeiras movimentações confirmadas', { exact: true });
+    const titulo = page.getByText('Ainda não há Moves publicados', { exact: true });
     const bt = (await titulo.boundingBox())!;
     const bx = (await page.getByTestId('moves-empty-text').boundingBox())!;
     expect(bx.y, 'o texto do aviso começa abaixo do título').toBeGreaterThanOrEqual(bt.y + bt.height - 1);
+    // Coerência: com 0 Moves não aparece nada que sugira lista disponível, nem "em breve" de promessa.
+    await expect(page.getByTestId('moves-list')).toHaveCount(0);
+    await expect(page.getByTestId('moves-empty-honest')).toBeVisible();
     await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Diretório de empresas/ })).toHaveAttribute('href', '/intelligence/empresas');
     await expect(page.getByTestId('moves-meanwhile').getByRole('link', { name: /Pessoas e cargos/ })).toHaveAttribute('href', '/intelligence/pessoas');
     expect((await page.goto('/intelligence/pessoas/10000000-0000-4000-8000-000000000201'))?.status()).toBe(404);
@@ -235,6 +259,24 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     await page.goto('/intelligence');
     await expect(page.getByTestId('count-pessoas')).toHaveText('Cadastros verificados: em breve');
     await expect(page.getByTestId('count-moves')).toHaveText('Cadastros verificados: em breve');
+  });
+});
+
+test.describe('api com dado existente mas retido nesta versão', () => {
+  test.skip(mode !== 'api' || intel !== 'retido', 'somente com PORTAL_API_INTEL=retido');
+
+  test('pessoas e Moves dizem que existem, mas ainda não foram publicados — não "ainda não há"', async ({ page }) => {
+    const res = await page.goto('/intelligence/pessoas');
+    expect(res?.status()).toBe(200);
+    await expect(page.getByText('Existem perfis, ainda não publicados nesta versão')).toBeVisible();
+    await expect(page.getByText('Ainda não há perfis publicados')).toHaveCount(0);
+    await expect(page.getByTestId('people-list')).toHaveCount(0);
+
+    await page.goto('/moves');
+    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão')).toBeVisible();
+    await expect(page.getByTestId('moves-empty-withheld')).toBeVisible();
+    await expect(page.getByTestId('moves-list')).toHaveCount(0);
+    await axe(page);
   });
 });
 

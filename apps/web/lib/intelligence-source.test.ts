@@ -111,6 +111,13 @@ const move = (over: Record<string, unknown> = {}) => ({
 });
 
 describe('pessoas, cargos e Moves', () => {
+  it('inicioDeclarado da API (M-04) é mapeado; ausente fica indefinido (API antiga)', () => {
+    expect(mapRole(cargo({ inicioDeclarado: false }))?.startDeclared).toBe(false);
+    expect(mapRole(cargo({ inicioDeclarado: true }))?.startDeclared).toBe(true);
+    expect(mapRole(cargo())?.startDeclared).toBeUndefined();
+    expect(mapRole(cargo({ inicioDeclarado: 'sim' }))?.startDeclared).toBeUndefined();
+  });
+
   it('cargo exige fonte e datas válidas; nunca copia o trecho', () => {
     const r = mapRole(cargo());
     expect(r).toMatchObject({ title: 'CEO', company: { name: 'Livelo' }, validTo: null });
@@ -158,9 +165,40 @@ describe('pessoas, cargos e Moves', () => {
     });
     afterEach(() => err.mockRestore());
 
-    it('flag desligada: vazio honesto (available=false), mesmo se a resposta trouxer itens', async () => {
-      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move()], total: 1, disponivel: false })) as unknown as typeof fetch);
-      expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    it('flag desligada com itens no dado: nada é exibido, mas os itens viram `withheld` (não somem em silêncio)', async () => {
+      // P3 do QA 8: disponivel=false com 2 pessoas no dado não pode virar "ainda não há perfis" sem aviso.
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move({ id: ID(61) }), move({ id: ID(62) })], total: 2, disponivel: false })) as unknown as typeof fetch);
+      expect(await s.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false, withheld: 2 });
+    });
+
+    it('contrato 92d79c8: disponivel descreve o recurso; total 0 com disponivel=true é filtro sem resultado', async () => {
+      // Recurso com dado, filtro sem resultado: a tela precisa dizer "nenhuma pessoa para este filtro", não "ainda não há".
+      const filtro = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: true })) as unknown as typeof fetch);
+      expect(await filtro.getPeopleDirectory({ q: 'ninguem' })).toEqual({ status: 'ok', items: [], total: 0, available: true });
+      expect(await filtro.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: true });
+    });
+
+    it('recurso sem dado publicável: disponivel=false, total 0 e sem `withheld`', async () => {
+      const semDado = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: false })) as unknown as typeof fetch);
+      expect(await semDado.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+      expect(await semDado.getMovesFeed()).toEqual({ status: 'ok', items: [], total: 0, available: false });
+    });
+    it('pessoas: disponivel=false com perfis no dado devolve withheld (2) e nada publicável', async () => {
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, {
+        data: [{ id: ID(70), nome: 'Ana', cargos: [] }, { id: ID(71), nome: 'Bia', cargos: [] }], total: 2, disponivel: false,
+      })) as unknown as typeof fetch);
+      expect(await s.getPeopleDirectory()).toEqual({ status: 'ok', items: [], total: 0, available: false, withheld: 2 });
+    });
+    it('pessoas: disponivel=false sem itens não tem withheld (não há nada retido)', async () => {
+      const s = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [], total: 0, disponivel: false })) as unknown as typeof fetch);
+      expect(await s.getPeopleDirectory()).not.toHaveProperty('withheld');
+    });
+
+    it('disponivel=true com total>0 é disponível e mantém o total do servidor', async () => {
+      const cheio = createIntelligenceSlice('http://api.test', (async () => json(200, { data: [move()], total: 1, disponivel: true })) as unknown as typeof fetch);
+      const feed = await cheio.getMovesFeed();
+      expect(feed).toMatchObject({ status: 'ok', total: 1, available: true });
+      expect(feed.status === 'ok' && feed.items).toHaveLength(1);
     });
 
     it('envelope sem `disponivel` é inválido; 503 é indisponível; 404 é não encontrado', async () => {
