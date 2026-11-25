@@ -1,0 +1,74 @@
+# R0-02 - Registro das decisoes do responsavel de 21/11/2026 (19:20 e 22:56)
+
+Registro de evidencia da tarefa R0-02 do gate R0. Le, sem alterar, os documentos de entrada e o registro versionado.
+
+- Fonte das decisoes: `audit-output/11_CONCILIACAO.md` secao 1 (com a hora) e `audit-output/12_RESPOSTA_OFICIAL.md` secao 2.
+- Registro: `governance/decisions.yaml` (arquivo protegido; conferido como esta no commit, nao editado por esta tarefa).
+- Commit conferido: `699dd2e` (main no momento da conferencia).
+- sha256 de `governance/decisions.yaml`: `96250102be2588f2ed173b43f9118d8b6739858616c3404a28d074a41fd80c3b`.
+- Teste: `evidencias/R0-02/conferencia-decisoes.py` (`R0-02-TEST`); saida em `evidencias/R0-02/conferencia-decisoes.log`.
+
+## Decisoes registradas
+
+As sete primeiras sao das 19:20 e as seis ultimas das 22:56, como declara a secao 2 do documento 12.
+
+| # | Hora | decisions.yaml | Decisao do responsavel (11 §1; mesma em 12 §2) | Escolha registrada |
+|---|---|---|---|---|
+| 1 | 19:20 | D01 | Nenhuma aprovação humana. Os bots aprovam e operam de forma totalmente autônoma | Aceite autônomo, independente; sem aprovação humana de rotina |
+| 2 | 19:20 | D02 | O aceite é por tag e autônomo | Tags assinadas pelo verificador |
+| 3 | 19:20 | D03 | O OpenBot é usado como runtime | OpenBot runtime definido |
+| 4 | 19:20 | D04 | Sem simplificações: tamanho completo desde o início | Escopo integral, 64 agentes, 28 rituais, Redis/BullMQ, Intelligence e ad server |
+| 5 | 19:20 | D05 | Adiar só a The Loyal (pronta, sem rodar) e o Instagram; LinkedIn pronto por meio do mLabs | The Loyal e Instagram construídos, desativados; LinkedIn pelo mLabs |
+| 6 | 19:20 | D06 | Autonomia de publicação desde o início | Publicação autônoma após gates de lançamento |
+| 7 | 19:20 | D07 | Há parecer favorável sobre a base legal do achado F-090 | Parecer favorável do Intelligence declarado, não inspecionado |
+| 8 | 22:56 | D08 | Imagens: a da fonte, como veio, com edição mínima | Imagem da fonte, crédito, edição mínima; uso condicionado a base jurídica demonstrável |
+| 9 | 22:56 | D09 | Transparência: só a assinatura, sem nenhuma menção ao uso de IA | Assinatura Redação Loyalty News; sem autoria humana fictícia; transparência quando exigida |
+| 10 | 22:56 | D10 | Fontes: uso de informação pública; não há violação em usar o que já é público | Fontes públicas, sem contornar paywall; originalidade e crédito |
+| 11 | 22:56 | D11 | Teto de API de US$ 50; o responsável recarrega se for necessário | Teto agregado API USD 50/mês; recarga só dentro de teto autorizado |
+| 12 | 22:56 | D12 | Mídia kit: como está | Mídia kit e preços de referência; métricas reais com período |
+| 13 | 22:56 | D13 | Editorias: como estão | Dez editorias preservadas |
+
+## Divergencias V21 como propostas
+
+As 16 divergencias da auditoria entram como proposta, sem ratificacao por esta tarefa:
+
+| ID | Status | Referencia |
+|---|---|---|
+| V21-01 | proposta | docs/Divergencias_e_achados.md |
+| V21-02 | proposta | docs/Divergencias_e_achados.md |
+| V21-03 | proposta | docs/Divergencias_e_achados.md |
+| V21-04 | proposta | docs/Divergencias_e_achados.md |
+| V21-05 | proposta | docs/Divergencias_e_achados.md |
+| V21-06 | proposta | docs/Divergencias_e_achados.md |
+| V21-07 | proposta | docs/Divergencias_e_achados.md |
+| V21-08 | proposta | docs/Divergencias_e_achados.md |
+| V21-09 | proposta | docs/Divergencias_e_achados.md |
+| V21-10 | proposta | docs/Divergencias_e_achados.md |
+| V21-11 | proposta | docs/Divergencias_e_achados.md |
+| V21-12 | proposta | docs/Divergencias_e_achados.md |
+| V21-13 | proposta | docs/Divergencias_e_achados.md |
+| V21-14 | proposta | docs/Divergencias_e_achados.md |
+| V21-15 | proposta | docs/Divergencias_e_achados.md |
+| V21-16 | proposta | r0-preparacao/achado-V21-16-portabilidade-windows.md (fora do repositorio, no registro compartilhado) |
+
+## O que o teste R0-02-TEST confere
+
+- As 13 linhas de cada documento existem, na mesma numeracao, e a divisao 7 x 19:20 / 6 x 22:56 confere nos dois.
+- Cada linha tem a entrada D01..D13 com status `registrada`, escolha nao vazia e referencia a `12_RESPOSTA_OFICIAL`.
+- O mapa acima cobre os 13 itens e repete a hora da fonte.
+- As 16 entradas V21-* estao como `proposta` e tem referencia; 15 apontam arquivo existente no repo e a V21-16 aponta o registro compartilhado.
+- Nenhuma entrada de `decisions.yaml` tem campo de aceite.
+
+## Limite e o que nao foi verificado
+
+- O teste prova estrutura e presenca textual; nao prova fidelidade semantica integral de cada resumo.
+- Nao foi verificado se o responsavel reconhece cada `escolha` como resumo fiel; isso e leitura humana ou do revisor independente.
+- As decisoes DP-01 a DP-57 (48 entradas, com lacunas na numeracao) vem de rodadas posteriores (22-25/11) e nao fazem parte do criterio desta tarefa.
+- A V21-16 aponta um arquivo do registro compartilhado, fora do repositorio; o teste aceita a referencia e a lista como nao verificavel no repo.
+- A aceitacao da evidencia nao e feita por esta tarefa: revisor e verificador atuam em identidades separadas.
+
+## Reproducao
+
+```
+python -X utf8 evidencias/R0-02/conferencia-decisoes.py
+```
