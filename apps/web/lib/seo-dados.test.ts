@@ -9,6 +9,13 @@ describe('SEO de dados (parecer QA 11)', () => {
     expect(Array.isArray(og.images) && og.images.length).toBe(1);
   });
 
+  it('ogDaPagina usa a imagem publicada quando recebida e a padrão quando não há', () => {
+    const publicado = ogDaPagina({ title: 'Em alta', description: 'As mais lidas.', path: '/em-alta', image: { url: 'https://cdn.example/og.png' } });
+    expect(publicado.images).toEqual([{ url: 'https://cdn.example/og.png' }]);
+    const padrao = ogDaPagina({ title: 'Em alta', description: 'As mais lidas.', path: '/em-alta' });
+    expect(Array.isArray(padrao.images) && padrao.images.length).toBe(1);
+  });
+
   it('Dataset tem nome, URL absoluta e creator; descrição/período/licença só quando declarados', () => {
     const comDescricao = datasetLd({ name: 'Empresas', description: 'Diretório de empresas.', path: '/intelligence/empresas' });
     expect(comDescricao).toMatchObject({

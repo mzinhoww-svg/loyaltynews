@@ -9,7 +9,7 @@ import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
 import { flags } from './_lib/flags';
 import { indexingBlocked } from './_lib/indexing';
-import { ROBOTS_INDEXAVEL, ogImagemPadrao } from './_lib/seo';
+import { ROBOTS_INDEXAVEL, ogImagemPadrao, LOGO_QUADRADO_URL } from './_lib/seo';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { getSource, isMockSource } from './_lib/source';
 
@@ -41,6 +41,9 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: { type: 'website', siteName: SITE_NAME, locale: 'pt_BR', title: seo?.title ?? SITE_NAME, description, images: seo?.ogImage ? [{ url: seo.ogImage }] : OG_PADRAO },
     twitter: { card: 'summary_large_image', title: seo?.title ?? SITE_NAME, description, images: seo?.ogImage ? [seo.ogImage] : [OG_PADRAO[0]!.url] },
     alternates: { canonical: '/' },
+    // O logo do JSON-LD precisa de lastro no HTML: o ícone aponta para o logo publicado no Studio ou para o PNG do pacote
+    // de marca. Sem isso, a URL do logo no Organization/publisher existiria só nos dados estruturados (parecer QA 11).
+    icons: { icon: seo?.organization?.logo ?? LOGO_QUADRADO_URL },
     // Fora de produção, sem PORTAL_INDEXAVEL=1, com dados MOCK ou com noindex publicado: noindex/nofollow global, herdado por todas as páginas.
     // Produção indexável: liberado, com prévia grande de imagem (Google Discover e Notícias).
     robots: indexingBlocked() || seo?.noindex ? { index: false, follow: false, nocache: true } : ROBOTS_INDEXAVEL,

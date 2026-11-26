@@ -1,17 +1,19 @@
 import type { Metadata } from 'next';
-import { ogDaPagina } from '../_lib/seo';
+import { ogDaPaginaPublicada } from '../_seo/paginas';
 import { Button } from '@ln/ui';
 import { Input } from '../_components/ds-client';
 import { EmptyState, PageHead } from '../_components/ui';
 import { flags } from '../_lib/flags';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return {
   title: 'The Loyal — newsletter',
   description: 'The Loyal: inteligência de mercado para começar o dia.',
   alternates: { canonical: '/the-loyal' },
-  openGraph: ogDaPagina({ title: 'The Loyal — newsletter', description: 'The Loyal: inteligência de mercado para começar o dia.', path: '/the-loyal' }),
+  openGraph: await ogDaPaginaPublicada({ title: 'The Loyal — newsletter', description: 'The Loyal: inteligência de mercado para começar o dia.', path: '/the-loyal' }),
   robots: flags.theLoyal ? undefined : { index: false, follow: true },
-};
+  };
+}
 
 export default function TheLoyalPage() {
   return (

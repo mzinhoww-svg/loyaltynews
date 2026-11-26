@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ogDaPagina } from '../_lib/seo';
+import { ogDaPaginaPublicada } from '../_seo/paginas';
 import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { isUpcoming } from '../_lib/events';
@@ -17,12 +17,14 @@ import type { MetricValue } from '../_lib/types';
 
 // Dinâmica: a fonte api lê o mídia kit em runtime (fetch com revalidate de 5 min no cache de dados). Com revalidate na página o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return {
   title: 'Mídia kit — Anuncie',
   description: 'Mídia kit do Loyalty News: cobertura, audiência medida com origem e período, formatos publicitários e como pedir uma proposta.',
   alternates: { canonical: '/midia-kit' },
-  openGraph: ogDaPagina({ title: 'Mídia kit — Anuncie', description: 'Mídia kit do Loyalty News: cobertura, audiência medida com origem e período, formatos publicitários e como pedir uma proposta.', path: '/midia-kit' }),
-};
+  openGraph: await ogDaPaginaPublicada({ title: 'Mídia kit — Anuncie', description: 'Mídia kit do Loyalty News: cobertura, audiência medida com origem e período, formatos publicitários e como pedir uma proposta.', path: '/midia-kit' }),
+  };
+}
 
 const STATE_LABEL = { ok: 'Atualizado', unavailable: 'Indisponível', stale: 'Desatualizado' } as const;
 const STATUS_LABEL = { disponivel: 'Disponível', sob_consulta: 'Sob consulta', indisponivel: 'Indisponível' } as const;

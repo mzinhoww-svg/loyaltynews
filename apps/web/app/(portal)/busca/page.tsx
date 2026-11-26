@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ogDaPagina } from '../_lib/seo';
+import { ogDaPaginaPublicada } from '../_seo/paginas';
 import { parsePage } from '../_components/Listing';
 import { SearchInput } from '../_components/ds-client';
 import { WithSidebar } from '../_components/Sidebar';
@@ -7,14 +7,16 @@ import { ErrorState } from '../_components/states';
 import { ArticleGrid, EmptyState, PageHead, Pager } from '../_components/ui';
 import { getSource } from '../_lib/source';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return {
   title: 'Busca',
   description: 'Busque matérias, editorias e temas no Loyalty News.',
   // Resultados de busca não são indexáveis (evita URLs duplicadas, Blueprint §2).
   robots: { index: false, follow: true },
   alternates: { canonical: '/busca' },
-  openGraph: ogDaPagina({ title: 'Busca', description: 'Busque matérias, editorias e temas no Loyalty News.', path: '/busca' }),
-};
+  openGraph: await ogDaPaginaPublicada({ title: 'Busca', description: 'Busque matérias, editorias e temas no Loyalty News.', path: '/busca' }),
+  };
+}
 
 export default async function BuscaPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   const sp = await searchParams;

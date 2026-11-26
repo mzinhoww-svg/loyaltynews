@@ -8,7 +8,8 @@ import { eventWhere, isUpcoming, noon } from './_lib/events';
 import { dayOf, formatDate, monthAbbrev } from './_lib/format';
 import { prepareHome } from './_lib/home';
 import { jsonLdString } from './_lib/jsonld';
-import { ogDaPagina, PUBLISHER_LD } from './_lib/seo';
+import { PUBLISHER_LD } from './_lib/seo';
+import { ogDaPaginaPublicada } from './_seo/paginas';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { imagemDoCard } from './_lib/ilustracao';
 import { getSource } from './_lib/source';
@@ -27,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { absolute: titulo },
     description: descricao,
     alternates: { canonical: '/' },
-    openGraph: ogDaPagina({ title: titulo, description: descricao, path: '/' }),
+    openGraph: await ogDaPaginaPublicada({ title: titulo, description: descricao, path: '/' }),
   };
 }
 
@@ -124,12 +125,16 @@ async function HomeContent() {
     '@type': 'WebSite',
     name: SITE_NAME,
     url: SITE_URL,
+    // Ação de busca do schema.org: modelo de URL e diretiva, não alegação de conteúdo (QA 11 as classifica como estruturais).
     potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/busca?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
   };
-  // Organization da home: só campos com lastro no corpo. O nome exibido é SITE_NAME (cabeçalho/rodapé), a URL é a do
-  // release e o logo é o mesmo asset do cabeçalho. `sameAs` só entraria se as redes sociais estivessem renderizadas no
-  // rodapé; hoje o rodapé não exibe nenhuma, e publicar `sameAs` sem link visível é dado exclusivo do JSON-LD.
-  const orgLd = { '@context': 'https://schema.org', ...PUBLISHER_LD };
+  const org = site?.seo?.organization;
+  // Organization publicada no Studio vale (nome, URL e logo). `sameAs` só entra quando a URL também aparece como link
+  // no corpo; hoje o rodapé não renderiza redes sociais, então a lista fica fora (seria dado exclusivo do JSON-LD).
+  // O nome publicado também vai ao h1 acessível da home, para o nome ter lastro no texto da página.
+  const orgLd = org
+    ? { '@context': 'https://schema.org', '@type': 'Organization', name: org.name, url: org.url, ...(org.logo ? { logo: org.logo } : {}) }
+    : { '@context': 'https://schema.org', ...PUBLISHER_LD };
 
   // Home publicada no Studio (fonte api): renderiza os blocos do editor.
   if (site?.home) {
@@ -137,7 +142,7 @@ async function HomeContent() {
       <>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
         {orgLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(orgLd) }} />}
-        <h1 className="pt-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
+        <h1 className="pt-sr">{org?.name ?? SITE_NAME} — {SITE_TAGLINE}</h1>
         <AdSlot slot="topo" />
         <PublishedHome site={site} />
         <AdSlot slot="rodape" />
@@ -179,7 +184,7 @@ async function HomeContent() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       {orgLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(orgLd) }} />}
-      <h1 className="pt-sr">{SITE_NAME} — {SITE_TAGLINE}</h1>
+      <h1 className="pt-sr">{org?.name ?? SITE_NAME} — {SITE_TAGLINE}</h1>
       <AdSlot slot="topo" />
 
       {!hasContent && (

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ogImagemPadrao } from '../_lib/seo';
+import { ogDaPagina, ogImagemPadrao } from '../_lib/seo';
 import { SITE_NAME, SITE_URL } from '../_lib/site';
 import { getSource } from '../_lib/source';
 
@@ -41,3 +41,13 @@ export async function metadadosPagina(p: PaginaSeo): Promise<Metadata> {
 
 /** URL absoluta no domínio do release (para o JSON-LD, que não passa pelo metadataBase). */
 export const urlAbsoluta = (path: string) => new URL(path, SITE_URL).toString();
+
+/**
+ * Open Graph de uma página ESTÁTICA com a imagem publicada no Studio quando existir (seo.ogImage).
+ * O layout já faz essa escolha, mas o `openGraph` de página substitui o do layout por inteiro: sem ler aqui, a imagem
+ * publicada se perderia em toda página que declara openGraph próprio (P1 do QA 8 no 342f9a64).
+ */
+export async function ogDaPaginaPublicada(p: { title: string; description: string; path: string; type?: 'website' | 'article' }): Promise<NonNullable<Metadata['openGraph']>> {
+  const publicada = (await getSource().getSiteConfig())?.seo?.ogImage;
+  return ogDaPagina({ ...p, image: publicada ? { url: publicada } : undefined });
+}

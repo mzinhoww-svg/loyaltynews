@@ -63,11 +63,13 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
       ? { worksFor: p.currentRoles.map((r2) => ({ '@type': 'Organization', name: r2.company.name, url: urlAbsoluta(`/intelligence/empresas/${r2.company.id}`) })) }
       : {}),
   };
+  // Descrição visível do perfil: lastreia o Dataset (parecer QA 11).
+  const descricao = `Perfil profissional de ${p.name}, com cargos declarados em fonte pública e data de validação.`;
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: p.name, path: `/intelligence/pessoas/${p.id}` })) }} />
-      <PageHead title={p.name} crumbs={[...crumbs, { label: p.name }]} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: p.name, description: descricao, path: `/intelligence/pessoas/${p.id}` })) }} />
+      <PageHead title={p.name} lead={descricao} crumbs={[...crumbs, { label: p.name }]} />
       <p style={{ margin: '0 0 8px' }}>
         <Link href={linkPedido(`/intelligence/pessoas/${p.id}`)} className="ln-btn ln-btn--ghost" data-testid="request-correction">
           Solicitar correção ou remoção

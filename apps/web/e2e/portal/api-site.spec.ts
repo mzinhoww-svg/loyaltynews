@@ -74,7 +74,10 @@ test.describe('site publicado (full)', () => {
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://cdn.example/og-mock.png');
     const lds = (await page.locator('script[type="application/ld+json"]').allTextContents()).map((t) => JSON.parse(t) as Record<string, unknown>);
     const org = lds.find((l) => l['@type'] === 'Organization');
-    expect(org).toMatchObject({ name: 'Loyalty News MOCK', url: 'https://loyaltynews.example/', sameAs: ['https://linkedin.example/mock'] });
+    // Nome/URL publicados valem; `sameAs` só quando a URL também é um link renderizado no rodapé (hoje não há redes),
+    // então o valor publicado fica fora do JSON-LD — regra "nada exclusivo" do parecer QA 11.
+    expect(org).toMatchObject({ name: 'Loyalty News MOCK', url: 'https://loyaltynews.example/' });
+    expect(org).not.toHaveProperty('sameAs');
     expect(lds.some((l) => l['@type'] === 'WebSite')).toBe(true);
     // Em produção indexável o noindex NÃO aparece (indexacao: indexar)
     if ((process.env.PORTAL_APP_ENV ?? 'production') === 'production' && process.env.PORTAL_INDEXAVEL_E2E !== '0') {

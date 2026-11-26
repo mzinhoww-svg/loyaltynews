@@ -49,10 +49,13 @@ export default async function MovePage({ params }: { params: Promise<{ id: strin
       </>
     );
   }
+  // Descrição visível: lastreia o Dataset do Move (parecer QA 11).
+  const para = r.move.after ? ` para ${r.move.after.title} na ${r.move.after.company.name}` : '';
+  const descricao = `Movimentação confirmada de ${r.move.person.name}${para}, com a fonte do antes e do depois.`;
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: `${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`, path: `/moves/${r.move.id}` })) }} />
-      <PageHead title={`${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`} crumbs={[...crumbs, { label: r.move.person.name }]} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: `${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`, description: descricao, path: `/moves/${r.move.id}` })) }} />
+      <PageHead title={`${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`} lead={descricao} crumbs={[...crumbs, { label: r.move.person.name }]} />
       <p style={{ margin: '0 0 8px' }}>
         <Link href={linkPedido(`/moves/${r.move.id}`)} className="ln-btn ln-btn--ghost" data-testid="move-correction">
           Solicitar correção ou remoção

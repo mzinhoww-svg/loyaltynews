@@ -1,15 +1,17 @@
 import type { Metadata } from 'next';
-import { ogDaPagina } from '../_lib/seo';
+import { ogDaPaginaPublicada } from '../_seo/paginas';
 import { EmptyState, PageHead } from '../_components/ui';
 import { flags } from '../_lib/flags';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return {
   title: 'Loyalty Market Data',
   description: 'Indicadores do mercado de fidelização com metodologia, fonte e carimbo de atualização.',
   alternates: { canonical: '/indicadores' },
-  openGraph: ogDaPagina({ title: 'Loyalty Market Data', description: 'Indicadores do mercado de fidelização com metodologia, fonte e carimbo de atualização.', path: '/indicadores' }),
+  openGraph: await ogDaPaginaPublicada({ title: 'Loyalty Market Data', description: 'Indicadores do mercado de fidelização com metodologia, fonte e carimbo de atualização.', path: '/indicadores' }),
   robots: flags.marketData ? undefined : { index: false, follow: true },
-};
+  };
+}
 
 export default function IndicadoresPage() {
   return (

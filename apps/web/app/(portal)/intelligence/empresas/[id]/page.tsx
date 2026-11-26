@@ -58,6 +58,8 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
   // Todos os vínculos com o mesmo rótulo (ex.: as 12 associadas da ABEMF): a coluna "Vínculo" seria a mesma frase em cada linha.
   const umTipo = c.relations.length > 1 && new Set(c.relations.map((x) => relationLabel(x))).size === 1;
   const [people, moves] = await Promise.all([getSource().getPeopleDirectory({ companyId: c.id }), getSource().getMovesFeed({ companyId: c.id })]);
+  // Descrição visível do perfil: é ela que lastreia o Dataset (parecer QA 11: os 8 perfis/Move ficaram sem description).
+  const descricao = `Perfil público de ${c.name}, ${KIND_LABEL[c.kind].toLowerCase()}, com fonte pública e data de coleta.`;
   // JSON-LD só com o que a página afirma: nome, razão social e a URL canônica. Os vínculos não viram propriedade schema.org
   // ("associada"/"parceria" não equivalem a memberOf/parentOrganization; não inferimos).
   const jsonLd = {
@@ -70,8 +72,8 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: c.name, path: `/intelligence/empresas/${c.id}` })) }} />
-      <PageHead title={c.name} crumbs={[...crumbs, { label: c.name }]} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: c.name, description: descricao, path: `/intelligence/empresas/${c.id}` })) }} />
+      <PageHead title={c.name} lead={descricao} crumbs={[...crumbs, { label: c.name }]} />
       <p className="pt-meta" data-testid="company-meta">
         {c.mock && <MockTag />}
         {KIND_LABEL[c.kind]}

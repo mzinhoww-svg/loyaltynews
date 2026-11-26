@@ -111,7 +111,7 @@ export function breadcrumbLd(trilha: { nome: string; path?: string }[]) {
  * No Next, o `openGraph` de uma página SUBSTITUI o do layout; declarar só alguns campos apaga os outros.
  * Usar este helper evita herdar o `url` da home (ou ficar sem `og:url`) nas páginas estáticas.
  */
-export function ogDaPagina(p: { title: string; description: string; path: string; type?: 'website' | 'article'; image?: OgImagem }): NonNullable<Metadata['openGraph']> {
+export function ogDaPagina(p: { title: string; description: string; path: string; type?: 'website' | 'article'; image?: { url: string; width?: number; height?: number; alt?: string } }): NonNullable<Metadata['openGraph']> {
   return {
     type: p.type ?? 'website',
     siteName: SITE_NAME,

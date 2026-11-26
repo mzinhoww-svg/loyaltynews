@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ogDaPagina } from '../_lib/seo';
+import { ogDaPaginaPublicada } from '../_seo/paginas';
 import Link from 'next/link';
 import { WithSidebar } from '../_components/Sidebar';
 import { EmptyState, PageHead, RankedList } from '../_components/ui';
@@ -8,12 +8,14 @@ import type { TrendingWindow } from '../_lib/types';
 
 // Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return {
   title: 'Em alta',
   description: 'As matérias mais lidas do Loyalty News nas últimas 24 horas, 7 e 30 dias.',
   alternates: { canonical: '/em-alta' },
-  openGraph: ogDaPagina({ title: 'Em alta', description: 'As matérias mais lidas do Loyalty News nas últimas 24 horas, 7 e 30 dias.', path: '/em-alta' }),
-};
+  openGraph: await ogDaPaginaPublicada({ title: 'Em alta', description: 'As matérias mais lidas do Loyalty News nas últimas 24 horas, 7 e 30 dias.', path: '/em-alta' }),
+  };
+}
 
 const WINDOWS: { id: TrendingWindow; label: string }[] = [
   { id: '24h', label: '24h' },

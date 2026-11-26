@@ -92,6 +92,33 @@ test.describe('SEO das páginas de dados', () => {
     expect(ev).toMatchObject({ name: '[MOCK] Congresso publicado' });
   });
 
+  test('Dataset: 11 páginas de dados, com name, url, creator e description lastreada no corpo', async ({ page }) => {
+    const rotas = [
+      '/moves',
+      '/intelligence/empresas',
+      '/intelligence/pessoas',
+      ...['1', '2', '3', '4', '5'].map((n) => `/intelligence/empresas/10000000-0000-4000-8000-00000000000${n}`),
+      ...['201', '202'].map((n) => `/intelligence/pessoas/10000000-0000-4000-8000-000000000${n}`),
+      '/moves/10000000-0000-4000-8000-000000000401',
+    ];
+    for (const rota of rotas) {
+      const r = await page.goto(rota);
+      expect(r?.status(), rota).toBe(200);
+      const ds = (await jsonLd(page)).find((j) => j['@type'] === 'Dataset');
+      expect(ds, `${rota}: Dataset`).toMatchObject({
+        name: expect.any(String),
+        url: `${SITE}${rota}`,
+        creator: { '@type': 'Organization', name: 'Loyalty News' },
+        description: expect.any(String),
+      });
+      // O parecer QA 11 exige a descrição: ela precisa ser texto que a página mostra, não um resumo inventado.
+      const descricao = String(ds?.description ?? '');
+      expect(descricao.length, `${rota}: description`).toBeGreaterThan(20);
+      const visivel = await page.locator('main').innerText();
+      expect(visivel, `${rota}: description com lastro no corpo`).toContain(descricao);
+    }
+  });
+
   test('robô de busca recebe os metadados no HTML da primeira resposta (sem depender de JavaScript)', async ({ request }) => {
     const ua = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
     for (const rota of ['/intelligence/empresas/10000000-0000-4000-8000-000000000001', '/intelligence/pessoas/10000000-0000-4000-8000-000000000201', '/agenda/ev-1']) {
