@@ -9,6 +9,7 @@ import { detectChallenge } from './crawl-guards.mjs';
 import { parseFeed, parseHtml, parseSitemap } from './parse';
 import type { SitemapEntry } from './parse';
 import { sanitize, stripHtml } from './sanitize';
+import { isPlaceholder, placeholderReason, placeholderSignals } from './placeholder';
 import { DEFAULT_MAX_DECOMPRESSED_BYTES, GzipError, gunzipCapped, isGzip } from './gzip';
 import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
@@ -99,7 +100,7 @@ const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
   | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
-  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
+  | 'http_error' | 'too_many_redirects' | 'empty_content' | 'placeholder_body' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
   /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
   | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large'
   /** aviso (não para a coleta): sitemap com entradas descartadas (malformadas) ou sem nenhuma página sob o prefixo */
@@ -360,6 +361,8 @@ export class Collector {
     const meta = parseHtml(r.body, u.toString());
     const san = sanitize(meta.bodyHtml);
     if (!san.text) return { skip: { url, code: 'empty_content', detail: '' } };
+    const ph = placeholderSignals(san.text);
+    if (isPlaceholder(ph)) return { skip: { url, code: 'placeholder_body', detail: `source=${source.id}; ${placeholderReason(ph)}` } };
     // A extração por parágrafos descarta comentários HTML: confere-os na página inteira (onde se esconde instrução para modelos).
     const comments = [...r.body.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]!).join('\n');
     const csan = comments ? sanitize(comments) : { suspicious: false, reasons: [] as string[] };
