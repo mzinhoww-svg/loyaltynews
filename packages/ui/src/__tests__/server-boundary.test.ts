@@ -41,4 +41,11 @@ describe("fronteira cliente/servidor dos componentes", () => {
       "studio/Toast.tsx",
     ]);
   });
+
+  it("templates com hooks também levam 'use client'; os demais ficam no servidor", () => {
+    const tplRoot = resolve(__dirname, "..", "templates");
+    const tpl = walk(tplRoot).map((p) => ({ rel: relative(tplRoot, p).replace(/\\/g, "/"), src: readFileSync(p, "utf8") }));
+    expect(tpl.filter((f) => uses(f.src) && !f.src.startsWith('"use client"')).map((f) => f.rel)).toEqual([]);
+    expect(tpl.filter((f) => f.src.startsWith('"use client"')).map((f) => f.rel).sort()).toEqual(["TemplatePreview.tsx"]);
+  });
 });

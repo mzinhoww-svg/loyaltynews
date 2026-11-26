@@ -10,7 +10,17 @@ import type { LogoVariant } from "../components/Logo";
  */
 
 export interface TemplateAsset {
-  kind: "thumbnail" | "cover" | "lower_third" | "vignette";
+  /** Formatos do portal/vídeo (`@ln/ui`) e os sociais reais do Growth (vertical, square, story, open_graph, linkedin_landscape). */
+  kind:
+    | "thumbnail"
+    | "cover"
+    | "lower_third"
+    | "vignette"
+    | "vertical"
+    | "square"
+    | "story"
+    | "open_graph"
+    | "linkedin_landscape";
   width: number;
   height: number;
   /** SVG completo (fonte da verdade). */
@@ -21,6 +31,8 @@ export interface TemplateAsset {
   brandVersion: string;
   /** Conteúdo simulado: o criativo traz selo MOCK desenhado. */
   mock: boolean;
+  /** Nome do arquivo sem extensão, calculado por quem publica (ex.: editoria-formato-id). */
+  filename?: string;
 }
 
 export class TemplateRefusal extends Error {
