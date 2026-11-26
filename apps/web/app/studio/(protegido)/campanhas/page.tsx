@@ -166,7 +166,7 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
                     <td>{c.status}</td>
                     <td>{c.formatName ?? c.formatId}</td>
                     <td>
-                      {c.startDate} <Seta /> {c.endDate}
+                      {c.startDate} <Seta rotulo="a" /> {c.endDate}
                     </td>
                     <td>{c.accountName ?? c.accountId}</td>
                   </tr>
