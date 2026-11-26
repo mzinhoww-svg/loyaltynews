@@ -151,7 +151,7 @@ test.describe('estados de carregando e de erro (modo api)', () => {
   test('vazio honesto continua vazio (não erro): editoria sem matérias e busca sem resultado', async ({ page }) => {
     test.setTimeout(90_000);
     await page.goto('/editoria/tech');
-    await expect(page.getByText('Em breve: primeiras matérias')).toBeVisible();
+    await expect(page.getByText('Ainda não há matérias nesta editoria')).toBeVisible();
     await expect(page.getByTestId('error-state')).toHaveCount(0);
     await page.goto('/busca?q=zzzz-nada');
     await expect(page.getByText(/Nenhum resultado para/)).toBeVisible();
