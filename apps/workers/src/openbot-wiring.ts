@@ -34,7 +34,7 @@ export const PILOT_LANES: readonly Account[] = ['opencode', 'claude'];
  */
 export const PILOT_ROUTES: Record<string, readonly Account[]> = {
   classification: ['opencode'],
-  editorial_draft: ['claude'],
+  editorial_draft: ['opencode'],
   fact_check: ['opencode'],
   editorial_review: ['opencode'],
   social_copy: ['opencode'],

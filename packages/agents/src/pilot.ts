@@ -77,7 +77,7 @@ export interface StageSpec {
 export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   triage: { account: 'claude', backups: [], models: { primary: 'haiku', backups: ['sonnet'] }, label: 'Pauta/triagem (Claude Haiku; backup Claude Sonnet na mesma conta)', taskClass: 'triage', adapterKind: 'classification' },
   context: { account: 'opencode', backups: [], label: 'Contexto da matéria (OpenCode/DeepSeek; classe context)', taskClass: 'context', adapterKind: 'classification' },
-  draft: { account: 'claude', backups: [], label: 'Redação (Claude); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
+  draft: { account: 'opencode', backups: [], label: 'Redação (OpenCode/DeepSeek; assinatura Claude esgotada — decisão do PM em 26/11); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
   factcheck: { account: 'codex', backups: [], label: 'Checagem de fatos independente (Codex; sem backup; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
   review: { account: 'codex', backups: [], label: 'Revisão editorial independente (Codex; sem backup; gate WF02)', taskClass: 'review', adapterKind: 'editorial_review' },
   check_edit: { account: 'codex', backups: [], label: 'Checagem + revisão numa chamada só (adiada: a classe não existe na Fábrica)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
@@ -147,13 +147,13 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
-      draft_id: 'ln_pilot_redator', name: 'LN Piloto — Redação', title: 'Redação do piloto (OpenBot, assinatura Claude)', stage: 'draft', required: true,
-      description: 'Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica.',
+      draft_id: 'ln_pilot_redator', name: 'LN Piloto — Redação', title: 'Redação do piloto (OpenBot, OpenCode/DeepSeek)', stage: 'draft', required: true,
+      description: 'Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica. Decisão do PM (26/11): a assinatura Claude esgotou e o OpenRouter foi recusado; a redação roda no OpenCode/DeepSeek e DECLARA esse modelo (nunca o Claude).',
       editorial_task_class: 'draft', prompt_ref: promptRef('draft'), adapter_kind: 'editorial_draft',
-      primary: { account: 'claude', model: `Claude (assinatura): ${MODEL_DECLARED}` },
+      primary: { account: 'opencode', model: 'OpenCode/DeepSeek: opencode-go/deepseek-v4-pro' },
       backups: [],
       on_limit: 'SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido',
-      independence: 'é o autor de referência: a checagem e a revisão precisam ser de autor diferente',
+      independence: 'é o autor de referência (fornecedor DeepSeek): a checagem e a revisão precisam ser de autor diferente; com a checagem também em DeepSeek, a revisão deve barrar por cross_provider_check_failed — consequência aceita neste teste de carga',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
