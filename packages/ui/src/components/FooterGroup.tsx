@@ -16,6 +16,7 @@ export function FooterGroup({ title, ariaLabel, wide, children, className }: { t
       if (ref.current) ref.current.open = mq ? mq.matches : true;
     };
     aplicar();
+    ref.current?.setAttribute("data-ready", "");
     mq?.addEventListener?.("change", aplicar);
     return () => mq?.removeEventListener?.("change", aplicar);
   }, []);

@@ -100,6 +100,11 @@
 .ln-footer__title::-webkit-details-marker { display: none; }
 .ln-footer__title::after { content: "+" / ""; font-size: 1.25rem; line-height: 1; font-weight: var(--ln-weight-regular); }
 .ln-footer__fold[open] > .ln-footer__title::after { content: "−" / ""; }
+/* Reserve the collapsed height before hydration on interactive narrow screens. */
+@media screen and (width < 1024px) and (scripting: enabled) {
+  .ln-footer__fold[open]:not([data-ready]) > :not(summary) { display: none; }
+  .ln-footer__fold[open]:not([data-ready]) > .ln-footer__title::after { content: "+" / ""; }
+}
 .ln-footer__title:focus-visible { outline: var(--ln-focus-width) solid var(--ln-color-signal); outline-offset: -2px; }
 .ln-footer__list { list-style: none; margin: 0 0 var(--ln-space-3); padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--ln-space-4); }
 .ln-footer__list a { display: flex; align-items: center; min-height: var(--ln-touch-target); font-size: var(--ln-text-sm); line-height: 1.25; }
