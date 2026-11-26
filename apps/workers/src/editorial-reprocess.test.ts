@@ -29,10 +29,20 @@ const article = (over: Record<string, unknown> = {}): any => ({
 });
 
 describe('reprocessar por articleId + etapa', () => {
-  it('recusa falha editorial real e status publicado/aprovado', () => {
+  it('recusa falha editorial real (por finding, incluindo duplicate/unanchored) e status publicado/aprovado', () => {
     expect(reprocessRefusal({ status: 'bloqueado', findings: [{ code: 'unsupported_claim' }] }).join(' ')).toMatch(/falha editorial real/);
+    expect(reprocessRefusal({ status: 'bloqueado', findings: [{ code: 'duplicate' }] }).join(' ')).toMatch(/falha editorial real/);
+    expect(reprocessRefusal({ status: 'bloqueado', findings: [{ code: 'unanchored' }] }).join(' ')).toMatch(/falha editorial real/);
     expect(reprocessRefusal({ status: 'publicado', findings: [] }).join(' ')).toMatch(/publicado/);
     expect(reprocessRefusal({ status: 'bloqueado', findings: [{ code: 'invalid_model_output' }] })).toEqual([]);
+  });
+
+  it('--operator é obrigatório: sem operador identificado a chamada é recusada antes de qualquer efeito', async () => {
+    const calls: number[] = [];
+    const gateway: ModelGateway = { invoke: async () => { calls.push(1); return { ok: false, refusal: 'model_disabled', detail: 'x' } as any; } };
+    await expect(runEditorialReprocess({ db: {} as never, articleId: 'art-rp', stage: 'triage', motivo: 'motivo suficientemente longo', operatorId: '   ', modelGateway: gateway, now: () => NOW }))
+      .rejects.toMatchObject({ code: 'NO_OPERATOR' });
+    expect(calls).toHaveLength(0);
   });
 
   it('gateway não roda quando a matéria tem bloqueio editorial', async () => {
