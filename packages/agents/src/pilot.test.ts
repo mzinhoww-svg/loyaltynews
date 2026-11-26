@@ -328,10 +328,11 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
     expect(validatePilotRow(triage(1, 0, { declared_model: 'claude-sonnet-5-5' }))).toEqual([]); // backup permitido
     expect(validatePilotRow(triage(1, 0, { declared_model: 'claude-opus-5-5' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em modelo haiku ou sonnet/)]));
     expect(validatePilotRow(triage(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/etapa triage deve rodar em claude/)]));
-    // redação não tem backup; checagem não aceita Claude; contas fora da DP-41 (Gemini, OpenCode) não existem no piloto
-    expect(validatePilotRow(draft(1, 0, { account: 'opencode' as never, declared_model: 'deepseek-chat' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+    // redação não tem backup; checagem não aceita Claude; Gemini/Antigravity continua fora
+    // Emenda de 26/11 à DP-41: a lane opencode/DeepSeek é legítima em qualquer etapa não determinística.
+    expect(validatePilotRow(draft(1, 0, { account: 'opencode', declared_model: 'deepseek-chat' }))).toEqual([]);
     expect(validatePilotRow(factcheck(1, 3, { account: 'antigravity' as never, declared_model: 'gemini-3-pro' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em codex/)]));
-    expect(validatePilotRow(triage(1, 0, { account: 'opencode' as never, declared_model: 'deepseek-chat (opencode)' }))).toEqual(expect.arrayContaining([expect.stringMatching(/etapa triage deve rodar em claude/)]));
+    expect(validatePilotRow(triage(1, 0, { account: 'opencode', declared_model: 'deepseek-chat (opencode)' }))).toEqual([]);
     expect(validatePilotRow(factcheck(1, 3, { account: 'claude' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em codex/)]));
   });
 
@@ -420,6 +421,12 @@ describe('QA 3 (ba51ea2), F1: conta × modelo declarado coerentes (sondas A–H)
     expect(contradiz(t({ declared_model: 'deepseek-chat (opencode)' }))).toHaveLength(1);
     expect(contradiz(t({ declared_model: 'gpt-6.1-terra' }))).toHaveLength(1);
     expect(contradiz(t({ declared_model: 'gemini-3-pro' }))).toHaveLength(1);
+  });
+  it('I. opencode com modelo DeepSeek é coerente; opencode com Claude é contraditório; claude com DeepSeek continua inválido', () => {
+    expect(contradiz(draft(1, 0, { account: 'opencode', declared_model: 'deepseek-v4.1-flash' }))).toEqual([]);
+    expect(contradiz(check(1, 3, { account: 'opencode', declared_model: 'deepseek-v4.1-flash' }))).toEqual([]);
+    expect(contradiz(draft(1, 0, { account: 'opencode', declared_model: 'claude-sonnet-5-5' }))).toHaveLength(1);
+    expect(contradiz(draft(1, 0, { account: 'claude', declared_model: 'deepseek-v4.1-flash' }))).toHaveLength(1);
   });
   it('E/H. codex com modelo Claude ou com autor desconhecido não passa', () => {
     expect(contradiz(check(1, 3, { declared_model: 'claude-opus-5-5' }))).toHaveLength(1);

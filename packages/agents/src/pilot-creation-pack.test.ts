@@ -131,14 +131,28 @@ describe('pacote de criação: falha fechada', () => {
 
   it('independência: checagem ou revisão no Claude (mesmo autor da redação) reprova; redação com alternativo reprova', () => {
     const c = clone();
-    const rev = by(c, 'ln_pilot_revisor');
-    rev.openbot.provider = 'claude';
-    rev.openbot.model = 'claude-opus-5-5';
-    rev.client_env.LN_AGENT_ACCOUNT = 'claude';
-    expect(codes(c)).toEqual(expect.arrayContaining(['INDEPENDENCE', 'CODEX']));
+    by(c, 'ln_pilot_revisor').client_env.LN_WORKER_ID = by(c, 'ln_pilot_redator').client_env.LN_WORKER_ID;
+    expect(codes(c)).toContain('INDEPENDENCE');
+    const s2 = clone();
+    by(s2, 'ln_pilot_revisor').client_env.stages = [...by(s2, 'ln_pilot_checador').client_env.stages];
+    expect(codes(s2)).toContain('STAGE');
     const r = clone();
     by(r, 'ln_pilot_redator').openbot.backup_model = 'claude-haiku-5-5';
     expect(codes(r)).toEqual(expect.arrayContaining(['REDATOR_BACKUP']));
+  });
+
+  it('emenda DP-41: pacote com os 5 em opencode passa; redator e revisor no mesmo agente reprova', () => {
+    const all = clone();
+    for (const a of all.agents) {
+      a.openbot.provider = 'opencode';
+      a.openbot.model = 'deepseek-v4.1-flash';
+      a.client_env.LN_AGENT_ACCOUNT = 'opencode';
+      if (a.openbot.backup_model) a.openbot.backup_model = 'deepseek-v4.1';
+    }
+    expect(validateCreationPack(all)).toEqual([]);
+    const same = structuredClone(all);
+    by(same, 'ln_pilot_revisor').client_env.LN_WORKER_ID = by(same, 'ln_pilot_redator').client_env.LN_WORKER_ID;
+    expect(codes(same)).toContain('INDEPENDENCE');
   });
 
   it('o conjunto dos 5 agentes é exato: trocar um por outro, mesmo coerente, reprova (SET e BINDING)', () => {
@@ -151,8 +165,8 @@ describe('pacote de criação: falha fechada', () => {
     social.client_env.stages = ['draft'];
     expect(codes(t)).toContain('SET');
     const b = clone();
-    by(b, 'ln_pilot_redator').openbot.model = 'claude-opus-5-5';
-    expect(codes(b)).toContain('BINDING');
+    by(b, 'ln_pilot_redator').openbot.model = 'gpt-6.2-sol';
+    expect(codes(b)).toContain('MODEL_AUTHOR');
     const k = clone();
     by(k, 'ln_pilot_checador').client_env.kinds = ['editorial_review'];
     expect(codes(k)).toContain('BINDING');

@@ -4,13 +4,13 @@
 //   pull  ->  input  ->  (o agente produz o resultado)  ->  result  ->  done | limit | fail      (+ heartbeat se a tarefa demorar)
 //   smoke: verificação do roteiro (§6) em UM comando, sem efeito (health e sonda de assinatura; NUNCA faz pull); recusa produção.
 // Segurança: o segredo HMAC vem de um ARQUIVO (LN_HMAC_SECRET_FILE, o caminho que o cofre do OpenBot entrega) ou, menos recomendado, de LN_HMAC_SECRET;
-// nunca de argumento de linha de comando, e nunca é impresso. Só HTTPS (http só para localhost, em teste). Só as contas claude e codex (DP-41).
+// nunca de argumento de linha de comando, e nunca é impresso. Só HTTPS (http só para localhost, em teste). Só as contas claude, codex e opencode (DP-41; emenda de 26/11: a lane opencode serve o DeepSeek).
 // Saída: UMA linha de JSON no stdout (o resultado) ou, em erro, JSON em stderr e código de saída 1 (sem segredo, sem assinatura, sem cabeçalhos).
 import { createHash, createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-export const ACCOUNTS = ['claude', 'codex'];
+export const ACCOUNTS = ['claude', 'codex', 'opencode'];
 export const STAGES = ['triage', 'draft', 'factcheck', 'review', 'social_pack', 'roles'];
 /** Tipos de tarefa do piloto (o `pull` filtra por eles: vários agentes podem dividir a mesma conta). */
 export const KINDS = ['classification', 'editorial_draft', 'fact_check', 'editorial_review', 'social_copy', 'entity_resolution'];
@@ -45,7 +45,7 @@ export function loadConfig(env, readFile = readFileSync) {
   const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
   if (u.username || u.password || (u.protocol !== 'https:' && !(u.protocol === 'http:' && local))) throw new CliError('config', 'LN_API_BASE tem de ser HTTPS, sem credencial na URL');
   const account = env.LN_AGENT_ACCOUNT;
-  if (!ACCOUNTS.includes(account)) throw new CliError('config', `LN_AGENT_ACCOUNT tem de ser ${ACCOUNTS.join(' ou ')} (DP-41: só as assinaturas Claude e Codex)`);
+  if (!ACCOUNTS.includes(account)) throw new CliError('config', `LN_AGENT_ACCOUNT tem de ser ${ACCOUNTS.join(' ou ')} (DP-41 + emenda de 26/11: claude/codex por assinatura, opencode para o DeepSeek)`);
   let secret = '';
   if (env.LN_HMAC_SECRET_FILE) {
     try {
@@ -175,7 +175,7 @@ const COMMANDS = {
     const body = {
       callbackId: a['callback-id'] ? need(a, 'callback-id') : `cb-${taskId}-${short(resultRef)}`, // o mesmo resultado reenviado = o mesmo callbackId (idempotente)
       taskId, leaseId, outcome: 'completed', resultRef,
-      usage: { executionId: `ex-${taskId}-${short(resultRef)}`, taskId, leaseId, model, lane: 'subscription', account: cfg.account, costMicro: 0 },
+      usage: { executionId: `ex-${taskId}-${short(resultRef)}`, taskId, leaseId, model, lane: cfg.account === 'opencode' ? 'opencode' : 'subscription', account: cfg.account, costMicro: 0 },
       trace: traceOf(cfg, a, now),
     };
     return (await post(cfg, 'callback', body, io)).body;

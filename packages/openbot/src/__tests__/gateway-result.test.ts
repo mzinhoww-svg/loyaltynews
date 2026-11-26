@@ -53,7 +53,7 @@ const mk = (opts: { ledger?: CostLedger; pilot?: boolean; timeoutMs?: number } =
 const req = (taskClass: GatewayRequestLike['taskClass'] = 'factcheck', key = 'art-9:factcheck:1', excludeProviders: string[] = []): GatewayRequestLike => ({
   taskClass, route: taskClass, workflow: 'WF02', idempotencyKey: key, promptVersion: 'p', dataClass: 'public', excludeProviders, input: {},
 });
-const usage = (t: { id: string; leaseId: string }, account: 'codex' | 'claude' | 'antigravity', model: string, tag = '') => ({
+const usage = (t: { id: string; leaseId: string }, account: 'codex' | 'claude' | 'antigravity' | 'opencode', model: string, tag = '') => ({
   executionId: `ex-${t.id}-${tag}${account}`, taskId: t.id, leaseId: t.leaseId, model, lane: (account === 'antigravity' ? 'antigravity' : 'subscription') as 'antigravity' | 'subscription', account, costMicro: 0,
 });
 
@@ -105,17 +105,17 @@ describe('gateway: espera o custo e a linha do piloto depois de concluir a taref
     const w = mk({ pilot: true });
     // o agente só grava a linha DEPOIS: o callback do piloto precisa de trace; aqui a linha é gravada à mão, atrasada
     w.onFirstSleep(async () => {
-      const [t] = ((await handlePull(w.deps, signed({ workerId: 'w', account: 'codex' }))).body as PullResult).tasks;
+      const [t] = ((await handlePull(w.deps, signed({ workerId: 'w', account: 'opencode' }))).body as PullResult).tasks;
       w.io.results.set(resultRefFor(t!.id, t!.attempt), { ok: 1 });
       await w.deps.queue.complete(t!.id, t!.leaseId, resultRefFor(t!.id, t!.attempt), NOW);
-      await w.deps.ledger.record(usage(t!, 'codex', 'gpt-5.1-codex'), 1_000_000, NOW);
+      await w.deps.ledger.record(usage(t!, 'opencode', 'deepseek-v4.1-flash'), 1_000_000, NOW);
       // a linha só passa a existir na 4ª leitura (o callback do piloto a grava depois de concluir a tarefa)
       const origAll = w.rows.all.bind(w.rows);
       let calls = 0;
       w.rows.all = async () => {
         if (++calls === 4) {
           await w.rows.upsert({
-            task_id: t!.id, kind: t!.kind, article_id: 'art-9', source_id: 's', stage: 'factcheck', account: 'codex', declared_model: 'gpt-5.1-codex', prompt_version: 'p',
+            task_id: t!.id, kind: t!.kind, article_id: 'art-9', source_id: 's', stage: 'factcheck', account: 'opencode', declared_model: 'deepseek-v4.1-flash', prompt_version: 'p',
             started_at: NOW.toISOString(), ended_at: NOW.toISOString(), attempt: t!.attempt, outcome: 'completed', packet_chars: 1, tokens_measured: false,
             published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false,
           });
@@ -129,10 +129,10 @@ describe('gateway: espera o custo e a linha do piloto depois de concluir a taref
 
     const w2 = mk({ pilot: true, timeoutMs: 400 });
     w2.onFirstSleep(async () => {
-      const [t] = ((await handlePull(w2.deps, signed({ workerId: 'w', account: 'codex' }))).body as PullResult).tasks;
+      const [t] = ((await handlePull(w2.deps, signed({ workerId: 'w', account: 'opencode' }))).body as PullResult).tasks;
       w2.io.results.set(resultRefFor(t!.id, t!.attempt), { ok: 1 });
       await w2.deps.queue.complete(t!.id, t!.leaseId, resultRefFor(t!.id, t!.attempt), NOW);
-      await w2.deps.ledger.record(usage(t!, 'codex', 'gpt-5.1-codex'), 1_000_000, NOW);
+      await w2.deps.ledger.record(usage(t!, 'opencode', 'deepseek-v4.1-flash'), 1_000_000, NOW);
     });
     const r2 = await w2.gw.invoke(req('factcheck', 'art-9:factcheck:5'));
     assert.equal(r2.ok, true, 'sem linha no prazo: responde ok (melhor esforço); a Editorial registra a auditoria do patch');

@@ -53,7 +53,7 @@ export const EDITORIAL_PROMPTS_REF = {
 // --- etapas, contas e perfis dos agentes -------------------------------------------------------------------------------
 
 /** Só Claude e Codex (DP-41; decisão do PM: Gemini/Antigravity e OpenCode/DeepSeek saíram do piloto). Uma conta por provedor, sem separar produto e implementação. */
-export type PilotAccount = 'claude' | 'codex' | 'deterministic';
+export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'deterministic';
 export type PilotStage = 'triage' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
 export type EditorialTaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack' | 'roles';
 
@@ -85,7 +85,13 @@ export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO mínimo (slug e resumo); QA visual fora', taskClass: null, adapterKind: null },
 };
 
-const allowedAccounts = (st: PilotStage): PilotAccount[] => [PILOT_STAGES[st].account, ...PILOT_STAGES[st].backups];
+const allowedAccounts = (st: PilotStage): PilotAccount[] => [
+  PILOT_STAGES[st].account,
+  ...PILOT_STAGES[st].backups,
+  // Emenda a DP-41 (26/11): a independencia e por etapa e por agente, nao por provedor. A lane opencode/DeepSeek
+  // vale para qualquer etapa que leia ou escreva (nunca para a deterministica).
+  ...(PILOT_STAGES[st].account === 'deterministic' ? [] : (['opencode'] as PilotAccount[])),
+];
 
 /** Etapas em que a independência do autor se prova (recebem um rascunho do redator). */
 export const INDEPENDENT_STAGES: PilotStage[] = ['factcheck', 'review', 'check_edit'];
@@ -259,7 +265,7 @@ export const BLOCKING_GATE_REASONS = [
 
 /** Autor do modelo que cada conta serve no piloto (QA 3, F1): conta e modelo declarado que divergem são um registro contraditório. */
 export const ACCOUNT_AUTHOR: Record<Exclude<PilotAccount, 'deterministic'>, ReturnType<typeof authorOfDeclaredModel>> = {
-  claude: 'anthropic', codex: 'openai',
+  claude: 'anthropic', codex: 'openai', opencode: 'deepseek',
 };
 
 const isoOk = (s: string) => !Number.isNaN(Date.parse(s));
@@ -284,7 +290,7 @@ export function configInvalidOf(r: ConfigInvalidInput): string[] {
     const got = authorOfDeclaredModel(r.declared_model);
     if (expected && got !== expected) e.push(`conta ${r.account} serve modelo de autor ${expected}, mas o modelo declarado (${r.declared_model}) é de autor ${got}: registro contraditório`);
   }
-  if (spec?.models && r.account !== 'deterministic' && r.declared_model) {
+  if (spec?.models && r.account !== 'deterministic' && r.account !== 'opencode' && r.declared_model) {
     const fams = [spec.models.primary, ...spec.models.backups];
     if (!fams.some((f) => r.declared_model!.toLowerCase().includes(f))) e.push(`etapa ${r.stage} deve rodar em modelo ${fams.join(' ou ')}, mas o declarado é ${r.declared_model}`);
   }
@@ -323,7 +329,7 @@ export function validatePilotRow(r: PilotRow): string[] {
 // --- avaliação dos critérios de saída -----------------------------------------------------------------------------------
 
 export interface WindowStat {
-  account: 'claude' | 'codex';
+  account: Exclude<PilotAccount, 'deterministic'>;
   from: string;
   to: string | null;
   completedTasks: number;
@@ -343,7 +349,7 @@ export interface PilotEvaluation {
   /** parada imediata: qualquer item aqui para o piloto; cada item traz a posição (1-based) da linha que a causou */
   stop: string[];
   windows: WindowStat[];
-  limitHits: { account: 'claude' | 'codex'; at: string; message: string; resumedAt: string | null }[];
+  limitHits: { account: Exclude<PilotAccount, 'deterministic'>; at: string; message: string; resumedAt: string | null }[];
   independence: { checked: number; ok: number; rate: number | null; failures: string[]; uncheckedFinalDrafts: string[] };
   latencyMsByStage: Partial<Record<PilotStage, Stat>>;
   retries: { tasksWithRetry: number; failed: number; pendingLimit: number };
@@ -424,7 +430,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
   // janelas por conta: abre na primeira atividade (ou na retomada) e fecha na tarefa que bateu o limite
   const windows: WindowStat[] = [];
   const limitHits: PilotEvaluation['limitHits'] = [];
-  for (const account of ['claude', 'codex'] as const) {
+  for (const account of ['claude', 'codex', 'opencode'] as const) {
     const mine = rows.filter((r) => r.account === account).sort((a, b) => Date.parse(a.started_at) - Date.parse(b.started_at));
     let cur: { from: string; tasks: number; articles: Set<string> } | null = null;
     for (const r of mine) {
@@ -545,7 +551,7 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
         const spec = PILOT_STAGES[r.stage];
         if (!spec || r.outcome !== 'completed') continue;
         const family = spec.models?.backups.find((f) => (r.declared_model ?? '').toLowerCase().includes(f)) ?? null;
-        if (r.account === spec.account && !family) continue;
+        if ((r.account === spec.account || r.account === 'opencode') && !family) continue;
         const k = `${r.stage}|${r.account}|${family ?? ''}`;
         m.set(k, { stage: r.stage, account: r.account, model: family, tasks: (m.get(k)?.tasks ?? 0) + 1 });
       }
