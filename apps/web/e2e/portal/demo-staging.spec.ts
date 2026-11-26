@@ -6,14 +6,15 @@ import { expect, test } from '@playwright/test';
  * aparece em toda página e /noticias declara que é demonstração; em produção, nada disso.
  * Também mede o CLS da faixa e roda axe (serious/critical = 0) em 390 e 1280.
  */
-const appEnv = process.env.PORTAL_APP_ENV ?? 'production';
 const mode = process.env.PORTAL_MODE ?? 'empty';
+// O servidor do modo mock sobe sempre com APP_ENV=staging (portal.config.ts): vale o ambiente do servidor, não a variável do operador.
+const appEnv = mode === 'mock' ? 'staging' : (process.env.PORTAL_APP_ENV ?? 'production');
 const staging = appEnv === 'staging';
 const ROTAS = ['/', '/noticias'];
 const LARGURAS = [390, 1280];
 
 test.describe(`estado honesto (${appEnv}, ${mode})`, () => {
-  test.skip(staging && mode !== 'api', 'staging do aceite roda com fonte api + seed');
+  test.skip(staging && mode === 'empty', 'em staging a faixa é provada com conteúdo: fonte api + seed (aceite) ou mock');
 
   for (const rota of ROTAS) {
     for (const largura of LARGURAS) {
