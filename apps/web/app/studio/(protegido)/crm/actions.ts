@@ -3,6 +3,7 @@
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro } from '@/lib/studio/backend';
 import { PAPEIS_COMERCIAIS } from '@/lib/studio/comercial';
+import { executarExclusao } from '@/lib/studio/crm-exclusao';
 import { requireStudio } from '../../_lib/guard';
 import { texto, voltar } from '../../_lib/flash';
 
@@ -44,6 +45,16 @@ export async function leadAction(fd: FormData): Promise<void> {
     return voltar(BASE, ehErro(r) ? falha(r) : { ok: true }, 'Lead convertido em oportunidade.');
   }
   voltar(BASE, { ok: false, erros: ['Operação desconhecida.'] }, '');
+}
+
+/** Exclusão definitiva de um contato (LGPD), só depois da confirmação. O papel é exigido aqui e de novo pela rota. */
+export async function excluirLeadAction(fd: FormData): Promise<void> {
+  await requireStudio(PAPEIS_COMERCIAIS);
+  const r = await executarExclusao(
+    { id: texto(fd, 'id'), criadoEm: texto(fd, 'criadoEm'), confirmar: texto(fd, 'confirmar') },
+    { leads: () => api.comercial.leads(), excluir: (id) => api.comercial.excluirLead(id) },
+  );
+  voltar(BASE, r.ok ? { ok: true } : { ok: false, erros: [r.mensagem] }, r.mensagem);
 }
 
 export async function moverEstagioAction(fd: FormData): Promise<void> {

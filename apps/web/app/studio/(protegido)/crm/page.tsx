@@ -9,6 +9,7 @@ import { SemBanco } from '../../_components/SemBanco';
 import { EstadoLista } from '../../_components/EstadoLista';
 import { estadoDaLista } from '@/lib/studio/estados';
 import { Anunciantes, type ContaCrm, type ContatoCrm } from './Anunciantes';
+import { ConfirmarExclusao, linkExcluir } from './ConfirmarExclusao';
 import { leadAction, moverEstagioAction, registrarLeadAction } from './actions';
 
 export const metadata: Metadata = { title: 'CRM' };
@@ -29,12 +30,12 @@ const PROXIMOS: Record<string, string[]> = {
   perdido: [],
 };
 
-type Lead = { id: string; name: string; company: string; email: string; objective: string; status: string };
+type Lead = { id: string; name: string; company: string; email: string; objective: string; status: string; createdAt: string };
 type Coluna = { stage: string; items: { id: string; title: string; accountName: string | null; overdue: boolean }[] };
 
-export default async function CrmPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; status?: string }> }) {
+export default async function CrmPage({ searchParams }: { searchParams: Promise<{ tipo?: string; aviso?: string; status?: string; excluir?: string }> }) {
   await requireModule(findModule('crm')!);
-  const { tipo, aviso, status } = await searchParams;
+  const { tipo, aviso, status, excluir } = await searchParams;
   const resLeads = await api.comercial.leads(status);
   if (naoConfigurado(resLeads)) {
     return (
@@ -75,6 +76,8 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           Filtro inválido.
         </div>
       ) : null}
+
+      {excluir ? <ConfirmarExclusao lead={erroLeads ? undefined : leads.find((l) => l.id === excluir)} erro={erroLeads} /> : null}
 
       <h2>Leads</h2>
       <form className="st-filters" method="get" role="search" aria-label="Filtrar leads">
@@ -141,6 +144,9 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
                         </button>
                       </form>
                     ))}
+                    <a className="st-btn sec" href={linkExcluir(l.id, status)} aria-label={`Excluir ${l.name}`} data-excluir={l.id}>
+                      Excluir
+                    </a>
                   </div>
                 </td>
               </tr>
