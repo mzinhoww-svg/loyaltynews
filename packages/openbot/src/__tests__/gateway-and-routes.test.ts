@@ -16,9 +16,11 @@ const signed = (obj: unknown): SignedRequest => {
 
 class MemIo implements TaskIo {
   inputs = new Map<string, unknown>();
+  metas = new Map<string, unknown>();
   results = new Map<string, unknown>();
-  async putInput(refId: string, input: unknown) {
+  async putInput(refId: string, input: unknown, meta?: unknown) {
     this.inputs.set(refId, input);
+    this.metas.set(refId, meta);
   }
   async getResult(ref: string) {
     return this.results.get(ref) ?? null;
@@ -90,6 +92,14 @@ describe('gateway síncrono sobre o adaptador OpenBot', () => {
     const t = await deps.queue.get('task-000001');
     assert.equal(t?.refId, key);
     assert.equal(JSON.stringify(t).includes('Texto da matéria'), false);
+  });
+
+  test('classe context é marcada no despacho: meta leva taskClass e stage context', async () => {
+    await Promise.all([gw.invoke(req({ taskClass: 'context', idempotencyKey: 'art-1:context:1' })), worker('opencode', 'deepseek-v4.1-flash')]);
+    const [key] = [...io.metas.keys()];
+    const m = io.metas.get(key!) as { taskClass: string; stage?: string };
+    assert.equal(m.taskClass, 'context');
+    assert.equal(m.stage, 'context');
   });
 
   test('independência: provedor excluído sai da rota; sem via restante, recusa; via de provedor incerto é conferida pelo modelo declarado', async () => {

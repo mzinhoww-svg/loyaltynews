@@ -9,8 +9,8 @@ import { providerOfModel, type Account } from './types';
 // Espelho dos tipos de packages/agents/src/pilot.ts (PilotRow). Mantidos idênticos para a função `canDispatchNext` do AgentOps
 // aceitar estas linhas sem adaptação; a conferência de tipos entra quando ft/agents for integrado.
 export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'antigravity' | 'deterministic';
-export type PilotStage = 'triage' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
-export const PILOT_STAGES = ['triage', 'draft', 'factcheck', 'review', 'check_edit', 'social_pack', 'roles', 'rights_seo_qa'] as const;
+export type PilotStage = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
+export const PILOT_STAGES = ['triage', 'context', 'draft', 'factcheck', 'review', 'check_edit', 'social_pack', 'roles', 'rights_seo_qa'] as const;
 export const PILOT_ACCOUNTS = ['claude', 'codex', 'opencode', 'antigravity', 'deterministic'] as const;
 
 export interface PilotRow {
