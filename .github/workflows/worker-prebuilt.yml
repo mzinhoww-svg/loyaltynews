@@ -1,0 +1,140 @@
+# Constroi o worker (apps/workers/dist) num Linux e entrega o pacote PRE-CONSTRUIDO do worker:
+# o dist vai dentro do pacote e o app sobe com build_command VAZIO na Vertra (sem esbuild/OOM no build).
+# O numero de aceite e o `zip-sha256` impresso no summary. Sem segredos; so workflow_dispatch.
+name: worker-prebuilt
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: SHA de 40 hexadecimais do commit a construir (ja enviado ao GitHub)
+        required: true
+        type: string
+      perfil:
+        description: staging ou production
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-prebuilt-${{ inputs.perfil }}
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LN_COMMIT: ${{ inputs.commit }}
+      LN_PERFIL: ${{ inputs.perfil }}
+    steps:
+      - name: Validar as entradas
+        run: |
+          set -euo pipefail
+          [[ "$LN_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "commit precisa ter 40 hexadecimais minusculos"; exit 1; }
+          [[ "$LN_PERFIL" == "staging" || "$LN_PERFIL" == "production" ]] || { echo "perfil invalido"; exit 1; }
+
+      - name: Codigo do commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Conferir que o checkout e o commit pedido
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LN_COMMIT"
+
+      - name: Producao so constroi commit que ja esta na main
+        run: |
+          set -euo pipefail
+          if [[ "$LN_PERFIL" == "production" ]]; then
+            git fetch --no-tags origin main
+            if git merge-base --is-ancestor "$LN_COMMIT" origin/main; then
+              echo "ok: $LN_COMMIT e ancestral de origin/main ($(git rev-parse origin/main))"
+            else
+              rc=$?
+              if [[ "$rc" -eq 1 ]]; then
+                echo "RECUSADO: o commit $LN_COMMIT nao e ancestral da main."
+              else
+                echo "ERRO ao conferir a ancestralidade (codigo $rc)."
+              fi
+              exit 1
+            fi
+          fi
+
+      - name: Versao do Node da Vertra
+        id: node
+        run: |
+          set -euo pipefail
+          echo "versao=$(node -p "require('./infra/vertra/environments.json').runtime.node")" >> "$GITHUB_OUTPUT"
+
+      - name: Node igual ao da Vertra
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ steps.node.outputs.versao }}
+
+      - name: Pacote do worker do mesmo commit (package-web)
+        run: |
+          set -euo pipefail
+          node infra/scripts/package-web.mjs --repo . --commit "$LN_COMMIT" --out /tmp/pacote --profile "$LN_PERFIL" --app workers
+          PASTA="$(ls -d /tmp/pacote/ln-workers-*/ | head -1)"
+          echo "PASTA=${PASTA%/}" >> "$GITHUB_ENV"
+
+      - name: Dependencias e build do worker
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build -w apps/workers
+          test -s apps/workers/dist/index.js
+
+      - name: Colocar o dist no pacote (build nulo na Vertra)
+        run: |
+          set -euo pipefail
+          mkdir -p "$PASTA/apps/workers"
+          cp -a apps/workers/dist "$PASTA/apps/workers/dist"
+          # build nulo: zera o BUILD= do vertracloud.config (como o package-prebuilt.mjs:136-137 do web); sem isso a Vertra reconstroi
+          node -e "const fs=require('node:fs');const p=process.env.PASTA;const c=fs.readFileSync(p+'/vertracloud.config','utf8');fs.writeFileSync(p+'/vertracloud.config',c.split(/\r?\n/).map((l)=>l.startsWith('BUILD=')?'BUILD=':l).join('\n'));const j=JSON.parse(fs.readFileSync(p+'/release.json','utf8'));j.prebuilt=true;j.buildCommandVazio=true;fs.writeFileSync(p+'/release.json',JSON.stringify(j,null,2)+'\n')"
+
+      - name: ZIP final do deploy e sha256
+        run: |
+          set -euo pipefail
+          command -v zip >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq zip; }
+          ZIP="${PASTA}.zip"
+          ( cd "$PASTA" && zip -q -r -X "$ZIP" . )
+          NFILES="$(find "$PASTA" -type f | wc -l)"
+          NZIP="$(unzip -Z1 "$ZIP" | grep -v '/$' | wc -l)"
+          test "$NFILES" = "$NZIP"
+          echo "zip=$(basename "$ZIP")" >> "$GITHUB_ENV"
+          echo "$(basename "$ZIP") - ${NFILES} arquivos, $(stat -c%s "$ZIP") B" >> "$GITHUB_STEP_SUMMARY"
+          sha256sum "$ZIP" | awk '{print "zip-sha256=" $1}' | tee -a "$GITHUB_STEP_SUMMARY"
+          # manifesto do ZIP FINAL (depois do dist): sha256, bytes e lista de arquivos do proprio ZIP
+          node --input-type=module -e "
+          import { readFileSync, writeFileSync, statSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { arquivosDoZip } from './infra/scripts/lib/zip.mjs';
+          const p = process.env.PASTA;
+          const zip = p + '.zip';
+          const buf = readFileSync(zip);
+          const files = arquivosDoZip(zip);
+          const man = JSON.parse(readFileSync(p + '.manifest.json', 'utf8'));
+          Object.assign(man, { pasta: p, zip, zipSha256: createHash('sha256').update(buf).digest('hex'), zipBytes: statSync(zip).size, arquivos: files.length, zipFiles: files });
+          man.buildCommand = '(vazio)';
+          man.buildCommandVazio = true;
+          writeFileSync(p + '.manifest.json', JSON.stringify(man, null, 2) + '\n');
+          console.log('manifesto: zipSha256=' + man.zipSha256 + ' arquivos=' + files.length);
+          "
+
+      - name: Artefato
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: worker-prebuilt-${{ inputs.perfil }}-${{ inputs.commit }}
+          path: /tmp/pacote/
+          retention-days: 7
+          if-no-files-found: error
