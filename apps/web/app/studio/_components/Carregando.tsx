@@ -3,7 +3,7 @@
 // detalhe) não têm loading.tsx de propósito: a resposta do servidor chega inteira, com o status certo.
 export function CarregandoStudio() {
   return (
-    <div className="st-card" role="status" aria-live="polite" data-estado="carregando">
+    <div className="st-card" role="status" aria-live="polite" aria-busy="true" data-estado="carregando">
       <p style={{ margin: 0 }}>
         <strong>Carregando esta tela do Studio…</strong>
       </p>
