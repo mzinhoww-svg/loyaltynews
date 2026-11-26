@@ -13,6 +13,7 @@ import { queueName, STAGES } from '../pipeline/jobs';
 import { RefusingGateway } from '../gateway';
 import { FlagDisabled } from '../flags';
 import { SIGNATURE } from '../types';
+import type { PilotRowSink } from '../pipeline/pilot-sink';
 
 // Garantia de "sem chamada real": qualquer fetch durante os testes derruba o teste.
 const realFetch = globalThis.fetch;
@@ -74,8 +75,8 @@ test('factcheck pending_timeout: registra pending_timeout, não vira model_disab
   const gw = new MockGateway(ev.id, {
     factcheck: () => ({ ok: false, refusal: 'model_disabled', detail: 'pending_timeout: tarefa t1 segue na fila (pending, via codex)', taskId: 't1' }),
   });
-  const patches: any[] = [];
-  const d = { ...deps(gw), pilotSink: { patch: async (p: any) => { patches.push(p); } } } as StageDeps;
+  const patches: Parameters<PilotRowSink['patch']>[0][] = [];
+  const d = { ...deps(gw), pilotSink: { patch: async (p: Parameters<PilotRowSink['patch']>[0]) => { patches.push(p); } } } as StageDeps;
   const r = await run(d, baseJob());
   assert.deepEqual(r.q.processed.map((p) => p.spec.stage), ['triage', 'context', 'draft', 'factcheck']);
   const b = r.blockedList[0]!;
@@ -84,7 +85,7 @@ test('factcheck pending_timeout: registra pending_timeout, não vira model_disab
   assert.ok(b.blocked.findings.some((f) => f.code === 'pending_timeout' && /pending_timeout/.test(f.message)));
   assert.equal(gw.requests.filter((x) => x.taskClass === 'review').length, 0);
   assert.equal(patches.length, 1);
-  assert.deepEqual(patches[0].patch, { gate_verdict: 'blocked', gate_reasons: ['pending_timeout'] });
+  assert.deepEqual(patches[0]!.patch, { gate_verdict: 'blocked', gate_reasons: ['pending_timeout'] });
 });
 
 test('checagem exige provedor distinto do redator (excludeProviders enviado e resposta verificada)', async () => {

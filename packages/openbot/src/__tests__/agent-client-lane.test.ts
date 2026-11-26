@@ -10,7 +10,7 @@ const env = (account: string) => ({
 });
 
 function io() {
-  const seen: { url?: string; body?: any } = {};
+  const seen: { url?: string; body?: { usage?: { lane?: string; account?: string; model?: string; costMicro?: number } } } = {};
   return {
     readFile: () => 'segredo-de-teste',
     now: () => Date.parse('2026-11-25T18:00:00.000Z'),
@@ -33,13 +33,13 @@ describe('cliente do agente: lane opencode', () => {
   it('opencode declara lane opencode, conta opencode e o modelo DeepSeek realmente usado', async () => {
     const i = io();
     await run(done, env('opencode'), i as never);
-    expect(i.seen.body.usage).toMatchObject({ lane: 'opencode', account: 'opencode', model: 'deepseek-v4.1-flash', costMicro: 0 });
+    expect(i.seen.body!.usage).toMatchObject({ lane: 'opencode', account: 'opencode', model: 'deepseek-v4.1-flash', costMicro: 0 });
   });
 
   it('claude continua na lane subscription (controle negativo da lane, não da conta)', async () => {
     const i = io();
     await run(done, { ...env('claude'), LN_AGENT_ACCOUNT: 'claude' }, i as never);
-    expect(i.seen.body.usage).toMatchObject({ lane: 'subscription', account: 'claude' });
+    expect(i.seen.body!.usage).toMatchObject({ lane: 'subscription', account: 'claude' });
   });
 
   it('antigravity continua recusada pelo cliente', async () => {
