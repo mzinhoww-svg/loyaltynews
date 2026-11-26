@@ -63,11 +63,13 @@ Cada ciclo de agente é um turno na assinatura; por isso **não use rotina perma
 | Ordem | Agente | Etapa | Esperado na linha da planilha |
 |---|---|---|---|
 | 1 | Pauta | `triage` | conta `claude`, modelo com **haiku** (ou sonnet no backup), custo 0, lane `subscription` |
-| 2 | Redação | `draft` | conta `claude`; `article_id` da matéria |
-| 3 | Checagem | `factcheck` | conta **`codex`** (nunca claude), `reviewed_draft_task_id` = a redação |
-| 4 | Revisão | `review` | conta **`codex`**, mesmo `reviewed_draft_task_id` |
-| 5 | Social (opcional) | `social_pack`, `roles` | conta `claude`; só rascunho |
+| 2 | Contexto | `context` | conta **`opencode`** (DeepSeek); `--stage context`; ler `meta.taskClass` e `meta.articleId` **antes** de produzir |
+| 3 | Redação | `draft` | conta `claude`; `article_id` da matéria |
+| 4 | Checagem | `factcheck` | conta **`codex`** (nunca claude), `reviewed_draft_task_id` = a redação |
+| 5 | Revisão | `review` | conta **`codex`**, mesmo `reviewed_draft_task_id` |
+| 6 | Social (opcional) | `social_pack`, `roles` | conta `claude`; só rascunho |
 
+- **Antes de produzir:** leia `meta.taskClass` e `meta.articleId` do input. O `--stage` do `done` é o `meta.taskClass` (nunca um valor fixo do agente); classe desconhecida = `fail`, não fallback para `triage`.
 - **Depois de cada ciclo:** confira que a etapa seguinte apareceu e que a linha da etapa tem `output_valid` e nenhuma violação.
 - **Limite da conta:** o agente roda `limit`; a tarefa **espera a janela**; **não** tente outra conta nem API. Anote mensagem e hora (o piloto mede isso).
 - **Veredito na linha:** depois de cada checagem e revisão, a linha da etapa deve trazer `gate_verdict` (a Editorial o grava; é de melhor esforço). Se faltar, procure o evento de auditoria `pilot_row_patch_failed` da Fábrica (**[não verificado]** onde ele aparece no staging): a matéria fica com linha inválida no avaliador até alguém corrigir; o piloto não para por isso.
