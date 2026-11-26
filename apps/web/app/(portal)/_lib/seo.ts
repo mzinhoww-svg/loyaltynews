@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { podeGerarOgCard } from '../../../lib/og-card';
 import { getEditoria } from './editorias';
 import { SITE_NAME, SITE_URL } from './site';
 
@@ -34,6 +35,36 @@ export function ogImagemPadrao(): OgImagem {
 export function ogImagemDaEditoria(slug: string): OgImagem {
   const nome = getEditoria(slug)?.name;
   return { url: OG_EDITORIA_ASSETS[slug] ?? OG_PADRAO_URL, width: OG_LARGURA, height: OG_ALTURA, alt: nome ? `${SITE_NAME}: ${nome}` : SITE_NAME };
+}
+
+/** Rota do card de OG por matéria (PNG gerado em app/og/noticia/[slug]/route.tsx). */
+export const OG_MATERIA_PREFIXO = '/og/noticia/';
+
+/** Tipo mínimo da matéria para escolher a imagem: o publicado vence, o card gerado é o fallback. */
+export interface MateriaParaOg {
+  slug: string;
+  title: string;
+  editoriaSlug: string;
+  authorLabel?: string;
+  publishedAt?: string;
+  image?: { src: string; alt: string } | null;
+}
+
+/**
+ * Imagem de compartilhamento da matéria, na ordem de precedência:
+ *  1. imagem publicada (Studio/API) — nunca é substituída por um card gerado;
+ *  2. card de OG por matéria, quando a manchete cabe em 4 linhas;
+ *  3. imagem da editoria — quando a manchete não cabe, para nunca publicar texto cortado.
+ * A imagem publicada não declara 1200×630: as dimensões reais são do arquivo do Studio, não do card.
+ */
+export type OgImagemMateria = { url: string; alt: string; width?: number; height?: number };
+
+export function ogImagemDaMateria(a: MateriaParaOg): OgImagemMateria {
+  if (a.image?.src) return { url: a.image.src, alt: a.image.alt || a.title };
+  const editoria = getEditoria(a.editoriaSlug)?.name ?? a.editoriaSlug;
+  const cabe = podeGerarOgCard({ title: a.title, editoria, credit: a.authorLabel, publishedAt: a.publishedAt });
+  if (cabe) return { url: `${OG_MATERIA_PREFIXO}${encodeURIComponent(a.slug)}`, width: OG_LARGURA, height: OG_ALTURA, alt: a.title };
+  return { ...ogImagemDaEditoria(a.editoriaSlug), alt: `${SITE_NAME}: ${editoria}` };
 }
 
 /** Robots de produção indexável: o Google Discover e o Google Notícias pedem prévia grande de imagem. */

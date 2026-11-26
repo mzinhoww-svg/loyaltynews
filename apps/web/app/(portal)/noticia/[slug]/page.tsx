@@ -11,7 +11,7 @@ import { flags } from '../../_lib/flags';
 import { formatDate } from '../../_lib/format';
 import { linkTerms } from '../../_lib/site-config';
 import { jsonLdString } from '../../_lib/jsonld';
-import { breadcrumbLd, ogImagemDaEditoria, PUBLISHER_LD } from '../../_lib/seo';
+import { breadcrumbLd, ogImagemDaEditoria, ogImagemDaMateria, PUBLISHER_LD } from '../../_lib/seo';
 import { SITE_URL } from '../../_lib/site';
 import { getSource } from '../../_lib/source';
 
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { article: a, unavailable } = await loadArticle(slug);
   if (!a) return { title: unavailable ? 'Matéria indisponível' : 'Matéria não encontrada', robots: { index: false } };
   const url = `/noticia/${a.slug}`;
-  const imagem = a.image ? { url: a.image.src, alt: a.image.alt } : ogImagemDaEditoria(a.editoriaSlug);
+  const imagem = ogImagemDaMateria(a);
   return {
     title: a.title,
     description: a.summary,

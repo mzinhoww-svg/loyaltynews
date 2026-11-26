@@ -137,7 +137,7 @@ test.describe(`SEO técnico (${mode}, APP_ENV=${appEnv}${semInterruptor ? ', sem
     expect([org.logo.width, org.logo.height]).toEqual([512, 512]);
   });
 
-  test('matéria: NewsArticle completo (publisher com logo, idioma, imagem, mainEntityOfPage), BreadcrumbList e og:image sempre presente', async ({ page }) => {
+  test('matéria: NewsArticle completo (publisher com logo, idioma, imagem, mainEntityOfPage), BreadcrumbList e og:image sempre presente', async ({ page, request }) => {
     test.skip(mode === 'empty', 'precisa de matérias (mock ou api)');
     const slug = mode === 'api' ? 'api-sem-imagem' : 'mock-bancos-1';
     await page.goto(`/noticia/${slug}`);
@@ -157,6 +157,34 @@ test.describe(`SEO técnico (${mode}, APP_ENV=${appEnv}${semInterruptor ? ', sem
     expect(crumbs.itemListElement[0]!.name).toBe('Início');
     expect(await meta(page, 'meta[property="og:image"]')).toBeTruthy();
     expect(await meta(page, 'meta[name="twitter:image"]')).toBeTruthy();
+    // Sem imagem publicada, a matéria ganha o card de OG gerado (PNG 1200×630); com imagem, o publicado vence.
+    if (mode === 'api') {
+      const og = (await meta(page, 'meta[property="og:image"]')) ?? '';
+      expect(og).toBe(`${SITE}/og/noticia/${slug}`);
+      expect(await meta(page, 'meta[property="og:image:width"]')).toBe('1200');
+      expect(await meta(page, 'meta[property="og:image:height"]')).toBe('630');
+      expect(await meta(page, 'meta[name="twitter:image"]')).toBe(`${SITE}/og/noticia/${slug}`);
+      const img = await request.get(new URL(og).pathname);
+      expect(img.status(), og).toBe(200);
+      expect(img.headers()['content-type']).toContain('image/png');
+      const png = await img.body();
+      expect(png.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], og).toEqual([1200, 630]);
+
+      // Manchete de 120 caracteres: card gerado no limite do aceite e desenho diferente do card curto (não é placeholder).
+      const htmlLongo = await (await request.get('/noticia/api-titulo-120')).text();
+      const ogLongo = /<meta property="og:image" content="([^"]+)"/.exec(htmlLongo)?.[1] ?? '';
+      expect(ogLongo).toBe(`${SITE}/og/noticia/api-titulo-120`);
+      const imgLongo = await request.get(new URL(ogLongo).pathname);
+      expect(imgLongo.status(), ogLongo).toBe(200);
+      expect(imgLongo.headers()['content-type']).toContain('image/png');
+      const pngLongo = await imgLongo.body();
+      expect([pngLongo.readUInt32BE(16), pngLongo.readUInt32BE(20)], ogLongo).toEqual([1200, 630]);
+      expect(pngLongo.equals(png), 'o card de 120 caracteres precisa desenhar a manchete longa, não reutilizar o curto').toBe(false);
+    } else {
+      // O fixture mock tem imagem própria: o card gerado nunca a substitui.
+      expect((await meta(page, 'meta[property="og:image"]')) ?? '').not.toContain('/og/noticia/');
+    }
     expect(await meta(page, 'meta[property="og:type"]')).toBe('article');
     expect(await meta(page, 'meta[property="article:published_time"]')).toBeTruthy();
     expect(await meta(page, 'link[rel="canonical"]', 'href')).toBe(`${SITE}/noticia/${slug}`);
