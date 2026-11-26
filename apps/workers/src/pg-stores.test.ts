@@ -29,7 +29,9 @@ class FakeRedis implements QueueSink {
 }
 
 const clear = async () => {
-  await t.client.exec('TRUNCATE outbox; ALTER TABLE effect_ledger DISABLE TRIGGER effect_ledger_append_only; TRUNCATE effect_ledger; ALTER TABLE effect_ledger ENABLE TRIGGER effect_ledger_append_only;');
+  // A 0037 criou tambem o gatilho de STATEMENT effect_ledger_no_truncate (BEFORE TRUNCATE, FOR EACH STATEMENT):
+  // DISABLE do gatilho de linha nao o cobre, entao os dois sao desabilitados so em volta da limpeza do teste.
+  await t.client.exec('TRUNCATE outbox; ALTER TABLE effect_ledger DISABLE TRIGGER effect_ledger_append_only; ALTER TABLE effect_ledger DISABLE TRIGGER effect_ledger_no_truncate; TRUNCATE effect_ledger; ALTER TABLE effect_ledger ENABLE TRIGGER effect_ledger_no_truncate; ALTER TABLE effect_ledger ENABLE TRIGGER effect_ledger_append_only;');
 };
 
 describe('enqueueOutbox', () => {
