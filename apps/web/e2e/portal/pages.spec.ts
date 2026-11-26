@@ -23,7 +23,7 @@ const PAGES: PageSpec[] = [
   { name: 'agenda', path: '/agenda', empty: /Nenhum evento verificado por enquanto/ },
   { name: 'moves', path: '/moves', empty: /Ainda não há Moves publicados/ },
   { name: 'intelligence', path: '/intelligence' },
-  { name: 'intelligence-empresas', path: '/intelligence/empresas', empty: /Em breve: primeiros perfis verificados/ },
+  { name: 'intelligence-empresas', path: '/intelligence/empresas', empty: /Ainda não há perfis publicados/ },
   { name: 'intelligence-pessoas', path: '/intelligence/pessoas', empty: /Ainda não há perfis publicados/ },
   { name: 'midia-kit', path: '/midia-kit' },
   { name: 'the-loyal', path: '/the-loyal', empty: /ainda não está aberto para inscrições/ },

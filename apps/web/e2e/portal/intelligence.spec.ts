@@ -28,13 +28,14 @@ test.describe('empty', () => {
 
   test('diretório, pessoas e Moves vazios e honestos; perfil inexistente é 404', async ({ page }) => {
     await page.goto('/intelligence/empresas');
-    // Copy do estado vazio do diretório (mesma que o pages.spec valida em 'intelligence-empresas'): é o texto do produto
-    // desde a implementação do Intelligence; não é o mesmo título de /intelligence/pessoas.
-    await expect(page.getByText('Em breve: primeiros perfis verificados')).toBeVisible();
+    // Diretório vazio: estado honesto, sem culpar o filtro nem prometer "em breve" (P2 da auditoria, 26/11).
+    await expect(page.getByText('Ainda não há perfis publicados')).toBeVisible();
     await expect(page.getByTestId('company-list')).toHaveCount(0);
     await axe(page);
     await page.goto('/intelligence/empresas?tipo=company');
-    await expect(page.getByText('Nenhuma empresa com esse filtro')).toBeVisible();
+    // A fonte continua vazia: o filtro não "escondeu" nada, então o texto não pode ser o de filtro sem resultado.
+    await expect(page.getByText('Ainda não há perfis publicados')).toBeVisible();
+    await expect(page.getByText('Nenhuma empresa com esse filtro')).toHaveCount(0);
     const r = await page.goto('/intelligence/empresas/00000000-0000-4000-8000-00000000000a');
     expect(r?.status()).toBe(404);
     await page.goto('/moves');
