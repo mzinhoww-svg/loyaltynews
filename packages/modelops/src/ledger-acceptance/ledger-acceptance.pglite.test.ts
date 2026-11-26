@@ -3,7 +3,7 @@
 // concorrência real entre conexões e processos fica em ledger-acceptance.real-pg.test.ts (PostgreSQL local, opt-in).
 import { fileURLToPath } from 'node:url';
 import { createTestDb } from '@ln/db/testing';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PostgresLedgerStore, type SqlDatabase } from '../budget-pg';
 import { loadPolicyFile } from '../policy';
 import type { ModelPolicy } from '../types';
@@ -12,29 +12,31 @@ import { WithLockAtomicAdapter } from './withlock-adapter';
 
 const policy = loadPolicyFile(fileURLToPath(new URL('../../fixtures/model.policy.proposto-DP02-v5.json', import.meta.url))).policy as ModelPolicy;
 
-let t: Awaited<ReturnType<typeof createTestDb>>;
-const mk = () => new WithLockAtomicAdapter(new PostgresLedgerStore(t.db as unknown as SqlDatabase));
+let t: Awaited<ReturnType<typeof createTestDb>> | null = null;
 
 beforeAll(async () => {
+  // Cada harness recebe um banco NOVO carregado do dump de migrações (createTestDb já isola). Não se usa TRUNCATE:
+  // desde a 0037 o ledger é append-only e o próprio banco recusa TRUNCATE/UPDATE/DELETE (A10 prova isso).
   t = await createTestDb();
 }, 120_000);
 afterAll(async () => {
-  await t.close();
-});
-beforeEach(async () => {
-  await t.client.exec('TRUNCATE budget_ledger, budget_reservations, budget_refill_fees, budget_kill_switch CASCADE');
+  await t?.close();
 });
 
 const harness = async (): Promise<AcceptanceHarness> => {
-  await t.client.exec('TRUNCATE budget_ledger, budget_reservations, budget_refill_fees, budget_kill_switch CASCADE');
+  // Fecha o banco do harness anterior e abre um novo, com o schema migrado e o ledger vazio.
+  await t?.close();
+  t = await createTestDb();
+  const db = t;
+  const make = () => new WithLockAtomicAdapter(new PostgresLedgerStore(db.db as unknown as SqlDatabase));
   return {
-    a: mk(),
-    b: () => mk(),
+    a: make(),
+    b: () => make(),
     policy,
     tamper: async (kind) => {
-      if (kind === 'update') await t.client.query('UPDATE budget_ledger SET delta_microusd = 1 WHERE true');
-      else if (kind === 'delete') await t.client.query('DELETE FROM budget_ledger WHERE true');
-      else await t.client.query('DELETE FROM budget_reservations WHERE true');
+      if (kind === 'update') await db.client.query('UPDATE budget_ledger SET delta_microusd = 1 WHERE true');
+      else if (kind === 'delete') await db.client.query('DELETE FROM budget_ledger WHERE true');
+      else await db.client.query('DELETE FROM budget_reservations WHERE true');
     },
   };
 };
