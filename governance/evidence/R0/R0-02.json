@@ -3,18 +3,18 @@
  "artefatos": [
   {
    "caminho": "evidencias/R0-02/conferencia-decisoes.log",
-   "sha256": "cdde648636eecd75988deab8e5123081de4630e008c0aa436f0f97a2c88961e3",
-   "bytes": 4166
+   "sha256": "cee81f74068911049bb6284cdaaf7cf4ac264d06118dec58479ef816e6265de0",
+   "bytes": 4293
   },
   {
    "caminho": "evidencias/R0-02/conferencia-decisoes.py",
-   "sha256": "792cf257ba84f083f7835f9301d4258e1ee51eef12525e23d47d4d66a140a273",
-   "bytes": 5201
+   "sha256": "e328a4013f2dcf33b55abf13b3b12f9f0b726ba2729869a19e2255c69cc9b315",
+   "bytes": 5522
   },
   {
    "caminho": "evidencias/R0-02/registro-R0-02.md",
-   "sha256": "55d9ca5892364ed097fecf05ee35a358ba68f3eec8f4d944914ea53110f674f1",
-   "bytes": 5227
+   "sha256": "b68a7eed9378ac1f7123b631d4a96e60778b61b3b9579c7d37c2847f9e02dd5f",
+   "bytes": 7149
   },
   {
    "caminho": "governance/decisions.yaml",
@@ -22,9 +22,9 @@
    "bytes": 47527
   }
  ],
- "chave_idempotencia": "7cbba29e66f264b1b93937943b20df5423c89d7492c833038f6683c569f4467f",
- "commit_sha": "29303998e3fdba53c2a43ba7832adca55bba9e57",
- "criado_em": "2026-11-26T12:39:08.065033+00:00",
+ "chave_idempotencia": "54f794e4e2e89155ecdf28c4b3f1387356080372b5e8785948129fc679053692",
+ "commit_sha": "f8690955417d447bab2b9ddb8e1b73e9462fc4d4",
+ "criado_em": "2026-11-26T20:10:18.271650+00:00",
  "gate": "R0",
  "produzido_por": {
   "ferramenta": "MCP/CLI",
@@ -35,8 +35,8 @@
  "testes": [
   {
    "id": "R0-02-TEST",
-   "nome": "As 13 decisoes de 21/11/2026 (7 as 19:20, 6 as 22:56) e as 16 V21 estao registradas em governance/decisions.yaml; as 16 V21 ratificadas pela raiz em 26/11/2026 (commit 3f9dbd1e), com escolha, status ratificada e referencia",
-   "registro_sha256": "cdde648636eecd75988deab8e5123081de4630e008c0aa436f0f97a2c88961e3",
+   "nome": "As 13 decisoes de 21/11/2026 (7 as 19:20, 6 as 22:56) e as 16 V21 estao em governance/decisions.yaml: as 13 com status registrada e as 16 ratificadas pela raiz (commit 3f9dbd1e), com escolha Ratificada a recomendacao e referencia; o log do teste le o sha256 8b8276d3 do arquivo",
+   "registro_sha256": "cee81f74068911049bb6284cdaaf7cf4ac264d06118dec58479ef816e6265de0",
    "resultado": "passou"
   }
  ]
