@@ -188,11 +188,15 @@ test.describe('rodapé: acessibilidade e responsividade', () => {
     expect(await resumo.evaluate((e) => parseFloat(getComputedStyle(e).outlineWidth))).toBeGreaterThan(0);
   });
 
-  test('prefers-reduced-motion e impressão: sem animação e com todos os grupos visíveis', async ({ page }) => {
+  test('prefers-reduced-motion e impressão: sem animação e sem o rodapé no papel', async ({ page }) => {
     const rodape = await pronto(page, 390);
+    // Reduzir movimento não muda o recolhimento: no celular os links continuam fechados.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(rodape.locator('.ln-footer__list a').first()).toBeHidden();
+    // No papel sai só a peça: cabeçalho, rodapé, aviso de cookies e banner ficam de fora (portal.css, P2 da auditoria do int/031).
+    // A expectativa anterior (todos os grupos visíveis no papel) contrariava essa decisão de produto.
     await page.emulateMedia({ media: 'print' });
-    await expect(rodape.locator('.ln-footer__list a').first()).toBeVisible();
-    await expect(rodape.locator('.ln-footer__col').nth(1).locator('.ln-footer__list a').first()).toBeVisible();
-    expect(await rodape.locator('summary').first().evaluate((e) => getComputedStyle(e, '::after').content)).toBe('none');
+    await expect(rodape).toBeHidden();
+    expect(await page.locator('.ln-header').evaluate((e) => getComputedStyle(e).display)).toBe('none');
   });
 });
