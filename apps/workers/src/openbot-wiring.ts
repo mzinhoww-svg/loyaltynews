@@ -9,9 +9,9 @@ import type { Db } from '@ln/auth';
 import { resolveFlags } from '@ln/contracts';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import {
-  openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate, type PilotVerdictStreak,
+  openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type Account, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate, type PilotVerdictStreak,
 } from '@ln/openbot';
-import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
+import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
 
 /** Perfil (dos agentes do piloto, rascunhos do AgentOps) que executa cada classe da Fábrica. `context` é a triagem; `roles` é do agente social. */
 export const PILOT_PROFILES: Record<GatewayTaskClass, string> = {
@@ -22,6 +22,23 @@ export const PILOT_PROFILES: Record<GatewayTaskClass, string> = {
   review: 'ln_pilot_revisor',
   social_pack: 'ln_pilot_social',
   roles: 'ln_pilot_social',
+};
+
+/** Contas que o piloto aceita na Fábrica (emenda de 26/11 à DP-41: opencode para os executores, Claude para a redação). */
+export const PILOT_LANES: readonly Account[] = ['opencode', 'claude'];
+
+/**
+ * Rotas declaradas por tipo de tarefa na Fábrica: a redação é a via Claude (declarada, não a conta designada) e as demais
+ * etapas rodam na opencode. Com `pilot.allowedAccounts` explícito, `effectiveRoute` respeita estas rotas em vez de forçar
+ * a conta designada em toda etapa.
+ */
+export const PILOT_ROUTES: Record<string, readonly Account[]> = {
+  classification: ['opencode'],
+  editorial_draft: ['claude'],
+  fact_check: ['opencode'],
+  editorial_review: ['opencode'],
+  social_copy: ['opencode'],
+  entity_resolution: ['opencode'],
 };
 
 /** Igual a `PilotRowSink` da Editorial (estrutural): o veredito e o `output_valid` entram na linha DEPOIS do gate. */
@@ -75,6 +92,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
   const now = opts.now ?? (() => new Date());
   const rows = new PgPilotRowStore(db, now);
   const state = new PgPilotStateStore(db);
+  const resolutions = new PgPilotResolutionStore(db, now);
   const store = new PostgresLedgerStore(db as unknown as SqlDatabase);
 
   // A parada (kill switch global ou da rota `openbot`) vive no banco; `flags()` é síncrona, então o valor é relido antes de cada chamada e a cada espera.
@@ -88,8 +106,8 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
   const deps: OpenBotDeps = {
     queue: new PgLeaseQueue(db), ledger: new PgCostLedger(db, now), health: new PgHealthStore(db), callbacks: new PgCallbackStore(db),
     secrets: () => [], // o gateway não verifica assinatura (as rotas verificam)
-    flags, now, requireDerivedResultRef: true,
-    pilot: { enabled: true, rows, state, gate: kit.canDispatchNext, verdictStreak: kit.verdictStreakReasons },
+    flags, now, requireDerivedResultRef: true, routes: PILOT_ROUTES,
+    pilot: { enabled: true, rows, state, allowedAccounts: PILOT_LANES, gate: kit.canDispatchNext, verdictStreak: kit.verdictStreakReasons, resolved: () => resolutions.keys() },
   };
   const timeoutMs = Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) > 0 ? Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) : 10 * 60_000;
   const wait = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
