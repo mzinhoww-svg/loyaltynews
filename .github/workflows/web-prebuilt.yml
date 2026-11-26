@@ -1,5 +1,6 @@
 # ATIVO (G3). Constrói o .next do web num Linux; ver infra/ci/LEIA-ME.md. Ações fixadas por SHA de commit (tags v4.2.2, v4.4.0, v4.6.2 conferidas com git ls-remote em 24/11/2026). SEM flags de produto: staging com flags NÃO é construído aqui (o ci-checks proíbe atribuir LN_FLAGS_ON em workflow, ADR-022).
 # Constrói o `.next` do web NUM LINUX, em /app (o mesmo caminho absoluto da Vertra), com as variáveis do release.json, e entrega o pacote PRÉ-CONSTRUÍDO (build vazio na Vertra) como artefato.
+# Entrega também o ZIP final de deploy; o número de aceite é o `zip-sha256` impresso no summary (o hash da árvore fica só como diagnóstico).
 # Por que: o .next embute APP_ENV e a URL do build e não é portátil entre sistemas (o do Windows tem caminhos do host); construir na Vertra exige 2048 MB, que o regime de produção (7552 de 8192) não comporta.
 # Sem segredos: nenhum `secrets.` aqui; só dispara à mão (workflow_dispatch), nunca por PR; permissão só de leitura; as entradas passam por variáveis de ambiente e são validadas, nunca interpoladas em script.
 # Pré-requisito: o commit já está no GitHub (push do PM) e contém infra/scripts/package-prebuilt.mjs e lib/prebuilt.mjs (ft/infra-prebuilt integrada).
@@ -118,10 +119,21 @@ jobs:
           set -euo pipefail
           node infra/scripts/package-prebuilt.mjs --pacote "$PASTA" --next /app/apps/web/.next --out /tmp/saida --origem "github-actions run ${GITHUB_RUN_ID} em ${GITHUB_REPOSITORY}@${LN_COMMIT}" --sem-zip
 
-      - name: Soma de integridade da árvore
+      - name: ZIP final do deploy e sha256
         run: |
           set -euo pipefail
-          cd /tmp/saida/ln-web-*-prebuilt
+          PASTA_PB="$(ls -d /tmp/saida/ln-web-*-prebuilt | head -1)"
+          command -v zip >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq zip; }
+          ZIP="${PASTA_PB}.zip"
+          ( cd "$PASTA_PB" && zip -q -r -X "$ZIP" . )
+          NFILES="$(find "$PASTA_PB" -type f | wc -l)"
+          NZIP="$(unzip -Z1 "$ZIP" | grep -v '/$' | wc -l)"
+          test "$NFILES" = "$NZIP"
+          echo "zip=$(basename "$ZIP")" >> "$GITHUB_ENV"
+          echo "$(basename "$ZIP") — ${NFILES} arquivos, $(stat -c%s "$ZIP") B" >> "$GITHUB_STEP_SUMMARY"
+          sha256sum "$ZIP" | awk '{print "zip-sha256=" $1}' | tee -a "$GITHUB_STEP_SUMMARY"
+          # Diagnóstico: hash da árvore (não é o número de aceite).
+          cd "$PASTA_PB"
           find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum | awk '{print "arvore-sha256=" $1}' | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Artefato
