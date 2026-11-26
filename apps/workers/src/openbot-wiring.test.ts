@@ -93,7 +93,7 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     if (!r.ok) return;
     expect([r.attempt, r.provider, r.output]).toEqual([1, 'deepseek', { de: 'opencode' }]);
     const [t] = await db.select().from(schema.openbotTasks);
-    expect(t).toMatchObject({ id: r.taskId, profileId: PILOT_PROFILES.triage, route: ['opencode', 'claude'], status: 'completed' });
+    expect(t).toMatchObject({ id: r.taskId, profileId: PILOT_PROFILES.triage, route: ['opencode'], status: 'completed' });
     const rows = await new PgPilotRowStore(db, () => NOW).all();
     expect(rows.map((x) => [x.task_id, x.attempt, x.article_id, x.stage])).toEqual([[r.taskId, 1, 'art-9', 'triage']]);
 
@@ -108,7 +108,7 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     const db = await fresh();
     const agent = agentFor(db);
     const steps: Array<() => Promise<unknown>> = [
-      () => agent('opencode', 'deepseek-v4.1-flash', 'draft'),
+      () => agent('claude', 'claude-sonnet-5-5', 'draft'),
       () => agent('opencode', 'deepseek-v4.1-flash', 'factcheck'),
     ];
     const { gateway } = await createPilotWiring({ ...STAGING }, db, { loadKit: kitOk, now: () => NOW, sleep: async () => { const s = steps.shift(); if (s) await s(); } });
@@ -118,10 +118,30 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     const check = await gateway.invoke(req('factcheck', 'art-9:factcheck:1', { reviewedDraftTaskId: draft.taskId }));
     expect(check.ok, JSON.stringify(check)).toBe(true);
     const tasks = await db.select().from(schema.openbotTasks);
-    expect(tasks.map((x) => [x.kind, x.route, x.profileId])).toEqual(expect.arrayContaining([['editorial_draft', ['opencode'], 'ln_pilot_redator'], ['fact_check', ['opencode'], 'ln_pilot_checador']]));
+    expect(tasks.map((x) => [x.kind, x.route, x.profileId])).toEqual(expect.arrayContaining([['editorial_draft', ['claude'], 'ln_pilot_redator'], ['fact_check', ['opencode'], 'ln_pilot_checador']]));
     const io = (await db.select().from(schema.openbotIo)).find((x) => x.direction === 'input' && x.taskClass === 'factcheck');
     expect(io?.meta).toMatchObject({ reviewedDraftTaskId: draft.taskId });
   });
+
+  it('a redação sai na via declarada (claude), não na conta designada; as demais etapas saem na opencode', async () => {
+    const db = await fresh();
+    const agent = agentFor(db);
+    const steps: Array<() => Promise<unknown>> = [
+      () => agent('claude', 'claude-sonnet-5-5', 'draft'),
+      () => agent('opencode', 'deepseek-v4.1-flash', 'factcheck'),
+    ];
+    const { gateway } = await createPilotWiring({ ...STAGING, LN_OPENBOT_GATEWAY_TIMEOUT_MS: '1500' }, db, { loadKit: kitOk, now: () => NOW, sleep: async () => { const s = steps.shift(); if (s) await s(); } });
+    const draft = await gateway.invoke(req('draft', 'art-9:draft:1'));
+    expect(draft.ok, JSON.stringify(draft)).toBe(true);
+    if (!draft.ok) return;
+    expect(draft.provider).toBe('anthropic');
+    const check = await gateway.invoke(req('factcheck', 'art-9:factcheck:1', { reviewedDraftTaskId: draft.taskId }));
+    expect(check.ok, JSON.stringify(check)).toBe(true);
+    const tasks = await db.select().from(schema.openbotTasks);
+    expect(tasks.map((x) => [x.kind, x.route])).toEqual(expect.arrayContaining([['editorial_draft', ['claude']], ['fact_check', ['opencode']]]));
+    const rows = await new PgPilotRowStore(db, () => NOW).all();
+    expect(rows.map((x) => [x.stage, x.account])).toEqual(expect.arrayContaining([['draft', 'claude'], ['factcheck', 'opencode']]));
+  }, 60_000);
 
   it('kill switch da rota openbot: a chamada é recusada (kill_switch) antes de criar tarefa, e voltar a funcionar quando solto', async () => {
     const db = await fresh();
