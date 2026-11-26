@@ -22,6 +22,8 @@ const env = {
   ...(indexavelE2e ? { PORTAL_INDEXAVEL: '1' } : {}),
   ...process.env,
   LN_E2E_BUILD: '1',
+  // O limite de tentativas falha fechado sem sal (decisão de privacidade: IP só como HMAC). O harness precisa da chave.
+  LN_ATTEMPT_HMAC_KEY: 'e2e-chave-do-hmac-de-ip-com-32-caracteres',
 };
 
 function run(cmd) {
