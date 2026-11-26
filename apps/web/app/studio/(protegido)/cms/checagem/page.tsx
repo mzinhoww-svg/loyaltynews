@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -8,6 +9,7 @@ import { SemBanco } from '../../../_components/SemBanco';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
 import { EstadoLista } from '../../../_components/EstadoLista';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Fila de checagem' };
 export const dynamic = 'force-dynamic';
@@ -40,7 +42,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>Fila de checagem</h1>
       <p className="st-hint">Duas origens: matérias do CMS aguardando recibo e aprovação, e matérias da Fábrica editorial com o gate de fatos recalculado a cada leitura.</p>
@@ -90,15 +92,9 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
           recarregar="/studio/cms/checagem"
         />
       ) : itens.length === 0 ? (
-        <EstadoLista
-          estado="vazio"
-          erro={null}
-          recarregar="/studio/cms/checagem"
-          vazio={{
-            titulo: 'Nenhuma matéria da Fábrica na fila',
-            porque: 'A Fábrica editorial não entregou rascunho nenhum: a coleta e a redação rodam em comando próprio e estão desligadas nesta fase, então nada chega a esta fila.',
-            comoPopular: 'A matéria entra aqui quando a Fábrica rodar (comando manual) ou quando a redação criar e enviar uma matéria para checagem no CMS.',
-          }}
+        <EmptyState
+          title="Nenhuma matéria da Fábrica na fila"
+          description="A Fábrica editorial não entregou rascunho nenhum: a coleta e a redação rodam em comando próprio e estão desligadas nesta fase, então nada chega a esta fila. A matéria entra aqui quando a Fábrica rodar (comando manual) ou quando a redação criar e enviar uma matéria para checagem no CMS."
         />
       ) : (
         <QuadroRolavel rotulo="Fila de checagem">
