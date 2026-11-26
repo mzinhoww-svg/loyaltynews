@@ -12,6 +12,7 @@ import { audit, authorize, clientIp } from '@ln/auth';
 import { schema } from '@ln/db';
 import { getDeps } from './deps';
 import { EFEITO_APLICADO } from './titular-efeito';
+import { protocoloDe } from './titular';
 import { HttpError, json, parse, queryObject, readBody, toResponse } from './http';
 
 const t = schema.titularPedidos;
@@ -23,6 +24,8 @@ const RESPONSAVEIS = ['admin', 'editor_chefe'];
 /** Projeção da LISTA (consulta não auditada): sem texto livre do titular (resumo, url, decisão). Achado 3 do QA 7. */
 export const itemTitular = (r: Row) => ({
   id: r.id,
+  /** Protocolo que o leitor recebeu; permite achar o pedido sem pedir o id interno. */
+  protocolo: protocoloDe(r.id),
   recebido_em: r.recebidoEm.toISOString(),
   prazo_em: r.prazoEm.toISOString(),
   estado: r.estado,

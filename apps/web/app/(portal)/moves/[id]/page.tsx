@@ -6,6 +6,7 @@ import { ErrorState } from '../../_components/states';
 import { PageHead } from '../../_components/ui';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
 import { getSource } from '../../_lib/source';
+import { metadadosPagina } from '../../_seo/paginas';
 import { linkPedido } from '../../_titular/pedido';
 import { MoveCard } from '../../intelligence/_components/intel';
 
@@ -17,12 +18,17 @@ const load = cache((id: string) => getSource().getMove(id));
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const r = await load((await params).id);
+  if (r.status === 'not_found') return { title: 'Página não encontrada', robots: { index: false } };
   if (r.status !== 'ok') return { title: 'Loyalty Moves', robots: { index: false } };
-  return {
-    title: `${r.move.person.name}: ${MOVE_KIND_LABEL[r.move.kind].toLowerCase()} — Loyalty Moves`,
-    description: `Movimentação confirmada de ${r.move.person.name}, com a fonte do antes e do depois.`,
-    alternates: { canonical: `/moves/${r.move.id}` },
-  };
+  const m = r.move;
+  const para = m.after ? ` para ${m.after.title} na ${m.after.company.name}` : '';
+  return metadadosPagina({
+    title: `${m.person.name}: ${MOVE_KIND_LABEL[m.kind].toLowerCase()} — Loyalty Moves`,
+    description: `Movimentação confirmada de ${m.person.name}${para}, com a fonte do antes e do depois.`,
+    path: `/moves/${m.id}`,
+    type: 'article',
+    noindex: m.mock,
+  });
 }
 
 // Sem loading.tsx aqui: Move não confirmado ou inexistente precisa responder 404 de verdade.

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import { EDITORIAS } from '@ln/contracts';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api, type EventoAgenda } from '@/lib/studio/rotas-api';
@@ -113,9 +114,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     return (
       <>
         <h1>Agenda e eventos</h1>
-        <div className="st-alert err" role="alert">
-          {mensagemErro(r)}
-        </div>
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
       </>
     );
   }
@@ -158,10 +157,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         </button>
       </form>
       {todos.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">Nenhum evento cadastrado</h2>
-          <p>A agenda está vazia. Cadastre eventos com a fonte oficial abaixo.</p>
-        </section>
+        <EmptyState title="Nenhum evento cadastrado" description="A agenda está vazia. Cadastre eventos com a fonte oficial abaixo." />
       ) : null}
       <PortalAgora parte="agenda" />
       <Tabela id="proximos" titulo="Próximos" eventos={proximos} podeRemover={podeRemover} podeModerar={podeModerar} />

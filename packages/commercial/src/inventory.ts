@@ -148,7 +148,7 @@ export class InventoryBook {
 }
 
 /** Capacidade teórica bruta dos slots principais (TOP, SIDEBAR_1-3, FOOTER) a 100% vendido avulso. NÃO é previsão. */
-export function theoreticalGrossCapacity(price: { top: number; sidebar: number; footer: number } = { top: 3000, sidebar: 1750, footer: 1250 }, occupancy = 1) {
+export function theoreticalGrossCapacity(price: { top: number; sidebar: number; footer: number } = { top: 1200, sidebar: 700, footer: 500 }, occupancy = 1) {
   const gross = 4 * price.top + 3 * 10 * price.sidebar + 6 * price.footer;
   return { grossBRLMonth: gross * occupancy, occupancy, label: 'Cenário matemático, não é previsão de faturamento; pacotes não somam sobre as mesmas cotas.' };
 }

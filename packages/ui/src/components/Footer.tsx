@@ -3,10 +3,11 @@ import { cx, type LinkAs } from "../utils";
 import { EDITORIAS, defaultEditoriaHref, type EditoriaLike } from "../editorias";
 import { Logo } from "./Logo";
 import { Container } from "./Layout";
+import { FooterGroup } from "./FooterGroup";
 import { SocialLinks, type SocialLink } from "./SocialLinks";
 
-/** Frase institucional exibida sob o logo (definida pelo proprietário; sobrescreva com `tagline`). */
-export const FOOTER_TAGLINE = "The global network for board-level loyalty leaders.";
+/** Frase institucional exibida sob o logo: a assinatura do Brandkit, em português (o proprietário reverteu a versão em inglês). */
+export const FOOTER_TAGLINE = "Inteligência para quem constrói o futuro da fidelidade.";
 
 export interface FooterLinkGroup {
   title: string;
@@ -28,6 +29,8 @@ export interface FooterProps {
   social?: readonly SocialLink[];
   /** Texto legal/atribuição. */
   note?: ReactNode;
+  /** Botão "Entrar" sob a frase da marca (login da redação/Studio). Sem a prop, não aparece. */
+  entrar?: { href: string; label: string };
   className?: string;
 }
 
@@ -41,6 +44,7 @@ export function Footer({
   tagline = FOOTER_TAGLINE,
   social = [],
   note,
+  entrar,
   className,
 }: FooterProps) {
   const Link = linkAs ?? "a";
@@ -52,28 +56,31 @@ export function Footer({
             <Link href={homeHref} aria-label="Loyalty News — página inicial">
               <Logo variant="reverse" height={40} decorative />
             </Link>
-            {tagline ? (
-              <p className="ln-footer__tagline" lang={tagline === FOOTER_TAGLINE ? "en" : undefined}>
-                {tagline}
-              </p>
+            {tagline ? <p className="ln-footer__tagline">{tagline}</p> : null}
+            {entrar ? (
+              <Link href={entrar.href} className="ln-footer__entrar">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+                  <path d="M10 17l5-5-5-5" />
+                  <path d="M15 12H4" />
+                </svg>
+                {entrar.label}
+              </Link>
             ) : null}
             <SocialLinks links={social} className="ln-footer__social" />
           </div>
-          <nav aria-label="Editorias (rodapé)" className="ln-footer__col ln-footer__col--wide">
-            <h2 className="ln-footer__title">Editorias</h2>
-            <ul className="ln-footer__list ln-footer__list--cols">
-              {editorias.map((e) => (
-                <li key={e.slug}>
-                  <Link href={hrefFor(e.slug)}>{e.nome}</Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          {groups.length > 0 ? (
-            <div className="ln-footer__groups">
-          {groups.map((g) => (
-              <nav key={g.title} aria-label={g.title} className="ln-footer__col">
-                <h2 className="ln-footer__title">{g.title}</h2>
+          <div className="ln-footer__groups">
+            <FooterGroup title="Editorias" ariaLabel="Editorias (rodapé)" wide>
+              <ul className="ln-footer__list ln-footer__list--cols">
+                {editorias.map((e) => (
+                  <li key={e.slug}>
+                    <Link href={hrefFor(e.slug)}>{e.nome}</Link>
+                  </li>
+                ))}
+              </ul>
+            </FooterGroup>
+            {groups.map((g) => (
+              <FooterGroup key={g.title} title={g.title}>
                 <ul className="ln-footer__list">
                   {g.links.map((l) => (
                     <li key={l.href}>
@@ -81,10 +88,9 @@ export function Footer({
                     </li>
                   ))}
                 </ul>
-              </nav>
+              </FooterGroup>
             ))}
-            </div>
-          ) : null}
+          </div>
         </div>
         <div className="ln-footer__bottom">
           <p>© {year ? `${year} ` : ""}Loyalty News</p>

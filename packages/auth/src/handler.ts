@@ -9,7 +9,7 @@ import { clientIp, trustedProxyHops } from './client-ip';
 import type { Auth } from './server';
 import type { Db } from './types';
 
-const ALLOWED: ReadonlyArray<{ method: string; path: string }> = [
+export const ALLOWED: ReadonlyArray<{ method: string; path: string }> = [
   { method: 'POST', path: '/sign-in/email' },
   { method: 'POST', path: '/sign-out' },
   { method: 'GET', path: '/get-session' },
@@ -25,6 +25,27 @@ const ALLOWED: ReadonlyArray<{ method: string; path: string }> = [
   { method: 'POST', path: '/two-factor/generate-backup-codes' },
   { method: 'POST', path: '/two-factor/verify-backup-code' },
 ];
+
+/**
+ * Política de limite de cada rota liberada (o Better Auth NÃO limita por IP: disableIpTracking). `login` = sign-in (conta + IP); `2fa` = código do 2º fator (usuário + IP);
+ * `senha` = confere a senha da sessão (usuário + IP); `sessao` = só age sobre a sessão do próprio chamador, sem adivinhar credencial (precisa de cookie válido).
+ * Rota nova em ALLOWED sem entrada aqui faz o teste (auth-limits-coverage.test.ts) falhar: a decisão sobre o limite é obrigatória.
+ */
+export const AUTH_ROUTE_POLICY: Readonly<Record<string, 'login' | '2fa' | 'senha' | 'sessao'>> = {
+  '/sign-in/email': 'login',
+  '/two-factor/verify-totp': '2fa',
+  '/two-factor/verify-backup-code': '2fa',
+  '/two-factor/enable': 'senha',
+  '/two-factor/disable': 'senha',
+  '/two-factor/get-totp-uri': 'senha',
+  '/two-factor/generate-backup-codes': 'senha',
+  '/sign-out': 'sessao',
+  '/get-session': 'sessao',
+  '/list-sessions': 'sessao',
+  '/revoke-session': 'sessao',
+  '/revoke-sessions': 'sessao',
+  '/revoke-other-sessions': 'sessao',
+};
 
 const notFound = () => Response.json(apiError('NOT_FOUND', 'Rota inexistente.'), { status: 404 });
 

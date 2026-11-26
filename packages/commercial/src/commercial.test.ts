@@ -19,20 +19,30 @@ test('catálogo tem 47 formatos únicos em 9 famílias, com 8 pacotes fora da co
   assert.equal(new Set(CATALOG.map((f) => f.section)).size, 9);
   assert.equal(PACKAGES.length, 8);
 });
-test('preços de referência batem com o Blueprint', () => {
-  assert.equal(getFormat('banners--banner-topo')!.fromBRL, 3000);
-  assert.equal(priceLabel(getFormat('banners--banner-topo')!), 'R$ 3.000/mês');
-  assert.equal(priceLabel(getFormat('banners--takeover-do-portal')!), 'R$ 5.000/dia');
-  assert.equal(priceLabel(getFormat('eventos--cota-master')!), 'a partir de R$ 30.000');
+// Tabela aprovada pelo proprietário em 25/11/2026 (DP-56), na ordem do catálogo (n = 1 a 47). Mudar um preço exige nova decisão e mudar esta lista.
+const DP56_REFERENCIAS = ["1.200/mês","700/mês","500/mês","800/mês","900/mês","1.000/mês","400/mês","1.800/dia","900/mês","700/mês","450/mês","500","1.800","1.000/mês","2.200","6.600","3.000","1.200","a partir de 3.000/mês","a partir de 6.000","600","600","400","350","1.800","3.500","2.800","7.200","1.500","2.500","8.000","800","300","600","a partir de 18.000","a partir de 9.000","a partir de 4.500","a partir de 4.500","a partir de 7.200","2.200","a partir de 5.400","a partir de 1.800","a partir de 2.100","verba + 20%","verba + 20%","verba + 20%","1.500/mês"];
+test('preços de referência: tabela de lançamento aprovada (DP-56), formato a formato', () => {
+  assert.equal(getFormat('banners--banner-topo')!.fromBRL, 1200);
+  assert.equal(priceLabel(getFormat('banners--banner-topo')!), 'R$ 1.200/mês');
+  assert.equal(priceLabel(getFormat('banners--takeover-do-portal')!), 'R$ 1.800/dia');
+  assert.equal(priceLabel(getFormat('eventos--cota-master')!), 'a partir de R$ 18.000');
   assert.match(priceLabel(getFormat('impulsionamento--linkedin')!), /verba \+ 20%/);
-  assert.equal(getFormat('conteudo-patrocinado--materia-publicitaria')!.fromBRL, 3500);
+  assert.equal(getFormat('conteudo-patrocinado--materia-publicitaria')!.fromBRL, 2200);
+  assert.deepEqual(CATALOG.map((f) => f.referenceText), DP56_REFERENCIAS);
+  // pacotes com valor (DP-56); os outros 5 seguem sob proposta
+  assert.deepEqual(PACKAGES.map((p) => p.priceBRLMonth), [1500, 3900, 4900, null, null, null, null, null]);
+  // preço nunca é audiência: nenhum formato leva métrica no preço
+  assert.ok(CATALOG.every((f) => f.isReferencePrice === true));
 });
-test('nenhum formato nasce disponivel sem capacidade declarada; indisponíveis nunca são promovidos', () => {
+test('nenhum formato nasce disponivel sem capacidade declarada; só a liberação explícita do proprietário promove (inclusive indisponível, com ressalva)', () => {
   assert.equal(CATALOG.filter((f) => f.status === 'disponivel').length, 0);
   assert.ok(CATALOG.every((f) => f.statusReason.length > 0));
+  assert.equal(buildCatalog().filter((f) => f.status === 'disponivel').length, 0);
   const c = buildCatalog({ 'banners--banner-topo': true, 'the-loyal--banner-meio': true });
   assert.equal(getFormat('banners--banner-topo', c)!.status, 'disponivel');
-  assert.equal(getFormat('the-loyal--banner-meio', c)!.status, 'indisponivel');
+  assert.equal(getFormat('the-loyal--banner-meio', c)!.status, 'disponivel');
+  assert.match(getFormat('the-loyal--banner-meio', c)!.statusReason, /Ressalva/);
+  assert.equal(getFormat('the-loyal--banner-meio')!.status, 'indisponivel'); // o catálogo base não mudou
   assert.equal(CATALOG.find((f) => f.id === 'banners--banner-topo')!.status, 'sob_consulta');
 });
 
@@ -71,10 +81,13 @@ test('takeover bloqueia reserva concorrente e exige acordo das campanhas existen
   assert.throws(() => b.reserve({ positionId: 'SIDEBAR_3', advertiserId: 'c', startDate: '2026-12-05', endDate: '2027-01-04' }), (e: InventoryError) => e.code === 'TAKEOVER_BLOCK');
   assert.equal(b.availability('SIDEBAR_3', '2026-12-05', '2027-01-04').blockedByTakeover, true);
 });
-test('capacidade teórica = R$72.000/mês a 100% e é rotulada como cenário, não previsão', () => {
+test('capacidade teórica = R$28.800/mês a 100% (preços DP-56) e é rotulada como cenário, não previsão', () => {
   const c = theoreticalGrossCapacity();
-  assert.equal(c.grossBRLMonth, 72000);
-  assert.equal(theoreticalGrossCapacity(undefined, 0.25).grossBRLMonth, 18000);
+  assert.equal(c.grossBRLMonth, 28800);
+  assert.equal(theoreticalGrossCapacity(undefined, 0.25).grossBRLMonth, 7200);
+  // os 3 preços de entrada são os do catálogo (nenhum valor antigo esquecido no cálculo)
+  const p = (id: string) => getFormat(id)!.fromBRL;
+  assert.equal(c.grossBRLMonth, 4 * p('banners--banner-topo')! + 30 * p('banners--retangulo-sidebar')! + 6 * p('banners--banner-rodape')!);
   assert.match(c.label, /não é previsão/);
   assert.equal(POSITIONS.length, 9);
 });

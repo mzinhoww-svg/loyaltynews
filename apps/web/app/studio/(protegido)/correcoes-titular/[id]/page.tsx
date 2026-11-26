@@ -4,11 +4,12 @@ import { notFound } from 'next/navigation';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { findModule } from '@/lib/studio/modules';
-import { ROTULO_ACAO, ROTULO_ALVO, ROTULO_ESTADO, ROTULO_PEDIDO, ROTULO_PRAZO, aberto, linkDoAlvo, rotuloAcaoAuditoria, situacaoDoPrazo } from '@/lib/studio/titular-view';
+import { ROTULO_ACAO, ROTULO_ALVO, ROTULO_ESTADO, ROTULO_PEDIDO, ROTULO_PRAZO, aberto, linkDoAlvo, protocoloDoPedido, rotuloAcaoAuditoria, situacaoDoPrazo } from '@/lib/studio/titular-view';
 import { requireModule } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { atribuirAMimAction, decidirAction } from '../actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Pedido do titular' };
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,7 @@ export default async function PedidoTitularPage({ params, searchParams }: { para
   if (r.status === 404) notFound();
   const voltar = (
     <p>
-      <Link href="/studio/correcoes-titular">← Voltar à fila</Link>
+      <Link href="/studio/correcoes-titular"><Seta direcao="esquerda" /> Voltar à fila</Link>
     </p>
   );
   if (naoConfigurado(r)) return (<><h1>Pedido do titular</h1>{voltar}<SemBanco modulo="A fila de pedidos do titular" /></>);
@@ -54,6 +55,10 @@ export default async function PedidoTitularPage({ params, searchParams }: { para
           {ROTULO_ESTADO[p.estado]}
         </h2>
         <dl>
+          <dt>Protocolo</dt>
+          <dd>
+            <code data-protocolo>{protocoloDoPedido(p.id)}</code> <span className="st-hint">(o número que o titular recebeu; não é credencial de acesso)</span>
+          </dd>
           <dt>Prazo interno</dt>
           <dd data-prazo={sit}>
             {p.prazo_em.slice(0, 10)} · {ROTULO_PRAZO[sit]} <span className="st-hint">(15 dias corridos; não é prazo legal)</span>

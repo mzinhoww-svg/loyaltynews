@@ -52,7 +52,7 @@ export default defineConfig({
             ? /api-ads\.spec\.ts/
           : apiIntel
             ? /intelligence\.spec\.ts/
-          : /(api|api-site|api-agenda|api-tipos|env|intelligence|correcoes|header-busca|sem-js)\.spec\.ts/
+          : /(api|api-site|api-agenda|api-tipos|env|intelligence|correcoes|seo-dados|cls-dados|header-busca|sem-js|seo|rodape)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
         : /env\.spec\.ts/,
@@ -97,6 +97,8 @@ export default defineConfig({
             ...(indexavel && mode !== 'mock' ? { PORTAL_INDEXAVEL: '1' } : {}),
             NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
             NEXT_TELEMETRY_DISABLED: '1',
+            // Flags de produto são de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem a flag. Só repassa o que o operador do teste definiu.
+            ...(process.env.LN_FLAGS_ON ? { LN_FLAGS_ON: process.env.LN_FLAGS_ON } : {}),
           },
         },
       ],

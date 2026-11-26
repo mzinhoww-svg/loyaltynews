@@ -61,7 +61,8 @@ describe('GET /api/studio/auditoria', () => {
   it('o IP só aparece para o admin; o editor-chefe vê null; segredo nunca esteve no detalhe', async () => {
     const a = (await get({ action: 'materia.criada' }, admin)).body.data[0];
     const c = (await get({ action: 'materia.criada' }, chefe)).body.data[0];
-    expect(a.ip).toBe('203.0.113.7');
+    expect(a.ip).toMatch(/^h1:[0-9a-f]{64}$/); // LGPD: o admin vê só o HMAC do IP (correlaciona eventos do mesmo IP), nunca o IP cru
+    expect(JSON.stringify(a)).not.toContain('203.0.113.7');
     expect(c.ip).toBeNull();
     expect(a.detalhe).toEqual({ titulo: 'x', senha: '[removido]' });
     expect(JSON.stringify(c)).not.toContain('segredo-123');

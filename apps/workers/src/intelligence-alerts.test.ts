@@ -19,7 +19,7 @@ describe('job de alertas das watchlists: desligado por padrão (resolvedor únic
     expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, log })).toBeNull();
     expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on', LN_INTELLIGENCE_PESSOAS: 'on', ...FLAG }, log })).toBeNull();
     expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: workerFlagResolver({ APP_ENV: 'staging' }, quiet), log })).toBeNull();
-    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: workerFlagResolver({ APP_ENV: 'production', LN_FLAGS_ON: 'intelligencePessoas' }, quiet), log })).toBeNull();
+    expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: workerFlagResolver({ APP_ENV: 'production' }, quiet), log })).toBeNull();
     expect(startIntelligenceAlerts({ db: db0, env: { LN_INTELLIGENCE_ALERTS: 'on' }, flags: () => { throw new Error('x'); }, log })).toBeNull();
     expect(lines.join(' | ')).toMatch(/flag intelligencePessoas desligada/);
   });

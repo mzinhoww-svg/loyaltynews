@@ -7,6 +7,7 @@ import { requireStudio } from '../../../_lib/guard';
 import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { resolverViolacaoAction } from './actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Violações do piloto' };
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export default async function ViolacoesPilotoPage({ searchParams }: { searchPara
     <>
       <h1>Violações do piloto</h1>
       <p>
-        <Link href="/studio/piloto">← Voltar ao piloto</Link>
+        <Link href="/studio/piloto"><Seta direcao="esquerda" /> Voltar ao piloto</Link>
       </p>
       <p>
         Uma violação (tentativa de publicar, chamada à API tarifada, segredo em log ou ferramenta fora do contrato) para o piloto na hora. Resolver registra o que foi

@@ -352,4 +352,18 @@ test.describe('Correções e direito de resposta (/api/studio/editorial/correcti
     await sucesso(page, 'Decisão de revisão registrada.');
     await expect(page.getByText(/send_back — Devolvida para ajuste/)).toBeVisible();
   });
+
+  test('fila de checagem desligada: sem botão "Pedir nova checagem" e com aviso de estado (não é falha transitória)', async ({ page, context }) => {
+    await entrar(context, 'chefia-fila', 'admin');
+    await page.goto('/studio/cms/checagem');
+    await page.getByRole('link', { name: /Programa Alfa altera regra de pontos \(Fábrica\)/ }).click();
+    // a decisão da fila é `off`: nenhum botão que só pode falhar
+    await expect(page.getByRole('button', { name: 'Pedir nova checagem' })).toHaveCount(0);
+    const aviso = page.locator('[data-fila-checagem="off"]');
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText('A checagem automática está desligada nesta versão');
+    await expect(aviso).toContainText('não será processado depois');
+    // estado, não erro: nada de faixa de erro na tela
+    await expect(page.locator('main .st-alert.err')).toHaveCount(0);
+  });
 });

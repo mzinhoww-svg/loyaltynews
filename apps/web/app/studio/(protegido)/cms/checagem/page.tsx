@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -7,6 +8,7 @@ import { requireStudio } from '../../../_lib/guard';
 import { SemBanco } from '../../../_components/SemBanco';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Fila de checagem' };
 export const dynamic = 'force-dynamic';
@@ -37,7 +39,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>Fila de checagem</h1>
       <p className="st-hint">Duas origens: matérias do CMS aguardando recibo e aprovação, e matérias da Fábrica editorial com o gate de fatos recalculado a cada leitura.</p>
@@ -74,14 +76,9 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
         </button>
       </form>
       {ehErro(fabrica) ? (
-        <div className="st-alert err" role="alert">
-          {mensagemErro(fabrica)}
-        </div>
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(fabrica)} />
       ) : itens.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio-f">
-          <h2 id="vazio-f">Nenhuma matéria da Fábrica na fila</h2>
-          <p>A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado.</p>
-        </section>
+        <EmptyState title="Nenhuma matéria da Fábrica na fila" description="A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado." />
       ) : (
         <QuadroRolavel rotulo="Fila de checagem">
 <table className="st-table">

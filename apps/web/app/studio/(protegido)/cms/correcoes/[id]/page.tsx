@@ -9,6 +9,7 @@ import { requireStudio } from '../../../../_lib/guard';
 import { Flash } from '../../../../_components/Flash';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { passoCasoAction } from '../actions';
+import { Seta } from '../../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Caso de correção' };
 export const dynamic = 'force-dynamic';
@@ -65,7 +66,7 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
   return (
     <>
       <p>
-        <Link href="/studio/cms/correcoes">← Correções</Link>
+        <Link href="/studio/cms/correcoes"><Seta direcao="esquerda" /> Correções</Link>
       </p>
       <h1>Caso {c.id}</h1>
       <p className="st-hint" data-estado={c.state}>
@@ -179,7 +180,7 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
         <ol className="st-issues" aria-label="Histórico do caso">
           {c.history.map((h, i) => (
             <li key={i}>
-              {h.at.slice(0, 16).replace('T', ' ')} · {h.from ?? '—'} → {h.to}
+              {h.at.slice(0, 16).replace('T', ' ')} · {h.from ?? '—'} <Seta /> {h.to}
               {h.note ? ` — ${h.note}` : ''}
             </li>
           ))}

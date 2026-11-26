@@ -1,4 +1,4 @@
-export const ACCOUNTS: readonly ['claude', 'codex'];
+export const ACCOUNTS: readonly ['claude', 'codex', 'opencode'];
 export const STAGES: readonly string[];
 export const KINDS: readonly string[];
 export class CliError extends Error {

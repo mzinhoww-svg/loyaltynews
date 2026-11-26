@@ -341,75 +341,84 @@ describe('planilha e relatório', () => {
   });
 });
 
-describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do piloto)', () => {
+describe('DP-41 (emenda de 26/11): o piloto usa Claude, Codex e a lane opencode/DeepSeek', () => {
   beforeEach(() => {
-    deps = { ...deps, pilot: { enabled: true, rows, state, gate: (r) => gateImpl(r) } }; // sem allowedAccounts: vale a DP-41
+    deps = { ...deps, pilot: { enabled: true, rows, state, gate: (r) => gateImpl(r) } }; // sem allowedAccounts: vale a DP-41 emendada
   });
   const routeOf = async (kind: string, extra: Record<string, unknown> = {}) => {
     const r = await dispatch({ kind, ...extra });
     return r.status < 300 ? (ok<{ task: { route: string[] } }>(r).task.route) : code(r.body);
   };
 
-  test('o padrão é claude e codex', () => {
-    assert.deepEqual([...DP41_ACCOUNTS], ['claude', 'codex']);
+  test('o padrão inclui a lane opencode', () => {
+    assert.deepEqual([...DP41_ACCOUNTS], ['claude', 'codex', 'opencode']);
   });
 
-  test('as rotas padrão perdem opencode e antigravity: pauta só claude; checagem e revisão só codex; redação e social só claude', async () => {
-    assert.deepEqual(await routeOf('classification', { idempotencyKey: 'a' }), ['claude']);
-    assert.deepEqual(await routeOf('fact_check', { idempotencyKey: 'b' }), ['codex']);
-    assert.deepEqual(await routeOf('editorial_review', { idempotencyKey: 'c' }), ['codex']);
-    assert.deepEqual(await routeOf('editorial_draft', { idempotencyKey: 'd' }), ['claude']);
-    assert.deepEqual(await routeOf('social_copy', { idempotencyKey: 'e' }), ['claude']);
+  test('as rotas no piloto: pauta opencode→claude; checagem, revisão, redação e social na conta designada (opencode), via única', async () => {
+    assert.deepEqual(await routeOf('classification', { idempotencyKey: 'a' }), ['opencode', 'claude']);
+    assert.deepEqual(await routeOf('fact_check', { idempotencyKey: 'b' }), ['opencode']);
+    assert.deepEqual(await routeOf('editorial_review', { idempotencyKey: 'c' }), ['opencode']);
+    assert.deepEqual(await routeOf('editorial_draft', { idempotencyKey: 'd' }), ['opencode']);
+    assert.deepEqual(await routeOf('social_copy', { idempotencyKey: 'e' }), ['opencode']);
   });
 
-  test('rota pedida com opencode ou antigravity é recusada (422 ROUTE_INVALID) e nada entra na fila', async () => {
-    for (const route of [['opencode'], ['opencode', 'claude'], ['claude', 'antigravity']]) {
-      assert.equal(await routeOf('classification', { route, idempotencyKey: `r-${route.join('')}` }), 'ROUTE_INVALID', route.join('+'));
-    }
+  test('rota pedida com antigravity é recusada (422 ROUTE_INVALID); opencode é aceita', async () => {
+    assert.deepEqual(await routeOf('classification', { route: ['opencode'], idempotencyKey: 'r-oc' }), ['opencode']);
+    assert.deepEqual(await routeOf('classification', { route: ['opencode', 'claude'], idempotencyKey: 'r-oc-cl' }), ['opencode', 'claude']);
+    assert.equal(await routeOf('classification', { route: ['claude', 'antigravity'], idempotencyKey: 'r-ant' }), 'ROUTE_INVALID');
     assert.equal(await routeOf('fact_check', { route: ['codex', 'antigravity'], idempotencyKey: 'x' }), 'ROUTE_INVALID');
-    assert.equal((await deps.queue.counts()).pending, 0);
   });
 
-  test('pull como opencode ou antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e o piloto PARA (423 até o resumePilot); nada é entregue nem a saúde marcada', async () => {
-    for (const account of ['opencode', 'antigravity']) {
-      state = new InMemoryPilotState();
-      rows = new InMemoryPilotRowStore();
-      deps = { ...deps, pilot: { ...deps.pilot!, state, rows }, queue: new InMemoryLeaseQueue(() => `lease-${++n}`), health: new InMemoryHealthStore() };
-      await dispatch({ idempotencyKey: `p-${account}` });
-      const r = await handlePull(deps, signed({ workerId: `agent-${account}`, account }));
-      assert.deepEqual([r.status, code(r.body)], [422, 'ACCOUNT_OUT_OF_ROUTE'], account);
-      assert.deepEqual((await state.get())?.reasons, [STOP.route], account);
-      assert.equal((await rows.all())[0]?.article_id, `conta-${account}`);
-      assert.equal(code((await handlePull(deps, signed({ workerId: 'agent-claude', account: 'claude' }))).body), 'PILOT_STOPPED', 'o piloto parado não entrega nem para a via certa');
-      assert.equal((await deps.health.last()), null, 'a saúde não foi marcada');
-      assert.equal((await deps.queue.counts()).leased, 0);
-    }
+  test('pull como opencode entrega a tarefa; pull como antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e o piloto PARA', async () => {
+    state = new InMemoryPilotState();
+    rows = new InMemoryPilotRowStore();
+    deps = { ...deps, pilot: { ...deps.pilot!, state, rows }, queue: new InMemoryLeaseQueue(() => `lease-${++n}`), health: new InMemoryHealthStore() };
+    await dispatch({ idempotencyKey: 'p-opencode' });
+    const okPull = await handlePull(deps, signed({ workerId: 'agent-opencode', account: 'opencode' }));
+    assert.equal(okPull.status, 200);
+    assert.equal(ok<{ tasks: { account: string }[] }>(okPull).tasks[0]?.account, 'opencode');
+    assert.equal(await state.get(), null, 'a lane legítima não para o piloto');
+
+    state = new InMemoryPilotState();
+    rows = new InMemoryPilotRowStore();
+    deps = { ...deps, pilot: { ...deps.pilot!, state, rows }, queue: new InMemoryLeaseQueue(() => `lease-${++n}`), health: new InMemoryHealthStore() };
+    await dispatch({ idempotencyKey: 'p-antigravity' });
+    const r = await handlePull(deps, signed({ workerId: 'agent-antigravity', account: 'antigravity' }));
+    assert.deepEqual([r.status, code(r.body)], [422, 'ACCOUNT_OUT_OF_ROUTE']);
+    assert.deepEqual((await state.get())?.reasons, [STOP.route]);
+    assert.equal((await rows.all())[0]?.article_id, 'conta-antigravity');
+    assert.equal(code((await handlePull(deps, signed({ workerId: 'agent-claude', account: 'claude' }))).body), 'PILOT_STOPPED', 'o piloto parado não entrega nem para a via certa');
+    assert.equal((await deps.health.last()), null, 'a saúde não foi marcada');
+    assert.equal((await deps.queue.counts()).leased, 0);
   });
 
-  test('claude e codex puxam normalmente com o piloto ativo', async () => {
+  test('opencode puxa a conta designada em todas as etapas; claude e codex não herdam', async () => {
     await dispatch({ idempotencyKey: 'ok-c' });
     await dispatch({ kind: 'fact_check', idempotencyKey: 'ok-f' });
-    assert.equal((await pull('claude'))?.kind, 'classification');
-    assert.equal((await pull('codex'))?.kind, 'fact_check');
+    assert.equal((await pull('opencode'))?.kind, 'classification');
+    assert.equal((await pull('opencode'))?.kind, 'fact_check');
+    assert.equal(await pull('claude'), undefined);
+    assert.equal(await pull('codex'), undefined);
     assert.equal(await state.get(), null);
   });
 
-  test('checagem e revisão só na codex, SEM reserva: no limite a tarefa fica pendente (nextAccount null) e só a codex a retoma depois da janela; nunca claude', async () => {
+  test('checagem e revisão só na conta designada, SEM reserva: no limite a tarefa fica pendente (nextAccount null) e só ela a retoma depois da janela; nem claude nem codex', async () => {
     for (const kind of ['fact_check', 'editorial_review']) {
       const stage = kind === 'fact_check' ? 'factcheck' : 'review';
       await dispatch({ kind, idempotencyKey: `lim-${kind}` });
-      const a = (await pull('codex'))!;
+      const a = (await pull('opencode'))!;
       const r = ok<CallbackResult>(await callback(a, {
-        outcome: 'failed', usage: free(a, 'codex', 'gpt-5.1-codex'),
-        trace: trace(stage, 'codex', { reviewedDraftTaskId: 'task-rascunho-1', limit: { message: 'limite da codex', at: iso(), resumeAt: iso(600_000) } }),
+        outcome: 'failed', usage: free(a, 'opencode', 'deepseek-v4.1-flash'),
+        trace: trace(stage, 'opencode', { reviewedDraftTaskId: 'task-rascunho-1', limit: { message: 'limite da opencode', at: iso(), resumeAt: iso(600_000) } }),
       }));
       assert.equal(r.nextAccount, null, kind);
       assert.equal(await pull('claude', [kind]), undefined, `${kind}: a claude não herda a checagem`);
-      assert.equal(await pull('codex', [kind]), undefined, `${kind}: ainda dentro da janela`);
+      assert.equal(await pull('codex', [kind]), undefined, `${kind}: a codex não herda a checagem`);
+      assert.equal(await pull('opencode', [kind]), undefined, `${kind}: ainda dentro da janela`);
       tick(601_000);
-      const b = (await pull('codex', [kind]))!;
-      assert.deepEqual([b.id === a.id, b.attempt, b.account], [true, 2, 'codex'], kind);
-      ok(await callback(b, { outcome: 'completed', resultRef: `res-${b.id}-a2`, usage: free(b, 'codex', 'gpt-5.1-codex'), trace: trace(stage, 'codex', { reviewedDraftTaskId: 'task-rascunho-1' }) }));
+      const b = (await pull('opencode', [kind]))!;
+      assert.deepEqual([b.id === a.id, b.attempt, b.account], [true, 2, 'opencode'], kind);
+      ok(await callback(b, { outcome: 'completed', resultRef: `res-${b.id}-a2`, usage: free(b, 'opencode', 'deepseek-v4.1-flash'), trace: trace(stage, 'opencode', { reviewedDraftTaskId: 'task-rascunho-1' }) }));
     }
     assert.equal(await state.get(), null, 'o limite não é violação: o piloto não parou');
   });
@@ -425,7 +434,7 @@ describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do pilo
     assert.deepEqual(await routeOf('classification', { idempotencyKey: 'z' }), ['opencode', 'claude', 'antigravity']);
   });
 
-  test('gateway no piloto: a checagem vai só ao codex (sem antigravity), a pauta só ao claude; o limite do codex ESPERA (não há via de reserva)', async () => {
+  test('gateway no piloto: pauta e checagem vão à conta designada (opencode); claude, codex e antigravity não recebem', async () => {
     const io = { putInput: async () => undefined, getResult: async () => null };
     const gw = new OpenBotModelGateway({
       deps, io, caller: ADMIN, timeoutMs: 10, pollMs: 1,
@@ -436,10 +445,11 @@ describe('DP-41: o piloto só usa as assinaturas Claude e Codex (padrão do pilo
     });
     await gw.invoke(req('factcheck', 'g1'));
     await gw.invoke(req('triage', 'g2'));
-    const claimed = async (account: 'codex' | 'claude' | 'antigravity') => deps.queue.claim({ workerId: 'w', now: clock, leaseMs: 60_000, limit: 5, account });
-    const [byCodex, byClaude, byAntigravity] = [await claimed('codex'), await claimed('claude'), await claimed('antigravity')];
-    assert.deepEqual([byCodex.map((t) => t.kind), byClaude.map((t) => t.kind), byAntigravity], [['fact_check'], ['classification'], []]);
-    assert.deepEqual([(await deps.queue.get(byCodex[0]!.id))?.route, (await deps.queue.get(byClaude[0]!.id))?.route], [['codex'], ['claude']]);
+    const claimed = async (account: 'codex' | 'claude' | 'opencode' | 'antigravity') => deps.queue.claim({ workerId: 'w', now: clock, leaseMs: 60_000, limit: 5, account });
+    const [byCodex, byClaude, byOpencode, byAntigravity] = [await claimed('codex'), await claimed('claude'), await claimed('opencode'), await claimed('antigravity')];
+    assert.deepEqual([byCodex, byClaude, byAntigravity.length], [[], [], 0]);
+    assert.deepEqual(byOpencode.map((t) => t.kind).sort(), ['classification', 'fact_check']);
+    assert.deepEqual([(await deps.queue.get(byOpencode[0]!.id))?.route, (await deps.queue.get(byOpencode[1]!.id))?.route], [['opencode'], ['opencode', 'claude']]);
   });
 });
 

@@ -10,7 +10,11 @@ import type { AudienceSnapshot, MetricState, MetricValue } from './types';
  */
 
 export type FormatStatus = 'disponivel' | 'sob_consulta' | 'indisponivel';
-export interface MediaKitFormat { id: string; section: string; name: string; price: string; scope: string; status: FormatStatus }
+/**
+ * `ressalva`: do dado da API, não escrita no portal. Formato liberado para proposta com o canal ainda desligado (DP-54) vem
+ * com a ressalva e nunca é apresentado como "Disponível" puro.
+ */
+export interface MediaKitFormat { id: string; section: string; name: string; price: string; scope: string; status: FormatStatus; ressalva: string | null }
 export type CoverageMetric = MetricValue & { id?: string };
 /** Posição de anúncio para o mapa do mídia kit. `dimension` 'LxA' em pixels, ou null quando o inventário ainda não definiu. */
 export interface MapPosition { id: string; name: string; dimension: string | null }
@@ -119,7 +123,10 @@ export function parseMediaKit(json: unknown): MediaKitData | null {
     if (!isObj(f)) return null;
     const id = str(f.id, 120); const section = str(f.section, 80); const name = str(f.name, 120); const price = str(f.price, 80); const scope = str(f.scope, 300);
     if (!id || !section || !name || !price || !scope || !STATUSES.includes(f.status as FormatStatus)) return null;
-    formats.push({ id, section, name, price, scope, status: f.status as FormatStatus });
+    // Ressalva é opcional no contrato (campo aditivo): ausente, null, vazia/só espaço ou fora do formato = formato sem
+    // ressalva. Um campo OPCIONAL nunca pode derrubar o kit inteiro (P3 do QA 8: ressalva '' zerava a tabela).
+    const ressalva = typeof f.ressalva === 'string' && f.ressalva.trim().length > 0 && f.ressalva.length <= 300 ? f.ressalva : null;
+    formats.push({ id, section, name, price, scope, status: f.status as FormatStatus, ressalva });
   }
   const positions = parsePositions(isObj(json.blocks.especificacoes) ? json.blocks.especificacoes.positions : undefined);
   if (!positions) return null;

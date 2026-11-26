@@ -56,8 +56,20 @@ function parseCsv(src) {
   return linhas.filter((l) => !(l.length === 1 && l[0] === ''));
 }
 
-const linhas = parseCsv(texto);
+let linhas = parseCsv(texto);
 if (linhas.length === 0) falha('CSV vazio');
+// Marcador obrigatório: o export grava `# amostra_desde=<ISO do último resume>` antes do cabeçalho. Sem ele, o arquivo é de
+// antes do resume (ou de exportador antigo) e não pode ser aceito como amostra.
+const primeira = linhas[0];
+let amostraDesde;
+if (primeira.length === 1 && /^#\s*amostra_desde=/.test(primeira[0])) {
+  amostraDesde = primeira[0].slice(primeira[0].indexOf('=') + 1).trim();
+  if (!Number.isFinite(Date.parse(amostraDesde))) falha('marcador de amostra inválido: use # amostra_desde=<ISO 8601>');
+  linhas = linhas.slice(1);
+} else {
+  falha('CSV sem marcador de amostra (# amostra_desde=<ISO>): arquivo gerado antes do resume ou por exportador antigo; exporte de novo pela planilha do piloto');
+}
+if (linhas.length === 0) falha('CSV sem cabeçalho depois do marcador de amostra');
 const cab = linhas[0];
 
 // --- cabeçalho: as 31 colunas do AgentOps, na ordem; depois, só as 7 do Studio (ignoradas) ------------------------------
@@ -102,6 +114,10 @@ for (let n = 1; n < linhas.length; n++) {
     } else r[col] = bruto;
   }
   rows.push(r);
+}
+const desde = Date.parse(amostraDesde);
+for (let n = 0; n < rows.length; n++) {
+  if (!(Date.parse(rows[n].started_at) >= desde)) falha(`CSV fora da amostra: a linha ${n + 1} (${rows[n].task_id}) começou em ${rows[n].started_at}, antes do resume (${amostraDesde})`);
 }
 if (rows.length === 0) falha('CSV sem linhas de dados');
 

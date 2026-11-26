@@ -37,7 +37,8 @@ describe('institucional do lançamento', () => {
     const tudo = JSON.stringify(INFO_DOCS);
     expect(tudo.replace(/contato@loyaltynews\.com\.br/g, '')).not.toMatch(/@[a-z0-9-]+\.[a-z]{2,}/i); expect(tudo).not.toMatch(/linkedin\.com|instagram\.com|wa\.me|CNPJ|razão social/i);
     expect(tudo).not.toMatch(/(toda|cada) matéria (é|foi) (lida|revisada|aprovada) por (uma )?pessoa/i);
-    expect(tudo).not.toMatch(/em até \d+ (dias|horas)|prazo de \d+/i);
+    // prazo de resposta a titular não foi definido: nenhum "em até N dias/horas", salvo a retenção do código de IP das tentativas (decidida; parecer da Security sobre f447370)
+    expect(tudo.replace(/apagado em até 24 horas depois do fim da contagem ou do bloqueio/g, '')).not.toMatch(/em até \d+ (dias|horas)|prazo de \d+/i);
     expect(texto('contato')).toMatch(/demais e-mails e as redes sociais oficiais ainda não foram confirmados/);
     for (const s of ['privacidade', 'termos', 'publicidade']) expect(INFO_DOCS[s]?.draftNotice, s).toMatch(/validação jurídica/);
   });
@@ -51,14 +52,17 @@ describe('institucional do lançamento', () => {
     // C2: dados, finalidade, bases legais, retenção da DP-55, sem venda
     for (const campo of ['nome, empresa, e-mail, WhatsApp', 'formatos de interesse', 'objetivo, mensagem']) expect(p, campo).toContain(campo);
     expect(p).toMatch(/art\. 7º, V/); expect(p).toMatch(/newsletter[^]*consentimento separado \(art\. 7º, I\)/);
-    expect(p).toMatch(/política é guardar[^]*até 12 meses depois do último contato[^]*descartado por 30 dias[^]*ainda está sendo implantada/);
+    expect(p).toMatch(/política é guardar[^]*até 12 meses depois do último contato[^]*descartado por 30 dias[^]*o apagamento é automático/);
+    expect(p).not.toMatch(/ainda está sendo implantada/);
     expect(p).toMatch(/Quem acessa: só a equipe comercial e a administração do portal/); expect(p).toMatch(/Não vendemos esses dados/);
-    // C3: IP descrito como é HOJE (registrado, sem prazo definido; o código grava o IP cru): sem afirmar hash nem apagamento até o commit do Backend
-    expect(p).toMatch(/legítimo interesse[^]*art\. 7º, IX/); expect(p).toMatch(/IP é registrado nas tentativas de login e de envio dos formulários/);
-    expect(p).toMatch(/Ainda não definimos por quanto tempo ele é guardado/); expect(p).not.toMatch(/em claro|irreversível|HMAC|apagado em/i);
+    // C3 (decisões do PM de 25/11 e parecer da Security sobre f447370): tentativas = código irreversível apagado em até 24 h; auditoria = só o código, 12 meses, NUNCA "24 h"
+    expect(p).toMatch(/legítimo interesse[^]*art\. 7º, IX/); expect(p).toMatch(/o IP não é guardado em claro: ele vira um código irreversível, apagado em até 24 horas depois do fim da contagem ou do bloqueio/);
+    const auditoria = INFO_DOCS['privacidade']!.sections.find((s) => s.heading === 'Endereço IP e segurança')!.paragraphs!.find((x) => /auditoria/.test(x))!;
+    expect(auditoria).toMatch(/guardamos só o código do IP, nunca o número, por 12 meses/); expect(auditoria).toMatch(/pseudônimo e continua sendo dado pessoal/);
+    expect(auditoria).not.toMatch(/24 ?h|24 horas/); expect(p).not.toMatch(/HMAC/);
     expect(p).toMatch(/hospeda o portal pode registrar IPs[^]*ainda será confirmado/);
-    // o que não está decidido nem implementado não é afirmado: apagamento automático, prazo de 24 h do IP, DP-54 como citação na página
-    expect(p).not.toMatch(/automátic|24 ?h|24 horas|DP-5[45]/i);
+    // DP-54/DP-55 não são citadas na página (a DP-54 não está no governance/decisions.yaml; o registro fica em r0-preparacao)
+    expect(p).not.toMatch(/DP-5[45]/i);
     expect(INFO_DOCS['privacidade']?.draftNotice).toMatch(/validação jurídica/);
   });
 

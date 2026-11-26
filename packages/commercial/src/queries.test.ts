@@ -25,7 +25,7 @@ describe('consultas do mídia kit (Portal)', () => {
     expect(formatCatalogView(c).sections).toHaveLength(9);
     expect(formatCatalogView(c, { section: 'Eventos' }).total).toBe(7);
     expect(formatCatalogView(c, { status: 'disponivel' }).total).toBe(0);
-    expect(formatCatalogView(c, { section: 'Banners' }).formats[0]).toMatchObject({ name: 'Banner topo', price: 'R$ 3.000/mês', priceBRL: 3000, status: 'sob_consulta' });
+    expect(formatCatalogView(c, { section: 'Banners' }).formats[0]).toMatchObject({ name: 'Banner topo', price: 'R$ 1.200/mês', priceBRL: 1200, status: 'sob_consulta' });
   });
 });
 

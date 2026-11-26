@@ -1,0 +1,37 @@
+{
+  "base": "http://localhost:3000",
+  "lado": "antes",
+  "rota": "/studio/creative",
+  "rodadas": [
+    {
+      "fcp": 1020,
+      "lcp": 1020,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": []
+    },
+    {
+      "fcp": 996,
+      "lcp": 996,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": []
+    },
+    {
+      "fcp": 944,
+      "lcp": 944,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": []
+    }
+  ]
+}

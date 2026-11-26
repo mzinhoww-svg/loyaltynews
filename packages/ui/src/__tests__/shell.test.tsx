@@ -133,15 +133,18 @@ describe("Footer", () => {
   it("mostra a frase institucional sob o logo por padrão e permite ocultar", () => {
     const { rerender } = render(<Footer />);
     expect(screen.getByText(FOOTER_TAGLINE)).toBeInTheDocument();
-    expect(FOOTER_TAGLINE).toBe("The global network for board-level loyalty leaders.");
+    expect(FOOTER_TAGLINE).toBe("Inteligência para quem constrói o futuro da fidelidade.");
     rerender(<Footer tagline={null} />);
     expect(screen.queryByText(FOOTER_TAGLINE)).toBeNull();
     rerender(<Footer tagline="Outra frase" />);
     expect(screen.getByText("Outra frase")).toBeInTheDocument();
   });
-  it("V-12: a frase institucional padrão (em inglês) é marcada com lang=en; frases customizadas não herdam o idioma", () => {
-    const { rerender } = render(<Footer />);
-    expect(screen.getByText(FOOTER_TAGLINE)).toHaveAttribute("lang", "en");
+  it("a frase institucional padrão é em português e o rodapé não marca nenhum trecho como inglês (o proprietário reverteu o V-12)", () => {
+    const { container, rerender } = render(<Footer />);
+    expect(screen.getByText(FOOTER_TAGLINE)).not.toHaveAttribute("lang");
+    expect(container.querySelector("[lang]")).toBeNull();
+    expect(FOOTER_TAGLINE.toLowerCase().split(/[^a-zà-ú]+/)).not.toEqual(expect.arrayContaining(["the"]));
+    for (const palavra of ["global", "network", "leaders"]) expect(FOOTER_TAGLINE.toLowerCase()).not.toContain(palavra);
     rerender(<Footer tagline="Outra frase" />);
     expect(screen.getByText("Outra frase")).not.toHaveAttribute("lang");
   });

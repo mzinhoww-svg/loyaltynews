@@ -18,7 +18,7 @@ export const AGENT_ROUTES = [
 export interface AgentBinding {
   draft_id: string;
   /** provedor do OpenBot (a conta conectada), igual à conta do adaptador */
-  openbot_provider: 'claude' | 'codex';
+  openbot_provider: 'claude' | 'codex' | 'opencode';
   /** id de modelo conferido por `openbot.list_models` em 23/11/2026 (relato da Integration); reconferir na criação */
   model: string;
   /** só a pauta: outro modelo da MESMA conta, configurado no perfil do agente (o adaptador só vê conta e modelo declarado) */
@@ -64,7 +64,7 @@ export interface CreationPackAgent {
   draft_id: string;
   /** rotas `/api/openbot` que este agente chama: as obrigatórias, a opcional e o que NUNCA chama */
   routes: { required: string[]; optional: string[]; never: string };
-  openbot: { name: string; title: string; description: string; provider: 'claude' | 'codex'; model: string; backup_model: string | null; reasoning_effort: 'alto'; initial_message: string };
+  openbot: { name: string; title: string; description: string; provider: 'claude' | 'codex' | 'opencode'; model: string; backup_model: string | null; reasoning_effort: 'alto'; initial_message: string };
   client_env: { LN_AGENT_ACCOUNT: string; LN_WORKER_ID: string; kinds: string[]; stages: string[]; LN_API_BASE: '<https://staging>/api/openbot'; LN_HMAC_SECRET_FILE: '<caminho do arquivo do cofre do OpenBot; nunca o valor>' };
   must_not: string[];
 }
@@ -160,9 +160,11 @@ export function validateCreationPack(pack: CreationPack): PackIssue[] {
   for (const b of AGENT_BINDINGS) {
     const a = pack.agents.find((x) => x.draft_id === b.draft_id);
     if (!a) continue;
-    const same = a.openbot.provider === b.openbot_provider && a.openbot.model === b.model && a.openbot.backup_model === b.backup_model && a.client_env.LN_AGENT_ACCOUNT === b.account && a.client_env.LN_WORKER_ID === b.worker_id
+    // Emenda a DP-41 (26/11): o validador não fixa mais uma lane por agente; exige identidade (agente, tipos, etapas)
+    // e a coerência conta × modelo, que segue obrigatória.
+    const same = a.client_env.LN_WORKER_ID === b.worker_id
       && JSON.stringify(a.client_env.kinds) === JSON.stringify(b.kinds) && JSON.stringify(a.client_env.stages) === JSON.stringify(b.stages);
-    if (!same) add('BINDING', `${b.draft_id}: conta, modelo, tipos ou etapas diferentes do desenho do piloto`);
+    if (!same) add('BINDING', `${b.draft_id}: agente, tipos ou etapas diferentes do desenho do piloto`);
   }
   const allowedPaths = new Set<string>(AGENT_ROUTES.map((r) => r.path));
   for (const a of pack.agents) {
@@ -179,25 +181,35 @@ export function validateCreationPack(pack: CreationPack): PackIssue[] {
     const o = a.openbot;
     const stage = PILOT_STAGES[a.client_env.stages[0] as keyof typeof PILOT_STAGES];
     if (o.description.length === 0 || o.description.length > 2000) add('DESCRIPTION', `${id}: descrição vazia ou acima de 2000 caracteres`);
-    if (!['claude', 'codex'].includes(o.provider)) add('PROVIDER', `${id}: provedor fora de Claude e Codex (DP-41)`);
+    if (!['claude', 'codex', 'opencode'].includes(o.provider)) add('PROVIDER', `${id}: provedor fora de Claude, Codex e OpenCode (DP-41 + emenda de 26/11)`);
     if (a.client_env.LN_AGENT_ACCOUNT !== o.provider) add('ACCOUNT', `${id}: conta do cliente diferente do provedor do agente`);
     if (authorOfDeclaredModel(o.model) !== ACCOUNT_AUTHOR[o.provider]) add('MODEL_AUTHOR', `${id}: modelo ${o.model} não é do provedor ${o.provider}`);
-    if (o.backup_model && (o.provider !== 'claude' || authorOfDeclaredModel(o.backup_model) !== ACCOUNT_AUTHOR.claude)) add('BACKUP', `${id}: o backup tem de ser outro modelo da MESMA conta`);
-    if (!stage || stage.account !== a.client_env.LN_AGENT_ACCOUNT) add('STAGE_ACCOUNT', `${id}: etapa ${a.client_env.stages[0]} roda em ${stage?.account}, não em ${a.client_env.LN_AGENT_ACCOUNT}`);
+    if (o.backup_model && authorOfDeclaredModel(o.backup_model) !== ACCOUNT_AUTHOR[o.provider]) add('BACKUP', `${id}: o backup tem de ser um modelo da MESMA conta do agente`);
+    // A lane opencode serve qualquer etapa não determinística (emenda a DP-41).
+    const laneOk = stage && (stage.account === a.client_env.LN_AGENT_ACCOUNT || (a.client_env.LN_AGENT_ACCOUNT === 'opencode' && stage.account !== 'deterministic'));
+    if (!laneOk) add('STAGE_ACCOUNT', `${id}: etapa ${a.client_env.stages[0]} roda em ${stage?.account}, não em ${a.client_env.LN_AGENT_ACCOUNT}`);
     if (/<kinds>|<conta>|<id>|<stage>/.test(o.initial_message) || /--stage [^<`\s]+ \(tarefa|--stage [^<\s]+ ou /.test(o.initial_message)) add('PLACEHOLDER', `${id}: mensagem inicial com campo sem preencher`);
     if (/sk-[A-Za-z0-9]{10,}|Bearer\s+[A-Za-z0-9._-]{10,}|(api[_-]?key|password|secret)\s*[:=]\s*\S+/i.test(JSON.stringify(a))) add('SECRET_LIKE', `${id}: texto com aparência de segredo`);
     if (!a.must_not.some((m) => /publicar/.test(m)) || !a.must_not.some((m) => /API tarifada|OpenRouter/.test(m))) add('MUST_NOT', `${id}: restrições de publicar e de API tarifada ausentes`);
   }
   const by = (id: string) => pack.agents.find((a) => a.draft_id === id)?.openbot;
   const pauta = by('ln_pilot_pauta');
-  if (!pauta || !/haiku/i.test(pauta.model) || !pauta.backup_model || !/sonnet/i.test(pauta.backup_model)) add('PAUTA', 'a pauta é Haiku com backup Sonnet na mesma conta');
-  const redator = by('ln_pilot_redator');
-  for (const id of ['ln_pilot_checador', 'ln_pilot_revisor']) {
-    const m = by(id);
-    if (!m || !redator || authorOfDeclaredModel(m.model) === authorOfDeclaredModel(redator.model)) add('INDEPENDENCE', `${id}: o autor do modelo tem de ser diferente do redator`);
-    if (m && m.provider !== 'codex') add('CODEX', `${id}: checagem e revisão rodam no Codex`);
-  }
-  if (redator && redator.backup_model) add('REDATOR_BACKUP', 'a redação não tem modelo alternativo (DP-26 b)');
+  if (!pauta) add('PAUTA', 'a pauta é obrigatória');
+  else if (pauta.provider === 'claude') {
+    if (!/haiku/i.test(pauta.model) || !pauta.backup_model || !/sonnet/i.test(pauta.backup_model)) add('PAUTA', 'na conta Claude a pauta é Haiku com backup Sonnet na mesma conta');
+  } else if (authorOfDeclaredModel(pauta.model) !== 'deepseek') add('PAUTA', 'na lane opencode a pauta é um modelo DeepSeek');
+  // Emenda a DP-41 (26/11): a independência é por ETAPA e por AGENTE, não pelo autor/provedor do modelo.
+  const agentBy = (id: string) => pack.agents.find((a) => a.draft_id === id);
+  const redator = agentBy('ln_pilot_redator');
+  const checador = agentBy('ln_pilot_checador');
+  const revisor = agentBy('ln_pilot_revisor');
+  const worker = (x: CreationPackAgent | undefined) => x?.client_env.LN_WORKER_ID;
+  const firstStage = (x: CreationPackAgent | undefined) => x?.client_env.stages[0];
+  if (redator && revisor && worker(redator) === worker(revisor)) add('INDEPENDENCE', 'revisor e redator no MESMO agente: a revisão exige outro agente/turno');
+  if (redator && checador && worker(redator) === worker(checador)) add('INDEPENDENCE', 'checador e redator no MESMO agente: a checagem exige outro agente/turno');
+  if (checador && revisor && worker(checador) === worker(revisor)) add('INDEPENDENCE', 'checagem e revisão no MESMO agente: cada etapa crítica tem seu agente');
+  if (checador && revisor && firstStage(checador) && firstStage(checador) === firstStage(revisor)) add('STAGE', 'checagem e revisão na MESMA etapa: cada etapa crítica tem seu agente');
+  if (redator && redator.openbot.backup_model) add('REDATOR_BACKUP', 'a redação não tem modelo alternativo (DP-26 b)');
   return issues;
 }
 

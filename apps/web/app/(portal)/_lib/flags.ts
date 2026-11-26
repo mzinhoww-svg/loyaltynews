@@ -2,8 +2,10 @@ import { isEnabled } from '@ln/contracts';
 
 /**
  * Flags do portal. As que existem em `@ln/contracts` (todas desligadas por padrão) vêm de lá.
- * As três últimas ainda não existem no contrato: ficam desligadas aqui até o Chief Architect
+ * As duas últimas (marketData, podcast) ainda não existem no contrato: ficam desligadas aqui até o Chief Architect
  * incluí-las em `packages/contracts/src/flags.ts` (pedido enviado ao PM/Arquiteto).
+ * Formulários (`portalFormularios`) NÃO ficam aqui: esta constante é avaliada no carregamento do módulo (embutida no build). Quem precisa
+ * da flag lê `formulariosAtivos()` (apps/web/lib/portal-formularios.ts), que consulta o resolvedor de execução.
  */
 export const flags = {
   /** The Loyal (newsletter): construída, entrega desligada até P-01. */
@@ -14,6 +16,4 @@ export const flags = {
   marketData: false,
   /** TODO(contracts): `portalPodcast` — Loyalty Talks sem episódios reais. */
   podcast: false,
-  /** TODO(contracts): `portalFormularios` — formulários dependem de API (contato, proposta). */
-  forms: false,
 } as const;

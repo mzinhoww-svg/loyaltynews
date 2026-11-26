@@ -15,6 +15,15 @@ describe('studio.css', () => {
     expect(semComentarios).toContain('var(--ln-font-ui)');
     expect(semComentarios).not.toMatch(/system-ui/);
   });
+  it('tabelas (refino, pacote C item 2): cabeçalho fixo, sem overflow hidden na tabela, espaçamento e tons só com tokens', () => {
+    expect(semComentarios).toMatch(/\.st-table thead th \{[^}]*position: sticky;[^}]*top: 0/);
+    const regraTabela = /\.st-table \{[^}]*\}/.exec(semComentarios)?.[0] ?? '';
+    expect(regraTabela).not.toMatch(/overflow: hidden/); // hidden cria quadro de rolagem e desliga o sticky
+    expect(regraTabela).toMatch(/overflow: clip/);
+    expect(/\.st-table th, \.st-table td \{[^}]*\}/.exec(semComentarios)?.[0]).toMatch(/padding: var\(--ln-space-2\) var\(--ln-space-3\)/);
+    // todo tom de status (.st-badge.<estado>) usa o par -bg/-fg do mesmo tom, nunca uma cor solta
+    for (const m of semComentarios.matchAll(/\.st-badge\.[a-z_]+ \{ background: var\(--ln-color-([a-z]+)-bg\); color: var\(--ln-color-([a-z]+)-fg\); \}/g)) expect(m[1]).toBe(m[2]);
+  });
   it('tabela larga rola no próprio quadro no celular (F-27)', () => {
     expect(semComentarios).toMatch(/@media \(max-width: 860px\)[\s\S]*\.studio table \{[^}]*overflow-x: auto/);
   });

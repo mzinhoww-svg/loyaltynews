@@ -1,9 +1,39 @@
+import { protocoloValido } from '../../../lib/protocolo-titular';
+
 /**
  * Pedido do titular (DP-38): regras de validação do lado do portal, iguais às do Backend
  * (apps/web/app/api/_lib/titular.ts, `PedidoTitular`). O Backend continua sendo quem decide; aqui é só para orientar o leitor
- * antes de enviar. A resposta do Backend é sempre "recebido" (202): o portal nunca diz se o pedido já existia.
+ * antes de enviar. A resposta traz um protocolo público e o prazo; o portal não mostra o id interno.
  */
 export const ROTA_PEDIDO = '/api/publico/correcoes';
+
+/** Prazo de resposta mostrado antes do envio. Tem de bater com PRAZO_DIAS do Backend (o teste confere). */
+export const PRAZO_DIAS_RESPOSTA = 15;
+
+export interface ReciboPedido {
+  protocolo: string;
+  prazoDias: number;
+  /** ISO do fim do prazo, calculado pelo Backend a partir do recebimento. */
+  prazoEm: string;
+}
+
+/** Lê o recibo só quando a resposta tem a forma esperada; sem isso, a tela usa o texto genérico. */
+export function reciboDaResposta(body: unknown): ReciboPedido | null {
+  if (!body || typeof body !== 'object') return null;
+  const b = body as Record<string, unknown>;
+  const protocolo = typeof b.protocolo === 'string' ? b.protocolo : '';
+  const prazoEm = typeof b.prazoEm === 'string' ? b.prazoEm : '';
+  const prazoDias = typeof b.prazoDias === 'number' ? b.prazoDias : PRAZO_DIAS_RESPOSTA;
+  if (!protocoloValido(protocolo) || !prazoEm) return null;
+  return { protocolo, prazoDias, prazoEm };
+}
+
+/** Data do prazo no fuso de Brasília, para não adiantar um dia no navegador do leitor. */
+export function dataDoPrazo(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+}
 
 export type TipoPedido = 'correcao' | 'remocao';
 export interface PedidoValores {

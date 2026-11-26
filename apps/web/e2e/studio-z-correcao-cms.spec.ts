@@ -5,6 +5,8 @@ import { api, definirFlag, entrar, enviar, semearFabrica } from './helpers';
 // O nome do arquivo o põe POR ÚLTIMO: o banco de e2e é compartilhado e este spec publica uma matéria e abre um caso de
 // correção (os specs de Correções e Social esperam o banco ainda sem eles). Depende da matéria aprovada que o
 // studio-cms.spec.ts deixa pronta ("Banco Beta revisa tarifas de cartão").
+// NÃO rode este spec sozinho: sem o studio-cms.spec.ts antes ele falha por falta de dado, não por defeito de código.
+// A dependência está registrada no cabeçalho de scripts/e2e.mjs (ordem dos specs).
 test.describe.configure({ mode: 'serial' });
 
 const TITULO = 'Banco Beta revisa tarifas de cartão';

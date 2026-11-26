@@ -11,7 +11,8 @@ import { flags } from '../../_lib/flags';
 import { formatDate } from '../../_lib/format';
 import { linkTerms } from '../../_lib/site-config';
 import { jsonLdString } from '../../_lib/jsonld';
-import { SITE_NAME, SITE_URL } from '../../_lib/site';
+import { breadcrumbLd, ogImagemDaEditoria, PUBLISHER_LD } from '../../_lib/seo';
+import { SITE_URL } from '../../_lib/site';
 import { getSource } from '../../_lib/source';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -27,12 +28,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { article: a, unavailable } = await loadArticle(slug);
   if (!a) return { title: unavailable ? 'Matéria indisponível' : 'Matéria não encontrada', robots: { index: false } };
   const url = `/noticia/${a.slug}`;
+  const imagem = a.image ? { url: a.image.src, alt: a.image.alt } : ogImagemDaEditoria(a.editoriaSlug);
   return {
     title: a.title,
     description: a.summary,
     alternates: { canonical: url },
-    // Conteúdo MOCK nunca deve ser indexado.
-    robots: a.mock ? { index: false, follow: false } : undefined,
+    // Conteúdo MOCK nunca deve ser indexado. Sem `robots` a matéria HERDA o do layout (index,follow + prévia grande em produção indexável; noindex fora):
+    // `robots: undefined` sobrescrevia o do layout e a matéria ficava sem a meta.
+    ...(a.mock ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       type: 'article',
       title: a.title,
@@ -41,8 +44,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: a.publishedAt,
       modifiedTime: a.updatedAt,
       section: editoriaName(a.editoriaSlug),
-      images: a.image ? [{ url: a.image.src, alt: a.image.alt }] : undefined,
+      tags: a.tags.length ? a.tags : undefined,
+      // Sem imagem própria, vale a imagem da editoria (placeholder até a UI/UX entregar os assets): nunca uma matéria sem og:image.
+      images: [imagem],
     },
+    twitter: { card: 'summary_large_image', title: a.title, description: a.summary, images: [imagem.url] },
   };
 }
 
@@ -73,14 +79,21 @@ export default async function ArticlePage({ params }: Props) {
     dateModified: a.updatedAt ?? a.publishedAt,
     articleSection: editoriaName(a.editoriaSlug),
     author: { '@type': 'Organization', name: a.authorLabel },
-    publisher: { '@type': 'Organization', name: SITE_NAME },
-    mainEntityOfPage: `${SITE_URL}/noticia/${a.slug}`,
-    image: a.image ? [new URL(a.image.src, SITE_URL).toString()] : undefined,
+    publisher: PUBLISHER_LD,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/noticia/${a.slug}` },
+    url: `${SITE_URL}/noticia/${a.slug}`,
+    inLanguage: 'pt-BR',
+    isAccessibleForFree: true, // todo o conteúdo é de leitura gratuita (patrocinado também: a marcação de paywall não se aplica)
+    ...(a.tags.length ? { keywords: a.tags.join(', ') } : {}),
+    // Rich results de matéria exigem imagem: a da matéria ou, sem ela, a da editoria.
+    image: [new URL(a.image ? a.image.src : ogImagemDaEditoria(a.editoriaSlug).url, SITE_URL).toString()],
   };
+  const crumbs = breadcrumbLd([{ nome: 'Início', path: '/' }, { nome: editoriaName(a.editoriaSlug), path: `/editoria/${a.editoriaSlug}` }, { nome: a.title }]);
 
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(crumbs) }} />
       <AdSlot slot="topo" />
       <WithSidebar>
         <article className="pt-article">

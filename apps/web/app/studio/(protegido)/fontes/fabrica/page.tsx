@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
@@ -9,6 +10,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { CartaoFonte } from './CartaoFonte';
 import { habilitarPaginaAction } from './actions';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Fontes da Fábrica editorial' };
 export const dynamic = 'force-dynamic';
@@ -51,7 +53,7 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
   return (
     <>
       <p>
-        <Link href="/studio/fontes">← Banco de fontes</Link>
+        <Link href="/studio/fontes"><Seta direcao="esquerda" /> Banco de fontes</Link>
       </p>
       <h1>Fontes da Fábrica editorial</h1>
       <p>
@@ -73,10 +75,7 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
         </button>
       </form>
       {itens.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">Nenhuma fonte encontrada</h2>
-          <p>O cadastro da Fábrica não tem fontes para esta busca.</p>
-        </section>
+        <EmptyState title="Nenhuma fonte encontrada" description="O cadastro da Fábrica não tem fontes para esta busca." />
       ) : (
         <>
           <p className="st-hint">

@@ -1,0 +1,37 @@
+{
+  "base": "http://localhost:3000",
+  "lado": "antes",
+  "rota": "/studio",
+  "rodadas": [
+    {
+      "fcp": 840,
+      "lcp": 840,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": []
+    },
+    {
+      "fcp": 852,
+      "lcp": 852,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": []
+    },
+    {
+      "fcp": 832,
+      "lcp": 832,
+      "cls": 0,
+      "fontes": [],
+      "preload": null,
+      "faces": 0,
+      "facesUrl": 0,
+      "shifts": []
+    }
+  ]
+}

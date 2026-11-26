@@ -32,7 +32,10 @@ describe('cabeçalhos de segurança do portal (achado P2-6, 24/11/2026)', () => 
     for (const d of ['default-src', 'script-src', 'style-src', 'img-src', 'connect-src', 'form-action']) expect(CSP_APLICADA).not.toContain(d);
     for (const d of ["default-src 'self'", "script-src 'self' 'unsafe-inline'", "object-src 'none'", "frame-ancestors 'self'", "base-uri 'self'", "form-action 'self'"]) expect(CSP_RELATORIO).toContain(d);
     // nada de curinga aberto em script/default: só 'self' (+ 'unsafe-inline' no script por causa da hidratação do Next e do cache de borda)
-    expect(CSP_RELATORIO).not.toMatch(/(default|script)-src[^;]*(\*|https:)/);
+    // Curinga = "*" ou o esquema "https:" sozinho. Um host exato (o gtag do GA4, carregado só depois do consentimento) é permitido.
+    expect(CSP_RELATORIO).not.toMatch(/(default|script)-src[^;]*(\s\*|https:(?=\s|;|$)|https:\/\/\*)/);
+    const script = CSP_RELATORIO.split(';').map((d) => d.trim()).find((d) => d.startsWith('script-src'))!;
+    expect(script.split(/\s+/).filter((x) => x.startsWith('https://'))).toEqual(['https://www.googletagmanager.com']);
     expect(CSP_RELATORIO).not.toContain("'unsafe-eval'");
   });
 

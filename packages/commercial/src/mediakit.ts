@@ -27,11 +27,17 @@ export interface MediaKit {
     decisores: { available: false; emptyState: string };
     tese: { text: string };
     especificacoes: { positions: typeof POSITIONS; mobileNote: string; formats: string };
-    catalogo: { total: number; byStatus: Record<string, number>; formats: { id: string; section: string; name: string; price: string; scope: string; status: string; statusReason?: string }[]; packages: typeof PACKAGES; disclaimer: string; capacityScenario: ReturnType<typeof theoreticalGrossCapacity> | null };
+    catalogo: { total: number; byStatus: Record<string, number>; formats: { id: string; section: string; name: string; price: string; scope: string; status: string; statusReason?: string; /** Ressalva pública do formato (canal ainda desligado), sempre visível. */ ressalva?: string }[]; packages: typeof PACKAGES; disclaimer: string; capacityScenario: ReturnType<typeof theoreticalGrossCapacity> | null };
     contratacao: { steps: string[] };
     formulario: { fields: { name: string; required: boolean }[]; newsletterOptInSeparate: true };
   };
 }
+
+/** A parte pública do motivo: a ressalva do canal, sem o jargão de flags/decisões do Studio. */
+const caveatOf = (reason: string | undefined): string | undefined => {
+  const i = reason?.indexOf('Ressalva:') ?? -1;
+  return i >= 0 ? reason!.slice(i).trim() : undefined;
+};
 
 function build(slots: readonly MetricSlot[], store: MetricStore, now: string): { metrics: MediaKitMetric[]; allEmpty: boolean } {
   const metrics = slots.map((s) => {
@@ -66,9 +72,15 @@ export function generateMediaKit(opts: { store: MetricStore; now: string; catalo
       especificacoes: { positions: POSITIONS, mobileNote: 'Mobile sugerido 320x100 e 300x250; variante obrigatória quando aplicável. Formatos: JPG, PNG, GIF e HTML5 em sandbox após análise.', formats: 'Posições sem limite configurado não são reserváveis.' },
       catalogo: {
         total: catalog.length, byStatus,
-        formats: catalog.map((f) => ({ id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status, ...(opts.internal ? { statusReason: f.statusReason } : {}) })),
+        formats: catalog.map((f) => ({
+          id: f.id, section: f.section, name: f.name, price: priceLabel(f), scope: f.scope, status: f.status,
+          // DP-54: um formato pode ser liberado para proposta com o canal ainda desligado. A ressalva vem do DADO (a mesma do
+          // Studio), não é escrita no portal, e sai no mídia kit público — o formato nunca aparece como "Disponível" puro.
+          ...(caveatOf(f.statusReason) ? { ressalva: caveatOf(f.statusReason) } : {}),
+          ...(opts.internal ? { statusReason: f.statusReason } : {}),
+        })),
         packages: PACKAGES,
-        disclaimer: 'Preços de referência em BRL, ajustáveis; disponibilidade é real. Nenhum formato sem capacidade operacional fica disponível para venda.',
+        disclaimer: 'Preços de referência em BRL, ajustáveis e confirmados na proposta. "Disponível" significa aberto a proposta. Nos formatos de canais ainda não ativados (Instagram, The Loyal, WhatsApp e Loyalty Talks), o início da entrega é confirmado na proposta.',
         capacityScenario: opts.internal ? theoreticalGrossCapacity() : null,
       },
       contratacao: { steps: ['Lead pelo formulário', 'Qualificação no CRM', 'Proposta versionada', 'Aceite/contrato', 'Reserva de inventário', 'Criativo e QA', 'Aprovação do cliente', 'Ativação', 'Monitoramento de entrega', 'Relatório e renovação'] },

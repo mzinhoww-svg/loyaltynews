@@ -1,4 +1,5 @@
-import { healthPayload } from '../../../lib/health';
+import { healthPayload, healthProblem } from '../../../lib/health';
+import { readBuildIdentity } from '../../../lib/build-identity';
 import { diagXffHeaders } from '../_lib/diag-xff';
 import { runtimeFlagNames } from '../../../lib/runtime-flags';
 
@@ -15,5 +16,8 @@ export function GET(req: Request) {
   } catch {
     return Response.json({ status: 'indisponivel', motivo: 'flags_invalidas' }, { status: 503, headers: { 'cache-control': 'no-store' } });
   }
-  return Response.json(healthPayload(process.env, flags), { headers: diagXffHeaders(process.env, req.headers) });
+  const identity = readBuildIdentity();
+  const problema = healthProblem(process.env, identity);
+  if (problema) return Response.json({ status: 'indisponivel', motivo: problema }, { status: 503, headers: { 'cache-control': 'no-store' } });
+  return Response.json(healthPayload(process.env, flags, identity), { headers: diagXffHeaders(process.env, req.headers) });
 }

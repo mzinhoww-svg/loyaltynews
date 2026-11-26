@@ -54,6 +54,43 @@ export function nextStartInvocation(root, nextBin, port, host) {
   return { args: [nextBin, 'start', '-p', String(port), '-H', String(host)], cwd: join(root, 'apps', 'web') };
 }
 
+/**
+ * FALHA FECHADA do pré-construído: depois de `restaurarPrebuilt`, o app só sobe se houver `prebuilt/prebuilt.json`,
+ * `apps/web/.next/.ln-prebuilt.json` (a marca da restauração), o `BUILD_ID` do `.next` e a marca/prebuilt apontarem o
+ * mesmo build/commit. Sem isso, o volume pode servir um `.next` antigo reportando o commit novo — verde falso.
+ * Devolve a lista de conferências reprovadas (vazia = pode subir). Função pura, testada sem subir servidor.
+ * DECISÃO: o `restaurarPrebuilt` PODE consertar um `.next` sem marca ou com marca divergente quando há manifesto coerente;
+ * os testes de processo provam o exit 0 com `.next`/marca corrigidos. A recusa é só o irrecuperável: manifesto ausente/
+ * ilegível, `release.prebuilt=true` sem manifesto e prebuilt corrompido.
+ */
+export function prebuiltStartProblems(root, release) {
+  const p = [];
+  const declarado = release?.prebuilt === true;
+  const temPrebuilt = existsSync(join(root, 'prebuilt')) || existsSync(join(root, 'apps', 'web', '.next', '.ln-prebuilt.json'));
+  // Pacote comum legítimo (sem release.prebuilt e sem artefato/marca): o build é o da Vertra e o start segue.
+  // Qualquer sinal de pré-construído (declarado no release.json, pasta prebuilt/ ou marca no .next) exige a prova completa.
+  if (!declarado && !temPrebuilt) return p;
+  const man = join(root, 'prebuilt', 'prebuilt.json');
+  let pb = null;
+  if (!existsSync(man)) p.push(declarado ? 'release.json declara prebuilt=true e prebuilt/prebuilt.json ausente: recuso servir o .next do volume' : 'prebuilt/prebuilt.json ausente: recuso servir o .next do volume');
+  else {
+    try { pb = JSON.parse(readFileSync(man, 'utf8').replace(/^\uFEFF/, '')); } catch { p.push('prebuilt/prebuilt.json ilegível'); }
+  }
+  const destino = join(root, 'apps', 'web', '.next');
+  const marca = join(destino, '.ln-prebuilt.json');
+  let m = null;
+  if (!existsSync(marca)) p.push('apps/web/.next/.ln-prebuilt.json ausente: não há prova de que o .next do volume veio do prebuilt');
+  else {
+    try { m = JSON.parse(readFileSync(marca, 'utf8')); } catch { p.push('apps/web/.next/.ln-prebuilt.json ilegível'); }
+  }
+  const bid = existsSync(join(destino, 'BUILD_ID')) ? readFileSync(join(destino, 'BUILD_ID'), 'utf8').trim() : null;
+  if (!bid) p.push('apps/web/.next/BUILD_ID ausente');
+  if (m && bid && m.buildId !== bid) p.push(`BUILD_ID da marca (${m.buildId}) difere do .next (${bid})`);
+  if (m && pb && m.buildId !== pb.buildId) p.push(`BUILD_ID da marca (${m.buildId}) difere do prebuilt.json (${pb.buildId})`);
+  if (m && pb && m.commit && pb.commit && m.commit !== pb.commit) p.push(`commit da marca (${m.commit}) difere do prebuilt.json (${pb.commit})`);
+  return p;
+}
+
 const direct = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (direct) {
   const args = parseArgs(process.argv.slice(2));
@@ -67,13 +104,19 @@ if (direct) {
     process.exit(1);
   }
   console.log(`[start-web] ambiente ok (APP_ENV=${process.env.APP_ENV} NEXT_PUBLIC_SITE_URL=${process.env.NEXT_PUBLIC_SITE_URL} APP_COMMIT=${String(process.env.APP_COMMIT).slice(0, 12)}…)`);
-  // Pacote PRÉ-CONSTRUÍDO (sem next build na Vertra): restaura o .next e confere que ele é deste commit/ambiente; pacote comum = nada a fazer.
+  // Pacote PRÉ-CONSTRUÍDO (sem next build na Vertra): restaura o .next e confere que ele é deste commit/ambiente.
+  // FALHA FECHADA: sem prebuilt.json/marca/BUILD_ID coerente, o app NÃO sobe (não existe "segue com o .next do volume").
   const pb = restaurarPrebuilt(root, release);
   if (pb.ativo) {
     for (const l of pb.log) console.log(`[start-web] prebuilt: ${l}`);
     if (pb.problemas.length) { console.error(['[start-web] PRÉ-CONSTRUÍDO REPROVADO (o app não sobe):', ...pb.problemas].join('\n - ')); process.exit(1); }
-    console.log('[start-web] prebuilt ok (.next do mesmo commit, ambiente e URL do release.json)');
   }
+  const pbp = prebuiltStartProblems(root, release);
+  if (pbp.length) {
+    console.error('[start-web] PRÉ-CONSTRUÍDO EXIGIDO/REPROVADO (o app não sobe):\n - ' + pbp.join('\n - '));
+    process.exit(1);
+  }
+  console.log('[start-web] prebuilt ok (.next, marca e BUILD_ID coerentes com o prebuilt.json)');
   const next = createRequire(join(root, 'package.json')).resolve('next/dist/bin/next');
   const inv = nextStartInvocation(root, next, args.port ?? 80, args.host ?? '0.0.0.0');
   const child = spawn(process.execPath, inv.args, { cwd: inv.cwd, stdio: 'inherit', env: process.env });

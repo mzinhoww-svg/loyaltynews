@@ -2,8 +2,9 @@
 // Prova (sem rede, sem Vertra) que o resolvedor de flags do commit recusa flag de produto em PRODUÇÃO e a aceita no STAGING (ADR-022, DP-38).
 // Uso: node infra/scripts/prova-flags-producao.mjs --root <checkout do commit a implantar> [--flag intelligencePessoas]
 // Importa packages/contracts/src/flags.ts do checkout (Node com type stripping) e confere, com APP_ENV de cada ambiente:
-//   1. production + LN_FLAGS_ON=<flag>  -> a subida é RECUSADA ("sem decisão para production");
-//   2. production sem LN_FLAGS_ON       -> nenhuma flag ligada;
+//   1. production + LN_FLAGS_ON=<flag>  -> a subida é RECUSADA ("sem decisão para production" ou "só por commit");
+//   2. production sem LN_FLAGS_ON       -> liga EXATAMENTE as flags por commit do contrato (PRODUCTION_FLAGS_ON, DP-57; vazio em contrato anterior);
+//   2b. production + LN_FLAGS_ON=<flag por commit> -> RECUSADA (a variável nunca liga nada em produção);
 //   3. staging + LN_FLAGS_ON=<flag>     -> liga só essa flag, com a decisão registrada;
 //   4. staging + nome desconhecido      -> RECUSADA.
 // Sai com 0 se tudo confere; 1 se alguma prova falha; 2 em uso errado. Imprime uma linha JSON. Nunca lê segredo.
@@ -16,18 +17,24 @@ export async function provar(root, flag) {
   const arq = join(root, 'packages', 'contracts', 'src', 'flags.ts');
   if (!existsSync(arq)) throw new Error('packages/contracts/src/flags.ts ausente neste checkout');
   const m = await import(pathToFileURL(arq).href);
+  // DP-57: flags ligadas em produção POR COMMIT (PRODUCTION_FLAGS_ON do contrato). Contrato anterior, sem a lista: nenhuma.
+  const porCommit = Array.isArray(m.PRODUCTION_FLAGS_ON) ? [...new Set(m.PRODUCTION_FLAGS_ON.map(String))].sort() : [];
   const tenta = (env) => { try { const r = m.resolveFlags(env); return { ok: true, linha: String(r.logLine ?? ''), ligadas: Object.entries(r.state ?? {}).filter(([, v]) => v === true).map(([k]) => k).sort() }; } catch (e) { return { ok: false, erro: String(e?.message ?? e).slice(0, 200) }; } };
   const prod = tenta({ APP_ENV: 'production', LN_FLAGS_ON: flag });
   const prodLimpo = tenta({ APP_ENV: 'production' });
   const stg = tenta({ APP_ENV: 'staging', LN_FLAGS_ON: flag });
   const desconhecida = tenta({ APP_ENV: 'staging', LN_FLAGS_ON: 'flagQueNaoExiste' });
   const provas = [
-    { nome: `production + ${flag}: subida recusada`, ok: prod.ok === false && /sem decisão para production/.test(prod.erro ?? ''), detalhe: prod.erro ?? prod.linha },
-    { nome: 'production limpa: nenhuma flag ligada', ok: prodLimpo.ok === true && prodLimpo.ligadas.length === 0, detalhe: prodLimpo.linha },
+    { nome: `production + LN_FLAGS_ON=${flag}: subida recusada`, ok: prod.ok === false && /sem decisão para production|só por commit/.test(prod.erro ?? ''), detalhe: prod.erro ?? prod.linha },
+    { nome: `production limpa: só as flags por commit (PRODUCTION_FLAGS_ON=[${porCommit.join(',')}])`, ok: prodLimpo.ok === true && JSON.stringify(prodLimpo.ligadas) === JSON.stringify(porCommit), detalhe: prodLimpo.erro ?? prodLimpo.linha },
+    ...porCommit.map((n) => {
+      const v = tenta({ APP_ENV: 'production', LN_FLAGS_ON: n });
+      return { nome: `production + LN_FLAGS_ON=${n} (flag por commit): a variável continua recusada`, ok: v.ok === false, detalhe: v.erro ?? v.linha };
+    }),
     { nome: `staging + ${flag}: liga só essa flag`, ok: stg.ok === true && stg.ligadas.length === 1 && stg.ligadas[0] === flag, detalhe: stg.linha },
     { nome: 'staging + flag desconhecida: subida recusada', ok: desconhecida.ok === false, detalhe: desconhecida.erro ?? desconhecida.linha },
   ];
-  return { flag, ok: provas.every((p) => p.ok), provas };
+  return { flag, porCommit, ok: provas.every((p) => p.ok), provas };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

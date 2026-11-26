@@ -6,6 +6,10 @@ import { formatDateTime } from '../_lib/format';
 import { PositionMap } from '../_components/PositionMap';
 import { ScrollRegion } from '../_components/ScrollRegion';
 import { MockTag } from '../_components/ui';
+import { formulariosAtivos } from '../../../lib/portal-formularios';
+import { CONTATO_EMAIL } from '../_lib/contato';
+import { PropostaForm } from '../_proposta/PropostaForm';
+import { SalvarPdf } from '../_proposta/SalvarPdf';
 import { PUBLIC_POSITIONS, apiCoverageCards, coverageCards, fetchMediaKit, portalApiBase, type MediaKitFormat } from '../_lib/commercial-source';
 import { getSource } from '../_lib/source';
 import type { MetricValue } from '../_lib/types';
@@ -54,6 +58,9 @@ const FORMATS = [
 
 export default async function MidiaKitPage() {
   const src = getSource();
+  // Formulário de proposta: só aparece com a flag portalFormularios ligada (ADR-022: por ambiente e por decisão registrada). Desligada: nada é coletado e o botão leva à página de contato.
+  // Lido em execução a cada requisição (a página é force-dynamic): ligar a flag não exige refazer o build.
+  const formulario = formulariosAtivos();
   // Em modo api, audiência e catálogo vêm da API comercial (origem, janela e data em cada número). Falha => estado vazio honesto.
   const kit = src.kind === 'api' ? await fetchMediaKit(portalApiBase()) : null;
   const [audience, latest, events] = await Promise.all([kit ? Promise.resolve(kit.audience) : src.getAudience(), src.getLatest({ pageSize: 1 }), src.listEvents()]);
@@ -70,18 +77,24 @@ export default async function MidiaKitPage() {
         <p className="pt-kicker pt-kicker--signal">Mídia kit · Proposta comercial</p>
         <h1 id="mk-h">Quem decide o futuro da fidelidade precisa estar bem informado.</h1>
         <p>Conecte sua marca ao público que acompanha programas de fidelidade, bancos, varejo, companhias aéreas e tecnologia.</p>
-        <p>
-          <Link href="/contato" className="ln-btn ln-btn--primary" data-testid="mk-cta-primary">Solicitar proposta</Link>{' '}
-          <a href="#audiencia" className="ln-btn ln-btn--ghost" data-testid="mk-cta-secondary">Ver audiência ↓</a>
+        <p className="pt-no-print">
+          {formulario ? (
+            <a href="#proposta" className="ln-btn ln-btn--primary" data-testid="mk-cta-primary">Solicitar proposta</a>
+          ) : (
+            <Link href="/contato" className="ln-btn ln-btn--primary" data-testid="mk-cta-primary">Solicitar proposta</Link>
+          )}{' '}
+          <a href="#audiencia" className="ln-btn ln-btn--ghost" data-testid="mk-cta-secondary">Ver audiência ↓</a>{' '}
+          <SalvarPdf />
         </p>
         <p style={{ fontSize: 13 }}>Dados de audiência só aparecem quando medidos, com origem, período e data de coleta. Sem métricas inventadas.</p>
       </section>
 
-      <nav aria-label="Seções do mídia kit" className="pt-chips">
+      <nav aria-label="Seções do mídia kit" className="pt-chips pt-no-print">
         <a className="pt-chip" href="#cobertura">Sobre</a>
         <a className="pt-chip" href="#audiencia">Audiência</a>
         <a className="pt-chip" href="#formatos">Formatos</a>
         <a className="pt-chip" href="#precos">Preços</a>
+        {formulario && <a className="pt-chip" href="#proposta">Proposta</a>}
       </nav>
 
       <section id="cobertura" className="pt-section" aria-labelledby="mk-cob">
@@ -161,7 +174,7 @@ export default async function MidiaKitPage() {
         <h2 id="mk-pre">05 · Preços e disponibilidade</h2>
         <p>
           Preços de referência e disponibilidade de inventário são informados na proposta. Um formato só é vendido quando há capacidade operacional para entregá-lo.{' '}
-          <Link href="/contato" style={{ textDecoration: 'underline', fontWeight: 700 }}>Fale com o comercial</Link>.
+          <Link href="/contato" style={{ textDecoration: 'underline', fontWeight: 700 }}>Fale com o comercial</Link>: <a href={`mailto:${CONTATO_EMAIL}`} style={{ textDecoration: 'underline' }} data-testid="mk-email">{CONTATO_EMAIL}</a>.
         </p>
         {kit && kit.formats.length > 0 && (
           <div data-testid="mk-precos">
@@ -178,7 +191,17 @@ export default async function MidiaKitPage() {
                     <thead><tr><th>Formato</th><th>Referência</th><th>Escopo</th><th>Disponibilidade</th></tr></thead>
                     <tbody>
                       {rows.map((f) => (
-                        <tr key={f.id}><td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td><td>{STATUS_LABEL[f.status]}</td></tr>
+                        <tr key={f.id}>
+                          <td>{f.name}</td><td>{f.price}</td><td>{f.scope}</td>
+                          <td>
+                            {/* DP-54: formato liberado para proposta com o canal ainda desligado não é "Disponível" puro.
+                                A ressalva vem da API (campo `ressalva`), não é escrita aqui. */}
+                            {f.status === 'disponivel' && f.ressalva ? 'Disponível para proposta, com ressalva' : STATUS_LABEL[f.status]}
+                            {f.ressalva && (
+                              <span className="pt-meta" style={{ display: 'block' }} data-testid="mk-ressalva">{f.ressalva}</span>
+                            )}
+                          </td>
+                        </tr>
                       ))}
                     </tbody>
                   </table>
@@ -189,6 +212,14 @@ export default async function MidiaKitPage() {
           </div>
         )}
       </section>
+
+      {formulario && (
+        <section id="proposta" className="pt-section pt-no-print" aria-labelledby="mk-prop" data-testid="mk-proposta">
+          <h2 id="mk-prop">06 · Solicitar proposta</h2>
+          <p>Conte quem é a empresa e o que você quer divulgar. O comercial responde com a proposta e a disponibilidade confirmada.</p>
+          <PropostaForm />
+        </section>
+      )}
     </>
   );
 }

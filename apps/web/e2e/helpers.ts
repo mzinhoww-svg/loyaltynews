@@ -52,3 +52,10 @@ export async function definirFlag(context: BrowserContext, nome: string, ligada:
   const r = await context.request.get(`/api/e2e/login?flag=${encodeURIComponent(nome)}&on=${ligada ? 1 : 0}`);
   expect(r.ok(), `flag ${nome}: ${r.status()}`).toBe(true);
 }
+
+/** Abre todos os grupos recolhíveis do menu lateral do Studio (só o grupo da tela atual abre sozinho). */
+export async function abrirTodosOsGrupos(page: Page): Promise<void> {
+  const nav = page.getByRole('navigation', { name: 'Módulos do Studio' });
+  const botoes = nav.locator('button[aria-expanded="false"]');
+  while ((await botoes.count()) > 0) await botoes.first().click();
+}

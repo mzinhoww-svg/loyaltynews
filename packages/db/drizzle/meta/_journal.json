@@ -211,6 +211,62 @@
       "when": 1795464275839,
       "tag": "0029_fonte_rapida_evidencias",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795562530520,
+      "tag": "0030_auth_attempt_hmac",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795610909241,
+      "tag": "0031_crm_leads_retencao",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795617550443,
+      "tag": "0032_auth_session_ip_limpo",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795617553402,
+      "tag": "0033_audit_log_ip_anulavel",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795619465555,
+      "tag": "0034_audit_log_ip_so_apos_12_meses",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1795635224072,
+      "tag": "0035_commercial_lead_deletions",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795635500000,
+      "tag": "0036_openbot_pilot_resolutions_append_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795635600000,
+      "tag": "0037_append_only_no_truncate",
+      "breakpoints": true
     }
   ]
 }

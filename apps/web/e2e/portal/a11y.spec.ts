@@ -22,6 +22,7 @@ for (const path of PAGES) {
 for (const w of [1280, 768, 375]) {
   test(`axe em ${w}px: home, notícias e editoria`, async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop');
+    test.slow(3); // três páginas com axe em sequência: 90 s (carga da máquina; a base ainda não tem o a11y determinístico da ft/portal-a11y-deterministic)
     await page.setViewportSize({ width: w, height: 900 });
     for (const p of ['/', '/noticias', '/editoria/bancos']) {
       await page.goto(p);

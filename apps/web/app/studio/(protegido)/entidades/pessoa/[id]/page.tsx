@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PUBLIC_NOTICE } from '@ln/intelligence';
@@ -11,6 +12,7 @@ import { Flash } from '../../../../_components/Flash';
 import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { abrirPedidoAction, exportarPedidoAction, removerPessoaAction, retificarPedidoAction } from './actions';
+import { Seta } from '../../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Executivo' };
 export const dynamic = 'force-dynamic';
@@ -28,9 +30,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
   if (r.status === 404) notFound();
   if (ehErro(r)) {
     return (
-      <div className="st-alert err" role="alert">
-        {mensagemErro(r)}
-      </div>
+      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
     );
   }
   const { person, roles } = r.body;
@@ -39,7 +39,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
   return (
     <>
       <p>
-        <Link href="/studio/entidades">← Entity intelligence</Link>
+        <Link href="/studio/entidades"><Seta direcao="esquerda" /> Entity intelligence</Link>
       </p>
       <h1>{person.full_name}</h1>
       <p className="st-hint">{PUBLIC_NOTICE}</p>
@@ -75,7 +75,7 @@ export default async function PessoaPage({ params, searchParams }: { params: Pro
                   </th>
                   <td>{c.title}</td>
                   <td>
-                    {c.valid_from} → {c.valid_to ?? 'em vigor'}
+                    {c.valid_from} <Seta /> {c.valid_to ?? 'em vigor'}
                   </td>
                   <td>
                     <span className={`st-badge ${nivel.chave === 'oficial' ? 'aprovado' : 'em_checagem'}`}>{nivel.rotulo}</span>

@@ -14,6 +14,7 @@ import { Relatorio } from './_components/Relatorio';
 import { MarcaHidratada } from './_components/MarcaHidratada';
 import { PosicoesCriativos, type CriativoLinha, type ReservaLinha } from './_components/PosicoesCriativos';
 import { flagAtiva } from '@/lib/studio/flags';
+import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Campanha' };
 export const dynamic = 'force-dynamic';
@@ -55,7 +56,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
   return (
     <>
       <p>
-        <Link href="/studio/campanhas">← Campanhas</Link>
+        <Link href="/studio/campanhas"><Seta direcao="esquerda" /> Campanhas</Link>
       </p>
       <h1>{c.name}</h1>
       <p>
@@ -119,7 +120,7 @@ export default async function CampanhaPage({ params, searchParams }: { params: P
             <ol className="st-issues">
               {[...c.history].reverse().map((h, i) => (
                 <li key={i}>
-                  {h.from ?? '—'} → {h.to} · {h.at.slice(0, 16).replace('T', ' ')}
+                  {h.from ?? '—'} <Seta /> {h.to} · {h.at.slice(0, 16).replace('T', ' ')}
                   {h.note ? ` · ${h.note}` : ''}
                 </li>
               ))}

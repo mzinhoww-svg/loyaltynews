@@ -1,14 +1,18 @@
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { schema } from '@ln/db';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 
+// Estes testes exercitam o fluxo do lead: a rota pública só existe com a flag portalFormularios ligada (leads-flag.test.ts cobre os dois estados).
+vi.mock('../../../lib/portal-formularios', () => ({ formulariosAtivos: () => true }));
+
 // DP-43 por ambiente: aprovar criativo e levar campanha a approved/active pela API só vale onde a venda foi liberada (staging);
 // em produção é 409 SALE_DISABLED_IN_ENV (venda-ambiente.test.ts). Este arquivo exercita o fluxo de venda, então roda como staging.
 const APP_ENV_ANTES = process.env.APP_ENV;
-beforeAll(() => { process.env.APP_ENV = 'staging'; });
-afterAll(() => { if (APP_ENV_ANTES === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = APP_ENV_ANTES; });
+const CHAVE_ANTES = process.env.LN_ATTEMPT_HMAC_KEY;
+beforeAll(() => { process.env.APP_ENV = 'staging'; process.env.LN_ATTEMPT_HMAC_KEY ??= 'chave-de-teste-do-limite-32-bytes!!'; }); // staging falha fechada sem chave do limite (attempts.ts)
+afterAll(() => { if (APP_ENV_ANTES === undefined) delete process.env.APP_ENV; else process.env.APP_ENV = APP_ENV_ANTES; if (CHAVE_ANTES === undefined) delete process.env.LN_ATTEMPT_HMAC_KEY; else process.env.LN_ATTEMPT_HMAC_KEY = CHAVE_ANTES; });
 
 
 let app: Awaited<ReturnType<typeof makeApp>>;

@@ -105,9 +105,15 @@ async function call(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], t
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 const bad = (job: ArticleJob, stage: JobSpec['stage'], msg: string): StageOutcome =>
   blocked(job, stage, ['invalid_model_output'], [{ code: 'invalid_model_output', message: msg }]);
-const refused = (job: ArticleJob, stage: JobSpec['stage'], r: Extract<GatewayResponse, { ok: false }>): StageOutcome =>
-  blocked(job, stage, [r.refusal === 'no_independent_provider' ? 'cross_provider_check_failed' : 'budget_blocked'],
+const refused = (job: ArticleJob, stage: JobSpec['stage'], r: Extract<GatewayResponse, { ok: false }>): StageOutcome => {
+  // `pending_timeout` NÃO é falha permanente: a tarefa segue na fila e a mesma chave retoma a espera. Se virar
+  // `model_disabled`/`budget_blocked`, o `runFactory` para a rodada inteira (HALTING) e a revisão nunca é enfileirada.
+  if (r.detail?.startsWith('pending_timeout')) {
+    return blocked(job, stage, ['pending_timeout'], [{ code: 'pending_timeout', message: r.detail }]);
+  }
+  return blocked(job, stage, [r.refusal === 'no_independent_provider' ? 'cross_provider_check_failed' : 'budget_blocked'],
     [{ code: r.refusal, message: r.detail ?? r.refusal }]);
+};
 
 /** Evidência é dado não confiável: vai ao modelo só como string citada, nunca como instrução. */
 const untrusted = (evs: Evidence[]) => evs.map((e) => ({ id: e.id, sourceId: e.sourceId, tier: e.sourceTier ?? 'primary', title: e.title, text: e.text.slice(0, 6000), suspicious: e.suspicious }));
@@ -238,7 +244,13 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
   const rev = draftRevision(job, d);
   const r = await call(deps, job, 'factcheck', 'factcheck', 'review', 'WF02',
     { reviewedDraft: rev, ...reviewedRef(job), claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, [d.modelProvider], rev);
-  if (!r.ok) return refused(job, 'factcheck', r);
+  if (!r.ok) {
+    // Motivo registrado na linha do piloto: sem isso o timeout some como `budget_blocked` e a revisão não nasce.
+    if (r.detail?.startsWith('pending_timeout')) {
+      await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['pending_timeout'] });
+    }
+    return refused(job, 'factcheck', r);
+  }
   await markOutput(deps, job, 'factcheck', 'factcheck', r, { claimIds: d.claims.map((c) => c.id) });
   if (r.provider === d.modelProvider) {
     await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['cross_provider_check_failed'], cross_provider_ok: false });

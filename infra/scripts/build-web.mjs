@@ -7,7 +7,7 @@
 // Se não bater, o build FALHA (melhor parar que publicar um staging com URL errada). Mostra no log os valores efetivos (diagnóstico).
 // Uso (comando de build do app): node infra/scripts/guard-env.mjs && node infra/scripts/build-web.mjs
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { envProblems, VITRINE_BANNER, VITRINE_MARCADORES, ciDoRunnerAceito, LOG_CI_RUNNER } from './lib/guards.mjs';
@@ -45,6 +45,8 @@ if (direct) {
   const efetivo = { ...process.env, APP_ENV: appEnv };
   if (vitrine) efetivo.PORTAL_VITRINE = '1'; else delete efetivo.PORTAL_VITRINE;
   if (indexavel) efetivo.PORTAL_INDEXAVEL = '1'; else delete efetivo.PORTAL_INDEXAVEL;
+  // GA4: o ID de medição é constante de build e vem SÓ do release.json (nunca do painel nem do runner): ausente = a variável é apagada e o GA não existe no bundle
+  if (typeof releaseJson.gaId === 'string' && /^G-[A-Z0-9]{6,12}$/.test(releaseJson.gaId)) efetivo.NEXT_PUBLIC_GA_ID = releaseJson.gaId; else delete efetivo.NEXT_PUBLIC_GA_ID;
   // Opcao (e) do PM: o typecheck NAO roda dentro do build da Vertra (RAM); so quando o release.json o dispensa (o pacote exigiu o relatorio de typecheck verde do mesmo commit). O painel nunca decide.
   delete efetivo.LN_BUILD_SKIP_TYPECHECK;
   Object.assign(efetivo, typecheckEnv(releaseJson));
@@ -63,6 +65,17 @@ if (direct) {
     cwd: root, stdio: 'inherit', shell: win, env: { ...efetivo, NEXT_PUBLIC_SITE_URL: siteUrl },
   });
   if (r.status !== 0) process.exit(r.status ?? 1);
+
+  // Identidade do build: fica DENTRO do .next para o package-prebuilt provar que o .next é deste commit/ambiente.
+  // Sem isso, o empacotador não tem como recusar um .next de outro commit (o verde falso do bloqueio A).
+  const nextDir = join(root, 'apps', 'web', '.next');
+  const buildId = existsSync(join(nextDir, 'BUILD_ID')) ? readFileSync(join(nextDir, 'BUILD_ID'), 'utf8').trim() : null;
+  if (buildId) {
+    writeFileSync(join(nextDir, '.ln-build.json'), JSON.stringify({ schema: 1, commit: releaseJson.commit, appEnv, siteUrl, buildId, geradoEm: new Date().toISOString() }, null, 2) + '\n');
+    console.log(`[build-web] marca do build gravada (.next/.ln-build.json: commit ${String(releaseJson.commit).slice(0, 12)}, BUILD_ID ${buildId})`);
+  } else {
+    console.warn('[build-web] AVISO: apps/web/.next/BUILD_ID ausente: marca do build não gravada (o pré-construído será recusado)');
+  }
 
   const home = join(root, 'apps', 'web', '.next', 'server', 'app', 'index.html');
   if (!existsSync(home)) {

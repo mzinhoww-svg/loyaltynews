@@ -191,6 +191,15 @@ test.describe('mídia kit via API comercial', () => {
     await expect(semColeta).toContainText('Indisponível');
     const precos = page.getByTestId('mk-precos');
     await expect(precos.getByRole('row', { name: /Banner topo.*R\$ 3\.000\/mês.*Sob consulta/ })).toBeVisible();
+    // DP-54: formato disponível com canal desligado sai com a ressalva que veio da API — nunca "Disponível" puro.
+    const comRessalva = precos.getByRole('row', { name: /Banner entre seções.*Disponível para proposta, com ressalva/ });
+    await expect(comRessalva).toBeVisible();
+    await expect(comRessalva.getByTestId('mk-ressalva')).toContainText('a entrega só começa com o canal ativo');
+    // Ressalva vazia no dado: o formato aparece normalmente, sem ressalva, e a tabela continua inteira (não some).
+    const semRessalva = precos.getByRole('row', { name: /Banner rodapé/ });
+    await expect(semRessalva).toBeVisible();
+    await expect(semRessalva.getByTestId('mk-ressalva')).toHaveCount(0);
+    await expect(semRessalva).toContainText('Disponível');
     // "Banner meio" está na 2ª categoria (P3-5: recolhida por padrão): abre-se pelo título antes de conferir a linha
     await page.getByTestId('mk-preco-secao').nth(1).locator('summary').click();
     await expect(precos.getByRole('row', { name: /Banner meio.*Indisponível/ })).toBeVisible();

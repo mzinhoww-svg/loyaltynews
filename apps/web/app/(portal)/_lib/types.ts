@@ -199,6 +199,8 @@ export interface PersonRole {
   validTo: string | null;
   validatedAt: string;
   source: EvidenceSource;
+  /** A fonte declara o início (campo inicioDeclarado da API, M-04). Ausente = API antiga: o portal deduz pela data. */
+  startDeclared?: boolean;
   /** Período em texto livre vindo de uma correção do titular (DP-38); quando existe, substitui o período calculado. */
   periodText?: string;
   /** O cargo tem correção aplicada a pedido do titular. */
@@ -247,10 +249,15 @@ export interface PersonProfile {
   correctedByHolder?: boolean;
   mock?: boolean;
 }
-/** `available: false` = dados de pessoas desligados (flag `intelligencePessoas`, J-01): não é falha nem "sem registro". */
-export type PeopleDirectory = { status: 'ok'; items: PersonListItem[]; total: number; available: boolean } | { status: 'unavailable' };
+/**
+ * `available: false` = dados de pessoas desligados (flag `intelligencePessoas`, J-01): não é falha nem "sem registro".
+ * `withheld` = itens que EXISTEM na resposta mas não podem ser publicados nesta versão (só quando available=false). Separa
+ * "ainda não há perfis" (withheld ausente/0) de "existem perfis, ainda não publicados nesta versão" (>0), sem sumir com eles.
+ */
+export type PeopleDirectory = { status: 'ok'; items: PersonListItem[]; total: number; available: boolean; withheld?: number } | { status: 'unavailable' };
 export type PersonLookup = { status: 'ok'; person: PersonProfile } | { status: 'not_found' } | { status: 'unavailable' };
-export type MovesFeed = { status: 'ok'; items: MoveEntry[]; total: number; available: boolean } | { status: 'unavailable' };
+/** Mesma regra do diretório de pessoas: `withheld` = Moves existentes que não estão publicados nesta versão. */
+export type MovesFeed = { status: 'ok'; items: MoveEntry[]; total: number; available: boolean; withheld?: number } | { status: 'unavailable' };
 export type MoveLookup = { status: 'ok'; move: MoveEntry } | { status: 'not_found' } | { status: 'unavailable' };
 
 export type MetricState = 'ok' | 'unavailable' | 'stale';

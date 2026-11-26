@@ -1,5 +1,9 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EmptyState, PageHead } from './_components/ui';
+
+// 404 com a marca (cabeçalho e rodapé do portal), título próprio e fora do índice de busca.
+export const metadata: Metadata = { title: 'Página não encontrada', robots: { index: false, follow: true } };
 
 export default function NotFound() {
   return (

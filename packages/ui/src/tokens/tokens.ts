@@ -1,10 +1,10 @@
 /* GERADO por scripts/build-tokens.mjs — não editar.
- * Fonte: tokens/design.tokens.json (brandkit 2.0-draft.1, status "proposal_not_approved")
+ * Fonte: tokens/design.tokens.json (brandkit 2.0-draft.1, status "approved")
  * + tokens/extensions.json (derivados da frente 05; ver _nota). */
 
 export const meta = {
   "brandVersion": "2.0-draft.1",
-  "status": "proposal_not_approved"
+  "status": "approved"
 } as const;
 
 export const brandColors = {
@@ -43,8 +43,8 @@ export const colors = {
 } as const;
 
 export const typography = {
-  "ui": "Inter, Arial, sans-serif",
-  "editorial": "Georgia, Noto Serif, serif",
+  "ui": "Inter Variable, Inter, Arial, sans-serif",
+  "editorial": "Georgia, \"Noto Serif\", serif",
   "logo": "outlined Noto Serif Bold"
 } as const;
 

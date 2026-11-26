@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import '@ln/ui/styles.css';
 import './studio.css';
+import './entrada.css';
 
 // O Studio nunca é indexado nem aparece em sitemap.
 export const metadata: Metadata = {

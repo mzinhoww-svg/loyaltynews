@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { findModule } from '@/lib/studio/modules';
-import { ESTADOS, ROTULO_ALVO, ROTULO_ESTADO, ROTULO_PEDIDO, ROTULO_PRAZO, estadoDoFiltro, situacaoDoPrazo } from '@/lib/studio/titular-view';
+import { ESTADOS, ROTULO_ALVO, ROTULO_ESTADO, ROTULO_PEDIDO, ROTULO_PRAZO, estadoDoFiltro, protocoloDoPedido, situacaoDoPrazo } from '@/lib/studio/titular-view';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
@@ -26,7 +26,9 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
       <h1>Pedidos do titular</h1>
       <p>
         Pedidos de correção ou remoção enviados pelo canal público do titular (direito de resposta, DP-38) sobre pessoas, cargos e Moves. Só editor-chefe e
-        admin veem esta fila. A lista mostra só dados operacionais (prazo, alvo, estado e responsável); o texto do pedido, o nome e o contato do titular ficam no detalhe, e cada abertura do detalhe e cada decisão entram na trilha de auditoria.
+        admin veem esta fila. A lista mostra só dados operacionais (protocolo, prazo, alvo, estado e responsável); o protocolo é o número que o titular recebeu
+        e permite cruzar o contato dele com esta fila. O texto do pedido, o nome e o contato do titular ficam no detalhe, e cada abertura do detalhe e cada
+        decisão entram na trilha de auditoria.
       </p>
       <div className="st-alert" role="note" data-aviso="prazo-interno">
         O prazo mostrado é <strong>interno</strong> (15 dias corridos a partir do recebimento), não um prazo legal: o parecer jurídico ainda está pendente.
@@ -74,6 +76,7 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
             <tr>
               <th scope="col">Prazo interno</th>
               <th scope="col">Pedido</th>
+              <th scope="col">Protocolo</th>
               <th scope="col">Alvo</th>
               <th scope="col">Estado</th>
               <th scope="col">Responsável</th>
@@ -91,6 +94,9 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
                   <td>
                     <Link href={`/studio/correcoes-titular/${encodeURIComponent(p.id)}`}>{ROTULO_PEDIDO[p.pedido]}</Link>
                     <div className="st-hint">recebido em {data(p.recebido_em)}</div>
+                  </td>
+                  <td>
+                    <code data-protocolo>{protocoloDoPedido(p.id)}</code>
                   </td>
                   <td>{p.alvo ? `${ROTULO_ALVO[p.alvo.tipo]} ${p.alvo.id}` : <span className="st-hint">não identificado na URL</span>}</td>
                   <td>{ROTULO_ESTADO[p.estado]}</td>

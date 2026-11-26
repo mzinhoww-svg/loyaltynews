@@ -30,7 +30,7 @@ describe('audiência no formato do portal', () => {
     const state = createCommercialState();
     const kit = mediaKitPage(makeCtx(state, { now: NOW }));
     expect(kit.audience.realtime[0]!.state).toBe('unavailable');
-    expect(priceLabel(getFormat('banners--banner-topo')!)).toBe('R$ 3.000/mês'); // preços mantidos (DP-15)
+    expect(priceLabel(getFormat('banners--banner-topo')!)).toBe('R$ 1.200/mês'); // preço de lançamento (DP-56)
     expect(kit.blocks.catalogo.total).toBe(47);
     expect(kit.deliveryIntegrity).toEqual({ gaps: [], note: null });
   });

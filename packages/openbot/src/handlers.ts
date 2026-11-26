@@ -113,11 +113,23 @@ export function pilotAccounts(deps: Pick<OpenBotDeps, 'pilot'>): readonly Accoun
   return deps.pilot?.enabled ? deps.pilot.allowedAccounts ?? DP41_ACCOUNTS : null;
 }
 
-/** Rota efetiva: a rota do tipo, já sem as contas que o piloto não permite. Vazia = nenhuma via permitida (nada é despachado). */
+/**
+ * Conta designada pelo piloto (emenda de 26/11 a DP-41): os executores rodam OpenCode/DeepSeek. Vale quando o piloto usa o
+ * conjunto padrão de contas; `allowedAccounts` explícito é configuração do operador e mantém a ordem que ele pediu.
+ */
+export const PILOT_PRIMARY_ACCOUNT: Account = 'opencode';
+
+/** Rota efetiva: a do tipo, com a conta designada à frente no piloto, já sem as contas que ele não permite. Vazia = nada é despachado. */
 export function effectiveRoute(deps: Pick<OpenBotDeps, 'routes' | 'pilot'>, kind: string): Account[] {
   const allowed = pilotAccounts(deps);
-  const r = routeFor(deps, kind);
-  return allowed ? r.filter((a) => allowed.includes(a)) : r;
+  const designated = deps.pilot?.enabled && deps.pilot.allowedAccounts === undefined ? PILOT_PRIMARY_ACCOUNT : null;
+  const base = routeFor(deps, kind);
+  // A designação substitui a via, sem inventar reserva: só a pauta (classification) mantém a reserva que já tinha; as demais
+  // etapas ficam de via única na conta designada, como a DP-41 exigia das suas contas (redação, checagem, revisão, social).
+  const ordered = designated && allowed?.includes(designated)
+    ? (kind === 'classification' ? [designated, ...base.filter((a) => a !== designated)] : [designated])
+    : base;
+  return allowed ? ordered.filter((a) => allowed.includes(a)) : ordered;
 }
 
 /** Problemas de uma rota (vazia = válida): não vazia, só contas conhecidas, sem repetição e, na redação, uma só via. */
@@ -469,7 +481,7 @@ export async function dispatchTask(deps: OpenBotDeps, caller: Caller, raw: unkno
   if (!(ALLOWED_DATA_CLASSES as readonly string[]).includes(d.dataClass)) {
     return fail(422, 'DATA_CLASS_BLOCKED', 'classe de dado não liberada para o OpenBot', d.dataClass);
   }
-  const full = routeFor(deps, d.kind);
+  const full = effectiveRoute(deps, d.kind);
   const allowedAcc = pilotAccounts(deps);
   const route = d.route ?? effectiveRoute(deps, d.kind);
   const rp = routeProblems(d.kind, route);

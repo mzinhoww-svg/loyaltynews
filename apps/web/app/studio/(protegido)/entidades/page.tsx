@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { flagAtiva } from '@/lib/studio/flags';
 import { checkAccess, findModule } from '@/lib/studio/modules';
@@ -66,19 +67,14 @@ export default async function EntidadesPage({ searchParams }: { searchParams: Pr
 function Resultados({ emp, pes, q }: { emp: Awaited<ReturnType<typeof api.intelligence.empresas>>; pes: Awaited<ReturnType<typeof api.intelligence.executivos>>; q: string }) {
   if (ehErro(emp)) {
     return (
-      <div className="st-alert err" role="alert">
-        {mensagemErro(emp)}
-      </div>
+      <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(emp)} />
     );
   }
   const empresas = emp.body.items;
   const pessoas = ehErro(pes) ? [] : pes.body.items;
   if (empresas.length === 0 && pessoas.length === 0) {
     return (
-      <section className="st-empty" aria-labelledby="sem-res">
-        <h2 id="sem-res">Nenhum resultado</h2>
-        <p>Nenhum registro para &quot;{q}&quot;. Ausência de registro não prova inexistência.</p>
-      </section>
+      <EmptyState title="Nenhum resultado" description={`Nenhum registro para "${q}". Ausência de registro não prova inexistência.`} />
     );
   }
   return (

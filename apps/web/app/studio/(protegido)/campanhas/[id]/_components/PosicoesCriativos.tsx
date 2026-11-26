@@ -2,6 +2,7 @@ import { POSITIONS } from '@ln/commercial';
 import { ROTULO_DISPOSITIVO, dimensaoEsperada, varianteDoCriativo } from '@/lib/studio/criativo-dispositivo';
 import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { adicionarCriativoAction, definirPosicoesAction, aprovarCriativoAction, cancelarReservaAction, enviarArquivoCriativoAction, reservarPosicaoAction } from '../../actions';
+import { Seta } from '../../../../_components/Seta';
 
 export type ReservaLinha = { id: string; positionId: string; startDate: string; endDate: string; status: string };
 export type CriativoLinha = {
@@ -84,7 +85,7 @@ export function PosicoesCriativos(props: {
                 <tr key={r.id} data-reserva={r.id} data-status={r.status}>
                   <td>{r.positionId}</td>
                   <td>
-                    {r.startDate} → {r.endDate}
+                    {r.startDate} <Seta /> {r.endDate}
                   </td>
                   <td>{ESTADO_RESERVA[r.status] ?? r.status}</td>
                   {escreve ? (
@@ -172,7 +173,7 @@ export function PosicoesCriativos(props: {
                     </span>
                   );
                 })()}{' '}
-                · {cr.startDate} → {cr.endDate} · <span className="st-badge">{cr.approved ? 'aprovado' : 'não aprovado'}</span>
+                · {cr.startDate} <Seta /> {cr.endDate} · <span className="st-badge">{cr.approved ? 'aprovado' : 'não aprovado'}</span>
                 <div className="st-hint">
                   Arquivo:{' '}
                   {cr.asset ? `${cr.asset.mime}, ${cr.asset.width}x${cr.asset.height}, ${cr.asset.sizeKB} KB, sha256 ${cr.asset.sha256.slice(0, 12)}…` : 'nenhum'} · Alt:{' '}

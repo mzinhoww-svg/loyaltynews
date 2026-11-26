@@ -4,7 +4,7 @@ import { flags } from '../_lib/flags';
 import { getSource } from '../_lib/source';
 import type { AdSlotId } from '../_lib/types';
 import { AD_POSITION_OF } from '../_lib/ads';
-import { AdSlot, loadAdPlan, RankedList } from './ui';
+import { AdSlot, Arrow, loadAdPlan, RankedList } from './ui';
 
 /**
  * Barra lateral: "Em alta" (só quando há ranking real), anúncios reais e The Loyal (flag). Sem texto de vazio repetido.
@@ -23,7 +23,7 @@ export async function Sidebar({ compact = false, trending: showTrending = true }
           </h2>
           <RankedList items={trending} />
           <Link href="/em-alta" className="pt-more">
-            Ver ranking →
+            Ver ranking<Arrow />
           </Link>
         </section>
       )}

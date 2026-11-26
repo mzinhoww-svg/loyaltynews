@@ -269,7 +269,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "paywall": "unknown",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 8,
     "notes": "DP-29: fonte secundária (blog); fatos só com âncora em fonte primária. Classe D (classificação MECÂNICA do texto dos termos: o revisor humano lê o termo).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
@@ -280,8 +280,10 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": null,
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=D; nenhum link de termos de uso de conteúdo encontrado na home; sem feed identificado"
-    }
+      "notes": "classe=D; nenhum link de termos de uso de conteúdo encontrado na home; sem feed identificado Checagem de coleta 25/11/2026 (Editorial): cadastrado o sitemap-artigos.xml direto: o índice tem lastmod e o coletor leria só os 2 filhos mais recentes (páginas e simuladores, sem artigos). 517 artigos, o mais recente de 29/10/2026: baixa frequência."
+    },
+    "sitemapUrl": "https://investimentos.com.br/sitemap-artigos.xml",
+    "sitemapPathPrefix": "/artigos/"
   },
   {
     "id": "seu-dinheiro",
@@ -500,9 +502,9 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "editorias": [
       "bancos"
     ],
-    "host": "www.meubolsoemdia.com.br",
+    "host": "meubolsoemdia.com.br",
     "pathPrefix": null,
-    "listingUrl": "https://www.meubolsoemdia.com.br/",
+    "listingUrl": "https://meubolsoemdia.com.br/",
     "feedUrl": null,
     "termsUrl": "https://pefmbddiag.blob.core.windows.net/cdn-pi/termos_consentimento.pdf",
     "termsStatus": "pending",
@@ -511,7 +513,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "paywall": "unknown",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 8,
     "notes": "DP-29: fonte secundária (blog); fatos só com âncora em fonte primária. Classe D (classificação MECÂNICA do texto dos termos: o revisor humano lê o termo).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
@@ -522,8 +524,10 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=D; termos lidos, sem vedação nem permissão sobre reprodução de conteúdo; sem feed identificado"
-    }
+      "notes": "classe=D; termos lidos, sem vedação nem permissão sobre reprodução de conteúdo; sem feed identificado Checagem de coleta 25/11/2026 (Editorial): o site responde no domínio sem www (200, sem redirecionar) e o sitemap.xml lista só URLs desse domínio, que o coletor não aceitaria com o host antigo; o host da fonte passou para meubolsoemdia.com.br. Sitemap com 777 URLs e lastmod real, o mais recente de 25/11/2026; prefixo /Materias/ (reportagens). Sem feed RSS."
+    },
+    "sitemapUrl": "https://meubolsoemdia.com.br/sitemap.xml",
+    "sitemapPathPrefix": "/Materias/"
   },
   {
     "id": "meio-e-mensagem",
@@ -841,7 +845,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": null,
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=D; nenhum link de termos de uso de conteúdo encontrado na home; sem feed identificado"
+      "notes": "classe=D; nenhum link de termos de uso de conteúdo encontrado na home; sem feed identificado Checagem de coleta 25/11/2026 (Editorial): o \"sem item em 30 dias\" da checagem veio do filho de sitemap que ela escolheu: o blog-sitemap.xml e o glossary-sitemap.xml têm lastmod de 25/11/2026 (o coletor lê os 2 filhos mais recentes do índice). Não há feed. Fonte ativa."
     }
   },
   {
@@ -1150,7 +1154,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": null,
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=E; página de termos sem texto no HTML (provável JavaScript); sem feed identificado"
+      "notes": "classe=E; página de termos sem texto no HTML (provável JavaScript); sem feed identificado Checagem de coleta 25/11/2026 (Editorial): o robots.txt declara https://administradores.com.br/sitemap.xml, mas o site (com e sem www) devolve HTTP 400 ao nosso agente em 25/11/2026. Não cadastrado."
     }
   },
   {
@@ -1166,8 +1170,8 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "pathPrefix": null,
     "listingUrl": "https://onemileatatime.com/",
     "feedUrl": null,
-    "sitemapUrl": "https://onemileatatime.com/sitemap_index.xml",
-    "sitemapPathPrefix": null,
+    "sitemapUrl": "https://onemileatatime.com/news-sitemap.xml",
+    "sitemapPathPrefix": "/news/",
     "termsUrl": "https://onemileatatime.com/terms-of-use/",
     "termsStatus": "pending",
     "urlVerified": false,
@@ -1175,7 +1179,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
     "paywall": "unknown",
     "enabled": false,
     "imageRights": null,
-    "maxRequestsPerHour": 6,
+    "maxRequestsPerHour": 8,
     "notes": "DP-29: fonte secundária (blog); fatos só com âncora em fonte primária. Classe C (classificação MECÂNICA do texto dos termos: o revisor humano lê o termo).",
     "verification": {
       "researchedBy": "ln-editorial-engineer",
@@ -1186,7 +1190,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); sem feed identificado"
+      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); sem feed identificado Checagem de coleta 25/11/2026 (Editorial): o blog está ativo (o \"último item 2013\" da checagem veio do lastmod de um filho do índice de sitemap). O robots.txt PROÍBE o feed (Disallow: */feed/), então NÃO há feedUrl; o coletor lê o news-sitemap.xml (5.688 URLs sob /news/, a mais recente de 25/11/2026), permitido pelo robots.txt."
     }
   },
   {
@@ -1534,7 +1538,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); feed com 10 itens (mais recente 2024-07-25)"
+      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); feed com 10 itens (mais recente 2024-07-25) Checagem de coleta 25/11/2026 (Editorial): feed relido em 25/11/2026: o último item é de 25/07/2024 e o sitemap, de 30/07/2024; sem URL nova. O site parou de publicar em 2024: tratar como inativa (baixa frequência extrema), não como feed quebrado."
     }
   },
   {
@@ -1781,7 +1785,7 @@ export const SEED_BLOG_SOURCES: Source[] = [
       "termsFetchedAt": "2026-11-23",
       "consultedAt": "2026-11-23",
       "imageRightsNote": "Nenhuma base de direito de imagem registrada; a fábrica não usa imagem de blog (regra D08).",
-      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); sem feed identificado"
+      "notes": "classe=C; o texto dos termos contém vedação (reprodução/cópia/automação); sem feed identificado Checagem de coleta 25/11/2026 (Editorial): o \"sem item em 30 dias\" da checagem veio do filho de sitemap que ela escolheu (post-sitemap2.xml, de 2012): o post-sitemap10.xml tem lastmod de 24/11/2026. Não há feed. Fonte ativa."
     }
   },
   {

@@ -1,4 +1,4 @@
-// Repositório do módulo comercial: hidrata o contexto do domínio (@ln/commercial) a partir do PostgreSQL
+﻿// Repositório do módulo comercial: hidrata o contexto do domínio (@ln/commercial) a partir do PostgreSQL
 // (schema em @ln/db/schema/commercial.ts) pela API oficial `load()`/`snapshot()` e persiste só o que o handler
 // mudou (diferença linha a linha). Leituras: sem lock. Escritas: uma transação com lock consultivo
 // (pg_advisory_xact_lock), então reservas e transições se serializam. Carrega as tabelas inteiras por requisição
@@ -49,14 +49,26 @@ export async function seedCommercial(db: Db): Promise<void> {
 
 const num = (v: string | null): number | null => (v === null ? null : Number(v));
 const iso = (d: Date): string => d.toISOString();
+const isoOrNull = (d: Date | null): string | null => (d ? d.toISOString() : null);
 const ZERO = (): DeliveryCounters => ({ served: 0, visible: 0, clicks: 0, ignoredBotOrInternal: 0, refreshSuppressed: 0 });
 
-/** Catálogo: o código define o formato; o banco (ajustável no admin) manda no estado de disponibilidade. */
+/**
+ * O seed grava o estado que o CÓDIGO dava ao formato naquele momento (CATALOG, sem liberação de ambiente) e o motivo padrão do código.
+ * Um 'indisponivel' gravado com exatamente esse motivo é cópia do código, não uma retirada de alguém: sem isso, os 14 formatos de canal
+ * desligado ficariam 'indisponivel' para sempre mesmo depois da liberação do proprietário (DP-54). Uma retirada deliberada grava o próprio
+ * motivo (SQL de operação) e continua rebaixando; se o texto padrão do código mudar um dia, a linha antiga passa a valer como retirada
+ * (falha fechada).
+ */
+const seedPadrao = (id: string, r: { disponibilidade: string; motivoDisponibilidade: string }): boolean =>
+  r.disponibilidade === 'indisponivel' && r.motivoDisponibilidade === (CATALOG.find((x) => x.id === id)?.statusReason || 'Sem capacidade operacional declarada.');
+
+/** Catálogo: o código define o formato; o banco (ajustável por operação) manda no estado de disponibilidade. */
 async function loadCatalog(db: Db, env: FlagEnv | null): Promise<CommercialFormat[]> {
   const byFmt = new Map((await db.select().from(schema.adFormats)).map((f) => [f.id, f]));
   return catalogFor(env).map((f) => {
     const r = byFmt.get(f.id);
-    return { ...f, ...resolveFormatStatus(f, r ? { status: r.disponibilidade, reason: r.motivoDisponibilidade } : undefined) };
+    const gravado = r && !seedPadrao(f.id, r) ? { status: r.disponibilidade, reason: r.motivoDisponibilidade } : undefined;
+    return { ...f, ...resolveFormatStatus(f, gravado) };
   });
 }
 
@@ -181,7 +193,7 @@ export async function hydrate(db: Db, now: Date = new Date(), env: FlagEnv | nul
   const leadList: Lead[] = leads.map((l) => ({
     id: l.id, name: l.nome, company: l.empresa, email: l.email, whatsapp: l.whatsapp, formatIds: l.formatoIds as string[],
     objective: l.objetivo, message: l.mensagem ?? '', newsletterOptIn: l.optInNewsletter, status: l.status,
-    createdAt: iso(l.criadoEm), accountId: l.contaId, consentAt: iso(l.consentimentoEm),
+    createdAt: iso(l.criadoEm), accountId: l.contaId, discardedAt: isoOrNull(l.descartadoEm), consentAt: iso(l.consentimentoEm),
   }));
   const accountList: Account[] = accs.map((a) => ({
     id: a.id, name: a.nome, leadIds: leadList.filter((l) => l.accountId === a.id).map((l) => l.id), createdAt: iso(a.criadoEm),
@@ -293,7 +305,7 @@ export function rowsOf(s: CommercialState): Rows {
     leads: crm.leads.map((l) => ({
       id: l.id, nome: l.name, empresa: l.company, email: l.email, whatsapp: l.whatsapp, formatoIds: l.formatIds, objetivo: l.objective,
       mensagem: l.message || null, optInNewsletter: l.newsletterOptIn, consentimentoEm: new Date(l.consentAt), classeDeDado: 'personal',
-      status: l.status, contaId: l.accountId, criadoEm: new Date(l.createdAt),
+      status: l.status, contaId: l.accountId, criadoEm: new Date(l.createdAt), descartadoEm: l.discardedAt ? new Date(l.discardedAt) : null,
     })),
     opportunities: crm.opportunities.map((o) => ({
       id: o.id, contaId: o.accountId, leadId: o.leadId, titulo: o.title, formatoIds: o.formatIds, estagio: o.stage, motivoPerda: o.lostReason,
@@ -383,3 +395,4 @@ async function syncPositions(db: Db, after: Row[], before: Row[]): Promise<void>
   const rows = after.filter((r) => ids.includes(String(r.campanhaId))).map(({ campanhaId, slotId, ordem }) => ({ campanhaId, slotId, ordem }));
   if (rows.length) await db.insert(schema.campaignPositions).values(rows as never);
 }
+

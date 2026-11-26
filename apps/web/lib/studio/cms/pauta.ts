@@ -1,5 +1,5 @@
-// Pauta AUTORAL (DP-29) no Studio: a redação propõe, âncoras em fontes PRIMÁRIAS habilitadas, a fábrica (worker) redige e a matéria cai na
-// fila de revisão comum. Funções puras; quem valida de verdade é o Backend (POST /api/studio/editorial/pautas, zod estrito, âncora em fonte
+// Pauta AUTORAL (DP-29) no Studio: a redação propõe, âncoras em fontes PRIMÁRIAS habilitadas, a Fábrica editorial redige em comando próprio
+// (editorial-factory --autoral, hoje só em simulação) e a matéria cai na fila de revisão comum. Funções puras; quem valida de verdade é o Backend (POST /api/studio/editorial/pautas, zod estrito, âncora em fonte
 // primária do cadastro). Aqui só se evita mandar o que já se sabe inválido e se descreve o estado.
 
 /** Fonte do registro da Fábrica (GET /sources), no que a pauta usa. */
@@ -95,9 +95,9 @@ export interface PautaVista {
 
 export type EstadoPauta = 'fila' | 'aprovada' | 'bloqueada' | 'outro';
 
-/** Estado para a tela: na fila (o worker ainda não processou), aprovada (matéria na revisão) ou bloqueada (com os motivos). */
+/** Estado para a tela: pendente (a Fábrica editorial ainda não rodou o comando), aprovada (matéria na revisão) ou bloqueada (com os motivos). */
 export function estadoDaPauta(p: PautaVista): { chave: EstadoPauta; rotulo: string } {
-  if (p.estado === 'pendente') return { chave: 'fila', rotulo: 'Na fila (aguardando o worker)' };
+  if (p.estado === 'pendente') return { chave: 'fila', rotulo: 'Pendente (aguardando a Fábrica editorial rodar em comando próprio)' };
   const s = p.resultado?.status ?? '';
   if (s === 'aprovado') return { chave: 'aprovada', rotulo: 'Aprovada (matéria na fila de revisão)' };
   if (s === 'bloqueado') return { chave: 'bloqueada', rotulo: 'Bloqueada' };

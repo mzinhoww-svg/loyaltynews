@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { schema } from '@ln/db';
+import { auditIp } from './attempts';
 import type { Db } from './types';
 
 export interface AuditEntry {
@@ -36,7 +37,7 @@ export async function audit(db: Db, e: AuditEntry): Promise<void> {
     action: e.action,
     resource: e.resource,
     resourceId: e.resourceId ?? null,
-    ip: e.ip ?? null,
+    ip: auditIp(e.ip), // LGPD: só o HMAC do IP (h1:<hex>); o log é append-only e o IP cru nunca entra
     detalhe: e.detalhe === undefined ? null : redact(e.detalhe),
   });
 }

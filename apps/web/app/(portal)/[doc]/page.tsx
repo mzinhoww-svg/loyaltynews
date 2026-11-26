@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PageHead } from '../_components/ui';
+import { Arrow, PageHead } from '../_components/ui';
+import { CONTATO_EMAIL } from '../_lib/contato';
 import { INFO_DOCS, INFO_SLUGS } from '../_lib/institutional';
 import { PedidoTitularForm } from '../_titular/PedidoTitularForm';
 
@@ -32,7 +33,7 @@ export default async function InfoPage({ params }: Props) {
         </p>
       )}
       {d.sections.map((s) => (
-        <section key={s.heading} className="pt-section" style={{ margin: '24px 0' }}>
+        <section key={s.heading} id={s.heading === 'Cookies e medição' ? 'cookies' : undefined} className="pt-section" style={{ margin: '24px 0' }}>
           <h2>{s.heading}</h2>
           {s.paragraphs?.map((p) => <p key={p}>{p}</p>)}
           {s.items && (
@@ -42,11 +43,17 @@ export default async function InfoPage({ params }: Props) {
           )}
         </section>
       ))}
+      {d.slug === 'contato' && (
+        <p>
+          <a href={`mailto:${CONTATO_EMAIL}`} className="ln-btn ln-btn--primary pt-tap" data-testid="contato-email">Escrever para {CONTATO_EMAIL}</a>{' '}
+          <Link href="/midia-kit" className="pt-more">Mídia kit →</Link>
+        </p>
+      )}
       {d.slug === 'sobre' && (
         <p>
-          <Link href="/metodologia" className="pt-more">Metodologia →</Link>{' '}
-          <Link href="/politica-editorial" className="pt-more">Política editorial →</Link>{' '}
-          <Link href="/correcoes" className="pt-more">Correções →</Link>
+          <Link href="/metodologia" className="pt-more">Metodologia<Arrow /></Link>{' '}
+          <Link href="/politica-editorial" className="pt-more">Política editorial<Arrow /></Link>{' '}
+          <Link href="/correcoes" className="pt-more">Correções<Arrow /></Link>
         </p>
       )}
       {d.slug === 'correcoes' && (

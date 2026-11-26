@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { schema } from '@ln/db';
 import { PgLeaseQueue, PgTaskIo } from '@ln/workers/openbot-pg';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
@@ -155,6 +158,30 @@ describe('borda da Vertra: 5xx sem corpo da API', () => {
 });
 
 describe('423 Locked (PM-2026-11-23-I): o LN travado de propósito', () => {
+  it('done sem --started-at usa a hora do pull: duração maior que 1 s com LN_AGENT_STATE_DIR', async () => {
+    await seed(25);
+    const dir = mkdtempSync(join(tmpdir(), 'ln-cli-'));
+    try {
+      const e = env('codex', { LN_AGENT_STATE_DIR: dir });
+      let nowMs = app.clock.now.getTime();
+      const io2 = { ...io(), now: () => nowMs };
+      const pulled = await run(['pull'], e, io2 as never);
+      const t = pulled.tasks[0];
+      const res = await run(['result', '--task', t.id, '--lease', t.leaseId, '--file', '/tmp/result.json'], e, io2 as never);
+      let sent: any = null;
+      const capture = (async (url: string, init: RequestInit) => {
+        if (String(url).endsWith('/callback')) sent = JSON.parse(String(init.body));
+        return fetchImpl(url as never, init);
+      }) as unknown as typeof fetch;
+      nowMs += 5_000;
+      await run(['done', '--task', t.id, '--lease', t.leaseId, '--result-ref', res.resultRef, '--model', 'gpt-5.1-codex', '--stage', 'factcheck'], e, { ...io2, fetchImpl: capture } as never);
+      expect(sent.trace.startedAt).toBe(new Date(app.clock.now.getTime()).toISOString());
+      expect(Date.parse(sent.trace.endedAt) - Date.parse(sent.trace.startedAt)).toBeGreaterThan(1_000);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('DISPATCH_OFF, KILL_SWITCH e PILOT_STOPPED em 423 com corpo JSON mantêm o código da API e mandam PARAR o ciclo (stop), sem repetir em laço', async () => {
     for (const code of ['DISPATCH_OFF', 'KILL_SWITCH', 'PILOT_STOPPED']) {
       let calls = 0;
@@ -333,7 +360,7 @@ describe('segurança do cliente', () => {
   it('configuração recusada antes de qualquer rede: sem segredo, URL http, conta fora da DP-41, flag desconhecida (nunca --secret)', async () => {
     expect(await refusal(cli(['pull'], { LN_API_BASE: BASE, LN_AGENT_ACCOUNT: 'codex' }))).toBe('config');
     expect(await refusal(cli(['pull'], env('codex', { LN_API_BASE: 'http://staging.exemplo.example/api/openbot' })))).toBe('config');
-    for (const account of ['opencode', 'antigravity', '', 'deterministic']) expect(await refusal(cli(['pull'], env(account))), account).toBe('config');
+    for (const account of ['antigravity', '', 'deterministic']) expect(await refusal(cli(['pull'], env(account))), account).toBe('config');
     expect(await refusal(cli(['pull', '--secret', 'abc']))).toBe('uso');
     expect(await refusal(cli(['pull', '--limit', '99']))).toBe('uso');
     expect(await refusal(cli(['done', '--task', 'a b', '--lease', 'l', '--result-ref', 'r', '--model', 'm', '--stage', 'factcheck']))).toBe('uso');

@@ -169,7 +169,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Pedidos de titulares de dados',
-        paragraphs: ['Para pedir correção ou remoção de dados pessoais, use o formulário desta página (/correcoes#pedido): ele pede só seu nome, um e-mail para resposta, o endereço da página, o tipo do pedido e a descrição. Os direitos e as bases legais estão na página de privacidade e LGPD.'],
+        paragraphs: ['Para pedir correção ou remoção de dados pessoais exibidos no portal, use o formulário desta página (/correcoes#pedido). A resposta chega ao e-mail informado em até 15 dias corridos, com um protocolo para acompanhar. O formulário não cobre acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de consentimento nem descadastro da newsletter; para esses direitos, use o canal do encarregado indicado na página de Privacidade e LGPD, que lista os direitos e as bases legais.'],
       },
       {
         heading: 'Histórico de correções',
@@ -205,14 +205,15 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
         items: [
           'Para que usamos: responder ao pedido de proposta ou de mídia kit e conduzir a negociação comercial.',
           'Base legal: procedimentos preliminares a um contrato, a pedido do titular (LGPD, art. 7º, V). A newsletter, que é opcional, só é enviada com consentimento separado (art. 7º, I), e o descadastro é possível a qualquer momento.',
-          'Quanto tempo guardamos: nossa política é guardar o pedido que não vira contrato por até 12 meses depois do último contato, e o pedido descartado por 30 dias; a rotina que aplica esse apagamento ainda está sendo implantada. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
+          'Quanto tempo guardamos: nossa política é guardar o pedido que não vira contrato por até 12 meses depois do último contato, e o pedido descartado por 30 dias; o apagamento é automático. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
           'Quem acessa: só a equipe comercial e a administração do portal. Não vendemos esses dados.',
         ],
       },
       {
         heading: 'Endereço IP e segurança',
         paragraphs: [
-          'Para limitar tentativas de login e de envio dos formulários públicos e proteger o portal contra abuso, usamos o endereço IP de quem acessa, com base no legítimo interesse em segurança e prevenção a fraude (LGPD, art. 7º, IX). O IP é registrado nas tentativas de login e de envio dos formulários e nos registros de segurança e de auditoria do sistema, e é usado só para essa finalidade. Ainda não definimos por quanto tempo ele é guardado; o prazo será informado aqui.',
+          'Para limitar tentativas de login e de envio dos formulários públicos e proteger o portal contra abuso, usamos o endereço IP de quem acessa, com base no legítimo interesse em segurança e prevenção a fraude (LGPD, art. 7º, IX). Nas contagens de tentativas de login e de envio dos formulários, o IP não é guardado em claro: ele vira um código irreversível, apagado em até 24 horas depois do fim da contagem ou do bloqueio.',
+          'No registro de auditoria do sistema (quem fez o quê no painel interno) guardamos só o código do IP, nunca o número, por 12 meses. Esse código é um pseudônimo e continua sendo dado pessoal: quem tem a chave do sistema consegue ligá-lo ao IP original.',
           'A empresa que hospeda o portal pode registrar IPs nos registros de acesso dela. O que ela guarda e por quanto tempo ainda será confirmado e informado aqui.',
         ],
       },
@@ -231,7 +232,13 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Cookies e medição',
-        paragraphs: ['A medição de audiência (GA4) só será ativada com aviso e controle de preferências compatíveis com a LGPD.'],
+        paragraphs: [
+          'Medimos a audiência com o Google Analytics 4 (Google LLC) para saber quais páginas são lidas e de onde vêm os leitores, em números agregados. Ele grava cookies no seu navegador (como _ga e _ga_<ID>, por até 2 anos) e envia dados de navegação ao Google.',
+          'Os cookies analíticos só são ativados se você clicar em "Aceitar cookies analíticos" no aviso. Sem o aceite, ou se o seu navegador enviar o sinal Global Privacy Control ou Do Not Track, nada é enviado ao Google. A medição não roda fora do site de produção.',
+          'Configuramos o GA4 sem dado pessoal: endereço IP anonimizado, sem sinais de publicidade nem personalização de anúncios, e o endereço da página é enviado sem os parâmetros (o que você digita em busca ou formulário não vai ao Google).',
+          'Você pode mudar ou revogar a escolha a qualquer momento pelo link "Preferências de cookies" no rodapé. Revogar desliga a coleta a partir dali; os cookies já gravados podem ser apagados nas configurações do navegador.',
+          'Versão desta política de cookies: 25/11/2026. Quando ela mudar, pediremos sua escolha de novo.',
+        ],
       },
     ],
   },

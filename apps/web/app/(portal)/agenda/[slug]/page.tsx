@@ -4,9 +4,10 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { WithSidebar } from '../../_components/Sidebar';
 import { ErrorState } from '../../_components/states';
-import { MockTag, PageHead } from '../../_components/ui';
+import { Arrow, MockTag, PageHead } from '../../_components/ui';
 import { eventWhen, eventWhere } from '../../_lib/events';
 import { jsonLdString } from '../../_lib/jsonld';
+import { metadadosPagina } from '../../_seo/paginas';
 import { getSource } from '../../_lib/source';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -20,12 +21,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const { event: ev, unavailable } = await loadEvent(slug);
   if (!ev) return { title: unavailable ? 'Agenda' : 'Evento não encontrado', robots: { index: false } };
-  return {
+  return metadadosPagina({
     title: ev.title,
     description: `${ev.title} — ${eventWhen(ev)}, ${eventWhere(ev)}.`,
-    alternates: { canonical: `/agenda/${encodeURIComponent(ev.slug)}` },
-    robots: ev.mock ? { index: false, follow: false } : undefined,
-  };
+    path: `/agenda/${encodeURIComponent(ev.slug)}`,
+    noindex: ev.mock,
+  });
 }
 
 export default async function EventPage({ params }: Props) {
@@ -100,7 +101,7 @@ export default async function EventPage({ params }: Props) {
             )}
             <a className="ln-btn ln-btn--ghost" href={`/agenda/${encodeURIComponent(ev.slug)}/ics`}>Adicionar ao calendário (.ics)</a>
           </p>
-          <p><Link href="/agenda" className="pt-more">← Voltar à agenda</Link></p>
+          <p><Link href="/agenda" className="pt-more"><Arrow direcao="esquerda" /> Voltar à agenda</Link></p>
         </div>
       </WithSidebar>
     </>

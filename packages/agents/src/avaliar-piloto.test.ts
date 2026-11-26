@@ -15,10 +15,11 @@ const run = (...args: string[]) => {
 const tmp = mkdtempSync(join(tmpdir(), 'avaliar-piloto-'));
 const escreve = (nome: string, conteudo: string) => {
   const p = join(tmp, nome);
-  writeFileSync(p, conteudo, 'utf8');
+  const marca = conteudo && !conteudo.startsWith('#') && !conteudo.startsWith('\uFEFF') ? '# amostra_desde=2026-01-01T00:00:00.000Z\n' : '';
+  writeFileSync(p, marca + conteudo, 'utf8');
   return p;
 };
-const fixText = () => readFileSync(FIX('simulado-aprovado-so-31-colunas.csv'), 'utf8').replace(/^\uFEFF/, '');
+const fixText = () => readFileSync(FIX('simulado-aprovado-so-31-colunas.csv'), 'utf8').replace(/^\uFEFF/, '').replace(/^# amostra_desde=[^\n]*\n/, '');
 
 describe('avaliar-piloto: veredito e código de saída sobre o CSV exportado', () => {
   it('CSV aprovado (31 colunas do AgentOps + 7 do Studio ignoradas): APROVADO, saída 0, com limite medido e output_valid em destaque', () => {
@@ -159,6 +160,24 @@ describe('avaliar-piloto: CSV malformado e erros de uso falham fechado (saída 1
   it('o cabeçalho esperado é exatamente o do avaliador (31 colunas)', () => {
     const cab = fixText().split('\n')[0]!.split(',');
     expect(cab.slice(0, 31)).toEqual([...PILOT_SHEET_COLUMNS]);
+  });
+
+  it('B3: CSV sem marcador de amostra é recusado', () => {
+    const sem = readFileSync(FIX('simulado-aprovado.csv'), 'utf8').replace(/^\uFEFF/, '').replace(/^# amostra_desde=[^\n]*\n/, '');
+    const p = join(tmp, 'sem-marcador.csv');
+    writeFileSync(p, sem, 'utf8');
+    const r = run('--csv', p);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/sem marcador de amostra/);
+  });
+
+  it('B3: CSV com linha anterior ao marcador é recusado', () => {
+    const t = readFileSync(FIX('simulado-aprovado.csv'), 'utf8').replace(/^\uFEFF/, '');
+    const p = join(tmp, 'pre-resume.csv');
+    writeFileSync(p, t.replace(/^# amostra_desde=[^\n]*/, '# amostra_desde=2027-01-01T00:00:00.000Z'), 'utf8');
+    const r = run('--csv', p);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/fora da amostra/);
   });
 });
 

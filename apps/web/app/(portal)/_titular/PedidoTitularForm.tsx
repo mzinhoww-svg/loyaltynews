@@ -1,8 +1,12 @@
 'use client';
 
 import { Button, Input } from '@ln/ui';
+import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { estadoDaResposta, ROTA_PEDIDO, urlDoAlvo, validarPedido, type EstadoEnvio, type PedidoErros, type PedidoValores } from './pedido';
+import {
+  dataDoPrazo, estadoDaResposta, PRAZO_DIAS_RESPOSTA, reciboDaResposta, ROTA_PEDIDO, urlDoAlvo, validarPedido,
+  type EstadoEnvio, type PedidoErros, type PedidoValores, type ReciboPedido,
+} from './pedido';
 
 /** Botão de rádio com 24px (WCAG 2.5.8); a linha inteira (label, 44px) é a área de toque. Revisão visual int/012, P2-4. */
 const RADIO = { width: 24, height: 24, margin: 0, flex: 'none' } as const;
@@ -20,6 +24,7 @@ const MENSAGEM: Record<Exclude<EstadoEnvio, 'recebido'>, string> = {
 export function PedidoTitularForm() {
   const [erros, setErros] = useState<PedidoErros>({});
   const [estado, setEstado] = useState<'idle' | 'enviando' | EstadoEnvio>('idle');
+  const [recibo, setRecibo] = useState<ReciboPedido | null>(null);
   const [urlInicial, setUrlInicial] = useState('');
   // Pronto = hidratado: antes disso o clique faria o envio nativo do formulário (recarga, sem estado). O botão só habilita aqui.
   const [pronto, setPronto] = useState(false);
@@ -60,7 +65,10 @@ export function PedidoTitularForm() {
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ ...v, nome: v.nome.trim(), contato: v.contato.trim(), url: v.url.trim(), texto: v.texto.trim(), site: String(fd.get('site') ?? '') }),
       });
-      setEstado(estadoDaResposta(r.status));
+      const j = await r.json().catch(() => null);
+      const st = estadoDaResposta(r.status);
+      if (st === 'recebido') setRecibo(reciboDaResposta(j));
+      setEstado(st);
     } catch {
       setEstado('falha');
     }
@@ -70,10 +78,21 @@ export function PedidoTitularForm() {
     return (
       <div className="pt-panel" role="status" tabIndex={-1} ref={avisoRef} data-testid="pedido-recebido">
         <h3 style={{ marginTop: 0 }}>Pedido recebido</h3>
-        <p>
-          Seu pedido entrou na fila da redação e será analisado por uma pessoa. Responderemos no e-mail informado. Por segurança, não
-          mostramos aqui os dados enviados.
-        </p>
+        <p>Seu pedido entrou na fila da redação e será analisado por uma pessoa.</p>
+        {recibo ? (
+          <>
+            <p>
+              Protocolo: <strong data-testid="pedido-protocolo">{recibo.protocolo}</strong>
+            </p>
+            <p>
+              Prazo de resposta: até {recibo.prazoDias} dias corridos, ou seja, até {dataDoPrazo(recibo.prazoEm)}. Guarde o protocolo: ele
+              identifica o pedido no contato com a redação.
+            </p>
+          </>
+        ) : (
+          <p>Responderemos no e-mail informado.</p>
+        )}
+        <p>Por segurança, não mostramos aqui os dados enviados.</p>
       </div>
     );
   }
@@ -82,6 +101,17 @@ export function PedidoTitularForm() {
   return (
     <form onSubmit={enviar} noValidate aria-describedby={`${textoId}-legenda`} data-testid="pedido-form" data-pronto={pronto ? '1' : undefined} style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
       <p id={`${textoId}-legenda`} className="pt-meta" style={{ margin: 0 }}>Todos os campos marcados com * são obrigatórios.</p>
+      <div className="pt-panel" data-testid="pedido-escopo" style={{ display: 'grid', gap: 8 }}>
+        <p style={{ margin: 0 }}>
+          <strong>O que este canal cobre:</strong> correção ou remoção de dados pessoais exibidos nas páginas do portal.{' '}
+          <strong>Não cobre</strong> acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de
+          consentimento nem descadastro da newsletter; para esses direitos, use o canal do encarregado indicado na página de{' '}
+          <Link href="/privacidade">Privacidade e LGPD</Link>.
+        </p>
+        <p className="pt-meta" data-testid="pedido-prazo" style={{ margin: 0 }}>
+          Prazo de resposta: até {PRAZO_DIAS_RESPOSTA} dias corridos. Você recebe um protocolo para acompanhar.
+        </p>
+      </div>
       {(estado === 'invalido' || estado === 'muitos' || estado === 'falha') && (
         <div className="pt-panel" role="alert" tabIndex={-1} ref={avisoRef} data-testid="pedido-erro">
           {MENSAGEM[estado]}

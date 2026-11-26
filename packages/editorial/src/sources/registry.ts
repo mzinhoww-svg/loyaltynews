@@ -30,6 +30,13 @@ export class SourceRegistry {
     if (!s.host || /[\s*/]/.test(s.host)) throw new Error(`invalid host for ${s.id}`);
     if (s.pathPrefix && !/^\/[A-Za-z0-9._~\-/]+$/.test(s.pathPrefix)) throw new Error(`invalid pathPrefix for ${s.id}`);
     for (const e of s.editorias) if (!EDITORIAS.includes(e)) throw new Error(`unknown editoria ${e} in ${s.id}`);
+    if (s.sitemapPathExclude) {
+      if (s.sitemapPathExclude.length > 10) throw new Error(`sitemapPathExclude com mais de 10 padrões em ${s.id}`);
+      for (const p of s.sitemapPathExclude) {
+        if (!p || p.length > 120) throw new Error(`sitemapPathExclude inválido em ${s.id}: padrão vazio ou com mais de 120 caracteres`);
+        try { new RegExp(p); } catch { throw new Error(`sitemapPathExclude inválido em ${s.id}: expressão regular que não compila`); }
+      }
+    }
     this.byId.set(s.id, s);
   }
   get(id: string): Source | undefined { return this.byId.get(id); }

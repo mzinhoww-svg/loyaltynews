@@ -1245,6 +1245,38 @@ export function resolveFlags(env) {
   assert.equal(node('prova-flags-producao.mjs', []).status, 2);
 });
 
+test('prova-flags-producao (DP-57): produção liga EXATAMENTE PRODUCTION_FLAGS_ON e recusa a variável; resolvedor que ignora a lista ou aceita a variável reprova', () => {
+  const mk = ({ ignoraLista = false, aceitaVariavel = false } = {}) => {
+    const r = tmp();
+    mkdirSync(join(r, 'packages', 'contracts', 'src'), { recursive: true });
+    writeFileSync(join(r, 'packages', 'contracts', 'src', 'flags.ts'), `
+const OK = ['intelligencePessoas', 'portalFormularios'];
+export const PRODUCTION_FLAGS_ON = ['portalFormularios'];
+export function resolveFlags(env) {
+  const amb = String(env.APP_ENV ?? '').toLowerCase();
+  const state = {};
+  if (amb === 'production' && !${ignoraLista}) for (const n of PRODUCTION_FLAGS_ON) state[n] = true;
+  for (const n of String(env.LN_FLAGS_ON ?? '').split(',').filter(Boolean)) {
+    if (!OK.includes(n)) throw new Error('Subida recusada: flag desconhecida ' + n + ' em LN_FLAGS_ON (ADR-022)');
+    if (amb === 'production' && !PRODUCTION_FLAGS_ON.includes(n)) throw new Error('Subida recusada: flag ' + n + ' sem decisão para production (ADR-022)');
+    if (amb === 'production' && !${aceitaVariavel}) throw new Error('Subida recusada: flag ' + n + ' por LN_FLAGS_ON em production; em produção a flag liga só por commit (PRODUCTION_FLAGS_ON) (ADR-022)');
+    state[n] = true;
+  }
+  const on = Object.keys(state);
+  return { state, logLine: on.length ? 'flags ligadas: ' + on.join(',') : 'flags ligadas: nenhuma' };
+}
+`);
+    return r;
+  };
+  const bom = node('prova-flags-producao.mjs', ['--root', mk()]);
+  assert.equal(bom.status, 0, bom.stdout + bom.stderr);
+  assert.deepEqual(JSON.parse(bom.stdout).porCommit, ['portalFormularios']);
+  const ignora = node('prova-flags-producao.mjs', ['--root', mk({ ignoraLista: true })]);
+  assert.equal(ignora.status, 1, 'produção sem as flags por commit reprova');
+  const aceita = node('prova-flags-producao.mjs', ['--root', mk({ aceitaVariavel: true })]);
+  assert.equal(aceita.status, 1, 'produção que aceita LN_FLAGS_ON da flag por commit reprova');
+});
+
 test('smoke-staging: avaliarReady com o campo migracoes (ft/backend-2 19cd21e)', async () => {
   const { avaliarReady } = await import('../scripts/smoke-staging.mjs');
   const base = { status: 'ok', mode: 'completo', db: 'ok', redis: 'ok' };
@@ -1387,7 +1419,7 @@ test('limpar-node-modules: remove o node_modules sem atravessar junction (o alvo
 
 test('smoke-producao: produção limpa e não indexável passa; demonstração, flag ligada, indexável antes do go-live e Studio aberto reprovam', async () => {
   const SHA = 'a'.repeat(40);
-  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false };
+  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false, vazio: false, feed404: false };
   const s = await server((req, res) => {
     const u = req.url.split('?')[0];
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -1403,8 +1435,8 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     if (u === '/api/publico/intelligence/pessoas' || u === '/api/publico/intelligence/moves') return json(200, { data: [], total: 0, disponivel: estado.pessoas });
     if (['/', '/noticias', '/midia-kit', '/intelligence'].includes(u)) return html(200, meta + rot + 'ok');
     if (u === '/robots.txt') { res.writeHead(200, { 'content-type': 'text/plain' }); return res.end(estado.indexavel ? 'User-agent: *\nAllow: /\n' : 'User-agent: *\nDisallow: /\n'); }
-    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml' }); return res.end(estado.indexavel ? '<urlset><url><loc>https://x/</loc></url></urlset>' : '<urlset></urlset>'); }
-    if (u === '/feed.xml') { res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.indexavel ? '<item></item>' : '') + '</rss>'); }
+    if (u === '/sitemap.xml') { res.writeHead(200, { 'content-type': 'application/xml' }); return res.end(estado.indexavel && !estado.vazio ? '<urlset><url><loc>https://x/</loc></url></urlset>' : '<urlset></urlset>'); }
+    if (u === '/feed.xml') { if (estado.feed404) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': 'application/rss+xml' }); return res.end('<rss>' + (estado.indexavel && !estado.vazio ? '<item></item>' : '') + '</rss>'); }
     if (u === '/studio') { if (estado.studioAberto) return html(200, 'painel'); res.writeHead(307, { location: '/studio/entrar?motivo=NO_SESSION' }); return res.end(); }
     if (u === '/studio/entrar') return html(200, 'login');
     res.writeHead(404); res.end();
@@ -1427,6 +1459,23 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     estado.indexavel = true; assert.equal((await run()).status, 1, 'indexável antes do go-live reprova');
     assert.equal((await run(['--indexavel'])).status, 0, 'com --indexavel (go-live) passa'); estado.indexavel = false;
     assert.equal((await run(['--indexavel'])).status, 1, 'não indexável com --indexavel reprova');
+    // DP-54: go-live SEM matéria publicada: sitemap vazio e feed sem itens/404 só passam com a opção EXPLÍCITA --sem-conteudo-ainda; o resto continua exigido
+    estado.indexavel = true; estado.vazio = true;
+    assert.equal((await run(['--indexavel'])).status, 1, 'sitemap vazio reprova sem a opção explícita');
+    const vazioOk = await run(['--indexavel', '--sem-conteudo-ainda']);
+    assert.equal(vazioOk.status, 0, JSON.stringify(vazioOk.j?.checagens?.filter((c) => !c.ok)));
+    assert.ok(vazioOk.j.checagens.some((c) => /sem conteúdo ainda: aceito por --sem-conteudo-ainda/.test(c.nome)), 'o nome da checagem diz que foi aceito explicitamente');
+    estado.feed404 = true;
+    assert.equal((await run(['--indexavel'])).status, 1, 'feed 404 reprova sem a opção');
+    assert.equal((await run(['--indexavel', '--sem-conteudo-ainda'])).status, 0, 'feed 404 aceito com a opção explícita');
+    estado.feed404 = false;
+    estado.indexavel = false; // home com noindex e robots Disallow: a opção NÃO afrouxa o resto
+    assert.equal((await run(['--indexavel', '--sem-conteudo-ainda'])).status, 1, 'home noindex continua reprovando com a opção');
+    estado.indexavel = true; estado.demo = true;
+    assert.equal((await run(['--indexavel', '--sem-conteudo-ainda'])).status, 1, 'demonstração continua reprovando com a opção'); estado.demo = false;
+    estado.indexavel = false; estado.vazio = false;
+    const sozinha = await run(['--sem-conteudo-ainda']);
+    assert.equal(sozinha.status, 2, '--sem-conteudo-ainda sem --indexavel é uso errado');
   } finally { s.close(); }
 });
 
