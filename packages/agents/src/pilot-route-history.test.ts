@@ -57,8 +57,8 @@ describe('regra de via com vigência (parada de 26/11): linha antiga julgada pel
   });
 
   it('sem datas válidas vale a regra vigente (falha fechada)', () => {
-    const { started_at: _s, ended_at: _e, ...semDatas } = HISTORICAS[0]!;
-    expect(configInvalidOf(semDatas)).toEqual([REFUSED]);
+    const { task_id, attempt, stage, account, declared_model } = HISTORICAS[0]!;
+    expect(configInvalidOf({ task_id, attempt, stage, account, declared_model })).toEqual([REFUSED]);
     expect(refusedAlone({ ...HISTORICAS[0]!, ended_at: 'ontem' })).toContain(REFUSED);
   });
 
