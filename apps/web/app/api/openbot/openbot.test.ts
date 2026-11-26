@@ -62,6 +62,29 @@ afterAll(async () => {
   await app.close();
 });
 
+describe('lease pelo ambiente do servidor', () => {
+  it('LN_OPENBOT_LEASE_MS define o leaseMs do pull; sem a variável, 120000', async () => {
+    try {
+      process.env.LN_OPENBOT_LEASE_MS = '600000';
+      await queue().enqueue(task(1), app.clock.now);
+      const longo = await post(pull, { workerId: 'w1' });
+      expect(longo.status).toBe(200);
+      expect(longo.body.leaseMs).toBe(600_000);
+      const [t] = longo.body.tasks;
+      expect(Date.parse(t.leaseExpiresAt) - NOW()).toBe(600_000);
+      delete process.env.LN_OPENBOT_LEASE_MS;
+      await queue().enqueue(task(2), app.clock.now);
+      const padrao = await post(pull, { workerId: 'w2' });
+      expect(padrao.status).toBe(200);
+      expect(padrao.body.leaseMs).toBe(120_000);
+      const [t2] = padrao.body.tasks;
+      expect(Date.parse(t2.leaseExpiresAt) - NOW()).toBe(120_000);
+    } finally {
+      delete process.env.LN_OPENBOT_LEASE_MS;
+    }
+  });
+});
+
 describe('autenticação (HMAC no corpo cru)', () => {
   it('sem cabeçalhos, assinatura errada, corpo adulterado, janela de tempo e sem segredo configurado: 401, sem efeito', async () => {
     await queue().enqueue(task(1), app.clock.now);
