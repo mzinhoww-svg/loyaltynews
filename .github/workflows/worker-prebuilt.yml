@@ -17,6 +17,9 @@ on:
         options:
           - staging
           - production
+  push:
+    branches:
+      - ci/worker-prebuilt
 
 permissions:
   contents: read
@@ -30,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      LN_COMMIT: ${{ inputs.commit }}
-      LN_PERFIL: ${{ inputs.perfil }}
+      LN_COMMIT: ${{ inputs.commit || 'a725f4d806eafd9fb2706a9667d6116eb653bea0' }}
+      LN_PERFIL: ${{ inputs.perfil || 'staging' }}
     steps:
       - name: Validar as entradas
         run: |
