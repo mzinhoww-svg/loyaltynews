@@ -186,7 +186,7 @@ export interface CompanyProfile {
 
 /** `unavailable` = a API falhou: a página diz isso, não finge que não há empresas. */
 export type CompanyDirectory =
-  | { status: 'ok'; items: CompanyListItem[]; total: number; kinds: { kind: CompanyKind; total: number }[] }
+  | { status: 'ok'; items: CompanyListItem[]; total: number; kinds: { kind: CompanyKind; total: number }[]; offset: number; limit: number }
   | { status: 'unavailable' };
 export type CompanyLookup = { status: 'ok'; company: CompanyProfile } | { status: 'not_found' } | { status: 'unavailable' };
 
@@ -347,7 +347,7 @@ export interface PortalSource {
   /** Home, menus, SEO e links internos publicados no Studio; `null` quando a fonte não os tem (vazia, MOCK) ou a API falha. */
   getSiteConfig(): Promise<SiteConfig | null>;
   /** Diretório do Entity Intelligence (filtro por tipo e texto). */
-  getCompanyDirectory(filter?: { kind?: CompanyKind; q?: string }): Promise<CompanyDirectory>;
+  getCompanyDirectory(filter?: { kind?: CompanyKind; q?: string; offset?: number }): Promise<CompanyDirectory>;
   /** Empresa com relações declaradas e a fonte de cada uma. */
   getCompany(id: string): Promise<CompanyLookup>;
   /** Pessoas com cargos públicos vigentes (filtro por texto e empresa). */

@@ -1,5 +1,8 @@
 // MOCK de teste (e2e do portal, PORTAL_MODE=api): rotas públicas do Entity Intelligence. Nada aqui é real.
 // GET /api/publico/intelligence/empresas[/:id] — formato de fast-track/decisoes/contrato-publico-intelligence-portal.md (MOCK).
+// FAKE_API_INTEL=seed serve a SEED REAL v3 (29 organizações e 28 vínculos declarados) por seed-v3-fixture.mjs: mesmo
+// contrato, conjunto real, sem acesso ao staging. Os demais modos (full/vazio/sem-flag/retido) continuam MOCK.
+import { empresaDetalhe, listaEmpresas } from './seed-v3-fixture.mjs';
 const orgId = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const fonte = (n) => ({ nome: `Fonte de teste ${n} (MOCK)`, url: `https://fonte-${n}.invalid/pagina`, coletadoEm: '2026-11-23T00:00:00.000Z' });
 const orgs = [
@@ -84,7 +87,38 @@ function pessoasEMoves(u) {
   return null;
 }
 
+// FAKE_API_INTEL=seed: seed v3 real (29 organizações, 28 vínculos). Pessoas e Moves seguem vazios e indisponíveis:
+// a seed não tem pessoas (flag J-01) nem Moves, e dizer outra coisa seria inventar dado.
+function seed(u) {
+  if (u.pathname === '/api/publico/intelligence/empresas') {
+    return [200, listaEmpresas({
+      q: u.searchParams.get('q') ?? undefined,
+      tipo: u.searchParams.get('tipo') ?? undefined,
+      limit: Number(u.searchParams.get('limit') ?? 100),
+      offset: Number(u.searchParams.get('offset') ?? 0),
+    })];
+  }
+  const m = /^\/api\/publico\/intelligence\/empresas\/([^/]+)$/.exec(u.pathname);
+  if (m) {
+    const id = decodeURIComponent(m[1]);
+    if (!UUID.test(id)) return idInvalido();
+    const corpo = empresaDetalhe(id);
+    return corpo ? [200, corpo] : [404, { error: { code: 'not_found', message: 'empresa não encontrada' } }];
+  }
+  if (u.pathname === '/api/publico/intelligence/pessoas' || u.pathname === '/api/publico/intelligence/moves') {
+    return [200, { data: [], total: 0, disponivel: false }];
+  }
+  const item = /^\/api\/publico\/intelligence\/(pessoas|moves)\/([^/]+)$/.exec(u.pathname);
+  if (item) {
+    const id = decodeURIComponent(item[2]);
+    if (!UUID.test(id)) return idInvalido();
+    return [404, { error: { code: 'not_found', message: `${item[1] === 'pessoas' ? 'pessoa' : 'move'} não encontrado` } }];
+  }
+  return null;
+}
+
 export function intelligence(u) {
+  if (intelMode === 'seed') return seed(u);
   const pm = pessoasEMoves(u);
   if (pm) return pm;
   if (u.pathname === '/api/publico/intelligence/empresas') {

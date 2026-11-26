@@ -98,15 +98,28 @@ export function mapCompany(v: unknown): CompanyProfile | null {
   };
 }
 
-/** Filtro e contagem por tipo sobre uma lista já carregada (usado pelo MOCK e como reforço do filtro da API). */
-export function filterDirectory(all: CompanyListItem[], filter: { kind?: CompanyKind; q?: string } = {}): Extract<CompanyDirectory, { status: 'ok' }> {
+/** Página do diretório: 24 cabe no grid de 3 colunas sem empurrar o resto da página. */
+export const DIRETORIO_PAGINA = 24;
+
+/**
+ * Filtro e contagem por tipo sobre uma lista já carregada (usado pelo MOCK) e paginação local.
+ * `total` é o número de organizações que casam com o filtro, NÃO o número de itens desta página: sem isso a
+ * página mostraria "24 organizações" quando existem 29 e esconderia 5 sem avisar.
+ */
+export function filterDirectory(
+  all: CompanyListItem[],
+  filter: { kind?: CompanyKind; q?: string; offset?: number; limit?: number } = {},
+): Extract<CompanyDirectory, { status: 'ok' }> {
   const norm = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
   const q = filter.q ? norm(filter.q.trim()) : '';
   const byText = q ? all.filter((c) => norm(`${c.name} ${c.legalName}`).includes(q)) : all;
   const kinds = COMPANY_KINDS.map((kind) => ({ kind, total: byText.filter((c) => c.kind === kind).length })).filter((k) => k.total > 0);
-  const items = (filter.kind ? byText.filter((c) => c.kind === filter.kind) : byText).slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  return { status: 'ok', items, total: items.length, kinds };
+  const filtrados = (filter.kind ? byText.filter((c) => c.kind === filter.kind) : byText).slice().sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  const limit = Math.max(1, Math.trunc(filter.limit ?? DIRETORIO_PAGINA));
+  const offset = Math.max(0, Math.trunc(filter.offset ?? 0));
+  return { status: 'ok', items: filtrados.slice(offset, offset + limit), total: filtrados.length, kinds, offset, limit };
 }
+
 
 // ---------- pessoas, cargos e Moves (contrato-publico-intelligence-pessoas-moves.md) ----------
 
@@ -197,10 +210,13 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
   const { get, logFalha } = createApiHttp(baseUrl, fetchImpl);
   const WHAT = 'intelligence';
 
-  async function getCompanyDirectory(filter: { kind?: CompanyKind; q?: string } = {}): Promise<CompanyDirectory> {
-    const qs = new URLSearchParams({ limit: '100' });
+  async function getCompanyDirectory(filter: { kind?: CompanyKind; q?: string; offset?: number } = {}): Promise<CompanyDirectory> {
+    const limit = DIRETORIO_PAGINA;
+    const offset = Math.max(0, Math.trunc(filter.offset ?? 0));
+    const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) });
     const q = filter.q?.trim().slice(0, 100);
     if (q) qs.set('q', q);
+    if (filter.kind) qs.set('tipo', filter.kind);
     const res = await get(`/api/publico/intelligence/empresas?${qs}`, WHAT);
     if (!res) return { status: 'unavailable' };
     if (!res.ok) {
@@ -208,12 +224,34 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       return { status: 'unavailable' };
     }
     try {
-      const j = (await res.json()) as { data?: unknown };
+      const j = (await res.json()) as { data?: unknown; total?: unknown; tipos?: unknown };
       if (!Array.isArray(j.data)) throw new Error('formato');
       const items = j.data.map(mapCompanyItem).filter((c): c is CompanyListItem => c !== null);
       if (items.length < j.data.length) logFalha(WHAT, `${j.data.length - items.length} item(ns) inválido(s) descartado(s)`);
-      // O filtro de tipo é aplicado aqui sobre a lista inteira: assim a contagem de cada tipo nos chips é sempre consistente.
-      return filterDirectory(items, { kind: filter.kind });
+      // `total` é o que a API conta no banco; sem ele não dá para saber se a página está truncada. Não invento um total:
+      // uma resposta sem total inteiro coerente vira `unavailable` (a página diz que o diretório está indisponível).
+      const total = j.total;
+      if (typeof total !== 'number' || !Number.isInteger(total) || total < items.length) throw new Error('resposta sem total');
+      // Contagem por tipo vem de `tipos` (calculada no banco sobre o filtro de texto, sem o filtro de tipo): assim os
+      // chips seguem corretos na página 2 e não somem os tipos que não estão nela.
+      const kinds = (Array.isArray(j.tipos) ? j.tipos : [])
+        .map((t): { kind: CompanyKind; total: number } | null => {
+          if (!isObj(t)) return null;
+          const tipo = t.tipo;
+          const n = t.total;
+          if (typeof tipo !== 'string' || !(COMPANY_KINDS as readonly string[]).includes(tipo)) return null;
+          if (typeof n !== 'number' || !Number.isInteger(n) || n < 0) return null;
+          return { kind: tipo as CompanyKind, total: n };
+        })
+        .filter((t): t is { kind: CompanyKind; total: number } => t !== null);
+      if (!kinds.length) {
+        // API antiga sem `tipos`: cai para a contagem conhecida, mas só a do filtro — e a página deixa de prometer tipos
+        // que não vieram. Não é invenção: é o subconjunto que a resposta afirma.
+        logFalha(WHAT, 'resposta sem tipos; contagem por tipo limitada ao filtro');
+        return { status: 'ok', items, total, offset, limit, kinds: filter.kind ? [{ kind: filter.kind, total }] : [] };
+      }
+      if (filter.kind && !kinds.some((k) => k.kind === filter.kind)) kinds.push({ kind: filter.kind, total });
+      return { status: 'ok', items, total, offset, limit, kinds };
     } catch {
       logFalha(WHAT, 'resposta inválida');
       return { status: 'unavailable' };
