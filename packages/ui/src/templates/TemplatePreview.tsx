@@ -19,6 +19,12 @@ export interface TemplatePreviewProps {
   copy?: TemplatePreviewCopy;
   caption?: string;
   className?: string;
+  /**
+   * URL da Inter variável do próprio app (ex.: /fonts/inter-var.woff2). Só o PNG usa:
+   * a fonte é embutida no SVG rasterizado para o texto não cair em Arial.
+   * Cards do Growth (texto em curvas) não precisam dela.
+   */
+  fontUrl?: string;
   /** Avisa a tela depois de um download (formato já entregue ao usuário). */
   onExport?: (formato: "svg" | "png") => void;
 }
@@ -46,15 +52,47 @@ function baixar(blob: Blob, nome: string) {
   URL.revokeObjectURL(url);
 }
 
+const ERRO_FONTE = "fonte_indisponivel";
+const ERRO_FONTE_AUSENTE = "fonte_nao_configurada";
+const fontesCarregadas = new Map<string, Promise<string>>();
+
+/** Busca a fonte uma vez e devolve um data URI; falha alto para o PNG não sair com outra fonte. */
+async function fonteComoDataUri(url: string): Promise<string> {
+  let pendente = fontesCarregadas.get(url);
+  if (!pendente) {
+    pendente = (async () => {
+      const resposta = await fetch(url);
+      if (!resposta.ok) throw new Error(ERRO_FONTE);
+      const bytes = new Uint8Array(await resposta.arrayBuffer());
+      let binario = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) binario += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return `data:font/woff2;base64,${btoa(binario)}`;
+    })();
+    fontesCarregadas.set(url, pendente);
+    pendente.catch(() => fontesCarregadas.delete(url));
+  }
+  return pendente;
+}
+
 /** Converte o SVG em PNG no navegador (o rasterizador do servidor não é usado aqui). */
-async function svgParaPng(asset: TemplateAsset): Promise<Blob> {
-  const fonte = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(asset.svg)}`;
+async function svgParaPng(asset: TemplateAsset, fontUrl?: string): Promise<Blob> {
+  let svg = asset.svg;
+  if (/<text[\s>]/.test(svg)) {
+    if (!fontUrl) throw new Error(ERRO_FONTE_AUSENTE);
+    // @font-face dentro do SVG: o canvas recebe o documento isolado, então a fonte da página não vale.
+    const fonte = await fonteComoDataUri(fontUrl);
+    svg = svg.replace(
+      /(<svg[^>]*>)/,
+      `$1<style>@font-face{font-family:'Inter Variable';src:url(${fonte}) format('woff2');font-weight:100 900;font-style:normal}</style>`,
+    );
+  }
+  const origem = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   const img = new Image();
   img.decoding = "sync";
   await new Promise<void>((ok, falha) => {
     img.onload = () => ok();
     img.onerror = () => falha(new Error("o navegador não conseguiu desenhar o SVG"));
-    img.src = fonte;
+    img.src = origem;
   });
   const canvas = document.createElement("canvas");
   canvas.width = asset.width;
@@ -72,7 +110,7 @@ async function svgParaPng(asset: TemplateAsset): Promise<Blob> {
  * (com mock, brandStatus e brandVersion) e o TemplateImage, para o selo MOCK e o alt não sumirem.
  * O PNG é gerado no navegador; a tela decide se usa esta rota ou a rota de servidor do Studio.
  */
-export function TemplatePreview({ asset, copy, caption, className, onExport }: TemplatePreviewProps) {
+export function TemplatePreview({ asset, copy, caption, className, fontUrl, onExport }: TemplatePreviewProps) {
   const [mensagem, setMensagem] = useState("");
   const base = asset.filename?.trim() || `${asset.kind}-${asset.width}x${asset.height}`;
 
@@ -97,11 +135,18 @@ export function TemplatePreview({ asset, copy, caption, className, onExport }: T
 
   const baixarPng = async () => {
     try {
-      baixar(await svgParaPng(asset), nomeDeArquivo(base, "png"));
+      baixar(await svgParaPng(asset, fontUrl), nomeDeArquivo(base, "png"));
       setMensagem("PNG baixado.");
       onExport?.("png");
-    } catch {
-      setMensagem("Não foi possível gerar o PNG neste navegador. Use o SVG ou tente em outro navegador.");
+    } catch (erro) {
+      const motivo = erro instanceof Error ? erro.message : "";
+      if (motivo === ERRO_FONTE) {
+        setMensagem("Não foi possível carregar a fonte da marca; o PNG não foi gerado para não sair em Arial.");
+      } else if (motivo === ERRO_FONTE_AUSENTE) {
+        setMensagem("Esta peça usa texto com fonte: configure fontUrl para gerar o PNG sem cair em Arial.");
+      } else {
+        setMensagem("Não foi possível gerar o PNG neste navegador. Use o SVG ou tente em outro navegador.");
+      }
     }
   };
 
