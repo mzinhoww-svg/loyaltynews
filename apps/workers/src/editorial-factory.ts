@@ -226,7 +226,9 @@ export class ReprocessRefused extends Error {
 export function reprocessRefusal(a: { status: string; findings: Array<{ code: string }> }): string[] {
   const out: string[] = [];
   if (['aprovado', 'publicado', 'corrigido', 'despublicado'].includes(a.status)) out.push(`status ${a.status}: use o fluxo próprio (publicação/correção), não o reprocessamento`);
-  const editorial = [...new Set(a.findings.filter((f) => /^unsupported_/.test(f.code)).map((f) => f.code))];
+  // Bloqueio editorial é por FINDING, não por lista de status: fato não suportado, duplicidade e âncora ausente
+  // exigem decisão editorial, não reprocessamento de infraestrutura.
+  const editorial = [...new Set(a.findings.filter((f) => /^unsupported_/.test(f.code) || f.code === 'duplicate' || f.code === 'unanchored').map((f) => f.code))];
   if (editorial.length) out.push(`falha editorial real (${editorial.join(', ')}): só bloqueio de infraestrutura ou falso positivo se reprocessa`);
   return out;
 }
