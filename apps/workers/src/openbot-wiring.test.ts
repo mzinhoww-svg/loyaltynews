@@ -5,7 +5,7 @@ import { schema } from '@ln/db';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import { handleCallback, handlePull, resultRefFor, signBody, type GatewayRequestLike, type OpenBotDeps, type PullResult } from '@ln/openbot';
 import { createPilotWiring, pilotWiringImporter, PILOT_PROFILES, type LoadAgentsKit } from './openbot-wiring';
-import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
+import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
 
 // Fiação do piloto (DP-41) sobre o PostgreSQL de teste: o gateway da Fábrica + o sink do veredito, com um agente de mentira (em processo) respondendo
 // pelos MESMOS handlers e tabelas das rotas. O kit do AgentOps (gate e applyRowPatch) é injetado; com o `@ln/agents` real o ensaio roda na árvore integrada.
@@ -42,11 +42,11 @@ function agentFor(db: Db) {
   const io = new PgTaskIo(db, () => NOW);
   const sign = (o: unknown) => { const body = JSON.stringify(o); return { body, signature: signBody(SECRET, NOW.getTime(), body), timestampMs: NOW.getTime() }; };
   let n = 0;
-  return async (account: 'claude' | 'codex', model: string, stage: string) => {
+  return async (account: 'claude' | 'codex' | 'opencode', model: string, stage: string) => {
     const [t] = ((await handlePull(deps, sign({ workerId: `fake-${account}`, account }))).body as PullResult).tasks;
     if (!t) return null;
     await io.putResultFor(resultRefFor(t.id, t.attempt), t.id, { de: account });
-    const usage = { executionId: `ex-${t.id}-${t.attempt}`, taskId: t.id, leaseId: t.leaseId, model, lane: 'subscription' as const, account, costMicro: 0 };
+    const usage = { executionId: `ex-${t.id}-${t.attempt}`, taskId: t.id, leaseId: t.leaseId, model, lane: (account === 'opencode' ? 'opencode' : 'subscription') as 'opencode' | 'subscription', account, costMicro: 0 };
     await handleCallback(deps, sign({
       callbackId: `cb-${++n}-${t.id}`, taskId: t.id, leaseId: t.leaseId, outcome: 'completed', resultRef: resultRefFor(t.id, t.attempt), usage,
       trace: { stage, account, startedAt: NOW.toISOString(), endedAt: NOW.toISOString(), articleId: 'art-9', promptVersion: 'editorial-0.3' },
@@ -86,14 +86,14 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     const agent = agentFor(db);
     let ran = false;
     const { gateway, sink } = await createPilotWiring({ ...STAGING }, db, {
-      loadKit: kitOk, now: () => NOW, sleep: async () => { if (!ran) { ran = true; await agent('claude', 'claude-haiku-5-5', 'triage'); } },
+      loadKit: kitOk, now: () => NOW, sleep: async () => { if (!ran) { ran = true; await agent('opencode', 'deepseek-v4.1-flash', 'triage'); } },
     });
     const r = await gateway.invoke(req('triage', 'art-9:triage:1', { pauta: 'x' }));
     expect(r.ok, JSON.stringify(r)).toBe(true);
     if (!r.ok) return;
-    expect([r.attempt, r.provider, r.output]).toEqual([1, 'anthropic', { de: 'claude' }]);
+    expect([r.attempt, r.provider, r.output]).toEqual([1, 'deepseek', { de: 'opencode' }]);
     const [t] = await db.select().from(schema.openbotTasks);
-    expect(t).toMatchObject({ id: r.taskId, profileId: PILOT_PROFILES.triage, route: ['claude'], status: 'completed' });
+    expect(t).toMatchObject({ id: r.taskId, profileId: PILOT_PROFILES.triage, route: ['opencode', 'claude'], status: 'completed' });
     const rows = await new PgPilotRowStore(db, () => NOW).all();
     expect(rows.map((x) => [x.task_id, x.attempt, x.article_id, x.stage])).toEqual([[r.taskId, 1, 'art-9', 'triage']]);
 
@@ -101,15 +101,15 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     expect((await new PgPilotRowStore(db, () => NOW).all())[0]!.output_valid).toBe(true);
     await expect(sink.patch({ taskId: r.taskId, attempt: r.attempt, stage: 'triage', patch: { declared_model: 'outro' } })).rejects.toThrow(/patch recusado/);
     await expect(sink.patch({ taskId: 'nao-existe', attempt: 1, stage: 'triage', patch: { output_valid: true } })).rejects.toThrow(/linha do piloto inexistente/);
-    expect((await new PgPilotRowStore(db, () => NOW).all())[0]!.declared_model).toBe('claude-haiku-5-5'); // o patch recusado não mudou nada
+    expect((await new PgPilotRowStore(db, () => NOW).all())[0]!.declared_model).toBe('deepseek-v4.1-flash'); // o patch recusado não mudou nada
   });
 
   it('a checagem vai só ao codex e leva o id da tarefa do rascunho em meta; a Editorial pode usar o taskId devolvido', async () => {
     const db = await fresh();
     const agent = agentFor(db);
     const steps: Array<() => Promise<unknown>> = [
-      () => agent('claude', 'claude-sonnet-5-5', 'draft'),
-      () => agent('codex', 'gpt-5.1-codex', 'factcheck'),
+      () => agent('opencode', 'deepseek-v4.1-flash', 'draft'),
+      () => agent('opencode', 'deepseek-v4.1-flash', 'factcheck'),
     ];
     const { gateway } = await createPilotWiring({ ...STAGING }, db, { loadKit: kitOk, now: () => NOW, sleep: async () => { const s = steps.shift(); if (s) await s(); } });
     const draft = await gateway.invoke(req('draft', 'art-9:draft:1'));
@@ -118,7 +118,7 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     const check = await gateway.invoke(req('factcheck', 'art-9:factcheck:1', { reviewedDraftTaskId: draft.taskId }));
     expect(check.ok, JSON.stringify(check)).toBe(true);
     const tasks = await db.select().from(schema.openbotTasks);
-    expect(tasks.map((x) => [x.kind, x.route, x.profileId])).toEqual(expect.arrayContaining([['editorial_draft', ['claude'], 'ln_pilot_redator'], ['fact_check', ['codex'], 'ln_pilot_checador']]));
+    expect(tasks.map((x) => [x.kind, x.route, x.profileId])).toEqual(expect.arrayContaining([['editorial_draft', ['opencode'], 'ln_pilot_redator'], ['fact_check', ['opencode'], 'ln_pilot_checador']]));
     const io = (await db.select().from(schema.openbotIo)).find((x) => x.direction === 'input' && x.taskClass === 'factcheck');
     expect(io?.meta).toMatchObject({ reviewedDraftTaskId: draft.taskId });
   });
@@ -146,7 +146,7 @@ describe.skipIf(typeof real.canDispatchNext !== 'function' || typeof real.applyR
     const db = await fresh();
     const agent = agentFor(db);
     let ran = false;
-    const { gateway, sink } = await createPilotWiring({ ...STAGING }, db, { now: () => NOW, sleep: async () => { if (!ran) { ran = true; await agent('claude', 'claude-haiku-5-5', 'triage'); } } });
+    const { gateway, sink } = await createPilotWiring({ ...STAGING, LN_OPENBOT_GATEWAY_TIMEOUT_MS: '2000' }, db, { now: () => NOW, sleep: async () => { if (!ran) { ran = true; await agent('opencode', 'deepseek-v4.1-flash', 'triage'); } } });
     const r = await gateway.invoke(req('triage', 'art-9:triage:1', { pauta: 'x' }));
     expect(r.ok, JSON.stringify(r)).toBe(true);
     if (!r.ok) return;
@@ -155,4 +155,42 @@ describe.skipIf(typeof real.canDispatchNext !== 'function' || typeof real.applyR
     const rows = await new PgPilotRowStore(db, () => NOW).all();
     expect((real.canDispatchNext as (r: unknown) => { allowed: boolean })(rows).allowed).toBe(true); // o gate oficial aceita a linha que o adaptador gravou
   });
+
+  // Defeito de 26/11: a Fábrica se auto-barrou (e gravou PILOT_STOPPED) por uma linha que o admin já havia tratado, porque a fiação local não passava as
+  // resoluções ao portão — a rota do servidor passava. O teste falha sem `resolved` na fiação e passa com ele.
+  it('linha contraditória já tratada por admin não barra a Fábrica; a mesma linha sem resolução continua parando', async () => {
+    const LINHA = {
+      task_id: 'task-22232792-ea32-4b30-8483-cfb385f4654e', kind: 'classification', article_id: 'art-9', source_id: 's', stage: 'triage', account: 'claude', declared_model: 'deepseek-v4.1-flash',
+      prompt_version: 'editorial-0.3', started_at: NOW.toISOString(), ended_at: NOW.toISOString(), attempt: 1, outcome: 'completed', packet_chars: 100, tokens_measured: false,
+      published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false,
+    } as never;
+    const wiring = async (db: Db, agent: ReturnType<typeof agentFor>) => {
+      let first = true;
+      return createPilotWiring({ ...STAGING, LN_OPENBOT_GATEWAY_TIMEOUT_MS: '60' }, db, {
+        now: () => NOW,
+        sleep: async () => { if (first) { first = false; await agent('opencode', 'deepseek-v4.1-flash', 'triage'); } },
+      });
+    };
+
+    // (a) sem resolução: o portão RECUSA e o piloto para (o comportamento do defeito)
+    const db1 = await fresh();
+    await new PgPilotRowStore(db1, () => NOW).upsert(LINHA);
+    const w1 = await wiring(db1, agentFor(db1));
+    const blocked = await w1.gateway.invoke(req('triage', 'art-9:triage:1', { pauta: 'x' }));
+    expect(blocked.ok).toBe(false);
+    if (blocked.ok) return;
+    expect(blocked.detail).toBe('PILOT_STOPPED');
+    expect(await db1.select().from(schema.openbotTasks)).toHaveLength(0);
+    expect((await new PgPilotStateStore(db1).get())?.reasons).toContainEqual(expect.stringMatching(/^canDispatchNext_recusou/));
+
+    // (b) com a resolução do admin na fiação: a MESMA linha não barra e o ciclo conclui
+    const db2 = await fresh();
+    await new PgPilotRowStore(db2, () => NOW).upsert(LINHA);
+    const res = await new PgPilotResolutionStore(db2, () => NOW).resolve(LINHA.task_id, 1, 'admin-teste', 'linha contraditória tratada no teste', 'editorial_invalid');
+    expect(res.result).toBe('created');
+    const w2 = await wiring(db2, agentFor(db2));
+    const okNow = await w2.gateway.invoke(req('triage', 'art-9:triage:2', { pauta: 'y' }));
+    expect(okNow.ok, JSON.stringify(okNow)).toBe(true);
+    expect(await new PgPilotStateStore(db2).get()).toBeNull();
+  }, 60_000);
 });
