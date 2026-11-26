@@ -32,9 +32,10 @@ async function abrirEntrada(page: Page, destino = DESTINO) {
   await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled(); // só vale depois da hidratação
 }
 
-// O Better Auth tem limitador próprio (3 entradas por 10 s por IP) e os testes saem todos do mesmo IP: cada requisição de auth leva um IP
-// distinto no x-forwarded-for, para o limite por CONTA do Studio (5 tentativas, bloqueio de 15 min) ser o que se testa. O teste do limitador do
-// Better Auth fixa um IP de propósito.
+// O limite por IP embutido do Better Auth foi DESLIGADO de propósito (advanced.ipAddress.disableIpTracking, README do /api:123); quem limita
+// por conta E por IP é o gate do próprio app (packages/auth/src/attempts.ts, 5 tentativas / 15 min, 429 + Retry-After). Como os testes saem
+// todos do mesmo IP, cada requisição de auth leva um IP distinto no x-forwarded-for para o caso do limite por CONTA ser o que se testa; o caso
+// do gate por IP fixa um IP de propósito.
 let ipSeq = 0;
 async function ipPorRequisicao(page: Page) {
   await page.route('**/api/auth/**', (route) => route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': `10.${Math.floor(++ipSeq / 250) + 1}.${ipSeq % 250}.9` } }));
@@ -236,7 +237,10 @@ test('as mensagens de NO_MFA e FORBIDDEN seguem na tela, com o formulário para 
   await expect(page.getByLabel('Senha')).toBeVisible();
 });
 
-test('limitador do Better Auth (várias entradas em 10 s do mesmo IP): 429 com o tempo de espera em segundos, sem revelar nada', async ({ page }) => {
+// Caso do gate por IP do APP (o limitador por IP do Better Auth foi desligado de propósito — README do /api:123): várias tentativas rápidas
+// do mesmo IP, na mesma conta, são barradas com 429 + Retry-After de 900 s; a tela mostra o tempo em minutos e não revela se a conta existe.
+// Este caso testava o limitador embutido do Better Auth (10 s, segundos), removido de propósito; o teste estava desatualizado (QAs 9 e 12).
+test('gate do app (várias tentativas rápidas no mesmo IP e conta): 429 com Retry-After de 900 s, mensagem em minutos, sem revelar a conta', async ({ page }) => {
   await page.unroute('**/api/auth/**');
   await page.route('**/api/auth/**', (route) => route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': '10.250.250.250' } }));
   await page.goto('/studio/entrar?motivo=NO_SESSION');
@@ -250,7 +254,18 @@ test('limitador do Better Auth (várias entradas em 10 s do mesmo IP): 429 com o
     if (/Muitas tentativas/.test(texto)) barrado = texto;
     else expect(texto).toBe('E-mail ou senha incorretos.');
   }
-  // Pode ser o limitador curto do Better Auth (segundos) ou o limite por conta/IP do Studio (minutos): os dois são
-  // respostas 429 honestas e não revelam nada; o que importa é barrar e dizer o tempo de espera.
-  expect(barrado, 'o limitador deveria barrar dentro de 6 tentativas rápidas').toMatch(/^Muitas tentativas\. Tente de novo em \d+ (segundos?|minutos?)\.$/);
+
+  expect(barrado, 'o gate do app deveria barrar dentro de 6 tentativas rápidas').toMatch(/^Muitas tentativas\. Tente de novo em 1[56] minutos\.$/);
+
+  // A resposta por trás da mensagem: 429 e Retry-After numérico de ~900 s (bloqueio de 15 min). A tela continua em minutos.
+  const [resposta] = await Promise.all([
+    page.waitForResponse((r) => r.request().method() === 'POST' && r.url().includes('/api/auth/sign-in/email')),
+    primeiroPasso(page, 'ninguem-existe@ln.test', 'senha-errada-7'),
+  ]);
+  expect(resposta.status(), 'a 7ª tentativa, já bloqueada, responde 429').toBe(429);
+  const retryAfter = Number(resposta.headers()['retry-after']);
+  expect(Number.isFinite(retryAfter), `Retry-After ausente: ${resposta.headers()['retry-after']}`).toBe(true);
+  expect(retryAfter, `Retry-After ${retryAfter}`).toBeGreaterThan(840);
+  expect(retryAfter, `Retry-After ${retryAfter}`).toBeLessThanOrEqual(900);
+  await expect(erro).toHaveText(/^Muitas tentativas\. Tente de novo em 1[56] minutos\.$/);
 });
