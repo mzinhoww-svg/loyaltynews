@@ -1,0 +1,29 @@
+{
+  "commit": "a2bfc48da99a6ef249d2e1ef5248bfbdf7fbebd8",
+  "casos": {
+    "main_a2bfc48": {
+      "assinado_pela_raiz": true
+    },
+    "commit_do_executor": {
+      "sha": "cc554f31566b61802438685a1e8f8b2ca7b7fca4",
+      "fingerprint_do_autor": "706A956BC0F583C5339704710E46DAC44E26A553",
+      "assinado_pela_raiz": false
+    },
+    "ruleset_verifier_main": {
+      "enforcement": "active",
+      "bypass_actors": [],
+      "regras": [
+        "update",
+        "deletion",
+        "non_fast_forward"
+      ],
+      "refs": {
+        "include": [
+          "refs/heads/main"
+        ],
+        "exclude": []
+      }
+    }
+  },
+  "ok": true
+}
