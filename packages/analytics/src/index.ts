@@ -1,4 +1,5 @@
 export * from './event';
+export * from './portal-events';
 export * from './aggregate';
 export * from './consent';
 export * from './handlers';
