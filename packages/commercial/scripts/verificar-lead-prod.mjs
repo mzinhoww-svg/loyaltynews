@@ -6,6 +6,9 @@
 //   --worker-commit <sha do pacote que está no worker, informado pelo DevOps>
 //   --worker-releases <arquivo JSON do list_releases do worker>
 //   --worker-log <arquivo texto do get_logs do worker>
+//   --worker-status up   (get_app)
+//   --pacote <release.json do pacote enviado>  --release-do-pacote <id do release criado por esse envio>
+//   [--agora <ISO>] [--max-horas 7]
 //   --salt-web sim|nao --salt-workers sim|nao --salt-igual sim|nao   (leitura do DevOps; nunca o valor)
 //   [--repo <pasta do git>] [--retencao <sha>] [--exclusao <sha>]
 // saída: 0 = aprovado; 1 = reprovado; 2 = uso incorreto. Informação ausente REPROVA (falha fechada).
@@ -14,6 +17,8 @@ import { readFileSync } from 'node:fs';
 
 const RETENCAO = 'e894a4a5'; // worker passa a apagar o lead (DP-55)
 const EXCLUSAO = '23e6713b'; // rota DELETE do lead e trilha
+/** Linha que o worker precisa escrever a CADA rodada concluída, mesmo sem nada a apagar. */
+const RODADA = '[workers] retenção de leads: rodada concluída';
 
 const args = {};
 const argv = process.argv.slice(2);
@@ -45,30 +50,53 @@ item('web: contém a rota de exclusão', !!web?.version && contem(web.version, e
 const wc = args['worker-commit'];
 item('worker: commit contém a retenção', !!wc && contem(wc, retencao), wc ? `commit=${wc.slice(0, 12)}, exige ${retencao}` : 'commit não informado');
 
-// 3. worker: houve envio de CÓDIGO depois de a retenção existir (mudar APP_COMMIT sozinho não troca o código)
+// 3. worker: o que mudou o CÓDIGO por último foi um envio posterior à retenção (variável sozinha não troca código; rollback pode voltar)
+const ORIGENS = new Set(['upload', 'env_change', 'rollback']);
 let releases;
 try {
   const j = JSON.parse(texto(args['worker-releases']));
   releases = (j.untrusted_content ?? j).data ?? j;
   if (!Array.isArray(releases)) releases = null;
 } catch { releases = null; }
+const validas = !!releases?.length && releases.every((r) => typeof r?.id === 'string' && r.id && ORIGENS.has(r.source) && Number.isInteger(r.files_changed) && r.files_changed >= 0 && Number.isFinite(Date.parse(r.created_at)));
+item('worker: lista de releases completa e com origem conhecida', validas, releases ? `${releases.length} release(s); exige id, source (upload, env_change, rollback), files_changed e created_at` : 'releases não informados');
 const dataRetencao = Date.parse(git('log', '-1', '--format=%cI', retencao));
-const codigo = (releases ?? []).filter((r) => r.source !== 'env_change' && Number(r.files_changed) > 0).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
-item('worker: envio de código posterior à retenção', !!codigo && Date.parse(codigo.created_at) > dataRetencao,
-  codigo ? `último envio de código ${codigo.created_at}; retenção de ${new Date(dataRetencao).toISOString()}` : releases ? 'nenhum envio de código na lista' : 'releases não informados');
+const codigo = validas ? releases.filter((r) => r.source !== 'env_change').sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0] : undefined;
+const envioOk = !!codigo && codigo.source === 'upload' && codigo.files_changed > 0 && Date.parse(codigo.created_at) > dataRetencao;
+item('worker: último código é um envio posterior à retenção', envioOk,
+  codigo ? `último release de código ${codigo.id} (${codigo.source}, ${codigo.created_at}); retenção de ${new Date(dataRetencao).toISOString()}` : 'nenhum envio de código verificável');
 
-// 4. worker: log da ÚLTIMA subida
+// 4. o pacote enviado é o do commit declarado (atestado do DevOps: manifesto release.json do pacote + id do release criado por ele)
+let manifesto;
+try { manifesto = JSON.parse(texto(args.pacote)); } catch { manifesto = null; }
+const mc = typeof manifesto?.commit === 'string' ? manifesto.commit : '';
+const mesmo = (a, b) => a.length >= 7 && b.length >= 7 && (a.startsWith(b) || b.startsWith(a));
+item('worker: pacote enviado ligado ao commit', envioOk && !!wc && mesmo(mc, wc) && args['release-do-pacote'] === codigo.id,
+  mc ? `manifesto commit=${mc.slice(0, 12)}, release informado=${args['release-do-pacote'] ?? 'não informado'}` : 'manifesto do pacote não informado');
+
+// 5. worker: está no ar AGORA e concluiu uma rodada de retenção há pouco
+item('worker: aplicação no ar (status informado)', args['worker-status'] === 'up', args['worker-status'] ? `informado: ${args['worker-status']}` : 'não informado');
 let log;
 try { log = texto(args['worker-log']); try { log = JSON.parse(log).untrusted_content ?? log; } catch { /* texto puro */ } } catch { log = ''; }
-const linhas = log.split(/\r?\n/);
+const linhas = log.split(/\r?\n/).filter(Boolean);
 const inicio = linhas.map((l) => l.includes('guard-env OK')).lastIndexOf(true);
 const subida = inicio >= 0 ? linhas.slice(inicio) : [];
-const quando = Date.parse(subida[0]?.split(' ')[0] ?? '');
+const hora = (l) => Date.parse(l?.split(' ')[0] ?? '');
+const quando = hora(subida[0]);
+const agora = args.agora ? Date.parse(args.agora) : Date.now();
+const maxHoras = Number(args['max-horas'] ?? 7); // o worker roda a cada 6 h
+if (!Number.isFinite(agora) || !(maxHoras > 0 && maxHoras <= 24)) { console.error('--agora inválido ou --max-horas fora de 0 a 24'); process.exit(2); }
 item('worker: log da subida traz "[workers] filas:"', subida.some((l) => l.includes('[workers] filas:')), subida.length ? `subida de ${subida[0].split(' ')[0]}` : 'log sem uma subida completa');
-item('worker: subiu e ficou no ar, sem falha de retenção', subida.some((l) => l.includes('[workers] no ar')) && !subida.some((l) => /subida recusada|retenção de leads falhou/.test(l)), 'procura "[workers] no ar"; recusa "subida recusada" e "retenção de leads falhou"');
-item('worker: a subida é posterior ao envio de código', !!codigo && Number.isFinite(quando) && quando >= Date.parse(codigo.created_at), 'a subida do log tem de rodar o código enviado');
+item('worker: a subida é posterior ao envio de código', envioOk && Number.isFinite(quando) && quando >= Date.parse(codigo.created_at), 'a subida do log tem de rodar o código enviado');
+const rodadaEm = subida.map((l) => l.includes(RODADA)).lastIndexOf(true);
+const depois = rodadaEm >= 0 ? subida.slice(rodadaEm + 1) : subida;
+const ruim = /subida recusada|retenção de leads falhou|process exited|worker stopped|SIGTERM|SIGKILL|OOM|out of memory/i;
+const idade = rodadaEm >= 0 ? (agora - hora(subida[rodadaEm])) / 3_600_000 : NaN;
+item('worker: rodada de retenção concluída e recente', rodadaEm >= 0 && idade >= 0 && idade <= maxHoras,
+  rodadaEm >= 0 ? `última rodada há ${idade.toFixed(1)} h (máximo ${maxHoras} h)` : `nenhuma linha "${RODADA}" depois da última subida`);
+item('worker: sem parada nem falha depois da subida', subida.length > 0 && !subida.some((l) => /subida recusada|retenção de leads falhou/.test(l)) && !depois.some((l) => ruim.test(l)), 'recusa falha de retenção e sinais de parada');
 
-// 5. sal (só sim/não)
+// 6. sal (só sim/não)
 for (const [chave, nome] of [['salt-web', 'sal presente no web'], ['salt-workers', 'sal presente no worker'], ['salt-igual', 'sal igual nos dois']]) {
   item(nome, args[chave] === 'sim', args[chave] === 'sim' || args[chave] === 'nao' ? `informado: ${args[chave]}` : 'não informado');
 }

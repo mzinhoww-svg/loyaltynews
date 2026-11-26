@@ -22,6 +22,10 @@ describe('excluir-lead.sql', () => {
     const lista = comandos('lead-alvo');
     expect(lista[0]).toBe('BEGIN');
     expect(lista.at(-1)).toBe('COMMIT');
+    // a trava vem antes de qualquer acesso aos dados e é a MESMA das escritas do CRM no adaptador
+    const repo = readFileSync(new URL('../../../apps/web/app/api/_lib/commercial/repo.ts', import.meta.url), 'utf8');
+    const chave = /COMMERCIAL_LOCK = ([\d_]+)/.exec(repo)![1]!.replaceAll('_', '');
+    expect(lista[1]).toBe(`SELECT pg_advisory_xact_lock(${chave})`);
     for (const c of lista) await db.execute(sql.raw(c));
     expect(await db.$count(schema.crmLeads, eq(schema.crmLeads.id, 'lead-alvo'))).toBe(0);
     expect(await db.$count(schema.crmLeads, eq(schema.crmLeads.id, 'lead-outro'))).toBe(1);
