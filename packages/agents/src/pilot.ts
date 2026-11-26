@@ -285,6 +285,9 @@ export function configInvalidOf(r: ConfigInvalidInput): string[] {
   const e: string[] = [];
   const spec = PILOT_STAGES[r.stage as PilotStage];
   if (spec && !(allowedAccounts(r.stage as PilotStage) as readonly string[]).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${allowedAccounts(r.stage as PilotStage).join(' ou ')}`);
+  // Execução não determinística que terminou sem declarar modelo não é medível (ex.: tarefa failed por tentativas esgotadas).
+  // É invalidade de configuração/execução, não editorial: a rota config-invalid pode excluí-la e o portão segue.
+  if (r.account !== 'deterministic' && !r.declared_model) e.push('modelo declarado ausente: execução não medível (registro contraditório)');
   if (r.account !== 'deterministic' && r.declared_model) {
     const expected = (ACCOUNT_AUTHOR as Record<string, ReturnType<typeof authorOfDeclaredModel>>)[r.account];
     const got = authorOfDeclaredModel(r.declared_model);
