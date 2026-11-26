@@ -83,14 +83,25 @@ test.describe('rodapé: grupos por largura', () => {
     expect(await rodape.locator('summary').first().evaluate((e) => getComputedStyle(e, '::after').content)).toBe('none');
   });
 
-  test('sem JavaScript todos os links existem no HTML e os grupos vêm abertos', async ({ browser }) => {
+  test('sem JavaScript os links existem no HTML e o grupo nasce recolhido, abrindo pelo summary nativo', async ({ browser }) => {
+    // CSS-first (CLS): o grupo já vem fechado no HTML; sem JS o <details> continua abrindo pelo clique no summary.
     const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 900 } });
     const page = await ctx.newPage();
     await page.goto('/');
     expect(await page.locator('footer .ln-footer__list a').count()).toBe(27);
-    expect(await page.locator('footer details[open]').count()).toBe(4);
+    expect(await page.locator('footer .ln-footer__fold').count()).toBe(4);
+    expect(await page.locator('footer details[open]').count()).toBe(0);
+    await page.locator('footer summary', { hasText: 'Institucional' }).click();
     await expect(page.locator('footer').getByRole('link', { name: 'Sobre', exact: true })).toBeVisible();
     await ctx.close();
+
+    // No desktop, o CSS mostra o conteúdo do <details> fechado (sem JS, sem botão): nenhum link fica escondido.
+    const desktop = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 900 } });
+    const p2 = await desktop.newPage();
+    await p2.goto('/');
+    expect(await p2.locator('footer details[open]').count()).toBe(0);
+    await expect(p2.locator('footer').getByRole('link', { name: 'Sobre', exact: true })).toBeVisible();
+    await desktop.close();
   });
 
   test('o grupo fecha no celular, abre no desktop e acompanha a mudança de largura', async ({ page }) => {
@@ -104,7 +115,9 @@ test.describe('rodapé: grupos por largura', () => {
 
 test.describe('rodapé: altura e alinhamento (home do modo vazio)', () => {
   test.skip(mode !== 'empty', 'as alturas-alvo são da home sem matérias');
-  const MAXIMA: Record<number, number> = { 390: 560, 768: 420, 1280: 440 };
+  // 390: 560 do desenho + 44 da linha que o link "Preferências de cookies" (LGPD, produção com GA4) acrescenta ao rodapé.
+  // O link é conteúdo obrigatório; não é altura reservada. 768/1280 não ganham linha e seguem o desenho.
+  const MAXIMA: Record<number, number> = { 390: 610, 768: 420, 1280: 440 };
   for (const largura of [390, 768, 1280]) {
     test(`a ${largura} px o rodapé tem no máximo ${MAXIMA[largura]} px`, async ({ page }) => {
       const rodape = await pronto(page, largura);
@@ -191,6 +204,8 @@ test.describe('rodapé: acessibilidade e responsividade', () => {
   test('prefers-reduced-motion e impressão: sem animação e com todos os grupos visíveis', async ({ page }) => {
     const rodape = await pronto(page, 390);
     await page.emulateMedia({ media: 'print' });
+    // page.emulateMedia não dispara beforeprint; o navegador dispara antes da impressão real.
+    await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
     await expect(rodape.locator('.ln-footer__list a').first()).toBeVisible();
     await expect(rodape.locator('.ln-footer__col').nth(1).locator('.ln-footer__list a').first()).toBeVisible();
     expect(await rodape.locator('summary').first().evaluate((e) => getComputedStyle(e, '::after').content)).toBe('none');

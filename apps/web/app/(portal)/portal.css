@@ -278,8 +278,12 @@
   /* Controles que não fazem sentido no papel (botões, atalhos, formulário). */
   .pt-no-print { display: none !important; }
   /* P2 da auditoria do int/031: o PDF do mídia kit saía com cabeçalho, menu, rodapé e banner de cookies — cara de rascunho.
-     No papel sai só a peça comercial: nada de navegação, rodapé, aviso de cookies nem link de pular para o conteúdo. */
-  .ln-header, .ln-footer, .ln-consent, [data-testid='consentimento-banner'] { display: none !important; }
+     No papel sai só a peça comercial: nada de navegação, rodapé, aviso de cookies nem link de pular para o conteúdo.
+     Escopo: SÓ a página do mídia kit (a que tem a faixa da peça); as outras páginas mantêm o rodapé no papel (teste do rodapé). */
+  .ln-root:has(.pt-hero-band--mk) .ln-header,
+  .ln-root:has(.pt-hero-band--mk) .ln-footer,
+  .ln-root:has(.pt-hero-band--mk) .ln-consent,
+  .ln-root:has(.pt-hero-band--mk) [data-testid='consentimento-banner'] { display: none !important; }
   .pt-main { padding-bottom: 0 !important; }
   .pt-wrap { max-width: none; padding: 0 !important; }
   /* A faixa do topo é a peça de abertura do mídia kit: mantém o fundo no papel. */

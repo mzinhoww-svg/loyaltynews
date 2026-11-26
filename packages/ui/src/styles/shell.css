@@ -128,7 +128,11 @@
   .ln-footer__fold::details-content { content-visibility: visible; display: block; height: auto; }
 }
 /* impressão: todos os grupos abertos */
-@media print { .ln-footer__fold::details-content { content-visibility: visible; } .ln-footer__title::after, .ln-footer__fold[open] > .ln-footer__title::after { content: none; } }
+/* impressão: todos os grupos visíveis mesmo fechados no HTML; o UA esconde o slot de um <details> fechado, então o override é !important */
+@media print {
+  .ln-footer__fold::details-content { content-visibility: visible !important; display: block !important; height: auto !important; }
+  .ln-footer__title::after, .ln-footer__fold[open] > .ln-footer__title::after { content: none; }
+}
 
 /* "Entrar" no cabeçalho: texto à esquerda do Anuncie só no desktop; no celular é item do painel do menu (um 4º botão na barra estoura a 320 px) */
 .ln-header .ln-header__entrar { display: none; align-items: center; min-height: var(--ln-touch-target); padding: 0 var(--ln-space-2); color: var(--ln-color-primary); font-weight: var(--ln-weight-bold); font-size: var(--ln-text-sm); text-decoration: none; white-space: nowrap; }
