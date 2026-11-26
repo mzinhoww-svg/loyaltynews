@@ -65,20 +65,20 @@
     {
       "draft_id": "ln_pilot_redator",
       "name": "LN Piloto — Redação",
-      "title": "Redação do piloto (OpenBot, assinatura Claude)",
+      "title": "Redação do piloto (OpenBot, OpenCode/DeepSeek)",
       "stage": "draft",
       "required": true,
-      "description": "Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica.",
+      "description": "Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica. Decisão do PM (26/11): a assinatura Claude esgotou e o OpenRouter foi recusado; a redação roda no OpenCode/DeepSeek e DECLARA esse modelo (nunca o Claude).",
       "editorial_task_class": "draft",
       "prompt_ref": "editorial-0.3 / classe draft / packages/editorial/src/factory/prompts.ts@b040e53",
       "adapter_kind": "editorial_draft",
       "primary": {
-        "account": "claude",
-        "model": "Claude (assinatura): declarado no UsageReport (id exato não verificado)"
+        "account": "opencode",
+        "model": "OpenCode/DeepSeek: opencode-go/deepseek-v4-pro"
       },
       "backups": [],
       "on_limit": "SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido",
-      "independence": "é o autor de referência: a checagem e a revisão precisam ser de autor diferente",
+      "independence": "é o autor de referência (fornecedor DeepSeek): a checagem e a revisão precisam ser de autor diferente; com a checagem também em DeepSeek, a revisão deve barrar por cross_provider_check_failed — consequência aceita neste teste de carga",
       "tool_contract": [
         "POST /api/openbot/pull",
         "POST /api/openbot/heartbeat",

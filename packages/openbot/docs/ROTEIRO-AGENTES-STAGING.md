@@ -31,7 +31,7 @@ Uma via por agente (DP-41). O `pull` entrega por **conta**, e há três agentes 
 | Agente (nome do rascunho) | Provedor / modelo sugerido | Esforço | `LN_AGENT_ACCOUNT` | `--kinds` | `--stage` | Perfil do despacho |
 |---|---|---|---|---|---|---|
 | LN Piloto — Pauta | claude / `claude-haiku-5-5` (backup `claude-sonnet-5-5` na MESMA conta) | alto | claude | `classification` | `triage` | `ln_pilot_pauta` |
-| LN Piloto — Redação | claude / `claude-sonnet-5-5` (sem backup, sem troca de via) | alto | claude | `editorial_draft` | `draft` | `ln_pilot_redator` |
+| LN Piloto — Redação | opencode / `opencode-go/deepseek-v4-pro` (sem backup, sem troca de via; Claude esgotado, decisão do PM 26/11) | alto | opencode | `editorial_draft` | `draft` | `ln_pilot_redator` |
 | LN Piloto — Checagem | codex / `gpt-6.2-sol` (sem backup: no limite espera a janela) | alto | codex | `fact_check` | `factcheck` | `ln_pilot_checador` |
 | LN Piloto — Revisão | codex / `gpt-6.2-sol` (sem backup) | alto | codex | `editorial_review` | `review` | `ln_pilot_revisor` |
 | LN Piloto — Social e Entidades | claude / `claude-sonnet-5-5` | alto | claude | `social_copy,entity_resolution` | `social_pack` / `roles` | `ln_pilot_social` |

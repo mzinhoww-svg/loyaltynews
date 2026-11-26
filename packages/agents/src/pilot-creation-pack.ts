@@ -34,7 +34,7 @@ export interface AgentBinding {
 
 export const AGENT_BINDINGS: AgentBinding[] = [
   { draft_id: 'ln_pilot_pauta', openbot_provider: 'claude', model: 'claude-haiku-5-5', backup_model: 'claude-sonnet-5-5', reasoning_effort: 'alto', account: 'claude', kinds: ['classification'], stages: ['triage'], worker_id: 'openbot-claude-pauta' },
-  { draft_id: 'ln_pilot_redator', openbot_provider: 'claude', model: 'claude-sonnet-5-5', backup_model: null, reasoning_effort: 'alto', account: 'claude', kinds: ['editorial_draft'], stages: ['draft'], worker_id: 'openbot-claude-redacao' },
+  { draft_id: 'ln_pilot_redator', openbot_provider: 'opencode', model: 'opencode-go/deepseek-v4-pro', backup_model: null, reasoning_effort: 'alto', account: 'opencode', kinds: ['editorial_draft'], stages: ['draft'], worker_id: 'openbot-claude-redacao' },
   { draft_id: 'ln_pilot_checador', openbot_provider: 'codex', model: 'gpt-6.2-sol', backup_model: null, reasoning_effort: 'alto', account: 'codex', kinds: ['fact_check'], stages: ['factcheck'], worker_id: 'openbot-codex-checagem' },
   { draft_id: 'ln_pilot_revisor', openbot_provider: 'codex', model: 'gpt-6.2-sol', backup_model: null, reasoning_effort: 'alto', account: 'codex', kinds: ['editorial_review'], stages: ['review'], worker_id: 'openbot-codex-revisao' },
   { draft_id: 'ln_pilot_social', openbot_provider: 'claude', model: 'claude-sonnet-5-5', backup_model: null, reasoning_effort: 'alto', account: 'claude', kinds: ['social_copy', 'entity_resolution'], stages: ['social_pack', 'roles'], worker_id: 'openbot-claude-social' },

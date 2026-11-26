@@ -54,7 +54,7 @@ export const EDITORIAL_PROMPTS_REF = {
 
 /** Só Claude e Codex (DP-41; decisão do PM: Gemini/Antigravity e OpenCode/DeepSeek saíram do piloto). Uma conta por provedor, sem separar produto e implementação. */
 export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'deterministic';
-export type PilotStage = 'triage' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
+export type PilotStage = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
 export type EditorialTaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack' | 'roles';
 
 export interface StageSpec {
@@ -76,7 +76,8 @@ export interface StageSpec {
 
 export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   triage: { account: 'claude', backups: [], models: { primary: 'haiku', backups: ['sonnet'] }, label: 'Pauta/triagem (Claude Haiku; backup Claude Sonnet na mesma conta)', taskClass: 'triage', adapterKind: 'classification' },
-  draft: { account: 'claude', backups: [], label: 'Redação (Claude); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
+  context: { account: 'opencode', backups: [], label: 'Contexto da matéria (OpenCode/DeepSeek; classe context)', taskClass: 'context', adapterKind: 'classification' },
+  draft: { account: 'opencode', backups: [], label: 'Redação (OpenCode/DeepSeek; assinatura Claude esgotada — decisão do PM em 26/11); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
   factcheck: { account: 'codex', backups: [], label: 'Checagem de fatos independente (Codex; sem backup; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
   review: { account: 'codex', backups: [], label: 'Revisão editorial independente (Codex; sem backup; gate WF02)', taskClass: 'review', adapterKind: 'editorial_review' },
   check_edit: { account: 'codex', backups: [], label: 'Checagem + revisão numa chamada só (adiada: a classe não existe na Fábrica)', taskClass: 'factcheck+review', adapterKind: 'fact_check' },
@@ -146,13 +147,13 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
-      draft_id: 'ln_pilot_redator', name: 'LN Piloto — Redação', title: 'Redação do piloto (OpenBot, assinatura Claude)', stage: 'draft', required: true,
-      description: 'Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica.',
+      draft_id: 'ln_pilot_redator', name: 'LN Piloto — Redação', title: 'Redação do piloto (OpenBot, OpenCode/DeepSeek)', stage: 'draft', required: true,
+      description: 'Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica. Decisão do PM (26/11): a assinatura Claude esgotou e o OpenRouter foi recusado; a redação roda no OpenCode/DeepSeek e DECLARA esse modelo (nunca o Claude).',
       editorial_task_class: 'draft', prompt_ref: promptRef('draft'), adapter_kind: 'editorial_draft',
-      primary: { account: 'claude', model: `Claude (assinatura): ${MODEL_DECLARED}` },
+      primary: { account: 'opencode', model: 'OpenCode/DeepSeek: opencode-go/deepseek-v4-pro' },
       backups: [],
       on_limit: 'SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido',
-      independence: 'é o autor de referência: a checagem e a revisão precisam ser de autor diferente',
+      independence: 'é o autor de referência (fornecedor DeepSeek): a checagem e a revisão precisam ser de autor diferente; com a checagem também em DeepSeek, a revisão deve barrar por cross_provider_check_failed — consequência aceita neste teste de carga',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {
@@ -285,6 +286,9 @@ export function configInvalidOf(r: ConfigInvalidInput): string[] {
   const e: string[] = [];
   const spec = PILOT_STAGES[r.stage as PilotStage];
   if (spec && !(allowedAccounts(r.stage as PilotStage) as readonly string[]).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${allowedAccounts(r.stage as PilotStage).join(' ou ')}`);
+  // Execução não determinística que terminou sem declarar modelo não é medível (ex.: tarefa failed por tentativas esgotadas).
+  // É invalidade de configuração/execução, não editorial: a rota config-invalid pode excluí-la e o portão segue.
+  if (r.account !== 'deterministic' && !r.declared_model) e.push('modelo declarado ausente: execução não medível (registro contraditório)');
   if (r.account !== 'deterministic' && r.declared_model) {
     const expected = (ACCOUNT_AUTHOR as Record<string, ReturnType<typeof authorOfDeclaredModel>>)[r.account];
     const got = authorOfDeclaredModel(r.declared_model);
