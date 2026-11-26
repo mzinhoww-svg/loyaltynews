@@ -64,12 +64,35 @@ export const openbotPilotResolve: RouteFn = async (req, c) => {
   const row = (await new PgPilotRowStore(c.deps.db, c.deps.now).all()).find((r) => r.task_id === taskId && r.attempt === attempt);
   if (!row) return json(apiError('NOT_FOUND', 'linha do piloto não encontrada.'), 404, NO_STORE);
   const v = violationsOf(row);
-  if (v.length === 0) return json(apiError('NOT_A_VIOLATION', 'a linha não tem parada imediata: linha inválida por campo faltante se corrige por patch, não por resolução.'), 409, NO_STORE);
-  if (row.secret_in_log && body.acaoTomada !== 'segredo_rotacionado') return json(apiError('ACTION_REQUIRED', 'segredo em log só se trata com acaoTomada = segredo_rotacionado.'), 409, NO_STORE);
+  const editorial = body.acaoTomada === 'editorial_invalid';
+  let falhaEditorial: string[] = [];
+  if (editorial) {
+    if (row.gate_verdict === 'approved') return json(apiError('APPROVED_NOT_ALLOWED', 'linha aprovada não aceita editorial_invalid.'), 409, NO_STORE);
+    if (v.length) return json(apiError('NOT_EDITORIAL_ONLY', `a linha tem parada imediata (${v.join(', ')}): trate como violação, não como editorial.`), 409, NO_STORE);
+    falhaEditorial = editorialBlockerOf(row);
+    if (falhaEditorial.length === 0) return json(apiError('NOT_EDITORIAL', 'a linha não tem falha editorial (gate blocked ou fato ALTO): não é este caminho.'), 409, NO_STORE);
+  } else {
+    if (v.length === 0) return json(apiError('NOT_A_VIOLATION', 'a linha não tem parada imediata: linha inválida por campo faltante se corrige por patch, não por resolução.'), 409, NO_STORE);
+    if (row.secret_in_log && body.acaoTomada !== 'segredo_rotacionado') return json(apiError('ACTION_REQUIRED', 'segredo em log só se trata com acaoTomada = segredo_rotacionado.'), 409, NO_STORE);
+  }
   const out = await new PgPilotResolutionStore(c.deps.db, c.deps.now).resolve(taskId, attempt, c.session!.userId, body.motivo, body.acaoTomada);
   if (out.result === 'no_row') return json(apiError('NOT_FOUND', 'linha do piloto não encontrada.'), 404, NO_STORE);
   const x = out.resolution!;
-  return json({ taskId, attempt, violacoes: v, tratada: { por: x.resolvido_por, em: x.resolvido_em, motivo: x.motivo, acao: x.acao_tomada }, jaResolvida: out.result === 'exists' }, out.result === 'created' ? 201 : 200, NO_STORE);
+  // Auditoria com a linha e o motivo (append-only via audit_log; a resolução é insert-only pela aplicação).
+  await audit(c.deps.db, {
+    actorId: c.session!.userId,
+    actorRole: c.session!.role,
+    action: 'openbot.piloto_linha_resolvida',
+    resource: 'openbot',
+    resourceId: `${taskId}#${attempt}`,
+    ip: c.ip,
+    detalhe: { requestId: c.requestId, status: out.result === 'created' ? 201 : 200, motivo: body.motivo, acao: body.acaoTomada, ...(editorial ? { falha_editorial: falhaEditorial } : { violacoes: v }) },
+    at: c.deps.now(),
+  });
+  return json({
+    taskId, attempt, ...(editorial ? { falha_editorial: falhaEditorial } : { violacoes: v }),
+    tratada: { por: x.resolvido_por, em: x.resolvido_em, motivo: x.motivo, acao: x.acao_tomada }, jaResolvida: out.result === 'exists',
+  }, out.result === 'created' ? 201 : 200, NO_STORE);
 };
 
 const ConfigInvalidBody = z.object({ motivo: z.string().trim().min(10).max(500) });
