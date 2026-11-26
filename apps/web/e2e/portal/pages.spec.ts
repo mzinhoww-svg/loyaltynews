@@ -42,7 +42,7 @@ const PAGES: PageSpec[] = [
 const EDITORIAS = [
   'mercado', 'programas', 'pontos', 'bancos', 'varejo',
   'travel', 'tech', 'crm', 'global', 'regulacao',
-].map((slug) => ({ name: `editoria-${slug}`, path: `/editoria/${slug}`, empty: /Em breve: primeiras matérias/ }) as PageSpec);
+].map((slug) => ({ name: `editoria-${slug}`, path: `/editoria/${slug}`, empty: /Ainda não há matérias nesta editoria/ }) as PageSpec);
 
 for (const p of [...PAGES, ...EDITORIAS]) {
   test(`página ${p.name} renderiza sem erros e gera screenshot`, async ({ page }, info) => {

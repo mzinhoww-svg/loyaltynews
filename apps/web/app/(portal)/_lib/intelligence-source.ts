@@ -234,7 +234,10 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       if (typeof total !== 'number' || !Number.isInteger(total) || total < items.length) throw new Error('resposta sem total');
       // Contagem por tipo vem de `tipos` (calculada no banco sobre o filtro de texto, sem o filtro de tipo): assim os
       // chips seguem corretos na página 2 e não somem os tipos que não estão nela.
-      const kinds = (Array.isArray(j.tipos) ? j.tipos : [])
+      // `tipos: []` é resposta legítima do filtro sem resultado; só a AUSÊNCIA do campo é API antiga e merece registro —
+      // senão toda busca vazia vira "API indisponível" no log, o que é falso.
+      const tiposBrutos = Array.isArray(j.tipos) ? j.tipos : null;
+      const kinds = (tiposBrutos ?? [])
         .map((t): { kind: CompanyKind; total: number } | null => {
           if (!isObj(t)) return null;
           const tipo = t.tipo;
@@ -244,7 +247,7 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
           return { kind: tipo as CompanyKind, total: n };
         })
         .filter((t): t is { kind: CompanyKind; total: number } => t !== null);
-      if (!kinds.length) {
+      if (!tiposBrutos) {
         // API antiga sem `tipos`: cai para a contagem conhecida, mas só a do filtro — e a página deixa de prometer tipos
         // que não vieram. Não é invenção: é o subconjunto que a resposta afirma.
         logFalha(WHAT, 'resposta sem tipos; contagem por tipo limitada ao filtro');

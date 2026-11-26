@@ -57,8 +57,8 @@ export default async function EditoriaPage({ params, searchParams }: Props) {
       page={parsePage(sp.page)}
       editoriaSlug={e.slug}
       crumbs={[{ label: 'Editorias', href: '/noticias' }, { label: e.name }]}
-      emptyTitle="Em breve: primeiras matérias"
-      emptyText={`A editoria ${e.name} ainda não tem matérias publicadas. A cobertura começa em breve.`}
+      emptyTitle="Ainda não há matérias nesta editoria"
+      emptyText={`A editoria ${e.name} não tem matérias publicadas.`}
     />
     </>
   );

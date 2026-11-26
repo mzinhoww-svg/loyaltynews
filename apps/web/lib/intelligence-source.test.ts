@@ -94,6 +94,14 @@ describe('createIntelligenceSlice (HTTP)', () => {
     expect(d).toMatchObject({ status: 'ok', total: 5, kinds: [{ kind: 'other', total: 5 }] });
   });
 
+  it('filtro sem resultado (`tipos: []`) não é API indisponível: fica ok, sem log de erro', async () => {
+    const f = vi.fn(async () => json(200, { data: [], total: 0, tipos: [] }));
+    const s = createIntelligenceSlice('http://api.test/', f as unknown as typeof fetch);
+    const d = await s.getCompanyDirectory({ q: 'zzz-sem-empresa' });
+    expect(d).toMatchObject({ status: 'ok', items: [], total: 0, kinds: [] });
+    expect(err).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['status 503', async () => json(503, { error: {} })],
     ['formato inválido', async () => json(200, { data: 'x' })],
