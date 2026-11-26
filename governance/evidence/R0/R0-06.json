@@ -1,0 +1,48 @@
+{
+ "tarefa": "R0-06",
+ "gate": "R0",
+ "commit_sha": "6749803fb7452b3ea8cc9cab4e59d5baeedfcc86",
+ "ambiente": "local",
+ "testes": [
+  {
+   "id": "R0-06-TEST",
+   "nome": "Suite tests/test_r0_06.py no commit a2bfc48 (18 casos) + os tres casos obrigatorios",
+   "resultado": "passou",
+   "registro_sha256": "1d4bcc6475fe5ef87e7b78bcdcf6522d883d9a5fe652ef207c67e00d61531a2b"
+  }
+ ],
+ "artefatos": [
+  {
+   "caminho": "evidencias/R0-06/R0-06-testemunho.md",
+   "sha256": "4a1666072351e928c3d8b9f01f9da66c3bba004627b6ff8669b72c5b149104d9",
+   "bytes": 3572
+  },
+  {
+   "caminho": "evidencias/R0-06/caso3-mudanca-executor.json",
+   "sha256": "dbec7c6708056b21781958842a2afec17aba24182fc8b4bc55ec818e8ca3e1ec",
+   "bytes": 675
+  },
+  {
+   "caminho": "evidencias/R0-06/caso3-mudanca-executor.py",
+   "sha256": "f94ae6db79232965e71906d4304c3a3f33711d0b6fcfaf68fb4cb53dc89769c3",
+   "bytes": 4968
+  },
+  {
+   "caminho": "evidencias/R0-06/casos-verificador.json",
+   "sha256": "5c8bbcdae18a9797bef275164c23a09ab74b7d92466bb507e6074844781c91ff",
+   "bytes": 2619
+  },
+  {
+   "caminho": "evidencias/R0-06/pytest-r006-a2bfc48.log",
+   "sha256": "1d4bcc6475fe5ef87e7b78bcdcf6522d883d9a5fe652ef207c67e00d61531a2b",
+   "bytes": 5014
+  }
+ ],
+ "produzido_por": {
+  "sessao": "ln-verifier-ops-r006",
+  "ferramenta": "OpenBot (agente LN Verifier Ops)",
+  "modelo": "deepseek-v4.1-flash"
+ },
+ "criado_em": "2026-11-26T03:49:10.438305+00:00",
+ "chave_idempotencia": "b9b102d058cd049b65baf6c91bf0de14dfbd749deb0d348067f24c7e6a12012e"
+}
