@@ -54,7 +54,7 @@ export const EDITORIAL_PROMPTS_REF = {
 
 /** Só Claude e Codex (DP-41; decisão do PM: Gemini/Antigravity e OpenCode/DeepSeek saíram do piloto). Uma conta por provedor, sem separar produto e implementação. */
 export type PilotAccount = 'claude' | 'codex' | 'opencode' | 'deterministic';
-export type PilotStage = 'triage' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
+export type PilotStage = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'check_edit' | 'social_pack' | 'roles' | 'rights_seo_qa';
 export type EditorialTaskClass = 'triage' | 'context' | 'draft' | 'factcheck' | 'review' | 'social_pack' | 'roles';
 
 export interface StageSpec {
@@ -76,6 +76,7 @@ export interface StageSpec {
 
 export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   triage: { account: 'claude', backups: [], models: { primary: 'haiku', backups: ['sonnet'] }, label: 'Pauta/triagem (Claude Haiku; backup Claude Sonnet na mesma conta)', taskClass: 'triage', adapterKind: 'classification' },
+  context: { account: 'opencode', backups: [], label: 'Contexto da matéria (OpenCode/DeepSeek; classe context)', taskClass: 'context', adapterKind: 'classification' },
   draft: { account: 'claude', backups: [], label: 'Redação (Claude); sem fallback (DP-26 b)', taskClass: 'draft', adapterKind: 'editorial_draft' },
   factcheck: { account: 'codex', backups: [], label: 'Checagem de fatos independente (Codex; sem backup; autor distinto do redator)', taskClass: 'factcheck', adapterKind: 'fact_check' },
   review: { account: 'codex', backups: [], label: 'Revisão editorial independente (Codex; sem backup; gate WF02)', taskClass: 'review', adapterKind: 'editorial_review' },

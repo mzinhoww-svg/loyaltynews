@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const ACCOUNTS = ['claude', 'codex', 'opencode'];
-export const STAGES = ['triage', 'draft', 'factcheck', 'review', 'social_pack', 'roles'];
+export const STAGES = ['triage', 'context', 'draft', 'factcheck', 'review', 'social_pack', 'roles'];
 /** Tipos de tarefa do piloto (o `pull` filtra por eles: vários agentes podem dividir a mesma conta). */
 export const KINDS = ['classification', 'editorial_draft', 'fact_check', 'editorial_review', 'social_copy', 'entity_resolution'];
 const ID_RE = /^[A-Za-z0-9_.-]{1,128}$/;

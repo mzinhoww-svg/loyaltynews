@@ -133,6 +133,7 @@ Qualquer tentativa de publicar, qualquer chamada à API tarifada, qualquer segre
 ## Etapas do avaliador
 
 - `triage`: Pauta/triagem (Claude Haiku; backup Claude Sonnet na mesma conta) (conta claude)
+- `context`: Contexto da matéria (OpenCode/DeepSeek; classe context) (conta opencode)
 - `draft`: Redação (Claude); sem fallback (DP-26 b) (conta claude)
 - `factcheck`: Checagem de fatos independente (Codex; sem backup; autor distinto do redator) (conta codex)
 - `review`: Revisão editorial independente (Codex; sem backup; gate WF02) (conta codex)
