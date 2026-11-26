@@ -45,7 +45,7 @@ jobs:
       - name: Codigo do commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ inputs.commit }}
+          ref: ${{ inputs.commit || 'a725f4d806eafd9fb2706a9667d6116eb653bea0' }}
           fetch-depth: 0
           persist-credentials: false
 
