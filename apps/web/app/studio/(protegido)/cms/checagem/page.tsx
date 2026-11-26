@@ -9,8 +9,8 @@ import { requireStudio } from '../../../_lib/guard';
 import { SemBanco } from '../../../_components/SemBanco';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
-import { EstadoLista } from '../../../_components/EstadoLista';
 import { Seta } from '../../../_components/Seta';
+import { EstadoLista } from '../../../_components/EstadoLista';
 
 export const metadata: Metadata = { title: 'Fila de checagem' };
 export const dynamic = 'force-dynamic';
