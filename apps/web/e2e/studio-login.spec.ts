@@ -192,7 +192,10 @@ test('as mensagens de NO_MFA e FORBIDDEN seguem na tela, com o formulário para 
   await expect(page.getByLabel('Senha')).toBeVisible();
 });
 
-test('limitador do Better Auth (várias entradas em 10 s do mesmo IP): 429 com o tempo de espera em segundos, sem revelar nada', async ({ page }) => {
+// Limite de tentativas do APP (packages/auth/src/attempts.ts): 5 por janela de 15 min, por conta e por IP; a 6ª recebe 429.
+// O limite embutido do Better Auth foi desligado por privacidade (4fef79c0, sem rastreio de IP na sessão), então a mensagem
+// de espera vem em minutos, não nos segundos do limitador embutido. A guarda continua: 6 tentativas rápidas, a última barrada.
+test('limitador de tentativas do app (mesmo IP): 429 com o tempo de espera em minutos, sem revelar nada', async ({ page }) => {
   await page.unroute('**/api/auth/**');
   await page.route('**/api/auth/**', (route) => route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': '10.250.250.250' } }));
   await page.goto('/studio/entrar?motivo=NO_SESSION');
@@ -206,5 +209,5 @@ test('limitador do Better Auth (várias entradas em 10 s do mesmo IP): 429 com o
     if (/Muitas tentativas/.test(texto)) barrado = texto;
     else expect(texto).toBe('E-mail ou senha incorretos.');
   }
-  expect(barrado, 'o limitador deveria barrar dentro de 6 tentativas rápidas').toMatch(/^Muitas tentativas\. Tente de novo em \d+ segundos?\.$/);
+  expect(barrado, 'o limitador deveria barrar dentro de 6 tentativas rápidas').toMatch(/^Muitas tentativas\. Tente de novo em \d+ minutos?\.$/);
 });
