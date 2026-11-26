@@ -63,14 +63,14 @@ function factory(timeoutMs = 20_000) {
   const deps: OpenBotDeps = {
     queue: new PgLeaseQueue(db()), ledger: new PgCostLedger(db(), app.deps.now), health: new PgHealthStore(db()), callbacks: new PgCallbackStore(db()),
     secrets: () => [SECRET], flags: () => openbotFlagsFrom({ overrides: { openbotDispatch: app.deps.flags.openbotDispatch === true }, kill: false }), now: app.deps.now,
-    requireDerivedResultRef: true, routes: { classification: ['claude'], editorial_draft: ['claude'], fact_check: ['codex'], editorial_review: ['codex'], social_copy: ['claude'], entity_resolution: ['claude'] },
-    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: GATE ?? (() => ({ allowed: false, reasons: ['sem canDispatchNext'] })), allowedAccounts: ['claude', 'codex'] } } : {}),
+    requireDerivedResultRef: true, routes: { classification: ['claude'], editorial_draft: ['opencode'], fact_check: ['codex'], editorial_review: ['codex'], social_copy: ['claude'], entity_resolution: ['claude'] },
+    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: GATE ?? (() => ({ allowed: false, reasons: ['sem canDispatchNext'] })), allowedAccounts: ['claude', 'codex', 'opencode'] } } : {}),
   };
   let t = 0;
   const gw = new OpenBotModelGateway({
     deps, io: new PgTaskIo(db(), app.deps.now), caller: { id: 'fabrica', permissions: [OPENBOT_PERMISSIONS.dispatch] }, timeoutMs, pollMs: 1,
     profiles: { triage: 'newsdesk', context: 'newsdesk', draft: 'writer_pontos', factcheck: 'newsdesk', review: 'newsdesk', social_pack: 'newsdesk', roles: 'newsdesk' },
-    clock: () => t, sleep: async () => { t += 1000; for (const a of [A.claude, A.codex]) await a.tick(); },
+    clock: () => t, sleep: async () => { t += 1000; for (const a of [A.claude, A.codex, A.opencode]) await a.tick(); },
   });
   return { gw, deps };
 }
@@ -147,7 +147,7 @@ describe('2. o gate do AgentOps está ao alcance da rota?', () => {
   });
 });
 
-describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL (uma matéria, só claude e codex)', () => {
+describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL (uma matéria; redação na opencode, demais etapas em claude e codex)', () => {
   const APPROVED = { gate_verdict: 'approved' as const, gate_reasons: [] as string[], cross_provider_ok: true, unsupported_facts: 0 };
   /** A Editorial grava o veredito (patch) logo depois da etapa independente. Sem isso, 2 linhas seguidas sem veredito PARAM o piloto (critério 3 do PM). */
   async function editorialPatch(stage: string) {
@@ -171,14 +171,16 @@ describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL 
     return { out, draft, gw };
   }
 
-  it('as 6 etapas concluem; só claude e codex trabalham (nenhuma opencode/antigravity); custo 0 em faixa de assinatura; uma linha por execução', async () => {
+  it('as 6 etapas concluem; a opencode só redige e a antigravity não trabalha; custo 0 em faixa sem tarifa; uma linha por execução', async () => {
     const { out } = await oneArticle();
     for (const [stage, r] of Object.entries(out)) expect(r.ok, `${stage}: ${JSON.stringify(r)}`).toBe(true);
-    expect(out.factcheck.provider).toBe('openai'); // autor distinto do redator (anthropic)
+    expect(out.factcheck.provider).toBe('openai'); // autor distinto do redator (deepseek)
     const t = await tasks();
-    expect(t.map((x) => [x.kind, x.route])).toEqual(expect.arrayContaining([['classification', ['claude']], ['editorial_draft', ['claude']], ['fact_check', ['codex']], ['editorial_review', ['codex']], ['social_copy', ['claude']], ['entity_resolution', ['claude']]]));
-    expect((await costs()).every((c) => c.costMicro === 0 && ['claude', 'codex'].includes(c.account) && c.lane === 'subscription')).toBe(true);
-    expect([A.opencode.runs.length, A.antigravity.runs.length]).toEqual([0, 0]);
+    expect(t.map((x) => [x.kind, x.route])).toEqual(expect.arrayContaining([['classification', ['claude']], ['editorial_draft', ['opencode']], ['fact_check', ['codex']], ['editorial_review', ['codex']], ['social_copy', ['claude']], ['entity_resolution', ['claude']]]));
+    const custos = await costs();
+    expect(custos.every((c) => c.costMicro === 0 && (c.account === 'opencode' ? c.lane === 'opencode' : ['claude', 'codex'].includes(c.account) && c.lane === 'subscription'))).toBe(true);
+    expect(custos.filter((c) => c.account === 'opencode').map((c) => c.taskId)).toEqual(t.filter((x) => x.kind === 'editorial_draft').map((x) => x.id));
+    expect(A.antigravity.runs.length).toBe(0);
     expect(await rowsStore().all()).toHaveLength(6);
     expect(await stateStore().get()).toBeNull();
   });

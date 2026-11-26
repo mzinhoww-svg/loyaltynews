@@ -36,12 +36,12 @@ const transport: AgentTransport = async (path, raw, headers) => {
   const text = await res.text();
   return { status: res.status, body: text ? JSON.parse(text) : null };
 };
-const mkAgent = (account: 'claude' | 'codex') =>
+const mkAgent = (account: 'claude' | 'codex' | 'opencode') =>
   new FakeOpenBot({
     account, workerId: `fake-${account}`, secret: SECRET, transport, now: () => app.clock.now.getTime(),
-    decide: (t) => ({ type: 'result', result: { de: account, kind: t.kind }, model: account === 'claude' ? (t.kind === 'classification' ? 'claude-haiku-5-5' : 'claude-sonnet-5-5') : 'gpt-5.1-codex' }),
+    decide: (t) => ({ type: 'result', result: { de: account, kind: t.kind }, model: account === 'claude' ? (t.kind === 'classification' ? 'claude-haiku-5-5' : 'claude-sonnet-5-5') : account === 'opencode' ? 'opencode/deepseek-v4.1-flash-free' : 'gpt-5.1-codex' }),
   });
-let A: { claude: FakeOpenBot; codex: FakeOpenBot };
+let A: { claude: FakeOpenBot; codex: FakeOpenBot; opencode: FakeOpenBot };
 
 const db = () => app.db as any;
 const rowsStore = () => new PgPilotRowStore(db(), app.deps.now);
@@ -59,14 +59,14 @@ const waiting = async () => (await rowsStore().all()).filter((r) => ['factcheck'
 function factory() {
   const deps: OpenBotDeps = {
     queue: new PgLeaseQueue(db()), ledger: new PgCostLedger(db(), app.deps.now), health: new PgHealthStore(db()), callbacks: new PgCallbackStore(db()),
-    secrets: () => [SECRET], flags: () => openbotFlagsFrom({ overrides: { openbotDispatch: app.deps.flags.openbotDispatch === true }, kill: false }), now: app.deps.now, requireDerivedResultRef: true, routes: { classification: ['claude'], editorial_draft: ['claude'], fact_check: ['codex'], editorial_review: ['codex'], social_copy: ['claude'], entity_resolution: ['claude'] },
-    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: kit.canDispatchNext!, verdictStreak: kit.verdictStreakReasons!, allowedAccounts: ['claude', 'codex'] } } : {}),
+    secrets: () => [SECRET], flags: () => openbotFlagsFrom({ overrides: { openbotDispatch: app.deps.flags.openbotDispatch === true }, kill: false }), now: app.deps.now, requireDerivedResultRef: true, routes: { classification: ['claude'], editorial_draft: ['opencode'], fact_check: ['codex'], editorial_review: ['codex'], social_copy: ['claude'], entity_resolution: ['claude'] },
+    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: kit.canDispatchNext!, verdictStreak: kit.verdictStreakReasons!, allowedAccounts: ['claude', 'codex', 'opencode'] } } : {}),
   };
   let t = 0;
   const gw = new OpenBotModelGateway({
     deps, io: new PgTaskIo(db(), app.deps.now), caller: { id: 'fabrica', permissions: [OPENBOT_PERMISSIONS.dispatch, PILOT_PERMISSIONS.admin] }, timeoutMs: 20_000, pollMs: 1,
     profiles: { triage: 'newsdesk', context: 'newsdesk', draft: 'writer_pontos', factcheck: 'newsdesk', review: 'newsdesk', social_pack: 'newsdesk', roles: 'newsdesk' },
-    clock: () => t, sleep: async () => { t += 1000; for (const a of [A.claude, A.codex]) await a.tick(); },
+    clock: () => t, sleep: async () => { t += 1000; for (const a of [A.claude, A.codex, A.opencode]) await a.tick(); },
   });
   return { gw, deps };
 }
@@ -86,7 +86,7 @@ beforeAll(async () => {
 }, 120_000);
 beforeEach(() => {
   setEnv({ ...ENV });
-  A = { claude: mkAgent('claude'), codex: mkAgent('codex') };
+  A = { claude: mkAgent('claude'), codex: mkAgent('codex'), opencode: mkAgent('opencode') };
 });
 afterEach(async () => {
   for (const tbl of [schema.openbotCostEntries, schema.openbotCallbacks, schema.openbotHealth, schema.openbotPilotRows, schema.openbotPilotState, schema.openbotIo, schema.openbotTasks, schema.budgetKillSwitch]) await app.db.delete(tbl as any);
@@ -108,7 +108,7 @@ describe.skipIf(!HAS_KIT)('critério 3 do PM com o kit REAL do AgentOps e as rot
     expect((await A.claude.pull()).status).toBe(200);
   });
 
-  it('DUAS seguidas (checagem e revisão concluídas sem veredito): o despacho é recusado e as rotas de pull de claude E codex respondem 423 PILOT_STOPPED; o motivo fica gravado', async () => {
+  it('DUAS seguidas (checagem e revisão concluídas sem veredito): o despacho é recusado e as rotas de pull de claude, codex E opencode respondem 423 PILOT_STOPPED; o motivo fica gravado', async () => {
     const { gw } = factory();
     const reviewed = await untilDraft(gw);
     expect((await gw.invoke(req('factcheck', { excludeProviders: ['anthropic'], input: reviewed }))).ok).toBe(true);
@@ -120,7 +120,7 @@ describe.skipIf(!HAS_KIT)('critério 3 do PM com o kit REAL do AgentOps e as rot
     expect(next.ok).toBe(false);
     const stop = await stateStore().get();
     expect(stop?.reasons.join(' ')).toContain(STOP.verdictStreak);
-    for (const a of [A.claude, A.codex]) {
+    for (const a of [A.claude, A.codex, A.opencode]) {
       const r = await a.pull();
       expect([r.status, r.body.error.code]).toEqual([423, 'PILOT_STOPPED']);
     }
