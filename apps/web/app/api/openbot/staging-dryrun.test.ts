@@ -63,8 +63,8 @@ function factory(timeoutMs = 20_000) {
   const deps: OpenBotDeps = {
     queue: new PgLeaseQueue(db()), ledger: new PgCostLedger(db(), app.deps.now), health: new PgHealthStore(db()), callbacks: new PgCallbackStore(db()),
     secrets: () => [SECRET], flags: () => openbotFlagsFrom({ overrides: { openbotDispatch: app.deps.flags.openbotDispatch === true }, kill: false }), now: app.deps.now,
-    requireDerivedResultRef: true,
-    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: GATE ?? (() => ({ allowed: false, reasons: ['sem canDispatchNext'] })) } } : {}),
+    requireDerivedResultRef: true, routes: { classification: ['claude'], editorial_draft: ['claude'], fact_check: ['codex'], editorial_review: ['codex'], social_copy: ['claude'], entity_resolution: ['claude'] },
+    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: GATE ?? (() => ({ allowed: false, reasons: ['sem canDispatchNext'] })), allowedAccounts: ['claude', 'codex'] } } : {}),
   };
   let t = 0;
   const gw = new OpenBotModelGateway({
@@ -237,9 +237,9 @@ describe.skipIf(typeof GATE !== 'function')('3. ciclo do piloto com o gate REAL 
 
 describe('4. DP-41 no fio e kill switch, com o piloto ligado (precisam do gate real)', () => {
   const it4 = it.skipIf(typeof GATE !== 'function');
-  it4('pull de opencode ou antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e piloto parado (a via certa também é barrada até o resumePilot)', async () => {
+  it4('pull de antigravity: 422 ACCOUNT_OUT_OF_ROUTE, linha de violação e piloto parado (a via certa também é barrada até o resumePilot)', async () => {
     await new PgLeaseQueue(db()).enqueue({ kind: 'classification', profileId: 'newsdesk', refId: 'gw-dp41', idempotencyKey: 'dp41-1', dataClass: 'public', maxCostMicro: 1, route: ['claude'] }, app.clock.now);
-    const bad = await A.opencode.pull();
+    const bad = await A.antigravity.pull();
     expect([bad.status, bad.body.error.code]).toEqual([422, 'ACCOUNT_OUT_OF_ROUTE']);
     expect((await stateStore().get())?.reasons).toEqual(['conta_fora_da_rota']);
     expect((await A.claude.pull()).body.error.code).toBe('PILOT_STOPPED');
