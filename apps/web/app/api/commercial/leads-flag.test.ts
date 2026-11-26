@@ -79,4 +79,21 @@ describe('pedido de proposta no servidor, nos dois estados da flag', () => {
     expect(r.body.error.code).toBe('MFA_REQUIRED');
     expect(await leads()).toBe(antes);
   });
+  it('a rota de Studio do lead exige quem gerencia o comercial: editor e leitor recebem 403 e nada é gravado', async () => {
+    const antes = await leads();
+    for (const papel of ['editor', 'leitor'] as const) {
+      const ator = await app.actor(papel);
+      const r = await call(d, 'POST', { path: '/api/commercial/studio/leads', body: corpo(`${papel}@example.test`), as: ator });
+      expect(r.status, papel).toBe(403);
+    }
+    expect(await leads()).toBe(antes);
+  });
+  it('a rota de Studio do lead valida como a pública: e-mail inválido 400, formato desconhecido 422, nada é gravado', async () => {
+    const comercial = await app.actor('comercial');
+    const antes = await leads();
+    const path = '/api/commercial/studio/leads';
+    expect((await call(d, 'POST', { path, body: corpo('nao-e-email'), as: comercial })).status).toBe(400);
+    expect((await call(d, 'POST', { path, body: { ...corpo(), formatosInteresse: ['banners--nao-existe'] }, as: comercial })).status).toBe(422);
+    expect(await leads()).toBe(antes);
+  });
 });
