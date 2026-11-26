@@ -1,7 +1,9 @@
+# R0-02-TEST em a3f86badb8d3eb7a7b19933dd58e6826382d0821
+# python -X utf8 evidencias/R0-02/conferencia-decisoes.py -> exit 0
 {
  "teste": "R0-02-TEST",
  "ok": true,
- "decisions_sha256": "96250102be2588f2ed173b43f9118d8b6739858616c3404a28d074a41fd80c3b",
+ "decisions_sha256": "8b8276d352d14b9c960de93dd8bb4bccd52e16ea1ab1958932addedf5716fa33",
  "entradas": 77,
  "decisoes_12": 13,
  "decisoes_11": 13,
@@ -115,7 +117,7 @@
    "escolha": "Dez editorias preservadas"
   }
  ],
- "v21_propostas": 16,
+ "v21_ratificadas": 16,
  "v21_referencia_fora_do_repo": [
   {
    "id": "V21-16",

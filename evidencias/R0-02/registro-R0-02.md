@@ -4,8 +4,8 @@ Registro de evidencia da tarefa R0-02 do gate R0. Le, sem alterar, os documentos
 
 - Fonte das decisoes: `audit-output/11_CONCILIACAO.md` secao 1 (com a hora) e `audit-output/12_RESPOSTA_OFICIAL.md` secao 2.
 - Registro: `governance/decisions.yaml` (arquivo protegido; conferido como esta no commit, nao editado por esta tarefa).
-- Commit conferido: `699dd2e` (main no momento da conferencia).
-- sha256 de `governance/decisions.yaml`: `96250102be2588f2ed173b43f9118d8b6739858616c3404a28d074a41fd80c3b`.
+- Commit conferido: `a3f86ba` (main no momento da conferencia).
+- sha256 de `governance/decisions.yaml`: `8b8276d352d14b9c960de93dd8bb4bccd52e16ea1ab1958932addedf5716fa33`.
 - Teste: `evidencias/R0-02/conferencia-decisoes.py` (`R0-02-TEST`); saida em `evidencias/R0-02/conferencia-decisoes.log`.
 
 ## Decisoes registradas
@@ -28,35 +28,36 @@ As sete primeiras sao das 19:20 e as seis ultimas das 22:56, como declara a seca
 | 12 | 22:56 | D12 | Mídia kit: como está | Mídia kit e preços de referência; métricas reais com período |
 | 13 | 22:56 | D13 | Editorias: como estão | Dez editorias preservadas |
 
-## Divergencias V21 como propostas
+## Divergencias V21 ratificadas pela raiz
 
-As 16 divergencias da auditoria entram como proposta, sem ratificacao por esta tarefa:
+As 16 divergencias da auditoria foram ratificadas pelo ato raiz de 26/11/2026 (commit `3f9dbd1e`):
+cada uma tem `status: ratificada` e `escolha` que ratifica a recomendacao do proprio item.
 
-| ID | Status | Referencia |
-|---|---|---|
-| V21-01 | proposta | docs/Divergencias_e_achados.md |
-| V21-02 | proposta | docs/Divergencias_e_achados.md |
-| V21-03 | proposta | docs/Divergencias_e_achados.md |
-| V21-04 | proposta | docs/Divergencias_e_achados.md |
-| V21-05 | proposta | docs/Divergencias_e_achados.md |
-| V21-06 | proposta | docs/Divergencias_e_achados.md |
-| V21-07 | proposta | docs/Divergencias_e_achados.md |
-| V21-08 | proposta | docs/Divergencias_e_achados.md |
-| V21-09 | proposta | docs/Divergencias_e_achados.md |
-| V21-10 | proposta | docs/Divergencias_e_achados.md |
-| V21-11 | proposta | docs/Divergencias_e_achados.md |
-| V21-12 | proposta | docs/Divergencias_e_achados.md |
-| V21-13 | proposta | docs/Divergencias_e_achados.md |
-| V21-14 | proposta | docs/Divergencias_e_achados.md |
-| V21-15 | proposta | docs/Divergencias_e_achados.md |
-| V21-16 | proposta | r0-preparacao/achado-V21-16-portabilidade-windows.md (fora do repositorio, no registro compartilhado) |
+| ID | Status | Escolha | Referencia |
+|---|---|---|---|
+| V21-01 | ratificada | Ratificada a recomendacao: Aceite intraonda por tags task/<id>/accepted; gate/Rn/accepted agrega | docs/Divergencias_e_achados.md |
+| V21-02 | ratificada | Ratificada a recomendacao: Alcada de bootstrap R0-01..07 para F-055/F-120; gate R0 so com ambos comprovados | docs/Divergencias_e_achados.md |
+| V21-03 | ratificada | Ratificada a recomendacao: Bootstrap administrativo do verificador nao e aceite; aceites retroativos em ordem DAG | docs/Divergencias_e_achados.md |
+| V21-04 | ratificada | Ratificada a recomendacao: R0 barreira global; depois DAG por tarefa (R1-03 depende de R2-01) | docs/Divergencias_e_achados.md |
+| V21-05 | ratificada | Ratificada a recomendacao: Separar gate R6 de autorizacao pre-deploy e release/R6/deployed com smoke | docs/Divergencias_e_achados.md |
+| V21-06 | ratificada | Ratificada a recomendacao: Registro de aceite na mensagem da tag assinada; espelho opcional no repo do verificador | docs/Divergencias_e_achados.md |
+| V21-07 | ratificada | Ratificada a recomendacao: Testes reais no GitHub: rulesets, check de fonte confiavel, token sem bypass, negativas reais | docs/Divergencias_e_achados.md |
+| V21-08 | ratificada | Ratificada a recomendacao: Fundamento juridico documentado antes de uso de imagem; parecer antes do lancamento | docs/Divergencias_e_achados.md |
+| V21-09 | ratificada | Ratificada a recomendacao: Teto agregado USD 50; console por provedor como segunda barreira; recarga nao aumenta teto | docs/Divergencias_e_achados.md |
+| V21-10 | ratificada | Ratificada a recomendacao: Review runner independente com logs de provider/model/request ID | docs/Divergencias_e_achados.md |
+| V21-11 | ratificada | Ratificada a recomendacao: Checks executaveis por requisito, versionados pela raiz; falha fechada se ausentes | docs/Divergencias_e_achados.md |
+| V21-12 | ratificada | Ratificada a recomendacao: Liberacao de claim orfa e mudanca de criterio por procedimento root/verifier externo | docs/Divergencias_e_achados.md |
+| V21-13 | ratificada | Ratificada a recomendacao: Homologar o MCP stdio no cliente real | docs/Divergencias_e_achados.md |
+| V21-14 | ratificada | Ratificada a recomendacao: Registrar referencia, titular/controlador e escopo do parecer F-090; sem ingestao pessoal sem base | docs/Divergencias_e_achados.md |
+| V21-15 | ratificada | Ratificada a recomendacao: R3-01 redesenha wireframes e corrige 15 inconsistencias | docs/Divergencias_e_achados.md |
+| V21-16 | ratificada | Ratificada a recomendacao: Governanca nao reconhece aceites no Windows: patch POSIX + UTF-8/LF + .gitattributes protegido (proposto pelo PM em 22/11) | r0-preparacao/achado-V21-16-portabilidade-windows.md (fora do repositorio) |
 
 ## O que o teste R0-02-TEST confere
 
 - As 13 linhas de cada documento existem, na mesma numeracao, e a divisao 7 x 19:20 / 6 x 22:56 confere nos dois.
 - Cada linha tem a entrada D01..D13 com status `registrada`, escolha nao vazia e referencia a `12_RESPOSTA_OFICIAL`.
 - O mapa acima cobre os 13 itens e repete a hora da fonte.
-- As 16 entradas V21-* estao como `proposta` e tem referencia; 15 apontam arquivo existente no repo e a V21-16 aponta o registro compartilhado.
+- As 16 entradas V21-* estao como `ratificada`, com escolha "Ratificada a recomendacao: ..." e referencia; 15 apontam arquivo existente no repo e a V21-16 aponta o registro compartilhado.
 - Nenhuma entrada de `decisions.yaml` tem campo de aceite.
 
 ## Limite e o que nao foi verificado
