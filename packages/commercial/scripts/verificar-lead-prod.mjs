@@ -88,13 +88,18 @@ const maxHoras = Number(args['max-horas'] ?? 7); // o worker roda a cada 6 h
 if (!Number.isFinite(agora) || !(maxHoras > 0 && maxHoras <= 24)) { console.error('--agora inválido ou --max-horas fora de 0 a 24'); process.exit(2); }
 item('worker: log da subida traz "[workers] filas:"', subida.some((l) => l.includes('[workers] filas:')), subida.length ? `subida de ${subida[0].split(' ')[0]}` : 'log sem uma subida completa');
 item('worker: a subida é posterior ao envio de código', envioOk && Number.isFinite(quando) && quando >= Date.parse(codigo.created_at), 'a subida do log tem de rodar o código enviado');
+const ruim = /subida recusada|retenção de leads falhou|process exited|worker stopped|SIGTERM|SIGKILL|\bOOM\b|out of memory/i;
+// Um sinal de parada em QUALQUER ponto da última subida invalida tudo: só uma nova subida, com nova rodada, volta a valer.
+const parou = subida.some((l) => ruim.test(l));
+// Cronologia: toda linha com data tem de ser da subida em diante e em ordem; data anterior contradiz o log.
+const horas = subida.map(hora);
+const emOrdem = subida.length > 0 && horas.every((h, i) => Number.isFinite(h) && (i === 0 || h >= horas[i - 1]));
 const rodadaEm = subida.map((l) => l.includes(RODADA)).lastIndexOf(true);
-const depois = rodadaEm >= 0 ? subida.slice(rodadaEm + 1) : subida;
-const ruim = /subida recusada|retenção de leads falhou|process exited|worker stopped|SIGTERM|SIGKILL|OOM|out of memory/i;
-const idade = rodadaEm >= 0 ? (agora - hora(subida[rodadaEm])) / 3_600_000 : NaN;
-item('worker: rodada de retenção concluída e recente', rodadaEm >= 0 && idade >= 0 && idade <= maxHoras,
+const idade = rodadaEm >= 0 ? (agora - horas[rodadaEm]) / 3_600_000 : NaN;
+item('worker: log da subida em ordem cronológica', emOrdem, 'cada linha desde a subida precisa de data igual ou posterior à anterior');
+item('worker: rodada de retenção concluída e recente', rodadaEm >= 0 && emOrdem && horas[rodadaEm] >= quando && idade >= 0 && idade <= maxHoras,
   rodadaEm >= 0 ? `última rodada há ${idade.toFixed(1)} h (máximo ${maxHoras} h)` : `nenhuma linha "${RODADA}" depois da última subida`);
-item('worker: sem parada nem falha depois da subida', subida.length > 0 && !subida.some((l) => /subida recusada|retenção de leads falhou/.test(l)) && !depois.some((l) => ruim.test(l)), 'recusa falha de retenção e sinais de parada');
+item('worker: sem parada nem falha desde a última subida', subida.length > 0 && !parou, 'procura falha de retenção e sinais de parada em toda a janela');
 
 // 6. sal (só sim/não)
 for (const [chave, nome] of [['salt-web', 'sal presente no web'], ['salt-workers', 'sal presente no worker'], ['salt-igual', 'sal igual nos dois']]) {

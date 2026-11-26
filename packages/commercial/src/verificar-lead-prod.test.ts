@@ -46,7 +46,7 @@ function rodar(o: Over = {}) {
 describe('verificação pós-deploy do ciclo do lead', () => {
   it('estado corrigido (exemplo) é aprovado', () => {
     const r = rodar();
-    expect(r.out).toContain('APROVADO: 14 de 14 itens');
+    expect(r.out).toContain('APROVADO: 15 de 15 itens');
     expect(r.code).toBe(0);
   });
   it.each<[string, Over, string]>([
@@ -62,6 +62,11 @@ describe('verificação pós-deploy do ciclo do lead', () => {
     ['aplicação fora do ar', { status: 'down' }, 'aplicação no ar'],
     ['parou depois de subir (sonda do QA 6)', { log: juntar(...LOG, '2030-01-04T10:01:00Z process exited; worker stopped') }, 'sem parada nem falha'],
     ['sem nenhuma rodada concluída (rodada pendurada)', { log: juntar(...LOG.slice(0, 3)) }, 'rodada de retenção concluída'],
+    ['parada ENTRE a subida e a conclusão (sonda do QA 6)', { log: juntar(...LOG.slice(0, 3), '2030-01-04T10:00:07Z SIGTERM', LOG[3]!) }, 'sem parada nem falha'],
+    ['falta de memória antes da conclusão', { log: juntar(...LOG.slice(0, 3), '2030-01-04T10:00:07Z JavaScript heap out of memory', LOG[3]!) }, 'sem parada nem falha'],
+    ['conclusão datada antes da subida (sonda do QA 6)', { log: juntar(...LOG.slice(0, 3), `2030-01-04T09:59:59Z ${RODADA}`) }, 'rodada de retenção concluída'],
+    ['linhas fora de ordem', { log: juntar(...LOG.slice(0, 3), '2030-01-04T09:59:59Z [workers] reconciliador {}', LOG[3]!) }, 'ordem cronológica'],
+    ['linha sem data depois da subida', { log: juntar(...LOG.slice(0, 3), RODADA) }, 'ordem cronológica'],
     ['log antigo', { agora: '2030-01-05T12:00:00Z' }, 'rodada de retenção concluída'],
     ['rodada com data no futuro', { agora: '2030-01-04T09:00:00Z' }, 'rodada de retenção concluída'],
     ['rodada só numa subida anterior', { log: juntar(...LOG, '2030-01-04T11:00:00Z guard-env OK', '2030-01-04T11:00:01Z [workers] filas: a', '2030-01-04T11:00:02Z [workers] no ar') }, 'rodada de retenção concluída'],
@@ -81,7 +86,7 @@ describe('verificação pós-deploy do ciclo do lead', () => {
     const base = [SCRIPT, '--repo', dir, '--retencao', retencao, '--exclusao', retencao];
     const r = spawnSync(process.execPath, base, { encoding: 'utf8' });
     expect(r.status).toBe(1);
-    expect(r.stdout).toContain('REPROVADO: 14 de 14');
+    expect(r.stdout).toContain('REPROVADO: 15 de 15');
     expect(spawnSync(process.execPath, [SCRIPT, '--salt-web'], { encoding: 'utf8' }).status).toBe(2);
     expect(spawnSync(process.execPath, [...base, '--max-horas', '999'], { encoding: 'utf8' }).status).toBe(2);
   });
