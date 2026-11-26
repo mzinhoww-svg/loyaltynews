@@ -51,8 +51,8 @@ export default defineConfig({
           : apiAds
             ? /api-ads\.spec\.ts/
           : apiIntel
-            ? /intelligence\.spec\.ts/
-          : /(api|api-site|api-agenda|api-tipos|env|intelligence|correcoes|seo-dados|cls-dados|header-busca|sem-js|seo|rodape)\.spec\.ts/
+            ? /(intelligence|moves-estados|intelligence-seed-v3|intelligence-pessoas-moves-seed|empresas-editoria-seed)\.spec\.ts/
+          : /(api|api-site|api-agenda|api-tipos|env|intelligence|a11y-dados|moves-estados|correcoes|seo-dados|cls-dados|header-busca|sem-js|seo|rodape)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
         : /env\.spec\.ts/,
@@ -97,6 +97,10 @@ export default defineConfig({
             ...(indexavel && mode !== 'mock' ? { PORTAL_INDEXAVEL: '1' } : {}),
             NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
             NEXT_TELEMETRY_DISABLED: '1',
+            // Login de e2e do Studio também no perfil VITRINE (mock): o build já inclui o backend de e2e (LN_E2E_BUILD=1);
+            // faltava só a flag de runtime, e por isso glifo, cache e Studio davam 404 nesse perfil.
+            LN_STUDIO_TEST_SESSION: '1',
+            LN_STUDIO_DEV_DB: 'pglite',
             // Flags de produto são de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem a flag. Só repassa o que o operador do teste definiu.
             ...(process.env.LN_FLAGS_ON ? { LN_FLAGS_ON: process.env.LN_FLAGS_ON } : {}),
           },

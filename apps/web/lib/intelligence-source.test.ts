@@ -50,12 +50,16 @@ describe('mapeamento do contrato', () => {
     expect(relationLabel({ type: 'partner_of', direction: 'from' })).toBe('Parceria declarada com');
   });
 
-  it('filtro por tipo mantém a contagem de todos os tipos; busca ignora acento', () => {
+  it('filtro por tipo mantém a contagem de todos os tipos; busca ignora acento; paginação recorta sem perder o total', () => {
     const all = [item(1, 'company', 'Ônibus'), item(2, 'company', 'Banco'), item(3, 'other', 'Clube')].map((i) => mapCompanyItem(i)!);
     const d = filterDirectory(all, { kind: 'company' });
     expect(d.items.map((i) => i.name)).toEqual(['Banco', 'Ônibus']);
     expect(d.kinds).toEqual([{ kind: 'company', total: 2 }, { kind: 'other', total: 1 }]);
     expect(filterDirectory(all, { q: 'onibus' }).items).toHaveLength(1);
+    // Página 2 de 2 com página de 2: um item, mas o total continua 3 (o que a página exibe é o total, não o recorte).
+    const p2 = filterDirectory(all, { offset: 2, limit: 2 });
+    expect(p2.items.map((i) => i.name)).toEqual(['Ônibus']);
+    expect(p2).toMatchObject({ total: 3, offset: 2, limit: 2 });
   });
 });
 
@@ -66,12 +70,36 @@ describe('createIntelligenceSlice (HTTP)', () => {
   });
   afterEach(() => err.mockRestore());
 
-  it('lista e filtra por tipo localmente', async () => {
-    const f = vi.fn(async () => json(200, { data: [item(1, 'company'), item(2, 'other'), { id: 'x' }], total: 3, tipos: [] }));
+  it('diretório paginado: manda limit/offset e usa o total e os tipos do banco', async () => {
+    const f = vi.fn(async () => json(200, { data: [item(2, 'other')], total: 29, tipos: [{ tipo: 'company', total: 7 }, { tipo: 'other', total: 22 }] }));
     const s = createIntelligenceSlice('http://api.test/', f as unknown as typeof fetch);
-    const d = await s.getCompanyDirectory({ kind: 'other', q: ' org ' });
-    expect(f).toHaveBeenCalledWith('http://api.test/api/publico/intelligence/empresas?limit=100&q=org', expect.anything());
-    expect(d).toMatchObject({ status: 'ok', total: 1, kinds: [{ kind: 'company', total: 1 }, { kind: 'other', total: 1 }] });
+    const d = await s.getCompanyDirectory({ kind: 'other', q: 'org', offset: 24 });
+    expect(f).toHaveBeenCalledWith('http://api.test/api/publico/intelligence/empresas?limit=24&offset=24&q=org&tipo=other', expect.anything());
+    // total é o do banco (29), não o desta página (1); os chips vêm de `tipos`, não da página.
+    expect(d).toMatchObject({ status: 'ok', total: 29, offset: 24, limit: 24, kinds: [{ kind: 'company', total: 7 }, { kind: 'other', total: 22 }] });
+  });
+
+  it('resposta sem total inteiro coerente não vira "vazia": é indisponível', async () => {
+    for (const corpo of [{ data: [item(1, 'company')] }, { data: [item(1, 'company')], total: 0 }, { data: [], total: '29' }]) {
+      const s = createIntelligenceSlice('http://api.test', vi.fn(async () => json(200, corpo)) as unknown as typeof fetch);
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(await s.getCompanyDirectory(), JSON.stringify(corpo)).toEqual({ status: 'unavailable' });
+    }
+  });
+
+  it('API antiga sem `tipos`: contagem limitada ao tipo filtrado, e nunca inventa os outros', async () => {
+    const f = vi.fn(async () => json(200, { data: [item(1, 'other')], total: 5 }));
+    const s = createIntelligenceSlice('http://api.test/', f as unknown as typeof fetch);
+    const d = await s.getCompanyDirectory({ kind: 'other' });
+    expect(d).toMatchObject({ status: 'ok', total: 5, kinds: [{ kind: 'other', total: 5 }] });
+  });
+
+  it('filtro sem resultado (`tipos: []`) não é API indisponível: fica ok, sem log de erro', async () => {
+    const f = vi.fn(async () => json(200, { data: [], total: 0, tipos: [] }));
+    const s = createIntelligenceSlice('http://api.test/', f as unknown as typeof fetch);
+    const d = await s.getCompanyDirectory({ q: 'zzz-sem-empresa' });
+    expect(d).toMatchObject({ status: 'ok', items: [], total: 0, kinds: [] });
+    expect(err).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -247,7 +275,7 @@ describe('fontes vazia e MOCK', () => {
   });
 
   it('vazia: diretório vazio honesto e empresa inexistente', async () => {
-    expect(await emptySource.getCompanyDirectory()).toEqual({ status: 'ok', items: [], total: 0, kinds: [] });
+    expect(await emptySource.getCompanyDirectory()).toEqual({ status: 'ok', items: [], total: 0, kinds: [], offset: 0, limit: 0 });
     expect(await emptySource.getCompany(ID(1))).toEqual({ status: 'not_found' });
   });
 

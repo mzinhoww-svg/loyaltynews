@@ -23,6 +23,19 @@ const base = {
 const articles = [
   {
     ...base,
+    slug: 'api-titulo-120',
+    // Manchete de exatamente 120 caracteres: prova de render do card de OG no limite do aceite.
+    titulo: 'O varejo brasileiro amplia cashback e pontos com novas regras de resgate e testa modelos híbridos de fidelidade em 2026.',
+    resumo: 'Resumo de teste com título longo (MOCK).',
+    tipoConteudo: 'noticia',
+    tempoLeituraMin: 2,
+    editoria: 'programas',
+    corpo: 'Texto simples de teste (MOCK).\n\nFontes:\n- https://fonte.example/mock',
+    imagem: null,
+    publicadoEm: '2026-11-18T10:00:00-03:00',
+  },
+  {
+    ...base,
     slug: 'api-ilustracao-corrigida',
     titulo: '[MOCK API] Matéria com ilustração conceitual e errata',
     resumo: 'Resumo de teste (MOCK).',

@@ -113,7 +113,7 @@ test.describe('api', () => {
     // Espera determinística da navegação (URL e título do destino) antes de checar o conteúdo.
     await expect(page).toHaveURL(/\/intelligence\/empresas\/10000000-0000-4000-8000-000000000004$/, { timeout: NAV_MS });
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Clube Delta', { timeout: NAV_MS });
-    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible();
+    await expect(page.getByText('Nenhum cargo declarado com fonte oficial foi publicado para esta empresa')).toBeVisible();
     await expect(page.getByTestId('company-meta')).toContainText('Tipo não declarado na fonte');
     await page.getByTestId('relations').getByRole('link', { name: '[MOCK API] Associação Gama' }).click();
     // M-02 (revisão 25/11): os 2 vínculos da Gama têm o mesmo rótulo → sem coluna "Vínculo" repetida; o rótulo vai uma vez na legenda.
@@ -254,7 +254,7 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     expect((await page.goto('/moves/10000000-0000-4000-8000-000000000401'))?.status()).toBe(404);
     await page.goto('/intelligence/empresas/10000000-0000-4000-8000-000000000001');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('[MOCK API] Programa Alfa', { timeout: NAV_MS });
-    await expect(page.getByText('Em breve: executivos verificados')).toBeVisible({ timeout: NAV_MS });
+    await expect(page.getByText('Nenhum cargo declarado com fonte oficial foi publicado para esta empresa')).toBeVisible({ timeout: NAV_MS });
     await expect(page.getByTestId('move-card')).toHaveCount(0);
     await page.goto('/intelligence');
     await expect(page.getByTestId('count-pessoas')).toHaveText('Cadastros verificados: em breve');
@@ -273,7 +273,7 @@ test.describe('api com dado existente mas retido nesta versão', () => {
     await expect(page.getByTestId('people-list')).toHaveCount(0);
 
     await page.goto('/moves');
-    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão')).toBeVisible();
+    await expect(page.getByText(/Existe? \d+ movimentaç/)).toBeVisible();
     await expect(page.getByTestId('moves-empty-withheld')).toBeVisible();
     await expect(page.getByTestId('moves-list')).toHaveCount(0);
     await axe(page);

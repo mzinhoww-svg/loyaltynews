@@ -4,7 +4,7 @@ import { SearchInput } from '../../../_components/ds-client';
 import { ErrorState } from '../../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { formatDate } from '../../../_lib/format';
-import { asKind, KIND_FILTER_LABEL, KIND_LABEL } from '../../../_lib/intelligence-source';
+import { asKind, DIRETORIO_PAGINA, KIND_FILTER_LABEL, KIND_LABEL } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
 import { metadadosPagina } from '../../../_seo/paginas';
 import s from '../../_components/intel.module.css';
@@ -20,19 +20,23 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-const hrefFor = (tipo?: string, q?: string) => {
+const hrefFor = (tipo?: string, q?: string, pagina?: number) => {
   const qs = new URLSearchParams();
   if (tipo) qs.set('tipo', tipo);
   if (q) qs.set('q', q);
+  if (pagina && pagina > 1) qs.set('pagina', String(pagina));
   const s = qs.toString();
   return `/intelligence/empresas${s ? `?${s}` : ''}`;
 };
 
-export default async function EmpresasPage({ searchParams }: { searchParams: Promise<{ q?: string; tipo?: string }> }) {
+export default async function EmpresasPage({ searchParams }: { searchParams: Promise<{ q?: string; tipo?: string; pagina?: string }> }) {
   const sp = await searchParams;
   const q = (sp.q ?? '').trim().slice(0, 100);
   const kind = asKind(sp.tipo);
-  const dir = await getSource().getCompanyDirectory({ kind, q: q || undefined });
+  const pagina = Math.max(1, Number.parseInt(sp.pagina ?? '1', 10) || 1);
+  const dir = await getSource().getCompanyDirectory({ kind, q: q || undefined, offset: (pagina - 1) * DIRETORIO_PAGINA });
+  const paginas = dir.status === 'ok' && dir.total ? Math.ceil(dir.total / dir.limit) : 0;
+  const fim = dir.status === 'ok' ? dir.offset + dir.items.length : 0;
 
   return (
     <>
@@ -43,7 +47,7 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
       />
       <SearchInput action="/intelligence/empresas" label="Buscar empresa" placeholder="Buscar empresa ou programa" defaultValue={q} />
       {dir.status === 'unavailable' ? (
-        <ErrorState title="Diretório temporariamente indisponível" retryHref={hrefFor(kind, q)}>
+        <ErrorState title="Diretório temporariamente indisponível" retryHref={hrefFor(kind, q, pagina)}>
           Não conseguimos carregar as empresas agora. Isso não significa que o diretório esteja vazio; tente de novo em instantes.
         </ErrorState>
       ) : (
@@ -70,6 +74,12 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
                 {dir.total} {dir.total === 1 ? 'organização' : 'organizações'}
                 {kind ? ` · ${KIND_FILTER_LABEL[kind]}` : ''}
               </p>
+              {/* O total é o do banco, não o desta página: com mais de uma página, a faixa diz o que está na tela. */}
+              {paginas > 1 && (
+                <p className="pt-meta" data-testid="directory-range">
+                  Mostrando {dir.offset + 1}–{fim} de {dir.total}
+                </p>
+              )}
               <ul className="pt-grid pt-grid-3" style={{ listStyle: 'none', padding: 0 }} data-testid="company-list">
                 {dir.items.map((c) => (
                   <li key={c.id} className="pt-panel">
@@ -79,13 +89,32 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
                     </h2>
                     <p className="pt-meta">{KIND_LABEL[c.kind]}</p>
                     <p className="pt-meta">
-                      {c.relationCount ? `${c.relationCount} ${c.relationCount === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'Sem vínculos declarados'}
-                      {' · '}Validado em <time dateTime={c.validatedAt}>{formatDate(c.validatedAt)}</time>
+                      {/* Empresa não tem data de validação no schema: o campo é a data de COLETA da fonte. */}
+                      {c.relationCount ? `${c.relationCount} ${c.relationCount === 1 ? 'vínculo declarado' : 'vínculos declarados'}` : 'Nenhum vínculo publicado'}
+                      {' · '}Coletado em <time dateTime={c.validatedAt}>{formatDate(c.validatedAt)}</time>
                     </p>
                   </li>
                 ))}
               </ul>
+              {paginas > 1 && (
+                <nav aria-label="Paginação do diretório" data-testid="directory-pagination"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 16 }}>
+                  {pagina > 1 ? (
+                    <Link className={s.touch} href={hrefFor(kind, q, pagina - 1)} rel="prev">← Página anterior</Link>
+                  ) : <span aria-hidden="true" />}
+                  <span className="pt-meta" data-testid="directory-page">Página {pagina} de {paginas}</span>
+                  {fim < dir.total ? (
+                    <Link className={s.touch} href={hrefFor(kind, q, pagina + 1)} rel="next">Próxima página →</Link>
+                  ) : <span aria-hidden="true" />}
+                </nav>
+              )}
             </>
+          ) : paginas > 0 ? (
+            // Página fora do intervalo (link antigo, total encolheu): não finge que o filtro não tem resultado.
+            <EmptyState title="Esta página não existe mais">
+              O diretório tem {dir.total} {dir.total === 1 ? 'organização publicada' : 'organizações publicadas'} em {paginas} {paginas === 1 ? 'página' : 'páginas'}.
+              {' '}<Link href={hrefFor(kind, q, paginas)} style={{ textDecoration: 'underline' }}>Ir para a última página</Link>.
+            </EmptyState>
           ) : (
             <EmptyState title={q || kind ? 'Nenhuma empresa com esse filtro' : 'Em breve: primeiros perfis verificados'}>
               {q || kind ? (
