@@ -59,4 +59,24 @@ describe('pedido de proposta no servidor, nos dois estados da flag', () => {
     const ads = await call(d, 'POST', { path: '/api/commercial/ads/serve', body: { positionId: 'TOP', pageViewId: 'pv-flag' } });
     expect(ads.status).toBe(200);
   });
+  it('o CRM do Studio grava o lead pela rota autenticada com a flag do portal desligada', async () => {
+    const comercial = await app.actor('comercial');
+    const antes = await leads();
+    const r = await call(d, 'POST', { path: '/api/commercial/studio/leads', body: corpo('studio@example.test'), as: comercial });
+    expect(r.status).toBe(201);
+    expect(await leads()).toBe(antes + 1);
+  });
+  it('a rota de Studio do lead exige sessão: sem login é 401, nunca pública', async () => {
+    const antes = await leads();
+    expect((await call(d, 'POST', { path: '/api/commercial/studio/leads', body: corpo('sem@login.test') })).status).toBe(401);
+    expect(await leads()).toBe(antes);
+  });
+  it('a rota de Studio do lead exige MFA: só senha responde 403 e não grava', async () => {
+    const antes = await leads();
+    const soSenha = await app.passwordOnly('comercial');
+    const r = await call(d, 'POST', { path: '/api/commercial/studio/leads', body: corpo('sem-mfa@example.test'), as: soSenha });
+    expect(r.status).toBe(403);
+    expect(r.body.error.code).toBe('MFA_REQUIRED');
+    expect(await leads()).toBe(antes);
+  });
 });

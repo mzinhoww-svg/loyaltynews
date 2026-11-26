@@ -261,8 +261,9 @@ export const api = {
     midiaKit: () => chamar(dispatchCommercial, `${C}/mediakit`),
     inventario: (from: string, to: string) => chamar(dispatchCommercial, `${C}/studio/inventory`, { query: { from, to } }),
     leads: (status?: string) => chamar(dispatchCommercial, `${C}/studio/leads`, { query: { status } }),
-    /** Lead registrado pelo comercial: mesma rota pública do formulário do mídia kit (mesmas regras e consentimento gravado no servidor). */
-    registrarLead: (corpo: unknown) => chamar(dispatchCommercial, `${C}/leads`, { metodo: 'POST', corpo }),
+    /** Lead registrado pelo comercial: rota de Studio (sessão com MFA), mesmas regras e consentimento do formulário do mídia kit.
+     *  A rota pública `${C}/leads` continua fechada pela flag portalFormularios; o CRM não depende dela. */
+    registrarLead: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/leads`, { metodo: 'POST', corpo }),
     qualificarLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/qualify`, { metodo: 'POST', corpo: { leadId } }),
     descartarLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/discard`, { metodo: 'POST', corpo: { leadId } }),
     converterLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/convert`, { metodo: 'POST', corpo: { leadId } }),
