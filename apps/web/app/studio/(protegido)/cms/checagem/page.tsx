@@ -7,6 +7,7 @@ import { requireStudio } from '../../../_lib/guard';
 import { SemBanco } from '../../../_components/SemBanco';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
+import { Seta } from '../../../_components/Seta';
 import { EstadoLista } from '../../../_components/EstadoLista';
 
 export const metadata: Metadata = { title: 'Fila de checagem' };
@@ -40,7 +41,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
   return (
     <>
       <p>
-        <Link href="/studio/cms">← CMS editorial</Link>
+        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
       </p>
       <h1>Fila de checagem</h1>
       <p className="st-hint">Duas origens: matérias do CMS aguardando recibo e aprovação, e matérias da Fábrica editorial com o gate de fatos recalculado a cada leitura.</p>
