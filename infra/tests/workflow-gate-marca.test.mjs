@@ -51,10 +51,16 @@ test('gate-marca: roda o gate no script do repo, na porta combinada, e guarda o 
   assert.match(script, /join\(RAIZ, '\.test-results', 'gate-marca\.json'\)/);
 });
 
-test('gate-marca: nao atribui LN_FLAGS_ON nem PORTAL_SOURCE (o modo mock e do script, em runtime de teste)', () => {
+test('gate-marca: nao atribui LN_FLAGS_ON nem PORTAL_SOURCE/MODE; o modo vem do perfil vitrine do helper de e2e', () => {
   assert.ok(!/LN_FLAGS_ON\s*[:=]/.test(semComentariosDeLinha), 'LN_FLAGS_ON no workflow (ADR-022)');
-  assert.ok(!/PORTAL_SOURCE\s*[:=]/.test(semComentariosDeLinha), 'PORTAL_SOURCE no workflow (variavel so de teste)');
-  // o script e que liga o modo mock, no processo do servidor de vitrine
-  const script = readFileSync(join(RAIZ, 'apps/web/scripts/gate-marca.mjs'), 'utf8');
-  assert.match(script, /PORTAL_SOURCE: 'mock'/);
+  assert.ok(!/PORTAL_(?:SOURCE|MODE)\s*[:=]/.test(semComentariosDeLinha), 'variavel so de teste no workflow');
+  // O script do gate mede o build de vitrine e nao liga modo de teste (GLOBAL-TESTFLAGS). Olha só o env do servidor:
+  // o texto de comentário pode citar a variável para explicar por que ela não é usada.
+  const gate = readFileSync(join(RAIZ, 'apps/web/scripts/gate-marca.mjs'), 'utf8');
+  const envDoServidor = /spawn\(process\.execPath, \[join\(WEB, 'e2e', 'portal-server\.mjs'\), porta, 'vitrine'\], \{[\s\S]*?env: \{([\s\S]*?)\}/.exec(gate)?.[1] ?? '';
+  assert.ok(envDoServidor.length > 0, 'bloco de env do servidor de vitrine não encontrado');
+  assert.ok(!/PORTAL_(?:SOURCE|MODE)\s*:/.test(envDoServidor), 'PORTAL_SOURCE/PORTAL_MODE no env do servidor do gate (variável só de teste)');
+  // O perfil vitrine do portal-server liga o modo de demonstracao em runtime (PORTAL_VITRINE=1 + APP_ENV=staging).
+  const servidor = readFileSync(join(RAIZ, 'apps/web/e2e/portal-server.mjs'), 'utf8');
+  assert.match(servidor, /perfil === 'vitrine' \? \{ PORTAL_VITRINE: '1', APP_ENV: 'staging' \}/);
 });

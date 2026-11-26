@@ -6,10 +6,15 @@ Protocolo do gate: `auditoria-design/acessibilidade/gate-marca-portal.md` (UI/UX
 ## O que roda
 
 Ubuntu 24.04, Node da Vertra (`infra/vertra/environments.json`), `npm ci`, Chromium do Playwright com dependências
-de sistema e `node apps/web/scripts/gate-marca.mjs --porta 3199`. O script sobe o build de vitrine (modo mock, perfil
-`vitrine`), mede CLS em 390/768/1280 nas rotas `/`, `/noticia/mock-mercado-1` e `/editoria/mercado`, confere fonte da
-marca, contraste dos tokens e axe (WCAG 2.1 AA), e roda a fase estática do `@ln/ui`. O JSON sai como artefato
+de sistema e `node apps/web/scripts/gate-marca.mjs --porta 3199`. O script sobe o **build de vitrine** (perfil
+`vitrine`, o mesmo modo do staging: `PORTAL_VITRINE=1` + `APP_ENV=staging`, resolvido pelo `apps/web/e2e/portal-server.mjs`),
+mede CLS em 390/768/1280 nas rotas `/`, `/noticia/mock-mercado-1` e `/editoria/mercado`, confere fonte da marca,
+contraste dos tokens e axe (WCAG 2.1 AA), e roda a fase estática do `@ln/ui`. O JSON sai como artefato
 `.test-results/gate-marca.json` mesmo quando o job falha (`if: always()`).
+
+**Sem `PORTAL_SOURCE=mock`:** o gate mede a vitrine real de staging, não um servidor de teste. O modo é do helper de
+e2e, e o script do gate não atribui variável só de teste — era o achado do GLOBAL-TESTFLAGS em
+`apps/web/scripts/gate-marca.mjs`.
 
 ## Gatilhos (decididos)
 

@@ -115,7 +115,11 @@ rmSync(join(DIST, 'cache', 'fetch-cache'), { recursive: true, force: true });
 
 // Runtime: as variáveis do modo + LN_E2E_BUILD/LN_E2E_DIST (o next start lê a pasta do build pela config e só aceita a fonte mock
 // fora do deploy com LN_E2E_BUILD=1).
-const srv = spawn(`npx next start -p ${port}`, { stdio: 'inherit', shell: true, env: { ...process.env, LN_E2E_BUILD: '1', LN_E2E_DIST: DIST, NEXT_TELEMETRY_DISABLED: '1' } });
+// O perfil 'vitrine' também vale em RUNTIME como a vitrine do staging: PORTAL_VITRINE=1 com APP_ENV=staging resolve a fonte de
+// demonstração (resolveSourceKind). Assim quem sobe este helper (ex.: o gate de marca) não precisa atribuir PORTAL_SOURCE=mock,
+// que é variável só de teste e não deve sair do e2e.
+const MODO_RUNTIME = perfil === 'vitrine' ? { PORTAL_VITRINE: '1', APP_ENV: 'staging' } : {};
+const srv = spawn(`npx next start -p ${port}`, { stdio: 'inherit', shell: true, env: { ...process.env, ...MODO_RUNTIME, LN_E2E_BUILD: '1', LN_E2E_DIST: DIST, NEXT_TELEMETRY_DISABLED: '1' } });
 const parar = () => {
   if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(srv.pid), '/t', '/f'], { stdio: 'ignore' });
   else srv.kill('SIGTERM');

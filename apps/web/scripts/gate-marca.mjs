@@ -102,12 +102,13 @@ async function main() {
   let url = baseUrl;
   if (!url) {
     process.stdout.write(`\n== servidor de vitrine na porta ${porta} (build reaproveitado se o carimbo bate) ==\n`);
+    // O MODO é do perfil 'vitrine' do portal-server (PORTAL_VITRINE=1 + APP_ENV=staging, a mesma vitrine do staging):
+    // o gate mede o build real de vitrine, não um servidor de teste. PORTAL_SOURCE=mock é variável só de teste e NÃO
+    // é atribuída aqui (GLOBAL-TESTFLAGS; e o portal não aceita mock em deploy de qualquer forma).
     servidor = spawn(process.execPath, [join(WEB, 'e2e', 'portal-server.mjs'), porta, 'vitrine'], {
       cwd: WEB,
       env: {
         ...process.env,
-        PORTAL_SOURCE: 'mock',
-        APP_ENV: 'staging',
         NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
         NEXT_TELEMETRY_DISABLED: '1',
       },
