@@ -7,6 +7,8 @@ import { MOVES_EMPTY, MoveCard } from '../intelligence/_components/intel';
 import s from '../intelligence/_components/intel.module.css';
 import { filterMoves } from '../_lib/moves-filter';
 import { getSource } from '../_lib/source';
+import { jsonLdString } from '../_lib/jsonld';
+import { datasetLd } from '../_lib/seo';
 import { metadadosPagina } from '../_seo/paginas';
 
 // Mostra pessoa: sempre dinâmica (PM-2026-11-23-O, DP-38), para uma remoção pedida pelo titular valer na próxima visita.
@@ -38,6 +40,11 @@ export default async function MovesPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({
+        name: 'Loyalty Moves',
+        description: 'Quem mudou de cargo ou de empresa no mercado de fidelização. Só publicamos movimentações confirmadas, com a fonte do antes e do depois.',
+        path: '/moves',
+      })) }} />
       <PageHead
         title="Loyalty Moves"
         lead="Quem mudou de cargo ou de empresa no mercado de fidelização. Só publicamos movimentações confirmadas, com a fonte do antes e do depois."

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ogDaPagina } from '../_lib/seo';
 import Link from 'next/link';
 import { EDITORIAS } from '../_lib/editorias';
 import { isUpcoming } from '../_lib/events';
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
   title: 'Mídia kit — Anuncie',
   description: 'Mídia kit do Loyalty News: cobertura, audiência medida com origem e período, formatos publicitários e como pedir uma proposta.',
   alternates: { canonical: '/midia-kit' },
+  openGraph: ogDaPagina({ title: 'Mídia kit — Anuncie', description: 'Mídia kit do Loyalty News: cobertura, audiência medida com origem e período, formatos publicitários e como pedir uma proposta.', path: '/midia-kit' }),
 };
 
 const STATE_LABEL = { ok: 'Atualizado', unavailable: 'Indisponível', stale: 'Desatualizado' } as const;

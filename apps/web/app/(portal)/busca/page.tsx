@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ogDaPagina } from '../_lib/seo';
 import { parsePage } from '../_components/Listing';
 import { SearchInput } from '../_components/ds-client';
 import { WithSidebar } from '../_components/Sidebar';
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
   // Resultados de busca não são indexáveis (evita URLs duplicadas, Blueprint §2).
   robots: { index: false, follow: true },
   alternates: { canonical: '/busca' },
+  openGraph: ogDaPagina({ title: 'Busca', description: 'Busque matérias, editorias e temas no Loyalty News.', path: '/busca' }),
 };
 
 export default async function BuscaPage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {

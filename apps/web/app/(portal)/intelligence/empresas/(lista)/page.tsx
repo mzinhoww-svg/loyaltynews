@@ -6,6 +6,8 @@ import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { formatDate } from '../../../_lib/format';
 import { asKind, DIRETORIO_PAGINA, KIND_FILTER_LABEL, KIND_LABEL } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
+import { jsonLdString } from '../../../_lib/jsonld';
+import { datasetLd } from '../../../_lib/seo';
 import { metadadosPagina } from '../../../_seo/paginas';
 import s from '../../_components/intel.module.css';
 
@@ -40,6 +42,11 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({
+        name: 'Empresas',
+        description: 'Companhias, programas e associações do setor. Cada vínculo vem de página pública oficial, com fonte e data de validação.',
+        path: '/intelligence/empresas',
+      })) }} />
       <PageHead
         title="Empresas"
         lead="Companhias, programas e associações do setor. Cada vínculo vem de página pública oficial, com fonte e data de validação."

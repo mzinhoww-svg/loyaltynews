@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Arrow, PageHead } from '../_components/ui';
 import { CONTATO_EMAIL } from '../_lib/contato';
 import { INFO_DOCS, INFO_SLUGS } from '../_lib/institutional';
+import { ogDaPagina } from '../_lib/seo';
 import { PedidoTitularForm } from '../_titular/PedidoTitularForm';
 
 type Props = { params: Promise<{ doc: string }> };
@@ -17,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { doc } = await params;
   const d = INFO_DOCS[doc];
   if (!d) return {};
-  return { title: d.title, description: d.lead, alternates: { canonical: `/${d.slug}` } };
+  return { title: d.title, description: d.lead, alternates: { canonical: `/${d.slug}` }, openGraph: ogDaPagina({ title: d.title, description: d.lead, path: `/${d.slug}` }) };
 }
 
 export default async function InfoPage({ params }: Props) {

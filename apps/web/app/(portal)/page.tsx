@@ -8,7 +8,7 @@ import { eventWhere, isUpcoming, noon } from './_lib/events';
 import { dayOf, formatDate, monthAbbrev } from './_lib/format';
 import { prepareHome } from './_lib/home';
 import { jsonLdString } from './_lib/jsonld';
-import { PUBLISHER_LD } from './_lib/seo';
+import { ogDaPagina, PUBLISHER_LD } from './_lib/seo';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_URL } from './_lib/site';
 import { imagemDoCard } from './_lib/ilustracao';
 import { getSource } from './_lib/source';
@@ -21,10 +21,13 @@ export const dynamic = 'force-dynamic';
 /** Título e descrição da home vêm do SEO publicado no Studio (fonte api); sem ele valem os padrões. */
 export async function generateMetadata(): Promise<Metadata> {
   const seo = (await getSource().getSiteConfig())?.seo ?? null;
+  const titulo = seo?.title ?? `${SITE_NAME} — ${SITE_TAGLINE}`;
+  const descricao = seo?.description ?? SITE_DESCRIPTION;
   return {
-    title: { absolute: seo?.title ?? `${SITE_NAME} — ${SITE_TAGLINE}` },
-    description: seo?.description ?? SITE_DESCRIPTION,
+    title: { absolute: titulo },
+    description: descricao,
     alternates: { canonical: '/' },
+    openGraph: ogDaPagina({ title: titulo, description: descricao, path: '/' }),
   };
 }
 
@@ -123,11 +126,10 @@ async function HomeContent() {
     url: SITE_URL,
     potentialAction: { '@type': 'SearchAction', target: `${SITE_URL}/busca?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
   };
-  const org = site?.seo?.organization;
-  // Organization sempre na home: a publicada no Studio quando existe; senão a padrão do portal (nome, domínio do release e logo padrão).
-  const orgLd = org
-    ? { '@context': 'https://schema.org', '@type': 'Organization', name: org.name, url: org.url, ...(org.logo ? { logo: org.logo } : {}), ...(org.sameAs.length ? { sameAs: org.sameAs } : {}) }
-    : { '@context': 'https://schema.org', ...PUBLISHER_LD };
+  // Organization da home: só campos com lastro no corpo. O nome exibido é SITE_NAME (cabeçalho/rodapé), a URL é a do
+  // release e o logo é o mesmo asset do cabeçalho. `sameAs` só entraria se as redes sociais estivessem renderizadas no
+  // rodapé; hoje o rodapé não exibe nenhuma, e publicar `sameAs` sem link visível é dado exclusivo do JSON-LD.
+  const orgLd = { '@context': 'https://schema.org', ...PUBLISHER_LD };
 
   // Home publicada no Studio (fonte api): renderiza os blocos do editor.
   if (site?.home) {

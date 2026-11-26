@@ -105,3 +105,38 @@ export function breadcrumbLd(trilha: { nome: string; path?: string }[]) {
     itemListElement: trilha.map((t, i) => ({ '@type': 'ListItem', position: i + 1, name: t.nome, ...(t.path ? { item: `${SITE_URL}${t.path}` } : {}) })),
   };
 }
+
+/**
+ * Open Graph completo de uma página: título, descrição, URL canônica e imagem padrão.
+ * No Next, o `openGraph` de uma página SUBSTITUI o do layout; declarar só alguns campos apaga os outros.
+ * Usar este helper evita herdar o `url` da home (ou ficar sem `og:url`) nas páginas estáticas.
+ */
+export function ogDaPagina(p: { title: string; description: string; path: string; type?: 'website' | 'article'; image?: OgImagem }): NonNullable<Metadata['openGraph']> {
+  return {
+    type: p.type ?? 'website',
+    siteName: SITE_NAME,
+    locale: 'pt_BR',
+    title: p.title,
+    description: p.description,
+    url: p.path,
+    images: [p.image ?? ogImagemPadrao()],
+  };
+}
+
+/**
+ * Dataset (schema.org) das páginas de dados. Só entra o que a página mostra: `name` é o h1 e `description`, quando
+ * existir, é o texto de abertura visível. `temporalCoverage`/`license` só quando o próprio corpo declara o período
+ * ou a licença — nunca inventados a partir de metadado.
+ */
+export function datasetLd(p: { name: string; description?: string; path: string; temporalCoverage?: string; license?: string }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: p.name,
+    ...(p.description ? { description: p.description } : {}),
+    url: new URL(p.path, SITE_URL).toString(),
+    creator: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+    ...(p.temporalCoverage ? { temporalCoverage: p.temporalCoverage } : {}),
+    ...(p.license ? { license: p.license } : {}),
+  };
+}

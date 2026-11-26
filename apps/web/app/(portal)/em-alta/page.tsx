@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ogDaPagina } from '../_lib/seo';
 import Link from 'next/link';
 import { WithSidebar } from '../_components/Sidebar';
 import { EmptyState, PageHead, RankedList } from '../_components/ui';
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
   title: 'Em alta',
   description: 'As matérias mais lidas do Loyalty News nas últimas 24 horas, 7 e 30 dias.',
   alternates: { canonical: '/em-alta' },
+  openGraph: ogDaPagina({ title: 'Em alta', description: 'As matérias mais lidas do Loyalty News nas últimas 24 horas, 7 e 30 dias.', path: '/em-alta' }),
 };
 
 const WINDOWS: { id: TrendingWindow; label: string }[] = [

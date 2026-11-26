@@ -8,6 +8,7 @@ import { formatDate } from '../../../_lib/format';
 import { KIND_LABEL, relationLabel } from '../../../_lib/intelligence-source';
 import { getSource } from '../../../_lib/source';
 import { jsonLdString } from '../../../_lib/jsonld';
+import { datasetLd } from '../../../_lib/seo';
 import { metadadosPagina, urlAbsoluta } from '../../../_seo/paginas';
 import { MoveCard, RolesTable } from '../../_components/intel';
 import s from '../../_components/intel.module.css';
@@ -69,6 +70,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: c.name, path: `/intelligence/empresas/${c.id}` })) }} />
       <PageHead title={c.name} crumbs={[...crumbs, { label: c.name }]} />
       <p className="pt-meta" data-testid="company-meta">
         {c.mock && <MockTag />}

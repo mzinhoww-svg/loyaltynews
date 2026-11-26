@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ogDaPagina } from '../_lib/seo';
 import { EmptyState, PageHead } from '../_components/ui';
 import { flags } from '../_lib/flags';
 
@@ -6,6 +7,7 @@ export const metadata: Metadata = {
   title: 'Loyalty Talks — podcast',
   description: 'Loyalty Talks: conversas com quem constrói o mercado de fidelização.',
   alternates: { canonical: '/podcast' },
+  openGraph: ogDaPagina({ title: 'Loyalty Talks — podcast', description: 'Loyalty Talks: conversas com quem constrói o mercado de fidelização.', path: '/podcast' }),
   robots: flags.podcast ? undefined : { index: false, follow: true },
 };
 

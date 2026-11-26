@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ogDaPagina } from '../_lib/seo';
 import { Button } from '@ln/ui';
 import { Input } from '../_components/ds-client';
 import { EmptyState, PageHead } from '../_components/ui';
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   title: 'The Loyal — newsletter',
   description: 'The Loyal: inteligência de mercado para começar o dia.',
   alternates: { canonical: '/the-loyal' },
+  openGraph: ogDaPagina({ title: 'The Loyal — newsletter', description: 'The Loyal: inteligência de mercado para começar o dia.', path: '/the-loyal' }),
   robots: flags.theLoyal ? undefined : { index: false, follow: true },
 };
 

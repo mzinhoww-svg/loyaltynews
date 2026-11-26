@@ -4,6 +4,8 @@ import { SearchInput } from '../../_components/ds-client';
 import { ErrorState } from '../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../_components/ui';
 import { formatDate } from '../../_lib/format';
+import { jsonLdString } from '../../_lib/jsonld';
+import { datasetLd } from '../../_lib/seo';
 import { getSource } from '../../_lib/source';
 import { metadadosPagina } from '../../_seo/paginas';
 import { PEOPLE_EMPTY } from '../_components/intel';
@@ -26,6 +28,11 @@ export default async function PessoasPage({ searchParams }: { searchParams: Prom
   const dir = await getSource().getPeopleDirectory({ q: q || undefined });
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({
+        name: 'Pessoas',
+        description: 'Somente dados profissionais relevantes e verificáveis: nome, cargo e empresa, com fonte pública e data de validação.',
+        path: '/intelligence/pessoas',
+      })) }} />
       <PageHead
         title="Pessoas"
         lead="Somente dados profissionais relevantes e verificáveis: nome, cargo e empresa, com fonte pública e data de validação."

@@ -74,7 +74,9 @@ export default async function ArticlePage({ params }: Props) {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
     headline: a.title,
-    description: a.summary,
+    // Rich results de matéria: a descrição é o subtítulo, que está visível no corpo. O resumo é do <meta name="description">
+    // e não aparece na página — usá-lo aqui seria dado exclusivo do JSON-LD (parecer QA 11). Sem subtítulo, sem descrição.
+    ...(a.subtitle ? { description: a.subtitle } : {}),
     datePublished: a.publishedAt,
     dateModified: a.updatedAt ?? a.publishedAt,
     articleSection: editoriaName(a.editoriaSlug),

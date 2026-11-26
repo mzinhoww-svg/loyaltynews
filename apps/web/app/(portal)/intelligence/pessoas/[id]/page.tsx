@@ -6,6 +6,7 @@ import { ErrorState } from '../../../_components/states';
 import { EmptyState, MockTag, PageHead } from '../../../_components/ui';
 import { getSource } from '../../../_lib/source';
 import { jsonLdString } from '../../../_lib/jsonld';
+import { datasetLd } from '../../../_lib/seo';
 import { metadadosPagina, urlAbsoluta } from '../../../_seo/paginas';
 import { linkPedido } from '../../../_titular/pedido';
 import { CorrectedTag, MoveCard, RolesTable, SourceLink } from '../../_components/intel';
@@ -65,6 +66,7 @@ export default async function PessoaPage({ params }: { params: Promise<{ id: str
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: p.name, path: `/intelligence/pessoas/${p.id}` })) }} />
       <PageHead title={p.name} crumbs={[...crumbs, { label: p.name }]} />
       <p style={{ margin: '0 0 8px' }}>
         <Link href={linkPedido(`/intelligence/pessoas/${p.id}`)} className="ln-btn ln-btn--ghost" data-testid="request-correction">

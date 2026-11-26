@@ -6,6 +6,8 @@ import { ErrorState } from '../../_components/states';
 import { PageHead } from '../../_components/ui';
 import { MOVE_KIND_LABEL } from '../../_lib/intelligence-source';
 import { getSource } from '../../_lib/source';
+import { jsonLdString } from '../../_lib/jsonld';
+import { datasetLd } from '../../_lib/seo';
 import { metadadosPagina } from '../../_seo/paginas';
 import { linkPedido } from '../../_titular/pedido';
 import { MoveCard } from '../../intelligence/_components/intel';
@@ -49,6 +51,7 @@ export default async function MovePage({ params }: { params: Promise<{ id: strin
   }
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(datasetLd({ name: `${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`, path: `/moves/${r.move.id}` })) }} />
       <PageHead title={`${MOVE_KIND_LABEL[r.move.kind]}: ${r.move.person.name}`} crumbs={[...crumbs, { label: r.move.person.name }]} />
       <p style={{ margin: '0 0 8px' }}>
         <Link href={linkPedido(`/moves/${r.move.id}`)} className="ln-btn ln-btn--ghost" data-testid="move-correction">
