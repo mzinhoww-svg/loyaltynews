@@ -94,6 +94,52 @@ const allowedAccounts = (st: PilotStage): PilotAccount[] => [...new Set([
   ...(PILOT_STAGES[st].account === 'deterministic' ? [] : (['opencode'] as PilotAccount[])),
 ])];
 
+/** Linha produzida sob uma regra de via que já não vale. */
+export interface PilotRouteRuleVersion {
+  /** nome estável da versão */
+  rule: string;
+  stage: PilotStage;
+  /** contas que a regra aceitava nessa etapa */
+  accounts: readonly PilotAccount[];
+  /** a linha tem de ter começado E terminado antes deste instante (UTC) */
+  producedBefore: string;
+  /** lista FECHADA das linhas produzidas sob a regra (`task_id#attempt`) */
+  rows: readonly string[];
+  reason: string;
+}
+
+/**
+ * Corte explícito e versionado das regras de via. `PILOT_STAGES` vale para tudo o que é novo; uma linha antiga só é julgada pela regra
+ * anterior se estiver na lista fechada da versão E tiver datas anteriores ao corte. A lista existe porque `started_at`/`ended_at` são
+ * declarados pelo agente: data sozinha não prova quando a linha foi produzida. Só afeta a conferência de conta por etapa: parada imediata
+ * (publicar, API tarifada, segredo, ferramenta, fato ALTO), modelo declarado e demais validações valem igual.
+ * Mudou a via de uma etapa: acrescente uma versão; não edite versão publicada.
+ */
+export const PILOT_ROUTE_HISTORY: readonly PilotRouteRuleVersion[] = Object.freeze([
+  Object.freeze({
+    rule: 'draft-v1',
+    stage: 'draft' as const,
+    accounts: Object.freeze(['claude', 'opencode'] as PilotAccount[]),
+    producedBefore: '2026-11-26T20:38:00.000Z',
+    rows: Object.freeze([
+      'task-445fd7c4-7c59-4a5d-9acb-442dea536876#1',
+      'task-440b508b-0217-4bb9-b254-5508b7b97ffc#2',
+      'task-cab96daa-e1c4-435a-b81c-4c3969716eab#3',
+      'task-30453d26-be25-4cb0-a192-484723d8087b#1',
+    ]),
+    reason: 'redação na assinatura Claude até a decisão do PM de 26/11; o primeiro bundle com a redação só em opencode (37bb413c) subiu às 20:38Z',
+  }),
+]);
+
+/** Identidade e datas da linha: sem todas elas a conferência usa a regra vigente (falha fechada). */
+type RowOrigin = { task_id?: string; attempt?: number; started_at?: string; ended_at?: string };
+
+export function pilotRouteRuleOf(r: { stage: string } & RowOrigin): PilotRouteRuleVersion | null {
+  const before = (at: string | undefined, cut: string) => !!at && Date.parse(at) < Date.parse(cut);
+  return PILOT_ROUTE_HISTORY.find((v) => v.stage === r.stage && v.rows.includes(`${r.task_id}#${r.attempt}`)
+    && before(r.started_at, v.producedBefore) && before(r.ended_at, v.producedBefore)) ?? null;
+}
+
 /** Etapas em que a independência do autor se prova (recebem um rascunho do redator). */
 export const INDEPENDENT_STAGES: PilotStage[] = ['factcheck', 'review', 'check_edit'];
 
@@ -271,7 +317,7 @@ export const ACCOUNT_AUTHOR: Record<Exclude<PilotAccount, 'deterministic'>, Retu
 
 const isoOk = (s: string) => !Number.isNaN(Date.parse(s));
 
-export interface ConfigInvalidInput {
+export interface ConfigInvalidInput extends RowOrigin {
   stage: string;
   account: string;
   declared_model: string | null;
@@ -285,7 +331,10 @@ export interface ConfigInvalidInput {
 export function configInvalidOf(r: ConfigInvalidInput): string[] {
   const e: string[] = [];
   const spec = PILOT_STAGES[r.stage as PilotStage];
-  if (spec && !(allowedAccounts(r.stage as PilotStage) as readonly string[]).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${allowedAccounts(r.stage as PilotStage).join(' ou ')}`);
+  if (spec) {
+    const accounts = pilotRouteRuleOf(r)?.accounts ?? allowedAccounts(r.stage as PilotStage);
+    if (!(accounts as readonly string[]).includes(r.account)) e.push(`etapa ${r.stage} deve rodar em ${accounts.join(' ou ')}`);
+  }
   // Execução não determinística que terminou sem declarar modelo não é medível (ex.: tarefa failed por tentativas esgotadas).
   // É invalidade de configuração/execução, não editorial: a rota config-invalid pode excluí-la e o portão segue.
   if (r.account !== 'deterministic' && !r.declared_model) e.push('modelo declarado ausente: execução não medível (registro contraditório)');
@@ -555,7 +604,8 @@ export function evaluatePilot(rows: readonly PilotRow[]): PilotEvaluation {
         const spec = PILOT_STAGES[r.stage];
         if (!spec || r.outcome !== 'completed') continue;
         const family = spec.models?.backups.find((f) => (r.declared_model ?? '').toLowerCase().includes(f)) ?? null;
-        if ((r.account === spec.account || r.account === 'opencode') && !family) continue;
+        // linha julgada pela regra anterior com a conta que era a principal dela não é uso de backup
+        if ((r.account === spec.account || r.account === 'opencode' || pilotRouteRuleOf(r)?.accounts.includes(r.account)) && !family) continue;
         const k = `${r.stage}|${r.account}|${family ?? ''}`;
         m.set(k, { stage: r.stage, account: r.account, model: family, tasks: (m.get(k)?.tasks ?? 0) + 1 });
       }
