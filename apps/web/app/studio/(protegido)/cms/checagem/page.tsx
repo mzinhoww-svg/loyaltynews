@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -8,7 +7,7 @@ import { requireStudio } from '../../../_lib/guard';
 import { SemBanco } from '../../../_components/SemBanco';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../../_components/StatusArtigo';
-import { Seta } from '../../../_components/Seta';
+import { EstadoLista } from '../../../_components/EstadoLista';
 
 export const metadata: Metadata = { title: 'Fila de checagem' };
 export const dynamic = 'force-dynamic';
@@ -36,18 +35,27 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
   }
   const itens = ehErro(fabrica) ? [] : ((fabrica.body as { items: ItemFila[] }).items ?? []);
   const emChecagem = ehErro(cms) ? [] : cms.body.data;
+  const erroFabrica = ehErro(fabrica) ? mensagemErro(fabrica) : null;
+  const erroCms = ehErro(cms) ? mensagemErro(cms) : null;
   return (
     <>
       <p>
-        <Link href="/studio/cms"><Seta direcao="esquerda" /> CMS editorial</Link>
+        <Link href="/studio/cms">← CMS editorial</Link>
       </p>
       <h1>Fila de checagem</h1>
       <p className="st-hint">Duas origens: matérias do CMS aguardando recibo e aprovação, e matérias da Fábrica editorial com o gate de fatos recalculado a cada leitura.</p>
 
-      <h2>Matérias do CMS em checagem ({emChecagem.length})</h2>
-      {emChecagem.length === 0 ? (
+      <h2>Matérias do CMS em checagem ({erroCms ? '—' : emChecagem.length})</h2>
+      {erroCms ? (
+        <EstadoLista
+          estado="erro"
+          erro={erroCms}
+          recarregar="/studio/cms/checagem"
+          headingLevel={3}
+        />
+      ) : emChecagem.length === 0 ? (
         <p className="st-hint" data-vazio="cms-checagem">
-          Nenhuma matéria do CMS aguardando checagem.
+          Nenhuma matéria do CMS aguardando checagem. Matérias entram aqui quando a redação as envia para checagem na tela da matéria.
         </p>
       ) : (
         <ul aria-label="Matérias do CMS em checagem">
@@ -75,10 +83,23 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
           Filtrar
         </button>
       </form>
-      {ehErro(fabrica) ? (
-        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(fabrica)} />
+      {erroFabrica ? (
+        <EstadoLista
+          estado="erro"
+          erro={erroFabrica}
+          recarregar="/studio/cms/checagem"
+        />
       ) : itens.length === 0 ? (
-        <EmptyState title="Nenhuma matéria da Fábrica na fila" description="A Fábrica editorial ainda não entregou rascunhos (coletor e pipeline desligados nesta fase). Nada é simulado." />
+        <EstadoLista
+          estado="vazio"
+          erro={null}
+          recarregar="/studio/cms/checagem"
+          vazio={{
+            titulo: 'Nenhuma matéria da Fábrica na fila',
+            porque: 'A Fábrica editorial não entregou rascunho nenhum: a coleta e a redação rodam em comando próprio e estão desligadas nesta fase, então nada chega a esta fila.',
+            comoPopular: 'A matéria entra aqui quando a Fábrica rodar (comando manual) ou quando a redação criar e enviar uma matéria para checagem no CMS.',
+          }}
+        />
       ) : (
         <QuadroRolavel rotulo="Fila de checagem">
 <table className="st-table">

@@ -6,6 +6,8 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
+import { EstadoLista } from '../../_components/EstadoLista';
+import { estadoDaLista } from '@/lib/studio/estados';
 import { Anunciantes, type ContaCrm, type ContatoCrm } from './Anunciantes';
 import { leadAction, moverEstagioAction, registrarLeadAction } from './actions';
 
@@ -45,6 +47,9 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   const leads = (ehErro(resLeads) ? [] : resLeads.body) as unknown as Lead[];
   const resQuadro = await api.comercial.oportunidades();
   const colunas = (ehErro(resQuadro) ? [] : resQuadro.body) as unknown as Coluna[];
+  const erroLeads = ehErro(resLeads) ? mensagemErro(resLeads) : null;
+  const filtroLeadsInvalido = ehErro(resLeads) && resLeads.status === 400;
+  const erroQuadro = ehErro(resQuadro) ? mensagemErro(resQuadro) : null;
   // anunciantes (contas) e contatos (leads ligados à conta pela conversão); contatos sempre de todos os leads, não do filtro
   const resContas = await api.comercial.contas({ limit: '100' });
   const resTodos = status ? await api.comercial.leads() : resLeads;
@@ -65,7 +70,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
       <h1>CRM</h1>
       <p>Leads do mídia kit e oportunidades. Lead é dado pessoal (LGPD): só o comercial vê. O consentimento é gravado com o horário do servidor e o opt-in da newsletter nunca vem marcado.</p>
       <Flash tipo={tipo} aviso={aviso} />
-      {ehErro(resLeads) ? (
+      {filtroLeadsInvalido ? (
         <div className="st-alert err" role="alert">
           Filtro inválido.
         </div>
@@ -87,11 +92,18 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
           Filtrar
         </button>
       </form>
-      {leads.length === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio-leads">
-          <h2 id="vazio-leads">Nenhum lead</h2>
-          <p>Nenhum lead recebido. Os leads chegam pelo formulário do mídia kit (portal) ou são registrados abaixo.</p>
-        </section>
+      {estadoDaLista(erroLeads !== null, leads.length) === 'vazio' || estadoDaLista(erroLeads !== null, leads.length) === 'erro' ? (
+        <EstadoLista
+          estado={estadoDaLista(erroLeads !== null, leads.length)}
+          erro={erroLeads}
+          recarregar="/studio/crm"
+          headingLevel={3}
+          vazio={{
+            titulo: 'Nenhum lead',
+            porque: 'Nenhum lead chegou neste ambiente: o formulário do mídia kit é público e ainda não recebeu contato, e ninguém registrou lead à mão.',
+            comoPopular: 'Os leads entram pelo formulário do mídia kit no portal ou pelo formulário "Registrar lead" abaixo; só o comercial vê dado pessoal (LGPD).',
+          }}
+        />
       ) : (
         <QuadroRolavel rotulo="Leads">
 <table className="st-table">
@@ -180,6 +192,11 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
       <Anunciantes contas={contas} leads={contatos} diretos={diretos} erro={erroContas} />
 
       <h2 style={{ marginTop: 24 }}>Oportunidades</h2>
+      {erroQuadro ? (
+        <p className="st-hint" data-erro-quadro>
+          Não foi possível ler o quadro de oportunidades: {erroQuadro} As colunas não estão vazias — a leitura falhou.
+        </p>
+      ) : null}
       <div className="st-grid" role="list" aria-label="Quadro de oportunidades">
         {colunas.map((c) => (
           <div className="st-card" role="listitem" key={c.stage} data-stage={c.stage}>

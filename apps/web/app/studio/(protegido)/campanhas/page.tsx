@@ -11,6 +11,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
+import { EstadoLista } from '../../_components/EstadoLista';
 import { criarCampanhaAction } from './actions';
 import { Seta } from '../../_components/Seta';
 
@@ -55,10 +56,13 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
   const lista = await api.comercial.campanhas({ ...(status ? { status } : {}), ...(contaFiltro ? { accountId: contaFiltro } : {}), ...(q.trim() ? { q: q.trim() } : {}), limit: String(POR_PAGINA), offset: String((pag - 1) * POR_PAGINA) });
   const campanhas = ehErro(lista) ? [] : lista.body.data;
   const totalFiltrado = ehErro(lista) ? 0 : lista.body.total;
+  const erroLista = ehErro(lista) ? mensagemErro(lista) : null;
+  const erroContas = ehErro(contasRes) ? mensagemErro(contasRes) : null;
   const paginas = Math.max(1, Math.ceil(totalFiltrado / POR_PAGINA));
   const filtroQuery = (n: number) => '?' + new URLSearchParams({ ...(status ? { status } : {}), ...(contaFiltro ? { conta: contaFiltro } : {}), ...(q.trim() ? { q: q.trim() } : {}), pagina: String(n) }).toString();
   const fmt = await api.comercial.formatos();
   const formatos = (ehErro(fmt) ? [] : (fmt.body as unknown as { formats: Formato[] }).formats).filter((f) => f.status !== 'indisponivel');
+  const erroFormatos = ehErro(fmt) ? mensagemErro(fmt) : null;
   const total = Object.values(painel.campaignsByStatus).reduce((a, b) => a + b, 0);
   const vendas = flagAtiva('adServerVendas');
   return (
@@ -78,11 +82,19 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
           </li>
         ))}
       </ul>
-      {total === 0 ? (
-        <section className="st-empty" aria-labelledby="vazio">
-          <h2 id="vazio">Nenhuma campanha</h2>
-          <p>Nenhuma campanha criada. Campanhas nascem de uma conta do CRM (lead convertido) e de um formato do catálogo.</p>
-        </section>
+      {erroLista ? (
+        <EstadoLista estado="erro" erro={erroLista} recarregar="/studio/campanhas" />
+      ) : total === 0 && !status && !contaFiltro && !q.trim() ? (
+        <EstadoLista
+          estado="vazio"
+          erro={null}
+          recarregar="/studio/campanhas"
+          vazio={{
+            titulo: 'Nenhuma campanha criada',
+            porque: 'O painel comercial não registrou nenhuma campanha: não há flight, reserva nem entrega para mostrar, e nada é preenchido com exemplo.',
+            comoPopular: 'Campanha nasce de uma conta de anunciante e de um formato do catálogo. A conta vem de um lead qualificado convertido no CRM; depois, use o formulário "Nova campanha" abaixo.',
+          }}
+        />
       ) : (
         <>
           <h2>Lista de campanhas</h2>
@@ -117,14 +129,19 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
               Filtrar
             </button>
           </form>
-          {ehErro(lista) ? (
-            <div className="st-alert err" role="alert">
-              {mensagemErro(lista)}
+          {campanhas.length === 0 ? (
+            <div data-vazio="filtro">
+              <EstadoLista
+                estado="vazio"
+                erro={null}
+                recarregar="/studio/campanhas"
+                vazio={{
+                  titulo: 'Nenhuma campanha com esses filtros',
+                  porque: `O filtro aplicado (${[status ? `estado ${status}` : null, contaFiltro ? 'anunciante escolhido' : null, q.trim() ? `nome contém "${q.trim()}"` : null].filter(Boolean).join(', ')}) não encontrou campanha.`,
+                  comoPopular: 'Limpe os filtros para ver todas as campanhas ou crie uma no formulário "Nova campanha" abaixo.',
+                }}
+              />
             </div>
-          ) : campanhas.length === 0 ? (
-            <p className="st-hint" data-vazio="filtro">
-              Nenhuma campanha com esses filtros.
-            </p>
           ) : (
             <QuadroRolavel rotulo="Lista de campanhas">
 <table className="st-table">
@@ -187,7 +204,12 @@ export default async function CampanhasPage({ searchParams }: { searchParams: Pr
         <h2 id="nova" style={{ marginTop: 0 }}>
           Nova campanha
         </h2>
-        {contas.length === 0 ? (
+        {erroContas || erroFormatos ? (
+          <p className="st-hint" data-erro-nova-campanha>
+            Não foi possível preparar o formulário:{' '}
+            {[erroContas ? `contas do CRM — ${erroContas}` : null, erroFormatos ? `formatos do catálogo — ${erroFormatos}` : null].filter(Boolean).join('; ')}. Nada foi inventado; corrigida a leitura, o formulário volta.
+          </p>
+        ) : contas.length === 0 ? (
           <p className="st-hint">Sem contas no CRM: converta um lead qualificado para criar a conta do anunciante.</p>
         ) : (
           <form action={criarCampanhaAction}>
