@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { schema } from '@ln/db';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
+import { initRuntimeFlags, resetRuntimeFlagsForTest } from '../../../lib/runtime-flags';
 import { leadRefHash } from '@ln/commercial';
 
 const SALT = 'sal-de-teste-da-rota-32-caracteres';
@@ -22,6 +23,8 @@ const leadBody = (email: string) => ({
 });
 
 beforeAll(async () => {
+  // A criacao do lead passa pelo formulario publico: sem esta flag a rota POST /leads fica fechada e o teste nao tem o que excluir.
+  initRuntimeFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'portalFormularios' });
   process.env.LN_LEAD_AUDIT_SALT = SALT;
   app = await makeApp();
   comercial = await app.actor('comercial');
@@ -29,6 +32,7 @@ beforeAll(async () => {
   editor = await app.actor('editor');
 }, 120_000);
 afterAll(async () => {
+  resetRuntimeFlagsForTest();
   if (SALT_ANTES === undefined) delete process.env.LN_LEAD_AUDIT_SALT; else process.env.LN_LEAD_AUDIT_SALT = SALT_ANTES;
   await app.close();
 });
