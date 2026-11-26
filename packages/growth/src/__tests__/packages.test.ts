@@ -23,11 +23,12 @@ test('pacote LinkedIn: copy + criativo 1200x627 + carrossel (slides) + pedido de
   assert.equal(p.publishRequest.mentionsSupported, false); // texto puro por padrão
 });
 
-test('pacote LinkedIn: mock, brandkit não aprovado e gates pendentes aparecem como bloqueios', () => {
+test('pacote LinkedIn: mock e gates pendentes aparecem como bloqueios; brandkit aprovado não bloqueia', () => {
   const p = buildLinkedInPackage({ ...MOCK_ARTICLE, gatesPassed: false, approvedImage: undefined });
-  for (const b of ['gates_automaticos_pendentes', 'sem_imagem_aprovada', 'mock_nao_publicavel', 'brandkit_proposal_not_approved']) {
+  for (const b of ['gates_automaticos_pendentes', 'sem_imagem_aprovada', 'mock_nao_publicavel']) {
     assert.ok(p.blockers.includes(b), b);
   }
+  assert.ok(!p.blockers.some((b) => b.startsWith('brandkit_')), 'brandkit aprovado não bloqueia');
 });
 
 test('pacote LinkedIn: hash do criativo é estável', () => {

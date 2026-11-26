@@ -64,8 +64,8 @@ test('cards: materia usa fundo primário e análise usa menta; status do brandki
   const a = renderSocialCard(ANALISE);
   assert.ok(m.svg.includes(`<rect width="1200" height="627" fill="${TOKENS.colors.primary}"/>`));
   assert.ok(a.svg.includes(`<rect width="1200" height="627" fill="${TOKENS.colors.mint}"/>`));
-  assert.equal(m.brandStatus, 'proposal_not_approved');
-  assert.ok(m.svg.includes('data-brand-status="proposal_not_approved"') && m.svg.includes(`data-brand-version="${TOKENS.brand_version}"`));
+  assert.equal(m.brandStatus, 'approved');
+  assert.ok(m.svg.includes('data-brand-status="approved"') && m.svg.includes(`data-brand-version="${TOKENS.brand_version}"`));
   assert.equal(m.contextKey, 'travel');
   assert.equal(a.contextKey, 'payments');
 });

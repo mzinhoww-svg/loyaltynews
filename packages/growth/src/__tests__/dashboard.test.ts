@@ -78,7 +78,7 @@ describe('Social Dashboard: handlers puros', () => {
     const s = ok(await getDashboardSummary(ctx.deps, ALL));
     assert.equal(s.totals.packages, 0);
     assert.equal(s.metrics.available, false);
-    assert.equal(s.brandStatus, 'proposal_not_approved');
+    assert.equal(s.brandStatus, 'approved');
     assert.ok(s.note.includes('simulado'));
     assert.ok(s.channels.every((c) => c.flagEnabled === false && c.mode === 'simulado'));
     const r = ok(await listReceipts(ctx.deps, ALL));
@@ -92,7 +92,8 @@ describe('Social Dashboard: handlers puros', () => {
     assert.deepEqual(g.created, ['MOCK-2026-0001:linkedin:v1']);
     const item = g.items[0]!;
     assert.equal(item.status, 'bloqueado');
-    for (const b of ['mock_nao_publicavel', 'brandkit_proposal_not_approved']) assert.ok(item.blockers.includes(b), b);
+    for (const b of ['mock_nao_publicavel']) assert.ok(item.blockers.includes(b), b);
+    assert.ok(!item.blockers.some((b) => b.startsWith('brandkit_')), 'brandkit aprovado não bloqueia');
     assert.equal('svg' in (item.summary!.creative as object), false, 'listagem não carrega o SVG');
 
     const again = await generatePackages(ctx.deps, ALL, { articleId: MOCK_ARTICLE.id });

@@ -44,7 +44,7 @@ Amostras: `node scripts/render-sample.ts` (gera `out/samples/`, ignorado pelo gi
 - Instagram e The Loyal: chave desligada ⇒ recusa registrada na auditoria, mesmo pela identidade de publicação.
 - Sem imagem aprovada ou gates pendentes ⇒ bloqueia. Reenvio com a mesma chave não duplica.
 - O dashboard só pede publicação **simulada** e recusa com adaptador real; regera o pacote e compara o hash do criativo (matéria mudou ⇒ 409).
-- Criativo carrega `brandStatus` (brandkit está `proposal_not_approved`); o pacote lista `brandkit_proposal_not_approved` como bloqueio de publicação REAL.
+- Criativo carrega `brandStatus` (brandkit está `approved`, mesma fonte do `@ln/ui`); qualquer status diferente de `approved` continua virando bloqueio de publicação REAL (`brandkit_<status>`).
 
 ## Não verificado / pendente
 - Menção, edição, exclusão, PDF de carrossel e 7 dias sem sessão só se provam por escrita em página de teste (R5-02). Leitura do mLabs: ver `docs/mlabs-capabilities.md` §5 (fonte: PM).

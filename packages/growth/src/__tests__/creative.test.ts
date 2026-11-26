@@ -21,10 +21,10 @@ test('criativo: dimensões e cores vêm do brandkit (design.tokens.json)', () =>
   assert.ok(renderPost(MOCK_ARTICLE, { theme: 'dark' }).svg.includes('#101C1C'));
 });
 
-test('criativo: status do brandkit (não aprovado) acompanha o ativo; mock exibe MOCK', () => {
+test('criativo: status do brandkit (aprovado) acompanha o ativo; mock exibe MOCK', () => {
   const a = renderPost(MOCK_ARTICLE);
-  assert.equal(a.brandStatus, 'proposal_not_approved');
-  assert.ok(a.svg.includes('data-brand-status="proposal_not_approved"'));
+  assert.equal(a.brandStatus, 'approved');
+  assert.ok(a.svg.includes('data-brand-status="approved"'));
   assert.equal(a.mock, true);
   assert.ok(a.svg.includes('MOCK — NÃO PUBLICAR'));
   assert.ok(a.html.includes('MOCK'));

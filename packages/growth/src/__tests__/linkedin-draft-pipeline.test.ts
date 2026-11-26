@@ -64,9 +64,9 @@ describe('ensaio (flag desligada, padrão): nada sai do processo', () => {
     assert.deepEqual(transport.media, { prepares: 0, puts: 0, polls: 0 });
   });
 
-  test('a matéria MOCK é aceita no ensaio (nada sai) e avisa que o brandkit é proposta', async () => {
+  test('a matéria MOCK é aceita no ensaio (nada sai) e não avisa brandkit de proposta', async () => {
     const s = ok(await runLinkedInDraftPipeline(deps, mockPublishedRecord(), mockSocialPack()));
-    assert.ok(s.warnings.includes('brandkit_proposal_not_approved'));
+    assert.ok(!s.warnings.includes('brandkit_proposal_not_approved'));
   });
 
   test('flag ligada mas sem configuração live: continua ensaio', async () => {

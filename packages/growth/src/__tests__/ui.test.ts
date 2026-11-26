@@ -50,7 +50,8 @@ describe('componentes de prévia', () => {
     assert.ok(out.includes('src="data:image/svg+xml;charset=utf-8,'));
     assert.ok(out.includes('alt="Criativo da matéria"'));
     assert.ok(out.includes('MOCK'));
-    assert.ok(out.includes('Brandkit: proposta, não aprovada'));
+    assert.ok(out.includes('Brandkit aprovado'));
+    assert.ok(!out.includes('proposta'));
     assert.ok(!out.includes('<script'));
     assert.ok(!out.includes('<svg'), 'o SVG vai só como imagem (data URI), nunca inline');
   });
@@ -186,7 +187,7 @@ describe('Social Dashboard: telas com dados dos handlers', () => {
     assert.ok(out.includes('Chave desligada'));
     assert.ok(out.includes('modo simulado'));
     assert.ok(out.includes('Métricas: indisponíveis'));
-    assert.ok(out.includes('Brandkit: proposta, não aprovada'));
+    assert.ok(out.includes('Brandkit aprovado'));
     assert.ok(out.includes('2 pacote(s)'));
   });
 });

@@ -7,7 +7,7 @@ import { font, measure, textPath, wrap, type Weight } from './type-paths';
 // Templates sociais dos rascunhos do LinkedIn (matéria e análise autoral), por código, a partir do brandkit
 // (design.tokens.json: cores, Inter, áreas seguras, logo e ilustrações de contexto). SEM IA de imagem.
 // Determinístico: mesma entrada = mesmo SVG, byte a byte. O texto é desenhado em curvas (Inter embutida), então o SVG
-// e o PNG derivado não dependem de fonte instalada. O brandkit é "proposal_not_approved": o status acompanha cada card.
+// e o PNG derivado não dependem de fonte instalada. O brandkit está "approved": o status acompanha cada card.
 //
 // - Card de MATÉRIA: fundo primário, ilustração de contexto à direita (paisagem) ou no alto (quadrado), editoria, manchete,
 //   apoio opcional, logo. Nunca leva o selo de autoral.

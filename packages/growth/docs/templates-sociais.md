@@ -40,7 +40,7 @@ const png = await rasterizeCreative(card);                                // Ras
 - **Chave de idempotência = `svgSha256`** (hash do SVG de origem), não o `sha256` do PNG: o PNG pode ter bytes diferentes entre Windows e Linux (zlib/libvips) com pixels idênticos. O `sha256` vale como integridade do envio na mesma plataforma. Os testes comparam o hash dos **pixels** decodificados (`rasterPixelSha256`).
 - `filename`: ASCII `[a-z0-9-]` + `.png`, ≤ 200 (`ln-<kind>-<slug do título>-<L>x<A>-<8 primeiros do svgSha256>.png`).
 - `altText`: o `<desc>` do SVG (descreve o card; não repete o post).
-- `brandStatus` e `mock` propagam do `CreativeAsset`. O brandkit está `proposal_not_approved`: o status acompanha todo card.
+- `brandStatus` e `mock` propagam do `CreativeAsset`. O brandkit está `approved`: o status acompanha todo card; qualquer status diferente de `approved` continua barrando o pacote.
 - mLabs: `prepare_media_upload` (filename, `image/png`, `sizeBytes` exato, `sha256` opcional, `channels: ['linkedin']`) e PUT na `uploadUrl`; depois `get_media_upload` até `completed`. Implementação é da Integration, sobre este `RasterAsset`.
 
 ## Dependências (versões exatas)

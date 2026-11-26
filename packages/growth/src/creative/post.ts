@@ -3,7 +3,7 @@ import { CONTEXT_SVG, LOGO_WHITE_SVG, TOKENS_JSON } from './assets.data';
 
 // Gerador de criativo de contexto, por código, a partir do brandkit (originals/Loyalty_News_Brandkit_Assets.zip:
 // templates/post_template.html, design.tokens.json, logo e ilustrações de contexto). Determinístico: mesma entrada,
-// mesmo SVG. O brandkit é "proposal_not_approved" (design.tokens.json): o status acompanha cada criativo.
+// mesmo SVG. O brandkit está "approved" (design.tokens.json): o status acompanha cada criativo.
 
 interface Tokens {
   brand_version: string;
