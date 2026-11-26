@@ -17,7 +17,7 @@ async function trilha(context: BrowserContext) {
   await entrar(context, 'guarda-admin', 'admin');
   const r = await api(context, 'GET', `/api/studio/auditoria?action=${ACAO}&limit=200`);
   expect(r.status, JSON.stringify(r.body)).toBe(200);
-  return r.body as { total: number; items: { action: string; actorId: string | null; actorRole: string | null }[] };
+  return r.body as { total: number; data: { action: string; actorId: string | null; actorRole: string | null }[] };
 }
 
 test('registro manual de lead funciona e deixa autor na trilha, com o formulário público ligado ou desligado', async ({ page, context, request }) => {
@@ -40,8 +40,8 @@ test('registro manual de lead funciona e deixa autor na trilha, com o formulári
 
   const depois = await trilha(context);
   expect(depois.total, 'o registro manual precisa aparecer na trilha de auditoria').toBe(antes + 1);
-  expect(depois.items[0]).toMatchObject({ action: ACAO, actorRole: 'comercial' });
-  expect(depois.items[0]!.actorId).toBeTruthy();
+  expect(depois.data[0]).toMatchObject({ action: ACAO, actorRole: 'comercial' });
+  expect(depois.data[0]!.actorId).toBeTruthy();
 
   // A rota pública segue a flag. Corpo vazio de propósito: nada é gravado em nenhum dos estados.
   await context.clearCookies();
