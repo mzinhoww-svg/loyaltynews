@@ -51,6 +51,8 @@ export function normalizePath(raw: string): string | null {
   const clean = segments.map((seg) => {
     const s = seg.toLowerCase();
     if (s.includes('@')) return ':id';
+    // CPF com pontos (123.456.789-01): sem esta regra o segmento passaria inteiro (achado A1 do QA 2).
+    if (/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(s)) return ':id';
     if (/\d{6,}/.test(s)) return ':id';
     if (UUID_RE.test(s) || HEX_TOKEN_RE.test(s)) return ':id';
     if (s.length > 48) return ':id';

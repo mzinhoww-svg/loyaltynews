@@ -21,8 +21,8 @@ Regras do contrato:
 - **A matéria é identificada pelo slug.** A rota pública não expõe id interno ("nada interno (id, status…) sai por aqui",
   `apps/web/app/api/_lib/articles.ts`), então `articleId` não faz parte do contrato e é recusado como campo desconhecido.
   `articleReadFromPublic(payload, readSeconds)` monta o evento só com `slug` e `editoria` do payload público.
-- Busca é o único texto livre: aparado, espaços colapsados, cortado em 120 caracteres, e vira `:redigido` se parecer
-  e-mail, CPF, telefone ou UUID. O termo nunca é ligado a sessão, conta ou IP.
+- Busca é o único texto livre: aparado, espaços colapsados e **redigido antes do corte** (e-mail, CPF, telefone ou UUID
+  no texto inteiro viram `:redigido`; só depois vem o limite de 120 caracteres). O termo nunca é ligado a sessão, conta ou IP.
 - `fromLegacyCollect` traduz o formato antigo da rota (`{ t: 'pageview', path, ref, w }`) para `page_view`, sem quebrar
   o cliente atual.
 

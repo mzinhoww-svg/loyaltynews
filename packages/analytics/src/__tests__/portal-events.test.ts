@@ -25,6 +25,9 @@ describe('contrato único de eventos do portal', () => {
     assert.equal(r.ok, true);
     if (r.ok && r.event.name === 'page_view') assert.equal(r.event.path, '/materia/:id/detalhe');
     assert.deepEqual(parsePortalEvent({ name: 'page_view', path: '/' }), { ok: true, event: { name: 'page_view', path: '/' } });
+    const cpf = parsePortalEvent({ name: 'page_view', path: '/usuario/123.456.789-01/perfil' });
+    assert.equal(cpf.ok, true);
+    if (cpf.ok && cpf.event.name === 'page_view') assert.equal(cpf.event.path, '/usuario/:id/perfil');
     assert.equal(parsePortalEvent({ name: 'page_view', path: 'https://fora.invalid/x' }).ok, false);
   });
 
@@ -78,6 +81,30 @@ describe('contrato único de eventos do portal', () => {
     const r = parsePortalEvent({ name: 'search', query: 'meu email e fulano@exemplo.com', resultCount: 3 });
     assert.equal(r.ok, true);
     if (r.ok && r.event.name === 'search') assert.equal(r.event.query, ':redigido');
+  });
+
+  test('C1 do QA 2: e-mail/CPF que cruza o limite de 120 não deixa pedaço identificável', () => {
+    // Antes da correção, cortar em 120 primeiro devolvia "xxxx… fulano@ex".
+    assert.equal(redactSearchQuery('x'.repeat(110) + ' fulano@exemplo.com'), ':redigido');
+    const r = parsePortalEvent({ name: 'search', query: 'x'.repeat(110) + ' fulano@exemplo.com', resultCount: 1 });
+    assert.equal(r.ok, true);
+    if (r.ok && r.event.name === 'search') assert.equal(r.event.query, ':redigido');
+
+    // Fronteira dos 120: e-mail começando no 119, inteiro depois do 120 e CPF cruzando o limite.
+    const fronteira = [
+      'x'.repeat(118) + ' a@b.co',
+      'x'.repeat(120) + ' fulano@exemplo.com',
+      'x'.repeat(115) + ' 123.456.789-01',
+      'x'.repeat(119) + ' 11987654321',
+    ];
+    for (const q of fronteira) assert.equal(redactSearchQuery(q), ':redigido', `fronteira: ${q.length}`);
+
+    // Termo longo sem PII é truncado, não recusado; e 120 exatos sem PII passam inteiros.
+    const t = parsePortalEvent({ name: 'search', query: 'palavra '.repeat(30), resultCount: 1 });
+    assert.equal(t.ok, true);
+    if (t.ok && t.event.name === 'search') assert.equal(t.event.query.length, 120);
+    const exatos = 'a'.repeat(120);
+    assert.equal(redactSearchQuery(exatos), exatos);
   });
 
   test('campo com nome de dado pessoal é recusado antes do schema, com código próprio', () => {

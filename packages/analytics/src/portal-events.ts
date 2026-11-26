@@ -117,10 +117,12 @@ const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\
  * termo nunca é ligado a sessão, conta ou IP — é só um termo de busca agregável.
  */
 export function redactSearchQuery(raw: string): string {
-  const q = raw.trim().replace(/\s+/g, ' ').slice(0, 120);
+  // Redige ANTES de cortar: se o e-mail/CPF/telefone cruzar o limite de 120, cortar primeiro deixaria um pedaço
+  // identificável ("fulano@ex") na saída. A varredura é no texto inteiro; só depois vem o corte.
+  const q = raw.trim().replace(/\s+/g, ' ');
   if (!q) return q;
   if (EMAIL_RE.test(q) || CPF_RE.test(q) || PHONE_RE.test(q) || UUID_RE.test(q)) return ':redigido';
-  return q;
+  return q.slice(0, 120);
 }
 
 /** Interpreta um evento cru: recusa campo pessoal pelo nome, valida o schema e aplica as normalizações do contrato. */
@@ -129,7 +131,13 @@ export function parsePortalEvent(raw: unknown): PortalEventParse {
   const pessoais = Object.keys(raw).filter((k) => (PII_FIELDS as readonly string[]).includes(k.toLowerCase()));
   if (pessoais.length) return { ok: false, code: 'campo_pessoal', fields: pessoais };
 
-  const p = PortalEventSchema.safeParse(raw);
+  // A busca é redigida e cortada ANTES do schema, para termo acima de 120 não ser recusado por tamanho antes de
+  // perder o trecho que identifica alguém.
+  const candidato = (raw as Record<string, unknown>).name === 'search' && typeof (raw as Record<string, unknown>).query === 'string'
+    ? { ...(raw as Record<string, unknown>), query: redactSearchQuery((raw as Record<string, unknown>).query as string) }
+    : raw;
+
+  const p = PortalEventSchema.safeParse(candidato);
   if (!p.success) return { ok: false, code: 'evento_invalido', details: p.error.issues.map((i) => i.path.join('.') || '(raiz)') };
   const e = p.data;
 
@@ -139,9 +147,9 @@ export function parsePortalEvent(raw: unknown): PortalEventParse {
     return { ok: true, event: { ...e, path } };
   }
   if (e.name === 'search') {
-    const query = redactSearchQuery(e.query);
-    if (query.length < 2) return { ok: false, code: 'evento_invalido', details: ['query'] };
-    return { ok: true, event: { ...e, query } };
+    // `query` já veio redigida e cortada no candidato acima.
+    if (e.query.length < 2) return { ok: false, code: 'evento_invalido', details: ['query'] };
+    return { ok: true, event: e };
   }
   return { ok: true, event: e };
 }

@@ -34,6 +34,7 @@ describe('normalizePath', () => {
     assert.equal(normalizePath('/usuario/joao@exemplo.com'), '/usuario/:id');
     assert.equal(normalizePath('/usuario/joao%40exemplo.com'), '/usuario/:id');
     assert.equal(normalizePath('/cliente/12345678901'), '/cliente/:id');
+    assert.equal(normalizePath('/usuario/123.456.789-01/perfil'), '/usuario/:id/perfil', 'CPF com pontos');
     assert.equal(normalizePath('/tel/11987654321/ver'), '/tel/:id/ver');
     assert.equal(normalizePath('/s/3f2504e0-4f89-11d3-9a0c-0305e82c3301'), '/s/:id');
     assert.equal(normalizePath('/t/9f86d081884c7d659a2feaa0c55ad015'), '/t/:id');
