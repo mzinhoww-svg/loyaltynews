@@ -18,7 +18,7 @@ let editor: Actor;
 const MOTIVO = 'Linha criada antes do D1, com conta claude e modelo deepseek; descartada por configuracao.';
 const row = (taskId: string, attempt: number, over: Partial<PilotRow> = {}): PilotRow =>
   ({
-    task_id: taskId, kind: 'editorial_draft', article_id: 'art-1', source_id: 's1', stage: 'draft', account: 'claude', declared_model: 'claude-sonnet-5-5', prompt_version: 'p1',
+    task_id: taskId, kind: 'editorial_draft', article_id: 'art-1', source_id: 's1', stage: 'draft', account: 'opencode', declared_model: 'opencode-go/deepseek-v4-pro', prompt_version: 'p1',
     started_at: '2026-11-25T18:00:00.000Z', ended_at: '2026-11-25T18:01:00.000Z', attempt, outcome: 'completed', packet_chars: 100, tokens_measured: false,
     published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false, ...over,
   }) as PilotRow;
@@ -35,10 +35,10 @@ const on = () => Object.assign(process.env, { APP_ENV: 'staging', LN_OPENBOT_PIL
 beforeAll(async () => {
   app = await makeApp();
   [admin, chefe, editor] = [await app.actor('admin'), await app.actor('editor_chefe'), await app.actor('editor')];
-  await rows().upsert(row('cfg-1', 1, { declared_model: 'deepseek-v4.1-flash' }));
-  await rows().upsert(row('cfg-resume', 1, { declared_model: 'opencode/deepseek-v4.1-flash-free' }));
+  await rows().upsert(row('cfg-1', 1, { account: 'claude', declared_model: 'deepseek-v4.1-flash' }));
+  await rows().upsert(row('cfg-resume', 1, { account: 'claude', declared_model: 'opencode/deepseek-v4.1-flash-free' }));
   await rows().upsert(row('ok-1', 1));
-  await rows().upsert(row('viol-1', 1, { declared_model: 'deepseek-v4.1-flash', published_attempt: true }));
+  await rows().upsert(row('viol-1', 1, { account: 'claude', declared_model: 'deepseek-v4.1-flash', published_attempt: true }));
 });
 afterEach(() => {
   delete process.env.APP_ENV;
