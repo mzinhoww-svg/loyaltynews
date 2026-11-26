@@ -169,7 +169,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Pedidos de titulares de dados',
-        paragraphs: ['Para pedir correção ou remoção de dados pessoais exibidos no portal, use o formulário desta página (/correcoes#pedido). A resposta chega ao e-mail informado em até 15 dias corridos, com um protocolo para acompanhar. O formulário não cobre acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de consentimento nem descadastro da newsletter; para esses direitos, use o canal do encarregado indicado na página de Privacidade e LGPD, que lista os direitos e as bases legais.'],
+        paragraphs: ['Para pedir correção ou remoção de dados pessoais exibidos no portal, use o formulário desta página (/correcoes#pedido): ele pede seu nome, um e-mail para resposta, o endereço da página, o tipo do pedido e a descrição. Você recebe um protocolo para acompanhar. O formulário não cobre acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de consentimento nem descadastro da newsletter; para esses direitos, use o canal do encarregado indicado na página de Privacidade e LGPD, que lista os direitos e as bases legais.'],
       },
       {
         heading: 'Histórico de correções',
