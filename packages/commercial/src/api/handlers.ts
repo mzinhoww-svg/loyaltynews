@@ -8,6 +8,7 @@ import {
   advertiserReport, campaignDetail, campaignReport, formatCatalogView, inventoryCalendar, inventoryOverview, leadInbox, mediaKitPage, opportunityBoard, studioDashboard,
 } from '../queries';
 import type { FormatStatus } from '../types';
+import type { CommercialCtx } from '../state';
 import { adPlan, ALLOWED_MIME, resolveClickDestination, validateCreative } from '../creative';
 import type { ServeResult } from '../rotation';
 import { MAX_WINDOW_DAYS, reportCsv } from '../report';
@@ -27,11 +28,13 @@ export const listFormats = define({ auth: 'public', schema: z.object({ section: 
 export const getAvailability = define({ auth: 'public', schema: z.object({ positionId: PositionId, from: IsoDate, to: IsoDate }) },
   (ctx, i) => ok(ctx.inventory.availability(i.positionId, i.from, i.to)));
 
-/** Lead do mídia kit. Não cria reserva. Consentimento é gravado com o horário do servidor; opt-in da newsletter nunca vem marcado. */
-export const submitLead = define({
-  auth: 'public',
-  schema: LeadContract.omit({ id: true, consentimentoEm: true, classeDeDado: true }).strict(),
-}, (ctx, i) => {
+const LeadInput = LeadContract.omit({ id: true, consentimentoEm: true, classeDeDado: true }).strict();
+
+/**
+ * Lead do mídia kit. Não cria reserva. Consentimento é gravado com o horário do servidor; opt-in da newsletter nunca vem marcado.
+ * As duas entradas (pública e Studio) usam este mesmo corpo: mesmas regras e mesmo consentimento gravado no servidor.
+ */
+const captureLead = (ctx: CommercialCtx, i: z.output<typeof LeadInput>) => {
   const unknown = formatIds(i.formatosInteresse);
   if (unknown.length) return fail(422, 'UNKNOWN_FORMAT', 'Formato de interesse desconhecido.', { formatIds: unknown });
   const lead = ctx.crm.captureLead({
@@ -40,7 +43,15 @@ export const submitLead = define({
   }, ctx.now);
   // Resposta mínima: o visitante não recebe de volta dado pessoal além do protocolo.
   return ok({ id: lead.id, status: lead.status, consentimentoEm: lead.consentAt }, 201);
-});
+};
+
+export const submitLead = define({ auth: 'public', schema: LeadInput }, captureLead);
+
+/**
+ * Lead registrado manualmente pelo comercial no Studio (sessão com MFA). A rota é `studio` de propósito: a flag
+ * `portalFormularios` fecha só o formulário público do mídia kit; o trabalho interno do CRM não depende dela.
+ */
+export const registerLeadStudio = define({ auth: 'studio', schema: LeadInput }, captureLead);
 
 // ---------- ad server público ----------
 const ServeInput = z.object({ positionId: PositionId, pageViewId: z.string().min(1).max(128), isBot: z.boolean().optional(), isInternal: z.boolean().optional(), device: z.enum(['mobile', 'desktop']).optional() });
