@@ -78,8 +78,8 @@ test.describe('production: pessoas indisponíveis, sem vazar nome', () => {
 
   test('páginas: vazio honesto (não erro), perfis 404 e nenhum nome no HTML', async ({ page }) => {
     for (const [rota, texto] of [
-      ['/intelligence/pessoas', 'Em breve: primeiros perfis verificados'],
-      ['/moves', 'Em breve: primeiras movimentações confirmadas'],
+      ['/intelligence/pessoas', 'Ainda não há perfis publicados'],
+      ['/moves', 'Ainda não há Moves publicados'],
     ] as const) {
       const r = await html(page, rota);
       expect(r.status, rota).toBe(200);
