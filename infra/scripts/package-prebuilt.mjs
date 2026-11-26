@@ -5,6 +5,8 @@
 // Vertra construiu num app (snapshot/download_app) ou um runner Linux construindo em /app. Um .next feito no Windows é RECUSADO aqui (caminhos absolutos do host: não roda na Vertra).
 // Uso: node infra/scripts/package-prebuilt.mjs --pacote <pasta do package-web> --next <pasta .next de origem> --out <pasta> --origem "<de onde veio o .next>" [--force] [--sem-zip] [--tar]
 // Sobrepõe no pacote (e registra o SHA-256) infra/scripts/start-web.mjs e infra/scripts/lib/prebuilt.mjs DESTA árvore: são o que restaura o .next na subida.
+// Worker (QA 10): node infra/scripts/package-prebuilt.mjs --tipo workers --pacote <pasta do package-web --app workers> --dist <apps/workers/dist> --out <pasta> --origem "<de onde veio o dist>" [--force]
+//   põe o dist em apps/workers/dist, zera o BUILD= do vertracloud.config (a Vertra não recompila), gera o ZIP final e reescreve o manifesto com o sha256/bytes/lista DESSE ZIP.
 import { spawnSync } from 'node:child_process';
 import { TAR } from './lib/tar.mjs';
 import { arquivosDoZip } from './lib/zip.mjs';
@@ -51,6 +53,20 @@ export function origemDoSiteProblemas(texto, siteUrl) {
   return [...new Set(p)];
 }
 
+/**
+ * Build nulo na Vertra: toda linha `BUILD=<comando>` do vertracloud.config vira `BUILD=` (vazio); o resto fica igual. Função pura.
+ * É a mesma regra para o web e para o worker: com o comando de build no config, a Vertra recompila no upload e o artefato testado se perde.
+ */
+export function zerarBuild(texto) {
+  return String(texto).split(/\r?\n/).map((l) => (l.startsWith('BUILD=') ? 'BUILD=' : l)).join('\n');
+}
+
+/** Pura: verdadeiro só se o config tem exatamente uma linha `BUILD=` e ela está vazia. */
+export function buildVazio(texto) {
+  const linhas = String(texto).split(/\r?\n/).filter((l) => l.startsWith('BUILD='));
+  return linhas.length === 1 && linhas[0] === 'BUILD=';
+}
+
 function listar(dir, fora = new Set()) {
   const out = [];
   (function walk(d) {
@@ -65,6 +81,8 @@ function listar(dir, fora = new Set()) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.tipo === 'workers') return mainWorkers(args);
+  if (args.tipo !== undefined && args.tipo !== 'web') fail('--tipo deve ser web (padrão) ou workers', 2);
   for (const k of ['pacote', 'next', 'out', 'origem']) if (!args[k] || args[k] === true) fail(`use --${k}`, 2);
   const pacote = resolve(String(args.pacote));
   const nextSrc = resolve(String(args.next));
@@ -134,7 +152,7 @@ async function main() {
   writeFileSync(join(folder, PREBUILT_MANIFEST), JSON.stringify(pb, null, 2) + '\n');
   writeFileSync(join(folder, 'release.json'), JSON.stringify({ ...release, prebuilt: true, buildCommandVazio: true }));
   const cfgPath = join(folder, 'vertracloud.config');
-  writeFileSync(cfgPath, readFileSync(cfgPath, 'utf8').split(/\r?\n/).map((l) => (l.startsWith('BUILD=') ? 'BUILD=' : l)).join('\n'));
+  writeFileSync(cfgPath, zerarBuild(readFileSync(cfgPath, 'utf8')));
 
   // verificações: nada de .next/node_modules no caminho (o painel os remove), ci-checks do pacote, ZIP íntegro e dentro do limite
   let files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
@@ -174,6 +192,71 @@ async function main() {
   const novo = { ...man, pasta: folder, zip: args['sem-zip'] ? null : zip, zipSha256: args['sem-zip'] ? null : await sha256File(zip), zipBytes: args['sem-zip'] ? null : bytes, bytesDescomprimidos: args['sem-zip'] ? bytes : null, arquivos: files.length, prebuilt: { ...pb, externos: externos.length, overlays, buildCommand: '(vazio)' } };
   writeFileSync(manifestPath, JSON.stringify(novo, null, 2) + '\n');
   console.log(JSON.stringify({ ok: true, pasta: folder, zip: novo.zip, zipSha256: novo.zipSha256, zipBytes: novo.zipBytes, bytesDescomprimidos: novo.bytesDescomprimidos, arquivos: files.length, commit: release.commit, buildId, externos, overlays, manifesto: manifestPath }, null, 2));
+}
+
+/** Pastas que o painel/deploy_app removem do upload e arquivos que nunca podem ir no pacote (mesma regra do web). */
+const proibidos = (files) => files.filter((f) => /(^|\/)(\.next|node_modules|vendor|target|venv|\.venv|__pycache__|\.bundle|\.gradle|\.local|\.npm)\//.test(f) || /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f));
+
+/** ZIP portátil: `zip` (runner Ubuntu e macOS) e, sem ele, o bsdtar (Windows/macOS). O tar GNU não escreve ZIP. */
+function criarZip(folder, zip) {
+  const temZip = spawnSync('zip', ['-v'], { encoding: 'utf8' });
+  const r = !temZip.error && temZip.status === 0
+    ? spawnSync('zip', ['-q', '-r', '-X', zip, '.'], { cwd: folder, encoding: 'utf8' })
+    : spawnSync(TAR, ['-a', '-c', '-f', zip, '-C', folder, '.'], { encoding: 'utf8' });
+  if (r.error || r.status !== 0) fail(`não consegui criar o ZIP (instale \`zip\` ou use o bsdtar): ${r.stderr || r.error}`);
+}
+
+/** Pacote PRÉ-CONSTRUÍDO do worker: dist do mesmo commit + BUILD= vazio + manifesto do ZIP final. Não escreve na Vertra nem no GitHub. */
+async function mainWorkers(args) {
+  for (const k of ['pacote', 'dist', 'out', 'origem']) if (!args[k] || args[k] === true) fail(`use --${k}`, 2);
+  const pacote = resolve(String(args.pacote));
+  const distSrc = resolve(String(args.dist));
+  const out = resolve(String(args.out));
+  if (!existsSync(join(pacote, 'release.json'))) fail('--pacote não tem release.json (use a pasta gerada por package-web.mjs --app workers)', 2);
+  const release = JSON.parse(readFileSync(join(pacote, 'release.json'), 'utf8').replace(/^\uFEFF/, ''));
+  if (release.tipo !== 'workers') fail(`--tipo workers exige o pacote do worker (release.tipo=${release.tipo})`, 2);
+  if (release.prebuilt) fail('o pacote já é pré-construído', 2);
+  if (!existsSync(join(pacote, 'vertracloud.config'))) fail('--pacote sem vertracloud.config', 2);
+  const manifestOrigem = join(dirname(pacote), `${basename(pacote)}.manifest.json`);
+  if (!existsSync(manifestOrigem)) fail(`manifesto ${basename(manifestOrigem)} não está ao lado da pasta do pacote`, 2);
+  if (!existsSync(join(distSrc, 'index.js')) || statSync(join(distSrc, 'index.js')).size === 0) fail('--dist sem index.js (rode npm run build -w apps/workers do commit do pacote)', 2);
+
+  const nome = `${basename(pacote)}-prebuilt`;
+  const folder = join(out, nome);
+  const zip = join(out, `${nome}.zip`);
+  const manifestPath = join(out, `${nome}.manifest.json`);
+  mkdirSync(out, { recursive: true });
+  if ((existsSync(folder) || existsSync(zip)) && !args.force) fail(`já existe ${nome} em ${out} (use --force)`, 2);
+  rmSync(folder, { recursive: true, force: true }); rmSync(zip, { force: true });
+
+  cpSync(pacote, folder, { recursive: true });
+  const destDist = join(folder, 'apps', 'workers', 'dist');
+  rmSync(destDist, { recursive: true, force: true });
+  cpSync(distSrc, destDist, { recursive: true });
+  const distSha256 = await sha256File(join(destDist, 'index.js'));
+  writeFileSync(join(folder, 'release.json'), JSON.stringify({ ...release, prebuilt: true, buildCommandVazio: true }, null, 2) + '\n');
+  const cfgPath = join(folder, 'vertracloud.config');
+  writeFileSync(cfgPath, zerarBuild(readFileSync(cfgPath, 'utf8')));
+  if (!buildVazio(readFileSync(cfgPath, 'utf8'))) fail('vertracloud.config não ficou com exatamente uma linha BUILD= vazia');
+
+  const files = listar(folder).map((f) => relative(folder, f).split(sep).join('/'));
+  const ruins = proibidos(files);
+  if (ruins.length) fail(`arquivos proibidos no pacote: ${ruins.slice(0, 5).join(', ')}`);
+  criarZip(folder, zip);
+  let entradas;
+  try { entradas = arquivosDoZip(zip); } catch (e) { fail(`não consegui ler o índice do ZIP: ${e.message}`); }
+  if (entradas.length !== files.length) fail(`pasta (${files.length}) e ZIP (${entradas.length}) divergem`);
+  const bytes = statSync(zip).size;
+  if (bytes > 100 * 1024 * 1024) fail(`ZIP de ${(bytes / 1048576).toFixed(1)} MB passa do limite de 100 MB da Vertra`);
+
+  const man = JSON.parse(readFileSync(manifestOrigem, 'utf8').replace(/^\uFEFF/, ''));
+  const novo = {
+    ...man, pasta: folder, zip, zipSha256: await sha256File(zip), zipBytes: bytes, arquivos: entradas.length, zipFiles: entradas,
+    buildCommand: '(vazio)', buildCommandVazio: true,
+    prebuilt: { tipo: 'workers', commit: release.commit, appEnv: release.appEnv, distIndexSha256: distSha256, origem: String(args.origem), geradoEm: new Date().toISOString() },
+  };
+  writeFileSync(manifestPath, JSON.stringify(novo, null, 2) + '\n');
+  console.log(JSON.stringify({ ok: true, tipo: 'workers', pasta: folder, zip, zipSha256: novo.zipSha256, zipBytes: bytes, arquivos: entradas.length, commit: release.commit, manifesto: manifestPath }, null, 2));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
