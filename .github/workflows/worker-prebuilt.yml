@@ -99,7 +99,8 @@ jobs:
           set -euo pipefail
           mkdir -p "$PASTA/apps/workers"
           cp -a apps/workers/dist "$PASTA/apps/workers/dist"
-          node -e "const fs=require('node:fs');const p=process.env.PASTA+'/release.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.prebuilt=true;j.buildCommandVazio=true;fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
+          # build nulo: zera o BUILD= do vertracloud.config (como o package-prebuilt.mjs:136-137 do web); sem isso a Vertra reconstroi
+          node -e "const fs=require('node:fs');const p=process.env.PASTA;const c=fs.readFileSync(p+'/vertracloud.config','utf8');fs.writeFileSync(p+'/vertracloud.config',c.split(/\r?\n/).map((l)=>l.startsWith('BUILD=')?'BUILD=':l).join('\n'));const j=JSON.parse(fs.readFileSync(p+'/release.json','utf8'));j.prebuilt=true;j.buildCommandVazio=true;fs.writeFileSync(p+'/release.json',JSON.stringify(j,null,2)+'\n')"
 
       - name: ZIP final do deploy e sha256
         run: |
@@ -113,6 +114,22 @@ jobs:
           echo "zip=$(basename "$ZIP")" >> "$GITHUB_ENV"
           echo "$(basename "$ZIP") - ${NFILES} arquivos, $(stat -c%s "$ZIP") B" >> "$GITHUB_STEP_SUMMARY"
           sha256sum "$ZIP" | awk '{print "zip-sha256=" $1}' | tee -a "$GITHUB_STEP_SUMMARY"
+          # manifesto do ZIP FINAL (depois do dist): sha256, bytes e lista de arquivos do proprio ZIP
+          node --input-type=module -e "
+          import { readFileSync, writeFileSync, statSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { arquivosDoZip } from './infra/scripts/lib/zip.mjs';
+          const p = process.env.PASTA;
+          const zip = p + '.zip';
+          const buf = readFileSync(zip);
+          const files = arquivosDoZip(zip);
+          const man = JSON.parse(readFileSync(p + '.manifest.json', 'utf8'));
+          Object.assign(man, { pasta: p, zip, zipSha256: createHash('sha256').update(buf).digest('hex'), zipBytes: statSync(zip).size, arquivos: files.length, zipFiles: files });
+          man.buildCommand = '(vazio)';
+          man.buildCommandVazio = true;
+          writeFileSync(p + '.manifest.json', JSON.stringify(man, null, 2) + '\n');
+          console.log('manifesto: zipSha256=' + man.zipSha256 + ' arquivos=' + files.length);
+          "
 
       - name: Artefato
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
