@@ -4,13 +4,15 @@
 //   pull  ->  input  ->  (o agente produz o resultado)  ->  result  ->  done | limit | fail      (+ heartbeat se a tarefa demorar)
 //   smoke: verificação do roteiro (§6) em UM comando, sem efeito (health e sonda de assinatura; NUNCA faz pull); recusa produção.
 // Segurança: o segredo HMAC vem de um ARQUIVO (LN_HMAC_SECRET_FILE, o caminho que o cofre do OpenBot entrega) ou, menos recomendado, de LN_HMAC_SECRET;
-// nunca de argumento de linha de comando, e nunca é impresso. Só HTTPS (http só para localhost, em teste). Só as contas claude e codex (DP-41).
+// nunca de argumento de linha de comando, e nunca é impresso. Só HTTPS (http só para localhost, em teste). Só as contas claude, codex e opencode (DP-41; emenda de 26/11: a lane opencode serve o DeepSeek).
 // Saída: UMA linha de JSON no stdout (o resultado) ou, em erro, JSON em stderr e código de saída 1 (sem segredo, sem assinatura, sem cabeçalhos).
 import { createHash, createHmac } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const ACCOUNTS = ['claude', 'codex'];
+export const ACCOUNTS = ['claude', 'codex', 'opencode'];
 export const STAGES = ['triage', 'draft', 'factcheck', 'review', 'social_pack', 'roles'];
 /** Tipos de tarefa do piloto (o `pull` filtra por eles: vários agentes podem dividir a mesma conta). */
 export const KINDS = ['classification', 'editorial_draft', 'fact_check', 'editorial_review', 'social_copy', 'entity_resolution'];
@@ -45,7 +47,7 @@ export function loadConfig(env, readFile = readFileSync) {
   const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
   if (u.username || u.password || (u.protocol !== 'https:' && !(u.protocol === 'http:' && local))) throw new CliError('config', 'LN_API_BASE tem de ser HTTPS, sem credencial na URL');
   const account = env.LN_AGENT_ACCOUNT;
-  if (!ACCOUNTS.includes(account)) throw new CliError('config', `LN_AGENT_ACCOUNT tem de ser ${ACCOUNTS.join(' ou ')} (DP-41: só as assinaturas Claude e Codex)`);
+  if (!ACCOUNTS.includes(account)) throw new CliError('config', `LN_AGENT_ACCOUNT tem de ser ${ACCOUNTS.join(' ou ')} (DP-41 + emenda de 26/11: claude/codex por assinatura, opencode para o DeepSeek)`);
   let secret = '';
   if (env.LN_HMAC_SECRET_FILE) {
     try {
@@ -59,7 +61,50 @@ export function loadConfig(env, readFile = readFileSync) {
   if (!secret) throw new CliError('config', 'sem segredo: defina LN_HMAC_SECRET_FILE (caminho do arquivo do cofre do OpenBot)');
   const workerId = env.LN_WORKER_ID ?? `openbot-${account}`;
   if (!ID_RE.test(workerId)) throw new CliError('config', 'LN_WORKER_ID inválido');
-  return { base: u.toString().replace(/\/+$/, ''), account, secret, workerId };
+  const stateDir = env.LN_AGENT_STATE_DIR || join(tmpdir(), 'ln-openbot-agent');
+  return { base: u.toString().replace(/\/+$/, ''), account, secret, workerId, stateDir };
+}
+
+/**
+ * Hora em que o CLIENTE recebeu a tarefa (pull), por tarefa e lease. O `done` a usa como `started_at` quando o operador não passa
+ * `--started-at`: sem isso, início e fim saíam do mesmo comando e a etapa aparecia com ~1 ms. Best-effort: se o arquivo não existir
+ * ou estiver ilegível, o comportamento antigo (agora) continua; nenhum segredo é gravado.
+ */
+const stateFile = (cfg) => join(cfg.stateDir, `${cfg.workerId}.json`);
+function readState(cfg) {
+  try {
+    const v = JSON.parse(readFileSync(stateFile(cfg), 'utf8'));
+    return v && typeof v === 'object' ? v : {};
+  } catch {
+    return {};
+  }
+}
+function writeState(cfg, state) {
+  try {
+    mkdirSync(cfg.stateDir, { recursive: true });
+    writeFileSync(stateFile(cfg), JSON.stringify(state));
+  } catch {
+    /* estado é best-effort: não impede o ciclo */
+  }
+}
+function rememberPulls(cfg, tasks, atMs) {
+  if (!Array.isArray(tasks) || tasks.length === 0) return;
+  const state = readState(cfg);
+  for (const t of tasks) if (t && typeof t.id === 'string') state[t.id] = { leaseId: t.leaseId, at: iso(atMs) };
+  writeState(cfg, state);
+}
+function pullStartedAt(cfg, taskId, leaseId) {
+  const e = taskId ? readState(cfg)[taskId] : null;
+  if (!e || (leaseId && e.leaseId !== leaseId)) return null;
+  const ms = Date.parse(e.at);
+  return Number.isFinite(ms) ? ms : null;
+}
+function forgetPull(cfg, taskId, leaseId) {
+  const state = readState(cfg);
+  const e = taskId ? state[taskId] : null;
+  if (!e || (leaseId && e.leaseId !== leaseId)) return;
+  delete state[taskId];
+  writeState(cfg, state);
 }
 
 /** POST assinado. Devolve {status, body}; nunca imprime nem devolve o segredo ou a assinatura. */
@@ -126,7 +171,8 @@ const iso = (ms) => new Date(ms).toISOString();
 function traceOf(cfg, a, now, extra = {}) {
   const stage = a.stage;
   if (!STAGES.includes(stage)) throw new CliError('uso', `--stage tem de ser ${STAGES.join('|')}`);
-  const started = a['started-at'] ? Date.parse(a['started-at']) : now();
+  const received = a.task && a.lease ? pullStartedAt(cfg, a.task, a.lease) : null;
+  const started = a['started-at'] ? Date.parse(a['started-at']) : (received ?? now());
   if (!Number.isFinite(started)) throw new CliError('uso', '--started-at inválido (ISO 8601)');
   const t = { stage, account: cfg.account, startedAt: iso(started), endedAt: iso(now()) };
   if (a['packet-chars']) t.packetChars = Number.parseInt(a['packet-chars'], 10);
@@ -145,7 +191,9 @@ const COMMANDS = {
     if (!(limit >= 1 && limit <= 10)) throw new CliError('uso', '--limit entre 1 e 10');
     const kinds = a.kinds !== undefined ? a.kinds.split(',').map((k) => k.trim()) : undefined;
     if (kinds && (kinds.length === 0 || kinds.some((k) => !KINDS.includes(k)))) throw new CliError('uso', `--kinds: lista separada por vírgula de ${KINDS.join('|')}`);
-    return (await post(cfg, 'pull', { workerId: cfg.workerId, account: cfg.account, limit, ...(kinds ? { kinds } : {}) }, io)).body;
+    const body = (await post(cfg, 'pull', { workerId: cfg.workerId, account: cfg.account, limit, ...(kinds ? { kinds } : {}) }, io)).body;
+    rememberPulls(cfg, body?.tasks, (io.now ?? (() => Date.now()))());
+    return body;
   },
   async heartbeat(cfg, argv, io) {
     const a = parseArgs(argv, ['task', 'lease']);
@@ -175,10 +223,12 @@ const COMMANDS = {
     const body = {
       callbackId: a['callback-id'] ? need(a, 'callback-id') : `cb-${taskId}-${short(resultRef)}`, // o mesmo resultado reenviado = o mesmo callbackId (idempotente)
       taskId, leaseId, outcome: 'completed', resultRef,
-      usage: { executionId: `ex-${taskId}-${short(resultRef)}`, taskId, leaseId, model, lane: 'subscription', account: cfg.account, costMicro: 0 },
+      usage: { executionId: `ex-${taskId}-${short(resultRef)}`, taskId, leaseId, model, lane: cfg.account === 'opencode' ? 'opencode' : 'subscription', account: cfg.account, costMicro: 0 },
       trace: traceOf(cfg, a, now),
     };
-    return (await post(cfg, 'callback', body, io)).body;
+    const out = (await post(cfg, 'callback', body, io)).body;
+    forgetPull(cfg, taskId, leaseId);
+    return out;
   },
   async limit(cfg, argv, io) {
     const a = parseArgs(argv, ['task', 'lease', 'stage', 'message', 'resume-at', 'started-at', 'article', 'prompt-version', 'reviewed-draft', 'callback-id']);
@@ -194,7 +244,9 @@ const COMMANDS = {
       callbackId: a['callback-id'] ? need(a, 'callback-id') : `cb-${taskId}-lim-${short(`${a.lease}${lim.at}`)}`,
       taskId, leaseId: need(a, 'lease'), outcome: 'failed', retryable: true, error: 'limite da conta', trace: traceOf(cfg, a, now, { limit: lim }),
     };
-    return (await post(cfg, 'callback', body, io)).body;
+    const out = (await post(cfg, 'callback', body, io)).body;
+    forgetPull(cfg, taskId, a.lease);
+    return out;
   },
   async fail(cfg, argv, io) {
     const a = parseArgs(argv, ['task', 'lease', 'stage', 'error', 'retryable', 'started-at', 'article', 'prompt-version', 'reviewed-draft', 'callback-id']);
@@ -205,7 +257,9 @@ const COMMANDS = {
       taskId, leaseId: need(a, 'lease'), outcome: 'failed', retryable: bool(a.retryable, true), error: need(a, 'error', /^[\s\S]{1,500}$/),
       trace: traceOf(cfg, a, now, { outputValid: false }),
     };
-    return (await post(cfg, 'callback', body, io)).body;
+    const out = (await post(cfg, 'callback', body, io)).body;
+    forgetPull(cfg, taskId, a.lease);
+    return out;
   },
   /**
    * Verificação do roteiro (§6) em UM comando, SEM efeito: lê /api/health e faz a sonda de assinatura (heartbeat e io/input de uma tarefa que NÃO existe).

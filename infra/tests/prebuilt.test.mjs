@@ -10,7 +10,7 @@ import { arquivosFaltando, pacoteDoExterno, problemasPrebuilt, restaurarPrebuilt
 import { prebuiltStartProblems } from '../scripts/start-web.mjs';
 import { healthPayload, healthProblem } from '../../apps/web/lib/health.ts';
 import { readBuildIdentity } from '../../apps/web/lib/build-identity.ts';
-import { caminhosNaoPortaveis } from '../scripts/package-prebuilt.mjs';
+import { caminhosNaoPortaveis, origemDoSiteProblemas } from '../scripts/package-prebuilt.mjs';
 
 const S = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts');
 const tmp = () => mkdtempSync(join(tmpdir(), 'ln-prebuilt-test-'));
@@ -160,6 +160,33 @@ test('start-web: com pré-construído coerente sobe (chama o next) e imprime pre
   } finally { limpa(ruim); }
 });
 
+test('P3 do QA 5: marca da restauração SEM commit é build_divergente (503); pacote comum sem marca continua ok', () => {
+  const r = pacote();
+  try {
+    assert.deepEqual(restaurarPrebuilt(r, release(r)).problemas, []);
+    const marca = join(r, 'apps/web/.next/.ln-prebuilt.json');
+    const m = JSON.parse(readFileSync(marca, 'utf8'));
+    assert.equal(m.commit, SHA, 'a restauração grava o commit na marca');
+    delete m.commit;
+    writeFileSync(marca, JSON.stringify(m));
+    const id = readBuildIdentity(r);
+    assert.deepEqual({ buildId: id.buildId, commit: id.commit, prebuilt: id.prebuilt }, { buildId: 'BUILD_abc123', commit: null, prebuilt: true });
+    assert.equal(healthProblem({ APP_COMMIT: SHA }, id), 'build_divergente', 'marca sem commit é divergência, não 200 com null');
+    assert.equal(healthPayload({ APP_COMMIT: SHA, APP_ENV: 'staging' }, [], id).buildCommit, null);
+    m.commit = SHA;
+    writeFileSync(marca, JSON.stringify(m));
+    assert.equal(healthProblem({ APP_COMMIT: SHA }, readBuildIdentity(r)), null, 'com o commit de volta, ok');
+    // pacote comum SEM marca não é divergência (continua 200)
+    const comum = pacote();
+    try {
+      rmSync(join(comum, 'prebuilt'), { recursive: true, force: true });
+      const semMarca = readBuildIdentity(comum);
+      assert.equal(semMarca.prebuilt, false);
+      assert.equal(healthProblem({ APP_COMMIT: SHA }, semMarca), null, 'sem prebuilt não é divergência');
+    } finally { rmSync(comum, { recursive: true, force: true }); }
+  } finally { limpa(r); }
+});
+
 test('pacote comum (sem prebuilt.json e sem marca) sobe (caminho legítimo do build da Vertra)', () => {
   const r = pacote();
   try {
@@ -278,9 +305,26 @@ test('caminhosNaoPortaveis: acha caminho de host Windows/usuário e ignora camin
   assert.deepEqual(caminhosNaoPortaveis('{"appDir":"/app/apps/web","outputFileTracingRoot":"/app"}'), []);
 });
 
+test('caminhosNaoPortaveis/URL: esquema de URL (https://) e URL de terceiro (GTM/GA) NÃO são caminho de host', () => {
+  const gtm = '{"headers":[{"source":"/(.*)","headers":[{"key":"Content-Security-Policy","value":"script-src https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com"}]}]}';
+  assert.deepEqual(caminhosNaoPortaveis(gtm), []);
+  assert.deepEqual(caminhosNaoPortaveis('{"url":"https://loyaltynews-stg.vertraweb.app/noticias"}'), []);
+  assert.deepEqual(origemDoSiteProblemas(gtm, SITE), []);
+});
+
+test('origemDoSiteProblemas: origem local e domínio trocado no lugar do siteUrl reprovam; URL de terceiro passa', () => {
+  const gtm = '"script-src https://www.googletagmanager.com https://*.google-analytics.com"';
+  assert.deepEqual(origemDoSiteProblemas(gtm, SITE), []);
+  assert.match(origemDoSiteProblemas('{"appUrl":"http://localhost:3000"}', SITE).join('|'), /origem local do build/);
+  assert.match(origemDoSiteProblemas('{"canonical":"https://outro.example/x"}', SITE).join('|'), /difere do siteUrl/);
+  assert.deepEqual(origemDoSiteProblemas(`{"appUrl":"${SITE}"}`, SITE), []);
+  assert.deepEqual(origemDoSiteProblemas(`{"appUrl":"${SITE}/"}`, SITE), []);
+});
+
 function nextFalso({ requerido = '{"version":1,"appDir":"/app/apps/web","files":[".next/BUILD_ID",".next/server/app-paths-manifest.json"]}' } = {}) {
   const n = tmp();
   put(n, 'BUILD_ID', 'BUILD_abc123');
+  put(n, '.ln-build.json', JSON.stringify({ schema: 1, commit: SHA, appEnv: 'staging', siteUrl: SITE, buildId: 'BUILD_abc123' }));
   put(n, 'required-server-files.json', requerido);
   put(n, 'routes-manifest.json', '{"version":3}');
   put(n, 'build-manifest.json', '{}');
@@ -364,6 +408,56 @@ test('package-web inclui no pacote TUDO que o start-web importa (lib/prebuilt.mj
   }
   // o que lib/prebuilt.mjs importa (build-web.mjs) também entra
   for (const m of readFileSync(join(S, 'lib', 'prebuilt.mjs'), 'utf8').matchAll(/from '\.\.\/([^']+\.mjs)'/g)) assert.ok(incluidos.includes('infra/scripts/' + m[1]), `prebuilt.mjs importa ../${m[1]}`);
+});
+
+test('package-prebuilt: routes-manifest com URL de terceiro (GTM/GA) passa; com localhost:3000 no lugar do site reprova', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const rodar = (nx, saida) => spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', join(base, saida), '--origem', 'teste', '--sem-zip'], { encoding: 'utf8' });
+  try {
+    const bom = nextFalso();
+    put(bom, 'routes-manifest.json', JSON.stringify({ version: 3, headers: [{ source: '/(.*)', headers: [{ key: 'Content-Security-Policy', value: 'script-src https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com' }] }] }));
+    const a = rodar(bom, 'a');
+    assert.equal(a.status, 0, a.stderr + a.stdout);
+
+    const ruim = nextFalso();
+    put(ruim, 'routes-manifest.json', JSON.stringify({ version: 3, appUrl: 'http://localhost:3000' }));
+    const b = rodar(ruim, 'b');
+    assert.equal(b.status, 2);
+    assert.match(b.stderr, /origem local do build/);
+  } finally { rmSync(base, { recursive: true, force: true }); }
+});
+
+test('package-prebuilt RECUSA .next cuja identidade não bate com o release: sem marca, outro commit, outra URL e BUILD_ID divergente', () => {
+  const { base, pasta } = pacoteDeBuild();
+  const rodar = (nx, saida) => spawnSync(process.execPath, [join(S, 'package-prebuilt.mjs'), '--pacote', pasta, '--next', nx, '--out', join(base, saida), '--origem', 'teste', '--sem-zip'], { encoding: 'utf8' });
+  try {
+    const semMarca = nextFalso();
+    rmSync(join(semMarca, '.ln-build.json'));
+    const a = rodar(semMarca, 'a');
+    assert.equal(a.status, 2, a.stderr + a.stdout);
+    assert.match(a.stderr, /sem \.ln-build\.json/, 'sem marca, recusa dizendo o que falta');
+
+    const outro = nextFalso();
+    const m1 = JSON.parse(readFileSync(join(outro, '.ln-build.json'), 'utf8'));
+    writeFileSync(join(outro, '.ln-build.json'), JSON.stringify({ ...m1, commit: SHA2 }));
+    const b = rodar(outro, 'b');
+    assert.equal(b.status, 2);
+    assert.match(b.stderr, /outro commit: a marca diz bbbbbbbbbbbb e o pacote é do aaaaaaaaaaaa/);
+
+    const outraUrl = nextFalso();
+    const m2 = JSON.parse(readFileSync(join(outraUrl, '.ln-build.json'), 'utf8'));
+    writeFileSync(join(outraUrl, '.ln-build.json'), JSON.stringify({ ...m2, siteUrl: 'https://outro.example' }));
+    const c = rodar(outraUrl, 'c');
+    assert.equal(c.status, 2);
+    assert.match(c.stderr, /outra URL/);
+
+    const outroBuild = nextFalso();
+    const m3 = JSON.parse(readFileSync(join(outroBuild, '.ln-build.json'), 'utf8'));
+    writeFileSync(join(outroBuild, '.ln-build.json'), JSON.stringify({ ...m3, buildId: 'BUILD_outro' }));
+    const d = rodar(outroBuild, 'd');
+    assert.equal(d.status, 2);
+    assert.match(d.stderr, /BUILD_ID \(BUILD_abc123\) difere da marca/);
+  } finally { rmSync(base, { recursive: true, force: true }); }
 });
 
 test('package-prebuilt --sem-zip (runner Ubuntu): monta a pasta sem criar ZIP e o manifesto diz zip null', () => {

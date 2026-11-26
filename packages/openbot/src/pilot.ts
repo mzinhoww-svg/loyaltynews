@@ -111,7 +111,8 @@ export class InMemoryPilotState implements PilotStateStore {
  * tarifada, sem publicação. Vale por padrão sempre que o piloto está ativo (`PilotControl.allowedAccounts` só pode ESTREITAR ou, em
  * teste da mecânica genérica, ampliar de forma explícita).
  */
-export const DP41_ACCOUNTS: readonly Account[] = Object.freeze(['claude', 'codex'] as Account[]);
+// Emenda de 26/11 a DP-41: a lane opencode/DeepSeek e legitima no piloto (independencia por etapa e por agente).
+export const DP41_ACCOUNTS: readonly Account[] = Object.freeze(['claude', 'codex', 'opencode'] as Account[]);
 
 export interface PilotControl {
   /** Piloto ativo: ligado só em staging, por decisão registrada. Desligado = nada disto vale. */
