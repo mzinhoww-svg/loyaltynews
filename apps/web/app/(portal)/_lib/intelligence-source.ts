@@ -57,6 +57,24 @@ export function mapSource(v: unknown): EvidenceSource | null {
   return { name: v.nome, url: v.url, retrievedAt: v.coletadoEm };
 }
 
+/**
+ * Prova de vínculo ou cargo (contrato de proveniência): `fonte` sem data aninhada e `coletadoEm`/`validadoEm` no topo.
+ * Os quatro campos vêm sempre na API; aqui, sem fonte ou com data inválida, o item não é publicado. Sem `validadoEm`,
+ * o item é aceito como NÃO CONFIRMADO (nunca como fato).
+ */
+function mapProva(v: Record<string, unknown>): { source: EvidenceSource; collectedAt: string; validatedAt: string | null; unconfirmed: boolean } | null {
+  const f = v.fonte;
+  if (!isObj(f) || !isStr(f.nome) || !isHttps(f.url) || !isDate(v.coletadoEm)) return null;
+  const validatedAt = isDate(v.validadoEm) ? v.validadoEm : null;
+  if (v.validadoEm != null && validatedAt === null) return null;
+  return {
+    source: { name: f.nome, url: f.url, retrievedAt: v.coletadoEm },
+    collectedAt: v.coletadoEm,
+    validatedAt,
+    unconfirmed: v.naoConfirmado === true || validatedAt === null,
+  };
+}
+
 export function mapCompanyItem(v: unknown): CompanyListItem | null {
   if (!isObj(v) || !isStr(v.id) || !isStr(v.nome) || !isDate(v.validadoEm)) return null;
   const kind = asKind(v.tipo);
@@ -70,16 +88,18 @@ export function mapRelation(v: unknown): CompanyRelation | null {
   if (v.sentido !== 'origem' && v.sentido !== 'destino') return null;
   const e = v.empresa;
   if (!isObj(e) || !isStr(e.id) || !isStr(e.nome)) return null;
-  const source = mapSource(v.fonte);
-  if (!source || !isDate(v.validadoEm) || !isDate(v.vigenteDesde)) return null; // sem fonte não publica
+  const prova = mapProva(v);
+  if (!prova || !isDate(v.vigenteDesde)) return null; // sem fonte não publica
   return {
     id: v.id,
     type: v.tipo as CompanyRelationType,
     direction: v.sentido === 'origem' ? 'from' : 'to',
     other: { id: e.id, name: e.nome, kind: asKind(e.tipo) ?? 'other' },
     validFrom: v.vigenteDesde,
-    validatedAt: v.validadoEm,
-    source,
+    validatedAt: prova.validatedAt,
+    collectedAt: prova.collectedAt,
+    ...(prova.unconfirmed ? { unconfirmed: true } : {}),
+    source: prova.source,
     mock: v.mock === true,
   };
 }
@@ -136,13 +156,14 @@ export const MOVE_KIND_LABEL: Record<MoveKind, string> = {
 const MOVE_KINDS = Object.keys(MOVE_KIND_LABEL) as MoveKind[];
 
 export function mapRole(v: unknown): PersonRole | null {
-  if (!isObj(v) || !isStr(v.id) || !isStr(v.titulo) || !isDay(v.vigenteDesde) || !isDate(v.validadoEm)) return null;
+  if (!isObj(v) || !isStr(v.id) || !isStr(v.titulo) || !isDay(v.vigenteDesde)) return null;
   const company = ref(v.empresa);
-  const source = mapSource(v.fonte);
-  if (!company || !source) return null;
+  const prova = mapProva(v);
+  if (!company || !prova) return null;
   if (v.vigenteAte != null && !isDay(v.vigenteAte)) return null;
   return {
-    id: v.id, title: v.titulo, company, validFrom: v.vigenteDesde, validTo: (v.vigenteAte as string | null) ?? null, validatedAt: v.validadoEm, source,
+    id: v.id, title: v.titulo, company, validFrom: v.vigenteDesde, validTo: (v.vigenteAte as string | null) ?? null,
+    validatedAt: prova.validatedAt, collectedAt: prova.collectedAt, ...(prova.unconfirmed ? { unconfirmed: true } : {}), source: prova.source,
     ...(isStr(v.periodo) ? { periodText: v.periodo.slice(0, 120) } : {}),
     ...(typeof v.inicioDeclarado === 'boolean' ? { startDeclared: v.inicioDeclarado } : {}),
     ...(v.corrigidoPeloTitular === true ? { correctedByHolder: true } : {}),
@@ -151,11 +172,11 @@ export function mapRole(v: unknown): PersonRole | null {
 }
 
 export function mapReading(v: unknown): MoveReading | null {
-  if (!isObj(v) || !isStr(v.titulo) || !isDay(v.vigenteDesde) || !isDate(v.validadoEm)) return null;
+  if (!isObj(v) || !isStr(v.titulo) || !isDay(v.vigenteDesde)) return null;
   const company = ref(v.empresa);
-  const source = mapSource(v.fonte);
-  if (!company || !source) return null;
-  return { title: v.titulo, company, validFrom: v.vigenteDesde, validTo: isDay(v.vigenteAte) ? v.vigenteAte : null, validatedAt: v.validadoEm, source };
+  const prova = mapProva(v);
+  if (!company || !prova || !prova.validatedAt) return null; // leitura sem validação não vira fato
+  return { title: v.titulo, company, validFrom: v.vigenteDesde, validTo: isDay(v.vigenteAte) ? v.vigenteAte : null, validatedAt: prova.validatedAt, source: prova.source };
 }
 
 /**

@@ -93,11 +93,22 @@ describe('portal: pessoas (flag ligada)', () => {
     expect(nomes).not.toContain('MOCK Caio Secundario'); // só cargo inferido (a confirmar): nunca sai
     const ana = r.body.data.find((p: any) => p.nome === 'MOCK Ana Alfa');
     expect(ana.cargos).toEqual([{
-      id: ids.anaCeo, titulo: 'CEO', empresa: { id: ids.alfa, nome: 'Alfa' }, vigenteDesde: '2024-01-01', vigenteAte: null, validadoEm: '2026-11-01T00:00:00.000Z',
-      fonte: { nome: 'Cargo CEO', url: 'https://ri.alfa.example.invalid/ceo', coletadoEm: '2026-11-01T00:00:00.000Z' }, mock: true,
+      id: ids.anaCeo, titulo: 'CEO', empresa: { id: ids.alfa, nome: 'Alfa' }, vigenteDesde: '2024-01-01', vigenteAte: null,
+      fonte: { nome: 'Cargo CEO', url: 'https://ri.alfa.example.invalid/ceo' }, coletadoEm: '2026-11-01T00:00:00.000Z', validadoEm: '2026-11-01T00:00:00.000Z', naoConfirmado: false, mock: true,
     }]);
     expect(r.body.data.find((p: any) => p.nome === 'MOCK Dora Antiga').cargos).toEqual([]); // cargo encerrado não é "atual"
     expect(JSON.stringify(r.body)).not.toMatch(/trecho que nunca sai|excerpt|content_hash|contentHash|hhhh|linkedin|inferred/);
+  });
+
+  it('controle negativo: cargo sem fonte não é publicado e pessoa que só tem esse cargo não aparece', async () => {
+    const db = intelDb(app.db);
+    const semFonte = await addEvidence(db, { sourceUrl: 'https://beta.example.invalid/sem-nome', sourceName: ' ', retrievedAt: T, isMock: true } as any);
+    const gabi = (await resolveOrCreatePerson(db, { fullName: 'MOCK Gabi Sem Fonte', organizationId: ids.beta!, evidenceId: semFonte, observedAt: T }, ON)).id;
+    await addRole(db, { personId: gabi, organizationId: ids.beta!, title: 'Diretora', validFrom: '2025-01-01', evidenceId: semFonte, observedAt: T } as any);
+    await flag(true, async () => {
+      expect((await lista({ q: 'gabi' })).body).toMatchObject({ total: 0, disponivel: true });
+      expect((await umaPessoa(gabi)).status).toBe(404); // sem cargo com fonte, o perfil não é publicado
+    });
   });
 
   it('filtros: q (nome), empresa (cargo vigente nela), limit/offset; total reflete o filtro', async () => {
@@ -143,7 +154,7 @@ describe('portal: Moves (flag ligada)', () => {
       expect(m.antes).toMatchObject({ titulo: 'Gerente', empresa: { id: ids.alfa, nome: 'Alfa' } });
       expect(m.depois).toMatchObject({ titulo: 'Diretora', empresa: { id: ids.alfa, nome: 'Alfa' } });
       expect(m.antes.fonte.url).toMatch(/^https:\/\/ri\.alfa/);
-      expect(Object.keys(m.depois).sort()).toEqual(['empresa', 'fonte', 'titulo', 'validadoEm', 'vigenteAte', 'vigenteDesde']);
+      expect(Object.keys(m.depois).sort()).toEqual(['coletadoEm', 'empresa', 'fonte', 'naoConfirmado', 'titulo', 'validadoEm', 'vigenteAte', 'vigenteDesde']);
       expect(JSON.stringify(r.body)).not.toMatch(/excerpt|content_hash|contentHash|quote/);
       expect((await umMove(ids.moveConfirmado!)).body.data.id).toBe(ids.moveConfirmado);
       expect((await umMove(ids.moveDetectado!)).status).toBe(404);

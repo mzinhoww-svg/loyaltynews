@@ -167,7 +167,12 @@ export interface CompanyRelation {
   direction: 'from' | 'to';
   other: { id: string; name: string; kind: CompanyKind };
   validFrom: string;
-  validatedAt: string;
+  /** Data da NOSSA validação contra a fonte; `null` = vínculo não confirmado (nunca exibido como fato). */
+  validatedAt: string | null;
+  /** Data da coleta na fonte. */
+  collectedAt?: string;
+  /** `true` quando falta a data de validação: o vínculo não é um fato confirmado. */
+  unconfirmed?: boolean;
   source: EvidenceSource;
   mock?: boolean;
 }
@@ -198,7 +203,12 @@ export interface PersonRole {
   company: { id: string; name: string };
   validFrom: string;
   validTo: string | null;
-  validatedAt: string;
+  /** Data da NOSSA validação; `null` = cargo não confirmado (não exibido como fato). */
+  validatedAt: string | null;
+  /** Data da coleta na fonte. */
+  collectedAt?: string;
+  /** `true` quando falta a data de validação. */
+  unconfirmed?: boolean;
   source: EvidenceSource;
   /** A fonte declara o início (campo inicioDeclarado da API, M-04). Ausente = API antiga: o portal deduz pela data. */
   startDeclared?: boolean;

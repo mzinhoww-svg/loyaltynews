@@ -7,14 +7,17 @@ import { mockSource } from '../app/(portal)/_lib/fixtures/portal.mock';
 
 // Payloads no formato de fast-track/decisoes/contrato-publico-intelligence-portal.md.
 const ID = (n: number) => `20000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const fonte = { nome: 'Fonte de teste', url: 'https://fonte.invalid/p', coletadoEm: '2026-11-23T00:00:00.000Z' };
+const COLETA = '2026-11-23T00:00:00.000Z';
+// Organização ainda manda a coleta dentro de `fonte`; vínculo e cargo mandam no topo (contrato de proveniência).
+const fonteOrg = { nome: 'Fonte de teste', url: 'https://fonte.invalid/p', coletadoEm: COLETA };
+const fonte = { nome: 'Fonte de teste', url: 'https://fonte.invalid/p' };
 const item = (n: number, tipo: string, nome = `Org ${n}`) => ({ id: ID(n), nome, nomeLegal: nome, tipo, relacoes: n % 3, validadoEm: '2026-11-23T00:00:00.000Z', mock: false });
 const relacao = (over: Record<string, unknown> = {}) => ({
   id: ID(90), tipo: 'partner_of', sentido: 'origem', empresa: { id: ID(2), nome: 'Banco', tipo: 'company' },
-  vigenteDesde: '2026-11-23', validadoEm: '2026-11-23T00:00:00.000Z', fonte, quote: 'trecho literal', ...over,
+  vigenteDesde: '2026-11-23', coletadoEm: COLETA, validadoEm: '2026-11-23T00:00:00.000Z', naoConfirmado: false, fonte, quote: 'trecho literal', ...over,
 });
 const empresa = (over: Record<string, unknown> = {}) => ({
-  id: ID(1), nome: 'Livelo', nomeLegal: 'Livelo S.A.', tipo: 'company', fonte, relacoes: [relacao()], pessoas: { disponivel: false, itens: [] }, ...over,
+  id: ID(1), nome: 'Livelo', nomeLegal: 'Livelo S.A.', tipo: 'company', fonte: fonteOrg, relacoes: [relacao()], pessoas: { disponivel: false, itens: [] }, ...over,
 });
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -34,6 +37,20 @@ describe('mapeamento do contrato', () => {
     expect(mapRelation(relacao({ fonte: null }))).toBeNull();
     expect(mapRelation(relacao({ fonte: { ...fonte, url: 'javascript:alert(1)' } }))).toBeNull();
     expect(mapRelation(relacao({ sentido: 'lado' }))).toBeNull();
+  });
+
+  it('proveniência do vínculo: coleta no topo, validação real e controle negativo', () => {
+    const ok = mapRelation(relacao());
+    expect(ok).toMatchObject({ collectedAt: COLETA, validatedAt: '2026-11-23T00:00:00.000Z' });
+    expect(ok?.unconfirmed).toBeUndefined();
+    // sem validadoEm: sai marcado como não confirmado, nunca como fato
+    const semValidacao = mapRelation(relacao({ validadoEm: null, naoConfirmado: true }));
+    expect(semValidacao).toMatchObject({ validatedAt: null, collectedAt: COLETA, unconfirmed: true });
+    // data de validação inválida: não inventa data nem publica
+    expect(mapRelation(relacao({ validadoEm: 'ontem' }))).toBeNull();
+    // coleta ausente: não publica (sem saber quando foi coletado, não há prova)
+    expect(mapRelation(relacao({ coletadoEm: null }))).toBeNull();
+    expect(mapRelation(relacao({ coletadoEm: undefined }))).toBeNull();
   });
 
   it('empresa: relações inválidas saem, ordem por nome, pessoas indisponíveis com a flag desligada', () => {
@@ -130,9 +147,9 @@ describe('createIntelligenceSlice (HTTP)', () => {
 
 const cargo = (over: Record<string, unknown> = {}) => ({
   id: ID(50), titulo: 'CEO', empresa: { id: ID(1), nome: 'Livelo' }, vigenteDesde: '2026-11-01', vigenteAte: null,
-  validadoEm: '2026-11-23T00:00:00.000Z', fonte, mock: false, quote: 'trecho literal', ...over,
+  coletadoEm: COLETA, validadoEm: '2026-11-23T00:00:00.000Z', naoConfirmado: false, fonte, mock: false, quote: 'trecho literal', ...over,
 });
-const leitura = (titulo: string) => ({ titulo, empresa: { id: ID(1), nome: 'Livelo' }, vigenteDesde: '2026-11-01', vigenteAte: null, validadoEm: '2026-11-23T00:00:00.000Z', fonte });
+const leitura = (titulo: string) => ({ titulo, empresa: { id: ID(1), nome: 'Livelo' }, vigenteDesde: '2026-11-01', vigenteAte: null, coletadoEm: COLETA, validadoEm: '2026-11-23T00:00:00.000Z', fonte });
 const move = (over: Record<string, unknown> = {}) => ({
   id: ID(60), tipo: 'title_change', base: 'observed_diff', pessoa: { id: ID(70), nome: 'Ana' }, dataEfetiva: null, observadoEm: '2026-11-20',
   antes: leitura('Diretora'), depois: leitura('CEO'), mock: false, ...over,
@@ -152,6 +169,13 @@ describe('pessoas, cargos e Moves', () => {
     expect(JSON.stringify(r)).not.toContain('trecho literal');
     expect(mapRole(cargo({ fonte: undefined }))).toBeNull();
     expect(mapRole(cargo({ vigenteDesde: '23/11/2026' }))).toBeNull();
+  });
+
+  it('proveniência do cargo: coleta no topo, validação real e controle negativo', () => {
+    expect(mapRole(cargo())).toMatchObject({ collectedAt: COLETA, validatedAt: '2026-11-23T00:00:00.000Z' });
+    expect(mapRole(cargo({ validadoEm: null, naoConfirmado: true }))).toMatchObject({ validatedAt: null, unconfirmed: true });
+    expect(mapRole(cargo({ validadoEm: 'ontem' }))).toBeNull();
+    expect(mapRole(cargo({ coletadoEm: null }))).toBeNull();
   });
 
   it('Move precisa da evidência de cada lado que o tipo exige (Move = duas leituras)', () => {
@@ -175,7 +199,7 @@ describe('pessoas, cargos e Moves', () => {
   });
 
   it('perfil separa atuais e histórico', () => {
-    const prof = mapPerson({ id: ID(70), nome: 'Ana', fonte, perfilPublico: 'javascript:alert(1)', cargosAtuais: [cargo()], historico: [cargo({ vigenteAte: '2026-11-10' })], moves: [move(), move({ antes: null })] });
+    const prof = mapPerson({ id: ID(70), nome: 'Ana', fonte: fonteOrg, perfilPublico: 'javascript:alert(1)', cargosAtuais: [cargo()], historico: [cargo({ vigenteAte: '2026-11-10' })], moves: [move(), move({ antes: null })] });
     expect(prof).toMatchObject({ profileUrl: null, currentRoles: [{ title: 'CEO' }], history: [{ validTo: '2026-11-10' }] });
     expect(prof?.moves).toHaveLength(1);
   });

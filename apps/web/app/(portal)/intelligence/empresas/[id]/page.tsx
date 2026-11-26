@@ -97,7 +97,7 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
           <ScrollRegion label="Vínculos declarados, organizações e fontes">
             <table className="pt-table" data-testid="relations" aria-describedby="legenda-relations">
               <thead>
-                <tr>{!umTipo && <th scope="col">Vínculo</th>}<th scope="col">Organização</th><th scope="col">Fonte</th><th scope="col">Validado em</th></tr>
+                <tr>{!umTipo && <th scope="col">Vínculo</th>}<th scope="col">Organização</th><th scope="col">Fonte</th><th scope="col">Coletado em</th><th scope="col">Validado em</th></tr>
               </thead>
               <tbody>
                 {c.relations.map((rel) => (
@@ -112,7 +112,14 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
                       <a href={rel.source.url} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>{rel.source.name}</a>
                       <span className="pt-sr"> (abre em nova aba)</span>
                     </td>
-                    <td><time dateTime={rel.validatedAt}>{formatDate(rel.validatedAt)}</time></td>
+                    <td>{rel.collectedAt ? <time dateTime={rel.collectedAt}>{formatDate(rel.collectedAt)}</time> : <span className="pt-meta">—</span>}</td>
+                    <td>
+                      {rel.validatedAt ? (
+                        <time dateTime={rel.validatedAt}>{formatDate(rel.validatedAt)}</time>
+                      ) : (
+                        <span className="pt-meta" data-testid="relation-unconfirmed">Não confirmado</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

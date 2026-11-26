@@ -139,7 +139,7 @@ const role = (id: string, title: string, org: { id: string; name: string }, vali
 const p1Old = role('00000000-0000-4000-8000-0000000000e1', 'Diretora de Parcerias (MOCK)', ORG.b, '2026-10-01', '2026-11-20', 'p1a');
 const p1New = role('00000000-0000-4000-8000-0000000000e2', 'Diretora-Geral (MOCK)', ORG.b, '2026-11-20', null, 'p1b');
 const p2Role = role('00000000-0000-4000-8000-0000000000e3', 'Presidente (MOCK)', ORG.c, '2026-11-20', null, 'p2');
-const reading = (r: PersonRole): MoveReading => ({ title: r.title, company: r.company, validFrom: r.validFrom, validTo: r.validTo, validatedAt: r.validatedAt, source: r.source });
+const reading = (r: PersonRole): MoveReading => ({ title: r.title, company: r.company, validFrom: r.validFrom, validTo: r.validTo, validatedAt: r.validatedAt ?? r.source.retrievedAt, source: r.source });
 const mockMoves: MoveEntry[] = [
   { id: '00000000-0000-4000-8000-0000000000d1', kind: 'title_change', basis: 'observed_diff', person: P1, effectiveDate: null, observedOn: '2026-11-20',
     before: reading(p1Old), after: reading(p1New), mock: true },

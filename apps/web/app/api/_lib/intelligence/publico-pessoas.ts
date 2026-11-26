@@ -22,6 +22,17 @@ const like = (q: string) => `%${q.replace(/[%_\\]/g, (c) => `\\${c}`).toLowerCas
 const fail = (status: number, code: string, message: string, details?: unknown) =>
   json({ error: { code, message, ...(details === undefined ? {} : { details }) } }, status, { 'cache-control': 'no-store' });
 const fonte = (r: { ev_name: string; ev_url: string; ev_retrieved: string }) => ({ nome: r.ev_name, url: r.ev_url, coletadoEm: iso(r.ev_retrieved) });
+/**
+ * Prova do cargo: `fonte` (nome/URL), `coletadoEm` (coleta na fonte) e `validadoEm` (nossa validação) + `naoConfirmado`.
+ * Os quatro campos vêm SEMPRE, com valor real ou `null` explícito. Cargo sem fonte não é devolvido pela consulta (controle
+ * negativo); com fonte e sem data de validação, sai marcado e não é exibido como fato.
+ */
+const prova = (r: { ev_name: string; ev_url: string; ev_retrieved: string; validated_at: string | null }) => ({
+  fonte: r.ev_name && r.ev_url ? { nome: r.ev_name, url: r.ev_url } : null,
+  coletadoEm: r.ev_retrieved ? iso(r.ev_retrieved) : null,
+  validadoEm: r.validated_at ? iso(r.validated_at) : null,
+  naoConfirmado: !(r.ev_name && r.ev_url && r.validated_at),
+});
 const off = () => json({ data: [], total: 0, disponivel: false }, 200, CACHE);
 const ligada = (c: Parameters<RouteFn>[1]) => c.deps.flags.intelligencePessoas === true;
 
@@ -36,18 +47,18 @@ const parseQuery = (c: Parameters<RouteFn>[1]) => Lista.safeParse(queryObject(c.
 const badQuery = (e: z.ZodError) => fail(400, 'invalid_input', 'Parâmetros inválidos.', e.issues.map((i) => i.path.join('.') || '(raiz)'));
 
 type CargoRow = {
-  id: string; person_id: string; title: string; org_id: string; org_nome: string; valid_from: string; valid_to: string | null; validated_at: string;
+  id: string; person_id: string; title: string; org_id: string; org_nome: string; valid_from: string; valid_to: string | null; validated_at: string | null;
   ev_name: string; ev_url: string; ev_retrieved: string; is_mock: boolean;
 };
 const cargo = (r: CargoRow, ef: EfeitosPublicos) => {
   const periodo = ef.campo('cargo', r.id, 'periodo');
   return {
     id: r.id, titulo: ef.campo('cargo', r.id, 'cargo', 'titulo') ?? r.title, empresa: { id: r.org_id, nome: ef.campo('cargo', r.id, 'empresa') ?? r.org_nome },
-    vigenteDesde: r.valid_from, vigenteAte: r.valid_to, validadoEm: iso(r.validated_at), fonte: fonte(r), mock: r.is_mock,
+    vigenteDesde: r.valid_from, vigenteAte: r.valid_to, ...prova(r), mock: r.is_mock,
     ...(periodo ? { periodo } : {}), ...(ef.corrigido('cargo', r.id) ? { corrigidoPeloTitular: true } : {}),
   };
 };
-/** Cargos DECLARADOS de pessoas (não suprimidas), com a organização e a fonte. */
+/** Cargos DECLARADOS de pessoas (não suprimidas), com a organização e a fonte. Sem fonte declarada, o cargo não é publicado. */
 const CARGOS = (extra: string) => `
   SELECT r.id, r.person_id, r.title, o.id AS org_id, coalesce(o.trade_name, o.legal_name) AS org_nome, r.valid_from::text, r.valid_to::text, r.validated_at,
          ev.source_name AS ev_name, ev.source_url AS ev_url, ev.retrieved_at AS ev_retrieved, ev.is_mock
@@ -55,7 +66,7 @@ const CARGOS = (extra: string) => `
     JOIN ${S}.person p ON p.id = r.person_id AND p.suppressed_at IS NULL
     JOIN ${S}.organization o ON o.id = r.organization_id
     JOIN ${S}.evidence ev ON ev.id = r.evidence_id
-   WHERE r.certainty = 'declared' ${extra}
+   WHERE r.certainty = 'declared' AND btrim(ev.source_name) <> '' AND btrim(ev.source_url) <> '' ${extra}
    ORDER BY r.valid_from DESC, r.title, r.id`;
 // vigente hoje: sem fim ou fim no futuro (mesma regra das relações de empresas)
 const VIGENTE = `AND r.valid_from <= $2::date AND (r.valid_to IS NULL OR r.valid_to > $2::date)`;
@@ -74,8 +85,10 @@ export const publicListPessoas: RouteFn = async (_req, c) => {
   const FROM = `
     FROM ${S}.person p JOIN ${S}.evidence pev ON pev.id = p.evidence_id
    WHERE p.suppressed_at IS NULL AND p.id::text <> ALL($4::text[]) AND ($1::text IS NULL OR lower(p.full_name) LIKE $1 OR p.normalized_name LIKE $1)
-     AND EXISTS (SELECT 1 FROM ${S}.role_assignment r WHERE r.person_id = p.id AND r.certainty = 'declared' AND r.id::text <> ALL($5::text[])
-                  AND ($3::uuid IS NULL OR (r.organization_id = $3 AND r.valid_from <= $2::date AND (r.valid_to IS NULL OR r.valid_to > $2::date))))`;
+     AND EXISTS (SELECT 1 FROM ${S}.role_assignment r JOIN ${S}.evidence rev ON rev.id = r.evidence_id
+                  WHERE r.person_id = p.id AND r.certainty = 'declared' AND r.id::text <> ALL($5::text[])
+                   AND btrim(rev.source_name) <> '' AND btrim(rev.source_url) <> ''
+                   AND ($3::uuid IS NULL OR (r.organization_id = $3 AND r.valid_from <= $2::date AND (r.valid_to IS NULL OR r.valid_to > $2::date))))`;
   const base = [term, asOf, empresa ?? null, ef.pessoas, ef.cargos];
   const people = await db.query<{ id: string; full_name: string; is_mock: boolean }>(
     `SELECT p.id, p.full_name, pev.is_mock${FROM} ORDER BY p.full_name, p.id LIMIT $6 OFFSET $7`,
@@ -109,7 +122,10 @@ export const publicListPessoas: RouteFn = async (_req, c) => {
 type MoveRow = {
   id: string; kind: string; basis: string; person_id: string; person_name: string; effective_date: string | null; observed_on: string; is_mock: boolean; from_role_id: string | null; to_role_id: string | null;
 };
-type Leitura = { titulo: string; empresa: { id: string; nome: string }; vigenteDesde: string; vigenteAte: string | null; validadoEm: string; fonte: ReturnType<typeof fonte> };
+type Leitura = {
+  titulo: string; empresa: { id: string; nome: string }; vigenteDesde: string; vigenteAte: string | null;
+  fonte: { nome: string; url: string } | null; coletadoEm: string | null; validadoEm: string | null; naoConfirmado: boolean;
+};
 
 /** Move CONFIRMADO cujas leituras (antes/depois), quando existem, são declaradas e de pessoa não suprimida. */
 const MOVE_FROM = `
@@ -140,7 +156,10 @@ async function moves(db: ReturnType<typeof intelDb>, ef: EfeitosPublicos, f: { p
     const rr = await db.query<CargoRow>(CARGOS('AND r.id = ANY($1::uuid[])'), [roleIds]);
     for (const r of rr.rows) {
       const c = cargo(r, ef);
-      read.set(r.id, { titulo: c.titulo, empresa: c.empresa, vigenteDesde: c.vigenteDesde, vigenteAte: c.vigenteAte, validadoEm: c.validadoEm, fonte: c.fonte });
+      read.set(r.id, {
+        titulo: c.titulo, empresa: c.empresa, vigenteDesde: c.vigenteDesde, vigenteAte: c.vigenteAte,
+        fonte: c.fonte, coletadoEm: c.coletadoEm, validadoEm: c.validadoEm, naoConfirmado: c.naoConfirmado,
+      });
     }
   }
   const data = rows.rows.map((m) => ({

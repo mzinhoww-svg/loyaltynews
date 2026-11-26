@@ -5,6 +5,8 @@
 import { empresaDetalhe, listaEmpresas } from './seed-v3-fixture.mjs';
 const orgId = (n) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const fonte = (n) => ({ nome: `Fonte de teste ${n} (MOCK)`, url: `https://fonte-${n}.invalid/pagina`, coletadoEm: '2026-11-23T00:00:00.000Z' });
+// Vínculo/cargo: `fonte` sem data (a coleta vai no topo, como na rota real).
+const fonteBase = (n) => ({ nome: `Fonte de teste ${n} (MOCK)`, url: `https://fonte-${n}.invalid/pagina` });
 const orgs = [
   { id: orgId(1), nome: '[MOCK API] Programa Alfa', nomeLegal: '[MOCK API] Programa Alfa', tipo: 'company' },
   { id: orgId(2), nome: '[MOCK API] Banco Beta', nomeLegal: '[MOCK API] Banco Beta S.A.', tipo: 'company' },
@@ -27,8 +29,8 @@ const intelMode = process.env.FAKE_API_INTEL ?? 'full';
 const disponivel = intelMode === 'full';
 const ref = (o) => ({ id: o.id, nome: o.nome });
 const cargo = (id, titulo, org, desde, ate, n) => ({ id: orgId(id), titulo, empresa: ref(org), vigenteDesde: desde, vigenteAte: ate,
-  validadoEm: '2026-11-23T00:00:00.000Z', fonte: fonte(`c${n}`), mock: true, quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' });
-const leitura = (c) => ({ titulo: c.titulo, empresa: c.empresa, vigenteDesde: c.vigenteDesde, vigenteAte: c.vigenteAte, validadoEm: c.validadoEm, fonte: c.fonte });
+  coletadoEm: '2026-11-23T00:00:00.000Z', validadoEm: '2026-11-23T00:00:00.000Z', naoConfirmado: false, fonte: fonteBase(`c${n}`), mock: true, quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' });
+const leitura = (c) => ({ titulo: c.titulo, empresa: c.empresa, vigenteDesde: c.vigenteDesde, vigenteAte: c.vigenteAte, coletadoEm: c.coletadoEm, validadoEm: c.validadoEm, fonte: c.fonte });
 const ana = { id: orgId(201), nome: '[MOCK API] Ana Teste' };
 const bia = { id: orgId(202), nome: '[MOCK API] Bia Teste' };
 const anaAntes = cargo(301, 'Diretora Comercial (MOCK)', orgs[1], '2026-09-01', '2026-11-20', 1);
@@ -141,7 +143,8 @@ export function intelligence(u) {
       const other = orgs.find((x) => x.id === (r.from === o.id ? r.to : r.from));
       // `trecho`/`quote` NUNCA vêm no contrato; o campo extra aqui prova que o portal não renderiza o que recebe a mais.
       return { id: r.id, tipo: r.tipo, sentido: r.from === o.id ? 'origem' : 'destino', empresa: { id: other.id, nome: other.nome, tipo: other.tipo },
-        vigenteDesde: '2026-11-23', validadoEm: '2026-11-23T00:00:00.000Z', mock: true, fonte: fonte(r.id.slice(-3)), quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' };
+        vigenteDesde: '2026-11-23', coletadoEm: '2026-11-23T00:00:00.000Z', validadoEm: '2026-11-23T00:00:00.000Z', naoConfirmado: false,
+        mock: true, fonte: fonteBase(r.id.slice(-3)), quote: 'TRECHO LITERAL QUE NÃO PODE APARECER' };
     });
   return [200, { data: { ...o, mock: true, fonte: fonte(o.id.slice(-1)), relacoes, pessoas: { disponivel: false, itens: [] } } }];
 }
