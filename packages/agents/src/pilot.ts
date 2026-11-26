@@ -86,13 +86,13 @@ export const PILOT_STAGES: Record<PilotStage, StageSpec> = {
   rights_seo_qa: { account: 'deterministic', backups: [], label: 'Gates determinísticos: direitos, cópia literal, SEO mínimo (slug e resumo); QA visual fora', taskClass: null, adapterKind: null },
 };
 
-const allowedAccounts = (st: PilotStage): PilotAccount[] => [
+const allowedAccounts = (st: PilotStage): PilotAccount[] => [...new Set([
   PILOT_STAGES[st].account,
   ...PILOT_STAGES[st].backups,
   // Emenda a DP-41 (26/11): a independencia e por etapa e por agente, nao por provedor. A lane opencode/DeepSeek
   // vale para qualquer etapa que leia ou escreva (nunca para a deterministica).
   ...(PILOT_STAGES[st].account === 'deterministic' ? [] : (['opencode'] as PilotAccount[])),
-];
+])];
 
 /** Etapas em que a independência do autor se prova (recebem um rascunho do redator). */
 export const INDEPENDENT_STAGES: PilotStage[] = ['factcheck', 'review', 'check_edit'];
@@ -150,7 +150,7 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
       draft_id: 'ln_pilot_redator', name: 'LN Piloto — Redação', title: 'Redação do piloto (OpenBot, OpenCode/DeepSeek)', stage: 'draft', required: true,
       description: 'Redige a matéria nova ou autoral com o prompt de redação da Editorial, só com as evidências do pacote, sempre reescrevendo com palavras próprias e citando e linkando a fonte. Devolve rascunho com claims ancoradas; não publica. Decisão do PM (26/11): a assinatura Claude esgotou e o OpenRouter foi recusado; a redação roda no OpenCode/DeepSeek e DECLARA esse modelo (nunca o Claude).',
       editorial_task_class: 'draft', prompt_ref: promptRef('draft'), adapter_kind: 'editorial_draft',
-      primary: { account: 'opencode', model: 'OpenCode/DeepSeek: opencode-go/deepseek-v4-pro' },
+      primary: { account: 'opencode', model: 'OpenCode/DeepSeek (declarado no UsageReport): opencode-go/deepseek-v4-pro' },
       backups: [],
       on_limit: 'SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido',
       independence: 'é o autor de referência (fornecedor DeepSeek): a checagem e a revisão precisam ser de autor diferente; com a checagem também em DeepSeek, a revisão deve barrar por cross_provider_check_failed — consequência aceita neste teste de carga',
@@ -173,7 +173,7 @@ export function buildPilotAgents(_reg?: Pick<LoadedRegistries, 'agents'>): Pilot
       primary: { account: 'codex', model: `Codex/OpenAI (assinatura): ${MODEL_DECLARED}` },
       backups: [],
       on_limit: 'SEM backup (decisão do PM, DP-41): a tarefa fica pending e espera a janela do Codex (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API',
-      independence: 'autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude; só o Codex revisa no piloto',
+      independence: 'autor diferente do redator (gate WF02); só o Codex revisa no piloto — com a redação em DeepSeek, o mesmo fornecedor não revisa',
       tool_contract: SHARED_TOOLS, must_not: [...PILOT_MUST_NOT],
     },
     {

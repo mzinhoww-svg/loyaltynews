@@ -74,7 +74,7 @@
       "adapter_kind": "editorial_draft",
       "primary": {
         "account": "opencode",
-        "model": "OpenCode/DeepSeek: opencode-go/deepseek-v4-pro"
+        "model": "OpenCode/DeepSeek (declarado no UsageReport): opencode-go/deepseek-v4-pro"
       },
       "backups": [],
       "on_limit": "SEM backup: a política (DP-26 b) não admite fallback na redação, e o complemento OpenRouter está desligado; a tarefa fica pending e o limite é medido",
@@ -144,7 +144,7 @@
       },
       "backups": [],
       "on_limit": "SEM backup (decisão do PM, DP-41): a tarefa fica pending e espera a janela do Codex (a revisão do gate WF02 não pode ser do mesmo autor do redator); sem API",
-      "independence": "autor diferente do redator (gate WF02); Claude nunca revisa rascunho de Claude; só o Codex revisa no piloto",
+      "independence": "autor diferente do redator (gate WF02); só o Codex revisa no piloto — com a redação em DeepSeek, o mesmo fornecedor não revisa",
       "tool_contract": [
         "POST /api/openbot/pull",
         "POST /api/openbot/heartbeat",

@@ -8,7 +8,7 @@ const reg = loadRegistries();
 const T0 = Date.parse('2026-12-01T12:00:00Z');
 const iso = (min: number) => new Date(T0 + min * 60_000).toISOString();
 const base = (over: Partial<PilotRow>): PilotRow => ({
-  task_id: 't1', kind: 'editorial_draft', article_id: 'a1', source_id: 'senado-noticias', stage: 'draft', account: 'claude', declared_model: 'claude-sonnet-5-5', prompt_version: 'writer-v1+x',
+  task_id: 't1', kind: 'editorial_draft', article_id: 'a1', source_id: 'senado-noticias', stage: 'draft', account: 'opencode', declared_model: 'opencode-go/deepseek-v4-pro', prompt_version: 'writer-v1+x',
   started_at: iso(0), ended_at: iso(2), attempt: 1, outcome: 'completed', packet_chars: 8000, tokens_measured: false,
   published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false, ...over,
 });
@@ -42,17 +42,17 @@ describe('agentes do piloto (rascunho, nada criado): pauta, redação, checagem 
     }
   });
 
-  it('contas (DP-41): pauta no Claude Haiku, redação em Claude, checagem e revisão em Codex (autor distinto); só Claude e Codex', () => {
+  it('contas (DP-41): pauta no Claude Haiku, redação em OpenCode/DeepSeek, checagem e revisão em Codex', () => {
     expect(by('ln_pilot_pauta').primary.account).toBe('claude');
     expect(by('ln_pilot_pauta').primary.model).toMatch(/Haiku/);
-    expect(by('ln_pilot_redator').primary.account).toBe('claude');
+    expect(by('ln_pilot_redator').primary.account).toBe('opencode');
     expect(by('ln_pilot_checador').primary.account).toBe('codex');
     expect(by('ln_pilot_revisor').primary.account).toBe('codex');
     expect(by('ln_pilot_checador').independence).toMatch(/autor diferente do redator/);
-    expect(by('ln_pilot_revisor').independence).toMatch(/Claude nunca revisa rascunho de Claude/);
+    expect(by('ln_pilot_revisor').independence).toMatch(/autor diferente do redator/);
     const all = JSON.stringify(agents.map((a) => ({ p: a.primary, b: a.backups, d: a.description, t: a.title })));
     expect(all).not.toMatch(/antigravity|gemini via|opencode via|DeepSeek via/i);
-    expect(new Set(agents.flatMap((a) => [a.primary.account, ...a.backups.map((b) => b.account)]))).toEqual(new Set(['claude', 'codex']));
+    expect(new Set(agents.flatMap((a) => [a.primary.account, ...a.backups.map((b) => b.account)]))).toEqual(new Set(['claude', 'codex', 'opencode']));
   });
 
   it('backups: pauta Haiku → Sonnet (mesma conta Claude); checagem, revisão e redação SEM backup; limite = pending (DP-26 b, DP-41)', () => {
@@ -125,7 +125,7 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
 
   it('validação das linhas: conta da etapa, modelo declarado, tokens "não medido", limite exige texto e hora', () => {
     expect(validatePilotRow(draft(1, 0))).toEqual([]);
-    expect(validatePilotRow(draft(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em claude/)]));
+    expect(validatePilotRow(draft(1, 0, { account: 'codex' }))).toEqual(expect.arrayContaining([expect.stringMatching(/deve rodar em opencode/)]));
     expect(validatePilotRow(draft(1, 0, { declared_model: null }))).toEqual(expect.arrayContaining([expect.stringMatching(/modelo declarado/)]));
     expect(validatePilotRow({ ...draft(1, 0), tokens_measured: true } as never)).toEqual(expect.arrayContaining([expect.stringMatching(/tokens_measured/)]));
     expect(validatePilotRow(draft(1, 0, { outcome: 'pending_limit' }))).toEqual(expect.arrayContaining([expect.stringMatching(/pending_limit exige/)]));
@@ -143,7 +143,7 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
     expect(e.independence).toMatchObject({ checked: 10, ok: 10, rate: 1 });
     expect(e.exit).toMatchObject({ independence: 'pass', quality: 'pass', windowsMeasured: 'repeat_with_30', stopped: false, overall: 'pass' });
     expect(e.windows).toHaveLength(2); // uma janela aberta por conta
-    expect(e.windows.find((w) => w.account === 'claude')).toMatchObject({ articles: 10, endedByLimit: false });
+    expect(e.windows.find((w) => w.account === 'opencode')).toMatchObject({ articles: 10, endedByLimit: false });
     expect(e.latencyMsByStage.draft!.p50).toBe(2 * 60_000);
     expect(e.latencyMsByStage.check_edit!.p95).toBe(3 * 60_000);
   });
@@ -154,20 +154,20 @@ describe('planilha e avaliador (dados SIMULADOS)', () => {
       draft(4, 301, { task_id: 'd4b', attempt: 2 }), draft(5, 311),
     ];
     const e = evaluatePilot(rows);
-    const claude = e.windows.filter((w) => w.account === 'claude');
-    expect(claude).toHaveLength(2);
-    expect(claude[0]).toMatchObject({ completedTasks: 3, articles: 3, endedByLimit: true });
-    expect(claude[1]).toMatchObject({ completedTasks: 2, articles: 2, endedByLimit: false });
-    expect(e.limitHits).toEqual([{ account: 'claude', at: iso(32), message: 'limite de uso atingido (SIMULADO)', resumedAt: iso(300) }]);
+    const opencode = e.windows.filter((w) => w.account === 'opencode');
+    expect(opencode).toHaveLength(2);
+    expect(opencode[0]).toMatchObject({ completedTasks: 3, articles: 3, endedByLimit: true });
+    expect(opencode[1]).toMatchObject({ completedTasks: 2, articles: 2, endedByLimit: false });
+    expect(e.limitHits).toEqual([{ account: 'opencode', at: iso(32), message: 'limite de uso atingido (SIMULADO)', resumedAt: iso(300) }]);
     expect(e.retries).toMatchObject({ tasksWithRetry: 1, pendingLimit: 1 });
     expect(e.exit.windowsMeasured).toBe('measured');
   });
 
   it('independência: mesmo autor, autor desconhecido ou cross_provider_ok=false reprova', () => {
-    const same = evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'claude-opus-5-5' })]);
+    const same = evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'opencode-go/deepseek-v4-pro' })]);
     expect(same.exit.independence).toBe('fail');
     expect(same.exit.overall).toBe('invalid'); // conta codex com modelo Claude declarado também é registro contraditório (QA 3, F1)
-    expect(same.independence.failures[0]).toMatch(/a1\/c1\(check_edit\): redator claude-sonnet-5-5 x checador claude-opus-5-5/);
+    expect(same.independence.failures[0]).toMatch(/a1\/c1\(check_edit\): redator opencode-go\/deepseek-v4-pro x checador opencode-go\/deepseek-v4-pro/);
     expect(evaluatePilot([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.independence).toBe('fail');
     expect(evaluatePilot([draft(1, 0), check(1, 3, { cross_provider_ok: false })]).exit.independence).toBe('fail');
     expect(evaluatePilot([check(1, 3)]).exit.independence).toBe('fail'); // checagem sem rascunho conhecido
@@ -203,14 +203,14 @@ describe('sondas do QA 1 sobre o avaliador (f5c7b08)', () => {
   // (1) independência por par redator→checador da MESMA revisão, sem sobrescrita
   it('1a. rascunho posterior de outro autor NÃO faz passar uma checagem do mesmo autor (a checagem aponta a revisão que recebeu)', () => {
     const rows = [
-      draft(1, 0, { task_id: 'd1', declared_model: 'claude-sonnet-5-5' }),
-      check(1, 3, { declared_model: 'claude-opus-5-5' }), // Claude redigiu e outro Claude checou: reprova
-      draft(1, 10, { task_id: 'd1b', declared_model: 'gpt-6.1-terra' }), // revisão posterior de outro autor, depois da checagem
+      draft(1, 0, { task_id: 'd1' }),
+      check(1, 3, { declared_model: 'opencode-go/deepseek-v4-pro' }), // Claude redigiu e outro Claude checou: reprova
+      draft(1, 10, { task_id: 'd1b' }), // revisão posterior, depois da checagem
     ];
     const e = evaluatePilot(rows);
     expect(e.exit.independence).toBe('fail');
     expect(e.exit.overall).toBe('invalid'); // o par do mesmo autor só existe com conta e modelo contraditórios
-    expect(e.independence.failures[0]).toMatch(/redator claude-sonnet-5-5 x checador claude-opus-5-5/);
+    expect(e.independence.failures[0]).toMatch(/redator opencode-go\/deepseek-v4-pro x checador opencode-go\/deepseek-v4-pro/);
     expect(e.independence.uncheckedFinalDrafts).toEqual(['a1/d1b']); // e a revisão final nunca foi checada
   });
 
@@ -218,7 +218,7 @@ describe('sondas do QA 1 sobre o avaliador (f5c7b08)', () => {
     const d1 = draft(1, 0);
     expect(evaluatePilot([d1, check(1, 3)]).exit.independence).toBe('pass');
     // revisão 2 do mesmo artigo, checada de fato: cada par vale por si
-    const d1b = draft(1, 10, { task_id: 'd1b', declared_model: 'claude-opus-5-5' });
+    const d1b = draft(1, 10, { task_id: 'd1b', declared_model: 'opencode-go/deepseek-v4-pro' });
     const rev = evaluatePilot([d1, check(1, 3), d1b, check(1, 13, { task_id: 'c1b', reviewed_draft_task_id: 'd1b' })]);
     expect(rev.independence).toMatchObject({ checked: 2, ok: 2, uncheckedFinalDrafts: [] });
     expect(rev.exit.independence).toBe('pass');
@@ -348,7 +348,7 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
     expect(ev.independence).toMatchObject({ checked: 2, ok: 2, failures: [] });
     expect(ev.backupsUsed).toEqual([{ stage: 'triage', account: 'claude', model: 'sonnet', tasks: 1 }]);
     expect(evaluatePilot([draft(1, 0), factcheck(1, 3)]).backupsUsed).toEqual([]);
-    const same = evaluatePilot([draft(1, 0), factcheck(1, 3, { account: 'claude', declared_model: 'claude-opus-5-5' })]);
+    const same = evaluatePilot([draft(1, 0), factcheck(1, 3, { account: 'claude', declared_model: 'opencode-go/deepseek-v4-pro' })]);
     expect(same.exit.independence).not.toBe('pass');
     expect(same.exit.overall).toBe('invalid');
   });
@@ -358,9 +358,9 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
     expect(ok.independence).toMatchObject({ checked: 2, ok: 2, failures: [] });
     expect(ok.exit).toMatchObject({ independence: 'pass', quality: 'pass' });
     // revisor do mesmo autor do redator reprova só com a revisão
-    const bad = evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { declared_model: 'claude-opus-5-5' })]);
+    const bad = evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { declared_model: 'opencode-go/deepseek-v4-pro' })]);
     expect(bad.independence).toMatchObject({ checked: 2, ok: 1 });
-    expect(bad.independence.failures[0]).toMatch(/\(review\): redator claude-sonnet-5-5 x revisor claude-opus-5-5/);
+    expect(bad.independence.failures[0]).toMatch(/\(review\): redator opencode-go\/deepseek-v4-pro x revisor opencode-go\/deepseek-v4-pro/);
     expect(bad.exit.independence).toBe('fail');
     // revisão sem vínculo reprova
     expect(evaluatePilot([draft(1, 0), factcheck(1, 3), review(1, 6, { reviewed_draft_task_id: undefined })]).exit.overall).toBe('invalid');
@@ -429,7 +429,7 @@ describe('QA 3 (ba51ea2), F1: conta × modelo declarado coerentes (sondas A–H)
     expect(contradiz(draft(1, 0, { account: 'claude', declared_model: 'deepseek-v4.1-flash' }))).toHaveLength(1);
   });
   it('E/H. codex com modelo Claude ou com autor desconhecido não passa', () => {
-    expect(contradiz(check(1, 3, { declared_model: 'claude-opus-5-5' }))).toHaveLength(1);
+    expect(contradiz(check(1, 3, { declared_model: 'opencode-go/deepseek-v4-pro' }))).toHaveLength(1);
     expect(contradiz(check(1, 3, { declared_model: 'modelo-x' }))).toHaveLength(1);
     expect(pass([draft(1, 0), check(1, 3, { declared_model: 'modelo-x' })]).exit.overall).toBe('invalid');
   });
