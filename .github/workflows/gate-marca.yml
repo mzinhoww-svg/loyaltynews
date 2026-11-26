@@ -5,10 +5,18 @@
 # Acoes fixadas por SHA (mesmas versoes do web-prebuilt.yml).
 name: gate-marca
 
+# Gatilhos (Integration, 26/11/2026):
+# - pull_request: onde o gate pega a regressao de marca antes do merge (todo PR, sem filtro de caminho: check
+#   "skipped" por paths-ignore fica pendente e trava o merge quando for obrigatorio).
+# - push em main: confirma o merge e faz a PRIMEIRA execucao, porque o GitHub nao roda o workflow de um PR que
+#   ainda nao tem este arquivo na branch de base. Nao roda em outros branches para nao gastar runner a toa.
+# - workflow_dispatch: reconferir uma branch sem abrir PR.
 on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
