@@ -9,7 +9,7 @@ import { texto, voltar } from '../../_lib/flash';
 const BASE = '/studio/crm';
 const falha = (r: Parameters<typeof mensagemErro>[0]) => ({ ok: false as const, erros: [mensagemErro(r)] });
 
-/** Lead registrado manualmente pelo comercial (contato por telefone/evento). Mesma rota e mesmas regras do formulário do mídia kit. */
+/** Lead registrado manualmente pelo comercial (contato por telefone/evento). Mesmas regras do formulário do mídia kit, pela rota de Studio. */
 export async function registrarLeadAction(fd: FormData): Promise<void> {
   await requireStudio(PAPEIS_COMERCIAIS);
   const whatsapp = texto(fd, 'whatsapp');
