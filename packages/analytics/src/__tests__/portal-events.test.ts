@@ -1,7 +1,7 @@
 import { describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 import {
-  PORTAL_EVENTS, PORTAL_EVENT_NAMES, PORTAL_EVENT_SCHEMAS, fromLegacyCollect, parsePortalEvent, redactSearchQuery,
+  PORTAL_EVENTS, PORTAL_EVENT_NAMES, PORTAL_EVENT_SCHEMAS, articleReadFromPublic, fromLegacyCollect, parsePortalEvent, redactSearchQuery,
 } from '../portal-events';
 
 const UUID = '123e4567-e89b-42d3-a456-426614174000';
@@ -28,15 +28,42 @@ describe('contrato único de eventos do portal', () => {
     assert.equal(parsePortalEvent({ name: 'page_view', path: 'https://fora.invalid/x' }).ok, false);
   });
 
-  test('article_read exige UUID, slug seguro, editoria válida e leitura entre 3 e 3600 s', () => {
-    const ok = { name: 'article_read', articleId: UUID, slug: 'turbo-livelo', editoria: 'pontos', readSeconds: 45 };
+  test('article_read usa só o payload público (slug + editoria) e leitura entre 3 e 3600 s', () => {
+    const ok = { name: 'article_read', slug: 'turbo-livelo', editoria: 'pontos', readSeconds: 45 };
     assert.deepEqual(parsePortalEvent(ok), { ok: true, event: ok });
     for (const over of [
-      { readSeconds: 0 }, { readSeconds: 4000 }, { readSeconds: 12.5 }, { articleId: 'nao-e-uuid' },
+      { readSeconds: 0 }, { readSeconds: 4000 }, { readSeconds: 12.5 },
       { slug: 'Com Espaço' }, { editoria: 'inventada' }, { autor: 'Fulano' },
     ]) {
       assert.equal(parsePortalEvent({ ...ok, ...over }).ok, false, JSON.stringify(over));
     }
+  });
+
+  test('a matéria é identificada pelo slug: id interno é recusado como campo desconhecido', () => {
+    const ok = { name: 'article_read', slug: 'turbo-livelo', editoria: 'pontos', readSeconds: 45 };
+    const r = parsePortalEvent({ ...ok, articleId: UUID });
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.equal(r.code, 'evento_invalido');
+    // e o schema não tem o campo: nada de id interno no contrato
+    assert.ok(!('articleId' in PORTAL_EVENT_SCHEMAS.article_read.shape));
+  });
+
+  test('monta o evento com o payload público real da matéria e ignora o resto do payload', () => {
+    // Formato da rota pública: slug e editoria estão no payload; o resto (título, resumo, assinatura) existe e é ignorado.
+    const publico = {
+      slug: 'clube-ficticio-revisa-regras',
+      titulo: 'Clube fictício revisa as regras de acúmulo',
+      resumo: 'Resumo público da matéria.',
+      editoria: 'programas',
+      assinatura: 'Redação Loyalty News',
+      publicadoEm: '2026-11-21T13:46:46.059Z',
+      tipoConteudo: 'noticia',
+    };
+    assert.deepEqual(articleReadFromPublic(publico, 42), {
+      name: 'article_read', slug: 'clube-ficticio-revisa-regras', editoria: 'programas', readSeconds: 42,
+    });
+    assert.equal(articleReadFromPublic({ ...publico, editoria: 'inventada' }, 42), null);
+    assert.equal(articleReadFromPublic({ ...publico, slug: 'Tem Espaço' }, 42), null);
   });
 
   test('search redige termo com e-mail, CPF, telefone ou UUID e trunca em 120 caracteres', () => {

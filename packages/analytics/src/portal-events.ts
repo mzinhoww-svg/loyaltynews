@@ -47,7 +47,9 @@ export const PORTAL_EVENTS: readonly PortalEventSpec[] = [
   },
   {
     name: 'article_read',
-    properties: ['articleId', 'slug', 'editoria', 'readSeconds'],
+    // O slug é o identificador público da matéria. A API pública NÃO expõe id interno (articles.ts: "nada interno
+    // (id, status...) sai por aqui"), então o evento não pode depender dele.
+    properties: ['slug', 'editoria', 'readSeconds'],
     when: 'Uma vez por matéria por sessão, quando o leitor passa de 30 s de leitura ativa OU de 75% do texto, o que vier primeiro. Não dispara em prévia, paywall ou leitura de robô.',
     pii: 'nenhum',
   },
@@ -73,7 +75,7 @@ export const PageViewEventSchema = z
 export const ArticleReadEventSchema = z
   .object({
     name: z.literal('article_read'),
-    articleId: z.uuid(),
+    /** Identificador público da matéria. É o que a rota pública entrega; id interno não sai da API. */
     slug: z.string().regex(SLUG_RE),
     editoria: EditoriaSlug,
     readSeconds: z.number().int().min(3).max(3600),
@@ -142,6 +144,21 @@ export function parsePortalEvent(raw: unknown): PortalEventParse {
     return { ok: true, event: { ...e, query } };
   }
   return { ok: true, event: e };
+}
+
+/** Payload público mínimo da matéria: é o que a rota entrega (slug e editoria). Nada de id interno. */
+export interface PublicArticleRef {
+  slug: string;
+  editoria: string;
+}
+
+/**
+ * Monta `article_read` a partir do payload PÚBLICO da matéria (slug + editoria) e do tempo de leitura. Devolve `null`
+ * quando o payload não serve (slug fora do padrão, editoria desconhecida), sem exigir nem expor id interno.
+ */
+export function articleReadFromPublic(article: PublicArticleRef, readSeconds: number): PortalEvent | null {
+  const p = ArticleReadEventSchema.safeParse({ name: 'article_read', slug: article.slug, editoria: article.editoria, readSeconds });
+  return p.success ? p.data : null;
 }
 
 /**

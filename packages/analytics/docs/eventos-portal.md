@@ -9,7 +9,7 @@ Contrato em `packages/analytics/src/portal-events.ts` (exportado por `@ln/analyt
 | Evento | Propriedades | Quando dispara | PII |
 |---|---|---|---|
 | `page_view` | `path`, `referrer?`, `device?` | uma vez por navegação, depois do consentimento; `path` normalizado (sem query/fragmento, identificador vira `:id`) | nenhum |
-| `article_read` | `articleId`, `slug`, `editoria`, `readSeconds` | uma vez por matéria por sessão, ao passar de 30 s de leitura ativa ou 75% do texto, o que vier primeiro; não dispara em prévia, paywall ou leitura de robô | nenhum |
+| `article_read` | `slug`, `editoria`, `readSeconds` | uma vez por matéria por sessão, ao passar de 30 s de leitura ativa ou 75% do texto, o que vier primeiro; não dispara em prévia, paywall ou leitura de robô | nenhum |
 | `search` | `query`, `resultCount`, `editoria?` | uma vez por busca executada (Enter ou botão), com o termo redigido e truncado; não dispara em busca vazia nem em sugestão automática | nenhum |
 
 Regras do contrato:
@@ -17,7 +17,10 @@ Regras do contrato:
 - Schema fechado (`.strict()`): campo fora da lista é recusado.
 - Campo com nome de dado pessoal (`email`, `nome`, `telefone`, `cpf`, `token`, `cookie`, `session`, `user_id`, `autor`…)
   é recusado **antes** do schema, com código `campo_pessoal`. `name` não entra na lista porque é o nome do evento.
-- `readSeconds` entre 3 e 3600; `resultCount` entre 0 e 1000; `articleId` UUID; `slug` só `[a-z0-9-]`.
+- `readSeconds` entre 3 e 3600; `resultCount` entre 0 e 1000; `slug` só `[a-z0-9-]` (até 120).
+- **A matéria é identificada pelo slug.** A rota pública não expõe id interno ("nada interno (id, status…) sai por aqui",
+  `apps/web/app/api/_lib/articles.ts`), então `articleId` não faz parte do contrato e é recusado como campo desconhecido.
+  `articleReadFromPublic(payload, readSeconds)` monta o evento só com `slug` e `editoria` do payload público.
 - Busca é o único texto livre: aparado, espaços colapsados, cortado em 120 caracteres, e vira `:redigido` se parecer
   e-mail, CPF, telefone ou UUID. O termo nunca é ligado a sessão, conta ou IP.
 - `fromLegacyCollect` traduz o formato antigo da rota (`{ t: 'pageview', path, ref, w }`) para `page_view`, sem quebrar
