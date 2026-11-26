@@ -257,8 +257,10 @@ test.describe('api com pessoas desligadas ou sem registros', () => {
     await expect(page.getByText('Nenhum cargo declarado com fonte oficial foi publicado para esta empresa')).toBeVisible({ timeout: NAV_MS });
     await expect(page.getByTestId('move-card')).toHaveCount(0);
     await page.goto('/intelligence');
-    await expect(page.getByTestId('count-pessoas')).toHaveText(intel === 'sem-flag' ? 'Disponível no go-live' : 'Nenhum registro publicado ainda');
-    await expect(page.getByTestId('count-moves')).toHaveText('Nenhum registro publicado ainda');
+    // publicado vazio (/empresas) x não publicado nesta versão (pessoas/Moves com `disponivel:false`)
+    await expect(page.getByTestId('count-empresas')).toHaveText(intel === 'vazio' ? 'Nenhum registro publicado ainda' : '5 cadastrado(s) e verificado(s)');
+    await expect(page.getByTestId('count-pessoas')).toHaveText('Ainda não publicado nesta versão');
+    await expect(page.getByTestId('count-moves')).toHaveText('Ainda não publicado nesta versão');
   });
 });
 
@@ -277,6 +279,12 @@ test.describe('api com dado existente mas retido nesta versão', () => {
     await expect(page.getByTestId('moves-empty-withheld')).toBeVisible();
     await expect(page.getByTestId('moves-list')).toHaveCount(0);
     await axe(page);
+
+    await page.goto('/intelligence');
+    for (const id of ['count-pessoas', 'count-moves']) {
+      await expect(page.getByTestId(id)).toHaveText('Existe conteúdo, ainda não publicado nesta versão');
+      await expect(page.getByTestId(id)).not.toHaveAttribute('data-count');
+    }
   });
 });
 

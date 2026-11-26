@@ -76,6 +76,14 @@ test.describe(`API indisponível (PORTAL_API_DOWN=${down})`, () => {
     }
   });
 
+  test('hub do Intelligence: falha aparece como "indisponível", sem contagem e sem fingir vazio', async ({ page }) => {
+    expect((await page.goto('/intelligence'))?.status()).toBe(200);
+    for (const id of ['count-empresas', 'count-pessoas', 'count-moves']) {
+      await expect(page.getByTestId(id)).toHaveText('Indisponível no momento');
+      await expect(page.getByTestId(id)).not.toHaveAttribute('data-count');
+    }
+  });
+
   test('demais páginas do portal continuam de pé (agenda, intelligence, mídia kit, institucionais)', async ({ request }) => {
     for (const rota of ['/intelligence', '/moves', '/midia-kit', '/sobre', '/robots.txt']) {
       expect((await request.get(rota)).status(), rota).toBe(200);

@@ -4,6 +4,7 @@ import { SearchInput } from '../_components/ds-client';
 import { PageHead } from '../_components/ui';
 import { getSource } from '../_lib/source';
 import { metadadosPagina } from '../_seo/paginas';
+import { rotuloContagem, totalPublicado } from './_lib/hub-estado';
 import s from './_components/intel.module.css';
 
 // Sempre dinâmica: no build a fonte ainda não é 'api' e a página sairia estática e vazia; em execução (PORTAL_SOURCE=api) o Next
@@ -20,17 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function IntelligenceHub() {
   const src = getSource();
   const [companiesDir, peopleDir, movesFeed] = await Promise.all([src.getCompanyDirectory(), src.getPeopleDirectory(), src.getMovesFeed()]);
-  // Falha (indisponível), flag desligada (no go-live) e módulo disponível sem registro não são a mesma coisa: "em breve" só para o que ainda não existe.
-  const rotulo = (d: { status: 'ok' | 'unavailable'; total?: number; available?: boolean }) =>
-    d.status !== 'ok' ? 'Indisponível no momento'
-      : d.available === false ? 'Disponível no go-live'
-        : (d.total ?? 0) > 0 ? `${d.total} cadastrado(s) e verificado(s)`
-          : 'Nenhum registro publicado ainda';
-  const total = (d: { status: 'ok' | 'unavailable'; total?: number }) => (d.status === 'ok' ? d.total ?? 0 : null);
+  // Falha, conteúdo retido e módulo publicado sem registro não são a mesma coisa: cada um tem rótulo próprio (hub-estado.ts).
   const tiles = [
-    { href: '/intelligence/empresas', title: 'Empresas', text: 'Diretório de companhias, programas e parceiros, com fonte e data de revisão.', rotulo: rotulo(companiesDir), n: total(companiesDir) },
-    { href: '/intelligence/pessoas', title: 'Pessoas', text: 'Executivos e profissionais: apenas dados profissionais públicos, relevantes e verificáveis.', rotulo: rotulo(peopleDir), n: total(peopleDir) },
-    { href: '/moves', title: 'Moves', text: 'Movimentações de cargo e de empresa confirmadas por fonte primária.', rotulo: rotulo(movesFeed), n: total(movesFeed) },
+    { href: '/intelligence/empresas', title: 'Empresas', text: 'Diretório de companhias, programas e parceiros, com fonte e data de revisão.', rotulo: rotuloContagem(companiesDir), n: totalPublicado(companiesDir) },
+    { href: '/intelligence/pessoas', title: 'Pessoas', text: 'Executivos e profissionais: apenas dados profissionais públicos, relevantes e verificáveis.', rotulo: rotuloContagem(peopleDir), n: totalPublicado(peopleDir) },
+    { href: '/moves', title: 'Moves', text: 'Movimentações de cargo e de empresa confirmadas por fonte primária.', rotulo: rotuloContagem(movesFeed), n: totalPublicado(movesFeed) },
   ];
   return (
     <>

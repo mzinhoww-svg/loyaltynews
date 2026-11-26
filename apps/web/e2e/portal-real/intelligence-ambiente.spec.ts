@@ -98,7 +98,7 @@ test.describe('production: pessoas indisponíveis, sem vazar nome', () => {
     await expect(page.getByTestId('company-people')).toHaveCount(0);
     await semNomes(emp.corpo, 'página da empresa');
     const hub = await html(page, '/intelligence');
-    await expect(page.getByTestId('count-pessoas')).toHaveText('Cadastros verificados: em breve');
+    await expect(page.getByTestId('count-pessoas')).toHaveText('Ainda não publicado nesta versão');
     await semNomes(hub.corpo, 'hub');
   });
 });
