@@ -42,8 +42,14 @@ describe('pedido de proposta do portal → POST /api/commercial/leads', () => {
   // requisição, e um instante não identifica pessoa, dispositivo, IP ou navegador. O que a pessoa digita continua
   // sendo só nome, empresa, e-mail, WhatsApp, objetivo e mensagem.
   it('a linha do lead não guarda IP, navegador nem origem: só o que a pessoa digitou e marcas de tempo do servidor', async () => {
-    const colunas = Object.keys((await app.db.select().from(schema.crmLeads).limit(1))[0]!).sort();
+    const [row] = await app.db.select().from(schema.crmLeads).limit(1);
+    const colunas = Object.keys(row!).sort();
     expect(colunas).toEqual(['classeDeDado', 'consentimentoEm', 'contaId', 'criadoEm', 'descartadoEm', 'email', 'empresa', 'formatoIds', 'id', 'mensagem', 'nome', 'objetivo', 'optInNewsletter', 'status', 'ultimoContatoEm', 'whatsapp']);
+    // Nenhuma coluna de rastreio da requisição, nem por acidente de schema.
+    expect(colunas.filter((c) => /ip|user.?agent|navegador|origem|referrer|utm|sessao/i.test(c))).toEqual([]);
+    // A retenção começa no pedido e só o descarte a preenche: nada vem do corpo da requisição.
+    expect(row!.ultimoContatoEm).toBeInstanceOf(Date);
+    expect(row!.descartadoEm).toBeNull();
   });
   it('campo a mais (como o honeypot) é recusado pelo contrato estrito: o portal nunca o envia', async () => {
     expect((await call(d, 'POST', { path: ROTA_PROPOSTA, body: { ...corpoDaProposta(v()), site: 'x' } })).status).toBe(400);
