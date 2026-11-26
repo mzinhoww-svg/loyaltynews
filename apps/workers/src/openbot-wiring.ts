@@ -9,7 +9,7 @@ import type { Db } from '@ln/auth';
 import { resolveFlags } from '@ln/contracts';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import {
-  openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type Account, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate, type PilotVerdictStreak,
+  DEFAULT_LEASE_MS, openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type Account, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate, type PilotVerdictStreak,
 } from '@ln/openbot';
 import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
 
@@ -50,6 +50,8 @@ export interface PilotWiring {
   /** Só o `invoke` (o `ModelGateway` da Editorial). */
   gateway: Pick<OpenBotModelGateway, 'invoke'>;
   sink: PilotRowSinkLike;
+  /** Lease efetivo do claim (`LN_OPENBOT_LEASE_MS` ou `DEFAULT_LEASE_MS`), para o operador e os testes. */
+  leaseMs: number;
 }
 
 type ApplyRowPatch = (row: never, patch: Record<string, unknown>) => { row: unknown; errors: string[] };
@@ -90,6 +92,9 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
     throw new Error('@ln/agents sem canDispatchNext/applyRowPatch/verdictStreakReasons neste build (integrar a ft/agents, ab7bba3 ou posterior): o piloto não despacha');
   }
   const now = opts.now ?? (() => new Date());
+  // Lease por execução do piloto (uma etapa de LLM não cabe nos 120 s do padrão do servidor): env válida em ms > 0; ausente ou inválida = padrão.
+  const leaseRaw = Number(env['LN_OPENBOT_LEASE_MS']);
+  const leaseMs = Number.isInteger(leaseRaw) && leaseRaw > 0 ? leaseRaw : undefined;
   const rows = new PgPilotRowStore(db, now);
   const state = new PgPilotStateStore(db);
   const resolutions = new PgPilotResolutionStore(db, now);
@@ -107,6 +112,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
     queue: new PgLeaseQueue(db), ledger: new PgCostLedger(db, now), health: new PgHealthStore(db), callbacks: new PgCallbackStore(db),
     secrets: () => [], // o gateway não verifica assinatura (as rotas verificam)
     flags, now, requireDerivedResultRef: true, routes: PILOT_ROUTES,
+    ...(leaseMs ? { leaseMs } : {}),
     pilot: { enabled: true, rows, state, allowedAccounts: PILOT_LANES, gate: kit.canDispatchNext, verdictStreak: kit.verdictStreakReasons, resolved: () => resolutions.keys() },
   };
   const timeoutMs = Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) > 0 ? Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) : 10 * 60_000;
@@ -133,7 +139,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
       if (!(await rows.patch(taskId, attempt, patch))) throw new Error(`linha do piloto sumiu: ${taskId}#${attempt}`);
     },
   };
-  return { gateway, sink };
+  return { gateway, sink, leaseMs: leaseMs ?? DEFAULT_LEASE_MS };
 }
 
 /**

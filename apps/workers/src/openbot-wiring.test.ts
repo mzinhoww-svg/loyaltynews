@@ -123,6 +123,28 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     expect(io?.meta).toMatchObject({ reviewedDraftTaskId: draft.taskId });
   });
 
+  it('LN_OPENBOT_LEASE_MS define o lease do claim (600000 = 10 min); sem a variável, 120 s', async () => {
+    const db1 = await fresh();
+    const w1 = await createPilotWiring({ ...STAGING, LN_OPENBOT_LEASE_MS: '600000' }, db1, { loadKit: kitOk, now: () => NOW });
+    expect(w1.leaseMs).toBe(600_000);
+    const q1 = new PgLeaseQueue(db1);
+    await q1.enqueue({ kind: 'classification', profileId: 'newsdesk', refId: 'lease-a', idempotencyKey: 'lease-a', dataClass: 'public', maxCostMicro: 1, route: ['opencode'] }, NOW);
+    const [t1] = await q1.claim({ workerId: 'w1', now: NOW, leaseMs: w1.leaseMs, limit: 1 });
+    expect(Date.parse((t1 as unknown as { leaseExpiresAt: string }).leaseExpiresAt) - NOW.getTime()).toBe(600_000);
+
+    const db2 = await fresh();
+    const w2 = await createPilotWiring({ ...STAGING }, db2, { loadKit: kitOk, now: () => NOW });
+    expect(w2.leaseMs).toBe(120_000);
+    const q2 = new PgLeaseQueue(db2);
+    await q2.enqueue({ kind: 'classification', profileId: 'newsdesk', refId: 'lease-b', idempotencyKey: 'lease-b', dataClass: 'public', maxCostMicro: 1, route: ['opencode'] }, NOW);
+    const [t2] = await q2.claim({ workerId: 'w2', now: NOW, leaseMs: w2.leaseMs, limit: 1 });
+    expect(Date.parse((t2 as unknown as { leaseExpiresAt: string }).leaseExpiresAt) - NOW.getTime()).toBe(120_000);
+
+    const db3 = await fresh();
+    const w3 = await createPilotWiring({ ...STAGING, LN_OPENBOT_LEASE_MS: 'abc' }, db3, { loadKit: kitOk, now: () => NOW });
+    expect(w3.leaseMs).toBe(120_000);
+  });
+
   it('a redação sai na via declarada (claude), não na conta designada; as demais etapas saem na opencode', async () => {
     const db = await fresh();
     const agent = agentFor(db);
