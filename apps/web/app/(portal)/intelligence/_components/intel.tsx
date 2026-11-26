@@ -36,12 +36,13 @@ export function CorrectedTag() {
 /**
  * Período do cargo como a fonte declara. M-04 (revisão completa 25/11): na carga, quando a fonte não traz o início, o início gravado é o
  * próprio dia da coleta — mostrar "desde <coleta>" fazia parecer que o cargo começou nesse dia. Início igual ao dia da validação/coleta
- * = início não informado; a data de coleta fica só em "Validado em". (Pedido ao Data: um campo explícito de início declarado.)
+ * = início não informado; a coleta (fonte) e a validação têm colunas próprias. (Pedido ao Data: um campo explícito de início declarado.)
  */
 export function periodoCargo(r: Pick<PersonRole, 'validFrom' | 'validTo' | 'validatedAt' | 'periodText' | 'source' | 'startDeclared'>): string {
   if (r.periodText) return r.periodText;
   // Campo da API (inicioDeclarado, contrato do Data) quando existe; senão a mesma regra deduzida pela data.
-  const inicioEhColeta = r.startDeclared !== undefined ? !r.startDeclared : r.validFrom === r.validatedAt.slice(0, 10) || r.validFrom === r.source.retrievedAt.slice(0, 10);
+  const coleta = r.source.retrievedAt;
+  const inicioEhColeta = r.startDeclared !== undefined ? !r.startDeclared : (r.validatedAt !== null && r.validFrom === r.validatedAt.slice(0, 10)) || r.validFrom === coleta.slice(0, 10);
   if (inicioEhColeta) return r.validTo ? `início não informado na fonte; até ${day(r.validTo)}` : 'início não informado na fonte';
   return r.validTo ? `${day(r.validFrom)} a ${day(r.validTo)}` : `desde ${day(r.validFrom)}`;
 }
@@ -61,6 +62,7 @@ export function RolesTable({ roles, caption, testId, showPerson, correctionFor }
             {!showPerson && <th scope="col">Organização</th>}
             <th scope="col">Período</th>
             <th scope="col">Fonte</th>
+            <th scope="col">Coletado em</th>
             <th scope="col">Validado em</th>
             {correctionFor && <th scope="col">Correção</th>}
           </tr>
@@ -80,7 +82,14 @@ export function RolesTable({ roles, caption, testId, showPerson, correctionFor }
                 <a href={r.source.url} rel="noopener noreferrer" target="_blank" style={{ textDecoration: 'underline' }}>{r.source.name}</a>
                 <span className="pt-sr"> (abre em nova aba)</span>
               </td>
-              <td><time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time></td>
+              <td>{r.collectedAt ? <time dateTime={r.collectedAt}>{formatDate(r.collectedAt)}</time> : <span className="pt-meta">—</span>}</td>
+              <td>
+                {r.validatedAt ? (
+                  <time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time>
+                ) : (
+                  <span className="pt-meta" data-testid="role-unconfirmed">Não confirmada</span>
+                )}
+              </td>
               {correctionFor && (
                 <td>
                   <Link href={linkPedido(`/intelligence/pessoas/${correctionFor}?cargo=${r.id}`)} style={{ textDecoration: 'underline' }} data-testid="role-correction">

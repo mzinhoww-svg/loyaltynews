@@ -91,9 +91,22 @@ describe('GET /api/publico/intelligence/empresas/:id', () => {
       ['coalition_member', 'destino', 'Associação Alfa', 'association'],
       ['partner_of', 'origem', 'Uber', 'company'],
     ]);
-    expect(d.relacoes[1]).toMatchObject({ vigenteDesde: '2026-01-01', validadoEm: '2026-11-01T00:00:00.000Z', mock: true });
+    expect(d.relacoes[1]).toMatchObject({ vigenteDesde: '2026-01-01', coletadoEm: '2026-11-01T00:00:00.000Z', validadoEm: '2026-11-01T00:00:00.000Z', naoConfirmado: false, mock: true });
     expect(d.relacoes[1].fonte).toMatchObject({ nome: 'MOCK relacao-1', url: 'https://relacao-1.example.invalid/imprensa' });
-    expect(Object.keys(d.relacoes[1].fonte).sort()).toEqual(['coletadoEm', 'nome', 'url']);
+    expect(Object.keys(d.relacoes[1].fonte).sort()).toEqual(['nome', 'url']);
+    // Os quatro campos de proveniência vêm sempre, com valor real ou null explícito.
+    expect(Object.keys(d.relacoes[1])).toEqual(expect.arrayContaining(['fonte', 'coletadoEm', 'validadoEm', 'naoConfirmado']));
+  });
+
+  it('controle negativo: vínculo sem fonte não é publicado — não entra no detalhe nem na contagem da lista', async () => {
+    const db = intelDb(app.db);
+    // Evidência sem nome de fonte (só espaço): o registro existe no banco, mas não tem prova de onde veio.
+    const semFonte = await addEvidence(db, { sourceUrl: 'https://sem-nome.example.invalid/p', sourceName: ' ', retrievedAt: T, isMock: true } as any);
+    await addOrgRelation(db, { fromOrgId: ids.livelo, toOrgId: ids.uber, type: 'supplier_of', validFrom: '2026-02-01', evidenceId: semFonte, observedAt: T, validatedAt: T } as any);
+    const d = await one(ids.livelo!);
+    expect(d.body.data.relacoes.map((x: any) => x.tipo)).not.toContain('supplier_of');
+    expect(d.body.data.relacoes.every((x: any) => x.fonte && x.naoConfirmado === false)).toBe(true); // o que sai tem prova
+    expect((await get()).body.data.find((x: any) => x.id === ids.livelo).relacoes).toBe(2); // a sem fonte não conta
   });
 
   it('pessoas: com a flag desligada (estado atual) disponivel=false e itens vazios, mesmo havendo cargo no banco; ligada, só nome/cargo/fonte', async () => {
@@ -104,8 +117,8 @@ describe('GET /api/publico/intelligence/empresas/:id', () => {
     const p = (await one(ids.livelo!)).body.data.pessoas;
     expect(p.disponivel).toBe(true);
     expect(p.itens).toHaveLength(1);
-    expect(p.itens[0]).toMatchObject({ nome: 'MOCK Ana Teste', cargo: 'CEO', vigenteDesde: '2024-01-01', mock: true });
-    expect(Object.keys(p.itens[0]).sort()).toEqual(['cargo', 'fonte', 'id', 'mock', 'nome', 'validadoEm', 'vigenteDesde']);
+    expect(p.itens[0]).toMatchObject({ nome: 'MOCK Ana Teste', cargo: 'CEO', vigenteDesde: '2024-01-01', coletadoEm: '2026-11-01T00:00:00.000Z', validadoEm: '2026-11-01T00:00:00.000Z', naoConfirmado: false, mock: true });
+    expect(Object.keys(p.itens[0])).toEqual(expect.arrayContaining(['cargo', 'coletadoEm', 'fonte', 'id', 'mock', 'naoConfirmado', 'nome', 'validadoEm', 'vigenteDesde']));
     app.deps.flags.intelligencePessoas = false;
   });
 

@@ -40,8 +40,10 @@ export const publicListEmpresas: RouteFn = async (_req, c) => {
   const rows = await db.query<{ id: string; nome: string; legal_name: string; kind: string; retrieved_at: string; is_mock: boolean; relacoes: number }>(
     `SELECT o.id, ${NOME} AS nome, o.legal_name, o.kind, ev.retrieved_at, ev.is_mock,
             (SELECT count(*)::int FROM ${S}.org_relation x
-              WHERE (x.from_org_id = o.id OR x.to_org_id = o.id) AND x.certainty = 'declared'
-                AND x.valid_from <= $3::date AND (x.valid_to IS NULL OR x.valid_to > $3::date)) AS relacoes
+              JOIN ${S}.evidence xev ON xev.id = x.evidence_id
+               WHERE (x.from_org_id = o.id OR x.to_org_id = o.id) AND x.certainty = 'declared'
+                 AND btrim(xev.source_name) <> '' AND btrim(xev.source_url) <> ''
+                 AND x.valid_from <= $3::date AND (x.valid_to IS NULL OR x.valid_to > $3::date)) AS relacoes
        FROM ${S}.organization o JOIN ${S}.evidence ev ON ev.id = o.evidence_id
       WHERE ${QFILTER} AND ($2::text IS NULL OR o.kind = $2)
       ORDER BY ${NOME}, o.id LIMIT $4 OFFSET $5`,
@@ -61,6 +63,17 @@ export const publicListEmpresas: RouteFn = async (_req, c) => {
 };
 
 const fonte = (r: { ev_name: string; ev_url: string; ev_retrieved: string }) => ({ nome: r.ev_name, url: r.ev_url, coletadoEm: iso(r.ev_retrieved) });
+/**
+ * Prova de um vínculo ou cargo: `fonte` (nome/URL), `coletadoEm` (data da coleta na fonte) e `validadoEm` (nossa validação),
+ * mais `naoConfirmado`. Os quatro campos vêm SEMPRE na resposta, com valor real ou `null` explícito: sem validação o vínculo
+ * não é exibido como fato. Registro sem fonte nem chega aqui — a consulta não o devolve (é o controle negativo do contrato).
+ */
+const prova = (r: { ev_name: string; ev_url: string; ev_retrieved: string; validated_at: string | null }) => ({
+  fonte: r.ev_name && r.ev_url ? { nome: r.ev_name, url: r.ev_url } : null,
+  coletadoEm: r.ev_retrieved ? iso(r.ev_retrieved) : null,
+  validadoEm: r.validated_at ? iso(r.validated_at) : null,
+  naoConfirmado: !(r.ev_name && r.ev_url && r.validated_at),
+});
 
 export const publicGetEmpresa: RouteFn = async (_req, c) => {
   const id = c.params.id ?? '';
@@ -75,7 +88,7 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
   const o = org.rows[0];
   if (!o) return fail(404, 'not_found', 'Empresa não encontrada.');
   const rel = await db.query<{
-    id: string; relation_type: string; sentido: 'origem' | 'destino'; other_id: string; other_nome: string; other_kind: string; valid_from: string; validated_at: string;
+    id: string; relation_type: string; sentido: 'origem' | 'destino'; other_id: string; other_nome: string; other_kind: string; valid_from: string; validated_at: string | null;
     ev_name: string; ev_url: string; ev_retrieved: string; is_mock: boolean;
   }>(
     `SELECT x.id, x.relation_type, CASE WHEN x.from_org_id = $1 THEN 'origem' ELSE 'destino' END AS sentido,
@@ -85,6 +98,7 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
        JOIN ${S}.organization p ON p.id = CASE WHEN x.from_org_id = $1 THEN x.to_org_id ELSE x.from_org_id END
        JOIN ${S}.evidence ev ON ev.id = x.evidence_id
       WHERE (x.from_org_id = $1 OR x.to_org_id = $1) AND x.certainty = 'declared'
+        AND btrim(ev.source_name) <> '' AND btrim(ev.source_url) <> ''
         AND x.valid_from <= $2::date AND (x.valid_to IS NULL OR x.valid_to > $2::date)
       ORDER BY coalesce(p.trade_name, p.legal_name), x.relation_type, x.id`,
     [id, asOf],
@@ -93,13 +107,14 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
   const ef = await carregarEfeitos(c.deps.db);
   const pessoas = pessoasLigadas
     ? (
-        await db.query<{ role_id: string; person_id: string; full_name: string; title: string; valid_from: string; validated_at: string; ev_name: string; ev_url: string; ev_retrieved: string; is_mock: boolean }>(
+        await db.query<{ role_id: string; person_id: string; full_name: string; title: string; valid_from: string; validated_at: string | null; ev_name: string; ev_url: string; ev_retrieved: string; is_mock: boolean }>(
           `SELECT r.id AS role_id, p.id AS person_id, p.full_name, r.title, r.valid_from::text, r.validated_at,
                   ev.source_name AS ev_name, ev.source_url AS ev_url, ev.retrieved_at AS ev_retrieved, ev.is_mock
              FROM ${S}.role_assignment r
              JOIN ${S}.person p ON p.id = r.person_id AND p.suppressed_at IS NULL
              JOIN ${S}.evidence ev ON ev.id = r.evidence_id
             WHERE r.organization_id = $1 AND r.certainty = 'declared' AND r.valid_from <= $2::date AND (r.valid_to IS NULL OR r.valid_to > $2::date)
+              AND btrim(ev.source_name) <> '' AND btrim(ev.source_url) <> ''
             ORDER BY p.full_name, r.title`,
           [id, asOf],
         )
@@ -107,7 +122,7 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
         .filter((r) => !ef.pessoaOculta(r.person_id) && !ef.cargoOculto(r.role_id)) // pedidos do titular decididos (DP-38)
         .map((r) => ({
           id: r.person_id, nome: ef.campo('pessoa', r.person_id, 'nome') ?? r.full_name, cargo: ef.campo('cargo', r.role_id, 'cargo', 'titulo') ?? r.title, vigenteDesde: r.valid_from,
-          validadoEm: iso(r.validated_at), mock: r.is_mock, fonte: fonte(r), ...(ef.corrigido('pessoa', r.person_id) || ef.corrigido('cargo', r.role_id) ? { corrigidoPeloTitular: true } : {}),
+          ...prova(r), mock: r.is_mock, ...(ef.corrigido('pessoa', r.person_id) || ef.corrigido('cargo', r.role_id) ? { corrigidoPeloTitular: true } : {}),
         }))
     : [];
   return json(
@@ -125,9 +140,8 @@ export const publicGetEmpresa: RouteFn = async (_req, c) => {
           sentido: r.sentido,
           empresa: { id: r.other_id, nome: r.other_nome, tipo: r.other_kind },
           vigenteDesde: r.valid_from,
-          validadoEm: iso(r.validated_at),
+          ...prova(r),
           mock: r.is_mock,
-          fonte: fonte(r),
         })),
         pessoas: { disponivel: pessoasLigadas, itens: pessoas },
       },

@@ -59,7 +59,7 @@ export default async function PessoasPage({ searchParams }: { searchParams: Prom
                       p.roles.map((r) => (
                         <p key={r.id} className="pt-meta">
                           {r.title} · <Link href={`/intelligence/empresas/${r.company.id}`} style={{ textDecoration: 'underline' }}>{r.company.name}</Link>
-                          {' · '}validado em <time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time>
+                          {' · '}validado em {r.validatedAt ? <time dateTime={r.validatedAt}>{formatDate(r.validatedAt)}</time> : 'não confirmado'}
                         </p>
                       ))
                     ) : (
