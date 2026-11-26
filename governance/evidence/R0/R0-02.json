@@ -23,8 +23,8 @@
   }
  ],
  "chave_idempotencia": "7cbba29e66f264b1b93937943b20df5423c89d7492c833038f6683c569f4467f",
- "commit_sha": "823f74e9b13e7c2cdeaa020581522ff4b92f0e3a",
- "criado_em": "2026-11-26T12:17:34.767237+00:00",
+ "commit_sha": "29303998e3fdba53c2a43ba7832adca55bba9e57",
+ "criado_em": "2026-11-26T12:39:08.065033+00:00",
  "gate": "R0",
  "produzido_por": {
   "ferramenta": "MCP/CLI",
@@ -35,7 +35,7 @@
  "testes": [
   {
    "id": "R0-02-TEST",
-   "nome": "As 13 decisoes de 21/11/2026 (7 as 19:20, 6 as 22:56) estao registradas em governance/decisions.yaml; as 16 V21 como proposta; sem campo de aceite",
+   "nome": "As 13 decisoes de 21/11/2026 (7 as 19:20, 6 as 22:56) e as 16 V21 estao registradas em governance/decisions.yaml; as 16 V21 ratificadas pela raiz em 26/11/2026 (commit 3f9dbd1e), com escolha, status ratificada e referencia",
    "registro_sha256": "cdde648636eecd75988deab8e5123081de4630e008c0aa436f0f97a2c88961e3",
    "resultado": "passou"
   }
