@@ -40,7 +40,30 @@ const SEM_2FA = 'Sua conta não tem a verificação em duas etapas ativa. Por se
 // mostram ("123 456"). Os espaços são descartados no envio, e o limite nunca bloqueia os 6 dígitos.
 const CODIGO_MAX = 7;
 
-export function LoginForm({ retorno }: { retorno?: string }) {
+// Cada etapa tem o próprio título, texto e rótulo: o motivo da entrada ("Acesso restrito", NO_MFA, FORBIDDEN) descreve
+// só o e-mail e a senha; no 2º fator o título passa a ser o do código. A 2ª etapa só é anunciada quando ela existe de fato.
+const PASSOS: Record<Exclude<Etapa, 'credenciais'>, { titulo: string; texto: string; rotulo: string }> = {
+  codigo: {
+    titulo: 'Verificação em duas etapas',
+    texto: 'Digite o código de 6 dígitos do aplicativo autenticador para concluir a entrada no Studio.',
+    rotulo: 'Etapa 2 de 2 · verificação em duas etapas',
+  },
+  recuperacao: {
+    titulo: 'Código de recuperação',
+    texto: 'Use um dos códigos de recuperação que você guardou para concluir a entrada no Studio. Cada código vale uma vez.',
+    rotulo: 'Etapa 2 de 2 · código de recuperação',
+  },
+};
+
+export interface LoginFormProps {
+  retorno?: string;
+  /** Título e texto da entrada (variam com o motivo: NO_SESSION, NO_MFA, FORBIDDEN). */
+  titulo: string;
+  texto: string;
+  alerta?: boolean;
+}
+
+export function LoginForm({ retorno, titulo, texto, alerta: motivoAlerta = false }: LoginFormProps) {
   const destino = destinoSeguro(retorno);
   const [etapa, setEtapa] = useState<Etapa>('credenciais');
   const [email, setEmail] = useState('');
@@ -119,13 +142,24 @@ export function LoginForm({ retorno }: { retorno?: string }) {
     </div>
   ) : null;
 
+  // A 1ª etapa não promete duas: a contagem "Etapa 2 de 2" só aparece quando a segunda etapa existe mesmo.
+  const passo = etapa === 'credenciais' ? { titulo, texto, rotulo: 'E-mail e senha' } : PASSOS[etapa];
+
   return (
     <div data-login data-etapa={etapa}>
+      <h1>{passo.titulo}</h1>
+      {motivoAlerta && etapa === 'credenciais' ? (
+        <p className="st-entrada__texto" role="alert">
+          {passo.texto}
+        </p>
+      ) : (
+        <p className="st-entrada__texto">{passo.texto}</p>
+      )}
       <noscript>
         <p className="st-alert err">Ative o JavaScript do navegador para entrar no Studio.</p>
       </noscript>
       <p className="st-entrada__etapa" data-etapa-rotulo>
-        {etapa === 'credenciais' ? 'Etapa 1 de 2 · e-mail e senha' : 'Etapa 2 de 2 · verificação em duas etapas'}
+        {passo.rotulo}
       </p>
       {etapa === 'credenciais' ? (
         // `key` por etapa: sem ele o React reaproveita o <input> do e-mail como campo de código, e o valor digitado no
@@ -147,9 +181,6 @@ export function LoginForm({ retorno }: { retorno?: string }) {
         </form>
       ) : (
         <form key={etapa} onSubmit={verificar} method="post" aria-label={etapa === 'codigo' ? 'Verificação em duas etapas' : 'Recuperação de acesso'} noValidate>
-          <p className="st-hint">
-            {etapa === 'codigo' ? 'Digite o código de 6 dígitos que o aplicativo autenticador mostra agora.' : 'Digite um dos códigos de recuperação que você guardou. Cada código vale uma vez.'}
-          </p>
           {alerta}
           {etapa === 'codigo' ? (
             <div className="st-field">
