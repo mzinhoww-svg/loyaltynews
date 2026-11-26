@@ -1,11 +1,15 @@
 // Exclusão de lead pela rota do Studio (LGPD), ponta a ponta: cria, apaga, some do banco e da caixa,
 // e a trilha sobra sem PII. O lead é fictício (@example.invalid); nada vai a staging ou produção.
 import { eq } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { schema } from '@ln/db';
 import { call, makeApp } from '../_lib/testkit';
 import { dispatchCommercial as d } from '../_lib/commercial';
 import { leadRefHash } from '@ln/commercial';
+
+// O lead nasce pelo pedido de proposta público, que só existe com a flag portalFormularios ligada (ver leads-flag.test.ts).
+// A flag fica explícita aqui, como no arquivo vizinho: o teste não depende do LN_FLAGS_ON/APP_ENV de quem roda a suíte.
+vi.mock('../../../lib/portal-formularios', () => ({ formulariosAtivos: () => true }));
 
 const SALT = 'sal-de-teste-da-rota-32-caracteres';
 const SALT_ANTES = process.env.LN_LEAD_AUDIT_SALT;
@@ -33,8 +37,12 @@ afterAll(async () => {
   await app.close();
 });
 
+// Cada criação sai de um IP próprio: com TRUSTED_PROXY_HOPS no ambiente o limite por IP do formulário público entra em jogo,
+// e um IP fixo somaria as tentativas de todos os casos. Assim nenhum caso depende de quantos leads os anteriores criaram.
+let ipSeq = 0;
 const criar = async (email = `lgpd-${Math.random().toString(36).slice(2)}@example.invalid`) => {
-  const r = await call(d, 'POST', { path: P('/leads'), body: leadBody(email) });
+  ipSeq += 1;
+  const r = await call(d, 'POST', { path: P('/leads'), body: leadBody(email), ip: `10.77.${Math.floor(ipSeq / 250)}.${(ipSeq % 250) + 1}` });
   expect(r.status).toBe(201);
   return r.body.id as string;
 };
