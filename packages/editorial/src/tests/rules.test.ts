@@ -107,6 +107,22 @@ test('parseNumbersIn: valor, moeda e arredondamento', () => {
   assert.equal(numbersMatch(parseNumbersIn('US$ 4 mil')[0]!, parseNumbersIn('US$ 4,240')[0]!), true);
 });
 
+test('claim de data: 6 de outubro de 2026 contra October 06, 2026 (zero à esquerda)', () => {
+  const e = numEv('October 06, 2026');
+  assert.equal(numbersMatch(parseNumbersIn('6')[0]!, parseNumbersIn('06')[0]!), true, '6 e 06 têm o mesmo valor');
+  const d = mk({ body: 'O anúncio é de 6 de outubro de 2026.', evidenceIds: [e.id] });
+  d.claims = [{ id: 'c2', kind: 'date', text: 'O anúncio é de 6 de outubro de 2026', evidenceIds: [e.id] }];
+  assert.deepEqual(checkClaims(d, [e]).findings.filter((x) => x.code === 'unsupported_metric'), []);
+  assert.deepEqual(checkBodyGrounding(d, [e]).findings.filter((x) => x.code === 'unsupported_metric'), []);
+});
+
+test('claim de data: número que não existe (7 contra 06) continua barrando', () => {
+  const e = numEv('October 06, 2026');
+  const d = mk({ body: 'O anúncio é de 7 de outubro de 2026.', evidenceIds: [e.id] });
+  const f = checkBodyGrounding(d, [e]).findings.filter((x) => x.code === 'unsupported_metric');
+  assert.ok(f.some((x) => x.message.includes('"7"')), JSON.stringify(f));
+});
+
 // Tabela do parecer do QA 11 (ft-editorial-busca-4shas-qa11.md), um caso por linha.
 // "bloqueia" é o resultado exigido pela regra de arredondamento correto (inclusive nas linhas que passavam por tolerância).
 interface CasoMatcher { caso: string; ev: string; texto: string; esperado: 'passa' | 'bloqueia'; via?: 'claim' }
