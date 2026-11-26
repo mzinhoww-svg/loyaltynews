@@ -60,14 +60,16 @@ test.describe('Moves: os três estados vazios', () => {
     await expect(page.getByText('Ainda não há Moves publicados')).toHaveCount(0);
     await expect(page.getByText(/Existe? \d+ movimentaç/)).toHaveCount(0);
 
-    // Alvos de toque medidos a 390: "limpar" e "Ver todos os Moves" com pelo menos 44x44.
-    await page.setViewportSize({ width: 390, height: 900 });
-    await page.goto('/moves?q=ninguem-com-esse-nome');
-    for (const id of ['moves-filter-clear', 'moves-filter-empty-clear']) {
-      const box = await page.getByTestId(id).boundingBox();
-      expect(box, `${id} visível`).not.toBeNull();
-      expect(box!.width, `${id} largura`).toBeGreaterThanOrEqual(44);
-      expect(box!.height, `${id} altura`).toBeGreaterThanOrEqual(44);
+    // Alvos de toque medidos a 390 e 768 (tablet): "limpar" e "Ver todos os Moves" com pelo menos 44x44.
+    for (const width of [390, 768]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/moves?q=ninguem-com-esse-nome');
+      for (const id of ['moves-filter-clear', 'moves-filter-empty-clear']) {
+        const box = await page.getByTestId(id).boundingBox();
+        expect(box, `${width}px ${id} visível`).not.toBeNull();
+        expect(box!.width, `${width}px ${id} largura`).toBeGreaterThanOrEqual(44);
+        expect(box!.height, `${width}px ${id} altura`).toBeGreaterThanOrEqual(44);
+      }
     }
 
     // O filtro que casa mostra a lista; limpar volta ao feed completo.
