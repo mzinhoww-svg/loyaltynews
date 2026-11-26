@@ -7,6 +7,7 @@ import { ConsentimentoCookies } from './_consentimento/Consentimento';
 import { SiteFooter } from './_components/SiteFooter';
 import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
+import { emDemonstracao } from './_lib/demo';
 import { flags } from './_lib/flags';
 import { indexingBlocked } from './_lib/indexing';
 import { ROBOTS_INDEXAVEL, ogImagemPadrao } from './_lib/seo';
@@ -51,10 +52,16 @@ export const viewport: Viewport = { themeColor: '#153c3c', width: 'device-width'
 
 export default async function PortalLayout({ children }: { children: ReactNode }) {
   const site = await getSource().getSiteConfig();
+  // Runtime: staging (inclusive api + seed) sempre; produção nunca; dev/vitrine com mock como antes.
+  const demo = emDemonstracao({
+    appEnv: process.env.APP_ENV,
+    nodeEnv: process.env.NODE_ENV,
+    portalDemo: process.env.NEXT_PUBLIC_PORTAL_DEMO,
+    mock: isMockSource(),
+  });
   return (
     <div className="ln-root pt">
-      {/* Faixa fina e fixa quando o conteúdo é de demonstração (fonte MOCK). Nunca em produção real. */}
-      {(process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_PORTAL_DEMO === '1') && isMockSource() && <DemoBanner />}
+      {demo && <DemoBanner />}
       <SiteHeader flags={{ theLoyal: flags.theLoyal, marketData: flags.marketData, podcast: flags.podcast }} editorias={EDITORIAS} mainMenu={site?.menus.main ?? null} />
       <main id="conteudo" className="pt-main">
         <div className="pt-wrap">{children}</div>
