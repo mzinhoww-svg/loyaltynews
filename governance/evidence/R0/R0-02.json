@@ -23,8 +23,8 @@
   }
  ],
  "chave_idempotencia": "7cbba29e66f264b1b93937943b20df5423c89d7492c833038f6683c569f4467f",
- "commit_sha": "3f9dbd1e5f78f833ddc5dafbef842df61216d6ce",
- "criado_em": "2026-11-26T11:43:11.066374+00:00",
+ "commit_sha": "823f74e9b13e7c2cdeaa020581522ff4b92f0e3a",
+ "criado_em": "2026-11-26T12:17:34.767237+00:00",
  "gate": "R0",
  "produzido_por": {
   "ferramenta": "MCP/CLI",
