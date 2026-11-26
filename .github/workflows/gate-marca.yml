@@ -1,0 +1,66 @@
+# Gate de marca do portal (UI/UX): CLS, axe WCAG 2.1 AA, fonte da marca e contraste dos tokens.
+# Falha o job (exit 1) quando qualquer celula passa do limite; o relatorio vai como artefato.
+# Protocolo: auditoria-design/acessibilidade/gate-marca-portal.md.
+# Depende de browser real: o runner instala o Chromium do Playwright antes de medir.
+# Acoes fixadas por SHA (mesmas versoes do web-prebuilt.yml).
+name: gate-marca
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate-marca-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Codigo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Versao do Node da Vertra
+        id: node
+        run: |
+          set -euo pipefail
+          echo "versao=$(node -p "require('./infra/vertra/environments.json').runtime.node")" >> "$GITHUB_OUTPUT"
+
+      - name: Node igual ao da Vertra
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ steps.node.outputs.versao }}
+          cache: npm
+
+      - name: Dependencias
+        run: |
+          set -euo pipefail
+          npm ci
+
+      - name: Chromium do Playwright (com dependencias de sistema)
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+
+      - name: Gate de marca (CLS + axe + fonte + contraste)
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          set -euo pipefail
+          node apps/web/scripts/gate-marca.mjs --porta 3199
+
+      - name: Relatorio do gate
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gate-marca-${{ github.run_id }}
+          path: .test-results/gate-marca.json
+          if-no-files-found: warn
+          retention-days: 14
