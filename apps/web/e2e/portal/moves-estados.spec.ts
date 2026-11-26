@@ -28,6 +28,11 @@ test.describe('Moves: os três estados vazios', () => {
     await expect(page.getByTestId('moves-empty-withheld')).toHaveCount(0);
     await expect(page.getByTestId('moves-filter-empty')).toHaveCount(0);
     await expect(page.getByTestId('moves-list')).toHaveCount(0);
+    // P1 do Auditor: com o banco vazio, o estado "sem publicações" vence o filtro; ?q= não escondeu nada.
+    await page.goto('/moves?q=foo');
+    await expect(page.getByText('Ainda não há Moves publicados')).toBeVisible();
+    await expect(page.getByTestId('moves-filter-empty')).toHaveCount(0);
+    await expect(page.getByText(/escondido/i)).toHaveCount(0);
     await semGraves(page, 'sem-publicacoes');
   });
 
@@ -35,8 +40,10 @@ test.describe('Moves: os três estados vazios', () => {
     test.skip(mode !== 'api' || intel !== 'retido', 'somente com FAKE_API_INTEL=retido');
     const res = await page.goto('/moves');
     expect(res?.status()).toBe(200);
-    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão')).toBeVisible();
-    await expect(page.getByTestId('moves-empty-withheld')).toBeVisible();
+    // P1 do Auditor: o estado retido só existe COM CONTAGEM; sem número, a frase não pode aparecer.
+    await expect(page.getByText(/Existe? \d+ movimentaç/)).toBeVisible();
+    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão', { exact: true })).toHaveCount(0);
+    await expect(page.getByTestId('moves-empty-withheld')).toContainText(/\d+ movimentaç/);
     await expect(page.getByText('Ainda não há Moves publicados')).toHaveCount(0);
     await expect(page.getByTestId('moves-filter-empty')).toHaveCount(0);
     await semGraves(page, 'retido');
@@ -51,7 +58,17 @@ test.describe('Moves: os três estados vazios', () => {
     await expect(page.getByTestId('moves-filter-empty-clear')).toHaveAttribute('href', '/moves');
     await expect(page.getByTestId('moves-filter-clear')).toHaveAttribute('href', '/moves');
     await expect(page.getByText('Ainda não há Moves publicados')).toHaveCount(0);
-    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão')).toHaveCount(0);
+    await expect(page.getByText(/Existe? \d+ movimentaç/)).toHaveCount(0);
+
+    // Alvos de toque medidos a 390: "limpar" e "Ver todos os Moves" com pelo menos 44x44.
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto('/moves?q=ninguem-com-esse-nome');
+    for (const id of ['moves-filter-clear', 'moves-filter-empty-clear']) {
+      const box = await page.getByTestId(id).boundingBox();
+      expect(box, `${id} visível`).not.toBeNull();
+      expect(box!.width, `${id} largura`).toBeGreaterThanOrEqual(44);
+      expect(box!.height, `${id} altura`).toBeGreaterThanOrEqual(44);
+    }
 
     // O filtro que casa mostra a lista; limpar volta ao feed completo.
     await page.goto('/moves?q=Alfa');

@@ -6,6 +6,14 @@
     align-items: center;
     min-height: var(--ln-touch-target);
   }
+  /* Alvo de toque quadrado para links curtos ("limpar", "Ver todos"): 44x44, medido, não estimado. */
+  .touchBoth {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--ln-touch-target);
+    min-width: var(--ln-touch-target);
+  }
 }
 
 /* Texto do estado vazio em linha própria: o título em negrito não cola na explicação. */

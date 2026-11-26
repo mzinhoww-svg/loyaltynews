@@ -273,7 +273,7 @@ test.describe('api com dado existente mas retido nesta versão', () => {
     await expect(page.getByTestId('people-list')).toHaveCount(0);
 
     await page.goto('/moves');
-    await expect(page.getByText('Existem movimentações, ainda não publicadas nesta versão')).toBeVisible();
+    await expect(page.getByText(/Existe? \d+ movimentaç/)).toBeVisible();
     await expect(page.getByTestId('moves-empty-withheld')).toBeVisible();
     await expect(page.getByTestId('moves-list')).toHaveCount(0);
     await axe(page);

@@ -25,13 +25,16 @@ export default async function MovesPage({ searchParams }: { searchParams: Promis
   const q = ((await searchParams).q ?? '').trim().slice(0, 60);
   const feed = await getSource().getMovesFeed();
 
-  // Três estados de vazio, distinguíveis (QA 8, 822bcc7):
-  //  (a) o recurso não tem nenhuma publicação, (b) existem Moves mas não estão publicados nesta versão, e
-  //  (c) o recurso tem Moves e o FILTRO não casou nenhum. Nunca um "vazio genérico" para os três.
-  const retido = feed.status === 'ok' && !feed.available && (feed.withheld ?? 0) > 0;
-  const semPublicacao = feed.status === 'ok' && !feed.available && !retido;
+  // Três estados de vazio, distinguíveis (QA 8, 822bcc7; P1 do Auditor 25/11):
+  //  (a) o recurso não tem NENHUMA publicação — vence o filtro: com banco vazio, ?q= não "escondeu" nada;
+  //  (b) existem Moves retidos nesta versão — só com CONTAGEM vinda do dado (`withheld`); sem número, não afirma existência;
+  //  (c) o recurso tem Moves publicados e o FILTRO não casou nenhum.
+  const retido = feed.status === 'ok' && (feed.withheld ?? 0) > 0;
+  const totalPublicado = feed.status === 'ok' ? feed.total : 0;
+  const semPublicacao = feed.status === 'ok' && !retido && totalPublicado === 0;
   const filtrados = feed.status === 'ok' && feed.available ? filterMoves(feed.items, q) : [];
-  const filtroVazio = feed.status === 'ok' && feed.available && filtrados.length === 0;
+  const filtroVazio = feed.status === 'ok' && !retido && !semPublicacao && totalPublicado > 0 && filtrados.length === 0;
+  const withheld = feed.status === 'ok' ? (feed.withheld ?? 0) : 0;
 
   return (
     <>
@@ -45,9 +48,10 @@ export default async function MovesPage({ searchParams }: { searchParams: Promis
           Não conseguimos carregar as movimentações agora. Isso não significa que não existam; tente de novo em instantes.
         </ErrorState>
       ) : retido ? (
-        <EmptyState title="Existem movimentações, ainda não publicadas nesta versão">
+        // A frase só aparece com CONTAGEM do dado; sem número, o estado retido não existe.
+        <EmptyState title={withheld === 1 ? 'Existe 1 movimentação, ainda não publicada nesta versão' : `Existem ${withheld} movimentações, ainda não publicadas nesta versão`}>
           <span className={s.emptyText} data-testid="moves-empty-text">{MOVES_EMPTY}</span>
-          <span className={s.emptyText} data-testid="moves-empty-withheld"> Há movimentações na base, mas elas ainda não foram publicadas nesta versão do portal; nenhuma aparece antes da liberação.</span>
+          <span className={s.emptyText} data-testid="moves-empty-withheld"> {withheld === 1 ? 'Há 1 movimentação na base' : `Há ${withheld} movimentações na base`}, mas {withheld === 1 ? 'ela ainda não foi publicada' : 'elas ainda não foram publicadas'} nesta versão do portal; nada aparece antes da liberação.</span>
         </EmptyState>
       ) : semPublicacao ? (
         <EmptyState title="Ainda não há Moves publicados">
@@ -59,7 +63,7 @@ export default async function MovesPage({ searchParams }: { searchParams: Promis
           <SearchInput action="/moves" label="Buscar movimento" placeholder="Pessoa ou empresa" defaultValue={q} />
           {q && (
             <p className="pt-meta" data-testid="moves-filter-active">
-              Filtro: <strong>{q}</strong> · <Link href="/moves" className={s.touch} style={{ textDecoration: 'underline' }} data-testid="moves-filter-clear">limpar</Link>
+              Filtro: <strong>{q}</strong> · <Link href="/moves" className={s.touchBoth} style={{ textDecoration: 'underline' }} data-testid="moves-filter-clear">limpar</Link>
             </p>
           )}
           {filtroVazio ? (
@@ -71,7 +75,7 @@ export default async function MovesPage({ searchParams }: { searchParams: Promis
               </span>
               {q && (
                 <p style={{ marginTop: 8 }}>
-                  <Link href="/moves" style={{ textDecoration: 'underline' }} data-testid="moves-filter-empty-clear">Ver todos os Moves</Link>
+                  <Link href="/moves" className={s.touchBoth} style={{ textDecoration: 'underline' }} data-testid="moves-filter-empty-clear">Ver todos os Moves</Link>
                 </p>
               )}
             </EmptyState>
