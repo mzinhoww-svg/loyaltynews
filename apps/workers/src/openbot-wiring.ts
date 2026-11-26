@@ -11,7 +11,7 @@ import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
 import {
   openbotFlagsFrom, OPENBOT_PERMISSIONS, OpenBotModelGateway, type GatewayTaskClass, type OpenBotDeps, type OpenBotFlags, type PilotGate, type PilotVerdictStreak,
 } from '@ln/openbot';
-import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
+import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
 
 /** Perfil (dos agentes do piloto, rascunhos do AgentOps) que executa cada classe da Fábrica. `context` é a triagem; `roles` é do agente social. */
 export const PILOT_PROFILES: Record<GatewayTaskClass, string> = {
@@ -75,6 +75,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
   const now = opts.now ?? (() => new Date());
   const rows = new PgPilotRowStore(db, now);
   const state = new PgPilotStateStore(db);
+  const resolutions = new PgPilotResolutionStore(db, now);
   const store = new PostgresLedgerStore(db as unknown as SqlDatabase);
 
   // A parada (kill switch global ou da rota `openbot`) vive no banco; `flags()` é síncrona, então o valor é relido antes de cada chamada e a cada espera.
@@ -89,7 +90,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
     queue: new PgLeaseQueue(db), ledger: new PgCostLedger(db, now), health: new PgHealthStore(db), callbacks: new PgCallbackStore(db),
     secrets: () => [], // o gateway não verifica assinatura (as rotas verificam)
     flags, now, requireDerivedResultRef: true,
-    pilot: { enabled: true, rows, state, gate: kit.canDispatchNext, verdictStreak: kit.verdictStreakReasons },
+    pilot: { enabled: true, rows, state, gate: kit.canDispatchNext, verdictStreak: kit.verdictStreakReasons, resolved: () => resolutions.keys() },
   };
   const timeoutMs = Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) > 0 ? Number(env['LN_OPENBOT_GATEWAY_TIMEOUT_MS']) : 10 * 60_000;
   const wait = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
