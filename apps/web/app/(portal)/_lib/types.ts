@@ -186,7 +186,8 @@ export interface CompanyProfile {
 
 /** `unavailable` = a API falhou: a página diz isso, não finge que não há empresas. */
 export type CompanyDirectory =
-  | { status: 'ok'; items: CompanyListItem[]; total: number; kinds: { kind: CompanyKind; total: number }[]; offset: number; limit: number }
+  // `available: false` = nenhuma fonte foi lida (fonte vazia): o total 0 não é uma contagem do banco.
+  | { status: 'ok'; items: CompanyListItem[]; total: number; kinds: { kind: CompanyKind; total: number }[]; offset: number; limit: number; available?: boolean }
   | { status: 'unavailable' };
 export type CompanyLookup = { status: 'ok'; company: CompanyProfile } | { status: 'not_found' } | { status: 'unavailable' };
 

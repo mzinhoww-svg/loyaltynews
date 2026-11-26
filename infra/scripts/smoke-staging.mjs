@@ -41,7 +41,7 @@ export function avaliarReady(j, opts = {}) {
   return p;
 }
 
-/** Número de empresas anunciado na página /intelligence. Prefere `data-count` (o zero honesto também é número); sem ele, lê "N cadastrado(s)"; null só para "em breve". */
+/** Número de empresas anunciado na página /intelligence. Prefere `data-count` (o zero honesto também é número); sem ele, lê "N cadastrado(s)"; null quando a página não mostra contagem (indisponível, não publicado ou sem o tile). */
 export function empresasNaPagina(html) {
   const tag = String(html).match(/<[^>]*data-testid="count-empresas"[^>]*>/)?.[0];
   const attr = tag?.match(/data-count="(\d+)"/);
@@ -187,10 +187,14 @@ async function main() {
     check('intelligence: 200', r.status === 200, `HTTP ${r.status}`);
     // A página TEM de refletir a API: com dados na API e "em breve" na página é falha real (adaptador), não "esperada".
     const api = await get('/api/publico/intelligence/empresas');
-    let apiTotal;
-    try { apiTotal = Number(JSON.parse(api.body).total); } catch { apiTotal = null; }
-    check('intelligence: página e API concordam', apiTotal !== null && n === apiTotal, n === null ? `a API tem ${apiTotal ?? '?'} empresa(s) e a página diz "em breve"` : `página ${n}, API ${apiTotal ?? '?'}`);
-    if (orgs !== null) check(`intelligence: ${orgs} empresas cadastradas`, n === orgs, n === null ? 'a página diz "em breve"' : `a página mostra ${n}`);
+    // Só vale contagem de resposta 200 com `total` inteiro: erro ou total ausente/nulo não pode "concordar" com o 0 da página.
+    let apiTotal = null;
+    try { const t = JSON.parse(api.body).total; if (api.status === 200 && Number.isInteger(t) && t >= 0) apiTotal = t; } catch { /* corpo sem JSON */ }
+    const semContagem = 'a página não mostra contagem';
+    check('intelligence: página e API concordam', apiTotal !== null && n === apiTotal,
+      apiTotal === null ? `a API respondeu HTTP ${api.status} sem total válido; ${n === null ? semContagem : `página ${n}`}`
+        : n === null ? `a API tem ${apiTotal} empresa(s) e ${semContagem}` : `página ${n}, API ${apiTotal}`);
+    if (orgs !== null) check(`intelligence: ${orgs} empresas cadastradas`, n === orgs, n === null ? semContagem : `a página mostra ${n}`);
   });
   await tentar('studio', async () => {
     const neg = await get('/studio');

@@ -228,6 +228,7 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       if (!Array.isArray(j.data)) throw new Error('formato');
       const items = j.data.map(mapCompanyItem).filter((c): c is CompanyListItem => c !== null);
       if (items.length < j.data.length) logFalha(WHAT, `${j.data.length - items.length} item(ns) inválido(s) descartado(s)`);
+      if (j.data.length > 0 && !items.length) throw new Error('nenhum item válido');
       // `total` é o que a API conta no banco; sem ele não dá para saber se a página está truncada. Não invento um total:
       // uma resposta sem total inteiro coerente vira `unavailable` (a página diz que o diretório está indisponível).
       const total = j.total;
@@ -289,10 +290,13 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       return { status: 'unavailable' };
     }
     try {
-      const j = (await res.json()) as { data?: unknown; disponivel?: unknown };
+      const j = (await res.json()) as { data?: unknown; total?: unknown; disponivel?: unknown };
       if (!Array.isArray(j.data) || typeof j.disponivel !== 'boolean') throw new Error('formato');
       const items = j.data.map(map).filter((x): x is T => x !== null);
       if (items.length < j.data.length) logFalha(WHAT, `${j.data.length - items.length} item(ns) inválido(s) descartado(s)`);
+      // Nada legível não é "nada publicado": itens que vieram e nenhum passou no mapa, ou `total` > 0 sem item algum, são
+      // falha de formato — a tela diz "indisponível" em vez de um 0 inventado (P2-1 do QA1 sobre 96e477dd).
+      if (!items.length && (j.data.length > 0 || (typeof j.total === 'number' && j.total > 0))) throw new Error('nenhum item válido');
       // Contrato novo (Backend, 25/11 — ft/api-moves-disponivel 92d79c8): `disponivel` descreve o RECURSO (flag ligada e ao
       // menos um item publicável no universo, sem filtro) e `total` descreve o RESULTADO. Por isso:
       //   total 0 + disponivel false = recurso sem dado publicável → "ainda não há";

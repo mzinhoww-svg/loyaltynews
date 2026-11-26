@@ -275,7 +275,8 @@ describe('fontes vazia e MOCK', () => {
   });
 
   it('vazia: diretório vazio honesto e empresa inexistente', async () => {
-    expect(await emptySource.getCompanyDirectory()).toEqual({ status: 'ok', items: [], total: 0, kinds: [], offset: 0, limit: 0 });
+    // `available: false`: a fonte vazia não leu nada, então o hub não pode afirmar "0 empresas publicadas".
+    expect(await emptySource.getCompanyDirectory()).toEqual({ status: 'ok', items: [], total: 0, kinds: [], offset: 0, limit: 0, available: false });
     expect(await emptySource.getCompany(ID(1))).toEqual({ status: 'not_found' });
   });
 
