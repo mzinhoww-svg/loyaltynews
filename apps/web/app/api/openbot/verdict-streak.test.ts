@@ -59,8 +59,8 @@ const waiting = async () => (await rowsStore().all()).filter((r) => ['factcheck'
 function factory() {
   const deps: OpenBotDeps = {
     queue: new PgLeaseQueue(db()), ledger: new PgCostLedger(db(), app.deps.now), health: new PgHealthStore(db()), callbacks: new PgCallbackStore(db()),
-    secrets: () => [SECRET], flags: () => openbotFlagsFrom({ overrides: { openbotDispatch: app.deps.flags.openbotDispatch === true }, kill: false }), now: app.deps.now, requireDerivedResultRef: true,
-    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: kit.canDispatchNext!, verdictStreak: kit.verdictStreakReasons! } } : {}),
+    secrets: () => [SECRET], flags: () => openbotFlagsFrom({ overrides: { openbotDispatch: app.deps.flags.openbotDispatch === true }, kill: false }), now: app.deps.now, requireDerivedResultRef: true, routes: { classification: ['claude'], editorial_draft: ['claude'], fact_check: ['codex'], editorial_review: ['codex'], social_copy: ['claude'], entity_resolution: ['claude'] },
+    ...(pilotEnabled(process.env) ? { pilot: { enabled: true, rows: rowsStore(), state: stateStore(), gate: kit.canDispatchNext!, verdictStreak: kit.verdictStreakReasons!, allowedAccounts: ['claude', 'codex'] } } : {}),
   };
   let t = 0;
   const gw = new OpenBotModelGateway({
