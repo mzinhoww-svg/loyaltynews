@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CHAVE_CONSENTIMENTO, configGa, gravarConsentimento, lerConsentimento, mostrarBanner, podeCarregarGa, type Consentimento as Escolha } from './regras';
 
 type Gtag = (...args: unknown[]) => void;
@@ -17,6 +17,8 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
   const idGa = process.env.NEXT_PUBLIC_GA_ID;
   const caminho = usePathname();
   const [escolha, setEscolha] = useState<Escolha | null | undefined>(undefined);
+  const [reaberto, setReaberto] = useState(false);
+  const bannerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const ler = (): Escolha | null => {
@@ -27,10 +29,19 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
       }
     };
     setEscolha(ler());
-    const abrir = () => setEscolha(null);
+    const abrir = () => {
+      setEscolha(null);
+      setReaberto(true);
+    };
     window.addEventListener('ln-preferencias-cookies', abrir);
     return () => window.removeEventListener('ln-preferencias-cookies', abrir);
   }, []);
+
+  // Reaberto por "Preferências de cookies": leva o foco ao aviso. No primeiro carregamento não rouba o foco;
+  // o aria-live anuncia o banner a quem usa leitor de tela.
+  useEffect(() => {
+    if (reaberto && escolha === null) bannerRef.current?.focus();
+  }, [reaberto, escolha]);
 
   useEffect(() => {
     if (escolha === undefined || !idGa) return;
@@ -66,7 +77,7 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
 
   if (escolha === undefined || !mostrarBanner({ idGa, producao, consentimento: escolha })) return null;
   return (
-    <section className="ln-consent" role="region" aria-label="Preferências de cookies" data-testid="consentimento-banner"
+    <section ref={bannerRef} tabIndex={-1} aria-live="polite" className="ln-consent" role="region" aria-label="Preferências de cookies" data-testid="consentimento-banner"
       style={{ position: 'fixed', insetInline: 0, bottom: 0, zIndex: 50, background: 'var(--ln-color-surface, #fff)', borderTop: '1px solid var(--ln-color-border)', boxShadow: '0 -4px 16px rgba(0,0,0,.08)', padding: 'var(--ln-space-4, 16px)' }}>
       <div className="pt-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ln-space-3, 12px)', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ margin: 0, maxWidth: 760 }}>
@@ -75,7 +86,7 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
         </p>
         <div style={{ display: 'flex', gap: 'var(--ln-space-2, 8px)' }}>
           <button type="button" className="ln-btn ln-btn--secondary" onClick={() => decidir(false)}>Recusar</button>
-          <button type="button" className="ln-btn ln-btn--primary" onClick={() => decidir(true)}>Aceitar cookies analíticos</button>
+          <button type="button" className="ln-btn ln-btn--secondary" onClick={() => decidir(true)}>Aceitar cookies analíticos</button>
         </div>
       </div>
     </section>

@@ -68,9 +68,28 @@ test.describe('GA4 com consentimento', () => {
       // page_location explícito e sem query: é o que o GA4 manda no parâmetro dl (achado P1 do QA 8 na 14e1f9c).
       expect((config?.[2] as { page_location?: string })?.page_location).toMatch(/^https?:\/\/[^/]+\/busca$/);
       expect(JSON.stringify(config)).not.toContain('fulano');
-      // Preferências no rodapé reabrem o aviso (revogar).
+      // Preferências no rodapé reabrem o aviso (revogar) e o foco vai para o banner.
       await page.getByTestId('preferencias-cookies').click();
       await expect(page.getByTestId('consentimento-banner')).toBeVisible();
+      await expect(page.getByTestId('consentimento-banner')).toBeFocused();
+    });
+
+    test('banner: escolhas com o mesmo peso, aria-live, 44 px e foco ao reabrir', async ({ page }) => {
+      await page.goto('/');
+      const banner = page.getByTestId('consentimento-banner');
+      await expect(banner).toBeVisible();
+      await expect(banner).toHaveAttribute('aria-live', 'polite');
+      const recusar = page.getByRole('button', { name: 'Recusar' });
+      const aceitar = page.getByRole('button', { name: 'Aceitar cookies analíticos' });
+      expect(await recusar.getAttribute('class')).toBe(await aceitar.getAttribute('class'));
+      for (const b of [recusar, aceitar]) {
+        const box = await b.boundingBox();
+        expect(box?.height ?? 0, `${await b.textContent()}: altura`).toBeGreaterThanOrEqual(44);
+      }
+      await recusar.click();
+      await expect(banner).toHaveCount(0);
+      await page.getByTestId('preferencias-cookies').click();
+      await expect(banner).toBeFocused();
     });
 
     test('GPC ligado: mesmo aceitando, nada é enviado ao Google', async ({ page }) => {
