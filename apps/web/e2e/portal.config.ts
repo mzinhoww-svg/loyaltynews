@@ -105,9 +105,6 @@ export default defineConfig({
             // Chave FIXA só do e2e (não é segredo nem vale em deploy): sem ela o login de teste responde 400.
             LN_ATTEMPT_HMAC_KEY: 'chave-de-teste-do-limite-32-bytes!!',
             BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!',
-            // Habilita GET /api/e2e/login no servidor do perfil vitrine (a rota exige a variável em runtime);
-            // sem ela as provas de Studio da tipografia recebem 404. Só existe no build de e2e, nunca em deploy.
-            LN_STUDIO_TEST_SESSION: '1',
             // Flags de produto são de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem a flag. Só repassa o que o operador do teste definiu.
             ...(process.env.LN_FLAGS_ON ? { LN_FLAGS_ON: process.env.LN_FLAGS_ON } : {}),
           },
