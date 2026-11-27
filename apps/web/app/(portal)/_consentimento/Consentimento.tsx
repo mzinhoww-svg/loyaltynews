@@ -70,8 +70,8 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
       style={{ position: 'fixed', insetInline: 0, bottom: 0, zIndex: 50, background: 'var(--ln-color-surface, #fff)', borderTop: '1px solid var(--ln-color-border)', boxShadow: '0 -4px 16px rgba(0,0,0,.08)', padding: 'var(--ln-space-4, 16px)' }}>
       <div className="pt-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ln-space-3, 12px)', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ margin: 0, maxWidth: 760 }}>
-          Usamos cookies analíticos do Google Analytics para medir a audiência, sem anúncios e sem dados pessoais. Eles só são ativados se
-          você aceitar. Veja a <Link href="/privacidade#cookies" style={{ textDecoration: 'underline' }}>política de cookies</Link>.
+          Usamos cookies analíticos do Google Analytics para medir a audiência, sem anúncios. Eles só são ativados se você aceitar; então
+          enviam ao Google dados de navegação e identificadores, que são dados pessoais. Veja a <Link href="/privacidade#cookies" style={{ textDecoration: 'underline' }}>política de cookies</Link>.
         </p>
         <div style={{ display: 'flex', gap: 'var(--ln-space-2, 8px)' }}>
           <button type="button" className="ln-btn ln-btn--secondary" onClick={() => decidir(false)}>Recusar</button>

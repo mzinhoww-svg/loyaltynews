@@ -130,8 +130,8 @@ test.describe('pedido de proposta (flag portalFormularios ligada)', () => {
   test('com a flag ligada o botão principal leva ao formulário, que traz finalidade, opt-in desmarcado e passa no axe', async ({ page }) => {
     await pronto(page);
     await expect(page.getByTestId('mk-cta-primary')).toHaveAttribute('href', '#proposta');
-    await expect(page.getByTestId('proposta-finalidade')).toContainText('só para responder a este pedido de proposta');
-    await expect(page.getByLabel(/Também quero receber a newsletter/)).not.toBeChecked();
+    await expect(page.getByTestId('proposta-finalidade')).toContainText('para responder ao pedido de proposta ou de mídia kit e conduzir a negociação');
+    await expect(page.getByLabel(/Tenho interesse na newsletter/)).not.toBeChecked();
     await axe(page);
   });
 

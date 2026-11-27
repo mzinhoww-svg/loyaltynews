@@ -36,7 +36,7 @@ export default function TheLoyalPage() {
         </form>
       ) : (
         <EmptyState title="The Loyal ainda não está aberto para inscrições">
-          A newsletter está em preparação e a entrega permanece desligada até a configuração de e-mail e as regras de consentimento serem concluídas. Nenhum e-mail é coletado nesta fase.
+          A inscrição na The Loyal está fechada. No pedido comercial registramos, se você marcar, o interesse na newsletter. Nada é enviado hoje.
         </EmptyState>
       )}
     </>
