@@ -91,7 +91,7 @@ const where = (kind: AttemptKind, subject: string) =>
   and(eq(schema.authAttempt.kind, kind), eq(schema.authAttempt.subject, attemptSubject(kind, subject)));
 
 /** Reserva uma tentativa. Bloqueado: não consome nem estende o bloqueio. */
-export async function acquireAttempt(db: Db, kind: AttemptKind, subject: string, now = new Date()): Promise<Acquire> {
+export async function acquireAttempt(db: Db, kind: AttemptKind, subject: string, now = new Date(), max = MAX_FAILURES): Promise<Acquire> {
   return db.transaction(async (tx) => {
     await tx.insert(schema.authAttempt).values({ kind, subject: attemptSubject(kind, subject), failures: 0, windowStart: now }).onConflictDoNothing();
     const [row] = await tx.select().from(schema.authAttempt).where(where(kind, subject)).for('update');
@@ -104,7 +104,7 @@ export async function acquireAttempt(db: Db, kind: AttemptKind, subject: string,
       .set({
         failures,
         windowStart: fresh ? now : row.windowStart,
-        lockedUntil: failures >= MAX_FAILURES ? new Date(now.getTime() + LOCK_MS) : null,
+        lockedUntil: failures >= max ? new Date(now.getTime() + LOCK_MS) : null,
       })
       .where(where(kind, subject));
     return { allowed: true as const };

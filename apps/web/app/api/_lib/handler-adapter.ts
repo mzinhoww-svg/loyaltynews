@@ -4,7 +4,7 @@
 // (`public` | `studio`), o limite de formulários públicos, a auditoria e a tradução para Response.
 // O que é do módulo (montar o ctx do domínio, persistir) entra por `call`.
 import { z } from 'zod';
-import { acquireAttempt, type Action, type Resource } from '@ln/auth';
+import { MAX_FAILURES, WINDOW_MS, acquireAttempt, type Action, type Resource } from '@ln/auth';
 import { execute, HttpError, json, queryObject, readBody, type RouteCtx, type RouteFn } from './http';
 
 export interface HttpResult {
@@ -22,6 +22,12 @@ export interface PureRoute<H = unknown> {
   handler: H;
 }
 
+/**
+ * Envios aceitos por formulário e por janela de 15 min quando NÃO há IP de proxy confiável (TRUSTED_PROXY_HOPS ausente ou cabeçalho incompleto). Não distingue
+ * visitantes: segura a enxurrada, mas quem a provoca também fecha o formulário para os outros por 15 min. Com o IP, vale o limite de 5 por IP.
+ */
+export const TETO_FORMULARIO_SEM_IP = 30;
+
 export interface DispatcherOptions<H> {
   routes: readonly PureRoute<H>[];
   /** Permissão exigida (sessão + MFA + RBAC) nas rotas `studio`; o handler ainda aplica as próprias regras. */
@@ -30,8 +36,11 @@ export interface DispatcherOptions<H> {
   call: (route: PureRoute<H>, input: unknown, c: RouteCtx) => Promise<HttpResult>;
   /** Auditoria das rotas POST de Studio. */
   auditResource: string;
-  /** Limite por IP (5 por 15 min) nos POST públicos, contra spam de formulário. Só vale com IP de proxy confiável. */
-  limitPublicPosts?: boolean;
+  /**
+   * Quais POST públicos são envio de FORMULÁRIO e têm limite, contra spam: 5 por 15 min por IP de proxy confiável; sem IP, TETO_FORMULARIO_SEM_IP no formulário.
+   * Os demais POST públicos (ex.: anúncios, chamados a cada página) ficam fora: não são barrados nem gastam o limite do formulário.
+   */
+  limitedForm?: (route: PureRoute<H>) => boolean;
   /**
    * Rota fechada por flag de execução: devolve true quando a rota NÃO deve existir agora. Responde 404 "Rota inexistente" (igual a um
    * caminho que não existe), ANTES do limite por IP e de qualquer leitura do corpo: com a rota fechada nada é lido, gravado nem contado.
@@ -60,6 +69,19 @@ export function matchPath(template: string, path: string): Record<string, string
 }
 
 export function createDispatcher<H>(opts: DispatcherOptions<H>) {
+  // Aviso do teto sem IP: no máximo UM por formulário a cada 15 min em cada processo, com a contagem das recusas. Uma enxurrada não vira log sem fim.
+  const avisos = new Map<string, { em: number; recusas: number }>(); // chave = caminho declarado da rota (conjunto fixo)
+  const avisarTeto = (rota: string, agora: number) => {
+    const a = avisos.get(rota) ?? { em: -Infinity, recusas: 0 };
+    a.recusas += 1;
+    if (agora - a.em >= WINDOW_MS) {
+      // nada vindo de quem chamou entra na linha (nem o identificador da requisição)
+      console.warn(`[api] teto sem IP atingido em ${rota} (recusas desde o aviso anterior: ${a.recusas})`);
+      a.em = agora;
+      a.recusas = 0;
+    }
+    avisos.set(rota, a);
+  };
   return async function dispatch(req: Request): Promise<Response> {
     const path = norm(new URL(req.url).pathname);
     const method = req.method.toUpperCase();
@@ -77,8 +99,11 @@ export function createDispatcher<H>(opts: DispatcherOptions<H>) {
     }
     const fn: RouteFn = async (r, c) => {
       if (opts.closed?.(route)) throw new HttpError(404, 'NOT_FOUND', 'Rota inexistente.');
-      if (route.auth === 'public' && method === 'POST' && opts.limitPublicPosts && c.ip) {
-        const gate = await acquireAttempt(c.deps.db, 'form', `${opts.auditResource}:${c.ip}`, c.deps.now());
+      if (route.auth === 'public' && method === 'POST' && opts.limitedForm?.(route)) {
+        // o sujeito vira HMAC dentro de acquireAttempt: nenhum IP é gravado em claro
+        const sujeito = c.ip ? `${opts.auditResource}:${c.ip}` : `${opts.auditResource}:sem-ip:${route.path}`;
+        const gate = await acquireAttempt(c.deps.db, 'form', sujeito, c.deps.now(), c.ip ? MAX_FAILURES : TETO_FORMULARIO_SEM_IP);
+        if (!gate.allowed && !c.ip) avisarTeto(route.path, c.deps.now().getTime());
         if (!gate.allowed) throw new HttpError(429, 'TOO_MANY_REQUESTS', 'Muitas requisições. Tente novamente mais tarde.');
       }
       const raw = method === 'GET' ? queryObject(c.url) : await readBody(r, z.unknown());

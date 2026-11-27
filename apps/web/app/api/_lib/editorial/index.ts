@@ -70,7 +70,7 @@ export const EDITORIAL_ROUTES: readonly PureRoute<H>[] = [
   stu('POST', '/piloto/importacao', WRITE, importLeitura2),
   stu('GET', '/piloto/:materia/leituras', READ, listLeituras),
   stu('POST', '/piloto/:materia/leitura', WRITE, registerLeituraComParada), // leitura do leitor 1 também vai para a linha do piloto: parada no 1º fato ALTO (PM, 24/11)
-  // Portal (sem sessão; limite por IP no dispatcher): formulário de direito de resposta
+  // Portal (sem sessão; limite de envio no dispatcher, ver limitedForm): formulário de direito de resposta
   { method: 'POST', path: `${PUB}/right-of-reply`, auth: 'public', handler: intakeRightOfReply },
 ];
 
@@ -125,7 +125,7 @@ export const dispatchEditorial = createDispatcher<H>({
   routes: EDITORIAL_ROUTES,
   studioPerm: READ,
   auditResource: 'editorial',
-  limitPublicPosts: true,
+  limitedForm: (r) => r.path === `${PUB}/right-of-reply`,
   async call(route, input, c) {
     const actor = c.session ? { userId: c.session.userId, roles: [c.session.role], mfa: c.session.mfa } : null;
     const base = { actor, now: c.deps.now, newId: () => crypto.randomUUID(), sources: sourceRegistry, flags: c.deps.flags, db: c.deps.db, siteBaseUrl: siteBaseUrl() };
