@@ -1,6 +1,6 @@
 {
     "status":  "configured",
-    "root_fingerprint":  "1D4A3E263898E5B0C0590FD7A2A2BB73C4C84309",
+    "root_fingerprint":  "2D7BE891B360D96D735DE147D55F55370F56610B",
     "executor":  {
                      "fingerprint":  "E842D7C1ECA0045D3D7BBFEA47D7C1BC57FD351B",
                      "provider":  "anthropic"
