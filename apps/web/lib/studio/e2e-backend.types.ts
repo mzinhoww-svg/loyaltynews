@@ -21,6 +21,8 @@ export interface E2eBackend {
   seedPilotoViolacoes(): Promise<{ linhas: string[] }>;
   /** Liga/desliga uma flag SÓ no backend de e2e (as rotas e o Studio leem o mesmo getDeps). */
   setFlag(nome: string, ligada: boolean): void;
+  /** Liga/desliga o sal (MOCK) da trilha de exclusão de lead no processo do e2e. Desligado (padrão) = a rota de exclusão responde 500 LEAD_AUDIT_NOT_CONFIGURED. */
+  setSalExclusaoLead(ligado: boolean): void;
   /** Liga/desliga um Blob EM MEMÓRIA (MOCK) só no backend de e2e. Desligado (padrão) = sem armazenamento: as rotas de arquivo respondem 503, como sem S3. */
   setBlobMemoria(ligado: boolean): void;
 }

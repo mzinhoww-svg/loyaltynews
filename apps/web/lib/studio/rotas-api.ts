@@ -267,6 +267,8 @@ export const api = {
     qualificarLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/qualify`, { metodo: 'POST', corpo: { leadId } }),
     descartarLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/discard`, { metodo: 'POST', corpo: { leadId } }),
     converterLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/convert`, { metodo: 'POST', corpo: { leadId } }),
+    /** Exclusão definitiva do lead (LGPD): 204 sem corpo; 500 LEAD_AUDIT_NOT_CONFIGURED não apaga nada. Só comercial e admin. */
+    excluirLead: (leadId: string) => chamar(dispatchCommercial, `${C}/studio/leads/${encodeURIComponent(leadId)}`, { metodo: 'DELETE' }),
     oportunidades: () => chamar(dispatchCommercial, `${C}/studio/opportunities`),
     moverEstagio: (corpo: unknown) => chamar(dispatchCommercial, `${C}/studio/opportunities/stage`, { metodo: 'POST', corpo }),
     painel: (from: string, to: string) => chamar(dispatchCommercial, `${C}/studio/dashboard`, { query: { from, to } }),

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { CMS_READ } from '@/lib/studio/cms/roles';
+import { ESTADOS_DA_FABRICA, vazioDaFabrica } from '@/lib/studio/cms/checagem-vazio';
 import { requireStudio } from '../../../_lib/guard';
 import { SemBanco } from '../../../_components/SemBanco';
 import { QuadroRolavel } from '../../../_components/QuadroRolavel';
@@ -38,6 +40,7 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
   const emChecagem = ehErro(cms) ? [] : cms.body.data;
   const erroFabrica = ehErro(fabrica) ? mensagemErro(fabrica) : null;
   const erroCms = ehErro(cms) ? mensagemErro(cms) : null;
+  const vazio = vazioDaFabrica(status);
   return (
     <>
       <p>
@@ -74,10 +77,11 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
           <label htmlFor="status">Estado</label>
           <select id="status" name="status" defaultValue={status}>
             <option value="">Todos</option>
-            <option value="rascunho">Rascunho</option>
-            <option value="em_checagem">Em checagem</option>
-            <option value="bloqueado">Bloqueado</option>
-            <option value="aprovado">Aprovado</option>
+            {ESTADOS_DA_FABRICA.map((e) => (
+              <option key={e.valor} value={e.valor}>
+                {e.rotulo}
+              </option>
+            ))}
           </select>
         </div>
         <button className="st-btn sec" type="submit">
@@ -91,15 +95,16 @@ export default async function Checagem({ searchParams }: { searchParams: Promise
           recarregar="/studio/cms/checagem"
         />
       ) : itens.length === 0 ? (
-        <EstadoLista
-          estado="vazio"
-          erro={null}
-          recarregar="/studio/cms/checagem"
-          vazio={{
-            titulo: 'Nenhuma matéria da Fábrica na fila',
-            porque: 'A Fábrica editorial não entregou rascunho nenhum: a coleta e a redação rodam em comando próprio e estão desligadas nesta fase, então nada chega a esta fila.',
-            comoPopular: 'A matéria entra aqui quando a Fábrica rodar (comando manual) ou quando a redação criar e enviar uma matéria para checagem no CMS.',
-          }}
+        <EmptyState
+          title={vazio.titulo}
+          description={vazio.descricao}
+          action={
+            vazio.filtrado ? (
+              <a className="st-btn sec" href="/studio/cms/checagem" data-limpar-filtro>
+                Limpar filtro
+              </a>
+            ) : undefined
+          }
         />
       ) : (
         <QuadroRolavel rotulo="Fila de checagem">

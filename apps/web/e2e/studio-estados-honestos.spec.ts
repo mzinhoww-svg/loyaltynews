@@ -45,6 +45,22 @@ test('fila de checagem: vazio honesto da Fábrica explica o comando e o caminho 
   await expect(vazio).toBeVisible();
   await expect(vazio).toHaveAttribute('role', 'status');
   await expect(vazio).toContainText('coleta e a redação rodam em comando próprio');
-  await expect(vazio).toContainText('enviar uma matéria para checagem no CMS');
+  await expect(vazio).toContainText('Matéria enviada para checagem no CMS aparece na seção');
+  await expect(vazio, 'o envio pelo CMS não alimenta a fila da Fábrica').not.toContainText('enviar uma matéria para checagem');
   await expect(page.locator('main .st-empty[aria-labelledby="vazio-f"]'), 'caixa improvisada antiga').toHaveCount(0);
+});
+
+test('fila de checagem: filtro sem resultado não diz que a Fábrica não entregou nada e leva de volta à fila', async ({ page, context }) => {
+  await entrar(context, 'honesto-check', 'admin');
+  // nenhum spec semeia matéria da Fábrica em rascunho: este filtro não acha nada em qualquer ordem
+  await page.goto('/studio/cms/checagem?status=rascunho');
+  const vazio = page.locator('main .ln-empty').filter({ hasText: 'Nenhuma matéria da Fábrica com esse estado' });
+  await expect(vazio).toBeVisible();
+  await expect(vazio).toHaveAttribute('role', 'status');
+  await expect(vazio).toContainText('O filtro de estado “Rascunho” não encontrou matéria');
+  await expect(page.locator('main')).not.toContainText('não entregou rascunho nenhum');
+  await expect(page.getByLabel('Estado')).toHaveValue('rascunho');
+  await vazio.getByRole('link', { name: 'Limpar filtro' }).click();
+  await expect(page).toHaveURL(/\/studio\/cms\/checagem$/);
+  await expect(page.getByRole('heading', { name: 'Nenhuma matéria da Fábrica com esse estado' })).toHaveCount(0);
 });

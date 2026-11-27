@@ -69,6 +69,10 @@ async function montar() {
   const aplicar = () => setDepsForTest({ db, auth, now: () => new Date(), flags: { ...FLAG_DEFAULTS, ...flagsGlobais() } as FlagState, ...blobDeps() });
 
   const backend: E2eBackend = {
+    setSalExclusaoLead(ligado) {
+      if (ligado) process.env.LN_LEAD_AUDIT_SALT = 'sal-mock-de-e2e-sem-valor-real';
+      else delete process.env.LN_LEAD_AUDIT_SALT;
+    },
     setBlobMemoria(ligado) {
       blobGlobal().ligado = ligado;
       if (!ligado) blobGlobal().objetos.clear();
