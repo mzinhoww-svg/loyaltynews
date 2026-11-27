@@ -16,7 +16,7 @@ let editor: Actor;
 const MOTIVO = 'Segredo rotacionado e log apagado na origem; chave antiga revogada.';
 const row = (taskId: string, attempt: number, over: Partial<PilotRow> = {}): PilotRow =>
   ({
-    task_id: taskId, kind: 'editorial_draft', article_id: 'art-1', source_id: 's1', stage: 'draft', account: 'claude', declared_model: 'claude-sonnet-5-5', prompt_version: 'p1',
+    task_id: taskId, kind: 'editorial_draft', article_id: 'art-1', source_id: 's1', stage: 'draft', account: 'opencode', declared_model: 'opencode-go/deepseek-v4-pro', prompt_version: 'p1',
     started_at: '2026-11-23T12:00:00.000Z', ended_at: '2026-11-23T12:01:00.000Z', attempt, outcome: 'completed', packet_chars: 100, tokens_measured: false,
     published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false, ...over,
   }) as PilotRow;

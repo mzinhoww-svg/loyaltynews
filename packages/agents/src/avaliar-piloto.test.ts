@@ -19,10 +19,10 @@ const escreve = (nome: string, conteudo: string) => {
   writeFileSync(p, marca + conteudo, 'utf8');
   return p;
 };
-const fixText = () => readFileSync(FIX('simulado-aprovado-so-31-colunas.csv'), 'utf8').replace(/^\uFEFF/, '').replace(/^# amostra_desde=[^\n]*\n/, '');
+const fixText = () => readFileSync(FIX('simulado-aprovado-so-agentops.csv'), 'utf8').replace(/^\uFEFF/, '').replace(/^# amostra_desde=[^\n]*\n/, '');
 
 describe('avaliar-piloto: veredito e código de saída sobre o CSV exportado', () => {
-  it('CSV aprovado (31 colunas do AgentOps + 7 do Studio ignoradas): APROVADO, saída 0, com limite medido e output_valid em destaque', () => {
+  it('CSV aprovado (32 colunas do AgentOps + 7 do Studio ignoradas): APROVADO, saída 0, com limite medido e output_valid em destaque', () => {
     const r = run('--csv', FIX('simulado-aprovado.csv'));
     expect(r.code).toBe(0);
     expect(r.out).toMatch(/VEREDITO: APROVADO/);
@@ -34,12 +34,30 @@ describe('avaliar-piloto: veredito e código de saída sobre o CSV exportado', (
     expect(r.err).toBe('');
   });
 
-  it('o mesmo CSV só com as 31 colunas também é aprovado; o BOM e as aspas, vírgulas e fórmula neutralizada do notes são lidos', () => {
-    const r = run('--csv', FIX('simulado-aprovado-so-31-colunas.csv'));
+  it('o mesmo CSV só com as 32 colunas também é aprovado; o BOM e as aspas, vírgulas e fórmula neutralizada do notes são lidos', () => {
+    const r = run('--csv', FIX('simulado-aprovado-so-agentops.csv'));
     expect(r.code).toBe(0);
     expect(r.out).toMatch(/VEREDITO: APROVADO/);
-    expect(readFileSync(FIX('simulado-aprovado-so-31-colunas.csv'), 'utf8').startsWith('\uFEFF')).toBe(true); // o BOM do Studio está no fixture
-    expect(readFileSync(FIX('simulado-aprovado-so-31-colunas.csv'), 'utf8')).toContain(`"'=1+1, com vírgula e ""aspas"""`);
+    expect(readFileSync(FIX('simulado-aprovado-so-agentops.csv'), 'utf8').startsWith('\uFEFF')).toBe(true); // o BOM do Studio está no fixture
+    expect(readFileSync(FIX('simulado-aprovado-so-agentops.csv'), 'utf8')).toContain(`"'=1+1, com vírgula e ""aspas"""`);
+  });
+
+  it('DP-71, controle negativo no comando: o mesmo agente na redação e na checagem reprova; sem o agente também; CSV antigo (sem a coluna) é recusado', () => {
+    const base = fixText();
+    expect(run('--csv', escreve('ok.csv', base)).code).toBe(0);
+    const mesmo = base.split('openbot-codex-checagem').join('openbot-opencode-redacao');
+    expect(mesmo).not.toBe(base);
+    const r1 = run('--csv', escreve('mesmo-agente.csv', mesmo));
+    expect(r1.code).toBe(1);
+    expect(r1.out).toMatch(/VEREDITO: REPROVADO/);
+    expect(r1.out).toMatch(/mesmo agente do redator/);
+    const r2 = run('--csv', escreve('sem-agente.csv', base.split('openbot-codex-revisao').join('')));
+    expect(r2.code).toBe(1);
+    expect(r2.out).toMatch(/sem agente \(worker_id\) no revisor/);
+    const antigo = base.split(/\r?\n/).map((l) => l.replace(/,(worker_id|openbot-[a-z-]+)?$/, '')).join('\n');
+    const r3 = run('--csv', escreve('antigo.csv', antigo));
+    expect(r3.code).toBe(1);
+    expect(r3.err).toMatch(/a coluna 32 deveria ser "worker_id"/);
   });
 
   it('CSV reprovado (2 médias, 0 altas): REPROVADO, saída 1, com o motivo e as contagens', () => {
@@ -136,7 +154,7 @@ describe('avaliar-piloto: CSV malformado e erros de uso falham fechado (saída 1
     expect(faltando.err).toMatch(/cabeçalho inválido/);
     const extra = run('--csv', escreve('extra.csv', comCabecalho((c) => [...c, 'coluna_inventada'])));
     expect(extra.code).toBe(1);
-    expect(extra.err).toMatch(/depois das 31 colunas só podem vir/);
+    expect(extra.err).toMatch(/depois das 32 colunas só podem vir/);
   });
 
   it('célula obrigatória vazia, booleano inválido, inteiro inválido e linha com colunas a mais', () => {
@@ -157,9 +175,9 @@ describe('avaliar-piloto: CSV malformado e erros de uso falham fechado (saída 1
     expect(run('--csv', escreve('so-cabecalho.csv', t[0]!)).err).toMatch(/sem linhas de dados/);
   });
 
-  it('o cabeçalho esperado é exatamente o do avaliador (31 colunas)', () => {
+  it('o cabeçalho esperado é exatamente o do avaliador (32 colunas)', () => {
     const cab = fixText().split('\n')[0]!.split(',');
-    expect(cab.slice(0, 31)).toEqual([...PILOT_SHEET_COLUMNS]);
+    expect(cab.slice(0, 32)).toEqual([...PILOT_SHEET_COLUMNS]);
   });
 
   it('B3: CSV sem marcador de amostra é recusado', () => {

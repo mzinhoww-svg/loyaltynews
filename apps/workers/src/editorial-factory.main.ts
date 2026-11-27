@@ -61,7 +61,7 @@ async function main() {
         const report = await runEditorialReprocess({
           db, flags, articleId: reprocess, stage: stage as never,
           motivo: argOf('--motivo') ?? '', operatorId: argOf('--operator') ?? '',
-          ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}),
+          ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink, ...(pilot.independence ? { independence: pilot.independence } : {}) } : {}),
           ...(gateway ? { gateway } : {}),
         });
         console.log(JSON.stringify(report, null, 2));
@@ -74,10 +74,10 @@ async function main() {
     if (args.includes('--autoral')) {
       // pautas autorais pendentes (DP-29): exige --run --simulate enquanto não houver chamada real de modelo autorizada
       if (!gateway && !pilot) { console.error('[fábrica] --autoral chama modelo: use --run --simulate'); process.exit(1); }
-      console.log(JSON.stringify(await runEditorialAutoral({ db, flags, ...(gateway ? { gateway } : {}), ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(max ? { max } : {}) }), null, 2));
+      console.log(JSON.stringify(await runEditorialAutoral({ db, flags, ...(gateway ? { gateway } : {}), ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink, ...(pilot.independence ? { independence: pilot.independence } : {}) } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(max ? { max } : {}) }), null, 2));
       return;
     }
-    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
+    const report = await runEditorialFactory({ db, flags, dryRun: !run, ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink, ...(pilot.independence ? { independence: pilot.independence } : {}) } : {}), ...(reader ? { reader } : {}), ...(shadow ? { shadow } : {}), ...(gateway ? { gateway } : {}), ...(max ? { options: { maxArticles: max } } : {}) });
     console.log(JSON.stringify(report, null, 2));
   } finally {
     await pool.end();

@@ -20,16 +20,16 @@ describe('planilha do piloto (PM-2026-11-23-F)', () => {
     const csv = planilhaCsv([], [], {}, '2026-11-25T19:00:00.000Z');
     expect(csv.split('\n')[0]).toBe('# amostra_desde=2026-11-25T19:00:00.000Z');
   });
-  it('as 31 colunas do AgentOps vêm primeiro, na ordem, e as extras no fim', () => {
+  it('as 32 colunas do AgentOps vêm primeiro, na ordem (a última é o agente), e as extras no fim', () => {
     const head = parse(planilhaCsv([], [], {}))[0]!;
     expect(head.slice(0, PILOT_CSV_COLUMNS.length)).toEqual([...PILOT_CSV_COLUMNS]);
     expect(head.slice(PILOT_CSV_COLUMNS.length)).toEqual(['materia', 'leitor1_veredito', 'leitor2_veredito', 'leitor2_unsupported_high', 'leitor2_unsupported_medium', 'leitor2_unsupported_low', 'leitor2_origem']);
   });
   it('mesmo escape do pilotCsv (fórmula neutralizada, aspas, lista com " | ")', () => {
     for (const v of ['=HYPERLINK("x")', 'disse "oi", ok', '+1', '@x', 'normal']) {
-      // notes é a última das 31 colunas e as outras vêm vazias: a linha do pilotCsv é 30 vírgulas + a célula
+      // notes é a penúltima das 32 colunas (a última é worker_id) e as outras vêm vazias: 30 vírgulas + a célula + 1 vírgula
       const linhaOficial = pilotCsv([{ notes: v } as never]).split('\n')[1]!;
-      expect(linhaOficial).toBe(','.repeat(PILOT_CSV_COLUMNS.length - 1) + celula(v));
+      expect(linhaOficial).toBe(`${','.repeat(PILOT_CSV_COLUMNS.length - 2)}${celula(v)},`);
     }
     expect(celula(['a', 'b'])).toBe('a | b');
   });

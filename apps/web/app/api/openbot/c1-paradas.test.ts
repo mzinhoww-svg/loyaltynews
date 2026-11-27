@@ -63,7 +63,7 @@ afterAll(async () => {
 /** Enfileira uma tarefa com entrada gravada (como a Fábrica faria) e a puxa pela ROTA real assinada. */
 async function entregue(n: number, pullBody: Record<string, unknown> = {}) {
   const q = new PgLeaseQueue(app.db as any);
-  await q.enqueue({ kind: 'editorial_draft', profileId: 'writer_pontos', refId: `c1-${n}`, idempotencyKey: `c1-idem-${n}`, dataClass: 'public', maxCostMicro: 1_000_000 }, app.clock.now);
+  await q.enqueue({ kind: 'editorial_draft', profileId: 'writer_pontos', refId: `c1-${n}`, idempotencyKey: `c1-idem-${n}`, dataClass: 'public', maxCostMicro: 1_000_000, ...(pullBody.account === 'opencode' ? { route: ['opencode' as const] } : {}) }, app.clock.now);
   await new PgTaskIo(app.db as any, app.deps.now).putInput(`c1-${n}`, { pauta: 'conteúdo público de teste' }, { taskClass: 'draft', promptVersion: 'editorial-0.2' });
   const r = await post(pull, { workerId: 'w-c1', ...pullBody });
   expect(r.status, JSON.stringify(r.body)).toBe(200);
@@ -106,7 +106,7 @@ describe('C1: pull → heartbeat → io → callback assinados, com a parada lig
     it(`${motivo}: matriz por rota (423 JSON com o código, nunca 5xx), callback aceito com o custo, e o ciclo volta ao tirar a parada`, async () => {
       const piloto = motivo === 'PILOT_STOPPED';
       if (piloto) pilotOn();
-      const via = piloto ? { account: 'claude' } : {};
+      const via = piloto ? { account: 'opencode' } : {}; // a redação do piloto roda na opencode
       const t = await entregue(1, via);
       expect((await post(heartbeat, { taskId: t.id, leaseId: t.leaseId })).status).toBe(200); // em curso, antes da parada
 
@@ -126,9 +126,9 @@ describe('C1: pull → heartbeat → io → callback assinados, com a parada lig
       // o custo já gasto não se perde: o callback é aceito durante a parada
       const ref = esperado.ioResult === 200 ? s.ioResult.body.data.resultRef : `res-${t.id}-a${t.attempt}`;
       const usage = piloto
-        ? { executionId: `exec-${t.id}`, taskId: t.id, leaseId: t.leaseId, model: 'anthropic/claude-sonnet-5.5', lane: 'subscription', account: 'claude', costMicro: 0 }
+        ? { executionId: `exec-${t.id}`, taskId: t.id, leaseId: t.leaseId, model: 'opencode/deepseek-v4.1-flash-free', lane: 'opencode', account: 'opencode', costMicro: 0 }
         : { executionId: `exec-${t.id}`, taskId: t.id, leaseId: t.leaseId, model: 'anthropic/claude-sonnet-5.5', generationIds: ['gen-1'], promptTokens: 1000, completionTokens: 500, cacheReadTokens: 0, cacheWriteTokens: 0, costMicro: 400_000 };
-      const trace = piloto ? { trace: { stage: 'draft', account: 'claude', promptVersion: 'editorial-0.2', startedAt: app.clock.now.toISOString(), endedAt: app.clock.now.toISOString() } } : {};
+      const trace = piloto ? { trace: { stage: 'draft', account: 'opencode', promptVersion: 'editorial-0.2', startedAt: app.clock.now.toISOString(), endedAt: app.clock.now.toISOString() } } : {};
       const cb = await post(callback, { callbackId: `cb-${motivo}`, taskId: t.id, leaseId: t.leaseId, outcome: piloto ? 'failed' : 'completed', ...(piloto ? { retryable: false } : { resultRef: ref }), usage, ...trace });
       expect(cb.status, `callback em ${motivo}: ${JSON.stringify(cb.body)}`).toBe(200);
       const custos = await app.db.select().from(schema.openbotCostEntries as any);

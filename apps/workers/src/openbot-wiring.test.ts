@@ -1,11 +1,13 @@
 import { afterAll, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
 import type { Db } from '@ln/auth';
 import { createTestDb } from '@ln/db/testing';
 import { schema } from '@ln/db';
 import { PostgresLedgerStore, type SqlDatabase } from '@ln/modelops';
-import { handleCallback, handlePull, resultRefFor, signBody, type GatewayRequestLike, type OpenBotDeps, type PullResult } from '@ln/openbot';
+import { handleCallback, handlePull, resultRefFor, resumePilot, signBody, type GatewayRequestLike, type OpenBotDeps, type PullResult } from '@ln/openbot';
 import { createPilotWiring, pilotWiringImporter, PILOT_PROFILES, type LoadAgentsKit } from './openbot-wiring';
 import { PgCallbackStore, PgCostLedger, PgHealthStore, PgLeaseQueue, PgPilotResolutionStore, PgPilotRowStore, PgPilotStateStore, PgTaskIo } from './openbot-pg';
+import { configInvalidOf } from '@ln/agents';
 
 // Fiação do piloto (DP-41) sobre o PostgreSQL de teste: o gateway da Fábrica + o sink do veredito, com um agente de mentira (em processo) respondendo
 // pelos MESMOS handlers e tabelas das rotas. O kit do AgentOps (gate e applyRowPatch) é injetado; com o `@ln/agents` real o ensaio roda na árvore integrada.
@@ -108,7 +110,7 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     const db = await fresh();
     const agent = agentFor(db);
     const steps: Array<() => Promise<unknown>> = [
-      () => agent('claude', 'claude-sonnet-5-5', 'draft'),
+      () => agent('opencode', 'opencode-go/deepseek-v4-pro', 'draft'),
       () => agent('opencode', 'deepseek-v4.1-flash', 'factcheck'),
     ];
     const { gateway } = await createPilotWiring({ ...STAGING }, db, { loadKit: kitOk, now: () => NOW, sleep: async () => { const s = steps.shift(); if (s) await s(); } });
@@ -118,29 +120,32 @@ describe('createPilotWiring: o ciclo da Fábrica', () => {
     const check = await gateway.invoke(req('factcheck', 'art-9:factcheck:1', { reviewedDraftTaskId: draft.taskId }));
     expect(check.ok, JSON.stringify(check)).toBe(true);
     const tasks = await db.select().from(schema.openbotTasks);
-    expect(tasks.map((x) => [x.kind, x.route, x.profileId])).toEqual(expect.arrayContaining([['editorial_draft', ['claude'], 'ln_pilot_redator'], ['fact_check', ['opencode'], 'ln_pilot_checador']]));
+    expect(tasks.map((x) => [x.kind, x.route, x.profileId])).toEqual(expect.arrayContaining([['editorial_draft', ['opencode'], 'ln_pilot_redator'], ['fact_check', ['opencode'], 'ln_pilot_checador']]));
     const io = (await db.select().from(schema.openbotIo)).find((x) => x.direction === 'input' && x.taskClass === 'factcheck');
     expect(io?.meta).toMatchObject({ reviewedDraftTaskId: draft.taskId });
   });
 
-  it('a redação sai na via declarada (claude), não na conta designada; as demais etapas saem na opencode', async () => {
+  it('a redação sai na via declarada (opencode/DeepSeek) e as demais seguem a rota da etapa', async () => {
     const db = await fresh();
     const agent = agentFor(db);
     const steps: Array<() => Promise<unknown>> = [
-      () => agent('claude', 'claude-sonnet-5-5', 'draft'),
+      () => agent('opencode', 'opencode-go/deepseek-v4-pro', 'draft'),
       () => agent('opencode', 'deepseek-v4.1-flash', 'factcheck'),
     ];
     const { gateway } = await createPilotWiring({ ...STAGING, LN_OPENBOT_GATEWAY_TIMEOUT_MS: '1500' }, db, { loadKit: kitOk, now: () => NOW, sleep: async () => { const s = steps.shift(); if (s) await s(); } });
     const draft = await gateway.invoke(req('draft', 'art-9:draft:1'));
     expect(draft.ok, JSON.stringify(draft)).toBe(true);
     if (!draft.ok) return;
-    expect(draft.provider).toBe('anthropic');
+    expect(draft.provider).toBe('deepseek');
     const check = await gateway.invoke(req('factcheck', 'art-9:factcheck:1', { reviewedDraftTaskId: draft.taskId }));
     expect(check.ok, JSON.stringify(check)).toBe(true);
     const tasks = await db.select().from(schema.openbotTasks);
-    expect(tasks.map((x) => [x.kind, x.route])).toEqual(expect.arrayContaining([['editorial_draft', ['claude']], ['fact_check', ['opencode']]]));
+    expect(tasks.map((x) => [x.kind, x.route])).toEqual(expect.arrayContaining([['editorial_draft', ['opencode']], ['fact_check', ['opencode']]]));
     const rows = await new PgPilotRowStore(db, () => NOW).all();
-    expect(rows.map((x) => [x.stage, x.account])).toEqual(expect.arrayContaining([['draft', 'claude'], ['factcheck', 'opencode']]));
+    expect(rows.map((x) => [x.stage, x.account])).toEqual(expect.arrayContaining([['draft', 'opencode'], ['factcheck', 'opencode']]));
+    const draftRow = rows.find((x) => x.stage === 'draft')!;
+    expect(draftRow.declared_model).toBe('opencode-go/deepseek-v4-pro');
+    expect(configInvalidOf(draftRow)).toEqual([]); // conta opencode + modelo deepseek = coerentes (sem config_invalid)
   }, 60_000);
 
   it('kill switch da rota openbot: a chamada é recusada (kill_switch) antes de criar tarefa, e voltar a funcionar quando solto', async () => {
@@ -175,6 +180,56 @@ describe.skipIf(typeof real.canDispatchNext !== 'function' || typeof real.applyR
     const rows = await new PgPilotRowStore(db, () => NOW).all();
     expect((real.canDispatchNext as (r: unknown) => { allowed: boolean })(rows).allowed).toBe(true); // o gate oficial aceita a linha que o adaptador gravou
   });
+
+  // Parada de 26/11 21:00:52Z: a Fábrica com a redação nova julgava os drafts antigos em claude pela regra de hoje. Chaves, contas, modelos e datas dos registros
+  // do piloto; o resto é preenchimento simulado.
+  const draftAntigo = (task_id: string, attempt: number, declared_model: string, started_at: string, ended_at: string) => ({
+    task_id, attempt, declared_model, started_at, ended_at, kind: 'editorial_draft', article_id: 'art-antigo', source_id: 's', stage: 'draft', account: 'claude',
+    prompt_version: 'editorial-0.3', outcome: 'completed', packet_chars: 100, tokens_measured: false, published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false,
+  }) as never;
+  const ANTIGOS = [
+    draftAntigo('task-445fd7c4-7c59-4a5d-9acb-442dea536876', 1, 'claude-sonnet-5-5', '2026-11-25T15:34:15.060Z', '2026-11-25T15:34:15.061Z'),
+    draftAntigo('task-440b508b-0217-4bb9-b254-5508b7b97ffc', 2, 'opencode-go/claude-haiku-5-5', '2026-11-26T03:47:32.466Z', '2026-11-26T03:48:30.205Z'),
+    draftAntigo('task-cab96daa-e1c4-435a-b81c-4c3969716eab', 3, 'opencode-go/claude-haiku-5-5', '2026-11-26T05:05:20.000Z', '2026-11-26T05:05:27.000Z'),
+    draftAntigo('task-30453d26-be25-4cb0-a192-484723d8087b', 1, 'claude-sonnet-5-5', '2026-11-26T11:50:18.000Z', '2026-11-26T11:55:34.000Z'),
+  ];
+
+  it('os 4 drafts antigos em claude não param a Fábrica; draft novo vai só à opencode e a claude não o recebe', async () => {
+    const db = await fresh();
+    for (const r of ANTIGOS) await new PgPilotRowStore(db, () => NOW).upsert(r);
+    const agent = agentFor(db);
+    const steps: Array<() => Promise<unknown>> = [() => agent('opencode', 'deepseek-v4.1-flash', 'triage')];
+    const peloClaude: unknown[] = [];
+    const { gateway } = await createPilotWiring({ ...STAGING, LN_OPENBOT_GATEWAY_TIMEOUT_MS: '1500' }, db, {
+      now: () => NOW, sleep: async () => { const s = steps.shift(); if (s) await s(); else peloClaude.push(await agent('claude', 'claude-sonnet-5-5', 'draft')); },
+    });
+    const triage = await gateway.invoke(req('triage', 'art-9:triage:1', { pauta: 'x' }));
+    expect(triage.ok, JSON.stringify(triage)).toBe(true);
+    const novo = await gateway.invoke(req('draft', 'art-9:draft:1'));
+    expect(novo.ok).toBe(false);
+    expect(!novo.ok && novo.detail).toMatch(/pending_timeout.*opencode/);
+    expect(peloClaude.length).toBeGreaterThan(0);
+    expect(peloClaude.every((t) => t === null)).toBe(true);
+    const [task] = (await db.select().from(schema.openbotTasks)).filter((t) => t.kind === 'editorial_draft');
+    expect(task).toMatchObject({ route: ['opencode'], status: 'pending' });
+    expect(await new PgPilotStateStore(db).get()).toBeNull();
+  }, 60_000);
+
+  it('retomada: com a parada gravada pelas 4 linhas, o resume passa; com uma linha nova em claude, recusa e a parada fica', async () => {
+    const db = await fresh();
+    const rows = new PgPilotRowStore(db, () => NOW);
+    const state = new PgPilotStateStore(db);
+    for (const r of ANTIGOS) await rows.upsert(r);
+    await state.stop('canDispatchNext_recusou: linha antiga', NOW.toISOString());
+    const deps = { pilot: { enabled: true, rows, state, gate: real.canDispatchNext } } as unknown as OpenBotDeps;
+    const admin = { id: 'admin-teste', permissions: ['openbot:pilot_admin'] };
+    await rows.upsert(draftAntigo('task-nova', 1, 'claude-sonnet-5-5', '2026-11-27T10:00:00.000Z', '2026-11-27T10:01:00.000Z'));
+    expect((await resumePilot(deps, admin)).status).toBe(409);
+    expect(await state.get()).not.toBeNull();
+    await db.delete(schema.openbotPilotRows).where(eq(schema.openbotPilotRows.taskId, 'task-nova'));
+    expect((await resumePilot(deps, admin)).status).toBe(200);
+    expect(await state.get()).toBeNull();
+  }, 60_000);
 
   // Defeito de 26/11: a Fábrica se auto-barrou (e gravou PILOT_STOPPED) por uma linha que o admin já havia tratado, porque a fiação local não passava as
   // resoluções ao portão — a rota do servidor passava. O teste falha sem `resolved` na fiação e passa com ele.

@@ -1,7 +1,7 @@
 // Exportação da planilha do piloto em CSV (Studio 2; decisão PM-2026-11-23-F). Função pura sobre:
 //  - as linhas da trilha do piloto (uma por tarefa e tentativa; PilotRow do @ln/openbot, colunas PILOT_CSV_COLUMNS do AgentOps), e
 //  - o mapa e as leituras da Editorial (GET /piloto e /piloto/:materia/leituras, que já aplicam a cegueira no servidor).
-// Regras: as 31 colunas do AgentOps vêm primeiro, na mesma ordem e com o mesmo escape (fórmula neutralizada); colunas novas só no FIM.
+// Regras: as colunas do AgentOps (32; a última é o agente, worker_id) vêm primeiro, na mesma ordem e com o mesmo escape (fórmula neutralizada); colunas novas só no FIM.
 // unsupported_* da linha FINAL da matéria (stage review ou check_edit) vêm da leitura do LEITOR 1 quando a linha ainda não os tem.
 // Leitor 2: só sai quando o leitor 1 já registrou a dele naquela matéria (cegueira, PM-2026-11-23-C/E).
 import { PILOT_CSV_COLUMNS } from '@ln/openbot';

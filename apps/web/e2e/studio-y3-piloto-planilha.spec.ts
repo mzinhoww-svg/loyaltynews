@@ -9,7 +9,7 @@ const COLUNAS_AGENTOPS = [
   'task_id', 'kind', 'article_id', 'source_id', 'stage', 'account', 'declared_model', 'prompt_version', 'started_at', 'ended_at', 'attempt',
   'reviewed_draft_task_id', 'outcome', 'limit_message', 'limit_at', 'account_resumed_at', 'gate_verdict', 'gate_reasons', 'cross_provider_ok',
   'packet_chars', 'output_valid', 'tokens_measured', 'unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low',
-  'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes',
+  'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes', 'worker_id',
 ];
 
 test('RBAC: sem sessão não baixa; editor e revisor recebem 403 sem dados', async ({ page, context }) => {

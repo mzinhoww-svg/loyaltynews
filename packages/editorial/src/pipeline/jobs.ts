@@ -20,11 +20,13 @@ export interface ArticleJob {
   draft?: Draft;
   /** Id da TAREFA (no gateway) que produziu o rascunho atual, se o gateway informou: é o `reviewedDraftTaskId` das etapas seguintes. */
   draftTaskId?: string;
+  /** Agente (worker) que produziu o rascunho atual, se o gateway informou (independência por agente, DP-71). */
+  draftAgent?: string;
   /** Slug gerado na 1ª redação e mantido nas seguintes (muda livremente até a 1ª publicação; depois é imutável). */
   slug?: string;
   attempt: number;           // redações tentadas: sobe só em re-redação pedida (recheck/feedback do editor); gate determinístico não refaz a redação
   feedback?: Finding[];      // achados que motivaram nova redação
-  factcheck?: { provider: string; model: string; verdicts: FactVerdict[]; reviewedDraftTaskId?: string; reviewedDraftSha256?: string };
+  factcheck?: { provider: string; model: string; verdicts: FactVerdict[]; reviewedDraftTaskId?: string; reviewedDraftSha256?: string; /** só na independência por agente: quem checou e em qual tarefa */ agent?: string; taskId?: string };
   /** Resultado da revisão final (qual revisão do rascunho avaliou e por qual modelo). */
   review?: { provider: string; model: string; reviewedDraftTaskId: string; reviewedDraftSha256: string };
   approved?: boolean;

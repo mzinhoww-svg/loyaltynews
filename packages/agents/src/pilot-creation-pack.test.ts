@@ -23,10 +23,10 @@ describe('pacote de criação dos 5 agentes do piloto (nada é criado)', () => {
 
   it('conta e modelo por agente: pauta Haiku (backup Sonnet, mesma conta); redação Claude; checagem e revisão no Codex', () => {
     expect(by(pack, 'ln_pilot_pauta').openbot).toMatchObject({ provider: 'claude', model: 'claude-haiku-5-5', backup_model: 'claude-sonnet-5-5' });
-    expect(by(pack, 'ln_pilot_redator').openbot).toMatchObject({ provider: 'claude', backup_model: null });
+    expect(by(pack, 'ln_pilot_redator').openbot).toMatchObject({ provider: 'opencode', model: 'opencode-go/deepseek-v4-pro', backup_model: null });
     for (const id of ['ln_pilot_checador', 'ln_pilot_revisor']) expect(by(pack, id).openbot).toMatchObject({ provider: 'codex', model: 'gpt-6.2-sol', backup_model: null });
     expect(by(pack, 'ln_pilot_social').client_env).toMatchObject({ LN_AGENT_ACCOUNT: 'claude', kinds: ['social_copy', 'entity_resolution'], stages: ['social_pack', 'roles'] });
-    expect(new Set(pack.agents.map((a) => a.openbot.provider))).toEqual(new Set(['claude', 'codex'])); // DP-41
+    expect(new Set(pack.agents.map((a) => a.openbot.provider))).toEqual(new Set(['claude', 'codex', 'opencode'])); // DP-41 + decisão do PM 26/11 (redação em opencode)
     expect(new Set(pack.agents.map((a) => a.client_env.LN_WORKER_ID)).size).toBe(5);
   });
 

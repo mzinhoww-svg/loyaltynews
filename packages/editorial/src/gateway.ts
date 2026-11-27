@@ -32,6 +32,8 @@ export type GatewayResponse =
     ok: true; provider: string; model: string; output: unknown; usage: { inputTokens: number; outputTokens: number; costMicrosUsd: number };
     /** Gateways com tarefa própria (OpenBot) devolvem o id da TAREFA que atendeu a chamada e a tentativa: a Editorial os usa para ligar checagem/revisão ao rascunho avaliado e para gravar o veredito na linha do piloto. Opcional. */
     taskId?: string; attempt?: number;
+    /** AGENTE (worker) que pegou e concluiu a tarefa, quando o gateway sabe: é a prova de independência por agente (DP-71). Opcional. */
+    agent?: string;
   }
   | { ok: false; refusal: RefusalCode; detail?: string; taskId?: string; attempt?: number };
 

@@ -9,7 +9,7 @@ import { onClientError } from '@ln/db/safe-log';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
   type ModelGateway, type PilotRowSink, Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, runStage, applyOutcome, systemResolver,
-  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass, type StageDeps, type ArticleJob, type Stage,
+  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass, type StageDeps, type ArticleJob, type Stage, type IndependenceMode,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
 import { PgEditorialStore } from './editorial-store';
@@ -96,6 +96,8 @@ export interface RunEditorialFactoryInput {
   modelGateway?: ModelGateway;
   /** Linha do piloto (planilha de medição): veredito do gate e output_valid gravados por tarefa. */
   pilotSink?: PilotRowSink;
+  /** `agent` = independência por agente e execução (DP-71). Só com o `modelGateway` do piloto; nunca com o gateway tarifado. Ausente = por provedor. */
+  independence?: IndependenceMode;
   /** Orçamento persistido em PostgreSQL? Sem isso, `modelosHabilitados` é recusada (o teto de US$ 50/mês não sobreviveria a um restart). */
   persistentLedger?: boolean;
   registry?: SourceRegistry;
@@ -110,6 +112,13 @@ export interface RunEditorialFactoryInput {
   /** Opções do coletor padrão (ex.: ritmo). Só para testes/operação; o padrão mantém 3 s por host. */
   collectorOptions?: Partial<CollectorOptions>;
   now?: () => Date;
+}
+
+/** Falha fechada: a independência por agente só existe no gateway pronto do piloto, que informa quem fez cada tarefa. */
+function independenceOf(i: Pick<RunEditorialFactoryInput, 'independence' | 'modelGateway' | 'pilotSink'>): { independence?: IndependenceMode } {
+  if (i.independence !== 'agent') return {};
+  if (!i.modelGateway || !i.pilotSink) throw new Error('independência por agente só vale no piloto (gateway e planilha do piloto); recusado');
+  return { independence: 'agent' };
 }
 
 export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<FactoryReport> {
@@ -128,7 +137,7 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
   const modelGateway = i.modelGateway ?? createLlmGateway(llm);
   try {
-    return await runFactory({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.options ?? {}), dryRun });
+    return await runFactory({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}), ...independenceOf(i) }, { ...(i.options ?? {}), dryRun });
   } finally {
     await drainShadow(i.shadow); // o job só termina quando a fila da sombra termina
   }
@@ -152,7 +161,7 @@ export async function runEditorialAutoral(i: Omit<RunEditorialFactoryInput, 'opt
   const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
   const modelGateway = i.modelGateway ?? createLlmGateway(createModelopsTransport(i.gateway!));
   try {
-    return await runAutoralQueue({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.max ? { max: i.max } : {}) });
+    return await runAutoralQueue({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}), ...independenceOf(i) }, { ...(i.max ? { max: i.max } : {}) });
   } finally {
     await drainShadow(i.shadow);
   }
@@ -165,16 +174,16 @@ export async function runEditorialAutoral(i: Omit<RunEditorialFactoryInput, 'opt
  * precisa exportar `createPilotWiring(env): Promise<{ gateway: ModelGateway; sink: PilotRowSink }>`; o Editorial não depende desses pacotes.
  * Ligada e sem o módulo, o job RECUSA começar (não cai em silêncio no gateway de modelops).
  */
-export async function loadPilotWiring(env: Record<string, string | undefined>, importer: (spec: string) => Promise<Record<string, unknown>> = (s) => import(/* @vite-ignore */ s) as Promise<Record<string, unknown>>): Promise<{ gateway: ModelGateway; sink: PilotRowSink } | undefined> {
+export async function loadPilotWiring(env: Record<string, string | undefined>, importer: (spec: string) => Promise<Record<string, unknown>> = (s) => import(/* @vite-ignore */ s) as Promise<Record<string, unknown>>): Promise<{ gateway: ModelGateway; sink: PilotRowSink; independence?: IndependenceMode } | undefined> {
   if (env['LN_OPENBOT_PILOT'] !== '1') return undefined;
   if (env['APP_ENV'] !== 'staging') throw new Error('LN_OPENBOT_PILOT=1 só vale com APP_ENV=staging (DP-41): recusado');
   const spec = env['LN_OPENBOT_PILOT_WIRING'] ?? '@ln/openbot-wiring';
   const mod = await importer(spec).catch(() => null);
   const make = mod?.['createPilotWiring'];
   if (typeof make !== 'function') throw new Error(`LN_OPENBOT_PILOT=1, mas ${spec} (createPilotWiring) não está disponível neste ambiente`);
-  const w = (await make(env)) as { gateway?: ModelGateway; sink?: PilotRowSink };
+  const w = (await make(env)) as { gateway?: ModelGateway; sink?: PilotRowSink; independence?: IndependenceMode };
   if (!w?.gateway || typeof w.gateway.invoke !== 'function') throw new Error('createPilotWiring não devolveu um gateway com invoke()');
-  return { gateway: w.gateway, ...(w.sink ? { sink: w.sink } : {}) } as { gateway: ModelGateway; sink: PilotRowSink };
+  return { gateway: w.gateway, ...(w.sink ? { sink: w.sink } : {}), ...(w.independence === 'agent' ? { independence: w.independence } : {}) } as { gateway: ModelGateway; sink: PilotRowSink; independence?: IndependenceMode };
 }
 
 /**
@@ -259,6 +268,7 @@ export async function runEditorialReprocess(
     gateway: modelGateway, registry, audit: new InMemoryAuditLog(), flags, now,
     slugExists: async (slug) => (await store.listArticles()).some((a) => a.draft?.slug === slug),
     ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}),
+    ...independenceOf(i),
   };
   const job: ArticleJob = { articleId: article.articleId, editoria: article.editoria, evidences: article.evidences, ...(article.draft ? { draft: article.draft } : {}), attempt: 0 };
   const out = await runStage(stageDeps, { stage: i.stage, jobId: `${target}:rp`, data: job });

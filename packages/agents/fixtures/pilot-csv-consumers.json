@@ -6,8 +6,8 @@
       "id": "openbot.PILOT_CSV_COLUMNS",
       "owner": "Integration",
       "source": "packages/openbot/src/pilot.ts",
-      "ref": "origin/main",
-      "commit": "02ac6d2",
+      "ref": "fix/pilot-dp71-agente-execucao",
+      "commit": "DP-71 (coluna worker_id)",
       "columns": [
         "task_id",
         "kind",
@@ -39,15 +39,16 @@
         "tarifada_api_call",
         "secret_in_log",
         "tool_outside_contract",
-        "notes"
+        "notes",
+        "worker_id"
       ]
     },
     {
       "id": "studio-2.COLUNAS_AGENTOPS",
       "owner": "Studio 2",
       "source": "apps/web/e2e/studio-y3-piloto-planilha.spec.ts",
-      "ref": "ft/studio-2",
-      "commit": "35fa9c4",
+      "ref": "fix/pilot-dp71-agente-execucao",
+      "commit": "DP-71 (coluna worker_id)",
       "columns": [
         "task_id",
         "kind",
@@ -79,7 +80,8 @@
         "tarifada_api_call",
         "secret_in_log",
         "tool_outside_contract",
-        "notes"
+        "notes",
+        "worker_id"
       ]
     }
   ],

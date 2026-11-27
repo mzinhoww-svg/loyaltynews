@@ -31,12 +31,12 @@ Uma via por agente (DP-41). O `pull` entrega por **conta**, e há três agentes 
 | Agente (nome do rascunho) | Provedor / modelo sugerido | Esforço | `LN_AGENT_ACCOUNT` | `--kinds` | `--stage` | Perfil do despacho |
 |---|---|---|---|---|---|---|
 | LN Piloto — Pauta | claude / `claude-haiku-5-5` (backup `claude-sonnet-5-5` na MESMA conta) | alto | claude | `classification` | `triage` | `ln_pilot_pauta` |
-| LN Piloto — Redação | claude / `claude-sonnet-5-5` (sem backup, sem troca de via) | alto | claude | `editorial_draft` | `draft` | `ln_pilot_redator` |
+| LN Piloto — Redação | opencode / `opencode-go/deepseek-v4-pro` (sem backup, sem troca de via; Claude esgotado, decisão do PM 26/11) | alto | opencode | `editorial_draft` | `draft` | `ln_pilot_redator` |
 | LN Piloto — Checagem | codex / `gpt-6.2-sol` (sem backup: no limite espera a janela) | alto | codex | `fact_check` | `factcheck` | `ln_pilot_checador` |
 | LN Piloto — Revisão | codex / `gpt-6.2-sol` (sem backup) | alto | codex | `editorial_review` | `review` | `ln_pilot_revisor` |
 | LN Piloto — Social e Entidades | claude / `claude-sonnet-5-5` | alto | claude | `social_copy,entity_resolution` | `social_pack` / `roles` | `ln_pilot_social` |
 
-Ids de modelo conferidos em `openbot.list_models` em 23/11/2026 (claude: haiku-5-5, sonnet-5-5; codex: `gpt-6.2-sol`). **Independência:** a checagem e a revisão (codex/OpenAI) nunca são do autor do rascunho (claude/Anthropic); o gateway confere pelo modelo declarado. O modelo DECLARADO no relato (`--model`) é o que vale; o id exato por conta não foi verificado.
+Ids de modelo conferidos em `openbot.list_models` em 23/11/2026 (claude: haiku-5-5, sonnet-5-5; codex: `gpt-6.2-sol`). **Independência (DP-71):** a checagem e a revisão nunca são do agente nem da execução que redigiu (o provedor pode ser o mesmo; a publicação continua exigindo outro); a Fábrica do piloto e o avaliador conferem pelo agente do lease (`LN_WORKER_ID`, um por etapa). O modelo DECLARADO no relato (`--model`) é o que vale; o id exato por conta não foi verificado.
 
 ## 3. Segredo no cofre do OpenBot (sem expor)
 1. `openbot.request_api_key` com um nome como `LN_OPENBOT_HMAC_STAGING` (formulário seguro; o valor não passa pelo chat nem por mim).

@@ -34,7 +34,7 @@ export const PILOT_LANES: readonly Account[] = ['opencode', 'claude'];
  */
 export const PILOT_ROUTES: Record<string, readonly Account[]> = {
   classification: ['opencode'],
-  editorial_draft: ['claude'],
+  editorial_draft: ['opencode'],
   fact_check: ['opencode'],
   editorial_review: ['opencode'],
   social_copy: ['opencode'],
@@ -50,6 +50,8 @@ export interface PilotWiring {
   /** Só o `invoke` (o `ModelGateway` da Editorial). */
   gateway: Pick<OpenBotModelGateway, 'invoke'>;
   sink: PilotRowSinkLike;
+  /** DP-71: no piloto a checagem e a revisão são independentes por AGENTE e execução; o provedor pode ser o do redator. */
+  independence: 'agent';
 }
 
 type ApplyRowPatch = (row: never, patch: Record<string, unknown>) => { row: unknown; errors: string[] };
@@ -133,7 +135,7 @@ export async function createPilotWiring(env: Record<string, string | undefined>,
       if (!(await rows.patch(taskId, attempt, patch))) throw new Error(`linha do piloto sumiu: ${taskId}#${attempt}`);
     },
   };
-  return { gateway, sink };
+  return { gateway, sink, independence: 'agent' };
 }
 
 /**

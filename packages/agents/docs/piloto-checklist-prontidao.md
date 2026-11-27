@@ -50,7 +50,7 @@ Legenda: **✓** feito e conferido por mim (SHA existe e o ancestral confere com
 |---|---|---|
 | Só Claude e Codex | `PilotAccount = claude \| codex \| deterministic`; linha com outra conta é inválida; pauta só em modelo Haiku ou Sonnet | `pilot.test.ts` e `pilot-columns.test.ts`; QA 3 |
 | Redação sem alternativo; checagem e revisão só no Codex, sem backup | `PILOT_STAGES`, perfis do piloto | QA 3 |
-| Checagem independente do redator | `authorOfDeclaredModel`, conta × modelo declarado | QA 3 (F1) |
+| Checagem independente do redator | agente do lease (`worker_id`) e execução diferentes (DP-71); `authorOfDeclaredModel`, conta × modelo declarado seguem exigidos | QA 3 (F1); DP-71 |
 | Sem API tarifada | `tarifada_api_call` é parada imediata; `must_not` em todos os perfis | `pilot.test.ts` |
 | Sem publicação | `published_attempt` é parada imediata; a Fábrica não publica no piloto | `pilot.test.ts`, ensaio da Integration ◐ |
 | Adaptador recusa conta fora de Claude e Codex | `DP41_ACCOUNTS` (422 e piloto parado) | relato da Integration ◐ (`pilot.test.ts`, 12 testes do bloco DP-41) |

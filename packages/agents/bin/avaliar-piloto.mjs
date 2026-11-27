@@ -72,7 +72,7 @@ if (primeira.length === 1 && /^#\s*amostra_desde=/.test(primeira[0])) {
 if (linhas.length === 0) falha('CSV sem cabeçalho depois do marcador de amostra');
 const cab = linhas[0];
 
-// --- cabeçalho: as 31 colunas do AgentOps, na ordem; depois, só as 7 do Studio (ignoradas) ------------------------------
+// --- cabeçalho: as colunas do AgentOps (a última é o agente, worker_id), na ordem; depois, só as 7 do Studio (ignoradas) --
 const base = [...PILOT_SHEET_COLUMNS];
 for (let i = 0; i < base.length; i++) {
   if (cab[i] !== base[i]) falha(`cabeçalho inválido: a coluna ${i + 1} deveria ser "${base[i]}" e é "${cab[i] ?? '(ausente)'}"; esperadas ${base.length} colunas do AgentOps, na ordem`);
@@ -148,7 +148,7 @@ if (comoJson) {
   if (motivos.length) { L.push('Motivos:'); for (const m of motivos) L.push(`  - ${corte(m, 400)}`); }
   L.push('Critérios:');
   L.push(`  - amostra: ${ev.exit.sample === 'valid' ? 'válida' : 'INVÁLIDA'} (${ev.invalidRows.length} linha(s) inválida(s))`);
-  L.push(`  - independência: ${ev.exit.independence} (${ev.independence.ok} de ${ev.independence.checked} checagens/revisões de autor diferente do redator)`);
+  L.push(`  - independência: ${ev.exit.independence} (${ev.independence.ok} de ${ev.independence.checked} checagens/revisões de agente e execução diferentes do redator)`);
   L.push(`  - qualidade: ${ev.exit.quality}; altas ${q.high}, médias ${q.medium}, baixas ${q.low} (critério: 0 altas e no máximo 1 média; baixas só anotadas; fato sem gravidade conta como alto)`);
   L.push(`  - violações: ${ev.stop.length} (publicar, API tarifada, segredo em log, ferramenta fora do contrato, conta fora da rota); as violações continuam contando mesmo depois de resolvidas no Studio`);
   L.push(`  - custo tarifado: ${ev.tariffed.apiCalls} chamada(s) à API (esperado 0)`);
