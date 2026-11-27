@@ -177,7 +177,8 @@ if (appKey === 'workers') INCLUDE.push('infra/vertra/bindings.json');
 // Dados do benchmark de scraping (trechos de paginas de terceiros; parecer 64 da Security): so as ferramentas e testes do proprio benchmark leem;
 // nada em execucao usa. Ficam fora dos dois pacotes (web e workers).
 const DADOS_FORA_DO_PACOTE = 'packages/scraping-benchmark/data';
-const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e', `:(exclude)${DADOS_FORA_DO_PACOTE}`];
+// os testes `e2e-*.test.ts` importam `apps/web/e2e`, que fica fora: dentro do pacote o typecheck do next build reprova (TS2307, v16, 27/11)
+const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e', ':(exclude,glob)apps/web/**/e2e-*.test.ts', `:(exclude)${DADOS_FORA_DO_PACOTE}`];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
