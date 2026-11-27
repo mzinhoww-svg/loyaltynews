@@ -72,6 +72,24 @@ describe('GET /api/studio/auditoria', () => {
     for (const q of [{ limit: '201' }, { limit: '0' }, { from: 'ontem' }, { offset: '-1' }] as Record<string, string>[]) expect((await get(q)).status, JSON.stringify(q)).toBe(400);
   });
 
+  it('linha antiga com e-mail em claro não sai pela API (admin e editor-chefe), e o banco fica como estava', async () => {
+    const antigas = [
+      { id: 'antiga-1', actorId: null, action: 'login.antigo', resource: 'sessao', resourceId: null, detalhe: { email: 'pessoa.antiga@exemplo-real.com', status: 401 } },
+      { id: 'antiga-2', actorId: null, action: 'login.antigo', resource: 'sessao', resourceId: null, detalhe: { email: 'Senha-Colada-No-Campo!' } },
+      { id: 'antiga-3', actorId: 'dona@exemplo-real.com', action: 'login.antigo', resource: 'sessao', resourceId: 'dona@exemplo-real.com', detalhe: { nota: ['de outra@exemplo-real.com'] } },
+    ];
+    await app.db.insert(schema.auditLog).values(antigas); // inserção direta: o formato que a versão anterior gravava
+    for (const quem of [admin, chefe]) {
+      const r = await get({ action: 'login.antigo' }, quem);
+      expect(r.body.total).toBe(3);
+      const saida = JSON.stringify(r.body).toLowerCase();
+      for (const proibido of ['@', 'pessoa.antiga', 'senha-colada', 'exemplo-real']) expect(saida, proibido).not.toContain(proibido);
+      expect(r.body.data.find((x: any) => x.id === 'antiga-1').detalhe).toEqual({ email: '[e-mail removido]', status: 401 });
+    }
+    const noBanco = (await app.db.select().from(schema.auditLog)).filter((l) => l.action === 'login.antigo');
+    expect(JSON.stringify(noBanco)).toContain('pessoa.antiga@exemplo-real.com'); // controle: a máscara é só na leitura
+  });
+
   it('a própria consulta é auditada, com os filtros e sem o resultado', async () => {
     await get({ resource: 'orcamento' }, chefe);
     const logs = await app.db.select().from(schema.auditLog);

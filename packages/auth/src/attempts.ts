@@ -72,6 +72,21 @@ export function auditIp(ip: string | null | undefined, env: Record<string, strin
   }
 }
 
+/**
+ * Código de AUDITORIA do e-mail digitado no login (audit_log é append-only: o e-mail em claro nunca entra). Mesma chave do limite, domínio próprio ('audit-email'):
+ * o mesmo endereço gera sempre o mesmo código, então dá para seguir as tentativas de uma conta a partir do e-mail, mas não voltar ao e-mail sem a chave.
+ * Vale para qualquer texto digitado no campo (inclusive uma senha colada ali por engano). Vazio ou sem chave utilizável: null, nunca o valor cru.
+ */
+export function auditEmail(email: string | null | undefined, env: Record<string, string | undefined> = process.env): string | null {
+  const v = (email ?? '').trim().toLowerCase();
+  if (!v) return null;
+  try {
+    return ATTEMPT_TAG + createHmac('sha256', attemptKey(env)).update(`audit-email\0${v}`).digest('hex');
+  } catch {
+    return null;
+  }
+}
+
 const where = (kind: AttemptKind, subject: string) =>
   and(eq(schema.authAttempt.kind, kind), eq(schema.authAttempt.subject, attemptSubject(kind, subject)));
 

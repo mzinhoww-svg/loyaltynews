@@ -7,7 +7,7 @@ import type { Role } from './rbac';
 export * from './rbac';
 export * from './guard';
 export * from './attempts';
-export { audit, redact, type AuditEntry } from './audit';
+export { audit, redact, stripEmails, EMAIL_REMOVIDO, type AuditEntry } from './audit';
 export { createAuth, createStaffUser, type Auth, type CreateAuthOptions, type NewStaffUser } from './server';
 export { createAuthHandler } from './handler';
 export { changeOwnPassword, validarNovaSenha, SENHA_MIN, SENHA_MAX, CHANGE_PASSWORD_ACTION, type ChangeOwnPasswordInput, type ChangeOwnPasswordDeps, type ChangeOwnPasswordResult, type ChangeOwnPasswordCode } from './change-password';

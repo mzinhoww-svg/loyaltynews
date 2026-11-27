@@ -97,14 +97,14 @@ export async function bootstrapStagingAdmin(deps: StagingAdminDeps, opts: Stagin
     // sessões do bootstrap não ficam abertas
     await db.delete(schema.session).where(eq(schema.session.userId, id));
 
-    // Auditoria SEM segredo: só quem (e-mail de teste) e o quê.
+    // Auditoria SEM segredo e sem e-mail em claro: o usuário vai pelo id (resourceId) e, como na produção, só o domínio.
     await audit(db, {
       actorId: null,
       actorRole: 'cli',
       action: 'bootstrap_admin_staging',
       resource: 'usuarios',
       resourceId: id,
-      detalhe: { email, recreate: Boolean(existing), entrega: opts.entrega ?? null, commit: opts.commit ?? null },
+      detalhe: { emailDominio: email.slice(email.lastIndexOf('@') + 1), recreate: Boolean(existing), entrega: opts.entrega ?? null, commit: opts.commit ?? null },
     });
     return { status: 'created', email, password, totpSecret: secret, totpUri: totpURI, backupCodes: backupCodes ?? [] };
   } catch (e) {

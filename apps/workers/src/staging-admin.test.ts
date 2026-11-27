@@ -274,7 +274,7 @@ describe('L4 idempotência e L9 auditoria', () => {
     }
   });
 
-  it('auditoria `bootstrap_admin_staging`: id, e-mail .invalid, entrega e commit, sem senha nem segredo; stdout/stderr dos casos de recusa também sem segredo', async () => {
+  it('auditoria `bootstrap_admin_staging`: id, domínio do e-mail, entrega e commit, sem senha nem segredo; stdout/stderr dos casos de recusa também sem segredo', async () => {
     const { t, db, deps } = await mk();
     try {
       const alvo = join(outside(), 'a.json');
@@ -283,7 +283,8 @@ describe('L4 idempotência e L9 auditoria', () => {
       const logs = await db.select().from(schema.auditLog);
       const boot = logs.filter((l) => l.action === 'bootstrap_admin_staging');
       expect(boot).toHaveLength(1);
-      expect(boot[0]!.detalhe).toEqual({ email: EMAIL, recreate: false, entrega: 'arquivo', commit: 'abc1234' });
+      expect(boot[0]!.detalhe).toEqual({ emailDominio: EMAIL.split('@')[1], recreate: false, entrega: 'arquivo', commit: 'abc1234' });
+      expect(JSON.stringify(logs).toLowerCase()).not.toContain(EMAIL.toLowerCase());
       expect(boot[0]!.resourceId).toBeTruthy();
       expect(JSON.stringify(logs)).not.toContain(arq.password);
       expect(JSON.stringify(logs)).not.toContain(arq.totpSecret);

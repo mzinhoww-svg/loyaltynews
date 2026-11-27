@@ -1,10 +1,11 @@
 // Leitura da trilha de auditoria (audit_log) para o Studio. Só leitura: a escrita é de `audit()` (@ln/auth), nunca daqui.
 //  - Papéis: admin e editor-chefe (RBAC `auditoria:read`). O IP (dado pessoal) só aparece para o admin.
 //  - Filtros: recurso, id do recurso, ação (exata) ou prefixo de ação (`orcamento.`), autor, período; ordem do mais novo ao mais velho.
-//  - `detalhe` já foi limpo de segredos na escrita (`redact`); aqui sai como está.
+//  - `detalhe` já foi limpo de segredos na escrita (`redact`). Linhas antigas guardam o e-mail digitado no login (a tabela é append-only): a leitura mascara
+//    todo e-mail e a chave `email` inteira, que pode conter outro texto (senha colada no campo). O banco não é alterado.
 //  - A própria consulta é auditada (`auditoria.consultada`) com os filtros, sem o resultado.
 import { and, count, desc, eq, gte, like, lte } from 'drizzle-orm';
-import { audit } from '@ln/auth';
+import { EMAIL_REMOVIDO, audit, stripEmails } from '@ln/auth';
 import { schema } from '@ln/db';
 import { z } from 'zod';
 import { json, parse, queryObject, type RouteFn } from './http';
@@ -24,6 +25,11 @@ const Query = z.object({
 
 /** `%` e `_` do prefixo valem como texto, não como curinga. */
 const escapeLike = (s: string) => s.replace(/[%_\\]/g, '\\$&');
+
+const detalheSemEmail = (detalhe: unknown): unknown => {
+  const d = stripEmails(detalhe);
+  return d && typeof d === 'object' && !Array.isArray(d) && 'email' in d ? { ...d, email: EMAIL_REMOVIDO } : d;
+};
 
 export const listAuditoria: RouteFn = async (_req, c) => {
   const q = parse(Query, queryObject(c.url));
@@ -55,7 +61,7 @@ export const listAuditoria: RouteFn = async (_req, c) => {
   });
   return json({
     data: rows.map((r) => ({
-      id: r.id, at: r.at, actorId: r.actorId, actorRole: r.actorRole, action: r.action, resource: r.resource, resourceId: r.resourceId, ip: verIp ? r.ip : null, detalhe: r.detalhe,
+      id: r.id, at: r.at, actorId: stripEmails(r.actorId), actorRole: r.actorRole, action: r.action, resource: r.resource, resourceId: stripEmails(r.resourceId), ip: verIp ? r.ip : null, detalhe: detalheSemEmail(r.detalhe),
     })),
     total: total?.n ?? 0,
     limit: q.limit,
